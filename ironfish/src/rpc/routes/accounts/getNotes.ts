@@ -3,19 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
-import { getAccount, getTransactionNotes } from './utils'
+import { getAccount } from './utils'
 
 export type GetAccountNotesStreamRequest = { account?: string }
 
 export type GetAccountNotesStreamResponse = {
   account: string
-  notes: {
+  note: {
     owner: boolean
     amount: number
     memo: string
     transactionHash: string
     spent: boolean | undefined
-  }[]
+  }
 }
 
 export const GetAccountNotesStreamRequestSchema: yup.ObjectSchema<GetAccountNotesStreamRequest> =
@@ -29,18 +29,14 @@ export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNot
   yup
     .object({
       account: yup.string().defined(),
-      notes: yup
-        .array(
-          yup
-            .object({
-              owner: yup.boolean().defined(),
-              amount: yup.number().defined(),
-              memo: yup.string().trim().defined(),
-              transactionHash: yup.string().defined(),
-              spent: yup.boolean(),
-            })
-            .defined(),
-        )
+      note: yup
+        .object({
+          owner: yup.boolean().defined(),
+          amount: yup.number().defined(),
+          memo: yup.string().trim().defined(),
+          transactionHash: yup.string().defined(),
+          spent: yup.boolean(),
+        })
         .defined(),
     })
     .defined()
@@ -51,9 +47,17 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
 
-    for await (const { transaction } of account.getTransactions()) {
-      const notes = await getTransactionNotes(account, transaction)
-      request.stream({ account: account.displayName, notes: [...notes] })
+    for await (const { note, spent, transactionHash } of account.getNotes()) {
+      request.stream({
+        account: account.displayName,
+        note: {
+          owner: true,
+          amount: Number(note.value()),
+          memo: note.memo(),
+          transactionHash: transactionHash.toString('hex'),
+          spent,
+        },
+      })
     }
 
     request.end()
