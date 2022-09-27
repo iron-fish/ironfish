@@ -146,17 +146,7 @@ export class IronfishSdk {
     }
 
     let client: RpcSocketClient
-    let rpcAuthToken = internal.get('rpcAuthToken')
-
-    if (!rpcAuthToken || rpcAuthToken === '') {
-      logger.debug(
-        `Missing RPC Auth token in internal.json config. Automatically generating auth token`,
-      )
-      internal.set('rpcAuthToken', uuid())
-      await internal.save()
-    }
-
-    rpcAuthToken = internal.get('rpcAuthToken')
+    const rpcAuthToken = internal.get('rpcAuthToken')
 
     if (config.get('enableRpcTcp')) {
       if (config.get('enableRpcTls')) {

@@ -53,10 +53,10 @@ describe('TcpAdapter', () => {
   })
 
   it('should send and receive message', async () => {
-    await tcp?.start()
     Assert.isNotUndefined(tcp)
-    Assert.isNotNull(tcp?.router)
-    Assert.isNotNull(tcp?.addressPort)
+    await tcp.start()
+    Assert.isNotNull(tcp.router)
+    Assert.isNotNull(tcp.addressPort)
 
     tcp.router.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
@@ -164,7 +164,7 @@ describe('TcpAdapter', () => {
       await expect(response.waitForEnd()).rejects.toMatchObject({
         status: 401,
         code: ERROR_CODES.UNAUTHENTICATED,
-        codeMessage: expect.stringContaining('Missing or bad authentication'),
+        codeMessage: expect.stringContaining('Failed authentication'),
       })
     })
 
@@ -190,7 +190,7 @@ describe('TcpAdapter', () => {
       await expect(response.waitForEnd()).rejects.toMatchObject({
         status: 401,
         code: ERROR_CODES.UNAUTHENTICATED,
-        codeMessage: expect.stringContaining('Missing or bad authentication'),
+        codeMessage: expect.stringContaining('Missing authentication token'),
       })
     })
 

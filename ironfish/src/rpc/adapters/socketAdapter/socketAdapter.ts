@@ -215,6 +215,11 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
 
       // Authentication
       if (this.enableAuthentication) {
+        if (!message.auth) {
+          this.emitResponse(client, this.constructUnauthenticatedRequest(message))
+          return
+        }
+
         const isAuthenticated = this.router.server.authenticate(message.auth)
 
         if (!isAuthenticated) {
@@ -330,7 +335,12 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   }
 
   constructUnauthenticatedRequest(request: SocketRpcRequest): ServerSocketRpc {
-    const error = new Error(`Missing or bad authentication`)
+    let error: Error
+    if (!request.auth) {
+      error = new Error(`Missing authentication token`)
+    } else {
+      error = new Error(`Failed authentication`)
+    }
 
     const data: SocketRpcError = {
       code: ERROR_CODES.UNAUTHENTICATED,
