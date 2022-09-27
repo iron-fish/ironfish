@@ -39,9 +39,7 @@ export abstract class RpcSocketClient extends RpcClient {
 
   constructor(logger: Logger, authToken?: string) {
     super(logger)
-    if (authToken) {
-      this.authToken = authToken
-    }
+    this.authToken = authToken ?? null
   }
 
   abstract connect(options?: Record<string, unknown>): Promise<void>
