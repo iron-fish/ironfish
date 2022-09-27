@@ -12,19 +12,24 @@ export class TransactionsCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     ...CliUx.ux.table.flags(),
-    account: Flags.string({
-      char: 'a',
-      description: 'Account to get transactions for',
-    }),
     hash: Flags.string({
       char: 't',
       description: 'Transaction hash to get details for',
     }),
   }
 
+  static args = [
+    {
+      name: 'account',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Name of the account',
+    },
+  ]
+
   async start(): Promise<void> {
-    const { flags } = await this.parse(TransactionsCommand)
-    const account = flags.account?.trim()
+    const { flags, args } = await this.parse(TransactionsCommand)
+    const account = args.account as string | undefined
     const hash = flags.hash?.trim()
 
     if (hash) {
@@ -96,7 +101,6 @@ export class TransactionsCommand extends IronfishCommand {
       filter: string | undefined
       'no-header': boolean | undefined
       sort: string | undefined
-      account: string | undefined
       extended: boolean | undefined
       hash: string | undefined
       csv: boolean | undefined
