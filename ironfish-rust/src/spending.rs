@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{primitives::sapling::ValueCommitment, proofs::circuit::spend::Spend};
+use crate::{
+    primitives::sapling::ValueCommitment,
+    proofs::{
+        circuit::spend::Spend,
+        notes::spendable_note::{NoteTrait, SpendableNote},
+    },
+};
 
 use super::{
     errors,
@@ -113,12 +119,73 @@ impl<'a> SpendParams {
         let proof_generation_key = spender_key.sapling_proof_generation_key();
 
         let spend_circuit = Spend {
-            value_commitment: Some(value_commitment.clone()),
+            value_commitment: Some(value_commitment),
             asset_type: Some(note.asset_type),
             proof_generation_key: Some(proof_generation_key),
             payment_address: Some(note.owner.sapling_payment_address()),
             auth_path: sapling_auth_path(witness),
             commitment_randomness: Some(note.randomness),
+            anchor: Some(witness.root_hash()),
+            ar: Some(public_key_randomness),
+        };
+        let proof = groth16::create_random_proof(spend_circuit, &sapling.spend_params, &mut OsRng)?;
+
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+        let nullifier = note.nullifier(&spender_key, witness_position(witness));
+
+        Ok(SpendParams {
+            sapling,
+            spender_key,
+            public_key_randomness,
+            proof,
+            value_commitment,
+            randomized_public_key,
+            root_hash: witness.root_hash(),
+            tree_size: witness.tree_size(),
+            nullifier,
+        })
+    }
+
+    /// Construct a new SpendParams attempting to spend a note at a given location
+    /// in the merkle tree.
+    ///
+    /// This is the only time this API thinks about the merkle tree. The witness
+    /// contains the root-hash at the time the witness was created and the path
+    /// to verify the location of that note in the tree.
+    pub fn new2(
+        sapling: Arc<Sapling>,
+        spender_key: SaplingKey,
+        note: &(impl SpendableNote + NoteTrait),
+        witness: &dyn WitnessTrait,
+    ) -> Result<SpendParams, errors::SaplingProofError> {
+        // This is a sanity check; it would be caught in proving the circuit anyway,
+        // but this gives us more information in the event of a failure
+        if !witness.verify(&MerkleNoteHash::new(note.commitment_point())) {
+            return Err(errors::SaplingProofError::InconsistentWitness);
+        }
+
+        // let mut buffer = [0u8; 64];
+        // thread_rng().fill(&mut buffer[..]);
+
+        // let value_commitment = note
+        //     .asset_type()
+        //     .value_commitment(note.value, jubjub::Fr::from_bytes_wide(&buffer));
+        let value_commitment = note.value_commitment();
+
+        let mut buffer = [0u8; 64];
+        thread_rng().fill(&mut buffer[..]);
+        let public_key_randomness = jubjub::Fr::from_bytes_wide(&buffer);
+
+        let proof_generation_key = spender_key.sapling_proof_generation_key();
+
+        let spend_circuit = Spend {
+            value_commitment: Some(value_commitment),
+            asset_type: Some(note.asset_type()),
+            proof_generation_key: Some(proof_generation_key),
+            payment_address: Some(note.owner().sapling_payment_address()),
+            auth_path: sapling_auth_path(witness),
+            commitment_randomness: Some(note.randomness()),
             anchor: Some(witness.root_hash()),
             ar: Some(public_key_randomness),
         };

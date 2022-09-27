@@ -11,6 +11,7 @@ use crate::{
         creating_asset::{CreateAssetParams, CreateAssetProof},
         mint_asset_note::MintAssetNote,
         minting_asset::{MintAssetParams, MintAssetProof},
+        spendable_note::{NoteTrait, SpendableNote},
     },
     receiving::OutputSignature,
     spending::SpendSignature,
@@ -120,6 +121,19 @@ impl ProposedTransaction {
         witness: &dyn WitnessTrait,
     ) -> Result<(), SaplingProofError> {
         let proof = SpendParams::new(self.sapling.clone(), spender_key, note, witness)?;
+        self.add_spend_proof(proof, note.value());
+        Ok(())
+    }
+
+    /// Spend the note owned by spender_key at the given witness location.
+    // TODO: Why doesnt this take a reference for SaplingKey but .receive does?
+    pub fn spend2(
+        &mut self,
+        spender_key: SaplingKey,
+        note: &(impl SpendableNote + NoteTrait),
+        witness: &dyn WitnessTrait,
+    ) -> Result<(), SaplingProofError> {
+        let proof = SpendParams::new2(self.sapling.clone(), spender_key, note, witness)?;
         self.add_spend_proof(proof, note.value());
         Ok(())
     }

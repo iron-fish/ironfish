@@ -342,7 +342,10 @@ mod test {
         primitives::asset_type::AssetInfo,
         proofs::{
             circuit::{create_asset::CreateAsset, sapling::TREE_DEPTH, spend::Spend},
-            notes::{create_asset_note::CreateAssetNote, mint_asset_note::MintAssetNote},
+            notes::{
+                create_asset_note::CreateAssetNote, mint_asset_note::MintAssetNote,
+                spendable_note::NoteTrait,
+            },
         },
         sapling_bls12::{self},
         test_util::{make_fake_witness, make_fake_witness_from_commitment},
@@ -847,25 +850,26 @@ mod test {
             AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
 
         // Create asset note
-        let create_note = CreateAssetNote::new(asset_info.clone());
+        let create_note = CreateAssetNote::new(asset_info);
         let create_witness = make_fake_witness_from_commitment(create_note.commitment_point());
 
         // Mint asset note
         let value = 2;
         let mint_note = MintAssetNote::new(asset_info, value);
+        let mint_witness = make_fake_witness_from_commitment(mint_note.commitment_point());
 
         let tx_fee = 1;
 
         // Regular spend note for transaction fee
         let in_note = Note::new(
-            public_address,
+            public_address.clone(),
             tx_fee,
             Memo::default(),
             AssetType::default(),
         );
         let note_witness = make_fake_witness(&in_note);
 
-        let mut transaction = ProposedTransaction::new(sapling);
+        let mut transaction = ProposedTransaction::new(sapling.clone());
         transaction
             .spend(sapling_key.clone(), &in_note, &note_witness)
             .expect("Can add spend for tx fee");
@@ -881,8 +885,37 @@ mod test {
             .verify()
             .expect("should be able to verify transaction");
 
-        // TODO: .transaction_fee() is a different time from the 3rd argument of .post
+        // TODO: .transaction_fee() is a different type from the 3rd argument of .post
         // These need to be the same, whichever makes sense
         assert_eq!(public_transaction.transaction_fee(), tx_fee as i64);
+
+        // Regular spend note for transaction fee
+        let in_note2 = Note::new(
+            public_address,
+            tx_fee,
+            Memo::default(),
+            AssetType::default(),
+        );
+        let note_witness2 = make_fake_witness(&in_note2);
+
+        let mut transaction2 = ProposedTransaction::new(sapling);
+        transaction2
+            .spend(sapling_key.clone(), &in_note2, &note_witness2)
+            .expect("can add tx fee note");
+        transaction2
+            .spend2(sapling_key.clone(), &mint_note, &mint_witness)
+            .expect("Can spend minted tokens");
+
+        let public_transaction2 = transaction2
+            .post(&sapling_key, None, tx_fee)
+            .expect("should be able to post transaction");
+
+        public_transaction2
+            .verify()
+            .expect("should be able to verify transaction");
+
+        // TODO: .transaction_fee() is a different type from the 3rd argument of .post
+        // These need to be the same, whichever makes sense
+        assert_eq!(public_transaction2.transaction_fee(), tx_fee as i64);
     }
 }

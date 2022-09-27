@@ -237,7 +237,7 @@ mod test {
                 let mut cs = TestConstraintSystem::new();
 
                 let instance = Spend {
-                    value_commitment: Some(value_commitment.clone()),
+                    value_commitment: Some(value_commitment),
                     asset_type: Some(asset_type),
                     proof_generation_key: Some(proof_generation_key.clone()),
                     payment_address: Some(payment_address.clone()),
@@ -418,7 +418,7 @@ mod test {
                 let mut cs = TestConstraintSystem::new();
 
                 let instance = Spend {
-                    value_commitment: Some(value_commitment.clone()),
+                    value_commitment: Some(value_commitment),
                     asset_type: Some(asset_type),
                     proof_generation_key: Some(proof_generation_key.clone()),
                     payment_address: Some(payment_address.clone()),
@@ -504,7 +504,7 @@ mod test {
                 let mut cs = TestConstraintSystem::new();
 
                 let instance = Output {
-                    value_commitment: Some(value_commitment.clone()),
+                    value_commitment: Some(value_commitment),
                     asset_type: Some(asset_type),
                     payment_address: Some(payment_address.clone()),
                     commitment_randomness: Some(commitment_randomness),

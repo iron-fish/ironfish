@@ -2,34 +2,30 @@ use std::io;
 
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
-use byteorder::{LittleEndian, WriteBytesExt};
 use group::{Curve, GroupEncoding};
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
-use zcash_primitives::{constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR, pedersen_hash};
 
 use crate::{
     errors,
     merkle_note::sapling_auth_path,
-    primitives::{
-        asset_type::AssetIdentifier, constants::ASSET_IDENTIFIER_LENGTH, sapling::ValueCommitment,
-    },
+    primitives::{asset_type::AssetIdentifier, constants::ASSET_IDENTIFIER_LENGTH},
     proofs::circuit::mint_asset::MintAsset,
     proofs::notes::mint_asset_note::MintAssetNote,
-    sapling_bls12::{self, SAPLING},
+    sapling_bls12::{self},
     serializing::read_scalar,
     witness::WitnessTrait,
     AssetType, SaplingKey,
 };
 
-use super::create_asset_note::CreateAssetNote;
+use super::{create_asset_note::CreateAssetNote, spendable_note::NoteTrait};
 
 pub struct MintAssetParams {
     /// Proof that the mint asset circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,
 
     /// Randomness used to mint the identifier commitment
-    pub(crate) mint_commitment_randomness: jubjub::Fr,
+    pub(crate) _mint_commitment_randomness: jubjub::Fr,
 
     // Fields that would exist on "MerkleNote" if we were keeping that pattern:
 
@@ -49,11 +45,6 @@ pub struct MintAssetParams {
 }
 
 impl MintAssetParams {
-    // TODO: Just notes for refactoring, delete this comment when done
-    // spending:
-    // new: Just enough to create the circuit and call create_random_proof
-    // post: Creates the SpendProof object and calls SpendProof.verify_proof
-    // SpendProof.verify_proof does all the public inputs etc, everything needed to verify
     pub(crate) fn new(
         minting_key: &SaplingKey,
         create_asset_note: &CreateAssetNote,
@@ -68,7 +59,6 @@ impl MintAssetParams {
         let create_asset_commitment = create_asset_note.commitment_point();
         let mint_asset_commitment = mint_asset_note.commitment_point();
 
-        let public_address = asset_info.public_address();
         let proof_generation_key = minting_key.sapling_proof_generation_key();
 
         let mut buffer = [0u8; 64];
@@ -95,7 +85,7 @@ impl MintAssetParams {
         let params = MintAssetParams {
             proof: mint_proof,
             // TODO: I think this comes from the create note?
-            mint_commitment_randomness,
+            _mint_commitment_randomness: mint_commitment_randomness,
             create_asset_commitment,
             mint_asset_commitment,
             encrypted_note: [0u8; 12],
