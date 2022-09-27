@@ -415,6 +415,26 @@ export class Account {
   async getHeadHash(tx?: IDatabaseTransaction): Promise<Buffer | null> {
     return this.accountsDb.getHeadHash(this, tx)
   }
+
+  async getTransactionNotes(
+    transaction: Transaction,
+  ): Promise<Array<DecryptedNoteValue & { hash: Buffer }>> {
+    const notes = []
+
+    for (const note of transaction.notes()) {
+      const noteHash = note.merkleHash()
+      const decryptedNote = await this.getDecryptedNote(noteHash)
+
+      if (decryptedNote) {
+        notes.push({
+          ...decryptedNote,
+          hash: noteHash,
+        })
+      }
+    }
+
+    return notes
+  }
 }
 
 export function calculateAccountPrefix(id: string): Buffer {
