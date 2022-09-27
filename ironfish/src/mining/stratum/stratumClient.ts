@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
+import tls from 'tls'
 import { Event } from '../../event'
 import { Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
@@ -30,11 +31,12 @@ import {
 import { VERSION_PROTOCOL_STRATUM } from './version'
 
 export class StratumClient {
-  readonly socket: net.Socket
+  socket: net.Socket
   readonly host: string
   readonly port: number
   readonly logger: Logger
   readonly version: number
+  readonly tlsEnabled: boolean
 
   private started: boolean
   private id: number | null
@@ -56,11 +58,12 @@ export class StratumClient {
   readonly onWaitForWork = new Event<[MiningWaitForWorkMessage]>()
   readonly onStatus = new Event<[MiningStatusMessage]>()
 
-  constructor(options: { host: string; port: number; logger: Logger }) {
+  constructor(options: { host: string; port: number; tlsEnabled?: boolean; logger: Logger }) {
     this.host = options.host
     this.port = options.port
     this.logger = options.logger
     this.version = VERSION_PROTOCOL_STRATUM
+    this.tlsEnabled = options.tlsEnabled ?? false
 
     this.started = false
     this.id = null
@@ -70,7 +73,6 @@ export class StratumClient {
     this.connectTimeout = null
 
     this.socket = new net.Socket()
-    this.socket.on('data', (data) => void this.onData(data).catch((e) => this.onError(e)))
   }
 
   start(): void {
@@ -88,10 +90,17 @@ export class StratumClient {
       this.connectTimeout = setTimeout(() => void this.startConnecting(), 60 * 1000)
       return
     }
-
-    const connected = await connectSocket(this.socket, this.host, this.port)
-      .then(() => true)
-      .catch(() => false)
+    let connected
+    if (this.tlsEnabled) {
+      connected = await this.connectTlsSocket()
+        .then(() => true)
+        .catch(() => false)
+    } else {
+      connected = await connectSocket(this.socket, this.host, this.port)
+        .then(() => true)
+        .catch(() => false)
+    }
+    this.socket.on('data', (data) => void this.onData(data).catch((e) => this.onError(e)))
 
     if (!this.started) {
       return
@@ -203,6 +212,30 @@ export class StratumClient {
 
   private onError = (error: unknown): void => {
     this.logger.error(`Stratum Error ${ErrorUtils.renderError(error)}`)
+  }
+
+  private connectTlsSocket(): Promise<void> {
+    return new Promise((resolve, reject): void => {
+      const onSecureConnect = () => {
+        socket.off('secureConnection', onSecureConnect)
+        socket.off('error', onError)
+        resolve()
+      }
+
+      const onError = (error: unknown) => {
+        socket.off('secureConnection', onSecureConnect)
+        socket.off('error', onError)
+        reject(error)
+      }
+
+      const options = {
+        rejectUnauthorized: false,
+      }
+
+      const socket = tls.connect(this.port, this.host, options, onSecureConnect)
+      socket.on('error', onError)
+      this.socket = socket
+    })
   }
 
   private async onData(data: Buffer): Promise<void> {

@@ -46,6 +46,10 @@ export class Miner extends IronfishCommand {
       allowNo: true,
       description: 'Enable fancy hashpower display',
     }),
+    tls: Flags.boolean({
+      description: 'Connect to pool over tls',
+      allowNo: true,
+    }),
   }
 
   async start(): Promise<void> {
@@ -107,6 +111,7 @@ export class Miner extends IronfishCommand {
         host: host,
         port: port,
         name: flags.name,
+        tlsEnabled: flags.tls,
       })
 
       miner.start()
