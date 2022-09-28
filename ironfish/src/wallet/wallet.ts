@@ -875,10 +875,14 @@ export class Wallet {
   async getTransactionStatus(
     account: Account,
     transaction: TransactionValue,
-    tx?: IDatabaseTransaction,
+    options?: {
+      headSequence?: number | null
+      tx?: IDatabaseTransaction
+    },
   ): Promise<string> {
     const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
-    const headSequence = await this.getAccountHeadSequence(account, tx)
+    const headSequence =
+      options?.headSequence ?? (await this.getAccountHeadSequence(account, options?.tx))
 
     if (!headSequence) {
       return 'unknown'

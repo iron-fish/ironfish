@@ -63,6 +63,8 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
       return
     }
 
+    const headSequence = await node.accounts.getAccountHeadSequence(account)
+
     for await (const transaction of account.getTransactions()) {
       if (request.closed) {
         break
@@ -86,6 +88,7 @@ const streamTransaction = async (
   node: IronfishNode,
   account: Account,
   transaction: TransactionValue,
+  headSequence?: number | null,
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
@@ -99,7 +102,9 @@ const streamTransaction = async (
     }
   }
 
-  const status = await node.accounts.getTransactionStatus(account, transaction)
+  const status = await node.accounts.getTransactionStatus(account, transaction, {
+    headSequence,
+  })
 
   const serialized = {
     ...serializedTransaction,
