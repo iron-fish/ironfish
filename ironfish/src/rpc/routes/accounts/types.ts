@@ -5,10 +5,12 @@ import { DecryptedNoteValue } from '../../../wallet/database/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/database/transactionValue'
 
 export type RpcAccountTransaction = {
+  hash: string
   isMinersFee: boolean
   fee: string
   notesCount: number
   spendsCount: number
+  expirationSequence: number
 }
 
 export type RpcAccountDecryptedNote = {
@@ -22,10 +24,12 @@ export function serializeRpcAccountTransaction(
   transaction: TransactionValue,
 ): RpcAccountTransaction {
   return {
+    hash: transaction.transaction.unsignedHash().toString('hex'),
     isMinersFee: transaction.transaction.isMinersFee(),
     fee: transaction.transaction.fee().toString(),
     notesCount: transaction.transaction.notesLength(),
     spendsCount: transaction.transaction.spendsLength(),
+    expirationSequence: transaction.transaction.expirationSequence(),
   }
 }
 

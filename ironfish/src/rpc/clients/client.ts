@@ -224,13 +224,13 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  async getAccountTransactions(
+  getAccountTransactionsStream(
     params: GetAccountTransactionsRequest,
-  ): Promise<RpcResponseEnded<GetAccountTransactionsResponse>> {
-    return await this.request<GetAccountTransactionsResponse>(
+  ): RpcResponse<void, GetAccountTransactionsResponse> {
+    return this.request<void, GetAccountTransactionsResponse>(
       `${ApiNamespace.account}/getAccountTransactions`,
       params,
-    ).waitForEnd()
+    )
   }
 
   async getPeers(
