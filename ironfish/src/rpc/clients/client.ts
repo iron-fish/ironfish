@@ -224,7 +224,7 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  getAccountTransactions(
+  getAccountTransactionsStream(
     params: GetAccountTransactionsRequest,
   ): RpcResponse<void, GetAccountTransactionsResponse> {
     return this.request<void, GetAccountTransactionsResponse>(

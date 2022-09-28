@@ -48,7 +48,7 @@ export class TransactionsCommand extends IronfishCommand {
     },
   ): Promise<void> {
     const client = await this.sdk.connectRpc()
-    const response = client.getAccountTransactions({ account })
+    const response = client.getAccountTransactionsStream({ account })
 
     let showHeader = true
     for await (const { account, transaction } of response.contentStream()) {
