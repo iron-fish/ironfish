@@ -159,4 +159,56 @@ describe('TcpAdapter', () => {
     const response = await client.request('foo/bar', 'hello world').waitForEnd()
     expect(response.content).toBe('hello world')
   }, 20000)
+
+  it('should reject when authentication failed', async () => {
+    Assert.isNotUndefined(tcp)
+    tcp.enableAuthentication = true
+    await tcp.start()
+
+    Assert.isNotNull(tcp.router)
+    Assert.isNotNull(tcp.addressPort)
+
+    tcp.router.register('foo/bar', yup.string(), (request) => {
+      request.end(request.data)
+    })
+
+    client = new RpcTcpClient('localhost', tcp.addressPort, logger, 'wrong token')
+    await client.connect()
+
+    const response = client.request('foo/bar', 'hello world')
+
+    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+
+    await expect(response.waitForEnd()).rejects.toMatchObject({
+      status: 401,
+      code: ERROR_CODES.UNAUTHENTICATED,
+      codeMessage: expect.stringContaining('Failed authentication'),
+    })
+  }, 20000)
+
+  it('should reject when auth token is empty', async () => {
+    Assert.isNotUndefined(tcp)
+    tcp.enableAuthentication = true
+    await tcp.start()
+
+    Assert.isNotNull(tcp.router)
+    Assert.isNotNull(tcp.addressPort)
+
+    tcp.router.register('foo/bar', yup.string(), (request) => {
+      request.end(request.data)
+    })
+
+    client = new RpcTcpClient('localhost', tcp.addressPort, logger)
+    await client.connect()
+
+    const response = client.request('foo/bar', 'hello world')
+
+    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+
+    await expect(response.waitForEnd()).rejects.toMatchObject({
+      status: 401,
+      code: ERROR_CODES.UNAUTHENTICATED,
+      codeMessage: expect.stringContaining('Missing authentication token'),
+    })
+  }, 20000)
 })
