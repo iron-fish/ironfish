@@ -6,6 +6,8 @@
 import os from 'os'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
+import { createRootLogger, Logger } from '../../logger'
+import { IronfishNode } from '../../node'
 import { IronfishSdk } from '../../sdk'
 import { RpcRequestError } from '../clients'
 import { RpcTcpClient } from '../clients/tcpClient'
@@ -17,9 +19,12 @@ describe('TcpAdapter', () => {
   let tcp: RpcTcpAdapter | undefined
   let sdk: IronfishSdk
   let client: RpcTcpClient | undefined
+  let node: IronfishNode
+  let logger: Logger
 
   beforeEach(async () => {
     const dataDir = os.tmpdir()
+    logger = createRootLogger().withTag('tcpadapter')
 
     sdk = await IronfishSdk.init({
       dataDir,
@@ -30,11 +35,15 @@ describe('TcpAdapter', () => {
         enableRpcTls: false,
         rpcTcpPort: 0,
       },
+      internalOverrides: {
+        rpcAuthToken: 'test token',
+      },
     })
+
+    node = await sdk.node()
 
     tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES)
 
-    const node = await sdk.node()
     await node.rpc.mount(tcp)
   })
 
@@ -44,10 +53,10 @@ describe('TcpAdapter', () => {
   })
 
   it('should send and receive message', async () => {
-    await tcp?.start()
     Assert.isNotUndefined(tcp)
-    Assert.isNotNull(tcp?.router)
-    Assert.isNotNull(tcp?.addressPort)
+    await tcp.start()
+    Assert.isNotNull(tcp.router)
+    Assert.isNotNull(tcp.addressPort)
 
     tcp.router.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
@@ -130,5 +139,24 @@ describe('TcpAdapter', () => {
       code: ERROR_CODES.VALIDATION,
       codeMessage: expect.stringContaining('this must be defined'),
     })
+  })
+
+  it('should succeed when authentication pass', async () => {
+    Assert.isNotUndefined(tcp)
+    tcp.enableAuthentication = true
+    await tcp.start()
+
+    Assert.isNotNull(tcp.router)
+    Assert.isNotNull(tcp.addressPort)
+
+    tcp.router.register('foo/bar', yup.string(), (request) => {
+      request.end(request.data)
+    })
+
+    client = new RpcTcpClient('localhost', tcp.addressPort, logger, 'test token')
+    await client.connect()
+
+    const response = await client.request('foo/bar', 'hello world').waitForEnd()
+    expect(response.content).toBe('hello world')
   })
 })

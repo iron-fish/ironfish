@@ -1,7 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Config, ConfigOptions, DEFAULT_DATA_DIR, InternalStore } from './fileStores'
+import {
+  Config,
+  ConfigOptions,
+  DEFAULT_DATA_DIR,
+  InternalOptions,
+  InternalStore,
+} from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
   createRootLogger,
@@ -67,6 +73,7 @@ export class IronfishSdk {
     pkg,
     configName,
     configOverrides,
+    internalOverrides,
     fileSystem,
     dataDir,
     logger = createRootLogger(),
@@ -76,6 +83,7 @@ export class IronfishSdk {
     pkg?: Package
     configName?: string
     configOverrides?: Partial<ConfigOptions>
+    internalOverrides?: Partial<InternalOptions>
     fileSystem?: FileSystem
     dataDir?: string
     logger?: Logger
@@ -106,6 +114,10 @@ export class IronfishSdk {
       Object.assign(config.overrides, configOverrides)
     }
 
+    if (internalOverrides) {
+      Object.assign(internal.overrides, internalOverrides)
+    }
+
     // Update the logger settings
     const logLevel = config.get('logLevel')
     if (logLevel) {
@@ -133,9 +145,16 @@ export class IronfishSdk {
     }
 
     let client: RpcSocketClient
+    const rpcAuthToken = internal.get('rpcAuthToken')
+
     if (config.get('enableRpcTcp')) {
       if (config.get('enableRpcTls')) {
-        client = new RpcTlsClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
+        client = new RpcTlsClient(
+          config.get('rpcTcpHost'),
+          config.get('rpcTcpPort'),
+          logger,
+          rpcAuthToken,
+        )
       } else {
         client = new RpcTcpClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
       }
@@ -220,6 +239,7 @@ export class IronfishSdk {
             this.fileSystem,
             this.config.get('tlsKeyPath'),
             this.config.get('tlsCertPath'),
+            node,
             this.logger,
             namespaces,
           ),

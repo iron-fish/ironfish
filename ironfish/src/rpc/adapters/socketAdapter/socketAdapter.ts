@@ -19,6 +19,7 @@ import {
   MESSAGE_DELIMITER,
   ServerSocketRpc,
   SocketRpcError,
+  SocketRpcRequest,
 } from './protocol'
 
 type SocketClient = {
@@ -35,6 +36,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   server: net.Server | null = null
   router: Router | null = null
   namespaces: ApiNamespace[]
+  enableAuthentication = true
 
   started = false
   clients = new Map<string, SocketClient>()
@@ -206,9 +208,24 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       )
       client.requests.set(requestId, request)
 
-      if (this.router == null) {
+      if (this.router == null || this.router.server == null) {
         this.emitResponse(client, this.constructUnmountedAdapter())
         return
+      }
+
+      // Authentication
+      if (this.enableAuthentication) {
+        if (!message.auth) {
+          this.emitResponse(client, this.constructUnauthenticatedRequest(message))
+          return
+        }
+
+        const isAuthenticated = this.router.server.authenticate(message.auth)
+
+        if (!isAuthenticated) {
+          this.emitResponse(client, this.constructUnauthenticatedRequest(message))
+          return
+        }
       }
 
       try {
@@ -315,5 +332,22 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       type: 'error',
       data: data,
     }
+  }
+
+  constructUnauthenticatedRequest(request: SocketRpcRequest): ServerSocketRpc {
+    let error: Error
+    if (!request.auth) {
+      error = new Error(`Missing authentication token`)
+    } else {
+      error = new Error(`Failed authentication`)
+    }
+
+    const data: SocketRpcError = {
+      code: ERROR_CODES.UNAUTHENTICATED,
+      message: error.message,
+      stack: error.stack,
+    }
+
+    return this.constructMessage(request.mid, 401, data)
   }
 }

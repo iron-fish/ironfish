@@ -23,8 +23,13 @@ export class RpcTcpClient extends RpcSocketClient {
   connection: RpcClientConnectionInfo
   private messageBuffer: MessageBuffer
 
-  constructor(host: string, port: number, logger: Logger = createRootLogger()) {
-    super(logger.withTag('tcpclient'))
+  constructor(
+    host: string,
+    port: number,
+    logger: Logger = createRootLogger(),
+    authToken?: string,
+  ) {
+    super(logger.withTag('tcpclient'), authToken)
     this.host = host
     this.port = port
     this.connection = { mode: 'tcp', host: host, port: port }
@@ -44,6 +49,7 @@ export class RpcTcpClient extends RpcSocketClient {
       const onError = (error: unknown) => {
         client.off('connect', onConnect)
         client.off('error', onError)
+
         if (ErrorUtils.isConnectRefusedError(error)) {
           reject(new RpcConnectionRefusedError())
         } else if (ErrorUtils.isNoEntityError(error)) {
@@ -70,13 +76,14 @@ export class RpcTcpClient extends RpcSocketClient {
     }
   }
 
-  protected send(messageId: number, route: string, data: unknown): void {
+  protected send(messageId: number, route: string, data: unknown, authToken: string): void {
     Assert.isNotNull(this.client)
     const message = {
       type: 'message',
       data: {
         mid: messageId,
         type: route,
+        auth: authToken,
         data: data,
       },
     }
