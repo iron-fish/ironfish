@@ -141,7 +141,7 @@ describe('TcpAdapter', () => {
     })
   })
 
-  describe('Authentication', () => {
+  // describe('Authentication', () => {
     it('should reject when authentication failed', async () => {
       Assert.isNotUndefined(tcp)
       tcp.enableAuthentication = true
