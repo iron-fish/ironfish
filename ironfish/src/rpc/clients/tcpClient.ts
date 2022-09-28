@@ -68,9 +68,9 @@ export class RpcTcpClient extends RpcSocketClient {
   }
 
   close(): void {
-    this.client?.end()
-
+    this.client?.destroy()
     this.messageBuffer.clear()
+
     if (this.connectTimeout) {
       clearTimeout(this.connectTimeout)
     }
