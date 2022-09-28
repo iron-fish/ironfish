@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
+import { IDatabaseTransaction } from '../../../storage'
 import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
@@ -53,11 +54,14 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
     if (request.data.hash) {
       const hash = Buffer.from(request.data.hash, 'hex')
-      const transaction = await account.getTransactionByUnsignedHash(hash)
 
-      if (transaction) {
-        await streamTransaction(request, node, account, transaction)
-      }
+      await node.accounts.db.database.transaction(async (tx) => {
+        const transaction = await account.getTransactionByUnsignedHash(hash, tx)
+
+        if (transaction) {
+          await streamTransaction(request, node, account, transaction, { tx })
+        }
+      })
 
       request.end()
       return
@@ -88,7 +92,10 @@ const streamTransaction = async (
   node: IronfishNode,
   account: Account,
   transaction: TransactionValue,
-  headSequence?: number | null,
+  options?: {
+    headSequence?: number | null
+    tx?: IDatabaseTransaction
+  },
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
@@ -102,9 +109,7 @@ const streamTransaction = async (
     }
   }
 
-  const status = await node.accounts.getTransactionStatus(account, transaction, {
-    headSequence,
-  })
+  const status = await node.accounts.getTransactionStatus(account, transaction, options)
 
   const serialized = {
     ...serializedTransaction,

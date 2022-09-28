@@ -66,31 +66,34 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
     const account = getAccount(node, request.data.account)
 
     const transactionHash = Buffer.from(request.data.hash, 'hex')
-    const transaction = await account.getTransactionByUnsignedHash(transactionHash)
 
-    if (!transaction) {
-      return request.end({
-        account: account.displayName,
-        transaction: null,
+    await node.accounts.db.database.transaction(async (tx) => {
+      const transaction = await account.getTransactionByUnsignedHash(transactionHash, tx)
+
+      if (!transaction) {
+        return request.end({
+          account: account.displayName,
+          transaction: null,
+        })
+      }
+
+      const notes = await account.getTransactionNotes(transaction.transaction)
+
+      const serializedNotes = notes.map(serializeRpcAccountDecryptedNote)
+      const serializedTransaction = serializeRpcAccountTransaction(transaction)
+
+      const status = await node.accounts.getTransactionStatus(account, transaction, { tx })
+
+      const serialized = {
+        ...serializedTransaction,
+        notes: serializedNotes,
+        status,
+      }
+
+      request.end({
+        account: account.name,
+        transaction: serialized,
       })
-    }
-
-    const notes = await account.getTransactionNotes(transaction.transaction)
-
-    const serializedNotes = notes.map(serializeRpcAccountDecryptedNote)
-    const serializedTransaction = serializeRpcAccountTransaction(transaction)
-
-    const status = await node.accounts.getTransactionStatus(account, transaction)
-
-    const serialized = {
-      ...serializedTransaction,
-      notes: serializedNotes,
-      status,
-    }
-
-    request.end({
-      account: account.name,
-      transaction: serialized,
     })
   },
 )
