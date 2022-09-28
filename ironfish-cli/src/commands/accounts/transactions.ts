@@ -30,23 +30,7 @@ export class TransactionsCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(TransactionsCommand)
     const account = args.account as string | undefined
-    await this.getTransactions(account, flags)
-  }
 
-  async getTransactions(
-    account: string | undefined,
-    flags: {
-      columns: string | undefined
-      'no-truncate': boolean | undefined
-      output: string | undefined
-      filter: string | undefined
-      'no-header': boolean | undefined
-      sort: string | undefined
-      extended: boolean | undefined
-      hash: string | undefined
-      csv: boolean | undefined
-    },
-  ): Promise<void> {
     const client = await this.sdk.connectRpc()
     const response = client.getAccountTransactionsStream({ account })
 
@@ -74,8 +58,8 @@ export class TransactionsCommand extends IronfishCommand {
             get: (transaction) => (transaction.isMinersFee ? `✔` : `x`),
           },
           fee: {
-            header: 'Fee ($ORE)',
-            get: (transaction) => CurrencyUtils.renderOre(transaction.fee, true),
+            header: 'Fee ($IRON)',
+            get: (transaction) => CurrencyUtils.renderIron(transaction.fee),
             minWidth: 20,
           },
           notesCount: {
