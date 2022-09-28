@@ -394,13 +394,9 @@ export class Wallet {
     })
   }
 
-  /**
-   * Deletes a transaction from the transaction map and updates
-   * the related maps.
-   */
-  async deleteTransaction(transaction: Transaction): Promise<void> {
+  async expireTransaction(transaction: Transaction): Promise<void> {
     for (const account of this.accounts.values()) {
-      await account.deleteTransaction(transaction)
+      await account.expireTransaction(transaction)
     }
   }
 
@@ -882,7 +878,7 @@ export class Wallet {
         )
 
         if (isExpired) {
-          await this.deleteTransaction(transaction)
+          await this.expireTransaction(transaction)
         }
       }
     }

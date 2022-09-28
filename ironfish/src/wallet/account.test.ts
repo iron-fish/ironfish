@@ -91,7 +91,7 @@ describe('Accounts', () => {
     await expect(notesInSequenceAfter).resolves.toHaveLength(0)
   })
 
-  it('should delete transaction', async () => {
+  it('should expire transactions', async () => {
     const { node } = nodeTest
 
     const account = await useAccountFixture(node.wallet, 'accountA')
@@ -113,7 +113,7 @@ describe('Accounts', () => {
       pending: BigInt(2000000000),
     })
 
-    await account.deleteTransaction(tx)
+    await account.expireTransaction(tx)
 
     await expect(AsyncUtils.materialize(account.getNotes())).resolves.toHaveLength(0)
 
@@ -125,5 +125,8 @@ describe('Accounts', () => {
       confirmed: BigInt(0),
       pending: BigInt(0),
     })
+
+    // record of expired transaction is preserved
+    await expect(account.getTransaction(tx.hash())).resolves.toBeDefined()
   })
 })

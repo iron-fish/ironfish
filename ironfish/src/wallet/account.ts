@@ -304,7 +304,7 @@ export class Account {
     return this.walletDb.loadTransactions(this, tx)
   }
 
-  async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
+  async expireTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
     const transactionHash = transaction.hash()
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
@@ -341,8 +341,6 @@ export class Account {
           )
         }
       }
-
-      await this.walletDb.deleteTransaction(this, transactionHash, tx)
     })
   }
 
