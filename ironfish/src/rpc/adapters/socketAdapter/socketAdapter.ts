@@ -110,6 +110,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       return
     }
 
+    this.started = false
     this.inboundTraffic.stop()
     this.outboundTraffic.stop()
 
