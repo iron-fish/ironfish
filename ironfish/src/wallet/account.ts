@@ -369,6 +369,23 @@ export class Account {
     })
   }
 
+  getTransactionStatus(
+    transaction: TransactionValue,
+    headSequence: number,
+    minimumBlockConfirmations: number,
+  ): string {
+    if (transaction.sequence) {
+      const isConfirmed = headSequence - transaction.sequence >= minimumBlockConfirmations
+
+      return isConfirmed ? 'confirmed' : 'unconfirmed'
+    } else {
+      const expirationSequence = transaction.transaction.expirationSequence()
+      const isExpired = expirationSequence !== 0 && expirationSequence <= headSequence
+
+      return isExpired ? 'expired' : 'pending'
+    }
+  }
+
   /**
    * Gets the balance for an account
    * confirmed: all notes on the chain

@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { serializeRpcAccountDecryptedNote, serializeRpcAccountTransaction } from './types'
-import { getAccount, getTransactionStatus } from './utils'
+import { getAccount } from './utils'
 
 export type GetAccountTransactionRequest = { account?: string; hash: string }
 
@@ -80,12 +80,12 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
     const serializedNotes = notes.map(serializeRpcAccountDecryptedNote)
     const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
-    const status = await getTransactionStatus(
-      node,
-      transaction.blockHash,
-      transaction.sequence,
-      transaction.transaction.expirationSequence(),
-    )
+    const headSequence = await node.accounts.getAccountHeadSequence(account)
+    const minimumBlockConfirmations = node.config.get('minimumBlockConfirmations')
+
+    const status = headSequence
+      ? account.getTransactionStatus(transaction, headSequence, minimumBlockConfirmations)
+      : 'unknown'
 
     const serialized = {
       ...serializedTransaction,

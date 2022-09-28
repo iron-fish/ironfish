@@ -556,8 +556,9 @@ export class Wallet {
     return await this.walletDb.db.transaction(async (tx) => {
       this.assertHasAccount(account)
 
-      const headHash = await account.getHeadHash(tx)
-      if (!headHash) {
+      const headSequence = await this.getAccountHeadSequence(account, tx)
+
+      if (!headSequence) {
         return {
           unconfirmed: BigInt(0),
           confirmed: BigInt(0),
@@ -567,10 +568,7 @@ export class Wallet {
         }
       }
 
-      const header = await this.chain.getHeader(headHash)
-      Assert.isNotNull(header, `Missing block header for hash '${headHash.toString('hex')}'`)
-
-      return account.getBalance(header.sequence, minimumBlockConfirmations, tx)
+      return account.getBalance(headSequence, minimumBlockConfirmations, tx)
     })
   }
 
@@ -1008,6 +1006,23 @@ export class Wallet {
     return null
   }
 
+  async getAccountHeadSequence(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): Promise<number | null> {
+    this.assertHasAccount(account)
+
+    const headHash = await account.getHeadHash(tx)
+    if (!headHash) {
+      return null
+    }
+
+    const header = await this.chain.getHeader(headHash)
+    Assert.isNotNull(header, `Missing block header for hash '${headHash.toString('hex')}'`)
+
+    return header.sequence
+  }
+
   getDefaultAccount(): Account | null {
     if (!this.defaultAccount) {
       return null
@@ -1082,9 +1097,7 @@ export class Wallet {
       `isAccountUpToDate: No head hash found for account ${account.displayName}`,
     )
 
-    const chainHeadHash = this.chainProcessor.hash ? this.chainProcessor.hash : null
-
-    return BufferUtils.equalsNullable(headHash, chainHeadHash)
+    return BufferUtils.equalsNullable(headHash, this.chainProcessor.hash)
   }
 
   protected assertHasAccount(account: Account): void {

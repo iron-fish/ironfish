@@ -26,28 +26,6 @@ export function getAccount(node: IronfishNode, name?: string): Account {
   )
 }
 
-export async function getTransactionStatus(
-  node: IronfishNode,
-  blockHash: Buffer | null,
-  sequence: number | null,
-  expirationSequence: number,
-): Promise<string> {
-  const headSequence = node.chain.head.sequence
-
-  if (sequence && blockHash) {
-    const sequenceHash = await node.chain.getHashAtSequence(sequence)
-    if (sequenceHash && blockHash.equals(sequenceHash)) {
-      const confirmations = headSequence - sequence
-      const minimumBlockConfirmations = node.config.get('minimumBlockConfirmations')
-      return confirmations >= minimumBlockConfirmations ? 'completed' : 'confirming'
-    } else {
-      return 'forked'
-    }
-  } else {
-    return headSequence > expirationSequence ? 'expired' : 'pending'
-  }
-}
-
 export async function getTransactionNotes(
   account: Account,
   transaction: Transaction,
