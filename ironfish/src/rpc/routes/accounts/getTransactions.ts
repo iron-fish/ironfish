@@ -2,11 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { IronfishNode } from '../../../node'
+import { Account } from '../../../wallet/account'
+import { TransactionValue } from '../../../wallet/database/transactionValue'
+import { RpcRequest } from '../../request'
 import { ApiNamespace, router } from '../router'
 import { serializeRpcAccountTransaction } from './types'
 import { getAccount, getTransactionStatus } from './utils'
 
-export type GetAccountTransactionsRequest = { account?: string }
+export type GetAccountTransactionsRequest = { account?: string; hash?: string }
 
 export type GetAccountTransactionsResponse = {
   account: string
@@ -26,6 +30,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
   yup
     .object({
       account: yup.string().strip(true),
+      hash: yup.string().notRequired(),
     })
     .defined()
 
@@ -54,38 +59,59 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
 
+    if (request.data.hash) {
+      const hash = Buffer.from(request.data.hash, 'hex')
+      const transaction = await account.getTransaction(hash)
+
+      if (transaction) {
+        await streamTransaction(request, node, account, transaction)
+      }
+
+      request.end()
+      return
+    }
+
     for await (const transaction of account.getTransactions()) {
-      const serializedTransaction = serializeRpcAccountTransaction(transaction)
-
-      let creator = false
-      for (const spend of transaction.transaction.spends()) {
-        const noteHash = await account.getNoteHash(spend.nullifier)
-
-        if (noteHash) {
-          creator = true
-          break
-        }
-      }
-
-      const status = await getTransactionStatus(
-        node,
-        transaction.blockHash,
-        transaction.sequence,
-        transaction.transaction.expirationSequence(),
-      )
-
-      const serialized = {
-        ...serializedTransaction,
-        creator,
-        status,
-      }
-
-      request.stream({
-        account: account.name,
-        transaction: serialized,
-      })
+      await streamTransaction(request, node, account, transaction)
     }
 
     request.end()
   },
 )
+
+const streamTransaction = async (
+  request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
+  node: IronfishNode,
+  account: Account,
+  transaction: TransactionValue,
+): Promise<void> => {
+  const serializedTransaction = serializeRpcAccountTransaction(transaction)
+
+  let creator = false
+  for (const spend of transaction.transaction.spends()) {
+    const noteHash = await account.getNoteHash(spend.nullifier)
+
+    if (noteHash) {
+      creator = true
+      break
+    }
+  }
+
+  const status = await getTransactionStatus(
+    node,
+    transaction.blockHash,
+    transaction.sequence,
+    transaction.transaction.expirationSequence(),
+  )
+
+  const serialized = {
+    ...serializedTransaction,
+    creator,
+    status,
+  }
+
+  request.stream({
+    account: account.name,
+    transaction: serialized,
+  })
+}

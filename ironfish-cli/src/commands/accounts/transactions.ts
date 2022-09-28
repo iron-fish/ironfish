@@ -32,7 +32,7 @@ export class TransactionsCommand extends IronfishCommand {
     const account = args.account as string | undefined
 
     const client = await this.sdk.connectRpc()
-    const response = client.getAccountTransactionsStream({ account })
+    const response = client.getAccountTransactionsStream({ account, hash: flags.hash })
 
     let showHeader = true
     for await (const { account, transaction } of response.contentStream()) {
