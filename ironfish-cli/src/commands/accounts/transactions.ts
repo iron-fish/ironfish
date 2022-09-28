@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { oreToIron } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -30,66 +29,7 @@ export class TransactionsCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(TransactionsCommand)
     const account = args.account as string | undefined
-    const hash = flags.hash?.trim()
-
-    if (hash) {
-      await this.getTransaction(account, hash)
-    } else {
-      await this.getTransactions(account, flags)
-    }
-  }
-
-  async getTransaction(account: string | undefined, hash: string): Promise<void> {
-    const client = await this.sdk.connectRpc()
-
-    const response = await client.getAccountTransaction({ account, hash })
-
-    const {
-      account: accountResponse,
-      transactionHash,
-      transactionInfo,
-      transactionNotes,
-    } = response.content
-
-    this.log(`Account: ${accountResponse}`)
-
-    if (transactionInfo !== null) {
-      this.log(
-        `Transaction: ${transactionHash}\nStatus: ${transactionInfo.status}\nMiner Fee: ${
-          transactionInfo.isMinersFee ? `✔` : `x`
-        }\nFee ($ORE): ${transactionInfo.fee}\nSpends: ${transactionInfo.spends}\n`,
-      )
-    }
-
-    if (transactionNotes.length > 0) {
-      this.log(`---Notes---\n`)
-
-      CliUx.ux.table(transactionNotes, {
-        isOwner: {
-          header: 'Owner',
-          get: (row) => (row.owner ? `✔` : `x`),
-        },
-        amount: {
-          header: 'Amount ($IRON)',
-          get: (row) => oreToIron(row.amount),
-        },
-        memo: {
-          header: 'Memo',
-        },
-        isSpent: {
-          header: 'Spent',
-          get: (row) => {
-            if (row.spent === undefined) {
-              return '-'
-            } else {
-              return row.spent ? `✔` : `x`
-            }
-          },
-        },
-      })
-    }
-
-    this.log(`\n`)
+    await this.getTransactions(account, flags)
   }
 
   async getTransactions(
