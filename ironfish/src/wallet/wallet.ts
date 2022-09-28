@@ -22,6 +22,7 @@ import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNo
 import { Account } from './account'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
+import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
 export type SyncTransactionParams =
@@ -868,6 +869,32 @@ export class Wallet {
       for await (const { transaction } of account.getExpiredTransactions(head.sequence)) {
         await account.expireTransaction(transaction)
       }
+    }
+  }
+
+  async getTransactionStatus(
+    account: Account,
+    transaction: TransactionValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<string> {
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
+    const headSequence = await this.getAccountHeadSequence(account, tx)
+
+    if (!headSequence) {
+      return 'unknown'
+    }
+
+    if (transaction.sequence) {
+      const isConfirmed = headSequence - transaction.sequence >= minimumBlockConfirmations
+
+      return isConfirmed ? 'confirmed' : 'unconfirmed'
+    } else {
+      const isExpired = this.chain.verifier.isExpiredSequence(
+        transaction.transaction.expirationSequence(),
+        headSequence,
+      )
+
+      return isExpired ? 'expired' : 'pending'
     }
   }
 

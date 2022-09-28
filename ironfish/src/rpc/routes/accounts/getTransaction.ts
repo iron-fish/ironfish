@@ -80,12 +80,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
     const serializedNotes = notes.map(serializeRpcAccountDecryptedNote)
     const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
-    const headSequence = await node.accounts.getAccountHeadSequence(account)
-    const minimumBlockConfirmations = node.config.get('minimumBlockConfirmations')
-
-    const status = headSequence
-      ? account.getTransactionStatus(transaction, headSequence, minimumBlockConfirmations)
-      : 'unknown'
+    const status = await node.accounts.getTransactionStatus(account, transaction)
 
     const serialized = {
       ...serializedTransaction,

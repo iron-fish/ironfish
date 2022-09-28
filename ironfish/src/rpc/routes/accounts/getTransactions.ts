@@ -51,21 +51,12 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
 
-    const headSequence = await node.accounts.getAccountHeadSequence(account)
-    const minimumBlockConfirmations = node.config.get('minimumBlockConfirmations')
-
     if (request.data.hash) {
       const hash = Buffer.from(request.data.hash, 'hex')
       const transaction = await account.getTransactionByUnsignedHash(hash)
 
       if (transaction) {
-        await streamTransaction(
-          request,
-          account,
-          transaction,
-          headSequence,
-          minimumBlockConfirmations,
-        )
+        await streamTransaction(request, node, account, transaction)
       }
 
       request.end()
@@ -92,10 +83,9 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
 const streamTransaction = async (
   request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
+  node: IronfishNode,
   account: Account,
   transaction: TransactionValue,
-  headSequence: number | null,
-  minimumBlockConfirmations: number,
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
@@ -109,9 +99,7 @@ const streamTransaction = async (
     }
   }
 
-  const status = headSequence
-    ? account.getTransactionStatus(transaction, headSequence, minimumBlockConfirmations)
-    : 'unknown'
+  const status = await node.accounts.getTransactionStatus(account, transaction)
 
   const serialized = {
     ...serializedTransaction,
