@@ -14,7 +14,7 @@ import { NoteWitness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
-import { ERROR_CODES, ValidationError } from '../rpc/adapters/errors'
+import { ERROR_CODES, ValidationError, ResponseError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
@@ -679,6 +679,15 @@ export class Accounts {
 
     try {
       this.assertHasAccount(sender)
+
+      // check if the chain data is fully synced
+      if (!this.chain.synced) {
+        throw new ResponseError(
+          `Your node must be synced with the Iron Fish network to send a transaction. `,
+          ERROR_CODES.ERROR,
+          400,
+        )
+      }
 
       // TODO: If we're spending from multiple accounts, we need to figure out a
       // way to split the transaction fee. - deekerno
