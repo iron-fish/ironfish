@@ -120,14 +120,8 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       client.messageBuffer.clear()
     })
 
-    await new Promise<void>((resolve, reject) => {
-      this.server?.close((error) => {
-        if (error) {
-          reject(error)
-        } else {
-          resolve()
-        }
-      })
+    await new Promise<void>((resolve) => {
+      this.server?.close(() => resolve())
     })
 
     await this.waitForAllToDisconnect()
