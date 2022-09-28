@@ -6,7 +6,7 @@ import { ApiNamespace, router } from '../router'
 import { serializeRpcAccountTransaction } from './types'
 import { getAccount, getTransactionStatus } from './utils'
 
-export type GetAccountTransactionsRequest = { account?: string }
+export type GetAccountTransactionsRequest = { account?: string; hash?: string }
 
 export type GetAccountTransactionsResponse = {
   account: string
@@ -26,6 +26,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
   yup
     .object({
       account: yup.string().strip(true),
+      hash: yup.string().notRequired(),
     })
     .defined()
 
@@ -53,8 +54,13 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
   GetAccountTransactionsRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
+    const hash = request.data.hash ? Buffer.from(request.data.hash, 'hex') : null
 
     for await (const transaction of account.getTransactions()) {
+      if (hash && !hash.equals(transaction.transaction.hash())) {
+        continue
+      }
+
       const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
       let creator = false
