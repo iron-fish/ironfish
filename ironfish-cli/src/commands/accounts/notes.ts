@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { oreToIron } from '@ironfish/sdk'
+import { CurrencyUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -40,13 +40,9 @@ export class NotesCommand extends IronfishCommand {
       CliUx.ux.table(
         [note],
         {
-          isOwner: {
-            header: 'Owner',
-            get: (row) => (row.owner ? `✔` : `x`),
-          },
           amount: {
             header: 'Amount ($IRON)',
-            get: (row) => oreToIron(row.amount),
+            get: (row) => CurrencyUtils.renderIron(row.amount),
           },
           memo: {
             header: 'Memo',

@@ -10,8 +10,7 @@ export type GetAccountNotesStreamRequest = { account?: string }
 export type GetAccountNotesStreamResponse = {
   account: string
   note: {
-    owner: boolean
-    amount: number
+    amount: string
     memo: string
     transactionHash: string
     spent: boolean | undefined
@@ -31,8 +30,7 @@ export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNot
       account: yup.string().defined(),
       note: yup
         .object({
-          owner: yup.boolean().defined(),
-          amount: yup.number().defined(),
+          amount: yup.string().defined(),
           memo: yup.string().trim().defined(),
           transactionHash: yup.string().defined(),
           spent: yup.boolean(),
@@ -51,8 +49,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
       request.stream({
         account: account.displayName,
         note: {
-          owner: true,
-          amount: Number(note.value()),
+          amount: note.value().toString(),
           memo: note.memo(),
           transactionHash: transactionHash.toString('hex'),
           spent,
