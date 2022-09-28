@@ -45,7 +45,7 @@ describe('TcpAdapter', () => {
     tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES)
 
     await node.rpc.mount(tcp)
-  })
+  }, 20000)
 
   afterEach(() => {
     client?.close()
@@ -67,7 +67,7 @@ describe('TcpAdapter', () => {
 
     const response = await client.request('foo/bar', 'hello world').waitForEnd()
     expect(response.content).toBe('hello world')
-  })
+  }, 20000)
 
   it('should stream message', async () => {
     await tcp?.start()
@@ -90,7 +90,7 @@ describe('TcpAdapter', () => {
 
     await response.waitForEnd()
     expect(response.content).toBe(undefined)
-  })
+  }, 20000)
 
   it('should handle errors', async () => {
     await tcp?.start()
@@ -113,7 +113,7 @@ describe('TcpAdapter', () => {
       code: 'hello-error',
       codeMessage: 'hello error',
     })
-  })
+  }, 20000)
 
   it('should handle request errors', async () => {
     await tcp?.start()
@@ -139,7 +139,7 @@ describe('TcpAdapter', () => {
       code: ERROR_CODES.VALIDATION,
       codeMessage: expect.stringContaining('this must be defined'),
     })
-  })
+  }, 20000)
 
   it('should succeed when authentication pass', async () => {
     Assert.isNotUndefined(tcp)
@@ -158,5 +158,5 @@ describe('TcpAdapter', () => {
 
     const response = await client.request('foo/bar', 'hello world').waitForEnd()
     expect(response.content).toBe('hello world')
-  })
+  }, 20000)
 })

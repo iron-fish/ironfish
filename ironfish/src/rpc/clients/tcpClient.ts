@@ -68,9 +68,9 @@ export class RpcTcpClient extends RpcSocketClient {
   }
 
   close(): void {
-    this.client?.end()
-
+    this.client?.destroy()
     this.messageBuffer.clear()
+
     if (this.connectTimeout) {
       clearTimeout(this.connectTimeout)
     }
@@ -133,8 +133,12 @@ export class RpcTcpClient extends RpcSocketClient {
   protected onClientClose = (): void => {
     this.isConnected = false
     this.messageBuffer.clear()
-    this.client?.off('data', this.onClientData)
-    this.client?.off('close', this.onClientClose)
+
+    if (this.client) {
+      this.client.off('data', this.onClientData)
+      this.client.off('close', this.onClientClose)
+      this.client = null
+    }
 
     this.handleClose()
   }
