@@ -6,9 +6,9 @@ import { ApiNamespace, router } from '../router'
 import { serializeRpcAccountTransaction } from './types'
 import { getAccount, getTransactionStatus } from './utils'
 
-export type GetAccountTransactionsRequest = { account?: string }
+export type GetAccountTransactionsStreamRequest = { account?: string }
 
-export type GetAccountTransactionsResponse = {
+export type GetAccountTransactionsStreamResponse = {
   account: string
   transaction: {
     creator: boolean
@@ -22,14 +22,14 @@ export type GetAccountTransactionsResponse = {
   }
 }
 
-export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
+export const GetAccountTransactionsStreamRequestSchema: yup.ObjectSchema<GetAccountTransactionsStreamRequest> =
   yup
     .object({
       account: yup.string().strip(true),
     })
     .defined()
 
-export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTransactionsResponse> =
+export const GetAccountTransactionsStreamResponseSchema: yup.ObjectSchema<GetAccountTransactionsStreamResponse> =
   yup
     .object({
       account: yup.string().defined(),
@@ -48,9 +48,12 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
     })
     .defined()
 
-router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
+router.register<
+  typeof GetAccountTransactionsStreamRequestSchema,
+  GetAccountTransactionsStreamResponse
+>(
   `${ApiNamespace.account}/getAccountTransactions`,
-  GetAccountTransactionsRequestSchema,
+  GetAccountTransactionsStreamRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
 

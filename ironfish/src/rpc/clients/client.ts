@@ -15,8 +15,8 @@ import {
   GetAccountsResponse,
   GetAccountTransactionRequest,
   GetAccountTransactionResponse,
-  GetAccountTransactionsRequest,
-  GetAccountTransactionsResponse,
+  GetAccountTransactionsStreamRequest,
+  GetAccountTransactionsStreamResponse,
   GetBalanceRequest,
   GetBalanceResponse,
   GetBlockInfoRequest,
@@ -225,9 +225,9 @@ export abstract class RpcClient {
   }
 
   getAccountTransactionsStream(
-    params: GetAccountTransactionsRequest,
-  ): RpcResponse<void, GetAccountTransactionsResponse> {
-    return this.request<void, GetAccountTransactionsResponse>(
+    params: GetAccountTransactionsStreamRequest,
+  ): RpcResponse<void, GetAccountTransactionsStreamResponse> {
+    return this.request<void, GetAccountTransactionsStreamResponse>(
       `${ApiNamespace.account}/getAccountTransactions`,
       params,
     )
