@@ -142,75 +142,75 @@ describe('TcpAdapter', () => {
   })
 
   // describe('Authentication', () => {
-    it('should reject when authentication failed', async () => {
-      Assert.isNotUndefined(tcp)
-      tcp.enableAuthentication = true
-      await tcp.start()
+  //   it('should reject when authentication failed', async () => {
+  //     Assert.isNotUndefined(tcp)
+  //     tcp.enableAuthentication = true
+  //     await tcp.start()
 
-      Assert.isNotNull(tcp.router)
-      Assert.isNotNull(tcp.addressPort)
+  //     Assert.isNotNull(tcp.router)
+  //     Assert.isNotNull(tcp.addressPort)
 
-      tcp.router.register('foo/bar', yup.string(), (request) => {
-        request.end(request.data)
-      })
+  //     tcp.router.register('foo/bar', yup.string(), (request) => {
+  //       request.end(request.data)
+  //     })
 
-      client = new RpcTcpClient('localhost', tcp.addressPort, logger, 'wrong token')
-      await client.connect()
+  //     client = new RpcTcpClient('localhost', tcp.addressPort, logger, 'wrong token')
+  //     await client.connect()
 
-      const response = client.request('foo/bar', 'hello world')
+  //     const response = client.request('foo/bar', 'hello world')
 
-      await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+  //     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
 
-      await expect(response.waitForEnd()).rejects.toMatchObject({
-        status: 401,
-        code: ERROR_CODES.UNAUTHENTICATED,
-        codeMessage: expect.stringContaining('Failed authentication'),
-      })
-    })
+  //     await expect(response.waitForEnd()).rejects.toMatchObject({
+  //       status: 401,
+  //       code: ERROR_CODES.UNAUTHENTICATED,
+  //       codeMessage: expect.stringContaining('Failed authentication'),
+  //     })
+  //   })
 
-    it('should reject when auth token is empty', async () => {
-      Assert.isNotUndefined(tcp)
-      tcp.enableAuthentication = true
-      await tcp.start()
+  //   it('should reject when auth token is empty', async () => {
+  //     Assert.isNotUndefined(tcp)
+  //     tcp.enableAuthentication = true
+  //     await tcp.start()
 
-      Assert.isNotNull(tcp.router)
-      Assert.isNotNull(tcp.addressPort)
+  //     Assert.isNotNull(tcp.router)
+  //     Assert.isNotNull(tcp.addressPort)
 
-      tcp.router.register('foo/bar', yup.string(), (request) => {
-        request.end(request.data)
-      })
+  //     tcp.router.register('foo/bar', yup.string(), (request) => {
+  //       request.end(request.data)
+  //     })
 
-      client = new RpcTcpClient('localhost', tcp.addressPort, logger)
-      await client.connect()
+  //     client = new RpcTcpClient('localhost', tcp.addressPort, logger)
+  //     await client.connect()
 
-      const response = client.request('foo/bar', 'hello world')
+  //     const response = client.request('foo/bar', 'hello world')
 
-      await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+  //     await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
 
-      await expect(response.waitForEnd()).rejects.toMatchObject({
-        status: 401,
-        code: ERROR_CODES.UNAUTHENTICATED,
-        codeMessage: expect.stringContaining('Missing authentication token'),
-      })
-    })
+  //     await expect(response.waitForEnd()).rejects.toMatchObject({
+  //       status: 401,
+  //       code: ERROR_CODES.UNAUTHENTICATED,
+  //       codeMessage: expect.stringContaining('Missing authentication token'),
+  //     })
+  //   })
 
-    it('should succeed when authentication pass', async () => {
-      Assert.isNotUndefined(tcp)
-      tcp.enableAuthentication = true
-      await tcp.start()
+  //   it('should succeed when authentication pass', async () => {
+  //     Assert.isNotUndefined(tcp)
+  //     tcp.enableAuthentication = true
+  //     await tcp.start()
 
-      Assert.isNotNull(tcp.router)
-      Assert.isNotNull(tcp.addressPort)
+  //     Assert.isNotNull(tcp.router)
+  //     Assert.isNotNull(tcp.addressPort)
 
-      tcp.router.register('foo/bar', yup.string(), (request) => {
-        request.end(request.data)
-      })
+  //     tcp.router.register('foo/bar', yup.string(), (request) => {
+  //       request.end(request.data)
+  //     })
 
-      client = new RpcTcpClient('localhost', tcp.addressPort, logger, 'test token')
-      await client.connect()
+  //     client = new RpcTcpClient('localhost', tcp.addressPort, logger, 'test token')
+  //     await client.connect()
 
-      const response = await client.request('foo/bar', 'hello world').waitForEnd()
-      expect(response.content).toBe('hello world')
-    })
-  })
+  //     const response = await client.request('foo/bar', 'hello world').waitForEnd()
+  //     expect(response.content).toBe('hello world')
+  //   })
+  // })
 })
