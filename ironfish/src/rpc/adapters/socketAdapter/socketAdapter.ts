@@ -82,20 +82,26 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     this.outboundTraffic.start()
 
     return new Promise((resolve, reject) => {
-      server.on('error', (err) => {
+      const onError = (err: unknown) => {
+        server.off('error', onError)
+        server.off('listening', onListening)
         reject(err)
-      })
+      }
 
-      server.listen(
-        {
-          host: this.host,
-          port: this.port,
-          exclusive: true,
-        },
-        () => {
-          resolve()
-        },
-      )
+      const onListening = () => {
+        server.off('error', onError)
+        server.off('listening', onListening)
+        resolve()
+      }
+
+      server.on('error', onError)
+      server.on('listening', onListening)
+
+      server.listen({
+        host: this.host,
+        port: this.port,
+        exclusive: true,
+      })
     })
   }
 
