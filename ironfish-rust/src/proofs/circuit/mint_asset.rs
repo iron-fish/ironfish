@@ -780,7 +780,7 @@ mod test {
             proof_generation_key: Some(proof_generation_key),
             payment_address: Some(public_address.sapling_payment_address()),
             auth_path: sapling_auth_path(&note_witness),
-            commitment_randomness: Some(create_commitment_randomness),
+            commitment_randomness: Some(mint_commitment_randomness),
             anchor: Some(note_witness.root_hash()),
             ar: Some(public_key_randomness),
         };
