@@ -25,6 +25,14 @@ import { AccountValue } from './walletdb/accountValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
+export enum TransactionStatus {
+  CONFIRMED = 'confirmed',
+  EXPIRED = 'expired',
+  PENDING = 'pending',
+  UNCONFIRMED = 'unconfirmed',
+  UNKNOWN = 'unknown',
+}
+
 export type SyncTransactionParams =
   // Used when receiving a transaction from a block with notes
   // that have been added to the trees
@@ -879,26 +887,26 @@ export class Wallet {
       headSequence?: number | null
       tx?: IDatabaseTransaction
     },
-  ): Promise<string> {
+  ): Promise<TransactionStatus> {
     const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
     const headSequence =
       options?.headSequence ?? (await this.getAccountHeadSequence(account, options?.tx))
 
     if (!headSequence) {
-      return 'unknown'
+      return TransactionStatus.UNKNOWN
     }
 
     if (transaction.sequence) {
       const isConfirmed = headSequence - transaction.sequence >= minimumBlockConfirmations
 
-      return isConfirmed ? 'confirmed' : 'unconfirmed'
+      return isConfirmed ? TransactionStatus.CONFIRMED : TransactionStatus.UNCONFIRMED
     } else {
       const isExpired = this.chain.verifier.isExpiredSequence(
         transaction.transaction.expirationSequence(),
         headSequence,
       )
 
-      return isExpired ? 'expired' : 'pending'
+      return isExpired ? TransactionStatus.EXPIRED : TransactionStatus.PENDING
     }
   }
 

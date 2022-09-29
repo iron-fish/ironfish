@@ -10,6 +10,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
+import { TransactionStatus } from '../wallet'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -502,7 +503,7 @@ describe('Accounts', () => {
         },
       )
 
-      expect(transactionStatus).toEqual('unconfirmed')
+      expect(transactionStatus).toEqual(TransactionStatus.UNCONFIRMED)
     })
 
     it('should show confirmed transactions as confirmed', async () => {
@@ -529,7 +530,7 @@ describe('Accounts', () => {
         },
       )
 
-      expect(transactionStatus).toEqual('confirmed')
+      expect(transactionStatus).toEqual(TransactionStatus.CONFIRMED)
     })
 
     it('should show pending transactions as pending', async () => {
@@ -553,7 +554,7 @@ describe('Accounts', () => {
         transactionValue,
       )
 
-      expect(transactionStatus).toEqual('pending')
+      expect(transactionStatus).toEqual(TransactionStatus.PENDING)
     })
 
     it('should show expired transactions as expired', async () => {
@@ -584,7 +585,7 @@ describe('Accounts', () => {
         transactionValue,
       )
 
-      expect(transactionStatus).toEqual('expired')
+      expect(transactionStatus).toEqual(TransactionStatus.EXPIRED)
     })
 
     it('should show transactions with 0 expiration as pending', async () => {
@@ -619,7 +620,7 @@ describe('Accounts', () => {
         },
       )
 
-      expect(transactionStatus).toEqual('pending')
+      expect(transactionStatus).toEqual(TransactionStatus.PENDING)
     })
 
     it('should show unknown status if account has no head sequence', async () => {
@@ -645,7 +646,7 @@ describe('Accounts', () => {
         transactionValue,
       )
 
-      expect(transactionStatus).toEqual('unknown')
+      expect(transactionStatus).toEqual(TransactionStatus.UNKNOWN)
     })
   })
 })
