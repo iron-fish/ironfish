@@ -28,7 +28,7 @@ export class RemoveCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { args, flags } = await this.parse(RemoveCommand)
     const confirm = flags.confirm
-    const name = (args.account as string).trim()
+    const name = args.account as string
 
     const client = await this.sdk.connectRpc()
 
