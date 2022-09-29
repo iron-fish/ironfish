@@ -2,14 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{primitives::sapling::ValueCommitment, proofs::circuit::spend::Spend};
+use crate::{
+    primitives::sapling::ValueCommitment,
+    proofs::{
+        circuit::spend::Spend,
+        notes::spendable_note::{NoteTrait, SpendableNote},
+    },
+};
 
 use super::{
     errors,
     keys::SaplingKey,
     merkle_note::{position as witness_position, sapling_auth_path},
     merkle_note_hash::MerkleNoteHash,
-    note::Note,
     serializing::read_scalar,
     witness::WitnessTrait,
     Sapling,
@@ -90,7 +95,7 @@ impl<'a> SpendParams {
     pub fn new(
         sapling: Arc<Sapling>,
         spender_key: SaplingKey,
-        note: &Note,
+        note: &(impl SpendableNote + NoteTrait),
         witness: &dyn WitnessTrait,
     ) -> Result<SpendParams, errors::SaplingProofError> {
         // This is a sanity check; it would be caught in proving the circuit anyway,
@@ -99,12 +104,13 @@ impl<'a> SpendParams {
             return Err(errors::SaplingProofError::InconsistentWitness);
         }
 
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
+        // let mut buffer = [0u8; 64];
+        // thread_rng().fill(&mut buffer[..]);
 
-        let value_commitment = note
-            .asset_type
-            .value_commitment(note.value, jubjub::Fr::from_bytes_wide(&buffer));
+        // let value_commitment = note
+        //     .asset_type()
+        //     .value_commitment(note.value, jubjub::Fr::from_bytes_wide(&buffer));
+        let value_commitment = note.value_commitment();
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
@@ -113,12 +119,12 @@ impl<'a> SpendParams {
         let proof_generation_key = spender_key.sapling_proof_generation_key();
 
         let spend_circuit = Spend {
-            value_commitment: Some(value_commitment.clone()),
-            asset_type: Some(note.asset_type),
+            value_commitment: Some(value_commitment),
+            asset_type: Some(note.asset_type()),
             proof_generation_key: Some(proof_generation_key),
-            payment_address: Some(note.owner.sapling_payment_address()),
+            payment_address: Some(note.owner().sapling_payment_address()),
             auth_path: sapling_auth_path(witness),
-            commitment_randomness: Some(note.randomness),
+            commitment_randomness: Some(note.randomness()),
             anchor: Some(witness.root_hash()),
             ar: Some(public_key_randomness),
         };

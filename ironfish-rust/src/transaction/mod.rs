@@ -11,6 +11,7 @@ use crate::{
         creating_asset::{CreateAssetParams, CreateAssetProof},
         mint_asset_note::MintAssetNote,
         minting_asset::{MintAssetParams, MintAssetProof},
+        spendable_note::{NoteTrait, SpendableNote},
     },
     receiving::OutputSignature,
     spending::SpendSignature,
@@ -116,7 +117,7 @@ impl ProposedTransaction {
     pub fn spend(
         &mut self,
         spender_key: SaplingKey,
-        note: &Note,
+        note: &(impl SpendableNote + NoteTrait),
         witness: &dyn WitnessTrait,
     ) -> Result<(), SaplingProofError> {
         let proof = SpendParams::new(self.sapling.clone(), spender_key, note, witness)?;

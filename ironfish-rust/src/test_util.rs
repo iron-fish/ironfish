@@ -7,6 +7,7 @@ use super::{
     witness::{Witness, WitnessNode},
     MerkleNoteHash,
 };
+use crate::proofs::notes::spendable_note::NoteTrait;
 use rand::{thread_rng, Rng};
 use zcash_proofs::circuit::sapling::TREE_DEPTH;
 

@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::primitives::asset_type::AssetType;
+use crate::{
+    primitives::{asset_type::AssetType, sapling::ValueCommitment},
+    proofs::notes::spendable_note::{Encryptable, NoteTrait, NoteType, SpendableNote},
+};
 
 use super::{
     errors,
@@ -196,35 +199,12 @@ impl<'a> Note {
         })
     }
 
-    pub fn value(&self) -> u64 {
-        self.value
-    }
-
     pub fn memo(&self) -> Memo {
         self.memo
     }
 
     pub fn owner(&self) -> PublicAddress {
-        self.owner.clone()
-    }
-
-    /// Send encrypted form of the note, which is what gets publicly stored on
-    /// the tree. Only someone with the incoming viewing key for the note can
-    /// actually read the contents.
-    /// TODO: The HASH of the note gets stored in the tree. THis comment is wrong
-    /// TODO: The output of this fn is c^enc
-    pub fn encrypt(&self, shared_secret: &[u8; 32]) -> [u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE] {
-        let mut bytes_to_encrypt = [0; ENCRYPTED_NOTE_SIZE];
-        bytes_to_encrypt[..11].copy_from_slice(&self.owner.diversifier.0[..]);
-        bytes_to_encrypt[11..43].clone_from_slice(self.randomness.to_repr().as_ref());
-
-        LittleEndian::write_u64_into(&[self.value], &mut bytes_to_encrypt[43..51]);
-        bytes_to_encrypt[51..83].copy_from_slice(&self.memo.0[..]);
-        bytes_to_encrypt[83..].copy_from_slice(self.asset_type.get_identifier());
-        let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
-        aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes);
-
-        encrypted_bytes
+        self.owner
     }
 
     /// Compute the nullifier for this note, given the private key of its owner.
@@ -243,15 +223,6 @@ impl<'a> Note {
     // TODO: This isnt used, use it or lose it
     pub fn commitment(&self) -> [u8; 32] {
         scalar_to_bytes(&self.commitment_point())
-    }
-
-    /// Compute the commitment of this note. This is essentially a hash of all
-    /// the note values, including randomness.
-    ///
-    /// The owner can publish this value to commit to the fact that the note
-    /// exists, without revealing any of the values on the note until later.
-    pub(crate) fn commitment_point(&self) -> Scalar {
-        self.sapling_note().cmu()
     }
 
     /// Verify that the note's commitment matches the one passed in
@@ -303,12 +274,85 @@ impl<'a> Note {
     }
 }
 
+impl NoteTrait for Note {
+    fn asset_type(&self) -> AssetType {
+        self.asset_type
+    }
+
+    /// Compute the commitment of this note. This is essentially a hash of all
+    /// the note values, including randomness.
+    ///
+    /// The owner can publish this value to commit to the fact that the note
+    /// exists, without revealing any of the values on the note until later.
+    fn commitment_point(&self) -> Scalar {
+        self.sapling_note().cmu()
+    }
+
+    fn note_type(&self) -> NoteType {
+        NoteType::Output
+    }
+
+    fn owner(&self) -> PublicAddress {
+        self.owner
+    }
+
+    fn randomness(&self) -> jubjub::Fr {
+        self.randomness
+    }
+}
+
+impl SpendableNote for Note {
+    /// Compute the nullifier for this note, given the private key of its owner.
+    ///
+    /// The nullifier is a series of bytes that is published by the note owner
+    /// only at the time the note is spent. This key is collected in a massive
+    /// 'nullifier set', preventing double-spend.
+    fn nullifier(&self, spender_key: &SaplingKey, witness_position: u64) -> Nullifier {
+        self.sapling_note()
+            .nf(&spender_key.sapling_viewing_key(), witness_position)
+    }
+
+    fn value(&self) -> u64 {
+        self.value
+    }
+
+    fn value_commitment(&self) -> ValueCommitment {
+        let mut buffer = [0u8; 64];
+        thread_rng().fill(&mut buffer[..]);
+
+        self.asset_type()
+            .value_commitment(self.value, jubjub::Fr::from_bytes_wide(&buffer))
+    }
+}
+
+impl Encryptable for Note {
+    /// Send encrypted form of the note, which is what gets publicly stored on
+    /// the tree. Only someone with the incoming viewing key for the note can
+    /// actually read the contents.
+    /// TODO: The HASH of the note gets stored in the tree. THis comment is wrong
+    /// TODO: The output of this fn is c^enc
+    fn encrypt(&self, shared_secret: &[u8; 32]) -> [u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE] {
+        let mut bytes_to_encrypt = [0; ENCRYPTED_NOTE_SIZE];
+        bytes_to_encrypt[..11].copy_from_slice(&self.owner.diversifier.0[..]);
+        bytes_to_encrypt[11..43].clone_from_slice(self.randomness.to_repr().as_ref());
+
+        LittleEndian::write_u64_into(&[self.value], &mut bytes_to_encrypt[43..51]);
+        bytes_to_encrypt[51..83].copy_from_slice(&self.memo.0[..]);
+        bytes_to_encrypt[83..].copy_from_slice(self.asset_type.get_identifier());
+        let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
+        aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes);
+
+        encrypted_bytes
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::{Memo, Note};
     use crate::{
         keys::{shared_secret, SaplingKey},
         primitives::asset_type::AssetType,
+        proofs::notes::spendable_note::Encryptable,
     };
 
     #[test]

@@ -65,6 +65,9 @@ impl AssetInfo {
 
     pub fn public_address(&self) -> PublicAddress {
         // TODO: No unrwap
+        // We can probably do some validation on instantiation such that we
+        // don't need to deal with a result here. Maybe we store a PublicAddress
+        // on asset info instead of bytes
         PublicAddress::new(&self.public_address).unwrap()
     }
 
