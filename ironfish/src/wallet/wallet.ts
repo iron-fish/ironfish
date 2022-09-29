@@ -685,7 +685,7 @@ export class Accounts {
       let headHash = this.headHashes.get(sender.id)
       headHash = await sender.getHeadHash()
       if (!headHash) {
-        headHash = await sender.getHeadHash()
+        headHash = this.headHashes.get(sender.id)
       }
 
       if (!headHash) {
