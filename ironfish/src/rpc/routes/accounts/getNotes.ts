@@ -8,13 +8,10 @@ import { getAccount } from './utils'
 export type GetAccountNotesStreamRequest = { account?: string }
 
 export type GetAccountNotesStreamResponse = {
-  account: string
-  note: {
-    amount: string
-    memo: string
-    transactionHash: string
-    spent: boolean | undefined
-  }
+  amount: string
+  memo: string
+  transactionHash: string
+  spent: boolean | undefined
 }
 
 export const GetAccountNotesStreamRequestSchema: yup.ObjectSchema<GetAccountNotesStreamRequest> =
@@ -27,15 +24,10 @@ export const GetAccountNotesStreamRequestSchema: yup.ObjectSchema<GetAccountNote
 export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNotesStreamResponse> =
   yup
     .object({
-      account: yup.string().defined(),
-      note: yup
-        .object({
-          amount: yup.string().defined(),
-          memo: yup.string().trim().defined(),
-          transactionHash: yup.string().defined(),
-          spent: yup.boolean(),
-        })
-        .defined(),
+      amount: yup.string().defined(),
+      memo: yup.string().trim().defined(),
+      transactionHash: yup.string().defined(),
+      spent: yup.boolean(),
     })
     .defined()
 
@@ -47,13 +39,10 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
 
     for await (const { note, spent, transactionHash } of account.getNotes()) {
       request.stream({
-        account: account.displayName,
-        note: {
-          amount: note.value().toString(),
-          memo: note.memo(),
-          transactionHash: transactionHash.toString('hex'),
-          spent,
-        },
+        amount: note.value().toString(),
+        memo: note.memo(),
+        transactionHash: transactionHash.toString('hex'),
+        spent,
       })
     }
 

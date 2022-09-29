@@ -29,14 +29,10 @@ export class NotesCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     const response = client.getAccountNotesStream({ account })
-    let firstResponse = true
 
-    for await (const { account: accountResponse, note } of response.contentStream()) {
-      const noHeader = firstResponse ? false : true
-      if (firstResponse) {
-        this.log(`\n ${accountResponse} - Account notes\n`)
-        firstResponse = false
-      }
+    let showHeader = true
+
+    for await (const note of response.contentStream()) {
       CliUx.ux.table(
         [note],
         {
@@ -61,9 +57,9 @@ export class NotesCommand extends IronfishCommand {
             },
           },
         },
-        { 'no-header': noHeader },
+        { 'no-header': !showHeader },
       )
+      showHeader = false
     }
-    this.log(`\n`)
   }
 }

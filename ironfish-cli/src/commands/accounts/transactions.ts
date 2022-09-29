@@ -35,11 +35,8 @@ export class TransactionsCommand extends IronfishCommand {
     const response = client.getAccountTransactionsStream({ account, hash: flags.hash })
 
     let showHeader = true
-    for await (const { account, transaction } of response.contentStream()) {
-      if (showHeader) {
-        this.log(`\n${account} - Account transactions\n`)
-      }
 
+    for await (const transaction of response.contentStream()) {
       CliUx.ux.table(
         [transaction],
         {
