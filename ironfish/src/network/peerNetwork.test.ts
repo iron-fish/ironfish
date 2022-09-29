@@ -22,6 +22,7 @@ import {
 } from '../testUtilities'
 import { mockChain, mockNode, mockTelemetry } from '../testUtilities/mocks'
 import { createNodeTest } from '../testUtilities/nodeTest'
+import { parseNetworkMessage } from './messageRegistry'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import {
@@ -50,7 +51,6 @@ import {
 } from './testUtilities'
 import { NetworkMessageType } from './types'
 import { VERSION_PROTOCOL } from './version'
-import { parseNetworkMessage } from './messageRegistry'
 
 jest.useFakeTimers()
 
