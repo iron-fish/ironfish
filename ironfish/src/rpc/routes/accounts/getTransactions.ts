@@ -13,17 +13,14 @@ import { getAccount, getTransactionStatus } from './utils'
 export type GetAccountTransactionsRequest = { account?: string; hash?: string }
 
 export type GetAccountTransactionsResponse = {
-  account: string
-  transaction: {
-    creator: boolean
-    status: string
-    hash: string
-    isMinersFee: boolean
-    fee: string
-    notesCount: number
-    spendsCount: number
-    expirationSequence: number
-  }
+  creator: boolean
+  status: string
+  hash: string
+  isMinersFee: boolean
+  fee: string
+  notesCount: number
+  spendsCount: number
+  expirationSequence: number
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -37,19 +34,14 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
 export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTransactionsResponse> =
   yup
     .object({
-      account: yup.string().defined(),
-      transaction: yup
-        .object({
-          creator: yup.boolean().defined(),
-          status: yup.string().defined(),
-          hash: yup.string().defined(),
-          isMinersFee: yup.boolean().defined(),
-          fee: yup.string().defined(),
-          notesCount: yup.number().defined(),
-          spendsCount: yup.number().defined(),
-          expirationSequence: yup.number().defined(),
-        })
-        .defined(),
+      creator: yup.boolean().defined(),
+      status: yup.string().defined(),
+      hash: yup.string().defined(),
+      isMinersFee: yup.boolean().defined(),
+      fee: yup.string().defined(),
+      notesCount: yup.number().defined(),
+      spendsCount: yup.number().defined(),
+      expirationSequence: yup.number().defined(),
     })
     .defined()
 
@@ -110,8 +102,5 @@ const streamTransaction = async (
     status,
   }
 
-  request.stream({
-    account: account.name,
-    transaction: serialized,
-  })
+  request.stream(serialized)
 }
