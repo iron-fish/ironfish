@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::primitives::sapling::ValueCommitment;
+use crate::{
+    primitives::sapling::ValueCommitment,
+    proofs::notes::spendable_note::{Encryptable, NoteTrait},
+};
 
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
@@ -71,7 +74,7 @@ impl PartialEq for MerkleNote {
 impl MerkleNote {
     pub fn new(
         spender_key: &SaplingKey,
-        note: &Note,
+        note: &(impl NoteTrait + Encryptable),
         value_commitment: &ValueCommitment,
         diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
     ) -> MerkleNote {
@@ -79,12 +82,12 @@ impl MerkleNote {
 
         let encrypted_note = note.encrypt(&shared_secret(
             secret_key,
-            &note.owner.transmission_key,
+            &note.owner().transmission_key,
             public_key,
         ));
 
         let mut key_bytes = [0; 64];
-        key_bytes[..32].copy_from_slice(&note.owner.transmission_key.to_bytes());
+        key_bytes[..32].copy_from_slice(&note.owner().transmission_key.to_bytes());
         key_bytes[32..].clone_from_slice(secret_key.to_repr().as_ref());
 
         let encryption_key = calculate_key_for_encryption_keys(

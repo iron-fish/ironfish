@@ -23,6 +23,7 @@ use crate::{
     errors::{SaplingProofError, TransactionError},
     note::Memo,
     primitives::asset_type::AssetIdentifier,
+    proofs::notes::spendable_note::SpendableNote,
     receiving::OutputSignature,
     spending::SpendSignature,
     witness::WitnessTrait,
@@ -560,18 +561,8 @@ mod tests {
         let spender_address = spender_key.generate_public_address();
         let receiver_address = receiver_key.generate_public_address();
 
-        let in_note = Note::new(
-            spender_address.clone(),
-            42,
-            Memo::default(),
-            AssetType::default(),
-        );
-        let out_note = Note::new(
-            receiver_address.clone(),
-            40,
-            Memo::default(),
-            AssetType::default(),
-        );
+        let in_note = Note::new(spender_address, 42, Memo::default(), AssetType::default());
+        let out_note = Note::new(receiver_address, 40, Memo::default(), AssetType::default());
 
         let new_asset = AssetType::new(b"Foo bar baz", &[0; 43]).unwrap();
 

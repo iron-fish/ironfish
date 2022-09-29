@@ -1,7 +1,10 @@
 use bls12_381::Scalar;
 use zcash_primitives::primitives::Nullifier;
 
-use crate::{primitives::sapling::ValueCommitment, AssetType, PublicAddress, SaplingKey};
+use crate::{
+    note::ENCRYPTED_NOTE_SIZE, primitives::sapling::ValueCommitment, serializing::aead, AssetType,
+    PublicAddress, SaplingKey,
+};
 
 /// transaction.spend needs:
 ///  (Look in SpendParams::new and transaction.add_spend_proof)
@@ -52,4 +55,10 @@ pub trait NoteTrait {
     // transactions use these as well etc
     // fn read(&self) -> ();
     // fn write(&self) -> ();
+}
+
+// TODO: We changed visibility for a lot of these functions to pub, double check
+// if thats what we want
+pub trait Encryptable {
+    fn encrypt(&self, shared_secret: &[u8; 32]) -> [u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
 }

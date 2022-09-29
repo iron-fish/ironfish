@@ -380,8 +380,7 @@ mod test {
 
         // Test setup: create an Asset Type
         let name = "My custom asset 1";
-        let asset_info =
-            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
+        let asset_info = AssetInfo::new(name, public_address).expect("Can create a valid asset");
 
         let create_commitment_randomness = {
             let mut buffer = [0u8; 64];
@@ -503,8 +502,7 @@ mod test {
 
         // Test setup: create an Asset Type
         let name = "My custom asset 1";
-        let asset_info =
-            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
+        let asset_info = AssetInfo::new(name, public_address).expect("Can create a valid asset");
 
         let create_commitment_randomness = {
             let mut buffer = [0u8; 64];
@@ -648,8 +646,7 @@ mod test {
 
         // Test setup: create an Asset Type
         let name = "My custom asset 1";
-        let asset_info =
-            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
+        let asset_info = AssetInfo::new(name, public_address).expect("Can create a valid asset");
 
         let generator_affine = asset_info.asset_type().asset_generator().to_affine();
 
@@ -846,8 +843,7 @@ mod test {
 
         // Test setup: create an Asset Type
         let name = "My custom asset 1";
-        let asset_info =
-            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
+        let asset_info = AssetInfo::new(name, public_address).expect("Can create a valid asset");
 
         // Create asset note
         let create_note = CreateAssetNote::new(asset_info);
@@ -862,7 +858,7 @@ mod test {
 
         // Regular spend note for transaction fee
         let in_note = Note::new(
-            public_address.clone(),
+            public_address,
             tx_fee,
             Memo::default(),
             AssetType::default(),
@@ -903,7 +899,7 @@ mod test {
             .spend(sapling_key.clone(), &in_note2, &note_witness2)
             .expect("can add tx fee note");
         transaction2
-            .spend2(sapling_key.clone(), &mint_note, &mint_witness)
+            .spend(sapling_key.clone(), &mint_note, &mint_witness)
             .expect("Can spend minted tokens");
 
         let public_transaction2 = transaction2

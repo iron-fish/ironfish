@@ -158,8 +158,7 @@ mod test {
 
         // Test setup: create an Asset Type
         let name = "My custom asset 1";
-        let asset_info =
-            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
+        let asset_info = AssetInfo::new(name, public_address).expect("Can create a valid asset");
 
         let generator_affine = asset_info.asset_type().asset_generator().to_affine();
 
@@ -249,8 +248,7 @@ mod test {
 
         // Test setup: create an Asset Type
         let name = "My custom asset 1";
-        let asset_info =
-            AssetInfo::new(name, public_address.clone()).expect("Can create a valid asset");
+        let asset_info = AssetInfo::new(name, public_address).expect("Can create a valid asset");
 
         // Create asset note
         let create_note = CreateAssetNote::new(asset_info);

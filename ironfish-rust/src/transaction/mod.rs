@@ -117,23 +117,10 @@ impl ProposedTransaction {
     pub fn spend(
         &mut self,
         spender_key: SaplingKey,
-        note: &Note,
-        witness: &dyn WitnessTrait,
-    ) -> Result<(), SaplingProofError> {
-        let proof = SpendParams::new(self.sapling.clone(), spender_key, note, witness)?;
-        self.add_spend_proof(proof, note.value());
-        Ok(())
-    }
-
-    /// Spend the note owned by spender_key at the given witness location.
-    // TODO: Why doesnt this take a reference for SaplingKey but .receive does?
-    pub fn spend2(
-        &mut self,
-        spender_key: SaplingKey,
         note: &(impl SpendableNote + NoteTrait),
         witness: &dyn WitnessTrait,
     ) -> Result<(), SaplingProofError> {
-        let proof = SpendParams::new2(self.sapling.clone(), spender_key, note, witness)?;
+        let proof = SpendParams::new(self.sapling.clone(), spender_key, note, witness)?;
         self.add_spend_proof(proof, note.value());
         Ok(())
     }
