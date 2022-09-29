@@ -294,6 +294,17 @@ export class Account {
     return await this.accountsDb.loadTransaction(this, hash, tx)
   }
 
+  async getTransactionByUnsignedHash(
+    unsignedHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<Readonly<TransactionValue> | undefined> {
+    for await (const transactionValue of this.getTransactions(tx)) {
+      if (unsignedHash.equals(transactionValue.transaction.unsignedHash())) {
+        return transactionValue
+      }
+    }
+  }
+
   getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
     return this.accountsDb.loadTransactions(this, tx)
   }

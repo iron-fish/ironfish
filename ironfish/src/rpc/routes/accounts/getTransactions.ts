@@ -61,7 +61,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
     if (request.data.hash) {
       const hash = Buffer.from(request.data.hash, 'hex')
-      const transaction = await account.getTransaction(hash)
+      const transaction = await account.getTransactionByUnsignedHash(hash)
 
       if (transaction) {
         await streamTransaction(request, node, account, transaction)
