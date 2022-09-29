@@ -78,7 +78,7 @@ export class RpcServer {
   }
 
   /** Authenticate the RPC request */
-  authenticate(requestAuthToken: string | undefined): boolean {
+  authenticate(requestAuthToken: string | undefined | null): boolean {
     if (!requestAuthToken) {
       this.logger.debug(`Missing Auth token in RPC request.`)
       return false
@@ -86,7 +86,7 @@ export class RpcServer {
 
     const rpcAuthToken = this.node.internal.get('rpcAuthToken')
 
-    if (!rpcAuthToken || rpcAuthToken === '') {
+    if (!rpcAuthToken) {
       this.logger.debug(`Missing RPC Auth token in internal.json config.`)
       return false
     }
