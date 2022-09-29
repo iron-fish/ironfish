@@ -299,7 +299,7 @@ export class PeerNetwork {
             reason: DisconnectingReason.Congested,
             sourceIdentity: this.localPeer.publicIdentity,
           })
-          connection.send(JSON.stringify(disconnect))
+          connection.send(disconnect.serializeWithMetadata())
           connection.close()
           return
         }

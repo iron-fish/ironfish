@@ -22,8 +22,9 @@ import {
 } from '../testUtilities'
 import { mockChain, mockNode, mockTelemetry } from '../testUtilities/mocks'
 import { createNodeTest } from '../testUtilities/nodeTest'
+import { parseNetworkMessage } from './messageRegistry'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
-import { DisconnectingMessage } from './messages/disconnecting'
+import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import {
   GetBlockTransactionsRequest,
   GetBlockTransactionsResponse,
@@ -161,9 +162,11 @@ describe('PeerNetwork', () => {
 
       // Check that the disconnect message was serialized properly
       const args = sendSpy.mock.calls[0][0]
-      expect(typeof args).toEqual('string')
-      const message = JSON.parse(args) as DisconnectingMessage
+      expect(Buffer.isBuffer(args)).toBe(true)
+      const message = parseNetworkMessage(args)
       expect(message.type).toEqual(NetworkMessageType.Disconnecting)
+      Assert.isInstanceOf(message, DisconnectingMessage)
+      expect(message.reason).toEqual(DisconnectingReason.Congested)
     })
   })
 
