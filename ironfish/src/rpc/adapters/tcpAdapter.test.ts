@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /* eslint-disable jest/no-try-expect */
 /* eslint-disable jest/no-conditional-expect */
+import Mitm from 'mitm'
+import net from 'net'
 import os from 'os'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
@@ -21,6 +23,7 @@ describe('TcpAdapter', () => {
   let client: RpcTcpClient | undefined
   let node: IronfishNode
   let logger: Logger
+  let mitm: ReturnType<typeof Mitm>
 
   beforeEach(async () => {
     const dataDir = os.tmpdir()
@@ -44,25 +47,26 @@ describe('TcpAdapter', () => {
 
     tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES)
 
+    mitm = Mitm()
+    mitm.on('connection', (socket: net.Socket) => tcp?.onClientConnection(socket))
+
     await node.rpc.mount(tcp)
   }, 20000)
 
   afterEach(() => {
     client?.close()
-    tcp?.stop()
+    mitm.disable()
   })
 
   it('should send and receive message', async () => {
     Assert.isNotUndefined(tcp)
-    await tcp.start()
     Assert.isNotNull(tcp.router)
-    Assert.isNotNull(tcp.addressPort)
 
     tcp.router.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', 0)
     await client.connect()
 
     const response = await client.request('foo/bar', 'hello world').waitForEnd()
@@ -70,10 +74,8 @@ describe('TcpAdapter', () => {
   }, 20000)
 
   it('should stream message', async () => {
-    await tcp?.start()
     Assert.isNotUndefined(tcp)
     Assert.isNotNull(tcp?.router)
-    Assert.isNotNull(tcp?.addressPort)
 
     tcp.router.register('foo/bar', yup.object({}), (request) => {
       request.stream('hello 1')
@@ -81,7 +83,7 @@ describe('TcpAdapter', () => {
       request.end()
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', 0)
     await client.connect()
 
     const response = client.request('foo/bar')
@@ -93,16 +95,14 @@ describe('TcpAdapter', () => {
   }, 20000)
 
   it('should handle errors', async () => {
-    await tcp?.start()
     Assert.isNotUndefined(tcp)
     Assert.isNotNull(tcp?.router)
-    Assert.isNotNull(tcp?.addressPort)
 
     tcp.router.register('foo/bar', yup.object({}), () => {
       throw new ValidationError('hello error', 402, 'hello-error' as ERROR_CODES)
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', 0)
     await client.connect()
 
     const response = client.request('foo/bar')
@@ -116,10 +116,8 @@ describe('TcpAdapter', () => {
   }, 20000)
 
   it('should handle request errors', async () => {
-    await tcp?.start()
     Assert.isNotUndefined(tcp)
     Assert.isNotNull(tcp?.router)
-    Assert.isNotNull(tcp?.addressPort)
 
     // Requires this
     const schema = yup.string().defined()
@@ -128,7 +126,7 @@ describe('TcpAdapter', () => {
 
     tcp.router.register('foo/bar', schema, (res) => res.end())
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', 0)
     await client.connect()
 
     const response = client.request('foo/bar', body)
@@ -144,16 +142,14 @@ describe('TcpAdapter', () => {
   it('should succeed when authentication pass', async () => {
     Assert.isNotUndefined(tcp)
     tcp.enableAuthentication = true
-    await tcp.start()
 
     Assert.isNotNull(tcp.router)
-    Assert.isNotNull(tcp.addressPort)
 
     tcp.router.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort, logger, 'test token')
+    client = new RpcTcpClient('localhost', 0, logger, 'test token')
     await client.connect()
 
     const response = await client.request('foo/bar', 'hello world').waitForEnd()
@@ -163,16 +159,14 @@ describe('TcpAdapter', () => {
   it('should reject when authentication failed', async () => {
     Assert.isNotUndefined(tcp)
     tcp.enableAuthentication = true
-    await tcp.start()
 
     Assert.isNotNull(tcp.router)
-    Assert.isNotNull(tcp.addressPort)
 
     tcp.router.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort, logger, 'wrong token')
+    client = new RpcTcpClient('localhost', 0, logger, 'wrong token')
     await client.connect()
 
     const response = client.request('foo/bar', 'hello world')
@@ -189,16 +183,14 @@ describe('TcpAdapter', () => {
   it('should reject when auth token is empty', async () => {
     Assert.isNotUndefined(tcp)
     tcp.enableAuthentication = true
-    await tcp.start()
 
     Assert.isNotNull(tcp.router)
-    Assert.isNotNull(tcp.addressPort)
 
     tcp.router.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort, logger)
+    client = new RpcTcpClient('localhost', 0, logger)
     await client.connect()
 
     const response = client.request('foo/bar', 'hello world')
