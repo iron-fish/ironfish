@@ -492,13 +492,17 @@ describe('Accounts', () => {
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
       Assert.isNotUndefined(transactionValue)
+      Assert.isNotNull(transactionValue.sequence)
 
       const transactionStatus = await node.wallet.getTransactionStatus(
         accountA,
         transactionValue,
+        {
+          headSequence: transactionValue.sequence - 1,
+        },
       )
 
-      expect(transactionStatus).toEqual('confirmed')
+      expect(transactionStatus).toEqual('unconfirmed')
     })
 
     it('should show confirmed transactions as confirmed', async () => {
@@ -616,6 +620,32 @@ describe('Accounts', () => {
       )
 
       expect(transactionStatus).toEqual('pending')
+    })
+
+    it('should show unknown status if account has no head sequence', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.accounts, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.accounts)
+      await expect(node.chain).toAddBlock(blockA1)
+
+      await node.accounts.updateHead()
+
+      const transaction = blockA1.minersFee
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+      Assert.isNotNull(transactionValue.sequence)
+
+      await nodeTest.accounts.db.saveHeadHash(accountA, null)
+
+      const transactionStatus = await node.accounts.getTransactionStatus(
+        accountA,
+        transactionValue,
+      )
+
+      expect(transactionStatus).toEqual('unknown')
     })
   })
 })
