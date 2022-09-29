@@ -72,13 +72,12 @@ export class PeerManager {
    */
   peers: Array<Peer> = []
 
-  addressManager: AddressManager
+  peerCandidateMap: Map<
+    string,
+    { name?: string; address: string | null; port: number | null; neighbors: Set<string> }
+  > = new Map()
 
-  /**
-   * setInterval handle for requestPeerList, which sends out peer lists and
-   * requests for peer lists
-   */
-  private requestPeerListHandle: SetIntervalToken | undefined
+  addressManager: AddressManager
 
   /**
    * setInterval handle for peer disposal, which removes peers from the list that we
@@ -560,16 +559,20 @@ export class PeerManager {
     // Find another peer to broker the connection
     const candidates = []
 
-    // The peer should know of any brokering peer candidates
-    for (const [_, candidate] of peer.knownPeers) {
-      if (
-        // The brokering peer candidate should be connected to the local peer
-        candidate.state.type === 'CONNECTED' &&
-        // the brokering peer candidate should also know of the peer
-        candidate.knownPeers.has(peer.state.identity)
-      ) {
-        candidates.push(candidate)
+    // The peer candidate map tracks any brokering peer candidates
+    const val = this.peerCandidateMap.get(peer.state.identity)
+    if (!val) {
+      return null
+    }
+
+    for (const neighbor of val.neighbors) {
+      const neighborPeer = this.identifiedPeers.get(neighbor)
+      if (!neighborPeer || neighborPeer.state.type !== 'CONNECTED') {
+        val.neighbors.delete(neighbor)
+        continue
       }
+
+      candidates.push(neighborPeer)
     }
 
     if (candidates.length === 0) {
@@ -742,7 +745,6 @@ export class PeerManager {
   }
 
   start(): void {
-    this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
     this.savePeerAddressesHandle = setInterval(
       () => void this.addressManager.save(this.peers),
@@ -755,20 +757,11 @@ export class PeerManager {
    * outstanding connections.
    */
   async stop(): Promise<void> {
-    this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
     this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
     await this.addressManager.save(this.peers)
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
-    }
-  }
-
-  private requestPeerList() {
-    const peerListRequest = new PeerListRequestMessage()
-
-    for (const peer of this.getConnectedPeers()) {
-      peer.send(peerListRequest)
     }
   }
 
@@ -808,10 +801,6 @@ export class PeerManager {
    * @param peer The peer to evaluate
    */
   private tryDisposePeer(peer: Peer) {
-    const hasAConnectedPeer = [...peer.knownPeers.values()].some(
-      (p) => p.state.type === 'CONNECTED',
-    )
-
     if (
       peer.state.type === 'DISCONNECTED' &&
       peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
@@ -819,17 +808,15 @@ export class PeerManager {
     ) {
       this.addressManager.removePeerAddress(peer)
 
-      if (!hasAConnectedPeer) {
-        this.logger.debug(
-          `Disposing of peer with identity ${String(peer.state.identity)} (may be a duplicate)`,
-        )
+      this.logger.debug(
+        `Disposing of peer with identity ${String(peer.state.identity)} (may be a duplicate)`,
+      )
 
-        peer.dispose()
-        if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
-          this.identifiedPeers.delete(peer.state.identity)
-        }
-        this.peers = this.peers.filter((p) => p !== peer)
+      peer.dispose()
+      if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
+        this.identifiedPeers.delete(peer.state.identity)
       }
+      this.peers = this.peers.filter((p) => p !== peer)
 
       return true
     }
@@ -1236,7 +1223,6 @@ export class PeerManager {
     }
 
     targetPeer = this.getOrCreatePeer(message.sourceIdentity)
-    this.addKnownPeerTo(targetPeer, messageSender)
 
     if (targetPeer.state.type !== 'DISCONNECTED' && targetPeer.state.connections.webRtc) {
       this.logger.debug(
@@ -1325,7 +1311,6 @@ export class PeerManager {
 
     // Get or create a WebRTC connection for the signaling peer.
     const signalingPeer = this.getOrCreatePeer(message.sourceIdentity)
-    this.addKnownPeerTo(signalingPeer, messageSender)
 
     let signalingConnection: WebRtcConnection
 
@@ -1419,74 +1404,30 @@ export class PeerManager {
       return
     }
 
-    const newPeerSet = peerList.connectedPeers.reduce(
-      (memo, peer) => {
-        const newPeer = {
-          ...peer,
-          identity: peer.identity.toString('base64'),
-        }
-        memo.set(newPeer.identity, newPeer)
-        return memo
-      },
-      new Map<
-        Identity,
-        {
-          identity: Identity
-          name?: string
-          address: string | null
-          port: number | null
-        }
-      >(),
-    )
+    for (const connectedPeer of peerList.connectedPeers) {
+      const identity = connectedPeer.identity.toString('base64')
 
-    // Don't include the local peer in the peer graph
-    newPeerSet.delete(this.localPeer.publicIdentity)
+      // Don't include the local peer in the peer graph
+      if (identity === this.localPeer.publicIdentity) {
+        continue
+      }
+
+      const peerCandidateValue = this.peerCandidateMap.get(identity)
+
+      if (peerCandidateValue) {
+        peerCandidateValue.neighbors.add(peer.state.identity)
+      } else {
+        this.peerCandidateMap.set(identity, {
+          name: connectedPeer.name,
+          address: connectedPeer.address,
+          port: connectedPeer.port,
+          neighbors: new Set(peer.state.identity),
+        })
+      }
+    }
 
     // Remove peer edges that are no longer in the peer list.
-    for (const [otherIdentity, otherPeer] of peer.knownPeers) {
-      if (!newPeerSet.has(otherIdentity)) {
-        peer.knownPeers.delete(otherIdentity)
-        // Optimistically update the edges.
-        // This could result in pinging back and forth if peers don't agree whether they're connected
-        otherPeer.knownPeers.delete(peer.state.identity)
-        // See if removing edges from either peer caused it to be disposable
-        this.tryDisposePeer(peer)
-        this.tryDisposePeer(otherPeer)
-      }
-    }
 
     // Add peer edges that are new to the peer list
-    for (const newPeer of newPeerSet.values()) {
-      if (!peer.knownPeers.has(newPeer.identity)) {
-        const knownPeer = this.getOrCreatePeer(newPeer.identity)
-        knownPeer.setWebSocketAddress(newPeer.address, newPeer.port)
-        knownPeer.name = newPeer.name || null
-        this.addKnownPeerTo(knownPeer, peer)
-      }
-    }
-  }
-
-  /**
-   * This is used for adding a peer to a peers known list. It also handles adding it bi-directionally
-   * @param peer The peer to put into `addTo's` knownPeers
-   * @param addTo The peer to add `peer` to
-   * @param emitKnownPeersChanged Set this to false if you are adding known peers in bulk and you know you want to emit this yourself
-   */
-  addKnownPeerTo(peer: Peer, addTo: Peer): void {
-    if (!peer.state.identity || !addTo.state.identity) {
-      return
-    }
-    if (peer.state.identity === addTo.state.identity) {
-      return
-    }
-
-    if (!addTo.knownPeers.has(peer.state.identity)) {
-      addTo.knownPeers.set(peer.state.identity, peer)
-    }
-
-    // Optimistically update the edges. This could result in pinging back and forth if peers don't agree whether they're connected
-    if (!peer.knownPeers.has(addTo.state.identity)) {
-      this.addKnownPeerTo(addTo, peer)
-    }
   }
 }

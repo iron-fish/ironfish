@@ -162,11 +162,6 @@ export class Peer {
   /** how many outbound connections does the peer have */
   pendingRPC = 0
 
-  /**
-   * A map of peers connected to this peer, shared by the PeerList message.
-   */
-  knownPeers: Map<Identity, Peer> = new Map<Identity, Peer>()
-
   private readonly supportedConnections: {
     [ConnectionType.WebSocket]: ConnectionRetry
     [ConnectionType.WebRtc]: ConnectionRetry

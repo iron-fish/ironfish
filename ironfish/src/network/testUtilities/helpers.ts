@@ -156,8 +156,8 @@ export function getSignalingWebRtcPeer(
   const peer = pm.getOrCreatePeer(peerIdentity)
 
   // Link the peers
-  brokeringPeer.knownPeers.set(peerIdentity, peer)
-  peer.knownPeers.set(brokeringPeerIdentity, brokeringPeer)
+  // brokeringPeer.knownPeers.set(peerIdentity, peer)
+  // peer.knownPeers.set(brokeringPeerIdentity, brokeringPeer)
 
   // Verify peer2 is not connected
   expect(peer.address).toBeNull()
