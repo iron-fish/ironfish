@@ -24,7 +24,6 @@ use crate::{primitives::sapling::ValueCommitment, AssetType, PublicAddress, Sapl
 ///     used for spend params
 
 pub enum NoteType {
-    Spend,
     Output,
     CreateAsset,
     MintAsset,
