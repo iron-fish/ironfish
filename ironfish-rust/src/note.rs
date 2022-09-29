@@ -203,10 +203,6 @@ impl<'a> Note {
         self.memo
     }
 
-    pub fn owner(&self) -> PublicAddress {
-        self.owner
-    }
-
     /// Compute the nullifier for this note, given the private key of its owner.
     ///
     /// The nullifier is a series of bytes that is published by the note owner

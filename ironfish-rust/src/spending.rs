@@ -104,12 +104,6 @@ impl<'a> SpendParams {
             return Err(errors::SaplingProofError::InconsistentWitness);
         }
 
-        // let mut buffer = [0u8; 64];
-        // thread_rng().fill(&mut buffer[..]);
-
-        // let value_commitment = note
-        //     .asset_type()
-        //     .value_commitment(note.value, jubjub::Fr::from_bytes_wide(&buffer));
         let value_commitment = note.value_commitment();
 
         let mut buffer = [0u8; 64];
