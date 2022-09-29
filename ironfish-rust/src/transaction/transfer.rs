@@ -2,12 +2,7 @@
 // let tx = TransferTransaction::build(spends, outputs);
 // tx.verify();
 
-use std::{
-    cmp::Ordering,
-    collections::{hash_map, HashMap},
-    io,
-    sync::Arc,
-};
+use std::{cmp::Ordering, io, sync::Arc};
 
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -22,7 +17,6 @@ use zcash_primitives::{
 use crate::{
     errors::{SaplingProofError, TransactionError},
     note::Memo,
-    primitives::asset_type::AssetIdentifier,
     proofs::notes::spendable_note::SpendableNote,
     receiving::OutputSignature,
     spending::SpendSignature,
@@ -31,29 +25,9 @@ use crate::{
 };
 
 use super::{
-    transaction_fee_to_point, SIGNATURE_HASH_PERSONALIZATION, TRANSACTION_SIGNATURE_VERSION,
+    transaction_fee_to_point, TransactionValue, SIGNATURE_HASH_PERSONALIZATION,
+    TRANSACTION_SIGNATURE_VERSION,
 };
-
-#[derive(Default)]
-pub struct TransactionValue {
-    values: HashMap<AssetIdentifier, i64>,
-}
-
-impl TransactionValue {
-    pub fn add(&mut self, asset_identifier: &AssetIdentifier, value: i64) {
-        let current_value = self.values.entry(*asset_identifier).or_insert(0);
-        *current_value += value
-    }
-
-    pub fn subtract(&mut self, asset_identifier: &AssetIdentifier, value: i64) {
-        let current_value = self.values.entry(*asset_identifier).or_insert(0);
-        *current_value -= value
-    }
-
-    pub fn iter(&self) -> hash_map::Iter<AssetIdentifier, i64> {
-        self.values.iter()
-    }
-}
 
 // TODO: Everything
 // TODO: Copy comments from transaction/mod.rs equivalent

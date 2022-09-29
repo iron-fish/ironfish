@@ -5,7 +5,7 @@
 pub mod miners_fee;
 pub mod transfer;
 use crate::{
-    primitives::asset_type::AssetType,
+    primitives::asset_type::{AssetIdentifier, AssetType},
     proofs::notes::{
         create_asset_note::CreateAssetNote,
         creating_asset::{CreateAssetParams, CreateAssetProof},
@@ -39,7 +39,12 @@ use zcash_primitives::{
     redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
-use std::{io, slice::Iter, sync::Arc};
+use std::{
+    collections::{hash_map, HashMap},
+    io,
+    slice::Iter,
+    sync::Arc,
+};
 
 use std::ops::AddAssign;
 use std::ops::SubAssign;
@@ -49,6 +54,45 @@ mod tests;
 
 const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"Bnsighsh";
 const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
+
+// TODO: Verification needs to include confirming that the base asset is present
+// and a transaction fee has been paid
+pub struct TransactionValue {
+    values: HashMap<AssetIdentifier, i64>,
+}
+
+impl TransactionValue {
+    pub fn add(&mut self, asset_identifier: &AssetIdentifier, value: i64) {
+        let current_value = self.values.entry(*asset_identifier).or_insert(0);
+        *current_value += value
+    }
+
+    pub fn subtract(&mut self, asset_identifier: &AssetIdentifier, value: i64) {
+        let current_value = self.values.entry(*asset_identifier).or_insert(0);
+        *current_value -= value
+    }
+
+    pub fn iter(&self) -> hash_map::Iter<AssetIdentifier, i64> {
+        self.values.iter()
+    }
+
+    pub fn transaction_fee(&self) -> &i64 {
+        let base_asset = AssetType::default();
+
+        self.values.get(base_asset.get_identifier()).unwrap()
+    }
+}
+
+impl Default for TransactionValue {
+    fn default() -> Self {
+        let base_asset = AssetType::default();
+        let mut hash_map = HashMap::default();
+
+        hash_map.insert(*base_asset.get_identifier(), 0);
+
+        TransactionValue { values: hash_map }
+    }
+}
 
 /// A collection of spend and receipt proofs that can be signed and verified.
 /// In general, all the spent values should add up to all the receipt values.
@@ -84,14 +128,15 @@ pub struct ProposedTransaction {
     create_asset_params: Vec<CreateAssetParams>,
     mint_asset_params: Vec<MintAssetParams>,
 
-    /// The balance of all the spends minus all the receipts. The difference
-    /// is the fee paid to the miner for mining the transaction.
-    transaction_fee: i64,
-
     /// This is the sequence in the chain the transaction will expire at and be
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
     expiration_sequence: u32,
+
+    /// The balance of all the spends minus all the receipts for each asset type
+    /// present in the transaction. The difference of the base asset is the fee
+    /// paid to the miner for mining the transaction
+    value: TransactionValue,
     //
     // NOTE: If adding fields here, you may need to add fields to
     // signature hash method, and also to Transaction.
@@ -107,8 +152,8 @@ impl ProposedTransaction {
             receipts: vec![],
             create_asset_params: vec![],
             mint_asset_params: vec![],
-            transaction_fee: 0,
             expiration_sequence: 0,
+            value: TransactionValue::default(),
         }
     }
 
@@ -121,20 +166,15 @@ impl ProposedTransaction {
         witness: &dyn WitnessTrait,
     ) -> Result<(), SaplingProofError> {
         let proof = SpendParams::new(self.sapling.clone(), spender_key, note, witness)?;
-        self.add_spend_proof(proof, note.value());
+
+        self.increment_binding_signature_key(&proof.value_commitment.randomness, false);
+        self.increment_binding_verification_key(&proof.value_commitment(), false);
+
+        self.spends.push(proof);
+        self.value
+            .add(note.asset_type().get_identifier(), note.value() as i64);
+
         Ok(())
-    }
-
-    /// Add a spend proof that was created externally.
-    ///
-    /// This allows for parallel immutable spends without having to take
-    /// a mutable pointer out on self.
-    pub fn add_spend_proof(&mut self, spend: SpendParams, note_value: u64) {
-        self.increment_binding_signature_key(&spend.value_commitment.randomness, false);
-        self.increment_binding_verification_key(&spend.value_commitment(), false);
-
-        self.spends.push(spend);
-        self.transaction_fee += note_value as i64;
     }
 
     /// Create a proof of a new note owned by the recipient in this
@@ -151,7 +191,8 @@ impl ProposedTransaction {
         self.increment_binding_verification_key(&proof.merkle_note.value_commitment, true);
 
         self.receipts.push(proof);
-        self.transaction_fee -= note.value as i64;
+        self.value
+            .subtract(note.asset_type().get_identifier(), note.value() as i64);
 
         Ok(())
     }
@@ -200,27 +241,58 @@ impl ProposedTransaction {
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction, TransactionError> {
-        let change_amount = self.transaction_fee - intended_transaction_fee as i64;
+        let mut change_notes = vec![];
+        let base_asset = AssetType::default();
+        let base_asset_identifier = base_asset.get_identifier();
 
-        if change_amount < 0 {
-            return Err(TransactionError::InvalidBalanceError);
+        for (asset_identifier, value) in self.value.iter() {
+            let is_base_asset = asset_identifier == base_asset_identifier;
+
+            let change_amount = match is_base_asset {
+                true => *value - intended_transaction_fee as i64,
+                false => *value,
+            };
+
+            if change_amount < 0 {
+                return Err(TransactionError::InvalidBalanceError);
+            }
+            if change_amount > 0 {
+                // TODO: The public address generated from the spender_key if
+                // change_goes_to is None should probably be associated with a
+                // known diversifier (eg: that used on other notes?)
+                // But we haven't worked out why determinacy in public addresses
+                // would be useful yet.
+                let change_address =
+                    change_goes_to.unwrap_or_else(|| spender_key.generate_public_address());
+
+                let change_asset_type = AssetType::from_identifier(asset_identifier)?;
+
+                let change_note = Note::new(
+                    change_address,
+                    change_amount as u64, // we checked it was positive
+                    Memo::default(),
+                    change_asset_type,
+                );
+
+                change_notes.push(change_note);
+            }
         }
-        if change_amount > 0 {
-            // TODO: The public address generated from the spender_key if
-            // change_goes_to is None should probably be associated with a
-            // known diversifier (eg: that used on other notes?)
-            // But we haven't worked out why determinacy in public addresses
-            // would be useful yet.
-            let change_address =
-                change_goes_to.unwrap_or_else(|| spender_key.generate_public_address());
-            let change_note = Note::new(
-                change_address,
-                change_amount as u64, // we checked it was positive
-                Memo::default(),
-                AssetType::default(),
-            );
-            self.receive(spender_key, &change_note)?;
+
+        for note in change_notes {
+            self.receive(spender_key, &note)?;
         }
+
+        // Confirm all assets have no remaining value
+        for (asset_identifier, value) in self.value.iter() {
+            let is_base_asset = asset_identifier == base_asset_identifier;
+
+            if (is_base_asset && value - intended_transaction_fee as i64 != 0)
+                || (!is_base_asset && *value != 0)
+            {
+                return Err(TransactionError::InvalidBalanceError);
+            }
+        }
+
         self._partial_post()
     }
 
@@ -288,7 +360,7 @@ impl ProposedTransaction {
         Ok(Transaction {
             sapling: self.sapling.clone(),
             expiration_sequence: self.expiration_sequence,
-            transaction_fee: self.transaction_fee,
+            transaction_fee: *self.value.transaction_fee(),
             spends: spend_proofs,
             receipts: receipt_proofs,
             create_asset_proofs,
@@ -313,7 +385,7 @@ impl ProposedTransaction {
             .write_u32::<LittleEndian>(self.expiration_sequence)
             .unwrap();
         hasher
-            .write_i64::<LittleEndian>(self.transaction_fee)
+            .write_i64::<LittleEndian>(*self.value.transaction_fee())
             .unwrap();
         for spend in self.spends.iter() {
             spend.serialize_signature_fields(&mut hasher).unwrap();
@@ -350,7 +422,7 @@ impl ProposedTransaction {
         let private_key = PrivateKey(self.binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
-        let mut value_balance_point = transaction_fee_to_point(self.transaction_fee as i64)?;
+        let mut value_balance_point = transaction_fee_to_point(*self.value.transaction_fee())?;
 
         value_balance_point = -value_balance_point;
         let mut calculated_public_key = self.binding_verification_key;

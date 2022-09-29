@@ -92,6 +92,7 @@ pub struct AssetType {
 // Abstract type representing an asset
 impl AssetType {
     /// Return the default asset type
+    // TODO: This should probably return a reference
     pub fn default() -> AssetType {
         *DEFAULT_ASSET
     }
