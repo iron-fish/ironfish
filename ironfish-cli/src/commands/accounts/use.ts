@@ -9,7 +9,7 @@ export class UseCommand extends IronfishCommand {
 
   static args = [
     {
-      name: 'name',
+      name: 'account',
       required: true,
       description: 'Name of the account',
     },
@@ -21,7 +21,7 @@ export class UseCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(UseCommand)
-    const name = (args.name as string).trim()
+    const name = (args.account as string).trim()
 
     const client = await this.sdk.connectRpc()
     await client.useAccount({ name })
