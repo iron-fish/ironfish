@@ -81,6 +81,10 @@ router.register<typeof ExportMinedStreamRequestSchema, ExportMinedStreamResponse
       start,
       stop,
     })) {
+      if (request.closed) {
+        break
+      }
+
       request.stream({
         start,
         stop,

@@ -38,6 +38,10 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
     const account = getAccount(node, request.data.account)
 
     for await (const { note, spent, transactionHash } of account.getNotes()) {
+      if (request.closed) {
+        break
+      }
+
       request.stream({
         amount: note.value().toString(),
         memo: note.memo(),
