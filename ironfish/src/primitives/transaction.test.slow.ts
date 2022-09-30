@@ -52,12 +52,8 @@ describe('Accounts', () => {
     const nodeA = nodeTest.node
 
     // Create an account A
-    const accountA = await useAccountFixture(nodeA.accounts, () =>
-      nodeA.accounts.createAccount('testA'),
-    )
-    const accountB = await useAccountFixture(nodeA.accounts, () =>
-      nodeA.accounts.createAccount('testB'),
-    )
+    const accountA = await useAccountFixture(nodeA.accounts, 'testA')
+    const accountB = await useAccountFixture(nodeA.accounts, 'testB')
 
     // Create a block with a miner's fee
     const block1 = await useMinerBlockFixture(

@@ -683,9 +683,8 @@ export class Accounts {
 
       // check if the chain data is fully synced
       let headHash = this.headHashes.get(sender.id)
-      headHash = await sender.getHeadHash()
       if (!headHash) {
-        headHash = this.headHashes.get(sender.id)
+        headHash = await sender.getHeadHash()
       }
 
       if (!headHash) {
