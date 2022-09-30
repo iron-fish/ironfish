@@ -27,7 +27,7 @@ import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
-import { Accounts, AccountsDB } from './wallet'
+import { AccountsDB, Wallet } from './wallet'
 import { WorkerPool } from './workerPool'
 
 export class IronfishNode {
@@ -35,7 +35,7 @@ export class IronfishNode {
   strategy: Strategy
   config: Config
   internal: InternalStore
-  accounts: Accounts
+  wallet: Wallet
   logger: Logger
   miningManager: MiningManager
   metrics: MetricsMonitor
@@ -60,7 +60,7 @@ export class IronfishNode {
     files,
     config,
     internal,
-    accounts,
+    wallet,
     strategy,
     metrics,
     memPool,
@@ -75,7 +75,7 @@ export class IronfishNode {
     files: FileSystem
     config: Config
     internal: InternalStore
-    accounts: Accounts
+    wallet: Wallet
     chain: Blockchain
     strategy: Strategy
     metrics: MetricsMonitor
@@ -90,7 +90,7 @@ export class IronfishNode {
     this.files = files
     this.config = config
     this.internal = internal
-    this.accounts = accounts
+    this.wallet = wallet
     this.chain = chain
     this.strategy = strategy
     this.metrics = metrics
@@ -142,7 +142,7 @@ export class IronfishNode {
       telemetry: this.telemetry,
     })
 
-    this.accounts.onTransactionCreated.on((transaction) => {
+    this.wallet.onTransactionCreated.on((transaction) => {
       this.telemetry.submitNewTransactionCreated(transaction, new Date())
     })
 
@@ -247,7 +247,7 @@ export class IronfishNode {
       files,
     })
 
-    const accounts = new Accounts({
+    const wallet = new Wallet({
       chain,
       config,
       database: accountDB,
@@ -257,7 +257,7 @@ export class IronfishNode {
     const minedBlocksIndexer = new MinedBlocksIndexer({
       files,
       location: config.indexDatabasePath,
-      accounts,
+      wallet,
       chain,
       logger,
     })
@@ -269,7 +269,7 @@ export class IronfishNode {
       files,
       config,
       internal,
-      accounts,
+      wallet: wallet,
       metrics,
       memPool,
       workerPool,
@@ -291,11 +291,11 @@ export class IronfishNode {
 
     try {
       await this.chain.open()
-      await this.accounts.open()
+      await this.wallet.open()
       await this.minedBlocksIndexer.open()
     } catch (e) {
       await this.chain.close()
-      await this.accounts.close()
+      await this.wallet.close()
       await this.minedBlocksIndexer.close()
       throw e
     }
@@ -303,7 +303,7 @@ export class IronfishNode {
 
   async closeDB(): Promise<void> {
     await this.chain.close()
-    await this.accounts.close()
+    await this.wallet.close()
     await this.minedBlocksIndexer.close()
   }
 
@@ -323,7 +323,7 @@ export class IronfishNode {
       this.metrics.start()
     }
 
-    await this.accounts.start()
+    await this.wallet.start()
     this.peerNetwork.start()
 
     if (this.config.get('enableRpc')) {
@@ -340,7 +340,7 @@ export class IronfishNode {
 
   async shutdown(): Promise<void> {
     await Promise.allSettled([
-      this.accounts.stop(),
+      this.wallet.stop(),
       this.syncer.stop(),
       this.peerNetwork.stop(),
       this.rpc.stop(),

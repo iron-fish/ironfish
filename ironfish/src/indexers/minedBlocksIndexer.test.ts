@@ -18,8 +18,8 @@ describe('MinedBlockIndexer', () => {
 
     const putSpy = jest.spyOn(node.minedBlocksIndexer['minedBlocks'], 'put')
 
-    const accountA = await useAccountFixture(node.accounts, 'a')
-    const blockA1 = await useMinerBlockFixture(chain, undefined, accountA, node.accounts)
+    const accountA = await useAccountFixture(node.wallet, 'a')
+    const blockA1 = await useMinerBlockFixture(chain, undefined, accountA, node.wallet)
     await expect(chain).toAddBlock(blockA1)
 
     await node.minedBlocksIndexer.updateHead()
@@ -54,8 +54,8 @@ describe('MinedBlockIndexer', () => {
 
     const putSpy = jest.spyOn(nodeA.minedBlocksIndexer['minedBlocks'], 'put')
 
-    const accountA = await useAccountFixture(nodeA.accounts, 'a')
-    const accountB = await useAccountFixture(nodeA.accounts, 'b')
+    const accountA = await useAccountFixture(nodeA.wallet, 'a')
+    const accountB = await useAccountFixture(nodeA.wallet, 'b')
 
     const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA)
     await expect(nodeA.chain).toAddBlock(blockA1)
@@ -105,7 +105,7 @@ describe('MinedBlockIndexer', () => {
     await node.minedBlocksIndexer.open()
     await node.minedBlocksIndexer.start()
 
-    const accountA = await useAccountFixture(node.accounts, 'a')
+    const accountA = await useAccountFixture(node.wallet, 'a')
     const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA)
     await expect(node.chain).toAddBlock(blockA1)
 
@@ -133,7 +133,7 @@ describe('MinedBlockIndexer', () => {
       await node.minedBlocksIndexer.open()
       await node.minedBlocksIndexer.start()
 
-      const accountA = await useAccountFixture(node.accounts, 'a')
+      const accountA = await useAccountFixture(node.wallet, 'a')
       const blockA1 = await useMinerBlockFixture(node.chain, 2, accountA)
       await expect(node.chain).toAddBlock(blockA1)
       const blockA2 = await useMinerBlockFixture(node.chain, 3, accountA)
@@ -175,8 +175,8 @@ describe('MinedBlockIndexer', () => {
       await nodeA.minedBlocksIndexer.open()
       await nodeA.minedBlocksIndexer.start()
 
-      const accountA = await useAccountFixture(nodeA.accounts, 'a')
-      const accountB = await useAccountFixture(nodeA.accounts, 'b')
+      const accountA = await useAccountFixture(nodeA.wallet, 'a')
+      const accountB = await useAccountFixture(nodeA.wallet, 'b')
 
       const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA)
       await expect(nodeA.chain).toAddBlock(blockA1)
@@ -217,8 +217,8 @@ describe('MinedBlockIndexer', () => {
       await node.minedBlocksIndexer.open()
       await node.minedBlocksIndexer.start()
 
-      const accountA = await useAccountFixture(node.accounts, 'a')
-      const accountB = await useAccountFixture(node.accounts, 'b')
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
 
       const blockA1 = await useMinerBlockFixture(node.chain, 2, accountA)
       await expect(node.chain).toAddBlock(blockA1)
@@ -251,9 +251,9 @@ describe('MinedBlockIndexer', () => {
       await nodeA.minedBlocksIndexer.open()
       await nodeA.minedBlocksIndexer.start()
 
-      const accountA = await useAccountFixture(nodeA.accounts, 'a')
-      const accountB = await useAccountFixture(nodeB.accounts, 'b')
-      await nodeA.accounts.importAccount(accountB)
+      const accountA = await useAccountFixture(nodeA.wallet, 'a')
+      const accountB = await useAccountFixture(nodeB.wallet, 'b')
+      await nodeA.wallet.importAccount(accountB)
 
       const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
       await expect(nodeA.chain).toAddBlock(blockA1)

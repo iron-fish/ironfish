@@ -11,8 +11,8 @@ export class Migration011 extends Migration {
   path = __filename
 
   async prepare(node: IronfishNode): Promise<IDatabase> {
-    await node.files.mkdir(node.accounts.db.location, { recursive: true })
-    return createDB({ location: node.accounts.db.location })
+    await node.files.mkdir(node.wallet.db.location, { recursive: true })
+    return createDB({ location: node.wallet.db.location })
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function

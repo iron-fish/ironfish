@@ -28,7 +28,7 @@ router.register<typeof GetDefaultAccountRequestSchema, GetDefaultAccountResponse
   `${ApiNamespace.account}/getDefaultAccount`,
   GetDefaultAccountRequestSchema,
   (request, node): void => {
-    const account = node.accounts.getDefaultAccount()
+    const account = node.wallet.getDefaultAccount()
     request.end({ account: account ? { name: account.name } : null })
   },
 )

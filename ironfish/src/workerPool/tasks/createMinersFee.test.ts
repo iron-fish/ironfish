@@ -46,7 +46,7 @@ describe('CreateMinersFeeTask', () => {
 
   describe('execute', () => {
     it('posts the miners fee transaction', async () => {
-      const account = await useAccountFixture(nodeTest.accounts)
+      const account = await useAccountFixture(nodeTest.wallet)
 
       const task = new CreateMinersFeeTask()
       const memo = 'memo'

@@ -39,7 +39,7 @@ export class Migration013 extends Migration {
   path = __filename
 
   prepare(node: IronfishNode): IDatabase {
-    return createDB({ location: node.accounts.db.location })
+    return createDB({ location: node.wallet.db.location })
   }
 
   async forward(
@@ -524,7 +524,7 @@ export class Migration013 extends Migration {
 
         throw new Error(
           `Your wallet is corrupt and missing a note for a nullifier.` +
-            ` If you have backed up your accounts, you should delete your accounts database at ${node.accounts.db.location} and run this again.`,
+            ` If you have backed up your accounts, you should delete your accounts database at ${node.wallet.db.location} and run this again.`,
         )
       }
     }

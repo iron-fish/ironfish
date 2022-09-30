@@ -11,9 +11,9 @@ describe('MemPool', () => {
 
     it('returns the number of transactions in the node', async () => {
       const { node } = nodeTest
-      const { accounts, memPool } = node
-      const accountA = await useAccountFixture(accounts, 'accountA')
-      const accountB = await useAccountFixture(accounts, 'accountB')
+      const { wallet, memPool } = node
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
       const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
       memPool.acceptTransaction(transaction)
@@ -27,11 +27,11 @@ describe('MemPool', () => {
 
     it('returns the size of memory usage for transactions and nullifiers', async () => {
       const { node } = nodeTest
-      const { accounts, memPool } = node
-      const accountA = await useAccountFixture(accounts, 'accountA')
-      const accountB = await useAccountFixture(accounts, 'accountB')
-      const accountC = await useAccountFixture(accounts, 'accountC')
-      const accountD = await useAccountFixture(accounts, 'accountD')
+      const { wallet, memPool } = node
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
+      const accountC = await useAccountFixture(wallet, 'accountC')
+      const accountD = await useAccountFixture(wallet, 'accountD')
       const { transaction, block } = await useBlockWithTx(node, accountA, accountB)
       const { transaction: transaction2 } = await useBlockWithTx(node, accountC, accountD)
 
@@ -74,9 +74,9 @@ describe('MemPool', () => {
 
       it('returns false', async () => {
         const { node } = nodeTest
-        const { accounts, memPool } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { wallet, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         expect(memPool.exists(transaction.hash())).toBe(false)
@@ -88,9 +88,9 @@ describe('MemPool', () => {
 
       it('returns true', async () => {
         const { node } = nodeTest
-        const { accounts, memPool } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { wallet, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         expect(memPool.exists(transaction.hash())).toBe(false)
@@ -103,10 +103,10 @@ describe('MemPool', () => {
 
     it('returns transactions from the node mempool sorted by fees', async () => {
       const { node } = nodeTest
-      const { accounts, memPool } = node
-      const accountA = await useAccountFixture(accounts, 'accountA')
-      const accountB = await useAccountFixture(accounts, 'accountB')
-      const accountC = await useAccountFixture(accounts, 'accountC')
+      const { wallet, memPool } = node
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
+      const accountC = await useAccountFixture(wallet, 'accountC')
       const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
       const { transaction: transactionB } = await useBlockWithTx(node, accountB, accountC)
       const { transaction: transactionC } = await useBlockWithTx(node, accountC, accountA)
@@ -125,9 +125,9 @@ describe('MemPool', () => {
 
     it('does not return transactions that have been removed from the mempool', async () => {
       const { node } = nodeTest
-      const { accounts, memPool } = node
-      const accountA = await useAccountFixture(accounts, 'accountA')
-      const accountB = await useAccountFixture(accounts, 'accountB')
+      const { wallet, memPool } = node
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
       const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
       const { transaction: transactionB } = await useBlockWithTx(node, accountA, accountB)
 
@@ -155,9 +155,9 @@ describe('MemPool', () => {
 
       it('returns false', async () => {
         const { node } = nodeTest
-        const { accounts, memPool } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { wallet, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         memPool.acceptTransaction(transaction)
@@ -171,9 +171,9 @@ describe('MemPool', () => {
 
       it('returns false', async () => {
         const { node } = nodeTest
-        const { accounts, chain, memPool } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { wallet, chain, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         const isExpiredSequenceSpy = jest
@@ -191,9 +191,9 @@ describe('MemPool', () => {
 
       it('returns false', async () => {
         const { node } = nodeTest
-        const { accounts, memPool } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { wallet, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
         const { transaction: transaction2 } = await useBlockWithTx(node, accountA, accountB)
 
@@ -206,9 +206,9 @@ describe('MemPool', () => {
 
       it('returns true with a higher fee', async () => {
         const { node } = nodeTest
-        const { accounts, memPool } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { wallet, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
         const { transaction: transaction2 } = await useBlockWithTx(
           node,
@@ -231,9 +231,9 @@ describe('MemPool', () => {
 
       it('returns true', async () => {
         const { node } = nodeTest
-        const { accounts, memPool } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { wallet, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         expect(memPool.acceptTransaction(transaction)).toBe(true)
@@ -241,9 +241,9 @@ describe('MemPool', () => {
 
       it('sets the transaction hash in the mempool map and priority queue', async () => {
         const { node } = nodeTest
-        const { accounts, memPool } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { wallet, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         memPool.acceptTransaction(transaction)
@@ -259,9 +259,9 @@ describe('MemPool', () => {
 
     it('removes the block transactions and expired transactions from the mempool', async () => {
       const { node, chain } = nodeTest
-      const { accounts, memPool } = node
-      const accountA = await useAccountFixture(accounts, 'accountA')
-      const accountB = await useAccountFixture(accounts, 'accountB')
+      const { wallet, memPool } = node
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
       const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
       const { block, transaction: transactionB } = await useBlockWithTx(
         node,
@@ -289,9 +289,9 @@ describe('MemPool', () => {
 
     it('adds the block transactions to the mempool', async () => {
       const { node, chain } = nodeTest
-      const { accounts, memPool } = node
-      const accountA = await useAccountFixture(accounts, 'accountA')
-      const accountB = await useAccountFixture(accounts, 'accountB')
+      const { wallet, memPool } = node
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
       const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
       const minersFee = block.transactions[0]
 

@@ -26,12 +26,12 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
   RemoveAccountRequestSchema,
   async (request, node): Promise<void> => {
     const name = request.data.name
-    const account = node.accounts.getAccountByName(name)
+    const account = node.wallet.getAccountByName(name)
 
     if (!account) {
       throw new ValidationError(
         `There is no account with the name ${name}. Options are:\n` +
-          node.accounts
+          node.wallet
             .listAccounts()
             .map((a) => a.name)
             .join('\n'),
@@ -39,7 +39,7 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
     }
 
     if (!request.data.confirm) {
-      const balance = await node.accounts.getBalance(account)
+      const balance = await node.wallet.getBalance(account)
 
       if (balance.unconfirmed !== BigInt(0)) {
         request.end({ needsConfirm: true })
@@ -47,7 +47,7 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
       }
     }
 
-    await node.accounts.removeAccount(account.name)
+    await node.wallet.removeAccount(account.name)
     request.end({})
   },
 )

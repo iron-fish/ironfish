@@ -14,8 +14,8 @@ describe('Block', () => {
   const nodeTest = createNodeTest()
 
   it('correctly counts notes and nullifiers', async () => {
-    const accountA = await useAccountFixture(nodeTest.node.accounts, 'accountA')
-    const accountB = await useAccountFixture(nodeTest.node.accounts, 'accountB')
+    const accountA = await useAccountFixture(nodeTest.node.wallet, 'accountA')
+    const accountB = await useAccountFixture(nodeTest.node.wallet, 'accountB')
     const { block } = await useBlockWithTx(nodeTest.node, accountA, accountB)
 
     expect(block.counts()).toMatchObject({
@@ -49,8 +49,8 @@ describe('Block', () => {
   })
 
   it('check block equality', async () => {
-    const account = await useAccountFixture(nodeTest.node.accounts, 'account')
-    const tx = await useMinersTxFixture(nodeTest.node.accounts, account)
+    const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+    const tx = await useMinersTxFixture(nodeTest.node.wallet, account)
     const { block: block1 } = await useBlockWithTx(nodeTest.node, account, account)
 
     // Header change

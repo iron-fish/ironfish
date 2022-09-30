@@ -22,7 +22,7 @@ export function mockEvent(): any {
   return { on: jest.fn() }
 }
 
-export function mockAccounts(): any {
+export function mockWallet(): any {
   return {
     onBroadcastTransaction: mockEvent(),
     syncTransaction: jest.fn(),
@@ -52,7 +52,7 @@ export function mockStrategy(): any {
 
 export function mockNode(): any {
   return {
-    accounts: mockAccounts(),
+    wallet: mockWallet(),
     memPool: mockMempool(),
     miningDirector: mockDirector(),
     miningManager: mockMiningManager(),

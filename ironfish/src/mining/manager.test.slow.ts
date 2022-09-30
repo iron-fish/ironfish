@@ -18,7 +18,7 @@ describe('Mining manager', () => {
   it('creates a new block template', async () => {
     const { chain, miningManager } = nodeTest.node
 
-    const account = await nodeTest.node.accounts.createAccount('account', true)
+    const account = await nodeTest.node.wallet.createAccount('account', true)
 
     const block = await useMinerBlockFixture(chain, 2)
     await expect(chain).toAddBlock(block)
@@ -39,13 +39,13 @@ describe('Mining manager', () => {
     const { node, chain } = nodeTest
     const { miningManager } = node
 
-    const account = await nodeTest.node.accounts.createAccount('account', true)
+    const account = await nodeTest.node.wallet.createAccount('account', true)
 
-    const previous = await useMinerBlockFixture(chain, 2, account, node.accounts)
+    const previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
     await expect(chain).toAddBlock(previous)
-    await node.accounts.updateHead()
+    await node.wallet.updateHead()
 
-    const transaction = await useTxFixture(node.accounts, account, account)
+    const transaction = await useTxFixture(node.wallet, account, account)
 
     expect(node.memPool.size()).toBe(0)
     node.memPool.acceptTransaction(transaction)
@@ -69,10 +69,10 @@ describe('Mining manager', () => {
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const accountA = await useAccountFixture(nodeA.accounts, 'a')
-    const accountB = await useAccountFixture(nodeA.accounts, 'b')
+    const accountA = await useAccountFixture(nodeA.wallet, 'a')
+    const accountB = await useAccountFixture(nodeA.wallet, 'b')
 
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.accounts)
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
     await expect(nodeA.chain).toAddBlock(blockA1)
 
     const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
@@ -81,8 +81,8 @@ describe('Mining manager', () => {
     await expect(nodeB.chain).toAddBlock(blockB2)
 
     // This transaction will be invalid after the reorg
-    await nodeA.accounts.updateHead()
-    const invalidTx = await useTxFixture(nodeA.accounts, accountA, accountB)
+    await nodeA.wallet.updateHead()
+    const invalidTx = await useTxFixture(nodeA.wallet, accountA, accountB)
 
     await expect(nodeA.chain).toAddBlock(blockB1)
     await expect(nodeA.chain).toAddBlock(blockB2)
@@ -110,7 +110,7 @@ describe('Mining manager', () => {
       const { miningManager } = node
       strategy.disableMiningReward()
 
-      await nodeTest.node.accounts.createAccount('account', true)
+      await nodeTest.node.wallet.createAccount('account', true)
 
       const blockA1 = await useMinerBlockFixture(chain, 2)
       const blockA2 = await useMinerBlockFixture(chain, 3)
@@ -132,7 +132,7 @@ describe('Mining manager', () => {
       const { miningManager } = node
       strategy.disableMiningReward()
 
-      await nodeTest.node.accounts.createAccount('account', true)
+      await nodeTest.node.wallet.createAccount('account', true)
 
       const blockA1 = await useMinerBlockFixture(chain, 2)
       const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
@@ -151,7 +151,7 @@ describe('Mining manager', () => {
       const { miningManager } = node
       strategy.disableMiningReward()
 
-      await nodeTest.node.accounts.createAccount('account', true)
+      await nodeTest.node.wallet.createAccount('account', true)
 
       const blockA1 = await useMinerBlockFixture(chain, 2)
       const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
@@ -173,7 +173,7 @@ describe('Mining manager', () => {
       const { miningManager } = node
       strategy.disableMiningReward()
 
-      await nodeTest.node.accounts.createAccount('account', true)
+      await nodeTest.node.wallet.createAccount('account', true)
 
       const blockA1 = await useMinerBlockFixture(chain, 2)
       const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
@@ -195,7 +195,7 @@ describe('Mining manager', () => {
       const { miningManager } = node
       strategy.disableMiningReward()
 
-      await nodeTest.node.accounts.createAccount('account', true)
+      await nodeTest.node.wallet.createAccount('account', true)
 
       const onNewBlockSpy = jest.spyOn(miningManager.onNewBlock, 'emit')
 

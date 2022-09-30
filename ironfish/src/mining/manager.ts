@@ -128,7 +128,7 @@ export class MiningManager {
       newBlockSequence,
     )
 
-    const account = this.node.accounts.getDefaultAccount()
+    const account = this.node.wallet.getDefaultAccount()
     Assert.isNotNull(account, 'Cannot mine without an account')
 
     // Calculate the final fee for the miner of this block
