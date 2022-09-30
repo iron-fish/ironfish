@@ -169,9 +169,14 @@ export async function useBlockFixture(
   chain: Blockchain,
   generate: FixtureGenerate<Block>,
   addTransactionsTo?: Accounts,
+  headerTimestamp?: number,
 ): Promise<Block> {
   return useFixture(generate, {
     process: async (block: Block): Promise<void> => {
+      if (headerTimestamp) {
+        block.header.timestamp.setTime(headerTimestamp)
+      }
+
       if (addTransactionsTo) {
         await restoreBlockFixtureToAccounts(block, addTransactionsTo)
       }
@@ -192,6 +197,7 @@ export async function useMinerBlockFixture(
   chain: Blockchain,
   sequence?: number,
   account?: Account,
+  headerTimestamp?: number,
   addTransactionsTo?: Accounts,
   transactions: Transaction[] = [],
 ): Promise<Block> {
@@ -210,6 +216,7 @@ export async function useMinerBlockFixture(
         ),
       ),
     addTransactionsTo,
+    headerTimestamp,
   )
 }
 
@@ -281,7 +288,7 @@ export async function useTxSpendsFixture(
 ): Promise<{ account: Account; transaction: Transaction }> {
   const account = options?.account ?? (await useAccountFixture(node.accounts))
 
-  const block = await useMinerBlockFixture(node.chain, 2, account, node.accounts)
+  const block = await useMinerBlockFixture(node.chain, 2, account, undefined, node.accounts)
 
   await expect(node.chain).toAddBlock(block)
   await node.accounts.updateHead()

@@ -35,8 +35,20 @@ describe('Blockchain', () => {
       let blockB: Block
 
       if (i === 0) {
-        blockA = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.accounts)
-        blockB = await useMinerBlockFixture(nodeB.chain, undefined, accountB, nodeB.accounts)
+        blockA = await useMinerBlockFixture(
+          nodeA.chain,
+          undefined,
+          accountA,
+          undefined,
+          nodeA.accounts,
+        )
+        blockB = await useMinerBlockFixture(
+          nodeB.chain,
+          undefined,
+          accountB,
+          undefined,
+          nodeB.accounts,
+        )
       } else {
         const { block: bA } = await useBlockWithTx(nodeA, accountA, accountA, false)
         const { block: bB } = await useBlockWithTx(nodeB, accountB, accountB, false)

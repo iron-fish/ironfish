@@ -725,7 +725,13 @@ describe('Accounts', () => {
     const accountANodeB = await nodeB.accounts.importAccount(accountA)
 
     // Create and add Block A1
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA, nodeA.accounts)
+    const blockA1 = await useMinerBlockFixture(
+      nodeA.chain,
+      2,
+      accountA,
+      undefined,
+      nodeA.accounts,
+    )
     let addedBlock = await nodeA.chain.addBlock(blockA1)
     expect(addedBlock.isAdded).toBe(true)
 

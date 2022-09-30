@@ -60,11 +60,15 @@ describe('Accounts', () => {
     )
 
     // Create a block with a miner's fee
-    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
+    const block1 = await useMinerBlockFixture(
+      nodeA.chain,
+      2,
+      accountA,
+      Date.now() - 3 * (1000 * 60 * 60 * 24),
+    )
     await nodeA.chain.addBlock(block1)
     await nodeA.accounts.updateHead()
-    await nodeA.accounts.updateHeadHashes(await nodeA.accounts.getLatestHeadHash())
-    nodeA.chain.head.timestamp.setTime(Date.now() - 3 * (1000 * 60 * 60 * 24))
+    await nodeA.accounts.getLatestHeadHash()
 
     const response = nodeA.accounts.createTransaction(
       accountA,
@@ -100,10 +104,10 @@ describe('Accounts', () => {
     )
 
     // Create a block with a miner's fee
-    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
+    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA, Date.now())
     await nodeA.chain.addBlock(block1)
     await nodeA.accounts.updateHead()
-    await nodeA.accounts.updateHeadHashes(await nodeA.accounts.getLatestHeadHash())
+    await nodeA.accounts.getLatestHeadHash()
 
     const transaction = await nodeA.accounts.createTransaction(
       accountA,
@@ -118,5 +122,5 @@ describe('Accounts', () => {
       0,
     )
     expect(transaction.isMinersFee()).toBe(false)
-  })
+  }, 500000)
 })

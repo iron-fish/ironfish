@@ -13,10 +13,22 @@ describe('Accounts', () => {
 
     const account = await useAccountFixture(node.accounts, 'accountA')
 
-    const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+    const block1 = await useMinerBlockFixture(
+      node.chain,
+      undefined,
+      account,
+      undefined,
+      node.accounts,
+    )
     await expect(node.chain).toAddBlock(block1)
 
-    const block2 = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+    const block2 = await useMinerBlockFixture(
+      node.chain,
+      undefined,
+      account,
+      undefined,
+      node.accounts,
+    )
     await expect(node.chain).toAddBlock(block2)
 
     // From block1
@@ -96,7 +108,13 @@ describe('Accounts', () => {
 
     const account = await useAccountFixture(node.accounts, 'accountA')
 
-    const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+    const block = await useMinerBlockFixture(
+      node.chain,
+      undefined,
+      account,
+      undefined,
+      node.accounts,
+    )
     const tx = block.transactions[0]
     const noteEncrypted = Array.from(block.notes())[0]
     const note = noteEncrypted.decryptNoteForOwner(account.incomingViewKey)

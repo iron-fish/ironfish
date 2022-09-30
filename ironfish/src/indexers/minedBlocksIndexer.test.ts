@@ -19,7 +19,13 @@ describe('MinedBlockIndexer', () => {
     const putSpy = jest.spyOn(node.minedBlocksIndexer['minedBlocks'], 'put')
 
     const accountA = await useAccountFixture(node.accounts, 'a')
-    const blockA1 = await useMinerBlockFixture(chain, undefined, accountA, node.accounts)
+    const blockA1 = await useMinerBlockFixture(
+      chain,
+      undefined,
+      accountA,
+      undefined,
+      node.accounts,
+    )
     await expect(chain).toAddBlock(blockA1)
 
     await node.minedBlocksIndexer.updateHead()

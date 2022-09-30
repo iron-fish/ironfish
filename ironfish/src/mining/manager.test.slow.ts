@@ -41,7 +41,7 @@ describe('Mining manager', () => {
 
     const account = await nodeTest.node.accounts.createAccount('account', true)
 
-    const previous = await useMinerBlockFixture(chain, 2, account, node.accounts)
+    const previous = await useMinerBlockFixture(chain, 2, account, undefined, node.accounts)
     await expect(chain).toAddBlock(previous)
     await node.accounts.updateHead()
 
@@ -72,7 +72,13 @@ describe('Mining manager', () => {
     const accountA = await useAccountFixture(nodeA.accounts, 'a')
     const accountB = await useAccountFixture(nodeA.accounts, 'b')
 
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.accounts)
+    const blockA1 = await useMinerBlockFixture(
+      nodeA.chain,
+      undefined,
+      accountA,
+      undefined,
+      nodeA.accounts,
+    )
     await expect(nodeA.chain).toAddBlock(blockA1)
 
     const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)

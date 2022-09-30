@@ -26,7 +26,7 @@ describe('Block template stream', () => {
     // will only be called once.
     chain.onConnectBlock.clear()
 
-    const previous = await useMinerBlockFixture(chain, 2, account, node.accounts)
+    const previous = await useMinerBlockFixture(chain, 2, account, undefined, node.accounts)
 
     await expect(chain).toAddBlock(previous)
     await flushTimeout()
@@ -54,6 +54,7 @@ describe('Block template stream', () => {
       nodeTest.chain,
       2,
       account,
+      undefined,
       nodeTest.node.accounts,
     )
 
@@ -70,7 +71,13 @@ describe('Block template stream', () => {
     )
 
     // Generate another block
-    const block3 = await useMinerBlockFixture(nodeTest.chain, 3, account, nodeTest.accounts)
+    const block3 = await useMinerBlockFixture(
+      nodeTest.chain,
+      3,
+      account,
+      undefined,
+      nodeTest.accounts,
+    )
 
     // Done with the first node, we can take it down
     await nodeTest.teardownEach()
