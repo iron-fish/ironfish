@@ -495,7 +495,7 @@ describe('Accounts', () => {
     const accountC = await useAccountFixture(nodeA.accounts, 'testC')
 
     // Create a block with a miner's fee
-    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
+    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA, Date.now())
     const addedBlock = await nodeA.chain.addBlock(block1)
     expect(addedBlock.isAdded).toBe(true)
 
