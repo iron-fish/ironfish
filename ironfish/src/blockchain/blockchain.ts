@@ -1329,6 +1329,7 @@ export class Blockchain {
 }
 
 export class VerifyError extends Error {
+  name = this.constructor.name
   reason: VerificationResultReason
   score: number
 
