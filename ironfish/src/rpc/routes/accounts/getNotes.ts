@@ -41,6 +41,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
       if (request.closed) {
         break
       }
+
       request.stream({
         amount: note.value().toString(),
         memo: note.memo(),

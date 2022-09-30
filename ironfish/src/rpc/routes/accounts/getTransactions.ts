@@ -67,6 +67,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
       if (request.closed) {
         break
       }
+
       await streamTransaction(request, node, account, transaction)
     }
 
