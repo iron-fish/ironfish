@@ -162,14 +162,6 @@ export class Peer {
   /** how many outbound connections does the peer have */
   pendingRPC = 0
 
-  private readonly supportedConnections: {
-    [ConnectionType.WebSocket]: ConnectionRetry
-    [ConnectionType.WebRtc]: ConnectionRetry
-  } = {
-    WebRtc: new ConnectionRetry(),
-    WebSocket: new ConnectionRetry(),
-  }
-
   /**
    * The reason why the Peer requested to disconnect from us.
    */
@@ -513,25 +505,6 @@ export class Peer {
     return state.type === 'DISCONNECTED'
       ? { webRtc: undefined, webSocket: undefined }
       : state.connections
-  }
-
-  getConnectionRetry(type: ConnectionType, direction: ConnectionDirection.Inbound): null
-  getConnectionRetry(
-    type: ConnectionType,
-    direction: ConnectionDirection.Outbound,
-  ): ConnectionRetry
-  getConnectionRetry(
-    type: ConnectionType,
-    direction: ConnectionDirection,
-  ): ConnectionRetry | null
-  getConnectionRetry(
-    type: ConnectionType,
-    direction: ConnectionDirection,
-  ): ConnectionRetry | null {
-    if (direction === ConnectionDirection.Inbound) {
-      return null
-    }
-    return this.supportedConnections[type]
   }
 
   private readonly connectionMessageHandlers: Map<

@@ -29,6 +29,7 @@ import { SignalRequestMessage } from '../messages/signalRequest'
 import { parseUrl } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
 import { AddressManager } from './addressManager'
+import { ConnectionRetry } from './connectionRetry'
 import {
   Connection,
   ConnectionDirection,
@@ -74,7 +75,14 @@ export class PeerManager {
 
   peerCandidateMap: Map<
     string,
-    { name?: string; address: string | null; port: number | null; neighbors: Set<string> }
+    {
+      name?: string
+      address: string | null
+      port: number | null
+      neighbors: Set<string>
+      webRtcRetry: ConnectionRetry
+      websocketRetry: ConnectionRetry
+    }
   > = new Map()
 
   addressManager: AddressManager
@@ -164,6 +172,19 @@ export class PeerManager {
 
     const peer = this.getOrCreatePeer(null)
     peer.setWebSocketAddress(url.hostname, url.port)
+
+    const address = peer.getWebSocketAddress()
+    const peerCandidate = this.peerCandidateMap.get(address)
+    if (!peerCandidate) {
+      this.peerCandidateMap.set(address, {
+        address: url.hostname,
+        port: url.port,
+        neighbors: new Set(),
+        webRtcRetry: new ConnectionRetry(),
+        websocketRetry: new ConnectionRetry(),
+      })
+    }
+
     peer.isWhitelisted = isWhitelisted
     this.connectToWebSocket(peer)
     return peer
@@ -187,6 +208,7 @@ export class PeerManager {
 
     const address = peer.getWebSocketAddress()
     if (!address) {
+      this.peerCandidateMap.get()
       peer
         .getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
         .failedConnection(peer.isWhitelisted)
@@ -430,9 +452,15 @@ export class PeerManager {
     const hasNoConnection =
       peer.state.type === 'DISCONNECTED' || peer.state.connections.webSocket === null
 
-    const retryOk =
-      peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-        ?.canConnect || false
+    let retryOk = false
+    if (peer.state.identity) {
+      retryOk =
+        this.peerCandidateMap.get(peer.state.identity)?.websocketRetry.canConnect ?? false
+    } else {
+      retryOk =
+        this.peerCandidateMap.get(peer.getWebSocketAddress())?.websocketRetry.canConnect ??
+        false
+    }
 
     return (
       canEstablishNewConnection &&
@@ -457,9 +485,10 @@ export class PeerManager {
     const hasNoConnection =
       peer.state.type === 'DISCONNECTED' || peer.state.connections.webRtc === undefined
 
-    const retryOk =
-      peer.getConnectionRetry(ConnectionType.WebRtc, ConnectionDirection.Outbound)
-        ?.canConnect || false
+    let retryOk = false
+    if (peer.state.identity) {
+      retryOk = this.peerCandidateMap.get(peer.state.identity)?.webRtcRetry.canConnect ?? false
+    }
 
     return (
       canEstablishNewConnection &&
@@ -635,11 +664,6 @@ export class PeerManager {
       peer.removeConnection(peer.state.connections.webSocket)
     }
 
-    // Clean up data so that the duplicate peer can be disposed
-    peer
-      .getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-      ?.neverRetryConnecting()
-
     this.tryDisposePeer(peer)
   }
 
@@ -801,11 +825,7 @@ export class PeerManager {
    * @param peer The peer to evaluate
    */
   private tryDisposePeer(peer: Peer) {
-    if (
-      peer.state.type === 'DISCONNECTED' &&
-      peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-        ?.willNeverRetryConnecting
-    ) {
+    if (peer.state.type === 'DISCONNECTED') {
       this.addressManager.removePeerAddress(peer)
 
       this.logger.debug(
@@ -1422,6 +1442,8 @@ export class PeerManager {
           address: connectedPeer.address,
           port: connectedPeer.port,
           neighbors: new Set(peer.state.identity),
+          webRtcRetry: new ConnectionRetry(),
+          websocketRetry: new ConnectionRetry(),
         })
       }
     }
