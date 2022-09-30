@@ -3,5 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export class NotEnoughFundsError extends Error {
-    name = this.constructor.name
+  name = this.constructor.name
 }
