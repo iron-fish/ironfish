@@ -3,14 +3,14 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-(
-    echo ""
-    echo "Generating test fixtures"
-    cd ../ironfish-cli
-    yarn test
-    cd ../ironfish
-    yarn test
-)
+# (
+#     echo ""
+#     echo "Generating test fixtures"
+#     cd ../ironfish-cli
+#     yarn test
+#     cd ../ironfish
+#     yarn test
+# )
 
 (
     echo ""

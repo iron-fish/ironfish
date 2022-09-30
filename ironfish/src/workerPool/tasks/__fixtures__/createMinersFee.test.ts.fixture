@@ -2,12 +2,12 @@
   "CreateMinersFeeTask execute posts the miners fee transaction": [
     {
       "name": "test",
-      "spendingKey": "d3c6b79594bd773c9a75a09a01b2a1b8fad2d9c83d9e003943a261a3038b7af0",
-      "incomingViewKey": "0176ddcddae41eb8ab87eb7685731b09f501b745a44186c44f880c7ff40b3702",
-      "outgoingViewKey": "8fdc4d7119dfd7eb477a6f95b8ff5613e0b5bb154c443950265010bdfd2acc31",
-      "publicAddress": "80d6cbdd6c9847dcfba729dc13814d8b7f6b42aad6435df027812a71b1317e603d8fecb2fdc7769f195d8a",
+      "spendingKey": "28627c66a197b7b1a13c7704983be6079d5b6cfafc983f4ab1a03f0ffe104733",
+      "incomingViewKey": "7cc6146b51603740d38ac33c6e9299f351f87514d0f80d86e9774d0a73960000",
+      "outgoingViewKey": "938bba4e91a19c09e31fd24f031c3d278939c260f9666ebc4a70473e79f4d4a7",
+      "publicAddress": "cacfe0b34ab18d7e172ae37c843c39ff1d275a50b87aca17e3b363b1bc1c5370e69903fb409211fed23560",
       "rescan": null,
-      "displayName": "test (675f726)"
+      "displayName": "test (ea59dde)"
     }
   ]
 }
