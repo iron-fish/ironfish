@@ -3,14 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export class TransactionWrongDatabaseError extends Error {
+  name = this.constructor.name
+
   constructor(store: string) {
     super(`Wrong transaction database when using store ${store}`)
   }
 }
 
-export class DuplicateKeyError extends Error {}
+export class DuplicateKeyError extends Error {
+  name = this.constructor.name
+}
 
 export class DatabaseOpenError extends Error {
+  name = this.constructor.name
+
   constructor(message?: string, error?: Error) {
     super(message ?? error?.message)
 

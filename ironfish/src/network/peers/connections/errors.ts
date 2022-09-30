@@ -5,6 +5,7 @@
 import { ErrorUtils } from '../../../utils'
 
 export class NetworkError extends Error {
+  name = this.constructor.name
   wrappedError: unknown | null
 
   constructor(message?: string, wrappedError?: unknown) {
@@ -32,6 +33,8 @@ export class HandshakeTimeoutError extends TimeoutError {
 }
 
 export class CannotSatisfyRequestError extends Error {
+  name = this.constructor.name
+
   constructor(message: string | undefined) {
     super(message)
     this.name = 'CannotSatisfyRequestError'
@@ -39,6 +42,7 @@ export class CannotSatisfyRequestError extends Error {
 }
 
 export class RequestTimeoutError extends Error {
+  name = this.constructor.name
   timeoutMs: number
 
   constructor(timeoutMs: number, message?: string) {

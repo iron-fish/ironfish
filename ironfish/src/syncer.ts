@@ -19,7 +19,9 @@ const SYNCER_TICK_MS = 10 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
 const REQUEST_BLOCKS_PER_MESSAGE = 20
 
-class AbortSyncingError extends Error {}
+class AbortSyncingError extends Error {
+  name = this.constructor.name
+}
 
 export class Syncer {
   readonly peerNetwork: PeerNetwork
