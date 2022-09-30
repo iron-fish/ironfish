@@ -18,7 +18,7 @@ describe('TransactionValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
-      const transaction = await useMinersTxFixture(nodeTest.accounts)
+      const transaction = await useMinersTxFixture(nodeTest.wallet)
 
       const value: TransactionValue = {
         transaction,
@@ -37,7 +37,7 @@ describe('TransactionValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
-      const transaction = await useMinersTxFixture(nodeTest.accounts)
+      const transaction = await useMinersTxFixture(nodeTest.wallet)
 
       const value: TransactionValue = {
         transaction,
@@ -56,7 +56,7 @@ describe('TransactionValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
-      const transaction = await useMinersTxFixture(nodeTest.accounts)
+      const transaction = await useMinersTxFixture(nodeTest.wallet)
 
       const value: TransactionValue = {
         transaction,
@@ -75,7 +75,7 @@ describe('TransactionValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
-      const transaction = await useMinersTxFixture(nodeTest.accounts)
+      const transaction = await useMinersTxFixture(nodeTest.wallet)
 
       const value: TransactionValue = {
         transaction,

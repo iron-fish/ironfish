@@ -255,7 +255,7 @@ export class PeerNetwork {
       this.broadcastBlockHash(block.header)
     })
 
-    this.node.accounts.onBroadcastTransaction.on((transaction) => {
+    this.node.wallet.onBroadcastTransaction.on((transaction) => {
       const serializedTransaction = transaction.serialize()
 
       const nonce = Buffer.alloc(16, transaction.hash())
@@ -1429,7 +1429,7 @@ export class PeerNetwork {
 
       // The accounts need to know about the transaction since it could be
       // relevant to the accounts, despite coming from a different node.
-      await this.node.accounts.syncTransaction(transaction, {})
+      await this.node.wallet.syncTransaction(transaction, {})
 
       if (this.node.memPool.acceptTransaction(transaction)) {
         this.onTransactionAccepted.emit(transaction, received)

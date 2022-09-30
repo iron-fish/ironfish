@@ -12,7 +12,7 @@ describe('Accounts utils', () => {
     let publicAddress = ''
 
     beforeAll(async () => {
-      const account = await routeTest.node.accounts.createAccount(name)
+      const account = await routeTest.node.wallet.createAccount(name)
       publicAddress = account.publicAddress
     })
 
@@ -29,7 +29,7 @@ describe('Accounts utils', () => {
     })
 
     it('should fail if no default account account is set', async () => {
-      await routeTest.node.accounts.setDefaultAccount(null)
+      await routeTest.node.wallet.setDefaultAccount(null)
 
       expect(() => {
         getAccount(routeTest.node)
@@ -37,7 +37,7 @@ describe('Accounts utils', () => {
     })
 
     it('should pass if default account is found', async () => {
-      await routeTest.node.accounts.setDefaultAccount(name)
+      await routeTest.node.wallet.setDefaultAccount(name)
       const result = getAccount(routeTest.node)
       expect(result.name).toEqual(name)
       expect(result.publicAddress).toEqual(publicAddress)

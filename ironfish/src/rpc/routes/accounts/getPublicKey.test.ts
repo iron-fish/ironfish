@@ -27,8 +27,8 @@ describe('Route account/getPublicKey', () => {
   let publicAddress = ''
 
   beforeAll(async () => {
-    account = await routeTest.node.accounts.createAccount(uuid())
-    await routeTest.node.accounts.setDefaultAccount(account.name)
+    account = await routeTest.node.wallet.createAccount(uuid())
+    await routeTest.node.wallet.setDefaultAccount(account.name)
     publicAddress = account.publicAddress
   })
 

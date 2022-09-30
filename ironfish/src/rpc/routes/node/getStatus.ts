@@ -216,11 +216,11 @@ router.register<typeof GetStatusRequestSchema, GetNodeStatusResponse>(
 
 function getStatus(node: IronfishNode): GetNodeStatusResponse {
   let accountsScanning
-  if (node.accounts.scan !== null) {
+  if (node.wallet.scan !== null) {
     accountsScanning = {
-      sequence: node.accounts.scan.sequence,
-      endSequence: node.accounts.scan.endSequence,
-      startedAt: node.accounts.scan.startedAt,
+      sequence: node.wallet.scan.sequence,
+      endSequence: node.wallet.scan.endSequence,
+      startedAt: node.wallet.scan.startedAt,
     }
   }
 
@@ -289,8 +289,8 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
     },
     accounts: {
       scanning: accountsScanning,
-      head: `${node.accounts.chainProcessor.hash?.toString('hex') || ''} (${
-        node.accounts.chainProcessor.sequence?.toString() || ''
+      head: `${node.wallet.chainProcessor.hash?.toString('hex') || ''} (${
+        node.wallet.chainProcessor.sequence?.toString() || ''
       })`,
     },
   }

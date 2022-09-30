@@ -33,7 +33,7 @@ router.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
   async (request, node): Promise<void> => {
     const name = request.data.name
 
-    if (node.accounts.accountExists(name)) {
+    if (node.wallet.accountExists(name)) {
       throw new ValidationError(
         `There is already an account with the name ${name}`,
         400,
@@ -41,11 +41,11 @@ router.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
       )
     }
 
-    const account = await node.accounts.createAccount(name)
+    const account = await node.wallet.createAccount(name)
 
     let isDefaultAccount = false
-    if (!node.accounts.hasDefaultAccount || request.data.default) {
-      await node.accounts.setDefaultAccount(name)
+    if (!node.wallet.hasDefaultAccount || request.data.default) {
+      await node.wallet.setDefaultAccount(name)
       isDefaultAccount = true
     }
 

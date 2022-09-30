@@ -32,7 +32,7 @@ export type SyncTransactionParams =
   | { submittedSequence: number }
   | Record<string, never>
 
-export class Accounts {
+export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
   readonly onBroadcastTransaction = new Event<[transaction: Transaction]>()

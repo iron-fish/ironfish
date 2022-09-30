@@ -34,8 +34,8 @@ describe('VerifyTransactionTask', () => {
   describe('execute', () => {
     describe('with negative fees when verifyFees is true', () => {
       it('returns false', async () => {
-        const account = await useAccountFixture(nodeTest.accounts)
-        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+        const account = await useAccountFixture(nodeTest.wallet)
+        const transaction = await useMinersTxFixture(nodeTest.wallet, account)
 
         const task = new VerifyTransactionTask()
         const request = new VerifyTransactionRequest(transaction.serialize(), {
@@ -49,8 +49,8 @@ describe('VerifyTransactionTask', () => {
 
     describe('with valid fees', () => {
       it('verifies the transaction', async () => {
-        const account = await useAccountFixture(nodeTest.accounts)
-        const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+        const account = await useAccountFixture(nodeTest.wallet)
+        const transaction = await useMinersTxFixture(nodeTest.wallet, account)
 
         const task = new VerifyTransactionTask()
         const request = new VerifyTransactionRequest(transaction.serialize(), {

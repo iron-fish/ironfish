@@ -19,8 +19,8 @@ describe('DecryptedNoteValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new DecryptedNoteValueEncoding()
 
-      const account = await useAccountFixture(nodeTest.accounts)
-      const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+      const account = await useAccountFixture(nodeTest.wallet)
+      const transaction = await useMinersTxFixture(nodeTest.wallet, account)
       const note = transaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(note)
 
@@ -43,8 +43,8 @@ describe('DecryptedNoteValueEncoding', () => {
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new DecryptedNoteValueEncoding()
 
-      const account = await useAccountFixture(nodeTest.accounts)
-      const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+      const account = await useAccountFixture(nodeTest.wallet)
+      const transaction = await useMinersTxFixture(nodeTest.wallet, account)
       const note = transaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(note)
 

@@ -426,8 +426,8 @@ describe('Blockchain', () => {
       const { node: nodeA } = nodeTest
       const { node: nodeB } = await nodeTest.createSetup()
 
-      const accountA = await useAccountFixture(nodeA.accounts, 'accountA')
-      const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+      const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
 
       // Counts before adding any blocks
       const countNoteA = await nodeA.chain.notes.size()
@@ -438,7 +438,7 @@ describe('Blockchain', () => {
       // Create nodeA blocks
       const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
       await expect(nodeA.chain).toAddBlock(blockA1)
-      await nodeA.accounts.updateHead()
+      await nodeA.wallet.updateHead()
 
       const { block: blockA2 } = await useBlockWithTx(nodeA, accountA, accountA, false)
       await expect(nodeA.chain).toAddBlock(blockA2)
@@ -446,11 +446,11 @@ describe('Blockchain', () => {
       // Create nodeB blocks
       const blockB1 = await useMinerBlockFixture(nodeB.chain, 2, accountB)
       await expect(nodeB.chain).toAddBlock(blockB1)
-      await nodeB.accounts.updateHead()
+      await nodeB.wallet.updateHead()
 
       const blockB2 = await useMinerBlockFixture(nodeB.chain, 3, accountB)
       await expect(nodeB.chain).toAddBlock(blockB2)
-      await nodeB.accounts.updateHead()
+      await nodeB.wallet.updateHead()
 
       const { block: blockB3 } = await useBlockWithTx(nodeB, accountB, accountB, false)
       await expect(nodeB.chain).toAddBlock(blockB3)
@@ -539,9 +539,9 @@ describe('Blockchain', () => {
     }, 300000)
 
     it("throws if the note doesn't match the previously inserted note that position", async () => {
-      const account = await useAccountFixture(nodeTest.accounts)
-      const tx1 = await useMinersTxFixture(nodeTest.accounts, account)
-      const tx2 = await useMinersTxFixture(nodeTest.accounts, account)
+      const account = await useAccountFixture(nodeTest.wallet)
+      const tx1 = await useMinersTxFixture(nodeTest.wallet, account)
+      const tx2 = await useMinersTxFixture(nodeTest.wallet, account)
       const size = await nodeTest.chain.notes.size()
 
       await nodeTest.chain.addNote(size, tx1.getNote(0))
@@ -552,8 +552,8 @@ describe('Blockchain', () => {
     }, 30000)
 
     it('throws if the position is larger than the number of notes', async () => {
-      const account = await useAccountFixture(nodeTest.accounts)
-      const tx = await useMinersTxFixture(nodeTest.accounts, account)
+      const account = await useAccountFixture(nodeTest.wallet)
+      const tx = await useMinersTxFixture(nodeTest.wallet, account)
       const size = await nodeTest.chain.notes.size()
 
       await expect(nodeTest.chain.addNote(size + 1, tx.getNote(0))).rejects.toThrowError(
@@ -584,7 +584,7 @@ describe('Blockchain', () => {
   })
 
   it('newBlock throws an error if the provided transactions are invalid', async () => {
-    const minersFee = await useMinersTxFixture(nodeTest.accounts)
+    const minersFee = await useMinersTxFixture(nodeTest.wallet)
 
     jest.spyOn(nodeTest.verifier['workerPool'], 'verifyTransactions').mockResolvedValue({
       valid: false,
@@ -784,15 +784,15 @@ describe('Blockchain', () => {
     // Set this up so we can reject block with a double spend starting at sequence 5
     node.chain.consensus.V1_DOUBLE_SPEND = 5
 
-    const accountA = await useAccountFixture(node.accounts, 'accountA')
-    const accountB = await useAccountFixture(node.accounts, 'accountB')
+    const accountA = await useAccountFixture(node.wallet, 'accountA')
+    const accountB = await useAccountFixture(node.wallet, 'accountB')
 
     const block2 = await useMinerBlockFixture(chain, 2, accountA)
     await expect(chain).toAddBlock(block2)
 
     // Now create the double spend
-    await node.accounts.updateHead()
-    const tx = await useTxFixture(node.accounts, accountA, accountB)
+    await node.wallet.updateHead()
+    const tx = await useTxFixture(node.wallet, accountA, accountB)
     const doubleSpend = tx.getSpend(0)
 
     const treeSize = await node.chain.nullifiers.size()
@@ -861,16 +861,16 @@ describe('Blockchain', () => {
     const blockA5 = await useMinerBlockFixture(nodeA.chain, 4)
     await expect(nodeA.chain).toAddBlock(blockA5)
 
-    const accountA = await useAccountFixture(nodeB.accounts, 'accountA')
-    const accountB = await useAccountFixture(nodeB.accounts, 'accountB')
+    const accountA = await useAccountFixture(nodeB.wallet, 'accountA')
+    const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
 
     // Now create the double spend chain
     const blockB2 = await useMinerBlockFixture(nodeB.chain, 2, accountA)
     await expect(nodeB.chain).toAddBlock(blockB2)
 
     // Now create the double spend tx
-    await nodeB.accounts.updateHead()
-    const tx = await useTxFixture(nodeB.accounts, accountA, accountB)
+    await nodeB.wallet.updateHead()
+    const tx = await useTxFixture(nodeB.wallet, accountA, accountB)
 
     const blockB3 = await useMinerBlockFixture(nodeB.chain, 3, undefined, undefined, [tx])
     await expect(nodeB.chain).toAddBlock(blockB3)

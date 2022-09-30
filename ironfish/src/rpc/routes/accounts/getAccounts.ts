@@ -29,12 +29,12 @@ router.register<typeof GetAccountsRequestSchema, GetAccountsResponse>(
     let accounts: Account[] = []
 
     if (request.data?.default) {
-      const defaultAccount = node.accounts.getDefaultAccount()
+      const defaultAccount = node.wallet.getDefaultAccount()
       if (defaultAccount) {
         accounts = [defaultAccount]
       }
     } else {
-      accounts = node.accounts.listAccounts()
+      accounts = node.wallet.listAccounts()
     }
 
     const names = accounts.map((a) => (request.data?.displayName ? a.displayName : a.name))

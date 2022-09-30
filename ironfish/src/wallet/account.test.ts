@@ -11,12 +11,12 @@ describe('Accounts', () => {
   it('should store notes at sequence', async () => {
     const { node } = nodeTest
 
-    const account = await useAccountFixture(node.accounts, 'accountA')
+    const account = await useAccountFixture(node.wallet, 'accountA')
 
-    const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+    const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
     await expect(node.chain).toAddBlock(block1)
 
-    const block2 = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+    const block2 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
     await expect(node.chain).toAddBlock(block2)
 
     // From block1
@@ -30,16 +30,16 @@ describe('Accounts', () => {
     Assert.isNotUndefined(note2)
 
     let noteHashesNotOnChain = await AsyncUtils.materialize(
-      node.accounts.db.loadNoteHashesNotOnChain(account),
+      node.wallet.db.loadNoteHashesNotOnChain(account),
     )
     let notesInSequence = await AsyncUtils.materialize(
-      node.accounts.db.loadNotesInSequenceRange(account, 0, 3),
+      node.wallet.db.loadNotesInSequenceRange(account, 0, 3),
     )
     let notesInSequence2 = await AsyncUtils.materialize(
-      node.accounts.db.loadNotesInSequenceRange(account, 1, 1),
+      node.wallet.db.loadNotesInSequenceRange(account, 1, 1),
     )
     let notesInSequence3 = await AsyncUtils.materialize(
-      node.accounts.db.loadNotesInSequenceRange(account, 2, 2),
+      node.wallet.db.loadNotesInSequenceRange(account, 2, 2),
     )
 
     expect(noteHashesNotOnChain).toHaveLength(2)
@@ -49,22 +49,22 @@ describe('Accounts', () => {
     expect(notesInSequence2).toHaveLength(0)
     expect(notesInSequence3).toHaveLength(0)
 
-    await node.accounts.updateHead()
+    await node.wallet.updateHead()
 
     noteHashesNotOnChain = await AsyncUtils.materialize(
-      node.accounts.db.loadNoteHashesNotOnChain(account),
+      node.wallet.db.loadNoteHashesNotOnChain(account),
     )
     notesInSequence = await AsyncUtils.materialize(
-      node.accounts.db.loadNotesInSequenceRange(account, 0, 4),
+      node.wallet.db.loadNotesInSequenceRange(account, 0, 4),
     )
     notesInSequence2 = await AsyncUtils.materialize(
-      node.accounts.db.loadNotesInSequenceRange(account, 2, 2),
+      node.wallet.db.loadNotesInSequenceRange(account, 2, 2),
     )
     notesInSequence3 = await AsyncUtils.materialize(
-      node.accounts.db.loadNotesInSequenceRange(account, 3, 3),
+      node.wallet.db.loadNotesInSequenceRange(account, 3, 3),
     )
     const notesInSequenceAfter = AsyncUtils.materialize(
-      node.accounts.db.loadNotesInSequenceRange(account, 4, 10),
+      node.wallet.db.loadNotesInSequenceRange(account, 4, 10),
     )
 
     expect(noteHashesNotOnChain).toHaveLength(0)
@@ -94,9 +94,9 @@ describe('Accounts', () => {
   it('should delete transaction', async () => {
     const { node } = nodeTest
 
-    const account = await useAccountFixture(node.accounts, 'accountA')
+    const account = await useAccountFixture(node.wallet, 'accountA')
 
-    const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+    const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
     const tx = block.transactions[0]
     const noteEncrypted = Array.from(block.notes())[0]
     const note = noteEncrypted.decryptNoteForOwner(account.incomingViewKey)
@@ -105,7 +105,7 @@ describe('Accounts', () => {
     await expect(AsyncUtils.materialize(account.getNotes())).resolves.toHaveLength(1)
 
     await expect(
-      AsyncUtils.materialize(node.accounts.db.loadNoteHashesNotOnChain(account)),
+      AsyncUtils.materialize(node.wallet.db.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(1)
 
     await expect(account.getBalance(1, 1)).resolves.toMatchObject({
@@ -118,7 +118,7 @@ describe('Accounts', () => {
     await expect(AsyncUtils.materialize(account.getNotes())).resolves.toHaveLength(0)
 
     await expect(
-      AsyncUtils.materialize(node.accounts.db.loadNoteHashesNotOnChain(account)),
+      AsyncUtils.materialize(node.wallet.db.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(0)
 
     await expect(account.getBalance(1, 1)).resolves.toMatchObject({
