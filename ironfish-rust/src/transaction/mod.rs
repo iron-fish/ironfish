@@ -642,6 +642,14 @@ impl Transaction {
         &self.receipts
     }
 
+    pub fn create_asset_proofs(&self) -> &Vec<CreateAssetProof> {
+        &self.create_asset_proofs
+    }
+
+    pub fn mint_asset_proofs(&self) -> &Vec<MintAssetProof> {
+        &self.mint_asset_proofs
+    }
+
     /// Get the transaction fee for this transaction. Miners should generally
     /// expect this to be positive (or they would lose money mining it!).
     /// The miners_fee transaction would be a special case.

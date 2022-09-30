@@ -117,7 +117,7 @@ impl MerkleNote {
             if point.is_none().into() {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    "Unable to convert note commitment",
+                    "Unable to convert value commitment",
                 ));
             }
             point.unwrap()
@@ -137,7 +137,7 @@ impl MerkleNote {
             if point.is_none().into() {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    "Unable to convert note commitment",
+                    "Unable to convert public key",
                 ));
             }
             point.unwrap()

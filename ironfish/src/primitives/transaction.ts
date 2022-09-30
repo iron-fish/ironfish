@@ -5,7 +5,7 @@
 import { TransactionPosted } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
-import { ENCRYPTED_NOTE_LENGTH, NoteEncrypted } from './noteEncrypted'
+import { ENCRYPTED_NOTE_LENGTH, NoteEncrypted, NoteEncryptedHashSerde } from './noteEncrypted'
 import { Spend } from './spend'
 
 export type TransactionHash = Buffer
@@ -19,6 +19,9 @@ export class Transaction {
   private readonly _expirationSequence: number
   private readonly _spends: Spend[] = []
   private readonly _notes: NoteEncrypted[]
+  // TODO(rohanjadvani, mgeist): Replace these in a subsequent PR 
+  private readonly _createAssetProofs: any[]
+  private readonly _mintAssetProofs: any[]
   private readonly _signature: Buffer
   private _hash?: TransactionHash
 
@@ -32,6 +35,8 @@ export class Transaction {
 
     const _spendsLength = reader.readU64() // 8
     const _notesLength = reader.readU64() // 8
+    const _createAssetProofsLength = reader.readU64() // 8
+    const _mintAssetProofsLength = reader.readU64() // 8
     this._fee = BigInt(reader.readI64()) // 8
     this._expirationSequence = reader.readU32() // 4
 
@@ -63,6 +68,34 @@ export class Transaction {
       reader.seek(192)
 
       return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
+    })
+
+    this._createAssetProofs = Array.from({ length: _createAssetProofsLength }, () => {
+      // proof
+      reader.seek(192)
+      // create asset commitment
+      reader.seek(32)
+      // TODO: encrypted note
+      reader.seek(12)
+      // asset generator
+      reader.seek(32)
+    })
+    
+    this._mintAssetProofs = Array.from({ length: _mintAssetProofsLength }, () => {
+      // proof
+      reader.seek(192)
+      // create asset commitment
+      reader.seek(32)
+      // mint asset commitment
+      reader.seek(32)
+      // TODO: encrypted note
+      reader.seek(12)
+      // value commitment
+      reader.seek(32)
+      // asset type
+      reader.seek(32)
+      // root hash
+      reader.seek(32)
     })
 
     this._signature = reader.readBytes(64, true)
