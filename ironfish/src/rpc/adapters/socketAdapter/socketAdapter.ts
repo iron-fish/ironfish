@@ -19,7 +19,6 @@ import {
   MESSAGE_DELIMITER,
   ServerSocketRpc,
   SocketRpcError,
-  SocketRpcRequest,
 } from './protocol'
 
 type SocketClient = {
