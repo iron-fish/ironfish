@@ -107,7 +107,7 @@ describe('Accounts', () => {
       const accountA = await useAccountFixture(node.wallet, 'accountA')
       const accountB = await useAccountFixture(node.wallet, 'accountB')
 
-      const saveHeadHashSpy = jest.spyOn(node.wallet.db, 'saveHeadHash')
+      const saveHeadHashSpy = jest.spyOn(node.wallet.walletDb, 'saveHeadHash')
 
       await node.wallet.updateHeadHashes(newHeadHash)
 

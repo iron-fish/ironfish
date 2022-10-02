@@ -36,8 +36,8 @@ const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
 })
 
-export class AccountsDB {
-  database: IDatabase
+export class WalletDB {
+  db: IDatabase
   workerPool: WorkerPool
   location: string
   files: FileSystem
@@ -96,9 +96,9 @@ export class AccountsDB {
     this.files = files
     this.location = location
     this.workerPool = workerPool
-    this.database = createDB({ location })
+    this.db = createDB({ location })
 
-    this.meta = this.database.addStore<{
+    this.meta = this.db.addStore<{
       key: keyof AccountsDBMeta
       value: AccountsDBMeta[keyof AccountsDBMeta]
     }>({
@@ -107,37 +107,37 @@ export class AccountsDB {
       valueEncoding: new MetaValueEncoding(),
     })
 
-    this.headHashes = this.database.addStore({
+    this.headHashes = this.db.addStore({
       name: 'h',
       keyEncoding: new StringEncoding(),
       valueEncoding: new NullableBufferEncoding(),
     })
 
-    this.accounts = this.database.addStore({
+    this.accounts = this.db.addStore({
       name: 'a',
       keyEncoding: new StringEncoding(),
       valueEncoding: new AccountValueEncoding(),
     })
 
-    this.balances = this.database.addStore({
+    this.balances = this.db.addStore({
       name: 'b',
       keyEncoding: new StringEncoding(),
       valueEncoding: new BigIntLEEncoding(),
     })
 
-    this.decryptedNotes = this.database.addStore({
+    this.decryptedNotes = this.db.addStore({
       name: 'd',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new DecryptedNoteValueEncoding(),
     })
 
-    this.nullifierToNoteHash = this.database.addStore({
+    this.nullifierToNoteHash = this.db.addStore({
       name: 'n',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new BufferEncoding(),
     })
 
-    this.sequenceToNoteHash = this.database.addStore({
+    this.sequenceToNoteHash = this.db.addStore({
       name: 's',
       keyEncoding: new PrefixEncoding(
         new BufferEncoding(),
@@ -147,13 +147,13 @@ export class AccountsDB {
       valueEncoding: NULL_ENCODING,
     })
 
-    this.nonChainNoteHashes = this.database.addStore({
+    this.nonChainNoteHashes = this.db.addStore({
       name: 'S',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: NULL_ENCODING,
     })
 
-    this.transactions = this.database.addStore({
+    this.transactions = this.db.addStore({
       name: 't',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new TransactionValueEncoding(),
@@ -162,16 +162,16 @@ export class AccountsDB {
 
   async open(): Promise<void> {
     await this.files.mkdir(this.location, { recursive: true })
-    await this.database.open()
-    await this.database.upgrade(VERSION_DATABASE_ACCOUNTS)
+    await this.db.open()
+    await this.db.upgrade(VERSION_DATABASE_ACCOUNTS)
   }
 
   async close(): Promise<void> {
-    await this.database.close()
+    await this.db.close()
   }
 
   async setAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
+    await this.db.withTransaction(tx, async (tx) => {
       await this.accounts.put(account.id, account.serialize(), tx)
 
       const unconfirmedBalance = await this.balances.get(account.id, tx)
@@ -182,7 +182,7 @@ export class AccountsDB {
   }
 
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
+    await this.db.withTransaction(tx, async (tx) => {
       await this.accounts.del(account.id, tx)
       await this.balances.del(account.id, tx)
     })
@@ -192,7 +192,7 @@ export class AccountsDB {
     id: AccountsDBMeta['defaultAccountId'],
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
+    await this.db.withTransaction(tx, async (tx) => {
       await this.meta.put('defaultAccountId', id, tx)
     })
   }
@@ -200,7 +200,7 @@ export class AccountsDB {
   async loadAccountsMeta(tx?: IDatabaseTransaction): Promise<AccountsDBMeta> {
     const meta = { ...getAccountsDBMetaDefaults() }
 
-    await this.database.withTransaction(tx, async (tx) => {
+    await this.db.withTransaction(tx, async (tx) => {
       for await (const [key, value] of this.meta.getAllIter(tx)) {
         meta[key] = value
       }
@@ -370,7 +370,7 @@ export class AccountsDB {
     map: BufferMap<Buffer>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.database.withTransaction(tx, async (tx) => {
+    await this.db.withTransaction(tx, async (tx) => {
       await this.clearNullifierToNoteHash(account, tx)
 
       for (const [key, value] of map) {

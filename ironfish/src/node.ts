@@ -27,7 +27,7 @@ import { RpcServer } from './rpc/server'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
-import { AccountsDB, Wallet } from './wallet'
+import { Wallet, WalletDB } from './wallet'
 import { WorkerPool } from './workerPool'
 
 export class IronfishNode {
@@ -241,7 +241,7 @@ export class IronfishNode {
 
     const memPool = new MemPool({ chain, metrics, logger })
 
-    const accountDB = new AccountsDB({
+    const accountDB = new WalletDB({
       location: config.accountDatabasePath,
       workerPool,
       files,
