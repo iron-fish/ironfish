@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
 import { Account } from '../../../wallet/account'
-import { TransactionValue } from '../../../wallet/database/transactionValue'
+import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
 import { ApiNamespace, router } from '../router'
 import { serializeRpcAccountTransaction } from './types'

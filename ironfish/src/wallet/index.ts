@@ -3,6 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export * from './account'
 export * from './wallet'
-export { AccountValue } from './database/accountValue'
+export { AccountValue } from './walletdb/accountValue'
 export * from './validator'
-export * from './database/accountsdb'
+export * from './walletdb/walletdb'
