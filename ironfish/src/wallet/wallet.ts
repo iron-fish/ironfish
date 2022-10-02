@@ -15,6 +15,7 @@ import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
+import { StorageUtils } from '../storage/database/utils'
 import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
@@ -65,6 +66,7 @@ export class Wallet {
   protected isStarted = false
   protected isOpen = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
+  protected readonly accountIdsToCleanup: string[] = []
   private readonly createTransactionMutex: Mutex
   private readonly eventLoopAbortController: AbortController
   private eventLoopPromise: Promise<void> | null = null
@@ -197,12 +199,17 @@ export class Wallet {
       this.headHashes.set(accountId, headHash)
     }
 
+    for await (const { accountId } of this.db.loadAccountIdsToCleanup()) {
+      this.accountIdsToCleanup.push(accountId)
+    }
+
     this.chainProcessor.hash = await this.getLatestHeadHash()
   }
 
   private unload(): void {
     this.accounts.clear()
     this.headHashes.clear()
+    this.accountIdsToCleanup.length = 0
 
     this.defaultAccount = null
     this.chainProcessor.hash = null
@@ -276,6 +283,7 @@ export class Wallet {
     await this.updateHead()
     await this.expireTransactions()
     await this.rebroadcastTransactions()
+    await this.cleanupDeletedAccounts()
 
     if (this.isStarted) {
       this.eventLoopTimeout = setTimeout(() => void this.eventLoop(), 1000)
@@ -1026,10 +1034,29 @@ export class Wallet {
 
       await this.walletDb.removeAccount(account, tx)
       await this.walletDb.removeHeadHash(account, tx)
+      await this.walletDb.saveAccountIdToCleanup(account.id, tx)
     })
 
+    this.accountIdsToCleanup.push(account.id)
     this.accounts.delete(account.id)
     this.onAccountRemoved.emit(account)
+  }
+
+  async cleanupDeletedAccounts(): Promise<void> {
+    setTimeout(() => void this.cleanupDeletedAccounts(), 100000)
+    while (this.accountIdsToCleanup.length !== 0) {
+      const accountId = this.accountIdsToCleanup[0]
+      const prefixRange = StorageUtils.getPrefixKeyRange(calculateAccountPrefix(accountId))
+      await this.db.database.transaction(async (tx) => {
+        await this.db.clearDecryptedNotesForPrefixRange(prefixRange, tx)
+        await this.db.clearNullifierToNoteHashForPrefixRange(prefixRange, tx)
+        await this.db.clearTransactionsForPrefixRange(prefixRange, tx)
+        await this.db.clearSequenceToNoteHashForPrefixRange(prefixRange, tx)
+        await this.db.clearNonChainNoteHashesForPrefixRange(prefixRange, tx)
+        await this.db.removeAccountIdToCleanup(accountId, tx)
+      })
+      this.accountIdsToCleanup.pop()
+    }
   }
 
   get hasDefaultAccount(): boolean {
