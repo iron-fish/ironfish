@@ -22,6 +22,7 @@ import {
   StringEncoding,
   U32_ENCODING,
 } from '../../storage'
+import { DatabaseKeyRange } from '../../storage/database/types'
 import { StorageUtils } from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
@@ -268,6 +269,21 @@ export class WalletDB {
       yield { accountId, headHash }
     }
   }
+  async saveAccountIdToCleanup(accountId: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.accountIdsToCleanup.put(accountId, null, tx)
+  }
+
+  async removeAccountIdToCleanup(accountId: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.accountIdsToCleanup.del(accountId, tx)
+  }
+
+  async *loadAccountIdsToCleanup(
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{ accountId: string }, void, unknown> {
+    for await (const [accountId] of this.accountIdsToCleanup.getAllIter(tx)) {
+      yield { accountId }
+    }
+  }
 
   async saveTransaction(
     account: Account,
@@ -290,12 +306,33 @@ export class WalletDB {
     await this.transactions.clear(tx, account.prefixRange)
   }
 
+  async clearTransactionsForPrefixRange(
+    prefixRange: DatabaseKeyRange,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.transactions.clear(tx, prefixRange)
+  }
+
   async clearSequenceToNoteHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.sequenceToNoteHash.clear(tx, account.prefixRange)
   }
 
+  async clearSequenceToNoteHashForPrefixRange(
+    prefixRange: DatabaseKeyRange,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.sequenceToNoteHash.clear(tx, prefixRange)
+  }
+
   async clearNonChainNoteHashes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.nonChainNoteHashes.clear(tx, account.prefixRange)
+  }
+
+  async clearNonChainNoteHashesForPrefixRange(
+    prefixRange: DatabaseKeyRange,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.nonChainNoteHashes.clear(tx, prefixRange)
   }
 
   async *loadTransactions(
@@ -391,6 +428,13 @@ export class WalletDB {
 
   async clearNullifierToNoteHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.nullifierToNoteHash.clear(tx, account.prefixRange)
+  }
+
+  async clearNullifierToNoteHashForPrefixRange(
+    prefixRange: DatabaseKeyRange,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.nullifierToNoteHash.clear(tx, prefixRange)
   }
 
   async replaceNullifierToNoteHash(
@@ -496,6 +540,13 @@ export class WalletDB {
 
   async clearDecryptedNotes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.decryptedNotes.clear(tx, account.prefixRange)
+  }
+
+  async clearDecryptedNotesForPrefixRange(
+    prefixRange: DatabaseKeyRange,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.decryptedNotes.clear(tx, prefixRange)
   }
 
   async *loadDecryptedNotes(
