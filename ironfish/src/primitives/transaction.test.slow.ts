@@ -53,20 +53,20 @@ describe('Accounts', () => {
     const nodeA = nodeTest.node
 
     // Create an account A
-    const accountA = await useAccountFixture(nodeA.accounts, 'testA')
-    const accountB = await useAccountFixture(nodeA.accounts, 'testB')
+    const accountA = await useAccountFixture(nodeA.wallet, 'testA')
+    const accountB = await useAccountFixture(nodeA.wallet, 'testB')
 
     // Create a block with a miner's fee
     const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
     await nodeA.chain.addBlock(block1)
-    await nodeA.accounts.updateHead()
-    const headhash = await nodeA.accounts.getLatestHeadHash()
+    await nodeA.wallet.updateHead()
+    const headhash = await nodeA.wallet.getLatestHeadHash()
     Assert.isNotNull(headhash)
     // Modify the headhash
     headhash[0] = 0
-    await nodeA.accounts.updateHeadHash(accountA, headhash)
+    await nodeA.wallet.updateHeadHash(accountA, headhash)
 
-    const response = nodeA.accounts.createTransaction(
+    const response = nodeA.wallet.createTransaction(
       accountA,
       [
         {
