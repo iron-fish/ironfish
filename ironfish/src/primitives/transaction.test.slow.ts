@@ -57,11 +57,7 @@ describe('Accounts', () => {
     const accountB = await useAccountFixture(nodeA.accounts, 'testB')
 
     // Create a block with a miner's fee
-    const block1 = await useMinerBlockFixture(
-      nodeA.chain,
-      2,
-      accountA,
-    )
+    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
     await nodeA.chain.addBlock(block1)
     await nodeA.accounts.updateHead()
     const headhash = await nodeA.accounts.getLatestHeadHash()
