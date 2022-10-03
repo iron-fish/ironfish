@@ -639,7 +639,7 @@ describe('Accounts', () => {
       Assert.isNotUndefined(transactionValue)
       Assert.isNotNull(transactionValue.sequence)
 
-      await nodeTest.wallet.db.saveHeadHash(accountA, null)
+      await nodeTest.wallet.walletDb.saveHeadHash(accountA, null)
 
       const transactionStatus = await node.wallet.getTransactionStatus(
         accountA,
