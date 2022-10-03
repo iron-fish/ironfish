@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { isValidPublicAddress as nativeIsValidPublicAddress } from '@ironfish/rust-nodejs'
-import { AccountValue } from './database/accountValue'
+import { AccountValue } from './walletdb/accountValue'
 
 const SPENDING_KEY_LENGTH = 64
 const INCOMING_VIEW_KEY_LENGTH = 64

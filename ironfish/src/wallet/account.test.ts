@@ -30,16 +30,16 @@ describe('Accounts', () => {
     Assert.isNotUndefined(note2)
 
     let noteHashesNotOnChain = await AsyncUtils.materialize(
-      node.wallet.db.loadNoteHashesNotOnChain(account),
+      node.wallet.walletDb.loadNoteHashesNotOnChain(account),
     )
     let notesInSequence = await AsyncUtils.materialize(
-      node.wallet.db.loadNotesInSequenceRange(account, 0, 3),
+      node.wallet.walletDb.loadNotesInSequenceRange(account, 0, 3),
     )
     let notesInSequence2 = await AsyncUtils.materialize(
-      node.wallet.db.loadNotesInSequenceRange(account, 1, 1),
+      node.wallet.walletDb.loadNotesInSequenceRange(account, 1, 1),
     )
     let notesInSequence3 = await AsyncUtils.materialize(
-      node.wallet.db.loadNotesInSequenceRange(account, 2, 2),
+      node.wallet.walletDb.loadNotesInSequenceRange(account, 2, 2),
     )
 
     expect(noteHashesNotOnChain).toHaveLength(2)
@@ -52,19 +52,19 @@ describe('Accounts', () => {
     await node.wallet.updateHead()
 
     noteHashesNotOnChain = await AsyncUtils.materialize(
-      node.wallet.db.loadNoteHashesNotOnChain(account),
+      node.wallet.walletDb.loadNoteHashesNotOnChain(account),
     )
     notesInSequence = await AsyncUtils.materialize(
-      node.wallet.db.loadNotesInSequenceRange(account, 0, 4),
+      node.wallet.walletDb.loadNotesInSequenceRange(account, 0, 4),
     )
     notesInSequence2 = await AsyncUtils.materialize(
-      node.wallet.db.loadNotesInSequenceRange(account, 2, 2),
+      node.wallet.walletDb.loadNotesInSequenceRange(account, 2, 2),
     )
     notesInSequence3 = await AsyncUtils.materialize(
-      node.wallet.db.loadNotesInSequenceRange(account, 3, 3),
+      node.wallet.walletDb.loadNotesInSequenceRange(account, 3, 3),
     )
     const notesInSequenceAfter = AsyncUtils.materialize(
-      node.wallet.db.loadNotesInSequenceRange(account, 4, 10),
+      node.wallet.walletDb.loadNotesInSequenceRange(account, 4, 10),
     )
 
     expect(noteHashesNotOnChain).toHaveLength(0)
@@ -105,7 +105,7 @@ describe('Accounts', () => {
     await expect(AsyncUtils.materialize(account.getNotes())).resolves.toHaveLength(1)
 
     await expect(
-      AsyncUtils.materialize(node.wallet.db.loadNoteHashesNotOnChain(account)),
+      AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(1)
 
     await expect(account.getBalance(1, 1)).resolves.toMatchObject({
@@ -118,7 +118,7 @@ describe('Accounts', () => {
     await expect(AsyncUtils.materialize(account.getNotes())).resolves.toHaveLength(0)
 
     await expect(
-      AsyncUtils.materialize(node.wallet.db.loadNoteHashesNotOnChain(account)),
+      AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(0)
 
     await expect(account.getBalance(1, 1)).resolves.toMatchObject({

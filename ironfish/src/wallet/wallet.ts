@@ -20,9 +20,9 @@ import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../u
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
-import { AccountsDB } from './database/accountsdb'
-import { AccountValue } from './database/accountValue'
 import { validateAccount } from './validator'
+import { AccountValue } from './walletdb/accountValue'
+import { WalletDB } from './walletdb/walletdb'
 
 export type SyncTransactionParams =
   // Used when receiving a transaction from a block with notes
@@ -44,7 +44,7 @@ export class Wallet {
   protected readonly headHashes = new Map<string, Buffer | null>()
 
   protected readonly accounts = new Map<string, Account>()
-  readonly db: AccountsDB
+  readonly walletDb: WalletDB
   readonly logger: Logger
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
@@ -68,7 +68,7 @@ export class Wallet {
   }: {
     chain: Blockchain
     config: Config
-    database: AccountsDB
+    database: WalletDB
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
@@ -76,7 +76,7 @@ export class Wallet {
     this.chain = chain
     this.config = config
     this.logger = logger.withTag('accounts')
-    this.db = database
+    this.walletDb = database
     this.workerPool = workerPool
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
@@ -163,24 +163,24 @@ export class Wallet {
     }
 
     this.isOpen = true
-    await this.db.open()
+    await this.walletDb.open()
     await this.load()
   }
 
   private async load(): Promise<void> {
-    for await (const accountValue of this.db.loadAccounts()) {
+    for await (const accountValue of this.walletDb.loadAccounts()) {
       const account = new Account({
         ...accountValue,
-        accountsDb: this.db,
+        walletDb: this.walletDb,
       })
 
       this.accounts.set(account.id, account)
     }
 
-    const meta = await this.db.loadAccountsMeta()
+    const meta = await this.walletDb.loadAccountsMeta()
     this.defaultAccount = meta.defaultAccountId
 
-    for await (const { accountId, headHash } of this.db.loadHeadHashes()) {
+    for await (const { accountId, headHash } of this.walletDb.loadHeadHashes()) {
       this.headHashes.set(accountId, headHash)
     }
 
@@ -201,7 +201,7 @@ export class Wallet {
     }
 
     this.isOpen = false
-    await this.db.close()
+    await this.walletDb.close()
     this.unload()
   }
 
@@ -243,7 +243,7 @@ export class Wallet {
 
     await Promise.all([this.scan?.abort(), this.updateHeadState?.abort()])
 
-    if (this.db.database.isOpen) {
+    if (this.walletDb.db.isOpen) {
       await this.updateHeadHashes(this.chainProcessor.hash)
     }
   }
@@ -269,7 +269,7 @@ export class Wallet {
       accounts = accounts.filter((a) => this.isAccountUpToDate(a))
     }
 
-    await this.db.database.withTransaction(tx, async (tx) => {
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
       for (const account of accounts) {
         await this.updateHeadHash(account, headHash, tx)
       }
@@ -283,11 +283,11 @@ export class Wallet {
   ): Promise<void> {
     this.headHashes.set(account.id, headHash)
 
-    await this.db.saveHeadHash(account, headHash, tx)
+    await this.walletDb.saveHeadHash(account, headHash, tx)
   }
 
   async reset(): Promise<void> {
-    await this.db.database.transaction(async (tx) => {
+    await this.walletDb.db.transaction(async (tx) => {
       await this.resetAccounts(tx)
       await this.updateHeadHashes(null, tx)
     })
@@ -563,7 +563,7 @@ export class Wallet {
       0,
     )
 
-    return await this.db.database.transaction(async (tx) => {
+    return await this.walletDb.db.transaction(async (tx) => {
       this.assertHasAccount(account)
 
       const headHash = await account.getHeadHash(tx)
@@ -821,7 +821,7 @@ export class Wallet {
         }
 
         let isValid = true
-        await this.db.database.transaction(async (tx) => {
+        await this.walletDb.db.transaction(async (tx) => {
           const verify = await this.chain.verifier.verifyTransactionAdd(transaction)
 
           // We still update this even if it's not valid to prevent constantly
@@ -902,11 +902,11 @@ export class Wallet {
       outgoingViewKey: key.outgoing_view_key,
       publicAddress: key.public_address,
       spendingKey: key.spending_key,
-      accountsDb: this.db,
+      walletDb: this.walletDb,
     })
 
-    await this.db.database.transaction(async (tx) => {
-      await this.db.setAccount(account, tx)
+    await this.walletDb.db.transaction(async (tx) => {
+      await this.walletDb.setAccount(account, tx)
       await this.updateHeadHash(account, this.chainProcessor.hash, tx)
     })
 
@@ -937,11 +937,11 @@ export class Wallet {
     const account = new Account({
       ...toImport,
       id: uuid(),
-      accountsDb: this.db,
+      walletDb: this.walletDb,
     })
 
-    await this.db.database.transaction(async (tx) => {
-      await this.db.setAccount(account, tx)
+    await this.walletDb.db.transaction(async (tx) => {
+      await this.walletDb.setAccount(account, tx)
       await this.updateHeadHash(account, null, tx)
     })
 
@@ -965,14 +965,14 @@ export class Wallet {
       return
     }
 
-    await this.db.database.transaction(async (tx) => {
+    await this.walletDb.db.transaction(async (tx) => {
       if (account.id === this.defaultAccount) {
-        await this.db.setDefaultAccount(null, tx)
+        await this.walletDb.setDefaultAccount(null, tx)
         this.defaultAccount = null
       }
 
-      await this.db.removeAccount(account, tx)
-      await this.db.removeHeadHash(account, tx)
+      await this.walletDb.removeAccount(account, tx)
+      await this.walletDb.removeHeadHash(account, tx)
     })
 
     this.accounts.delete(account.id)
@@ -1000,7 +1000,7 @@ export class Wallet {
     }
 
     const nextId = next ? next.id : null
-    await this.db.setDefaultAccount(nextId, tx)
+    await this.walletDb.setDefaultAccount(nextId, tx)
     this.defaultAccount = nextId
   }
 
@@ -1035,7 +1035,7 @@ export class Wallet {
     this.assertHasAccount(account)
     const key = generateNewPublicAddress(account.spendingKey)
     account.publicAddress = key.public_address
-    await this.db.setAccount(account)
+    await this.walletDb.setAccount(account)
   }
 
   async getEarliestHeadHash(): Promise<Buffer | null> {
@@ -1056,7 +1056,7 @@ export class Wallet {
             'hex',
           )}. This account needs to be rescanned.`,
         )
-        await this.db.saveHeadHash(account, null)
+        await this.walletDb.saveHeadHash(account, null)
         continue
       }
 

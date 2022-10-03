@@ -39,7 +39,7 @@ export class Migration013 extends Migration {
   path = __filename
 
   prepare(node: IronfishNode): IDatabase {
-    return createDB({ location: node.wallet.db.location })
+    return createDB({ location: node.config.accountDatabasePath })
   }
 
   async forward(
@@ -176,14 +176,14 @@ export class Migration013 extends Migration {
 
   async migrateMeta(
     stores: Stores,
-    accountsDb: IDatabase,
+    walletDb: IDatabase,
     logger: Logger,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     const accountName = await stores.old.meta.get('defaultAccountName')
     const accounts = await stores.new.accounts.getAllValues(tx)
 
-    await accountsDb.withTransaction(tx, async (tx) => {
+    await walletDb.withTransaction(tx, async (tx) => {
       if (accountName) {
         const account = accounts.find((a) => a.name === accountName)
 
@@ -203,7 +203,7 @@ export class Migration013 extends Migration {
 
   async migrateAccounts(
     stores: Stores,
-    accountsDb: IDatabase,
+    walletDb: IDatabase,
     logger: Logger,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -217,7 +217,7 @@ export class Migration013 extends Migration {
         ...accountValue,
       }
 
-      await accountsDb.withTransaction(tx, async (tx) => {
+      await walletDb.withTransaction(tx, async (tx) => {
         await stores.new.accounts.put(migrated.id, migrated, tx)
         await stores.old.accounts.del(accountName, tx)
         await stores.new.balances.put(migrated.id, BigInt(0), tx)
@@ -239,7 +239,7 @@ export class Migration013 extends Migration {
 
   async migrateAccountsData(
     stores: Stores,
-    accountsDb: IDatabase,
+    walletDb: IDatabase,
     noteToTransaction: IDatabaseStore<DatabaseSchema<Buffer, Buffer>>,
     transactionsCache: IDatabaseStore<
       DatabaseSchema<Buffer, DatabaseStoreValue<Stores['new']['transactions']>>
@@ -325,7 +325,7 @@ export class Migration013 extends Migration {
       Assert.isNotUndefined(accountPrefix)
 
       // These writes must happen atomically
-      await accountsDb.withTransaction(tx, async (tx) => {
+      await walletDb.withTransaction(tx, async (tx) => {
         Assert.isNotNull(ownerAccount)
         Assert.isNotNull(ownerNote)
 
@@ -524,7 +524,7 @@ export class Migration013 extends Migration {
 
         throw new Error(
           `Your wallet is corrupt and missing a note for a nullifier.` +
-            ` If you have backed up your accounts, you should delete your accounts database at ${node.wallet.db.location} and run this again.`,
+            ` If you have backed up your accounts, you should delete your accounts database at ${node.config.accountDatabasePath} and run this again.`,
         )
       }
     }
