@@ -521,7 +521,7 @@ describe('Accounts', () => {
       const transactionValue = await accountA.getTransaction(transaction.hash())
       Assert.isNotUndefined(transactionValue)
 
-      // Get status as if head of accountsdb were much later
+      // Get status as if head of wallet were much later
       const transactionStatus = await node.wallet.getTransactionStatus(
         accountA,
         transactionValue,
@@ -611,7 +611,7 @@ describe('Accounts', () => {
       const transactionValue = await accountA.getTransaction(transaction.hash())
       Assert.isNotUndefined(transactionValue)
 
-      // Get status as if head of accountsdb were much later
+      // Get status as if head of wallet were much later
       const transactionStatus = await node.wallet.getTransactionStatus(
         accountA,
         transactionValue,
@@ -626,12 +626,12 @@ describe('Accounts', () => {
     it('should show unknown status if account has no head sequence', async () => {
       const { node } = nodeTest
 
-      const accountA = await useAccountFixture(node.accounts, 'a')
+      const accountA = await useAccountFixture(node.wallet, 'a')
 
-      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.accounts)
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA1)
 
-      await node.accounts.updateHead()
+      await node.wallet.updateHead()
 
       const transaction = blockA1.minersFee
 
@@ -639,9 +639,9 @@ describe('Accounts', () => {
       Assert.isNotUndefined(transactionValue)
       Assert.isNotNull(transactionValue.sequence)
 
-      await nodeTest.accounts.db.saveHeadHash(accountA, null)
+      await nodeTest.wallet.db.saveHeadHash(accountA, null)
 
-      const transactionStatus = await node.accounts.getTransactionStatus(
+      const transactionStatus = await node.wallet.getTransactionStatus(
         accountA,
         transactionValue,
       )
