@@ -1,0 +1,16 @@
+{
+  "CreateTransactionTask execute creates the transaction": [
+    {
+      "id": "2bf57ef0-6ec8-45a8-b24e-4334b6f64f82",
+      "name": "test",
+      "spendingKey": "41a23dd9aa1efcdf5fb9d95209670cd4367acf406fb0dad1ea6811c3e394d450",
+      "incomingViewKey": "80b29dcb1382b7f82ed7eb92fa072547107b52aa9e4cf6b2e3212a3544e31f07",
+      "outgoingViewKey": "f14d18a9cf925ba3e7f0fb94cf8aef1ac2f4ed7edace7089bb26ff844708ca36",
+      "publicAddress": "7f4b37d690a052a8545374bf208313e08caf23d6e9f1c2d59a7c5a406ca9f75ae73790bea2a5ff0169f7af"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAAC1aHhsk9jfhRQxAWKIMVkFeXJ85BqzdSYlxxJocxfNWvdZsysq+Uds/F2a/DDpIXaAb9XOckhYtt3F8wbVMJfUM4P0rvbiT36mlaUhYLTJYQG6pn8bmWJcQPyJ2c7O/1EGEjzShOmGyNe/BqhOfYA4SC8aAjYQSEnX1Nsz55kft5UCR7Y7bkO1/V80lri2XEuGbd4AsGBH+MKDCG7cECAhr9p0ShktIw1c6Y2VTv6cPYOA6NbsGBc+oFtrhEkZS2U28tKvSigthiLaz35Xr2KT4ogI9xOQNe2ZP4pIP5rstddT4C3YULnzEmV8RSOU2d/9xebJEIA/b6ukmkeDActVxc0pvnMcI7N71HiuQ/tGbbFUsLXVJPDgUdquNwv/7tmHt4M2AHQiX8XN62DLJzbs284aN/EVHJFh8ceNMcGLHPa49bd0LgA24I6yKldOO6jRIzRukiryei2rbUmYkmS3g+Gwvi7irSVctdFBgFtSZPJyop/3ngKG9Cez019ibBTDuLkJDN9MlCAOqeokgbJp3lkN5L8YV6C3zQyWzsIHOqGrqUJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwe8jq1bHrn31UZz6Io3Nbvkn/PPDElW7a295MSs16H8mYkzzgcwB3tuxzb+bLqVuVkheaJtWJhkVL1+QRyf7DBQ=="
+    }
+  ]
+}
