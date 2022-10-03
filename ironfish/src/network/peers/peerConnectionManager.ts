@@ -119,13 +119,17 @@ export class PeerConnectionManager {
   private connectToEligiblePeers(peer: Peer): boolean {
     if (peer.state.type !== 'CONNECTED') {
       if (this.peerManager.canConnectToWebRTC(peer)) {
+        console.log('attempting webrtc')
         if (this.peerManager.connectToWebRTC(peer)) {
+          console.log('webrtc succ')
           return true
         }
       }
-
+      
       if (this.peerManager.canConnectToWebSocket(peer)) {
+        console.log('attempting ws')
         if (this.peerManager.connectToWebSocket(peer)) {
+          console.log('ws succ')
           return true
         }
       }

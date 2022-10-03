@@ -37,12 +37,6 @@ export function getConnectingPeer(
     peer.setWebSocketConnection(connection)
   }
 
-  if (disposable) {
-    peer
-      .getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-      ?.neverRetryConnecting()
-  }
-
   expect(peer.state).toEqual({
     type: 'CONNECTING',
     identity: peer.state.identity,

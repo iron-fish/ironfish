@@ -6,6 +6,7 @@ import { ArrayUtils } from '../../utils'
 import { Peer } from '../peers/peer'
 import { ConnectionDirection, ConnectionType } from './connections'
 import { PeerAddress } from './peerAddress'
+import { PeerManager } from './peerManager'
 
 /**
  * AddressManager stores the necessary data for connecting to new peers
@@ -13,9 +14,11 @@ import { PeerAddress } from './peerAddress'
  */
 export class AddressManager {
   hostsStore: HostsStore
+  peerManager: PeerManager
 
-  constructor(hostsStore: HostsStore) {
+  constructor(hostsStore: HostsStore, peerManager: PeerManager) {
     this.hostsStore = hostsStore
+    this.peerManager = peerManager
   }
 
   get priorConnectedPeerAddresses(): ReadonlyArray<Readonly<PeerAddress>> {
@@ -77,8 +80,11 @@ export class AddressManager {
     const inUsePeerAddresses: PeerAddress[] = peers.flatMap((peer) => {
       if (
         peer.state.type === 'CONNECTED' &&
-        !peer.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-          .willNeverRetryConnecting
+        !this.peerManager.getConnectionRetry(
+          peer.state.identity,
+          ConnectionType.WebSocket,
+          ConnectionDirection.Outbound,
+        )?.willNeverRetryConnecting
       ) {
         return {
           address: peer.address,
