@@ -65,20 +65,14 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
       return
     }
 
-    const headSequence = await node.accounts.getAccountHeadSequence(account)
+    const headSequence = await node.wallet.getAccountHeadSequence(account)
 
     for await (const transaction of account.getTransactions()) {
       if (request.closed) {
         break
       }
 
-      await streamTransaction(
-        request,
-        node,
-        account,
-        transaction,
-        { headSequence },
-      )
+      await streamTransaction(request, node, account, transaction, { headSequence })
     }
 
     request.end()
@@ -107,7 +101,7 @@ const streamTransaction = async (
     }
   }
 
-  const status = await node.accounts.getTransactionStatus(account, transaction, options)
+  const status = await node.wallet.getTransactionStatus(account, transaction, options)
 
   const serialized = {
     ...serializedTransaction,

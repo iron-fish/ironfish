@@ -81,7 +81,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
     const serializedNotes = notes.map(serializeRpcAccountDecryptedNote)
     const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
-    const status = await node.accounts.getTransactionStatus(account, transaction)
+    const status = await node.wallet.getTransactionStatus(account, transaction)
 
     const serialized = {
       ...serializedTransaction,
