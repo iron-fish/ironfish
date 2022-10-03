@@ -55,13 +55,11 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
     if (request.data.hash) {
       const hash = Buffer.from(request.data.hash, 'hex')
 
-      await node.accounts.db.database.transaction(async (tx) => {
-        const transaction = await account.getTransactionByUnsignedHash(hash, tx)
+      const transaction = await account.getTransactionByUnsignedHash(hash)
 
-        if (transaction) {
-          await streamTransaction(request, node, account, transaction, { tx })
-        }
-      })
+      if (transaction) {
+        await streamTransaction(request, node, account, transaction)
+      }
 
       request.end()
       return
@@ -76,10 +74,10 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
       await streamTransaction(
         request,
+        node,
         account,
         transaction,
-        headSequence,
-        minimumBlockConfirmations,
+        { headSequence },
       )
     }
 
