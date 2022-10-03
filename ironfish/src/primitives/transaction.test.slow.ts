@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../assert'
 import { ResponseError } from '../rpc'
 import { ERROR_CODES } from '../rpc/adapters/errors'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
@@ -64,7 +65,11 @@ describe('Accounts', () => {
     )
     await nodeA.chain.addBlock(block1)
     await nodeA.accounts.updateHead()
-    await nodeA.accounts.getLatestHeadHash()
+    const headhash = await nodeA.accounts.getLatestHeadHash()
+    Assert.isNotNull(headhash)
+    // Modify the headhash
+    headhash[0] = 0
+    await nodeA.accounts.updateHeadHash(accountA, headhash)
 
     const response = nodeA.accounts.createTransaction(
       accountA,

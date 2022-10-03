@@ -6,7 +6,6 @@ import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
-import { MAX_SYNCED_AGE_MS } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
@@ -682,19 +681,7 @@ export class Accounts {
       this.assertHasAccount(sender)
 
       // check if the chain data is fully synced
-      let headHash = this.headHashes.get(sender.id)
-      if (!headHash) {
-        headHash = await sender.getHeadHash()
-      }
-
-      if (!headHash) {
-        throw new ResponseError(`No headhash found for this account.`, ERROR_CODES.ERROR, 400)
-      }
-
-      const header = await this.chain.getHeader(headHash)
-      Assert.isNotNull(header, `Missing block header for hash '${headHash.toString('hex')}'`)
-
-      if (header.timestamp.valueOf() < Date.now() - MAX_SYNCED_AGE_MS) {
+      if (!this.isAccountUpToDate(sender)) {
         throw new ResponseError(
           `Your node must be synced with the Iron Fish network to send a transaction. `,
           ERROR_CODES.ERROR,
