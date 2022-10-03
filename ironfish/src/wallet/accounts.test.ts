@@ -34,13 +34,7 @@ describe('Accounts', () => {
 
     const broadcastSpy = jest.spyOn(nodeA.accounts, 'broadcastTransaction')
 
-    const blockA1 = await useMinerBlockFixture(
-      nodeA.chain,
-      undefined,
-      accountA,
-      undefined,
-      nodeA.accounts,
-    )
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.accounts)
     await expect(nodeA.chain).toAddBlock(blockA1)
 
     const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)

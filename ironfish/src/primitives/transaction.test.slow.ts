@@ -61,7 +61,6 @@ describe('Accounts', () => {
       nodeA.chain,
       2,
       accountA,
-      Date.now() - 3 * (1000 * 60 * 60 * 24),
     )
     await nodeA.chain.addBlock(block1)
     await nodeA.accounts.updateHead()
@@ -105,7 +104,7 @@ describe('Accounts', () => {
     )
 
     // Create a block with a miner's fee
-    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA, Date.now())
+    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
     await nodeA.chain.addBlock(block1)
     await nodeA.accounts.updateHead()
     await nodeA.accounts.getLatestHeadHash()

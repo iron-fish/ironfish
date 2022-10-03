@@ -174,13 +174,7 @@ describe('PeerNetwork', () => {
       const { peerNetwork, node } = nodeTest
 
       const account = await useAccountFixture(node.accounts, 'accountA')
-      const block = await useMinerBlockFixture(
-        node.chain,
-        undefined,
-        account,
-        undefined,
-        node.accounts,
-      )
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
       const transaction1 = block.transactions[0]
       const transaction2 = await useMinersTxFixture(node.accounts, account)
       const transaction3 = await useMinersTxFixture(node.accounts, account)
@@ -216,13 +210,7 @@ describe('PeerNetwork', () => {
 
       const account = await useAccountFixture(node.accounts, 'accountA')
       for (let i = 0; i < 6; i++) {
-        const block = await useMinerBlockFixture(
-          node.chain,
-          undefined,
-          account,
-          undefined,
-          node.accounts,
-        )
+        const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
         await expect(node.chain).toAddBlock(block)
       }
 
@@ -265,13 +253,7 @@ describe('PeerNetwork', () => {
       const { peerNetwork, node } = nodeTest
 
       const account = await useAccountFixture(node.accounts, 'accountA')
-      const block = await useMinerBlockFixture(
-        node.chain,
-        undefined,
-        account,
-        undefined,
-        node.accounts,
-      )
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
       const transaction1 = block.transactions[0]
       const transaction2 = await useMinersTxFixture(node.accounts, account)
       const transaction3 = await useMinersTxFixture(node.accounts, account)
@@ -305,13 +287,7 @@ describe('PeerNetwork', () => {
 
       const account = await useAccountFixture(node.accounts, 'accountA')
       for (let i = 0; i < 11; i++) {
-        const block = await useMinerBlockFixture(
-          node.chain,
-          undefined,
-          account,
-          undefined,
-          node.accounts,
-        )
+        const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
         await expect(node.chain).toAddBlock(block)
       }
 

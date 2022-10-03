@@ -495,7 +495,7 @@ describe('Accounts', () => {
     const accountC = await useAccountFixture(nodeA.accounts, 'testC')
 
     // Create a block with a miner's fee
-    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA, Date.now())
+    const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
     const addedBlock = await nodeA.chain.addBlock(block1)
     expect(addedBlock.isAdded).toBe(true)
 
@@ -725,13 +725,7 @@ describe('Accounts', () => {
     const accountANodeB = await nodeB.accounts.importAccount(accountA)
 
     // Create and add Block A1
-    const blockA1 = await useMinerBlockFixture(
-      nodeA.chain,
-      2,
-      accountA,
-      undefined,
-      nodeA.accounts,
-    )
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA, nodeA.accounts)
     let addedBlock = await nodeA.chain.addBlock(blockA1)
     expect(addedBlock.isAdded).toBe(true)
 

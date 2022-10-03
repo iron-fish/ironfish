@@ -804,9 +804,7 @@ describe('Blockchain', () => {
     ).resolves.toBe(false)
 
     // Let's spend the transaaction for the first time
-    const block3 = await useMinerBlockFixture(node.chain, 3, undefined, undefined, undefined, [
-      tx,
-    ])
+    const block3 = await useMinerBlockFixture(node.chain, 3, undefined, undefined, [tx])
     await expect(node.chain).toAddBlock(block3)
 
     // The nullifier is not found at the old tree size, but is found at the new tree size
@@ -819,9 +817,7 @@ describe('Blockchain', () => {
     ).resolves.toBe(true)
 
     // Let's spend the transaction a second time
-    const block4 = await useMinerBlockFixture(node.chain, 4, undefined, undefined, undefined, [
-      tx,
-    ])
+    const block4 = await useMinerBlockFixture(node.chain, 4, undefined, undefined, [tx])
     await expect(node.chain).toAddBlock(block4)
 
     // We've now added a double spend, we can see that because of a bug in the
@@ -840,9 +836,7 @@ describe('Blockchain', () => {
 
     // Now we set our fix to activate at sequence 5 so this block will not let
     // us add the transaction a third time
-    const block5 = await useMinerBlockFixture(node.chain, 5, undefined, undefined, undefined, [
-      tx,
-    ])
+    const block5 = await useMinerBlockFixture(node.chain, 5, undefined, undefined, [tx])
     await expect(node.chain.addBlock(block5)).resolves.toMatchObject({
       isAdded: false,
       reason: VerificationResultReason.DOUBLE_SPEND,
@@ -878,24 +872,10 @@ describe('Blockchain', () => {
     await nodeB.accounts.updateHead()
     const tx = await useTxFixture(nodeB.accounts, accountA, accountB)
 
-    const blockB3 = await useMinerBlockFixture(
-      nodeB.chain,
-      3,
-      undefined,
-      undefined,
-      undefined,
-      [tx],
-    )
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, 3, undefined, undefined, [tx])
     await expect(nodeB.chain).toAddBlock(blockB3)
 
-    const blockB4 = await useMinerBlockFixture(
-      nodeB.chain,
-      4,
-      undefined,
-      undefined,
-      undefined,
-      [tx],
-    )
+    const blockB4 = await useMinerBlockFixture(nodeB.chain, 4, undefined, undefined, [tx])
     await expect(nodeB.chain).toAddBlock(blockB4)
 
     const blockB5 = await useMinerBlockFixture(nodeB.chain, 5)

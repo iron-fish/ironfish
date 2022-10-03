@@ -17,7 +17,7 @@ describe('Mining manager', () => {
 
     // Create an account with some money
     const account = await useAccountFixture(accounts)
-    const block1 = await useMinerBlockFixture(chain, undefined, account, undefined, accounts)
+    const block1 = await useMinerBlockFixture(chain, undefined, account, accounts)
     await expect(chain).toAddBlock(block1)
     await accounts.updateHead()
 
