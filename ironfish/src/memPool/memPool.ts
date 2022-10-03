@@ -10,9 +10,15 @@ import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
+import { PriorityQueue } from './priorityQueue'
 
 interface MempoolEntry {
   fee: bigint
+  hash: TransactionHash
+}
+
+interface ExpirationMempoolEntry {
+  expirationSequence: number
   hash: TransactionHash
 }
 
@@ -23,7 +29,11 @@ export class MemPool {
   private readonly nullifiers = new BufferMap<Buffer>()
   /* Keep track of number of bytes stored in the nullifiers map */
   private nullifiersBytes = 0
+
   private readonly queue: FastPriorityQueue<MempoolEntry>
+  private readonly newQueue: PriorityQueue<MempoolEntry>
+  private readonly expirationQueue: PriorityQueue<ExpirationMempoolEntry>
+
   head: BlockHeader | null
 
   private readonly chain: Blockchain
@@ -40,6 +50,21 @@ export class MemPool {
       }
       return firstTransaction.fee > secondTransaction.fee
     })
+
+    this.newQueue = new PriorityQueue<MempoolEntry>(
+      (firstTransaction, secondTransaction) => {
+        if (firstTransaction.fee === secondTransaction.fee) {
+          return firstTransaction.hash.compare(secondTransaction.hash) > 0
+        }
+        return firstTransaction.fee > secondTransaction.fee
+      },
+      (t) => t.hash.toString('hex'),
+    )
+
+    this.expirationQueue = new PriorityQueue<ExpirationMempoolEntry>(
+      (t1, t2) => t1.expirationSequence < t2.expirationSequence,
+      (t) => t.hash.toString('hex'),
+    )
 
     this.chain = options.chain
     this.logger = logger.withTag('mempool')
@@ -77,9 +102,13 @@ export class MemPool {
 
   *orderedTransactions(): Generator<Transaction, void, unknown> {
     const clone = this.queue.clone()
+    const newClone = this.newQueue.clone()
 
     while (!clone.isEmpty()) {
       const feeAndHash = clone.poll()
+
+      Assert.isEqual(feeAndHash, newClone.poll(), 'error in orderedTransactions')
+
       Assert.isNotUndefined(feeAndHash)
       const transaction = this.transactions.get(feeAndHash.hash)
 
@@ -148,6 +177,22 @@ export class MemPool {
       }
     }
 
+    const newExpired = []
+    let nextExpired = this.expirationQueue.peek()
+    while (
+      nextExpired &&
+      this.chain.verifier.isExpiredSequence(
+        nextExpired.expirationSequence,
+        this.chain.head.sequence,
+      )
+    ) {
+      const transaction = this.get(nextExpired.hash)
+      transaction && newExpired.push(transaction.hash())
+
+      nextExpired = this.expirationQueue.peek()
+    }
+
+    const oldExpired = []
     for (const transaction of this.transactions.values()) {
       const isExpired = this.chain.verifier.isExpiredSequence(
         transaction.expirationSequence(),
@@ -155,12 +200,19 @@ export class MemPool {
       )
 
       if (isExpired) {
+        oldExpired.push(transaction.hash())
         const didDelete = this.deleteTransaction(transaction)
         if (didDelete) {
           deletedTransactions++
         }
       }
     }
+
+    Assert.isEqual(
+      newExpired.length,
+      oldExpired.length,
+      `error in onConnectBlock ${newExpired.length}, ${oldExpired.length}`,
+    )
 
     if (deletedTransactions) {
       this.logger.debug(`Deleted ${deletedTransactions} transactions`)
@@ -206,6 +258,8 @@ export class MemPool {
     }
 
     this.queue.add({ fee: transaction.fee(), hash })
+    this.newQueue.add({ fee: transaction.fee(), hash })
+    this.expirationQueue.add({ expirationSequence: transaction.expirationSequence(), hash })
     this.metrics.memPoolSize.value = this.size()
     return true
   }
@@ -226,7 +280,13 @@ export class MemPool {
       }
     }
 
-    this.queue.removeOne((t) => t.hash.equals(hash))
+    const oldRemove = this.queue.removeOne((t) => t.hash.equals(hash))
+
+    const expRemove = this.expirationQueue.remove(hash.toString('hex'))
+    const newRemove = this.expirationQueue.remove(hash.toString('hex'))
+
+    Assert.isEqual(oldRemove, newRemove, 'error in newRemove')
+    Assert.isEqual(oldRemove?.hash, expRemove?.hash, 'error in expRemove')
 
     this.metrics.memPoolSize.value = this.size()
     return true
