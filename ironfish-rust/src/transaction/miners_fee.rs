@@ -7,7 +7,7 @@ use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 use zcash_primitives::{
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-    redjubjub::{PrivateKey, PublicKey, Signature},
+    sapling::redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
 use crate::{
@@ -40,7 +40,7 @@ impl MinersFeeTransaction {
         note: Note,
     ) -> Result<MinersFeeTransaction, TransactionError> {
         let fee = -(note.value as i64);
-        let mut receipt_params = ReceiptParams::new(sapling.clone(), &receiver_key, &note)?;
+        let mut receipt_params = ReceiptParams::new(&receiver_key, &note)?;
         // Ensure the merkle note has an identifiable encryption key
         receipt_params.merkle_note.note_encryption_keys = *NOTE_ENCRYPTION_MINER_KEYS;
 
@@ -111,7 +111,7 @@ impl Transaction for MinersFeeTransaction {
         // guarantee they are part of this transaction, unmodified.
         let mut binding_verification_key = ExtendedPoint::identity();
 
-        self.output.verify_proof(&self.sapling)?;
+        self.output.verify_proof()?;
         binding_verification_key -= self.output.merkle_note.value_commitment;
 
         let transaction_signature_hash = transaction_signature_hash(&self.output, self.fee);
@@ -149,7 +149,7 @@ fn transaction_signature_hash(output: &impl OutputSignature, fee: i64) -> [u8; 3
 
 #[cfg(test)]
 mod tests {
-    use zcash_primitives::redjubjub::Signature;
+    use zcash_primitives::sapling::redjubjub::Signature;
 
     use crate::{
         merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Memo, sapling_bls12,

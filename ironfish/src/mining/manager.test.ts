@@ -12,17 +12,17 @@ describe('Mining manager', () => {
   const nodeTest = createNodeTest()
 
   it('should not add expired transaction to block', async () => {
-    const { node, chain, accounts } = nodeTest
+    const { node, chain, wallet } = nodeTest
     const { miningManager } = nodeTest.node
 
     // Create an account with some money
-    const account = await useAccountFixture(accounts)
-    const block1 = await useMinerBlockFixture(chain, undefined, account, accounts)
+    const account = await useAccountFixture(wallet)
+    const block1 = await useMinerBlockFixture(chain, undefined, account, wallet)
     await expect(chain).toAddBlock(block1)
-    await accounts.updateHead()
+    await wallet.updateHead()
 
     const transaction = await useTxFixture(
-      accounts,
+      wallet,
       account,
       account,
       undefined,
@@ -46,5 +46,5 @@ describe('Mining manager', () => {
     results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
       .blockTransactions
     expect(results).toHaveLength(0)
-  }, 10000)
+  })
 })

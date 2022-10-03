@@ -8,6 +8,20 @@ use std::io;
 
 use bellman::SynthesisError;
 
+/// Errors not tied to any one specific task
+#[derive(Debug)]
+pub enum IronfishError {
+    InvalidNonceLength,
+}
+
+impl fmt::Display for IronfishError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Error for IronfishError {}
+
 /// Error raised if constructing a sapling key fails for any reason.
 #[derive(Debug)]
 pub enum SaplingKeyError {

@@ -148,7 +148,7 @@ export class MiningSoloMiner {
   }
 
   private async processNewBlocks() {
-    for await (const payload of this.rpc.blockTemplateStream().contentStream(true)) {
+    for await (const payload of this.rpc.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
 
       const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
@@ -252,7 +252,7 @@ export class MiningSoloMiner {
     this.logger.info('Listening to node for new blocks')
 
     void this.processNewBlocks().catch((e: unknown) => {
-      this.logger.error('Fatal error occured while processing blocks from node:')
+      this.logger.error('Fatal error occurred while processing blocks from node:')
       this.logger.error(ErrorUtils.renderError(e, true))
       this.stop()
     })

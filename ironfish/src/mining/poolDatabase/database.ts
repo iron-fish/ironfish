@@ -77,7 +77,7 @@ export class PoolDatabase {
   }
 
   async newPayout(timestamp: number): Promise<number | null> {
-    // Create a payout row if the most recent succesful payout was greater than the payout interval
+    // Create a payout row if the most recent successful payout was greater than the payout interval
     // and the most recent payout was greater than the attempt interval, in case of failed or long
     // running payouts.
     const successfulPayoutCutoff = timestamp - this.successfulPayoutInterval

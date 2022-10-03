@@ -11,23 +11,24 @@ export class RemoveCommand extends IronfishCommand {
 
   static args = [
     {
-      name: 'name',
+      name: 'account',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
-      description: 'name of the account',
+      description: 'Name of the account',
     },
   ]
 
   static flags = {
     ...RemoteFlags,
     confirm: Flags.boolean({
-      description: 'suppress the confirmation prompt',
+      description: 'Suppress the confirmation prompt',
     }),
   }
 
   async start(): Promise<void> {
     const { args, flags } = await this.parse(RemoveCommand)
     const confirm = flags.confirm
-    const name = (args.name as string).trim()
+    const name = args.account as string
 
     const client = await this.sdk.connectRpc()
 

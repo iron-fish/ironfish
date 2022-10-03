@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Accounts } from '../account'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
@@ -18,6 +17,7 @@ import {
 import { createDB } from '../storage/utils'
 import { SetTimeoutToken } from '../utils'
 import { BlockchainUtils, isBlockMine } from '../utils/blockchain'
+import { Wallet } from '../wallet'
 import {
   AccountsToRemoveValue,
   AccountsToRemoveValueEncoding,
@@ -29,7 +29,7 @@ import {
   SequenceToHashesValueEncoding,
 } from './database/sequenceToHashes'
 
-const DATABASE_VERSION = 1
+export const VERSION_DATABASE_INDEXER = 12
 const REMOVAL_KEY = 'accountsToRemove'
 
 const getMinedBlocksDBMetaDefaults = (): MinedBlocksDBMeta => ({
@@ -46,9 +46,9 @@ export class MinedBlocksIndexer {
   protected accountsToRemove: IDatabaseStore<{ key: string; value: AccountsToRemoveValue }>
 
   protected files: FileSystem
-  protected database: IDatabase
-  protected location: string
-  protected readonly accounts: Accounts
+  readonly database: IDatabase
+  readonly location: string
+  protected readonly wallet: Wallet
   protected readonly logger: Logger
   protected isOpen: boolean
   protected isStarted: boolean
@@ -60,20 +60,20 @@ export class MinedBlocksIndexer {
   constructor({
     files,
     location,
-    accounts,
+    wallet,
     chain,
     logger = createRootLogger(),
   }: {
     files: FileSystem
     location: string
-    accounts: Accounts
+    wallet: Wallet
     chain: Blockchain
     logger?: Logger
   }) {
     this.files = files
     this.location = location
     this.database = createDB({ location })
-    this.accounts = accounts
+    this.wallet = wallet
     this.logger = logger
     this.chain = chain
     this.isOpen = false
@@ -119,7 +119,7 @@ export class MinedBlocksIndexer {
       const block = await this.chain.getBlock(header)
       Assert.isNotNull(block)
 
-      const account = this.accounts.listAccounts().find((a) => isBlockMine(block, a))
+      const account = this.wallet.listAccounts().find((a) => isBlockMine(block, a))
       if (account) {
         await this.database.transaction(async (tx) => {
           await this.minedBlocks.put(
@@ -145,10 +145,10 @@ export class MinedBlocksIndexer {
     this.chainProcessor.onRemove.on(async (header) => {
       await this.database.transaction(async (tx) => {
         if (await this.minedBlocks.has(header.hash, tx)) {
-          const block = await this.chain.getBlock(header, tx)
+          const block = await this.chain.getBlock(header)
           Assert.isNotNull(block)
 
-          const account = this.accounts.listAccounts().find((a) => isBlockMine(block, a))
+          const account = this.wallet.listAccounts().find((a) => isBlockMine(block, a))
           if (account) {
             const minedBlock = await this.minedBlocks.get(header.hash, tx)
             if (minedBlock) {
@@ -162,30 +162,28 @@ export class MinedBlocksIndexer {
       })
     })
 
-    this.accounts.onAccountImported.on(() => {
+    this.wallet.onAccountImported.on(() => {
       this.rescan = true
     })
 
-    this.accounts.onAccountRemoved.on(async (account) => {
+    this.wallet.onAccountRemoved.on(async (account) => {
       const accounts = await this.getAccountsToBeRemoved()
       accounts.push(account.name)
       await this.accountsToRemove.put(REMOVAL_KEY, { accounts })
     })
   }
 
-  async open(
-    options: { upgrade?: boolean; load?: boolean } = { upgrade: true, load: true },
-  ): Promise<void> {
+  async open(): Promise<void> {
     if (this.isOpen) {
       return
     }
 
     this.isOpen = true
-    await this.openDB(options)
 
-    if (options.load) {
-      await this.load()
-    }
+    await this.files.mkdir(this.location, { recursive: true })
+    await this.database.open()
+    await this.database.upgrade(VERSION_DATABASE_INDEXER)
+    await this.load()
   }
 
   async close(): Promise<void> {
@@ -194,19 +192,6 @@ export class MinedBlocksIndexer {
     }
 
     this.isOpen = false
-    await this.closeDB()
-  }
-
-  async openDB(options: { upgrade?: boolean } = { upgrade: true }): Promise<void> {
-    await this.files.mkdir(this.location, { recursive: true })
-    await this.database.open()
-
-    if (options.upgrade) {
-      await this.database.upgrade(DATABASE_VERSION)
-    }
-  }
-
-  async closeDB(): Promise<void> {
     await this.database.close()
   }
 

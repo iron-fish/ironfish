@@ -11,7 +11,7 @@ use group::Curve;
 use rand::{thread_rng, Rng};
 use zcash_primitives::{
     constants::{GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR},
-    pedersen_hash,
+    sapling::pedersen_hash,
 };
 
 use crate::primitives::asset_type::AssetInfo;

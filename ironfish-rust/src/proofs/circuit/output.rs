@@ -6,7 +6,7 @@ use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use jubjub::ExtendedPoint;
 use zcash_primitives::constants;
 
-use zcash_primitives::primitives::PaymentAddress;
+use zcash_primitives::sapling::PaymentAddress;
 
 use bellman::gadgets::blake2s;
 use bellman::gadgets::boolean::{self};
@@ -165,7 +165,7 @@ impl Circuit<bls12_381::Scalar> for Output {
             // Witness the sign bit
             let sign_bit = boolean::Boolean::from(boolean::AllocatedBit::alloc(
                 cs.namespace(|| "pk_d bit of u"),
-                pk_d.map(|e| e.get_u().is_odd()),
+                pk_d.map(|e| e.get_u().is_odd().into()),
             )?);
 
             // Extend the note with pk_d representation

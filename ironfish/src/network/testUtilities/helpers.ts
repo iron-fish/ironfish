@@ -4,6 +4,7 @@
 
 import ws from 'ws'
 import { Identity, isIdentity } from '../identity'
+import { IncomingPeerMessage, NetworkMessage } from '../messages/networkMessage'
 import {
   Connection,
   ConnectionDirection,
@@ -73,6 +74,36 @@ export function getWaitingForIdentityPeer(
 
   expect(peer.state.type).toBe('CONNECTING')
   return { peer, connection: connection }
+}
+
+/* Used for constructing stubbed messages to send to the PeerManager.onMessage */
+export function peerMessage<T extends NetworkMessage>(
+  peer: Peer,
+  message: T,
+): [Peer, IncomingPeerMessage<T>] {
+  return [
+    peer,
+    {
+      peerIdentity: peer.getIdentityOrThrow(),
+      message,
+    },
+  ]
+}
+
+/* Add new peers to the PeerManager and spy on peer.send() */
+export const getConnectedPeersWithSpies = (
+  peerManager: PeerManager,
+  count: number,
+): {
+  peer: Peer
+  sendSpy: jest.SpyInstance<Connection | null, [message: NetworkMessage]>
+}[] => {
+  return [...Array<null>(count)].map((_) => {
+    const { peer } = getConnectedPeer(peerManager)
+    const sendSpy = jest.spyOn(peer, 'send')
+
+    return { peer, sendSpy }
+  })
 }
 
 export function getConnectedPeer(

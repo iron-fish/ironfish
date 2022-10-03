@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
-import { isValidPublicAddress } from '../../account/validator'
 import { Assert } from '../../assert'
 import { GRAFFITI_SIZE } from '../../consensus/consensus'
 import { Config } from '../../fileStores/config'
@@ -11,6 +10,7 @@ import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
 import { GraffitiUtils, StringUtils } from '../../utils'
 import { ErrorUtils } from '../../utils/error'
 import { YupUtils } from '../../utils/yup'
+import { isValidPublicAddress } from '../../wallet/validator'
 import { MiningPool } from '../pool'
 import { mineableHeaderString } from '../utils'
 import { DisconnectReason } from './constants'
@@ -29,7 +29,7 @@ import {
 } from './messages'
 import { StratumPeers } from './stratumPeers'
 import { StratumServerClient } from './stratumServerClient'
-import { STRATUM_VERSION_PROTOCOL, STRATUM_VERSION_PROTOCOL_MIN } from './version'
+import { VERSION_PROTOCOL_STRATUM, VERSION_PROTOCOL_STRATUM_MIN } from './version'
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000
 
@@ -65,8 +65,8 @@ export class StratumServer {
     this.config = options.config
     this.logger = options.logger
 
-    this.version = STRATUM_VERSION_PROTOCOL
-    this.versionMin = STRATUM_VERSION_PROTOCOL_MIN
+    this.version = VERSION_PROTOCOL_STRATUM
+    this.versionMin = VERSION_PROTOCOL_STRATUM_MIN
 
     this.host = options.host ?? this.config.get('poolHost')
     this.port = options.port ?? this.config.get('poolPort')

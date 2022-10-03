@@ -303,7 +303,7 @@ export class MiningPool {
     this.logger.info('Listening to node for new blocks')
 
     void this.processNewBlocks().catch(async (e: unknown) => {
-      this.logger.error('Fatal error occured while processing blocks from node:')
+      this.logger.error('Fatal error occurred while processing blocks from node:')
       this.logger.error(ErrorUtils.renderError(e, true))
       await this.stop()
     })
@@ -319,7 +319,7 @@ export class MiningPool {
   }
 
   private async processNewBlocks() {
-    for await (const payload of this.rpc.blockTemplateStream().contentStream(true)) {
+    for await (const payload of this.rpc.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
       this.restartCalculateTargetInterval()
 
@@ -337,7 +337,11 @@ export class MiningPool {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
 
-    const latestBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
+    const currentBlock = this.miningRequestBlocks.get(this.nextMiningRequestId - 1)
+    Assert.isNotNull(currentBlock)
+    const latestBlock = Object.assign({}, currentBlock)
+    latestBlock.header = Object.assign({}, currentBlock.header)
+
     Assert.isNotNull(latestBlock)
 
     const newTime = new Date()

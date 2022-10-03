@@ -1,8 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BoxKeyPair } from 'tweetnacl'
-import { Config, ConfigOptions, DEFAULT_DATA_DIR, InternalStore } from './fileStores'
+import {
+  Config,
+  ConfigOptions,
+  DEFAULT_DATA_DIR,
+  InternalOptions,
+  InternalStore,
+} from './fileStores'
 import { FileSystem, NodeFileProvider } from './fileSystems'
 import {
   createRootLogger,
@@ -27,7 +32,7 @@ import { RpcIpcClient } from './rpc/clients/ipcClient'
 import { RpcMemoryClient } from './rpc/clients/memoryClient'
 import { RpcTcpClient } from './rpc/clients/tcpClient'
 import { RpcTlsClient } from './rpc/clients/tlsClient'
-import { ApiNamespace } from './rpc/routes/router'
+import { ALL_API_NAMESPACES, API_NAMESPACES_PROTECTED } from './rpc/routes/router'
 import { Strategy } from './strategy'
 import { NodeUtils } from './utils'
 
@@ -40,7 +45,6 @@ export class IronfishSdk {
   metrics: MetricsMonitor
   internal: InternalStore
   strategyClass: typeof Strategy | null
-  privateIdentity: BoxKeyPair | null | undefined
   dataDir: string
 
   private constructor(
@@ -69,6 +73,7 @@ export class IronfishSdk {
     pkg,
     configName,
     configOverrides,
+    internalOverrides,
     fileSystem,
     dataDir,
     logger = createRootLogger(),
@@ -78,6 +83,7 @@ export class IronfishSdk {
     pkg?: Package
     configName?: string
     configOverrides?: Partial<ConfigOptions>
+    internalOverrides?: Partial<InternalOptions>
     fileSystem?: FileSystem
     dataDir?: string
     logger?: Logger
@@ -108,6 +114,10 @@ export class IronfishSdk {
       Object.assign(config.overrides, configOverrides)
     }
 
+    if (internalOverrides) {
+      Object.assign(internal.overrides, internalOverrides)
+    }
+
     // Update the logger settings
     const logLevel = config.get('logLevel')
     if (logLevel) {
@@ -135,9 +145,16 @@ export class IronfishSdk {
     }
 
     let client: RpcSocketClient
+    const rpcAuthToken = internal.get('rpcAuthToken')
+
     if (config.get('enableRpcTcp')) {
       if (config.get('enableRpcTls')) {
-        client = new RpcTlsClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
+        client = new RpcTlsClient(
+          config.get('rpcTcpHost'),
+          config.get('rpcTcpPort'),
+          logger,
+          rpcAuthToken,
+        )
       } else {
         client = new RpcTcpClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
       }
@@ -191,20 +208,7 @@ export class IronfishSdk {
     })
 
     if (this.config.get('enableRpcIpc')) {
-      const namespaces = [
-        ApiNamespace.account,
-        ApiNamespace.chain,
-        ApiNamespace.config,
-        ApiNamespace.event,
-        ApiNamespace.faucet,
-        ApiNamespace.miner,
-        ApiNamespace.node,
-        ApiNamespace.peer,
-        ApiNamespace.transaction,
-        ApiNamespace.telemetry,
-        ApiNamespace.worker,
-        ApiNamespace.rpc,
-      ]
+      const namespaces = ALL_API_NAMESPACES
 
       await node.rpc.mount(
         new RpcIpcAdapter(
@@ -219,21 +223,12 @@ export class IronfishSdk {
     }
 
     if (this.config.get('enableRpcTcp')) {
-      const namespaces = [
-        ApiNamespace.chain,
-        ApiNamespace.event,
-        ApiNamespace.faucet,
-        ApiNamespace.miner,
-        ApiNamespace.node,
-        ApiNamespace.peer,
-        ApiNamespace.transaction,
-        ApiNamespace.telemetry,
-        ApiNamespace.worker,
-        ApiNamespace.rpc,
-      ]
+      const namespaces = ALL_API_NAMESPACES.filter(
+        (namespace) => !API_NAMESPACES_PROTECTED.includes(namespace),
+      )
 
       if (this.config.get('rpcTcpSecure')) {
-        namespaces.push(ApiNamespace.account, ApiNamespace.config)
+        namespaces.push(...API_NAMESPACES_PROTECTED)
       }
 
       if (this.config.get('enableRpcTls')) {
@@ -244,6 +239,7 @@ export class IronfishSdk {
             this.fileSystem,
             this.config.get('tlsKeyPath'),
             this.config.get('tlsCertPath'),
+            node,
             this.logger,
             namespaces,
           ),

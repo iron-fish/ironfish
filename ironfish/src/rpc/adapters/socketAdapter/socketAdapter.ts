@@ -35,12 +35,24 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   server: net.Server | null = null
   router: Router | null = null
   namespaces: ApiNamespace[]
+  enableAuthentication = true
 
   started = false
   clients = new Map<string, SocketClient>()
 
   inboundTraffic = new Meter()
   outboundTraffic = new Meter()
+
+  get addressPort(): number | null {
+    const address = this.server?.address()
+    if (!address) {
+      return null
+    }
+    if (typeof address === 'string') {
+      throw new Error('No unix sockets')
+    }
+    return address.port
+  }
 
   constructor(
     host: string,
@@ -69,20 +81,26 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     this.outboundTraffic.start()
 
     return new Promise((resolve, reject) => {
-      server.on('error', (err) => {
+      const onError = (err: unknown) => {
+        server.off('error', onError)
+        server.off('listening', onListening)
         reject(err)
-      })
+      }
 
-      server.listen(
-        {
-          host: this.host,
-          port: this.port,
-          exclusive: true,
-        },
-        () => {
-          resolve()
-        },
-      )
+      const onListening = () => {
+        server.off('error', onError)
+        server.off('listening', onListening)
+        resolve()
+      }
+
+      server.on('error', onError)
+      server.on('listening', onListening)
+
+      server.listen({
+        host: this.host,
+        port: this.port,
+        exclusive: true,
+      })
     })
   }
 
@@ -91,6 +109,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       return
     }
 
+    this.started = false
     this.inboundTraffic.stop()
     this.outboundTraffic.stop()
 
@@ -100,14 +119,8 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       client.messageBuffer.clear()
     })
 
-    await new Promise<void>((resolve, reject) => {
-      this.server?.close((error) => {
-        if (error) {
-          reject(error)
-        } else {
-          resolve()
-        }
-      })
+    await new Promise<void>((resolve) => {
+      this.server?.close(() => resolve())
     })
 
     await this.waitForAllToDisconnect()
@@ -185,6 +198,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       const requestId = uuid()
       const request = new RpcRequest(
         message.data,
+        message.type,
         (status: number, data?: unknown) => {
           this.emitResponse(client, this.constructMessage(message.mid, status, data), requestId)
         },
@@ -194,12 +208,23 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       )
       client.requests.set(requestId, request)
 
-      if (this.router == null) {
-        this.emitResponse(client, this.constructUnmountedAdapter())
-        return
-      }
-
       try {
+        if (this.router == null || this.router.server == null) {
+          throw new ResponseError('Tried to connect to unmounted adapter')
+        }
+
+        // Authentication
+        if (this.enableAuthentication) {
+          const isAuthenticated = this.router.server.authenticate(message.auth)
+
+          if (!isAuthenticated) {
+            const error = message.auth
+              ? 'Failed authentication'
+              : 'Missing authentication token'
+            throw new ResponseError(error, ERROR_CODES.UNAUTHENTICATED, 401)
+          }
+        }
+
         await this.router.route(message.type, request)
       } catch (error: unknown) {
         if (error instanceof ResponseError) {
@@ -237,7 +262,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
 
   // `constructResponse`,  `constructStream` and `constructMalformedRequest` construct messages to return
   // to a 'node-ipc' client. Once we remove 'node-ipc' we can return our own messages
-  // The '\f' is for handling the delimeter that 'node-ipc' expects when parsing
+  // The '\f' is for handling the delimiter that 'node-ipc' expects when parsing
   // messages it received. See 'node-ipc' parsing/formatting logic here:
   // https://github.com/RIAEvangelist/node-ipc/blob/master/entities/EventParser.js
   encodeNodeIpc(ipcResponse: ServerSocketRpc): Buffer {
@@ -286,21 +311,6 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
 
     return {
       type: 'malformedRequest',
-      data: data,
-    }
-  }
-
-  constructUnmountedAdapter(): ServerSocketRpc {
-    const error = new Error(`Tried to connect to unmounted adapter`)
-
-    const data: SocketRpcError = {
-      code: ERROR_CODES.ERROR,
-      message: error.message,
-      stack: error.stack,
-    }
-
-    return {
-      type: 'error',
       data: data,
     }
   }

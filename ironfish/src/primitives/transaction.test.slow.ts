@@ -7,7 +7,7 @@ describe('Accounts', () => {
   const nodeTest = createNodeTest()
 
   it('produces unique transaction hashes', async () => {
-    const account = await useAccountFixture(nodeTest.accounts)
+    const account = await useAccountFixture(nodeTest.wallet)
 
     const transactionA = await nodeTest.strategy.createMinersFee(
       BigInt(0),
@@ -25,10 +25,10 @@ describe('Accounts', () => {
     const hashB = transactionB.unsignedHash()
 
     expect(hashA.equals(hashB)).toBe(false)
-  }, 600000)
+  })
 
   it('check if a transaction is a miners fee', async () => {
-    const account = await useAccountFixture(nodeTest.accounts)
+    const account = await useAccountFixture(nodeTest.wallet)
 
     const transactionA = await nodeTest.strategy.createMinersFee(
       BigInt(0),
@@ -50,19 +50,19 @@ describe('Accounts', () => {
     const nodeA = nodeTest.node
 
     // Create an account A
-    const accountA = await useAccountFixture(nodeA.accounts, () =>
-      nodeA.accounts.createAccount('testA'),
+    const accountA = await useAccountFixture(nodeA.wallet, () =>
+      nodeA.wallet.createAccount('testA'),
     )
-    const accountB = await useAccountFixture(nodeA.accounts, () =>
-      nodeA.accounts.createAccount('testB'),
+    const accountB = await useAccountFixture(nodeA.wallet, () =>
+      nodeA.wallet.createAccount('testB'),
     )
 
     // Create a block with a miner's fee
     const block1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
     await nodeA.chain.addBlock(block1)
-    await nodeA.accounts.updateHead()
+    await nodeA.wallet.updateHead()
 
-    const transaction = await nodeA.accounts.createTransaction(
+    const transaction = await nodeA.wallet.createTransaction(
       accountA,
       [
         {
@@ -75,5 +75,5 @@ describe('Accounts', () => {
       0,
     )
     expect(transaction.isMinersFee()).toBe(false)
-  }, 600000)
+  })
 })

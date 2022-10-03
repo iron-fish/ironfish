@@ -41,5 +41,10 @@ else
   if [ "$DEBUG" == "*" ]; then
     echoerr IRONFISH_BINPATH="$IRONFISH_BINPATH" "$NODE" "$DIR/run" "$@"
   fi
-  "$NODE" "$DIR/run" "$@"
+
+  if [ "$IRONFISH_EXPOSE_GC" == "true" ]; then
+    "$NODE" "--expose-gc" "--enable-source-maps" "$DIR/run" "$@"
+  else
+    "$NODE" "--enable-source-maps" "$DIR/run" "$@"
+  fi
 fi

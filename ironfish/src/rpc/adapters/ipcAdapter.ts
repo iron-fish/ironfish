@@ -244,6 +244,7 @@ export class RpcIpcAdapter implements IRpcAdapter {
 
     const request = new RpcRequest(
       message.data,
+      message.type,
       (status: number, data?: unknown) => {
         this.emitResponse(socket, message.mid, status, data)
       },

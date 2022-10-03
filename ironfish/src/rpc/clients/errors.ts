@@ -15,7 +15,9 @@ import { RpcResponse } from '../response'
  * The base class for a connection related error. In case someone wants
  * to log and handle any connection related issues.
  */
-export abstract class RpcConnectionError extends Error {}
+export abstract class RpcConnectionError extends Error {
+  name = this.constructor.name
+}
 
 /**
  * Thrown when the connection attempt has failed for any reason. Most
@@ -27,11 +29,12 @@ export class RpcConnectionRefusedError extends RpcConnectionError {}
 /** Thrown when the connection is lost after you've successfully connected.
  *
  * @note In a stateless connection like HTTP this should happen after the request was sent out, but before the response has been returned.
- * @note In a stateful connection like websockets or IPC, this should be thrown any time after you've connected when the connection has been disconnected unexpectly. */
+ * @note In a stateful connection like websockets or IPC, this should be thrown any time after you've connected when the connection has been disconnected unexpectedly. */
 export class RpcConnectionLostError extends RpcConnectionError {}
 
 /** Thrown when a response comes back with a code that is between 400 to 500 */
 export class RpcRequestError<TEnd = unknown, TStream = unknown> extends Error {
+  name = this.constructor.name
   response?: RpcResponse<TEnd, TStream> = undefined
   status: number
   code: string

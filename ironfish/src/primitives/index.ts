@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export { Block } from './block'
+export { Block, BlockSerde } from './block'
 export { BlockHeader } from './blockheader'
+export { Note } from './note'
 export { Spend } from './spend'
 export { Target } from './target'
 export { Transaction } from './transaction'

@@ -7,8 +7,9 @@ import { Config } from '../fileStores/config'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { Identity } from '../network'
+import { isRpcNetworkMessageType } from '../network/messageRegistry'
 import { NetworkMessageType } from '../network/types'
-import { Transaction } from '../primitives'
+import { BlockHeader, Transaction } from '../primitives'
 import { Block } from '../primitives/block'
 import { TransactionHash } from '../primitives/transaction'
 import { GraffitiUtils, renderError, SetIntervalToken } from '../utils'
@@ -159,6 +160,11 @@ export class Telemetry {
         value: this.metrics.heapTotal.value,
       },
       {
+        name: 'rss',
+        type: 'integer',
+        value: this.metrics.rss.value,
+      },
+      {
         name: 'inbound_traffic',
         type: 'float',
         value: this.metrics.p2p_InboundTraffic.rate5m,
@@ -201,6 +207,26 @@ export class Telemetry {
       })
     }
 
+    for (const [messageType, meter] of this.metrics.p2p_RpcResponseTimeMsByMessage) {
+      if (isRpcNetworkMessageType(messageType) && meter._average.sampleCount() >= 10) {
+        fields.push({
+          name: 'rpc_response_ms_' + NetworkMessageType[messageType].toLowerCase(),
+          type: 'float',
+          value: meter.avg,
+        })
+      }
+    }
+
+    for (const [messageType, meter] of this.metrics.p2p_RpcSuccessRateByMessage) {
+      if (isRpcNetworkMessageType(messageType) && meter._average.sampleCount() >= 10) {
+        fields.push({
+          name: 'rpc_success_' + NetworkMessageType[messageType].toLowerCase(),
+          type: 'float',
+          value: meter.avg,
+        })
+      }
+    }
+
     this.submit({
       measurement: 'node_stats',
       timestamp: new Date(),
@@ -223,16 +249,16 @@ export class Telemetry {
       return
     }
 
-    if (metric.fields.length === 0) {
-      throw new Error('Cannot submit metrics without fields')
-    }
-
     let tags = this.defaultTags
     if (metric.tags) {
       tags = tags.concat(metric.tags)
     }
 
     const fields = this.defaultFields.concat(metric.fields)
+
+    if (fields.length === 0) {
+      throw new Error('Cannot submit metrics without fields')
+    }
 
     // TODO(jason): RollingAverage can produce a negative number which seems
     // like it should be a bug. Investigate then delete this TODO. Negative
@@ -281,9 +307,18 @@ export class Telemetry {
   }
 
   submitNodeStarted(): void {
+    let fields: Field[] = [{ name: 'online', type: 'boolean', value: true }]
+
+    if (this.metrics) {
+      fields = fields.concat([
+        { name: 'cpu_cores', type: 'integer', value: this.metrics.cpuCores },
+        { name: 'memory_total', type: 'integer', value: this.metrics.memTotal },
+      ])
+    }
+
     this.submit({
       measurement: 'node_started',
-      fields: [{ name: 'online', type: 'boolean', value: true }],
+      fields,
       timestamp: new Date(),
     })
   }
@@ -340,7 +375,44 @@ export class Telemetry {
     })
   }
 
-  submitNewTransactionSeen(transaction: Transaction, seenAt: Date): void {
+  submitCompactBlockAssembled(
+    header: BlockHeader,
+    missingTransactionCount: number,
+    foundTransactionCount: number,
+  ): void {
+    const totalTransactions = missingTransactionCount + foundTransactionCount
+    const foundPercent = totalTransactions !== 0 ? foundTransactionCount / totalTransactions : 1
+
+    this.submit({
+      measurement: 'block_assembled',
+      timestamp: new Date(),
+      tags: [
+        {
+          name: 'hash',
+          value: header.hash.toString('hex'),
+        },
+      ],
+      fields: [
+        {
+          name: 'missing_transactions',
+          type: 'integer',
+          value: missingTransactionCount,
+        },
+        {
+          name: 'found_transactions',
+          type: 'integer',
+          value: foundTransactionCount,
+        },
+        {
+          name: 'found_percent',
+          type: 'float',
+          value: foundPercent,
+        },
+      ],
+    })
+  }
+
+  submitNewTransactionCreated(transaction: Transaction, seenAt: Date): void {
     const hash = transaction.hash()
 
     if (!this.shouldSubmitTransaction(hash)) {
@@ -348,7 +420,7 @@ export class Telemetry {
     }
 
     this.submit({
-      measurement: 'transaction_propagation',
+      measurement: 'transaction_created',
       timestamp: seenAt,
       tags: [
         {
@@ -368,6 +440,26 @@ export class Telemetry {
           value: transaction.spendsLength(),
         },
       ],
+    })
+  }
+
+  submitNewTransactionSeen(transaction: Transaction, seenAt: Date): void {
+    const hash = transaction.hash()
+
+    if (!this.shouldSubmitTransaction(hash)) {
+      return
+    }
+
+    this.submit({
+      measurement: 'transaction_propagation',
+      timestamp: seenAt,
+      tags: [
+        {
+          name: 'hash',
+          value: hash.toString('hex'),
+        },
+      ],
+      fields: [],
     })
   }
 

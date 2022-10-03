@@ -18,7 +18,11 @@ interface MempoolEntry {
 
 export class MemPool {
   private readonly transactions = new BufferMap<Transaction>()
+  /* Keep track of number of bytes stored in the transaction map */
+  private transactionsBytes = 0
   private readonly nullifiers = new BufferMap<Buffer>()
+  /* Keep track of number of bytes stored in the nullifiers map */
+  private nullifiersBytes = 0
   private readonly queue: FastPriorityQueue<MempoolEntry>
   head: BlockHeader | null
 
@@ -54,6 +58,11 @@ export class MemPool {
     return this.transactions.size
   }
 
+  sizeBytes(): number {
+    const queueSize = this.queue.size * (32 + 8) // estimate the queue size hash (32b) fee (8b)
+    return this.transactionsBytes + this.nullifiersBytes + queueSize
+  }
+
   exists(hash: TransactionHash): boolean {
     return this.transactions.has(hash)
   }
@@ -87,7 +96,7 @@ export class MemPool {
   /**
    * Accepts a transaction from the network
    */
-  async acceptTransaction(transaction: Transaction, shouldVerify = true): Promise<boolean> {
+  acceptTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash().toString('hex')
     const sequence = transaction.expirationSequence()
 
@@ -103,18 +112,6 @@ export class MemPool {
     if (isExpiredSequence) {
       this.logger.debug(`Invalid transaction '${hash}': expired sequence ${sequence}`)
       return false
-    }
-
-    if (shouldVerify) {
-      const { valid, reason } = await this.chain.verifier.verifyTransactionNoncontextual(
-        transaction,
-      )
-
-      if (!valid) {
-        Assert.isNotUndefined(reason)
-        this.logger.debug(`Invalid transaction '${hash}': ${reason}`)
-        return false
-      }
     }
 
     for (const spend of transaction.spends()) {
@@ -176,16 +173,14 @@ export class MemPool {
     let addedTransactions = 0
 
     for (const transaction of block.transactions) {
-      if (this.exists(transaction.hash())) {
-        continue
-      }
-
       if (transaction.isMinersFee()) {
         continue
       }
 
-      this.addTransaction(transaction)
-      addedTransactions++
+      const added = this.addTransaction(transaction)
+      if (added) {
+        addedTransactions++
+      }
     }
 
     this.logger.debug(`Added ${addedTransactions} transactions`)
@@ -193,30 +188,46 @@ export class MemPool {
     this.head = await this.chain.getHeader(block.header.previousBlockHash)
   }
 
-  private addTransaction(transaction: Transaction): void {
+  private addTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
+
+    if (this.transactions.has(hash)) {
+      return false
+    }
+
     this.transactions.set(hash, transaction)
+    this.transactionsBytes += transaction.serialize().byteLength + hash.byteLength
 
     for (const spend of transaction.spends()) {
-      this.nullifiers.set(spend.nullifier, hash)
+      if (!this.nullifiers.has(spend.nullifier)) {
+        this.nullifiers.set(spend.nullifier, hash)
+        this.nullifiersBytes += spend.nullifier.byteLength + hash.byteLength
+      }
     }
 
     this.queue.add({ fee: transaction.fee(), hash })
     this.metrics.memPoolSize.value = this.size()
+    return true
   }
 
   private deleteTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
-    this.transactions.delete(hash)
+    const deleted = this.transactions.delete(hash)
 
-    for (const spend of transaction.spends()) {
-      this.nullifiers.delete(spend.nullifier)
-    }
-
-    const entry = this.queue.removeOne((t) => t.hash.equals(hash))
-    if (!entry) {
+    if (!deleted) {
       return false
     }
+
+    this.transactionsBytes -= transaction.serialize().byteLength + hash.byteLength
+
+    for (const spend of transaction.spends()) {
+      if (this.nullifiers.delete(spend.nullifier)) {
+        this.nullifiersBytes -= spend.nullifier.byteLength + hash.byteLength
+      }
+    }
+
+    this.queue.removeOne((t) => t.hash.equals(hash))
+
     this.metrics.memPoolSize.value = this.size()
     return true
   }

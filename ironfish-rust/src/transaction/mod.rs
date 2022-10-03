@@ -4,6 +4,7 @@
 
 pub mod miners_fee;
 pub mod transfer;
+use crate::sapling_bls12::SAPLING;
 use crate::{
     primitives::asset_type::{AssetIdentifier, AssetType},
     proofs::notes::{
@@ -25,9 +26,10 @@ use super::{
     receiving::{ReceiptParams, ReceiptProof},
     spending::{SpendParams, SpendProof},
     witness::WitnessTrait,
-    Sapling,
 };
+use bellman::groth16::batch::Verifier;
 use blake2b_simd::Params as Blake2b;
+use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
 use group::GroupEncoding;
@@ -36,9 +38,10 @@ use rand::rngs::OsRng;
 
 use zcash_primitives::{
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-    redjubjub::{PrivateKey, PublicKey, Signature},
+    sapling::redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
+use std::iter;
 use std::{
     collections::{hash_map, HashMap},
     io,
@@ -103,10 +106,6 @@ impl Default for TransactionValue {
 /// The Transaction, below, contains the serializable version, without any
 /// secret keys or state not needed for verifying.
 pub struct ProposedTransaction {
-    /// Essentially a global reference to the sapling parameters, including
-    /// proving and verification keys.
-    sapling: Arc<Sapling>,
-
     /// A "private key" manufactured from a bunch of randomness added for each
     /// spend and output.
     binding_signature_key: jubjub::Fr,
@@ -143,9 +142,8 @@ pub struct ProposedTransaction {
 }
 
 impl ProposedTransaction {
-    pub fn new(sapling: Arc<Sapling>) -> ProposedTransaction {
+    pub fn new() -> ProposedTransaction {
         ProposedTransaction {
-            sapling,
             binding_signature_key: <jubjub::Fr as Field>::zero(),
             binding_verification_key: ExtendedPoint::identity(),
             spends: vec![],
@@ -165,7 +163,7 @@ impl ProposedTransaction {
         note: &(impl SpendableNote + NoteTrait),
         witness: &dyn WitnessTrait,
     ) -> Result<(), SaplingProofError> {
-        let proof = SpendParams::new(self.sapling.clone(), spender_key, note, witness)?;
+        let proof = SpendParams::new(spender_key, note, witness)?;
 
         self.increment_binding_signature_key(&proof.value_commitment.randomness, false);
         self.increment_binding_verification_key(&proof.value_commitment(), false);
@@ -185,7 +183,7 @@ impl ProposedTransaction {
         note: &Note,
     ) -> Result<(), SaplingProofError> {
         // TODO: Naming consistency: should be params
-        let proof = ReceiptParams::new(self.sapling.clone(), spender_key, note)?;
+        let proof = ReceiptParams::new(spender_key, note)?;
 
         self.increment_binding_signature_key(&proof.value_commitment_randomness, true);
         self.increment_binding_verification_key(&proof.merkle_note.value_commitment, true);
@@ -358,7 +356,6 @@ impl ProposedTransaction {
         }
 
         Ok(Transaction {
-            sapling: self.sapling.clone(),
             expiration_sequence: self.expiration_sequence,
             transaction_fee: *self.value.transaction_fee(),
             spends: spend_proofs,
@@ -470,7 +467,7 @@ impl ProposedTransaction {
     }
 
     /// Helper method to encapsulate the verboseness around incrementing the
-    /// binding verificaiton key
+    /// binding verification key
     fn increment_binding_verification_key(&mut self, value: &ExtendedPoint, negate: bool) {
         let mut tmp = *value;
         if negate {
@@ -481,15 +478,18 @@ impl ProposedTransaction {
     }
 }
 
+impl Default for ProposedTransaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A transaction that has been published and can be read by anyone, not storing
 /// any of the working data or private keys used in creating the proofs.
 ///
 /// This is the serializable form of a transaction.
 #[derive(Clone)]
 pub struct Transaction {
-    /// reference to the sapling object associated with this transaction
-    sapling: Arc<Sapling>,
-
     /// The balance of total spends - outputs, which is the amount that the miner gets to keep
     transaction_fee: i64,
 
@@ -519,10 +519,7 @@ impl Transaction {
     /// Load a Transaction from a Read implementation (e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized transaction
     /// for verifying.
-    pub fn read<R: io::Read>(
-        sapling: Arc<Sapling>,
-        mut reader: R,
-    ) -> Result<Self, TransactionError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, TransactionError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_receipts = reader.read_u64::<LittleEndian>()?;
         let num_create_asset_proofs = reader.read_u64::<LittleEndian>()?;
@@ -548,7 +545,6 @@ impl Transaction {
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(Transaction {
-            sapling,
             transaction_fee,
             spends,
             receipts,
@@ -593,34 +589,7 @@ impl Transaction {
     ///     containing those proofs (and only those proofs)
     ///
     pub fn verify(&self) -> Result<(), TransactionError> {
-        // Context to accumulate a signature of all the spends and outputs and
-        // guarantee they are part of this transaction, unmodified.
-        let mut binding_verification_key = ExtendedPoint::identity();
-
-        for spend in self.spends.iter() {
-            spend.verify_proof(&self.sapling)?;
-            let mut tmp = spend.value_commitment;
-            tmp += binding_verification_key;
-            binding_verification_key = tmp;
-        }
-
-        for receipt in self.receipts.iter() {
-            receipt.verify_proof(&self.sapling)?;
-            let mut tmp = receipt.merkle_note.value_commitment;
-            tmp = -tmp;
-            tmp += binding_verification_key;
-            binding_verification_key = tmp;
-        }
-
-        let hash_to_verify_signature = self.transaction_signature_hash();
-
-        for spend in self.spends.iter() {
-            spend.verify_signature(&hash_to_verify_signature)?;
-        }
-
-        self.verify_binding_signature(&binding_verification_key)?;
-
-        Ok(())
+        batch_verify_transactions(iter::once(self))
     }
 
     /// Get an iterator over the spends in this transaction. Each spend
@@ -763,4 +732,57 @@ fn transaction_fee_to_point(value: i64) -> Result<ExtendedPoint, TransactionErro
     }
 
     Ok(value_balance.into())
+}
+
+pub fn batch_verify_transactions<'a>(
+    transactions: impl IntoIterator<Item = &'a Transaction>,
+) -> Result<(), TransactionError> {
+    let mut spend_verifier = Verifier::<Bls12>::new();
+    let mut receipt_verifier = Verifier::<Bls12>::new();
+
+    for transaction in transactions {
+        // Context to accumulate a signature of all the spends and outputs and
+        // guarantee they are part of this transaction, unmodified.
+        let mut binding_verification_key = ExtendedPoint::identity();
+
+        let hash_to_verify_signature = transaction.transaction_signature_hash();
+
+        for spend in transaction.spends.iter() {
+            spend.verify_value_commitment()?;
+
+            let public_inputs = spend.public_inputs();
+            spend_verifier.queue((&spend.proof, &public_inputs[..]));
+
+            binding_verification_key += spend.value_commitment;
+
+            spend.verify_signature(&hash_to_verify_signature)?;
+        }
+
+        for receipt in transaction.receipts.iter() {
+            receipt.verify_value_commitment()?;
+
+            let public_inputs = receipt.public_inputs();
+            receipt_verifier.queue((&receipt.proof, &public_inputs[..]));
+
+            binding_verification_key -= receipt.merkle_note.value_commitment;
+        }
+
+        transaction.verify_binding_signature(&binding_verification_key)?;
+    }
+
+    if spend_verifier
+        .verify(&mut OsRng, &SAPLING.spend_params.vk)
+        .is_err()
+    {
+        return Err(SaplingProofError::VerificationFailed.into());
+    }
+
+    if receipt_verifier
+        .verify(&mut OsRng, &SAPLING.receipt_params.vk)
+        .is_err()
+    {
+        return Err(SaplingProofError::VerificationFailed.into());
+    };
+
+    Ok(())
 }

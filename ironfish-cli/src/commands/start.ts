@@ -1,9 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
-import tweetnacl from 'tweetnacl'
+import inspector from 'node:inspector'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand, SIGNALS } from '../command'
 import {
@@ -49,16 +50,16 @@ export default class Start extends IronfishCommand {
     [RpcTcpSecureFlagKey]: RpcTcpSecureFlag,
     bootstrap: Flags.string({
       char: 'b',
-      description: 'comma-separated addresses of bootstrap nodes to connect to',
+      description: 'Comma-separated addresses of bootstrap nodes to connect to',
       multiple: true,
     }),
     port: Flags.integer({
       char: 'p',
-      description: 'port to run the local ws server on',
+      description: 'Port to run the local ws server on',
     }),
     workers: Flags.integer({
       description:
-        'number of CPU workers to use for long-running operations. 0 disables (likely to cause performance issues), -1 auto-detects based on CPU cores',
+        'Number of CPU workers to use for long-running operations. 0 disables (likely to cause performance issues), -1 auto-detects based on CPU cores',
     }),
     graffiti: Flags.string({
       char: 'g',
@@ -67,29 +68,33 @@ export default class Start extends IronfishCommand {
     }),
     name: Flags.string({
       char: 'n',
-      description: 'name for the node',
+      description: 'Name for the node',
       hidden: true,
     }),
     listen: Flags.boolean({
       allowNo: true,
       default: undefined,
-      description: 'disable the web socket listen server',
+      description: 'Disable the web socket listen server',
       hidden: true,
     }),
     forceMining: Flags.boolean({
       default: undefined,
-      description: 'force mining even if we are not synced',
+      description: 'Force mining even if we are not synced',
       hidden: true,
     }),
     logPeerMessages: Flags.boolean({
       default: undefined,
-      description: 'track all messages sent and received by peers',
+      description: 'Track all messages sent and received by peers',
       hidden: true,
     }),
     generateNewIdentity: Flags.boolean({
       default: false,
-      description: 'genereate new identity for each new start',
+      description: 'Generate new identity for each new start',
       hidden: true,
+    }),
+    upgrade: Flags.boolean({
+      allowNo: true,
+      description: 'Run migrations when an upgrade is required',
     }),
   }
 
@@ -118,6 +123,7 @@ export default class Start extends IronfishCommand {
       port,
       workers,
       generateNewIdentity,
+      upgrade,
     } = flags
 
     if (bootstrap !== undefined) {
@@ -159,6 +165,9 @@ export default class Start extends IronfishCommand {
     ) {
       this.sdk.config.setOverride('generateNewIdentity', generateNewIdentity)
     }
+    if (upgrade !== undefined && upgrade !== this.sdk.config.get('databaseMigrate')) {
+      this.sdk.config.setOverride('databaseMigrate', upgrade)
+    }
 
     if (!this.sdk.internal.get('telemetryNodeId')) {
       this.sdk.internal.set('telemetryNodeId', uuid())
@@ -182,6 +191,9 @@ export default class Start extends IronfishCommand {
     this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
     this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
+    if (inspector.url()) {
+      this.log(`Inspector     ${String(inspector.url())}`)
+    }
     this.log(` `)
 
     await NodeUtils.waitForOpen(node, () => this.closing)
@@ -213,7 +225,7 @@ export default class Start extends IronfishCommand {
       await this.firstRun(node)
     }
 
-    if (!node.accounts.getDefaultAccount()) {
+    if (!node.wallet.getDefaultAccount()) {
       await this.setDefaultAccount(node)
     }
 
@@ -255,14 +267,14 @@ export default class Start extends IronfishCommand {
    * Information displayed if there is no default account for the node
    */
   async setDefaultAccount(node: IronfishNode): Promise<void> {
-    if (!node.accounts.accountExists(DEFAULT_ACCOUNT_NAME)) {
-      const account = await node.accounts.createAccount(DEFAULT_ACCOUNT_NAME, true)
+    if (!node.wallet.accountExists(DEFAULT_ACCOUNT_NAME)) {
+      const account = await node.wallet.createAccount(DEFAULT_ACCOUNT_NAME, true)
 
       this.log(`New default account created: ${account.name}`)
       this.log(`Account's public address: ${account.publicAddress}`)
     } else {
       this.log(`The default account is now: ${DEFAULT_ACCOUNT_NAME}`)
-      await node.accounts.setDefaultAccount(DEFAULT_ACCOUNT_NAME)
+      await node.wallet.setDefaultAccount(DEFAULT_ACCOUNT_NAME)
     }
 
     this.log('')
@@ -276,8 +288,7 @@ export default class Start extends IronfishCommand {
       networkIdentity !== undefined &&
       networkIdentity.length > 31
     ) {
-      const hex = Uint8Array.from(Buffer.from(networkIdentity, 'hex'))
-      return tweetnacl.box.keyPair.fromSecretKey(hex)
+      return BoxKeyPair.fromHex(networkIdentity)
     }
   }
 }

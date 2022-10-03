@@ -32,7 +32,7 @@ export class NoteEncrypted {
     // note commitment
     this._noteCommitment = reader.readBytes(32)
 
-    // ephememeral public key
+    // ephemeral public key
     reader.seek(32)
     // encrypted note
     reader.seek(115)
@@ -83,8 +83,12 @@ export class NoteEncrypted {
     }
   }
 
-  merkleHash(): Buffer {
+  merkleHash(): NoteEncryptedHash {
     return this._noteCommitment
+  }
+
+  equals(other: NoteEncrypted): boolean {
+    return this.serialize().equals(other.serialize())
   }
 }
 
@@ -93,7 +97,7 @@ export class NoteEncrypted {
  */
 export class NoteEncryptedSerde implements Serde<NoteEncrypted, SerializedNoteEncrypted> {
   equals(note1: NoteEncrypted, note2: NoteEncrypted): boolean {
-    return note1.serialize().equals(note2.serialize())
+    return note1.equals(note2)
   }
 
   serialize(note: NoteEncrypted): SerializedNoteEncrypted {

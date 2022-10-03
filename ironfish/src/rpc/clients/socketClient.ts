@@ -5,12 +5,18 @@ import net from 'net'
 import { IpcClient } from 'node-ipc'
 import { Assert } from '../../assert'
 import { Event } from '../../event'
+import { Logger } from '../../logger'
 import { PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
 import { IpcErrorSchema, IpcResponseSchema, IpcStreamSchema } from '../adapters'
 import { isRpcResponseError, RpcResponse } from '../response'
 import { Stream } from '../stream'
 import { RpcClient } from './client'
-import { RequestTimeoutError, RpcConnectionError, RpcRequestError } from './errors'
+import {
+  RequestTimeoutError,
+  RpcConnectionError,
+  RpcConnectionLostError,
+  RpcRequestError,
+} from './errors'
 
 const REQUEST_TIMEOUT_MS = null
 
@@ -29,15 +35,26 @@ export abstract class RpcSocketClient extends RpcClient {
   abstract client: IpcClient | net.Socket | null
   abstract isConnected: boolean
   abstract connection: Partial<RpcClientConnectionInfo>
+  authToken: string | null = null
+
+  constructor(logger: Logger, authToken?: string) {
+    super(logger)
+    this.authToken = authToken ?? null
+  }
 
   abstract connect(options?: Record<string, unknown>): Promise<void>
   abstract close(): void
-  protected abstract send(messageId: number, route: string, data: unknown): void
+  protected abstract send(
+    messageId: number,
+    route: string,
+    data: unknown,
+    authToken: string | null,
+  ): void
 
-  timeoutMs: number | null = REQUEST_TIMEOUT_MS
-  messageIds = 0
+  private timeoutMs: number | null = REQUEST_TIMEOUT_MS
+  private messageIds = 0
 
-  pending = new Map<
+  private pending = new Map<
     number,
     {
       response: RpcResponse<unknown>
@@ -103,7 +120,7 @@ export abstract class RpcSocketClient extends RpcClient {
       if (timeout) {
         clearTimeout(timeout)
       }
-      stream.close()
+      stream.close(...args)
       reject(...args)
     }
 
@@ -120,7 +137,7 @@ export abstract class RpcSocketClient extends RpcClient {
 
     this.pending.set(messageId, pending)
 
-    this.send(messageId, route, data)
+    this.send(messageId, route, data, this.authToken)
 
     return response
   }
@@ -137,6 +154,21 @@ export abstract class RpcSocketClient extends RpcClient {
     }
 
     pending.stream.write(result.data)
+  }
+
+  /*
+   * Should be called by all implementers when the connection is closed by the other side (server).
+   * This cleans up all the pending requests by rejecting them with a RpcConnectionLostError
+   *
+   * TODO: we should probably also have a cleanup function for when the client closes itself
+   */
+  protected handleClose = (): void => {
+    for (const request of this.pending.values()) {
+      request.reject(new RpcConnectionLostError(request.type))
+    }
+
+    this.pending.clear()
+    this.onClose.emit()
   }
 
   protected handleEnd = async (data: unknown): Promise<void> => {

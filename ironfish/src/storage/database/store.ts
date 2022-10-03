@@ -2,8 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { UnwrapPromise } from '../../utils/types'
 import { IDatabaseTransaction } from './transaction'
-import { DatabaseSchema, IDatabaseEncoding, SchemaKey, SchemaValue } from './types'
+import {
+  DatabaseKeyRange,
+  DatabaseSchema,
+  IDatabaseEncoding,
+  SchemaKey,
+  SchemaValue,
+} from './types'
 
 export type IDatabaseStoreOptions<Schema extends DatabaseSchema> = {
   /** The unique name of the store inside of the database */
@@ -31,36 +38,56 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
   /** The [[`IDatabaseEncoding`]] used to serialize values to store in the database */
   valueEncoding: IDatabaseEncoding<SchemaValue<Schema>>
 
-  encode(key: SchemaKey<Schema>): [Buffer]
+  encode(key: Readonly<SchemaKey<Schema>>): [Buffer]
 
   /**
    * Used to serialize the key and value for the database
    *
    * @returns An array with the serialized key and value as Buffers
    */
-  encode(key: SchemaKey<Schema>, value: SchemaValue<Schema>): [Buffer, Buffer]
+  encode(key: Readonly<SchemaKey<Schema>>, value: SchemaValue<Schema>): [Buffer, Buffer]
+
+  /* Get all of the key values in the IDatastore */
+  getAll(
+    transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
+  ): Promise<Array<[SchemaKey<Schema>, SchemaValue<Schema>]>>
 
   /* Get an [[`AsyncGenerator`]] that yields all of the key/value pairs in the IDatastore */
   getAllIter(
     transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
   ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]>
 
   /* Get an [[`AsyncGenerator`]] that yields all of the values in the IDatastore */
-  getAllValuesIter(transaction?: IDatabaseTransaction): AsyncGenerator<SchemaValue<Schema>>
+  getAllValuesIter(
+    transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
+  ): AsyncGenerator<SchemaValue<Schema>>
   /* Get all of the values in the IDatastore */
-  getAllValues(transaction?: IDatabaseTransaction): Promise<Array<SchemaValue<Schema>>>
+  getAllValues(
+    transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
+  ): Promise<Array<SchemaValue<Schema>>>
 
   /* Get an [[`AsyncGenerator`]] that yields all of the keys in the IDatastore */
-  getAllKeysIter(transaction?: IDatabaseTransaction): AsyncGenerator<SchemaKey<Schema>>
+  getAllKeysIter(
+    transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
+  ): AsyncGenerator<SchemaKey<Schema>>
+
   /* Get all of the keys in the IDatastore */
-  getAllKeys(transaction?: IDatabaseTransaction): Promise<Array<SchemaKey<Schema>>>
+  getAllKeys(
+    transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
+  ): Promise<Array<SchemaKey<Schema>>>
 
   /**
    * Delete every key in the {@link IDatastore}
    *
    * @returns resolves when all keys have been deleted
    */
-  clear(): Promise<void>
+  clear(transaction?: IDatabaseTransaction, keyRange?: DatabaseKeyRange): Promise<void>
 
   /**
    * Used to get a value from the store at a given key
@@ -71,7 +98,7 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
   * @returns resolves with the value if found, or undefined if not found.
   */
   get(
-    key: SchemaKey<Schema>,
+    key: Readonly<SchemaKey<Schema>>,
     transaction?: IDatabaseTransaction,
   ): Promise<SchemaValue<Schema> | undefined>
 
@@ -83,7 +110,7 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
   *
   * @returns resolves with true if the key is in the database, or false if it is missing.
   */
-  has(key: SchemaKey<Schema>, transaction?: IDatabaseTransaction): Promise<boolean>
+  has(key: Readonly<SchemaKey<Schema>>, transaction?: IDatabaseTransaction): Promise<boolean>
 
   /**
    * Put a value into the store with the given key.
@@ -95,7 +122,7 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
   * @returns A promise that resolves when the operation has been either executed, or added to the transaction.
   */
   put(
-    key: SchemaKey<Schema>,
+    key: Readonly<SchemaKey<Schema>>,
     value: SchemaValue<Schema>,
     transaction?: IDatabaseTransaction,
   ): Promise<void>
@@ -113,7 +140,7 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
   * @throws {@link DuplicateKeyError} if the key already exists in the transaction or database
   */
   add(
-    key: SchemaKey<Schema>,
+    key: Readonly<SchemaKey<Schema>>,
     value: SchemaValue<Schema>,
     transaction?: IDatabaseTransaction,
   ): Promise<void>
@@ -126,7 +153,7 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
    *
    * @returns A promise that resolves when the operation has been either executed, or added to the transaction.
    */
-  del(key: SchemaKey<Schema>, transaction?: IDatabaseTransaction): Promise<void>
+  del(key: Readonly<SchemaKey<Schema>>, transaction?: IDatabaseTransaction): Promise<void>
 }
 
 export abstract class DatabaseStore<Schema extends DatabaseSchema>
@@ -142,17 +169,26 @@ export abstract class DatabaseStore<Schema extends DatabaseSchema>
     this.valueEncoding = options.valueEncoding
   }
 
-  abstract encode(key: SchemaKey<Schema>): [Buffer]
-  abstract encode(key: SchemaKey<Schema>, value: SchemaValue<Schema>): [Buffer, Buffer]
+  abstract encode(key: Readonly<SchemaKey<Schema>>): [Buffer]
+  abstract encode(
+    key: Readonly<SchemaKey<Schema>>,
+    value: SchemaValue<Schema>,
+  ): [Buffer, Buffer]
 
   abstract get(
-    key: SchemaKey<Schema>,
+    key: Readonly<SchemaKey<Schema>>,
     transaction?: IDatabaseTransaction,
   ): Promise<SchemaValue<Schema> | undefined>
 
   abstract getAllIter(
     transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
   ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]>
+
+  abstract getAll(
+    transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
+  ): Promise<Array<[SchemaKey<Schema>, SchemaValue<Schema>]>>
 
   abstract getAllValuesIter(
     transaction?: IDatabaseTransaction,
@@ -164,19 +200,33 @@ export abstract class DatabaseStore<Schema extends DatabaseSchema>
 
   abstract clear(): Promise<void>
 
-  abstract has(key: SchemaKey<Schema>, transaction?: IDatabaseTransaction): Promise<boolean>
+  abstract has(
+    key: Readonly<SchemaKey<Schema>>,
+    transaction?: IDatabaseTransaction,
+  ): Promise<boolean>
 
   abstract put(
-    key: SchemaKey<Schema>,
+    key: Readonly<SchemaKey<Schema>>,
     value: SchemaValue<Schema>,
     transaction?: IDatabaseTransaction,
   ): Promise<void>
 
   abstract add(
-    key: SchemaKey<Schema>,
+    key: Readonly<SchemaKey<Schema>>,
     value: SchemaValue<Schema>,
     transaction?: IDatabaseTransaction,
   ): Promise<void>
 
-  abstract del(key: SchemaKey<Schema>, transaction?: IDatabaseTransaction): Promise<void>
+  abstract del(
+    key: Readonly<SchemaKey<Schema>>,
+    transaction?: IDatabaseTransaction,
+  ): Promise<void>
 }
+
+export type DatabaseStoreValue<TStore> = TStore extends IDatabaseStore<infer _A>
+  ? Exclude<UnwrapPromise<ReturnType<TStore['get']>>, undefined>
+  : never
+
+export type DatabaseStoreKey<TStore> = TStore extends IDatabaseStore<infer _A>
+  ? Parameters<TStore['get']>[0]
+  : never

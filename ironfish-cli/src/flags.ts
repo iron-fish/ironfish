@@ -24,62 +24,67 @@ export const RpcTcpHostFlagKey = 'rpc.tcp.host'
 export const RpcTcpPortFlagKey = 'rpc.tcp.port'
 export const RpcTcpSecureFlagKey = 'rpc.tcp.secure'
 export const RpcTcpTlsFlagKey = 'rpc.tcp.tls'
+export const RpcAuthFlagKey = 'rpc.auth'
 
 export const VerboseFlag = Flags.boolean({
   char: 'v',
   default: false,
-  description: 'set logging level to verbose',
+  description: 'Set logging level to verbose',
 })
 
 export const ColorFlag = Flags.boolean({
   default: true,
   allowNo: true,
-  description: 'should colorize the output',
+  description: 'Should colorize the output',
 })
 
 export const ConfigFlag = Flags.string({
   default: DEFAULT_CONFIG_NAME,
-  description: 'the name of the config file to use',
+  description: 'The name of the config file to use',
 })
 
 export const DataDirFlag = Flags.string({
   default: DEFAULT_DATA_DIR,
-  description: 'the path to the data dir',
+  description: 'The path to the data dir',
 })
 
 export const DatabaseFlag = Flags.string({
   char: 'd',
   default: DEFAULT_DATABASE_NAME,
-  description: 'the name of the database to use',
+  description: 'The name of the database to use',
 })
 
 export const RpcUseIpcFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_IPC,
-  description: 'connect to the RPC over IPC (default)',
+  description: 'Connect to the RPC over IPC (default)',
 })
 
 export const RpcUseTcpFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_TCP,
-  description: 'connect to the RPC over TCP',
+  description: 'Connect to the RPC over TCP',
 })
 
 export const RpcTcpHostFlag = Flags.string({
-  description: 'the TCP host to listen for connections on',
+  description: 'The TCP host to listen for connections on',
 })
 
 export const RpcTcpPortFlag = Flags.integer({
-  description: 'the TCP port to listen for connections on',
+  description: 'The TCP port to listen for connections on',
 })
 
 export const RpcTcpSecureFlag = Flags.boolean({
   default: false,
-  description: 'allow sensitive config to be changed over TCP',
+  description: 'Allow sensitive config to be changed over TCP',
 })
 
 export const RpcTcpTlsFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_TLS,
-  description: 'encrypt TCP connection to the RPC over TLS',
+  description: 'Encrypt TCP connection to the RPC over TLS',
   allowNo: true,
+})
+
+export const RpcAuthFlag = Flags.string({
+  description: 'The RPC auth token',
 })
 
 const localFlags: Record<string, CompletableOptionFlag> = {}
@@ -104,6 +109,7 @@ remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as CompletableOptionF
 remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpSecureFlagKey] = RpcTcpSecureFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpTlsFlagKey] = RpcTcpTlsFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcAuthFlagKey] = RpcAuthFlag as unknown as CompletableOptionFlag
 
 /**
  * These flags should usually be used on any command that uses an

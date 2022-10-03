@@ -3,25 +3,25 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
-import { getAccount } from './utils'
+import { serializeRpcAccountDecryptedNote, serializeRpcAccountTransaction } from './types'
+import { getAccount, getTransactionStatus } from './utils'
 
 export type GetAccountTransactionRequest = { account?: string; hash: string }
 
 export type GetAccountTransactionResponse = {
   account: string
-  transactionHash: string
-  transactionInfo: {
+  transaction: {
     status: string
     isMinersFee: boolean
-    fee: number
-    notes: number
-    spends: number
+    fee: string
+    notesCount: number
+    spendsCount: number
+    notes: {
+      value: string
+      memo: string
+      spent: boolean
+    }[]
   } | null
-  transactionNotes: {
-    spender: boolean
-    amount: number
-    memo: string
-  }[]
 }
 
 export const GetAccountTransactionRequestSchema: yup.ObjectSchema<GetAccountTransactionRequest> =
@@ -36,26 +36,25 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
   yup
     .object({
       account: yup.string().defined(),
-      transactionHash: yup.string().defined(),
-      transactionInfo: yup
+      transaction: yup
         .object({
           status: yup.string().defined(),
           isMinersFee: yup.boolean().defined(),
-          fee: yup.number().defined(),
-          notes: yup.number().defined(),
-          spends: yup.number().defined(),
-        })
-        .defined(),
-      transactionNotes: yup
-        .array(
-          yup
-            .object({
-              spender: yup.boolean().defined(),
-              amount: yup.number().defined(),
-              memo: yup.string().trim().defined(),
-            })
+          fee: yup.string().defined(),
+          notesCount: yup.number().defined(),
+          spendsCount: yup.number().defined(),
+          notes: yup
+            .array(
+              yup
+                .object({
+                  value: yup.string().defined(),
+                  memo: yup.string().trim().defined(),
+                  spent: yup.boolean(),
+                })
+                .defined(),
+            )
             .defined(),
-        )
+        })
         .defined(),
     })
     .defined()
@@ -63,17 +62,40 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
 router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransactionResponse>(
   `${ApiNamespace.account}/getAccountTransaction`,
   GetAccountTransactionRequestSchema,
-  (request, node): void => {
+  async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
-    const { transactionInfo, transactionNotes } = node.accounts.getTransaction(
-      account,
-      request.data.hash,
+
+    const transactionHash = Buffer.from(request.data.hash, 'hex')
+    const transaction = await account.getTransactionByUnsignedHash(transactionHash)
+
+    if (!transaction) {
+      return request.end({
+        account: account.displayName,
+        transaction: null,
+      })
+    }
+
+    const notes = await account.getTransactionNotes(transaction.transaction)
+
+    const serializedNotes = notes.map(serializeRpcAccountDecryptedNote)
+    const serializedTransaction = serializeRpcAccountTransaction(transaction)
+
+    const status = await getTransactionStatus(
+      node,
+      transaction.blockHash,
+      transaction.sequence,
+      transaction.transaction.expirationSequence(),
     )
+
+    const serialized = {
+      ...serializedTransaction,
+      notes: serializedNotes,
+      status,
+    }
+
     request.end({
-      account: account.displayName,
-      transactionHash: request.data.hash,
-      transactionInfo,
-      transactionNotes,
+      account: account.name,
+      transaction: serialized,
     })
   },
 )

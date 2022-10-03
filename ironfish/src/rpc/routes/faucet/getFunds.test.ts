@@ -17,7 +17,7 @@ describe('Route faucet.getFunds', () => {
           .request('faucet/getFunds', { accountName: 'test-notfound' })
           .waitForEnd(),
       ).rejects.toThrow('Account test-notfound could not be found')
-    }, 10000)
+    })
   })
 
   describe('With a default account and the db', () => {
@@ -27,7 +27,7 @@ describe('Route faucet.getFunds', () => {
 
     beforeEach(async () => {
       accountName = 'test' + Math.random().toString()
-      const account = await routeTest.node.accounts.createAccount(accountName, true)
+      const account = await routeTest.node.wallet.createAccount(accountName, true)
       publicAddress = account.publicAddress
     })
 
@@ -57,7 +57,7 @@ describe('Route faucet.getFunds', () => {
           },
           expect.anything(),
         )
-      }, 10000)
+      })
     })
 
     describe('when too many faucet requests have been made', () => {
@@ -85,7 +85,7 @@ describe('Route faucet.getFunds', () => {
         await expect(
           routeTest.client.request('faucet/getFunds', { accountName, email }).waitForEnd(),
         ).rejects.toThrow('API failure')
-      }, 10000)
+      })
     })
   })
 })

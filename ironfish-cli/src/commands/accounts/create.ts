@@ -11,10 +11,10 @@ export class CreateCommand extends IronfishCommand {
 
   static args = [
     {
-      name: 'name',
+      name: 'account',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'name of the account',
+      description: 'Name of the account',
     },
   ]
 
@@ -24,7 +24,7 @@ export class CreateCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(CreateCommand)
-    let name = args.name as string
+    let name = args.account as string
 
     if (!name) {
       name = (await CliUx.ux.prompt('Enter the name of the account', {

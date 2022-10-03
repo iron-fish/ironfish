@@ -22,6 +22,7 @@ export class JobAbortedMessage extends WorkerMessage {
 }
 
 export class JobAbortedError extends Error {
+  name = this.constructor.name
   type = 'JobAbortedError'
 
   constructor() {

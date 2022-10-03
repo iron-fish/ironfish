@@ -6,8 +6,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { v4 as uuid } from 'uuid'
-import { Account, ScanState } from '../../../account'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { Account, ScanState } from '../../../wallet'
 import { RescanAccountResponse } from './rescanAccount'
 
 describe('account/rescanAccount', () => {
@@ -15,15 +15,15 @@ describe('account/rescanAccount', () => {
   let account: Account
 
   beforeEach(async () => {
-    jest.spyOn(routeTest.node.accounts, 'updateHead').mockImplementationOnce(async () => {})
-    account = await routeTest.node.accounts.createAccount(uuid())
-    await routeTest.node.accounts.setDefaultAccount(account.name)
+    jest.spyOn(routeTest.node.wallet, 'updateHead').mockImplementationOnce(async () => {})
+    account = await routeTest.node.wallet.createAccount(uuid())
+    await routeTest.node.wallet.setDefaultAccount(account.name)
   })
 
   describe('if a rescan is already running', () => {
     it('returns a bad request status code', async () => {
       const scan = new ScanState()
-      routeTest.node.accounts.scan = scan
+      routeTest.node.wallet.scan = scan
 
       const response = routeTest.client
         .request<RescanAccountResponse>('account/rescanAccount', {
@@ -38,7 +38,7 @@ describe('account/rescanAccount', () => {
 
     it('rescans transactions', async () => {
       const scan = new ScanState()
-      routeTest.node.accounts.scan = scan
+      routeTest.node.wallet.scan = scan
 
       const wait = jest.spyOn(scan, 'wait').mockImplementationOnce(async () => {})
 
@@ -53,7 +53,7 @@ describe('account/rescanAccount', () => {
 
     it('returns a 200 status code', async () => {
       const scan = new ScanState()
-      routeTest.node.accounts.scan = scan
+      routeTest.node.wallet.scan = scan
 
       jest.spyOn(scan, 'wait').mockImplementationOnce(async () => {})
 
@@ -69,7 +69,7 @@ describe('account/rescanAccount', () => {
 
   it('scans transactions on the accounts', async () => {
     const scanTransactions = jest
-      .spyOn(routeTest.node.accounts, 'scanTransactions')
+      .spyOn(routeTest.node.wallet, 'scanTransactions')
       .mockReturnValue(Promise.resolve())
 
     const response = await routeTest.client
@@ -83,12 +83,10 @@ describe('account/rescanAccount', () => {
   })
 
   it('resets the accounts', async () => {
-    const reset = jest
-      .spyOn(routeTest.node.accounts, 'reset')
-      .mockReturnValue(Promise.resolve())
+    const reset = jest.spyOn(routeTest.node.wallet, 'reset').mockReturnValue(Promise.resolve())
 
     const scanTransactions = jest
-      .spyOn(routeTest.node.accounts, 'scanTransactions')
+      .spyOn(routeTest.node.wallet, 'scanTransactions')
       .mockReturnValue(Promise.resolve())
 
     await routeTest.client

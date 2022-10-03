@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { RpcRequestError } from '../rpc/clients/errors'
-
 /**
  * This is used to unwrap a message from an error
  *

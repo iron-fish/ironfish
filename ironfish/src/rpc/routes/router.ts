@@ -16,15 +16,16 @@ export enum ApiNamespace {
   config = 'config',
   event = 'event',
   faucet = 'faucet',
+  fees = 'fees',
   miner = 'miner',
   node = 'node',
   peer = 'peer',
   transaction = 'transaction',
-  telemetry = 'telemetry',
   worker = 'worker',
   rpc = 'rpc',
 }
 
+export const API_NAMESPACES_PROTECTED = [ApiNamespace.account, ApiNamespace.config]
 export const ALL_API_NAMESPACES = StrEnumUtils.getValues(ApiNamespace)
 
 export type RouteHandler<TRequest = unknown, TResponse = unknown> = (

@@ -1,5 +1,5 @@
 use bls12_381::Scalar;
-use zcash_primitives::primitives::Nullifier;
+use zcash_primitives::sapling::Nullifier;
 
 use crate::{
     note::ENCRYPTED_NOTE_SIZE, primitives::sapling::ValueCommitment, serializing::aead, AssetType,

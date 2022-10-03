@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
+  displayIronAmount,
   displayIronAmountWithCurrency,
   ironToOre,
   isValidAmount,
@@ -28,27 +29,27 @@ export class Pay extends IronfishCommand {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
-      description: 'the account to send money from',
+      description: 'The account to send money from',
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'amount of coins to send in IRON',
+      description: 'Amount of coins to send in IRON',
     }),
     to: Flags.string({
       char: 't',
-      description: 'the public address of the recipient',
+      description: 'The public address of the recipient',
     }),
     fee: Flags.string({
       char: 'o',
-      description: 'the fee amount in IRON',
+      description: 'The fee amount in IRON',
     }),
     memo: Flags.string({
       char: 'm',
-      description: 'the memo of transaction',
+      description: 'The memo of transaction',
     }),
     confirm: Flags.boolean({
       default: false,
-      description: 'confirm without asking',
+      description: 'Confirm without asking',
     }),
     expirationSequence: Flags.integer({
       char: 'e',
@@ -66,9 +67,9 @@ export class Pay extends IronfishCommand {
     const expirationSequence = flags.expirationSequence
     const memo = flags.memo || ''
 
-    const client = await this.sdk.connectRpc()
+    const client = await this.sdk.connectRpc(false, true)
 
-    const status = await client.status()
+    const status = await client.getNodeStatus()
 
     if (!status.content.blockchain.synced) {
       this.log(
@@ -100,11 +101,26 @@ export class Pay extends IronfishCommand {
     }
 
     if (fee == null || Number.isNaN(fee)) {
+      let dynamicFee: string | null
+
+      try {
+        // fees p25 of last 100 blocks
+        dynamicFee = displayIronAmount(
+          oreToIron((await client.getFees({ numOfBlocks: 100 })).content.p25),
+        )
+      } catch {
+        dynamicFee = null
+      }
+
       const input = Number(
-        await CliUx.ux.prompt('Enter the fee amount in $IRON', {
-          required: true,
-          default: '0.00000001',
-        }),
+        await CliUx.ux.prompt(
+          `Enter the fee amount in $IRON (min: 0.00000001${
+            dynamicFee ? `, dynamic: ${dynamicFee}` : ''
+          })`,
+          {
+            required: true,
+          },
+        ),
       )
 
       if (Number.isNaN(input)) {

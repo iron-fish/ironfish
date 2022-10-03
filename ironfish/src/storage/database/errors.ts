@@ -2,9 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export class DuplicateKeyError extends Error {}
+export class TransactionWrongDatabaseError extends Error {
+  name = this.constructor.name
+
+  constructor(store: string) {
+    super(`Wrong transaction database when using store ${store}`)
+  }
+}
+
+export class DuplicateKeyError extends Error {
+  name = this.constructor.name
+}
 
 export class DatabaseOpenError extends Error {
+  name = this.constructor.name
+
   constructor(message?: string, error?: Error) {
     super(message ?? error?.message)
 
@@ -16,3 +28,18 @@ export class DatabaseOpenError extends Error {
 export class DatabaseIsOpenError extends DatabaseOpenError {}
 export class DatabaseIsLockedError extends DatabaseOpenError {}
 export class DatabaseIsCorruptError extends DatabaseOpenError {}
+
+export class DatabaseVersionError extends DatabaseOpenError {
+  readonly version: number
+  readonly expected: number
+
+  constructor(version: number, expected: number) {
+    super(
+      `Your database needs to be upgraded (v${version} vs v${expected}).\n` +
+        `Run "ironfish migrations:start" or "ironfish start --upgrade"\n`,
+    )
+
+    this.version = version
+    this.expected = expected
+  }
+}

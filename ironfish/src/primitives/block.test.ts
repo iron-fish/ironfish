@@ -8,14 +8,14 @@ import {
 } from '../testUtilities/fixtures'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { createNodeTest } from '../testUtilities/nodeTest'
-import { SerializedBlock } from './block'
+import { BlockSerde, SerializedBlock } from './block'
 
 describe('Block', () => {
   const nodeTest = createNodeTest()
 
   it('correctly counts notes and nullifiers', async () => {
-    const accountA = await useAccountFixture(nodeTest.node.accounts, 'accountA')
-    const accountB = await useAccountFixture(nodeTest.node.accounts, 'accountB')
+    const accountA = await useAccountFixture(nodeTest.node.wallet, 'accountA')
+    const accountB = await useAccountFixture(nodeTest.node.wallet, 'accountB')
     const { block } = await useBlockWithTx(nodeTest.node, accountA, accountB)
 
     expect(block.counts()).toMatchObject({
@@ -26,39 +26,35 @@ describe('Block', () => {
     const spends = Array.from(block.spends())
     expect(spends).toHaveLength(1)
 
-    const notes = Array.from(block.allNotes())
+    const notes = Array.from(block.notes())
     expect(notes).toHaveLength(3)
-  }, 60000)
+  })
 
   it('serializes and deserializes a block', async () => {
     nodeTest.strategy.disableMiningReward()
 
     const block = await makeBlockAfter(nodeTest.chain, nodeTest.chain.genesis)
 
-    const serialized = nodeTest.strategy.blockSerde.serialize(block)
+    const serialized = BlockSerde.serialize(block)
     expect(serialized).toMatchObject({ header: { timestamp: expect.any(Number) } })
 
-    const deserialized = nodeTest.strategy.blockSerde.deserialize(serialized)
-    expect(nodeTest.strategy.blockSerde.equals(deserialized, block)).toBe(true)
+    const deserialized = BlockSerde.deserialize(serialized)
+    expect(BlockSerde.equals(deserialized, block)).toBe(true)
   })
 
   it('throws when deserializing invalid block', () => {
-    const serde = nodeTest.strategy.blockSerde
-
-    expect(() => serde.deserialize({ bad: 'data' } as unknown as SerializedBlock)).toThrowError(
-      'Unable to deserialize',
-    )
+    expect(() =>
+      BlockSerde.deserialize({ bad: 'data' } as unknown as SerializedBlock),
+    ).toThrowError('Unable to deserialize')
   })
 
   it('check block equality', async () => {
-    const account = await useAccountFixture(nodeTest.node.accounts, 'account')
-    const tx = await useMinersTxFixture(nodeTest.node.accounts, account)
+    const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+    const tx = await useMinersTxFixture(nodeTest.node.wallet, account)
     const { block: block1 } = await useBlockWithTx(nodeTest.node, account, account)
 
     // Header change
-    const block2 = nodeTest.node.strategy.blockSerde.deserialize(
-      nodeTest.node.strategy.blockSerde.serialize(block1),
-    )
+    const block2 = BlockSerde.deserialize(BlockSerde.serialize(block1))
     expect(block1.equals(block2)).toBe(true)
     block2.header.randomness = BigInt(400)
     expect(block1.equals(block2)).toBe(false)
@@ -72,33 +68,50 @@ describe('Block', () => {
     expect(block1.equals(block2)).toBe(false)
 
     // Transactions length
-    const block3 = nodeTest.node.strategy.blockSerde.deserialize(
-      nodeTest.node.strategy.blockSerde.serialize(block1),
-    )
+    const block3 = BlockSerde.deserialize(BlockSerde.serialize(block1))
     expect(block1.equals(block3)).toBe(true)
     block3.transactions.pop()
     expect(block1.equals(block3)).toBe(false)
 
     // Transaction equality
-    const block4 = nodeTest.node.strategy.blockSerde.deserialize(
-      nodeTest.node.strategy.blockSerde.serialize(block1),
-    )
+    const block4 = BlockSerde.deserialize(BlockSerde.serialize(block1))
     expect(block1.equals(block4)).toBe(true)
     block4.transactions.pop()
     block4.transactions.push(tx)
     expect(block1.equals(block4)).toBe(false)
-  }, 60000)
+  })
 
   it('validate get minersFee returns the first transaction in a block', async () => {
     const { block } = await useBlockWithTx(nodeTest.node)
     // Miners Fee should be the first transaction in the block
     expect(block.minersFee).toBe(block.transactions[0])
-  }, 60000)
+  })
 
   it('validate get minersFee when no miners fee', async () => {
     nodeTest.strategy.disableMiningReward()
     const block = await makeBlockAfter(nodeTest.chain, nodeTest.chain.genesis)
 
     expect(() => block.minersFee).toThrowError('Block has no miners fee')
-  }, 60000)
+  })
+
+  it(`serializes transactions and miner's fee in compact block`, async () => {
+    const { block } = await useBlockWithTx(nodeTest.node)
+
+    const compactBlock = block.toCompactBlock()
+
+    // The first transaction is the miners fee
+    expect(compactBlock.transactions).toHaveLength(1)
+    const transaction = compactBlock.transactions[0]
+    expect(transaction.index).toBe(0)
+    expect(transaction.transaction).toEqual(block.minersFee.serialize())
+
+    // The remaining transactions are hashed
+    const hashedTransactions = block.transactions.slice(1)
+
+    expect(compactBlock.transactionHashes).toHaveLength(hashedTransactions.length)
+
+    for (const [index, transaction] of hashedTransactions.entries()) {
+      expect(compactBlock.transactionHashes[index]).toEqual(transaction.hash())
+    }
+  })
 })

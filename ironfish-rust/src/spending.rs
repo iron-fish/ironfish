@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::sapling_bls12::SAPLING;
 use crate::{
     primitives::sapling::ValueCommitment,
     proofs::{
@@ -17,7 +18,6 @@ use super::{
     merkle_note_hash::MerkleNoteHash,
     serializing::read_scalar,
     witness::WitnessTrait,
-    Sapling,
 };
 use bellman::gadgets::multipack;
 use bellman::groth16;
@@ -28,10 +28,9 @@ use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
 
 use ff::PrimeField;
-use std::{io, sync::Arc};
+use std::io;
 use zcash_primitives::constants::SPENDING_KEY_GENERATOR;
-use zcash_primitives::primitives::Nullifier;
-use zcash_primitives::redjubjub;
+use zcash_primitives::sapling::{redjubjub, Nullifier};
 
 pub(crate) trait SpendSignature {
     fn serialize_signature_fields(&self, writer: impl io::Write) -> io::Result<()>;
@@ -43,10 +42,6 @@ pub(crate) trait SpendSignature {
 /// Contains all the working values needed to construct the proof, including
 /// private key of the spender.
 pub struct SpendParams {
-    /// Parameters for a Jubjub BLS12 curve. This is essentially just a global
-    /// value.
-    pub(crate) sapling: Arc<Sapling>,
-
     /// Private key of the person spending the note.
     spender_key: SaplingKey,
 
@@ -93,7 +88,6 @@ impl<'a> SpendParams {
     /// contains the root-hash at the time the witness was created and the path
     /// to verify the location of that note in the tree.
     pub fn new(
-        sapling: Arc<Sapling>,
         spender_key: SaplingKey,
         note: &(impl SpendableNote + NoteTrait),
         witness: &dyn WitnessTrait,
@@ -122,14 +116,13 @@ impl<'a> SpendParams {
             anchor: Some(witness.root_hash()),
             ar: Some(public_key_randomness),
         };
-        let proof = groth16::create_random_proof(spend_circuit, &sapling.spend_params, &mut OsRng)?;
+        let proof = groth16::create_random_proof(spend_circuit, &SAPLING.spend_params, &mut OsRng)?;
 
         let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
             .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
         let nullifier = note.nullifier(&spender_key, witness_position(witness));
 
         Ok(SpendParams {
-            sapling,
             spender_key,
             public_key_randomness,
             proof,
@@ -171,7 +164,7 @@ impl<'a> SpendParams {
             authorizing_signature,
         };
 
-        spend_proof.verify_proof(&self.sapling)?;
+        spend_proof.verify_proof()?;
 
         Ok(spend_proof)
     }
@@ -341,34 +334,48 @@ impl SpendProof {
 
     /// Verify that the bellman proof confirms the randomized_public_key,
     /// commitment_value, nullifier, and anchor attached to this SpendProof.
-    ///
-    /// This entails converting all the values to appropriate inputs to the
-    /// bellman circuit and executing it.
-    pub fn verify_proof(&self, sapling: &Sapling) -> Result<(), errors::SaplingProofError> {
+    pub fn verify_proof(&self) -> Result<(), errors::SaplingProofError> {
+        self.verify_value_commitment()?;
+
+        match groth16::verify_proof(
+            &SAPLING.spend_verifying_key,
+            &self.proof,
+            &self.public_inputs()[..],
+        ) {
+            Ok(()) => Ok(()),
+            _ => Err(errors::SaplingProofError::VerificationFailed),
+        }
+    }
+
+    pub fn verify_value_commitment(&self) -> Result<(), errors::SaplingProofError> {
         if self.value_commitment.is_small_order().into() {
             return Err(errors::SaplingProofError::VerificationFailed);
         }
 
-        let mut public_input = [Scalar::zero(); 7];
+        Ok(())
+    }
+
+    /// Converts the values to appropriate inputs for verifying the bellman proof.
+    /// Confirms the randomized_public_key, commitment_value, anchor (root hash),
+    /// and nullifier attached to this SpendProof.
+    pub fn public_inputs(&self) -> [Scalar; 7] {
+        let mut public_inputs = [Scalar::zero(); 7];
         let p = self.randomized_public_key.0.to_affine();
-        public_input[0] = p.get_u();
-        public_input[1] = p.get_v();
+        public_inputs[0] = p.get_u();
+        public_inputs[1] = p.get_v();
 
         let p = self.value_commitment.to_affine();
-        public_input[2] = p.get_u();
-        public_input[3] = p.get_v();
+        public_inputs[2] = p.get_u();
+        public_inputs[3] = p.get_v();
 
-        public_input[4] = self.root_hash;
+        public_inputs[4] = self.root_hash;
 
         let nullifier = multipack::bytes_to_bits_le(&self.nullifier.0);
         let nullifier = multipack::compute_multipacking(&nullifier);
-        public_input[5] = nullifier[0];
-        public_input[6] = nullifier[1];
+        public_inputs[5] = nullifier[0];
+        public_inputs[6] = nullifier[1];
 
-        match groth16::verify_proof(&sapling.spend_verifying_key, &self.proof, &public_input[..]) {
-            Ok(()) => Ok(()),
-            _ => Err(errors::SaplingProofError::VerificationFailed),
-        }
+        public_inputs
     }
 }
 
@@ -427,8 +434,6 @@ mod test {
 
     #[test]
     fn test_spend_round_trip() {
-        let sapling = sapling_bls12::SAPLING.clone();
-
         let key = SaplingKey::generate_key();
         let public_address = key.generate_public_address();
 
@@ -442,17 +447,15 @@ mod test {
         );
         let witness = make_fake_witness(&note);
 
-        let spend = SpendParams::new(sapling.clone(), key, &note, &witness)
-            .expect("should be able to create spend proof");
+        let spend =
+            SpendParams::new(key, &note, &witness).expect("should be able to create spend proof");
 
         // signature comes from transaction, normally
         let mut sig_hash = [0u8; 32];
         thread_rng().fill(&mut sig_hash[..]);
 
         let proof = spend.post(&sig_hash).expect("should be able to sign proof");
-        proof
-            .verify_proof(&sapling)
-            .expect("proof should check out");
+        proof.verify_proof().expect("proof should check out");
         proof
             .verify_signature(&sig_hash)
             .expect("should be able to verify signature");

@@ -5,11 +5,10 @@
 use std::cell::RefCell;
 use std::convert::TryInto;
 
+use ironfish_rust::transaction::batch_verify_transactions;
 use ironfish_rust::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
-use napi::bindgen_prelude::*;
+use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
-
-use ironfish_rust::sapling_bls12::SAPLING;
 
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendProof;
@@ -23,11 +22,11 @@ pub struct NativeTransactionPosted {
 #[napi]
 impl NativeTransactionPosted {
     #[napi(constructor)]
-    pub fn new(bytes: Buffer) -> Result<NativeTransactionPosted> {
-        let mut cursor = std::io::Cursor::new(bytes);
+    pub fn new(js_bytes: JsBuffer) -> Result<NativeTransactionPosted> {
+        let bytes = js_bytes.into_value()?;
 
-        let transaction = Transaction::read(SAPLING.clone(), &mut cursor)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let transaction =
+            Transaction::read(bytes.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(NativeTransactionPosted { transaction })
     }
@@ -159,7 +158,7 @@ impl NativeTransaction {
     #[napi(constructor)]
     pub fn new() -> NativeTransaction {
         NativeTransaction {
-            transaction: ProposedTransaction::new(SAPLING.clone()),
+            transaction: ProposedTransaction::new(),
         }
     }
 
@@ -263,4 +262,18 @@ impl NativeTransaction {
         self.transaction
             .set_expiration_sequence(expiration_sequence);
     }
+}
+
+#[napi]
+pub fn verify_transactions(serialized_transactions: Vec<Buffer>) -> bool {
+    let mut transactions: Vec<Transaction> = vec![];
+
+    for tx_bytes in serialized_transactions {
+        match Transaction::read(&mut tx_bytes.as_ref()) {
+            Ok(tx) => transactions.push(tx),
+            Err(_) => return false,
+        }
+    }
+
+    batch_verify_transactions(transactions.iter()).is_ok()
 }

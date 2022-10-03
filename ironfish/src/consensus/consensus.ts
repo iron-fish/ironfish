@@ -26,11 +26,6 @@ export const ALLOWED_BLOCK_FUTURE_SECONDS = 15
 export const GENESIS_SUPPLY_IN_IRON = 42000000
 
 /**
- * The oldest the tip should be before we consider the chain synced
- */
-export const MAX_SYNCED_AGE_MS = 5 * 60 * 60 * 1000
-
-/**
  * The maximum allowed requested blocks by the network
  */
 export const MAX_REQUESTED_BLOCKS = 50
@@ -49,6 +44,11 @@ export const MAX_MESSAGE_SIZE = 256 * 1024 * 1024
 export const TARGET_BLOCK_TIME_IN_SECONDS = 60
 
 /**
+ * The oldest the tip should be before we consider the chain synced (60 blocks)
+ */
+export const MAX_SYNCED_AGE_MS = 60 * TARGET_BLOCK_TIME_IN_SECONDS * 1000
+
+/**
  * The time range when difficulty and target not change
  */
 export const TARGET_BUCKET_TIME_IN_SECONDS = 10
@@ -64,3 +64,24 @@ export const GRAFFITI_SIZE = 32
  * It's used in calculating how much a miner should get in rewards.
  */
 export const IRON_FISH_YEAR_IN_BLOCKS = (365 * 24 * 60 * 60) / TARGET_BLOCK_TIME_IN_SECONDS
+
+export class ConsensusParameters {
+  /**
+   * Before upgrade V1 we had double spends. At this block we do a double spend
+   * check to disallow it.
+   *
+   * TODO: remove this sequence check before mainnet
+   */
+  V1_DOUBLE_SPEND = 0
+
+  isActive(upgrade: number, sequence: number): boolean {
+    return sequence >= upgrade
+  }
+}
+
+export class TestnetParameters extends ConsensusParameters {
+  constructor() {
+    super()
+    this.V1_DOUBLE_SPEND = 204000
+  }
+}

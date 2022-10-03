@@ -15,7 +15,7 @@ export default class Status extends IronfishCommand {
     follow: Flags.boolean({
       char: 'f',
       default: false,
-      description: 'follow the status of the node live',
+      description: 'Follow the status of the node live',
     }),
   }
 
@@ -63,7 +63,8 @@ function renderStatus(content: GetRpcStatusResponse): string {
   for (const adapter of content.adapters) {
     result += `\n\n[${adapter.name}]\n`
     result += `Clients:          ${adapter.clients}\n`
-    result += `Requests Pending: ${adapter.pending}\n`
+    result += `Requests Pending: ${adapter.pending.length}\n`
+    result += `Routes Pending:   ${adapter.pending.join(', ')}\n`
     result += `Inbound Traffic:  ${FileUtils.formatMemorySize(adapter.inbound)}/s\n`
     result += `Outbound Traffic: ${FileUtils.formatMemorySize(adapter.outbound)}/s\n`
     result += `Outbound Total:   ${FileUtils.formatMemorySize(adapter.writtenBytes)}\n`

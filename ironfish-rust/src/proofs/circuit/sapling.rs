@@ -131,12 +131,9 @@ mod test {
         Circuit,
     };
     use ff::{Field, PrimeField};
-    use group::{Curve, Group};
+    use group::{ff::PrimeFieldBits, Curve, Group};
     use rand::{prelude::StdRng, Rng, RngCore, SeedableRng};
-    use zcash_primitives::{
-        pedersen_hash,
-        primitives::{Diversifier, ProofGenerationKey, Rseed},
-    };
+    use zcash_primitives::sapling::{pedersen_hash, Diversifier, ProofGenerationKey, Rseed};
 
     #[test]
     fn test_input_circuit_with_bls12_381() {
@@ -218,8 +215,7 @@ mod test {
                         pedersen_hash::Personalization::MerkleTree(i),
                         lhs.into_iter()
                             .take(bls12_381::Scalar::NUM_BITS as usize)
-                            .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize))
-                            .cloned(),
+                            .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize)),
                     ))
                     .to_affine()
                     .get_u();
@@ -321,10 +317,7 @@ mod test {
             let asset_type = AssetType::new(format!("asset {}", i).as_bytes(), &[0; 43])
                 .expect("valid asset type");
 
-            let value_commitment = asset_type.value_commitment(
-                i,
-                jubjub::Fr::from_str(&(1000 * (i + 1)).to_string()).unwrap(),
-            );
+            let value_commitment = asset_type.value_commitment(i, jubjub::Fr::from(1000 * (i + 1)));
 
             let proof_generation_key = ProofGenerationKey {
                 ak: jubjub::SubgroupPoint::random(&mut rng),
@@ -399,8 +392,7 @@ mod test {
                         pedersen_hash::Personalization::MerkleTree(i),
                         lhs.into_iter()
                             .take(bls12_381::Scalar::NUM_BITS as usize)
-                            .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize))
-                            .cloned(),
+                            .chain(rhs.into_iter().take(bls12_381::Scalar::NUM_BITS as usize)),
                     ))
                     .to_affine()
                     .get_u();

@@ -3,10 +3,7 @@ use bellman::{
     Circuit, ConstraintSystem,
 };
 use ff::PrimeField;
-use zcash_primitives::{
-    constants::{self},
-    primitives::ProofGenerationKey,
-};
+use zcash_primitives::{constants, sapling::ProofGenerationKey};
 use zcash_proofs::{circuit::ecc, constants::PROOF_GENERATION_KEY_GENERATOR};
 use zcash_proofs::{circuit::pedersen_hash, constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR};
 
@@ -331,9 +328,7 @@ mod test {
         constants::{
             self, GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR, SPENDING_KEY_GENERATOR,
         },
-        pedersen_hash,
-        primitives::Nullifier,
-        redjubjub,
+        sapling::{pedersen_hash, redjubjub, Nullifier},
     };
 
     use crate::{
@@ -828,9 +823,7 @@ mod test {
             nullifier,
             authorizing_signature,
         };
-        spend_proof
-            .verify_proof(&sapling)
-            .expect("verifies spend proof");
+        spend_proof.verify_proof().expect("verifies spend proof");
     }
 
     #[test]
@@ -865,7 +858,7 @@ mod test {
         );
         let note_witness = make_fake_witness(&in_note);
 
-        let mut transaction = ProposedTransaction::new(sapling.clone());
+        let mut transaction = ProposedTransaction::new();
         transaction
             .spend(sapling_key.clone(), &in_note, &note_witness)
             .expect("Can add spend for tx fee");
@@ -894,7 +887,7 @@ mod test {
         );
         let note_witness2 = make_fake_witness(&in_note2);
 
-        let mut transaction2 = ProposedTransaction::new(sapling);
+        let mut transaction2 = ProposedTransaction::new();
         transaction2
             .spend(sapling_key.clone(), &in_note2, &note_witness2)
             .expect("can add tx fee note");

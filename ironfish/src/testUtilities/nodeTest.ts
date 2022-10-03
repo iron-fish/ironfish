@@ -1,10 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import os from 'os'
-import path from 'path'
-import { v4 as uuid } from 'uuid'
-import { Accounts } from '../account'
+import './matchers'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus/verifier'
 import { ConfigOptions } from '../fileStores/config'
@@ -12,8 +9,10 @@ import { PeerNetwork } from '../network'
 import { IronfishNode } from '../node'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
+import { Wallet } from '../wallet'
 import { WorkerPool } from '../workerPool'
 import { TestStrategy } from './strategy'
+import { getUniqueTestDataDir } from './utils'
 
 export type NodeTestOptions =
   | {
@@ -35,7 +34,7 @@ export class NodeTest {
   strategy!: TestStrategy
   verifier!: Verifier
   chain!: Blockchain
-  accounts!: Accounts
+  wallet!: Wallet
   peerNetwork!: PeerNetwork
   syncer!: Syncer
   workerPool!: WorkerPool
@@ -45,7 +44,7 @@ export class NodeTest {
     node: IronfishNode
     strategy: TestStrategy
     chain: Blockchain
-    accounts: Accounts
+    wallet: Wallet
     peerNetwork: PeerNetwork
     syncer: Syncer
     workerPool: WorkerPool
@@ -61,7 +60,7 @@ export class NodeTest {
     strategy: TestStrategy
     verifier: Verifier
     chain: Blockchain
-    accounts: Accounts
+    wallet: Wallet
     peerNetwork: PeerNetwork
     syncer: Syncer
     workerPool: WorkerPool
@@ -70,7 +69,7 @@ export class NodeTest {
       options = this.options
     }
 
-    const dataDir = path.join(os.tmpdir(), uuid())
+    const dataDir = getUniqueTestDataDir()
     const strategyClass = TestStrategy
 
     const sdk = await IronfishSdk.init({ dataDir, strategyClass })
@@ -93,7 +92,7 @@ export class NodeTest {
     const node = await sdk.node({ autoSeed: this.options?.autoSeed })
     const strategy = node.strategy as TestStrategy
     const chain = node.chain
-    const accounts = node.accounts
+    const wallet = node.wallet
     const peerNetwork = node.peerNetwork
     const syncer = node.syncer
     const verifier = node.chain.verifier
@@ -109,7 +108,7 @@ export class NodeTest {
       strategy,
       verifier,
       chain,
-      accounts,
+      wallet,
       peerNetwork,
       syncer,
       workerPool,
@@ -120,7 +119,7 @@ export class NodeTest {
   }
 
   async setup(): Promise<void> {
-    const { sdk, node, strategy, verifier, chain, accounts, peerNetwork, syncer, workerPool } =
+    const { sdk, node, strategy, verifier, chain, wallet, peerNetwork, syncer, workerPool } =
       await this.createSetup()
 
     this.sdk = sdk
@@ -128,7 +127,7 @@ export class NodeTest {
     this.strategy = strategy
     this.verifier = verifier
     this.chain = chain
-    this.accounts = accounts
+    this.wallet = wallet
     this.peerNetwork = peerNetwork
     this.syncer = syncer
     this.workerPool = workerPool

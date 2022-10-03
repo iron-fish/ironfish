@@ -5,8 +5,10 @@ use group::{Curve, GroupEncoding};
 use rand::{thread_rng, Rng};
 use zcash_primitives::{
     constants::{self},
-    pedersen_hash::{pedersen_hash, Personalization},
-    primitives::Nullifier,
+    sapling::{
+        pedersen_hash::{pedersen_hash, Personalization},
+        Nullifier,
+    },
 };
 
 use crate::{

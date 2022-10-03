@@ -4,7 +4,7 @@ use bellman::{Circuit, ConstraintSystem, SynthesisError};
 
 use zcash_primitives::constants;
 
-use zcash_primitives::primitives::{PaymentAddress, ProofGenerationKey};
+use zcash_primitives::sapling::{PaymentAddress, ProofGenerationKey};
 
 use bellman::gadgets::blake2s;
 use bellman::gadgets::boolean::{self};

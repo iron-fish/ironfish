@@ -11,7 +11,7 @@ use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 use zcash_primitives::{
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-    redjubjub::{PrivateKey, PublicKey, Signature},
+    sapling::redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
 use crate::{
@@ -241,12 +241,12 @@ impl Transaction for TransferTransaction {
         let mut binding_verification_key = ExtendedPoint::identity();
 
         for spend in self.spends.iter() {
-            spend.verify_proof(&self.sapling)?;
+            spend.verify_proof()?;
             binding_verification_key += spend.value_commitment;
         }
 
         for output in self.outputs.iter() {
-            output.verify_proof(&self.sapling)?;
+            output.verify_proof()?;
             binding_verification_key -= output.merkle_note.value_commitment;
         }
 
@@ -282,12 +282,7 @@ pub fn add_spends(
     let mut spend_params = Vec::with_capacity(spends.len());
 
     for spend in spends {
-        let params = SpendParams::new(
-            sapling.clone(),
-            spend.spender_key.clone(),
-            spend.note,
-            spend.witness,
-        )?;
+        let params = SpendParams::new(spend.spender_key.clone(), spend.note, spend.witness)?;
 
         *bsk += params.value_commitment.randomness;
         *bvk += params.value_commitment();
@@ -314,7 +309,7 @@ pub fn add_outputs(
 
     for output in outputs {
         // TODO: ReceiptParams and SpendParams need API alignment
-        let params = ReceiptParams::new(sapling.clone(), &output.spender_key, output.note)?;
+        let params = ReceiptParams::new(&output.spender_key, output.note)?;
 
         *bsk -= params.value_commitment_randomness;
         *bvk -= params.merkle_note.value_commitment;
@@ -421,7 +416,7 @@ impl<'a> Output<'a> {
 
 #[cfg(test)]
 mod tests {
-    use zcash_primitives::redjubjub::Signature;
+    use zcash_primitives::sapling::redjubjub::Signature;
 
     use crate::{
         note::Memo,

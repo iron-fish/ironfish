@@ -9,7 +9,7 @@ import { Tag } from './tag'
  */
 export interface Metric {
   /**
-   * A description for the container that the fields measure. This is equivilent
+   * A description for the container that the fields measure. This is equivalent
    * to a SQL table.
    */
   measurement: string

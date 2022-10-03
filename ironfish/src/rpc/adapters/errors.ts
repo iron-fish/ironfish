@@ -9,6 +9,7 @@ export enum ERROR_CODES {
   ROUTE_NOT_FOUND = 'route-not-found',
   VALIDATION = 'validation',
   INSUFFICIENT_BALANCE = 'insufficient-balance',
+  UNAUTHENTICATED = 'unauthenticated',
 }
 
 /**
@@ -21,6 +22,7 @@ export enum ERROR_CODES {
  * @note Look at the {@link IPCAdapter} implementation for an example
  */
 export class ResponseError extends Error {
+  name = this.constructor.name
   status: number
   code: string
   error: Error | null = null

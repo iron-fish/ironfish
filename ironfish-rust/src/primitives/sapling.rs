@@ -7,8 +7,10 @@ use rand::{CryptoRng, Rng, RngCore};
 use zcash_primitives::{
     constants,
     keys::prf_expand,
-    pedersen_hash::{pedersen_hash, Personalization},
-    primitives::{Nullifier, Rseed, ViewingKey},
+    sapling::{
+        pedersen_hash::{pedersen_hash, Personalization},
+        Nullifier, Rseed, ViewingKey,
+    },
 };
 
 use super::asset_type::AssetType;

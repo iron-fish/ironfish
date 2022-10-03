@@ -6,6 +6,7 @@ import { Event } from '../event'
 
 export class RpcRequest<TRequest = unknown, TResponse = unknown> {
   data: TRequest
+  route: string
   ended = false
   closed = false
   onEnd: (status: number, data?: TResponse) => void
@@ -14,10 +15,12 @@ export class RpcRequest<TRequest = unknown, TResponse = unknown> {
 
   constructor(
     data: TRequest,
+    route: string,
     onEnd: (status: number, data?: unknown) => void,
     onStream: (data?: unknown) => void,
   ) {
     this.data = data
+    this.route = route
     this.onEnd = onEnd
     this.onStream = onStream
   }

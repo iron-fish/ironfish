@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use napi::bindgen_prelude::*;
+use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
 use ironfish_rust::{
@@ -37,8 +37,11 @@ impl NativeNote {
     }
 
     #[napi(factory)]
-    pub fn deserialize(bytes: Buffer) -> Result<Self> {
-        let note = Note::read(bytes.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
+    pub fn deserialize(js_bytes: JsBuffer) -> Result<Self> {
+        let byte_vec = js_bytes.into_value()?;
+
+        let note =
+            Note::read(byte_vec.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(NativeNote { note })
     }

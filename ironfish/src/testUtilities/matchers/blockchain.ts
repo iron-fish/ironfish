@@ -4,7 +4,7 @@
 
 import diff from 'jest-diff'
 import { Blockchain } from '../../blockchain'
-import { Block } from '../../primitives/block'
+import { Block, BlockSerde } from '../../primitives/block'
 import { BlockHash } from '../../primitives/blockheader'
 import { Nullifier } from '../../primitives/nullifier'
 import { makeError, makeResult } from './utils'
@@ -43,7 +43,7 @@ function toEqualNullifier(self: Nullifier, other: Nullifier): jest.CustomMatcher
 function toEqualBlock(self: Block, other: Block): jest.CustomMatcherResult {
   let error: string | null = null
 
-  if (!self.header.strategy.blockSerde.equals(self, other)) {
+  if (!BlockSerde.equals(self, other)) {
     error = `Blocks do not match:\n\nDifference:\n\n${String(diff(self, other))}`
   }
 

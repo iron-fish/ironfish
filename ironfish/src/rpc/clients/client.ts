@@ -9,8 +9,8 @@ import {
   BlockTemplateStreamResponse,
   CreateAccountRequest,
   CreateAccountResponse,
-  GetAccountNotesRequest,
-  GetAccountNotesResponse,
+  GetAccountNotesStreamRequest,
+  GetAccountNotesStreamResponse,
   GetAccountsRequest,
   GetAccountsResponse,
   GetAccountTransactionRequest,
@@ -29,15 +29,17 @@ import {
   GetConfigResponse,
   GetDefaultAccountRequest,
   GetDefaultAccountResponse,
+  GetFeesRequest,
+  GetFeesResponse,
   GetFundsRequest,
   GetFundsResponse,
   GetLogStreamResponse,
+  GetNodeStatusRequest,
+  GetNodeStatusResponse,
   GetPeersRequest,
   GetPeersResponse,
   GetPublicKeyRequest,
   GetPublicKeyResponse,
-  GetStatusRequest,
-  GetStatusResponse,
   GetTransactionStreamRequest,
   GetTransactionStreamResponse,
   GetWorkersStatusRequest,
@@ -93,17 +95,17 @@ export abstract class RpcClient {
     options?: { timeoutMs?: number | null },
   ): RpcResponse<TEnd, TStream>
 
-  async status(
-    params: GetStatusRequest = undefined,
-  ): Promise<RpcResponseEnded<GetStatusResponse>> {
-    return this.request<GetStatusResponse>(
+  async getNodeStatus(
+    params: GetNodeStatusRequest = undefined,
+  ): Promise<RpcResponseEnded<GetNodeStatusResponse>> {
+    return this.request<GetNodeStatusResponse>(
       `${ApiNamespace.node}/getStatus`,
       params,
     ).waitForEnd()
   }
 
-  statusStream(): RpcResponse<void, GetStatusResponse> {
-    return this.request<void, GetStatusResponse>(`${ApiNamespace.node}/getStatus`, {
+  statusStream(): RpcResponse<void, GetNodeStatusResponse> {
+    return this.request<void, GetNodeStatusResponse>(`${ApiNamespace.node}/getStatus`, {
       stream: true,
     })
   }
@@ -204,13 +206,13 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  async getAccountNotes(
-    params: GetAccountNotesRequest = {},
-  ): Promise<RpcResponseEnded<GetAccountNotesResponse>> {
-    return await this.request<GetAccountNotesResponse>(
-      `${ApiNamespace.account}/getAccountNotes`,
+  getAccountNotesStream(
+    params: GetAccountNotesStreamRequest = {},
+  ): RpcResponse<void, GetAccountNotesStreamResponse> {
+    return this.request<void, GetAccountNotesStreamResponse>(
+      `${ApiNamespace.account}/getAccountNotesStream`,
       params,
-    ).waitForEnd()
+    )
   }
 
   async getAccountTransaction(
@@ -222,13 +224,13 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  async getAccountTransactions(
+  getAccountTransactionsStream(
     params: GetAccountTransactionsRequest,
-  ): Promise<RpcResponseEnded<GetAccountTransactionsResponse>> {
-    return await this.request<GetAccountTransactionsResponse>(
+  ): RpcResponse<void, GetAccountTransactionsResponse> {
+    return this.request<void, GetAccountTransactionsResponse>(
       `${ApiNamespace.account}/getAccountTransactions`,
       params,
-    ).waitForEnd()
+    )
   }
 
   async getPeers(
@@ -352,6 +354,10 @@ export abstract class RpcClient {
       `${ApiNamespace.faucet}/getFunds`,
       params,
     ).waitForEnd()
+  }
+
+  async getFees(params: GetFeesRequest): Promise<RpcResponseEnded<GetFeesResponse>> {
+    return this.request<GetFeesResponse>(`${ApiNamespace.fees}/getFees`, params).waitForEnd()
   }
 
   async getBlock(params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> {

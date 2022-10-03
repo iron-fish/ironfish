@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { RollingFilter } from '@ironfish/bfilter'
+import { RollingFilter } from '@ironfish/rust-nodejs'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
-import tweetnacl from 'tweetnacl'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { MAX_REQUESTED_BLOCKS } from '../consensus'
+import { MAX_REQUESTED_BLOCKS, VerificationResultReason } from '../consensus'
 import { Event } from '../event'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
 import { HostsStore } from '../fileStores/hosts'
@@ -18,12 +17,13 @@ import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { Transaction } from '../primitives'
-import { SerializedBlock } from '../primitives/block'
-import { BlockHeader } from '../primitives/blockheader'
+import { Block, BlockSerde, SerializedBlock, SerializedCompactBlock } from '../primitives/block'
+import { BlockHash, BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
 import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
-import { Strategy } from '../strategy'
-import { ErrorUtils } from '../utils'
-import { PrivateIdentity } from './identity'
+import { Telemetry } from '../telemetry'
+import { ArrayUtils, BenchUtils, HRTime } from '../utils'
+import { BlockFetcher } from './blockFetcher'
+import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
@@ -32,6 +32,7 @@ import {
   GetBlockTransactionsRequest,
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
+import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
 import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import {
   displayNetworkMessageType,
@@ -43,6 +44,7 @@ import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
+import { NewTransactionV2Message } from './messages/newTransactionV2'
 import {
   PooledTransactionsRequest,
   PooledTransactionsResponse,
@@ -62,6 +64,7 @@ import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, KnownBlockHashesValue, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
 import { PeerManager } from './peers/peerManager'
+import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
 import { parseUrl } from './utils/parseUrl'
 import { VERSION_PROTOCOL } from './version'
@@ -77,11 +80,22 @@ const GOSSIP_FILTER_SIZE = 100000
 const GOSSIP_FILTER_FP_RATE = 0.000001
 
 const MAX_GET_BLOCK_TRANSACTIONS_DEPTH = 10
+const MAX_GET_COMPACT_BLOCK_DEPTH = 5
 
 type RpcRequest = {
   resolve: (value: IncomingPeerMessage<RpcNetworkMessage>) => void
   reject: (e: unknown) => void
   peer: Peer
+  messageType: number
+  startTime: HRTime
+}
+
+export type TransactionOrHash =
+  | { type: 'FULL'; value: Transaction }
+  | { type: 'HASH'; value: TransactionHash }
+
+interface Indexable {
+  index: number
 }
 
 /**
@@ -96,6 +110,7 @@ export class PeerNetwork {
   readonly peerManager: PeerManager
   readonly onIsReadyChanged = new Event<[boolean]>()
   readonly onTransactionAccepted = new Event<[transaction: Transaction, received: Date]>()
+  readonly onBlockGossipReceived = new Event<[BlockHeader]>()
 
   private started = false
   private readonly minPeers: number
@@ -104,19 +119,30 @@ export class PeerNetwork {
   private readonly peerConnectionManager: PeerConnectionManager
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
+  private readonly telemetry: Telemetry
   private readonly node: IronfishNode
-  private readonly strategy: Strategy
   private readonly chain: Blockchain
-  private readonly seenGossipFilter: RollingFilter
   private readonly requests: Map<RpcId, RpcRequest>
   private readonly enableSyncing: boolean
 
-  // A cache that keeps track of transactions we've synced to the wallet so we don't
-  // waste time verifying, validating and syncing them multiple times
-  private readonly syncedTransactionHashes: LRU<TransactionHash, boolean> = new LRU<
+  private readonly blockFetcher: BlockFetcher
+  private readonly transactionFetcher: TransactionFetcher
+
+  // A cache that keeps track of transactions that are a part of recently confirmed blocks
+  // TODO(daniel): Consider replacing this with a nullifier check. This would filter out transactions
+  // that have overlapping nullifiers in the chain so we don't process those invalid transactions
+  private readonly recentlyAddedToChain: LRU<TransactionHash, boolean> = new LRU<
     TransactionHash,
     boolean
-  >(8192, null, BufferMap)
+  >(300 * 60, null, BufferMap)
+
+  // A cache that keeps track of which peers have seen which transactions. This allows
+  // us to not send the same transaction to a peer more than once. TODO(daniel): We want to
+  // change this to use an RLU cache so that we don't get false positives
+  private readonly knownTransactionFilter: RollingFilter = new RollingFilter(
+    GOSSIP_FILTER_SIZE * 50,
+    GOSSIP_FILTER_FP_RATE,
+  )
 
   /**
    * If the peer network is ready for messages to be sent or not
@@ -127,7 +153,7 @@ export class PeerNetwork {
   }
 
   constructor(options: {
-    identity?: PrivateIdentity
+    identity: PrivateIdentity
     agent?: string
     webSocket: IsomorphicWebSocketConstructor
     listen?: boolean
@@ -142,27 +168,24 @@ export class PeerNetwork {
     simulateLatency?: number
     logger?: Logger
     metrics?: MetricsMonitor
+    telemetry: Telemetry
     node: IronfishNode
-    strategy: Strategy
     chain: Blockchain
     hostsStore: HostsStore
   }) {
-    const identity = options.identity || tweetnacl.box.keyPair()
-
     this.enableSyncing = options.enableSyncing ?? true
     this.node = options.node
     this.chain = options.chain
-    this.strategy = options.strategy
     this.logger = (options.logger || createRootLogger()).withTag('peernetwork')
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
+    this.telemetry = options.telemetry
     this.bootstrapNodes = options.bootstrapNodes || []
 
     this.localPeer = new LocalPeer(
-      identity,
+      options.identity,
       options.agent || Platform.getAgent(IronfishPKG),
       VERSION_PROTOCOL,
       options.chain,
-      options.node.workerPool,
       options.webSocket,
     )
 
@@ -196,29 +219,49 @@ export class PeerNetwork {
     this.minPeers = options.minPeers || 1
     this.listen = options.listen === undefined ? true : options.listen
 
-    this.seenGossipFilter = new RollingFilter(GOSSIP_FILTER_SIZE, GOSSIP_FILTER_FP_RATE)
     this.requests = new Map<RpcId, RpcRequest>()
 
     if (options.name && options.name.length > 32) {
       options.name = options.name.slice(32)
     }
 
-    this.node.miningManager.onNewBlock.on((block) => {
-      const serializedBlock = this.strategy.blockSerde.serialize(block)
+    this.blockFetcher = new BlockFetcher(this)
+    this.transactionFetcher = new TransactionFetcher(this)
 
-      this.broadcastBlock(new NewBlockMessage(serializedBlock))
+    this.chain.onConnectBlock.on((block) => {
+      this.blockFetcher.removeBlock(block.header.hash)
+      for (const transaction of block.transactions) {
+        this.recentlyAddedToChain.set(transaction.hash(), true)
+      }
     })
 
-    this.node.accounts.onBroadcastTransaction.on((transaction) => {
+    this.chain.onForkBlock.on((block) => {
+      this.blockFetcher.removeBlock(block.header.hash)
+    })
+
+    this.chain.onDisconnectBlock.on((block) => {
+      for (const transaction of block.transactions) {
+        this.recentlyAddedToChain.remove(transaction.hash())
+      }
+    })
+
+    this.node.miningManager.onNewBlock.on((block) => {
+      const serializedBlock = BlockSerde.serialize(block)
+
+      const nonce = Buffer.alloc(16, block.header.hash)
+      const message = new NewBlockMessage(serializedBlock, nonce)
+
+      this.broadcastBlock(message)
+      this.broadcastBlockHash(block.header)
+    })
+
+    this.node.wallet.onBroadcastTransaction.on((transaction) => {
       const serializedTransaction = transaction.serialize()
 
-      const message = new NewTransactionMessage(serializedTransaction)
+      const nonce = Buffer.alloc(16, transaction.hash())
+      const message = new NewTransactionMessage(serializedTransaction, nonce)
 
-      for (const peer of this.peerManager.getConnectedPeers()) {
-        if (peer.send(message)) {
-          peer.knownTransactionHashes.set(transaction.hash(), KnownBlockHashesValue.Sent)
-        }
-      }
+      this.broadcastTransaction(message)
     })
   }
 
@@ -256,7 +299,7 @@ export class PeerNetwork {
             reason: DisconnectingReason.Congested,
             sourceIdentity: this.localPeer.publicIdentity,
           })
-          connection.send(JSON.stringify(disconnect))
+          connection.send(disconnect.serializeWithMetadata())
           connection.close()
           return
         }
@@ -330,43 +373,135 @@ export class PeerNetwork {
     await this.peerManager.stop()
     this.webSocketServer?.close()
     this.updateIsReady()
+    this.blockFetcher.stop()
+    this.transactionFetcher.stop()
   }
 
   /**
    * Send a block to all connected peers who haven't yet received the block.
    */
   private broadcastBlock(message: NewBlockMessage): void {
-    this.seenGossipFilter.add(message.nonce)
-
     // TODO: This deserialization could be avoided by passing around a Block instead of a SerializedBlock
-    const block = this.strategy.blockSerde.deserialize(message.block)
+    const block = BlockSerde.deserialize(message.block)
+    const hash = block.header.hash
 
-    for (const peer of this.peerManager.getConnectedPeers()) {
-      // Don't send the block to peers who already know about it
-      if (peer.knownBlockHashes.has(block.header.hash)) {
-        continue
+    const isUpgraded = (peer: Peer) => peer.version !== null && peer.version >= 18
+
+    const peersWithoutBlock = [...this.connectedPeersWithoutBlock(hash)]
+
+    const peersToSendToArray: Peer[] = peersWithoutBlock.filter((p) => !isUpgraded(p))
+
+    const sqrtSize = Math.floor(Math.sqrt(peersWithoutBlock.length))
+
+    const upgradedPeers: Peer[] = ArrayUtils.shuffle(
+      peersWithoutBlock.filter((p) => isUpgraded(p)),
+    )
+
+    for (const peer of upgradedPeers) {
+      if (peersToSendToArray.length < sqrtSize) {
+        peersToSendToArray.push(peer)
+      } else {
+        break
       }
+    }
 
-      if (peer.send(message)) {
+    const newBlockMessage = new NewBlockV2Message(block.toCompactBlock())
+    for (const peer of peersToSendToArray) {
+      const messageToSend = isUpgraded(peer) ? newBlockMessage : message
+
+      if (peer.send(messageToSend)) {
         peer.knownBlockHashes.set(block.header.hash, KnownBlockHashesValue.Sent)
       }
     }
   }
 
-  private connectedPeersWithoutTransaction(hash: TransactionHash): ReadonlyArray<Peer> {
-    return [...this.peerManager.identifiedPeers.values()].filter((p) => {
-      return p.state.type === 'CONNECTED' && !p.knownTransactionHashes.has(hash)
-    })
+  /**
+   * Send a block hash to all connected peers who haven't yet received the block.
+   */
+  private broadcastBlockHash(header: BlockHeader): void {
+    const isUpgraded = (peer: Peer) => peer.version !== null && peer.version >= 18
+
+    const hashMessage = new NewBlockHashesMessage([
+      { hash: header.hash, sequence: header.sequence },
+    ])
+
+    for (const peer of this.connectedPeersWithoutBlock(header.hash)) {
+      if (isUpgraded(peer) && peer.send(hashMessage)) {
+        peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Sent)
+      }
+    }
   }
 
-  private broadcastTransaction(
-    message: NewTransactionMessage,
-    peersToSendTo: ReadonlyArray<Peer>,
-  ): void {
-    for (const activePeer of peersToSendTo) {
-      if (activePeer.send(message)) {
-        const hash = new Transaction(message.transaction).hash()
-        activePeer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Sent)
+  private broadcastTransaction(message: NewTransactionMessage): void {
+    const hash = new Transaction(message.transaction).hash()
+    const isUpgraded = (peer: Peer) => peer.version !== null && peer.version >= 17
+
+    const peersToSendToArray = [...this.connectedPeersWithoutTransaction(hash)]
+    const sendHash: Peer[] = []
+    const sendFull: Peer[] = peersToSendToArray.filter((p) => !isUpgraded(p))
+
+    const upgradedPeers: Peer[] = ArrayUtils.shuffle(
+      peersToSendToArray.filter((p) => isUpgraded(p)),
+    )
+
+    const sqrtSize = Math.floor(Math.sqrt(peersToSendToArray.length))
+
+    for (const peer of upgradedPeers) {
+      if (sendFull.length < sqrtSize) {
+        sendFull.push(peer)
+      } else {
+        sendHash.push(peer)
+      }
+    }
+
+    const hashMessage = new NewPooledTransactionHashes([hash])
+
+    for (const peer of sendHash) {
+      if (peer.state.type !== 'CONNECTED') {
+        continue
+      }
+
+      if (peer.send(hashMessage)) {
+        this.markKnowsTransaction(hash, peer.state.identity)
+      }
+    }
+
+    const newTransactionMessage = new NewTransactionV2Message([message.transaction])
+    for (const peer of sendFull) {
+      if (peer.state.type !== 'CONNECTED') {
+        continue
+      }
+
+      const messageToSend = isUpgraded(peer) ? newTransactionMessage : message
+
+      if (peer.send(messageToSend)) {
+        this.markKnowsTransaction(hash, peer.state.identity)
+      }
+    }
+  }
+
+  knowsTransaction(hash: TransactionHash, peerId: Identity): boolean {
+    const toTest = Buffer.concat([hash, Buffer.from(peerId)])
+    return this.knownTransactionFilter.test(toTest)
+  }
+
+  private markKnowsTransaction(hash: TransactionHash, peerId: Identity): void {
+    const toAdd = Buffer.concat([hash, Buffer.from(peerId)])
+    this.knownTransactionFilter.add(toAdd)
+  }
+
+  private *connectedPeersWithoutTransaction(hash: TransactionHash): Generator<Peer> {
+    for (const p of this.peerManager.identifiedPeers.values()) {
+      if (p.state.type === 'CONNECTED' && !this.knowsTransaction(hash, p.state.identity)) {
+        yield p
+      }
+    }
+  }
+
+  private *connectedPeersWithoutBlock(hash: BlockHash): Generator<Peer> {
+    for (const p of this.peerManager.identifiedPeers.values()) {
+      if (p.state.type === 'CONNECTED' && !p.knownBlockHashes.has(hash)) {
+        yield p
       }
     }
   }
@@ -425,6 +560,11 @@ export class PeerNetwork {
           peer.pendingRPC--
           this.requests.delete(rpcId)
           clearTimeout(timeout)
+
+          const endTime = BenchUtils.end(request.startTime)
+          this.metrics.p2p_RpcResponseTimeMsByMessage.get(request.messageType)?.add(endTime)
+          this.metrics.p2p_RpcSuccessRateByMessage.get(request.messageType)?.add(1)
+
           resolve(message)
         },
         reject: (reason?: unknown): void => {
@@ -432,9 +572,14 @@ export class PeerNetwork {
           peer.pendingRPC--
           this.requests.delete(rpcId)
           clearTimeout(timeout)
+
+          this.metrics.p2p_RpcSuccessRateByMessage.get(request.messageType)?.add(0)
+
           reject(reason)
         },
         peer: peer,
+        messageType: message.type,
+        startTime: BenchUtils.start(),
       }
 
       peer.pendingRPC++
@@ -478,11 +623,6 @@ export class PeerNetwork {
       throw new Error(`Invalid GetBlocksResponse: ${displayNetworkMessageType(message.type)}`)
     }
 
-    // Hashes sent by the network are untrusted. Future messages should remove this field.
-    for (const block of response.message.blocks) {
-      block.header.hash = undefined
-    }
-
     return response.message.blocks
   }
 
@@ -497,11 +637,18 @@ export class PeerNetwork {
     } else if (message instanceof RpcNetworkMessage) {
       await this.handleRpcMessage(peer, message)
     } else if (message instanceof NewBlockHashesMessage) {
-      this.handleNewBlockHashesMessage(peer, message)
+      await this.handleNewBlockHashesMessage(peer, message)
     } else if (message instanceof NewBlockV2Message) {
-      this.handleNewBlockV2Message(peer, message)
+      await this.onNewCompactBlock(peer, message.compactBlock)
     } else if (message instanceof NewPooledTransactionHashes) {
       this.handleNewPooledTransactionHashes(peer, message)
+    } else if (message instanceof NewTransactionV2Message) {
+      for (const transaction of message.transactions) {
+        // Set the nonce to the hash of the transaction for older peers
+        const nonce = Buffer.alloc(16, new Transaction(transaction).hash())
+        const gossipMessage = new NewTransactionMessage(transaction, nonce)
+        await this.onNewTransaction(peer, gossipMessage)
+      }
     } else {
       throw new Error(
         `Invalid message for handling in peer network: '${displayNetworkMessageType(
@@ -515,17 +662,8 @@ export class PeerNetwork {
     peer: Peer,
     gossipMessage: GossipNetworkMessage,
   ): Promise<void> {
-    const peerIdentity = peer.getIdentityOrThrow()
-
     if (gossipMessage instanceof NewBlockMessage) {
-      if (!this.seenGossipFilter.added(gossipMessage.nonce)) {
-        return
-      }
-      const gossip = await this.onNewBlock({ peerIdentity, message: gossipMessage })
-
-      if (gossip) {
-        this.broadcastBlock(gossipMessage)
-      }
+      await this.handleNewBlockMessage(peer, gossipMessage)
     } else if (gossipMessage instanceof NewTransactionMessage) {
       await this.onNewTransaction(peer, gossipMessage)
     } else {
@@ -561,6 +699,8 @@ export class PeerNetwork {
           responseMessage = this.onPooledTransactionsRequest(rpcMessage, rpcId)
         } else if (rpcMessage instanceof GetBlockTransactionsRequest) {
           responseMessage = await this.onGetBlockTransactionsRequest(peer, rpcMessage)
+        } else if (rpcMessage instanceof GetCompactBlockRequest) {
+          responseMessage = await this.onGetCompactBlockRequest(rpcMessage)
         } else {
           throw new Error(`Invalid rpc message type: '${rpcMessage.type}'`)
         }
@@ -576,28 +716,312 @@ export class PeerNetwork {
         responseMessage = new CannotSatisfyRequest(rpcId)
       }
 
-      // TODO(daniel) if this is a response with transactions mark transaction hashes as seen by peer
-      peer.send(responseMessage)
+      const sent = peer.send(responseMessage)
+      if (
+        sent &&
+        responseMessage instanceof PooledTransactionsResponse &&
+        peer.state.identity
+      ) {
+        for (const serializedTransaction of responseMessage.transactions) {
+          const hash = new Transaction(serializedTransaction).hash()
+          this.markKnowsTransaction(hash, peer.state.identity)
+        }
+      }
     } else {
       const request = this.requests.get(rpcId)
       if (request) {
         request.resolve({ peerIdentity, message: rpcMessage })
-      } else {
-        this.logger.debug(`Dropping response to unknown request ${rpcId}`)
+      } else if (rpcMessage instanceof PooledTransactionsResponse) {
+        for (const serializedTransaction of rpcMessage.transactions) {
+          const nonce = Buffer.alloc(16, new Transaction(serializedTransaction).hash())
+          const gossipMessage = new NewTransactionMessage(serializedTransaction, nonce)
+          await this.onNewTransaction(peer, gossipMessage)
+        }
+      } else if (rpcMessage instanceof GetBlockTransactionsResponse) {
+        await this.onNewBlockTransactions(peer, rpcMessage)
+      } else if (rpcMessage instanceof GetCompactBlockResponse) {
+        await this.onNewCompactBlock(peer, rpcMessage.compactBlock)
+      } else if (rpcMessage instanceof GetBlocksResponse) {
+        // Should happen when block is requested directly by the block fetcher
+        for (const block of rpcMessage.blocks) {
+          const header = BlockHeaderSerde.deserialize(block.header)
+          const nonce = Buffer.alloc(16, header.hash)
+          const message = new NewBlockMessage(block, nonce)
+          await this.handleNewBlockMessage(peer, message)
+        }
       }
     }
   }
 
-  private handleNewBlockHashesMessage(peer: Peer, message: NewBlockHashesMessage) {
-    this.logger.debug(`Received unimplemented message ${message.type}`)
+  private async handleNewBlockHashesMessage(peer: Peer, message: NewBlockHashesMessage) {
+    if (!this.shouldProcessNewBlocks()) {
+      return
+    }
+
+    for (const { hash, sequence } of message.blockHashInfos) {
+      peer.knownBlockHashes.set(hash, KnownBlockHashesValue.Received)
+
+      if (peer.sequence === null || sequence > peer.sequence) {
+        peer.sequence = sequence
+      }
+
+      // Request blocks that can be fetched as compact blocks, and that we don't already have.
+      // NOTE: It may be possible to start syncing from peers who send hashes with a sequence
+      // greater than 1 ahead of our chain head, but consider also adding protection against
+      // peers who send hashes that map to invalid blocks.
+      if (
+        sequence >= this.chain.head.sequence - MAX_GET_COMPACT_BLOCK_DEPTH &&
+        !(await this.alreadyHaveBlock(hash))
+      ) {
+        this.blockFetcher.receivedHash(hash, peer)
+      }
+    }
   }
 
-  private handleNewBlockV2Message(peer: Peer, message: NewBlockV2Message) {
-    this.logger.debug(`Received unimplemented message ${message.type}`)
+  private *fromDifferentialIndex<T extends Indexable>(list: T[]): Generator<T> {
+    let previousPos = -1
+    for (const elem of list) {
+      const absolutePos = previousPos + elem.index + 1
+      yield { ...elem, index: absolutePos }
+      previousPos = absolutePos
+    }
+  }
+
+  private toDifferentialIndex(list: number[]): number[] {
+    return list.map((val, i) => {
+      return i === 0 ? val : val - list[i - 1] - 1
+    })
+  }
+
+  private assembleTransactionsFromMempool(block: SerializedCompactBlock):
+    | {
+        ok: true
+        partialTransactions: TransactionOrHash[]
+        missingTransactions: number[]
+      }
+    | { ok: false } {
+    const absoluteIndexTransactions = this.fromDifferentialIndex(block.transactions)
+
+    const numHashes = block.transactionHashes.length
+    let hashesConsumed = 0
+    let fullTransactionsConsumed = 0
+    let nextFullTransaction = absoluteIndexTransactions.next()
+
+    const partialTransactions: TransactionOrHash[] = []
+    const absoluteMissingTransactions: number[] = []
+
+    while (hashesConsumed < numHashes || !nextFullTransaction.done) {
+      const currPosition = hashesConsumed + fullTransactionsConsumed
+
+      // If we have no more full transactions or a transaction doesn't belong in this position
+      if (nextFullTransaction.done || currPosition !== nextFullTransaction.value.index) {
+        if (hashesConsumed === numHashes) {
+          // We ran out of hashes to populate
+          return { ok: false }
+        }
+
+        const hash = block.transactionHashes[hashesConsumed]
+        const transaction = this.node.memPool.get(hash)
+        const resolved: TransactionOrHash = transaction
+          ? {
+              type: 'FULL',
+              value: transaction,
+            }
+          : {
+              type: 'HASH',
+              value: hash,
+            }
+        if (resolved.type === 'HASH') {
+          absoluteMissingTransactions.push(currPosition)
+        }
+
+        partialTransactions.push(resolved)
+        hashesConsumed++
+        continue
+      }
+
+      partialTransactions.push({
+        type: 'FULL',
+        value: new Transaction(nextFullTransaction.value.transaction),
+      })
+      nextFullTransaction = absoluteIndexTransactions.next()
+      fullTransactionsConsumed++
+    }
+
+    return {
+      ok: true,
+      partialTransactions,
+      missingTransactions: this.toDifferentialIndex(absoluteMissingTransactions),
+    }
+  }
+
+  assembleBlockFromResponse(
+    partialTransactions: TransactionOrHash[],
+    responseTransactions: readonly SerializedTransaction[],
+  ): { ok: false } | { ok: true; transactions: Transaction[] } {
+    const transactions: Transaction[] = []
+    let currResponseIndex = 0
+
+    for (const partial of partialTransactions) {
+      if (partial.type === 'FULL') {
+        transactions.push(partial.value)
+      } else if (currResponseIndex >= responseTransactions.length) {
+        // did not respond with enough transactions
+        return { ok: false }
+      } else {
+        const next = new Transaction(responseTransactions[currResponseIndex])
+        if (!next.hash().equals(partial.value)) {
+          // hashes are mismatched
+          return { ok: false }
+        }
+        transactions.push(next)
+        currResponseIndex++
+      }
+    }
+
+    return { ok: true, transactions }
+  }
+
+  private async onNewBlockTransactions(peer: Peer, message: GetBlockTransactionsResponse) {
+    const block = this.blockFetcher.receivedBlockTransactions(message)
+
+    if (!block) {
+      return
+    }
+
+    // if we don't have the previous block, start syncing
+    const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
+    if (prevHeader === null) {
+      this.chain.addOrphan(block.header)
+      this.blockFetcher.removeBlock(block.header.hash)
+      this.node.syncer.startSync(peer)
+      return
+    }
+
+    await this.onNewFullBlock(peer, block, prevHeader)
+  }
+
+  private async onNewCompactBlock(peer: Peer, compactBlock: SerializedCompactBlock) {
+    if (!this.shouldProcessNewBlocks()) {
+      return
+    }
+
+    // mark the block as received in the block fetcher and decide whether to continue
+    // to validate this compact block or not
+    const shouldProcess = this.blockFetcher.receivedCompactBlock(compactBlock, peer)
+    if (!shouldProcess) {
+      return
+    }
+
+    // deserialize the header
+    const header = BlockHeaderSerde.deserialize(compactBlock.header)
+
+    // verify the header
+    const verifyHeaderResult = this.chain.verifier.verifyBlockHeader(header)
+    if (!verifyHeaderResult.valid) {
+      this.chain.addInvalid(
+        header.hash,
+        verifyHeaderResult.reason ?? VerificationResultReason.ERROR,
+      )
+      this.blockFetcher.removeBlock(header.hash)
+      return
+    }
+
+    if (await this.alreadyHaveBlock(header)) {
+      this.blockFetcher.removeBlock(header.hash)
+      return
+    }
+
+    // set values on the peer to indicate the peer has the block
+    if (peer.sequence === null || header.sequence > peer.sequence) {
+      peer.sequence = header.sequence
+    }
+
+    // this might overwrite the existing value if we've already sent the
+    // block to the peer, but the value isn't important
+    peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Received)
+
+    this.onBlockGossipReceived.emit(header)
+
+    // if we don't have the previous block, start syncing
+    const prevHeader = await this.chain.getHeader(header.previousBlockHash)
+    if (prevHeader === null) {
+      this.chain.addOrphan(header)
+      this.blockFetcher.removeBlock(header.hash)
+      this.node.syncer.startSync(peer)
+      return
+    }
+
+    // since we have the previous block, do contextual verification
+    const { valid, reason } = this.chain.verifier.verifyBlockHeaderContextual(
+      header,
+      prevHeader,
+    )
+    if (!valid) {
+      this.chain.addInvalid(header.hash, reason ?? VerificationResultReason.ERROR)
+      this.blockFetcher.removeBlock(header.hash)
+      return
+    }
+
+    // check if we're missing transactions
+    const result = this.assembleTransactionsFromMempool(compactBlock)
+
+    if (!result.ok) {
+      peer.punish(BAN_SCORE.MAX)
+      this.blockFetcher.requestFullBlock(header.hash)
+      return
+    }
+
+    const { missingTransactions, partialTransactions } = result
+
+    // log telemetry on how many transactions we already had in our the mempool
+    // or on the compact block's transactions field
+    this.telemetry.submitCompactBlockAssembled(
+      header,
+      missingTransactions.length,
+      compactBlock.transactionHashes.length - missingTransactions.length, // number populated from mempool
+    )
+
+    if (result.missingTransactions.length > 0) {
+      this.blockFetcher.requestBlockTransactions(
+        peer,
+        header,
+        partialTransactions,
+        missingTransactions,
+      )
+      return
+    }
+
+    const fullTransactions: Transaction[] = []
+    for (const partial of partialTransactions) {
+      partial.type === 'FULL' && fullTransactions.push(partial.value)
+    }
+
+    const fullBlock = new Block(
+      BlockHeaderSerde.deserialize(compactBlock.header),
+      fullTransactions,
+    )
+    await this.onNewFullBlock(peer, fullBlock, prevHeader)
   }
 
   private handleNewPooledTransactionHashes(peer: Peer, message: NewPooledTransactionHashes) {
-    this.logger.debug(`Received unimplemented message ${message.type}`)
+    if (!this.shouldProcessTransactions()) {
+      return
+    }
+
+    for (const hash of message.hashes) {
+      peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
+
+      // If the transaction is already in the mempool the only thing we have to do is broadcast
+      const transaction = this.node.memPool.get(hash)
+      if (transaction && !this.alreadyHaveTransaction(hash)) {
+        const nonce = Buffer.alloc(16, transaction.hash())
+        const gossipMessage = new NewTransactionMessage(transaction.serialize(), nonce)
+        this.broadcastTransaction(gossipMessage)
+      } else {
+        this.transactionFetcher.hashReceived(hash, peer)
+      }
+    }
   }
 
   private updateIsReady(): void {
@@ -699,7 +1123,7 @@ export class PeerNetwork {
 
     const serialized = blocks.map((block) => {
       Assert.isNotNull(block)
-      return this.strategy.blockSerde.serialize(block)
+      return BlockSerde.serialize(block)
     })
 
     return new GetBlocksResponse(serialized, rpcId)
@@ -725,36 +1149,40 @@ export class PeerNetwork {
     peer: Peer,
     message: GetBlockTransactionsRequest,
   ): Promise<GetBlockTransactionsResponse> {
-    const block = await this.chain.db.withTransaction(null, async (tx) => {
-      const header = await this.chain.getHeader(message.blockHash, tx)
+    let block = this.blockFetcher.getFullBlock(message.blockHash)
 
-      if (header === null) {
-        throw new CannotSatisfyRequestError(
-          `Peer requested transactions for block ${message.blockHash.toString(
-            'hex',
-          )} that isn't in the database`,
+    if (block === null) {
+      block = await this.chain.db.withTransaction(null, async (tx) => {
+        const header = await this.chain.getHeader(message.blockHash, tx)
+
+        if (header === null) {
+          throw new CannotSatisfyRequestError(
+            `Peer requested transactions for block ${message.blockHash.toString(
+              'hex',
+            )} that isn't in the database`,
+          )
+        }
+
+        if (header.sequence < this.chain.head.sequence - MAX_GET_BLOCK_TRANSACTIONS_DEPTH) {
+          throw new CannotSatisfyRequestError(
+            `Peer requested transactions for block ${message.blockHash.toString(
+              'hex',
+            )} with sequence ${header.sequence} while chain head is at sequence ${
+              this.chain.head.sequence
+            }`,
+          )
+        }
+
+        const block = await this.chain.getBlock(header, tx)
+
+        Assert.isNotNull(
+          block,
+          'Database should contain transactions if it contains block header',
         )
-      }
 
-      if (header.sequence < this.chain.head.sequence - MAX_GET_BLOCK_TRANSACTIONS_DEPTH) {
-        throw new CannotSatisfyRequestError(
-          `Peer requested transactions for block ${message.blockHash.toString(
-            'hex',
-          )} with sequence ${header.sequence} while chain head is at sequence ${
-            this.chain.head.sequence
-          }`,
-        )
-      }
-
-      const block = await this.chain.getBlock(header, tx)
-
-      Assert.isNotNull(
-        block,
-        'Database should contain transactions if it contains block header',
-      )
-
-      return block
-    })
+        return block
+      })
+    }
 
     if (message.transactionIndexes.length > block.transactions.length) {
       const errorMessage = `Requested ${
@@ -787,45 +1215,143 @@ export class PeerNetwork {
     return new GetBlockTransactionsResponse(message.blockHash, transactions, message.rpcId)
   }
 
-  private async onNewBlock(message: IncomingPeerMessage<NewBlockMessage>): Promise<boolean> {
-    if (!this.enableSyncing) {
-      return false
-    }
+  private async onGetCompactBlockRequest(
+    message: GetCompactBlockRequest,
+  ): Promise<GetCompactBlockResponse> {
+    const block = await this.chain.db.withTransaction(null, async (tx) => {
+      const header = await this.chain.getHeader(message.blockHash, tx)
 
-    const block = message.message.block
-    const peer = this.peerManager.getPeer(message.peerIdentity)
-    if (!peer) {
-      return false
-    }
+      if (header === null) {
+        throw new CannotSatisfyRequestError(
+          `Peer requested compact block for block ${message.blockHash.toString(
+            'hex',
+          )} that isn't in the database`,
+        )
+      }
 
-    // Hashes sent by the network are untrusted. Future messages should remove this field.
-    block.header.hash = undefined
+      if (header.sequence < this.chain.head.sequence - MAX_GET_COMPACT_BLOCK_DEPTH) {
+        throw new CannotSatisfyRequestError(
+          `Peer requested compact block for ${message.blockHash.toString(
+            'hex',
+          )} with sequence ${header.sequence} while chain head is at sequence ${
+            this.chain.head.sequence
+          }`,
+        )
+      }
 
-    try {
-      return await this.node.syncer.addNewBlock(peer, block)
-    } catch (error) {
-      this.logger.error(
-        `Error when adding new block ${block.header.sequence} from ${
-          peer.displayName
-        }: ${ErrorUtils.renderError(error, true)}`,
+      const block = await this.chain.getBlock(header, tx)
+
+      Assert.isNotNull(
+        block,
+        'Database should contain transactions if it contains block header',
       )
 
-      return false
+      return block
+    })
+
+    return new GetCompactBlockResponse(block.toCompactBlock(), message.rpcId)
+  }
+
+  private async handleNewBlockMessage(peer: Peer, message: NewBlockMessage) {
+    if (!this.shouldProcessNewBlocks()) {
+      return
+    }
+
+    const block = BlockSerde.deserialize(message.block)
+
+    if (await this.alreadyHaveBlock(block.header)) {
+      return
+    }
+
+    peer.knownBlockHashes.set(block.header.hash, KnownBlockHashesValue.Received)
+
+    // verify the block header
+    const verifyBlockHeaderResult = this.chain.verifier.verifyBlockHeader(block.header)
+    if (!verifyBlockHeaderResult.valid) {
+      this.chain.addInvalid(
+        block.header.hash,
+        verifyBlockHeaderResult.reason ?? VerificationResultReason.ERROR,
+      )
+      this.blockFetcher.removeBlock(block.header.hash)
+      return
+    }
+
+    if (!peer.sequence || block.header.sequence > peer.sequence) {
+      peer.sequence = block.header.sequence
+    }
+
+    this.onBlockGossipReceived.emit(block.header)
+
+    // if we don't have the previous block, start syncing
+    const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
+    if (prevHeader === null) {
+      this.chain.addOrphan(block.header)
+      this.blockFetcher.removeBlock(block.header.hash)
+      this.node.syncer.startSync(peer)
+      return
+    }
+
+    await this.onNewFullBlock(peer, block, prevHeader)
+  }
+
+  private async onNewFullBlock(
+    peer: Peer,
+    block: Block,
+    prevHeader: BlockHeader,
+    nonce?: Buffer,
+  ): Promise<void> {
+    if (!this.shouldProcessNewBlocks()) {
+      return
+    }
+
+    // Mark that we've assembled a full block in the block fetcher
+    this.blockFetcher.receivedFullBlock(block)
+
+    // Re-gossip the full block
+    const serializedBlock = BlockSerde.serialize(block)
+    const newBlockMessage = new NewBlockMessage(
+      serializedBlock,
+      nonce ?? Buffer.alloc(16, block.header.hash),
+    )
+
+    this.broadcastBlock(newBlockMessage)
+
+    // log that we've validated the block enough to gossip it
+    this.telemetry.submitNewBlockSeen(block, new Date())
+
+    // verify the full block
+    const verified = await this.chain.verifier.verifyBlockAdd(block, prevHeader)
+    if (!verified.valid) {
+      this.chain.addInvalid(
+        block.header.hash,
+        verified.reason ?? VerificationResultReason.ERROR,
+      )
+      this.blockFetcher.removeBlock(block.header.hash)
+      return
+    }
+
+    // add the block to the chain
+    const result = await this.node.syncer.addBlock(peer, BlockSerde.serialize(block))
+
+    // We should have checked if the block is an orphan or duplicate already, so we
+    // don't have to handle those cases here. If there was a verification error, the
+    // chain should have added the block to the invalid set.
+    if (result.added) {
+      this.broadcastBlockHash(block.header)
     }
   }
 
-  private async onNewTransaction(peer: Peer, message: NewTransactionMessage): Promise<boolean> {
-    const received = new Date()
-
-    // Mark the peer as knowing about the transaction as well as their known peers
-    // since they probably sent it to them. We will remove the known peers once we start
-    // gossiping message based on hash
-    const hash = new Transaction(message.transaction).hash()
-    peer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Received)
-    for (const [_, knownPeer] of peer.knownPeers) {
-      knownPeer.knownTransactionHashes.set(hash, KnownBlockHashesValue.Received)
+  private shouldProcessNewBlocks(): boolean {
+    // We drop blocks when we are still initially syncing as they
+    // will become loose blocks and we can't verify them
+    if (!this.chain.synced && this.node.syncer.loader) {
+      return false
     }
 
+    return this.enableSyncing
+  }
+
+  private shouldProcessTransactions(): boolean {
     if (!this.enableSyncing) {
       return false
     }
@@ -839,59 +1365,81 @@ export class PeerNetwork {
       return false
     }
 
+    // TODO: We may want to remove this so that transactions still propagate
+    // even with a full worker pool
     if (this.node.workerPool.saturated) {
       return false
     }
 
-    const peersToSendTo = this.connectedPeersWithoutTransaction(hash)
+    return true
+  }
 
+  alreadyHaveTransaction(hash: TransactionHash): boolean {
     /*
-     * When we receive a new transaction we want to (1) sync it to the wallet (2) add it to the mempool
-     * and (3) send it to peers who haven't received it yet. If we've already done these 3 things then
-     * return early and don't validate and verify the transaction again */
-    if (
-      this.syncedTransactionHashes.has(hash) &&
-      this.node.memPool.exists(hash) &&
-      peersToSendTo.length === 0
-    ) {
-      return false
+     * When we receive a new transaction we want to test if we have already processed it yet
+     * meaning we have it in the mempool or we have it on a block. */
+
+    let peersToSendTo = false
+    for (const _ of this.connectedPeersWithoutTransaction(hash)) {
+      peersToSendTo = true
+      break
     }
 
-    // Force lazy deserialization of the transaction as a first sanity check
-    const transaction = this.chain.verifier.verifyNewTransaction(message.transaction)
-
-    // Validate the transaction, so that the account and mempool do not receive
-    // an invalid transaction, and we do not gossip.
-    const { valid, reason } = await this.chain.verifier.verifyTransactionNoncontextual(
-      transaction,
+    return (
+      this.recentlyAddedToChain.has(hash) || (this.node.memPool.exists(hash) && !peersToSendTo)
+      // && TODO(daniel): also filter recently rejected (expired or invalid) transactions
     )
-    if (!valid) {
-      Assert.isNotUndefined(reason)
-      this.logger.debug(
-        `Invalid transaction '${transaction.unsignedHash().toString('hex')}': ${reason}`,
-      )
-      return false
-    }
+  }
 
-    // The accounts need to know about the transaction since it could be
-    // relevant to the accounts, despite coming from a different node.
-    await this.node.accounts.syncTransaction(transaction, {})
-    this.syncedTransactionHashes.set(hash, true)
-
-    // If we know the mempool already has this transaction, we know that
-    // the mempool won't accept it, but it is still a valid transaction
-    // so we want to gossip it.
-    if (this.node.memPool.exists(transaction.hash())) {
-      this.broadcastTransaction(message, peersToSendTo)
+  async alreadyHaveBlock(headerOrHash: BlockHeader | BlockHash): Promise<boolean> {
+    const hash = Buffer.isBuffer(headerOrHash) ? headerOrHash : headerOrHash.hash
+    if (this.chain.isInvalid(headerOrHash)) {
       return true
     }
 
-    if (await this.node.memPool.acceptTransaction(transaction, false)) {
-      this.onTransactionAccepted.emit(transaction, received)
-      this.broadcastTransaction(message, peersToSendTo)
+    if (this.chain.orphans.has(hash)) {
       return true
     }
 
-    return false
+    return await this.chain.hasBlock(hash)
+  }
+
+  private async onNewTransaction(peer: Peer, message: NewTransactionMessage): Promise<void> {
+    const received = new Date()
+
+    // Mark the peer as knowing about the transaction
+    const transaction = new Transaction(message.transaction)
+    const hash = transaction.hash()
+    peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
+
+    // Let the fetcher know that a transaction was received and we no longer have to query it
+    this.transactionFetcher.receivedTransaction(hash)
+
+    if (this.shouldProcessTransactions() && !this.alreadyHaveTransaction(hash)) {
+      // Check that the transaction is valid
+      const { valid, reason } = await this.chain.verifier.verifyNewTransaction(transaction)
+
+      if (!valid) {
+        Assert.isNotUndefined(reason)
+        // Logging hash because unsignedHash is slow
+        this.logger.debug(`Invalid transaction '${hash.toString('hex')}': ${reason}`)
+        this.transactionFetcher.removeTransaction(hash)
+        return
+      }
+
+      // The accounts need to know about the transaction since it could be
+      // relevant to the accounts, despite coming from a different node.
+      await this.node.wallet.syncTransaction(transaction, {})
+
+      if (this.node.memPool.acceptTransaction(transaction)) {
+        this.onTransactionAccepted.emit(transaction, received)
+      }
+
+      if (this.node.memPool.exists(transaction.hash())) {
+        this.broadcastTransaction(message)
+      }
+    }
+
+    this.transactionFetcher.removeTransaction(hash)
   }
 }

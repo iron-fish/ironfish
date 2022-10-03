@@ -128,7 +128,7 @@ mod test {
     use rand::{rngs::OsRng, Rng};
     use zcash_primitives::{
         constants::{GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR},
-        pedersen_hash::{self},
+        sapling::pedersen_hash,
     };
 
     use crate::{
@@ -264,7 +264,7 @@ mod test {
         );
         let note_witness = make_fake_witness(&in_note);
 
-        let mut transaction = ProposedTransaction::new(sapling);
+        let mut transaction = ProposedTransaction::new();
         transaction
             .spend(sapling_key.clone(), &in_note, &note_witness)
             .expect("Can add spend for tx fee");
