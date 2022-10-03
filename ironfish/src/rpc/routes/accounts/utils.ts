@@ -8,14 +8,14 @@ import { ValidationError } from '../../adapters'
 
 export function getAccount(node: IronfishNode, name?: string): Account {
   if (name) {
-    const account = node.accounts.getAccountByName(name)
+    const account = node.wallet.getAccountByName(name)
     if (account) {
       return account
     }
     throw new ValidationError(`No account with name ${name}`)
   }
 
-  const defaultAccount = node.accounts.getDefaultAccount()
+  const defaultAccount = node.wallet.getDefaultAccount()
   if (defaultAccount) {
     return defaultAccount
   }

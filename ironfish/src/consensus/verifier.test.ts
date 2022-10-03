@@ -34,7 +34,7 @@ describe('Verifier', () => {
     })
 
     it('returns false on miners transactions', async () => {
-      const tx = await useMinersTxFixture(nodeTest.accounts)
+      const tx = await useMinersTxFixture(nodeTest.wallet)
       const serialized = tx.serialize()
 
       const result = await nodeTest.chain.verifier.verifyNewTransaction(

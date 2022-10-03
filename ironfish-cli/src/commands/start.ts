@@ -225,7 +225,7 @@ export default class Start extends IronfishCommand {
       await this.firstRun(node)
     }
 
-    if (!node.accounts.getDefaultAccount()) {
+    if (!node.wallet.getDefaultAccount()) {
       await this.setDefaultAccount(node)
     }
 
@@ -267,14 +267,14 @@ export default class Start extends IronfishCommand {
    * Information displayed if there is no default account for the node
    */
   async setDefaultAccount(node: IronfishNode): Promise<void> {
-    if (!node.accounts.accountExists(DEFAULT_ACCOUNT_NAME)) {
-      const account = await node.accounts.createAccount(DEFAULT_ACCOUNT_NAME, true)
+    if (!node.wallet.accountExists(DEFAULT_ACCOUNT_NAME)) {
+      const account = await node.wallet.createAccount(DEFAULT_ACCOUNT_NAME, true)
 
       this.log(`New default account created: ${account.name}`)
       this.log(`Account's public address: ${account.publicAddress}`)
     } else {
       this.log(`The default account is now: ${DEFAULT_ACCOUNT_NAME}`)
-      await node.accounts.setDefaultAccount(DEFAULT_ACCOUNT_NAME)
+      await node.wallet.setDefaultAccount(DEFAULT_ACCOUNT_NAME)
     }
 
     this.log('')

@@ -17,6 +17,7 @@ const MINIMUM_MULTIPART_FILE_SIZE = 5 * 1024 * 1024
 const MAX_MULTIPART_NUM = 10000
 
 class UploadToBucketError extends Error {
+  name = this.constructor.name
   error: unknown | undefined
 
   constructor(message?: string, error?: unknown) {

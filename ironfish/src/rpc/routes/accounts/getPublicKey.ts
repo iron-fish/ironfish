@@ -29,7 +29,7 @@ router.register<typeof GetPublicKeyRequestSchema, GetPublicKeyResponse>(
     const account = getAccount(node, request.data.account)
 
     if (request.data.generate) {
-      await node.accounts.generateNewPublicAddress(account)
+      await node.wallet.generateNewPublicAddress(account)
     }
 
     request.end({

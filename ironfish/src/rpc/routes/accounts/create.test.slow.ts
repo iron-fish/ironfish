@@ -14,7 +14,7 @@ describe('Route account/create', () => {
   jest.setTimeout(15000)
   const routeTest = createRouteTest()
   it('should create an account', async () => {
-    await routeTest.node.accounts.createAccount('existingAccount', true)
+    await routeTest.node.wallet.createAccount('existingAccount', true)
 
     const name = uuid()
 
@@ -28,7 +28,7 @@ describe('Route account/create', () => {
       isDefaultAccount: false,
     })
 
-    const account = routeTest.node.accounts.getAccountByName(name)
+    const account = routeTest.node.wallet.getAccountByName(name)
     expect(account).toMatchObject({
       name: name,
       publicAddress: response.content.publicAddress,
@@ -36,7 +36,7 @@ describe('Route account/create', () => {
   })
 
   it('should set the account as default', async () => {
-    await routeTest.node.accounts.setDefaultAccount(null)
+    await routeTest.node.wallet.setDefaultAccount(null)
 
     const name = uuid()
 
@@ -48,7 +48,7 @@ describe('Route account/create', () => {
       publicAddress: expect.any(String),
       isDefaultAccount: true,
     })
-    expect(routeTest.node.accounts.getDefaultAccount()?.name).toBe(name)
+    expect(routeTest.node.wallet.getDefaultAccount()?.name).toBe(name)
   })
 
   it('should validate request', async () => {
@@ -68,7 +68,7 @@ describe('Route account/create', () => {
   it('should fail if name already exists', async () => {
     const name = uuid()
 
-    await routeTest.node.accounts.createAccount(name)
+    await routeTest.node.wallet.createAccount(name)
 
     try {
       expect.assertions(2)

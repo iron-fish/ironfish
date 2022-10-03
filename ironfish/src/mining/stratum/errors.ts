@@ -5,6 +5,8 @@ import * as yup from 'yup'
 import { StratumServerClient } from './stratumServerClient'
 
 export class MessageMalformedError extends Error {
+  name = this.constructor.name
+
   constructor(sender: string, error: yup.ValidationError | string, method?: string) {
     super()
 

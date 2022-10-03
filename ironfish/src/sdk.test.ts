@@ -17,7 +17,7 @@ import {
 import { RpcIpcClient } from './rpc/clients/ipcClient'
 import { RpcTcpClient } from './rpc/clients/tcpClient'
 import { IronfishSdk } from './sdk'
-import { Accounts } from './wallet'
+import { Wallet } from './wallet'
 
 describe('IronfishSdk', () => {
   describe('init', () => {
@@ -64,7 +64,7 @@ describe('IronfishSdk', () => {
       expect(node).toBeInstanceOf(IronfishNode)
       expect(node.files).toBe(fileSystem)
       expect(node.config).toBe(sdk.config)
-      expect(node.accounts).toBeInstanceOf(Accounts)
+      expect(node.wallet).toBeInstanceOf(Wallet)
       expect(node.config.get('databaseName')).toBe('foo')
     })
 

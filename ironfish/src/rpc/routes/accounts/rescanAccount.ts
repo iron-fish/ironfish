@@ -27,26 +27,26 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
   `${ApiNamespace.account}/rescanAccount`,
   RescanAccountRequestSchema,
   async (request, node): Promise<void> => {
-    let scan = node.accounts.scan
+    let scan = node.wallet.scan
 
     if (scan && !request.data.follow) {
       throw new ValidationError(`A transaction rescan is already running`)
     }
 
     if (!scan) {
-      if (node.accounts.updateHeadState) {
-        await node.accounts.updateHeadState.abort()
+      if (node.wallet.updateHeadState) {
+        await node.wallet.updateHeadState.abort()
       }
 
       if (request.data.reset) {
-        await node.accounts.reset()
+        await node.wallet.reset()
       }
 
-      void node.accounts.scanTransactions()
-      scan = node.accounts.scan
+      void node.wallet.scanTransactions()
+      scan = node.wallet.scan
 
       if (!scan) {
-        node.accounts.logger.warn(`Attempted to start accounts scan but one did not start.`)
+        node.wallet.logger.warn(`Attempted to start accounts scan but one did not start.`)
       }
     }
 

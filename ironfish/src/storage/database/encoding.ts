@@ -49,7 +49,9 @@ export class BufferEncoding implements IDatabaseEncoding<Buffer> {
   deserialize = (buffer: Buffer): Buffer => buffer
 }
 
-export class PrefixSizeError extends Error {}
+export class PrefixSizeError extends Error {
+  name = this.constructor.name
+}
 
 export class PrefixEncoding<TPrefix, TKey> implements IDatabaseEncoding<[TPrefix, TKey]> {
   readonly keyEncoding: IDatabaseEncoding<TKey>

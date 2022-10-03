@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
 import { Account } from '../../../wallet/account'
-import { TransactionValue } from '../../../wallet/database/transactionValue'
+import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
 import { ApiNamespace, router } from '../router'
 import { serializeRpcAccountTransaction } from './types'
@@ -13,17 +13,14 @@ import { getAccount, getTransactionStatus } from './utils'
 export type GetAccountTransactionsRequest = { account?: string; hash?: string }
 
 export type GetAccountTransactionsResponse = {
-  account: string
-  transaction: {
-    creator: boolean
-    status: string
-    hash: string
-    isMinersFee: boolean
-    fee: string
-    notesCount: number
-    spendsCount: number
-    expirationSequence: number
-  }
+  creator: boolean
+  status: string
+  hash: string
+  isMinersFee: boolean
+  fee: string
+  notesCount: number
+  spendsCount: number
+  expirationSequence: number
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -37,19 +34,14 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
 export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTransactionsResponse> =
   yup
     .object({
-      account: yup.string().defined(),
-      transaction: yup
-        .object({
-          creator: yup.boolean().defined(),
-          status: yup.string().defined(),
-          hash: yup.string().defined(),
-          isMinersFee: yup.boolean().defined(),
-          fee: yup.string().defined(),
-          notesCount: yup.number().defined(),
-          spendsCount: yup.number().defined(),
-          expirationSequence: yup.number().defined(),
-        })
-        .defined(),
+      creator: yup.boolean().defined(),
+      status: yup.string().defined(),
+      hash: yup.string().defined(),
+      isMinersFee: yup.boolean().defined(),
+      fee: yup.string().defined(),
+      notesCount: yup.number().defined(),
+      spendsCount: yup.number().defined(),
+      expirationSequence: yup.number().defined(),
     })
     .defined()
 
@@ -61,7 +53,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
     if (request.data.hash) {
       const hash = Buffer.from(request.data.hash, 'hex')
-      const transaction = await account.getTransaction(hash)
+      const transaction = await account.getTransactionByUnsignedHash(hash)
 
       if (transaction) {
         await streamTransaction(request, node, account, transaction)
@@ -72,6 +64,10 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
     }
 
     for await (const transaction of account.getTransactions()) {
+      if (request.closed) {
+        break
+      }
+
       await streamTransaction(request, node, account, transaction)
     }
 
@@ -110,8 +106,5 @@ const streamTransaction = async (
     status,
   }
 
-  request.stream({
-    account: account.name,
-    transaction: serialized,
-  })
+  request.stream(serialized)
 }

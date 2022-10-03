@@ -23,8 +23,8 @@ jest.mock('ws')
 jest.useFakeTimers()
 
 const getValidTransactionOnBlock = async (node: IronfishNode) => {
-  const accountA = await useAccountFixture(node.accounts, 'accountA')
-  const accountB = await useAccountFixture(node.accounts, 'accountB')
+  const accountA = await useAccountFixture(node.wallet, 'accountA')
+  const accountB = await useAccountFixture(node.wallet, 'accountB')
   const { transaction, block } = await useBlockWithTx(node, accountA, accountB)
   return { transaction, accountA, accountB, block }
 }

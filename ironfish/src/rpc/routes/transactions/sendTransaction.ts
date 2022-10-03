@@ -72,7 +72,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
   async (request, node): Promise<void> => {
     const transaction = request.data
 
-    const account = node.accounts.getAccountByName(transaction.fromAccountName)
+    const account = node.wallet.getAccountByName(transaction.fromAccountName)
 
     if (!account) {
       throw new ValidationError(`No account found with name ${transaction.fromAccountName}`)
@@ -92,7 +92,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     // Check that the node account is updated
-    const balance = await node.accounts.getBalance(account)
+    const balance = await node.wallet.getBalance(account)
     const sum =
       transaction.receives.reduce((acc, receive) => acc + BigInt(receive.amount), BigInt(0)) +
       BigInt(transaction.fee)
@@ -122,7 +122,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     })
 
     try {
-      const transactionPosted = await node.accounts.pay(
+      const transactionPosted = await node.wallet.pay(
         node.memPool,
         account,
         receives,

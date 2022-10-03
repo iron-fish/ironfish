@@ -19,7 +19,6 @@ import {
   MESSAGE_DELIMITER,
   ServerSocketRpc,
   SocketRpcError,
-  SocketRpcRequest,
 } from './protocol'
 
 type SocketClient = {
@@ -209,27 +208,23 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       )
       client.requests.set(requestId, request)
 
-      if (this.router == null || this.router.server == null) {
-        this.emitResponse(client, this.constructUnmountedAdapter())
-        return
-      }
-
-      // Authentication
-      if (this.enableAuthentication) {
-        if (!message.auth) {
-          this.emitResponse(client, this.constructUnauthenticatedRequest(message))
-          return
-        }
-
-        const isAuthenticated = this.router.server.authenticate(message.auth)
-
-        if (!isAuthenticated) {
-          this.emitResponse(client, this.constructUnauthenticatedRequest(message))
-          return
-        }
-      }
-
       try {
+        if (this.router == null || this.router.server == null) {
+          throw new ResponseError('Tried to connect to unmounted adapter')
+        }
+
+        // Authentication
+        if (this.enableAuthentication) {
+          const isAuthenticated = this.router.server.authenticate(message.auth)
+
+          if (!isAuthenticated) {
+            const error = message.auth
+              ? 'Failed authentication'
+              : 'Missing authentication token'
+            throw new ResponseError(error, ERROR_CODES.UNAUTHENTICATED, 401)
+          }
+        }
+
         await this.router.route(message.type, request)
       } catch (error: unknown) {
         if (error instanceof ResponseError) {
@@ -318,37 +313,5 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       type: 'malformedRequest',
       data: data,
     }
-  }
-
-  constructUnmountedAdapter(): ServerSocketRpc {
-    const error = new Error(`Tried to connect to unmounted adapter`)
-
-    const data: SocketRpcError = {
-      code: ERROR_CODES.ERROR,
-      message: error.message,
-      stack: error.stack,
-    }
-
-    return {
-      type: 'error',
-      data: data,
-    }
-  }
-
-  constructUnauthenticatedRequest(request: SocketRpcRequest): ServerSocketRpc {
-    let error: Error
-    if (!request.auth) {
-      error = new Error(`Missing authentication token`)
-    } else {
-      error = new Error(`Failed authentication`)
-    }
-
-    const data: SocketRpcError = {
-      code: ERROR_CODES.UNAUTHENTICATED,
-      message: error.message,
-      stack: error.stack,
-    }
-
-    return this.constructMessage(request.mid, 401, data)
   }
 }

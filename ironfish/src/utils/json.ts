@@ -5,6 +5,7 @@ import parseJson, { JSONError } from 'parse-json'
 import { Assert } from '../assert'
 
 export class ParseJsonError extends Error {
+  name = this.constructor.name
   jsonMessage: string
   jsonFileName: string
   jsonCodeFrame: string
