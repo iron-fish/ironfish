@@ -66,6 +66,7 @@ export class Wallet {
   protected isOpen = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
   private readonly createTransactionMutex: Mutex
+  private readonly eventLoopAbortController: AbortController
 
   constructor({
     chain,
@@ -89,6 +90,7 @@ export class Wallet {
     this.workerPool = workerPool
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
+    this.eventLoopAbortController = new AbortController()
 
     this.chainProcessor = new ChainProcessor({
       logger: this.logger,
@@ -251,6 +253,7 @@ export class Wallet {
     }
 
     await Promise.all([this.scan?.abort(), this.updateHeadState?.abort()])
+    this.eventLoopAbortController.abort()
 
     if (this.walletDb.db.isOpen) {
       await this.updateHeadHashes(this.chainProcessor.hash)
@@ -797,6 +800,10 @@ export class Wallet {
 
     for (const account of this.accounts.values()) {
       for await (const transactionInfo of account.getTransactions()) {
+        if (this.eventLoopAbortController.signal.aborted) {
+          return
+        }
+
         const { transaction, blockHash, submittedSequence } = transactionInfo
         const transactionHash = transaction.hash()
 
@@ -871,6 +878,10 @@ export class Wallet {
 
     for (const account of this.accounts.values()) {
       for await (const { transaction } of account.getExpiredTransactions(head.sequence)) {
+        if (this.eventLoopAbortController.signal.aborted) {
+          return
+        }
+
         await account.expireTransaction(transaction)
       }
     }
