@@ -682,10 +682,8 @@ export class Wallet {
 
       // check if the chain data is fully synced
       if (!this.isAccountUpToDate(sender)) {
-        throw new ResponseError(
+        throw new Error(
           `Your node must be synced with the Iron Fish network to send a transaction. `,
-          ERROR_CODES.ERROR,
-          400,
         )
       }
 

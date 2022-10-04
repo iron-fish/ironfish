@@ -78,14 +78,7 @@ describe('Accounts', () => {
       BigInt(1),
       0,
     )
-    await expect(response).rejects.toThrowError(ResponseError)
-    await expect(response).rejects.toMatchObject({
-      status: 400,
-      code: ERROR_CODES.ERROR,
-      message: expect.stringContaining(
-        'Your node must be synced with the Iron Fish network to send a transaction.',
-      ),
-    })
+    await expect(response).rejects.toThrowError(Error)
   })
 
   it('check if a transaction is not a miners fee', async () => {
