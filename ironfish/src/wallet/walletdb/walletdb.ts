@@ -211,6 +211,7 @@ export class WalletDB {
     await this.db.withTransaction(tx, async (tx) => {
       await this.accounts.del(account.id, tx)
       await this.balances.del(account.id, tx)
+      await this.accountIdsToCleanup.put(account.id, null, tx)
     })
   }
 
@@ -584,84 +585,70 @@ export class WalletDB {
     await this.pendingTransactionHashes.clear(tx, account.prefixRange)
   }
 
-  async saveAccountIdToCleanup(accountId: string, tx?: IDatabaseTransaction): Promise<void> {
-    await this.accountIdsToCleanup.put(accountId, null, tx)
-  }
+  async cleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
+    let recordsToCleanup = 1000
+    const accountIdsToCleanup = await this.accountIdsToCleanup.getAll()
 
-  async removeAccountIdToCleanup(accountId: string, tx?: IDatabaseTransaction): Promise<void> {
-    await this.accountIdsToCleanup.del(accountId, tx)
-  }
+    for (const [accountId] of accountIdsToCleanup) {
+      const prefix = calculateAccountPrefix(accountId)
+      const prefixRange = StorageUtils.getPrefixKeyRange(prefix)
 
-  async *loadAccountIdsToCleanup(
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ accountId: string }, void, unknown> {
-    for await (const [accountId] of this.accountIdsToCleanup.getAllIter(tx)) {
-      yield { accountId }
-    }
-  }
-
-  async cleanupAccount(
-    accountId: string,
-    recordsToCleanup: number,
-  ): Promise<[recordsToCleanup: number, cleaned: boolean]> {
-    const prefix = calculateAccountPrefix(accountId)
-    const prefixRange = StorageUtils.getPrefixKeyRange(prefix)
-
-    for await (const [transactionHash] of this.transactions.getAllKeysIter(
-      undefined,
-      prefixRange,
-    )) {
-      if (recordsToCleanup === 0) {
-        return [recordsToCleanup, false]
+      for await (const [transactionHash] of this.transactions.getAllKeysIter(
+        undefined,
+        prefixRange,
+      )) {
+        if (signal?.aborted === false || recordsToCleanup === 0) {
+          return
+        }
+        await this.transactions.del([prefix, transactionHash])
+        recordsToCleanup--
       }
-      await this.transactions.del([prefix, transactionHash])
-      recordsToCleanup--
-    }
 
-    for await (const [_, sequenceToNoteHash] of this.sequenceToNoteHash.getAllKeysIter(
-      undefined,
-      prefixRange,
-    )) {
-      if (recordsToCleanup === 0) {
-        return [recordsToCleanup, false]
+      for await (const [_, sequenceToNoteHash] of this.sequenceToNoteHash.getAllKeysIter(
+        undefined,
+        prefixRange,
+      )) {
+        if (signal?.aborted === false || recordsToCleanup === 0) {
+          return
+        }
+        await this.sequenceToNoteHash.del([prefix, sequenceToNoteHash])
+        recordsToCleanup--
       }
-      await this.sequenceToNoteHash.del([prefix, sequenceToNoteHash])
-      recordsToCleanup--
-    }
 
-    for await (const [nonChainNoteHashes] of this.nonChainNoteHashes.getAllKeysIter(
-      undefined,
-      prefixRange,
-    )) {
-      if (recordsToCleanup === 0) {
-        return [recordsToCleanup, false]
+      for await (const [nonChainNoteHashes] of this.nonChainNoteHashes.getAllKeysIter(
+        undefined,
+        prefixRange,
+      )) {
+        if (signal?.aborted === false || recordsToCleanup === 0) {
+          return
+        }
+        await this.nonChainNoteHashes.del([prefix, nonChainNoteHashes])
+        recordsToCleanup--
       }
-      await this.nonChainNoteHashes.del([prefix, nonChainNoteHashes])
-      recordsToCleanup--
-    }
 
-    for await (const [nullifierToNoteHash] of this.nullifierToNoteHash.getAllKeysIter(
-      undefined,
-      prefixRange,
-    )) {
-      if (recordsToCleanup === 0) {
-        return [recordsToCleanup, false]
+      for await (const [nullifierToNoteHash] of this.nullifierToNoteHash.getAllKeysIter(
+        undefined,
+        prefixRange,
+      )) {
+        if (signal?.aborted === false || recordsToCleanup === 0) {
+          return
+        }
+        await this.nullifierToNoteHash.del([prefix, nullifierToNoteHash])
+        recordsToCleanup--
       }
-      await this.nullifierToNoteHash.del([prefix, nullifierToNoteHash])
-      recordsToCleanup--
-    }
 
-    for await (const [decryptedNotes] of this.decryptedNotes.getAllKeysIter(
-      undefined,
-      prefixRange,
-    )) {
-      if (recordsToCleanup === 0) {
-        return [recordsToCleanup, false]
+      for await (const [decryptedNotes] of this.decryptedNotes.getAllKeysIter(
+        undefined,
+        prefixRange,
+      )) {
+        if (signal?.aborted === false || recordsToCleanup === 0) {
+          return
+        }
+        await this.decryptedNotes.del([prefix, decryptedNotes])
+        recordsToCleanup--
       }
-      await this.decryptedNotes.del([prefix, decryptedNotes])
-      recordsToCleanup--
-    }
 
-    return [recordsToCleanup, true]
+      await this.accountIdsToCleanup.del(accountId)
+    }
   }
 }
