@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 use std::convert::TryInto;
 
+use ironfish_rust::proofs::circuit::create_asset;
 use ironfish_rust::transaction::batch_verify_transactions;
 use ironfish_rust::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
 use napi::{bindgen_prelude::*, JsBuffer};
@@ -13,7 +14,7 @@ use napi_derive::napi;
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendProof;
 use super::witness::JsWitness;
-use super::NativeCreateAssetNote;
+use super::{NativeCreateAssetNote, NativeMintAssetNote};
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {
@@ -208,6 +209,28 @@ impl NativeTransaction {
             .map_err(|err| Error::from_reason(err.to_string()))?;
         self.transaction
             .create_asset(&creator_key, &create_asset_note.inner)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+
+        Ok(())
+    }
+
+    #[napi]
+    pub fn mint_asset(
+        &mut self,
+        minter_hex_key: String,
+        create_asset_note: &NativeCreateAssetNote,
+        mint_asset_note: &NativeMintAssetNote,
+    ) -> Result<()> {
+        let minter_key = SaplingKey::from_hex(&minter_hex_key)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let witness = create_asset_note.inner.make_fake_witness_from_commitment();
+        self.transaction
+            .mint_asset(
+                &minter_key,
+                &create_asset_note.inner,
+                &mint_asset_note.inner,
+                &witness,
+            )
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok(())

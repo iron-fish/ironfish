@@ -29,6 +29,33 @@ describe('Accounts', () => {
 
     expect(transaction['_createAssetProofs'].length).toBe(1)
   })
+  
+  it('should be able to create a Mint Asset Transaction with a created asset', async () => {
+    const { node } = nodeTest
+
+    const asset = { name: 'Rohancoin' }
+    const account = await useAccountFixture(node.wallet, 'a')
+    const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+    await expect(node.chain).toAddBlock(block)
+    await node.wallet.updateHead()
+
+    await node.wallet.createAssetTransaction(
+      account,
+      asset,
+      BigInt(1),
+      15,
+    )
+
+    const transaction = await node.wallet.mintAssetTransaction(
+      account,
+      asset,
+      BigInt(10),
+      BigInt(1),
+      15,
+    );
+
+    expect(transaction['_mintAssetProofs'].length).toBe(1)
+  }, 60000)
 
   it('should reset when chain processor head does not exist in chain', async () => {
     const { node, strategy } = nodeTest

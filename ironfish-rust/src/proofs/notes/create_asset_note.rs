@@ -14,7 +14,12 @@ use zcash_primitives::{
     sapling::pedersen_hash,
 };
 
-use crate::primitives::asset_type::AssetInfo;
+use crate::{
+    primitives::asset_type::AssetInfo,
+    witness::{Witness, WitnessNode},
+    MerkleNoteHash,
+};
+use zcash_proofs::circuit::sapling::TREE_DEPTH;
 
 /// A create asset note represents an asset in the owner's "account"
 /// Expected API:
@@ -63,5 +68,48 @@ impl CreateAssetNote {
         );
 
         create_commitment_hash + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)
+    }
+
+    // TODO(rohanjadvani, mgeist): Remove this after testing mint asset in JS wallet
+    pub fn make_fake_witness_from_commitment(&self) -> Witness {
+        let note_commitment = self.commitment_point();
+        let mut rng = thread_rng();
+        let mut buffer = [0u8; 64];
+        thread_rng().fill(&mut buffer[..]);
+
+        let mut witness_auth_path = vec![];
+        for _ in 0..TREE_DEPTH {
+            witness_auth_path.push(match rng.gen() {
+                false => WitnessNode::Left(Scalar::from(rng.gen::<u64>())),
+                true => WitnessNode::Right(Scalar::from(rng.gen::<u64>())),
+            })
+        }
+        let root_hash = self.auth_path_to_root_hash(&witness_auth_path, note_commitment);
+        Witness {
+            auth_path: witness_auth_path,
+            root_hash,
+            tree_size: 1400,
+        }
+    }
+
+    fn auth_path_to_root_hash(
+        &self,
+        auth_path: &[WitnessNode<Scalar>],
+        child_hash: Scalar,
+    ) -> Scalar {
+        let mut cur = child_hash;
+
+        for (i, node) in auth_path.iter().enumerate() {
+            cur = match node {
+                WitnessNode::Left(ref sibling_hash) => {
+                    MerkleNoteHash::combine_hash(i, &cur, &sibling_hash.clone())
+                }
+                WitnessNode::Right(ref sibling_hash) => {
+                    MerkleNoteHash::combine_hash(i, &sibling_hash.clone(), &cur)
+                }
+            }
+        }
+
+        cur
     }
 }
