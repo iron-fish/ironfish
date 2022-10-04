@@ -247,7 +247,6 @@ export class PeerManager {
     peer.peerRequestedDisconnectReason = null
 
     if (peer.state.identity === null) {
-      console.log('no identity')
       return false
     }
 
@@ -266,13 +265,11 @@ export class PeerManager {
       )?.failedConnection(peer.isWhitelisted)
 
       // If we don't have any brokering peers try disposing the peers
-      console.log('no broker')
       this.tryDisposePeer(peer)
       return false
     }
 
     if (canInitiateWebRTC(this.localPeer.publicIdentity, peer.state.identity)) {
-      console.log('initiating')
       this.initWebRtcConnection(peer, true)
       return true
     }
@@ -285,7 +282,6 @@ export class PeerManager {
     const connection = this.initWebRtcConnection(peer, false)
     connection.setState({ type: 'REQUEST_SIGNALING' })
     brokeringPeer.send(signal)
-    console.log('requesting signaling')
     return true
   }
 
@@ -517,14 +513,6 @@ export class PeerManager {
       retryOk = this.peerCandidateMap.get(peer.state.identity)?.webRtcRetry.canConnect ?? false
     }
 
-    console.log(
-      canEstablishNewConnection,
-      disconnectOk,
-      hasNoConnection,
-      retryOk,
-      peer.state.identity !== null,
-    )
-
     return (
       canEstablishNewConnection &&
       disconnectOk &&
@@ -616,7 +604,6 @@ export class PeerManager {
     }
 
     if (peer.state.identity === null) {
-      console.log('gbp - unidentified')
       // Cannot find a brokering peer of an unidentified peer
       return null
     }
@@ -627,14 +614,11 @@ export class PeerManager {
     // The peer candidate map tracks any brokering peer candidates
     const val = this.peerCandidateMap.get(peer.state.identity)
     if (!val) {
-      console.log('gbp - no peer candidate')
       return null
     }
 
     for (const neighbor of val.neighbors) {
-      console.log('neighbor', neighbor)
       const neighborPeer = this.identifiedPeers.get(neighbor)
-      console.log('neighborPeer', neighborPeer)
       if (!neighborPeer || neighborPeer.state.type !== 'CONNECTED') {
         val.neighbors.delete(neighbor)
         continue
@@ -644,7 +628,6 @@ export class PeerManager {
     }
 
     if (candidates.length === 0) {
-      console.log('gbp - no candidate')
       return null
     }
 
