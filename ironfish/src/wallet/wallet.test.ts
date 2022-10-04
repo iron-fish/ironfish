@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../assert'
 import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from '../consensus'
 import {
   createNodeTest,
@@ -9,6 +10,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
+import { TransactionStatus } from '../wallet'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -473,6 +475,178 @@ describe('Accounts', () => {
       await node.wallet.expireTransactions()
 
       expect(expireSpy).toHaveBeenCalledTimes(0)
+    })
+  })
+
+  describe('getTransactionStatus', () => {
+    it('should show unconfirmed transactions as unconfirmed', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+
+      await node.wallet.updateHead()
+
+      const transaction = blockA1.minersFee
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+      Assert.isNotNull(transactionValue.sequence)
+
+      const transactionStatus = await node.wallet.getTransactionStatus(
+        accountA,
+        transactionValue,
+        {
+          headSequence: transactionValue.sequence - 1,
+        },
+      )
+
+      expect(transactionStatus).toEqual(TransactionStatus.UNCONFIRMED)
+    })
+
+    it('should show confirmed transactions as confirmed', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+
+      await node.wallet.updateHead()
+
+      const transaction = blockA1.minersFee
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+
+      // Get status as if head of wallet were much later
+      const transactionStatus = await node.wallet.getTransactionStatus(
+        accountA,
+        transactionValue,
+        {
+          headSequence: 100000,
+        },
+      )
+
+      expect(transactionStatus).toEqual(TransactionStatus.CONFIRMED)
+    })
+
+    it('should show pending transactions as pending', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountB)
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+
+      const transactionStatus = await node.wallet.getTransactionStatus(
+        accountA,
+        transactionValue,
+      )
+
+      expect(transactionStatus).toEqual(TransactionStatus.PENDING)
+    })
+
+    it('should show expired transactions as expired', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(
+        node.wallet,
+        accountA,
+        accountB,
+        undefined,
+        undefined,
+        1,
+      )
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+
+      const transactionStatus = await node.wallet.getTransactionStatus(
+        accountA,
+        transactionValue,
+      )
+
+      expect(transactionStatus).toEqual(TransactionStatus.EXPIRED)
+    })
+
+    it('should show transactions with 0 expiration as pending', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(
+        node.wallet,
+        accountA,
+        accountB,
+        undefined,
+        undefined,
+        0,
+      )
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+
+      // Get status as if head of wallet were much later
+      const transactionStatus = await node.wallet.getTransactionStatus(
+        accountA,
+        transactionValue,
+        {
+          headSequence: 100000,
+        },
+      )
+
+      expect(transactionStatus).toEqual(TransactionStatus.PENDING)
+    })
+
+    it('should show unknown status if account has no head sequence', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+
+      await node.wallet.updateHead()
+
+      const transaction = blockA1.minersFee
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+      Assert.isNotNull(transactionValue.sequence)
+
+      await nodeTest.wallet.walletDb.saveHeadHash(accountA, null)
+
+      const transactionStatus = await node.wallet.getTransactionStatus(
+        accountA,
+        transactionValue,
+      )
+
+      expect(transactionStatus).toEqual(TransactionStatus.UNKNOWN)
     })
   })
 })

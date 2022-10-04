@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
+import { IDatabaseTransaction } from '../../../storage'
 import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
 import { ApiNamespace, router } from '../router'
 import { serializeRpcAccountTransaction } from './types'
-import { getAccount, getTransactionStatus } from './utils'
+import { getAccount } from './utils'
 
 export type GetAccountTransactionsRequest = { account?: string; hash?: string }
 
@@ -53,6 +54,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
     if (request.data.hash) {
       const hash = Buffer.from(request.data.hash, 'hex')
+
       const transaction = await account.getTransactionByUnsignedHash(hash)
 
       if (transaction) {
@@ -63,12 +65,14 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
       return
     }
 
+    const headSequence = await node.wallet.getAccountHeadSequence(account)
+
     for await (const transaction of account.getTransactions()) {
       if (request.closed) {
         break
       }
 
-      await streamTransaction(request, node, account, transaction)
+      await streamTransaction(request, node, account, transaction, { headSequence })
     }
 
     request.end()
@@ -80,6 +84,10 @@ const streamTransaction = async (
   node: IronfishNode,
   account: Account,
   transaction: TransactionValue,
+  options?: {
+    headSequence?: number | null
+    tx?: IDatabaseTransaction
+  },
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
@@ -93,12 +101,7 @@ const streamTransaction = async (
     }
   }
 
-  const status = await getTransactionStatus(
-    node,
-    transaction.blockHash,
-    transaction.sequence,
-    transaction.transaction.expirationSequence(),
-  )
+  const status = await node.wallet.getTransactionStatus(account, transaction, options)
 
   const serialized = {
     ...serializedTransaction,

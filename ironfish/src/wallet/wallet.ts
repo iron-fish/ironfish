@@ -22,7 +22,16 @@ import { Account } from './account'
 import { NotEnoughFundsError } from './errors'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
+import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
+
+export enum TransactionStatus {
+  CONFIRMED = 'confirmed',
+  EXPIRED = 'expired',
+  PENDING = 'pending',
+  UNCONFIRMED = 'unconfirmed',
+  UNKNOWN = 'unknown',
+}
 
 export type SyncTransactionParams =
   // Used when receiving a transaction from a block with notes
@@ -556,8 +565,9 @@ export class Wallet {
     return await this.walletDb.db.transaction(async (tx) => {
       this.assertHasAccount(account)
 
-      const headHash = await account.getHeadHash(tx)
-      if (!headHash) {
+      const headSequence = await this.getAccountHeadSequence(account, tx)
+
+      if (!headSequence) {
         return {
           unconfirmed: BigInt(0),
           confirmed: BigInt(0),
@@ -567,10 +577,7 @@ export class Wallet {
         }
       }
 
-      const header = await this.chain.getHeader(headHash)
-      Assert.isNotNull(header, `Missing block header for hash '${headHash.toString('hex')}'`)
-
-      return account.getBalance(header.sequence, minimumBlockConfirmations, tx)
+      return account.getBalance(headSequence, minimumBlockConfirmations, tx)
     })
   }
 
@@ -869,6 +876,36 @@ export class Wallet {
     }
   }
 
+  async getTransactionStatus(
+    account: Account,
+    transaction: TransactionValue,
+    options?: {
+      headSequence?: number | null
+      tx?: IDatabaseTransaction
+    },
+  ): Promise<TransactionStatus> {
+    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
+    const headSequence =
+      options?.headSequence ?? (await this.getAccountHeadSequence(account, options?.tx))
+
+    if (!headSequence) {
+      return TransactionStatus.UNKNOWN
+    }
+
+    if (transaction.sequence) {
+      const isConfirmed = headSequence - transaction.sequence >= minimumBlockConfirmations
+
+      return isConfirmed ? TransactionStatus.CONFIRMED : TransactionStatus.UNCONFIRMED
+    } else {
+      const isExpired = this.chain.verifier.isExpiredSequence(
+        transaction.transaction.expirationSequence(),
+        headSequence,
+      )
+
+      return isExpired ? TransactionStatus.EXPIRED : TransactionStatus.PENDING
+    }
+  }
+
   async createAccount(name: string, setDefault = false): Promise<Account> {
     if (this.getAccountByName(name)) {
       throw new Error(`Account already exists with the name ${name}`)
@@ -1004,6 +1041,23 @@ export class Wallet {
     return null
   }
 
+  async getAccountHeadSequence(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): Promise<number | null> {
+    this.assertHasAccount(account)
+
+    const headHash = await account.getHeadHash(tx)
+    if (!headHash) {
+      return null
+    }
+
+    const header = await this.chain.getHeader(headHash)
+    Assert.isNotNull(header, `Missing block header for hash '${headHash.toString('hex')}'`)
+
+    return header.sequence
+  }
+
   getDefaultAccount(): Account | null {
     if (!this.defaultAccount) {
       return null
@@ -1078,9 +1132,7 @@ export class Wallet {
       `isAccountUpToDate: No head hash found for account ${account.displayName}`,
     )
 
-    const chainHeadHash = this.chainProcessor.hash ? this.chainProcessor.hash : null
-
-    return BufferUtils.equalsNullable(headHash, chainHeadHash)
+    return BufferUtils.equalsNullable(headHash, this.chainProcessor.hash)
   }
 
   protected assertHasAccount(account: Account): void {
