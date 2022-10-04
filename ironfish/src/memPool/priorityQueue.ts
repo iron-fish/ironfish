@@ -10,8 +10,8 @@
 export class PriorityQueue<T> {
   private _items: T[] = []
   private _positions: { [key: string]: number } = {}
-  private _compare: (a: T, b: T) => boolean
-  hash: (item: T) => string
+  readonly compare: (a: T, b: T) => boolean
+  readonly hash: (item: T) => string
 
   /**
    * This data structure is a **Priority Queue** as well as a **Set**. Duplicate entries are
@@ -22,7 +22,7 @@ export class PriorityQueue<T> {
    * be a pure function and very fast (ideally just a field access) because it is called often
    */
   constructor(compare: (a: T, b: T) => boolean, hash: (item: T) => string) {
-    this._compare = compare
+    this.compare = compare
     this.hash = hash
   }
 
@@ -85,7 +85,7 @@ export class PriorityQueue<T> {
    * create a new queue copy identical to this queue
    */
   clone(): PriorityQueue<T> {
-    const queue = new PriorityQueue<T>(this._compare, this.hash)
+    const queue = new PriorityQueue<T>(this.compare, this.hash)
     queue._items = this._items.slice(0)
     Object.assign(queue._positions, this._positions)
     return queue
@@ -129,10 +129,7 @@ export class PriorityQueue<T> {
     let currIndex = index
     let parentIndex = this._parentIndex(currIndex)
 
-    while (
-      parentIndex >= 0 &&
-      this._compare(this._items[currIndex], this._items[parentIndex])
-    ) {
+    while (parentIndex >= 0 && this.compare(this._items[currIndex], this._items[parentIndex])) {
       this._swap(currIndex, parentIndex)
       currIndex = parentIndex
       parentIndex = this._parentIndex(currIndex)
@@ -149,7 +146,7 @@ export class PriorityQueue<T> {
 
     while (
       smallestChildIndex !== undefined &&
-      this._compare(this._items[smallestChildIndex], this._items[currIndex])
+      this.compare(this._items[smallestChildIndex], this._items[currIndex])
     ) {
       this._swap(currIndex, smallestChildIndex)
       currIndex = smallestChildIndex
@@ -170,7 +167,7 @@ export class PriorityQueue<T> {
 
     if (
       rightChildIndex >= this._items.length ||
-      this._compare(this._items[leftChildIndex], this._items[rightChildIndex])
+      this.compare(this._items[leftChildIndex], this._items[rightChildIndex])
     ) {
       return leftChildIndex
     }
