@@ -195,7 +195,12 @@ describe('MemPool', () => {
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
-        const { transaction: transaction2 } = await useBlockWithTx(node, accountA, accountB)
+        const { transaction: transaction2 } = await useBlockWithTx(
+          node,
+          accountA,
+          accountB,
+          false,
+        )
 
         expect(transaction.getSpend(0).nullifier).toEqual(transaction2.getSpend(0).nullifier)
 
@@ -214,7 +219,7 @@ describe('MemPool', () => {
           node,
           accountA,
           accountB,
-          true,
+          false,
           { fee: 2 },
         )
 
@@ -260,22 +265,35 @@ describe('MemPool', () => {
     it('removes the block transactions and expired transactions from the mempool', async () => {
       const { node, chain } = nodeTest
       const { wallet, memPool } = node
+
       const accountA = await useAccountFixture(wallet, 'accountA')
       const accountB = await useAccountFixture(wallet, 'accountB')
-      const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
+      const { transaction: transactionA } = await useBlockWithTx(
+        node,
+        accountA,
+        accountB,
+        true,
+        { expiration: 4 },
+      )
+
+      expect(chain.head.sequence).toEqual(2)
+
       const { block, transaction: transactionB } = await useBlockWithTx(
         node,
         accountB,
         accountA,
       )
 
+      expect(chain.head.sequence).toEqual(3)
+
       memPool.acceptTransaction(transactionA)
       memPool.acceptTransaction(transactionB)
       expect(memPool.exists(transactionA.hash())).toBe(true)
       expect(memPool.exists(transactionB.hash())).toBe(true)
 
-      jest.spyOn(transactionA, 'expirationSequence').mockImplementation(() => 1)
       await chain.addBlock(block)
+
+      expect(chain.head.sequence).toEqual(4)
 
       expect(memPool.exists(transactionA.hash())).toBe(false)
       expect(memPool.exists(transactionB.hash())).toBe(false)
