@@ -670,6 +670,13 @@ export class Wallet {
     try {
       this.assertHasAccount(sender)
 
+      // check if the chain data is fully synced
+      if (!this.isAccountUpToDate(sender)) {
+        throw new Error(
+          `Your node must be synced with the Iron Fish network to send a transaction. `,
+        )
+      }
+
       // TODO: If we're spending from multiple accounts, we need to figure out a
       // way to split the transaction fee. - deekerno
       let amountNeeded =
