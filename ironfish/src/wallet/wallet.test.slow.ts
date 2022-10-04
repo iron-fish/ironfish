@@ -362,7 +362,7 @@ describe('Accounts', () => {
         },
       ],
       BigInt(0),
-      newBlock.header.sequence,
+      1,
     )
 
     // Transaction should be pending
@@ -448,7 +448,7 @@ describe('Accounts', () => {
         },
       ],
       BigInt(0),
-      newBlock.header.sequence,
+      1,
     )
 
     // Transaction should be unconfirmed
