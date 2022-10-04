@@ -12,6 +12,7 @@ import {
   BigIntLEEncoding,
   BUFFER_ENCODING,
   BufferEncoding,
+  DatabaseStoreKey,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
@@ -588,64 +589,32 @@ export class WalletDB {
   async cleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
     let recordsToCleanup = 1000
     const accountIdsToCleanup = await this.accountIdsToCleanup.getAll()
+    const stores: Array<
+      IDatabaseStore<{
+        key: Readonly<unknown>
+        value: unknown
+      }>
+    > = [
+      this.transactions,
+      this.sequenceToNoteHash,
+      this.nonChainNoteHashes,
+      this.nullifierToNoteHash,
+      this.decryptedNotes,
+    ]
 
     for (const [accountId] of accountIdsToCleanup) {
       const prefix = calculateAccountPrefix(accountId)
       const prefixRange = StorageUtils.getPrefixKeyRange(prefix)
 
-      for await (const [transactionHash] of this.transactions.getAllKeysIter(
-        undefined,
-        prefixRange,
-      )) {
-        if (signal?.aborted === false || recordsToCleanup === 0) {
-          return
-        }
-        await this.transactions.del([prefix, transactionHash])
-        recordsToCleanup--
-      }
+      for (const store of stores) {
+        for await (const key of store.getAllKeysIter(undefined, prefixRange)) {
+          if (signal?.aborted === false || recordsToCleanup === 0) {
+            return
+          }
 
-      for await (const [_, sequenceToNoteHash] of this.sequenceToNoteHash.getAllKeysIter(
-        undefined,
-        prefixRange,
-      )) {
-        if (signal?.aborted === false || recordsToCleanup === 0) {
-          return
+          await store.del(key)
+          recordsToCleanup--
         }
-        await this.sequenceToNoteHash.del([prefix, sequenceToNoteHash])
-        recordsToCleanup--
-      }
-
-      for await (const [nonChainNoteHashes] of this.nonChainNoteHashes.getAllKeysIter(
-        undefined,
-        prefixRange,
-      )) {
-        if (signal?.aborted === false || recordsToCleanup === 0) {
-          return
-        }
-        await this.nonChainNoteHashes.del([prefix, nonChainNoteHashes])
-        recordsToCleanup--
-      }
-
-      for await (const [nullifierToNoteHash] of this.nullifierToNoteHash.getAllKeysIter(
-        undefined,
-        prefixRange,
-      )) {
-        if (signal?.aborted === false || recordsToCleanup === 0) {
-          return
-        }
-        await this.nullifierToNoteHash.del([prefix, nullifierToNoteHash])
-        recordsToCleanup--
-      }
-
-      for await (const [decryptedNotes] of this.decryptedNotes.getAllKeysIter(
-        undefined,
-        prefixRange,
-      )) {
-        if (signal?.aborted === false || recordsToCleanup === 0) {
-          return
-        }
-        await this.decryptedNotes.del([prefix, decryptedNotes])
-        recordsToCleanup--
       }
 
       await this.accountIdsToCleanup.del(accountId)
