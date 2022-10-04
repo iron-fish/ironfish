@@ -589,8 +589,9 @@ export class WalletDB {
 
   async cleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
     let recordsToCleanup = 1000
+
     const accountIdsToCleanup = await this.accountIdsToCleanup.getAll()
-<<<<<<< HEAD
+
     const stores: Array<
       IDatabaseStore<{
         key: Readonly<unknown>
@@ -632,69 +633,6 @@ export class WalletDB {
   ): AsyncGenerator<{ accountId: string }, void, unknown> {
     for await (const [accountId] of this.accountIdsToCleanup.getAllIter(tx)) {
       yield { accountId }
-=======
-
-    for (const [accountId] of accountIdsToCleanup) {
-      const prefix = calculateAccountPrefix(accountId)
-      const prefixRange = StorageUtils.getPrefixKeyRange(prefix)
-
-      for await (const [transactionHash] of this.transactions.getAllKeysIter(
-        undefined,
-        prefixRange,
-      )) {
-        if (signal?.aborted === false || recordsToCleanup === 0) {
-          return
-        }
-        await this.transactions.del([prefix, transactionHash])
-        recordsToCleanup--
-      }
-
-      for await (const [_, sequenceToNoteHash] of this.sequenceToNoteHash.getAllKeysIter(
-        undefined,
-        prefixRange,
-      )) {
-        if (signal?.aborted === false || recordsToCleanup === 0) {
-          return
-        }
-        await this.sequenceToNoteHash.del([prefix, sequenceToNoteHash])
-        recordsToCleanup--
-      }
-
-      for await (const [nonChainNoteHashes] of this.nonChainNoteHashes.getAllKeysIter(
-        undefined,
-        prefixRange,
-      )) {
-        if (signal?.aborted === false || recordsToCleanup === 0) {
-          return
-        }
-        await this.nonChainNoteHashes.del([prefix, nonChainNoteHashes])
-        recordsToCleanup--
-      }
-
-      for await (const [nullifierToNoteHash] of this.nullifierToNoteHash.getAllKeysIter(
-        undefined,
-        prefixRange,
-      )) {
-        if (signal?.aborted === false || recordsToCleanup === 0) {
-          return
-        }
-        await this.nullifierToNoteHash.del([prefix, nullifierToNoteHash])
-        recordsToCleanup--
-      }
-
-      for await (const [decryptedNotes] of this.decryptedNotes.getAllKeysIter(
-        undefined,
-        prefixRange,
-      )) {
-        if (signal?.aborted === false || recordsToCleanup === 0) {
-          return
-        }
-        await this.decryptedNotes.del([prefix, decryptedNotes])
-        recordsToCleanup--
-      }
-
-      await this.accountIdsToCleanup.del(accountId)
->>>>>>> 4df4eca2 (Move cleanup code into walletdb)
     }
   }
 }
