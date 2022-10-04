@@ -344,6 +344,55 @@ describe('Accounts', () => {
   })
 
   describe('expireTransactions', () => {
+    it('should not expire transactions with expiration sequence ahead of the chain', async () => {
+      const { node } = nodeTest
+      node.chain['synced'] = true
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block1)
+
+      await node.wallet.updateHead()
+
+      await useTxFixture(
+        node.wallet,
+        accountA,
+        accountB,
+        undefined,
+        undefined,
+        node.chain.head.sequence + 1,
+      )
+
+      const expireSpy = jest.spyOn(accountA, 'expireTransaction')
+
+      await node.wallet.expireTransactions()
+
+      expect(expireSpy).toHaveBeenCalledTimes(0)
+    })
+
+    it('should not expire transactions with expiration sequence of 0', async () => {
+      const { node } = nodeTest
+      node.chain['synced'] = true
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block1)
+
+      await node.wallet.updateHead()
+
+      await useTxFixture(node.wallet, accountA, accountB, undefined, undefined, 0)
+
+      const expireSpy = jest.spyOn(accountA, 'expireTransaction')
+
+      await node.wallet.expireTransactions()
+
+      expect(expireSpy).toHaveBeenCalledTimes(0)
+    })
+
     it('should expire transactions for all affected accounts', async () => {
       const { node } = nodeTest
       node.chain['synced'] = true
@@ -384,7 +433,7 @@ describe('Accounts', () => {
         accountB.getExpiredTransactions(node.chain.head.sequence),
       )
       expect(expiredB.length).toEqual(0)
-    }, 50000000)
+    })
 
     it('should only expire transactions one time', async () => {
       const { node } = nodeTest
