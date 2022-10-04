@@ -811,6 +811,10 @@ export class Wallet {
     }
 
     for (const account of this.accounts.values()) {
+      if (this.eventLoopAbortController.signal.aborted) {
+        return
+      }
+
       for await (const transactionInfo of account.getTransactions()) {
         if (this.eventLoopAbortController.signal.aborted) {
           return
@@ -874,6 +878,10 @@ export class Wallet {
   }
 
   async expireTransactions(): Promise<void> {
+    if (!this.isStarted) {
+      return
+    }
+
     if (!this.chain.synced) {
       return
     }
@@ -889,6 +897,10 @@ export class Wallet {
     }
 
     for (const account of this.accounts.values()) {
+      if (this.eventLoopAbortController.signal.aborted) {
+        return
+      }
+
       for await (const { transaction } of account.getExpiredTransactions(head.sequence)) {
         if (this.eventLoopAbortController.signal.aborted) {
           return
