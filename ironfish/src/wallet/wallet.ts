@@ -1,7 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
+import {
+  AssetInfo,
+  CreateAssetNote,
+  generateKey,
+  generateNewPublicAddress,
+} from '@ironfish/rust-nodejs'
+import { Note as NativeNote, Transaction as NativeTransaction } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -667,6 +673,117 @@ export class Wallet {
     this.onTransactionCreated.emit(transaction)
 
     return transaction
+  }
+
+  /**
+   * Creates a transaction that will create a new custom asset
+   */
+  async createAssetTransaction(
+    owner: Account,
+    asset: { name: string },
+    transactionFee: bigint,
+    expirationSequence: number,
+  ): Promise<Transaction> {
+    const unlock = await this.createTransactionMutex.lock()
+
+    try {
+      // TODO: Abstract out finding unspent notes since this is copy-pasted from
+      // createTransaction
+
+      // TODO: If we're spending from multiple accounts, we need to figure out a
+      // way to split the transaction fee. - deekerno
+      let amountNeeded = transactionFee
+
+      const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
+      const unspentNotes = await this.getUnspentNotes(owner)
+
+      for (const unspentNote of unspentNotes) {
+        // Skip unconfirmed notes
+        if (unspentNote.index === null || !unspentNote.confirmed) {
+          continue
+        }
+
+        if (unspentNote.note.value() > BigInt(0)) {
+          // Double-check that the nullifier for the note isn't in the tree already
+          // This would indicate a bug in the account transaction stores
+          const nullifier = Buffer.from(
+            unspentNote.note.nullifier(owner.spendingKey, BigInt(unspentNote.index)),
+          )
+
+          if (await this.chain.nullifiers.contains(nullifier)) {
+            this.logger.debug(
+              `Note was marked unspent, but nullifier found in tree: ${nullifier.toString(
+                'hex',
+              )}`,
+            )
+
+            // Update our map so this doesn't happen again
+            const noteMapValue = await owner.getDecryptedNote(unspentNote.hash)
+            if (noteMapValue) {
+              this.logger.debug(`Unspent note has index ${String(noteMapValue.index)}`)
+              await owner.updateDecryptedNote(unspentNote.hash, {
+                ...noteMapValue,
+                spent: true,
+              })
+            }
+
+            // Move on to the next note
+            continue
+          }
+
+          // Try creating a witness from the note
+          const witness = await this.chain.notes.witness(unspentNote.index)
+
+          if (witness === null) {
+            this.logger.debug(
+              `Could not create a witness for note with index ${unspentNote.index}`,
+            )
+            continue
+          }
+
+          // Otherwise, push the note into the list of notes to spend
+          this.logger.debug(
+            `Accounts: spending note ${unspentNote.index} ${unspentNote.hash.toString(
+              'hex',
+            )} ${unspentNote.note.value()}`,
+          )
+          notesToSpend.push({ note: unspentNote.note, witness: witness })
+          amountNeeded -= unspentNote.note.value()
+        }
+
+        if (amountNeeded <= 0) {
+          break
+        }
+      }
+
+      if (amountNeeded > 0) {
+        throw new ValidationError(
+          `Insufficient funds`,
+          undefined,
+          ERROR_CODES.INSUFFICIENT_BALANCE,
+        )
+      }
+      // TODO: Worker pool job
+
+      const asset_info = new AssetInfo(asset.name, owner.publicAddress)
+
+      const create_asset_note = new CreateAssetNote(asset_info)
+
+      const transaction = new NativeTransaction()
+      transaction.setExpirationSequence(expirationSequence)
+
+      for (const { note, witness } of notesToSpend) {
+        transaction.spend(owner.spendingKey, note.takeReference(), witness)
+      }
+
+      transaction.createAsset(owner.spendingKey, create_asset_note)
+
+      const txSerialized = transaction.post(owner.spendingKey, undefined, transactionFee)
+
+      return new Transaction(txSerialized)
+    } finally {
+      unlock()
+    }
   }
 
   async createTransaction(

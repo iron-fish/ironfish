@@ -12,6 +12,24 @@ import {
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
 
+  it('should be able to create a Create Asset Transaction', async () => {
+    const { node } = nodeTest
+
+    const account = await useAccountFixture(node.wallet, 'a')
+    const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+    await expect(node.chain).toAddBlock(block)
+    await node.wallet.updateHead()
+
+    const transaction = await node.wallet.createAssetTransaction(
+      account,
+      { name: 'Matcoin' },
+      BigInt(1),
+      15,
+    )
+
+    expect(transaction['_createAssetProofs'].length).toBe(1)
+  })
+
   it('should reset when chain processor head does not exist in chain', async () => {
     const { node, strategy } = nodeTest
     strategy.disableMiningReward()

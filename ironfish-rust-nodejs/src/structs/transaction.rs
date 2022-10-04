@@ -13,6 +13,7 @@ use napi_derive::napi;
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendProof;
 use super::witness::JsWitness;
+use super::NativeCreateAssetNote;
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {
@@ -164,6 +165,7 @@ impl NativeTransaction {
 
     /// Create a proof of a new note owned by the recipient in this transaction.
     #[napi]
+    // TODO: Change all these empty string return types to ()
     pub fn receive(&mut self, spender_hex_key: String, note: &NativeNote) -> Result<String> {
         let spender_key = SaplingKey::from_hex(&spender_hex_key)
             .map_err(|err| Error::from_reason(err.to_string()))?;
@@ -194,6 +196,21 @@ impl NativeTransaction {
             .map_err(|err| Error::from_reason(err.to_string()))?;
 
         Ok("".to_string())
+    }
+
+    #[napi]
+    pub fn create_asset(
+        &mut self,
+        creator_hex_key: String,
+        create_asset_note: &NativeCreateAssetNote,
+    ) -> Result<()> {
+        let creator_key = SaplingKey::from_hex(&creator_hex_key)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+        self.transaction
+            .create_asset(&creator_key, &create_asset_note.inner)
+            .map_err(|err| Error::from_reason(err.to_string()))?;
+
+        Ok(())
     }
 
     /// Special case for posting a miners fee transaction. Miner fee transactions

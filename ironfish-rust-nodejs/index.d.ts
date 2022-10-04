@@ -46,6 +46,14 @@ export class RollingFilter {
   add(value: Buffer): void
   test(value: Buffer): boolean
 }
+export type NativeAssetInfo = AssetInfo
+export class AssetInfo {
+  constructor(name: string, publicAddressString: string)
+}
+export type NativeCreateAssetNote = CreateAssetNote
+export class CreateAssetNote {
+  constructor(assetInfo: AssetInfo)
+}
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
   constructor(jsBytes: Buffer)
@@ -107,6 +115,7 @@ export class Transaction {
   receive(spenderHexKey: string, note: Note): string
   /** Spend the note owned by spender_hex_key at the given witness location. */
   spend(spenderHexKey: string, note: Note, witness: object): string
+  createAsset(creatorHexKey: string, createAssetNote: CreateAssetNote): void
   /**
    * Special case for posting a miners fee transaction. Miner fee transactions
    * are unique in that they generate currency. They do not have any spends
