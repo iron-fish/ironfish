@@ -425,7 +425,6 @@ mod test {
         keys::SaplingKey,
         note::{Memo, Note},
         primitives::asset_type::AssetType,
-        sapling_bls12,
         test_util::make_fake_witness,
     };
     use group::Curve;

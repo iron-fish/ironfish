@@ -4,7 +4,7 @@
 
 use crate::{proofs::circuit::output::Output, sapling_bls12::SAPLING};
 
-use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note, Sapling};
+use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note};
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use group::Curve;
@@ -204,7 +204,6 @@ mod test {
         keys::SaplingKey,
         note::{Memo, Note},
         primitives::asset_type::AssetType,
-        sapling_bls12,
     };
     use ff::PrimeField;
     use group::Curve;

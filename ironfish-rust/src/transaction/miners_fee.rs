@@ -1,4 +1,4 @@
-use std::{io, sync::Arc};
+use std::io;
 
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -12,7 +12,7 @@ use zcash_primitives::{
 
 use crate::{
     errors::TransactionError, merkle_note::NOTE_ENCRYPTION_MINER_KEYS, receiving::OutputSignature,
-    Note, ReceiptParams, ReceiptProof, Sapling, SaplingKey,
+    Note, ReceiptParams, ReceiptProof, SaplingKey,
 };
 
 use super::{
@@ -23,7 +23,6 @@ use super::{
 
 pub struct MinersFeeTransaction {
     fee: i64,
-    sapling: Arc<Sapling>,
     output: ReceiptProof,
     binding_signature: Signature,
 }
@@ -35,7 +34,6 @@ impl MinersFeeTransaction {
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
     pub fn build(
-        sapling: Arc<Sapling>,
         receiver_key: SaplingKey,
         note: Note,
     ) -> Result<MinersFeeTransaction, TransactionError> {
@@ -77,7 +75,6 @@ impl MinersFeeTransaction {
         );
 
         Ok(MinersFeeTransaction {
-            sapling,
             fee,
             output: receipt_params.post()?,
             binding_signature,
@@ -86,13 +83,12 @@ impl MinersFeeTransaction {
 }
 
 impl Transaction for MinersFeeTransaction {
-    fn read(sapling: Arc<Sapling>, mut reader: impl io::Read) -> Result<Self, TransactionError> {
+    fn read(mut reader: impl io::Read) -> Result<Self, TransactionError> {
         let fee = reader.read_i64::<LittleEndian>()?;
         let output = ReceiptProof::read(&mut reader)?;
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(MinersFeeTransaction {
-            sapling,
             fee,
             output,
             binding_signature,
@@ -152,13 +148,12 @@ mod tests {
     use zcash_primitives::sapling::redjubjub::Signature;
 
     use crate::{
-        merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Memo, sapling_bls12,
+        merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Memo,
         transaction::miners_fee::MinersFeeTransaction, AssetType, Note, SaplingKey,
     };
 
     #[test]
     fn test_miners_fee() {
-        let sapling = &*sapling_bls12::SAPLING;
         let receiver_key: SaplingKey = SaplingKey::generate_key();
         let out_note = Note::new(
             receiver_key.generate_public_address(),
@@ -167,8 +162,8 @@ mod tests {
             AssetType::default(),
         );
 
-        let transaction = MinersFeeTransaction::build(sapling.clone(), receiver_key, out_note)
-            .expect("should build");
+        let transaction =
+            MinersFeeTransaction::build(receiver_key, out_note).expect("should build");
         assert_eq!(transaction.fee, -42);
         assert_eq!(
             transaction.output.merkle_note.note_encryption_keys[0..30],
@@ -179,7 +174,6 @@ mod tests {
     #[test]
     // TODO: Go through and delete the old test above this when we've finished the transition (in this PR)
     fn test_transaction_signature_new() {
-        let sapling = sapling_bls12::SAPLING.clone();
         let receiver_key: SaplingKey = SaplingKey::generate_key();
         let out_note = Note::new(
             receiver_key.generate_public_address(),
@@ -188,7 +182,7 @@ mod tests {
             AssetType::default(),
         );
 
-        let transaction = MinersFeeTransaction::build(sapling, receiver_key, out_note).unwrap();
+        let transaction = MinersFeeTransaction::build(receiver_key, out_note).unwrap();
 
         let mut serialized_signature = vec![];
         transaction

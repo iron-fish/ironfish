@@ -46,7 +46,6 @@ use std::{
     collections::{hash_map, HashMap},
     io,
     slice::Iter,
-    sync::Arc,
 };
 
 use std::ops::AddAssign;

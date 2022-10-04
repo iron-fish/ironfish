@@ -133,8 +133,8 @@ mod test {
 
     use crate::{
         note::Memo, primitives::asset_type::AssetInfo,
-        proofs::notes::create_asset_note::CreateAssetNote, sapling_bls12,
-        test_util::make_fake_witness, AssetType, Note, ProposedTransaction, SaplingKey,
+        proofs::notes::create_asset_note::CreateAssetNote, test_util::make_fake_witness, AssetType,
+        Note, ProposedTransaction, SaplingKey,
     };
 
     use super::CreateAsset;
@@ -240,8 +240,6 @@ mod test {
 
     #[test]
     fn test_proper_create_asset_circuit() {
-        let sapling = sapling_bls12::SAPLING.clone();
-
         // Test setup: create sapling keys
         let sapling_key = SaplingKey::generate_key();
         let public_address = sapling_key.generate_public_address();

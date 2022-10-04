@@ -9,7 +9,6 @@ use crate::{
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::{Memo, Note},
     primitives::asset_type::AssetType,
-    sapling_bls12,
     test_util::make_fake_witness,
 };
 

@@ -828,8 +828,6 @@ mod test {
 
     #[test]
     fn test_mint_asset_circuit_with_params() {
-        let sapling = sapling_bls12::SAPLING.clone();
-
         // Test setup: create sapling keys
         let sapling_key = SaplingKey::generate_key();
         let public_address = sapling_key.generate_public_address();

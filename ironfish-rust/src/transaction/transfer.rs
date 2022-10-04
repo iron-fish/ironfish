@@ -2,7 +2,7 @@
 // let tx = TransferTransaction::build(spends, outputs);
 // tx.verify();
 
-use std::{cmp::Ordering, io, sync::Arc};
+use std::{cmp::Ordering, io};
 
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -21,7 +21,7 @@ use crate::{
     receiving::OutputSignature,
     spending::SpendSignature,
     witness::WitnessTrait,
-    AssetType, Note, ReceiptParams, ReceiptProof, Sapling, SaplingKey, SpendParams, SpendProof,
+    AssetType, Note, ReceiptParams, ReceiptProof, SaplingKey, SpendParams, SpendProof,
 };
 
 use super::{
@@ -32,7 +32,7 @@ use super::{
 // TODO: Everything
 // TODO: Copy comments from transaction/mod.rs equivalent
 pub trait Transaction {
-    fn read(sapling: Arc<Sapling>, reader: impl io::Read) -> Result<Self, TransactionError>
+    fn read(reader: impl io::Read) -> Result<Self, TransactionError>
     where
         Self: Sized;
     fn write(&self, writer: impl io::Write) -> io::Result<()>;
@@ -40,7 +40,6 @@ pub trait Transaction {
 }
 
 pub struct TransferTransaction {
-    sapling: Arc<Sapling>,
     transaction_fee: i64,
     expiration_sequence: u32,
 
@@ -51,7 +50,6 @@ pub struct TransferTransaction {
 
 impl TransferTransaction {
     pub fn build(
-        sapling: Arc<Sapling>,
         transaction_fee: i64,
         expiration_sequence: u32,
         spends: Vec<Spend>,
@@ -63,7 +61,6 @@ impl TransferTransaction {
 
         // Spends
         let spend_params = add_spends(
-            sapling.clone(),
             &spends,
             &mut binding_signature_key,
             &mut binding_verification_key,
@@ -72,7 +69,6 @@ impl TransferTransaction {
 
         // Outputs
         let mut output_params = add_outputs(
-            sapling.clone(),
             &outputs,
             &mut binding_signature_key,
             &mut binding_verification_key,
@@ -122,7 +118,6 @@ impl TransferTransaction {
             .collect();
 
         let mut change_output_params = add_outputs(
-            sapling.clone(),
             &change_outputs,
             &mut binding_signature_key,
             &mut binding_verification_key,
@@ -183,7 +178,6 @@ impl TransferTransaction {
         }
 
         Ok(TransferTransaction {
-            sapling,
             transaction_fee,
             expiration_sequence,
             spends: spend_proofs,
@@ -194,7 +188,7 @@ impl TransferTransaction {
 }
 
 impl Transaction for TransferTransaction {
-    fn read(sapling: Arc<Sapling>, mut reader: impl io::Read) -> Result<Self, TransactionError> {
+    fn read(mut reader: impl io::Read) -> Result<Self, TransactionError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_outputs = reader.read_u64::<LittleEndian>()?;
         let transaction_fee = reader.read_i64::<LittleEndian>()?;
@@ -210,7 +204,6 @@ impl Transaction for TransferTransaction {
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(TransferTransaction {
-            sapling,
             transaction_fee,
             expiration_sequence,
             spends,
@@ -273,7 +266,6 @@ impl Transaction for TransferTransaction {
 }
 
 pub fn add_spends(
-    sapling: Arc<Sapling>,
     spends: &[Spend],
     bsk: &mut jubjub::Fr,
     bvk: &mut ExtendedPoint,
@@ -299,7 +291,6 @@ pub fn add_spends(
 }
 
 pub fn add_outputs(
-    sapling: Arc<Sapling>,
     outputs: &[Output],
     bsk: &mut jubjub::Fr,
     bvk: &mut ExtendedPoint,
@@ -420,7 +411,6 @@ mod tests {
 
     use crate::{
         note::Memo,
-        sapling_bls12,
         test_util::make_fake_witness,
         transaction::transfer::{Output, Spend, Transaction, TransferTransaction},
         AssetType, Note, SaplingKey,
@@ -428,8 +418,6 @@ mod tests {
 
     #[test]
     fn test_transaction() {
-        let sapling = sapling_bls12::SAPLING.clone();
-
         let spender_key: SaplingKey = SaplingKey::generate_key();
         let receiver_key: SaplingKey = SaplingKey::generate_key();
 
@@ -459,8 +447,7 @@ mod tests {
 
         let outputs = vec![Output::new(spender_key, &out_note)];
 
-        let transaction = TransferTransaction::build(sapling.clone(), 1, 0, spends, outputs)
-            .expect("should build");
+        let transaction = TransferTransaction::build(1, 0, spends, outputs).expect("should build");
 
         assert_eq!(transaction.spends.len(), 1);
         // output note and change note
@@ -478,7 +465,7 @@ mod tests {
             .expect("should be able to serialize transaction");
 
         let read_back_transaction: TransferTransaction =
-            TransferTransaction::read(sapling, &mut serialized_transaction.as_slice())
+            TransferTransaction::read(&mut serialized_transaction.as_slice())
                 .expect("should be able to deserialize");
 
         assert_eq!(
@@ -497,7 +484,6 @@ mod tests {
     #[test]
     // TODO: Go through and delete the old test above this when we've finished the transition (in this PR)
     fn test_transaction_signature_new() {
-        let sapling = sapling_bls12::SAPLING.clone();
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
         let spender_address = spender_key.generate_public_address();
@@ -510,7 +496,7 @@ mod tests {
         let spends = vec![Spend::new(spender_key.clone(), &in_note, &witness)];
         let outputs = vec![Output::new(spender_key, &out_note)];
 
-        let transaction = TransferTransaction::build(sapling, 0, 1337, spends, outputs).unwrap();
+        let transaction = TransferTransaction::build(0, 1337, spends, outputs).unwrap();
 
         let mut serialized_signature = vec![];
         transaction
@@ -524,7 +510,6 @@ mod tests {
 
     #[test]
     fn test_multiple_assets() {
-        let sapling = sapling_bls12::SAPLING.clone();
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
         let spender_address = spender_key.generate_public_address();
@@ -550,8 +535,7 @@ mod tests {
             Output::new(spender_key, &out_note2),
         ];
 
-        let transaction = TransferTransaction::build(sapling.clone(), 1, 0, spends, outputs)
-            .expect("should build");
+        let transaction = TransferTransaction::build(1, 0, spends, outputs).expect("should build");
 
         // 1 input of default asset, 1 input of custom asset
         assert_eq!(transaction.spends.len(), 2);
@@ -570,7 +554,7 @@ mod tests {
             .expect("should be able to serialize transaction");
 
         let read_back_transaction: TransferTransaction =
-            TransferTransaction::read(sapling, &mut serialized_transaction.as_slice())
+            TransferTransaction::read(&mut serialized_transaction.as_slice())
                 .expect("should be able to deserialize");
 
         assert_eq!(
