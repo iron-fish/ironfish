@@ -21,7 +21,6 @@ import {
   StringEncoding,
   U32_ENCODING,
 } from '../../storage'
-import { DatabaseKeyRange } from '../../storage/database/types'
 import { StorageUtils } from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
