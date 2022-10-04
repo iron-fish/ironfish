@@ -527,7 +527,7 @@ export class WalletDB {
 
     const expiredRange = StorageUtils.getPrefixesKeyRange(
       encoding.serialize([account.prefix, 1]),
-      encoding.serialize([account.prefix, headSequence + 1]),
+      encoding.serialize([account.prefix, headSequence]),
     )
 
     for await (const [, [, transactionHash]] of this.pendingTransactionHashes.getAllKeysIter(
