@@ -14,12 +14,13 @@ import { NoteWitness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
-import { ERROR_CODES, ValidationError } from '../rpc/adapters/errors'
+import { ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
+import { NotEnoughFundsError } from './errors'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
 import { WalletDB } from './walletdb/walletdb'
@@ -738,11 +739,7 @@ export class Wallet {
       }
 
       if (amountNeeded > 0) {
-        throw new ValidationError(
-          `Insufficient funds`,
-          undefined,
-          ERROR_CODES.INSUFFICIENT_BALANCE,
-        )
+        throw new NotEnoughFundsError('Insufficient funds')
       }
 
       return this.workerPool.createTransaction(
