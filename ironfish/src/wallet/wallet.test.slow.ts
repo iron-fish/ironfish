@@ -11,7 +11,6 @@ import {
   useMinerBlockFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
-import { AsyncUtils } from '../utils'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
