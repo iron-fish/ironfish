@@ -80,6 +80,7 @@ export class Account {
     await this.walletDb.clearTransactions(this, tx)
     await this.walletDb.clearSequenceToNoteHash(this, tx)
     await this.walletDb.clearNonChainNoteHashes(this, tx)
+    await this.walletDb.clearPendingTransactionHashes(this, tx)
 
     await this.saveUnconfirmedBalance(BigInt(0), tx)
   }
@@ -178,7 +179,17 @@ export class Account {
     transactionValue: TransactionValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.walletDb.saveTransaction(this, hash, transactionValue, tx)
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
+      const expirationSequence = transactionValue.transaction.expirationSequence()
+
+      if (transactionValue.blockHash) {
+        await this.walletDb.deletePendingTransactionHash(this, expirationSequence, hash, tx)
+      } else {
+        await this.walletDb.savePendingTransactionHash(this, expirationSequence, hash, tx)
+      }
+
+      await this.walletDb.saveTransaction(this, hash, transactionValue, tx)
+    })
   }
 
   private async bulkUpdateDecryptedNotes(
@@ -304,6 +315,13 @@ export class Account {
     return this.walletDb.loadTransactions(this, tx)
   }
 
+  getExpiredTransactions(
+    headSequence: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<TransactionValue> {
+    return this.walletDb.loadExpiredTransactions(this, headSequence, tx)
+  }
+
   async expireTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
     const transactionHash = transaction.hash()
 
@@ -341,6 +359,13 @@ export class Account {
           )
         }
       }
+
+      await this.walletDb.deletePendingTransactionHash(
+        this,
+        transaction.expirationSequence(),
+        transactionHash,
+        tx,
+      )
     })
   }
 

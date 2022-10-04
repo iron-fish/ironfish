@@ -19,6 +19,7 @@ import { HeadHashesStore } from './headHashes'
 import { AccountsDBMeta, MetaStore, MetaValueEncoding } from './meta'
 import { NonChainNoteHashesStore } from './nonChainNoteHashes'
 import { NullifierToNoteHashStore } from './nullifierToNoteHash'
+import { PendingTransactionHashesStore } from './pendingTransactionHashes'
 import { SequenceToNoteHashStore } from './sequenceToNoteHash'
 import { TransactionsStore, TransactionValueEncoding } from './transactions'
 
@@ -32,6 +33,7 @@ export type NewStores = {
   balances: BalancesStore
   nonChainNoteHashes: NonChainNoteHashesStore
   sequenceToNoteHash: SequenceToNoteHashStore
+  pendingTransactionHashes: PendingTransactionHashesStore
 }
 
 export function loadNewStores(db: IDatabase): NewStores {
@@ -93,6 +95,16 @@ export function loadNewStores(db: IDatabase): NewStores {
     valueEncoding: NULL_ENCODING,
   })
 
+  const pendingTransactionHashes: PendingTransactionHashesStore = db.addStore({
+    name: 'p',
+    keyEncoding: new PrefixEncoding(
+      new BufferEncoding(),
+      new PrefixEncoding(U32_ENCODING, new BufferEncoding(), 4),
+      4,
+    ),
+    valueEncoding: NULL_ENCODING,
+  })
+
   return {
     meta,
     decryptedNotes,
@@ -103,5 +115,6 @@ export function loadNewStores(db: IDatabase): NewStores {
     transactions,
     sequenceToNoteHash,
     nonChainNoteHashes,
+    pendingTransactionHashes,
   }
 }

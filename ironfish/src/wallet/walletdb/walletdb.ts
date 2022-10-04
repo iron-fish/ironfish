@@ -84,6 +84,11 @@ export class WalletDB {
     value: TransactionValue
   }>
 
+  pendingTransactionHashes: IDatabaseStore<{
+    key: [Account['prefix'], [number, TransactionHash]]
+    value: null
+  }>
+
   constructor({
     files,
     location,
@@ -157,6 +162,16 @@ export class WalletDB {
       name: 't',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new TransactionValueEncoding(),
+    })
+
+    this.pendingTransactionHashes = this.db.addStore({
+      name: 'p',
+      keyEncoding: new PrefixEncoding(
+        new BufferEncoding(),
+        new PrefixEncoding(U32_ENCODING, new BufferEncoding(), 4),
+        4,
+      ),
+      valueEncoding: NULL_ENCODING,
     })
   }
 
@@ -497,5 +512,64 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.balances.put(account.id, balance, tx)
+  }
+
+  async *loadExpiredTransactions(
+    account: Account,
+    headSequence: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<TransactionValue> {
+    const encoding = new PrefixEncoding(
+      BUFFER_ENCODING,
+      U32_ENCODING,
+      account.prefix.byteLength,
+    )
+
+    const expiredRange = StorageUtils.getPrefixesKeyRange(
+      encoding.serialize([account.prefix, 1]),
+      encoding.serialize([account.prefix, headSequence + 1]),
+    )
+
+    for await (const [, [, transactionHash]] of this.pendingTransactionHashes.getAllKeysIter(
+      tx,
+      expiredRange,
+    )) {
+      const transaction = await this.loadTransaction(account, transactionHash, tx)
+      Assert.isNotUndefined(transaction)
+
+      yield transaction
+    }
+  }
+
+  async savePendingTransactionHash(
+    account: Account,
+    expirationSequence: number,
+    transactionHash: TransactionHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.pendingTransactionHashes.put(
+      [account.prefix, [expirationSequence, transactionHash]],
+      null,
+      tx,
+    )
+  }
+
+  async deletePendingTransactionHash(
+    account: Account,
+    expirationSequence: number,
+    transactionHash: TransactionHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.pendingTransactionHashes.del(
+      [account.prefix, [expirationSequence, transactionHash]],
+      tx,
+    )
+  }
+
+  async clearPendingTransactionHashes(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.pendingTransactionHashes.clear(tx, account.prefixRange)
   }
 }

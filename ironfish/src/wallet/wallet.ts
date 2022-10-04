@@ -394,12 +394,6 @@ export class Wallet {
     })
   }
 
-  async expireTransaction(transaction: Transaction): Promise<void> {
-    for (const account of this.accounts.values()) {
-      await account.expireTransaction(transaction)
-    }
-  }
-
   async scanTransactions(): Promise<void> {
     if (!this.isOpen) {
       throw new Error('Cannot start a scan if accounts are not loaded')
@@ -866,20 +860,8 @@ export class Wallet {
     }
 
     for (const account of this.accounts.values()) {
-      for await (const { transaction, blockHash } of account.getTransactions()) {
-        // Skip transactions that are already added to a block
-        if (blockHash) {
-          continue
-        }
-
-        const isExpired = this.chain.verifier.isExpiredSequence(
-          transaction.expirationSequence(),
-          head.sequence,
-        )
-
-        if (isExpired) {
-          await this.expireTransaction(transaction)
-        }
+      for await (const { transaction } of account.getExpiredTransactions(head.sequence)) {
+        await account.expireTransaction(transaction)
       }
     }
   }

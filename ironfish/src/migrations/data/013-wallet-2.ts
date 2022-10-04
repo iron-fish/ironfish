@@ -358,6 +358,11 @@ export class Migration013 extends Migration {
           )
         } else {
           await stores.new.nonChainNoteHashes.put([accountPrefix, noteHash], null, tx)
+          await stores.new.pendingTransactionHashes.put(
+            [accountPrefix, [transaction.transaction.expirationSequence(), transactionHash]],
+            null,
+            tx,
+          )
         }
       })
 

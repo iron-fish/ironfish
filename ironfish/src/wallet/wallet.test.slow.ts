@@ -11,6 +11,7 @@ import {
   useMinerBlockFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
+import { AsyncUtils } from '../utils'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -362,7 +363,7 @@ describe('Accounts', () => {
         },
       ],
       BigInt(0),
-      1,
+      newBlock.header.sequence,
     )
 
     // Transaction should be pending
@@ -448,7 +449,7 @@ describe('Accounts', () => {
         },
       ],
       BigInt(0),
-      1,
+      newBlock.header.sequence,
     )
 
     // Transaction should be unconfirmed

@@ -8,6 +8,7 @@ import {
   useMinerBlockFixture,
   useTxFixture,
 } from '../testUtilities'
+import { AsyncUtils } from '../utils'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -339,6 +340,90 @@ describe('Accounts', () => {
       await expect(node.wallet.importAccount(clone)).rejects.toThrowError(
         'Account already exists with provided spending key',
       )
+    })
+  })
+
+  describe('expireTransactions', () => {
+    it('should expire transactions for all affected accounts', async () => {
+      const { node } = nodeTest
+      node.chain['synced'] = true
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block1)
+
+      await node.wallet.updateHead()
+
+      await useTxFixture(node.wallet, accountA, accountB, undefined, undefined, 1)
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+
+      await node.wallet.updateHead()
+
+      let expiredA = await AsyncUtils.materialize(
+        accountA.getExpiredTransactions(node.chain.head.sequence),
+      )
+      expect(expiredA.length).toEqual(1)
+
+      let expiredB = await AsyncUtils.materialize(
+        accountB.getExpiredTransactions(node.chain.head.sequence),
+      )
+      expect(expiredB.length).toEqual(1)
+
+      await node.wallet.expireTransactions()
+
+      expiredA = await AsyncUtils.materialize(
+        accountA.getExpiredTransactions(node.chain.head.sequence),
+      )
+      expect(expiredA.length).toEqual(0)
+
+      expiredB = await AsyncUtils.materialize(
+        accountB.getExpiredTransactions(node.chain.head.sequence),
+      )
+      expect(expiredB.length).toEqual(0)
+    }, 50000000)
+
+    it('should only expire transactions one time', async () => {
+      const { node } = nodeTest
+      node.chain['synced'] = true
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block1)
+
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(
+        node.wallet,
+        accountA,
+        accountB,
+        undefined,
+        undefined,
+        1,
+      )
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+
+      await node.wallet.updateHead()
+
+      const expireSpy = jest.spyOn(accountA, 'expireTransaction')
+
+      await node.wallet.expireTransactions()
+
+      expect(expireSpy).toHaveBeenCalledTimes(1)
+      expect(expireSpy).toHaveBeenCalledWith(transaction)
+
+      expireSpy.mockClear()
+
+      await node.wallet.expireTransactions()
+
+      expect(expireSpy).toHaveBeenCalledTimes(0)
     })
   })
 })
