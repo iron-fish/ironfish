@@ -198,17 +198,12 @@ export class Wallet {
       this.headHashes.set(accountId, headHash)
     }
 
-    for await (const { accountId } of this.walletDb.loadAccountIdsToCleanup()) {
-      this.accountIdsToCleanup.push(accountId)
-    }
-
     this.chainProcessor.hash = await this.getLatestHeadHash()
   }
 
   private unload(): void {
     this.accounts.clear()
     this.headHashes.clear()
-    this.accountIdsToCleanup.length = 0
 
     this.defaultAccount = null
     this.chainProcessor.hash = null
@@ -1033,10 +1028,8 @@ export class Wallet {
 
       await this.walletDb.removeAccount(account, tx)
       await this.walletDb.removeHeadHash(account, tx)
-      await this.walletDb.saveAccountIdToCleanup(account.id, tx)
     })
 
-    this.accountIdsToCleanup.push(account.id)
     this.accounts.delete(account.id)
     this.onAccountRemoved.emit(account)
   }
