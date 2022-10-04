@@ -25,7 +25,7 @@ import { DatabaseKeyRange } from '../../storage/database/types'
 import { StorageUtils } from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
-import { Account } from '../account'
+import { Account, calculateAccountPrefix } from '../account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
@@ -265,21 +265,6 @@ export class WalletDB {
   ): AsyncGenerator<{ accountId: string; headHash: Buffer | null }, void, unknown> {
     for await (const [accountId, headHash] of this.headHashes.getAllIter(tx)) {
       yield { accountId, headHash }
-    }
-  }
-  async saveAccountIdToCleanup(accountId: string, tx?: IDatabaseTransaction): Promise<void> {
-    await this.accountIdsToCleanup.put(accountId, null, tx)
-  }
-
-  async removeAccountIdToCleanup(accountId: string, tx?: IDatabaseTransaction): Promise<void> {
-    await this.accountIdsToCleanup.del(accountId, tx)
-  }
-
-  async *loadAccountIdsToCleanup(
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ accountId: string }, void, unknown> {
-    for await (const [accountId] of this.accountIdsToCleanup.getAllIter(tx)) {
-      yield { accountId }
     }
   }
 
@@ -633,5 +618,86 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.pendingTransactionHashes.clear(tx, account.prefixRange)
+  }
+
+  async saveAccountIdToCleanup(accountId: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.accountIdsToCleanup.put(accountId, null, tx)
+  }
+
+  async removeAccountIdToCleanup(accountId: string, tx?: IDatabaseTransaction): Promise<void> {
+    await this.accountIdsToCleanup.del(accountId, tx)
+  }
+
+  async *loadAccountIdsToCleanup(
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{ accountId: string }, void, unknown> {
+    for await (const [accountId] of this.accountIdsToCleanup.getAllIter(tx)) {
+      yield { accountId }
+    }
+  }
+
+  async cleanupAccount(
+    accountId: string,
+    recordsToCleanup: number,
+  ): Promise<[recordsToCleanup: number, cleaned: boolean]> {
+    const prefix = calculateAccountPrefix(accountId)
+    const prefixRange = StorageUtils.getPrefixKeyRange(prefix)
+
+    for await (const [transactionHash] of this.transactions.getAllKeysIter(
+      undefined,
+      prefixRange,
+    )) {
+      if (recordsToCleanup === 0) {
+        return [recordsToCleanup, false]
+      }
+      await this.transactions.del([prefix, transactionHash])
+      recordsToCleanup--
+    }
+
+    for await (const [_, sequenceToNoteHash] of this.sequenceToNoteHash.getAllKeysIter(
+      undefined,
+      prefixRange,
+    )) {
+      if (recordsToCleanup === 0) {
+        return [recordsToCleanup, false]
+      }
+      await this.sequenceToNoteHash.del([prefix, sequenceToNoteHash])
+      recordsToCleanup--
+    }
+
+    for await (const [nonChainNoteHashes] of this.nonChainNoteHashes.getAllKeysIter(
+      undefined,
+      prefixRange,
+    )) {
+      if (recordsToCleanup === 0) {
+        return [recordsToCleanup, false]
+      }
+      await this.nonChainNoteHashes.del([prefix, nonChainNoteHashes])
+      recordsToCleanup--
+    }
+
+    for await (const [nullifierToNoteHash] of this.nullifierToNoteHash.getAllKeysIter(
+      undefined,
+      prefixRange,
+    )) {
+      if (recordsToCleanup === 0) {
+        return [recordsToCleanup, false]
+      }
+      await this.nullifierToNoteHash.del([prefix, nullifierToNoteHash])
+      recordsToCleanup--
+    }
+
+    for await (const [decryptedNotes] of this.decryptedNotes.getAllKeysIter(
+      undefined,
+      prefixRange,
+    )) {
+      if (recordsToCleanup === 0) {
+        return [recordsToCleanup, false]
+      }
+      await this.decryptedNotes.del([prefix, decryptedNotes])
+      recordsToCleanup--
+    }
+
+    return [recordsToCleanup, true]
   }
 }

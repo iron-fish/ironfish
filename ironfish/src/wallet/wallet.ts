@@ -15,7 +15,6 @@ import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
-import { StorageUtils } from '../storage/database/utils'
 import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
@@ -66,7 +65,6 @@ export class Wallet {
   protected isStarted = false
   protected isOpen = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
-  protected readonly accountIdsToCleanup: string[] = []
   private readonly createTransactionMutex: Mutex
   private readonly eventLoopAbortController: AbortController
   private eventLoopPromise: Promise<void> | null = null
@@ -199,7 +197,7 @@ export class Wallet {
       this.headHashes.set(accountId, headHash)
     }
 
-    for await (const { accountId } of this.db.loadAccountIdsToCleanup()) {
+    for await (const { accountId } of this.walletDb.loadAccountIdsToCleanup()) {
       this.accountIdsToCleanup.push(accountId)
     }
 
@@ -1043,19 +1041,20 @@ export class Wallet {
   }
 
   async cleanupDeletedAccounts(): Promise<void> {
-    setTimeout(() => void this.cleanupDeletedAccounts(), 100000)
-    while (this.accountIdsToCleanup.length !== 0) {
+    let recordsToCleanup = 1000
+
+    while (this.accountIdsToCleanup.length && recordsToCleanup > 0) {
       const accountId = this.accountIdsToCleanup[0]
-      const prefixRange = StorageUtils.getPrefixKeyRange(calculateAccountPrefix(accountId))
-      await this.db.database.transaction(async (tx) => {
-        await this.db.clearDecryptedNotesForPrefixRange(prefixRange, tx)
-        await this.db.clearNullifierToNoteHashForPrefixRange(prefixRange, tx)
-        await this.db.clearTransactionsForPrefixRange(prefixRange, tx)
-        await this.db.clearSequenceToNoteHashForPrefixRange(prefixRange, tx)
-        await this.db.clearNonChainNoteHashesForPrefixRange(prefixRange, tx)
-        await this.db.removeAccountIdToCleanup(accountId, tx)
-      })
-      this.accountIdsToCleanup.pop()
+      const [recordsLeftToCleanup, cleaned] = await this.walletDb.cleanupAccount(
+        accountId,
+        recordsToCleanup,
+      )
+      recordsToCleanup = recordsLeftToCleanup
+
+      if (cleaned) {
+        await this.walletDb.removeAccountIdToCleanup(accountId)
+        this.accountIdsToCleanup.pop()
+      }
     }
   }
 
