@@ -85,14 +85,11 @@ export class WalletDB {
     value: TransactionValue
   }>
 
-<<<<<<< HEAD:ironfish/src/wallet/walletdb/walletdb.ts
   pendingTransactionHashes: IDatabaseStore<{
     key: [Account['prefix'], [number, TransactionHash]]
     value: null
   }>
 
-=======
->>>>>>> 3ac967d8 (Passively delete records in stores when an account is removed):ironfish/src/wallet/database/accountsdb.ts
   accountIdsToCleanup: IDatabaseStore<{
     key: Account['id']
     value: null
@@ -173,7 +170,6 @@ export class WalletDB {
       valueEncoding: new TransactionValueEncoding(),
     })
 
-<<<<<<< HEAD:ironfish/src/wallet/walletdb/walletdb.ts
     this.pendingTransactionHashes = this.db.addStore({
       name: 'p',
       keyEncoding: new PrefixEncoding(
@@ -185,9 +181,6 @@ export class WalletDB {
     })
 
     this.accountIdsToCleanup = this.db.addStore({
-=======
-    this.accountIdsToCleanup = this.database.addStore({
->>>>>>> 3ac967d8 (Passively delete records in stores when an account is removed):ironfish/src/wallet/database/accountsdb.ts
       name: 'A',
       keyEncoding: new StringEncoding(),
       valueEncoding: NULL_ENCODING,
