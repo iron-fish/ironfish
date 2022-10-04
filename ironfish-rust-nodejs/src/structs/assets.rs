@@ -1,8 +1,9 @@
 use ironfish_rust::{
-    primitives::asset_type::AssetInfo, proofs::notes::create_asset_note::CreateAssetNote,
+    primitives::asset_type::AssetInfo,
+    proofs::notes::{create_asset_note::CreateAssetNote, mint_asset_note::MintAssetNote},
     PublicAddress,
 };
-use napi::Error;
+use napi::{bindgen_prelude::BigInt, Error};
 use napi_derive::napi;
 
 #[napi(js_name = "AssetInfo")]
@@ -36,6 +37,20 @@ impl NativeCreateAssetNote {
     pub fn new(asset_info: &NativeAssetInfo) -> Self {
         let note = CreateAssetNote::new(asset_info.inner);
 
+        Self { inner: note }
+    }
+}
+
+#[napi(js_name = "MintAssetNote")]
+pub struct NativeMintAssetNote {
+    pub(crate) inner: MintAssetNote,
+}
+
+#[napi]
+impl NativeMintAssetNote {
+    #[napi(constructor)]
+    pub fn new(asset_info: &NativeAssetInfo, value: BigInt) -> Self {
+        let note = MintAssetNote::new(asset_info.inner, value.get_u64().1);
         Self { inner: note }
     }
 }
