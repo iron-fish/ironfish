@@ -578,6 +578,7 @@ export class WalletDB {
     await this.balances.put(account.id, balance, tx)
   }
 
+<<<<<<< HEAD:ironfish/src/wallet/walletdb/walletdb.ts
   async *loadExpiredTransactions(
     account: Account,
     headSequence: number,
@@ -670,5 +671,70 @@ export class WalletDB {
 
       await this.accountIdsToCleanup.del(accountId)
     }
+=======
+  async cleanupAccount(
+    accountId: string,
+    recordsToCleanup: number,
+  ): Promise<[recordsToCleanup: number, cleaned: boolean]> {
+    const prefix = calculateAccountPrefix(accountId)
+    const prefixRange = StorageUtils.getPrefixKeyRange(prefix)
+
+    for await (const [transactionHash] of this.transactions.getAllKeysIter(
+      undefined,
+      prefixRange,
+    )) {
+      if (recordsToCleanup === 0) {
+        return [recordsToCleanup, false]
+      }
+      await this.transactions.del([prefix, transactionHash])
+      recordsToCleanup--
+    }
+
+    for await (const [_, sequenceToNoteHash] of this.sequenceToNoteHash.getAllKeysIter(
+      undefined,
+      prefixRange,
+    )) {
+      if (recordsToCleanup === 0) {
+        return [recordsToCleanup, false]
+      }
+      await this.sequenceToNoteHash.del([prefix, sequenceToNoteHash])
+      recordsToCleanup--
+    }
+
+    for await (const [nonChainNoteHashes] of this.nonChainNoteHashes.getAllKeysIter(
+      undefined,
+      prefixRange,
+    )) {
+      if (recordsToCleanup === 0) {
+        return [recordsToCleanup, false]
+      }
+      await this.nonChainNoteHashes.del([prefix, nonChainNoteHashes])
+      recordsToCleanup--
+    }
+
+    for await (const [nullifierToNoteHash] of this.nullifierToNoteHash.getAllKeysIter(
+      undefined,
+      prefixRange,
+    )) {
+      if (recordsToCleanup === 0) {
+        return [recordsToCleanup, false]
+      }
+      await this.nullifierToNoteHash.del([prefix, nullifierToNoteHash])
+      recordsToCleanup--
+    }
+
+    for await (const [decryptedNotes] of this.decryptedNotes.getAllKeysIter(
+      undefined,
+      prefixRange,
+    )) {
+      if (recordsToCleanup === 0) {
+        return [recordsToCleanup, false]
+      }
+      await this.decryptedNotes.del([prefix, decryptedNotes])
+      recordsToCleanup--
+    }
+
+    return [recordsToCleanup, true]
+>>>>>>> 3ec0de49 (Remove timeout for cleanupAccounts and push cleanup logic to accountsdb):ironfish/src/wallet/database/accountsdb.ts
   }
 }
