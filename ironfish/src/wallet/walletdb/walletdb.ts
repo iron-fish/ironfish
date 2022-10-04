@@ -269,21 +269,6 @@ export class WalletDB {
       yield { accountId, headHash }
     }
   }
-  async saveAccountIdToCleanup(accountId: string, tx?: IDatabaseTransaction): Promise<void> {
-    await this.accountIdsToCleanup.put(accountId, null, tx)
-  }
-
-  async removeAccountIdToCleanup(accountId: string, tx?: IDatabaseTransaction): Promise<void> {
-    await this.accountIdsToCleanup.del(accountId, tx)
-  }
-
-  async *loadAccountIdsToCleanup(
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ accountId: string }, void, unknown> {
-    for await (const [accountId] of this.accountIdsToCleanup.getAllIter(tx)) {
-      yield { accountId }
-    }
-  }
 
   async saveTransaction(
     account: Account,
