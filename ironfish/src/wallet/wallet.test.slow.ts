@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Target } from '../primitives/target'
-import { ValidationError } from '../rpc/adapters/errors'
 import {
   createNodeTest,
   useAccountFixture,
@@ -310,7 +309,7 @@ describe('Accounts', () => {
         node.config.get('defaultTransactionExpirationSequenceDelta'),
         1,
       ),
-    ).rejects.toThrowError(ValidationError)
+    ).rejects.toThrowError(Error)
   })
 
   it('Expires transactions when calling expireTransactions', async () => {

@@ -14,12 +14,12 @@ import { NoteWitness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
-import { ERROR_CODES, ValidationError } from '../rpc/adapters/errors'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
+import { NotEnoughFundsError } from './errors'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
 import { WalletDB } from './walletdb/walletdb'
@@ -634,14 +634,14 @@ export class Wallet {
   ): Promise<Transaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
-      throw new ValidationError('You must have a genesis block to create a transaction')
+      throw new Error('You must have a genesis block to create a transaction')
     }
 
     expirationSequence =
       expirationSequence ?? heaviestHead.sequence + defaultTransactionExpirationSequenceDelta
 
     if (this.chain.verifier.isExpiredSequence(expirationSequence, this.chain.head.sequence)) {
-      throw new ValidationError('Invalid expiration sequence for transaction')
+      throw new Error('Invalid expiration sequence for transaction')
     }
 
     const transaction = await this.createTransaction(
@@ -745,11 +745,7 @@ export class Wallet {
       }
 
       if (amountNeeded > 0) {
-        throw new ValidationError(
-          `Insufficient funds`,
-          undefined,
-          ERROR_CODES.INSUFFICIENT_BALANCE,
-        )
+        throw new NotEnoughFundsError('Insufficient funds')
       }
 
       return this.workerPool.createTransaction(
