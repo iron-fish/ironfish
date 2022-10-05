@@ -4,7 +4,7 @@
 import bufio from 'bufio'
 import { Tag } from '../../telemetry'
 import { Metric } from '../../telemetry/interfaces/metric'
-import { GraffitiUtils } from '../../utils/graffiti'
+import { BufferUtils } from '../../utils/buffer'
 import { WebApi } from '../../webApi'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
@@ -188,7 +188,7 @@ export class SubmitTelemetryTask extends WorkerTask {
     graffiti,
   }: SubmitTelemetryRequest): Promise<SubmitTelemetryResponse> {
     const api = new WebApi()
-    await api.submitTelemetry({ points, graffiti: GraffitiUtils.toHuman(graffiti) })
+    await api.submitTelemetry({ points, graffiti: BufferUtils.toHuman(graffiti) })
     return new SubmitTelemetryResponse(jobId)
   }
 }

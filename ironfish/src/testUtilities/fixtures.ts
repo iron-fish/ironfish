@@ -4,13 +4,13 @@
 import { generateKey } from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
-import { Account, Accounts } from '../account'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { IronfishNode } from '../node'
 import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
+import { Account, AccountValue, Wallet } from '../wallet'
 import { getCurrentTestPath } from './utils'
 
 const FIXTURE_FOLDER = '__fixtures__'
@@ -117,17 +117,21 @@ export async function useFixture<TFixture, TSerialized = unknown>(
 }
 
 export async function useAccountFixture(
-  accounts: Accounts,
+  wallet: Wallet,
   generate: FixtureGenerate<Account> | string = 'test',
 ): Promise<Account> {
   if (typeof generate === 'string') {
     const name = generate
-    generate = () => accounts.createAccount(name)
+    generate = () => wallet.createAccount(name)
   }
 
   return useFixture(generate, {
-    restore: async (account: Account): Promise<void> => {
-      await accounts.importAccount(account)
+    serialize: (account: Account): AccountValue => {
+      return account.serialize()
+    },
+
+    deserialize: async (accountData: AccountValue): Promise<Account> => {
+      return wallet.importAccount(accountData)
     },
   })
 }
@@ -143,18 +147,18 @@ export async function useAccountFixture(
  */
 export async function restoreBlockFixtureToAccounts(
   block: Block,
-  accounts: Accounts,
+  wallet: Wallet,
 ): Promise<void> {
   for (const transaction of block.transactions) {
-    await restoreTransactionFixtureToAccounts(transaction, accounts)
+    await restoreTransactionFixtureToAccounts(transaction, wallet)
   }
 }
 
 export async function restoreTransactionFixtureToAccounts(
   transaction: Transaction,
-  accounts: Accounts,
+  wallet: Wallet,
 ): Promise<void> {
-  await accounts.syncTransaction(transaction, { submittedSequence: 1 })
+  await wallet.syncTransaction(transaction, { submittedSequence: 1 })
 }
 
 /**
@@ -164,7 +168,7 @@ export async function restoreTransactionFixtureToAccounts(
 export async function useBlockFixture(
   chain: Blockchain,
   generate: FixtureGenerate<Block>,
-  addTransactionsTo?: Accounts,
+  addTransactionsTo?: Wallet,
 ): Promise<Block> {
   return useFixture(generate, {
     process: async (block: Block): Promise<void> => {
@@ -188,7 +192,7 @@ export async function useMinerBlockFixture(
   chain: Blockchain,
   sequence?: number,
   account?: Account,
-  addTransactionsTo?: Accounts,
+  addTransactionsTo?: Wallet,
   transactions: Transaction[] = [],
 ): Promise<Block> {
   const spendingKey = account ? account.spendingKey : generateKey().spending_key
@@ -210,7 +214,7 @@ export async function useMinerBlockFixture(
 }
 
 export async function useTxFixture(
-  accounts: Accounts,
+  wallet: Wallet,
   from: Account,
   to: Account,
   generate?: FixtureGenerate<Transaction>,
@@ -220,7 +224,7 @@ export async function useTxFixture(
   generate =
     generate ||
     (() => {
-      return accounts.createTransaction(
+      return wallet.createTransaction(
         from,
         [
           {
@@ -236,7 +240,7 @@ export async function useTxFixture(
 
   return useFixture(generate, {
     process: async (tx: Transaction): Promise<void> => {
-      await restoreTransactionFixtureToAccounts(tx, accounts)
+      await restoreTransactionFixtureToAccounts(tx, wallet)
     },
     serialize: (tx: Transaction): SerializedTransaction => {
       return tx.serialize()
@@ -248,21 +252,21 @@ export async function useTxFixture(
 }
 
 export async function useMinersTxFixture(
-  accounts: Accounts,
+  wallet: Wallet,
   to?: Account,
   sequence?: number,
   amount = 0,
 ): Promise<Transaction> {
   if (!to) {
-    to = await useAccountFixture(accounts)
+    to = await useAccountFixture(wallet)
   }
 
-  return useTxFixture(accounts, to, to, () => {
+  return useTxFixture(wallet, to, to, () => {
     Assert.isNotUndefined(to)
 
-    return accounts.chain.strategy.createMinersFee(
+    return wallet.chain.strategy.createMinersFee(
       BigInt(amount),
-      sequence || accounts.chain.head.sequence + 1,
+      sequence || wallet.chain.head.sequence + 1,
       to.spendingKey,
     )
   })
@@ -275,15 +279,15 @@ export async function useTxSpendsFixture(
     expiration?: number
   },
 ): Promise<{ account: Account; transaction: Transaction }> {
-  const account = options?.account ?? (await useAccountFixture(node.accounts))
+  const account = options?.account ?? (await useAccountFixture(node.wallet))
 
-  const block = await useMinerBlockFixture(node.chain, 2, account, node.accounts)
+  const block = await useMinerBlockFixture(node.chain, 2, account, node.wallet)
 
   await expect(node.chain).toAddBlock(block)
-  await node.accounts.updateHead()
+  await node.wallet.updateHead()
 
   const transaction = await useTxFixture(
-    node.accounts,
+    node.wallet,
     account,
     account,
     undefined,
@@ -315,7 +319,7 @@ export async function useBlockWithTx(
   } = { expiration: 0 },
 ): Promise<{ account: Account; previous: Block; block: Block; transaction: Transaction }> {
   if (!from) {
-    from = await useAccountFixture(node.accounts, () => node.accounts.createAccount('test'))
+    from = await useAccountFixture(node.wallet, () => node.wallet.createAccount('test'))
   }
 
   if (!to) {
@@ -326,7 +330,7 @@ export async function useBlockWithTx(
   if (useFee) {
     previous = await useMinerBlockFixture(node.chain, 2, from)
     await node.chain.addBlock(previous)
-    await node.accounts.updateHead()
+    await node.wallet.updateHead()
   } else {
     const head = await node.chain.getBlock(node.chain.head)
     Assert.isNotNull(head)
@@ -337,7 +341,7 @@ export async function useBlockWithTx(
     Assert.isNotUndefined(from)
     Assert.isNotUndefined(to)
 
-    const transaction = await node.accounts.createTransaction(
+    const transaction = await node.wallet.createTransaction(
       from,
       [
         {
@@ -370,7 +374,7 @@ export async function useBlockWithTxs(
   node: IronfishNode,
   numTransactions: number,
 ): Promise<{ account: Account; block: Block; transactions: Transaction[] }> {
-  const from = await useAccountFixture(node.accounts, () => node.accounts.createAccount('test'))
+  const from = await useAccountFixture(node.wallet, () => node.wallet.createAccount('test'))
   const to = from
 
   let previous
@@ -379,12 +383,12 @@ export async function useBlockWithTxs(
     await node.chain.addBlock(previous)
   }
 
-  await node.accounts.updateHead()
+  await node.wallet.updateHead()
 
   const block = await useBlockFixture(node.chain, async () => {
     const transactions: Transaction[] = []
     for (let i = 0; i < numTransactions; i++) {
-      const transaction = await node.accounts.createTransaction(
+      const transaction = await node.wallet.createTransaction(
         from,
         [
           {
@@ -396,7 +400,7 @@ export async function useBlockWithTxs(
         BigInt(1),
         0,
       )
-      await node.accounts.syncTransaction(transaction, {
+      await node.wallet.syncTransaction(transaction, {
         submittedSequence: node.chain.head.sequence,
       })
       transactions.push(transaction)

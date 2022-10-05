@@ -6,6 +6,7 @@ import {
   createRootLogger,
   DatabaseVersionError,
   ErrorUtils,
+  InternalOptions,
   IronfishSdk,
   Logger,
   RpcConnectionError,
@@ -17,6 +18,7 @@ import {
   DatabaseFlag,
   DatabaseFlagKey,
   DataDirFlagKey,
+  RpcAuthFlagKey,
   RpcTcpHostFlagKey,
   RpcTcpPortFlagKey,
   RpcTcpSecureFlag,
@@ -46,6 +48,7 @@ export type FLAGS =
   | typeof RpcTcpSecureFlagKey
   | typeof RpcTcpTlsFlagKey
   | typeof VerboseFlagKey
+  | typeof RpcAuthFlagKey
 
 export abstract class IronfishCommand extends Command {
   // Yes, this is disabling the type system but any code
@@ -109,6 +112,7 @@ export abstract class IronfishCommand extends Command {
     const configFlag = getFlag(flags, ConfigFlagKey)
 
     const configOverrides: Partial<ConfigOptions> = {}
+    const internalOverrides: Partial<InternalOptions> = {}
 
     const databaseNameFlag = getFlag(flags, DatabaseFlagKey)
     if (typeof databaseNameFlag === 'string' && databaseNameFlag !== DatabaseFlag.default) {
@@ -153,9 +157,15 @@ export abstract class IronfishCommand extends Command {
       configOverrides.logLevel = '*:verbose'
     }
 
+    const rpcAuthFlag = getFlag(flags, RpcAuthFlagKey)
+    if (typeof rpcAuthFlag === 'string') {
+      internalOverrides.rpcAuthToken = rpcAuthFlag
+    }
+
     this.sdk = await IronfishSdk.init({
       pkg: IronfishCliPKG,
       configOverrides: configOverrides,
+      internalOverrides: internalOverrides,
       configName: typeof configFlag === 'string' ? configFlag : undefined,
       dataDir: typeof dataDirFlag === 'string' ? dataDirFlag : undefined,
       logger: this.logger,

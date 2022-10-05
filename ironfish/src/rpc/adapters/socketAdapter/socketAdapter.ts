@@ -35,6 +35,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   server: net.Server | null = null
   router: Router | null = null
   namespaces: ApiNamespace[]
+  enableAuthentication = true
 
   started = false
   clients = new Map<string, SocketClient>()
@@ -80,20 +81,26 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
     this.outboundTraffic.start()
 
     return new Promise((resolve, reject) => {
-      server.on('error', (err) => {
+      const onError = (err: unknown) => {
+        server.off('error', onError)
+        server.off('listening', onListening)
         reject(err)
-      })
+      }
 
-      server.listen(
-        {
-          host: this.host,
-          port: this.port,
-          exclusive: true,
-        },
-        () => {
-          resolve()
-        },
-      )
+      const onListening = () => {
+        server.off('error', onError)
+        server.off('listening', onListening)
+        resolve()
+      }
+
+      server.on('error', onError)
+      server.on('listening', onListening)
+
+      server.listen({
+        host: this.host,
+        port: this.port,
+        exclusive: true,
+      })
     })
   }
 
@@ -102,6 +109,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       return
     }
 
+    this.started = false
     this.inboundTraffic.stop()
     this.outboundTraffic.stop()
 
@@ -111,14 +119,8 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       client.messageBuffer.clear()
     })
 
-    await new Promise<void>((resolve, reject) => {
-      this.server?.close((error) => {
-        if (error) {
-          reject(error)
-        } else {
-          resolve()
-        }
-      })
+    await new Promise<void>((resolve) => {
+      this.server?.close(() => resolve())
     })
 
     await this.waitForAllToDisconnect()
@@ -206,12 +208,23 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       )
       client.requests.set(requestId, request)
 
-      if (this.router == null) {
-        this.emitResponse(client, this.constructUnmountedAdapter())
-        return
-      }
-
       try {
+        if (this.router == null || this.router.server == null) {
+          throw new ResponseError('Tried to connect to unmounted adapter')
+        }
+
+        // Authentication
+        if (this.enableAuthentication) {
+          const isAuthenticated = this.router.server.authenticate(message.auth)
+
+          if (!isAuthenticated) {
+            const error = message.auth
+              ? 'Failed authentication'
+              : 'Missing authentication token'
+            throw new ResponseError(error, ERROR_CODES.UNAUTHENTICATED, 401)
+          }
+        }
+
         await this.router.route(message.type, request)
       } catch (error: unknown) {
         if (error instanceof ResponseError) {
@@ -298,21 +311,6 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
 
     return {
       type: 'malformedRequest',
-      data: data,
-    }
-  }
-
-  constructUnmountedAdapter(): ServerSocketRpc {
-    const error = new Error(`Tried to connect to unmounted adapter`)
-
-    const data: SocketRpcError = {
-      code: ERROR_CODES.ERROR,
-      message: error.message,
-      stack: error.stack,
-    }
-
-    return {
-      type: 'error',
       data: data,
     }
   }

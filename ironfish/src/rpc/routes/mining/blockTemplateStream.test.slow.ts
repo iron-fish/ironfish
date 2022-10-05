@@ -13,7 +13,7 @@ describe('Block template stream', () => {
   it('creates a new block to be mined when chain head changes', async () => {
     const node = routeTest.node
     const { chain, miningManager } = routeTest.node
-    const account = await node.accounts.createAccount('testAccount', true)
+    const account = await node.wallet.createAccount('testAccount', true)
 
     routeTest.node.config.set('miningForce', true)
 
@@ -26,7 +26,7 @@ describe('Block template stream', () => {
     // will only be called once.
     chain.onConnectBlock.clear()
 
-    const previous = await useMinerBlockFixture(chain, 2, account, node.accounts)
+    const previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
 
     await expect(chain).toAddBlock(previous)
     await flushTimeout()
@@ -41,27 +41,22 @@ describe('Block template stream', () => {
     const { chain } = routeTest.node
     routeTest.node.config.set('miningForce', true)
 
-    const account = await node.accounts.createAccount('testAccount', true)
+    const account = await node.wallet.createAccount('testAccount', true)
 
     // Create another node
     const nodeTest = createNodeTest()
     await nodeTest.setup()
-    await nodeTest.accounts.importAccount(account)
-    await nodeTest.accounts.setDefaultAccount(account.name)
+    await nodeTest.wallet.importAccount(account)
+    await nodeTest.wallet.setDefaultAccount(account.name)
 
     // Generate a block
-    const block2 = await useMinerBlockFixture(
-      nodeTest.chain,
-      2,
-      account,
-      nodeTest.node.accounts,
-    )
+    const block2 = await useMinerBlockFixture(nodeTest.chain, 2, account, nodeTest.node.wallet)
 
     // Generate a transaction on that block with an expiry at sequence 3
     await expect(nodeTest.chain).toAddBlock(block2)
-    await nodeTest.accounts.updateHead()
+    await nodeTest.wallet.updateHead()
     const tx = await useTxFixture(
-      nodeTest.node.accounts,
+      nodeTest.node.wallet,
       account,
       account,
       undefined,
@@ -70,7 +65,7 @@ describe('Block template stream', () => {
     )
 
     // Generate another block
-    const block3 = await useMinerBlockFixture(nodeTest.chain, 3, account, nodeTest.accounts)
+    const block3 = await useMinerBlockFixture(nodeTest.chain, 3, account, nodeTest.wallet)
 
     // Done with the first node, we can take it down
     await nodeTest.teardownEach()

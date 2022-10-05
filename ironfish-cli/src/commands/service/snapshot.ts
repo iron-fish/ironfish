@@ -4,6 +4,7 @@
 import { S3Client } from '@aws-sdk/client-s3'
 import { FileUtils, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import axios from 'axios'
 import crypto from 'crypto'
 import fsAsync from 'fs/promises'
 import path from 'path'
@@ -24,6 +25,8 @@ export default class CreateSnapshot extends IronfishCommand {
     upload: Flags.boolean({
       default: false,
       allowNo: true,
+      description:
+        'Upload the snapshot to an S3 bucket. AWS credentials and region must be configured or set in the environment',
     }),
     bucket: Flags.string({
       char: 'b',
@@ -32,29 +35,17 @@ export default class CreateSnapshot extends IronfishCommand {
       description: 'S3 bucket to upload snapshot to',
       default: 'ironfish-snapshots',
     }),
-    accessKeyId: Flags.string({
-      char: 'a',
-      parse: (input: string) => Promise.resolve(input.trim()),
-      required: false,
-      description: 'S3 access key ID',
-    }),
-    secretAccessKey: Flags.string({
-      char: 's',
-      parse: (input: string) => Promise.resolve(input.trim()),
-      required: false,
-      description: 'S3 secret access key',
-    }),
-    region: Flags.string({
-      char: 'r',
-      parse: (input: string) => Promise.resolve(input.trim()),
-      required: false,
-      description: 'AWS region where bucket is contained',
-    }),
     path: Flags.string({
       char: 'p',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'The path where the snapshot should be saved',
+      description: 'The local path where the snapshot will be saved',
+    }),
+    webhook: Flags.string({
+      char: 'w',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Webhook to notify on successful snapshot upload',
     }),
   }
 
@@ -62,13 +53,6 @@ export default class CreateSnapshot extends IronfishCommand {
     const { flags } = await this.parse(CreateSnapshot)
 
     const bucket = flags.bucket
-    const accessKeyId = (flags.accessKeyId || process.env.AWS_ACCESS_KEY_ID || '').trim()
-    const secretAccessKey = (
-      flags.secretAccessKey ||
-      process.env.AWS_SECRET_ACCESS_KEY ||
-      ''
-    ).trim()
-    const region = (flags.region || process.env.AWS_REGION || '').trim()
 
     let exportDir
 
@@ -111,13 +95,7 @@ export default class CreateSnapshot extends IronfishCommand {
       const snapshotBaseName = path.basename(SNAPSHOT_FILE_NAME, '.tar.gz')
       const snapshotKeyName = `${snapshotBaseName}_${timestamp}.tar.gz`
 
-      const s3 = new S3Client({
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-        },
-        region,
-      })
+      const s3 = new S3Client({})
 
       CliUx.ux.action.start(`Uploading to ${bucket}`)
       await S3Utils.uploadToBucket(
@@ -157,6 +135,12 @@ export default class CreateSnapshot extends IronfishCommand {
 
       this.log('Snapshot upload complete. Uploaded the following manifest:')
       this.log(JSON.stringify(manifest, undefined, '  '))
+
+      if (flags.webhook) {
+        await axios.post(flags.webhook, {
+          content: `Successfully uploaded Iron Fish snapshot at block ${node.chain.head.sequence}. Use \`ironfish chain:download\` to download and import the snapshot.`,
+        })
+      }
     }
   }
 }

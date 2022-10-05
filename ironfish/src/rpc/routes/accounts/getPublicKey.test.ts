@@ -7,8 +7,8 @@
 
 import * as native from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
-import { Account } from '../../../account'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { Account } from '../../../wallet'
 
 jest.mock('@ironfish/rust-nodejs', () => {
   const moduleMock = jest.requireActual<typeof native>('@ironfish/rust-nodejs')
@@ -27,8 +27,8 @@ describe('Route account/getPublicKey', () => {
   let publicAddress = ''
 
   beforeAll(async () => {
-    account = await routeTest.node.accounts.createAccount(uuid())
-    await routeTest.node.accounts.setDefaultAccount(account.name)
+    account = await routeTest.node.wallet.createAccount(uuid())
+    await routeTest.node.wallet.setDefaultAccount(account.name)
     publicAddress = account.publicAddress
   })
 

@@ -27,7 +27,7 @@ router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
   `${ApiNamespace.faucet}/getFunds`,
   GetFundsRequestSchema,
   async (request, node): Promise<void> => {
-    const account = node.accounts.getAccountByName(request.data.accountName)
+    const account = node.wallet.getAccountByName(request.data.accountName)
     if (!account) {
       throw new ValidationError(`Account ${request.data.accountName} could not be found`)
     }

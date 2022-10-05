@@ -23,19 +23,19 @@ router.register<typeof UseAccountRequestSchema, UseAccountResponse>(
   UseAccountRequestSchema,
   async (request, node): Promise<void> => {
     const name = request.data.name
-    const account = node.accounts.getAccountByName(name)
+    const account = node.wallet.getAccountByName(name)
 
     if (!account) {
       throw new ValidationError(
         `There is no account with the name ${name}. Options are:\n` +
-          node.accounts
+          node.wallet
             .listAccounts()
             .map((a) => a.name)
             .join('\n'),
       )
     }
 
-    await node.accounts.setDefaultAccount(account.name)
+    await node.wallet.setDefaultAccount(account.name)
     request.end()
   },
 )

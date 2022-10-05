@@ -63,12 +63,12 @@ export default class GenesisBlockCommand extends IronfishCommand {
 
     let account = null
     if (flags.account !== null) {
-      account = node.accounts.getAccountByName(flags.account)
+      account = node.wallet.getAccountByName(flags.account)
     }
 
     if (account === null) {
       const name = `IronFishGenesisAccount` // Faucet depends on the name
-      account = await node.accounts.createAccount(name)
+      account = await node.wallet.createAccount(name)
       this.log(`Creating account ${account.name} to assign the genesis block to.`)
     }
 

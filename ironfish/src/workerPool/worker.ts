@@ -12,7 +12,6 @@ import { Job } from './job'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
 import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { DecryptNotesRequest, DecryptNotesResponse } from './tasks/decryptNotes'
-import { GetUnspentNotesRequest, GetUnspentNotesResponse } from './tasks/getUnspentNotes'
 import { JobAbortedError, JobAbortedMessage } from './tasks/jobAbort'
 import { JobError, JobErrorMessage } from './tasks/jobError'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
@@ -240,8 +239,6 @@ export class Worker {
         return CreateTransactionRequest.deserialize(jobId, request)
       case WorkerMessageType.DecryptNotes:
         return DecryptNotesRequest.deserialize(jobId, request)
-      case WorkerMessageType.GetUnspentNotes:
-        return GetUnspentNotesRequest.deserialize(jobId, request)
       case WorkerMessageType.JobAborted:
         throw new Error('JobAbort should not be sent as a request')
       case WorkerMessageType.JobError:
@@ -269,8 +266,6 @@ export class Worker {
         return CreateTransactionResponse.deserialize(jobId, response)
       case WorkerMessageType.DecryptNotes:
         return DecryptNotesResponse.deserialize(jobId, response)
-      case WorkerMessageType.GetUnspentNotes:
-        return GetUnspentNotesResponse.deserialize(jobId, response)
       case WorkerMessageType.JobAborted:
         return JobAbortedMessage.deserialize()
       case WorkerMessageType.JobError:

@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Account } from '../account'
 import { Blockchain } from '../blockchain'
 import { GENESIS_BLOCK_SEQUENCE } from '../consensus/consensus'
 import { Block } from '../primitives'
 import { isTransactionMine } from '../testUtilities/helpers/transaction'
+import { Account } from '../wallet'
 
 export function getBlockRange(
   chain: Blockchain,

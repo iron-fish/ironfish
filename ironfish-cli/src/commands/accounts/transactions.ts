@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { oreToIron } from '@ironfish/sdk'
+import { CurrencyUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -12,131 +12,74 @@ export class TransactionsCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     ...CliUx.ux.table.flags(),
-    account: Flags.string({
-      char: 'a',
-      description: 'Account to get transactions for',
-    }),
     hash: Flags.string({
       char: 't',
       description: 'Transaction hash to get details for',
     }),
   }
 
-  async start(): Promise<void> {
-    const { flags } = await this.parse(TransactionsCommand)
-    const account = flags.account?.trim()
-    const hash = flags.hash?.trim()
-
-    if (hash) {
-      await this.getTransaction(account, hash)
-    } else {
-      await this.getTransactions(account, flags)
-    }
-  }
-
-  async getTransaction(account: string | undefined, hash: string): Promise<void> {
-    const client = await this.sdk.connectRpc()
-
-    const response = await client.getAccountTransaction({ account, hash })
-
-    const {
-      account: accountResponse,
-      transactionHash,
-      transactionInfo,
-      transactionNotes,
-    } = response.content
-
-    this.log(`Account: ${accountResponse}`)
-
-    if (transactionInfo !== null) {
-      this.log(
-        `Transaction: ${transactionHash}\nStatus: ${transactionInfo.status}\nMiner Fee: ${
-          transactionInfo.isMinersFee ? `✔` : `x`
-        }\nFee ($ORE): ${transactionInfo.fee}\nSpends: ${transactionInfo.spends}\n`,
-      )
-    }
-
-    if (transactionNotes.length > 0) {
-      this.log(`---Notes---\n`)
-
-      CliUx.ux.table(transactionNotes, {
-        isSpender: {
-          header: 'Spender',
-          get: (row) => (row.spender ? `✔` : `x`),
-        },
-        amount: {
-          header: 'Amount ($IRON)',
-          get: (row) => oreToIron(row.amount),
-        },
-        memo: {
-          header: 'Memo',
-        },
-      })
-    }
-
-    this.log(`\n`)
-  }
-
-  async getTransactions(
-    account: string | undefined,
-    flags: {
-      columns: string | undefined
-      'no-truncate': boolean | undefined
-      output: string | undefined
-      filter: string | undefined
-      'no-header': boolean | undefined
-      sort: string | undefined
-      account: string | undefined
-      extended: boolean | undefined
-      hash: string | undefined
-      csv: boolean | undefined
+  static args = [
+    {
+      name: 'account',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Name of the account',
     },
-  ): Promise<void> {
+  ]
+
+  async start(): Promise<void> {
+    const { flags, args } = await this.parse(TransactionsCommand)
+    const account = args.account as string | undefined
+
     const client = await this.sdk.connectRpc()
+    const response = client.getAccountTransactionsStream({ account, hash: flags.hash })
 
-    const response = await client.getAccountTransactions({ account })
+    let showHeader = true
 
-    const { account: accountResponse, transactions } = response.content
+    for await (const transaction of response.contentStream()) {
+      CliUx.ux.table(
+        [transaction],
+        {
+          status: {
+            header: 'Status',
+            minWidth: 11,
+          },
+          creator: {
+            header: 'Creator',
+            get: (transaction) => (transaction.creator ? `✔` : `x`),
+          },
+          hash: {
+            header: 'Hash',
+          },
+          isMinersFee: {
+            header: 'Miner Fee',
+            get: (transaction) => (transaction.isMinersFee ? `✔` : `x`),
+          },
+          fee: {
+            header: 'Fee ($IRON)',
+            get: (transaction) => CurrencyUtils.renderIron(transaction.fee),
+            minWidth: 20,
+          },
+          notesCount: {
+            header: 'Notes',
+            minWidth: 5,
+          },
+          spendsCount: {
+            header: 'Spends',
+            minWidth: 5,
+          },
+          expirationSequence: {
+            header: 'Expiration Sequence',
+          },
+        },
+        {
+          printLine: this.log.bind(this),
+          ...flags,
+          'no-header': !showHeader,
+        },
+      )
 
-    this.log(`\n ${String(accountResponse)} - Account transactions\n`)
-
-    CliUx.ux.table(
-      transactions,
-      {
-        status: {
-          header: 'Status',
-        },
-        creator: {
-          header: 'Creator',
-          get: (row) => (row.creator ? `✔` : `x`),
-        },
-        hash: {
-          header: 'Hash',
-        },
-        isMinersFee: {
-          header: 'Miner Fee',
-          get: (row) => (row.isMinersFee ? `✔` : `x`),
-        },
-        fee: {
-          header: 'Fee ($ORE)',
-          get: (row) => row.fee,
-        },
-        notes: {
-          header: 'Notes',
-        },
-        spends: {
-          header: 'Spends',
-        },
-        expiration: {
-          header: 'Expiration',
-        },
-      },
-      {
-        printLine: this.log.bind(this),
-        ...flags,
-      },
-    )
-
-    this.log(`\n`)
+      showHeader = false
+    }
   }
 }

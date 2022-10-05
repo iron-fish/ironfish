@@ -22,8 +22,9 @@ import {
 } from '../testUtilities'
 import { mockChain, mockNode, mockTelemetry } from '../testUtilities/mocks'
 import { createNodeTest } from '../testUtilities/nodeTest'
+import { parseNetworkMessage } from './messageRegistry'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
-import { DisconnectingMessage } from './messages/disconnecting'
+import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import {
   GetBlockTransactionsRequest,
   GetBlockTransactionsResponse,
@@ -161,9 +162,11 @@ describe('PeerNetwork', () => {
 
       // Check that the disconnect message was serialized properly
       const args = sendSpy.mock.calls[0][0]
-      expect(typeof args).toEqual('string')
-      const message = JSON.parse(args) as DisconnectingMessage
+      expect(Buffer.isBuffer(args)).toBe(true)
+      const message = parseNetworkMessage(args)
       expect(message.type).toEqual(NetworkMessageType.Disconnecting)
+      Assert.isInstanceOf(message, DisconnectingMessage)
+      expect(message.reason).toEqual(DisconnectingReason.Congested)
     })
   })
 
@@ -173,11 +176,11 @@ describe('PeerNetwork', () => {
     it('should respond to GetCompactBlockRequest', async () => {
       const { peerNetwork, node } = nodeTest
 
-      const account = await useAccountFixture(node.accounts, 'accountA')
-      const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+      const account = await useAccountFixture(node.wallet, 'accountA')
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
       const transaction1 = block.transactions[0]
-      const transaction2 = await useMinersTxFixture(node.accounts, account)
-      const transaction3 = await useMinersTxFixture(node.accounts, account)
+      const transaction2 = await useMinersTxFixture(node.wallet, account)
+      const transaction3 = await useMinersTxFixture(node.wallet, account)
 
       await expect(node.chain).toAddBlock(block)
 
@@ -208,9 +211,9 @@ describe('PeerNetwork', () => {
     it('responds with CannotSatisfy when requesting an old compact block', async () => {
       const { peerNetwork, node } = nodeTest
 
-      const account = await useAccountFixture(node.accounts, 'accountA')
+      const account = await useAccountFixture(node.wallet, 'accountA')
       for (let i = 0; i < 6; i++) {
-        const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+        const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
         await expect(node.chain).toAddBlock(block)
       }
 
@@ -252,11 +255,11 @@ describe('PeerNetwork', () => {
     it('should respond to GetBlockTransactionsRequest', async () => {
       const { peerNetwork, node } = nodeTest
 
-      const account = await useAccountFixture(node.accounts, 'accountA')
-      const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+      const account = await useAccountFixture(node.wallet, 'accountA')
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
       const transaction1 = block.transactions[0]
-      const transaction2 = await useMinersTxFixture(node.accounts, account)
-      const transaction3 = await useMinersTxFixture(node.accounts, account)
+      const transaction2 = await useMinersTxFixture(node.wallet, account)
+      const transaction3 = await useMinersTxFixture(node.wallet, account)
 
       await expect(node.chain).toAddBlock(block)
 
@@ -285,9 +288,9 @@ describe('PeerNetwork', () => {
     it('responds with CannotSatisfy when requesting transactions from an old block', async () => {
       const { peerNetwork, node } = nodeTest
 
-      const account = await useAccountFixture(node.accounts, 'accountA')
+      const account = await useAccountFixture(node.wallet, 'accountA')
       for (let i = 0; i < 11; i++) {
-        const block = await useMinerBlockFixture(node.chain, undefined, account, node.accounts)
+        const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
         await expect(node.chain).toAddBlock(block)
       }
 
@@ -525,9 +528,9 @@ describe('PeerNetwork', () => {
       it('should respond to PooledTransactionsRequest', async () => {
         const { peerNetwork, node } = nodeTest
 
-        const { accounts, memPool } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { wallet, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
         memPool.acceptTransaction(transaction)
 
@@ -548,16 +551,16 @@ describe('PeerNetwork', () => {
 
     describe('handles new transactions', () => {
       it('does not accept or sync transactions when the worker pool is saturated', async () => {
-        const { peerNetwork, workerPool, accounts, node } = nodeTest
+        const { peerNetwork, workerPool, wallet, node } = nodeTest
         const { memPool } = node
 
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         Object.defineProperty(workerPool, 'saturated', { get: () => true })
 
-        const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
+        const syncTransaction = jest.spyOn(wallet, 'syncTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -578,14 +581,14 @@ describe('PeerNetwork', () => {
       it('does not accept or sync transactions when the node is syncing', async () => {
         const { peerNetwork, node } = nodeTest
 
-        const { accounts, memPool, chain } = node
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const { wallet, memPool, chain } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         chain.synced = false
 
-        const syncTransaction = jest.spyOn(accounts, 'syncTransaction')
+        const syncTransaction = jest.spyOn(wallet, 'syncTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -605,16 +608,16 @@ describe('PeerNetwork', () => {
 
       it('verifies and syncs the same transaction once', async () => {
         const { peerNetwork, node } = nodeTest
-        const { accounts, memPool, chain } = node
+        const { wallet, memPool, chain } = node
 
         chain.synced = true
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
-        const syncTransaction = jest.spyOn(node.accounts, 'syncTransaction')
+        const syncTransaction = jest.spyOn(node.wallet, 'syncTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -677,12 +680,12 @@ describe('PeerNetwork', () => {
 
       it('does not sync or gossip double-spent transactions', async () => {
         const { peerNetwork, node } = nodeTest
-        const { accounts, memPool, chain } = node
+        const { wallet, memPool, chain } = node
 
         chain.synced = true
 
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
@@ -690,7 +693,7 @@ describe('PeerNetwork', () => {
         await node.chain.nullifiers.add(spend.nullifier)
 
         const acceptTransaction = jest.spyOn(node.memPool, 'acceptTransaction')
-        const syncTransaction = jest.spyOn(node.accounts, 'syncTransaction')
+        const syncTransaction = jest.spyOn(node.wallet, 'syncTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -740,19 +743,19 @@ describe('PeerNetwork', () => {
 
       it('syncs transactions if the spends reference a larger tree size', async () => {
         const { peerNetwork, node } = nodeTest
-        const { accounts, memPool, chain } = node
+        const { wallet, memPool, chain } = node
 
         chain.synced = true
 
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         await node.chain.notes.truncate(0)
         await node.chain.nullifiers.truncate(0)
 
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
-        const syncTransaction = jest.spyOn(node.accounts, 'syncTransaction')
+        const syncTransaction = jest.spyOn(node.wallet, 'syncTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -785,12 +788,12 @@ describe('PeerNetwork', () => {
 
       it('does not sync or gossip invalid transactions', async () => {
         const { peerNetwork, node } = nodeTest
-        const { accounts, memPool, chain } = node
+        const { wallet, memPool, chain } = node
 
         chain.synced = true
 
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const fixture = await useBlockWithTx(node, accountA, accountB)
 
         const transactionBuffer = Buffer.from(fixture.transaction.serialize())
@@ -801,7 +804,7 @@ describe('PeerNetwork', () => {
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
         const acceptTransaction = jest.spyOn(node.memPool, 'acceptTransaction')
-        const syncTransaction = jest.spyOn(node.accounts, 'syncTransaction')
+        const syncTransaction = jest.spyOn(node.wallet, 'syncTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -850,7 +853,7 @@ describe('PeerNetwork', () => {
       })
 
       it('broadcasts a new transaction when it is created', async () => {
-        const { peerNetwork, node, accounts } = nodeTest
+        const { peerNetwork, node, wallet } = nodeTest
 
         // Create 10 peers on the current version
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 10)
@@ -858,11 +861,11 @@ describe('PeerNetwork', () => {
           peer.version = VERSION_PROTOCOL
         }
 
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        await accounts.onBroadcastTransaction.emitAsync(transaction)
+        await wallet.onBroadcastTransaction.emitAsync(transaction)
 
         const sentHash = peers.filter(({ sendSpy }) => {
           return (
@@ -884,7 +887,7 @@ describe('PeerNetwork', () => {
       })
 
       it('broadcasts a new transaction but does not send new messages to old peers', async () => {
-        const { peerNetwork, node, accounts } = nodeTest
+        const { peerNetwork, node, wallet } = nodeTest
 
         // Create 10 peers on the current version
         const newPeers = getConnectedPeersWithSpies(peerNetwork.peerManager, 10)
@@ -898,11 +901,11 @@ describe('PeerNetwork', () => {
           peer.version = 16 // version that does not accept transaction hashes
         }
 
-        const accountA = await useAccountFixture(accounts, 'accountA')
-        const accountB = await useAccountFixture(accounts, 'accountB')
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        await accounts.onBroadcastTransaction.emitAsync(transaction)
+        await wallet.onBroadcastTransaction.emitAsync(transaction)
 
         const sentHash = oldPeers.filter(({ sendSpy }) => {
           return (
@@ -991,9 +994,9 @@ describe('PeerNetwork', () => {
       const { peerNetwork, node, chain } = nodeTest
       chain.synced = false
 
-      const { accounts, memPool } = node
-      const accountA = await useAccountFixture(accounts, 'accountA')
-      const accountB = await useAccountFixture(accounts, 'accountB')
+      const { wallet, memPool } = node
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
       const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
       const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 2)

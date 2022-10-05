@@ -5,48 +5,51 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
-export type GetAccountNotesRequest = { account?: string }
+export type GetAccountNotesStreamRequest = { account?: string }
 
-export type GetAccountNotesResponse = {
-  account: string
-  notes: {
-    spender: boolean
-    amount: number
-    memo: string
-    noteTxHash: string
-  }[]
+export type GetAccountNotesStreamResponse = {
+  amount: string
+  memo: string
+  transactionHash: string
+  spent: boolean | undefined
 }
 
-export const GetAccountNotesRequestSchema: yup.ObjectSchema<GetAccountNotesRequest> = yup
-  .object({
-    account: yup.string().strip(true),
-  })
-  .defined()
+export const GetAccountNotesStreamRequestSchema: yup.ObjectSchema<GetAccountNotesStreamRequest> =
+  yup
+    .object({
+      account: yup.string().strip(true),
+    })
+    .defined()
 
-export const GetAccountNotesResponseSchema: yup.ObjectSchema<GetAccountNotesResponse> = yup
-  .object({
-    account: yup.string().defined(),
-    notes: yup
-      .array(
-        yup
-          .object({
-            spender: yup.boolean().defined(),
-            amount: yup.number().defined(),
-            memo: yup.string().trim().defined(),
-            noteTxHash: yup.string().defined(),
-          })
-          .defined(),
-      )
-      .defined(),
-  })
-  .defined()
+export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNotesStreamResponse> =
+  yup
+    .object({
+      amount: yup.string().defined(),
+      memo: yup.string().trim().defined(),
+      transactionHash: yup.string().defined(),
+      spent: yup.boolean(),
+    })
+    .defined()
 
-router.register<typeof GetAccountNotesRequestSchema, GetAccountNotesResponse>(
-  `${ApiNamespace.account}/getAccountNotes`,
-  GetAccountNotesRequestSchema,
-  (request, node): void => {
+router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStreamResponse>(
+  `${ApiNamespace.account}/getAccountNotesStream`,
+  GetAccountNotesStreamRequestSchema,
+  async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
-    const { notes } = node.accounts.getNotes(account)
-    request.end({ account: account.displayName, notes })
+
+    for await (const { note, spent, transactionHash } of account.getNotes()) {
+      if (request.closed) {
+        break
+      }
+
+      request.stream({
+        amount: note.value().toString(),
+        memo: note.memo(),
+        transactionHash: transactionHash.toString('hex'),
+        spent,
+      })
+    }
+
+    request.end()
   },
 )

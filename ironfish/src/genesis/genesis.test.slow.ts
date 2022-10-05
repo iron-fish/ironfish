@@ -63,7 +63,7 @@ describe('Create genesis block', () => {
     const amountBigint = BigInt(amountNumber)
 
     // Construct parameters for the genesis block
-    const account = await node.accounts.createAccount('test', true)
+    const account = await node.wallet.createAccount('test', true)
     const info = {
       timestamp: Date.now(),
       memo: 'test',
@@ -85,21 +85,21 @@ describe('Create genesis block', () => {
 
     // Balance should still be zero, since generating the block should clear out
     // any notes made in the process
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.wallet.getBalance(account)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
+      pending: BigInt(0),
     })
 
     // Add the block to the chain
     const addBlock = await chain.addBlock(block)
     expect(addBlock.isAdded).toBeTruthy()
 
-    await node.accounts.updateHead()
+    await node.wallet.updateHead()
 
     // Check that the balance is what's expected
-    await expect(node.accounts.getBalance(account)).resolves.toEqual({
+    await expect(node.wallet.getBalance(account)).resolves.toMatchObject({
       confirmed: amountBigint,
-      unconfirmed: amountBigint,
+      pending: amountBigint,
     })
 
     // Ensure we can construct blocks after that block
@@ -129,13 +129,13 @@ describe('Create genesis block', () => {
     expect(deserializedBlock.header.timestamp.valueOf()).toEqual(info.timestamp)
     expect(deserializedBlock.header.target.asBigInt()).toEqual(Target.maxTarget().asBigInt())
 
-    await newNode.accounts.importAccount(account)
-    await newNode.accounts.updateHead()
-    await newNode.accounts.scanTransactions()
+    const accountNewNode = await newNode.wallet.importAccount(account)
+    await newNode.wallet.updateHead()
+    await newNode.wallet.scanTransactions()
 
-    await expect(newNode.accounts.getBalance(account)).resolves.toEqual({
+    await expect(newNode.wallet.getBalance(accountNewNode)).resolves.toMatchObject({
       confirmed: amountBigint,
-      unconfirmed: amountBigint,
+      pending: amountBigint,
     })
 
     // Ensure we can construct blocks after that block

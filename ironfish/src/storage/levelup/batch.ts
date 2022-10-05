@@ -15,6 +15,10 @@ export class LevelupBatch implements IDatabaseBatch {
   db: LevelupDatabase
   queue: AbstractBatch[] = []
 
+  get size(): number {
+    return this.queue.length
+  }
+
   constructor(db: LevelupDatabase) {
     this.db = db
   }

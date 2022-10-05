@@ -26,11 +26,6 @@ export const ALLOWED_BLOCK_FUTURE_SECONDS = 15
 export const GENESIS_SUPPLY_IN_IRON = 42000000
 
 /**
- * The oldest the tip should be before we consider the chain synced
- */
-export const MAX_SYNCED_AGE_MS = 5 * 60 * 60 * 1000
-
-/**
  * The maximum allowed requested blocks by the network
  */
 export const MAX_REQUESTED_BLOCKS = 50
@@ -47,6 +42,11 @@ export const MAX_MESSAGE_SIZE = 256 * 1024 * 1024
  * NOTE: This is not used in target calculation, or IRON_FISH_YEAR_IN_BLOCKS.
  */
 export const TARGET_BLOCK_TIME_IN_SECONDS = 60
+
+/**
+ * The oldest the tip should be before we consider the chain synced (60 blocks)
+ */
+export const MAX_SYNCED_AGE_MS = 60 * TARGET_BLOCK_TIME_IN_SECONDS * 1000
 
 /**
  * The time range when difficulty and target not change

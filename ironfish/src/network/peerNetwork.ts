@@ -110,7 +110,7 @@ export class PeerNetwork {
   readonly peerManager: PeerManager
   readonly onIsReadyChanged = new Event<[boolean]>()
   readonly onTransactionAccepted = new Event<[transaction: Transaction, received: Date]>()
-  readonly onBlockGossipReceived = new Event<[Block]>()
+  readonly onBlockGossipReceived = new Event<[BlockHeader]>()
 
   private started = false
   private readonly minPeers: number
@@ -255,7 +255,7 @@ export class PeerNetwork {
       this.broadcastBlockHash(block.header)
     })
 
-    this.node.accounts.onBroadcastTransaction.on((transaction) => {
+    this.node.wallet.onBroadcastTransaction.on((transaction) => {
       const serializedTransaction = transaction.serialize()
 
       const nonce = Buffer.alloc(16, transaction.hash())
@@ -299,7 +299,7 @@ export class PeerNetwork {
             reason: DisconnectingReason.Congested,
             sourceIdentity: this.localPeer.publicIdentity,
           })
-          connection.send(JSON.stringify(disconnect))
+          connection.send(disconnect.serializeWithMetadata())
           connection.close()
           return
         }
@@ -941,6 +941,8 @@ export class PeerNetwork {
     // block to the peer, but the value isn't important
     peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Received)
 
+    this.onBlockGossipReceived.emit(header)
+
     // if we don't have the previous block, start syncing
     const prevHeader = await this.chain.getHeader(header.previousBlockHash)
     if (prevHeader === null) {
@@ -1278,6 +1280,8 @@ export class PeerNetwork {
       peer.sequence = block.header.sequence
     }
 
+    this.onBlockGossipReceived.emit(block.header)
+
     // if we don't have the previous block, start syncing
     const prevHeader = await this.chain.getHeader(block.header.previousBlockHash)
     if (prevHeader === null) {
@@ -1313,7 +1317,6 @@ export class PeerNetwork {
     this.broadcastBlock(newBlockMessage)
 
     // log that we've validated the block enough to gossip it
-    this.onBlockGossipReceived.emit(block)
     this.telemetry.submitNewBlockSeen(block, new Date())
 
     // verify the full block
@@ -1426,7 +1429,7 @@ export class PeerNetwork {
 
       // The accounts need to know about the transaction since it could be
       // relevant to the accounts, despite coming from a different node.
-      await this.node.accounts.syncTransaction(transaction, {})
+      await this.node.wallet.syncTransaction(transaction, {})
 
       if (this.node.memPool.acceptTransaction(transaction)) {
         this.onTransactionAccepted.emit(transaction, received)

@@ -15,6 +15,7 @@ export class StartCommand extends IronfishCommand {
     dry: Flags.boolean({
       default: false,
       description: 'Dry run migrations first',
+      hidden: true,
     }),
     quiet: Flags.boolean({
       char: 'q',

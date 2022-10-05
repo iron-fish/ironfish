@@ -8,6 +8,7 @@ import { createRootLogger, Logger } from '../logger'
 import { Identity } from '../network'
 import { NetworkMessageType } from '../network/types'
 import { NumberEnumUtils, SetIntervalToken } from '../utils'
+import { CPUMeter } from './cpuMeter'
 import { Gauge } from './gauge'
 import { Meter } from './meter'
 
@@ -47,6 +48,8 @@ export class MetricsMonitor {
 
   private memoryInterval: SetIntervalToken | null
   private readonly memoryRefreshPeriodMs = 1000
+
+  readonly cpuMeter = new CPUMeter(500)
 
   constructor({ logger }: { logger?: Logger }) {
     this.logger = logger ?? createRootLogger()
@@ -93,6 +96,7 @@ export class MetricsMonitor {
   start(): void {
     this._started = true
     this._meters.forEach((m) => m.start())
+    this.cpuMeter.start()
 
     this.memoryInterval = setInterval(() => this.refreshMemory(), this.memoryRefreshPeriodMs)
   }
@@ -100,6 +104,7 @@ export class MetricsMonitor {
   stop(): void {
     this._started = false
     this._meters.forEach((m) => m.stop())
+    this.cpuMeter.stop()
 
     if (this.memoryInterval) {
       clearTimeout(this.memoryInterval)

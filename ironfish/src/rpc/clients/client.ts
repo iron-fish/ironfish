@@ -9,8 +9,8 @@ import {
   BlockTemplateStreamResponse,
   CreateAccountRequest,
   CreateAccountResponse,
-  GetAccountNotesRequest,
-  GetAccountNotesResponse,
+  GetAccountNotesStreamRequest,
+  GetAccountNotesStreamResponse,
   GetAccountsRequest,
   GetAccountsResponse,
   GetAccountTransactionRequest,
@@ -206,13 +206,13 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  async getAccountNotes(
-    params: GetAccountNotesRequest = {},
-  ): Promise<RpcResponseEnded<GetAccountNotesResponse>> {
-    return await this.request<GetAccountNotesResponse>(
-      `${ApiNamespace.account}/getAccountNotes`,
+  getAccountNotesStream(
+    params: GetAccountNotesStreamRequest = {},
+  ): RpcResponse<void, GetAccountNotesStreamResponse> {
+    return this.request<void, GetAccountNotesStreamResponse>(
+      `${ApiNamespace.account}/getAccountNotesStream`,
       params,
-    ).waitForEnd()
+    )
   }
 
   async getAccountTransaction(
@@ -224,13 +224,13 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  async getAccountTransactions(
+  getAccountTransactionsStream(
     params: GetAccountTransactionsRequest,
-  ): Promise<RpcResponseEnded<GetAccountTransactionsResponse>> {
-    return await this.request<GetAccountTransactionsResponse>(
+  ): RpcResponse<void, GetAccountTransactionsResponse> {
+    return this.request<void, GetAccountTransactionsResponse>(
       `${ApiNamespace.account}/getAccountTransactions`,
       params,
-    ).waitForEnd()
+    )
   }
 
   async getPeers(

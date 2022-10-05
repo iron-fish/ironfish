@@ -29,7 +29,7 @@ export abstract class Migration {
   abstract forward(
     node: IronfishNode,
     db: IDatabase,
-    tx: IDatabaseTransaction,
+    tx: IDatabaseTransaction | undefined,
     logger: Logger,
     dryRun: boolean,
   ): Promise<void>
@@ -37,7 +37,7 @@ export abstract class Migration {
   abstract backward(
     node: IronfishNode,
     db: IDatabase,
-    tx: IDatabaseTransaction,
+    tx: IDatabaseTransaction | undefined,
     logger: Logger,
     dryRun: boolean,
   ): Promise<void>

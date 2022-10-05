@@ -165,12 +165,20 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     accountStatus = `SCANNING - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
   }
 
+  const cores = `Cores: ${content.cpu.cores}`
+  const current = `Current: ${content.cpu.percentCurrent.toFixed(1)}%`
+  const rollingAvg = `Rolling Avg: ${content.cpu.percentRollingAvg.toFixed(1)}%`
+  const cpuStatus = debugOutput
+    ? [cores, current, rollingAvg].join(', ')
+    : [cores, current].join(', ')
+
   return `\
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
 Node Name            ${nodeName}
 Block Graffiti       ${blockGraffiti}
 Memory               ${memoryStatus}
+CPU                  ${cpuStatus}
 P2P Network          ${peerNetworkStatus}
 Mining               ${miningDirectorStatus}
 Mem Pool             ${memPoolStatus}

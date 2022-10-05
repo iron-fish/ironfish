@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { NotEnoughFundsError } from '../../../account/errors'
 import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES } from '../../adapters'
 
 const TEST_PARAMS = {
@@ -40,7 +40,7 @@ describe('Transactions sendTransaction', () => {
   const routeTest = createRouteTest(true)
 
   beforeAll(async () => {
-    await routeTest.node.accounts.createAccount('existingAccount', true)
+    await routeTest.node.wallet.createAccount('existingAccount', true)
   })
 
   it('throws if account does not exist', async () => {
@@ -98,9 +98,12 @@ describe('Transactions sendTransaction', () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
-    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
+    jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(0),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
@@ -113,9 +116,12 @@ describe('Transactions sendTransaction', () => {
       }),
     )
 
-    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
+    jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(21),
       confirmed: BigInt(0),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrowError(
@@ -133,12 +139,15 @@ describe('Transactions sendTransaction', () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
-    await useAccountFixture(routeTest.node.accounts, 'account-throw-error')
+    await useAccountFixture(routeTest.node.wallet, 'account-throw-error')
 
-    jest.spyOn(routeTest.node.accounts, 'pay').mockRejectedValue(new NotEnoughFundsError())
-    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
+    jest.spyOn(routeTest.node.wallet, 'pay').mockRejectedValue(new NotEnoughFundsError())
+    jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
@@ -154,13 +163,16 @@ describe('Transactions sendTransaction', () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
-    const account = await useAccountFixture(routeTest.node.accounts, 'account')
-    const tx = await useMinersTxFixture(routeTest.node.accounts, account)
+    const account = await useAccountFixture(routeTest.node.wallet, 'account')
+    const tx = await useMinersTxFixture(routeTest.node.wallet, account)
 
-    jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
-    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
+    jest.spyOn(routeTest.node.wallet, 'pay').mockResolvedValue(tx)
+    jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS)
@@ -171,13 +183,16 @@ describe('Transactions sendTransaction', () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
-    const account = await useAccountFixture(routeTest.node.accounts, 'account_multi-output')
-    const tx = await useMinersTxFixture(routeTest.node.accounts, account)
+    const account = await useAccountFixture(routeTest.node.wallet, 'account_multi-output')
+    const tx = await useMinersTxFixture(routeTest.node.wallet, account)
 
-    jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
-    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValueOnce({
+    jest.spyOn(routeTest.node.wallet, 'pay').mockResolvedValue(tx)
+    jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(21),
       confirmed: BigInt(21),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
@@ -185,18 +200,21 @@ describe('Transactions sendTransaction', () => {
   })
 
   it('lets you configure the expiration', async () => {
-    const account = await useAccountFixture(routeTest.node.accounts, 'expiration')
-    const tx = await useMinersTxFixture(routeTest.node.accounts, account)
+    const account = await useAccountFixture(routeTest.node.wallet, 'expiration')
+    const tx = await useMinersTxFixture(routeTest.node.wallet, account)
 
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
-    jest.spyOn(routeTest.node.accounts, 'getBalance').mockResolvedValue({
+    jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValue({
       unconfirmed: BigInt(100000),
       confirmed: BigInt(100000),
+      pending: BigInt(0),
+      pendingCount: 0,
+      unconfirmedCount: 0,
     })
 
-    const paySpy = jest.spyOn(routeTest.node.accounts, 'pay').mockResolvedValue(tx)
+    const paySpy = jest.spyOn(routeTest.node.wallet, 'pay').mockResolvedValue(tx)
 
     await routeTest.client.sendTransaction(TEST_PARAMS)
 

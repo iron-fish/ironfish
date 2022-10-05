@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Assert } from '../../assert'
+import { BufferUtils } from '../../utils'
 import { DatabaseKeyRange } from './types'
 
 /**
@@ -11,21 +13,35 @@ import { DatabaseKeyRange } from './types'
  * you would query "gte('App') && lte('App' + 'ff')" Which would return
  * 'Apple' and 'Application'
  */
-export function getPrefixKeyRange(prefix: Buffer, byteLength?: number): DatabaseKeyRange {
-  if (byteLength === undefined) {
-    byteLength = prefix.byteLength
-  }
+export function getPrefixKeyRange(prefix: Buffer): DatabaseKeyRange {
+  const gte = Buffer.alloc(prefix.byteLength)
+  const lt = Buffer.alloc(prefix.byteLength)
 
-  const prefixHex = prefix.toString('hex')
-  const prefixNumber = parseInt(prefixHex, 16)
+  prefix.copy(gte)
+  prefix.copy(lt)
 
-  const gte = Buffer.alloc(byteLength)
-  gte.writeUIntBE(prefixNumber, 0, byteLength)
-
-  const lt = Buffer.alloc(byteLength)
-  lt.writeUIntBE(prefixNumber + 1, 0, byteLength)
+  // Because levelDB uses big endian buffers for sorting
+  BufferUtils.incrementBE(lt)
 
   return { gte, lt }
 }
 
-export const StorageUtils = { getPrefixKeyRange }
+export function getPrefixesKeyRange(
+  start: Readonly<Buffer>,
+  end: Readonly<Buffer>,
+): DatabaseKeyRange {
+  Assert.isEqual(start.byteLength, end.byteLength, `Start and end must have equal byte length`)
+
+  const gte = Buffer.alloc(start.byteLength)
+  const lt = Buffer.alloc(start.byteLength)
+
+  start.copy(gte)
+  end.copy(lt)
+
+  // Because levelDB uses big endian buffers for sorting
+  BufferUtils.incrementBE(lt)
+
+  return { gte, lt }
+}
+
+export const StorageUtils = { getPrefixKeyRange, getPrefixesKeyRange }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Account } from '../../../account'
+import { Account } from '../../../wallet'
 import { ApiNamespace, router } from '../router'
 
 // eslint-disable-next-line @typescript-eslint/ban-types
@@ -29,12 +29,12 @@ router.register<typeof GetAccountsRequestSchema, GetAccountsResponse>(
     let accounts: Account[] = []
 
     if (request.data?.default) {
-      const defaultAccount = node.accounts.getDefaultAccount()
+      const defaultAccount = node.wallet.getDefaultAccount()
       if (defaultAccount) {
         accounts = [defaultAccount]
       }
     } else {
-      accounts = node.accounts.listAccounts()
+      accounts = node.wallet.listAccounts()
     }
 
     const names = accounts.map((a) => (request.data?.displayName ? a.displayName : a.name))

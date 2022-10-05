@@ -27,7 +27,7 @@ describe('Route faucet.getFunds', () => {
 
     beforeEach(async () => {
       accountName = 'test' + Math.random().toString()
-      const account = await routeTest.node.accounts.createAccount(accountName, true)
+      const account = await routeTest.node.wallet.createAccount(accountName, true)
       publicAddress = account.publicAddress
     })
 

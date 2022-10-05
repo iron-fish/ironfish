@@ -34,17 +34,29 @@ export default class Download extends IronfishCommand {
       char: 'm',
       parse: (input: string) => Promise.resolve(input.trim()),
       description: 'Manifest url to download snapshot from',
-      default: 'https://d1kj1bottktsu0.cloudfront.net/manifest.json',
+      default: 'https://ironfish-snapshots.s3-accelerate.amazonaws.com/manifest.json',
     }),
     path: Flags.string({
       char: 'p',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
-      description: 'Path to snapshot file',
+      description: 'Path to a downloaded snapshot file to import',
+    }),
+    outputPath: Flags.string({
+      char: 'o',
+      parse: (input: string) => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Output path to download the snapshot file to',
     }),
     confirm: Flags.boolean({
       default: false,
-      description: 'Confirm without asking',
+      description: 'Confirm download without asking',
+    }),
+    cleanup: Flags.boolean({
+      default: true,
+      description: 'Remove downloaded snapshot file after import',
+      allowNo: true,
+      hidden: true,
     }),
   }
 
@@ -55,7 +67,6 @@ export default class Download extends IronfishCommand {
     await NodeUtils.waitForOpen(node)
 
     let snapshotPath
-    await fsAsync.mkdir(this.sdk.config.tempDir, { recursive: true })
 
     if (flags.path) {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
@@ -99,9 +110,10 @@ export default class Download extends IronfishCommand {
         snapshotUrl = url.toString()
       }
 
-      this.log(`Downloading snapshot from ${snapshotUrl}`)
+      await fsAsync.mkdir(this.sdk.config.tempDir, { recursive: true })
+      snapshotPath = flags.outputPath || path.join(this.sdk.config.tempDir, manifest.file_name)
 
-      snapshotPath = path.join(this.sdk.config.tempDir, manifest.file_name)
+      this.log(`Downloading snapshot from ${snapshotUrl} to ${snapshotPath}`)
 
       const bar = CliUx.ux.progress({
         barCompleteChar: '\u2588',
@@ -215,30 +227,65 @@ export default class Download extends IronfishCommand {
       }
     }
 
-    // use a standard name, 'snapshot', for the unzipped database
-    const snapshotDatabasePath = this.sdk.fileSystem.join(this.sdk.config.tempDir, 'snapshot')
-    await this.sdk.fileSystem.mkdir(snapshotDatabasePath, { recursive: true })
-
-    CliUx.ux.action.start(`Unzipping ${snapshotPath}`)
-    await this.unzip(snapshotPath, snapshotDatabasePath)
-    CliUx.ux.action.stop('done')
-
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
+    // chainDatabasePath must be empty before unzipping snapshot
     CliUx.ux.action.start(
-      `Moving snapshot from ${snapshotDatabasePath} to ${chainDatabasePath}`,
+      `Removing existing chain data at ${chainDatabasePath} before importing snapshot`,
     )
-    // chainDatabasePath must be empty before renaming snapshot
     await fsAsync.rm(chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
-    await fsAsync.rename(snapshotDatabasePath, chainDatabasePath)
     CliUx.ux.action.stop('done')
+
+    // ensure that chainDatabasePath exists
+    await fsAsync.mkdir(chainDatabasePath, { recursive: true })
+
+    await this.unzip(snapshotPath, chainDatabasePath)
+
+    if (flags.cleanup) {
+      CliUx.ux.action.start(`Cleaning up snapshot file at ${snapshotPath}`)
+      await fsAsync.rm(snapshotPath)
+      CliUx.ux.action.stop('done')
+    }
   }
 
   async unzip(source: string, dest: string): Promise<void> {
+    let totalEntries = 0
+    let extracted = 0
+
+    const progressBar = CliUx.ux.progress({
+      barCompleteChar: '\u2588',
+      barIncompleteChar: '\u2591',
+      format:
+        'Unzipping snapshot: [{bar}] {percentage}% | {value} / {total} entries | {speed}/s | ETA: {estimate}',
+    }) as ProgressBar
+
+    const speed = new Meter()
+
+    progressBar.start(totalEntries, 0, {
+      speed: '0',
+      estimate: TimeUtils.renderEstimate(0, 0, 0),
+    })
+    speed.start()
+
+    tar.list({
+      file: source,
+      onentry: (_) => progressBar.setTotal(++totalEntries),
+    })
+
     await tar.extract({
       file: source,
       C: dest,
       strip: 1,
+      onentry: (_) => {
+        speed.add(1)
+        progressBar.update(++extracted, {
+          speed: speed.rate1s.toFixed(2),
+          estimate: TimeUtils.renderEstimate(extracted, totalEntries, speed.rate1m),
+        })
+      },
     })
+
+    progressBar.stop()
+    speed.stop()
   }
 }

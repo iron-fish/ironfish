@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ACCOUNT_KEY_LENGTH } from '../../account'
 import { NOTE_LENGTH } from '../../primitives/note'
 import { ENCRYPTED_NOTE_LENGTH } from '../../primitives/noteEncrypted'
 import { createNodeTest, useAccountFixture, useMinersTxFixture } from '../../testUtilities'
+import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { DecryptNotesRequest, DecryptNotesResponse, DecryptNotesTask } from './decryptNotes'
 
 describe('DecryptNotesRequest', () => {
@@ -34,7 +34,7 @@ describe('DecryptNotesResponse', () => {
         {
           forSpender: false,
           index: 1,
-          merkleHash: Buffer.alloc(32, 1),
+          hash: Buffer.alloc(32, 1),
           nullifier: Buffer.alloc(32, 1),
           serializedNote: Buffer.alloc(NOTE_LENGTH, 1),
         },
@@ -53,8 +53,8 @@ describe('DecryptNotesTask', () => {
 
   describe('execute', () => {
     it('posts the miners fee transaction', async () => {
-      const account = await useAccountFixture(nodeTest.accounts)
-      const transaction = await useMinersTxFixture(nodeTest.accounts, account)
+      const account = await useAccountFixture(nodeTest.wallet)
+      const transaction = await useMinersTxFixture(nodeTest.wallet, account)
 
       const task = new DecryptNotesTask()
       const index = 2
@@ -75,7 +75,7 @@ describe('DecryptNotesTask', () => {
             forSpender: false,
             index,
             nullifier: expect.any(Buffer),
-            merkleHash: expect.any(Buffer),
+            hash: expect.any(Buffer),
             serializedNote: expect.any(Buffer),
           },
         ],

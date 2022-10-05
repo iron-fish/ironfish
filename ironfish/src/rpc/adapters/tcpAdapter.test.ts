@@ -3,9 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /* eslint-disable jest/no-try-expect */
 /* eslint-disable jest/no-conditional-expect */
+import Mitm from 'mitm'
+import net from 'net'
 import os from 'os'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
+import { createRootLogger, Logger } from '../../logger'
+import { IronfishNode } from '../../node'
 import { IronfishSdk } from '../../sdk'
 import { RpcRequestError } from '../clients'
 import { RpcTcpClient } from '../clients/tcpClient'
@@ -17,9 +21,13 @@ describe('TcpAdapter', () => {
   let tcp: RpcTcpAdapter | undefined
   let sdk: IronfishSdk
   let client: RpcTcpClient | undefined
+  let node: IronfishNode
+  let logger: Logger
+  let mitm: ReturnType<typeof Mitm>
 
   beforeEach(async () => {
     const dataDir = os.tmpdir()
+    logger = createRootLogger().withTag('tcpadapter')
 
     sdk = await IronfishSdk.init({
       dataDir,
@@ -30,41 +38,44 @@ describe('TcpAdapter', () => {
         enableRpcTls: false,
         rpcTcpPort: 0,
       },
+      internalOverrides: {
+        rpcAuthToken: 'test token',
+      },
     })
+
+    node = await sdk.node()
 
     tcp = new RpcTcpAdapter('localhost', 0, undefined, ALL_API_NAMESPACES)
 
-    const node = await sdk.node()
+    mitm = Mitm()
+    mitm.on('connection', (socket: net.Socket) => tcp?.onClientConnection(socket))
+
     await node.rpc.mount(tcp)
-  })
+  }, 20000)
 
   afterEach(() => {
     client?.close()
-    tcp?.stop()
+    mitm.disable()
   })
 
   it('should send and receive message', async () => {
-    await tcp?.start()
     Assert.isNotUndefined(tcp)
-    Assert.isNotNull(tcp?.router)
-    Assert.isNotNull(tcp?.addressPort)
+    Assert.isNotNull(tcp.router)
 
     tcp.router.register('foo/bar', yup.string(), (request) => {
       request.end(request.data)
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', 0)
     await client.connect()
 
     const response = await client.request('foo/bar', 'hello world').waitForEnd()
     expect(response.content).toBe('hello world')
-  })
+  }, 20000)
 
   it('should stream message', async () => {
-    await tcp?.start()
     Assert.isNotUndefined(tcp)
     Assert.isNotNull(tcp?.router)
-    Assert.isNotNull(tcp?.addressPort)
 
     tcp.router.register('foo/bar', yup.object({}), (request) => {
       request.stream('hello 1')
@@ -72,7 +83,7 @@ describe('TcpAdapter', () => {
       request.end()
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', 0)
     await client.connect()
 
     const response = client.request('foo/bar')
@@ -81,19 +92,17 @@ describe('TcpAdapter', () => {
 
     await response.waitForEnd()
     expect(response.content).toBe(undefined)
-  })
+  }, 20000)
 
   it('should handle errors', async () => {
-    await tcp?.start()
     Assert.isNotUndefined(tcp)
     Assert.isNotNull(tcp?.router)
-    Assert.isNotNull(tcp?.addressPort)
 
     tcp.router.register('foo/bar', yup.object({}), () => {
       throw new ValidationError('hello error', 402, 'hello-error' as ERROR_CODES)
     })
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', 0)
     await client.connect()
 
     const response = client.request('foo/bar')
@@ -104,13 +113,11 @@ describe('TcpAdapter', () => {
       code: 'hello-error',
       codeMessage: 'hello error',
     })
-  })
+  }, 20000)
 
   it('should handle request errors', async () => {
-    await tcp?.start()
     Assert.isNotUndefined(tcp)
     Assert.isNotNull(tcp?.router)
-    Assert.isNotNull(tcp?.addressPort)
 
     // Requires this
     const schema = yup.string().defined()
@@ -119,7 +126,7 @@ describe('TcpAdapter', () => {
 
     tcp.router.register('foo/bar', schema, (res) => res.end())
 
-    client = new RpcTcpClient('localhost', tcp.addressPort)
+    client = new RpcTcpClient('localhost', 0)
     await client.connect()
 
     const response = client.request('foo/bar', body)
@@ -130,5 +137,70 @@ describe('TcpAdapter', () => {
       code: ERROR_CODES.VALIDATION,
       codeMessage: expect.stringContaining('this must be defined'),
     })
-  })
+  }, 20000)
+
+  it('should succeed when authentication pass', async () => {
+    Assert.isNotUndefined(tcp)
+    tcp.enableAuthentication = true
+
+    Assert.isNotNull(tcp.router)
+
+    tcp.router.register('foo/bar', yup.string(), (request) => {
+      request.end(request.data)
+    })
+
+    client = new RpcTcpClient('localhost', 0, logger, 'test token')
+    await client.connect()
+
+    const response = await client.request('foo/bar', 'hello world').waitForEnd()
+    expect(response.content).toBe('hello world')
+  }, 20000)
+
+  it('should reject when authentication failed', async () => {
+    Assert.isNotUndefined(tcp)
+    tcp.enableAuthentication = true
+
+    Assert.isNotNull(tcp.router)
+
+    tcp.router.register('foo/bar', yup.string(), (request) => {
+      request.end(request.data)
+    })
+
+    client = new RpcTcpClient('localhost', 0, logger, 'wrong token')
+    await client.connect()
+
+    const response = client.request('foo/bar', 'hello world')
+
+    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+
+    await expect(response.waitForEnd()).rejects.toMatchObject({
+      status: 401,
+      code: ERROR_CODES.UNAUTHENTICATED,
+      codeMessage: expect.stringContaining('Failed authentication'),
+    })
+  }, 20000)
+
+  it('should reject when auth token is empty', async () => {
+    Assert.isNotUndefined(tcp)
+    tcp.enableAuthentication = true
+
+    Assert.isNotNull(tcp.router)
+
+    tcp.router.register('foo/bar', yup.string(), (request) => {
+      request.end(request.data)
+    })
+
+    client = new RpcTcpClient('localhost', 0, logger)
+    await client.connect()
+
+    const response = client.request('foo/bar', 'hello world')
+
+    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+
+    await expect(response.waitForEnd()).rejects.toMatchObject({
+      status: 401,
+      code: ERROR_CODES.UNAUTHENTICATED,
+      codeMessage: expect.stringContaining('Missing authentication token'),
+    })
+  }, 20000)
 })

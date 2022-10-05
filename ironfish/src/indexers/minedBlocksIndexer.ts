@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Accounts } from '../account'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
@@ -18,6 +17,7 @@ import {
 import { createDB } from '../storage/utils'
 import { SetTimeoutToken } from '../utils'
 import { BlockchainUtils, isBlockMine } from '../utils/blockchain'
+import { Wallet } from '../wallet'
 import {
   AccountsToRemoveValue,
   AccountsToRemoveValueEncoding,
@@ -48,7 +48,7 @@ export class MinedBlocksIndexer {
   protected files: FileSystem
   readonly database: IDatabase
   readonly location: string
-  protected readonly accounts: Accounts
+  protected readonly wallet: Wallet
   protected readonly logger: Logger
   protected isOpen: boolean
   protected isStarted: boolean
@@ -60,20 +60,20 @@ export class MinedBlocksIndexer {
   constructor({
     files,
     location,
-    accounts,
+    wallet,
     chain,
     logger = createRootLogger(),
   }: {
     files: FileSystem
     location: string
-    accounts: Accounts
+    wallet: Wallet
     chain: Blockchain
     logger?: Logger
   }) {
     this.files = files
     this.location = location
     this.database = createDB({ location })
-    this.accounts = accounts
+    this.wallet = wallet
     this.logger = logger
     this.chain = chain
     this.isOpen = false
@@ -119,7 +119,7 @@ export class MinedBlocksIndexer {
       const block = await this.chain.getBlock(header)
       Assert.isNotNull(block)
 
-      const account = this.accounts.listAccounts().find((a) => isBlockMine(block, a))
+      const account = this.wallet.listAccounts().find((a) => isBlockMine(block, a))
       if (account) {
         await this.database.transaction(async (tx) => {
           await this.minedBlocks.put(
@@ -148,7 +148,7 @@ export class MinedBlocksIndexer {
           const block = await this.chain.getBlock(header)
           Assert.isNotNull(block)
 
-          const account = this.accounts.listAccounts().find((a) => isBlockMine(block, a))
+          const account = this.wallet.listAccounts().find((a) => isBlockMine(block, a))
           if (account) {
             const minedBlock = await this.minedBlocks.get(header.hash, tx)
             if (minedBlock) {
@@ -162,11 +162,11 @@ export class MinedBlocksIndexer {
       })
     })
 
-    this.accounts.onAccountImported.on(() => {
+    this.wallet.onAccountImported.on(() => {
       this.rescan = true
     })
 
-    this.accounts.onAccountRemoved.on(async (account) => {
+    this.wallet.onAccountRemoved.on(async (account) => {
       const accounts = await this.getAccountsToBeRemoved()
       accounts.push(account.name)
       await this.accountsToRemove.put(REMOVAL_KEY, { accounts })
