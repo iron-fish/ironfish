@@ -254,8 +254,8 @@ export class Wallet {
       clearTimeout(this.eventLoopTimeout)
     }
 
-    this.eventLoopAbortController.abort()
     await Promise.all([this.scan?.abort(), this.updateHeadState?.abort()])
+    this.eventLoopAbortController.abort()
 
     await this.eventLoopPromise
 
