@@ -69,7 +69,6 @@ export class Wallet {
   private readonly eventLoopAbortController: AbortController
   private eventLoopPromise: Promise<void> | null = null
   private eventLoopResolve: PromiseResolve<void> | null = null
-  private readonly accountIdsToCleanup: string[] = []
 
   constructor({
     chain,

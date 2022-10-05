@@ -526,7 +526,6 @@ export class WalletDB {
     await this.balances.put(account.id, balance, tx)
   }
 
-<<<<<<< HEAD:ironfish/src/wallet/walletdb/walletdb.ts
   async *loadExpiredTransactions(
     account: Account,
     headSequence: number,
@@ -589,8 +588,6 @@ export class WalletDB {
   async cleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
     let recordsToCleanup = 1000
 
-    const accountIdsToCleanup = await this.accountIdsToCleanup.getAll()
-
     const stores: Array<
       IDatabaseStore<{
         key: Readonly<unknown>
@@ -604,7 +601,7 @@ export class WalletDB {
       this.decryptedNotes,
     ]
 
-    for (const [accountId] of accountIdsToCleanup) {
+    for (const [accountId] of await this.accountIdsToCleanup.getAll()) {
       const prefix = calculateAccountPrefix(accountId)
       const prefixRange = StorageUtils.getPrefixKeyRange(prefix)
 
@@ -620,18 +617,6 @@ export class WalletDB {
       }
 
       await this.accountIdsToCleanup.del(accountId)
-    }
-  }
-
-  async saveAccountIdToCleanup(accountId: string, tx?: IDatabaseTransaction): Promise<void> {
-    await this.accountIdsToCleanup.put(accountId, null, tx)
-  }
-
-  async *loadAccountIdsToCleanup(
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ accountId: string }, void, unknown> {
-    for await (const [accountId] of this.accountIdsToCleanup.getAllIter(tx)) {
-      yield { accountId }
     }
   }
 }
