@@ -283,7 +283,7 @@ export class Migration013 extends Migration {
         await cacheMeta.put('countNoteTotal', countNoteTotal)
 
         logger.debug(
-          `Migrated ${countNote} out ${countNoteTotal} notes: ${speed.rate1s.toFixed(2)}/s`,
+          `Migrated ${countNote} out of ${countNoteTotal} notes: ${speed.rate1s.toFixed(2)}/s`,
         )
       }
 
