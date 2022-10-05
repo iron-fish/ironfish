@@ -26,7 +26,7 @@ describe('ChainProcessor', () => {
 
     const processor = new ChainProcessor({
       chain: chain,
-      head: genesis.header.hash,
+      head: genesis.header,
     })
 
     const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
@@ -81,7 +81,7 @@ describe('ChainProcessor', () => {
 
     const processor = new ChainProcessor({
       chain: chain,
-      head: chain.genesis.hash,
+      head: chain.genesis,
     })
 
     const updatePromise = processor.update({ signal: ac.signal })

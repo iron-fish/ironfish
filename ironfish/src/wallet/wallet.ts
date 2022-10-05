@@ -147,7 +147,7 @@ export class Wallet {
 
       if (hashChanged) {
         this.logger.debug(
-          `Updated Accounts Head: ${String(this.chainProcessor.hash?.toString('hex'))}`,
+          `Updated Accounts Head: ${String(this.chainProcessor.head?.hash.toString('hex'))}`,
         )
       }
     } finally {
@@ -205,7 +205,7 @@ export class Wallet {
     this.headHashes.clear()
 
     this.defaultAccount = null
-    this.chainProcessor.hash = null
+    this.chainProcessor.head = null
   }
 
   async close(): Promise<void> {

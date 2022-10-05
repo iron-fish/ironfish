@@ -8,6 +8,7 @@ import { Block, BlockHeader } from '../../../primitives'
 import { BlockSerde } from '../../../primitives/block'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
+import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
 export type FollowChainStreamRequest =
@@ -104,7 +105,18 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
   `${ApiNamespace.chain}/followChainStream`,
   FollowChainStreamRequestSchema,
   async (request, node): Promise<void> => {
-    const head = request.data?.head ? Buffer.from(request.data.head, 'hex') : null
+    let head: BlockHeader | null = null
+
+    if (request.data?.head) {
+      const hash = Buffer.from(request.data.head, 'hex')
+      head = await node.chain.getHeader(hash)
+
+      if (!head) {
+        throw new ValidationError(
+          `Block with hash ${request.data.head} was not found in the chain`,
+        )
+      }
+    }
 
     const processor = new ChainProcessor({
       chain: node.chain,

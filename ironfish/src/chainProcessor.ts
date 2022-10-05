@@ -29,17 +29,16 @@ import { createRootLogger, Logger } from './logger'
  */
 export class ChainProcessor {
   chain: Blockchain
-  // TODO: Consider refactoring to store a BlockHeader rather than a hash + sequence
+  head: BlockHeader | null = null
   hash: Buffer | null = null
-  sequence: number | null = null
   logger: Logger
   onAdd = new Event<[block: BlockHeader]>()
   onRemove = new Event<[block: BlockHeader]>()
 
-  constructor(options: { logger?: Logger; chain: Blockchain; head: Buffer | null }) {
+  constructor(options: { logger?: Logger; chain: Blockchain; head: BlockHeader | null }) {
     this.chain = options.chain
     this.logger = (options.logger ?? createRootLogger()).withTag('chainprocessor')
-    this.hash = options.head
+    this.head = options.head
   }
 
   private async add(header: BlockHeader): Promise<void> {
@@ -51,48 +50,43 @@ export class ChainProcessor {
   }
 
   async update({ signal }: { signal?: AbortSignal } = {}): Promise<{ hashChanged: boolean }> {
-    const oldHash = this.hash
+    const oldHead = this.head
 
-    if (!this.hash) {
+    if (!this.head) {
       await this.add(this.chain.genesis)
-      this.hash = this.chain.genesis.hash
-      this.sequence = this.chain.genesis.sequence
+      this.head = this.chain.genesis
     }
 
     // Freeze this value in case it changes while we're updating the head
     const chainHead = this.chain.head
+    const accountHead = this.head
 
-    if (chainHead.hash.equals(this.hash)) {
+    if (chainHead.hash.equals(accountHead.hash)) {
       return { hashChanged: false }
     }
 
-    const head = await this.chain.getHeader(this.hash)
-
-    Assert.isNotNull(
-      head,
-      `Chain processor head not found in chain: ${this.hash.toString('hex')}`,
-    )
-
-    const { fork, isLinear } = await this.chain.findFork(head, chainHead)
+    const { fork, isLinear } = await this.chain.findFork(accountHead, chainHead)
     if (!fork) {
       return { hashChanged: false }
     }
 
     if (!isLinear) {
-      const iter = this.chain.iterateFrom(head, fork, undefined, false)
+      const iter = this.chain.iterateFrom(accountHead, fork, undefined, false)
 
       for await (const remove of iter) {
         if (signal?.aborted) {
-          return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+          return { hashChanged: !oldHead || !this.head.hash.equals(oldHead.hash) }
         }
 
         if (remove.hash.equals(fork.hash)) {
           continue
         }
 
+        const prev = await this.chain.getPrevious(remove)
+        Assert.isNotNull(prev)
+
         await this.remove(remove)
-        this.hash = remove.previousBlockHash
-        this.sequence = remove.sequence - 1
+        this.head = prev
       }
     }
 
@@ -100,7 +94,7 @@ export class ChainProcessor {
 
     for await (const add of iter) {
       if (signal?.aborted) {
-        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+        return { hashChanged: !oldHead || !this.head.hash.equals(oldHead.hash) }
       }
 
       if (add.hash.equals(fork.hash)) {
@@ -108,10 +102,9 @@ export class ChainProcessor {
       }
 
       await this.add(add)
-      this.hash = add.hash
-      this.sequence = add.sequence
+      this.head = add
     }
 
-    return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+    return { hashChanged: !oldHead || !this.head.hash.equals(oldHead.hash) }
   }
 }

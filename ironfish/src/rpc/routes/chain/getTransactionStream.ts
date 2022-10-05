@@ -91,12 +91,17 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       throw new ValidationError(`incomingViewKey is not valid`)
     }
 
-    const head = request.data.head ? Buffer.from(request.data.head, 'hex') : null
+    let head: BlockHeader | null = null
 
-    if (head && !(await node.chain.hasBlock(head))) {
-      throw new ValidationError(
-        `Block with hash ${String(request.data.head)} was not found in the chain`,
-      )
+    if (request.data?.head) {
+      const hash = Buffer.from(request.data.head, 'hex')
+      head = await node.chain.getHeader(hash)
+
+      if (!head) {
+        throw new ValidationError(
+          `Block with hash ${request.data.head} was not found in the chain`,
+        )
+      }
     }
 
     const processor = new ChainProcessor({

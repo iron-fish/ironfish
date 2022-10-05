@@ -6,6 +6,7 @@ import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
+import { BlockHeader } from '../primitives'
 import {
   BufferEncoding,
   IDatabase,
@@ -197,7 +198,22 @@ export class MinedBlocksIndexer {
 
   async load(): Promise<void> {
     const meta = await this.loadMinedBlocksMeta()
-    this.chainProcessor.hash = meta.headHash ? Buffer.from(meta.headHash, 'hex') : null
+
+    let head: BlockHeader | null = null
+
+    if (meta.headHash) {
+      const hash = Buffer.from(meta.headHash, 'hex')
+      head = await this.chain.getHeader(hash)
+
+      if (!head) {
+        this.logger.warn(
+          `Resetting mined blocks index database because index head was not found in chain: ${meta.headHash}`,
+        )
+        await this.updateHeadHash(null)
+      }
+    }
+
+    this.chainProcessor.head = head
   }
 
   async loadMinedBlocksMeta(): Promise<MinedBlocksDBMeta> {
@@ -210,26 +226,11 @@ export class MinedBlocksIndexer {
     return meta
   }
 
-  async start(): Promise<void> {
+  start(): void {
     if (this.isStarted) {
       return
     }
     this.isStarted = true
-
-    if (this.chainProcessor.hash) {
-      const hasHeadBlock = await this.chain.hasBlock(this.chainProcessor.hash)
-
-      if (!hasHeadBlock) {
-        this.logger.error(
-          `Resetting mined blocks index database because index head was not found in chain: ${this.chainProcessor.hash.toString(
-            'hex',
-          )}`,
-        )
-
-        await this.reset()
-      }
-    }
-
     void this.eventLoop()
   }
 
@@ -244,7 +245,7 @@ export class MinedBlocksIndexer {
     }
 
     if (this.database.isOpen) {
-      await this.updateHeadHash(this.chainProcessor.hash)
+      await this.updateHeadHash(this.chainProcessor.head?.hash ?? null)
     }
   }
 
@@ -261,7 +262,7 @@ export class MinedBlocksIndexer {
     }
 
     if (this.rescan) {
-      this.chainProcessor.hash = null
+      this.chainProcessor.head = null
       this.rescan = false
     }
 
@@ -277,14 +278,11 @@ export class MinedBlocksIndexer {
 
     if (hashChanged) {
       this.logger.debug(
-        `Updated MinedBlocksIndexer Head: ${String(this.chainProcessor.hash?.toString('hex'))}`,
+        `Updated MinedBlocksIndexer Head: ${String(
+          this.chainProcessor.head?.hash.toString('hex'),
+        )}`,
       )
     }
-  }
-
-  async reset(): Promise<void> {
-    this.chainProcessor.hash = null
-    await this.updateHeadHash(null)
   }
 
   async getHashesAtSequence(sequence: number, tx?: IDatabaseTransaction): Promise<Buffer[]> {

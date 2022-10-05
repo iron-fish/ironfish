@@ -306,8 +306,8 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
     },
     accounts: {
       scanning: accountsScanning,
-      head: `${node.wallet.chainProcessor.hash?.toString('hex') || ''} (${
-        node.wallet.chainProcessor.sequence?.toString() || ''
+      head: `${node.wallet.chainProcessor.head?.hash?.toString('hex') || ''} (${
+        node.wallet.chainProcessor.head?.sequence?.toString() || ''
       })`,
     },
   }
