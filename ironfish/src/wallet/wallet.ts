@@ -1038,6 +1038,10 @@ export class Wallet {
       return
     }
 
+    if (this.scan || this.updateHeadState) {
+      return
+    }
+
     await this.walletDb.cleanupDeletedAccounts(this.eventLoopAbortController.signal)
   }
 

@@ -7,6 +7,7 @@ import {
   createNodeTest,
   useAccountFixture,
   useMinerBlockFixture,
+  useMinersTxFixture,
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
@@ -477,6 +478,41 @@ describe('Accounts', () => {
       await node.wallet.expireTransactions()
 
       expect(expireSpy).toHaveBeenCalledTimes(0)
+    })
+  })
+
+  describe('removeAccount', () => {
+    it('should delete account', async () => {
+      const node = nodeTest.node
+      node.wallet['isStarted'] = true
+
+      const account = await useAccountFixture(node.wallet)
+      const tx = await useMinersTxFixture(node.wallet, account)
+      await node.wallet.syncTransaction(tx, {})
+
+      await expect(
+        node.wallet.walletDb.loadTransaction(account, tx.hash()),
+      ).resolves.not.toBeNull()
+
+      expect(node.wallet.getAccountByName(account.name)).toMatchObject({
+        id: account.id,
+      })
+
+      await node.wallet.removeAccount(account.name)
+
+      expect(node.wallet.getAccountByName(account.name)).toBeNull()
+
+      // It should not be cleand yet
+      await expect(
+        node.wallet.walletDb.loadTransaction(account, tx.hash()),
+      ).resolves.not.toBeUndefined()
+
+      await node.wallet.cleanupDeletedAccounts()
+
+      // It should be removed now
+      await expect(
+        node.wallet.walletDb.loadTransaction(account, tx.hash()),
+      ).resolves.toBeUndefined()
     })
   })
 

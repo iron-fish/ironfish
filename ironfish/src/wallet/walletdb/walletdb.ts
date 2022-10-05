@@ -588,26 +588,25 @@ export class WalletDB {
   async cleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
     let recordsToCleanup = 1000
 
-    const stores: Array<
-      IDatabaseStore<{
-        key: Readonly<unknown>
-        value: unknown
-      }>
-    > = [
+    const stores: IDatabaseStore<{
+      key: Readonly<unknown>
+      value: unknown
+    }>[] = [
       this.transactions,
       this.sequenceToNoteHash,
       this.nonChainNoteHashes,
       this.nullifierToNoteHash,
+      this.pendingTransactionHashes,
       this.decryptedNotes,
     ]
 
     for (const [accountId] of await this.accountIdsToCleanup.getAll()) {
       const prefix = calculateAccountPrefix(accountId)
-      const prefixRange = StorageUtils.getPrefixKeyRange(prefix)
+      const range = StorageUtils.getPrefixKeyRange(prefix)
 
       for (const store of stores) {
-        for await (const key of store.getAllKeysIter(undefined, prefixRange)) {
-          if (signal?.aborted === false || recordsToCleanup === 0) {
+        for await (const key of store.getAllKeysIter(undefined, range)) {
+          if (signal?.aborted === true || recordsToCleanup === 0) {
             return
           }
 

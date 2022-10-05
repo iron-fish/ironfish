@@ -39,7 +39,7 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
     }
 
     if (!request.data.confirm) {
-      const balance = await node.wallet.getBalance(account)
+      const balance = await node.wallet.getBalance(account, { minimumBlockConfirmations: 0 })
 
       if (balance.unconfirmed !== BigInt(0)) {
         request.end({ needsConfirm: true })
