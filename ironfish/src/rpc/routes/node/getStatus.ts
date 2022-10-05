@@ -19,6 +19,11 @@ export type GetNodeStatusResponse = {
     git: string
     nodeName: string
   }
+  cpu: {
+    cores: number
+    percentRollingAvg: number
+    percentCurrent: number
+  }
   memory: {
     heapMax: number
     heapTotal: number
@@ -98,6 +103,13 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
         version: yup.string().defined(),
         git: yup.string().defined(),
         nodeName: yup.string().defined(),
+      })
+      .defined(),
+    cpu: yup
+      .object({
+        cores: yup.number().defined(),
+        percentRollingAvg: yup.number().defined(),
+        percentCurrent: yup.number().defined(),
       })
       .defined(),
     memory: yup
@@ -244,6 +256,11 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
       version: node.pkg.version,
       git: node.pkg.git,
       nodeName: node.config.get('nodeName'),
+    },
+    cpu: {
+      cores: node.metrics.cpuCores,
+      percentRollingAvg: node.metrics.cpuMeter.rollingAverage,
+      percentCurrent: node.metrics.cpuMeter.current,
     },
     memory: {
       heapMax: node.metrics.heapMax,
