@@ -12,7 +12,6 @@ import {
   BigIntLEEncoding,
   BUFFER_ENCODING,
   BufferEncoding,
-  DatabaseStoreKey,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
