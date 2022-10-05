@@ -66,6 +66,9 @@ export class Wallet {
   protected isOpen = false
   protected eventLoopTimeout: SetTimeoutToken | null = null
   private readonly createTransactionMutex: Mutex
+  private readonly eventLoopAbortController: AbortController
+  private eventLoopPromise: Promise<void> | null = null
+  private eventLoopResolve: PromiseResolve<void> | null = null
 
   constructor({
     chain,
@@ -89,6 +92,7 @@ export class Wallet {
     this.workerPool = workerPool
     this.rebroadcastAfter = rebroadcastAfter ?? 10
     this.createTransactionMutex = new Mutex()
+    this.eventLoopAbortController = new AbortController()
 
     this.chainProcessor = new ChainProcessor({
       logger: this.logger,
@@ -251,6 +255,9 @@ export class Wallet {
     }
 
     await Promise.all([this.scan?.abort(), this.updateHeadState?.abort()])
+    this.eventLoopAbortController.abort()
+
+    await this.eventLoopPromise
 
     if (this.walletDb.db.isOpen) {
       await this.updateHeadHashes(this.chainProcessor.hash)
@@ -262,6 +269,10 @@ export class Wallet {
       return
     }
 
+    const [promise, resolve] = PromiseUtils.split<void>()
+    this.eventLoopPromise = promise
+    this.eventLoopResolve = resolve
+
     await this.updateHead()
     await this.expireTransactions()
     await this.rebroadcastTransactions()
@@ -269,6 +280,10 @@ export class Wallet {
     if (this.isStarted) {
       this.eventLoopTimeout = setTimeout(() => void this.eventLoop(), 1000)
     }
+
+    resolve()
+    this.eventLoopPromise = null
+    this.eventLoopResolve = null
   }
 
   async updateHeadHashes(headHash: Buffer | null, tx?: IDatabaseTransaction): Promise<void> {
@@ -796,7 +811,15 @@ export class Wallet {
     }
 
     for (const account of this.accounts.values()) {
+      if (this.eventLoopAbortController.signal.aborted) {
+        return
+      }
+
       for await (const transactionInfo of account.getTransactions()) {
+        if (this.eventLoopAbortController.signal.aborted) {
+          return
+        }
+
         const { transaction, blockHash, submittedSequence } = transactionInfo
         const transactionHash = transaction.hash()
 
@@ -855,6 +878,10 @@ export class Wallet {
   }
 
   async expireTransactions(): Promise<void> {
+    if (!this.isStarted) {
+      return
+    }
+
     if (!this.chain.synced) {
       return
     }
@@ -870,7 +897,15 @@ export class Wallet {
     }
 
     for (const account of this.accounts.values()) {
+      if (this.eventLoopAbortController.signal.aborted) {
+        return
+      }
+
       for await (const { transaction } of account.getExpiredTransactions(head.sequence)) {
+        if (this.eventLoopAbortController.signal.aborted) {
+          return
+        }
+
         await account.expireTransaction(transaction)
       }
     }
