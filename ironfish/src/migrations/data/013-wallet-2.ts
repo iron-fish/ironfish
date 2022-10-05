@@ -275,7 +275,12 @@ export class Migration013 extends Migration {
     )) {
       const noteHash = Buffer.from(noteHashHex, 'hex')
       const transactionHash = await noteToTransaction.get(noteHash)
-      Assert.isNotUndefined(transactionHash)
+
+      if (!transactionHash) {
+        countMissingTx++
+        speed.add(1)
+        continue
+      }
 
       const transaction = await transactionsCache.get(transactionHash)
 
