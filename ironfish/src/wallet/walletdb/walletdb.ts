@@ -24,7 +24,7 @@ import {
 import { StorageUtils } from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
-import { Account } from '../account'
+import { Account, calculateAccountPrefix } from '../account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
@@ -86,6 +86,11 @@ export class WalletDB {
 
   pendingTransactionHashes: IDatabaseStore<{
     key: [Account['prefix'], [number, TransactionHash]]
+    value: null
+  }>
+
+  accountIdsToCleanup: IDatabaseStore<{
+    key: Account['id']
     value: null
   }>
 
@@ -173,6 +178,12 @@ export class WalletDB {
       ),
       valueEncoding: NULL_ENCODING,
     })
+
+    this.accountIdsToCleanup = this.db.addStore({
+      name: 'A',
+      keyEncoding: new StringEncoding(),
+      valueEncoding: NULL_ENCODING,
+    })
   }
 
   async open(): Promise<void> {
@@ -200,6 +211,7 @@ export class WalletDB {
     await this.db.withTransaction(tx, async (tx) => {
       await this.accounts.del(account.id, tx)
       await this.balances.del(account.id, tx)
+      await this.accountIdsToCleanup.put(account.id, null, tx)
     })
   }
 
@@ -571,5 +583,39 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.pendingTransactionHashes.clear(tx, account.prefixRange)
+  }
+
+  async cleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
+    let recordsToCleanup = 1000
+
+    const stores: IDatabaseStore<{
+      key: Readonly<unknown>
+      value: unknown
+    }>[] = [
+      this.transactions,
+      this.sequenceToNoteHash,
+      this.nonChainNoteHashes,
+      this.nullifierToNoteHash,
+      this.pendingTransactionHashes,
+      this.decryptedNotes,
+    ]
+
+    for (const [accountId] of await this.accountIdsToCleanup.getAll()) {
+      const prefix = calculateAccountPrefix(accountId)
+      const range = StorageUtils.getPrefixKeyRange(prefix)
+
+      for (const store of stores) {
+        for await (const key of store.getAllKeysIter(undefined, range)) {
+          if (signal?.aborted === true || recordsToCleanup === 0) {
+            return
+          }
+
+          await store.del(key)
+          recordsToCleanup--
+        }
+      }
+
+      await this.accountIdsToCleanup.del(accountId)
+    }
   }
 }

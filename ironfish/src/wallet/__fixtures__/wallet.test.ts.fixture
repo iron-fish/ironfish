@@ -1394,5 +1394,19 @@
         }
       ]
     }
+  ],
+  "Accounts removeAccount should delete account": [
+    {
+      "id": "b9653f65-e19e-4ac4-8764-aee26ef6433f",
+      "name": "test",
+      "spendingKey": "feca055a9c5a1a14fe61986067f7ce74191552b8843901c281710fef33dce66b",
+      "incomingViewKey": "14c92af74870c7f2b23cb52b5464c84654b77ba0533a4e11fd24270d8d390503",
+      "outgoingViewKey": "63a3c3b5713a6ef0eec57224388d2574fd9f506203351b8afa5b4745b3f5fc3f",
+      "publicAddress": "452bbca491048155d90344ce57902e3191ca78c00daa813f8d23a4773fdff5ba4e1ca52872124775456665"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAALdHTrKPg5oofcQv+XGZ/tAqXmm52O84Hn+MhoKc4BGSQR/6nRbK3Rs2l43so/j9JLhdgiXF+mSFGSVrhl9+/ZPag0yKOKB0wuxm6MIUNnKzwENW6xRYZfQwXcQtwWgYkAGhhIa5dzfekqftOTcTjfpDTC8jsN8mI5SwaFv/Umh9rCvQqTlVdOI6+S5/QKDo4bVvDIcQTOepbEj+ryCUe2WxEFRKGu2qwm+uLF+zca33EsF9Ch0rdRofiJCJG/9NwZLrD9/qjhlJL70rr4U80dO8dnHAgfO0TwJ1JZ/WcrW2S+mLUSTgWrcGGg0U/vx+YhlaB1p0HCRA8yKyDIy6yRidUmRdZOaab5eL06NOOiYIApBG59QtLOr4Y29HCCXoT+ScwqiQtEQzLYEb+S4SsxzJuPlGNxxhcZlD8hbYr3RpUBE2agtaXEGKwbA7ArLF8gg64lK5pmXdxxxRDiXnnzUeVp6sH4yto6UOyrRgx7V5iQnZZgR9F3m92wR6ZON1VtDrR0JlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw8XSBvJ9GHps0LNjA6waWfqwfsB86lomjX1Ju8cuysAE0m97qIgQakJx1uVjuYeTQguhwst+4ix5W0vIhzW8rAg=="
+    }
   ]
 }

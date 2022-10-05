@@ -276,6 +276,7 @@ export class Wallet {
     await this.updateHead()
     await this.expireTransactions()
     await this.rebroadcastTransactions()
+    await this.cleanupDeletedAccounts()
 
     if (this.isStarted) {
       this.eventLoopTimeout = setTimeout(() => void this.eventLoop(), 1000)
@@ -1030,6 +1031,18 @@ export class Wallet {
 
     this.accounts.delete(account.id)
     this.onAccountRemoved.emit(account)
+  }
+
+  async cleanupDeletedAccounts(): Promise<void> {
+    if (!this.isStarted) {
+      return
+    }
+
+    if (this.scan || this.updateHeadState) {
+      return
+    }
+
+    await this.walletDb.cleanupDeletedAccounts(this.eventLoopAbortController.signal)
   }
 
   get hasDefaultAccount(): boolean {
