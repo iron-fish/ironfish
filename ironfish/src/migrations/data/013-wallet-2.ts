@@ -251,6 +251,7 @@ export class Migration013 extends Migration {
     let countMissingAccount = Number((await cacheMeta.get('countMissingAccount')) ?? 0)
     let countMissingTx = Number((await cacheMeta.get('countMissingTx')) ?? 0)
     let countNote = Number((await cacheMeta.get('countNote')) ?? 0)
+    let countNoteTotal = Number((await cacheMeta.get('countNoteTotal')) ?? 0)
 
     const accounts = await stores.new.accounts.getAllValues(tx)
 
@@ -273,6 +274,19 @@ export class Migration013 extends Migration {
     for await (const [noteHashHex, nullifierEntry] of stores.old.noteToNullifier.getAllIter(
       tx,
     )) {
+      countNoteTotal++
+
+      if (countNote % 1000 === 0) {
+        await cacheMeta.put('countMissingAccount', countMissingAccount)
+        await cacheMeta.put('countMissingTx', countMissingTx)
+        await cacheMeta.put('countNote', countNote)
+        await cacheMeta.put('countNoteTotal', countNoteTotal)
+
+        logger.debug(
+          `Migrated ${countNote} out ${countNoteTotal} notes: ${speed.rate1s.toFixed(2)}/s`,
+        )
+      }
+
       const noteHash = Buffer.from(noteHashHex, 'hex')
       const transactionHash = await noteToTransaction.get(noteHash)
 
@@ -373,16 +387,11 @@ export class Migration013 extends Migration {
 
       countNote++
       speed.add(1)
-
-      if (countNote % 1000 === 0) {
-        await cacheMeta.put('countMissingAccount', countMissingAccount)
-        await cacheMeta.put('countMissingTx', countMissingTx)
-        await cacheMeta.put('countNote', countNote)
-        logger.debug(`Migrated ${countNote} notes: ${speed.rate1s.toFixed(2)}/s`)
-      }
     }
 
     speed.stop()
+
+    logger.debug(`\tSaw ${countNoteTotal}~ notes.`)
     logger.debug(`\tMigrated ${countNote}~ notes.`)
 
     if (countMissingAccount) {
