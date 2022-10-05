@@ -398,6 +398,7 @@ describe('Accounts', () => {
     it('should expire transactions for all affected accounts', async () => {
       const { node } = nodeTest
       node.chain['synced'] = true
+      node.wallet['isStarted'] = true
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
       const accountB = await useAccountFixture(node.wallet, 'accountB')
@@ -440,6 +441,7 @@ describe('Accounts', () => {
     it('should only expire transactions one time', async () => {
       const { node } = nodeTest
       node.chain['synced'] = true
+      node.wallet['isStarted'] = true
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
       const accountB = await useAccountFixture(node.wallet, 'accountB')
