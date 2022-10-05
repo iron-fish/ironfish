@@ -303,7 +303,7 @@ export class Config extends KeyStore<ConfigOptions> {
       tlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'node-key.pem')),
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
       maxPeers: 50,
-      minimumBlockConfirmations: 12,
+      minimumBlockConfirmations: 2,
       minPeers: 1,
       targetPeers: 50,
       telemetryApi: DEFAULT_TELEMETRY_API,
