@@ -4,11 +4,9 @@
 
 use crate::sapling_bls12::SAPLING;
 use crate::{
+    notes::spendable_note::{NoteTrait, SpendableNote},
     primitives::sapling::ValueCommitment,
-    proofs::{
-        circuit::spend::Spend,
-        notes::spendable_note::{NoteTrait, SpendableNote},
-    },
+    proofs::circuit::spend::Spend,
 };
 
 use super::{
@@ -423,7 +421,7 @@ mod test {
     use super::{SpendParams, SpendProof};
     use crate::{
         keys::SaplingKey,
-        note::{Memo, Note},
+        notes::note::{Memo, Note},
         primitives::asset_type::AssetType,
         test_util::make_fake_witness,
     };

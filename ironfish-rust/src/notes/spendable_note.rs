@@ -2,9 +2,10 @@ use bls12_381::Scalar;
 use zcash_primitives::sapling::Nullifier;
 
 use crate::{
-    note::ENCRYPTED_NOTE_SIZE, primitives::sapling::ValueCommitment, serializing::aead, AssetType,
-    PublicAddress, SaplingKey,
+    primitives::sapling::ValueCommitment, serializing::aead, AssetType, PublicAddress, SaplingKey,
 };
+
+use super::note::ENCRYPTED_NOTE_SIZE;
 
 /// transaction.spend needs:
 ///  (Look in SpendParams::new and transaction.add_spend_proof)

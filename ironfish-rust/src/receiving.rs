@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{proofs::circuit::output::Output, sapling_bls12::SAPLING};
+use crate::{notes::note::Note, proofs::circuit::output::Output, sapling_bls12::SAPLING};
 
-use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note};
+use super::{errors, keys::SaplingKey, merkle_note::MerkleNote};
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use group::Curve;
@@ -202,7 +202,7 @@ mod test {
     use super::{ReceiptParams, ReceiptProof};
     use crate::{
         keys::SaplingKey,
-        note::{Memo, Note},
+        notes::note::{Memo, Note},
         primitives::asset_type::AssetType,
     };
     use ff::PrimeField;

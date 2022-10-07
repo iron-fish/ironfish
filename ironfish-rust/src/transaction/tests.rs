@@ -7,7 +7,7 @@ use super::{ProposedTransaction, Transaction};
 use crate::{
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
-    note::{Memo, Note},
+    notes::note::{Memo, Note},
     primitives::asset_type::AssetType,
     test_util::make_fake_witness,
 };

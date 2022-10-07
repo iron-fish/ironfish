@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
+    notes::note::{Note, ENCRYPTED_NOTE_SIZE},
+    notes::spendable_note::{Encryptable, NoteTrait},
     primitives::sapling::ValueCommitment,
-    proofs::notes::spendable_note::{Encryptable, NoteTrait},
 };
 
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
@@ -12,7 +13,6 @@ use crate::{
 use super::{
     errors,
     keys::{shared_secret, IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey},
-    note::{Note, ENCRYPTED_NOTE_SIZE},
     serializing::{aead, read_scalar},
     witness::{WitnessNode, WitnessTrait},
     MerkleNoteHash,
@@ -273,7 +273,7 @@ mod test {
     use super::MerkleNote;
     use crate::{
         keys::SaplingKey,
-        note::{Memo, Note},
+        notes::note::{Memo, Note},
         primitives::asset_type::AssetType,
     };
 
