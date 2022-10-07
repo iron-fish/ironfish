@@ -25,7 +25,11 @@ export enum ApiNamespace {
   rpc = 'rpc',
 }
 
-export const API_NAMESPACES_PROTECTED = [ApiNamespace.account, ApiNamespace.config]
+export const API_NAMESPACES_PROTECTED = [
+  ApiNamespace.account,
+  ApiNamespace.config,
+  ApiNamespace.transaction,
+]
 export const ALL_API_NAMESPACES = StrEnumUtils.getValues(ApiNamespace)
 
 export type RouteHandler<TRequest = unknown, TResponse = unknown> = (

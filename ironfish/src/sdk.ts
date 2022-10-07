@@ -208,11 +208,9 @@ export class IronfishSdk {
     })
 
     if (this.config.get('enableRpcIpc')) {
-      const namespaces = ALL_API_NAMESPACES
-
       await node.rpc.mount(
         new RpcIpcAdapter(
-          namespaces,
+          ALL_API_NAMESPACES,
           {
             mode: 'ipc',
             socketPath: this.config.get('ipcPath'),
@@ -241,7 +239,7 @@ export class IronfishSdk {
             this.config.get('tlsCertPath'),
             node,
             this.logger,
-            namespaces,
+            ALL_API_NAMESPACES,
           ),
         )
       } else {
