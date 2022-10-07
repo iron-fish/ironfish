@@ -4,7 +4,7 @@
 import bufio from 'bufio'
 import { SerializedBlock } from '../../primitives/block'
 import { NetworkMessageType } from '../types'
-import { getBlockSize, readBlock, writeBlock } from '../utils/block'
+import { getBlockSize, readBlock, writeBlock } from '../utils/serializers'
 import { GossipNetworkMessage } from './gossipNetworkMessage'
 
 export class NewBlockMessage extends GossipNetworkMessage {
