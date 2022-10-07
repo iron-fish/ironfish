@@ -16,8 +16,8 @@ use zcash_primitives::{
 
 use crate::{
     errors::{SaplingProofError, TransactionError},
-    note::Memo,
-    proofs::notes::spendable_note::SpendableNote,
+    notes::note::Memo,
+    notes::spendable_note::SpendableNote,
     receiving::OutputSignature,
     spending::SpendSignature,
     witness::WitnessTrait,
@@ -410,7 +410,7 @@ mod tests {
     use zcash_primitives::sapling::redjubjub::Signature;
 
     use crate::{
-        note::Memo,
+        notes::note::Memo,
         test_util::make_fake_witness,
         transaction::transfer::{Output, Spend, Transaction, TransferTransaction},
         AssetType, Note, SaplingKey,

@@ -9,9 +9,9 @@ use rand::{rngs::OsRng, thread_rng, Rng};
 use crate::{
     errors,
     merkle_note::sapling_auth_path,
+    notes::note::Note,
     primitives::{asset_type::AssetIdentifier, constants::ASSET_IDENTIFIER_LENGTH},
     proofs::circuit::mint_asset::MintAsset,
-    proofs::notes::mint_asset_note::MintAssetNote,
     sapling_bls12::{self},
     serializing::read_scalar,
     witness::WitnessTrait,
@@ -48,10 +48,10 @@ impl MintAssetParams {
     pub(crate) fn new(
         minting_key: &SaplingKey,
         create_asset_note: &CreateAssetNote,
-        mint_asset_note: &MintAssetNote,
+        mint_asset_note: &Note,
         create_asset_note_witness: &dyn WitnessTrait,
     ) -> Result<MintAssetParams, errors::SaplingProofError> {
-        let asset_info = mint_asset_note.asset_info;
+        let asset_info = create_asset_note.asset_info;
         let create_commitment_randomness = create_asset_note.randomness;
         let mint_commitment_randomness = mint_asset_note.randomness;
         let value = mint_asset_note.value;

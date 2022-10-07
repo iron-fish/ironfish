@@ -47,6 +47,7 @@ describe('Accounts', () => {
       BigInt(10),
       BigInt(1),
       15,
+      'memo',
     )
 
     expect(transaction['_mintAssetProofs'].length).toBe(1)

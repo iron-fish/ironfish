@@ -148,7 +148,7 @@ mod tests {
     use zcash_primitives::sapling::redjubjub::Signature;
 
     use crate::{
-        merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Memo,
+        merkle_note::NOTE_ENCRYPTION_MINER_KEYS, notes::note::Memo,
         transaction::miners_fee::MinersFeeTransaction, AssetType, Note, SaplingKey,
     };
 

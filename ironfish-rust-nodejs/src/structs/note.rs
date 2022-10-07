@@ -6,7 +6,7 @@ use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
 use ironfish_rust::{
-    note::Memo, proofs::notes::spendable_note::SpendableNote, AssetType, Note, SaplingKey,
+    notes::note::Memo, notes::spendable_note::SpendableNote, AssetType, Note, SaplingKey,
 };
 
 #[napi(js_name = "Note")]

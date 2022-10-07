@@ -6,9 +6,9 @@ import {
   CreateAssetNote,
   generateKey,
   generateNewPublicAddress,
-  MintAssetNote,
+  Note as NativeNote, 
+  Transaction as NativeTransaction,
 } from '@ironfish/rust-nodejs'
-import { Note as NativeNote, Transaction as NativeTransaction } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -794,6 +794,7 @@ export class Wallet {
     amount: bigint,
     transactionFee: bigint,
     expirationSequence: number,
+    memo: string,
   ): Promise<Transaction> {
     const unlock = await this.createTransactionMutex.lock()
 
@@ -878,7 +879,7 @@ export class Wallet {
 
       const assetInfo = new AssetInfo(asset.name, owner.publicAddress)
       const createAssetNote = new CreateAssetNote(assetInfo)
-      const mintAssetNote = new MintAssetNote(assetInfo, amount)
+      const mintAssetNote = new NativeNote(owner.publicAddress, amount, memo, assetInfo.assetType())
 
       const transaction = new NativeTransaction()
       transaction.setExpirationSequence(expirationSequence)

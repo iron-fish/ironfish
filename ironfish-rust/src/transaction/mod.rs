@@ -6,14 +6,14 @@ pub mod miners_fee;
 pub mod transfer;
 use crate::sapling_bls12::SAPLING;
 use crate::{
-    primitives::asset_type::{AssetIdentifier, AssetType},
-    proofs::notes::{
+    notes::{
         create_asset_note::CreateAssetNote,
         creating_asset::{CreateAssetParams, CreateAssetProof},
-        mint_asset_note::MintAssetNote,
         minting_asset::{MintAssetParams, MintAssetProof},
+        note::{Memo, Note},
         spendable_note::{NoteTrait, SpendableNote},
     },
+    primitives::asset_type::{AssetIdentifier, AssetType},
     receiving::OutputSignature,
     spending::SpendSignature,
 };
@@ -22,7 +22,6 @@ use super::{
     errors::{SaplingProofError, TransactionError},
     keys::{PublicAddress, SaplingKey},
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
-    note::{Memo, Note},
     receiving::{ReceiptParams, ReceiptProof},
     spending::{SpendParams, SpendProof},
     witness::WitnessTrait,
@@ -213,7 +212,7 @@ impl ProposedTransaction {
         &mut self,
         spender_key: &SaplingKey,
         create_asset_note: &CreateAssetNote,
-        mint_asset_note: &MintAssetNote,
+        mint_asset_note: &Note,
         witness: &dyn WitnessTrait,
     ) -> Result<(), SaplingProofError> {
         let params =

@@ -7,9 +7,8 @@ use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 
 use crate::{
-    errors, proofs::circuit::create_asset::CreateAsset,
-    proofs::notes::create_asset_note::CreateAssetNote, sapling_bls12::SAPLING,
-    serializing::read_scalar, SaplingKey,
+    errors, notes::create_asset_note::CreateAssetNote, proofs::circuit::create_asset::CreateAsset,
+    sapling_bls12::SAPLING, serializing::read_scalar, SaplingKey,
 };
 
 pub struct CreateAssetParams {

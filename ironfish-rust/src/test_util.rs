@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::{
-    note::Note,
     witness::{Witness, WitnessNode},
     MerkleNoteHash,
 };
-use crate::proofs::notes::spendable_note::NoteTrait;
+use crate::notes::note::Note;
+use crate::notes::spendable_note::NoteTrait;
 use rand::{thread_rng, Rng};
 use zcash_proofs::circuit::sapling::TREE_DEPTH;
 

@@ -17,7 +17,7 @@ pub mod merkle_note;
 pub mod merkle_note_hash;
 pub mod mining;
 pub mod nacl;
-pub mod note;
+pub mod notes;
 pub mod primitives;
 pub mod proofs;
 pub mod receiving;
@@ -30,7 +30,7 @@ pub use {
     keys::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKeys},
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,
-    note::Note,
+    notes::note::Note,
     primitives::asset_type::AssetType,
     receiving::{ReceiptParams, ReceiptProof},
     spending::{SpendParams, SpendProof},

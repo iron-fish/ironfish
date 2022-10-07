@@ -5,7 +5,6 @@
 use std::cell::RefCell;
 use std::convert::TryInto;
 
-use ironfish_rust::proofs::circuit::create_asset;
 use ironfish_rust::transaction::batch_verify_transactions;
 use ironfish_rust::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
 use napi::{bindgen_prelude::*, JsBuffer};
@@ -14,7 +13,7 @@ use napi_derive::napi;
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendProof;
 use super::witness::JsWitness;
-use super::{NativeCreateAssetNote, NativeMintAssetNote};
+use super::NativeCreateAssetNote;
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {
@@ -219,7 +218,7 @@ impl NativeTransaction {
         &mut self,
         minter_hex_key: String,
         create_asset_note: &NativeCreateAssetNote,
-        mint_asset_note: &NativeMintAssetNote,
+        mint_asset_note: &NativeNote,
     ) -> Result<()> {
         let minter_key = SaplingKey::from_hex(&minter_hex_key)
             .map_err(|err| Error::from_reason(err.to_string()))?;
@@ -228,7 +227,7 @@ impl NativeTransaction {
             .mint_asset(
                 &minter_key,
                 &create_asset_note.inner,
-                &mint_asset_note.inner,
+                &mint_asset_note.note,
                 &witness,
             )
             .map_err(|err| Error::from_reason(err.to_string()))?;

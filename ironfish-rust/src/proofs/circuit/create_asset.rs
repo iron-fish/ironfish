@@ -132,9 +132,10 @@ mod test {
     };
 
     use crate::{
-        note::Memo, primitives::asset_type::AssetInfo,
-        proofs::notes::create_asset_note::CreateAssetNote, test_util::make_fake_witness, AssetType,
-        Note, ProposedTransaction, SaplingKey,
+        notes::{create_asset_note::CreateAssetNote, note::Memo},
+        primitives::asset_type::AssetInfo,
+        test_util::make_fake_witness,
+        AssetType, Note, ProposedTransaction, SaplingKey,
     };
 
     use super::CreateAsset;

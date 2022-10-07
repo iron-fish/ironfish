@@ -333,19 +333,17 @@ mod test {
 
     use crate::{
         merkle_note::{position as witness_position, sapling_auth_path},
-        note::Memo,
-        primitives::asset_type::AssetInfo,
-        proofs::{
-            circuit::{create_asset::CreateAsset, sapling::TREE_DEPTH, spend::Spend},
-            notes::{
-                create_asset_note::CreateAssetNote, mint_asset_note::MintAssetNote,
-                spendable_note::NoteTrait,
-            },
+        notes::{
+            create_asset_note::CreateAssetNote,
+            note::{Memo, Note},
+            spendable_note::NoteTrait,
         },
+        primitives::asset_type::AssetInfo,
+        proofs::circuit::{create_asset::CreateAsset, sapling::TREE_DEPTH, spend::Spend},
         sapling_bls12::{self},
         test_util::{make_fake_witness, make_fake_witness_from_commitment},
         witness::WitnessTrait,
-        AssetType, Note, ProposedTransaction, SaplingKey, SpendProof,
+        AssetType, ProposedTransaction, SaplingKey, SpendProof,
     };
 
     use super::MintAsset;
@@ -842,7 +840,12 @@ mod test {
 
         // Mint asset note
         let value = 2;
-        let mint_note = MintAssetNote::new(asset_info, value);
+        let mint_note = Note::new(
+            public_address,
+            value,
+            Memo::default(),
+            asset_info.asset_type(),
+        );
         let mint_witness = make_fake_witness_from_commitment(mint_note.commitment_point());
 
         let tx_fee = 1;

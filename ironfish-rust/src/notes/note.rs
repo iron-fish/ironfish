@@ -3,14 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    primitives::{asset_type::AssetType, sapling::ValueCommitment},
-    proofs::notes::spendable_note::{Encryptable, NoteTrait, NoteType, SpendableNote},
-};
-
-use super::{
     errors,
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
+    notes::spendable_note::{Encryptable, NoteTrait, NoteType, SpendableNote},
     primitives::sapling::Note as SaplingNote,
+    primitives::{asset_type::AssetType, sapling::ValueCommitment},
     serializing::{aead, read_scalar, scalar_to_bytes},
 };
 use bls12_381::Scalar;
@@ -348,8 +345,8 @@ mod test {
     use super::{Memo, Note};
     use crate::{
         keys::{shared_secret, SaplingKey},
+        notes::spendable_note::Encryptable,
         primitives::asset_type::AssetType,
-        proofs::notes::spendable_note::Encryptable,
     };
 
     #[test]
