@@ -919,6 +919,9 @@ export class Blockchain {
         for (const note of transaction.notes()) {
           await this.notes.add(note, tx)
         }
+        for (const note of transaction.mintAssetNotes()) {
+          await this.notes.add(note, tx)
+        }
         for (const spend of transaction.spends()) {
           await this.nullifiers.add(spend.nullifier, tx)
         }

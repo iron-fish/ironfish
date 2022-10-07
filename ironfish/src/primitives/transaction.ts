@@ -20,8 +20,8 @@ export class Transaction {
   private readonly _spends: Spend[] = []
   private readonly _notes: NoteEncrypted[]
   // TODO(rohanjadvani, mgeist): Replace these in a subsequent PR
-  private readonly _createAssetProofs: any[]
-  private readonly _mintAssetProofs: any[]
+  private readonly _createAssetNotes: any[]
+  private readonly _mintAssetNotes: NoteEncrypted[]
   private readonly _signature: Buffer
   private _hash?: TransactionHash
   private _unsignedHash?: TransactionHash
@@ -71,7 +71,7 @@ export class Transaction {
       return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
     })
 
-    this._createAssetProofs = Array.from({ length: _createAssetProofsLength }, () => {
+    this._createAssetNotes = Array.from({ length: _createAssetProofsLength }, () => {
       // proof
       reader.seek(192)
       // create asset commitment
@@ -82,21 +82,17 @@ export class Transaction {
       reader.seek(32)
     })
 
-    this._mintAssetProofs = Array.from({ length: _mintAssetProofsLength }, () => {
+    this._mintAssetNotes = Array.from({ length: _mintAssetProofsLength }, () => {
       // proof
       reader.seek(192)
       // create asset commitment
-      reader.seek(32)
-      // mint asset commitment
-      reader.seek(32)
-      // TODO: encrypted note
-      reader.seek(12)
-      // value commitment
       reader.seek(32)
       // asset type
       reader.seek(32)
       // root hash
       reader.seek(32)
+
+      return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
     })
 
     this._signature = reader.readBytes(64, true)
@@ -183,6 +179,13 @@ export class Transaction {
 
   getSpend(index: number): Spend {
     return this._spends[index]
+  }
+
+  /**
+   * Iterate over all the notes created by mint asset descriptions on this transaction.
+   */
+  mintAssetNotes(): Iterable<NoteEncrypted> {
+    return this._mintAssetNotes.values()
   }
 
   /**

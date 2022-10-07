@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { AssetInfo } from '@ironfish/rust-nodejs'
+import { Assert } from '../assert'
 import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from '../consensus'
 import {
   createNodeTest,
@@ -27,12 +29,14 @@ describe('Accounts', () => {
       15,
     )
 
-    expect(transaction['_createAssetProofs'].length).toBe(1)
+    expect(transaction['_createAssetNotes'].length).toBe(1)
   })
 
   it('should be able to create a Mint Asset Transaction with a created asset', async () => {
     const { node } = nodeTest
 
+    const value = BigInt(10)
+    const memo = 'memo'
     const asset = { name: 'Rohancoin' }
     const account = await useAccountFixture(node.wallet, 'a')
     const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
@@ -44,13 +48,24 @@ describe('Accounts', () => {
     const transaction = await node.wallet.mintAssetTransaction(
       account,
       asset,
-      BigInt(10),
+      value,
       BigInt(1),
       15,
-      'memo',
+      memo,
     )
 
-    expect(transaction['_mintAssetProofs'].length).toBe(1)
+    const mintNotes = Array.from(transaction.mintAssetNotes())
+    expect(mintNotes.length).toBe(1)
+
+    const mintNote = mintNotes[0]
+    const decryptedMintNote = mintNote.decryptNoteForOwner(account.incomingViewKey)
+    Assert.isNotUndefined(decryptedMintNote)
+
+    expect(decryptedMintNote.value()).toEqual(value)
+    expect(decryptedMintNote.memo()).toEqual(memo)
+
+    const assetInfo = new AssetInfo(asset.name, account.publicAddress)
+    expect(decryptedMintNote.assetIdentifier()).toEqual(assetInfo.assetType())
   }, 60000)
 
   it('should reset when chain processor head does not exist in chain', async () => {
