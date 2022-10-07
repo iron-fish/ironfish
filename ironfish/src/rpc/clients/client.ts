@@ -81,6 +81,7 @@ import {
   GetPeerMessagesRequest,
   GetPeerMessagesResponse,
 } from '../routes/peers/getPeerMessages'
+import { GetRpcMethodsRequest, GetRpcMethodsResponse } from '../routes/rpc/getRpcMethods'
 import { GetRpcStatusRequest, GetRpcStatusResponse } from '../routes/rpc/getStatus'
 
 export abstract class RpcClient {
@@ -301,6 +302,15 @@ export abstract class RpcClient {
       ...params,
       stream: true,
     })
+  }
+
+  async getRpcMethods(
+    params: GetRpcMethodsRequest = {},
+  ): Promise<RpcResponseEnded<GetRpcMethodsResponse>> {
+    return this.request<GetRpcMethodsResponse>(
+      `${ApiNamespace.rpc}/getMethods`,
+      params,
+    ).waitForEnd()
   }
 
   async getRpcStatus(

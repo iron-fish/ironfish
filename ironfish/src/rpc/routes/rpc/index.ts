@@ -3,3 +3,4 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export * from './getStatus'
+export * from './getRpcMethods'
