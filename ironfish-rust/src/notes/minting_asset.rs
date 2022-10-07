@@ -2,8 +2,7 @@ use std::io;
 
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
-use group::{Curve, GroupEncoding};
-use jubjub::ExtendedPoint;
+use group::Curve;
 use rand::{rngs::OsRng, thread_rng, Rng};
 
 use crate::{
@@ -18,7 +17,7 @@ use crate::{
     AssetType, MerkleNote, SaplingKey,
 };
 
-use super::{create_asset_note::CreateAssetNote, spendable_note::NoteTrait};
+use super::create_asset_note::CreateAssetNote;
 
 pub struct MintAssetParams {
     /// Proof that the mint asset circuit was valid and successful

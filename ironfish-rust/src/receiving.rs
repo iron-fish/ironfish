@@ -81,7 +81,7 @@ impl ReceiptParams {
     pub fn post(&self) -> Result<ReceiptProof, errors::SaplingProofError> {
         let receipt_proof = ReceiptProof {
             proof: self.proof.clone(),
-            merkle_note: self.merkle_note.clone(),
+            merkle_note: self.merkle_note,
         };
         receipt_proof.verify_proof()?;
 
@@ -180,7 +180,7 @@ impl ReceiptProof {
 
     /// Get a MerkleNote, which can be used as a node in a Merkle Tree.
     pub fn merkle_note(&self) -> MerkleNote {
-        self.merkle_note.clone()
+        self.merkle_note
     }
 }
 

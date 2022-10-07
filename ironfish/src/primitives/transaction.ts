@@ -5,7 +5,7 @@
 import { TransactionPosted } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
-import { ENCRYPTED_NOTE_LENGTH, NoteEncrypted, NoteEncryptedHashSerde } from './noteEncrypted'
+import { ENCRYPTED_NOTE_LENGTH, NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
 
 export type TransactionHash = Buffer
