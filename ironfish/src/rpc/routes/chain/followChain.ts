@@ -5,7 +5,7 @@ import bufio from 'bufio'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
-import { getBlockSize } from '../../../network/utils/block'
+import { getBlockSize, getTransactionSize } from '../../../network/utils/block'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockSerde } from '../../../primitives/block'
 import { BlockHashSerdeInstance } from '../../../serde'
@@ -119,7 +119,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
         return transaction.withReference(() => {
           return {
             hash: BlockHashSerdeInstance.serialize(transaction.unsignedHash()),
-            size: bufio.sizeVarBytes(transaction.serialize()),
+            size: getTransactionSize(transaction.serialize()),
             fee: Number(transaction.fee()),
             notes: [...transaction.notes()].map((note) => ({
               commitment: note.merkleHash().toString('hex'),
