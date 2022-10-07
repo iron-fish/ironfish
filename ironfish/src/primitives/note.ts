@@ -6,7 +6,12 @@ import { Note as NativeNote } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { BufferUtils } from '../utils/buffer'
 
-export const NOTE_LENGTH = 43 + 8 + 32 + 32 + 32
+export const NOTE_LENGTH =
+  43 + // owner
+  8 + // value
+  32 + // randomness
+  32 + // memo
+  32 // asset identifier
 
 export class Note {
   private readonly noteSerialized: Buffer
@@ -15,6 +20,7 @@ export class Note {
 
   private readonly _value: bigint
   private readonly _memo: Buffer
+  private readonly _asset_identifier: Buffer
 
   constructor(noteSerialized: Buffer) {
     this.noteSerialized = noteSerialized
@@ -30,6 +36,8 @@ export class Note {
     reader.seek(32)
 
     this._memo = reader.readBytes(32, true)
+
+    this._asset_identifier = reader.readBytes(32, true)
   }
 
   serialize(): Buffer {
@@ -58,6 +66,10 @@ export class Note {
 
   memo(): string {
     return BufferUtils.toHuman(this._memo)
+  }
+
+  assetIdentifier(): Buffer {
+    return this._asset_identifier
   }
 
   nullifier(ownerPrivateKey: string, position: bigint): Buffer {

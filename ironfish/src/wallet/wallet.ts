@@ -6,7 +6,7 @@ import {
   CreateAssetNote,
   generateKey,
   generateNewPublicAddress,
-  Note as NativeNote, 
+  Note as NativeNote,
   Transaction as NativeTransaction,
 } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
@@ -879,7 +879,12 @@ export class Wallet {
 
       const assetInfo = new AssetInfo(asset.name, owner.publicAddress)
       const createAssetNote = new CreateAssetNote(assetInfo)
-      const mintAssetNote = new NativeNote(owner.publicAddress, amount, memo, assetInfo.assetType())
+      const mintAssetNote = new NativeNote(
+        owner.publicAddress,
+        amount,
+        memo,
+        assetInfo.assetType(),
+      )
 
       const transaction = new NativeTransaction()
       transaction.setExpirationSequence(expirationSequence)

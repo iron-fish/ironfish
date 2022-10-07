@@ -2,8 +2,7 @@ use std::io;
 
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
-use group::{Curve, GroupEncoding};
-use jubjub::ExtendedPoint;
+use group::Curve;
 use rand::{rngs::OsRng, thread_rng, Rng};
 
 use crate::{
@@ -15,10 +14,10 @@ use crate::{
     sapling_bls12::{self},
     serializing::read_scalar,
     witness::WitnessTrait,
-    AssetType, SaplingKey,
+    AssetType, MerkleNote, SaplingKey,
 };
 
-use super::{create_asset_note::CreateAssetNote, spendable_note::NoteTrait};
+use super::create_asset_note::CreateAssetNote;
 
 pub struct MintAssetParams {
     /// Proof that the mint asset circuit was valid and successful
@@ -32,16 +31,11 @@ pub struct MintAssetParams {
     // The hash of the note, committing to it's internal state
     pub(crate) create_asset_commitment: bls12_381::Scalar,
 
-    pub(crate) mint_asset_commitment: bls12_381::Scalar,
-
-    // TODO: Size etc
-    pub(crate) encrypted_note: [u8; 12],
-
-    pub(crate) value_commitment: jubjub::ExtendedPoint,
-
     pub(crate) asset_type: AssetType,
 
     pub(crate) root_hash: bls12_381::Scalar,
+
+    pub(crate) merkle_note: MerkleNote,
 }
 
 impl MintAssetParams {
@@ -54,17 +48,27 @@ impl MintAssetParams {
         let asset_info = create_asset_note.asset_info;
         let create_commitment_randomness = create_asset_note.randomness;
         let mint_commitment_randomness = mint_asset_note.randomness;
-        let value = mint_asset_note.value;
 
         let create_asset_commitment = create_asset_note.commitment_point();
-        let mint_asset_commitment = mint_asset_note.commitment_point();
 
         let proof_generation_key = minting_key.sapling_proof_generation_key();
 
         let mut buffer = [0u8; 64];
         thread_rng().fill(&mut buffer[..]);
         let randomness = jubjub::Fr::from_bytes_wide(&buffer);
-        let value_commitment = asset_info.asset_type().value_commitment(value, randomness);
+        let value_commitment = asset_info
+            .asset_type()
+            .value_commitment(mint_asset_note.value, randomness);
+
+        // TODO: There may be a simpler or faster alternative to the dh keys
+        // since there's no need for the concept of a "spender"
+        let diffie_hellman_keys = mint_asset_note.owner.generate_diffie_hellman_keys();
+        let merkle_note = MerkleNote::new(
+            minting_key,
+            mint_asset_note,
+            &value_commitment,
+            &diffie_hellman_keys,
+        );
 
         // Mint proof
         let mint_circuit = MintAsset {
@@ -87,11 +91,9 @@ impl MintAssetParams {
             // TODO: I think this comes from the create note?
             _mint_commitment_randomness: mint_commitment_randomness,
             create_asset_commitment,
-            mint_asset_commitment,
-            encrypted_note: [0u8; 12],
-            value_commitment: value_commitment.commitment().into(),
             asset_type: asset_info.asset_type(),
             root_hash: create_asset_note_witness.root_hash(),
+            merkle_note,
         };
 
         Ok(params)
@@ -101,11 +103,9 @@ impl MintAssetParams {
         let mint_asset_proof = MintAssetProof {
             proof: self.proof.clone(),
             create_asset_commitment: self.create_asset_commitment,
-            mint_asset_commitment: self.mint_asset_commitment,
-            encrypted_note: [0u8; 12],
-            value_commitment: self.value_commitment,
             asset_type: self.asset_type,
             root_hash: self.root_hash,
+            merkle_note: self.merkle_note,
         };
 
         mint_asset_proof.verify_proof()?;
@@ -116,11 +116,9 @@ impl MintAssetParams {
     pub(crate) fn serialize_signature_fields(&self, mut writer: impl io::Write) -> io::Result<()> {
         self.proof.write(&mut writer)?;
         writer.write_all(&self.create_asset_commitment.to_bytes())?;
-        writer.write_all(&self.mint_asset_commitment.to_bytes())?;
-        writer.write_all(&self.value_commitment.to_bytes())?;
         writer.write_all(self.asset_type.get_identifier())?;
-        writer.write_all(&self.encrypted_note[..])?;
         writer.write_all(&self.root_hash.to_bytes())?;
+        self.merkle_note.write(&mut writer)?;
         Ok(())
     }
 }
@@ -129,12 +127,9 @@ impl MintAssetParams {
 pub struct MintAssetProof {
     pub(crate) proof: groth16::Proof<Bls12>,
     pub(crate) create_asset_commitment: bls12_381::Scalar,
-    pub(crate) mint_asset_commitment: bls12_381::Scalar,
-    // TODO: Size made up, copy from MintAssetParams when changed
-    pub(crate) encrypted_note: [u8; 12],
-    pub(crate) value_commitment: jubjub::ExtendedPoint,
     pub(crate) asset_type: AssetType,
     pub(crate) root_hash: bls12_381::Scalar,
+    pub(crate) merkle_note: MerkleNote,
 }
 
 impl MintAssetProof {
@@ -149,23 +144,6 @@ impl MintAssetProof {
             )
         })?;
 
-        let mint_asset_commitment = read_scalar(&mut reader).map_err(|_| {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Unable to convert mint asset note commitment",
-            )
-        })?;
-
-        let value_commitment = {
-            let mut bytes = [0; 32];
-            reader.read_exact(&mut bytes)?;
-            let point = ExtendedPoint::from_bytes(&bytes);
-            if point.is_none().into() {
-                return Err(errors::SaplingProofError::IOError);
-            }
-            point.unwrap()
-        };
-
         let asset_type = {
             let mut bytes: AssetIdentifier = [0u8; ASSET_IDENTIFIER_LENGTH];
             reader.read_exact(&mut bytes)?;
@@ -176,19 +154,16 @@ impl MintAssetProof {
             }
         };
 
-        let mut encrypted_note = [0; 12];
-        reader.read_exact(&mut encrypted_note)?;
-
         let root_hash = read_scalar(&mut reader)?;
+
+        let merkle_note = MerkleNote::read(&mut reader)?;
 
         Ok(MintAssetProof {
             proof,
             create_asset_commitment,
-            mint_asset_commitment,
-            encrypted_note,
-            value_commitment,
             asset_type,
             root_hash,
+            merkle_note,
         })
     }
 
@@ -208,11 +183,11 @@ impl MintAssetProof {
         public_inputs[2] = self.create_asset_commitment;
         public_inputs[3] = self.root_hash;
 
-        let value_commitment_point = self.value_commitment.to_affine();
+        let value_commitment_point = self.merkle_note.value_commitment.to_affine();
         public_inputs[4] = value_commitment_point.get_u();
         public_inputs[5] = value_commitment_point.get_v();
 
-        public_inputs[6] = self.mint_asset_commitment;
+        public_inputs[6] = self.merkle_note.note_commitment;
 
         // Verify proof
         let verify_result = groth16::verify_proof(
@@ -233,11 +208,9 @@ impl MintAssetProof {
     pub(crate) fn serialize_signature_fields(&self, mut writer: impl io::Write) -> io::Result<()> {
         self.proof.write(&mut writer)?;
         writer.write_all(&self.create_asset_commitment.to_bytes())?;
-        writer.write_all(&self.mint_asset_commitment.to_bytes())?;
-        writer.write_all(&self.value_commitment.to_bytes())?;
         writer.write_all(self.asset_type.get_identifier())?;
-        writer.write_all(&self.encrypted_note)?;
         writer.write_all(&self.root_hash.to_bytes())?;
+        self.merkle_note.write(&mut writer)?;
         Ok(())
     }
 }

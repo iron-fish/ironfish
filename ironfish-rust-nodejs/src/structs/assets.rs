@@ -1,10 +1,7 @@
 use ironfish_rust::{
     notes::create_asset_note::CreateAssetNote, primitives::asset_type::AssetInfo, PublicAddress,
 };
-use napi::{
-    bindgen_prelude::{BigInt, Buffer},
-    Error,
-};
+use napi::{bindgen_prelude::Buffer, Error};
 use napi_derive::napi;
 
 #[napi(js_name = "AssetInfo")]
