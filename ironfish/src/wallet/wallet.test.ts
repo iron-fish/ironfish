@@ -29,7 +29,7 @@ describe('Accounts', () => {
 
     expect(transaction['_createAssetProofs'].length).toBe(1)
   })
-  
+
   it('should be able to create a Mint Asset Transaction with a created asset', async () => {
     const { node } = nodeTest
 
@@ -39,12 +39,7 @@ describe('Accounts', () => {
     await expect(node.chain).toAddBlock(block)
     await node.wallet.updateHead()
 
-    await node.wallet.createAssetTransaction(
-      account,
-      asset,
-      BigInt(1),
-      15,
-    )
+    await node.wallet.createAssetTransaction(account, asset, BigInt(1), 15)
 
     const transaction = await node.wallet.mintAssetTransaction(
       account,
@@ -52,7 +47,7 @@ describe('Accounts', () => {
       BigInt(10),
       BigInt(1),
       15,
-    );
+    )
 
     expect(transaction['_mintAssetProofs'].length).toBe(1)
   }, 60000)

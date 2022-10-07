@@ -1,12 +1,14 @@
 // Credit to https://github.com/anoma/masp for providing the initial implementation of this file
 
 use blake2s_simd::Params as Blake2sParams;
+use byteorder::{ReadBytesExt, WriteBytesExt};
 use group::{cofactor::CofactorGroup, Group, GroupEncoding};
 use std::io;
 use zcash_primitives::constants::{GH_FIRST_BLOCK, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION};
 
 use crate::{
-    errors::AssetError, primitives::constants::ASSET_IDENTIFIER_PERSONALIZATION, PublicAddress,
+    common::readwrite::ReadWrite, errors::AssetError,
+    primitives::constants::ASSET_IDENTIFIER_PERSONALIZATION, PublicAddress,
 };
 
 use super::{constants::ASSET_IDENTIFIER_LENGTH, sapling::ValueCommitment};
@@ -45,18 +47,31 @@ impl AssetInfo {
 
         let mut nonce = 0u8;
         loop {
-            if let Some(asset_type) =
-                AssetType::new_with_nonce(&name_bytes, &public_address_bytes, nonce)
+            if let Ok(asset_info) =
+                AssetInfo::new_with_nonce(name_bytes, public_address_bytes, nonce)
             {
-                return Ok(AssetInfo {
-                    name: name_bytes,
-                    public_address: public_address_bytes,
-                    nonce,
-                    asset_type,
-                });
+                return Ok(asset_info);
             }
+
             nonce = nonce.checked_add(1).ok_or(AssetError::RandomnessError)?;
         }
+    }
+
+    fn new_with_nonce(
+        name: [u8; 32],
+        public_address: [u8; 43],
+        nonce: u8,
+    ) -> Result<AssetInfo, AssetError> {
+        if let Some(asset_type) = AssetType::new_with_nonce(&name, &public_address, nonce) {
+            return Ok(AssetInfo {
+                name,
+                public_address,
+                nonce,
+                asset_type,
+            });
+        }
+
+        Err(AssetError::IoError)
     }
 
     pub fn name(&self) -> &[u8] {
@@ -81,6 +96,37 @@ impl AssetInfo {
 
     pub fn asset_type(&self) -> AssetType {
         self.asset_type
+    }
+}
+
+impl ReadWrite for AssetInfo {
+    type Output = Self;
+
+    // TODO: Need to think about full instantion of objects here makes sense, we
+    // do this a lot and it is expensive in some cases like notes and asset info
+    fn read(mut reader: impl io::Read) -> io::Result<Self::Output> {
+        let mut name = [0; 32];
+        reader.read_exact(&mut name)?;
+
+        // TODO: This should change to PublicAddress::read(&mut reader) when this type changes
+        let mut public_address = [0; 43];
+        reader.read_exact(&mut public_address)?;
+
+        // TODO: I think a lot of these read/write types can change to use like
+        // u8::from_bytes_le() and nonce.to_bytes_le() so we dont need byteorder
+        // dependency for these
+        let nonce = reader.read_u8()?;
+
+        AssetInfo::new_with_nonce(name, public_address, nonce)
+            .map_err(|_| io::Error::from(io::ErrorKind::InvalidData))
+    }
+
+    fn write(&self, mut writer: impl io::Write) -> io::Result<()> {
+        writer.write_all(&self.name)?;
+        writer.write_all(&self.public_address)?;
+        writer.write_u8(self.nonce)?;
+
+        Ok(())
     }
 }
 
