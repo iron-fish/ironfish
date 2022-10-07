@@ -327,6 +327,7 @@ impl Encryptable for Note {
     /// actually read the contents.
     /// TODO: The HASH of the note gets stored in the tree. THis comment is wrong
     /// TODO: The output of this fn is c^enc
+    /// TODO: Why doesnt this just use read/write
     fn encrypt(&self, shared_secret: &[u8; 32]) -> [u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE] {
         let mut bytes_to_encrypt = [0; ENCRYPTED_NOTE_SIZE];
         bytes_to_encrypt[..11].copy_from_slice(&self.owner.diversifier.0[..]);

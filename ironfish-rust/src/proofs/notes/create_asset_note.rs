@@ -4,7 +4,7 @@
 // What's less confusing when talking about it and trying to differentiate
 // between a regular "Note"
 
-use std::slice;
+use std::{io, slice};
 
 use bls12_381::Scalar;
 use group::Curve;
@@ -15,7 +15,9 @@ use zcash_primitives::{
 };
 
 use crate::{
+    common::readwrite::ReadWrite,
     primitives::asset_type::AssetInfo,
+    serializing::read_scalar,
     witness::{Witness, WitnessNode},
     MerkleNoteHash,
 };
@@ -39,6 +41,10 @@ impl CreateAssetNote {
 
         let randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
 
+        CreateAssetNote::new_with_randomness(asset_info, randomness)
+    }
+
+    fn new_with_randomness(asset_info: AssetInfo, randomness: jubjub::Fr) -> Self {
         Self {
             asset_info,
             randomness,
@@ -111,5 +117,25 @@ impl CreateAssetNote {
         }
 
         cur
+    }
+}
+
+impl ReadWrite for CreateAssetNote {
+    type Output = Self;
+
+    fn read(mut reader: impl io::Read) -> io::Result<Self::Output> {
+        let asset_info = AssetInfo::read(&mut reader)?;
+
+        let randomness =
+            read_scalar(&mut reader).map_err(|_| io::Error::from(io::ErrorKind::InvalidData))?;
+
+        Ok(Self::new_with_randomness(asset_info, randomness))
+    }
+
+    fn write(&self, mut writer: impl io::Write) -> io::Result<()> {
+        self.asset_info.write(&mut writer)?;
+        writer.write_all(&self.randomness.to_bytes())?;
+
+        Ok(())
     }
 }
