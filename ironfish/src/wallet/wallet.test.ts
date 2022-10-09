@@ -541,7 +541,7 @@ describe('Accounts', () => {
         },
       )
 
-      expect(transactionStatus).toEqual(TransactionStatus.UNCONFIRMED)
+      expect(transactionStatus).toEqual(TransactionStatus.CONFIRMING)
     })
 
     it('should show confirmed transactions as confirmed', async () => {

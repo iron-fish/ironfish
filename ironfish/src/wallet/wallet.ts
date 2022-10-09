@@ -29,7 +29,7 @@ export enum TransactionStatus {
   CONFIRMED = 'confirmed',
   EXPIRED = 'expired',
   PENDING = 'pending',
-  UNCONFIRMED = 'unconfirmed',
+  CONFIRMING = 'confirming',
   UNKNOWN = 'unknown',
 }
 
@@ -931,7 +931,7 @@ export class Wallet {
     if (transaction.sequence) {
       const isConfirmed = headSequence - transaction.sequence >= minimumBlockConfirmations
 
-      return isConfirmed ? TransactionStatus.CONFIRMED : TransactionStatus.UNCONFIRMED
+      return isConfirmed ? TransactionStatus.CONFIRMED : TransactionStatus.CONFIRMING
     } else {
       const isExpired = this.chain.verifier.isExpiredSequence(
         transaction.transaction.expirationSequence(),
