@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
-import { getBlockSize, getTransactionSize } from '../../../network/utils/block'
+import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
 import { Block, BlockHeader } from '../../../primitives'
 import { BlockSerde } from '../../../primitives/block'
 import { BlockHashSerdeInstance } from '../../../serde'

@@ -4,7 +4,7 @@
 import bufio from 'bufio'
 import { SerializedCompactBlock } from '../../primitives/block'
 import { NetworkMessageType } from '../types'
-import { getCompactBlockSize, readCompactBlock, writeCompactBlock } from '../utils/block'
+import { getCompactBlockSize, readCompactBlock, writeCompactBlock } from '../utils/serializers'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
 export class GetCompactBlockRequest extends RpcNetworkMessage {

@@ -4,7 +4,7 @@
 import bufio from 'bufio'
 import { SerializedTransaction } from '../../primitives/transaction'
 import { NetworkMessageType } from '../types'
-import { getTransactionSize, readTransaction, writeTransaction } from '../utils/block'
+import { getTransactionSize, readTransaction, writeTransaction } from '../utils/serializers'
 import { GossipNetworkMessage } from './gossipNetworkMessage'
 
 export class NewTransactionMessage extends GossipNetworkMessage {

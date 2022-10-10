@@ -4,7 +4,7 @@
 import bufio from 'bufio'
 import { SerializedTransaction, TransactionHash } from '../../primitives/transaction'
 import { NetworkMessageType } from '../types'
-import { getTransactionSize, readTransaction, writeTransaction } from '../utils/block'
+import { getTransactionSize, readTransaction, writeTransaction } from '../utils/serializers'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
 export class PooledTransactionsRequest extends RpcNetworkMessage {
