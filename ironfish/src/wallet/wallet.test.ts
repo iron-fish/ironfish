@@ -140,7 +140,7 @@ describe('Accounts', () => {
 
     const accountBUnspentNotes = accountA.getUnspentNotes(assetIdentifier)
     let accountBBalance = BigInt(0)
-    for await (const {note} of accountAUnspentNotes) {
+    for await (const {note} of accountBUnspentNotes) {
       accountBBalance += note.value()
     }
     expect(accountBBalance).toEqual(amountToSpend)
