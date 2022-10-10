@@ -4,7 +4,7 @@
 import bufio from 'bufio'
 import { SerializedTransaction } from '../../primitives/transaction'
 import { NetworkMessageType } from '../types'
-import { getTransactionSize, readTransaction, writeTransaction } from '../utils/block'
+import { getTransactionSize, readTransaction, writeTransaction } from '../utils/serializers'
 import { NetworkMessage } from './networkMessage'
 
 export class NewTransactionV2Message extends NetworkMessage {

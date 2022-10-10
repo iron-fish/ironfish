@@ -4,7 +4,7 @@
 import bufio, { sizeVarint } from 'bufio'
 import { SerializedTransaction } from '../../primitives/transaction'
 import { NetworkMessageType } from '../types'
-import { getTransactionSize, readTransaction, writeTransaction } from '../utils/block'
+import { getTransactionSize, readTransaction, writeTransaction } from '../utils/serializers'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
 export class GetBlockTransactionsRequest extends RpcNetworkMessage {
