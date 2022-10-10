@@ -9,6 +9,7 @@ import {
   SerializedCompactBlock,
 } from '../../primitives/block'
 import { SerializedBlockHeader } from '../../primitives/blockheader'
+import { SerializedTransaction } from '../../primitives/transaction'
 import { GraffitiSerdeInstance } from '../../serde/serdeInstances'
 import { BigIntUtils } from '../../utils/bigint'
 
@@ -99,9 +100,9 @@ export function readBlock(reader: bufio.BufferReader): SerializedBlock {
   const header = readBlockHeader(reader)
 
   const transactionsLength = reader.readU16()
-  const transactions = []
+  const transactions: SerializedTransaction[] = []
   for (let j = 0; j < transactionsLength; j++) {
-    transactions.push(reader.readVarBytes())
+    transactions.push(readTransaction(reader))
   }
 
   return {
@@ -155,7 +156,7 @@ export function readCompactBlock(reader: bufio.BufferReader): SerializedCompactB
   const transactionsLength = reader.readVarint()
   for (let i = 0; i < transactionsLength; i++) {
     const index = reader.readVarint()
-    const transaction = reader.readVarBytes()
+    const transaction = readTransaction(reader)
     transactions.push({ index, transaction })
   }
 
@@ -179,4 +180,19 @@ export function getCompactBlockSize(compactBlock: SerializedCompactBlock): numbe
   }
 
   return size
+}
+
+export function writeTransaction(
+  bw: bufio.StaticWriter | bufio.BufferWriter,
+  transaction: SerializedTransaction,
+): void {
+  bw.writeVarBytes(transaction)
+}
+
+export function readTransaction(reader: bufio.BufferReader): SerializedTransaction {
+  return reader.readVarBytes()
+}
+
+export function getTransactionSize(transaction: SerializedTransaction): number {
+  return sizeVarBytes(transaction)
 }
