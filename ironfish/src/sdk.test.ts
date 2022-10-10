@@ -151,7 +151,7 @@ describe('IronfishSdk', () => {
       expect(ipc?.namespaces).toEqual(ALL_API_NAMESPACES)
     })
 
-    it('should use all RPC namespaces for TCP with rpcTcpSecure flag', async () => {
+    it('should use all RPC namespaces for TCP', async () => {
       const sdk = await IronfishSdk.init({
         dataDir: os.tmpdir(),
         configOverrides: {
