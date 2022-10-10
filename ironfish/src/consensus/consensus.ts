@@ -68,7 +68,7 @@ export const IRON_FISH_YEAR_IN_BLOCKS = (365 * 24 * 60 * 60) / TARGET_BLOCK_TIME
 /**
  * Max transactions allowed per block
  */
-export const MAX_TRANSACTIONS_PER_BLOCK = 300
+export const MAX_TRANSACTIONS_PER_BLOCK = 301
 
 export class ConsensusParameters {
   /**
@@ -79,14 +79,6 @@ export class ConsensusParameters {
    */
   V1_DOUBLE_SPEND = 0
 
-  /**
-   * Before upgrade V2 we didn't enforce max transactions count.
-   * At this block we check that the number of transactions doesn't exceed MAX_TRANSACTIONS_PER_BLOCK.
-   *
-   * TODO: remove this sequence check before mainnet
-   */
-  V2_MAX_TRANSACTIONS = 0
-
   isActive(upgrade: number, sequence: number): boolean {
     return sequence >= upgrade
   }
@@ -96,6 +88,5 @@ export class TestnetParameters extends ConsensusParameters {
   constructor() {
     super()
     this.V1_DOUBLE_SPEND = 204000
-    this.V2_MAX_TRANSACTIONS = 230000
   }
 }

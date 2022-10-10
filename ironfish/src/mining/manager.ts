@@ -66,7 +66,8 @@ export class MiningManager {
     const blockTransactions: Transaction[] = []
     const nullifiers = new BufferSet()
     for (const transaction of this.memPool.orderedTransactions()) {
-      if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) {
+      // Stop adding transactions when max count reached (accounting for the miner's fee transaction added later)
+      if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK - 1) {
         break
       }
 

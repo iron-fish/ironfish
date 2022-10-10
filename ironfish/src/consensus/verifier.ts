@@ -33,8 +33,9 @@ export class Verifier {
 
   /**
    * Verify that the block is internally consistent:
-   *  *  All transaction proofs are valid
    *  *  Header is valid
+   *  *  Number of transactions doesn't exceed max allowed
+   *  *  All transaction proofs are valid
    *  *  Miner's fee is transaction list fees + miner's reward
    */
   async verifyBlock(
@@ -48,6 +49,10 @@ export class Verifier {
     }
 
     // Verify the transactions
+    if (block.transactions.length > MAX_TRANSACTIONS_PER_BLOCK) {
+      return { valid: false, reason: VerificationResultReason.MAX_TRANSACTIONS_EXCEEDED }
+    }
+
     const notesLimit = 10
     const verificationPromises = []
 
@@ -359,17 +364,6 @@ export class Verifier {
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    if (
-      this.chain.consensus.isActive(
-        this.chain.consensus.V2_MAX_TRANSACTIONS,
-        block.header.sequence,
-      )
-    ) {
-      if (block.transactions.length > MAX_TRANSACTIONS_PER_BLOCK) {
-        return { valid: false, reason: VerificationResultReason.MAX_TRANSACTIONS_EXCEEDED }
-      }
-    }
-
     if (
       this.chain.consensus.isActive(this.chain.consensus.V1_DOUBLE_SPEND, block.header.sequence)
     ) {

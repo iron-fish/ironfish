@@ -119,6 +119,17 @@ describe('Verifier', () => {
       })
     })
 
+    it('rejects a block with more than MAX_TRANSACTIONS_PER_BLOCK transactions', async () => {
+      const { block } = await useBlockWithTx(nodeTest.node)
+      const transactions = Array(MAX_TRANSACTIONS_PER_BLOCK + 1).fill(block.transactions[1])
+      block.transactions = transactions
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.MAX_TRANSACTIONS_EXCEEDED,
+      })
+    })
+
     it('accepts a valid block', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       const verification = await nodeTest.chain.verifier.verifyBlock(block)
@@ -480,39 +491,6 @@ describe('Verifier', () => {
       const { chain, node } = nodeTest
       const { block } = await useBlockWithTx(node)
       block.header.sequence = chain.consensus.V1_DOUBLE_SPEND
-
-      expect((await chain.verifier.verifyBlockConnect(block)).valid).toBe(true)
-    })
-
-    it('says a block created before V2 consensus upgrade with more than MAX_TRANSACTIONS_PER_BLOCK is valid', async () => {
-      const { chain, node } = nodeTest
-      const { block } = await useBlockWithTx(node)
-      const transactions = Array(MAX_TRANSACTIONS_PER_BLOCK + 1).fill(block.transactions[0])
-      block.transactions = transactions
-      block.header.sequence = chain.consensus.V2_MAX_TRANSACTIONS - 1
-
-      expect((await chain.verifier.verifyBlockConnect(block)).valid).toBe(true)
-    })
-
-    it('says a block created after V2 consensus upgrade with more than MAX_TRANSACTIONS_PER_BLOCK is invalid with MAX_TRANSACTIONS_EXCEEDED as reason', async () => {
-      const { chain, node } = nodeTest
-      const { block } = await useBlockWithTx(node)
-      const transactions = Array(MAX_TRANSACTIONS_PER_BLOCK + 1).fill(block.transactions[0])
-      block.transactions = transactions
-      block.header.sequence = chain.consensus.V2_MAX_TRANSACTIONS
-
-      expect(await chain.verifier.verifyBlockConnect(block)).toEqual({
-        valid: false,
-        reason: VerificationResultReason.MAX_TRANSACTIONS_EXCEEDED,
-      })
-    })
-
-    it('says a block created after V2 consensus upgrade with MAX_TRANSACTIONS_PER_BLOCK is valid', async () => {
-      const { chain, node } = nodeTest
-      const { block } = await useBlockWithTx(node)
-      const transactions = Array(MAX_TRANSACTIONS_PER_BLOCK).fill(block.transactions[0])
-      block.transactions = transactions
-      block.header.sequence = chain.consensus.V2_MAX_TRANSACTIONS
 
       expect((await chain.verifier.verifyBlockConnect(block)).valid).toBe(true)
     })
