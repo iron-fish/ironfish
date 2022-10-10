@@ -34,40 +34,6 @@ export function writeBlockHeader(
   return bw
 }
 
-export function writeBlock(
-  bw: bufio.StaticWriter | bufio.BufferWriter,
-  block: SerializedBlock,
-): bufio.StaticWriter | bufio.BufferWriter {
-  bw = writeBlockHeader(bw, block.header)
-
-  bw.writeU16(block.transactions.length)
-  for (const transaction of block.transactions) {
-    writeTransaction(bw, transaction)
-  }
-
-  return bw
-}
-
-export function writeCompactBlock(
-  bw: bufio.StaticWriter | bufio.BufferWriter,
-  compactBlock: SerializedCompactBlock,
-): bufio.StaticWriter | bufio.BufferWriter {
-  bw = writeBlockHeader(bw, compactBlock.header)
-
-  bw.writeVarint(compactBlock.transactionHashes.length)
-  for (const transactionHash of compactBlock.transactionHashes) {
-    bw.writeHash(transactionHash)
-  }
-
-  bw.writeVarint(compactBlock.transactions.length)
-  for (const transaction of compactBlock.transactions) {
-    bw.writeVarint(transaction.index)
-    writeTransaction(bw, transaction.transaction)
-  }
-
-  return bw
-}
-
 export function readBlockHeader(reader: bufio.BufferReader): SerializedBlockHeader {
   const sequence = reader.readU32()
   const previousBlockHash = reader.readHash('hex')
@@ -100,6 +66,36 @@ export function readBlockHeader(reader: bufio.BufferReader): SerializedBlockHead
   }
 }
 
+export function getBlockHeaderSize(): number {
+  let size = 0
+  size += 4 // sequence
+  size += 32 // previousBlockHash
+  size += 32 // noteCommitment.commitment
+  size += 4 // noteCommitment.size
+  size += 32 // nullifierCommitment.commitment
+  size += 4 // nullifierCommitment.size
+  size += 32 // target
+  size += 8 // randomness
+  size += 8 // timestamp
+  size += 8 // minersFee
+  size += 32 // graffiti
+  return size
+}
+
+export function writeBlock(
+  bw: bufio.StaticWriter | bufio.BufferWriter,
+  block: SerializedBlock,
+): bufio.StaticWriter | bufio.BufferWriter {
+  bw = writeBlockHeader(bw, block.header)
+
+  bw.writeU16(block.transactions.length)
+  for (const transaction of block.transactions) {
+    bw.writeVarBytes(transaction)
+  }
+
+  return bw
+}
+
 export function readBlock(reader: bufio.BufferReader): SerializedBlock {
   const header = readBlockHeader(reader)
 
@@ -113,6 +109,37 @@ export function readBlock(reader: bufio.BufferReader): SerializedBlock {
     header,
     transactions,
   }
+}
+
+export function getBlockSize(block: SerializedBlock): number {
+  let size = getBlockHeaderSize()
+
+  size += 2 // transactions length
+  for (const transaction of block.transactions) {
+    size += bufio.sizeVarBytes(transaction)
+  }
+
+  return size
+}
+
+export function writeCompactBlock(
+  bw: bufio.StaticWriter | bufio.BufferWriter,
+  compactBlock: SerializedCompactBlock,
+): bufio.StaticWriter | bufio.BufferWriter {
+  bw = writeBlockHeader(bw, compactBlock.header)
+
+  bw.writeVarint(compactBlock.transactionHashes.length)
+  for (const transactionHash of compactBlock.transactionHashes) {
+    bw.writeHash(transactionHash)
+  }
+
+  bw.writeVarint(compactBlock.transactions.length)
+  for (const transaction of compactBlock.transactions) {
+    bw.writeVarint(transaction.index)
+    bw.writeVarBytes(transaction.transaction)
+  }
+
+  return bw
 }
 
 export function readCompactBlock(reader: bufio.BufferReader): SerializedCompactBlock {
@@ -138,33 +165,6 @@ export function readCompactBlock(reader: bufio.BufferReader): SerializedCompactB
     transactionHashes,
     transactions,
   }
-}
-
-export function getBlockHeaderSize(): number {
-  let size = 0
-  size += 4 // sequence
-  size += 32 // previousBlockHash
-  size += 32 // noteCommitment.commitment
-  size += 4 // noteCommitment.size
-  size += 32 // nullifierCommitment.commitment
-  size += 4 // nullifierCommitment.size
-  size += 32 // target
-  size += 8 // randomness
-  size += 8 // timestamp
-  size += 8 // minersFee
-  size += 32 // graffiti
-  return size
-}
-
-export function getBlockSize(block: SerializedBlock): number {
-  let size = getBlockHeaderSize()
-
-  size += 2 // transactions length
-  for (const transaction of block.transactions) {
-    size += getTransactionSize(transaction)
-  }
-
-  return size
 }
 
 export function getCompactBlockSize(compactBlock: SerializedCompactBlock): number {
