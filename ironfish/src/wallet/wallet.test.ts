@@ -1,12 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { AssetInfo } from '@ironfish/rust-nodejs'
+import { AssetInfo, generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from '../consensus'
 import {
   createNodeTest,
   useAccountFixture,
+  useBlockFixture,
   useMinerBlockFixture,
   useTxFixture,
 } from '../testUtilities'
@@ -66,6 +67,83 @@ describe('Accounts', () => {
 
     const assetInfo = new AssetInfo(asset.name, account.publicAddress)
     expect(decryptedMintNote.assetIdentifier()).toEqual(assetInfo.assetType())
+  }, 60000)
+
+  it.only('should be able to spend newly minted coins', async () => {
+    const { node } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.wallet, 'a')
+    const accountB = await useAccountFixture(node.wallet, 'b')
+
+    const block = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+    await node.chain.addBlock(block)
+    await node.wallet.updateHead()
+
+    const asset = { name: 'testcoin' }
+    const amountToMint = BigInt(10)
+    const amountToSpend = BigInt(3)
+    const memo = 'memo'
+    const assetInfo = new AssetInfo(asset.name, accountA.publicAddress)
+    const assetIdentifier = assetInfo.assetType()
+    const minersSpendKey = generateKey().spending_key
+    
+    const createAssetBlock = await useBlockFixture(node.chain, async () => {
+      const transaction = await node.wallet.createAssetTransaction(accountA, asset, BigInt(1), 15)
+      return node.chain.newBlock(
+        [transaction],
+        await node.strategy.createMinersFee(transaction.fee(), 3, minersSpendKey)
+      )
+    })
+    await node.chain.addBlock(createAssetBlock)
+    await node.wallet.updateHead()
+
+    const mintAssetBlock = await useBlockFixture(node.chain, async () => {
+      const transaction = await node.wallet.mintAssetTransaction(
+        accountA,
+        asset,
+        amountToMint,
+        BigInt(1),
+        15,
+        memo,
+      )
+
+      return node.chain.newBlock(
+        [transaction],
+        await node.strategy.createMinersFee(transaction.fee(), 4, minersSpendKey),
+      )
+    })
+    await node.chain.addBlock(mintAssetBlock)
+    await node.wallet.updateHead()
+
+    const spendMintedAssetBlck = await useBlockFixture(node.chain, async () => {
+      const transaction = await node.wallet.createTransaction(
+        accountA,
+        [{publicAddress: accountB.publicAddress, amount: amountToSpend, assetIdentifier, memo: 'memo', }],
+        BigInt(1),
+        15,
+      )
+
+      return node.chain.newBlock(
+        [transaction],
+        await node.strategy.createMinersFee(transaction.fee(), 5, minersSpendKey),
+      )
+    });
+    await node.chain.addBlock(spendMintedAssetBlck)
+    await node.wallet.updateHead()
+
+    const accountAUnspentNotes = accountA.getUnspentNotes(assetIdentifier)
+    let accountABalance = BigInt(0)
+    for await (const {note} of accountAUnspentNotes) {
+      accountABalance += note.value()
+    }
+    expect(accountABalance).toEqual(amountToMint - amountToSpend)
+
+    const accountBUnspentNotes = accountA.getUnspentNotes(assetIdentifier)
+    let accountBBalance = BigInt(0)
+    for await (const {note} of accountAUnspentNotes) {
+      accountBBalance += note.value()
+    }
+    expect(accountBBalance).toEqual(amountToSpend)
   }, 60000)
 
   it('should reset when chain processor head does not exist in chain', async () => {

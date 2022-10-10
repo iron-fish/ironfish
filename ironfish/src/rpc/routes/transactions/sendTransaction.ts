@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Note as NativeNote } from '@ironfish/rust-nodejs'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
@@ -118,6 +119,8 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
         publicAddress: receive.publicAddress,
         amount: BigInt(receive.amount),
         memo: receive.memo,
+        // TODO(mgeist, rohanjadvani): Make asset identifier part of the RPC request
+        assetIdentifier: NativeNote.getDefaultAssetIdentifier(),
       }
     })
 
