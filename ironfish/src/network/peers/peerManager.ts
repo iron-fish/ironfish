@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { SignalData } from './connections/webRtcConnection'
+import LRU from 'blru'
 import WSWebSocket from 'ws'
 import { Event } from '../../event'
 import { HostsStore } from '../../fileStores/hosts'
@@ -73,7 +74,7 @@ export class PeerManager {
    */
   peers: Array<Peer> = []
 
-  peerCandidateMap: Map<
+  peerCandidateMap: LRU<
     string,
     {
       name?: string
@@ -83,7 +84,7 @@ export class PeerManager {
       webRtcRetry: ConnectionRetry
       websocketRetry: ConnectionRetry
     }
-  > = new Map()
+  > = new LRU(1000)
 
   addressManager: AddressManager
 
@@ -607,10 +608,10 @@ export class PeerManager {
       // Cannot find a brokering peer of an unidentified peer
       return null
     }
-    
+
     // Find another peer to broker the connection
     const candidates = []
-    
+
     // The peer candidate map tracks any brokering peer candidates
     const val = this.peerCandidateMap.get(peer.state.identity)
     if (!val) {
