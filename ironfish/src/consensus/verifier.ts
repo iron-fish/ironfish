@@ -11,7 +11,11 @@ import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { WorkerPool } from '../workerPool'
-import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
+import {
+  ALLOWED_BLOCK_FUTURE_SECONDS,
+  GENESIS_BLOCK_SEQUENCE,
+  MAX_TRANSACTIONS_PER_BLOCK,
+} from './consensus'
 
 export class Verifier {
   chain: Blockchain
@@ -356,6 +360,17 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     if (
+      this.chain.consensus.isActive(
+        this.chain.consensus.V2_MAX_TRANSACTIONS,
+        block.header.sequence,
+      )
+    ) {
+      if (block.transactions.length > MAX_TRANSACTIONS_PER_BLOCK) {
+        return { valid: false, reason: VerificationResultReason.MAX_TRANSACTIONS_EXCEEDED }
+      }
+    }
+
+    if (
       this.chain.consensus.isActive(this.chain.consensus.V1_DOUBLE_SPEND, block.header.sequence)
     ) {
       // Loop over all spends in the block and check that the nullifier has not previously been spent
@@ -474,6 +489,7 @@ export enum VerificationResultReason {
   INVALID_TRANSACTION_FEE = 'Transaction fee is incorrect',
   INVALID_TRANSACTION_PROOF = 'Invalid transaction proof',
   INVALID_PARENT = 'Invalid_parent',
+  MAX_TRANSACTIONS_EXCEEDED = 'Number of transactions on block exceeds maximum',
   MINERS_FEE_EXPECTED = 'Miners fee expected',
   MINERS_FEE_MISMATCH = 'Miners fee does not match block header',
   NOTE_COMMITMENT = 'Note_commitment',

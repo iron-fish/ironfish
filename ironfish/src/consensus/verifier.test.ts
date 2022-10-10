@@ -16,6 +16,7 @@ import {
   useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
+import { MAX_TRANSACTIONS_PER_BLOCK } from './consensus'
 import { VerificationResultReason } from './verifier'
 
 describe('Verifier', () => {
@@ -434,6 +435,86 @@ describe('Verifier', () => {
           reason: VerificationResultReason.ERROR,
         },
       )
+    })
+  })
+
+  describe('verifyBlockConnect', () => {
+    const nodeTest = createNodeTest()
+
+    it('says a block created before V1 consensus upgrade with double spend is valid', async () => {
+      const { chain, node } = nodeTest
+      const { block } = await useBlockWithTx(node)
+      block.header.sequence = chain.consensus.V1_DOUBLE_SPEND - 1
+
+      const spends = Array.from(block.spends())
+      jest.spyOn(block, 'spends').mockImplementationOnce(function* () {
+        for (const spend of spends) {
+          yield spend
+          yield spend
+        }
+      })
+
+      expect((await chain.verifier.verifyBlockConnect(block)).valid).toBe(true)
+    })
+
+    it('says a block created after V1 consensus upgrade with double spend is invalid with DOUBLE_SPEND as reason', async () => {
+      const { chain, node } = nodeTest
+      const { block } = await useBlockWithTx(node)
+      block.header.sequence = chain.consensus.V1_DOUBLE_SPEND
+
+      const spends = Array.from(block.spends())
+      jest.spyOn(block, 'spends').mockImplementationOnce(function* () {
+        for (const spend of spends) {
+          yield spend
+          yield spend
+        }
+      })
+
+      expect(await chain.verifier.verifyBlockConnect(block)).toEqual({
+        valid: false,
+        reason: VerificationResultReason.DOUBLE_SPEND,
+      })
+    })
+
+    it('says a block created after V1 consensus upgrade without double spend is valid', async () => {
+      const { chain, node } = nodeTest
+      const { block } = await useBlockWithTx(node)
+      block.header.sequence = chain.consensus.V1_DOUBLE_SPEND
+
+      expect((await chain.verifier.verifyBlockConnect(block)).valid).toBe(true)
+    })
+
+    it('says a block created before V2 consensus upgrade with more than MAX_TRANSACTIONS_PER_BLOCK is valid', async () => {
+      const { chain, node } = nodeTest
+      const { block } = await useBlockWithTx(node)
+      const transactions = Array(MAX_TRANSACTIONS_PER_BLOCK + 1).fill(block.transactions[0])
+      block.transactions = transactions
+      block.header.sequence = chain.consensus.V2_MAX_TRANSACTIONS - 1
+
+      expect((await chain.verifier.verifyBlockConnect(block)).valid).toBe(true)
+    })
+
+    it('says a block created after V2 consensus upgrade with more than MAX_TRANSACTIONS_PER_BLOCK is invalid with MAX_TRANSACTIONS_EXCEEDED as reason', async () => {
+      const { chain, node } = nodeTest
+      const { block } = await useBlockWithTx(node)
+      const transactions = Array(MAX_TRANSACTIONS_PER_BLOCK + 1).fill(block.transactions[0])
+      block.transactions = transactions
+      block.header.sequence = chain.consensus.V2_MAX_TRANSACTIONS
+
+      expect(await chain.verifier.verifyBlockConnect(block)).toEqual({
+        valid: false,
+        reason: VerificationResultReason.MAX_TRANSACTIONS_EXCEEDED,
+      })
+    })
+
+    it('says a block created after V2 consensus upgrade with MAX_TRANSACTIONS_PER_BLOCK is valid', async () => {
+      const { chain, node } = nodeTest
+      const { block } = await useBlockWithTx(node)
+      const transactions = Array(MAX_TRANSACTIONS_PER_BLOCK).fill(block.transactions[0])
+      block.transactions = transactions
+      block.header.sequence = chain.consensus.V2_MAX_TRANSACTIONS
+
+      expect((await chain.verifier.verifyBlockConnect(block)).valid).toBe(true)
     })
   })
 })

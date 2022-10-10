@@ -5,6 +5,7 @@
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
+import { MAX_TRANSACTIONS_PER_BLOCK } from '../consensus'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
@@ -15,8 +16,6 @@ import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { AsyncUtils } from '../utils/async'
 import { BenchUtils } from '../utils/bench'
 import { GraffitiUtils } from '../utils/graffiti'
-
-const MAX_TRANSACTIONS_PER_BLOCK = 300
 
 export enum MINED_RESULT {
   UNKNOWN_REQUEST = 'UNKNOWN_REQUEST',
