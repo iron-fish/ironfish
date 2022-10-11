@@ -53,7 +53,7 @@ describe('RecentFeeCache', () => {
     expect(recentFeeCache.getSuggestedFee(60)).toBe(lowestFee)
   })
 
-  it.only('add transaction to cache', async () => {
+  it('add transaction to cache', async () => {
     const accountC = await useAccountFixture(wallet, 'accountC')
     const accountD = await useAccountFixture(wallet, 'accountD')
     const { transaction: transaction2 } = await useBlockWithTx(node, accountC, accountD)
@@ -64,7 +64,7 @@ describe('RecentFeeCache', () => {
     block = await node.chain.getBlock(node.chain.latest.hash)
     Assert.isNotNull(block)
 
-    recentFeeCache.addFee(transaction2)
+    recentFeeCache.addTransactionToCache(transaction2)
 
     let lowestFee = block.transactions[0].fee()
     let highestFee = block.transactions[0].fee()
@@ -90,19 +90,15 @@ describe('RecentFeeCache', () => {
     expect(recentFeeCache.getSuggestedFee(60)).toBe(highestFee)
   })
 
-  it.only('add transaction to cache when cache is full', async () => {
+  it('add transaction to cache when cache is full', async () => {
     const accountC = await useAccountFixture(wallet, 'accountC')
     const accountD = await useAccountFixture(wallet, 'accountD')
-    const { transaction: transaction2, block: block2 } = await useBlockWithTx(
-      node,
-      accountC,
-      accountD,
-    )
+    const { transaction: transaction2 } = await useBlockWithTx(node, accountC, accountD)
 
     const recentFeeCache = new RecentFeeCache(node.chain, 1, 1)
     await recentFeeCache.setUpCache()
 
-    recentFeeCache.addFee(transaction2)
+    recentFeeCache.addTransactionToCache(transaction2)
 
     expect(recentFeeCache.getCacheSize()).toBe(1)
     expect(recentFeeCache.getSuggestedFee(60)).toBe(transaction2.fee())

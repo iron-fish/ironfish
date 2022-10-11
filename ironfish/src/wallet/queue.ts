@@ -49,4 +49,11 @@ export class Queue<T> {
     }
     return this._items[index]
   }
+
+  /**
+   * Get all items in the queue
+   */
+  getAll(): T[] {
+    return this._items
+  }
 }

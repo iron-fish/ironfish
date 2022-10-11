@@ -5,15 +5,13 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { PriorityQueue } from '../memPool'
-import { MetricsMonitor } from '../metrics'
 import { Block, Transaction } from '../primitives'
 import { Queue } from './queue'
 
 export class RecentFeeCache {
-  private queue: Queue<Transaction>
+  private queue: Queue<bigint>
   readonly chain: Blockchain
   private readonly logger: Logger
-  private readonly metrics: MetricsMonitor
   private numOfRecentBlocks = 10
   private numOfTxSamples = 3
   private defaultSuggestedFee = BigInt(2)
@@ -22,17 +20,14 @@ export class RecentFeeCache {
     chain: Blockchain,
     recentBlocksNum?: number,
     txSampleSize?: number,
-    metrics?: MetricsMonitor,
     logger?: Logger,
   ) {
-    this.logger = logger || createRootLogger()
+    this.logger = logger || createRootLogger().withTag('recentFeeCache')
     this.numOfRecentBlocks = recentBlocksNum ?? this.numOfRecentBlocks
     this.numOfTxSamples = txSampleSize ?? this.numOfTxSamples
 
-    this.queue = new Queue<Transaction>(this.numOfRecentBlocks * this.numOfTxSamples)
+    this.queue = new Queue<bigint>(this.numOfRecentBlocks * this.numOfTxSamples)
     this.chain = chain
-    this.logger.withTag('recentFeeCache')
-    this.metrics = metrics || new MetricsMonitor({ logger: this.logger })
   }
 
   async setUpCache(): Promise<void> {
@@ -48,7 +43,7 @@ export class RecentFeeCache {
         if (this.queue.isFull()) {
           return
         }
-        this.queue.enqueue(tx)
+        this.queue.enqueue(tx.fee())
       })
 
       currentBlockHash = currentBlock.header.previousBlockHash
@@ -59,17 +54,12 @@ export class RecentFeeCache {
    * Add recent transactions to fee cache
    */
 
-  addFee(transaction: Transaction): boolean {
+  addTransactionToCache(transaction: Transaction): void {
     if (this.queue.isFull()) {
       this.deleteOldestTransaction()
     }
-    try {
-      this.queue.enqueue(transaction)
-      return true
-    } catch {
-      this.logger.error(`Error enqueue transaction to Recent Fee Cache`)
-      return false
-    }
+
+    this.queue.enqueue(transaction.fee())
   }
 
   /**
@@ -119,11 +109,9 @@ export class RecentFeeCache {
       return this.defaultSuggestedFee
     }
 
-    const transaction = this.queue.get(Math.round(((this.queue.size() - 1) * percentile) / 100))
-    if (!transaction) {
-      return this.defaultSuggestedFee
-    }
-    return transaction.fee()
+    const prices = [...this.queue.getAll()].sort()
+    const price = prices[Math.round(((this.queue.size() - 1) * percentile) / 100)]
+    return price
   }
 
   getCacheSize(): number {
