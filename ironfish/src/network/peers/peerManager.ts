@@ -812,6 +812,7 @@ export class PeerManager {
    * outstanding connections.
    */
   async stop(): Promise<void> {
+    this.requestPeerListHandle && clearInterval(this.requestPeerListHandle)
     this.disposePeersHandle && clearInterval(this.disposePeersHandle)
     this.savePeerAddressesHandle && clearInterval(this.savePeerAddressesHandle)
     await this.addressManager.save(this.peers)
