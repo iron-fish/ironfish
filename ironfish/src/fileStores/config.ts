@@ -103,7 +103,6 @@ export type ConfigOptions = {
   peerPort: number
   rpcTcpHost: string
   rpcTcpPort: number
-  rpcTcpSecure: boolean
   tlsKeyPath: string
   tlsCertPath: string
   /**
@@ -301,7 +300,6 @@ export class Config extends KeyStore<ConfigOptions> {
       peerPort: DEFAULT_WEBSOCKET_PORT,
       rpcTcpHost: 'localhost',
       rpcTcpPort: 8020,
-      rpcTcpSecure: false,
       tlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'node-key.pem')),
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
       maxPeers: 50,
