@@ -19,7 +19,7 @@ describe('MemPool', () => {
 
       memPool.acceptTransaction(transaction)
 
-      expect(memPool.size()).toBe(1)
+      expect(memPool.count()).toBe(1)
     })
   })
 
@@ -39,10 +39,7 @@ describe('MemPool', () => {
       memPool.acceptTransaction(transaction)
 
       const size = (tx: Transaction) => {
-        const spendSize = [...tx.spends()].reduce((sum, spend) => {
-          return sum + spend.nullifier.byteLength + tx.hash().byteLength
-        }, 0)
-        return getTransactionSize(tx.serialize()) + tx.hash().byteLength + spendSize + 32 + 8
+        return getTransactionSize(tx.serialize())
       }
 
       expect(memPool.sizeBytes()).toBe(size(transaction))

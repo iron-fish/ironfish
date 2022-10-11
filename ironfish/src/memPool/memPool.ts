@@ -27,8 +27,6 @@ export class MemPool {
   /* Keep track of number of bytes stored in the transaction map */
   private transactionsBytes = 0
   private readonly nullifiers = new BufferMap<Buffer>()
-  /* Keep track of number of bytes stored in the nullifiers map */
-  private nullifiersBytes = 0
 
   private readonly queue: PriorityQueue<MempoolEntry>
   private readonly expirationQueue: PriorityQueue<ExpirationMempoolEntry>
@@ -72,13 +70,12 @@ export class MemPool {
     })
   }
 
-  size(): number {
+  count(): number {
     return this.transactions.size
   }
 
   sizeBytes(): number {
-    const queueSize = this.queue.size() * (32 + 8) // estimate the queue size hash (32b) fee (8b)
-    return this.transactionsBytes + this.nullifiersBytes + queueSize
+    return this.transactionsBytes
   }
 
   exists(hash: TransactionHash): boolean {
@@ -153,7 +150,7 @@ export class MemPool {
 
     this.addTransaction(transaction)
 
-    this.logger.debug(`Accepted tx ${hash}, poolsize ${this.size()}`)
+    this.logger.debug(`Accepted tx ${hash}, poolsize ${this.count()}`)
     return true
   }
 
@@ -222,18 +219,17 @@ export class MemPool {
     }
 
     this.transactions.set(hash, transaction)
-    this.transactionsBytes += getTransactionSize(transaction.serialize()) + hash.byteLength
+    this.transactionsBytes += getTransactionSize(transaction.serialize())
 
     for (const spend of transaction.spends()) {
       if (!this.nullifiers.has(spend.nullifier)) {
         this.nullifiers.set(spend.nullifier, hash)
-        this.nullifiersBytes += spend.nullifier.byteLength + hash.byteLength
       }
     }
 
     this.queue.add({ fee: transaction.fee(), hash })
     this.expirationQueue.add({ expirationSequence: transaction.expirationSequence(), hash })
-    this.metrics.memPoolSize.value = this.size()
+    this.metrics.memPoolSize.value = this.count()
     return true
   }
 
@@ -245,18 +241,16 @@ export class MemPool {
       return false
     }
 
-    this.transactionsBytes -= getTransactionSize(transaction.serialize()) + hash.byteLength
+    this.transactionsBytes -= getTransactionSize(transaction.serialize())
 
     for (const spend of transaction.spends()) {
-      if (this.nullifiers.delete(spend.nullifier)) {
-        this.nullifiersBytes -= spend.nullifier.byteLength + hash.byteLength
-      }
+      this.nullifiers.delete(spend.nullifier)
     }
 
     this.queue.remove(hash.toString('hex'))
     this.expirationQueue.remove(hash.toString('hex'))
 
-    this.metrics.memPoolSize.value = this.size()
+    this.metrics.memPoolSize.value = this.count()
     return true
   }
 }
