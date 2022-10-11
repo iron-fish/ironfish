@@ -11,7 +11,11 @@ import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { WorkerPool } from '../workerPool'
-import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
+import {
+  ALLOWED_BLOCK_FUTURE_SECONDS,
+  GENESIS_BLOCK_SEQUENCE,
+  MAX_TRANSACTIONS_PER_BLOCK,
+} from './consensus'
 
 export class Verifier {
   chain: Blockchain
@@ -29,8 +33,9 @@ export class Verifier {
 
   /**
    * Verify that the block is internally consistent:
-   *  *  All transaction proofs are valid
    *  *  Header is valid
+   *  *  Number of transactions doesn't exceed max allowed
+   *  *  All transaction proofs are valid
    *  *  Miner's fee is transaction list fees + miner's reward
    */
   async verifyBlock(
@@ -44,6 +49,10 @@ export class Verifier {
     }
 
     // Verify the transactions
+    if (block.transactions.length > MAX_TRANSACTIONS_PER_BLOCK) {
+      return { valid: false, reason: VerificationResultReason.MAX_TRANSACTIONS_EXCEEDED }
+    }
+
     const notesLimit = 10
     const verificationPromises = []
 
@@ -474,6 +483,7 @@ export enum VerificationResultReason {
   INVALID_TRANSACTION_FEE = 'Transaction fee is incorrect',
   INVALID_TRANSACTION_PROOF = 'Invalid transaction proof',
   INVALID_PARENT = 'Invalid_parent',
+  MAX_TRANSACTIONS_EXCEEDED = 'Number of transactions on block exceeds maximum',
   MINERS_FEE_EXPECTED = 'Miners fee expected',
   MINERS_FEE_MISMATCH = 'Miners fee does not match block header',
   NOTE_COMMITMENT = 'Note_commitment',

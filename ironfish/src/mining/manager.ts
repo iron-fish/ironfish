@@ -5,6 +5,7 @@
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
+import { MAX_TRANSACTIONS_PER_BLOCK } from '../consensus'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
@@ -15,8 +16,6 @@ import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { AsyncUtils } from '../utils/async'
 import { BenchUtils } from '../utils/bench'
 import { GraffitiUtils } from '../utils/graffiti'
-
-const MAX_TRANSACTIONS_PER_BLOCK = 300
 
 export enum MINED_RESULT {
   UNKNOWN_REQUEST = 'UNKNOWN_REQUEST',
@@ -67,7 +66,8 @@ export class MiningManager {
     const blockTransactions: Transaction[] = []
     const nullifiers = new BufferSet()
     for (const transaction of this.memPool.orderedTransactions()) {
-      if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) {
+      // Stop adding transactions when max count reached (accounting for the miner's fee transaction added later)
+      if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK - 1) {
         break
       }
 

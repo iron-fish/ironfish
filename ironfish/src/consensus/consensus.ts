@@ -65,6 +65,11 @@ export const GRAFFITI_SIZE = 32
  */
 export const IRON_FISH_YEAR_IN_BLOCKS = (365 * 24 * 60 * 60) / TARGET_BLOCK_TIME_IN_SECONDS
 
+/**
+ * Max transactions allowed per block
+ */
+export const MAX_TRANSACTIONS_PER_BLOCK = 301
+
 export class ConsensusParameters {
   /**
    * Before upgrade V1 we had double spends. At this block we do a double spend
