@@ -7,6 +7,7 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
+import { getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { PriorityQueue } from './priorityQueue'
@@ -221,7 +222,7 @@ export class MemPool {
     }
 
     this.transactions.set(hash, transaction)
-    this.transactionsBytes += transaction.serialize().byteLength + hash.byteLength
+    this.transactionsBytes += getTransactionSize(transaction.serialize()) + hash.byteLength
 
     for (const spend of transaction.spends()) {
       if (!this.nullifiers.has(spend.nullifier)) {
@@ -244,7 +245,7 @@ export class MemPool {
       return false
     }
 
-    this.transactionsBytes -= transaction.serialize().byteLength + hash.byteLength
+    this.transactionsBytes -= getTransactionSize(transaction.serialize()) + hash.byteLength
 
     for (const spend of transaction.spends()) {
       if (this.nullifiers.delete(spend.nullifier)) {
