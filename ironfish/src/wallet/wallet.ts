@@ -325,7 +325,10 @@ export class Wallet {
       let decryptNotesPayloads = []
       let currentNoteIndex = initialNoteIndex
 
-      for (const note of transaction.notes()) {
+      const outputNotes = Array.from(transaction.notes())
+      const mintNotes = Array.from(transaction.mintAssetNotes())
+      const outputsAndMintNotes = [...outputNotes, ...mintNotes]
+      for (const note of outputsAndMintNotes) {
         decryptNotesPayloads.push({
           serializedNote: note.serialize(),
           incomingViewKey: account.incomingViewKey,
@@ -592,7 +595,10 @@ export class Wallet {
     })
   }
 
-  private async getUnspentNotes(account: Account, assetIdentifier: Buffer): Promise<
+  private async getUnspentNotes(
+    account: Account,
+    assetIdentifier: Buffer,
+  ): Promise<
     ReadonlyArray<{
       hash: Buffer
       note: Note
@@ -645,7 +651,12 @@ export class Wallet {
   async pay(
     memPool: MemPool,
     sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string, assetIdentifier: Buffer }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
     transactionFee: bigint,
     defaultTransactionExpirationSequenceDelta: number,
     expirationSequence?: number | null,
@@ -697,7 +708,10 @@ export class Wallet {
       let amountNeeded = transactionFee
 
       const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
-      const unspentNotes = await this.getUnspentNotes(owner, NativeNote.getDefaultAssetIdentifier())
+      const unspentNotes = await this.getUnspentNotes(
+        owner,
+        NativeNote.getDefaultAssetIdentifier(),
+      )
 
       for (const unspentNote of unspentNotes) {
         // Skip unconfirmed notes
@@ -806,7 +820,10 @@ export class Wallet {
       let amountNeeded = transactionFee
 
       const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
-      const unspentNotes = await this.getUnspentNotes(owner, NativeNote.getDefaultAssetIdentifier())
+      const unspentNotes = await this.getUnspentNotes(
+        owner,
+        NativeNote.getDefaultAssetIdentifier(),
+      )
 
       for (const unspentNote of unspentNotes) {
         // Skip unconfirmed notes
@@ -904,7 +921,12 @@ export class Wallet {
 
   async createTransaction(
     sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string; assetIdentifier: Buffer }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
     transactionFee: bigint,
     expirationSequence: number,
   ): Promise<Transaction> {
@@ -914,15 +936,12 @@ export class Wallet {
       this.assertHasAccount(sender)
 
       const amountsNeeded = new BufferMap<bigint>()
+      // Use the transaction fee as a base value for the default asset
+      amountsNeeded.set(NativeNote.getDefaultAssetIdentifier(), transactionFee)
       // Aggregate amounts needed per asset identifier
-      for (const {assetIdentifier, amount } of receives) {
+      for (const { assetIdentifier, amount } of receives) {
         if (!amountsNeeded.get(assetIdentifier)) {
-          // Use the transaction fee as a base value for the default asset
-          if (assetIdentifier === NativeNote.getDefaultAssetIdentifier()) {
-            amountsNeeded.set(assetIdentifier, transactionFee)
-          } else {
-            amountsNeeded.set(assetIdentifier, BigInt(0))
-          }
+          amountsNeeded.set(assetIdentifier, BigInt(0))
         }
 
         const currentAmount = amountsNeeded.get(assetIdentifier)

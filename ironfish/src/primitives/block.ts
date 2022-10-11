@@ -64,6 +64,9 @@ export class Block {
       for (const note of transaction.notes()) {
         yield note
       }
+      for (const note of transaction.mintAssetNotes()) {
+        yield note
+      }
     }
   }
 

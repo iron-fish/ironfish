@@ -231,7 +231,7 @@ export async function useTxFixture(
             publicAddress: to.publicAddress,
             amount: BigInt(1),
             memo: '',
-            assetIdentifier: NativeNote.getDefaultAssetIdentifier()
+            assetIdentifier: NativeNote.getDefaultAssetIdentifier(),
           },
         ],
         fee ?? BigInt(0),
@@ -349,7 +349,7 @@ export async function useBlockWithTx(
           publicAddress: to.publicAddress,
           amount: BigInt(1),
           memo: '',
-          assetIdentifier: NativeNote.getDefaultAssetIdentifier()
+          assetIdentifier: NativeNote.getDefaultAssetIdentifier(),
         },
       ],
       BigInt(options.fee ?? 1),
@@ -397,7 +397,7 @@ export async function useBlockWithTxs(
             publicAddress: to.publicAddress,
             amount: BigInt(1),
             memo: '',
-            assetIdentifier: NativeNote.getDefaultAssetIdentifier()
+            assetIdentifier: NativeNote.getDefaultAssetIdentifier(),
           },
         ],
         BigInt(1),

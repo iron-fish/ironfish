@@ -69,7 +69,7 @@ describe('Accounts', () => {
     expect(decryptedMintNote.assetIdentifier()).toEqual(assetInfo.assetType())
   }, 60000)
 
-  it.only('should be able to spend newly minted coins', async () => {
+  it('should be able to spend newly minted coins', async () => {
     const { node } = await nodeTest.createSetup()
 
     const accountA = await useAccountFixture(node.wallet, 'a')
@@ -86,61 +86,86 @@ describe('Accounts', () => {
     const assetInfo = new AssetInfo(asset.name, accountA.publicAddress)
     const assetIdentifier = assetInfo.assetType()
     const minersSpendKey = generateKey().spending_key
-    
-    const createAssetBlock = await useBlockFixture(node.chain, async () => {
-      const transaction = await node.wallet.createAssetTransaction(accountA, asset, BigInt(1), 15)
-      return node.chain.newBlock(
-        [transaction],
-        await node.strategy.createMinersFee(transaction.fee(), 3, minersSpendKey)
-      )
-    })
+
+    const createAssetBlock = await useBlockFixture(
+      node.chain,
+      async () => {
+        const transaction = await node.wallet.createAssetTransaction(
+          accountA,
+          asset,
+          BigInt(1),
+          15,
+        )
+        return node.chain.newBlock(
+          [transaction],
+          await node.strategy.createMinersFee(transaction.fee(), 3, minersSpendKey),
+        )
+      },
+      node.wallet,
+    )
     await node.chain.addBlock(createAssetBlock)
     await node.wallet.updateHead()
 
-    const mintAssetBlock = await useBlockFixture(node.chain, async () => {
-      const transaction = await node.wallet.mintAssetTransaction(
-        accountA,
-        asset,
-        amountToMint,
-        BigInt(1),
-        15,
-        memo,
-      )
+    const mintAssetBlock = await useBlockFixture(
+      node.chain,
+      async () => {
+        const transaction = await node.wallet.mintAssetTransaction(
+          accountA,
+          asset,
+          amountToMint,
+          BigInt(1),
+          15,
+          memo,
+        )
 
-      return node.chain.newBlock(
-        [transaction],
-        await node.strategy.createMinersFee(transaction.fee(), 4, minersSpendKey),
-      )
-    })
+        return node.chain.newBlock(
+          [transaction],
+          await node.strategy.createMinersFee(transaction.fee(), 4, minersSpendKey),
+        )
+      },
+      node.wallet,
+    )
+
     await node.chain.addBlock(mintAssetBlock)
     await node.wallet.updateHead()
 
-    const spendMintedAssetBlck = await useBlockFixture(node.chain, async () => {
-      const transaction = await node.wallet.createTransaction(
-        accountA,
-        [{publicAddress: accountB.publicAddress, amount: amountToSpend, assetIdentifier, memo: 'memo', }],
-        BigInt(1),
-        15,
-      )
+    const spendMintedAssetBlock = await useBlockFixture(
+      node.chain,
+      async () => {
+        const transaction = await node.wallet.createTransaction(
+          accountA,
+          [
+            {
+              publicAddress: accountB.publicAddress,
+              amount: amountToSpend,
+              assetIdentifier,
+              memo: 'memo',
+            },
+          ],
+          BigInt(1),
+          15,
+        )
 
-      return node.chain.newBlock(
-        [transaction],
-        await node.strategy.createMinersFee(transaction.fee(), 5, minersSpendKey),
-      )
-    });
-    await node.chain.addBlock(spendMintedAssetBlck)
+        return node.chain.newBlock(
+          [transaction],
+          await node.strategy.createMinersFee(transaction.fee(), 5, minersSpendKey),
+        )
+      },
+      node.wallet,
+    )
+    await node.chain.addBlock(spendMintedAssetBlock)
     await node.wallet.updateHead()
 
     const accountAUnspentNotes = accountA.getUnspentNotes(assetIdentifier)
     let accountABalance = BigInt(0)
-    for await (const {note} of accountAUnspentNotes) {
+    for await (const { note } of accountAUnspentNotes) {
       accountABalance += note.value()
     }
     expect(accountABalance).toEqual(amountToMint - amountToSpend)
 
-    const accountBUnspentNotes = accountA.getUnspentNotes(assetIdentifier)
+    const accountBUnspentNotes = accountB.getUnspentNotes(assetIdentifier)
     let accountBBalance = BigInt(0)
-    for await (const {note} of accountBUnspentNotes) {
+    for await (const { note } of accountBUnspentNotes) {
       accountBBalance += note.value()
     }
     expect(accountBBalance).toEqual(amountToSpend)

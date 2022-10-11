@@ -151,7 +151,12 @@ export class WorkerPool {
         hashOfSibling: Buffer
       }[]
     }[],
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
     expirationSequence: number,
   ): Promise<Transaction> {
     const spendsWithSerializedNotes = spends.map((s) => ({

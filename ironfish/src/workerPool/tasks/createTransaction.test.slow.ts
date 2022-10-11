@@ -79,6 +79,7 @@ describe('CreateTransactionRequest', () => {
           publicAddress: '',
           amount: BigInt(5),
           memo: '👁️🏃🐟',
+          assetIdentifier: Buffer.alloc(32, 1),
         },
       ],
     )
@@ -134,7 +135,14 @@ describe('CreateTransactionTask', () => {
             authPath,
           },
         ],
-        [{ publicAddress: account.publicAddress, amount: BigInt(1), memo: '' }],
+        [
+          {
+            publicAddress: account.publicAddress,
+            amount: BigInt(1),
+            memo: '',
+            assetIdentifier: Buffer.alloc(32, 1),
+          },
+        ],
       )
 
       const response = task.execute(request)

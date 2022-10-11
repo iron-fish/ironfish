@@ -97,7 +97,10 @@ export class Account {
     transactionHash: Buffer
   }> {
     for await (const decryptedNote of this.getNotes()) {
-      if (!decryptedNote.spent && decryptedNote.note.assetIdentifier().equals(assetIdentifier)) {
+      if (
+        !decryptedNote.spent &&
+        decryptedNote.note.assetIdentifier().equals(assetIdentifier)
+      ) {
         yield decryptedNote
       }
     }

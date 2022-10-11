@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {Note as NativeNote } from '@ironfish/rust-nodejs'
+import { Note as NativeNote } from '@ironfish/rust-nodejs'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
 
 describe('Accounts', () => {
@@ -70,7 +70,7 @@ describe('Accounts', () => {
           publicAddress: accountB.publicAddress,
           amount: BigInt(1),
           memo: '',
-          assetIdentifier: NativeNote.getDefaultAssetIdentifier()
+          assetIdentifier: NativeNote.getDefaultAssetIdentifier(),
         },
       ],
       BigInt(1),

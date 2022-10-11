@@ -31,8 +31,9 @@ impl NativeNote {
         identifier.copy_from_slice(&asset_identifier);
         let asset_type = AssetType::from_identifier(&identifier)
             .map_err(|err| Error::from_reason(err.to_string()))?;
+        let note = Note::new(owner_address, value_u64, Memo::from(memo), asset_type);
         Ok(NativeNote {
-            note: Note::new(owner_address, value_u64, Memo::from(memo), asset_type),
+            note: note,
         })
     }
 

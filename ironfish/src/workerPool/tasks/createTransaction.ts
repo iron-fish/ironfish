@@ -27,7 +27,12 @@ export class CreateTransactionRequest extends WorkerMessage {
       hashOfSibling: Buffer
     }[]
   }[]
-  readonly receives: { publicAddress: string; amount: bigint; memo: string }[]
+  readonly receives: {
+    publicAddress: string
+    amount: bigint
+    memo: string
+    assetIdentifier: Buffer
+  }[]
 
   constructor(
     spendKey: string,
@@ -39,7 +44,12 @@ export class CreateTransactionRequest extends WorkerMessage {
       rootHash: Buffer
       authPath: { side: Side; hashOfSibling: Buffer }[]
     }[],
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
     jobId?: number,
   ) {
     super(WorkerMessageType.CreateTransaction, jobId)
@@ -81,6 +91,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       bw.writeVarString(receive.publicAddress)
       bw.writeVarBytes(BigIntUtils.toBytesBE(receive.amount))
       bw.writeVarString(receive.memo, 'utf8')
+      bw.writeHash(receive.assetIdentifier)
     }
 
     return bw.render()
@@ -116,7 +127,8 @@ export class CreateTransactionRequest extends WorkerMessage {
       const publicAddress = reader.readVarString()
       const amount = BigIntUtils.fromBytes(reader.readVarBytes())
       const memo = reader.readVarString('utf8')
-      receives.push({ publicAddress, amount, memo })
+      const assetIdentifier = reader.readHash()
+      receives.push({ publicAddress, amount, memo, assetIdentifier })
     }
 
     return new CreateTransactionRequest(
@@ -151,7 +163,8 @@ export class CreateTransactionRequest extends WorkerMessage {
       receivesSize +=
         bufio.sizeVarString(receive.publicAddress) +
         bufio.sizeVarBytes(BigIntUtils.toBytesBE(receive.amount)) +
-        bufio.sizeVarString(receive.memo, 'utf8')
+        bufio.sizeVarString(receive.memo, 'utf8') +
+        32
     }
 
     return (
@@ -222,8 +235,8 @@ export class CreateTransactionTask extends WorkerTask {
       )
     }
 
-    for (const { publicAddress, amount, memo } of receives) {
-      const note = new Note(publicAddress, amount, memo, Note.getDefaultAssetIdentifier())
+    for (const { publicAddress, amount, memo, assetIdentifier } of receives) {
+      const note = new Note(publicAddress, amount, memo, assetIdentifier)
       transaction.receive(spendKey, note)
     }
 

@@ -143,7 +143,7 @@ export class Transaction {
    * The number of notes in the transaction.
    */
   notesLength(): number {
-    return this._notes.length
+    return this._notes.length + this._mintAssetNotes.length
   }
 
   getNote(index: number): NoteEncrypted {
