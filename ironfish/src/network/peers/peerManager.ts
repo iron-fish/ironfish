@@ -89,6 +89,12 @@ export class PeerManager {
   addressManager: AddressManager
 
   /**
+   * setInterval handle for requestPeerList, which sends out peer lists and
+   * requests for peer lists
+   */
+  private requestPeerListHandle: SetIntervalToken | undefined
+
+  /**
    * setInterval handle for peer disposal, which removes peers from the list that we
    * no longer care about
    */
@@ -793,6 +799,7 @@ export class PeerManager {
   }
 
   start(): void {
+    this.requestPeerListHandle = setInterval(() => this.requestPeerList(), 60000)
     this.disposePeersHandle = setInterval(() => this.disposePeers(), 2000)
     this.savePeerAddressesHandle = setInterval(
       () => void this.addressManager.save(this.peers),
@@ -810,6 +817,14 @@ export class PeerManager {
     await this.addressManager.save(this.peers)
     for (const peer of this.peers) {
       this.disconnect(peer, DisconnectingReason.ShuttingDown, 0)
+    }
+  }
+
+  private requestPeerList() {
+    const peerListRequest = new PeerListRequestMessage()
+
+    for (const peer of this.getConnectedPeers()) {
+      peer.send(peerListRequest)
     }
   }
 
