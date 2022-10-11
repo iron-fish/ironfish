@@ -9,25 +9,25 @@ import { Block, Transaction } from '../primitives'
 import { Queue } from './queue'
 
 export class RecentFeeCache {
-  private queue: Queue<bigint>
+  private queue: Queue<Transaction>
   readonly chain: Blockchain
   private readonly logger: Logger
   private numOfRecentBlocks = 10
   private numOfTxSamples = 3
   private defaultSuggestedFee = BigInt(2)
 
-  constructor(
-    chain: Blockchain,
-    recentBlocksNum?: number,
-    txSampleSize?: number,
-    logger?: Logger,
-  ) {
-    this.logger = logger || createRootLogger().withTag('recentFeeCache')
-    this.numOfRecentBlocks = recentBlocksNum ?? this.numOfRecentBlocks
-    this.numOfTxSamples = txSampleSize ?? this.numOfTxSamples
+  constructor(options: {
+    chain: Blockchain
+    recentBlocksNum?: number
+    txSampleSize?: number
+    logger?: Logger
+  }) {
+    this.logger = options.logger || createRootLogger().withTag('recentFeeCache')
+    this.numOfRecentBlocks = options.recentBlocksNum ?? this.numOfRecentBlocks
+    this.numOfTxSamples = options.txSampleSize ?? this.numOfTxSamples
 
-    this.queue = new Queue<bigint>(this.numOfRecentBlocks * this.numOfTxSamples)
-    this.chain = chain
+    this.queue = new Queue<Transaction>(this.numOfRecentBlocks * this.numOfTxSamples)
+    this.chain = options.chain
   }
 
   async setUpCache(): Promise<void> {
@@ -43,7 +43,7 @@ export class RecentFeeCache {
         if (this.queue.isFull()) {
           return
         }
-        this.queue.enqueue(tx.fee())
+        this.queue.enqueue(tx)
       })
 
       currentBlockHash = currentBlock.header.previousBlockHash
@@ -59,7 +59,7 @@ export class RecentFeeCache {
       this.deleteOldestTransaction()
     }
 
-    this.queue.enqueue(transaction.fee())
+    this.queue.enqueue(transaction)
   }
 
   /**
@@ -109,9 +109,13 @@ export class RecentFeeCache {
       return this.defaultSuggestedFee
     }
 
-    const prices = [...this.queue.getAll()].sort()
-    const price = prices[Math.round(((this.queue.size() - 1) * percentile) / 100)]
-    return price
+    const fees: bigint[] = []
+    this.queue.getAll().forEach((tx) => {
+      fees.push(tx.fee())
+    })
+    fees.sort()
+    const fee = fees[Math.round(((this.queue.size() - 1) * percentile) / 100)]
+    return fee
   }
 
   getCacheSize(): number {

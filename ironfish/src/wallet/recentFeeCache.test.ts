@@ -23,7 +23,11 @@ describe('RecentFeeCache', () => {
   })
 
   it('setUpCache build recent fee cache with capacity of 1', async () => {
-    const recentFeeCache = new RecentFeeCache(node.chain, 1, 1)
+    const recentFeeCache = new RecentFeeCache({
+      chain: node.chain,
+      recentBlocksNum: 1,
+      txSampleSize: 1,
+    })
     await recentFeeCache.setUpCache()
 
     block = await node.chain.getBlock(node.chain.latest.hash)
@@ -37,7 +41,11 @@ describe('RecentFeeCache', () => {
     const accountD = await useAccountFixture(wallet, 'accountD')
     await useBlockWithTx(node, accountC, accountD)
 
-    const recentFeeCache = new RecentFeeCache(node.chain, 1, 1)
+    const recentFeeCache = new RecentFeeCache({
+      chain: node.chain,
+      recentBlocksNum: 1,
+      txSampleSize: 1,
+    })
     await recentFeeCache.setUpCache()
 
     block = await node.chain.getBlock(node.chain.latest.hash)
@@ -58,7 +66,11 @@ describe('RecentFeeCache', () => {
     const accountD = await useAccountFixture(wallet, 'accountD')
     const { transaction: transaction2 } = await useBlockWithTx(node, accountC, accountD)
 
-    const recentFeeCache = new RecentFeeCache(node.chain, 1, 2)
+    const recentFeeCache = new RecentFeeCache({
+      chain: node.chain,
+      recentBlocksNum: 1,
+      txSampleSize: 2,
+    })
     await recentFeeCache.setUpCache()
 
     block = await node.chain.getBlock(node.chain.latest.hash)
@@ -95,7 +107,11 @@ describe('RecentFeeCache', () => {
     const accountD = await useAccountFixture(wallet, 'accountD')
     const { transaction: transaction2 } = await useBlockWithTx(node, accountC, accountD)
 
-    const recentFeeCache = new RecentFeeCache(node.chain, 1, 1)
+    const recentFeeCache = new RecentFeeCache({
+      chain: node.chain,
+      recentBlocksNum: 1,
+      txSampleSize: 1,
+    })
     await recentFeeCache.setUpCache()
 
     recentFeeCache.addTransactionToCache(transaction2)
