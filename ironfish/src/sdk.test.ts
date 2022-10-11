@@ -119,7 +119,6 @@ describe('IronfishSdk', () => {
         const sdk = await IronfishSdk.init({
           configOverrides: {
             enableRpcTcp: true,
-            rpcTcpSecure: true,
           },
         })
 
@@ -157,7 +156,6 @@ describe('IronfishSdk', () => {
         configOverrides: {
           enableRpcTcp: true,
           enableRpcTls: false,
-          rpcTcpSecure: true,
         },
       })
 
