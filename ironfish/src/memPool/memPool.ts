@@ -11,6 +11,7 @@ import { getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { PriorityQueue } from './priorityQueue'
+import { RecentFeeCache } from './recentFeeCache'
 
 interface MempoolEntry {
   fee: bigint
@@ -37,6 +38,8 @@ export class MemPool {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
 
+  private readonly fees: RecentFeeCache
+
   constructor(options: { chain: Blockchain; metrics: MetricsMonitor; logger?: Logger }) {
     const logger = options.logger || createRootLogger()
 
@@ -61,7 +64,10 @@ export class MemPool {
     this.logger = logger.withTag('mempool')
     this.metrics = options.metrics
 
+    this.fees = new RecentFeeCache({ chain: this.chain })
+
     this.chain.onConnectBlock.on((block) => {
+      this.fees.onConnectBlock(block, this)
       this.onConnectBlock(block)
     })
 

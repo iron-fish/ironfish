@@ -4,7 +4,7 @@
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
-import { PriorityQueue } from '../memPool'
+import { MemPool, PriorityQueue } from '../memPool'
 import { Block, Transaction } from '../primitives'
 import { Queue } from './queue'
 
@@ -30,7 +30,7 @@ export class RecentFeeCache {
     this.chain = options.chain
   }
 
-  async setUpCache(): Promise<void> {
+  async setUp(): Promise<void> {
     // Mempool is empty
     let currentBlockHash = this.chain.latest.hash
 
@@ -38,7 +38,10 @@ export class RecentFeeCache {
       const currentBlock = await this.chain.getBlock(currentBlockHash)
       Assert.isNotNull(currentBlock, 'No block found')
 
-      const lowestFeeTransactions = this.getLowestFeeTransactions(currentBlock)
+      const lowestFeeTransactions = this.getLowestFeeTransactions(
+        currentBlock,
+        this.numOfTxSamples,
+      )
       lowestFeeTransactions.forEach((tx) => {
         if (this.queue.isFull()) {
           return
@@ -50,11 +53,17 @@ export class RecentFeeCache {
     }
   }
 
-  /**
-   * Add recent transactions to fee cache
-   */
+  onConnectBlock(block: Block, memPool: MemPool): void {
+    for (const transaction of this.getLowestFeeTransactions(
+      block,
+      this.numOfTxSamples,
+      (t) => !memPool.exists(t.hash()),
+    )) {
+      this.addTransaction(transaction)
+    }
+  }
 
-  addTransactionToCache(transaction: Transaction): void {
+  addTransaction(transaction: Transaction): void {
     if (this.queue.isFull()) {
       this.deleteOldestTransaction()
     }
@@ -62,16 +71,14 @@ export class RecentFeeCache {
     this.queue.enqueue(transaction)
   }
 
-  /**
-   * Delete the least recent transactions from fee cache
-   */
   deleteOldestTransaction(): void {
     this.queue.dequeue()
   }
 
-  getLowestFeeTransactions(
+  private getLowestFeeTransactions(
     block: Block,
-    numOfTransactions?: number | undefined,
+    numTransactions: number,
+    exclude: (transaction: Transaction) => boolean = (t) => t.isMinersFee(),
   ): Transaction[] {
     const lowestTxFees = new PriorityQueue<Transaction>(
       // TODO: @yajun compare transaction fee rate per byte when transaction size is available
@@ -83,14 +90,17 @@ export class RecentFeeCache {
       },
       (t) => t.hash().toString('hex'),
     )
-    const size = numOfTransactions ?? this.numOfTxSamples
 
-    block.transactions.forEach((transaction) => {
+    for (const transaction of block.transactions) {
+      if (exclude(transaction)) {
+        continue
+      }
+
       lowestTxFees.add(transaction)
-      while (lowestTxFees.size() > size) {
+      while (lowestTxFees.size() > numTransactions) {
         lowestTxFees.poll()
       }
-    })
+    }
 
     const transactions: Transaction[] = []
 
@@ -113,12 +123,21 @@ export class RecentFeeCache {
     this.queue.getAll().forEach((tx) => {
       fees.push(tx.fee())
     })
-    fees.sort()
-    const fee = fees[Math.round(((this.queue.size() - 1) * percentile) / 100)]
-    return fee
+
+    fees.sort((a, b) => {
+      if (a < b) {
+        return -1
+      } else if (a > b) {
+        return 1
+      } else {
+        return 0
+      }
+    })
+
+    return fees[Math.round(((this.queue.size() - 1) * percentile) / 100)]
   }
 
-  getCacheSize(): number {
+  size(): number {
     return this.queue.size()
   }
 }
