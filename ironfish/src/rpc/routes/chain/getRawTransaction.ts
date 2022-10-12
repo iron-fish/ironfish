@@ -1,0 +1,93 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import * as yup from 'yup'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
+import { BlockHashSerdeInstance } from '../../../serde'
+import { ValidationError } from '../../adapters'
+import { ApiNamespace, router } from '../router'
+
+export type GetRawTransactionRequest = { blockHash: string; transactionHash: string }
+
+export type GetRawTransactionResponse = {
+  fee: string
+  expirationSequence: number
+  notesCount: number
+  spendsCount: number
+  signature: string
+  notesEncrypted: string[]
+}
+export const GetRawTransactionRequestSchema: yup.ObjectSchema<GetRawTransactionRequest> = yup
+  .object({
+    blockHash: yup.string().defined(),
+    transactionHash: yup.string().defined(),
+  })
+  .defined()
+
+export const GetRawTransactionResponseSchema: yup.ObjectSchema<GetRawTransactionResponse> = yup
+  .object({
+    fee: yup.string().defined(),
+    expirationSequence: yup.number().defined(),
+    notesCount: yup.number().defined(),
+    spendsCount: yup.number().defined(),
+    signature: yup.string().defined(),
+    notesEncrypted: yup.array(yup.string().defined()).defined(),
+  })
+  .defined()
+
+router.register<typeof GetRawTransactionRequestSchema, GetRawTransactionResponse>(
+  `${ApiNamespace.chain}/getRawTransaction`,
+  GetRawTransactionRequestSchema,
+  async (request, node): Promise<void> => {
+    if (!request.data.blockHash || !request.data.transactionHash) {
+      throw new ValidationError(`Missing block hash or transaction hash`)
+    }
+    const hashBuffer = BlockHashSerdeInstance.deserialize(request.data.blockHash)
+
+    const block = await node.chain.getBlock(hashBuffer)
+    if (!block) {
+      throw new ValidationError(`No block found`)
+    }
+
+    let parentBlock
+    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+      parentBlock = block
+    } else {
+      parentBlock = await node.chain.getBlock(block.header.previousBlockHash)
+    }
+
+    if (!parentBlock) {
+      throw new ValidationError(`No parent block found`)
+    }
+
+    const rawTransaction: GetRawTransactionResponse = {
+      fee: '0',
+      expirationSequence: 0,
+      notesCount: 0,
+      spendsCount: 0,
+      signature: '',
+      notesEncrypted: [],
+    }
+    block.transactions.map((transaction) => {
+      if (transaction.unsignedHash().toString('hex') === request.data.transactionHash) {
+        const fee = transaction.fee().toString()
+        const expirationSequence = transaction.expirationSequence()
+        const notesCount = transaction.notesLength()
+        const spendsCount = transaction.spendsLength()
+        const signature = transaction.transactionSignature()
+        const notesEncrypted = []
+        for (const note of transaction.notes()) {
+          notesEncrypted.push(note.serialize().toString('hex'))
+        }
+        rawTransaction.fee = fee
+        rawTransaction.expirationSequence = expirationSequence
+        rawTransaction.notesCount = notesCount
+        rawTransaction.spendsCount = spendsCount
+        rawTransaction.signature = signature.toString('hex')
+        rawTransaction.notesEncrypted = notesEncrypted
+      }
+    })
+
+    request.end(rawTransaction)
+  },
+)
