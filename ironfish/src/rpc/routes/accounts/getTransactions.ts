@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
-import { IDatabaseTransaction } from '../../../storage'
 import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
@@ -86,7 +85,6 @@ const streamTransaction = async (
   transaction: TransactionValue,
   options?: {
     headSequence?: number | null
-    tx?: IDatabaseTransaction
   },
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
