@@ -1315,11 +1315,12 @@ export class Blockchain {
   }
 
   private updateSynced(): void {
-    if (this.synced) {
+    if (this.head.timestamp.valueOf() < Date.now() - MAX_SYNCED_AGE_MS) {
+      this.synced = false
       return
     }
 
-    if (this.head.timestamp.valueOf() < Date.now() - MAX_SYNCED_AGE_MS) {
+    if (this.synced) {
       return
     }
 
