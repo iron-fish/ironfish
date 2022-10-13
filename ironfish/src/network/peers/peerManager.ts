@@ -877,7 +877,7 @@ export class PeerManager {
    * else returns false and does nothing.
    * @param peer The peer to evaluate
    */
-  private tryDisposePeer(peer: Peer) {
+  tryDisposePeer(peer: Peer): boolean {
     if (peer.state.type === 'DISCONNECTED') {
       this.addressManager.removePeerAddress(peer)
 

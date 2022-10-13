@@ -100,8 +100,9 @@ export class PeerConnectionManager {
           peer.setWebSocketAddress(val.address, val.port)
           if (this.connectToEligiblePeers(peer)) {
             connectAttempts++
+          } else {
+            this.peerManager.tryDisposePeer(peer)
           }
-          // else, maybe delete from peer candidates?
         }
       }
     }
@@ -110,6 +111,8 @@ export class PeerConnectionManager {
       const peer = this.peerManager.createRandomDisconnectedPeer()
       if (peer && this.connectToEligiblePeers(peer)) {
         connectAttempts++
+      } else if (peer) {
+        this.peerManager.tryDisposePeer(peer)
       }
     }
 
