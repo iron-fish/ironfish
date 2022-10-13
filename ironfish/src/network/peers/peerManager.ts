@@ -288,8 +288,6 @@ export class PeerManager {
         ConnectionDirection.Outbound,
       )?.failedConnection(peer.isWhitelisted)
 
-      // If we don't have any brokering peers try disposing the peers
-      this.tryDisposePeer(peer)
       return false
     }
 
