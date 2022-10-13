@@ -42,12 +42,13 @@ export class RecentFeeCache {
         currentBlock,
         this.numOfTxSamples,
       )
-      lowestFeeTransactions.forEach((tx) => {
+
+      for (const transaction of lowestFeeTransactions) {
         if (this.queue.isFull()) {
-          return
+          break
         }
-        this.queue.enqueue(tx)
-      })
+        this.queue.enqueue(transaction)
+      }
 
       currentBlockHash = currentBlock.header.previousBlockHash
     }
@@ -120,9 +121,9 @@ export class RecentFeeCache {
     }
 
     const fees: bigint[] = []
-    this.queue.getAll().forEach((tx) => {
-      fees.push(tx.fee())
-    })
+    for (const transaction of this.queue.getAll()) {
+      fees.push(transaction.fee())
+    }
 
     fees.sort((a, b) => {
       if (a < b) {
