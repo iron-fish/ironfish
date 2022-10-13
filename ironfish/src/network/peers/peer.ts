@@ -251,36 +251,40 @@ export class Peer {
 
   /**
    * Sets a WebRTC connection on the peer, moving it into the CONNECTING state if necessary.
-   * Ignores the connection if the peer already has a WebRTC connection.
+   * Returns the existing connection if the peer already has a WebRTC connection.
    * @param connection The WebRTC connection to set
    */
-  setWebRtcConnection(connection: WebRtcConnection): void {
+  setWebRtcConnection(connection: WebRtcConnection): WebRtcConnection | null {
+    let existingConnection = null
     if (this.state.type !== 'DISCONNECTED' && this.state.connections.webRtc) {
-      this.logger.warn('Already have a WebRTC connection, ignoring the new one')
-      return
+      existingConnection = this.state.connections.webRtc
     }
 
     const webSocket =
       this.state.type !== 'DISCONNECTED' ? this.state.connections.webSocket : undefined
 
     this.setState(this.computeStateFromConnections(webSocket, connection))
+
+    return existingConnection
   }
 
   /**
    * Sets a WebSocket connection on the peer, moving it into the CONNECTING state if necessary.
-   * Ignores the connection if the peer already has a WebSocket connection.
+   * Returns the existing connection if the peer already has a WebSocket connection.
    * @param connection The WebSocket connection to set
    */
-  setWebSocketConnection(connection: WebSocketConnection): void {
+  setWebSocketConnection(connection: WebSocketConnection): WebSocketConnection | null {
+    let existingConnection = null
     if (this.state.type !== 'DISCONNECTED' && this.state.connections.webSocket) {
-      this.logger.debug('Already have a WebSocket connection, ignoring the new one')
-      return
+      existingConnection = this.state.connections.webSocket
     }
 
     const webRtc =
       this.state.type !== 'DISCONNECTED' ? this.state.connections.webRtc : undefined
 
     this.setState(this.computeStateFromConnections(connection, webRtc))
+
+    return existingConnection
   }
 
   private computeStateFromConnections(

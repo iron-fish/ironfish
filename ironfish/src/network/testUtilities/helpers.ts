@@ -5,6 +5,7 @@
 import ws from 'ws'
 import { Identity, isIdentity } from '../identity'
 import { IncomingPeerMessage, NetworkMessage } from '../messages/networkMessage'
+import { ConnectionRetry } from '../peers/connectionRetry'
 import {
   Connection,
   ConnectionDirection,
@@ -20,13 +21,14 @@ export function getConnectingPeer(
   pm: PeerManager,
   disposable = true,
   direction = ConnectionDirection.Outbound,
+  identity?: string | Identity,
 ): { peer: Peer; connection: WebSocketConnection } {
   let peer: Peer | null = null
 
   if (direction === ConnectionDirection.Outbound) {
     peer = pm.connectToWebSocketAddress('ws://testuri.com:9033')
   } else {
-    peer = pm.getOrCreatePeer(null)
+    peer = pm.getOrCreatePeer(identity ?? null)
 
     const connection = new WebSocketConnection(
       new ws(''),
@@ -62,8 +64,9 @@ export function getWaitingForIdentityPeer(
   pm: PeerManager,
   disposable = true,
   direction = ConnectionDirection.Outbound,
+  identity?: string | Identity,
 ): { peer: Peer; connection: WebSocketConnection } {
-  const { peer, connection } = getConnectingPeer(pm, disposable, direction)
+  const { peer, connection } = getConnectingPeer(pm, disposable, direction, identity)
   connection.setState({ type: 'WAITING_FOR_IDENTITY' })
 
   expect(peer.state.type).toBe('CONNECTING')
@@ -150,8 +153,20 @@ export function getSignalingWebRtcPeer(
   const peer = pm.getOrCreatePeer(peerIdentity)
 
   // Link the peers
-  // brokeringPeer.knownPeers.set(peerIdentity, peer)
-  // peer.knownPeers.set(brokeringPeerIdentity, brokeringPeer)
+  pm.peerCandidateMap.set(brokeringPeerIdentity, {
+    address: brokeringPeer.address,
+    port: brokeringPeer.port,
+    neighbors: new Set([peerIdentity]),
+    webRtcRetry: new ConnectionRetry(),
+    websocketRetry: new ConnectionRetry(),
+  })
+  pm.peerCandidateMap.set(peerIdentity, {
+    address: brokeringPeer.address,
+    port: brokeringPeer.port,
+    neighbors: new Set([brokeringPeerIdentity]),
+    webRtcRetry: new ConnectionRetry(),
+    websocketRetry: new ConnectionRetry(),
+  })
 
   // Verify peer2 is not connected
   expect(peer.address).toBeNull()

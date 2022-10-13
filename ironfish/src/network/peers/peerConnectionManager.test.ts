@@ -60,9 +60,11 @@ describe('connectToDisconnectedPeers', () => {
     peer.setWebSocketAddress('testuri.com', 9033)
 
     // We want to test websocket only
-    peer
-      .getConnectionRetry(ConnectionType.WebRtc, ConnectionDirection.Outbound)
-      .neverRetryConnecting()
+    pm.getConnectionRetry(
+      identity,
+      ConnectionType.WebRtc,
+      ConnectionDirection.Outbound,
+    )?.neverRetryConnecting()
 
     const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
     pcm.start()
@@ -110,8 +112,12 @@ describe('connectToDisconnectedPeers', () => {
     const { peer: brokeringPeer } = getConnectedPeer(pm, 'brokering')
     const peer = pm.getOrCreatePeer(peerIdentity)
     // Link the peers
-    brokeringPeer.knownPeers.set(peerIdentity, peer)
-    peer.knownPeers.set(brokeringPeer.getIdentityOrThrow(), brokeringPeer)
+    pm.peerCandidateMap
+      .get(brokeringPeer.getIdentityOrThrow())
+      ?.neighbors.add(peer.getIdentityOrThrow())
+    pm.peerCandidateMap
+      .get(peer.getIdentityOrThrow())
+      ?.neighbors.add(brokeringPeer.getIdentityOrThrow())
 
     const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
     pcm.start()

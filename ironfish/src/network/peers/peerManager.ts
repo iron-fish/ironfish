@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { SignalData } from './connections/webRtcConnection'
-import LRU from 'blru'
 import WSWebSocket from 'ws'
 import { Event } from '../../event'
 import { HostsStore } from '../../fileStores/hosts'
@@ -74,7 +73,7 @@ export class PeerManager {
    */
   peers: Array<Peer> = []
 
-  peerCandidateMap: LRU<
+  peerCandidateMap: Map<
     string,
     {
       name?: string
@@ -84,7 +83,7 @@ export class PeerManager {
       webRtcRetry: ConnectionRetry
       websocketRetry: ConnectionRetry
     }
-  > = new LRU(1000)
+  > = new Map()
 
   addressManager: AddressManager
 
@@ -485,11 +484,10 @@ export class PeerManager {
     let retryOk = false
     if (peer.state.identity) {
       retryOk =
-        this.peerCandidateMap.get(peer.state.identity)?.websocketRetry.canConnect ?? false
+        this.peerCandidateMap.get(peer.state.identity)?.websocketRetry.canConnect ?? true
     } else {
       retryOk =
-        this.peerCandidateMap.get(peer.getWebSocketAddress())?.websocketRetry.canConnect ??
-        false
+        this.peerCandidateMap.get(peer.getWebSocketAddress())?.websocketRetry.canConnect ?? true
     }
 
     return (
@@ -517,7 +515,7 @@ export class PeerManager {
 
     let retryOk = false
     if (peer.state.identity) {
-      retryOk = this.peerCandidateMap.get(peer.state.identity)?.webRtcRetry.canConnect ?? false
+      retryOk = this.peerCandidateMap.get(peer.state.identity)?.webRtcRetry.canConnect ?? true
     }
 
     return (
@@ -668,29 +666,24 @@ export class PeerManager {
     }
 
     if (peer.state.connections.webRtc?.state.type === 'CONNECTED') {
-      if (existingPeer.state.type !== 'DISCONNECTED' && existingPeer.state.connections.webRtc) {
+      const existingConnection = existingPeer.setWebRtcConnection(peer.state.connections.webRtc)
+      if (existingConnection) {
         const error = `Replacing duplicate WebRTC connection on ${existingPeer.displayName}`
         this.logger.debug(ErrorUtils.renderError(new NetworkError(error)))
-        existingPeer
-          .removeConnection(existingPeer.state.connections.webRtc)
-          .close(new NetworkError(error))
+        existingConnection.close(new NetworkError(error))
       }
-      existingPeer.setWebRtcConnection(peer.state.connections.webRtc)
       peer.removeConnection(peer.state.connections.webRtc)
     }
 
     if (peer.state.connections.webSocket?.state.type === 'CONNECTED') {
-      if (
-        existingPeer.state.type !== 'DISCONNECTED' &&
-        existingPeer.state.connections.webSocket
-      ) {
+      const existingConnection = existingPeer.setWebSocketConnection(
+        peer.state.connections.webSocket,
+      )
+      if (existingConnection) {
         const error = `Replacing duplicate WebSocket connection on ${existingPeer.displayName}`
-        this.logger.debug(error)
-        existingPeer
-          .removeConnection(existingPeer.state.connections.webSocket)
-          .close(new NetworkError(error))
+        this.logger.debug(ErrorUtils.renderError(new NetworkError(error)))
+        existingConnection.close(new NetworkError(error))
       }
-      existingPeer.setWebSocketConnection(peer.state.connections.webSocket)
       peer.removeConnection(peer.state.connections.webSocket)
     }
 
@@ -769,6 +762,8 @@ export class PeerManager {
       if (prevState.type === 'CONNECTED' && peer.state.type !== 'CONNECTED') {
         this.onDisconnect.emit(peer)
         this.onConnectedPeersChanged.emit()
+      }
+      if (prevState.type !== 'DISCONNECTED' && peer.state.type === 'DISCONNECTED') {
         this.tryDisposePeer(peer)
       }
     })

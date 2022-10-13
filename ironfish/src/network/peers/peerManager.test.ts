@@ -29,6 +29,7 @@ import {
 } from '../testUtilities'
 import { NetworkMessageType } from '../types'
 import { VERSION_PROTOCOL, VERSION_PROTOCOL_MIN } from '../version'
+import { ConnectionRetry } from './connectionRetry'
 import {
   ConnectionDirection,
   ConnectionType,
@@ -44,57 +45,6 @@ describe('PeerManager', () => {
   jest
     .spyOn(localPeer, 'boxMessage')
     .mockReturnValue({ nonce: 'boxMessageNonce', boxedMessage: 'boxMessageMessage' })
-
-  describe('Dispose peers', () => {
-    it('Should not dispose of peers that have a CONNECTED peer', () => {
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
-      const peer1Identity = mockIdentity('peer1')
-      const peer2Identity = mockIdentity('peer2')
-      const { peer: peer1 } = getConnectedPeer(pm, peer1Identity)
-
-      const peer2 = pm.getOrCreatePeer(peer2Identity)
-      peer2.setWebSocketAddress(null, null)
-      peer1.knownPeers.set(peer2Identity, peer2)
-
-      expect(pm.identifiedPeers.size).toBe(2)
-      expect(pm.peers.length).toBe(2)
-
-      pm['disposePeers']()
-
-      expect(pm.identifiedPeers.size).toBe(2)
-      expect(pm.peers.length).toBe(2)
-    })
-
-    it('Should dispose of two DISCONNECTED peers that have each other in knownPeers', () => {
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
-      const peer1Identity = mockIdentity('peer1')
-      const peer2Identity = mockIdentity('peer2')
-      const { peer: peer1 } = getConnectedPeer(pm, peer1Identity)
-      const { peer: peer2 } = getConnectedPeer(pm, peer2Identity)
-
-      peer1.knownPeers.set(peer2Identity, peer2)
-      peer2.knownPeers.set(peer1Identity, peer1)
-
-      peer1.close()
-      peer2.close()
-      peer1
-        .getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-        ?.neverRetryConnecting()
-      peer2
-        .getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-        ?.neverRetryConnecting()
-
-      expect(peer1.knownPeers.size).toBe(1)
-      expect(peer2.knownPeers.size).toBe(1)
-      expect(pm.identifiedPeers.size).toBe(2)
-      expect(pm.peers.length).toBe(2)
-
-      pm['disposePeers']()
-
-      expect(pm.identifiedPeers.size).toBe(0)
-      expect(pm.peers.length).toBe(0)
-    })
-  })
 
   it('should handle duplicate connections from the same peer', () => {
     const localPeer = mockLocalPeer({ identity: webRtcLocalIdentity() })
@@ -165,13 +115,13 @@ describe('PeerManager', () => {
     expect(connectionIn2.state.type).toEqual('WAITING_FOR_IDENTITY')
     // Check Peers
     expect(peerOut.state).toMatchObject({
+      type: 'DISCONNECTED',
+      identity: identity,
+    })
+    expect(peerIn1.state).toMatchObject({
       type: 'CONNECTED',
       identity: identity,
       connections: { webSocket: connectionIn1 },
-    })
-    expect(peerIn1.state).toMatchObject({
-      type: 'DISCONNECTED',
-      identity: identity,
     })
     expect(peerIn2.state).toMatchObject({
       type: 'CONNECTING',
@@ -183,20 +133,20 @@ describe('PeerManager', () => {
     peerIn2.onMessage.emit(message, connectionIn2)
     // Check PeerManager
     expect(peers.identifiedPeers.size).toBe(1)
-    // expect(peers.peers.length).toBe(1)
+    expect(peers.peers.length).toBe(1)
     // Connections
     expect(connectionOut.state.type).toEqual('DISCONNECTED')
     expect(connectionIn1.state.type).toEqual('CONNECTED')
     expect(connectionIn2.state.type).toEqual('DISCONNECTED')
     // Check Peers
     expect(peerOut.state).toMatchObject({
+      type: 'DISCONNECTED',
+      identity: identity,
+    })
+    expect(peerIn1.state).toMatchObject({
       type: 'CONNECTED',
       identity: identity,
       connections: { webSocket: connectionIn1 },
-    })
-    expect(peerIn1.state).toMatchObject({
-      type: 'DISCONNECTED',
-      identity: identity,
     })
     expect(peerIn2.state).toMatchObject({
       type: 'DISCONNECTED',
@@ -331,12 +281,24 @@ describe('PeerManager', () => {
       const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
 
       // Create the peers
-      const { peer: peer1 } = getConnectedPeer(pm, peer1Identity)
+      getConnectedPeer(pm, peer1Identity)
       const peer2 = pm.getOrCreatePeer(peer2Identity)
 
       // Link the peers
-      peer1.knownPeers.set(peer2Identity, peer2)
-      peer2.knownPeers.set(peer1Identity, peer1)
+      pm.peerCandidateMap.set(peer1Identity, {
+        address: null,
+        port: null,
+        neighbors: new Set([peer2Identity]),
+        webRtcRetry: new ConnectionRetry(),
+        websocketRetry: new ConnectionRetry(),
+      })
+      pm.peerCandidateMap.set(peer2Identity, {
+        address: null,
+        port: null,
+        neighbors: new Set([peer1Identity]),
+        webRtcRetry: new ConnectionRetry(),
+        websocketRetry: new ConnectionRetry(),
+      })
 
       // Verify peer2 is not connected
       peer2.setWebSocketAddress('testuri', 9033)
@@ -366,8 +328,20 @@ describe('PeerManager', () => {
       expect(targetPeer.state.type).toEqual('DISCONNECTED')
 
       // Link the peers
-      brokeringPeer.knownPeers.set(targetPeer.getIdentityOrThrow(), targetPeer)
-      targetPeer.knownPeers.set(brokeringPeer.getIdentityOrThrow(), brokeringPeer)
+      peers.peerCandidateMap.set(brokeringPeer.getIdentityOrThrow(), {
+        address: null,
+        port: null,
+        neighbors: new Set([targetPeer.getIdentityOrThrow()]),
+        webRtcRetry: new ConnectionRetry(),
+        websocketRetry: new ConnectionRetry(),
+      })
+      peers.peerCandidateMap.set(targetPeer.getIdentityOrThrow(), {
+        address: null,
+        port: null,
+        neighbors: new Set([brokeringPeer.getIdentityOrThrow()]),
+        webRtcRetry: new ConnectionRetry(),
+        websocketRetry: new ConnectionRetry(),
+      })
 
       peers.connectToWebRTC(targetPeer)
 
@@ -443,8 +417,20 @@ describe('PeerManager', () => {
       expect(targetPeer.state.type).toEqual('DISCONNECTED')
 
       // Link the peers
-      brokeringPeer.knownPeers.set(targetPeer.getIdentityOrThrow(), targetPeer)
-      targetPeer.knownPeers.set(brokeringPeer.getIdentityOrThrow(), brokeringPeer)
+      peers.peerCandidateMap.set(brokeringPeer.getIdentityOrThrow(), {
+        address: null,
+        port: null,
+        neighbors: new Set([targetPeer.getIdentityOrThrow()]),
+        webRtcRetry: new ConnectionRetry(),
+        websocketRetry: new ConnectionRetry(),
+      })
+      peers.peerCandidateMap.set(targetPeer.getIdentityOrThrow(), {
+        address: null,
+        port: null,
+        neighbors: new Set([brokeringPeer.getIdentityOrThrow()]),
+        webRtcRetry: new ConnectionRetry(),
+        websocketRetry: new ConnectionRetry(),
+      })
 
       peers.connectToWebRTC(targetPeer)
       expect(targetPeer.state).toMatchObject({
@@ -726,14 +712,6 @@ describe('PeerManager', () => {
 
       expect(pm.peers.length).toBe(1)
       const closeSpy = jest.spyOn(connection, 'close')
-      const retry = peer.getConnectionRetry(
-        ConnectionType.WebSocket,
-        ConnectionDirection.Outbound,
-      )
-      if (retry === null) {
-        throw new Error('Retry must not be null')
-      }
-      const failSpy = jest.spyOn(retry, 'failedConnection')
 
       const identify = new IdentifyMessage({
         agent: '',
@@ -747,8 +725,7 @@ describe('PeerManager', () => {
       peer.onMessage.emit(identify, connection)
 
       expect(closeSpy).toBeCalled()
-      expect(failSpy).toBeCalledTimes(1)
-      expect(pm.peers.length).toBe(1)
+      expect(pm.peers.length).toBe(0)
       expect(pm.identifiedPeers.size).toBe(0)
     })
 
@@ -759,14 +736,6 @@ describe('PeerManager', () => {
 
       expect(pm.peers.length).toBe(1)
       const closeSpy = jest.spyOn(connection, 'close')
-      const retry = peer.getConnectionRetry(
-        ConnectionType.WebSocket,
-        ConnectionDirection.Outbound,
-      )
-      if (retry === null) {
-        throw new Error('Retry must not be null')
-      }
-      const failSpy = jest.spyOn(retry, 'failedConnection')
 
       const identify = new IdentifyMessage({
         agent: '',
@@ -779,8 +748,7 @@ describe('PeerManager', () => {
       })
       peer.onMessage.emit(identify, connection)
       expect(closeSpy).toBeCalled()
-      expect(failSpy).toBeCalledTimes(1)
-      expect(pm.peers.length).toBe(1)
+      expect(pm.peers.length).toBe(0)
       expect(pm.identifiedPeers.size).toBe(0)
     })
 
@@ -814,29 +782,17 @@ describe('PeerManager', () => {
 
     it('Closes the connection if an identified peer returns the local identity', () => {
       const localIdentity = mockPrivateIdentity('local')
+      const peerIdentity = mockIdentity('peer1')
       const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockHostsStore())
 
-      const { peer: peer1 } = getConnectedPeer(pm, 'peer1')
-
-      peer1.close()
-
-      const connection = new WebSocketConnection(
-        new ws(''),
-        ConnectionDirection.Outbound,
-        peer1.logger,
+      const { peer: peer1, connection } = getWaitingForIdentityPeer(
+        pm,
+        true,
+        ConnectionDirection.Inbound,
+        peerIdentity,
       )
-      connection.setState({ type: 'WAITING_FOR_IDENTITY' })
-      peer1.setWebSocketConnection(connection)
+
       expect(peer1.state.identity).toBe(peer1.getIdentityOrThrow())
-
-      // Spy on connectionRetry.failedConnection
-      const retry = peer1.getConnectionRetry(
-        ConnectionType.WebSocket,
-        ConnectionDirection.Outbound,
-      )
-      if (retry === null) {
-        throw new Error('Retry must exist')
-      }
 
       const identify = new IdentifyMessage({
         agent: '',
@@ -859,7 +815,6 @@ describe('PeerManager', () => {
       })
       expect(peer1.port).toBeNull()
       expect(peer1.address).toBeNull()
-      expect(retry.willNeverRetryConnecting).toBe(true)
 
       // The peer should be disposed, since there's no alternative way to connect to it
       expect(pm.identifiedPeers.size).toBe(0)
@@ -871,17 +826,12 @@ describe('PeerManager', () => {
       const peer2Identity = mockIdentity('peer2')
       const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
 
-      const { peer: peer1 } = getConnectedPeer(pm, peer1Identity)
-
-      peer1.close()
-
-      const connection = new WebSocketConnection(
-        new ws(''),
-        ConnectionDirection.Outbound,
-        peer1.logger,
+      const { peer: peer1, connection } = getWaitingForIdentityPeer(
+        pm,
+        true,
+        ConnectionDirection.Inbound,
+        peer1Identity,
       )
-      connection.setState({ type: 'WAITING_FOR_IDENTITY' })
-      peer1.setWebSocketConnection(connection)
 
       const identify = new IdentifyMessage({
         agent: '',
@@ -894,9 +844,8 @@ describe('PeerManager', () => {
       })
       connection.onMessage.emit(identify)
 
-      // Should have 2 verified peers
-      expect(pm.identifiedPeers.size).toBe(2)
-      expect(pm.peers.length).toBe(2)
+      expect(pm.identifiedPeers.size).toBe(1)
+      expect(pm.peers.length).toBe(1)
 
       // Peer 1 should be disconnected and WS connection info removed
       expect(peer1.state).toEqual({
@@ -905,14 +854,8 @@ describe('PeerManager', () => {
       })
       expect(peer1.port).toBeNull()
       expect(peer1.address).toBeNull()
-      expect(
-        peer1.getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-          ?.willNeverRetryConnecting,
-      ).toBe(true)
 
       const peer2 = pm.getPeer(peer2Identity)
-      expect(peer2?.address).toBe('testuri.com')
-      expect(peer2?.port).toBe(9033)
       expect(peer2?.state).toEqual({
         type: 'CONNECTED',
         connections: { webSocket: connection },
@@ -1342,15 +1285,13 @@ describe('PeerManager', () => {
   })
 
   describe('Message: PeerList', () => {
-    it('Does not add local identity to knownPeers', () => {
+    it('Does not add local identity to peer candidate map', () => {
       const localIdentity = mockPrivateIdentity('local')
       const peerIdentity = mockIdentity('peer')
 
       const pm = new PeerManager(mockLocalPeer({ identity: localIdentity }), mockHostsStore())
 
       const { connection, peer } = getConnectedPeer(pm, peerIdentity)
-
-      expect(peer.knownPeers.size).toBe(0)
 
       const peerList = new PeerListMessage([
         {
@@ -1360,7 +1301,7 @@ describe('PeerManager', () => {
         },
       ])
       peer.onMessage.emit(peerList, connection)
-      expect(peer.knownPeers.size).toBe(0)
+      expect(pm.peerCandidateMap.has(privateIdentityToIdentity(localIdentity))).toBe(false)
     })
 
     it('Links peers when adding a new known peer', () => {
@@ -1373,7 +1314,7 @@ describe('PeerManager', () => {
 
       expect(pm.peers.length).toBe(1)
       expect(pm.identifiedPeers.size).toBe(1)
-      expect(peer.knownPeers.size).toBe(0)
+      expect(pm.peerCandidateMap.get(peer.getIdentityOrThrow())).toBeUndefined()
 
       const peerList = new PeerListMessage([
         {
@@ -1383,68 +1324,14 @@ describe('PeerManager', () => {
         },
       ])
       peer.onMessage.emit(peerList, connection)
-
-      expect(peer.knownPeers.size).toBe(1)
-      expect(pm.peers.length).toBe(2)
-      expect(pm.identifiedPeers.size).toBe(2)
-
-      const newPeer = peer.knownPeers.get(newPeerIdentity)
-      expect(newPeer).toBeDefined()
-      if (!newPeer) {
-        throw new Error('Peer must be defined')
-      }
-      expect(newPeer.state).toEqual({
-        type: 'DISCONNECTED',
-        identity: newPeerIdentity,
-      })
-      expect(newPeer.knownPeers.size).toBe(1)
-      expect(newPeer.knownPeers.get(peerIdentity)).toBe(peer)
-
-      expect(pm.identifiedPeers.size).toBe(2)
-      expect(pm.identifiedPeers.get(peerIdentity)).toBe(peer)
-      expect(pm.identifiedPeers.get(newPeerIdentity)).toBe(newPeer)
-    })
-
-    it(`Disposes of peers if they are no longer linked to the network`, () => {
-      const peerIdentity = mockIdentity('peer')
-      const newPeerIdentity = mockIdentity('new')
-
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
-
-      const { connection, peer } = getConnectedPeer(pm, peerIdentity)
 
       expect(pm.peers.length).toBe(1)
       expect(pm.identifiedPeers.size).toBe(1)
-      expect(peer.knownPeers.size).toBe(0)
-
-      const peerList = new PeerListMessage([
-        {
-          identity: Buffer.from(newPeerIdentity, 'base64'),
-          address: peer.address,
-          port: peer.port,
-        },
-      ])
-      peer.onMessage.emit(peerList, connection)
-
-      expect(peer.knownPeers.size).toBe(1)
-      expect(pm.peers.length).toBe(2)
-      expect(pm.identifiedPeers.size).toBe(2)
-
-      // Indicate that we can't initiate a WebSocket connection to the new peer
-      const newPeer = pm.getPeerOrThrow(newPeerIdentity)
-      newPeer
-        .getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-        ?.neverRetryConnecting()
-
-      // Send another peer list without that peer
-      const newPeerList = new PeerListMessage([])
-      peer.onMessage.emit(newPeerList, connection)
-
-      // newPeer should be disposed
-      expect(pm.peers).toHaveLength(1)
-      expect(pm.identifiedPeers.size).toBe(1)
       expect(pm.identifiedPeers.get(peerIdentity)).toBe(peer)
       expect(pm.identifiedPeers.get(newPeerIdentity)).toBeUndefined()
+
+      expect(pm.peerCandidateMap.get(newPeerIdentity)?.neighbors.size).toBe(1)
+      expect(pm.peerCandidateMap.get(newPeerIdentity)?.neighbors.has(peerIdentity)).toBe(true)
     })
   })
 
