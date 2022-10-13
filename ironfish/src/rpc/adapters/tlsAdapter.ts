@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { randomBytes } from 'crypto'
 import net from 'net'
 import { pki } from 'node-forge'
 import tls from 'tls'
@@ -49,7 +50,8 @@ export class RpcTlsAdapter extends RpcSocketAdapter {
       this.logger.debug(
         `Missing RPC Auth token in internal.json config. Automatically generating auth token.`,
       )
-      this.node.internal.set('rpcAuthToken', uuid())
+      const newPassword = randomBytes(32).toString('hex')
+      this.node.internal.set('rpcAuthToken', newPassword)
       await this.node.internal.save()
     }
 
