@@ -52,17 +52,14 @@ describe('PeerManager', () => {
 
     const { peer: peerOut, connection: connectionOut } = getWaitingForIdentityPeer(
       peers,
-      true,
       ConnectionDirection.Outbound,
     )
     const { peer: peerIn1, connection: connectionIn1 } = getWaitingForIdentityPeer(
       peers,
-      true,
       ConnectionDirection.Inbound,
     )
     const { peer: peerIn2, connection: connectionIn2 } = getWaitingForIdentityPeer(
       peers,
-      true,
       ConnectionDirection.Inbound,
     )
 
@@ -291,6 +288,8 @@ describe('PeerManager', () => {
         neighbors: new Set([peer2Identity]),
         webRtcRetry: new ConnectionRetry(),
         websocketRetry: new ConnectionRetry(),
+        localRequestedDisconnectUntil: null,
+        peerRequestedDisconnectUntil: null,
       })
       pm.peerCandidateMap.set(peer2Identity, {
         address: null,
@@ -298,6 +297,8 @@ describe('PeerManager', () => {
         neighbors: new Set([peer1Identity]),
         webRtcRetry: new ConnectionRetry(),
         websocketRetry: new ConnectionRetry(),
+        localRequestedDisconnectUntil: null,
+        peerRequestedDisconnectUntil: null,
       })
 
       // Verify peer2 is not connected
@@ -334,6 +335,8 @@ describe('PeerManager', () => {
         neighbors: new Set([targetPeer.getIdentityOrThrow()]),
         webRtcRetry: new ConnectionRetry(),
         websocketRetry: new ConnectionRetry(),
+        localRequestedDisconnectUntil: null,
+        peerRequestedDisconnectUntil: null,
       })
       peers.peerCandidateMap.set(targetPeer.getIdentityOrThrow(), {
         address: null,
@@ -341,6 +344,8 @@ describe('PeerManager', () => {
         neighbors: new Set([brokeringPeer.getIdentityOrThrow()]),
         webRtcRetry: new ConnectionRetry(),
         websocketRetry: new ConnectionRetry(),
+        localRequestedDisconnectUntil: null,
+        peerRequestedDisconnectUntil: null,
       })
 
       peers.connectToWebRTC(targetPeer)
@@ -423,6 +428,8 @@ describe('PeerManager', () => {
         neighbors: new Set([targetPeer.getIdentityOrThrow()]),
         webRtcRetry: new ConnectionRetry(),
         websocketRetry: new ConnectionRetry(),
+        localRequestedDisconnectUntil: null,
+        peerRequestedDisconnectUntil: null,
       })
       peers.peerCandidateMap.set(targetPeer.getIdentityOrThrow(), {
         address: null,
@@ -430,6 +437,8 @@ describe('PeerManager', () => {
         neighbors: new Set([brokeringPeer.getIdentityOrThrow()]),
         webRtcRetry: new ConnectionRetry(),
         websocketRetry: new ConnectionRetry(),
+        localRequestedDisconnectUntil: null,
+        peerRequestedDisconnectUntil: null,
       })
 
       peers.connectToWebRTC(targetPeer)
@@ -465,7 +474,16 @@ describe('PeerManager', () => {
       peer.close()
 
       // Set disconnectUntil and verify that we can't create a connection
-      peer.peerRequestedDisconnectUntil = Number.MAX_SAFE_INTEGER
+      Assert.isNotNull(peer.state.identity)
+      pm.peerCandidateMap.set(peer.state.identity, {
+        address: null,
+        port: null,
+        neighbors: new Set(),
+        webRtcRetry: new ConnectionRetry(),
+        websocketRetry: new ConnectionRetry(),
+        peerRequestedDisconnectUntil: Number.MAX_SAFE_INTEGER,
+        localRequestedDisconnectUntil: null,
+      })
       pm.connectToWebSocket(peer)
       expect(peer.state.type).toBe('DISCONNECTED')
     })
@@ -476,16 +494,27 @@ describe('PeerManager', () => {
       peer.close()
 
       // Try websockets first
-      peer.peerRequestedDisconnectUntil = 1
+      pm.peerCandidateMap.set(peer.getIdentityOrThrow(), {
+        address: null,
+        port: null,
+        neighbors: new Set(),
+        webRtcRetry: new ConnectionRetry(),
+        websocketRetry: new ConnectionRetry(),
+        localRequestedDisconnectUntil: null,
+        peerRequestedDisconnectUntil: 1,
+      })
+
       pm.connectToWebSocket(peer)
       expect(peer.state.type).toBe('CONNECTING')
-      expect(peer.peerRequestedDisconnectUntil).toBeNull()
+      const candidate = pm.peerCandidateMap.get(peer.getIdentityOrThrow())
+      Assert.isNotUndefined(candidate)
+      expect(candidate.peerRequestedDisconnectUntil).toBeNull()
 
       // Try websockets first
-      peer.peerRequestedDisconnectUntil = 1
+      candidate.peerRequestedDisconnectUntil = 1
       pm.connectToWebRTC(peer)
       expect(peer.state.type).toBe('CONNECTING')
-      expect(peer.peerRequestedDisconnectUntil).toBeNull()
+      expect(candidate.peerRequestedDisconnectUntil).toBeNull()
     })
 
     it('Does not create a connection to a disconnected Peer above targetPeers', () => {
@@ -787,7 +816,6 @@ describe('PeerManager', () => {
 
       const { peer: peer1, connection } = getWaitingForIdentityPeer(
         pm,
-        true,
         ConnectionDirection.Inbound,
         peerIdentity,
       )
@@ -828,7 +856,6 @@ describe('PeerManager', () => {
 
       const { peer: peer1, connection } = getWaitingForIdentityPeer(
         pm,
-        true,
         ConnectionDirection.Inbound,
         peer1Identity,
       )
@@ -871,7 +898,16 @@ describe('PeerManager', () => {
       const { peer } = getConnectedPeer(pm, peerIdentity)
       peer.close()
       expect(peer.state).toEqual({ type: 'DISCONNECTED', identity: peerIdentity })
-      peer.localRequestedDisconnectUntil = Number.MAX_SAFE_INTEGER
+
+      pm.peerCandidateMap.set(peerIdentity, {
+        address: null,
+        port: null,
+        neighbors: new Set(),
+        webRtcRetry: new ConnectionRetry(),
+        websocketRetry: new ConnectionRetry(),
+        localRequestedDisconnectUntil: Number.MAX_SAFE_INTEGER,
+        peerRequestedDisconnectUntil: null,
+      })
 
       const { connection } = getWaitingForIdentityPeer(pm)
 
@@ -887,11 +923,16 @@ describe('PeerManager', () => {
       })
       connection.onMessage.emit(id)
 
+      const localRequestedDisconnectUntil =
+        pm.peerCandidateMap.get(peerIdentity)?.localRequestedDisconnectUntil
+      Assert.isNotUndefined(localRequestedDisconnectUntil)
+      Assert.isNotNull(localRequestedDisconnectUntil)
+
       const response = new DisconnectingMessage({
         sourceIdentity: privateIdentityToIdentity(localIdentity),
         destinationIdentity: peerIdentity,
         reason: DisconnectingReason.Congested,
-        disconnectUntil: peer.localRequestedDisconnectUntil,
+        disconnectUntil: localRequestedDisconnectUntil,
       })
       expect(sendSpy).toBeCalledWith(response)
 
@@ -1360,30 +1401,6 @@ describe('PeerManager', () => {
       expect(sendSpy2).not.toBeCalled()
     })
 
-    it('Should set peerRequestedDisconnectUntil on unidentified Peer', () => {
-      const localPeer = mockLocalPeer()
-      const pm = new PeerManager(localPeer, mockHostsStore())
-      const peerIdentity = mockIdentity('peer')
-      const { peer, connection } = getConnectingPeer(pm)
-      expect(peer.peerRequestedDisconnectUntil).toBeNull()
-
-      const disconnectMessage = new DisconnectingMessage({
-        sourceIdentity: peerIdentity,
-        destinationIdentity: localPeer.publicIdentity,
-        disconnectUntil: Number.MAX_SAFE_INTEGER,
-        reason: DisconnectingReason.ShuttingDown,
-      })
-
-      connection.onMessage.emit(disconnectMessage)
-
-      // Even though identity is included in the message, it shouldn't be set on the
-      // peer before an Identity message is received.
-      expect(peer.state.identity).toBeNull()
-
-      expect(peer.peerRequestedDisconnectUntil).toBe(Number.MAX_SAFE_INTEGER)
-      expect(peer.state.type).toEqual('DISCONNECTED')
-    })
-
     it('Should set peerRequestedDisconnectUntil on CONNECTED Peer when sender is not sourceIdentity', () => {
       const localPeer = mockLocalPeer({ identity: webRtcLocalIdentity() })
       const pm = new PeerManager(localPeer, mockHostsStore())
@@ -1407,8 +1424,9 @@ describe('PeerManager', () => {
       brokeringConnection.onMessage.emit(disconnectMessage)
 
       expect(peer.state.type).toEqual('DISCONNECTED')
-      expect(peer.peerRequestedDisconnectReason).toEqual(DisconnectingReason.ShuttingDown)
-      expect(peer.peerRequestedDisconnectUntil).toEqual(Number.MAX_SAFE_INTEGER)
+      expect(
+        pm.peerCandidateMap.get(webRtcCanInitiateIdentity())?.peerRequestedDisconnectUntil,
+      ).toEqual(Number.MAX_SAFE_INTEGER)
       expect(brokeringPeer.state.type).toEqual('CONNECTED')
     })
 
@@ -1417,7 +1435,17 @@ describe('PeerManager', () => {
       const pm = new PeerManager(localPeer, mockHostsStore())
       const peerIdentity = mockIdentity('peer')
       const { peer, connection } = getConnectedPeer(pm, peerIdentity)
-      expect(peer.peerRequestedDisconnectUntil).toBeNull()
+
+      Assert.isNotNull(peer.state.identity)
+      pm.peerCandidateMap.set(peer.state.identity, {
+        address: null,
+        port: null,
+        neighbors: new Set(),
+        webRtcRetry: new ConnectionRetry(),
+        websocketRetry: new ConnectionRetry(),
+        peerRequestedDisconnectUntil: null,
+        localRequestedDisconnectUntil: null,
+      })
 
       const disconnectMessage = new DisconnectingMessage({
         sourceIdentity: peerIdentity,
@@ -1428,7 +1456,11 @@ describe('PeerManager', () => {
 
       connection.onMessage.emit(disconnectMessage)
 
-      expect(peer.peerRequestedDisconnectUntil).toBe(Number.MAX_SAFE_INTEGER)
+      const peerRequestedDisconnectUntil = pm.peerCandidateMap.get(
+        peer.state.identity,
+      )?.peerRequestedDisconnectUntil
+
+      expect(peerRequestedDisconnectUntil).toBe(Number.MAX_SAFE_INTEGER)
       expect(peer.state.type).toEqual('DISCONNECTED')
     })
   })

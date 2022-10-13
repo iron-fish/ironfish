@@ -10,7 +10,6 @@ import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
-import { DisconnectingReason } from '../messages/disconnecting'
 import { displayNetworkMessageType, NetworkMessage } from '../messages/networkMessage'
 import { NetworkMessageType } from '../types'
 import { WebRtcConnection, WebSocketConnection } from './connections'
@@ -166,28 +165,6 @@ export class Peer {
 
   /** how many outbound connections does the peer have */
   pendingRPC = 0
-
-  /**
-   * The reason why the Peer requested to disconnect from us.
-   */
-  peerRequestedDisconnectReason: DisconnectingReason | null = null
-
-  /**
-   * UTC timestamp. If set, the peer manager should not initiate connections to the
-   * Peer until after the timestamp.
-   */
-  peerRequestedDisconnectUntil: number | null = null
-
-  /**
-   * The reason why we requested the Peer not to connect to us.
-   */
-  localRequestedDisconnectReason: DisconnectingReason | null = null
-
-  /**
-   * UTC timestamp. If set, the peer manager should not accept connections from the
-   * Peer until after the timestamp.
-   */
-  localRequestedDisconnectUntil: number | null = null
 
   shouldLogMessages = false
 

@@ -9,7 +9,6 @@ import { ConnectionRetry } from '../peers/connectionRetry'
 import {
   Connection,
   ConnectionDirection,
-  ConnectionType,
   WebRtcConnection,
   WebSocketConnection,
 } from '../peers/connections'
@@ -19,7 +18,6 @@ import { mockIdentity } from './mockIdentity'
 
 export function getConnectingPeer(
   pm: PeerManager,
-  disposable = true,
   direction = ConnectionDirection.Outbound,
   identity?: string | Identity,
 ): { peer: Peer; connection: WebSocketConnection } {
@@ -62,11 +60,10 @@ export function getConnectingPeer(
 
 export function getWaitingForIdentityPeer(
   pm: PeerManager,
-  disposable = true,
   direction = ConnectionDirection.Outbound,
   identity?: string | Identity,
 ): { peer: Peer; connection: WebSocketConnection } {
-  const { peer, connection } = getConnectingPeer(pm, disposable, direction, identity)
+  const { peer, connection } = getConnectingPeer(pm, direction, identity)
   connection.setState({ type: 'WAITING_FOR_IDENTITY' })
 
   expect(peer.state.type).toBe('CONNECTING')
@@ -159,6 +156,8 @@ export function getSignalingWebRtcPeer(
     neighbors: new Set([peerIdentity]),
     webRtcRetry: new ConnectionRetry(),
     websocketRetry: new ConnectionRetry(),
+    peerRequestedDisconnectUntil: null,
+    localRequestedDisconnectUntil: null,
   })
   pm.peerCandidateMap.set(peerIdentity, {
     address: brokeringPeer.address,
@@ -166,6 +165,8 @@ export function getSignalingWebRtcPeer(
     neighbors: new Set([brokeringPeerIdentity]),
     webRtcRetry: new ConnectionRetry(),
     websocketRetry: new ConnectionRetry(),
+    peerRequestedDisconnectUntil: null,
+    localRequestedDisconnectUntil: null,
   })
 
   // Verify peer2 is not connected

@@ -126,6 +126,8 @@ describe('AddressManager', () => {
         neighbors: new Set(),
         webRtcRetry: new ConnectionRetry(),
         websocketRetry: new ConnectionRetry(),
+        localRequestedDisconnectUntil: null,
+        peerRequestedDisconnectUntil: null,
       })
       const retry = pm.getConnectionRetry(
         connectedPeer.getIdentityOrThrow(),

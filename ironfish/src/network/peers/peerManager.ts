@@ -82,6 +82,16 @@ export class PeerManager {
       neighbors: Set<string>
       webRtcRetry: ConnectionRetry
       websocketRetry: ConnectionRetry
+      /**
+       * UTC timestamp. If set, the peer manager should not initiate connections to the
+       * Peer until after the timestamp.
+       */
+      peerRequestedDisconnectUntil: number | null
+      /**
+       * UTC timestamp. If set, the peer manager should not accept connections from the
+       * Peer until after the timestamp.
+       */
+      localRequestedDisconnectUntil: number | null
     }
   > = new Map()
 
@@ -188,6 +198,8 @@ export class PeerManager {
         neighbors: new Set(),
         webRtcRetry: new ConnectionRetry(),
         websocketRetry: new ConnectionRetry(),
+        localRequestedDisconnectUntil: null,
+        peerRequestedDisconnectUntil: null,
       })
     }
 
@@ -204,13 +216,16 @@ export class PeerManager {
       return false
     }
 
-    // If we're trying to connect to the peer, we don't care about limiting the peer's connections to us
-    peer.localRequestedDisconnectUntil = null
-    peer.localRequestedDisconnectReason = null
+    const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
 
-    // Clear out peerRequestedDisconnect if we passed it
-    peer.peerRequestedDisconnectUntil = null
-    peer.peerRequestedDisconnectReason = null
+    const candidate = this.peerCandidateMap.get(alternateIdentity)
+    if (candidate) {
+      // If we're trying to connect to the peer, we don't care about limiting the peer's connections to us
+      candidate.localRequestedDisconnectUntil = null
+
+      // Clear out peerRequestedDisconnect if we passed it
+      candidate.peerRequestedDisconnectUntil = null
+    }
 
     const address = peer.getWebSocketAddress()
     if (!address) {
@@ -244,13 +259,16 @@ export class PeerManager {
       return false
     }
 
-    // If we're trying to connect to the peer, we don't care about limiting the peer's connections to us
-    peer.localRequestedDisconnectUntil = null
-    peer.localRequestedDisconnectReason = null
+    if (peer.state.identity) {
+      const candidate = this.peerCandidateMap.get(peer.state.identity)
+      if (candidate) {
+        // If we're trying to connect to the peer, we don't care about limiting the peer's connections to us
+        candidate.localRequestedDisconnectUntil = null
 
-    // Clear out peerRequestedDisconnect if we passed it
-    peer.peerRequestedDisconnectUntil = null
-    peer.peerRequestedDisconnectReason = null
+        // Clear out peerRequestedDisconnect if we passed it
+        candidate.peerRequestedDisconnectUntil = null
+      }
+    }
 
     if (peer.state.identity === null) {
       return false
@@ -472,23 +490,22 @@ export class PeerManager {
       return false
     }
 
+    const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
+
     const canEstablishNewConnection =
       peer.state.type !== 'DISCONNECTED' || this.canCreateNewConnections()
 
+    const peerRequestedDisconnectUntil =
+      this.peerCandidateMap.get(alternateIdentity)?.peerRequestedDisconnectUntil ?? null
+
     const disconnectOk =
-      peer.peerRequestedDisconnectUntil === null || now >= peer.peerRequestedDisconnectUntil
+      peerRequestedDisconnectUntil === null || now >= peerRequestedDisconnectUntil
 
     const hasNoConnection =
       peer.state.type === 'DISCONNECTED' || peer.state.connections.webSocket === null
 
-    let retryOk = false
-    if (peer.state.identity) {
-      retryOk =
-        this.peerCandidateMap.get(peer.state.identity)?.websocketRetry.canConnect ?? true
-    } else {
-      retryOk =
-        this.peerCandidateMap.get(peer.getWebSocketAddress())?.websocketRetry.canConnect ?? true
-    }
+    const retryOk =
+      this.peerCandidateMap.get(alternateIdentity)?.websocketRetry.canConnect ?? true
 
     return (
       canEstablishNewConnection &&
@@ -504,27 +521,26 @@ export class PeerManager {
       return false
     }
 
+    if (peer.state.identity === null) {
+      return false
+    }
+
     const canEstablishNewConnection =
       peer.state.type !== 'DISCONNECTED' || this.canCreateNewConnections()
 
+    const peerRequestedDisconnectUntil =
+      this.peerCandidateMap.get(peer.state.identity)?.peerRequestedDisconnectUntil ?? null
+
     const disconnectOk =
-      peer.peerRequestedDisconnectUntil === null || now >= peer.peerRequestedDisconnectUntil
+      peerRequestedDisconnectUntil === null || now >= peerRequestedDisconnectUntil
 
     const hasNoConnection =
       peer.state.type === 'DISCONNECTED' || peer.state.connections.webRtc === undefined
 
-    let retryOk = false
-    if (peer.state.identity) {
-      retryOk = this.peerCandidateMap.get(peer.state.identity)?.webRtcRetry.canConnect ?? true
-    }
+    const retryOk =
+      this.peerCandidateMap.get(peer.state.identity)?.webRtcRetry.canConnect ?? true
 
-    return (
-      canEstablishNewConnection &&
-      disconnectOk &&
-      hasNoConnection &&
-      retryOk &&
-      peer.state.identity !== null
-    )
+    return canEstablishNewConnection && disconnectOk && hasNoConnection && retryOk
   }
 
   /**
@@ -542,8 +558,12 @@ export class PeerManager {
    * @param until Stay disconnected from the peer until after this timestamp
    */
   disconnect(peer: Peer, reason: DisconnectingReason, until: number): void {
-    peer.localRequestedDisconnectReason = reason
-    peer.localRequestedDisconnectUntil = until
+    if (peer.state.identity) {
+      const candidate = this.peerCandidateMap.get(peer.state.identity)
+      if (candidate) {
+        candidate.localRequestedDisconnectUntil = until
+      }
+    }
 
     if (peer.state.type === 'DISCONNECTED') {
       return
@@ -1007,8 +1027,12 @@ export class PeerManager {
       })
     }
 
-    disconnectingPeer.peerRequestedDisconnectReason = message.reason
-    disconnectingPeer.peerRequestedDisconnectUntil = message.disconnectUntil
+    if (disconnectingPeer.state.identity) {
+      const candidate = this.peerCandidateMap.get(disconnectingPeer.state.identity)
+      if (candidate) {
+        candidate.peerRequestedDisconnectUntil = message.disconnectUntil
+      }
+    }
     this.logger.debug(
       `${disconnectingPeer.displayName} requested we disconnect until ${
         message.disconnectUntil
@@ -1217,24 +1241,21 @@ export class PeerManager {
 
     // If we've told the peer to stay disconnected, repeat
     // the disconnection time before closing the connection
-    if (
-      existingPeer !== null &&
-      existingPeer.localRequestedDisconnectUntil !== null &&
-      Date.now() < existingPeer.localRequestedDisconnectUntil
-    ) {
+    const localRequestedDisconnectUntil =
+      this.peerCandidateMap.get(identity)?.localRequestedDisconnectUntil ?? null
+
+    if (localRequestedDisconnectUntil !== null && Date.now() < localRequestedDisconnectUntil) {
       const disconnectMessage = new DisconnectingMessage({
         destinationIdentity: identity,
-        disconnectUntil: existingPeer.localRequestedDisconnectUntil,
-        reason: existingPeer.localRequestedDisconnectReason || DisconnectingReason.Congested,
+        disconnectUntil: localRequestedDisconnectUntil,
+        reason: DisconnectingReason.Congested,
         sourceIdentity: this.localPeer.publicIdentity,
       })
       connection.send(disconnectMessage)
 
       const error = `Closing connection from ${
-        existingPeer.displayName
-      } because they connected at ${Date.now()}, but we told them to disconnect until ${
-        existingPeer.localRequestedDisconnectUntil
-      }`
+        existingPeer?.displayName ?? identity
+      } because they connected at ${Date.now()}, but we told them to disconnect until ${localRequestedDisconnectUntil}`
       this.logger.debug(error)
       connection.close(new NetworkError(error))
       return
@@ -1522,6 +1543,8 @@ export class PeerManager {
           neighbors: new Set([peer.state.identity]),
           webRtcRetry: new ConnectionRetry(),
           websocketRetry: new ConnectionRetry(),
+          peerRequestedDisconnectUntil: null,
+          localRequestedDisconnectUntil: null,
         })
       }
     }
