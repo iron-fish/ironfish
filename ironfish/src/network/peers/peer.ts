@@ -643,7 +643,7 @@ export class Peer {
    * Clean up all resources managed by the peer.
    */
   dispose(): void {
-    this.onStateChanged.clear()
+    this.onStateChanged.clearAfter()
     this.onMessage.clear()
     this.onBanned.clear()
     this.disposeMessageMeter()
