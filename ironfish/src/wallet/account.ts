@@ -145,7 +145,7 @@ export class Account {
     params: SyncTransactionParams,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    const transactionHash = transaction.hash()
+    const transactionHash = transaction.unsignedHash()
     const blockHash = 'blockHash' in params ? params.blockHash : null
     const sequence = 'sequence' in params ? params.sequence : null
     let submittedSequence = 'submittedSequence' in params ? params.submittedSequence : null
