@@ -259,19 +259,17 @@ export class PeerManager {
       return false
     }
 
-    if (peer.state.identity) {
-      const candidate = this.peerCandidateMap.get(peer.state.identity)
-      if (candidate) {
-        // If we're trying to connect to the peer, we don't care about limiting the peer's connections to us
-        candidate.localRequestedDisconnectUntil = null
-
-        // Clear out peerRequestedDisconnect if we passed it
-        candidate.peerRequestedDisconnectUntil = null
-      }
-    }
-
     if (peer.state.identity === null) {
       return false
+    }
+
+    const candidate = this.peerCandidateMap.get(peer.state.identity)
+    if (candidate) {
+      // If we're trying to connect to the peer, we don't care about limiting the peer's connections to us
+      candidate.localRequestedDisconnectUntil = null
+
+      // Clear out peerRequestedDisconnect if we passed it
+      candidate.peerRequestedDisconnectUntil = null
     }
 
     // Make sure we can find at least one brokering peer before we create the connection
