@@ -196,3 +196,7 @@ export function readTransaction(reader: bufio.BufferReader): SerializedTransacti
 export function getTransactionSize(transaction: SerializedTransaction): number {
   return sizeVarBytes(transaction)
 }
+
+export function getMinersFeeTransactionSize(): number {
+  return 562
+}
