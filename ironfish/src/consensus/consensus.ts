@@ -84,6 +84,14 @@ export class ConsensusParameters {
    */
   MAX_BLOCK_SIZE_BYTES = 2000000
 
+  /**
+   * Before upgrade V2 we didn't enforce max block size.
+   * At this block we check that the block size doesn't exceed MAX_BLOCK_SIZE_BYTES.
+   *
+   * TODO: remove this sequence check before mainnet
+   */
+  V2_MAX_BLOCK_SIZE = 0
+
   isActive(upgrade: number, sequence: number): boolean {
     return sequence >= upgrade
   }
@@ -93,5 +101,6 @@ export class TestnetParameters extends ConsensusParameters {
   constructor() {
     super()
     this.V1_DOUBLE_SPEND = 204000
+    this.V2_MAX_BLOCK_SIZE = 250000
   }
 }
