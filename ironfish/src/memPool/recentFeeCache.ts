@@ -5,21 +5,23 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool, PriorityQueue } from '../memPool'
+import { getTransactionSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
+import { BigIntUtils } from '../utils'
 
-interface FeeEntry {
-  fee: bigint
+interface FeeRateEntry {
+  feeRate: number
   blockHash: Buffer
 }
 
 export class RecentFeeCache {
-  private queue: Array<FeeEntry>
+  private queue: Array<FeeRateEntry>
   readonly chain: Blockchain
   private readonly logger: Logger
   private numOfRecentBlocks = 10
   private numOfTxSamples = 3
   private maxQueueLength: number
-  private defaultSuggestedFee = BigInt(2)
+  private defaultFeeRate = 2
 
   constructor(options: {
     chain: Blockchain
@@ -54,7 +56,7 @@ export class RecentFeeCache {
         if (this.isFull()) {
           break
         }
-        this.queue.push({ fee: transaction.fee(), blockHash: currentBlockHash })
+        this.queue.push({ feeRate: getFeeRate(transaction), blockHash: currentBlockHash })
       }
 
       currentBlockHash = currentBlock.header.previousBlockHash
@@ -71,7 +73,7 @@ export class RecentFeeCache {
         this.queue.shift()
       }
 
-      this.queue.push({ fee: transaction.fee(), blockHash: block.header.hash })
+      this.queue.push({ feeRate: getFeeRate(transaction), blockHash: block.header.hash })
     }
   }
 
@@ -125,25 +127,17 @@ export class RecentFeeCache {
     return transactions.reverse()
   }
 
-  getSuggestedFee(percentile: number): bigint {
+  estimateFeeRate(percentile: number): number {
     if (this.queue.length < this.numOfRecentBlocks) {
-      return this.defaultSuggestedFee
+      return this.defaultFeeRate
     }
 
-    const fees: bigint[] = []
+    const fees: number[] = []
     for (const entry of this.queue) {
-      fees.push(entry.fee)
+      fees.push(entry.feeRate)
     }
 
-    fees.sort((a, b) => {
-      if (a < b) {
-        return -1
-      } else if (a > b) {
-        return 1
-      } else {
-        return 0
-      }
-    })
+    fees.sort((a, b) => a - b)
 
     return fees[Math.round(((this.queue.length - 1) * percentile) / 100)]
   }
@@ -155,4 +149,11 @@ export class RecentFeeCache {
   private isFull(): boolean {
     return this.queue.length === this.maxQueueLength
   }
+}
+
+export function getFeeRate(transaction: Transaction): number {
+  return BigIntUtils.divide(
+    transaction.fee(),
+    BigInt(getTransactionSize(transaction.serialize())),
+  )
 }
