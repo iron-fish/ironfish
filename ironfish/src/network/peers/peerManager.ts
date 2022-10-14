@@ -1319,6 +1319,10 @@ export class PeerManager {
       })
     }
 
+    if (messageSender.state.identity !== null) {
+      this.peerCandidateMap.get(message.sourceIdentity)?.neighbors.add(messageSender.state.identity)
+    }
+
     // Ignore the request if we're at max peers and don't have an existing connection
     if (this.shouldRejectDisconnectedPeers()) {
       if (!targetPeer || targetPeer.state.type !== 'CONNECTED') {
@@ -1403,6 +1407,10 @@ export class PeerManager {
         )
       }
       return
+    }
+
+    if (messageSender.state.identity !== null) {
+      this.peerCandidateMap.get(message.sourceIdentity)?.neighbors.add(messageSender.state.identity)
     }
 
     // Ignore the request if we're at max peers and don't have an existing connection
