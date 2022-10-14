@@ -1,19 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import * as Serializers from '../network/utils/serializers'
 import {
   createNodeTest,
   useAccountFixture,
   useMinerBlockFixture,
   useTxFixture,
 } from '../testUtilities'
+import { MAX_BLOCK_SIZE_BYTES } from './manager'
 
 describe('Mining manager', () => {
   const nodeTest = createNodeTest()
 
   it('should not add expired transaction to block', async () => {
     const { node, chain, wallet } = nodeTest
-    const { miningManager } = nodeTest.node
+    const { miningManager } = node
 
     // Create an account with some money
     const account = await useAccountFixture(wallet)
@@ -44,6 +46,35 @@ describe('Mining manager', () => {
     await expect(chain).toAddBlock(block2)
 
     results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
+      .blockTransactions
+    expect(results).toHaveLength(0)
+  })
+
+  it('should stop adding transactions before block size exceeds MAX_BLOCK_SIZE_BYTES', async () => {
+    const { node, chain, wallet } = nodeTest
+    const { miningManager } = node
+
+    // Create an account with some money
+    const account = await useAccountFixture(wallet)
+    const block1 = await useMinerBlockFixture(chain, undefined, account, wallet)
+    await expect(chain).toAddBlock(block1)
+    await wallet.updateHead()
+
+    const transaction = await useTxFixture(
+      wallet,
+      account,
+      account,
+      undefined,
+      undefined,
+      chain.head.sequence + 2,
+    )
+
+    jest.spyOn(node.memPool, 'orderedTransactions').mockImplementation(function* () {
+      yield transaction
+    })
+    jest.spyOn(Serializers, 'getTransactionSize').mockReturnValue(MAX_BLOCK_SIZE_BYTES)
+
+    const results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
       .blockTransactions
     expect(results).toHaveLength(0)
   })
