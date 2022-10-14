@@ -879,10 +879,6 @@ export class PeerManager {
     if (peer.state.type === 'DISCONNECTED') {
       this.addressManager.removePeerAddress(peer)
 
-      this.logger.debug(
-        `Disposing of peer with identity ${String(peer.state.identity)} (may be a duplicate)`,
-      )
-
       peer.dispose()
       if (peer.state.identity && this.identifiedPeers.get(peer.state.identity) === peer) {
         this.identifiedPeers.delete(peer.state.identity)
