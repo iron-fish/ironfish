@@ -501,7 +501,11 @@ export class PeerManager {
       peer.state.type === 'DISCONNECTED' || peer.state.connections.webSocket === null
 
     const retryOk =
-      this.peerCandidateMap.get(alternateIdentity)?.websocketRetry.canConnect ?? true
+      this.getConnectionRetry(
+        alternateIdentity,
+        ConnectionType.WebSocket,
+        ConnectionDirection.Outbound,
+      )?.canConnect ?? true
 
     return (
       canEstablishNewConnection &&
@@ -534,7 +538,11 @@ export class PeerManager {
       peer.state.type === 'DISCONNECTED' || peer.state.connections.webRtc === undefined
 
     const retryOk =
-      this.peerCandidateMap.get(peer.state.identity)?.webRtcRetry.canConnect ?? true
+      this.getConnectionRetry(
+        peer.state.identity,
+        ConnectionType.WebRtc,
+        ConnectionDirection.Outbound,
+      )?.canConnect ?? true
 
     return canEstablishNewConnection && disconnectOk && hasNoConnection && retryOk
   }
