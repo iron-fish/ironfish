@@ -55,6 +55,7 @@ export type GetNodeStatusResponse = {
     syncing?: {
       blockSpeed: number
       speed: number
+      downloadSpeed: number
       progress: number
     }
   }
@@ -162,6 +163,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
           .object({
             blockSpeed: yup.number().defined(),
             speed: yup.number().defined(),
+            downloadSpeed: yup.number().defined(),
             progress: yup.number().defined(),
           })
           .optional(),
@@ -286,7 +288,8 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
       status: node.syncer.state,
       syncing: {
         blockSpeed: MathUtils.round(node.chain.addSpeed.avg, 2),
-        speed: MathUtils.round(node.syncer.speed.rate1m, 2),
+        speed: MathUtils.round(node.syncer.speed.rollingRate1m, 2),
+        downloadSpeed: MathUtils.round(node.syncer.downloadSpeed.average, 2),
         progress: node.chain.getProgress(),
       },
     },
