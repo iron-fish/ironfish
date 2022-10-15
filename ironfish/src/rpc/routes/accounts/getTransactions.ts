@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import FastPriorityQueue from 'fastpriorityqueue'
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
@@ -10,7 +12,7 @@ import { ApiNamespace, router } from '../router'
 import { serializeRpcAccountTransaction } from './types'
 import { getAccount } from './utils'
 
-export type GetAccountTransactionsRequest = { account?: string; hash?: string }
+export type GetAccountTransactionsRequest = { account?: string; hash?: string; show?: number }
 
 export type GetAccountTransactionsResponse = {
   creator: boolean
@@ -28,6 +30,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
     .object({
       account: yup.string().strip(true),
       hash: yup.string().notRequired(),
+      show: yup.number().notRequired(),
     })
     .defined()
 
@@ -66,12 +69,41 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
     const headSequence = await node.wallet.getAccountHeadSequence(account)
 
-    for await (const transaction of account.getTransactions()) {
-      if (request.closed) {
-        break
-      }
+    let capacity = -1
+    let queue = undefined
+    if (request.data.show) {
+      capacity = request.data.show
+      queue = new FastPriorityQueue<TransactionValue>(function (a, b) {
+        return a.transaction.expirationSequence() < b.transaction.expirationSequence()
+      })
+    }
 
-      await streamTransaction(request, node, account, transaction, { headSequence })
+    for await (const transaction of account.getTransactions()) {
+      if (capacity !== -1) {
+        Assert.isNotUndefined(queue)
+        queue.add(transaction)
+        if (queue.size > capacity) {
+          queue.poll()
+        }
+      } else {
+        if (request.closed) {
+          break
+        }
+
+        await streamTransaction(request, node, account, transaction, { headSequence })
+      }
+    }
+
+    if (queue) {
+      while (!queue.isEmpty()) {
+        if (request.closed) {
+          break
+        }
+
+        const transaction = queue.poll()
+        Assert.isNotUndefined(transaction)
+        await streamTransaction(request, node, account, transaction, { headSequence })
+      }
     }
 
     request.end()
