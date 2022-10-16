@@ -16,7 +16,7 @@ export class TransactionsCommand extends IronfishCommand {
       char: 't',
       description: 'Transaction hash to get details for',
     }),
-    show: Flags.integer({
+    limit: Flags.integer({
       description: 'Number of latest transactions to get details for',
     }),
   }
@@ -38,7 +38,7 @@ export class TransactionsCommand extends IronfishCommand {
     const response = client.getAccountTransactionsStream({
       account,
       hash: flags.hash,
-      show: flags.show,
+      limit: flags.limit,
     })
 
     let showHeader = true

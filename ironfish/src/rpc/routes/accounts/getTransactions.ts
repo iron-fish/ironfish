@@ -12,7 +12,7 @@ import { ApiNamespace, router } from '../router'
 import { serializeRpcAccountTransaction } from './types'
 import { getAccount } from './utils'
 
-export type GetAccountTransactionsRequest = { account?: string; hash?: string; show?: number }
+export type GetAccountTransactionsRequest = { account?: string; hash?: string; limit?: number }
 
 export type GetAccountTransactionsResponse = {
   creator: boolean
@@ -30,7 +30,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
     .object({
       account: yup.string().strip(true),
       hash: yup.string().notRequired(),
-      show: yup.number().notRequired(),
+      limit: yup.number().notRequired(),
     })
     .defined()
 
@@ -71,8 +71,8 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
     let capacity = -1
     let queue = undefined
-    if (request.data.show) {
-      capacity = request.data.show
+    if (request.data.limit) {
+      capacity = request.data.limit
       queue = new FastPriorityQueue<TransactionValue>(function (a, b) {
         return a.transaction.expirationSequence() < b.transaction.expirationSequence()
       })
