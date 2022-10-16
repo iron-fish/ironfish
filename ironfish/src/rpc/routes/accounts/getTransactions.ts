@@ -55,55 +55,49 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
     const account = getAccount(node, request.data.account)
 
     if (request.data.hash) {
-      const hash = Buffer.from(request.data.hash, 'hex')
-
-      const transaction = await account.getTransactionByUnsignedHash(hash)
-
-      if (transaction) {
-        await streamTransaction(request, node, account, transaction)
-      }
-
+      await handleSingleTransaction(request, node, account, request.data.hash)
       request.end()
       return
     }
 
     const headSequence = await node.wallet.getAccountHeadSequence(account)
-
-    let capacity = -1
-    let queue = undefined
-    if (request.data.limit) {
-      capacity = request.data.limit
-      queue = new FastPriorityQueue<TransactionValue>(function (a, b) {
-        return a.transaction.expirationSequence() < b.transaction.expirationSequence()
-      })
-    }
+    const queue = new FastPriorityQueue<TransactionValue>(function (a, b) {
+      return a.transaction.expirationSequence() < b.transaction.expirationSequence()
+    })
 
     for await (const transaction of account.getTransactions()) {
-      if (capacity !== -1) {
-        Assert.isNotUndefined(queue)
-        queue.add(transaction)
-        if (queue.size > capacity) {
-          queue.poll()
-        }
+      if (request.data.limit) {
+        // push data into fixed-capacity queue
+        await handleLimitedTransactions(
+          request,
+          node,
+          account,
+          transaction,
+          request.data.limit,
+          queue,
+          false,
+          headSequence,
+        )
       } else {
         if (request.closed) {
           break
         }
-
-        await streamTransaction(request, node, account, transaction, { headSequence })
+        await handleAllTransactions(request, node, account, transaction, headSequence)
       }
     }
 
-    if (queue) {
-      while (!queue.isEmpty()) {
-        if (request.closed) {
-          break
-        }
-
-        const transaction = queue.poll()
-        Assert.isNotUndefined(transaction)
-        await streamTransaction(request, node, account, transaction, { headSequence })
-      }
+    // stream data of fixed-capacity queue
+    if (request.data.limit) {
+      await handleLimitedTransactions(
+        request,
+        node,
+        account,
+        null,
+        request.data.limit,
+        queue,
+        true,
+        headSequence,
+      )
     }
 
     request.end()
@@ -140,4 +134,59 @@ const streamTransaction = async (
   }
 
   request.stream(serialized)
+}
+
+const handleSingleTransaction = async (
+  request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
+  node: IronfishNode,
+  account: Account,
+  hash: string,
+): Promise<void> => {
+  const hashBuffer = Buffer.from(hash, 'hex')
+
+  const transaction = await account.getTransactionByUnsignedHash(hashBuffer)
+
+  if (transaction) {
+    await streamTransaction(request, node, account, transaction)
+  }
+}
+
+const handleLimitedTransactions = async (
+  request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
+  node: IronfishNode,
+  account: Account,
+  transaction: TransactionValue | null,
+  limit: number,
+  queue: FastPriorityQueue<TransactionValue>,
+  streamEnd: boolean,
+  headSequence?: number | null,
+): Promise<void> => {
+  if (streamEnd) {
+    while (!queue.isEmpty()) {
+      if (request.closed) {
+        break
+      }
+
+      const transaction = queue.poll()
+      Assert.isNotUndefined(transaction)
+      await streamTransaction(request, node, account, transaction, { headSequence })
+    }
+  } else {
+    Assert.isNotNull(transaction)
+    queue.add(transaction)
+    // remove the earliest transaction when queue is full
+    if (queue.size > limit) {
+      queue.poll()
+    }
+  }
+}
+
+const handleAllTransactions = async (
+  request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
+  node: IronfishNode,
+  account: Account,
+  transaction: TransactionValue,
+  headSequence?: number | null,
+): Promise<void> => {
+  await streamTransaction(request, node, account, transaction, { headSequence })
 }
