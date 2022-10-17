@@ -26,11 +26,13 @@ describe('Route account/status', () => {
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
-      account: account.name,
-      id: account.id, 
-    //   headHash: headHash ? headHash.toString('hex') : 'NULL', 
-    //   headInChain: headInChain,
-    //   sequence: headSequence,
+        accounts: [{
+            account: account.name,
+            id: account.id, 
+            headHash: 'NULL', 
+            headInChain: false,
+            sequence: 'NULL',
+        }],
     })
   })
 

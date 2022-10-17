@@ -50,7 +50,7 @@
         const headHash = headHashes.get(account.id)
         const blockHeader =  headHash ? await node.chain.getHeader(headHash) : null
         const headInChain = !!blockHeader
-        const headSequence = blockHeader?.sequence || 'null'
+        const headSequence = blockHeader?.sequence || 'NULL'
         accountsInfo.push({
             account: account.name, 
             id: account.id, 
