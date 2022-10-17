@@ -46,7 +46,7 @@ export const TARGET_BLOCK_TIME_IN_SECONDS = 60
 /**
  * The oldest the tip should be before we consider the chain synced (60 blocks)
  */
-export const MAX_SYNCED_AGE_MS = 600000 * TARGET_BLOCK_TIME_IN_SECONDS * 1000
+export const MAX_SYNCED_AGE_MS = 60 * TARGET_BLOCK_TIME_IN_SECONDS * 1000
 
 /**
  * The time range when difficulty and target not change
