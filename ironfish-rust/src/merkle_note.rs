@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::errors::IronfishError;
+
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
 use super::{
-    errors,
     keys::{shared_secret, IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey},
     note::{Note, ENCRYPTED_NOTE_SIZE},
     serializing::{aead, read_scalar},
@@ -168,7 +169,7 @@ impl MerkleNote {
     pub fn decrypt_note_for_owner(
         &self,
         owner_view_key: &IncomingViewKey,
-    ) -> Result<Note, errors::NoteError> {
+    ) -> Result<Note, IronfishError> {
         let shared_secret = owner_view_key.shared_secret(&self.ephemeral_public_key);
         let note =
             Note::from_owner_encrypted(owner_view_key, &shared_secret, &self.encrypted_note)?;
@@ -179,7 +180,7 @@ impl MerkleNote {
     pub fn decrypt_note_for_spender(
         &self,
         spender_key: &OutgoingViewKey,
-    ) -> Result<Note, errors::NoteError> {
+    ) -> Result<Note, IronfishError> {
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key,
             &self.value_commitment,

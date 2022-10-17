@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::sapling_bls12::SAPLING;
+use crate::{errors::IronfishError, sapling_bls12::SAPLING};
 
 use super::{
-    errors,
     keys::SaplingKey,
     merkle_note::{position as witness_position, sapling_auth_path},
     merkle_note_hash::MerkleNoteHash,
@@ -82,11 +81,11 @@ impl<'a> SpendParams {
         spender_key: SaplingKey,
         note: &Note,
         witness: &dyn WitnessTrait,
-    ) -> Result<SpendParams, errors::SaplingProofError> {
+    ) -> Result<SpendParams, IronfishError> {
         // This is a sanity check; it would be caught in proving the circuit anyway,
         // but this gives us more information in the event of a failure
         if !witness.verify(&MerkleNoteHash::new(note.commitment_point())) {
-            return Err(errors::SaplingProofError::InconsistentWitness);
+            return Err(IronfishError::InconsistentWitness);
         }
 
         let mut buffer = [0u8; 64];
@@ -135,13 +134,13 @@ impl<'a> SpendParams {
     ///
     /// Verifies the proof before returning to prevent posting broken
     /// transactions
-    pub fn post(&self, signature_hash: &[u8; 32]) -> Result<SpendProof, errors::SaplingProofError> {
+    pub fn post(&self, signature_hash: &[u8; 32]) -> Result<SpendProof, IronfishError> {
         let private_key = redjubjub::PrivateKey(self.spender_key.spend_authorizing_key);
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
         let randomized_public_key =
             redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
         if randomized_public_key.0 != self.randomized_public_key.0 {
-            return Err(errors::SaplingProofError::SigningError);
+            return Err(IronfishError::InvalidSigningKey);
         }
         let mut data_to_be_signed = [0; 64];
         data_to_be_signed[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
@@ -253,14 +252,14 @@ impl SpendProof {
     /// Load a SpendProof from a Read implementation (e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingProofError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
         let value_commitment = {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;
             let point = ExtendedPoint::from_bytes(&bytes);
             if point.is_none().into() {
-                return Err(errors::SaplingProofError::IOError);
+                return Err(IronfishError::InvalidData);
             }
             point.unwrap()
         };
@@ -304,12 +303,9 @@ impl SpendProof {
 
     /// Verify that the signature on this proof is signing the provided input
     /// with the randomized_public_key on this proof.
-    pub fn verify_signature(
-        &self,
-        signature_hash_value: &[u8; 32],
-    ) -> Result<(), errors::SaplingProofError> {
+    pub fn verify_signature(&self, signature_hash_value: &[u8; 32]) -> Result<(), IronfishError> {
         if self.randomized_public_key.0.is_small_order().into() {
-            return Err(errors::SaplingProofError::VerificationFailed);
+            return Err(IronfishError::IsSmallOrder);
         }
         let mut data_to_be_signed = [0; 64];
         data_to_be_signed[..32].copy_from_slice(&self.randomized_public_key.0.to_bytes());
@@ -320,30 +316,29 @@ impl SpendProof {
             &self.authorizing_signature,
             SPENDING_KEY_GENERATOR,
         ) {
-            Err(errors::SaplingProofError::VerificationFailed)
-        } else {
-            Ok(())
+            return Err(IronfishError::VerificationFailed);
         }
+
+        Ok(())
     }
 
     /// Verify that the bellman proof confirms the randomized_public_key,
     /// commitment_value, nullifier, and anchor attached to this SpendProof.
-    pub fn verify_proof(&self) -> Result<(), errors::SaplingProofError> {
+    pub fn verify_proof(&self) -> Result<(), IronfishError> {
         self.verify_value_commitment()?;
 
-        match groth16::verify_proof(
+        groth16::verify_proof(
             &SAPLING.spend_verifying_key,
             &self.proof,
             &self.public_inputs()[..],
-        ) {
-            Ok(()) => Ok(()),
-            _ => Err(errors::SaplingProofError::VerificationFailed),
-        }
+        )?;
+
+        Ok(())
     }
 
-    pub fn verify_value_commitment(&self) -> Result<(), errors::SaplingProofError> {
+    pub fn verify_value_commitment(&self) -> Result<(), IronfishError> {
         if self.value_commitment.is_small_order().into() {
-            return Err(errors::SaplingProofError::VerificationFailed);
+            return Err(IronfishError::IsSmallOrder);
         }
 
         Ok(())

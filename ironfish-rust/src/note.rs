@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::errors::IronfishError;
+
 use super::{
-    errors,
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
     serializing::{aead, read_scalar, scalar_to_bytes},
 };
@@ -96,7 +97,7 @@ impl<'a> Note {
     ///
     /// You probably don't want to use this unless you are transmitting
     /// across nodejs threads in memory.
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingKeyError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let owner = PublicAddress::read(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
@@ -138,7 +139,7 @@ impl<'a> Note {
         owner_view_key: &'a IncomingViewKey,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<Self, errors::NoteError> {
+    ) -> Result<Self, IronfishError> {
         let (diversifier_bytes, randomness, value, memo) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let owner = owner_view_key.public_address(&diversifier_bytes)?;
@@ -164,7 +165,7 @@ impl<'a> Note {
         transmission_key: SubgroupPoint,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<Self, errors::NoteError> {
+    ) -> Result<Self, IronfishError> {
         let (diversifier_bytes, randomness, value, memo) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let (diversifier, diversifier_point) =
@@ -238,18 +239,18 @@ impl<'a> Note {
     }
 
     /// Verify that the note's commitment matches the one passed in
-    pub(crate) fn verify_commitment(&self, commitment: Scalar) -> Result<(), errors::NoteError> {
+    pub(crate) fn verify_commitment(&self, commitment: Scalar) -> Result<(), IronfishError> {
         if commitment == self.commitment_point() {
             Ok(())
         } else {
-            Err(errors::NoteError::InvalidCommitment)
+            Err(IronfishError::InvalidCommitment)
         }
     }
 
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<([u8; 11], jubjub::Fr, u64, Memo), errors::NoteError> {
+    ) -> Result<([u8; 11], jubjub::Fr, u64, Memo), IronfishError> {
         let mut plaintext_bytes = [0; ENCRYPTED_NOTE_SIZE];
         aead::decrypt(shared_secret, encrypted_bytes, &mut plaintext_bytes)?;
 
