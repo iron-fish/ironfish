@@ -5,7 +5,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import * as native from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
@@ -26,14 +25,15 @@ describe('Route account/status', () => {
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
-        accounts: [{
-            account: account.name,
-            id: account.id, 
-            headHash: 'NULL', 
-            headInChain: false,
-            sequence: 'NULL',
-        }],
+      accounts: [
+        {
+          account: account.name,
+          id: account.id,
+          headHash: 'NULL',
+          headInChain: false,
+          sequence: 'NULL',
+        },
+      ],
     })
   })
-
 })

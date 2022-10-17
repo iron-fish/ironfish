@@ -216,7 +216,6 @@ export abstract class RpcClient {
     )
   }
 
-
   async getAccountsStatus(
     params: GetAccountStatusRequest,
   ): Promise<RpcResponseEnded<GetAccountStatusResponse>> {
@@ -225,7 +224,6 @@ export abstract class RpcClient {
       params,
     ).waitForEnd()
   }
-
 
   async getAccountTransaction(
     params: GetAccountTransactionRequest,
