@@ -64,7 +64,6 @@ export default class Bank extends IronfishCommand {
       }
     }
 
-    const feeInIron = oreToIron(fee)
     const expirationSequenceDelta = flags.expirationSequenceDelta
 
     const accountName =
@@ -112,8 +111,9 @@ export default class Bank extends IronfishCommand {
     }
 
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
-    const confirmedBalance = oreToIron(Number(balanceResp.content.confirmed))
-    const requiredBalance = IRON_TO_SEND + feeInIron
+    const confirmedBalance = Number(balanceResp.content.confirmed)
+    const requiredBalance = ironToOre(IRON_TO_SEND) + fee
+
     if (confirmedBalance < requiredBalance) {
       this.log(`Insufficient balance: ${confirmedBalance}. Required: ${requiredBalance}`)
       this.exit(1)
@@ -121,10 +121,13 @@ export default class Bank extends IronfishCommand {
 
     const newBalance = confirmedBalance - requiredBalance
 
-    const displayConfirmedBalance = displayIronAmountWithCurrency(confirmedBalance, true)
+    const displayConfirmedBalance = displayIronAmountWithCurrency(
+      oreToIron(confirmedBalance),
+      true,
+    )
     const displayAmount = displayIronAmountWithCurrency(IRON_TO_SEND, true)
-    const displayFee = displayIronAmountWithCurrency(feeInIron, true)
-    const displayNewBalance = displayIronAmountWithCurrency(newBalance, true)
+    const displayFee = displayIronAmountWithCurrency(oreToIron(fee), true)
+    const displayNewBalance = displayIronAmountWithCurrency(oreToIron(newBalance), true)
 
     if (!flags.confirm) {
       this.log(`
