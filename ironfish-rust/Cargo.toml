@@ -27,7 +27,3 @@ rand = "0.8.5"
 rust-crypto-wasm = "0.3.1" # in favor of rust-crypto as this one is wasm friendly
 tiny-bip39 = "0.8"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
-
-# Note: Any changes here must also exist in ../ironfish-rust-nodejs/Cargo.toml
-[patch.crates-io]
-bellman = { git = "https://github.com/iron-fish/bellman", rev = "1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec" }
