@@ -1,64 +1,63 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
- import { CliUx } from '@oclif/core'
- import { IronfishCommand } from '../../command'
- import { RemoteFlags } from '../../flags'
- 
- export class StatusCommand extends IronfishCommand {
-   static aliases = ['accounts:status']
-   static description = `Get status of an account`
- 
-   static flags = {
-     ...RemoteFlags,
-     ...CliUx.ux.table.flags(),
-   }
- 
-   static args = [
-     {
-       name: 'account',
-       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
-       required: false,
-       description: 'Name of the account to get the status for',
-     },
-   ]
- 
-   async start(): Promise<void> {
-     const { args, flags } = await this.parse(StatusCommand)
-     const account = args.account as string | undefined
- 
-     const client = await this.sdk.connectRpc()
- 
-     const response = await client.getAccountsStatus({
-       account: account,
-     })
- 
-     CliUx.ux.table(
-        response.content.accounts,
-        {
-          account: {
-            header: 'Account',
-            minWidth: 11,
-            get: (transaction) => (transaction.account),
-          },
-          id: {
-            header: 'ID',
-          },
-          headHash: {
-            header: "Head Hash",
-          },
-          headInChain: {
-            header: "Head In Chain"
-          },
-          sequence: {
-            header: "Head Sequence"
-          }
+import { CliUx } from '@oclif/core'
+import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
+
+export class StatusCommand extends IronfishCommand {
+  static aliases = ['accounts:status']
+  static description = `Get status of an account`
+
+  static flags = {
+    ...RemoteFlags,
+    ...CliUx.ux.table.flags(),
+  }
+
+  static args = [
+    {
+      name: 'account',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Name of the account to get the status for',
+    },
+  ]
+
+  async start(): Promise<void> {
+    const { args, flags } = await this.parse(StatusCommand)
+    const account = args.account as string | undefined
+
+    const client = await this.sdk.connectRpc()
+
+    const response = await client.getAccountsStatus({
+      account: account,
+    })
+
+    CliUx.ux.table(
+      response.content.accounts,
+      {
+        account: {
+          header: 'Account',
+          minWidth: 11,
+          get: (transaction) => transaction.account,
         },
-        {
-          printLine: this.log.bind(this),
-          ...flags,
+        id: {
+          header: 'ID',
         },
-      )
-   }
- }
- 
+        headHash: {
+          header: 'Head Hash',
+        },
+        headInChain: {
+          header: 'Head In Chain',
+        },
+        sequence: {
+          header: 'Head Sequence',
+        },
+      },
+      {
+        printLine: this.log.bind(this),
+        ...flags,
+      },
+    )
+  }
+}
