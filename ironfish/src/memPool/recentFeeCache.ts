@@ -20,7 +20,7 @@ export class RecentFeeCache {
   private numOfRecentBlocks = 10
   private numOfTxSamples = 3
   private maxQueueLength: number
-  private defaultFeeRate = BigInt(2)
+  private defaultFeeRate = BigInt(1)
 
   constructor(options: {
     chain: Blockchain
@@ -151,5 +151,7 @@ export class RecentFeeCache {
 }
 
 export function getFeeRate(transaction: Transaction): bigint {
-  return transaction.fee() / BigInt(getTransactionSize(transaction.serialize()))
+  const rate = transaction.fee() / BigInt(getTransactionSize(transaction.serialize()))
+
+  return rate > 0 ? rate : BigInt(1)
 }
