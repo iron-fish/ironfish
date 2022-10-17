@@ -7,10 +7,9 @@ import { createRootLogger, Logger } from '../logger'
 import { MemPool, PriorityQueue } from '../memPool'
 import { getTransactionSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
-import { BigIntUtils } from '../utils'
 
 interface FeeRateEntry {
-  feeRate: number
+  feeRate: bigint
   blockHash: Buffer
 }
 
@@ -21,7 +20,7 @@ export class RecentFeeCache {
   private numOfRecentBlocks = 10
   private numOfTxSamples = 3
   private maxQueueLength: number
-  private defaultFeeRate = 2
+  private defaultFeeRate = BigInt(2)
 
   constructor(options: {
     chain: Blockchain
@@ -127,17 +126,17 @@ export class RecentFeeCache {
     return transactions.reverse()
   }
 
-  estimateFeeRate(percentile: number): number {
+  estimateFeeRate(percentile: number): bigint {
     if (this.queue.length < this.numOfRecentBlocks) {
       return this.defaultFeeRate
     }
 
-    const fees: number[] = []
+    const fees: bigint[] = []
     for (const entry of this.queue) {
       fees.push(entry.feeRate)
     }
 
-    fees.sort((a, b) => a - b)
+    fees.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
 
     return fees[Math.round(((this.queue.length - 1) * percentile) / 100)]
   }
@@ -151,9 +150,6 @@ export class RecentFeeCache {
   }
 }
 
-export function getFeeRate(transaction: Transaction): number {
-  return BigIntUtils.divide(
-    transaction.fee(),
-    BigInt(getTransactionSize(transaction.serialize())),
-  )
+export function getFeeRate(transaction: Transaction): bigint {
+  return transaction.fee() / BigInt(getTransactionSize(transaction.serialize()))
 }
