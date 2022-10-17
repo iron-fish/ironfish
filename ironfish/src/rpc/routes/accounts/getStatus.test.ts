@@ -10,7 +10,7 @@ import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
 
-describe('Route account/getPublicKey', () => {
+describe('Route account/status', () => {
   const routeTest = createRouteTest(true)
   let account = {} as Account
 
