@@ -676,6 +676,7 @@ dependencies = [
  "crypto_box",
  "ff",
  "group",
+ "ironfish_zkp",
  "jubjub",
  "lazy_static",
  "libc",
@@ -683,6 +684,12 @@ dependencies = [
  "rust-crypto-wasm",
  "tiny-bip39",
  "xxhash-rust",
+]
+
+[[package]]
+name = "ironfish_zkp"
+version = "0.1.0"
+dependencies = [
  "zcash_primitives",
  "zcash_proofs",
 ]

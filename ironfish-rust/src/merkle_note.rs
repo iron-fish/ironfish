@@ -18,8 +18,8 @@ use blake2b_simd::Params as Blake2b;
 use bls12_381::Scalar;
 use ff::PrimeField;
 use group::GroupEncoding;
+use ironfish_zkp::ValueCommitment;
 use jubjub::{ExtendedPoint, SubgroupPoint};
-use zcash_primitives::sapling::ValueCommitment;
 
 use std::{convert::TryInto, io};
 
@@ -257,9 +257,9 @@ mod test {
     };
 
     use bls12_381::Scalar;
+    use ironfish_zkp::ValueCommitment;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
-    use zcash_primitives::sapling::ValueCommitment;
 
     #[test]
     fn test_view_key_encryption() {

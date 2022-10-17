@@ -21,9 +21,9 @@ use group::GroupEncoding;
 use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
 
-use zcash_primitives::{
+use ironfish_zkp::{
     constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
-    sapling::redjubjub::{PrivateKey, PublicKey, Signature},
+    redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
 use std::{io, iter, slice::Iter};

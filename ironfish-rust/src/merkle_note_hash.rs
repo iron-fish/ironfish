@@ -11,10 +11,10 @@ use super::serializing::read_scalar;
 use bls12_381::Scalar;
 use ff::{PrimeField, PrimeFieldBits};
 use group::Curve;
+use ironfish_zkp::pedersen_hash::{pedersen_hash, Personalization};
 use jubjub::ExtendedPoint;
 
 use std::io;
-use zcash_primitives::sapling::pedersen_hash::{pedersen_hash, Personalization};
 
 #[derive(Clone, Debug, Eq)]
 pub struct MerkleNoteHash(pub Scalar);

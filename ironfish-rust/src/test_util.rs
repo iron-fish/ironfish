@@ -7,8 +7,8 @@ use super::{
     witness::{Witness, WitnessNode},
     MerkleNoteHash,
 };
+use ironfish_zkp::constants::TREE_DEPTH;
 use rand::{thread_rng, Rng};
-use zcash_proofs::circuit::sapling::TREE_DEPTH;
 
 /// Given a note, construct a Witness with a valid root_hash and authentication
 /// path placing that note at a random location in a Merkle tree.

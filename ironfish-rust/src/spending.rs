@@ -16,16 +16,14 @@ use bellman::gadgets::multipack;
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use ff::PrimeField;
 use group::{Curve, GroupEncoding};
+use ironfish_zkp::constants::SPENDING_KEY_GENERATOR;
+use ironfish_zkp::proofs::Spend;
+use ironfish_zkp::{redjubjub, Nullifier, ValueCommitment};
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
-
-use zcash_proofs::circuit::sapling::Spend;
-
-use ff::PrimeField;
 use std::io;
-use zcash_primitives::constants::SPENDING_KEY_GENERATOR;
-use zcash_primitives::sapling::{redjubjub, Nullifier, ValueCommitment};
 
 /// Parameters used when constructing proof that the spender owns a note with
 /// a given value.
