@@ -91,7 +91,10 @@ impl ReceiptParams {
     /// The signature is used by the transaction to calculate the signature
     /// hash. Having this data essentially binds the note to the transaction,
     /// proving that it is actually part of that transaction.
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    pub(crate) fn serialize_signature_fields<W: io::Write>(
+        &self,
+        mut writer: W,
+    ) -> Result<(), IronfishError> {
         self.proof.write(&mut writer)?;
         self.merkle_note.write(&mut writer)?;
         Ok(())
@@ -124,7 +127,7 @@ impl ReceiptProof {
     }
 
     /// Stow the bytes of this ReceiptProof in the given writer.
-    pub fn write<W: io::Write>(&self, writer: W) -> io::Result<()> {
+    pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
         self.serialize_signature_fields(writer)
     }
 
@@ -182,9 +185,13 @@ impl ReceiptProof {
     /// The signature is used by the transaction to calculate the signature
     /// hash. Having this data essentially binds the note to the transaction,
     /// proving that it is actually part of that transaction.
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    pub(crate) fn serialize_signature_fields<W: io::Write>(
+        &self,
+        mut writer: W,
+    ) -> Result<(), IronfishError> {
         self.proof.write(&mut writer)?;
         self.merkle_note.write(&mut writer)?;
+
         Ok(())
     }
 }

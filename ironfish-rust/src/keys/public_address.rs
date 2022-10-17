@@ -125,8 +125,9 @@ impl PublicAddress {
     }
 
     /// Store the bytes of this public address in the given writer.
-    pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_all(&self.public_address())?;
+
         Ok(())
     }
 

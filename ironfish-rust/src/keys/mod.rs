@@ -178,16 +178,13 @@ impl<'a> SaplingKey {
     }
 
     // Write a bytes representation of this key to the provided stream
-    pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         let num_bytes_written = writer.write(&self.spending_key)?;
         if num_bytes_written != 32 {
-            Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Couldn't write entire key",
-            ))
-        } else {
-            Ok(())
+            return Err(IronfishError::InvalidData);
         }
+
+        Ok(())
     }
 
     /// Retrieve the private spending key

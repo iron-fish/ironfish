@@ -172,7 +172,10 @@ impl<'a> SpendParams {
     ///
     /// It is also used during verification, which is why there is an identical
     /// function on the SpendProof struct.
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, writer: W) -> io::Result<()> {
+    pub(crate) fn serialize_signature_fields<W: io::Write>(
+        &self,
+        writer: W,
+    ) -> Result<(), IronfishError> {
         serialize_signature_fields(
             writer,
             &self.proof,
@@ -282,7 +285,7 @@ impl SpendProof {
     }
 
     /// Stow the bytes of this SpendProof in the given writer.
-    pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         self.serialize_signature_fields(&mut writer)?;
         self.authorizing_signature.write(&mut writer)?;
 
@@ -369,7 +372,10 @@ impl SpendProof {
 
     /// Serialize the fields that are needed in calculating a signature to
     /// the provided writer (probably a Blake2B writer)
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, writer: W) -> io::Result<()> {
+    pub(crate) fn serialize_signature_fields<W: io::Write>(
+        &self,
+        writer: W,
+    ) -> Result<(), IronfishError> {
         serialize_signature_fields(
             writer,
             &self.proof,
@@ -395,13 +401,14 @@ fn serialize_signature_fields<W: io::Write>(
     root_hash: &Scalar,
     tree_size: u32,
     nullifier: &Nullifier,
-) -> io::Result<()> {
+) -> Result<(), IronfishError> {
     proof.write(&mut writer)?;
     writer.write_all(&value_commitment.to_bytes())?;
     writer.write_all(&randomized_public_key.0.to_bytes())?;
     writer.write_all(root_hash.to_repr().as_ref())?;
     writer.write_u32::<LittleEndian>(tree_size)?;
     writer.write_all(&nullifier.0)?;
+
     Ok(())
 }
 

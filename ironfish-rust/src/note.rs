@@ -118,11 +118,12 @@ impl<'a> Note {
     /// This should generally never be used to serialize to disk or the network.
     /// It is primarily added as a device for transmitting the note across
     /// thread boundaries.
-    pub fn write<W: io::Write>(&self, mut writer: &mut W) -> io::Result<()> {
+    pub fn write<W: io::Write>(&self, mut writer: &mut W) -> Result<(), IronfishError> {
         self.owner.write(&mut writer)?;
         writer.write_u64::<LittleEndian>(self.value)?;
         writer.write_all(self.randomness.to_repr().as_ref())?;
         writer.write_all(&self.memo.0)?;
+
         Ok(())
     }
 
