@@ -14,15 +14,6 @@ export class StatusCommand extends IronfishCommand {
     ...CliUx.ux.table.flags(),
   }
 
-  static args = [
-    {
-      name: 'account',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
-      required: false,
-      description: 'Name of the account to get the status for',
-    },
-  ]
-
   async start(): Promise<void> {
     const { args, flags } = await this.parse(StatusCommand)
     const account = args.account as string | undefined
