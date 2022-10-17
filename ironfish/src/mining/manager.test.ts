@@ -36,8 +36,9 @@ describe('Mining manager', () => {
       yield transaction
     })
 
-    let results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
-      .blockTransactions
+    let results = (
+      await miningManager.getNewBlockTransactions(chain.head.sequence + 1, account)
+    ).blockTransactions
     expect(results).toHaveLength(1)
     expect(results[0].unsignedHash().equals(transaction.unsignedHash())).toBe(true)
 
@@ -45,7 +46,7 @@ describe('Mining manager', () => {
     const block2 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(block2)
 
-    results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
+    results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1, account))
       .blockTransactions
     expect(results).toHaveLength(0)
   })
@@ -74,8 +75,9 @@ describe('Mining manager', () => {
     })
     jest.spyOn(Serializers, 'getTransactionSize').mockReturnValue(MAX_BLOCK_SIZE_BYTES)
 
-    const results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1))
-      .blockTransactions
+    const results = (
+      await miningManager.getNewBlockTransactions(chain.head.sequence + 1, account)
+    ).blockTransactions
     expect(results).toHaveLength(0)
   })
 })
