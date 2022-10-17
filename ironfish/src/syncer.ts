@@ -358,7 +358,7 @@ export class Syncer {
         )} (${sequence}) from ${peer.displayName}`,
       )
 
-      const start = Date.now()
+      const start = BenchUtils.start()
 
       const [headBlock, ...blocks]: SerializedBlock[] = await this.peerNetwork.getBlocks(
         peer,
@@ -366,7 +366,7 @@ export class Syncer {
         this.blocksPerMessage + 1,
       )
 
-      const elapsedSeconds = (Date.now() - start) / 1000
+      const elapsedSeconds = BenchUtils.end(start) / 1000
       this.downloadSpeed.add(blocks.length + 1 / elapsedSeconds)
 
       if (!headBlock) {

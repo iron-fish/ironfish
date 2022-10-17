@@ -85,7 +85,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
 
   if (content.blockSyncer.status === 'syncing') {
     blockSyncerStatusDetails.push(
-      `${content.blockSyncer.syncing.speed} blocks added /s, ${content.blockSyncer.syncing.downloadSpeed} blocks downloaded /s`,
+      `${content.blockSyncer.syncing.speed} blocks added/sec, ${content.blockSyncer.syncing.downloadSpeed} blocks downloaded/sec`,
     )
   }
 

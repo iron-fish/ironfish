@@ -31,21 +31,13 @@ export class Meter {
   private _intervalMs: number
   private _intervalLastMs: number | null = null
 
-  private readonly METER_TIME_INTERVALS_MS = {
-    rate1s: 1000,
-    rate5s: 5000,
-    rate1m: 1 * 60 * 1000,
-    rate5m: 5 * 60 * 1000,
-    average: 100 * 1000,
-  }
-
   constructor() {
     this._intervalMs = 1000
 
-    this._rate1s = new EwmAverage(this.METER_TIME_INTERVALS_MS.rate1s / this._intervalMs)
-    this._rate5s = new EwmAverage(this.METER_TIME_INTERVALS_MS.rate5s / this._intervalMs)
-    this._rate1m = new EwmAverage(this.METER_TIME_INTERVALS_MS.rate1m / this._intervalMs)
-    this._rate5m = new EwmAverage(this.METER_TIME_INTERVALS_MS.rate5m / this._intervalMs)
+    this._rate1s = new EwmAverage(1000 / this._intervalMs)
+    this._rate5s = new EwmAverage(5000 / this._intervalMs)
+    this._rate1m = new EwmAverage((1 * 60 * 1000) / this._intervalMs)
+    this._rate5m = new EwmAverage((5 * 60 * 1000) / this._intervalMs)
 
     this._average = new RollingAverage(1000)
 
