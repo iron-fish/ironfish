@@ -75,10 +75,13 @@ describe('Block template stream', () => {
     const actual = node.strategy.createMinersFee
     const [p, res] = PromiseUtils.split<void>()
 
-    jest.spyOn(node.strategy, 'createMinersFee').mockImplementation(async (a, b, c) => {
-      await p
-      return await actual.bind(node.strategy)(a, b, c)
-    })
+    jest
+      .spyOn(node.strategy, 'createMinersFee')
+      .mockImplementationOnce(actual)
+      .mockImplementation(async (a, b, c) => {
+        await p
+        return await actual.bind(node.strategy)(a, b, c)
+      })
 
     const newBlockSpy = jest.spyOn(node.chain, 'newBlock')
 
