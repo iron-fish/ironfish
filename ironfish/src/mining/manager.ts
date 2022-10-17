@@ -9,13 +9,9 @@ import { MAX_TRANSACTIONS_PER_BLOCK } from '../consensus'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
-import {
-  getBlockHeaderSize,
-  getBlockSize,
-  getTransactionSize,
-} from '../network/utils/serializers'
+import { getBlockHeaderSize, getTransactionSize } from '../network/utils/serializers'
 import { IronfishNode } from '../node'
-import { Block, BlockSerde } from '../primitives/block'
+import { Block } from '../primitives/block'
 import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { AsyncUtils } from '../utils/async'
