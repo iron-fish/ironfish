@@ -7,18 +7,12 @@
 
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { Account } from '../../../wallet'
 
 describe('Route account/status', () => {
   const routeTest = createRouteTest(true)
-  let account = {} as Account
-
-  beforeAll(async () => {
-    account = await routeTest.node.wallet.createAccount(uuid())
-    await routeTest.node.wallet.setDefaultAccount(account.name)
-  })
 
   it('should return account status information', async () => {
+    const account = await routeTest.node.wallet.createAccount(uuid(), true)
     const response = await routeTest.client
       .request<any>('account/getAccountsStatus', {})
       .waitForEnd()
@@ -27,7 +21,7 @@ describe('Route account/status', () => {
     expect(response.content).toMatchObject({
       accounts: [
         {
-          account: account.name,
+          name: account.name,
           id: account.id,
           headHash: 'NULL',
           headInChain: false,

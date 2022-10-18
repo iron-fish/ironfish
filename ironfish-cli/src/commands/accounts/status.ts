@@ -27,13 +27,12 @@ export class StatusCommand extends IronfishCommand {
     CliUx.ux.table(
       response.content.accounts,
       {
-        account: {
-          header: 'Account',
+        name: {
+          header: 'Account Name',
           minWidth: 11,
-          get: (transaction) => transaction.account,
         },
         id: {
-          header: 'ID',
+          header: 'Account ID',
         },
         headHash: {
           header: 'Head Hash',

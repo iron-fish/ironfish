@@ -8,7 +8,7 @@ export type GetAccountStatusRequest = { account?: string }
 
 export type GetAccountStatusResponse = {
   accounts: Array<{
-    account: string
+    name: string
     id: string
     headHash: string
     headInChain: boolean
@@ -26,7 +26,7 @@ export const GetAccountStatusResponseSchema: yup.ObjectSchema<GetAccountStatusRe
       .array(
         yup
           .object({
-            account: yup.string().defined(),
+            name: yup.string().defined(),
             id: yup.string().defined(),
             headHash: yup.string().defined(),
             headInChain: yup.boolean().defined(),
@@ -53,7 +53,7 @@ router.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
       const headInChain = !!blockHeader
       const headSequence = blockHeader?.sequence || 'NULL'
       accountsInfo.push({
-        account: account.name,
+        name: account.name,
         id: account.id,
         headHash: headHash ? headHash.toString('hex') : 'NULL',
         headInChain: headInChain,
