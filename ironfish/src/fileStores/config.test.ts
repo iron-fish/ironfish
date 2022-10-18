@@ -2,20 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { mockFileSystem } from '../network/testUtilities/mockHostsStore'
 import {
-  ConfigOptionsSchema,
-  isWholeNumber,
-  isPort,
-  isPercent,
-  noWhitespaceBegEnd,
-  isUrl,
   Config,
+  ConfigOptionsSchema,
   DEFAULT_EXPLORER_BLOCKS_URL,
+  isPercent,
+  isPort,
+  isUrl,
+  isWholeNumber,
+  noWhitespaceBegEnd,
 } from './config'
 
-import { mockFileSystem } from '../network/testUtilities/mockHostsStore'
-
-function valid(schema: any, obj: any) {
+function valid(schema: yup.ObjectSchema, obj: unknown) {
   return schema.isValidSync(obj)
 }
 
@@ -40,7 +39,7 @@ describe('ConfigOptionsSchema::numbers', () => {
     .defined()
 
   {
-    let obj = {
+    const obj = {
       int1: 0,
       int2: 42,
     }
@@ -49,55 +48,55 @@ describe('ConfigOptionsSchema::numbers', () => {
     })
   }
   {
-    let obj = { int1: false }
+    const obj = { int1: false }
     it('boolIsNotInteger', () => {
       expect(valid(schema, obj)).toBe(false)
     })
   }
   {
-    let obj = { int1: 4.2 }
+    const obj = { int1: 4.2 }
     it('floatIsNotInteger', () => {
       expect(valid(schema, obj)).toBe(false)
     })
   }
   {
-    let obj = { int1: -1 }
+    const obj = { int1: -1 }
     it('isNotPosInteger', () => {
       expect(valid(schema, obj)).toBe(false)
     })
   }
   {
-    let obj = { port1: 1, port2: 65535 }
+    const obj = { port1: 1, port2: 65535 }
     it('isPortRange', () => {
       expect(valid(schema, obj)).toBe(true)
     })
   }
   {
-    let obj = { port1: -1 }
+    const obj = { port1: -1 }
     it('isNotPort', () => {
       expect(valid(schema, obj)).toBe(false)
     })
   }
   {
-    let obj = { percent: 0 }
+    const obj = { percent: 0 }
     it('isPercentLow', () => {
       expect(valid(schema, obj)).toBe(true)
     })
   }
   {
-    let obj = { percent: 100 }
+    const obj = { percent: 100 }
     it('isPercentHigh', () => {
       expect(valid(schema, obj)).toBe(true)
     })
   }
   {
-    let obj = { percent: '10%' }
+    const obj = { percent: '10%' }
     it('stringIsNotPercent', () => {
       expect(valid(schema, obj)).toBe(false)
     })
   }
   {
-    let obj = { percent: 101 }
+    const obj = { percent: 101 }
     it('outOfRangePercent', () => {
       expect(valid(schema, obj)).toBe(false)
     })
@@ -121,7 +120,7 @@ describe('ConfigOptionsSchema::strings', () => {
     .defined()
 
   {
-    let obj = {
+    const obj = {
       s1: '/usr/bin/nvim',
       s2: String.raw`C:\ironfish\is best`,
     }
@@ -130,7 +129,7 @@ describe('ConfigOptionsSchema::strings', () => {
     })
   }
   {
-    let obj = {
+    const obj = {
       s1: ' /usr/bin/nvim',
     }
     it('isNotPathLeadingWhitespace', () => {
@@ -138,7 +137,7 @@ describe('ConfigOptionsSchema::strings', () => {
     })
   }
   {
-    let obj = {
+    const obj = {
       s1: '/usr/bin/nvim   ',
     }
     it('isNotPathTrailingWhitspace', () => {
@@ -146,7 +145,7 @@ describe('ConfigOptionsSchema::strings', () => {
     })
   }
   {
-    let obj = {
+    const obj = {
       url1: DEFAULT_EXPLORER_BLOCKS_URL,
     }
     it('isUrl', () => {
@@ -154,7 +153,7 @@ describe('ConfigOptionsSchema::strings', () => {
     })
   }
   {
-    let obj = {
+    const obj = {
       url1: '192.168.1.0',
     }
     it('ipIsNotUrl', () => {
@@ -165,7 +164,7 @@ describe('ConfigOptionsSchema::strings', () => {
 
 // Tests the default config options against the schema
 describe('ConfigOptionsSchema', () => {
-  let configOptions = Config.GetDefaults(mockFileSystem(), 'foo')
+  const configOptions = Config.GetDefaults(mockFileSystem(), 'foo')
 
   it('ConfigDefaults', () => {
     expect(valid(ConfigOptionsSchema, configOptions)).toBe(true)
