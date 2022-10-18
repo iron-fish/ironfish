@@ -46,7 +46,7 @@ export class RecentFeeCache {
       const currentBlock = await this.chain.getBlock(currentBlockHash)
       Assert.isNotNull(currentBlock, 'No block found')
 
-      const lowestFeeTransactions = this.getLowestFeeTransactions(
+      const lowestFeeTransactions = this.getLowestFeeRateTransactions(
         currentBlock,
         this.numOfTxSamples,
       )
@@ -63,7 +63,7 @@ export class RecentFeeCache {
   }
 
   onConnectBlock(block: Block, memPool: MemPool): void {
-    for (const transaction of this.getLowestFeeTransactions(
+    for (const transaction of this.getLowestFeeRateTransactions(
       block,
       this.numOfTxSamples,
       (t) => !memPool.exists(t.hash()),
@@ -87,19 +87,13 @@ export class RecentFeeCache {
     }
   }
 
-  private getLowestFeeTransactions(
+  private getLowestFeeRateTransactions(
     block: Block,
     numTransactions: number,
     exclude: (transaction: Transaction) => boolean = (t) => t.isMinersFee(),
   ): Transaction[] {
     const lowestTxFees = new PriorityQueue<Transaction>(
-      // TODO: @yajun compare transaction fee rate per byte when transaction size is available
-      (txA, txB) => {
-        if (txA.fee() === txB.fee()) {
-          return txA.hash().compare(txB.hash()) > 0
-        }
-        return txA.fee() > txB.fee()
-      },
+      (txA, txB) => getFeeRate(txA) > getFeeRate(txB),
       (t) => t.hash().toString('hex'),
     )
 
@@ -151,7 +145,8 @@ export class RecentFeeCache {
 }
 
 export function getFeeRate(transaction: Transaction): bigint {
-  const rate = transaction.fee() / BigInt(getTransactionSize(transaction.serialize()))
+  const transactionSizeKb = getTransactionSize(transaction.serialize()) / 1000
+  const rate = transaction.fee() / BigInt(Math.round(transactionSizeKb))
 
   return rate > 0 ? rate : BigInt(1)
 }
