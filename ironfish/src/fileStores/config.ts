@@ -216,7 +216,6 @@ export type ConfigOptions = {
   poolMaxConnectionsPerIp: number
 
   /**
-
    * The lark webhook URL to post pool critical pool information to
    */
   poolLarkWebhook: ''
@@ -238,9 +237,83 @@ export type ConfigOptions = {
   explorerTransactionsUrl: string
 }
 
+// Matches either an empty string, or a string that has no leading or trailing whitespace.
+const reNoWhitespaceBegEnd = /^[^\s]+(\s+[^\s]+)*$|^$/
+
+// config number value validators
+export const isWholeNumber = yup.number().integer().min(0)
+export const isPort = yup.number().integer().min(1).max(65535)
+export const isPercent = yup.number().min(0).max(100)
+
+// config string value validators
+export const noWhitespaceBegEnd = yup
+  .string()
+  .matches(reNoWhitespaceBegEnd, 'Path should not contain leading or trailing whitespace.')
+
+export const isUrl = yup.string().url('Invalid URL')
+
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
-  .object()
-  .shape({})
+  .object({
+    bootstrapNodes: yup.array().of(yup.string().defined()),
+    databaseName: yup.string(),
+    databaseMigrate: yup.boolean(),
+    editor: noWhitespaceBegEnd,
+    enableListenP2P: yup.boolean(),
+    enableLogFile: yup.boolean(),
+    enableRpc: yup.boolean(),
+    enableRpcIpc: yup.boolean(),
+    enableRpcTcp: yup.boolean(),
+    enableRpcTls: yup.boolean(),
+    enableSyncing: yup.boolean(),
+    enableTelemetry: yup.boolean(),
+    enableMetrics: yup.boolean(),
+    getFundsApi: yup.string(),
+    ipcPath: noWhitespaceBegEnd,
+    miningForce: yup.boolean(),
+    logPeerMessages: yup.boolean(),
+    // validated separately by logLevelParser
+    logLevel: yup.string(),
+    // not applying a regex pattern to avoid getting out of sync with logic
+    // to parse logPrefix
+    logPrefix: yup.string(),
+    blockGraffiti: yup.string(),
+    nodeName: yup.string(),
+    nodeWorkers: yup.number().integer().min(-1),
+    nodeWorkersMax: isWholeNumber,
+    p2pSimulateLatency: isWholeNumber,
+    peerPort: isPort,
+    rpcTcpHost: noWhitespaceBegEnd,
+    rpcTcpPort: isPort,
+    tlsKeyPath: noWhitespaceBegEnd,
+    tlsCertPath: noWhitespaceBegEnd,
+    maxPeers: isWholeNumber,
+    minPeers: isWholeNumber,
+    targetPeers: yup.number().integer().min(1),
+    telemetryApi: yup.string(),
+    accountName: yup.string(),
+    generateNewIdentity: yup.boolean(),
+    defaultTransactionExpirationSequenceDelta: isWholeNumber,
+    blocksPerMessage: isWholeNumber,
+    minerBatchSize: isWholeNumber,
+    minimumBlockConfirmations: isWholeNumber,
+    poolName: yup.string(),
+    poolAccountName: yup.string(),
+    poolBanning: yup.boolean(),
+    poolBalancePercentPayout: isPercent,
+    poolHost: noWhitespaceBegEnd,
+    poolPort: isPort,
+    poolDifficulty: yup.string(),
+    poolAttemptPayoutInterval: isWholeNumber,
+    poolSuccessfulPayoutInterval: isWholeNumber,
+    poolStatusNotificationInterval: isWholeNumber,
+    poolRecentShareCutoff: isWholeNumber,
+    poolDiscordWebhook: yup.string(),
+    poolMaxConnectionsPerIp: isWholeNumber,
+    poolLarkWebhook: yup.string(),
+    jsonLogs: yup.boolean(),
+    explorerBlocksUrl: isUrl,
+    explorerTransactionsUrl: isUrl,
+  })
   .defined()
 
 export class Config extends KeyStore<ConfigOptions> {
