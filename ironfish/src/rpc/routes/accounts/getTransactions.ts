@@ -62,7 +62,19 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
     const headSequence = await node.wallet.getAccountHeadSequence(account)
     const queue = new FastPriorityQueue<TransactionValue>(function (a, b) {
-      return a.transaction.expirationSequence() < b.transaction.expirationSequence()
+      if (a.sequence && b.sequence) {
+        // both a and b are mined on chain, use sequence as sort key
+        return a.sequence < b.sequence
+      } else {
+        // at least one is in pending status, use expirationSequence as sort key
+        if (a.transaction.expirationSequence() && b.transaction.expirationSequence()) {
+          // no minersFee transaction, use expirationSequence as sort key directly
+          return a.transaction.expirationSequence() < b.transaction.expirationSequence()
+        } else {
+          // minersFee transaction without sequence is always latest
+          return b.transaction.expirationSequence() === 0
+        }
+      }
     })
 
     for await (const transaction of account.getTransactions()) {
