@@ -133,7 +133,6 @@ const handleLimitedTransactions = async (
     } else {
       // at least one is in pending status, use expirationSequence as sort key
       if (a.transaction.expirationSequence() && b.transaction.expirationSequence()) {
-        // no minersFee transaction, use expirationSequence as sort key directly
         return a.transaction.expirationSequence() < b.transaction.expirationSequence()
       } else {
         // transactions without expiration are always latest
