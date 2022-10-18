@@ -61,55 +61,11 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
     }
 
     const headSequence = await node.wallet.getAccountHeadSequence(account)
-    const queue = new FastPriorityQueue<TransactionValue>(function (a, b) {
-      if (a.sequence && b.sequence) {
-        // both a and b are mined on chain, use sequence as sort key
-        return a.sequence < b.sequence
-      } else {
-        // at least one is in pending status, use expirationSequence as sort key
-        if (a.transaction.expirationSequence() && b.transaction.expirationSequence()) {
-          // no minersFee transaction, use expirationSequence as sort key directly
-          return a.transaction.expirationSequence() < b.transaction.expirationSequence()
-        } else {
-          // minersFee transaction without sequence is always latest
-          return b.transaction.expirationSequence() === 0
-        }
-      }
-    })
 
-    for await (const transaction of account.getTransactions()) {
-      if (request.data.limit) {
-        // push data into fixed-capacity queue
-        await handleLimitedTransactions(
-          request,
-          node,
-          account,
-          transaction,
-          request.data.limit,
-          queue,
-          false,
-          headSequence,
-        )
-      } else {
-        if (request.closed) {
-          break
-        }
-        await handleAllTransactions(request, node, account, transaction, headSequence)
-      }
-    }
-
-    // stream data of fixed-capacity queue
     if (request.data.limit) {
-      await handleLimitedTransactions(
-        request,
-        node,
-        account,
-        null,
-        request.data.limit,
-        queue,
-        true,
-        headSequence,
-      )
+      await handleLimitedTransactions(request, node, account, request.data.limit, headSequence)
+    } else {
+      await handleAllTransactions(request, node, account, headSequence)
     }
 
     request.end()
@@ -167,23 +123,26 @@ const handleLimitedTransactions = async (
   request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
   node: IronfishNode,
   account: Account,
-  transaction: TransactionValue | null,
   limit: number,
-  queue: FastPriorityQueue<TransactionValue>,
-  streamEnd: boolean,
   headSequence?: number | null,
 ): Promise<void> => {
-  if (streamEnd) {
-    while (!queue.isEmpty()) {
-      if (request.closed) {
-        break
+  const queue = new FastPriorityQueue<TransactionValue>(function (a, b) {
+    if (a.sequence && b.sequence) {
+      // both a and b are mined on chain, use sequence as sort key
+      return a.sequence < b.sequence
+    } else {
+      // at least one is in pending status, use expirationSequence as sort key
+      if (a.transaction.expirationSequence() && b.transaction.expirationSequence()) {
+        // no minersFee transaction, use expirationSequence as sort key directly
+        return a.transaction.expirationSequence() < b.transaction.expirationSequence()
+      } else {
+        // minersFee transaction without sequence is always latest
+        return b.transaction.expirationSequence() === 0
       }
-
-      const transaction = queue.poll()
-      Assert.isNotUndefined(transaction)
-      await streamTransaction(request, node, account, transaction, { headSequence })
     }
-  } else {
+  })
+
+  for await (const transaction of account.getTransactions()) {
     Assert.isNotNull(transaction)
     queue.add(transaction)
     // remove the earliest transaction when queue is full
@@ -191,14 +150,27 @@ const handleLimitedTransactions = async (
       queue.poll()
     }
   }
+  while (!queue.isEmpty()) {
+    if (request.closed) {
+      break
+    }
+
+    const transaction = queue.poll()
+    Assert.isNotUndefined(transaction)
+    await streamTransaction(request, node, account, transaction, { headSequence })
+  }
 }
 
 const handleAllTransactions = async (
   request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
   node: IronfishNode,
   account: Account,
-  transaction: TransactionValue,
   headSequence?: number | null,
 ): Promise<void> => {
-  await streamTransaction(request, node, account, transaction, { headSequence })
+  for await (const transaction of account.getTransactions()) {
+    if (request.closed) {
+      break
+    }
+    await streamTransaction(request, node, account, transaction, { headSequence })
+  }
 }
