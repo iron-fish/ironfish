@@ -29,6 +29,7 @@ import { WalletDB } from './walletdb/walletdb'
 export enum TransactionStatus {
   CONFIRMED = 'confirmed',
   EXPIRED = 'expired',
+  FORKED = 'forked',
   PENDING = 'pending',
   UNCONFIRMED = 'unconfirmed',
   UNKNOWN = 'unknown',
@@ -951,7 +952,11 @@ export class Wallet {
         headSequence,
       )
 
-      return isExpired ? TransactionStatus.EXPIRED : TransactionStatus.PENDING
+      return isExpired
+        ? TransactionStatus.EXPIRED
+        : transaction.transaction.isMinersFee()
+        ? TransactionStatus.FORKED
+        : TransactionStatus.PENDING
     }
   }
 
