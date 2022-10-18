@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
+  displayIronAmount,
   displayIronAmountWithCurrency,
   ironToOre,
   isValidIronAmount,
@@ -103,7 +104,9 @@ export class Pay extends IronfishCommand {
 
       try {
         // fees p25 of last 100 blocks
-        dynamicFee = oreToIron((await client.getFees({ numOfBlocks: 100 })).content.p25)
+        dynamicFee = displayIronAmount(
+          oreToIron((await client.getFees({ numOfBlocks: 100 })).content.p25),
+        )
       } catch {
         dynamicFee = null
       }
