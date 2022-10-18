@@ -212,14 +212,16 @@ export default class DepositAll extends IronfishCommand {
       unconfirmedBalance = CurrencyUtils.decode(balanceResp.content.unconfirmed)
       pendingBalance = CurrencyUtils.decode(balanceResp.content.pending)
 
+      const sendOres = ironToOre(IRON_TO_SEND) + BigInt(fee)
+
       // terminate condition
-      if (terminate && pendingBalance < BigInt(ironToOre(IRON_TO_SEND)) + BigInt(fee)) {
+      if (terminate && pendingBalance < sendOres) {
         screen.destroy()
         process.exit(0)
       }
 
       // send transaction
-      if (confirmedBalance > BigInt(ironToOre(IRON_TO_SEND)) + BigInt(fee)) {
+      if (confirmedBalance > sendOres) {
         try {
           const result = await this.client.sendTransaction({
             fromAccountName: accountName,

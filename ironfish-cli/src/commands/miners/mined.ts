@@ -4,6 +4,7 @@
 import {
   Assert,
   AsyncUtils,
+  displayIronAmount,
   GENESIS_BLOCK_SEQUENCE,
   MathUtils,
   Meter,
@@ -121,7 +122,7 @@ export class MinedCommand extends IronfishCommand {
     readline.clearLine(process.stdout, -1)
     readline.cursorTo(process.stdout, 0)
 
-    const amount = MathUtils.round(oreToIron(block.minersFee), 2)
+    const amount = displayIronAmount(oreToIron(block.minersFee), 2)
 
     const link = linkText(
       `https://explorer.ironfish.network/blocks/${block.hash}`,

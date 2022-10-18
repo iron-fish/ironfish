@@ -63,7 +63,7 @@ export abstract class WebhookNotifier {
       `Successfully created payout of ${totalShareCount} shares to ${
         receives.length
       } users for ${displayIronAmountWithCurrency(
-        Number(oreToIron(Number(total.toString()))),
+        oreToIron(total),
         false,
       )} in transaction ${this.renderHashHex(
         transactionHashHex,
@@ -88,10 +88,7 @@ export abstract class WebhookNotifier {
     this.sendText(
       `Creating payout of ${totalShareCount} shares to ${
         receives.length
-      } users for ${displayIronAmountWithCurrency(
-        Number(oreToIron(Number(total.toString()))),
-        false,
-      )}(${payoutId})`,
+      } users for ${displayIronAmountWithCurrency(oreToIron(total), false)}(${payoutId})`,
     )
   }
 

@@ -4,7 +4,7 @@
 
 import {
   displayIronAmountWithCurrency,
-  isValidAmount,
+  isValidIronAmount,
   MINIMUM_IRON_AMOUNT,
   RpcClient,
   WebApi,
@@ -65,7 +65,7 @@ export async function verifyCanSend(
     }
   }
 
-  if (!isValidAmount(fee)) {
+  if (!isValidIronAmount(fee)) {
     return {
       canSend: false,
       errorReason: `The minimum fee is ${displayIronAmountWithCurrency(

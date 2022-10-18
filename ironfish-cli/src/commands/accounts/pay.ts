@@ -3,10 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
-  displayIronAmount,
   displayIronAmountWithCurrency,
   ironToOre,
-  isValidAmount,
+  isValidIronAmount,
   isValidPublicAddress,
   MINIMUM_IRON_AMOUNT,
   oreToIron,
@@ -60,8 +59,8 @@ export class Pay extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Pay)
-    let amount = flags.amount ? Number(flags.amount) : undefined
-    let fee = flags.fee ? Number(flags.fee) : undefined
+    let amount = flags.amount
+    let fee = flags.fee
     let to = flags.to?.trim()
     let from = flags.account?.trim()
     const expirationSequence = flags.expirationSequence
@@ -81,16 +80,15 @@ export class Pay extends IronfishCommand {
     if (amount == null || Number.isNaN(amount)) {
       const response = await client.getAccountBalance({ account: from })
 
-      const input = Number(
-        await CliUx.ux.prompt(
-          `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(
-            oreToIron(Number(response.content.confirmed)),
-            false,
-          )})`,
-          {
-            required: true,
-          },
-        ),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const input: string = await CliUx.ux.prompt(
+        `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(
+          oreToIron(response.content.confirmed),
+          false,
+        )})`,
+        {
+          required: true,
+        },
       )
 
       if (Number.isNaN(input)) {
@@ -105,22 +103,19 @@ export class Pay extends IronfishCommand {
 
       try {
         // fees p25 of last 100 blocks
-        dynamicFee = displayIronAmount(
-          oreToIron((await client.getFees({ numOfBlocks: 100 })).content.p25),
-        )
+        dynamicFee = oreToIron((await client.getFees({ numOfBlocks: 100 })).content.p25)
       } catch {
         dynamicFee = null
       }
 
-      const input = Number(
-        await CliUx.ux.prompt(
-          `Enter the fee amount in $IRON (min: 0.00000001${
-            dynamicFee ? `, dynamic: ${dynamicFee}` : ''
-          })`,
-          {
-            required: true,
-          },
-        ),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const input: string = await CliUx.ux.prompt(
+        `Enter the fee amount in $IRON (min: 0.00000001${
+          dynamicFee ? `, dynamic: ${dynamicFee}` : ''
+        })`,
+        {
+          required: true,
+        },
       )
 
       if (Number.isNaN(input)) {
@@ -154,7 +149,7 @@ export class Pay extends IronfishCommand {
       from = defaultAccount.name
     }
 
-    if (!isValidAmount(amount)) {
+    if (amount === undefined || !isValidIronAmount(amount)) {
       this.log(
         `The minimum transaction amount is ${displayIronAmountWithCurrency(
           MINIMUM_IRON_AMOUNT,
@@ -164,7 +159,7 @@ export class Pay extends IronfishCommand {
       this.exit(0)
     }
 
-    if (!isValidAmount(fee)) {
+    if (fee === undefined || !isValidIronAmount(fee)) {
       this.log(
         `The minimum fee amount is ${displayIronAmountWithCurrency(
           MINIMUM_IRON_AMOUNT,

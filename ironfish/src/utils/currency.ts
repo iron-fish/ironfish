@@ -2,43 +2,72 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BigIntUtils } from './bigint'
+import { BigNumberish, formatFixed, parseFixed } from '@ethersproject/bignumber'
+import { commify } from '@ethersproject/units'
 
 const ORE_TICKER = '$ORE'
 const IRON_TICKER = '$IRON'
-const ORE_TO_IRON = 100000000
-export const MINIMUM_IRON_AMOUNT = 1 / ORE_TO_IRON
-export const MAXIMUM_IRON_AMOUNT = 1.8446744e19
-const FLOAT = ORE_TO_IRON.toString().length - 1
+const ORE_TO_IRON = 100000000n
+const DECIMALS = ORE_TO_IRON.toString().length - 1
+export const MINIMUM_IRON_AMOUNT = '0.00000001'
+export const MAXIMUM_IRON_AMOUNT = 18446744000000000000n
+export const MINIMUM_ORE_AMOUNT = 1n
+export const MAXIMUM_ORE_AMOUNT = parseFixed(
+  MAXIMUM_IRON_AMOUNT.toString(),
+  DECIMALS,
+).toBigInt()
 
-export const isValidAmount = (amount: number): boolean => {
-  return amount >= MINIMUM_IRON_AMOUNT && amount <= MAXIMUM_IRON_AMOUNT
-}
-
-export const ironToOre = (amount: number): number => {
-  const iron = amount * ORE_TO_IRON
-
-  const pow = Math.pow(10, 0)
-  return Math.round(iron * pow) / pow
-}
-
-export const oreToIron = (amount: number | bigint): number => {
-  if (typeof amount === 'number') {
-    return amount / ORE_TO_IRON
-  } else {
-    return BigIntUtils.divide(amount, BigInt(ORE_TO_IRON))
+export const isValidIronAmount = (amount: string | number | undefined): boolean => {
+  if (amount === undefined) {
+    return false
+  }
+  try {
+    const ore = ironToOre(amount)
+    return ore >= MINIMUM_ORE_AMOUNT && ore <= MAXIMUM_ORE_AMOUNT
+  } catch (e) {
+    return false
   }
 }
 
-export const displayIronAmount = (amount: number): string => {
-  return amount.toLocaleString(undefined, {
-    minimumFractionDigits: FLOAT,
-    maximumFractionDigits: FLOAT,
-  })
+export const ironToOre = (amount: string | number): bigint => {
+  return parseFixed(amount.toString(), DECIMALS).toBigInt()
 }
 
-export const displayOreAmount = (amount: number): string => {
-  return ironToOre(amount).toLocaleString(undefined, {
+export const oreToIron = (amount: BigNumberish): string => {
+  return formatFixed(amount, DECIMALS)
+}
+
+export const displayIronAmount = (amount: string, decimals?: number): string => {
+  let formattedDecimals = DECIMALS
+  if (decimals !== undefined && Number.isInteger(decimals) && decimals >= 0) {
+    formattedDecimals = Math.min(decimals, DECIMALS)
+  }
+  const commifyAmount = commify(amount)
+  const index = commifyAmount.indexOf('.')
+  if (index >= 0) {
+    const currDecimals = commifyAmount.length - 1 - index
+    if (currDecimals < formattedDecimals) {
+      const diffDecimals = formattedDecimals - currDecimals
+      let suffix = ''
+      for (let i = 0; i < diffDecimals; i++) {
+        suffix += '0'
+      }
+      return `${commifyAmount}${suffix}`
+    } else if (currDecimals > formattedDecimals) {
+      return commifyAmount.slice(0, index + 1 + formattedDecimals)
+    } else {
+      return commifyAmount
+    }
+  }
+  let suffix = ''
+  for (let i = 0; i < formattedDecimals; i++) {
+    suffix += '0'
+  }
+  return `${commifyAmount}.${suffix}`
+}
+
+export const displayOreAmount = (amount: bigint): string => {
+  return amount.toLocaleString(undefined, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })
@@ -47,11 +76,15 @@ export const displayOreAmount = (amount: number): string => {
 /*
  * Return a string with the format $IRON X.XXXXXXXX ($ORE X^8)
  */
-export const displayIronAmountWithCurrency = (amount: number, displayOre: boolean): string => {
-  let iron = `${IRON_TICKER} ${displayIronAmount(amount)}`
+export const displayIronAmountWithCurrency = (
+  amount: string | number,
+  displayOre: boolean,
+): string => {
+  let iron = `${IRON_TICKER} ${displayIronAmount(amount.toString())}`
 
   if (displayOre) {
-    iron += ` (${ORE_TICKER} ${displayOreAmount(amount)})`
+    const oreAmount = ironToOre(amount)
+    iron += ` (${ORE_TICKER} ${displayOreAmount(oreAmount)})`
   }
 
   return iron
@@ -70,12 +103,7 @@ function renderIron(amount: bigint | string, ticker = false): string {
     amount = decode(amount)
   }
 
-  const amountIron = oreToIron(amount)
-
-  const iron = amountIron.toLocaleString(undefined, {
-    minimumFractionDigits: 8,
-    maximumFractionDigits: 8,
-  })
+  const iron = displayIronAmount(oreToIron(amount))
 
   if (ticker) {
     return `$IRON ${iron}`
@@ -89,10 +117,7 @@ function renderOre(amount: bigint | string, ticker = false): string {
     amount = decode(amount)
   }
 
-  const ore = amount.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })
+  const ore = displayOreAmount(amount)
 
   if (ticker) {
     return `$ORE ${ore}`
