@@ -136,7 +136,7 @@ const handleLimitedTransactions = async (
         // no minersFee transaction, use expirationSequence as sort key directly
         return a.transaction.expirationSequence() < b.transaction.expirationSequence()
       } else {
-        // minersFee transaction without sequence is always latest
+        // transactions without expiration are always latest
         return b.transaction.expirationSequence() === 0
       }
     }
