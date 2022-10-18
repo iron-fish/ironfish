@@ -240,10 +240,6 @@ export type ConfigOptions = {
 // Matches either an empty string, or a string that has no leading or trailing whitespace.
 const reNoWhitespaceBegEnd = /^[^\s]+(\s+[^\s]+)*$|^$/
 
-// config validation error messages
-const cfgErrMsgPathWhiteSpace = 'Path should not contain leading or trailing whitespace.'
-const cfgErrMsgURL = 'Invalid URL.'
-
 // config number value validators
 export const isWholeNumber = yup.number().integer().min(0)
 export const isPort = yup.number().integer().min(1).max(65535)
@@ -252,8 +248,9 @@ export const isPercent = yup.number().min(0).max(100)
 // config string value validators
 export const noWhitespaceBegEnd = yup
   .string()
-  .matches(reNoWhitespaceBegEnd, cfgErrMsgPathWhiteSpace)
-export const isUrl = yup.string().url(cfgErrMsgURL)
+  .matches(reNoWhitespaceBegEnd, 'Path should not contain leading or trailing whitespace.')
+
+export const isUrl = yup.string().url('Invalid URL')
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .object({
