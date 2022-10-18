@@ -72,6 +72,7 @@ export class MemPool {
     })
 
     this.chain.onDisconnectBlock.on(async (block) => {
+      this.fees.onDisconnectBlock(block)
       await this.onDisconnectBlock(block)
     })
   }

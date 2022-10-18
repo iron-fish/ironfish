@@ -6,14 +6,19 @@ import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool, PriorityQueue } from '../memPool'
 import { Block, Transaction } from '../primitives'
-import { Queue } from './queue'
+
+interface FeeEntry {
+  fee: bigint
+  blockHash: Buffer
+}
 
 export class RecentFeeCache {
-  private queue: Queue<Transaction>
+  private queue: Array<FeeEntry>
   readonly chain: Blockchain
   private readonly logger: Logger
   private numOfRecentBlocks = 10
   private numOfTxSamples = 3
+  private maxQueueLength: number
   private defaultSuggestedFee = BigInt(2)
 
   constructor(options: {
@@ -26,7 +31,9 @@ export class RecentFeeCache {
     this.numOfRecentBlocks = options.recentBlocksNum ?? this.numOfRecentBlocks
     this.numOfTxSamples = options.txSampleSize ?? this.numOfTxSamples
 
-    this.queue = new Queue<Transaction>(this.numOfRecentBlocks * this.numOfTxSamples)
+    this.maxQueueLength = this.numOfRecentBlocks * this.numOfTxSamples
+
+    this.queue = []
     this.chain = options.chain
   }
 
@@ -44,10 +51,10 @@ export class RecentFeeCache {
       )
 
       for (const transaction of lowestFeeTransactions) {
-        if (this.queue.isFull()) {
+        if (this.isFull()) {
           break
         }
-        this.queue.enqueue(transaction)
+        this.queue.push({ fee: transaction.fee(), blockHash: currentBlockHash })
       }
 
       currentBlockHash = currentBlock.header.previousBlockHash
@@ -60,20 +67,23 @@ export class RecentFeeCache {
       this.numOfTxSamples,
       (t) => !memPool.exists(t.hash()),
     )) {
-      this.addTransaction(transaction)
+      if (this.isFull()) {
+        this.queue.shift()
+      }
+
+      this.queue.push({ fee: transaction.fee(), blockHash: block.header.hash })
     }
   }
 
-  addTransaction(transaction: Transaction): void {
-    if (this.queue.isFull()) {
-      this.deleteOldestTransaction()
+  onDisconnectBlock(block: Block): void {
+    while (this.queue.length > 0) {
+      const lastEntry = this.queue[this.queue.length - 1]
+      if (!lastEntry.blockHash.equals(block.header.hash)) {
+        break
+      }
+
+      this.queue.pop()
     }
-
-    this.queue.enqueue(transaction)
-  }
-
-  deleteOldestTransaction(): void {
-    this.queue.dequeue()
   }
 
   private getLowestFeeTransactions(
@@ -116,13 +126,13 @@ export class RecentFeeCache {
   }
 
   getSuggestedFee(percentile: number): bigint {
-    if (this.queue.size() < this.numOfRecentBlocks) {
+    if (this.queue.length < this.numOfRecentBlocks) {
       return this.defaultSuggestedFee
     }
 
     const fees: bigint[] = []
-    for (const transaction of this.queue.getAll()) {
-      fees.push(transaction.fee())
+    for (const entry of this.queue) {
+      fees.push(entry.fee)
     }
 
     fees.sort((a, b) => {
@@ -135,10 +145,14 @@ export class RecentFeeCache {
       }
     })
 
-    return fees[Math.round(((this.queue.size() - 1) * percentile) / 100)]
+    return fees[Math.round(((this.queue.length - 1) * percentile) / 100)]
   }
 
   size(): number {
-    return this.queue.size()
+    return this.queue.length
+  }
+
+  private isFull(): boolean {
+    return this.queue.length === this.maxQueueLength
   }
 }
