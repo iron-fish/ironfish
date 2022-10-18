@@ -279,7 +279,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     blockGraffiti: yup.string(),
     nodeName: yup.string(),
     nodeWorkers: yup.number().integer().min(-1),
-    nodeWorkersMax: isWholeNumber,
+    nodeWorkersMax: yup.number().integer().min(-1),
     p2pSimulateLatency: isWholeNumber,
     peerPort: isPort,
     rpcTcpHost: noWhitespaceBegEnd,
