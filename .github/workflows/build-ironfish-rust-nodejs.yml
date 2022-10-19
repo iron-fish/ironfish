@@ -71,10 +71,10 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         if: ${{ !matrix.settings.docker }}
         with:
           node-version: '16.13.0'
@@ -151,14 +151,14 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up QEMU for Docker
         if: ${{ matrix.settings.docker }}
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16.13.0'
 

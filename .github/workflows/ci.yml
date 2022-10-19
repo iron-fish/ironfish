@@ -16,10 +16,10 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16.13.0'
           cache: 'yarn'
@@ -36,10 +36,10 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16.13.0'
           cache: 'yarn'
@@ -47,7 +47,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v1
         with:
-          sharedKey: nodejs
+          shared-key: nodejs
           working-directory: ironfish-rust-nodejs
 
       - name: Install packages
@@ -66,10 +66,10 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16.13.0'
           cache: 'yarn'
@@ -77,7 +77,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v1
         with:
-          sharedKey: nodejs
+          shared-key: nodejs
           working-directory: ironfish-rust-nodejs
 
       - name: Install packages
