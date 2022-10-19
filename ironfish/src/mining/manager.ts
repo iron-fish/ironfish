@@ -9,15 +9,18 @@ import { MAX_TRANSACTIONS_PER_BLOCK } from '../consensus'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
-import { getBlockHeaderSize, getTransactionSize } from '../network/utils/serializers'
+import {
+  getBlockHeaderSize,
+  getBlockSize,
+  getTransactionSize,
+} from '../network/utils/serializers'
 import { IronfishNode } from '../node'
-import { Block } from '../primitives/block'
+import { Block, BlockSerde } from '../primitives/block'
 import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { AsyncUtils } from '../utils/async'
 import { BenchUtils } from '../utils/bench'
 import { GraffitiUtils } from '../utils/graffiti'
-import { Account } from '../wallet/account'
 
 export enum MINED_RESULT {
   UNKNOWN_REQUEST = 'UNKNOWN_REQUEST',
@@ -60,23 +63,13 @@ export class MiningManager {
    */
   async getNewBlockTransactions(
     sequence: number,
-    account: Account,
+    currBlockSize: number,
   ): Promise<{
     totalFees: bigint
     blockTransactions: Transaction[]
+    newBlockSize: number
   }> {
     const startTime = BenchUtils.start()
-
-    // Get miner's fee transaction size using sample miner's fee transaction
-    const sampleMinersFeeTransaction = await this.node.strategy.createMinersFee(
-      BigInt(0),
-      sequence,
-      account.spendingKey,
-    )
-    const minersFeeTransactionSize = getTransactionSize(sampleMinersFeeTransaction.serialize())
-
-    // Excluding added transactions, a block consists of its header, miner's fee transaction, and the transactions length (2 bytes)
-    let currBlockSize = getBlockHeaderSize() + minersFeeTransactionSize + 2
 
     // Fetch pending transactions
     const blockTransactions: Transaction[] = []
@@ -133,6 +126,7 @@ export class MiningManager {
     return {
       totalFees: totalTransactionFees,
       blockTransactions,
+      newBlockSize: currBlockSize,
     }
   }
 
@@ -149,10 +143,16 @@ export class MiningManager {
     Assert.isNotNull(account, 'Cannot mine without an account')
 
     const newBlockSequence = currentBlock.header.sequence + 1
+    const newBlockHeaderSize = getBlockHeaderSize()
+    const newBlockMinersFeeTransactionSize = 562
+    const newBlockTransactionsLengthSize = 2
 
-    const { totalFees, blockTransactions } = await this.getNewBlockTransactions(
+    const currBlockSize =
+      newBlockHeaderSize + newBlockMinersFeeTransactionSize + newBlockTransactionsLengthSize
+
+    const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
       newBlockSequence,
-      account,
+      currBlockSize,
     )
 
     // Calculate the final fee for the miner of this block
@@ -164,12 +164,22 @@ export class MiningManager {
     this.node.logger.debug(
       `Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
     )
+    Assert.isEqual(
+      newBlockMinersFeeTransactionSize,
+      getTransactionSize(minersFee.serialize()),
+      "Incorrect miner's fee transaction size used during block creation",
+    )
 
     // Create the new block as a template for mining
     const newBlock = await this.chain.newBlock(
       blockTransactions,
       minersFee,
       GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
+    )
+    Assert.isEqual(
+      newBlockSize,
+      getBlockSize(BlockSerde.serialize(newBlock)),
+      'Incorrect block size calculated during block creation',
     )
 
     this.node.logger.debug(
