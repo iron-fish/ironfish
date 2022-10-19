@@ -45,10 +45,10 @@ jobs:
           cache: 'yarn'
 
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           shared-key: nodejs
-          working-directory: ironfish-rust-nodejs
+          workspaces: ironfish-rust-nodejs
 
       - name: Install packages
         run: yarn --non-interactive --frozen-lockfile
@@ -75,10 +75,10 @@ jobs:
           cache: 'yarn'
 
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
           shared-key: nodejs
-          working-directory: ironfish-rust-nodejs
+          workspaces: ironfish-rust-nodejs
 
       - name: Install packages
         run: yarn --non-interactive --frozen-lockfile
