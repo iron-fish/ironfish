@@ -196,14 +196,13 @@ export class PeerManager {
         address: url.hostname,
         port: url.port,
         neighbors: new Set(),
-        webRtcRetry: new ConnectionRetry(),
-        websocketRetry: new ConnectionRetry(),
+        webRtcRetry: new ConnectionRetry(isWhitelisted),
+        websocketRetry: new ConnectionRetry(isWhitelisted),
         localRequestedDisconnectUntil: null,
         peerRequestedDisconnectUntil: null,
       })
     }
 
-    peer.isWhitelisted = isWhitelisted
     this.connectToWebSocket(peer)
     return peer
   }
@@ -234,7 +233,7 @@ export class PeerManager {
           peer.state.identity,
           ConnectionType.WebSocket,
           ConnectionDirection.Outbound,
-        )?.failedConnection(peer.isWhitelisted)
+        )?.failedConnection()
       }
 
       return false
@@ -284,7 +283,7 @@ export class PeerManager {
         peer.state.identity,
         ConnectionType.WebRtc,
         ConnectionDirection.Outbound,
-      )?.failedConnection(peer.isWhitelisted)
+      )?.failedConnection()
 
       return false
     }
@@ -469,7 +468,7 @@ export class PeerManager {
           peer.state.identity,
           connection.type,
           connection.direction,
-        )?.failedConnection(peer.isWhitelisted)
+        )?.failedConnection()
       } else if (connection.state.type === 'CONNECTED') {
         this.getConnectionRetry(
           connection.state.identity,
@@ -1080,7 +1079,7 @@ export class PeerManager {
         identity,
         connection.type,
         connection.direction,
-      )?.failedConnection(peer.isWhitelisted)
+      )?.failedConnection()
       peer.close(new Error(`Identity ${identity} does not match expected format`))
       return
     }
@@ -1093,7 +1092,7 @@ export class PeerManager {
         identity,
         connection.type,
         connection.direction,
-      )?.failedConnection(peer.isWhitelisted)
+      )?.failedConnection()
       peer.close(new Error(error))
       return
     }
@@ -1116,7 +1115,7 @@ export class PeerManager {
         identity,
         connection.type,
         connection.direction,
-      )?.failedConnection(peer.isWhitelisted)
+      )?.failedConnection()
       peer.close(new Error(`Peer name length exceeds 32: ${name.length}}`))
       return
     }

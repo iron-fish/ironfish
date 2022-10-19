@@ -26,6 +26,15 @@ export class ConnectionRetry {
   private disconnectUntil = 0
 
   /**
+   * If true, a failed connection will not cause ConnectionRetry to stop retrying.
+   */
+  private shouldNeverExpire = false
+
+  constructor(shouldNeverExpire = false) {
+    this.shouldNeverExpire = shouldNeverExpire
+  }
+
+  /**
    * Call this if new connection attempts should never be made.
    */
   neverRetryConnecting(): void {
@@ -59,12 +68,12 @@ export class ConnectionRetry {
    * Call this when a connection to a peer fails.
    * @param now The current time
    */
-  failedConnection(isWhitelisted = false, now: number = Date.now()): void {
+  failedConnection(now: number = Date.now()): void {
     let disconnectUntil = Infinity
 
     if (this.failedRetries < retryIntervals.length) {
       disconnectUntil = now + retryIntervals[this.failedRetries]
-    } else if (isWhitelisted) {
+    } else if (this.shouldNeverExpire) {
       disconnectUntil = now + retryIntervals[retryIntervals.length - 1]
     }
 

@@ -143,11 +143,6 @@ export class Peer {
   }
 
   /**
-   * Is the peer a node we will always attempt to connect to
-   */
-  isWhitelisted = false
-
-  /**
    * address associated with this peer
    */
   private _address: string | null = null
