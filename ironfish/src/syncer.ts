@@ -58,7 +58,7 @@ export class Syncer {
 
     this.state = 'stopped'
     this.speed = this.metrics.addMeter()
-    this.downloadSpeed = new RollingAverage(1)
+    this.downloadSpeed = new RollingAverage(5)
     this.stopping = null
     this.eventLoopTimeout = null
 
