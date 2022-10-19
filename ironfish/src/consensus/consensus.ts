@@ -80,7 +80,7 @@ export class ConsensusParameters {
   V1_DOUBLE_SPEND = 0
 
   /**
-   * Max block size = 2 MB
+   * Max block size = 2 MiB
    */
   MAX_BLOCK_SIZE_BYTES = 2 * 1024 * 1024
 
