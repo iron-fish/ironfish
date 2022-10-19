@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import ws from 'ws'
+import { Assert } from '../../assert'
 import { Identity, isIdentity } from '../identity'
 import { IncomingPeerMessage, NetworkMessage } from '../messages/networkMessage'
 import { ConnectionRetry } from '../peers/connectionRetry'
@@ -148,6 +149,11 @@ export function getSignalingWebRtcPeer(
     brokeringPeerIdentity,
   )
   const peer = pm.getOrCreatePeer(peerIdentity)
+
+  // We don't expect this function to be called multiple times, so make sure
+  // we're not resetting pre-existing peer candidate data.
+  Assert.isFalse(pm.peerCandidateMap.has(brokeringPeerIdentity))
+  Assert.isFalse(pm.peerCandidateMap.has(peerIdentity))
 
   // Link the peers
   pm.peerCandidateMap.set(brokeringPeerIdentity, {
