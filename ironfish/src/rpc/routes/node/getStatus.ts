@@ -287,7 +287,7 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
     blockSyncer: {
       status: node.syncer.state,
       syncing: {
-        blockSpeed: MathUtils.round(node.chain.addSpeed.avg, 2),
+        blockSpeed: MathUtils.round(node.chain.addSpeed.average, 2),
         speed: MathUtils.round(node.syncer.speed.rollingRate1m, 2),
         downloadSpeed: MathUtils.round(node.syncer.downloadSpeed.average, 2),
         progress: node.chain.getProgress(),
