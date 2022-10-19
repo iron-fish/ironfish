@@ -90,7 +90,7 @@ export function writeBlock(
 
   bw.writeU16(block.transactions.length)
   for (const transaction of block.transactions) {
-    bw.writeVarBytes(transaction)
+    writeTransaction(bw, transaction)
   }
 
   return bw
@@ -116,7 +116,7 @@ export function getBlockSize(block: SerializedBlock): number {
 
   size += 2 // transactions length
   for (const transaction of block.transactions) {
-    size += bufio.sizeVarBytes(transaction)
+    size += getTransactionSize(transaction)
   }
 
   return size
@@ -136,7 +136,7 @@ export function writeCompactBlock(
   bw.writeVarint(compactBlock.transactions.length)
   for (const transaction of compactBlock.transactions) {
     bw.writeVarint(transaction.index)
-    bw.writeVarBytes(transaction.transaction)
+    writeTransaction(bw, transaction.transaction)
   }
 
   return bw
@@ -176,7 +176,7 @@ export function getCompactBlockSize(compactBlock: SerializedCompactBlock): numbe
   size += sizeVarint(compactBlock.transactions.length)
   for (const transaction of compactBlock.transactions) {
     size += sizeVarint(transaction.index)
-    size += sizeVarBytes(transaction.transaction)
+    size += getTransactionSize(transaction.transaction)
   }
 
   return size
