@@ -8,7 +8,7 @@ import { Event } from '../../event'
 import { HostsStore } from '../../fileStores/hosts'
 import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
-import { ArrayUtils, ErrorUtils, SetIntervalToken } from '../../utils'
+import { ArrayUtils, SetIntervalToken } from '../../utils'
 import {
   canInitiateWebRTC,
   canKeepDuplicateConnection,
@@ -1155,6 +1155,13 @@ export class PeerManager {
           originalPeer.address !== null
         ) {
           peer.setWebSocketAddress(originalPeer.address, originalPeer.port)
+          const candidate = this.peerCandidateMap.get(identity)
+          if (candidate) {
+            candidate.address = originalPeer.address
+            candidate.port = originalPeer.port
+            // Reset ConnectionRetry since some component of the address changed
+            candidate.websocketRetry.successfulConnection()
+          }
           originalPeer.setWebSocketAddress(null, null)
         }
         peer.setWebSocketConnection(connection)

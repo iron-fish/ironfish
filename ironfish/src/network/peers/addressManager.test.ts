@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 jest.mock('ws')
 
-import { Assert } from '../../assert'
 import {
   getConnectedPeer,
   getConnectingPeer,
@@ -12,8 +11,6 @@ import {
   mockLocalPeer,
 } from '../testUtilities'
 import { AddressManager } from './addressManager'
-import { ConnectionRetry } from './connectionRetry'
-import { ConnectionDirection, ConnectionType } from './connections'
 import { Peer } from './peer'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
@@ -98,8 +95,8 @@ describe('AddressManager', () => {
       const addressManager = new AddressManager(mockHostsStore(), pm)
       addressManager.hostsStore = mockHostsStore()
       const { peer: connectedPeer } = getConnectedPeer(pm)
-      const { peer: connectingPeer } = getConnectingPeer(pm)
-      const disconnectedPeer = getDisconnectedPeer(pm)
+      getConnectingPeer(pm)
+      getDisconnectedPeer(pm)
       const address: PeerAddress = {
         address: connectedPeer.address,
         port: connectedPeer.port,
@@ -107,38 +104,8 @@ describe('AddressManager', () => {
         name: connectedPeer.name,
       }
 
-      await addressManager.save([connectedPeer, connectingPeer, disconnectedPeer])
+      await addressManager.save()
       expect(addressManager.priorConnectedPeerAddresses).toContainEqual(address)
-    })
-
-    it('should not persist peers that will never retry connecting', async () => {
-      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
-      const addressManager = new AddressManager(mockHostsStore(), pm)
-      addressManager.hostsStore = mockHostsStore()
-      expect(addressManager.priorConnectedPeerAddresses.length).toEqual(1)
-      const { peer: connectedPeer } = getConnectedPeer(pm)
-      const { peer: connectingPeer } = getConnectingPeer(pm)
-      const disconnectedPeer = getDisconnectedPeer(pm)
-
-      pm.peerCandidateMap.set(connectedPeer.getIdentityOrThrow(), {
-        address: null,
-        port: null,
-        neighbors: new Set(),
-        webRtcRetry: new ConnectionRetry(),
-        websocketRetry: new ConnectionRetry(),
-        localRequestedDisconnectUntil: null,
-        peerRequestedDisconnectUntil: null,
-      })
-      const retry = pm.getConnectionRetry(
-        connectedPeer.getIdentityOrThrow(),
-        ConnectionType.WebSocket,
-        ConnectionDirection.Outbound,
-      )
-      Assert.isNotNull(retry)
-      retry.neverRetryConnecting()
-
-      await addressManager.save([connectedPeer, connectingPeer, disconnectedPeer])
-      expect(addressManager.priorConnectedPeerAddresses.length).toEqual(0)
     })
   })
 })
