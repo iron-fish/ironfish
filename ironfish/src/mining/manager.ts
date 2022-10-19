@@ -28,10 +28,6 @@ export enum MINED_RESULT {
   SUCCESS = 'SUCCESS',
 }
 
-// Max block size = 2 MB
-// TODO: needs to be moved to consensus
-export const MAX_BLOCK_SIZE_BYTES = 2 * 1024 * 1024
-
 export class MiningManager {
   private readonly chain: Blockchain
   private readonly memPool: MemPool
@@ -117,7 +113,7 @@ export class MiningManager {
 
       // Stop adding transactions when the addition would cause the block to exceed the max size
       const transactionSize = getTransactionSize(transaction.serialize())
-      if (currBlockSize + transactionSize > MAX_BLOCK_SIZE_BYTES) {
+      if (currBlockSize + transactionSize > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
         break
       }
       currBlockSize += transactionSize

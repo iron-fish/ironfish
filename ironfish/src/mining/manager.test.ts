@@ -1,14 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import * as Serializers from '../network/utils/serializers'
+import { getTransactionSize } from '../network/utils/serializers'
 import {
   createNodeTest,
   useAccountFixture,
   useMinerBlockFixture,
   useTxFixture,
 } from '../testUtilities'
-import { MAX_BLOCK_SIZE_BYTES } from './manager'
 
 describe('Mining manager', () => {
   const nodeTest = createNodeTest()
@@ -73,7 +72,7 @@ describe('Mining manager', () => {
     jest.spyOn(node.memPool, 'orderedTransactions').mockImplementation(function* () {
       yield transaction
     })
-    jest.spyOn(Serializers, 'getTransactionSize').mockReturnValue(MAX_BLOCK_SIZE_BYTES)
+    chain.consensus.MAX_BLOCK_SIZE_BYTES = getTransactionSize(transaction.serialize())
 
     const results = (
       await miningManager.getNewBlockTransactions(chain.head.sequence + 1, account)
