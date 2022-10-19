@@ -160,8 +160,8 @@ export function getSignalingWebRtcPeer(
     localRequestedDisconnectUntil: null,
   })
   pm.peerCandidateMap.set(peerIdentity, {
-    address: brokeringPeer.address,
-    port: brokeringPeer.port,
+    address: peer.address,
+    port: peer.port,
     neighbors: new Set([brokeringPeerIdentity]),
     webRtcRetry: new ConnectionRetry(),
     websocketRetry: new ConnectionRetry(),
