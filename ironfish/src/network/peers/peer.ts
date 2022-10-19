@@ -12,7 +12,7 @@ import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
 import { displayNetworkMessageType, NetworkMessage } from '../messages/networkMessage'
 import { NetworkMessageType } from '../types'
-import { WebRtcConnection, WebSocketConnection } from './connections'
+import { NetworkError, WebRtcConnection, WebSocketConnection } from './connections'
 import { Connection, ConnectionType } from './connections/connection'
 
 export enum BAN_SCORE {
@@ -223,10 +223,27 @@ export class Peer {
 
   /**
    * Sets a WebRTC connection on the peer, moving it into the CONNECTING state if necessary.
-   * Returns the existing connection if the peer already has a WebRTC connection.
+   * Ignores the connection if the peer already has a WebRTC connection.
    * @param connection The WebRTC connection to set
    */
-  setWebRtcConnection(connection: WebRtcConnection): WebRtcConnection | null {
+  setWebRtcConnection(connection: WebRtcConnection): void {
+    if (this.state.type !== 'DISCONNECTED' && this.state.connections.webRtc) {
+      this.logger.warn('Already have a WebRTC connection, ignoring the new one')
+      return
+    }
+
+    const webSocket =
+      this.state.type !== 'DISCONNECTED' ? this.state.connections.webSocket : undefined
+
+    this.setState(this.computeStateFromConnections(webSocket, connection))
+  }
+
+  /**
+   * Replaces a WebRTC connection on the peer, moving it into the CONNECTING state if necessary.
+   * Closes the existing connection if the peer already has a WebRTC connection.
+   * @param connection The WebRTC connection to set
+   */
+  replaceWebRtcConnection(connection: WebRtcConnection): void {
     let existingConnection = null
     if (this.state.type !== 'DISCONNECTED' && this.state.connections.webRtc) {
       existingConnection = this.state.connections.webRtc
@@ -237,15 +254,36 @@ export class Peer {
 
     this.setState(this.computeStateFromConnections(webSocket, connection))
 
-    return existingConnection
+    if (existingConnection) {
+      const error = `Replacing duplicate WebRTC connection on ${this.displayName}`
+      this.logger.debug(ErrorUtils.renderError(new NetworkError(error)))
+      existingConnection.close(new NetworkError(error))
+    }
   }
 
   /**
    * Sets a WebSocket connection on the peer, moving it into the CONNECTING state if necessary.
-   * Returns the existing connection if the peer already has a WebSocket connection.
+   * Ignores the connection if the peer already has a WebSocket connection.
    * @param connection The WebSocket connection to set
    */
-  setWebSocketConnection(connection: WebSocketConnection): WebSocketConnection | null {
+  setWebSocketConnection(connection: WebSocketConnection): void {
+    if (this.state.type !== 'DISCONNECTED' && this.state.connections.webSocket) {
+      this.logger.warn('Already have a WebSocket connection, ignoring the new one')
+      return
+    }
+
+    const webRtc =
+      this.state.type !== 'DISCONNECTED' ? this.state.connections.webRtc : undefined
+
+    this.setState(this.computeStateFromConnections(connection, webRtc))
+  }
+
+  /**
+   * Replaces a WebSocket connection on the peer, moving it into the CONNECTING state if necessary.
+   * Closes the existing connection if the peer already has a WebSocket connection.
+   * @param connection The WebSocket connection to set
+   */
+  replaceWebSocketConnection(connection: WebSocketConnection): void {
     let existingConnection = null
     if (this.state.type !== 'DISCONNECTED' && this.state.connections.webSocket) {
       existingConnection = this.state.connections.webSocket
@@ -256,7 +294,11 @@ export class Peer {
 
     this.setState(this.computeStateFromConnections(connection, webRtc))
 
-    return existingConnection
+    if (existingConnection) {
+      const error = `Replacing duplicate WebSocket connection on ${this.displayName}`
+      this.logger.debug(ErrorUtils.renderError(new NetworkError(error)))
+      existingConnection.close(new NetworkError(error))
+    }
   }
 
   private computeStateFromConnections(

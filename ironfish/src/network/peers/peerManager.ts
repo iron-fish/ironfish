@@ -689,24 +689,12 @@ export class PeerManager {
     }
 
     if (peer.state.connections.webRtc?.state.type === 'CONNECTED') {
-      const existingConnection = existingPeer.setWebRtcConnection(peer.state.connections.webRtc)
-      if (existingConnection) {
-        const error = `Replacing duplicate WebRTC connection on ${existingPeer.displayName}`
-        this.logger.debug(ErrorUtils.renderError(new NetworkError(error)))
-        existingConnection.close(new NetworkError(error))
-      }
+      existingPeer.replaceWebRtcConnection(peer.state.connections.webRtc)
       peer.removeConnection(peer.state.connections.webRtc)
     }
 
     if (peer.state.connections.webSocket?.state.type === 'CONNECTED') {
-      const existingConnection = existingPeer.setWebSocketConnection(
-        peer.state.connections.webSocket,
-      )
-      if (existingConnection) {
-        const error = `Replacing duplicate WebSocket connection on ${existingPeer.displayName}`
-        this.logger.debug(ErrorUtils.renderError(new NetworkError(error)))
-        existingConnection.close(new NetworkError(error))
-      }
+      existingPeer.replaceWebSocketConnection(peer.state.connections.webSocket)
       peer.removeConnection(peer.state.connections.webSocket)
     }
 
