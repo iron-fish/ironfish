@@ -117,9 +117,11 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     content.peerNetwork.peers
   }`
 
-  const blockchainStatus = `${content.blockchain.head}, Since HEAD: ${TimeUtils.renderSpan(
-    Date.now() - content.blockchain.headTimestamp,
-  )} (${content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'})`
+  const blockchainStatus = `${content.blockchain.head.hash} (${
+    content.blockchain.head.sequence
+  }), Since HEAD: ${TimeUtils.renderSpan(Date.now() - content.blockchain.headTimestamp)} (${
+    content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'
+  })`
 
   let miningDirectorStatus = `${content.miningDirector.status.toUpperCase()} - ${
     content.miningDirector.miners
@@ -160,7 +162,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
 
   let accountStatus
   if (content.accounts.scanning === undefined) {
-    accountStatus = `${content.accounts.head}`
+    accountStatus = `${content.accounts.head.hash} (${content.accounts.head.sequence})`
   } else {
     accountStatus = `SCANNING - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
   }

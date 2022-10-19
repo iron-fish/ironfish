@@ -46,7 +46,10 @@ export type GetNodeStatusResponse = {
   }
   blockchain: {
     synced: boolean
-    head: string
+    head: {
+      hash: string
+      sequence: number
+    }
     headTimestamp: number
     newBlockSpeed: number
   }
@@ -84,7 +87,10 @@ export type GetNodeStatusResponse = {
       endSequence: number
       startedAt: number
     }
-    head: string
+    head: {
+      hash: string
+      sequence: number
+    }
   }
 }
 
@@ -141,7 +147,12 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
     blockchain: yup
       .object({
         synced: yup.boolean().defined(),
-        head: yup.string().defined(),
+        head: yup
+          .object({
+            hash: yup.string().defined(),
+            sequence: yup.number().defined(),
+          })
+          .defined(),
         headTimestamp: yup.number().defined(),
         newBlockSpeed: yup.number().defined(),
       })
@@ -187,7 +198,12 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
       .defined(),
     accounts: yup
       .object({
-        head: yup.string().defined(),
+        head: yup
+          .object({
+            hash: yup.string().defined(),
+            sequence: yup.number().defined(),
+          })
+          .defined(),
         scanning: yup
           .object({
             sequence: yup.number().defined(),
@@ -245,9 +261,10 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
     },
     blockchain: {
       synced: node.chain.synced,
-      head: `${node.chain.head.hash.toString('hex') || ''} (${
-        node.chain.head.sequence.toString() || ''
-      })`,
+      head: {
+        hash: node.chain.head.hash.toString('hex'),
+        sequence: node.chain.head.sequence,
+      },
       headTimestamp: node.chain.head.timestamp.getTime(),
       newBlockSpeed: node.metrics.chain_newBlock.avg,
     },
@@ -306,9 +323,10 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
     },
     accounts: {
       scanning: accountsScanning,
-      head: `${node.wallet.chainProcessor.hash?.toString('hex') || ''} (${
-        node.wallet.chainProcessor.sequence?.toString() || ''
-      })`,
+      head: {
+        hash: node.wallet.chainProcessor.hash?.toString('hex') ?? '',
+        sequence: node.wallet.chainProcessor.sequence ?? -1,
+      },
     },
   }
 
