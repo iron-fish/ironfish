@@ -4,7 +4,6 @@
 import { HostsStore } from '../../fileStores'
 import { ArrayUtils } from '../../utils'
 import { Peer } from '../peers/peer'
-import { ConnectionDirection, ConnectionType } from './connections'
 import { PeerAddress } from './peerAddress'
 import { PeerManager } from './peerManager'
 
@@ -71,21 +70,14 @@ export class AddressManager {
   }
 
   /**
-   * Persist all currently connected peers and unused peer addresses to disk
+   * Persist all currently connected peers to disk
    */
-  async save(peers: Peer[]): Promise<void> {
+  async save(): Promise<void> {
     // TODO: Ideally, we would like persist peers with whom we've
     // successfully established an outbound Websocket connection at
     // least once.
-    const inUsePeerAddresses: PeerAddress[] = peers.flatMap((peer) => {
-      if (
-        peer.state.type === 'CONNECTED' &&
-        !this.peerManager.getConnectionRetry(
-          peer.state.identity,
-          ConnectionType.WebSocket,
-          ConnectionDirection.Outbound,
-        )?.willNeverRetryConnecting
-      ) {
+    const inUsePeerAddresses: PeerAddress[] = this.peerManager.peers.flatMap((peer) => {
+      if (peer.state.type === 'CONNECTED') {
         return {
           address: peer.address,
           port: peer.port,
