@@ -68,13 +68,19 @@ describe('Mining manager', () => {
       chain.head.sequence + 2,
     )
 
-    jest.spyOn(node.memPool, 'orderedTransactions').mockImplementation(function* () {
-      yield transaction
-    })
-    chain.consensus.MAX_BLOCK_SIZE_BYTES = getTransactionSize(transaction.serialize()) - 1
+    node.memPool.acceptTransaction(transaction)
+    chain.consensus.MAX_BLOCK_SIZE_BYTES = 0
 
-    const results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1, 0))
+    let results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1, 0))
       .blockTransactions
     expect(results).toHaveLength(0)
+
+    // Expand max block size, should allow transaction to be added to block
+    chain.consensus.MAX_BLOCK_SIZE_BYTES = getTransactionSize(transaction.serialize())
+
+    results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1, 0))
+      .blockTransactions
+    expect(results).toHaveLength(1)
+    expect(results[0].hash().compare(transaction.hash())).toBe(0)
   })
 })
