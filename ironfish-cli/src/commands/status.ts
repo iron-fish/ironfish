@@ -85,12 +85,12 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
 
   if (content.blockSyncer.status === 'syncing') {
     blockSyncerStatusDetails.push(
-      `${content.blockSyncer.syncing.speed} blocks added/sec, ${content.blockSyncer.syncing.downloadSpeed} blocks downloaded/sec`,
+      `${content.blockSyncer.syncing.speed} blocks synced/sec, ${content.blockSyncer.syncing.downloadSpeed} blocks downloaded/sec`,
     )
   }
 
   if (avgTimeToAddBlock) {
-    blockSyncerStatusDetails.push(`avg time to add block ${avgTimeToAddBlock} ms`)
+    blockSyncerStatusDetails.push(`blocks added/sec ${(1000 / avgTimeToAddBlock).toFixed(2)}`)
   }
 
   if (!content.blockchain.synced) {
