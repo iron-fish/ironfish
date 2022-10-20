@@ -8,10 +8,10 @@ use super::{keys::SaplingKey, merkle_note::MerkleNote, note::Note};
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use group::Curve;
+use ironfish_zkp::proofs::Output;
+use ironfish_zkp::ValueCommitment;
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng, Rng};
-use zcash_primitives::sapling::ValueCommitment;
-use zcash_proofs::circuit::sapling::Output;
 
 use std::io;
 

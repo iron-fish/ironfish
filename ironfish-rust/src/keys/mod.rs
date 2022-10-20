@@ -11,13 +11,12 @@ use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use blake2s_simd::Params as Blake2s;
 use group::GroupEncoding;
-use jubjub::SubgroupPoint;
-use rand::prelude::*;
-// use rand_core::{OsRng, RngCore};
-use zcash_primitives::constants::{
+use ironfish_zkp::constants::{
     CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
 };
-use zcash_primitives::sapling::{ProofGenerationKey, ViewingKey};
+use ironfish_zkp::{ProofGenerationKey, ViewingKey};
+use jubjub::SubgroupPoint;
+use rand::prelude::*;
 
 use std::io;
 

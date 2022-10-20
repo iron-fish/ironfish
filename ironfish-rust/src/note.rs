@@ -11,9 +11,9 @@ use super::{
 use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::PrimeField;
+use ironfish_zkp::{Nullifier, Rseed, SaplingNote};
 use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
-use zcash_primitives::sapling::{Note as SaplingNote, Nullifier, Rseed};
 
 use std::{fmt, io, io::Read};
 
