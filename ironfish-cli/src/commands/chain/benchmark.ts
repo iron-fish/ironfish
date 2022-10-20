@@ -132,6 +132,7 @@ export default class Benchmark extends IronfishCommand {
     this.log(`Average ${blocks / (totalMs / 1000)} blocks/sec`)
     this.log(`Average ${totalTransactions / (totalMs / 1000)} transactions/sec`)
     this.log(`Average ${totalSpends / (totalMs / 1000)} spends/sec`)
+    this.log(`Average ${totalNotes / (totalMs / 1000)} notes/sec`)
 
     // Check that data is consistent
     const nodeNotesHash = await node.chain.notes.pastRoot(endingHeader.noteCommitment.size)
