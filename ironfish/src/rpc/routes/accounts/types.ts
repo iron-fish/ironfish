@@ -8,6 +8,8 @@ export type RpcAccountTransaction = {
   hash: string
   isMinersFee: boolean
   fee: string
+  blockHash?: string
+  blockSequence?: number
   notesCount: number
   spendsCount: number
   expirationSequence: number
@@ -27,6 +29,8 @@ export function serializeRpcAccountTransaction(
     hash: transaction.transaction.unsignedHash().toString('hex'),
     isMinersFee: transaction.transaction.isMinersFee(),
     fee: transaction.transaction.fee().toString(),
+    blockHash: transaction.blockHash?.toString('hex'),
+    blockSequence: transaction.sequence ?? undefined,
     notesCount: transaction.transaction.notesLength(),
     spendsCount: transaction.transaction.spendsLength(),
     expirationSequence: transaction.transaction.expirationSequence(),
