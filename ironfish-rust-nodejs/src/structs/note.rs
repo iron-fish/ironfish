@@ -7,6 +7,8 @@ use napi_derive::napi;
 
 use ironfish_rust::{note::Memo, Note, SaplingKey};
 
+use crate::to_napi_err;
+
 #[napi(js_name = "Note")]
 pub struct NativeNote {
     pub(crate) note: Note,
@@ -18,8 +20,7 @@ impl NativeNote {
     pub fn new(owner: String, value: BigInt, memo: String) -> Result<Self> {
         let value_u64 = value.get_u64().1;
 
-        let owner_address = ironfish_rust::PublicAddress::from_hex(&owner)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let owner_address = ironfish_rust::PublicAddress::from_hex(&owner).map_err(to_napi_err)?;
         Ok(NativeNote {
             note: Note::new(owner_address, value_u64, Memo::from(memo)),
         })
@@ -29,8 +30,7 @@ impl NativeNote {
     pub fn deserialize(js_bytes: JsBuffer) -> Result<Self> {
         let byte_vec = js_bytes.into_value()?;
 
-        let note =
-            Note::read(byte_vec.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
+        let note = Note::read(byte_vec.as_ref()).map_err(to_napi_err)?;
 
         Ok(NativeNote { note })
     }
@@ -38,9 +38,7 @@ impl NativeNote {
     #[napi]
     pub fn serialize(&self) -> Result<Buffer> {
         let mut arr: Vec<u8> = vec![];
-        self.note
-            .write(&mut arr)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        self.note.write(&mut arr).map_err(to_napi_err)?;
 
         Ok(Buffer::from(arr))
     }
@@ -69,8 +67,7 @@ impl NativeNote {
     pub fn nullifier(&self, owner_private_key: String, position: BigInt) -> Result<Buffer> {
         let position_u64 = position.get_u64().1;
 
-        let private_key = SaplingKey::from_hex(&owner_private_key)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let private_key = SaplingKey::from_hex(&owner_private_key).map_err(to_napi_err)?;
 
         let nullifier: &[u8] = &self.note.nullifier(&private_key, position_u64).0;
 

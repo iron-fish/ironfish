@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::errors::IronfishError;
+
 /// Helper functions to convert pairing parts to bytes
 ///
 /// The traits in the pairing and zcash_primitives libraries
 /// all have functions for serializing, but their interface
 /// can be a bit clunky if you're just working with bytearrays.
-use super::errors;
 use ff::PrimeField;
 use group::GroupEncoding;
 use jubjub::SubgroupPoint;
@@ -15,7 +16,7 @@ use jubjub::SubgroupPoint;
 use std::io;
 
 /// convert an edwards point of prime order to a bytes representation
-pub(crate) fn point_to_bytes(point: &SubgroupPoint) -> Result<[u8; 32], errors::SaplingKeyError> {
+pub(crate) fn point_to_bytes(point: &SubgroupPoint) -> Result<[u8; 32], IronfishError> {
     let mut result: [u8; 32] = [0; 32];
     result[..32].copy_from_slice(&point.to_bytes());
     Ok(result)
@@ -35,12 +36,10 @@ pub(crate) fn bytes_to_scalar<F: PrimeField>(bytes: &[u8; 32]) -> F {
         .expect("Should be able to construct prime field from hash bytes")
 }
 
-pub(crate) fn read_scalar<F: PrimeField, R: io::Read>(
-    mut reader: R,
-) -> Result<F, errors::SaplingKeyError> {
+pub(crate) fn read_scalar<F: PrimeField, R: io::Read>(mut reader: R) -> Result<F, IronfishError> {
     let mut fr_repr = F::Repr::default();
     reader.read_exact(fr_repr.as_mut())?;
-    let scalar = Option::from(F::from_repr(fr_repr)).ok_or(errors::SaplingKeyError::IOError)?;
+    let scalar = Option::from(F::from_repr(fr_repr)).ok_or(IronfishError::InvalidData)?;
     Ok(scalar)
 }
 
@@ -78,7 +77,7 @@ pub(crate) fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, ()> {
 }
 
 pub(crate) mod aead {
-    use crate::errors;
+    use crate::errors::IronfishError;
     use crypto::{
         aead::{AeadDecryptor, AeadEncryptor},
         chacha20poly1305::ChaCha20Poly1305,
@@ -111,7 +110,7 @@ pub(crate) mod aead {
         key: &[u8],
         ciphertext: &[u8],
         plaintext_output: &mut [u8],
-    ) -> Result<(), errors::NoteError> {
+    ) -> Result<(), IronfishError> {
         assert!(plaintext_output.len() == ciphertext.len() - MAC_SIZE);
         let mut decryptor = ChaCha20Poly1305::new(key, &[0; 8], &[0; 8]);
         let success = decryptor.decrypt(
@@ -123,7 +122,7 @@ pub(crate) mod aead {
         if success {
             Ok(())
         } else {
-            Err(errors::NoteError::KeyError)
+            Err(IronfishError::InvalidDecryptionKey)
         }
     }
 

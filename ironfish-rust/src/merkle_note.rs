@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::errors::IronfishError;
+
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
 use super::{
-    errors,
     keys::{shared_secret, IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey},
     note::{Note, ENCRYPTED_NOTE_SIZE},
     serializing::{aead, read_scalar},
@@ -105,44 +106,26 @@ impl MerkleNote {
     }
 
     /// Load a MerkleNote from the given stream
-    pub fn read<R: io::Read>(mut reader: R) -> io::Result<Self> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let value_commitment = {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;
-            let point = ExtendedPoint::from_bytes(&bytes);
-            if point.is_none().into() {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Unable to convert note commitment",
-                ));
-            }
-            point.unwrap()
+            Option::from(ExtendedPoint::from_bytes(&bytes)).ok_or(IronfishError::InvalidData)?
         };
 
-        let note_commitment = read_scalar(&mut reader).map_err(|_| {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Unable to convert note commitment",
-            )
-        })?;
+        let note_commitment = read_scalar(&mut reader)?;
 
         let ephemeral_public_key = {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;
-            let point = SubgroupPoint::from_bytes(&bytes);
-            if point.is_none().into() {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Unable to convert note commitment",
-                ));
-            }
-            point.unwrap()
+            Option::from(SubgroupPoint::from_bytes(&bytes)).ok_or(IronfishError::InvalidData)?
         };
 
         let mut encrypted_note = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         reader.read_exact(&mut encrypted_note[..])?;
         let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];
         reader.read_exact(&mut note_encryption_keys[..])?;
+
         Ok(MerkleNote {
             value_commitment,
             note_commitment,
@@ -152,12 +135,13 @@ impl MerkleNote {
         })
     }
 
-    pub fn write<W: io::Write>(&self, writer: &mut W) -> io::Result<()> {
+    pub fn write<W: io::Write>(&self, writer: &mut W) -> Result<(), IronfishError> {
         writer.write_all(&self.value_commitment.to_bytes())?;
         writer.write_all(self.note_commitment.to_repr().as_ref())?;
         writer.write_all(&self.ephemeral_public_key.to_bytes())?;
         writer.write_all(&self.encrypted_note[..])?;
         writer.write_all(&self.note_encryption_keys[..])?;
+
         Ok(())
     }
 
@@ -168,7 +152,7 @@ impl MerkleNote {
     pub fn decrypt_note_for_owner(
         &self,
         owner_view_key: &IncomingViewKey,
-    ) -> Result<Note, errors::NoteError> {
+    ) -> Result<Note, IronfishError> {
         let shared_secret = owner_view_key.shared_secret(&self.ephemeral_public_key);
         let note =
             Note::from_owner_encrypted(owner_view_key, &shared_secret, &self.encrypted_note)?;
@@ -179,7 +163,7 @@ impl MerkleNote {
     pub fn decrypt_note_for_spender(
         &self,
         spender_key: &OutgoingViewKey,
-    ) -> Result<Note, errors::NoteError> {
+    ) -> Result<Note, IronfishError> {
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key,
             &self.value_commitment,

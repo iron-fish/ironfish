@@ -5,14 +5,40 @@
 use std::error::Error;
 use std::fmt;
 use std::io;
+use std::string;
 
-use bellman::SynthesisError;
-
-/// Errors not tied to any one specific task
+/// Error type to handle all errors within the code and dependency-raised
+/// errors. This serves 2 purposes. The first is to keep a consistent error type
+/// in the code to reduce the cognitive load needed for using Result and Error
+/// types. The second is to give a singular type to convert into NAPI errors to
+/// be raised on the Javascript side.
 #[derive(Debug)]
 pub enum IronfishError {
+    BellmanSynthesis(bellman::SynthesisError),
+    BellmanVerification(bellman::VerificationError),
+    CryptoBox(crypto_box::aead::Error),
+    IllegalValue,
+    InconsistentWitness,
+    InvalidBalance,
+    InvalidCommitment,
+    InvalidData,
+    InvalidDecryptionKey,
+    InvalidDiversificationPoint,
+    InvalidLanguageEncoding,
+    InvalidMinersFeeTransaction,
     InvalidNonceLength,
+    InvalidPaymentAddress,
+    InvalidPublicAddress,
+    InvalidSigningKey,
+    InvalidViewingKey,
+    InvalidWord,
+    Io(io::Error),
+    IsSmallOrder,
+    Utf8(string::FromUtf8Error),
+    VerificationFailed,
 }
+
+impl Error for IronfishError {}
 
 impl fmt::Display for IronfishError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -20,133 +46,32 @@ impl fmt::Display for IronfishError {
     }
 }
 
-impl Error for IronfishError {}
-
-/// Error raised if constructing a sapling key fails for any reason.
-#[derive(Debug)]
-pub enum SaplingKeyError {
-    IOError,
-    FieldDecodingError,
-    InvalidViewingKey,
-    InvalidPaymentAddress,
-    InvalidPublicAddress,
-    DiversificationError,
-    InvalidLanguageEncoding,
-    InvalidWord,
-}
-
-impl fmt::Display for SaplingKeyError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+impl From<io::Error> for IronfishError {
+    fn from(e: io::Error) -> IronfishError {
+        IronfishError::Io(e)
     }
 }
 
-impl Error for SaplingKeyError {}
-
-impl From<io::Error> for SaplingKeyError {
-    fn from(_e: io::Error) -> SaplingKeyError {
-        SaplingKeyError::IOError
+impl From<crypto_box::aead::Error> for IronfishError {
+    fn from(e: crypto_box::aead::Error) -> IronfishError {
+        IronfishError::CryptoBox(e)
     }
 }
 
-/// Error raised if proving fails for some reason
-#[derive(Debug)]
-pub enum SaplingProofError {
-    SpendCircuitProofError(String),
-    ReceiptCircuitProofError,
-    SaplingKeyError,
-    IOError,
-    SigningError,
-    VerificationFailed,
-    InconsistentWitness,
-}
-
-impl fmt::Display for SaplingProofError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+impl From<string::FromUtf8Error> for IronfishError {
+    fn from(e: string::FromUtf8Error) -> IronfishError {
+        IronfishError::Utf8(e)
     }
 }
 
-impl Error for SaplingProofError {}
-
-impl From<SaplingKeyError> for SaplingProofError {
-    fn from(_e: SaplingKeyError) -> SaplingProofError {
-        SaplingProofError::SaplingKeyError
+impl From<bellman::VerificationError> for IronfishError {
+    fn from(e: bellman::VerificationError) -> IronfishError {
+        IronfishError::BellmanVerification(e)
     }
 }
 
-impl From<SynthesisError> for SaplingProofError {
-    fn from(e: SynthesisError) -> SaplingProofError {
-        SaplingProofError::SpendCircuitProofError(e.to_string())
-    }
-}
-
-impl From<io::Error> for SaplingProofError {
-    fn from(_e: io::Error) -> SaplingProofError {
-        SaplingProofError::IOError
-    }
-}
-
-/// Errors raised when constructing a transaction
-#[derive(Debug)]
-pub enum TransactionError {
-    InvalidBalanceError,
-    IllegalValueError,
-    SigningError,
-    ProvingError,
-    IoError(io::Error),
-    VerificationFailed,
-}
-
-impl fmt::Display for TransactionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl Error for TransactionError {}
-
-impl From<SaplingProofError> for TransactionError {
-    fn from(e: SaplingProofError) -> TransactionError {
-        match e {
-            SaplingProofError::SigningError => TransactionError::SigningError,
-            SaplingProofError::VerificationFailed => TransactionError::VerificationFailed,
-            _ => TransactionError::ProvingError,
-        }
-    }
-}
-
-impl From<io::Error> for TransactionError {
-    fn from(e: io::Error) -> TransactionError {
-        TransactionError::IoError(e)
-    }
-}
-
-/// Errors raised when constructing a note
-#[derive(Debug)]
-pub enum NoteError {
-    IoError,
-    RandomnessError,
-    KeyError,
-    InvalidCommitment,
-}
-
-impl fmt::Display for NoteError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl Error for NoteError {}
-
-impl From<io::Error> for NoteError {
-    fn from(_e: io::Error) -> NoteError {
-        NoteError::IoError
-    }
-}
-
-impl From<SaplingKeyError> for NoteError {
-    fn from(_e: SaplingKeyError) -> NoteError {
-        NoteError::KeyError
+impl From<bellman::SynthesisError> for IronfishError {
+    fn from(e: bellman::SynthesisError) -> IronfishError {
+        IronfishError::BellmanSynthesis(e)
     }
 }

@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::sapling_bls12::SAPLING;
+use crate::{errors::IronfishError, sapling_bls12::SAPLING};
 
 use super::{
-    errors::{SaplingProofError, TransactionError},
     keys::{PublicAddress, SaplingKey},
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::{Memo, Note},
@@ -95,7 +94,7 @@ impl ProposedTransaction {
         spender_key: SaplingKey,
         note: &Note,
         witness: &dyn WitnessTrait,
-    ) -> Result<(), SaplingProofError> {
+    ) -> Result<(), IronfishError> {
         let proof = SpendParams::new(spender_key, note, witness)?;
         self.add_spend_proof(proof, note.value());
         Ok(())
@@ -115,11 +114,7 @@ impl ProposedTransaction {
 
     /// Create a proof of a new note owned by the recipient in this
     /// transaction.
-    pub fn receive(
-        &mut self,
-        spender_key: &SaplingKey,
-        note: &Note,
-    ) -> Result<(), SaplingProofError> {
+    pub fn receive(&mut self, spender_key: &SaplingKey, note: &Note) -> Result<(), IronfishError> {
         let proof = ReceiptParams::new(spender_key, note)?;
 
         self.increment_binding_signature_key(&proof.value_commitment_randomness, true);
@@ -146,11 +141,11 @@ impl ProposedTransaction {
         spender_key: &SaplingKey,
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
-    ) -> Result<Transaction, TransactionError> {
+    ) -> Result<Transaction, IronfishError> {
         let change_amount = self.transaction_fee - intended_transaction_fee as i64;
 
         if change_amount < 0 {
-            return Err(TransactionError::InvalidBalanceError);
+            return Err(IronfishError::InvalidBalance);
         }
         if change_amount > 0 {
             // TODO: The public address generated from the spender_key if
@@ -175,9 +170,9 @@ impl ProposedTransaction {
     /// or change and therefore have a negative transaction fee. In normal use,
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
-    pub fn post_miners_fee(&mut self) -> Result<Transaction, TransactionError> {
+    pub fn post_miners_fee(&mut self) -> Result<Transaction, IronfishError> {
         if !self.spends.is_empty() || self.receipts.len() != 1 {
-            return Err(TransactionError::InvalidBalanceError);
+            return Err(IronfishError::InvalidMinersFeeTransaction);
         }
         // Ensure the merkle note has an identifiable encryption key
         self.receipts
@@ -190,7 +185,7 @@ impl ProposedTransaction {
     /// Super special case for generating an illegal transaction for the genesis block.
     /// Don't bother using this anywhere else, it won't pass verification.
     #[deprecated(note = "Use only in genesis block generation")]
-    pub fn post_genesis_transaction(&self) -> Result<Transaction, TransactionError> {
+    pub fn post_genesis_transaction(&self) -> Result<Transaction, IronfishError> {
         self._partial_post()
     }
 
@@ -205,7 +200,7 @@ impl ProposedTransaction {
     }
 
     // post transaction without much validation.
-    fn _partial_post(&self) -> Result<Transaction, TransactionError> {
+    fn _partial_post(&self) -> Result<Transaction, IronfishError> {
         self.check_value_consistency()?;
         let data_to_sign = self.transaction_signature_hash();
         let binding_signature = self.binding_signature()?;
@@ -267,7 +262,7 @@ impl ProposedTransaction {
     /// Note: There is some duplication of effort between this function and
     /// binding_signature below. I find the separation of concerns easier
     /// to read, but it's an easy win if we see a performance bottleneck here.
-    fn check_value_consistency(&self) -> Result<(), TransactionError> {
+    fn check_value_consistency(&self) -> Result<(), IronfishError> {
         let private_key = PrivateKey(self.binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
@@ -278,7 +273,7 @@ impl ProposedTransaction {
         calculated_public_key += value_balance_point;
 
         if calculated_public_key != public_key.0 {
-            Err(TransactionError::InvalidBalanceError)
+            Err(IronfishError::InvalidBalance)
         } else {
             Ok(())
         }
@@ -288,7 +283,7 @@ impl ProposedTransaction {
     /// transaction and uses it as a private key to sign all the values
     /// that were calculated as part of the transaction. This function
     /// performs the calculation and sets the value on this struct.
-    fn binding_signature(&self) -> Result<Signature, TransactionError> {
+    fn binding_signature(&self) -> Result<Signature, IronfishError> {
         let mut data_to_be_signed = [0u8; 64];
         let private_key = PrivateKey(self.binding_signature_key);
         let public_key =
@@ -364,7 +359,7 @@ impl Transaction {
     /// Load a Transaction from a Read implementation (e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized transaction
     /// for verifying.
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, TransactionError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_receipts = reader.read_u64::<LittleEndian>()?;
         let transaction_fee = reader.read_i64::<LittleEndian>()?;
@@ -390,7 +385,7 @@ impl Transaction {
 
     /// Store the bytes of this transaction in the given writer. This is used
     /// to serialize transactions to file or network
-    pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.receipts.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.transaction_fee)?;
@@ -413,7 +408,7 @@ impl Transaction {
     ///  *  The entire transaction was signed with a binding signature
     ///     containing those proofs (and only those proofs)
     ///
-    pub fn verify(&self) -> Result<(), TransactionError> {
+    pub fn verify(&self) -> Result<(), IronfishError> {
         batch_verify_transactions(iter::once(self))
     }
 
@@ -490,7 +485,7 @@ impl Transaction {
     fn verify_binding_signature(
         &self,
         binding_verification_key: &ExtendedPoint,
-    ) -> Result<(), TransactionError> {
+    ) -> Result<(), IronfishError> {
         let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;
         value_balance_point = -value_balance_point;
 
@@ -507,7 +502,7 @@ impl Transaction {
             &self.binding_signature,
             VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ) {
-            Err(TransactionError::VerificationFailed)
+            Err(IronfishError::VerificationFailed)
         } else {
             Ok(())
         }
@@ -516,13 +511,13 @@ impl Transaction {
 
 // Convert the integer value to a point on the Jubjub curve, accounting for
 // negative values
-fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError> {
+fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
     // Can only construct edwards point on positive numbers, so need to
     // add and possibly negate later
     let is_negative = value.is_negative();
     let abs = match value.checked_abs() {
         Some(a) => a as u64,
-        None => return Err(TransactionError::IllegalValueError),
+        None => return Err(IronfishError::IllegalValue),
     };
 
     let mut value_balance = VALUE_COMMITMENT_VALUE_GENERATOR * jubjub::Fr::from(abs);
@@ -536,7 +531,7 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, TransactionError>
 
 pub fn batch_verify_transactions<'a>(
     transactions: impl IntoIterator<Item = &'a Transaction>,
-) -> Result<(), TransactionError> {
+) -> Result<(), IronfishError> {
     let mut spend_verifier = Verifier::<Bls12>::new();
     let mut receipt_verifier = Verifier::<Bls12>::new();
 
@@ -570,19 +565,9 @@ pub fn batch_verify_transactions<'a>(
         transaction.verify_binding_signature(&binding_verification_key)?;
     }
 
-    if spend_verifier
-        .verify(&mut OsRng, &SAPLING.spend_params.vk)
-        .is_err()
-    {
-        return Err(SaplingProofError::VerificationFailed.into());
-    }
+    spend_verifier.verify(&mut OsRng, &SAPLING.spend_params.vk)?;
 
-    if receipt_verifier
-        .verify(&mut OsRng, &SAPLING.receipt_params.vk)
-        .is_err()
-    {
-        return Err(SaplingProofError::VerificationFailed.into());
-    };
+    receipt_verifier.verify(&mut OsRng, &SAPLING.receipt_params.vk)?;
 
     Ok(())
 }

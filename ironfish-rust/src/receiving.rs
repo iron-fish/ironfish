@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::sapling_bls12::SAPLING;
+use crate::{errors::IronfishError, sapling_bls12::SAPLING};
 
-use super::{errors, keys::SaplingKey, merkle_note::MerkleNote, note::Note};
+use super::{keys::SaplingKey, merkle_note::MerkleNote, note::Note};
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use group::Curve;
@@ -35,7 +35,7 @@ impl ReceiptParams {
     pub(crate) fn new(
         spender_key: &SaplingKey,
         note: &Note,
-    ) -> Result<ReceiptParams, errors::SaplingProofError> {
+    ) -> Result<ReceiptParams, IronfishError> {
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
@@ -76,7 +76,7 @@ impl ReceiptParams {
     ///
     /// Verifies the proof before returning to prevent posting broken
     /// transactions.
-    pub fn post(&self) -> Result<ReceiptProof, errors::SaplingProofError> {
+    pub fn post(&self) -> Result<ReceiptProof, IronfishError> {
         let receipt_proof = ReceiptProof {
             proof: self.proof.clone(),
             merkle_note: self.merkle_note.clone(),
@@ -91,7 +91,10 @@ impl ReceiptParams {
     /// The signature is used by the transaction to calculate the signature
     /// hash. Having this data essentially binds the note to the transaction,
     /// proving that it is actually part of that transaction.
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    pub(crate) fn serialize_signature_fields<W: io::Write>(
+        &self,
+        mut writer: W,
+    ) -> Result<(), IronfishError> {
         self.proof.write(&mut writer)?;
         self.merkle_note.write(&mut writer)?;
         Ok(())
@@ -116,7 +119,7 @@ impl ReceiptProof {
     /// Load a ReceiptProof from a Read implementation( e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingProofError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
         let merkle_note = MerkleNote::read(&mut reader)?;
 
@@ -124,32 +127,31 @@ impl ReceiptProof {
     }
 
     /// Stow the bytes of this ReceiptProof in the given writer.
-    pub fn write<W: io::Write>(&self, writer: W) -> io::Result<()> {
+    pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
         self.serialize_signature_fields(writer)
     }
 
     /// Verify that the proof demonstrates knowledge that a note exists with
     /// the value_commitment, public_key, and note_commitment on this proof.
-    pub fn verify_proof(&self) -> Result<(), errors::SaplingProofError> {
+    pub fn verify_proof(&self) -> Result<(), IronfishError> {
         self.verify_value_commitment()?;
 
-        match groth16::verify_proof(
+        groth16::verify_proof(
             &SAPLING.receipt_verifying_key,
             &self.proof,
             &self.public_inputs()[..],
-        ) {
-            Ok(()) => Ok(()),
-            _ => Err(errors::SaplingProofError::VerificationFailed),
-        }
+        )?;
+
+        Ok(())
     }
 
-    pub fn verify_value_commitment(&self) -> Result<(), errors::SaplingProofError> {
+    pub fn verify_value_commitment(&self) -> Result<(), IronfishError> {
         if self.merkle_note.value_commitment.is_small_order().into()
             || ExtendedPoint::from(self.merkle_note.ephemeral_public_key)
                 .is_small_order()
                 .into()
         {
-            return Err(errors::SaplingProofError::VerificationFailed);
+            return Err(IronfishError::IsSmallOrder);
         }
 
         Ok(())
@@ -183,9 +185,13 @@ impl ReceiptProof {
     /// The signature is used by the transaction to calculate the signature
     /// hash. Having this data essentially binds the note to the transaction,
     /// proving that it is actually part of that transaction.
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    pub(crate) fn serialize_signature_fields<W: io::Write>(
+        &self,
+        mut writer: W,
+    ) -> Result<(), IronfishError> {
         self.proof.write(&mut writer)?;
         self.merkle_note.write(&mut writer)?;
+
         Ok(())
     }
 }
