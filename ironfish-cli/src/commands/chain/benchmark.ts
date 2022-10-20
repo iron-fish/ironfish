@@ -105,10 +105,10 @@ export default class Benchmark extends IronfishCommand {
       await tempNode.chain.addBlock(block)
       totalMs += BenchUtils.end(startTime)
       totalSpends += block.transactions.reduce((count, tx) => {
-        return count + [...tx.spends()].length
+        return count + tx.spendsLength()
       }, 0)
       totalNotes += block.transactions.reduce((count, tx) => {
-        return count + [...tx.notes()].length
+        return count + tx.notesLength()
       }, 0)
       totalTransactions += block.transactions.length
 
