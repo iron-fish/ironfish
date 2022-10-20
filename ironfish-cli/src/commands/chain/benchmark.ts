@@ -166,14 +166,14 @@ function renderStatus(
   totalTransactions: number,
   totalSpends: number,
   totalNotes: number,
-  sequence: number | null = null,
+  sequence?: number,
 ): string {
   return [
     `Current Block: ${sequence ? sequence.toString() : '-'}`,
     `Blocks Processed: ${totalBlocks.toString()}`,
-    `Blocks/sec: ${totalBlocks / (totalMs / 1000)} `,
-    `Transactions/sec ${totalTransactions / (totalMs / 1000)} `,
-    `Spends/sec: ${totalSpends / (totalMs / 1000)} `,
-    `Notes/sec: ${totalNotes / (totalMs / 1000)} `,
+    `Blocks/sec: ${totalMs ? (totalBlocks / (totalMs / 1000)).toFixed(2) : 0} `,
+    `Transactions/sec ${totalMs ? (totalTransactions / (totalMs / 1000)).toFixed(2) : 0} `,
+    `Spends/sec: ${totalMs ? (totalSpends / (totalMs / 1000)).toFixed(2) : 0} `,
+    `Notes/sec: ${totalMs ? (totalNotes / (totalMs / 1000)).toFixed(2) : 0} `,
   ].join('\n')
 }
