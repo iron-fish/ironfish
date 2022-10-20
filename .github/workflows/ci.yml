@@ -48,7 +48,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: nodejs
-          workspaces: ironfish-rust-nodejs
 
       - name: Install packages
         run: yarn --non-interactive --frozen-lockfile
@@ -78,7 +77,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: nodejs
-          workspaces: ironfish-rust-nodejs
 
       - name: Install packages
         run: yarn --non-interactive --frozen-lockfile

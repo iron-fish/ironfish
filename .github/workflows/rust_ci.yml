@@ -3,6 +3,7 @@ on:
     paths:
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
+      - "ironfish-rust-zkp/**"
       - "rust-toolchain"
   push:
     branches:
@@ -10,6 +11,7 @@ on:
     paths:
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
+      - "ironfish-rust-zkp/**"
       - "rust-toolchain"
 
 name: Rust CI
@@ -28,7 +30,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: base
-          workspaces: ironfish-rust
 
       # Build & Run test & Collect Code coverage
       - name: Run cargo-tarpaulin on ironfish-rust
@@ -74,7 +75,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: nodejs
-          workspaces: ironfish-rust-nodejs
 
       # Build & Run test & Collect Code coverage
       - name: Run cargo-tarpaulin on ironfish-rust-nodejs
@@ -110,16 +110,15 @@ jobs:
     name: ironfish-zkp
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
           components: rustfmt, clippy
 
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
-          sharedKey: base
-          working-directory: ironfish-zkp
+          shared-key: zkp
 
       # Build & Run test & Collect Code coverage
       - name: Run cargo-tarpaulin on ironfish-zkp
