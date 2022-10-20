@@ -3,7 +3,7 @@ on:
     paths:
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
-      - "ironfish-rust-zkp/**"
+      - "ironfish-zkp/**"
       - "rust-toolchain"
   push:
     branches:
@@ -11,7 +11,7 @@ on:
     paths:
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
-      - "ironfish-rust-zkp/**"
+      - "ironfish-zkp/**"
       - "rust-toolchain"
 
 name: Rust CI
