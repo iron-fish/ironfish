@@ -88,13 +88,23 @@ export default class Benchmark extends IronfishCommand {
     }
 
     let totalMs = 0
+    let totalBlocks = 0
+    let totalTransactions = 0
     let totalSpends = 0
     let totalNotes = 0
-    let totalTransactions = 0
+    let status = renderStatus(0, 0, 0, 0, 0)
 
     const screen = blessed.screen({ smartCSR: true, fullUnicode: true })
     const statusText = blessed.text()
     screen.append(statusText)
+
+    statusText.setContent(status)
+    screen.render()
+
+    const screenInterval = setInterval(() => {
+      statusText.setContent(status)
+      screen.render()
+    }, 1000)
 
     for await (const currentHeader of node.chain.iterateTo(startingHeader, endingHeader)) {
       const block = await node.chain.getBlock(currentHeader)
@@ -103,32 +113,26 @@ export default class Benchmark extends IronfishCommand {
       }
       const startTime = BenchUtils.start()
       await tempNode.chain.addBlock(block)
+
       totalMs += BenchUtils.end(startTime)
+      totalBlocks += 1
       totalSpends += block.transactions.reduce((count, tx) => count + tx.spendsLength(), 0)
       totalNotes += block.transactions.reduce((count, tx) => count + tx.notesLength(), 0)
       totalTransactions += block.transactions.length
-
-      if (block.header.sequence % 5 === 0) {
-        const status = [
-          `Block: ${block.header.sequence.toString()}`,
-          `Blocks/sec: ${blocks / (totalMs / 1000)} `,
-          `Transactions/sec ${totalTransactions / (totalMs / 1000)} `,
-          `Spends/sec: ${totalSpends / (totalMs / 1000)} `,
-          `Notes/sec: ${totalNotes / (totalMs / 1000)} `,
-        ].join('\n')
-
-        statusText.setContent(status)
-        screen.render()
-      }
+      status = renderStatus(
+        totalMs,
+        totalBlocks,
+        totalTransactions,
+        totalSpends,
+        totalNotes,
+        block.header.sequence,
+      )
     }
 
+    clearInterval(screenInterval)
     screen.destroy()
 
-    this.log(`Total time to import ${blocks} blocks: ${TimeUtils.renderSpan(totalMs)}`)
-    this.log(`Average ${blocks / (totalMs / 1000)} blocks/sec`)
-    this.log(`Average ${totalTransactions / (totalMs / 1000)} transactions/sec`)
-    this.log(`Average ${totalSpends / (totalMs / 1000)} spends/sec`)
-    this.log(`Average ${totalNotes / (totalMs / 1000)} notes/sec`)
+    this.log('\n' + status)
 
     // Check that data is consistent
     const nodeNotesHash = await node.chain.notes.pastRoot(endingHeader.noteCommitment.size)
@@ -148,7 +152,28 @@ export default class Benchmark extends IronfishCommand {
     // Clean up the temporary node
     await tempNode.shutdown()
     if (!flags.targetdir) {
+      this.log(`\nTemporary directory ${targetDirectory} deleted`)
       await fs.rm(targetDirectory, { recursive: true })
+    } else {
+      this.log(`\n${blocks} blocks added to ${targetDirectory}`)
     }
   }
+}
+
+function renderStatus(
+  totalMs: number,
+  totalBlocks: number,
+  totalTransactions: number,
+  totalSpends: number,
+  totalNotes: number,
+  sequence: number | null = null,
+): string {
+  return [
+    `Current Block: ${sequence ? sequence.toString() : '-'}`,
+    `Blocks Processed: ${totalBlocks.toString()}`,
+    `Blocks/sec: ${totalBlocks / (totalMs / 1000)} `,
+    `Transactions/sec ${totalTransactions / (totalMs / 1000)} `,
+    `Spends/sec: ${totalSpends / (totalMs / 1000)} `,
+    `Notes/sec: ${totalNotes / (totalMs / 1000)} `,
+  ].join('\n')
 }
