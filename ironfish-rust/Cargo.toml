@@ -1,6 +1,6 @@
 [package]
 authors = ["Iron Fish <contact@ironfish.network> (https://ironfish.network)"]
-edition = "2018"
+edition = "2021"
 license = "MPL-2.0"
 name = "ironfish_rust"
 version = "0.1.0"
