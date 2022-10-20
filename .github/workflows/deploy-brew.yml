@@ -14,7 +14,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: nodejs
-          workspaces: ironfish-rust-nodejs
 
       - name: Cache Ironfish CLI Build
         id: cache-ironfish-cli-build

@@ -24,7 +24,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: nodejs
-          workspaces: ironfish-rust-nodejs
 
       - name: Insert Git hash into ironfish-cli/package.json as gitHash
         run: |
