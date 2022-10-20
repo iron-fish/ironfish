@@ -79,6 +79,11 @@ export class ConsensusParameters {
    */
   V1_DOUBLE_SPEND = 0
 
+  /**
+   * Max block size = 2 MB
+   */
+  MAX_BLOCK_SIZE_BYTES = 2000000
+
   isActive(upgrade: number, sequence: number): boolean {
     return sequence >= upgrade
   }

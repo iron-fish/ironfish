@@ -100,6 +100,7 @@ describe('Mining manager', () => {
 
     const { blockTransactions } = await nodeA.miningManager.getNewBlockTransactions(
       nodeA.chain.head.sequence + 1,
+      0,
     )
     expect(blockTransactions).toHaveLength(0)
   })
