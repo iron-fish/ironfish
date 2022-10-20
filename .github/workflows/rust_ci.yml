@@ -5,6 +5,7 @@ on:
       - "ironfish-rust-nodejs/**"
       - "ironfish-zkp/**"
       - "rust-toolchain"
+      - ".github/workflows/rust_ci.yml"
   push:
     branches:
       - master
@@ -13,6 +14,7 @@ on:
       - "ironfish-rust-nodejs/**"
       - "ironfish-zkp/**"
       - "rust-toolchain"
+      - ".github/workflows/rust_ci.yml"
 
 name: Rust CI
 
