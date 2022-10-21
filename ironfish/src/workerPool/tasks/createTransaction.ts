@@ -216,7 +216,6 @@ export class CreateTransactionTask extends WorkerTask {
     for (const spend of spends) {
       const note = Note.deserialize(spend.note)
       transaction.spend(
-        spendKey,
         note,
         new Witness(spend.treeSize, spend.rootHash, spend.authPath, noteHasher),
       )

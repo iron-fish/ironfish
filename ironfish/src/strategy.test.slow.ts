@@ -118,7 +118,7 @@ describe('Demonstrate the Sapling API', () => {
       if (witness === null) {
         throw new Error('Witness should not be null')
       }
-      const result = transaction.spend(spenderKey.spending_key, minerNote, witness)
+      const result = transaction.spend(minerNote, witness)
       expect(result).toEqual('')
     })
 
@@ -254,7 +254,7 @@ describe('Demonstrate the Sapling API', () => {
       // The `transaction.spend` method is used to spend the note. The owner needs to sign the transaction
       // with their private key; this is how the note gets authorized to spend.
       const note = receiverNote.takeReference()
-      expect(transaction.spend(receiverKey.spending_key, note, witness)).toBe('')
+      expect(transaction.spend(note, witness)).toBe('')
       receiverNote.returnReference()
 
       const noteForSpender = new NativeNote(spenderKey.public_address, BigInt(10), '')

@@ -94,13 +94,8 @@ impl ProposedTransaction {
     }
 
     /// Spend the note owned by spender_key at the given witness location.
-    pub fn spend(
-        &mut self,
-        spender_key: SaplingKey,
-        note: &Note,
-        witness: &dyn WitnessTrait,
-    ) -> Result<(), IronfishError> {
-        let proof = SpendParams::new(spender_key, note, witness)?;
+    pub fn spend(&mut self, note: &Note, witness: &dyn WitnessTrait) -> Result<(), IronfishError> {
+        let proof = SpendParams::new(self.spender_key.clone(), note, witness)?;
         self.add_spend_proof(proof, note.value());
         Ok(())
     }

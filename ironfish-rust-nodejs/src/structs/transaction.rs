@@ -162,21 +162,14 @@ impl NativeTransaction {
 
     /// Spend the note owned by spender_hex_key at the given witness location.
     #[napi]
-    pub fn spend(
-        &mut self,
-        env: Env,
-        spender_hex_key: String,
-        note: &NativeNote,
-        witness: Object,
-    ) -> Result<String> {
+    pub fn spend(&mut self, env: Env, note: &NativeNote, witness: Object) -> Result<String> {
         let w = JsWitness {
             cx: RefCell::new(env),
             obj: witness,
         };
 
-        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
         self.transaction
-            .spend(spender_key, &note.note, &w)
+            .spend(&note.note, &w)
             .map_err(to_napi_err)?;
 
         Ok("".to_string())

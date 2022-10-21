@@ -114,7 +114,7 @@ export async function makeGenesisBlock(
   logger.info('Generating a transaction for distributing allocations...')
   const transaction = new NativeTransaction(genesisKey.spending_key)
   logger.info(`  Generating a spend for ${allocationSum} coins...`)
-  transaction.spend(genesisKey.spending_key, genesisNote, witness)
+  transaction.spend(genesisNote, witness)
 
   for (const alloc of info.allocations) {
     logger.info(

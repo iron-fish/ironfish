@@ -23,9 +23,9 @@ fn test_transaction() {
     let witness = make_fake_witness(&in_note);
     let _witness2 = make_fake_witness(&in_note2);
 
-    let mut transaction = ProposedTransaction::new(spender_key.clone());
+    let mut transaction = ProposedTransaction::new(spender_key);
     transaction
-        .spend(spender_key, &in_note, &witness)
+        .spend(&in_note, &witness)
         .expect("should be able to prove spend");
     assert_eq!(transaction.spends.len(), 1);
     transaction
@@ -115,13 +115,13 @@ fn test_transaction_signature() {
     let spender_address = spender_key.generate_public_address();
     let receiver_address = receiver_key.generate_public_address();
 
-    let mut transaction = ProposedTransaction::new(spender_key.clone());
+    let mut transaction = ProposedTransaction::new(spender_key);
     let in_note = Note::new(spender_address, 42, Memo::default());
     let out_note = Note::new(receiver_address, 41, Memo::default());
     let witness = make_fake_witness(&in_note);
 
     transaction
-        .spend(spender_key, &in_note, &witness)
+        .spend(&in_note, &witness)
         .expect("should be able to spend note");
 
     transaction

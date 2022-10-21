@@ -105,7 +105,7 @@ export class Transaction {
   /** Create a proof of a new note owned by the recipient in this transaction. */
   receive(note: Note): string
   /** Spend the note owned by spender_hex_key at the given witness location. */
-  spend(spenderHexKey: string, note: Note, witness: object): string
+  spend(note: Note, witness: object): string
   /**
    * Special case for posting a miners fee transaction. Miner fee transactions
    * are unique in that they generate currency. They do not have any spends
