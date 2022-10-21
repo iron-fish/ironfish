@@ -257,9 +257,10 @@ mod test {
     };
 
     use bls12_381::Scalar;
+    use ff::Field;
     use ironfish_zkp::ValueCommitment;
     use rand::prelude::*;
-    use rand::{thread_rng, Rng};
+    use rand::thread_rng;
 
     #[test]
     fn test_view_key_encryption() {
@@ -268,10 +269,7 @@ mod test {
         let note = Note::new(receiver_key.generate_public_address(), 42, Memo::default());
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-
-        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
+        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
 
         let value_commitment = ValueCommitment {
             value: note.value,
@@ -294,10 +292,7 @@ mod test {
         let note = Note::new(spender_key.generate_public_address(), 42, Memo::default());
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-
-        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
+        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
 
         let value_commitment = ValueCommitment {
             value: note.value,

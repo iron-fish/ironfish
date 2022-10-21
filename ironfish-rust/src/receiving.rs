@@ -7,11 +7,12 @@ use crate::{errors::IronfishError, sapling_bls12::SAPLING};
 use super::{keys::SaplingKey, merkle_note::MerkleNote, note::Note};
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
+use ff::Field;
 use group::Curve;
 use ironfish_zkp::proofs::Output;
 use ironfish_zkp::ValueCommitment;
 use jubjub::ExtendedPoint;
-use rand::{rngs::OsRng, thread_rng, Rng};
+use rand::{rngs::OsRng, thread_rng};
 
 use std::io;
 
@@ -38,10 +39,7 @@ impl ReceiptParams {
     ) -> Result<ReceiptParams, IronfishError> {
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-
-        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
+        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
 
         let value_commitment = ValueCommitment {
             value: note.value,

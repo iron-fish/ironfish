@@ -16,13 +16,13 @@ use bellman::gadgets::multipack;
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::PrimeField;
+use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::constants::SPENDING_KEY_GENERATOR;
 use ironfish_zkp::proofs::Spend;
 use ironfish_zkp::{redjubjub, Nullifier, ValueCommitment};
 use jubjub::ExtendedPoint;
-use rand::{rngs::OsRng, thread_rng, Rng};
+use rand::{rngs::OsRng, thread_rng};
 use std::io;
 
 /// Parameters used when constructing proof that the spender owns a note with
@@ -86,17 +86,12 @@ impl<'a> SpendParams {
             return Err(IronfishError::InconsistentWitness);
         }
 
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-
         let value_commitment = ValueCommitment {
             value: note.value,
-            randomness: jubjub::Fr::from_bytes_wide(&buffer),
+            randomness: jubjub::Fr::random(thread_rng()),
         };
 
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-        let public_key_randomness = jubjub::Fr::from_bytes_wide(&buffer);
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
 
         let proof_generation_key = spender_key.sapling_proof_generation_key();
 

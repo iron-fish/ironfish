@@ -10,10 +10,10 @@ use super::{
 };
 use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::PrimeField;
+use ff::{Field, PrimeField};
 use ironfish_zkp::{Nullifier, Rseed, SaplingNote};
 use jubjub::SubgroupPoint;
-use rand::{thread_rng, Rng};
+use rand::thread_rng;
 
 use std::{fmt, io, io::Read};
 
@@ -80,10 +80,7 @@ pub struct Note {
 impl<'a> Note {
     /// Construct a new Note.
     pub fn new(owner: PublicAddress, value: u64, memo: Memo) -> Self {
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-
-        let randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
+        let randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
 
         Self {
             owner,

@@ -6,10 +6,11 @@ use crate::{
     errors::IronfishError,
     serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes},
 };
+use ff::Field;
 use group::GroupEncoding;
 use ironfish_zkp::{Diversifier, PaymentAddress};
 use jubjub::SubgroupPoint;
-use rand::{thread_rng, Rng};
+use rand::thread_rng;
 
 use std::{convert::TryInto, io};
 
@@ -167,11 +168,9 @@ impl PublicAddress {
     ///  *  the ephemeral secret key as a scalar FS
     ///  *  the ephemeral public key as an edwards point
     pub fn generate_diffie_hellman_keys(&self) -> (jubjub::Fr, SubgroupPoint) {
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-
-        let secret_key: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
+        let secret_key: jubjub::Fr = jubjub::Fr::random(thread_rng());
         let public_key = self.diversifier_point * secret_key;
+
         (secret_key, public_key)
     }
 
