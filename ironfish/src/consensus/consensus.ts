@@ -72,17 +72,17 @@ export const MAX_TRANSACTIONS_PER_BLOCK = 301
 
 export class ConsensusParameters {
   /**
+   * Max block size = 2 MB
+   */
+  MAX_BLOCK_SIZE_BYTES = 2000000
+
+  /**
    * Before upgrade V1 we had double spends. At this block we do a double spend
    * check to disallow it.
    *
    * TODO: remove this sequence check before mainnet
    */
   V1_DOUBLE_SPEND = 0
-
-  /**
-   * Max block size = 2 MB
-   */
-  MAX_BLOCK_SIZE_BYTES = 2000000
 
   /**
    * Before upgrade V2 we didn't enforce max block size.

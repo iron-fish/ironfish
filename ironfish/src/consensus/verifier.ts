@@ -43,7 +43,6 @@ export class Verifier {
     block: Block,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
   ): Promise<VerificationResult> {
-    // Verify the block size
     if (
       this.chain.consensus.isActive(
         this.chain.consensus.V2_MAX_BLOCK_SIZE,

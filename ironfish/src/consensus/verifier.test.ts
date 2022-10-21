@@ -133,7 +133,7 @@ describe('Verifier', () => {
 
     it('accepts a block with size more than MAX_BLOCK_SIZE_BYTES before V2 consensus upgrade', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
-      block.header.sequence = nodeTest.chain.consensus.V2_MAX_BLOCK_SIZE - 1
+      nodeTest.chain.consensus.V2_MAX_BLOCK_SIZE = block.header.sequence + 1
       nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES =
         getBlockSize(BlockSerde.serialize(block)) - 1
 
@@ -142,7 +142,7 @@ describe('Verifier', () => {
 
     it('rejects a block with size more than MAX_BLOCK_SIZE_BYTES after V2 consensus upgrade', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
-      block.header.sequence = nodeTest.chain.consensus.V2_MAX_BLOCK_SIZE
+      nodeTest.chain.consensus.V2_MAX_BLOCK_SIZE = block.header.sequence
       nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES =
         getBlockSize(BlockSerde.serialize(block)) - 1
 
