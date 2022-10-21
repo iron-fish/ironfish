@@ -130,9 +130,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can post the transaction', () => {
-      publicTransaction = new NativeTransactionPosted(
-        transaction.post(spenderKey.spending_key, null, BigInt(0)),
-      )
+      publicTransaction = new NativeTransactionPosted(transaction.post(null, BigInt(0)))
       expect(publicTransaction).toBeTruthy()
     })
 
@@ -272,7 +270,7 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Can post a transaction', () => {
       const postedTransaction = new NativeTransactionPosted(
-        transaction.post(receiverKey.spending_key, undefined, BigInt(1)),
+        transaction.post(undefined, BigInt(1)),
       )
       expect(postedTransaction).toBeTruthy()
       expect(postedTransaction.verify()).toBeTruthy()

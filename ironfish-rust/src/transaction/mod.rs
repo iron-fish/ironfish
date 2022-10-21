@@ -143,7 +143,6 @@ impl ProposedTransaction {
     /// aka: self.transaction_fee - intended_transaction_fee - change = 0
     pub fn post(
         &mut self,
-        spender_key: &SaplingKey,
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction, IronfishError> {
@@ -159,7 +158,7 @@ impl ProposedTransaction {
             // But we haven't worked out why determinacy in public addresses
             // would be useful yet.
             let change_address =
-                change_goes_to.unwrap_or_else(|| spender_key.generate_public_address());
+                change_goes_to.unwrap_or_else(|| self.spender_key.generate_public_address());
             let change_note = Note::new(
                 change_address,
                 change_amount as u64, // we checked it was positive

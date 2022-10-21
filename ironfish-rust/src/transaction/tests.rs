@@ -25,7 +25,7 @@ fn test_transaction() {
 
     let mut transaction = ProposedTransaction::new(spender_key.clone());
     transaction
-        .spend(spender_key.clone(), &in_note, &witness)
+        .spend(spender_key, &in_note, &witness)
         .expect("should be able to prove spend");
     assert_eq!(transaction.spends.len(), 1);
     transaction
@@ -50,7 +50,7 @@ fn test_transaction() {
     //     .expect("should be able to prove second spend");
 
     let public_transaction = transaction
-        .post(&spender_key, None, 1)
+        .post(None, 1)
         .expect("should be able to post transaction");
     public_transaction
         .verify()
@@ -121,7 +121,7 @@ fn test_transaction_signature() {
     let witness = make_fake_witness(&in_note);
 
     transaction
-        .spend(spender_key.clone(), &in_note, &witness)
+        .spend(spender_key, &in_note, &witness)
         .expect("should be able to spend note");
 
     transaction
@@ -131,7 +131,7 @@ fn test_transaction_signature() {
     transaction.set_expiration_sequence(1337);
 
     let public_transaction = transaction
-        .post(&spender_key, None, 0)
+        .post(None, 0)
         .expect("should be able to post transaction");
 
     let mut serialized_signature = vec![];

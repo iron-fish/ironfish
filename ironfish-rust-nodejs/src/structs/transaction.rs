@@ -209,13 +209,11 @@ impl NativeTransaction {
     #[napi]
     pub fn post(
         &mut self,
-        spender_hex_key: String,
         change_goes_to: Option<String>,
         intended_transaction_fee: BigInt,
     ) -> Result<Buffer> {
         let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
 
-        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
         let change_key = match change_goes_to {
             Some(address) => Some(PublicAddress::from_hex(&address).map_err(to_napi_err)?),
             None => None,
@@ -223,7 +221,7 @@ impl NativeTransaction {
 
         let posted_transaction = self
             .transaction
-            .post(&spender_key, change_key, intended_transaction_fee_u64)
+            .post(change_key, intended_transaction_fee_u64)
             .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];
