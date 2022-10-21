@@ -28,9 +28,6 @@ use ironfish_zkp::{
 
 use std::{io, iter, slice::Iter};
 
-use std::ops::AddAssign;
-use std::ops::SubAssign;
-
 #[cfg(test)]
 mod tests;
 
@@ -96,20 +93,14 @@ impl ProposedTransaction {
     /// Spend the note owned by spender_key at the given witness location.
     pub fn spend(&mut self, note: &Note, witness: &dyn WitnessTrait) -> Result<(), IronfishError> {
         let proof = SpendParams::new(self.spender_key.clone(), note, witness)?;
-        self.add_spend_proof(proof, note.value());
+
+        self.binding_signature_key += proof.value_commitment.randomness;
+        self.binding_verification_key += proof.value_commitment();
+
+        self.spends.push(proof);
+        self.transaction_fee += note.value() as i64;
+
         Ok(())
-    }
-
-    /// Add a spend proof that was created externally.
-    ///
-    /// This allows for parallel immutable spends without having to take
-    /// a mutable pointer out on self.
-    pub fn add_spend_proof(&mut self, spend: SpendParams, note_value: u64) {
-        self.increment_binding_signature_key(&spend.value_commitment.randomness, false);
-        self.increment_binding_verification_key(&spend.value_commitment(), false);
-
-        self.spends.push(spend);
-        self.transaction_fee += note_value as i64;
     }
 
     /// Create a proof of a new note owned by the recipient in this
@@ -117,8 +108,8 @@ impl ProposedTransaction {
     pub fn receive(&mut self, note: &Note) -> Result<(), IronfishError> {
         let proof = ReceiptParams::new(&self.spender_key, note)?;
 
-        self.increment_binding_signature_key(&proof.value_commitment_randomness, true);
-        self.increment_binding_verification_key(&proof.merkle_note.value_commitment, true);
+        self.binding_signature_key -= proof.value_commitment_randomness;
+        self.binding_verification_key -= proof.merkle_note.value_commitment;
 
         self.receipts.push(proof);
         self.transaction_fee -= note.value as i64;
@@ -296,30 +287,6 @@ impl ProposedTransaction {
             &mut OsRng,
             VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ))
-    }
-
-    /// Helper method to encapsulate the verbose way incrementing the signature
-    /// key works
-    fn increment_binding_signature_key(&mut self, value: &jubjub::Fr, negate: bool) {
-        let tmp = *value;
-        if negate {
-            //binding_signature_key - value
-            self.binding_signature_key.sub_assign(&tmp);
-        } else {
-            //binding_signature_key + value
-            self.binding_signature_key.add_assign(&tmp);
-        }
-    }
-
-    /// Helper method to encapsulate the verboseness around incrementing the
-    /// binding verification key
-    fn increment_binding_verification_key(&mut self, value: &ExtendedPoint, negate: bool) {
-        let mut tmp = *value;
-        if negate {
-            tmp = -tmp;
-        }
-        tmp += self.binding_verification_key;
-        self.binding_verification_key = tmp;
     }
 }
 
