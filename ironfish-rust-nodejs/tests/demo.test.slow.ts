@@ -59,12 +59,12 @@ describe('Demonstrate the Sapling API', () => {
 
     const decryptedNoteBuffer = encryptedNote.decryptNoteForOwner(key.incoming_view_key)
     expect(decryptedNoteBuffer).toBeInstanceOf(Buffer)
-    expect(decryptedNoteBuffer.byteLength).toBe(115)
+    expect(decryptedNoteBuffer!.byteLength).toBe(115)
 
     const decryptedSpenderNote = encryptedNote.decryptNoteForSpender(key.outgoing_view_key)
     expect(decryptedSpenderNote).toBe(null)
 
-    const decryptedNote = Note.deserialize(decryptedNoteBuffer)
+    const decryptedNote = Note.deserialize(decryptedNoteBuffer!)
 
     // Null characters are included in the memo string
     expect(decryptedNote.memo().replace(/\0/g, '')).toEqual('test')
@@ -85,7 +85,7 @@ describe('Demonstrate the Sapling API', () => {
     const transaction = new Transaction()
     transaction.setExpirationSequence(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
-    const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key))
+    const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key)!)
     const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive')
 
     let currentHash = encryptedNote.merkleHash()
