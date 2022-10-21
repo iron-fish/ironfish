@@ -37,7 +37,7 @@ jobs:
       - name: Run cargo-tarpaulin on ironfish-rust
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: "0.21.0"
+          version: "0.22.0"
           args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust/Cargo.toml --release -- --test-threads 1
 
       # Upload code coverage to Codecov
@@ -82,7 +82,7 @@ jobs:
       - name: Run cargo-tarpaulin on ironfish-rust-nodejs
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: "0.21.0"
+          version: "0.22.0"
           args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust-nodejs/Cargo.toml --release -- --test-threads 1
 
       # upload code coverage to Codecov
@@ -126,7 +126,7 @@ jobs:
       - name: Run cargo-tarpaulin on ironfish-zkp
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: "0.21.0"
+          version: "0.22.0"
           args: --avoid-cfg-tarpaulin --manifest-path ironfish-zkp/Cargo.toml --release -- --test-threads 1
 
       # Upload code coverage to Codecov
