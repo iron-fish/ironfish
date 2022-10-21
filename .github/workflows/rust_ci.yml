@@ -76,7 +76,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: nodejs
+          shared-key: nodejs2
 
       # Build & Run test & Collect Code coverage
       - name: Run cargo-tarpaulin on ironfish-rust-nodejs
