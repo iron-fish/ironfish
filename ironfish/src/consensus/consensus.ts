@@ -101,6 +101,6 @@ export class TestnetParameters extends ConsensusParameters {
   constructor() {
     super()
     this.V1_DOUBLE_SPEND = 204000
-    this.V2_MAX_BLOCK_SIZE = 250000
+    this.V2_MAX_BLOCK_SIZE = 252000
   }
 }
