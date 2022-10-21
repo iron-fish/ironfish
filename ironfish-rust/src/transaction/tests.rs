@@ -15,7 +15,6 @@ use ironfish_zkp::redjubjub::Signature;
 
 #[test]
 fn test_transaction() {
-    let mut transaction = ProposedTransaction::new();
     let spender_key: SaplingKey = SaplingKey::generate_key();
     let receiver_key: SaplingKey = SaplingKey::generate_key();
     let in_note = Note::new(spender_key.generate_public_address(), 42, Memo::default());
@@ -23,15 +22,17 @@ fn test_transaction() {
     let in_note2 = Note::new(spender_key.generate_public_address(), 18, Memo::default());
     let witness = make_fake_witness(&in_note);
     let _witness2 = make_fake_witness(&in_note2);
+
+    let mut transaction = ProposedTransaction::new(spender_key);
     transaction
-        .spend(spender_key.clone(), &in_note, &witness)
+        .spend(&in_note, &witness)
         .expect("should be able to prove spend");
     assert_eq!(transaction.spends.len(), 1);
     transaction
         .check_value_consistency()
         .expect("should be consistent after spend");
     transaction
-        .receive(&spender_key, &out_note)
+        .receive(&out_note)
         .expect("should be able to prove receipt");
     assert_eq!(transaction.receipts.len(), 1);
     transaction
@@ -49,7 +50,7 @@ fn test_transaction() {
     //     .expect("should be able to prove second spend");
 
     let public_transaction = transaction
-        .post(&spender_key, None, 1)
+        .post(None, 1)
         .expect("should be able to post transaction");
     public_transaction
         .verify()
@@ -88,12 +89,10 @@ fn test_transaction() {
 
 #[test]
 fn test_miners_fee() {
-    let mut transaction = ProposedTransaction::new();
     let receiver_key: SaplingKey = SaplingKey::generate_key();
     let out_note = Note::new(receiver_key.generate_public_address(), 42, Memo::default());
-    transaction
-        .receive(&receiver_key, &out_note)
-        .expect("It's a valid note");
+    let mut transaction = ProposedTransaction::new(receiver_key);
+    transaction.receive(&out_note).expect("It's a valid note");
     let posted_transaction = transaction
         .post_miners_fee()
         .expect("it is a valid miner's fee");
@@ -116,23 +115,23 @@ fn test_transaction_signature() {
     let spender_address = spender_key.generate_public_address();
     let receiver_address = receiver_key.generate_public_address();
 
-    let mut transaction = ProposedTransaction::new();
+    let mut transaction = ProposedTransaction::new(spender_key);
     let in_note = Note::new(spender_address, 42, Memo::default());
     let out_note = Note::new(receiver_address, 41, Memo::default());
     let witness = make_fake_witness(&in_note);
 
     transaction
-        .spend(spender_key.clone(), &in_note, &witness)
+        .spend(&in_note, &witness)
         .expect("should be able to spend note");
 
     transaction
-        .receive(&spender_key, &out_note)
+        .receive(&out_note)
         .expect("Should be able to receive note");
 
     transaction.set_expiration_sequence(1337);
 
     let public_transaction = transaction
-        .post(&spender_key, None, 0)
+        .post(None, 0)
         .expect("should be able to post transaction");
 
     let mut serialized_signature = vec![];
