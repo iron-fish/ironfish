@@ -18,6 +18,8 @@ export interface BoxedMessage {
 }
 export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
 export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
+export const ENCRYPTED_NOTE_LENGTH: number
+export const DECRYPTED_NOTE_LENGTH: number
 export interface NativeSpendProof {
   treeSize: number
   rootHash: Buffer

@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { NOTE_LENGTH } from '../../primitives/note'
-import { ENCRYPTED_NOTE_LENGTH } from '../../primitives/noteEncrypted'
+import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
 import { createNodeTest, useAccountFixture, useMinersTxFixture } from '../../testUtilities'
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { DecryptNotesRequest, DecryptNotesResponse, DecryptNotesTask } from './decryptNotes'
@@ -36,7 +35,7 @@ describe('DecryptNotesResponse', () => {
           index: 1,
           hash: Buffer.alloc(32, 1),
           nullifier: Buffer.alloc(32, 1),
-          serializedNote: Buffer.alloc(NOTE_LENGTH, 1),
+          serializedNote: Buffer.alloc(DECRYPTED_NOTE_LENGTH, 1),
         },
         null,
       ],
