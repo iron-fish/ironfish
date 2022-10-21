@@ -172,6 +172,7 @@ impl ProposedTransaction {
             .note_encryption_keys = *NOTE_ENCRYPTION_MINER_KEYS;
         self._partial_post()
     }
+
     /// Super special case for generating an illegal transaction for the genesis block.
     /// Don't bother using this anywhere else, it won't pass verification.
     #[deprecated(note = "Use only in genesis block generation")]
@@ -189,7 +190,7 @@ impl ProposedTransaction {
         self.expiration_sequence = expiration_sequence;
     }
 
-    // post transaction without much validation.
+    // Post transaction without much validation.
     fn _partial_post(&self) -> Result<Transaction, IronfishError> {
         self.check_value_consistency()?;
         let data_to_sign = self.transaction_signature_hash();
@@ -256,17 +257,15 @@ impl ProposedTransaction {
         let private_key = PrivateKey(self.binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
-        let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
+        let value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
 
-        value_balance_point = -value_balance_point;
-        let mut calculated_public_key = self.binding_verification_key;
-        calculated_public_key += value_balance_point;
+        let calculated_public_key = self.binding_verification_key - value_balance_point;
 
         if calculated_public_key != public_key.0 {
-            Err(IronfishError::InvalidBalance)
-        } else {
-            Ok(())
+            return Err(IronfishError::InvalidBalance);
         }
+
+        Ok(())
     }
 
     /// The binding signature ties up all the randomness generated with the
@@ -324,14 +323,17 @@ impl Transaction {
         let num_receipts = reader.read_u64::<LittleEndian>()?;
         let transaction_fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
+
         let mut spends = Vec::with_capacity(num_spends as usize);
-        let mut receipts = Vec::with_capacity(num_receipts as usize);
         for _ in 0..num_spends {
             spends.push(SpendProof::read(&mut reader)?);
         }
+
+        let mut receipts = Vec::with_capacity(num_receipts as usize);
         for _ in 0..num_receipts {
             receipts.push(ReceiptProof::read(&mut reader)?);
         }
+
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(Transaction {
@@ -350,12 +352,15 @@ impl Transaction {
         writer.write_u64::<LittleEndian>(self.receipts.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.transaction_fee)?;
         writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
+
         for spend in self.spends.iter() {
             spend.write(&mut writer)?;
         }
+
         for receipt in self.receipts.iter() {
             receipt.write(&mut writer)?;
         }
+
         self.binding_signature.write(&mut writer)?;
 
         Ok(())
@@ -441,11 +446,9 @@ impl Transaction {
         &self,
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), IronfishError> {
-        let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;
-        value_balance_point = -value_balance_point;
+        let value_balance_point = value_balance_to_point(self.transaction_fee)?;
 
-        let mut public_key_point = *binding_verification_key;
-        public_key_point += value_balance_point;
+        let public_key_point = binding_verification_key - value_balance_point;
         let public_key = PublicKey(public_key_point);
 
         let mut data_to_verify_signature = [0; 64];
@@ -457,10 +460,10 @@ impl Transaction {
             &self.binding_signature,
             VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ) {
-            Err(IronfishError::VerificationFailed)
-        } else {
-            Ok(())
+            return Err(IronfishError::VerificationFailed);
         }
+
+        Ok(())
     }
 }
 
