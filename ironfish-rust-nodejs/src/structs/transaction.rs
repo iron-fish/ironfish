@@ -143,28 +143,20 @@ pub struct NativeTransaction {
     transaction: ProposedTransaction,
 }
 
-impl Default for NativeTransaction {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[napi]
 impl NativeTransaction {
     #[napi(constructor)]
-    pub fn new() -> NativeTransaction {
-        NativeTransaction {
-            transaction: ProposedTransaction::new(),
-        }
+    pub fn new(spender_hex_key: String) -> Result<NativeTransaction> {
+        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
+        Ok(NativeTransaction {
+            transaction: ProposedTransaction::new(spender_key),
+        })
     }
 
     /// Create a proof of a new note owned by the recipient in this transaction.
     #[napi]
-    pub fn receive(&mut self, spender_hex_key: String, note: &NativeNote) -> Result<String> {
-        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
-        self.transaction
-            .receive(&spender_key, &note.note)
-            .map_err(to_napi_err)?;
+    pub fn receive(&mut self, note: &NativeNote) -> Result<String> {
+        self.transaction.receive(&note.note).map_err(to_napi_err)?;
         Ok("".to_string())
     }
 

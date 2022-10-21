@@ -86,8 +86,8 @@ describe('Demonstrate the Sapling API', () => {
 
       minerNote = new NativeNote(owner, BigInt(42), '')
 
-      const transaction = new NativeTransaction()
-      expect(transaction.receive(spenderKey.spending_key, minerNote)).toBe('')
+      const transaction = new NativeTransaction(spenderKey.spending_key)
+      expect(transaction.receive(minerNote)).toBe('')
       minerTransaction = new NativeTransactionPosted(transaction.post_miners_fee())
       expect(minerTransaction).toBeTruthy()
       expect(minerTransaction.notesLength()).toEqual(1)
@@ -109,7 +109,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create a simple transaction', () => {
-      transaction = new NativeTransaction()
+      transaction = new NativeTransaction(spenderKey.spending_key)
       expect(transaction).toBeTruthy()
     })
 
@@ -125,7 +125,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Can add a receive to the transaction', () => {
       receiverKey = generateKey()
       const receivingNote = new NativeNote(receiverKey.public_address, BigInt(40), '')
-      const result = transaction.receive(spenderKey.spending_key, receivingNote)
+      const result = transaction.receive(receivingNote)
       expect(result).toEqual('')
     })
 
@@ -246,7 +246,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create a transaction', async () => {
-      transaction = new NativeTransaction()
+      transaction = new NativeTransaction(receiverKey.spending_key)
 
       const witness = await tree.witness(receiverWitnessIndex)
       if (witness === null) {
@@ -266,8 +266,8 @@ describe('Demonstrate the Sapling API', () => {
         '',
       )
 
-      expect(transaction.receive(receiverKey.spending_key, noteForSpender)).toBe('')
-      expect(transaction.receive(receiverKey.spending_key, receiverNoteToSelf)).toBe('')
+      expect(transaction.receive(noteForSpender)).toBe('')
+      expect(transaction.receive(receiverNoteToSelf)).toBe('')
     })
 
     it('Can post a transaction', () => {

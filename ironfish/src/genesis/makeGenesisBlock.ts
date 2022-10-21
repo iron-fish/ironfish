@@ -65,8 +65,8 @@ export async function makeGenesisBlock(
   logger.info(`Generating a miner's fee transaction for the block...`)
   const note = new NativeNote(account.publicAddress, BigInt(0), '')
 
-  const minersFeeTransaction = new NativeTransaction()
-  minersFeeTransaction.receive(account.spendingKey, note)
+  const minersFeeTransaction = new NativeTransaction(account.spendingKey)
+  minersFeeTransaction.receive(note)
   const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
 
   /**
@@ -76,10 +76,10 @@ export async function makeGenesisBlock(
    *
    */
   logger.info(`Generating an initial transaction with ${allocationSum} coins...`)
-  const initialTransaction = new NativeTransaction()
+  const initialTransaction = new NativeTransaction(genesisKey.spending_key)
 
   logger.info('  Generating the receipt...')
-  initialTransaction.receive(genesisKey.spending_key, genesisNote)
+  initialTransaction.receive(genesisNote)
 
   logger.info('  Posting the initial transaction...')
   const postedInitialTransaction = new Transaction(initialTransaction.post_miners_fee())
@@ -112,7 +112,7 @@ export async function makeGenesisBlock(
    *
    */
   logger.info('Generating a transaction for distributing allocations...')
-  const transaction = new NativeTransaction()
+  const transaction = new NativeTransaction(genesisKey.spending_key)
   logger.info(`  Generating a spend for ${allocationSum} coins...`)
   transaction.spend(genesisKey.spending_key, genesisNote, witness)
 
@@ -121,7 +121,7 @@ export async function makeGenesisBlock(
       `  Generating a receipt for ${alloc.amount} coins for ${alloc.publicAddress}...`,
     )
     const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), info.memo)
-    transaction.receive(genesisKey.spending_key, note)
+    transaction.receive(note)
   }
 
   logger.info('  Posting the transaction...')

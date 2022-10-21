@@ -71,13 +71,17 @@ pub struct ProposedTransaction {
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
     expiration_sequence: u32,
+
+    /// The key used to sign the transaction and any descriptions that need
+    /// signed.
+    spender_key: SaplingKey,
     //
     // NOTE: If adding fields here, you may need to add fields to
     // signature hash method, and also to Transaction.
 }
 
 impl ProposedTransaction {
-    pub fn new() -> ProposedTransaction {
+    pub fn new(spender_key: SaplingKey) -> ProposedTransaction {
         ProposedTransaction {
             binding_signature_key: <jubjub::Fr as Field>::zero(),
             binding_verification_key: ExtendedPoint::identity(),
@@ -85,6 +89,7 @@ impl ProposedTransaction {
             receipts: vec![],
             transaction_fee: 0,
             expiration_sequence: 0,
+            spender_key,
         }
     }
 
@@ -114,8 +119,8 @@ impl ProposedTransaction {
 
     /// Create a proof of a new note owned by the recipient in this
     /// transaction.
-    pub fn receive(&mut self, spender_key: &SaplingKey, note: &Note) -> Result<(), IronfishError> {
-        let proof = ReceiptParams::new(spender_key, note)?;
+    pub fn receive(&mut self, note: &Note) -> Result<(), IronfishError> {
+        let proof = ReceiptParams::new(&self.spender_key, note)?;
 
         self.increment_binding_signature_key(&proof.value_commitment_randomness, true);
         self.increment_binding_verification_key(&proof.merkle_note.value_commitment, true);
@@ -160,7 +165,7 @@ impl ProposedTransaction {
                 change_amount as u64, // we checked it was positive
                 Memo::default(),
             );
-            self.receive(spender_key, &change_note)?;
+            self.receive(&change_note)?;
         }
         self._partial_post()
     }
@@ -321,12 +326,6 @@ impl ProposedTransaction {
         }
         tmp += self.binding_verification_key;
         self.binding_verification_key = tmp;
-    }
-}
-
-impl Default for ProposedTransaction {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

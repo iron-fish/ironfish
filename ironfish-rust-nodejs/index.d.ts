@@ -101,9 +101,9 @@ export class TransactionPosted {
 }
 export type NativeTransaction = Transaction
 export class Transaction {
-  constructor()
+  constructor(spenderHexKey: string)
   /** Create a proof of a new note owned by the recipient in this transaction. */
-  receive(spenderHexKey: string, note: Note): string
+  receive(note: Note): string
   /** Spend the note owned by spender_hex_key at the given witness location. */
   spend(spenderHexKey: string, note: Note, witness: object): string
   /**
