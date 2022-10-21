@@ -253,11 +253,8 @@ impl SpendProof {
         let value_commitment = {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;
-            let point = ExtendedPoint::from_bytes(&bytes);
-            if point.is_none().into() {
-                return Err(IronfishError::InvalidData);
-            }
-            point.unwrap()
+
+            Option::from(ExtendedPoint::from_bytes(&bytes)).ok_or(IronfishError::InvalidData)?
         };
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
         let root_hash = read_scalar(&mut reader)?;
