@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { createNodeTest, useBlockWithTx, useBlockWithTxs } from '../testUtilities'
-import { RecentFeeCache } from './recentFeeCache'
+import { getFeeRate, RecentFeeCache } from './recentFeeCache'
 
 describe('RecentFeeCache', () => {
   const nodeTest = createNodeTest()
@@ -25,7 +25,7 @@ describe('RecentFeeCache', () => {
       })
       await recentFeeCache.setUp()
 
-      expect(recentFeeCache.getSuggestedFee(60)).toBe(transaction.fee())
+      expect(recentFeeCache.estimateFeeRate(60)).toBe(getFeeRate(transaction))
     })
 
     it('should build recent fee cache with more than one transaction', async () => {
@@ -59,7 +59,7 @@ describe('RecentFeeCache', () => {
       await recentFeeCache.setUp()
 
       expect(recentFeeCache.size()).toBe(1)
-      expect(recentFeeCache.getSuggestedFee(60)).toBe(transaction2.fee())
+      expect(recentFeeCache.estimateFeeRate(60)).toBe(getFeeRate(transaction2))
     })
   })
 
@@ -85,7 +85,7 @@ describe('RecentFeeCache', () => {
       recentFeeCache.onConnectBlock(block, node.memPool)
 
       expect(recentFeeCache.size()).toBe(1)
-      expect(recentFeeCache.getSuggestedFee(60)).toBe(transaction.fee())
+      expect(recentFeeCache.estimateFeeRate(60)).toBe(getFeeRate(transaction))
     })
 
     it('should exclude transactions from a block that are not in the mempool', async () => {
@@ -150,7 +150,7 @@ describe('RecentFeeCache', () => {
       recentFeeCache.onConnectBlock(block2, node.memPool)
 
       expect(recentFeeCache.size()).toBe(1)
-      expect(recentFeeCache.getSuggestedFee(60)).toBe(transaction2.fee())
+      expect(recentFeeCache.estimateFeeRate(60)).toBe(getFeeRate(transaction2))
     })
 
     it('should keep old transactions in the cache if its maximum size has not been reached', async () => {
