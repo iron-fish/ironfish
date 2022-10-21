@@ -124,6 +124,13 @@ export class WebApi {
     return response.data.address
   }
 
+  async getMinAndMaxDeposit(): Promise<{ minDeposit: number; maxDeposit: number }> {
+    const response = await axios.get<{ minDeposit: number; maxDeposit: number }>(
+      `${this.host}/deposits/min_and_max_deposit`,
+    )
+    return response.data
+  }
+
   async getFunds(data: { email?: string; public_key: string }): Promise<{
     id: number
     object: 'faucet_transaction'

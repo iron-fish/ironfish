@@ -18,8 +18,6 @@ import { ProgressBar } from '../types'
 import { verifyCanSend } from '../utils/currency'
 
 const REGISTER_URL = 'https://testnet.ironfish.network/signup'
-const IRON_TO_SEND = 0.1
-
 export default class Bank extends IronfishCommand {
   static description = 'Deposit $IRON for testnet points'
 
@@ -78,9 +76,16 @@ export default class Bank extends IronfishCommand {
     Assert.isNotUndefined(accountName)
 
     const bankDepositAddress = await this.api.getDepositAddress()
+    const { minDeposit, maxDeposit } = await this.api.getMinAndMaxDeposit()
+
+    // check if user has enough, if not default to total user has
 
     if (!bankDepositAddress) {
       this.log('Error fetching deposit address. Please try again later.')
+      this.exit(1)
+    }
+    if (!minDeposit || !maxDeposit) {
+      this.log('Error fetching minimum and maximum deposit values. Please try again later.')
       this.exit(1)
     }
 
@@ -112,20 +117,23 @@ export default class Bank extends IronfishCommand {
 
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
     const confirmedBalance = Number(balanceResp.content.confirmed)
-    const requiredBalance = ironToOre(IRON_TO_SEND) + fee
 
-    if (confirmedBalance < requiredBalance) {
-      this.log(`Insufficient balance: ${confirmedBalance}. Required: ${requiredBalance}`)
+    if (confirmedBalance < fee + ironToOre(minDeposit)) {
+      this.log(
+        `Insufficient balance: ${confirmedBalance} ORE. At minimum, depositing requires the fee (${fee} ORE) plus a minimum deposit (${minDeposit} IRON)`,
+      )
       this.exit(1)
     }
+    const sendableIron = oreToIron(confirmedBalance - fee)
+    const ironToSend = sendableIron < maxDeposit ? sendableIron : maxDeposit
 
-    const newBalance = confirmedBalance - requiredBalance
+    const newBalance = confirmedBalance - ironToOre(ironToSend) - fee
 
     const displayConfirmedBalance = displayIronAmountWithCurrency(
       oreToIron(confirmedBalance),
       true,
     )
-    const displayAmount = displayIronAmountWithCurrency(IRON_TO_SEND, true)
+    const displayAmount = displayIronAmountWithCurrency(ironToSend, true)
     const displayFee = displayIronAmountWithCurrency(oreToIron(fee), true)
     const displayNewBalance = displayIronAmountWithCurrency(oreToIron(newBalance), true)
 
@@ -178,7 +186,7 @@ The memo will contain the graffiti "${graffiti}".
         receives: [
           {
             publicAddress: bankDepositAddress,
-            amount: ironToOre(IRON_TO_SEND).toString(),
+            amount: ironToOre(ironToSend).toString(),
             memo: graffiti,
           },
         ],
