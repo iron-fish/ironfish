@@ -4,9 +4,9 @@
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
-import { MemPool, PriorityQueue } from '../memPool'
+import { MemPool } from '../memPool'
 import { getTransactionSize } from '../network/utils/serializers'
-import { Block, BlockSerde, Transaction } from '../primitives'
+import { Block, Transaction } from '../primitives'
 
 interface FeeRateEntry {
   feeRate: bigint
@@ -18,11 +18,6 @@ export type Percentile = typeof PRIORITY_LEVEL_PERCENTILES[number];
 
 export const PRIORITY_LEVELS = ['low', 'medium', 'high'] as const;
 const PRIORITY_LEVEL_PERCENTILES = [10, 20, 30] as const;
-const PRIORITY_LEVELS_TO_PERCENTILES = new Map<PriorityLevel, Percentile>([
-  ['low', 10], 
-  ['medium', 20],
-  ['high', 30]
-])
 const PERCENTILES_TO_PRIORITY_LEVELS = new Map<Percentile, PriorityLevel>([
   [10, 'low'], 
   [20, 'medium'],
