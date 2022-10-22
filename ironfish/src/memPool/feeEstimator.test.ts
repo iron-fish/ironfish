@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { createNodeTest, useBlockWithTx, useBlockWithTxs } from '../testUtilities'
-import { FeeEstimator, getFeeRate } from './feeEstimator'
+import { FeeEstimator, getFeeRate, PRIORITY_LEVELS } from './feeEstimator'
 
 describe('FeeEstimator', () => {
   const nodeTest = createNodeTest()
@@ -20,12 +20,13 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         chain: node.chain,
-        recentBlocksNum: 1,
-        txSampleSize: 1,
+        numOfRecentBlocks: 1,
       })
       await feeEstimator.setUp()
 
-      expect(feeEstimator.estimateFeeRate(60)).toBe(getFeeRate(transaction))
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(getFeeRate(transaction))
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(getFeeRate(transaction))
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(getFeeRate(transaction))
     })
 
     it('should build recent fee cache with more than one transaction', async () => {
@@ -53,13 +54,17 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         chain: node.chain,
-        recentBlocksNum: 1,
-        txSampleSize: 1,
+        numOfRecentBlocks: 1,
       })
       await feeEstimator.setUp()
 
-      expect(feeEstimator.size()).toBe(1)
-      expect(feeEstimator.estimateFeeRate(60)).toBe(getFeeRate(transaction2))
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(1)
+
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(getFeeRate(transaction2))
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(getFeeRate(transaction2))
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(getFeeRate(transaction2))
     })
   })
 
@@ -74,18 +79,24 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         chain: node.chain,
-        recentBlocksNum: 1,
-        txSampleSize: 1,
+        numOfRecentBlocks: 1,
       })
 
-      expect(feeEstimator.size()).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(0)
 
       node.memPool.acceptTransaction(transaction)
 
       feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(feeEstimator.size()).toBe(1)
-      expect(feeEstimator.estimateFeeRate(60)).toBe(getFeeRate(transaction))
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(1)
+
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(getFeeRate(transaction))
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(getFeeRate(transaction))
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(getFeeRate(transaction))
     })
 
     it('should exclude transactions from a block that are not in the mempool', async () => {
@@ -98,17 +109,20 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         chain: node.chain,
-        recentBlocksNum: 1,
-        txSampleSize: 1,
+        numOfRecentBlocks: 1,
       })
 
-      expect(feeEstimator.size()).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(0)
 
       Assert.isFalse(node.memPool.exists(transaction.hash()))
 
       feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(feeEstimator.size()).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(0)
     })
 
     it('should remove old transactions from the cache when its maximum size is reached', async () => {
@@ -116,8 +130,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         chain: node.chain,
-        recentBlocksNum: 1,
-        txSampleSize: 1,
+        numOfRecentBlocks: 1,
       })
 
       const { account, block, transaction } = await useBlockWithTx(
@@ -132,7 +145,9 @@ describe('FeeEstimator', () => {
 
       feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(feeEstimator.size()).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(1)
 
       const fee = Number(transaction.fee()) - 1
       const { block: block2, transaction: transaction2 } = await useBlockWithTx(
@@ -149,8 +164,13 @@ describe('FeeEstimator', () => {
 
       feeEstimator.onConnectBlock(block2, node.memPool)
 
-      expect(feeEstimator.size()).toBe(1)
-      expect(feeEstimator.estimateFeeRate(60)).toBe(getFeeRate(transaction2))
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(1)
+
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(getFeeRate(transaction2))
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(getFeeRate(transaction2))
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(getFeeRate(transaction2))
     })
 
     it('should keep old transactions in the cache if its maximum size has not been reached', async () => {
@@ -158,8 +178,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         chain: node.chain,
-        recentBlocksNum: 2,
-        txSampleSize: 1,
+        numOfRecentBlocks: 2,
       })
 
       const { account, block, transaction } = await useBlockWithTx(
@@ -174,7 +193,9 @@ describe('FeeEstimator', () => {
 
       feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(feeEstimator.size()).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(1)
 
       const fee = Number(transaction.fee()) - 1
       const { block: block2, transaction: transaction2 } = await useBlockWithTx(
@@ -191,7 +212,9 @@ describe('FeeEstimator', () => {
 
       feeEstimator.onConnectBlock(block2, node.memPool)
 
-      expect(feeEstimator.size()).toBe(2)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(2)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(2)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(2)
     })
 
     it('should add only add a limited number of transactions from each block', async () => {
@@ -199,8 +222,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         chain: node.chain,
-        recentBlocksNum: 2,
-        txSampleSize: 2,
+        numOfRecentBlocks: 2,
       })
 
       const { account, block, transaction } = await useBlockWithTx(
@@ -217,7 +239,9 @@ describe('FeeEstimator', () => {
 
       feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(feeEstimator.size()).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(1)
 
       const { block: newBlock, transactions: newTransactions } = await useBlockWithTxs(
         node,
@@ -230,10 +254,12 @@ describe('FeeEstimator', () => {
 
       feeEstimator.onConnectBlock(newBlock, node.memPool)
 
-      expect(feeEstimator.size()).toBe(3)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(2)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(2)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(2)
 
       // transaction from first block is still in the cache
-      expect(feeEstimator['queue'][0].blockHash).toEqualHash(block.header.hash)
+      expect(feeEstimator['queues'].get(PRIORITY_LEVELS[0])?.at(0)?.blockHash).toEqualHash(block.header.hash)
     })
   })
 
@@ -243,8 +269,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         chain: node.chain,
-        recentBlocksNum: 2,
-        txSampleSize: 2,
+        numOfRecentBlocks: 2,
       })
 
       const { block, transaction } = await useBlockWithTx(node, undefined, undefined, true)
@@ -253,11 +278,15 @@ describe('FeeEstimator', () => {
 
       feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(feeEstimator.size()).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(1)
 
       feeEstimator.onDisconnectBlock(block)
 
-      expect(feeEstimator.size()).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(0)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(0)
     })
 
     it('should not remove transactions from the queue that did not come from the disconnected block', async () => {
@@ -265,8 +294,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         chain: node.chain,
-        recentBlocksNum: 2,
-        txSampleSize: 1,
+        numOfRecentBlocks: 2,
       })
 
       const { account, block, transaction } = await useBlockWithTx(
@@ -280,8 +308,6 @@ describe('FeeEstimator', () => {
       node.memPool.acceptTransaction(transaction)
 
       feeEstimator.onConnectBlock(block, node.memPool)
-
-      expect(feeEstimator.size()).toBe(1)
 
       const fee = Number(transaction.fee()) - 1
       const { block: block2, transaction: transaction2 } = await useBlockWithTx(
@@ -298,11 +324,15 @@ describe('FeeEstimator', () => {
 
       feeEstimator.onConnectBlock(block2, node.memPool)
 
-      expect(feeEstimator.size()).toBe(2)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(2)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(2)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(2)
 
       feeEstimator.onDisconnectBlock(block2)
 
-      expect(feeEstimator.size()).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(1)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(1)
     })
   })
 })

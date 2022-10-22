@@ -6,35 +6,51 @@ import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool, PriorityQueue } from '../memPool'
 import { getTransactionSize } from '../network/utils/serializers'
-import { Block, Transaction } from '../primitives'
+import { Block, BlockSerde, Transaction } from '../primitives'
 
 interface FeeRateEntry {
   feeRate: bigint
   blockHash: Buffer
 }
 
+export type PriorityLevel = typeof PRIORITY_LEVELS[number];
+export type Percentile = typeof PRIORITY_LEVEL_PERCENTILES[number];
+
+export const PRIORITY_LEVELS = ['low', 'medium', 'high'] as const;
+const PRIORITY_LEVEL_PERCENTILES = [10, 20, 30] as const;
+const PRIORITY_LEVELS_TO_PERCENTILES = new Map<PriorityLevel, Percentile>([
+  ['low', 10], 
+  ['medium', 20],
+  ['high', 30]
+])
+const PERCENTILES_TO_PRIORITY_LEVELS = new Map<Percentile, PriorityLevel>([
+  [10, 'low'], 
+  [20, 'medium'],
+  [30, 'high']
+])
+
 export class FeeEstimator {
-  private queue: Array<FeeRateEntry>
+  private queues: Map<PriorityLevel, Array<FeeRateEntry>>
   readonly chain: Blockchain
   private readonly logger: Logger
   private numOfRecentBlocks = 10
-  private numOfTxSamples = 3
   private maxQueueLength: number
   private defaultFeeRate = BigInt(1)
 
+  private readonly percentiles = PRIORITY_LEVEL_PERCENTILES.map(x=>x)
+
   constructor(options: {
     chain: Blockchain
-    recentBlocksNum?: number
-    txSampleSize?: number
+    numOfRecentBlocks?: number
     logger?: Logger
   }) {
     this.logger = options.logger || createRootLogger().withTag('recentFeeCache')
-    this.numOfRecentBlocks = options.recentBlocksNum ?? this.numOfRecentBlocks
-    this.numOfTxSamples = options.txSampleSize ?? this.numOfTxSamples
+    this.numOfRecentBlocks = options.numOfRecentBlocks ?? this.numOfRecentBlocks
 
-    this.maxQueueLength = this.numOfRecentBlocks * this.numOfTxSamples
+    this.maxQueueLength = this.numOfRecentBlocks
 
-    this.queue = []
+    this.queues = new Map<PriorityLevel, FeeRateEntry[]>()
+    PRIORITY_LEVELS.forEach((priorityLevel) => this.queues.set(priorityLevel, []))
     this.chain = options.chain
   }
 
@@ -46,101 +62,113 @@ export class FeeEstimator {
       const currentBlock = await this.chain.getBlock(currentBlockHash)
       Assert.isNotNull(currentBlock, 'No block found')
 
-      const lowestFeeTransactions = this.getLowestFeeRateTransactions(
+      const percentileTransactions = this.getPercentileFeeRateTransactions(
         currentBlock,
-        this.numOfTxSamples,
+        this.percentiles,
       )
 
-      for (const transaction of lowestFeeTransactions) {
-        if (this.isFull()) {
-          break
-        }
-        this.queue.push({ feeRate: getFeeRate(transaction), blockHash: currentBlockHash })
-      }
+      this.percentiles.forEach((percentile, i) => {
+        const priorityLevel = PERCENTILES_TO_PRIORITY_LEVELS.get(percentile)
+
+        if(priorityLevel){
+          const queue = this.queues.get(priorityLevel)
+
+          if(queue && percentileTransactions[i] && !this.isFull(queue)){
+            queue.push({ feeRate: getFeeRate(percentileTransactions[i]), blockHash: currentBlockHash })
+          }
+        }       
+      })
 
       currentBlockHash = currentBlock.header.previousBlockHash
     }
   }
 
   onConnectBlock(block: Block, memPool: MemPool): void {
-    for (const transaction of this.getLowestFeeRateTransactions(
+    const percentileTransactions = this.getPercentileFeeRateTransactions(
       block,
-      this.numOfTxSamples,
+      this.percentiles,
       (t) => !memPool.exists(t.hash()),
-    )) {
-      if (this.isFull()) {
-        this.queue.shift()
-      }
+    )
+    
+    this.percentiles.forEach((percentile, i) => {
+      const priorityLevel = PERCENTILES_TO_PRIORITY_LEVELS.get(percentile)
 
-      this.queue.push({ feeRate: getFeeRate(transaction), blockHash: block.header.hash })
-    }
+      if(priorityLevel && percentileTransactions[i]){
+        const queue = this.queues.get(priorityLevel)
+
+        if (queue && this.isFull(queue)) {
+          queue.shift()
+        }
+
+        queue?.push({ feeRate: getFeeRate(percentileTransactions[i]), blockHash: block.header.hash })
+      }
+    })
   }
 
   onDisconnectBlock(block: Block): void {
-    while (this.queue.length > 0) {
-      const lastEntry = this.queue[this.queue.length - 1]
-      if (!lastEntry.blockHash.equals(block.header.hash)) {
-        break
-      }
+    this.percentiles.forEach((percentile) => {
+      const priorityLevel = PERCENTILES_TO_PRIORITY_LEVELS.get(percentile)
 
-      this.queue.pop()
-    }
+      if(priorityLevel){
+        const queue = this.queues.get(priorityLevel)
+
+        if(queue){
+          while (queue.length > 0) {
+            const lastEntry = queue[queue.length - 1]
+
+            if (!lastEntry.blockHash.equals(block.header.hash)) {
+              break
+            } 
+
+            queue.pop()
+          }
+        }
+      }
+    })
   }
 
-  private getLowestFeeRateTransactions(
+  private getPercentileFeeRateTransactions(
     block: Block,
-    numTransactions: number,
+    percentiles: number[],
     exclude: (transaction: Transaction) => boolean = (t) => t.isMinersFee(),
   ): Transaction[] {
-    const lowestTxFees = new PriorityQueue<Transaction>(
-      (txA, txB) => getFeeRate(txA) > getFeeRate(txB),
-      (t) => t.hash().toString('hex'),
+    const sortedTransaction = 
+      block.transactions.
+      filter((transaction) => !exclude(transaction)).
+      sort( (txA, txB) => Number(getFeeRate(txA) - getFeeRate(txB)))
+
+    if(sortedTransaction.length  == 0 ){
+      return []
+    }
+
+    return percentiles.map(
+      (percentile) => sortedTransaction
+      [Math.round(((sortedTransaction.length - 1) * percentile) / 100)]
     )
-
-    for (const transaction of block.transactions) {
-      if (exclude(transaction)) {
-        continue
-      }
-
-      lowestTxFees.add(transaction)
-      while (lowestTxFees.size() > numTransactions) {
-        lowestTxFees.poll()
-      }
-    }
-
-    const transactions: Transaction[] = []
-
-    while (lowestTxFees.size() > 0) {
-      const transaction = lowestTxFees.poll()
-      if (transaction) {
-        transactions.push(transaction)
-      }
-    }
-
-    return transactions.reverse()
   }
 
-  estimateFeeRate(percentile: number): bigint {
-    if (this.queue.length < this.numOfRecentBlocks) {
+  estimateFeeRate(priorityLevel: PriorityLevel): bigint {
+    const queue = this.queues.get(priorityLevel)
+    if (queue == undefined || queue.length < this.numOfRecentBlocks) {
       return this.defaultFeeRate
     }
 
     const fees: bigint[] = []
-    for (const entry of this.queue) {
+    for (const entry of queue) {
       fees.push(entry.feeRate)
     }
 
     fees.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
 
-    return fees[Math.round(((this.queue.length - 1) * percentile) / 100)]
+    return fees[Math.round((queue.length - 1)/2)]
   }
 
-  size(): number {
-    return this.queue.length
+  size(priorityLevel: PriorityLevel): number | undefined {
+    return this.queues.get(priorityLevel)?.length
   }
 
-  private isFull(): boolean {
-    return this.queue.length === this.maxQueueLength
+  private isFull(array: FeeRateEntry[]): boolean {
+    return array.length === this.maxQueueLength
   }
 }
 
