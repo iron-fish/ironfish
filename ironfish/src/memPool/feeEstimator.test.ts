@@ -259,7 +259,9 @@ describe('FeeEstimator', () => {
       expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(2)
 
       // transaction from first block is still in the cache
-      expect(feeEstimator['queues'].get(PRIORITY_LEVELS[0])?.at(0)?.blockHash).toEqualHash(block.header.hash)
+      expect(feeEstimator['queues'].get(PRIORITY_LEVELS[0])?.at(0)?.blockHash).toEqualHash(
+        block.header.hash,
+      )
     })
   })
 
