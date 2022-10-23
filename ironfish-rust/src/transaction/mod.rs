@@ -289,7 +289,7 @@ impl ProposedTransaction {
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 
         data_to_be_signed[..32].copy_from_slice(&public_key.0.to_bytes());
-        (&mut data_to_be_signed[32..]).copy_from_slice(&self.transaction_signature_hash());
+        data_to_be_signed[32..].copy_from_slice(&self.transaction_signature_hash());
 
         Ok(private_key.sign(
             &data_to_be_signed,
@@ -488,7 +488,7 @@ impl Transaction {
 
         let mut data_to_verify_signature = [0; 64];
         data_to_verify_signature[..32].copy_from_slice(&public_key.0.to_bytes());
-        (&mut data_to_verify_signature[32..]).copy_from_slice(&self.transaction_signature_hash());
+        data_to_verify_signature[32..].copy_from_slice(&self.transaction_signature_hash());
 
         if !public_key.verify(
             &data_to_verify_signature,

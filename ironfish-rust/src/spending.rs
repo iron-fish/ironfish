@@ -68,7 +68,7 @@ pub struct SpendParams {
     pub(crate) nullifier: Nullifier,
 }
 
-impl<'a> SpendParams {
+impl SpendParams {
     /// Construct a new SpendParams attempting to spend a note at a given location
     /// in the merkle tree.
     ///
