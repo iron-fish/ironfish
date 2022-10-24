@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import '../testUtilities/matchers/merkletree'
+import { Assert } from '../assert'
 import { makeTree } from '../testUtilities/helpers/merkletree'
 import { createTestDB } from '../testUtilities/helpers/storage'
-import { MerkleTree, Side } from './merkletree'
+import { family, MerkleTree, Side } from './merkletree'
 import { depthAtLeafCount } from './utils'
 
 describe('Merkle tree', function () {
@@ -53,7 +54,7 @@ describe('Merkle tree', function () {
     )
   })
 
-  it.only('testing...', async () => {
+  it('testing...', async () => {
     const tree = await makeTree()
 
     await tree.add('a')
@@ -296,6 +297,81 @@ describe('Merkle tree', function () {
       [26, Side.Left, 27, '<<y|z-0>|<y|z-0>-1>'],
       [27, Side.Right, 18, '<<<q|r-0>|<s|t-0>-1>|<<u|v-0>|<w|x-0>-1>-2>'],
     ])
+  })
+
+  it('correctly calculates parent and child indices', async () => {
+    const testTreeNodes = async (
+      tree: MerkleTree<string, string, string, string>,
+      indices: number[],
+    ): Promise<void> => {
+      if (indices.length === 0) {
+        return
+      }
+
+      const parents: number[] = []
+      for (const index of indices) {
+        const node = await tree.getNode(index)
+        if (node.leftIndex) {
+          Assert.isEqual(node.side, Side.Right)
+
+          const rightIndex = index
+          const leftIndex = node.leftIndex
+          const left = await tree.getNode(node.leftIndex)
+          const parentIndex = left.parentIndex
+
+          Assert.isNotUndefined(parentIndex)
+
+          expect(family(leftIndex).parent).toBe(parentIndex)
+          expect(family(rightIndex).parent).toBe(parentIndex)
+
+          const expectedChildren = family(parentIndex)
+
+          Assert.isNotNull(expectedChildren.left)
+          Assert.isNotNull(expectedChildren.right)
+
+          expect(expectedChildren.left).toBe(leftIndex)
+          expect(expectedChildren.right).toBe(rightIndex)
+
+          parents.push(parentIndex)
+        } else {
+          Assert.isEqual(node.side, Side.Left)
+          Assert.isEqual(node.side, Side.Left)
+
+          const leftIndex = index
+          const parentIndex = node.parentIndex
+
+          Assert.isNotUndefined(parentIndex)
+
+          expect(family(leftIndex).parent).toBe(parentIndex)
+
+          const expectedChildren = family(parentIndex)
+
+          Assert.isNotNull(expectedChildren.left)
+          Assert.isNotNull(expectedChildren.right)
+
+          expect(expectedChildren.left).toBe(leftIndex)
+        }
+      }
+
+      return testTreeNodes(tree, parents)
+    }
+
+    const tree = await makeTree({ depth: 4, name: 'A' })
+
+    for (let i = 0; i < 1000; i++) {
+      await tree.add('a')
+    }
+
+    const parents: number[] = []
+    for await (const leaf of tree.leaves.getAllIter()) {
+      if (leaf[0] % 2 === 0) {
+        parents.push(leaf[1].parentIndex)
+      }
+    }
+
+    await testTreeNodes(tree, parents)
+
+    expect(true).toBe(true)
   })
 
   it('truncates nodes correctly', async () => {
