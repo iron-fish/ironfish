@@ -16,6 +16,7 @@ import { PriorityQueue } from './priorityQueue'
 interface MempoolEntry {
   fee: bigint
   hash: TransactionHash
+  sizeKb: number
 }
 
 interface ExpirationMempoolEntry {
@@ -52,10 +53,12 @@ export class MemPool {
 
     this.queue = new PriorityQueue<MempoolEntry>(
       (firstTransaction, secondTransaction) => {
-        if (firstTransaction.fee === secondTransaction.fee) {
+        const firstTransactionFeeRate = this.getFeeRate(firstTransaction)
+        const secondTransactionFeeRate = this.getFeeRate(secondTransaction)
+        if (firstTransactionFeeRate === secondTransactionFeeRate) {
           return firstTransaction.hash.compare(secondTransaction.hash) > 0
         }
-        return firstTransaction.fee > secondTransaction.fee
+        return firstTransactionFeeRate > secondTransactionFeeRate
       },
       (t) => t.hash.toString('hex'),
     )
@@ -92,6 +95,12 @@ export class MemPool {
 
   exists(hash: TransactionHash): boolean {
     return this.transactions.has(hash)
+  }
+
+  getFeeRate(mempoolEntry: MempoolEntry): bigint {
+    const rate = mempoolEntry.fee / BigInt(Math.round(mempoolEntry.sizeKb))
+
+    return rate > 0 ? rate : BigInt(1)
   }
 
   /*
@@ -231,7 +240,9 @@ export class MemPool {
     }
 
     this.transactions.set(hash, transaction)
-    this.transactionsBytes += getTransactionSize(transaction.serialize())
+
+    const size = getTransactionSize(transaction.serialize())
+    this.transactionsBytes += size
 
     for (const spend of transaction.spends()) {
       if (!this.nullifiers.has(spend.nullifier)) {
@@ -239,7 +250,7 @@ export class MemPool {
       }
     }
 
-    this.queue.add({ fee: transaction.fee(), hash })
+    this.queue.add({ fee: transaction.fee(), hash, sizeKb: size / 1000 })
     this.expirationQueue.add({ expirationSequence: transaction.expirationSequence(), hash })
     this.metrics.memPoolSize.value = this.count()
     return true

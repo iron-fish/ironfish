@@ -104,8 +104,12 @@ export class MiningManager {
         nullifiers.add(spend.nullifier)
       }
 
-      // Stop adding transactions when the addition would cause the block to exceed the max size
       const transactionSize = getTransactionSize(transaction.serialize())
+      if (transactionSize > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
+        continue
+      }
+
+      // Stop adding transactions when the addition would cause the block to exceed the max size
       if (currBlockSize + transactionSize > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
         break
       }

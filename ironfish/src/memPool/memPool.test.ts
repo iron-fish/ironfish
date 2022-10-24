@@ -99,26 +99,38 @@ describe('MemPool', () => {
   describe('orderedTransactions', () => {
     const nodeTest = createNodeTest()
 
-    it('returns transactions from the node mempool sorted by fees', async () => {
+    it('returns transactions from the node mempool sorted by fee rate', async () => {
       const { node } = nodeTest
       const { wallet, memPool } = node
       const accountA = await useAccountFixture(wallet, 'accountA')
       const accountB = await useAccountFixture(wallet, 'accountB')
       const accountC = await useAccountFixture(wallet, 'accountC')
-      const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
-      const { transaction: transactionB } = await useBlockWithTx(node, accountB, accountC)
+      const { block, transaction: transactionA } = await useBlockWithTx(
+        node,
+        accountA,
+        accountB,
+      )
+      const transactionB = block.transactions[0]
       const { transaction: transactionC } = await useBlockWithTx(node, accountC, accountA)
 
-      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => BigInt(1))
+      const transactionASize = getTransactionSize(transactionA.serialize())
+      const transactionBSize = getTransactionSize(transactionB.serialize())
+      const transactionCSize = getTransactionSize(transactionC.serialize())
+
+      // Miner's fee transaction has a smaller size than the normal transaction fixture
+      Assert.isTrue(transactionBSize < transactionASize)
+      Assert.isEqual(transactionASize, transactionCSize)
+
+      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => BigInt(4))
       jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => BigInt(4))
-      jest.spyOn(transactionC, 'fee').mockImplementationOnce(() => BigInt(3))
+      jest.spyOn(transactionC, 'fee').mockImplementationOnce(() => BigInt(1))
 
       memPool.acceptTransaction(transactionA)
       memPool.acceptTransaction(transactionB)
       memPool.acceptTransaction(transactionC)
 
       const transactions = Array.from(memPool.orderedTransactions())
-      expect(transactions).toEqual([transactionB, transactionC, transactionA])
+      expect(transactions).toEqual([transactionB, transactionA, transactionC])
     })
 
     it('does not return transactions that have been removed from the mempool', async () => {
