@@ -9,6 +9,9 @@ use ironfish_rust::{note::Memo, Note, SaplingKey};
 
 use crate::to_napi_err;
 
+#[napi]
+pub const DECRYPTED_NOTE_LENGTH: u32 = 115;
+
 #[napi(js_name = "Note")]
 pub struct NativeNote {
     pub(crate) note: Note,
