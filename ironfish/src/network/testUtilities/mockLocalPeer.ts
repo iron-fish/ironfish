@@ -5,7 +5,6 @@
 import ws from 'ws'
 import { Blockchain } from '../../blockchain'
 import { mockChain } from '../../testUtilities/mocks'
-import { WorkerPool } from '../../workerPool'
 import { PrivateIdentity } from '../identity'
 import { LocalPeer } from '../peers/localPeer'
 import { VERSION_PROTOCOL } from '../version'
@@ -25,5 +24,5 @@ export function mockLocalPeer({
   version?: number
   chain?: Blockchain
 } = {}): LocalPeer {
-  return new LocalPeer(identity, agent, version, chain || mockChain(), new WorkerPool(), ws)
+  return new LocalPeer(identity, agent, version, chain || mockChain(), ws)
 }

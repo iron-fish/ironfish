@@ -18,6 +18,11 @@ const EVENT_LOOP_MS = 2000
 const CONNECT_ATTEMPTS_MAX = 5
 
 /**
+ * The maximum number of connection upgrades each eventloop tick
+ */
+const UPGRADE_ATTEMPTS_MAX = 5
+
+/**
  * PeerConnectionManager periodically determines whether to open new connections and/or
  * close existing connections on peers.
  */
@@ -64,25 +69,41 @@ export class PeerConnectionManager {
   }
 
   private eventLoop() {
-    let connectAttempts = 0
-
-    const shuffledPeers = ArrayUtils.shuffle(this.peerManager.peers)
-
-    for (const peer of shuffledPeers) {
+    let upgradeAttempts = 0
+    for (const peer of this.peerManager.peers) {
       this.maintainOneConnectionPerPeer(peer)
 
-      if (connectAttempts >= CONNECT_ATTEMPTS_MAX) {
+      if (upgradeAttempts >= UPGRADE_ATTEMPTS_MAX) {
         continue
-      }
-      if (this.connectToEligiblePeers(peer)) {
-        connectAttempts++
       }
 
-      if (connectAttempts >= CONNECT_ATTEMPTS_MAX) {
-        continue
-      }
       if (this.attemptToEstablishWebRtcConnectionsToWSPeer(peer)) {
-        connectAttempts++
+        upgradeAttempts++
+      }
+    }
+
+    let connectAttempts = 0
+    const shuffledPeerCandidates = ArrayUtils.shuffle([
+      ...this.peerManager.peerCandidateMap.keys(),
+    ])
+
+    for (const peerCandidateIdentity of shuffledPeerCandidates) {
+      if (connectAttempts >= CONNECT_ATTEMPTS_MAX) {
+        break
+      }
+
+      if (!this.peerManager.identifiedPeers.has(peerCandidateIdentity)) {
+        const val = this.peerManager.peerCandidateMap.get(peerCandidateIdentity)
+        if (val) {
+          const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
+          peer.name = val.name ?? null
+          peer.setWebSocketAddress(val.address, val.port)
+          if (this.connectToEligiblePeers(peer)) {
+            connectAttempts++
+          } else {
+            this.peerManager.tryDisposePeer(peer)
+          }
+        }
       }
     }
 
@@ -90,6 +111,8 @@ export class PeerConnectionManager {
       const peer = this.peerManager.createRandomDisconnectedPeer()
       if (peer && this.connectToEligiblePeers(peer)) {
         connectAttempts++
+      } else if (peer) {
+        this.peerManager.tryDisposePeer(peer)
       }
     }
 

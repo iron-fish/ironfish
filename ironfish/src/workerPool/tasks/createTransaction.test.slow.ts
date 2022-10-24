@@ -48,7 +48,6 @@ async function makeStrategyTree({
 
   if (openDb) {
     await database.open()
-    await tree.upgrade()
   }
 
   return tree
@@ -109,8 +108,8 @@ describe('CreateTransactionTask', () => {
 
   describe('execute', () => {
     it('creates the transaction', async () => {
-      const account = await useAccountFixture(nodeTest.accounts)
-      const minerTransaction = await useMinersTxFixture(nodeTest.accounts, account)
+      const account = await useAccountFixture(nodeTest.wallet)
+      const minerTransaction = await useMinersTxFixture(nodeTest.wallet, account)
 
       const spendNote = minerTransaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(spendNote)

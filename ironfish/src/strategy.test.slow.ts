@@ -10,7 +10,6 @@ import {
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
-import { Verifier } from './consensus'
 import { MerkleTree } from './merkletree'
 import { NoteLeafEncoding } from './merkletree/database/leaves'
 import { NodeEncoding } from './merkletree/database/nodes'
@@ -19,7 +18,6 @@ import { Note } from './primitives/note'
 import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
 import { BUFFER_ENCODING, IDatabase } from './storage'
 import { Strategy } from './strategy'
-import { createNodeTest } from './testUtilities'
 import { makeDb, makeDbName } from './testUtilities/helpers/storage'
 import { WorkerPool } from './workerPool'
 
@@ -53,7 +51,6 @@ async function makeStrategyTree({
 
   if (openDb) {
     await database.open()
-    await tree.upgrade()
   }
 
   return tree
@@ -83,31 +80,14 @@ describe('Demonstrate the Sapling API', () => {
     spenderKey = generateKey()
   })
 
-  describe('Verifies incoming messages', () => {
-    const nodeTest = createNodeTest()
-
-    it('Rejects incoming new transactions if fees are negative', async () => {
-      // Generate a miner's fee transaction
-      const workerPool = new WorkerPool()
-      const strategy = new Strategy(workerPool)
-      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
-
-      const verifier = new Verifier(nodeTest.chain, workerPool)
-
-      expect(await verifier.verifyTransaction(minersFee, nodeTest.chain.head)).toMatchObject({
-        valid: false,
-      })
-    }, 60000)
-  })
-
   describe('Can transact between two accounts', () => {
     it('Can create a miner reward', () => {
       const owner = generateNewPublicAddress(spenderKey.spending_key).public_address
 
       minerNote = new NativeNote(owner, BigInt(42), '')
 
-      const transaction = new NativeTransaction()
-      expect(transaction.receive(spenderKey.spending_key, minerNote)).toBe('')
+      const transaction = new NativeTransaction(spenderKey.spending_key)
+      expect(transaction.receive(minerNote)).toBe('')
       minerTransaction = new NativeTransactionPosted(transaction.post_miners_fee())
       expect(minerTransaction).toBeTruthy()
       expect(minerTransaction.notesLength()).toEqual(1)
@@ -129,7 +109,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create a simple transaction', () => {
-      transaction = new NativeTransaction()
+      transaction = new NativeTransaction(spenderKey.spending_key)
       expect(transaction).toBeTruthy()
     })
 
@@ -138,21 +118,19 @@ describe('Demonstrate the Sapling API', () => {
       if (witness === null) {
         throw new Error('Witness should not be null')
       }
-      const result = transaction.spend(spenderKey.spending_key, minerNote, witness)
+      const result = transaction.spend(minerNote, witness)
       expect(result).toEqual('')
     })
 
     it('Can add a receive to the transaction', () => {
       receiverKey = generateKey()
       const receivingNote = new NativeNote(receiverKey.public_address, BigInt(40), '')
-      const result = transaction.receive(spenderKey.spending_key, receivingNote)
+      const result = transaction.receive(receivingNote)
       expect(result).toEqual('')
     })
 
     it('Can post the transaction', () => {
-      publicTransaction = new NativeTransactionPosted(
-        transaction.post(spenderKey.spending_key, null, BigInt(0)),
-      )
+      publicTransaction = new NativeTransactionPosted(transaction.post(null, BigInt(0)))
       expect(publicTransaction).toBeTruthy()
     })
 
@@ -184,7 +162,7 @@ describe('Demonstrate the Sapling API', () => {
       expect(minersFee['transactionPosted']).toBeNull()
       expect(await workerPool.verify(minersFee, { verifyFees: false })).toEqual({ valid: true })
       expect(minersFee['transactionPosted']).toBeNull()
-    }, 60000)
+    })
 
     it('Holds a posted transaction if a reference is taken', async () => {
       // Generate a miner's fee transaction
@@ -203,7 +181,7 @@ describe('Demonstrate the Sapling API', () => {
       })
 
       expect(minersFee['transactionPosted']).toBeNull()
-    }, 60000)
+    })
 
     it('Does not hold a note if no references are taken', async () => {
       // Generate a miner's fee transaction
@@ -235,7 +213,7 @@ describe('Demonstrate the Sapling API', () => {
       expect(decryptedNote['note']).toBeNull()
       expect(decryptedNote.value()).toBe(BigInt(2000000000))
       expect(decryptedNote['note']).toBeNull()
-    }, 60000)
+    })
   })
 
   describe('Finding notes to spend', () => {
@@ -266,7 +244,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create a transaction', async () => {
-      transaction = new NativeTransaction()
+      transaction = new NativeTransaction(receiverKey.spending_key)
 
       const witness = await tree.witness(receiverWitnessIndex)
       if (witness === null) {
@@ -276,7 +254,7 @@ describe('Demonstrate the Sapling API', () => {
       // The `transaction.spend` method is used to spend the note. The owner needs to sign the transaction
       // with their private key; this is how the note gets authorized to spend.
       const note = receiverNote.takeReference()
-      expect(transaction.spend(receiverKey.spending_key, note, witness)).toBe('')
+      expect(transaction.spend(note, witness)).toBe('')
       receiverNote.returnReference()
 
       const noteForSpender = new NativeNote(spenderKey.public_address, BigInt(10), '')
@@ -286,13 +264,13 @@ describe('Demonstrate the Sapling API', () => {
         '',
       )
 
-      expect(transaction.receive(receiverKey.spending_key, noteForSpender)).toBe('')
-      expect(transaction.receive(receiverKey.spending_key, receiverNoteToSelf)).toBe('')
+      expect(transaction.receive(noteForSpender)).toBe('')
+      expect(transaction.receive(receiverNoteToSelf)).toBe('')
     })
 
     it('Can post a transaction', () => {
       const postedTransaction = new NativeTransactionPosted(
-        transaction.post(receiverKey.spending_key, undefined, BigInt(1)),
+        transaction.post(undefined, BigInt(1)),
       )
       expect(postedTransaction).toBeTruthy()
       expect(postedTransaction.verify()).toBeTruthy()

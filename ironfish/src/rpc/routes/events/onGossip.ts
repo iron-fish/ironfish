@@ -2,20 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Block } from '../../../primitives'
+import { BlockHeader } from '../../../primitives'
 import { ApiNamespace, router } from '../router'
-import { RpcBlock, RpcBlockSchema, serializeRpcBlock } from './types'
+import { RpcBlockHeader, RpcBlockHeaderSchema, serializeRpcBlockHeader } from './types'
 
 export type OnGossipRequest = undefined
-export type OnGossipResponse = { block: RpcBlock }
-
+export type OnGossipResponse = { blockHeader: RpcBlockHeader }
 export const OnGossipRequestSchema: yup.MixedSchema<OnGossipRequest> = yup
   .mixed()
   .oneOf([undefined] as const)
 
 export const OnGossipResponseSchema: yup.ObjectSchema<OnGossipResponse> = yup
   .object({
-    block: RpcBlockSchema,
+    blockHeader: RpcBlockHeaderSchema,
   })
   .defined()
 
@@ -23,15 +22,15 @@ router.register<typeof OnGossipRequestSchema, OnGossipResponse>(
   `${ApiNamespace.event}/onGossip`,
   OnGossipRequestSchema,
   (request, node): void => {
-    function onGossip(block: Block) {
-      const serialized = serializeRpcBlock(block)
-      request.stream({ block: serialized })
+    function onGossip(header: BlockHeader) {
+      const serialized = serializeRpcBlockHeader(header)
+      request.stream({ blockHeader: serialized })
     }
 
-    node.syncer.onGossip.on(onGossip)
+    node.peerNetwork.onBlockGossipReceived.on(onGossip)
 
     request.onClose.on(() => {
-      node.syncer.onGossip.off(onGossip)
+      node.peerNetwork.onBlockGossipReceived.off(onGossip)
     })
   },
 )

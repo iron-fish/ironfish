@@ -1,84 +1,178 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, BenchUtils, IronfishSdk } from '@ironfish/sdk'
+import { BenchUtils, IronfishSdk, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import blessed from 'blessed'
+import fs from 'fs/promises'
+import path from 'path'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { IronfishCliPKG } from '../../package'
 
-export default class BenchmarkChain extends IronfishCommand {
-  static description = 'Rebuild the main chain to fix corruption'
+export default class Benchmark extends IronfishCommand {
+  static aliases = ['chain:benchmark']
+
+  static description =
+    'Test the performance of the chain by re-importing data from an existing chain'
+
+  static hidden = true
 
   static flags = {
     ...LocalFlags,
-    confirm: Flags.boolean({
-      char: 'c',
-      default: false,
-      description: 'force confirmation to repair',
+    targetdir: Flags.string({
+      char: 't',
+      parse: (input: string) => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Path to the temporary directory to use to test',
     }),
-    force: Flags.boolean({
-      char: 'f',
-      default: false,
-      description: 'force merkle tree reconstruction',
+    blocks: Flags.integer({
+      char: 'b',
+      required: false,
+      default: 1000,
+      description: 'Number of blocks to move from one chain to another',
     }),
   }
 
+  static args = []
+
   async start(): Promise<void> {
-    const { flags } = await this.parse(BenchmarkChain)
+    const { flags } = await this.parse(Benchmark)
+    const { blocks } = flags
 
     CliUx.ux.action.start(`Opening node`)
     const node = await this.sdk.node()
-    await node.openDB()
-    await node.chain.open()
+    await NodeUtils.waitForOpen(node)
     CliUx.ux.action.stop('done.')
 
-    CliUx.ux.action.start(`Opening benchmark node`)
-    const benchmarkSdk = await IronfishSdk.init({
+    let targetDirectory
+    if (!flags.targetdir) {
+      await fs.mkdir(node.config.tempDir, { recursive: true })
+      targetDirectory = path.join(node.config.tempDir)
+    } else {
+      targetDirectory = path.join(flags.targetdir)
+    }
+
+    CliUx.ux.action.start(`Opening node in ${targetDirectory}`)
+
+    const noLoggingConfig = Object.assign({}, this.sdk.config.overrides)
+    noLoggingConfig.logLevel = '*:error'
+    const tmpSdk = await IronfishSdk.init({
       pkg: IronfishCliPKG,
-      dataDir: '~/.ironfishbenchmark',
+      configOverrides: noLoggingConfig,
+      configName: undefined,
+      dataDir: targetDirectory,
       logger: this.logger,
     })
-    const benchmarkNode = await benchmarkSdk.node()
-    await benchmarkNode.openDB()
-    await benchmarkNode.chain.open()
-    CliUx.ux.action.start(`done.`)
+    const tempNode = await tmpSdk.node()
+    await NodeUtils.waitForOpen(tempNode)
+    tempNode.workerPool.start()
+    CliUx.ux.action.stop('done.')
 
-    if (node.chain.isEmpty) {
-      this.log(`Chain is too corrupt. Delete your DB at ${node.config.chainDatabasePath}`)
-      this.exit(0)
+    const startingSequence = tempNode.chain.head.sequence
+    const startingHeader = await node.chain.getHeaderAtSequence(startingSequence)
+
+    const endingSequence = startingSequence + blocks
+    const endingHeader = await node.chain.getHeaderAtSequence(endingSequence)
+
+    if (startingHeader === null) {
+      throw new Error(`Target chain is longer than source chain`)
     }
 
-    const blocksToBenchmark = 100
-
-    if (node.chain.head.sequence < blocksToBenchmark) {
-      this.log(`Need to sync more blocks for testing.`)
-      this.exit(0)
+    if (endingHeader === null) {
+      throw new Error(`Chain must have at least ${blocks} blocks`)
     }
 
-    const finalHeader = await node.chain.getHeaderAtSequence(blocksToBenchmark)
-    Assert.isNotNull(finalHeader)
-
-    let totalTime = 0
-
-    for await (const header of node.chain.iterateTo(node.chain.genesis, finalHeader)) {
-      const block = await node.chain.getBlock(header)
-      Assert.isNotNull(block)
-
-      const start = BenchUtils.start()
-      await benchmarkNode.chain.addBlock(block)
-      totalTime += BenchUtils.end(start)
+    if (!tempNode.chain.head.hash.equals(startingHeader?.hash)) {
+      throw new Error(`The two chains do not match at sequence ${startingSequence}`)
     }
 
-    const start = BenchUtils.start()
-    await benchmarkNode.chain.notes.rehashTree()
-    totalTime += BenchUtils.end(start)
+    let totalMs = 0
+    let totalBlocks = 0
+    let totalTransactions = 0
+    let totalSpends = 0
+    let totalNotes = 0
+    let status = renderStatus(0, 0, 0, 0, 0)
 
-    const benchRootHash = await benchmarkNode.chain.notes.rootHash()
-    const realRootHash = await node.chain.notes.pastRoot(finalHeader.noteCommitment.size)
-    this.log(`bnch hash: ${benchRootHash.toString('hex')}`)
-    this.log(`real hash: ${realRootHash.toString('hex')}`)
+    const screen = blessed.screen({ smartCSR: true, fullUnicode: true })
+    const statusText = blessed.text()
+    screen.append(statusText)
 
-    this.log(`Benchmark complete in ${totalTime} ms.`)
+    statusText.setContent(status)
+    screen.render()
+
+    const screenInterval = setInterval(() => {
+      statusText.setContent(status)
+      screen.render()
+    }, 1000)
+
+    for await (const currentHeader of node.chain.iterateTo(startingHeader, endingHeader)) {
+      const block = await node.chain.getBlock(currentHeader)
+      if (block === null) {
+        throw new Error('Should have block if we have header')
+      }
+      const startTime = BenchUtils.start()
+      await tempNode.chain.addBlock(block)
+
+      totalMs += BenchUtils.end(startTime)
+      totalBlocks += 1
+      totalSpends += block.transactions.reduce((count, tx) => count + tx.spendsLength(), 0)
+      totalNotes += block.transactions.reduce((count, tx) => count + tx.notesLength(), 0)
+      totalTransactions += block.transactions.length
+      status = renderStatus(
+        totalMs,
+        totalBlocks,
+        totalTransactions,
+        totalSpends,
+        totalNotes,
+        block.header.sequence,
+      )
+    }
+
+    clearInterval(screenInterval)
+    screen.destroy()
+
+    this.log('\n' + status)
+
+    // Check that data is consistent
+    const nodeNotesHash = await node.chain.notes.pastRoot(endingHeader.noteCommitment.size)
+    const tempNodeNotesHash = await tempNode.chain.notes.rootHash()
+    if (!nodeNotesHash.equals(tempNodeNotesHash)) {
+      throw new Error('/!\\ Note tree hashes were not consistent /!\\')
+    }
+
+    const nodeNullifiersHash = await node.chain.nullifiers.pastRoot(
+      endingHeader.nullifierCommitment.size,
+    )
+    const tempNodeNullifiersHash = await tempNode.chain.nullifiers.rootHash()
+    if (!nodeNullifiersHash.equals(tempNodeNullifiersHash)) {
+      throw new Error('/!\\ Nullifier tree hashes were not consistent /!\\')
+    }
+
+    // Clean up the temporary node
+    await tempNode.shutdown()
+    if (!flags.targetdir) {
+      this.log(`\nTemporary directory ${targetDirectory} deleted`)
+      await fs.rm(targetDirectory, { recursive: true })
+    } else {
+      this.log(`\n${blocks} blocks added to ${targetDirectory}`)
+    }
   }
+}
+
+function renderStatus(
+  totalMs: number,
+  totalBlocks: number,
+  totalTransactions: number,
+  totalSpends: number,
+  totalNotes: number,
+  sequence?: number,
+): string {
+  return `\
+Current Block        ${sequence ? sequence.toString() : '-'}
+Blocks Processed     ${totalBlocks.toString()}
+Blocks/sec           ${totalMs ? (totalBlocks / (totalMs / 1000)).toFixed(2) : 0}
+Transactions/sec     ${totalMs ? (totalTransactions / (totalMs / 1000)).toFixed(2) : 0}
+Spends/sec           ${totalMs ? (totalSpends / (totalMs / 1000)).toFixed(2) : 0}
+Notes/sec            ${totalMs ? (totalNotes / (totalMs / 1000)).toFixed(2) : 0}`
 }

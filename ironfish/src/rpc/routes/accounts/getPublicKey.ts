@@ -5,13 +5,13 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
-export type GetPublicKeyRequest = { account?: string; generate: boolean }
+export type GetPublicKeyRequest = { account?: string; generate?: boolean }
 export type GetPublicKeyResponse = { account: string; publicKey: string }
 
 export const GetPublicKeyRequestSchema: yup.ObjectSchema<GetPublicKeyRequest> = yup
   .object({
     account: yup.string().strip(true),
-    generate: yup.boolean().defined(),
+    generate: yup.boolean().defined().default(false),
   })
   .defined()
 
@@ -29,7 +29,7 @@ router.register<typeof GetPublicKeyRequestSchema, GetPublicKeyResponse>(
     const account = getAccount(node, request.data.account)
 
     if (request.data.generate) {
-      await node.accounts.generateNewPublicAddress(account)
+      await node.wallet.generateNewPublicAddress(account)
     }
 
     request.end({

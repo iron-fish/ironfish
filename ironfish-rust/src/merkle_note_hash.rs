@@ -2,17 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::errors::IronfishError;
+
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
 use super::serializing::read_scalar;
 
 use bls12_381::Scalar;
-use ff::PrimeField;
+use ff::{PrimeField, PrimeFieldBits};
 use group::Curve;
+use ironfish_zkp::pedersen_hash::{pedersen_hash, Personalization};
 use jubjub::ExtendedPoint;
 
 use std::io;
-use zcash_primitives::pedersen_hash::{pedersen_hash, Personalization};
 
 #[derive(Clone, Debug, Eq)]
 pub struct MerkleNoteHash(pub Scalar);
@@ -30,15 +32,16 @@ impl MerkleNoteHash {
         MerkleNoteHash(fr)
     }
 
-    pub fn read<R: io::Read>(reader: R) -> io::Result<MerkleNoteHash> {
-        let res = read_scalar(reader).map_err(|_| {
-            io::Error::new(io::ErrorKind::InvalidInput, "Unable to convert note hash")
-        });
-        Ok(MerkleNoteHash(res.unwrap()))
+    pub fn read<R: io::Read>(reader: R) -> Result<MerkleNoteHash, IronfishError> {
+        let res = read_scalar(reader)?;
+
+        Ok(MerkleNoteHash(res))
     }
 
-    pub fn write<W: io::Write>(&self, writer: &mut W) -> io::Result<()> {
-        writer.write_all(self.0.to_repr().as_ref())
+    pub fn write<W: io::Write>(&self, writer: &mut W) -> Result<(), IronfishError> {
+        writer.write_all(self.0.to_repr().as_ref())?;
+
+        Ok(())
     }
 
     /// Hash two child hashes together to calculate the hash of the
@@ -51,8 +54,7 @@ impl MerkleNoteHash {
             Personalization::MerkleTree(depth),
             lhs.into_iter()
                 .take(num_bits)
-                .chain(rhs.into_iter().take(num_bits))
-                .cloned(),
+                .chain(rhs.into_iter().take(num_bits)),
         ))
         .to_affine()
         .get_u()

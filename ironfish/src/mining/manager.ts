@@ -5,17 +5,22 @@
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
+import { MAX_TRANSACTIONS_PER_BLOCK } from '../consensus'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
+import { MetricsMonitor } from '../metrics'
+import {
+  getBlockHeaderSize,
+  getBlockSize,
+  getTransactionSize,
+} from '../network/utils/serializers'
 import { IronfishNode } from '../node'
-import { Block } from '../primitives/block'
+import { Block, BlockSerde } from '../primitives/block'
 import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
-import { Telemetry } from '../telemetry'
 import { AsyncUtils } from '../utils/async'
+import { BenchUtils } from '../utils/bench'
 import { GraffitiUtils } from '../utils/graffiti'
-
-const MAX_TRANSACTIONS_PER_BLOCK = 300
 
 export enum MINED_RESULT {
   UNKNOWN_REQUEST = 'UNKNOWN_REQUEST',
@@ -30,7 +35,7 @@ export class MiningManager {
   private readonly chain: Blockchain
   private readonly memPool: MemPool
   private readonly node: IronfishNode
-  private readonly telemetry: Telemetry
+  private readonly metrics: MetricsMonitor
 
   blocksMined = 0
   minersConnected = 0
@@ -41,12 +46,12 @@ export class MiningManager {
     chain: Blockchain
     node: IronfishNode
     memPool: MemPool
-    telemetry: Telemetry
+    metrics: MetricsMonitor
   }) {
     this.node = options.node
     this.memPool = options.memPool
     this.chain = options.chain
-    this.telemetry = options.telemetry
+    this.metrics = options.metrics
   }
 
   /**
@@ -56,15 +61,22 @@ export class MiningManager {
    * @param sequence The sequence of the next block to be included in the chain
    * @returns
    */
-  async getNewBlockTransactions(sequence: number): Promise<{
+  async getNewBlockTransactions(
+    sequence: number,
+    currBlockSize: number,
+  ): Promise<{
     totalFees: bigint
     blockTransactions: Transaction[]
+    newBlockSize: number
   }> {
+    const startTime = BenchUtils.start()
+
     // Fetch pending transactions
     const blockTransactions: Transaction[] = []
     const nullifiers = new BufferSet()
-    for (const transaction of this.memPool.get()) {
-      if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK) {
+    for (const transaction of this.memPool.orderedTransactions()) {
+      // Stop adding transactions when max count reached (accounting for the miner's fee transaction added later)
+      if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK - 1) {
         break
       }
 
@@ -92,6 +104,13 @@ export class MiningManager {
         nullifiers.add(spend.nullifier)
       }
 
+      // Stop adding transactions when the addition would cause the block to exceed the max size
+      const transactionSize = getTransactionSize(transaction.serialize())
+      if (currBlockSize + transactionSize > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
+        break
+      }
+      currBlockSize += transactionSize
+
       blockTransactions.push(transaction)
     }
 
@@ -102,9 +121,12 @@ export class MiningManager {
       totalTransactionFees += transactionFee
     }
 
+    this.metrics.mining_newBlockTransactions.add(BenchUtils.end(startTime))
+
     return {
       totalFees: totalTransactionFees,
       blockTransactions,
+      newBlockSize: currBlockSize,
     }
   }
 
@@ -115,14 +137,23 @@ export class MiningManager {
    * @returns
    */
   async createNewBlockTemplate(currentBlock: Block): Promise<SerializedBlockTemplate> {
-    const newBlockSequence = currentBlock.header.sequence + 1
+    const startTime = BenchUtils.start()
 
-    const { totalFees, blockTransactions } = await this.getNewBlockTransactions(
-      newBlockSequence,
-    )
-
-    const account = this.node.accounts.getDefaultAccount()
+    const account = this.node.wallet.getDefaultAccount()
     Assert.isNotNull(account, 'Cannot mine without an account')
+
+    const newBlockSequence = currentBlock.header.sequence + 1
+    const newBlockHeaderSize = getBlockHeaderSize()
+    const newBlockMinersFeeTransactionSize = 562
+    const newBlockTransactionsLengthSize = 2
+
+    const currBlockSize =
+      newBlockHeaderSize + newBlockMinersFeeTransactionSize + newBlockTransactionsLengthSize
+
+    const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
+      newBlockSequence,
+      currBlockSize,
+    )
 
     // Calculate the final fee for the miner of this block
     const minersFee = await this.node.strategy.createMinersFee(
@@ -133,6 +164,11 @@ export class MiningManager {
     this.node.logger.debug(
       `Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
     )
+    Assert.isEqual(
+      newBlockMinersFeeTransactionSize,
+      getTransactionSize(minersFee.serialize()),
+      "Incorrect miner's fee transaction size used during block creation",
+    )
 
     // Create the new block as a template for mining
     const newBlock = await this.chain.newBlock(
@@ -140,16 +176,23 @@ export class MiningManager {
       minersFee,
       GraffitiUtils.fromString(this.node.config.get('blockGraffiti')),
     )
+    Assert.isEqual(
+      newBlockSize,
+      getBlockSize(BlockSerde.serialize(newBlock)),
+      'Incorrect block size calculated during block creation',
+    )
 
     this.node.logger.debug(
       `Current block template ${newBlock.header.sequence}, has ${newBlock.transactions.length} transactions`,
     )
 
+    this.metrics.mining_newBlockTemplate.add(BenchUtils.end(startTime))
+
     return BlockTemplateSerde.serialize(newBlock, currentBlock)
   }
 
   async submitBlockTemplate(blockTemplate: SerializedBlockTemplate): Promise<MINED_RESULT> {
-    const block = BlockTemplateSerde.deserialize(this.node.strategy, blockTemplate)
+    const block = BlockTemplateSerde.deserialize(blockTemplate)
 
     const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
     if (
@@ -194,7 +237,6 @@ export class MiningManager {
 
     this.blocksMined++
     this.onNewBlock.emit(block)
-    this.telemetry.submitBlockMined(block)
 
     return MINED_RESULT.SUCCESS
   }

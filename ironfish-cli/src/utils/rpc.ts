@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { isResponseUserError, RequestError } from '@ironfish/sdk'
+import { isRpcResponseUserError, RpcRequestError } from '@ironfish/sdk'
 
-export function hasUserResponseError(error: unknown): error is RequestError {
+export function hasUserResponseError(error: unknown): error is RpcRequestError {
   return (
-    error instanceof RequestError && !!error.response && isResponseUserError(error.response)
+    error instanceof RpcRequestError &&
+    !!error.response &&
+    isRpcResponseUserError(error.response)
   )
 }

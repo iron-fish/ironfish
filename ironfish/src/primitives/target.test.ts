@@ -98,7 +98,7 @@ describe('Calculate target', () => {
     }
   })
 
-  it('keeps difficulty/target of parent block header if time differnece is between 55 and 65 seconds', () => {
+  it('keeps difficulty/target of parent block header if time difference is between 55 and 65 seconds', () => {
     const now = new Date()
     for (let i = 55; i < 65; i++) {
       const time = new Date(now.getTime() + i * 1000)

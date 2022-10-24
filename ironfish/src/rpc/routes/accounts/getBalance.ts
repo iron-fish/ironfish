@@ -5,8 +5,17 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
-export type GetBalanceRequest = { account?: string }
-export type GetBalanceResponse = { account: string; confirmed: string; unconfirmed: string }
+export type GetBalanceRequest = { account?: string; minimumBlockConfirmations?: number }
+
+export type GetBalanceResponse = {
+  account: string
+  confirmed: string
+  pending: string
+  pendingCount: number
+  unconfirmed: string
+  unconfirmedCount: number
+  minimumBlockConfirmations: number
+}
 
 export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
   .object({
@@ -18,7 +27,11 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
   .object({
     account: yup.string().defined(),
     unconfirmed: yup.string().defined(),
+    unconfirmedCount: yup.number().defined(),
+    pending: yup.string().defined(),
+    pendingCount: yup.number().defined(),
     confirmed: yup.string().defined(),
+    minimumBlockConfirmations: yup.number().defined(),
   })
   .defined()
 
@@ -26,13 +39,22 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
   `${ApiNamespace.account}/getBalance`,
   GetBalanceRequestSchema,
   async (request, node): Promise<void> => {
+    const minimumBlockConfirmations = Math.max(
+      request.data.minimumBlockConfirmations ?? node.config.get('minimumBlockConfirmations'),
+      0,
+    )
+
     const account = getAccount(node, request.data.account)
-    const { confirmed, unconfirmed } = await node.accounts.getBalance(account)
+    const balance = await node.wallet.getBalance(account, { minimumBlockConfirmations })
 
     request.end({
-      account: account.displayName,
-      confirmed: confirmed.toString(),
-      unconfirmed: unconfirmed.toString(),
+      account: account.name,
+      confirmed: balance.confirmed.toString(),
+      pending: balance.pending.toString(),
+      pendingCount: balance.pendingCount,
+      unconfirmed: balance.unconfirmed.toString(),
+      unconfirmedCount: balance.unconfirmedCount,
+      minimumBlockConfirmations,
     })
   },
 )

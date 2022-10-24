@@ -1,16 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Accounts } from '../account'
 import { Blockchain } from '../blockchain'
 import { Verifier } from '../consensus'
 import { createRootLogger } from '../logger'
 import { PeerNetwork } from '../network/peerNetwork'
 import { IronfishNode } from '../node'
-import { MemoryAdapter } from '../rpc/adapters'
-import { IronfishMemoryClient } from '../rpc/clients'
+import { RpcMemoryAdapter } from '../rpc/adapters'
+import { RpcMemoryClient } from '../rpc/clients'
 import { IronfishSdk } from '../sdk'
 import { Syncer } from '../syncer'
+import { Wallet } from '../wallet'
 import { WorkerPool } from '../workerPool'
 import { NodeTest } from './nodeTest'
 import { TestStrategy } from './strategy'
@@ -21,8 +21,8 @@ import { TestStrategy } from './strategy'
  * the RouteTest
  */
 export class RouteTest extends NodeTest {
-  adapter!: MemoryAdapter
-  client!: IronfishMemoryClient
+  adapter!: RpcMemoryAdapter
+  client!: RpcMemoryClient
 
   async createSetup(): Promise<{
     sdk: IronfishSdk
@@ -30,29 +30,29 @@ export class RouteTest extends NodeTest {
     strategy: TestStrategy
     verifier: Verifier
     chain: Blockchain
-    accounts: Accounts
+    wallet: Wallet
     peerNetwork: PeerNetwork
     syncer: Syncer
     workerPool: WorkerPool
-    client: IronfishMemoryClient
+    client: RpcMemoryClient
   }> {
     const setup = await super.createSetup()
 
     const logger = createRootLogger().withTag('memoryclient')
-    const client = new IronfishMemoryClient(logger, setup.node)
+    const client = new RpcMemoryClient(logger, setup.node)
 
     return { ...setup, client }
   }
 
   async setup(): Promise<void> {
-    const { sdk, node, strategy, chain, accounts, peerNetwork, syncer, workerPool, client } =
+    const { sdk, node, strategy, chain, wallet, peerNetwork, syncer, workerPool, client } =
       await this.createSetup()
 
     this.sdk = sdk
     this.node = node
     this.strategy = strategy
     this.chain = chain
-    this.accounts = accounts
+    this.wallet = wallet
     this.syncer = syncer
     this.peerNetwork = peerNetwork
     this.client = client

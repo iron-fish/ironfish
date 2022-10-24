@@ -43,5 +43,16 @@
       "type": "Buffer",
       "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAALQorRLHKjX+Yn+uKgaCx2/L6ZFr94RCClUcN3g5ykTP6EHyeNtRZxBom7Ya3nE0a6m6DGpuNu5o+nWlojm1PXv8FnZHF3CVHUca01BvJJKaE2aTN7KL1gO+ZsbgUcpu3AqUo6J0WmAm56CMGPzxFT2K4ZG1SyZl3ZY30pJL2H77cRirFl/cgrIpoIw6tB2yp5WXV9TkwSieHdLb5OZPADwfHmUl5DfxXI+pq6CthHkt+1hSFnYTm5e0zUNOGT9/aHcySA0iL0LNvXvDgyLlsnyqaKrUrr1TShZ7bE+QCIBqSkvrsGyp5XjcX1cYdxrTiIRxJlQzri6yx9BtFJxzYT6R2y/CUzlHdI2VQhWKfENlnBzcSIqQSA0rYyagA4YQi9wQmBvVbl9oNRcNZGG26q+8McIHOm2NYlMZqf/66Kq+eoE/EIVtgpiugKtaczorkNKDRgS0m6RprHSpjAq6r+ALaw+GU2rJSWUVevQpwZ7K6mqX4/piI5LqItGmYtqP5y/Zb0JlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwvPQdNkV1IHCCUAGXD0gQeFQNUW6uwpbCBXKFxdC+zLiQK/LZDl9itSNjxPBmNlRRI5IimgWI4eKbIqKP4nHLAQ=="
     }
+  ],
+  "Transactions sendTransaction throws if pay throws NotEnoughFundsError": [
+    {
+      "name": "account-throw-error",
+      "spendingKey": "cb353d184df0eaa13c6cba0ca94c3009f4d1d411fa3a5d9d6151050939bd6e32",
+      "incomingViewKey": "a2e25d361c288b4b78b2ceadd0b66e0ca6b6f1e809cb43dc752521ce6d3ab403",
+      "outgoingViewKey": "03c8193e02fb33c1e072ac730c0a1ccd94016ad19dfb09ceff94ecb00e50c991",
+      "publicAddress": "6e862af29cf02af4e688163084eca9e5365dd99da8f31a9a9dadf4cf2b21d90625600b4b6812fd548da585",
+      "rescan": null,
+      "displayName": "account-throw-error (d3fb947)"
+    }
   ]
 }

@@ -1,9 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DatabaseIsLockedError, FileUtils, IronfishNode, IronfishPKG } from '@ironfish/sdk'
+import {
+  DatabaseIsLockedError,
+  DatabaseOpenError,
+  ErrorUtils,
+  FileUtils,
+  IronfishNode,
+  IronfishPKG,
+} from '@ironfish/sdk'
 import { execSync } from 'child_process'
 import os from 'os'
+import { getHeapStatistics } from 'v8'
 import { IronfishCommand } from '../command'
 import { LocalFlags } from '../flags'
 
@@ -22,11 +30,15 @@ export default class Debug extends IronfishCommand {
 
     let dbOpen = true
     try {
-      await node.openDB({ upgrade: false })
+      await node.openDB()
     } catch (err) {
       if (err instanceof DatabaseIsLockedError) {
         this.log('Database in use, skipping output that requires database.')
         this.log('Stop the node and run the debug command again to show full output.\n')
+        dbOpen = false
+      } else if (err instanceof DatabaseOpenError) {
+        this.log('Database cannot be opened, skipping output that requires database.\n')
+        this.log(ErrorUtils.renderError(err, true) + '\n')
         dbOpen = false
       }
     }
@@ -45,8 +57,12 @@ export default class Debug extends IronfishCommand {
     const cpuThreads = cpus.length
 
     const memTotal = FileUtils.formatMemorySize(os.totalmem())
+    const heapTotal = FileUtils.formatMemorySize(getHeapStatistics().total_available_size)
 
     const telemetryEnabled = this.sdk.config.get('enableTelemetry').toString()
+
+    const nodeName = this.sdk.config.get('nodeName').toString()
+    const blockGraffiti = this.sdk.config.get('blockGraffiti').toString()
 
     let cmdInPath: boolean
     try {
@@ -63,25 +79,44 @@ export default class Debug extends IronfishCommand {
       ['CPU model(s)', `${cpuNames.toString()}`],
       ['CPU threads', `${cpuThreads}`],
       ['RAM total', `${memTotal}`],
+      ['Heap total', `${heapTotal}`],
       ['Node version', `${process.version}`],
       ['ironfish in PATH', `${cmdInPath.toString()}`],
+      ['Garbage Collector Exposed', `${String(!!global.gc)}`],
       ['Telemetry enabled', `${telemetryEnabled}`],
+      ['Node name', `${nodeName}`],
+      ['Block graffiti', `${blockGraffiti}`],
     ])
   }
 
   async outputRequiringDB(node: IronfishNode): Promise<Map<string, string>> {
-    const accountsMeta = await node.accounts.db.loadAccountsMeta()
-    const accountsHeadHash = accountsMeta.headHash !== null ? accountsMeta.headHash : ''
+    const output = new Map<string, string>()
 
-    const accountsBlockHeader = await node.chain.getHeader(Buffer.from(accountsHeadHash, 'hex'))
-    const accountsHeadInChain = !!accountsBlockHeader
-    const accountsHeadSequence = accountsBlockHeader?.sequence || 'null'
+    const headHashes = new Map<string, Buffer | null>()
+    for await (const { accountId, headHash } of node.wallet.walletDb.loadHeadHashes()) {
+      headHashes.set(accountId, headHash)
+    }
 
-    return new Map<string, string>([
-      ['Accounts head hash', `${accountsHeadHash}`],
-      ['Accounts head in chain', `${accountsHeadInChain.toString()}`],
-      ['Accounts head sequence', `${accountsHeadSequence}`],
-    ])
+    for (const [accountId, headHash] of headHashes.entries()) {
+      const account = node.wallet.getAccount(accountId)
+
+      const blockHeader = headHash ? await node.chain.getHeader(headHash) : null
+      const headInChain = !!blockHeader
+      const headSequence = blockHeader?.sequence || 'null'
+
+      const shortId = accountId.slice(0, 6)
+
+      output.set(`Account ${shortId} uuid`, `${accountId}`)
+      output.set(`Account ${shortId} name`, `${account?.name || `ACCOUNT NOT FOUND`}`)
+      output.set(
+        `Account ${shortId} head hash`,
+        `${headHash ? headHash.toString('hex') : 'NULL'}`,
+      )
+      output.set(`Account ${shortId} head in chain`, `${headInChain.toString()}`)
+      output.set(`Account ${shortId} sequence`, `${headSequence}`)
+    }
+
+    return output
   }
 
   display(output: Map<string, string>): void {

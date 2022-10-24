@@ -4,7 +4,6 @@
 import { NodeUtils, PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
-import { spawn } from 'child_process'
 import fs from 'fs'
 import fsAsync from 'fs/promises'
 import os from 'os'
@@ -12,6 +11,7 @@ import path from 'path'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
 import { ProgressBar } from '../types'
+import { TarUtils } from '../utils'
 
 const EXTENSION = '.tar.gz'
 
@@ -25,7 +25,7 @@ export default class Restore extends IronfishCommand {
     lock: Flags.boolean({
       default: true,
       allowNo: true,
-      description: 'wait for the database to stop being used',
+      description: 'Wait for the database to stop being used',
     }),
   }
 
@@ -33,12 +33,12 @@ export default class Restore extends IronfishCommand {
     {
       name: 'bucket',
       required: true,
-      description: 'the S3 bucket to upload to',
+      description: 'The S3 bucket to upload to',
     },
     {
       name: 'name',
       required: true,
-      description: 'the name of the backup from the S3 bucket',
+      description: 'The name of the backup from the S3 bucket',
     },
   ]
 
@@ -84,13 +84,13 @@ export default class Restore extends IronfishCommand {
 
     this.log(`Unzipping\n    SRC ${downloadTo}\n    DST ${unzipTo}`)
     CliUx.ux.action.start(`Unzipping ${path.basename(downloadTo)}`)
-    await this.unzipTar(downloadTo, unzipTo)
+    await TarUtils.unzipTar(downloadTo, unzipTo)
     CliUx.ux.action.stop('done\n')
 
     // We do this because the backup can be created with any datadir name
     // So anything could be inside of the zip file. We want it to match our
     // specified data dir though.
-    CliUx.ux.action.start(`Gettting backup name`)
+    CliUx.ux.action.start(`Getting backup name`)
     const backupName = (await fsAsync.readdir(unzipTo))[0]
     const unzipFrom = path.join(unzipTo, backupName)
     CliUx.ux.action.stop(`${backupName}\n`)
@@ -100,14 +100,6 @@ export default class Restore extends IronfishCommand {
     await fsAsync.rm(this.sdk.config.dataDir, { recursive: true, force: true })
     await fsAsync.rename(unzipFrom, this.sdk.config.dataDir)
     CliUx.ux.action.stop(`done\n`)
-  }
-
-  unzipTar(source: string, dest: string): Promise<number | null> {
-    return new Promise<number | null>((resolve, reject) => {
-      const process = spawn('tar', ['-xvzf', source, '-C', dest])
-      process.on('exit', (code) => resolve(code))
-      process.on('error', (error) => reject(error))
-    })
   }
 }
 

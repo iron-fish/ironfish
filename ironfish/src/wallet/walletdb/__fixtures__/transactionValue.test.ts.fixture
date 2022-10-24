@@ -1,0 +1,54 @@
+{
+  "TransactionValueEncoding with a null block hash and sequence serializes the object into a buffer and deserializes to the original object": [
+    {
+      "name": "test",
+      "spendingKey": "95d85b5026c855dc7f303cc7808301d7817b2533d336bb377bc3e7554ca7852e",
+      "incomingViewKey": "f48664970d415820072eec3a58cdb07bb631011ae9123f8dab279465ec020d01",
+      "outgoingViewKey": "c08206eea3d2af4074b697385241a7902d164b196fbcf0dc6e565814a138e07e",
+      "publicAddress": "1673ba4287b20168401a9fe2ea8fd3a54eabd05382c9c9dc7271cb610f0e6aad14e520af677709c03d16c6"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJhLZ9lTliUvg8eGIEVh940Nm1QU/mrLf3zBtOkGTgskHOYuDxW9QEmC8ZEvr1NPt7AIiqVysvu5Yjt3JnsP/VKImDQpkA/p0w+dM6ZhABJwdFdHc/yiKpVI77Udjl3wpAG0kfkIMIX956pTiQIRiCybIfsnfA4q7N00fkfudU8gtyH3qvojDLPG+8AZl9IW+4pi2b79cKzi+xxUhIx29YFwkanDJqvhYMaE43L+KONn03l1jFegrlf9UItRrRVk9UhEB6Z87GRD/ZtoYCrxlggRHPl/D5RjFouNA29+PUMQNiYFSWyzV/e9Ot+nxCcDQv0/AbMWDPAbPumqW6Jd2C7mglzW7MGCBqtcLh3iMzyIOhzFmSUf7CMP7gBQg3dCILEaPs9EHc5wBDFGC0u/oz+cOG/na3Lka8Tpy3hlrgnh4DxJGk70X1XchuBMuASgYOOjHjyq1906s4stonb/O1jkS2NKOoKRpVFJj8aFalQlz0iv5uUvOGPEZNj9qXD34qCUmUJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwkd+h8+PSpiV1e6yT6RPp9NMOH24SRmM7jmWx6i2kgS04uZf+jQBhmugMGPJRRRXI/1fq2+hj1kQNjX3dD1DXCA=="
+    }
+  ],
+  "TransactionValueEncoding with a null block hash serializes the object into a buffer and deserializes to the original object": [
+    {
+      "name": "test",
+      "spendingKey": "c961a106cb8be4c30b2e3a0ff5391171efae62582717ac389f87df54e1721568",
+      "incomingViewKey": "453bd0b2a32ddb48cec233d8d119999a451a9deeb210cd7403ac047f3daa6500",
+      "outgoingViewKey": "7796f0e7686f91ed976b861520e3804cdada43668bcca5051241994b64b392ed",
+      "publicAddress": "357d849314ddfeb54918b42f185b553389f40d2eef888c99aca32daa7e3e63103ce4f3476588e9dbcf9565"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAIgP6ZSUGmgJ2sXvdXBaGjg9fno4fLzAATRQyTn5SsGinJIfWQ0tnjDa+J/hLPi18bbZn9k0IGdqOf+DvjTSHsyURJ+TucFKbZGAcblfRvxBy1ZdXmOT5ODgKPRPUeYcxQCmsAGfgLmvknDB7lvZ5zx1Wz+tUJrsAifZX1VKvIhlKmFq5rpwYarmN2cuSxSfJaN8X1TXC5YzNFKKAV2Xc3gmmHmuZr/E8d7CdmnSns10lSIdX0khmLmDD6ahBKVr7GigX/JI2H0yzcxwHe6rGeLpE6farOGnUB/YXyv5We6tB90r6yGuyUJoRhQ6VrLxZHQeZZA6rQ/DUjTTIi43QSAFOtZXt16wlsSL5GJLOfk6MeMkiFVv+o8LWp5Zms9DaT4AHHX0MGhRdCLGm4bNniC1yyoJ2QjtPvSQEwpcwd26qyFX3xguuSPSDMobgQmUGwVMRDs8F0HAPQwv5w31bOB19VTJRcqwe5caKCUNAe28WSUaqKrMow5zS+s4/AUg5W89fEJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwcJfLOIy34zOHiBMlAJhx5/H8WkBb08wKkNEVW74/EGhueDAijEx+BikI15zlKxx0H6ljEnI5HBa+TU3s2xjuAg=="
+    }
+  ],
+  "TransactionValueEncoding with a null sequence serializes the object into a buffer and deserializes to the original object": [
+    {
+      "name": "test",
+      "spendingKey": "983b33385155d23d60ae32c8fe3be2d814ddec02e5620b00bccfffa67110ab28",
+      "incomingViewKey": "d183fc2ae4ab2458c14f785a5cd788eabd852b9f720a4bfc70d7f5351b976601",
+      "outgoingViewKey": "c8563328740bb293364be6bbc9669a29ded4b0b05c7d15848ceb524a5175010b",
+      "publicAddress": "606906a41438342c3427002b292caa49cc41b4172a0806949e93d70944ffe3ed6f4c03fbd7139c65adf1ec"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAALfAqsWFinfE5QMKqB0y+FAulGXQ3iW/0bnZZKQryKtWWcQiyLzDtDCm8q+eEJaf4ZlAi8XWcPJfuF1Q6sSFAe+sss4oCX7zwSRFUgPS4bwVMD3yAikfUFmz2e5kXfyL3hdzwxGqaFNkc5s9Waj/2cpvgTWPn8BFJiOQ3KVBKt/kPybQBxlhOjENLlLtu3x5gLcf49FG7z+stVglLOmjV1n7NrcQ1g3FJ5nArwKay/hlqkDG2qsYRn3rciFT4wEdCkmf+NvjmC3Ux+BAdwkCVtztctvKQQnyIuuzlsfFO9vP2rvP4Pe0/U3BGFw+EL/YjH8TZI3SCIsLDSWHHJw2KzXMO5QLJRWMhrf5OSeF10DBWWAbQy4yvfLkVES/6VX+jv1XN6s5jcQYRVyrP/oqk25HM/hDgsoXwcmO4jLVatEpLgzEyNjZa5oYu9LcKphdWiD0yFPgJ1gVNujzVi/UUWsodl7yOYC1H6VV5VXV+xqdakx0J1knmoHMJN9aY7Nbct0Y5kJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwty4uhtn52Cq27B15YbYw4PYC3756ADXdfITroFlelSLJLRh44G2cOkQmfSHDDjhCYDyXYEUjlx+A9sq+DuRtCQ=="
+    }
+  ],
+  "TransactionValueEncoding with all fields defined serializes the object into a buffer and deserializes to the original object": [
+    {
+      "name": "test",
+      "spendingKey": "fbb671481f7566fd20b64ed20d0f64482dd1a4d0b61f89837fb3d97523e6ecc2",
+      "incomingViewKey": "de0e06a15f73bbfec09cf63accc46dbad62577890b021f1f734366e59adec806",
+      "outgoingViewKey": "e08ea7f47e18fe1c01cae74b219a6a242bb7485e3496e4020349890881aa20f7",
+      "publicAddress": "9a123fd430c519d474d1942b86a38bc9bd6886e942b2adba1852b4bf752040fa0687665aff4ad7648de300"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAIF+MYg84Y3gFSRjNHYCMgG1qOMH/pwB/LcxcH5JlleMSS7JX4thJOlwXxAlgLWxNpmSExlP8Q5y6vI8NXYQe3dRbmLgN1nzR0seleC7cZjqcRL3wahzHwmSY4alnDeuowiPqXjExvUxahZ1ac6gpRcIcAU4rZSp7rnrvhf5p93pFDgyYXQFshl5K/cRysf/m4E+4pQsn3khwZ6kYf0uO2I/k6Cn1PR2EeLtf41K6U2RRvoVtPuB7PntwAGrZlQzBmq4iyxQzpZFbi0PKdGEqCFfBjPzPExlrOxqgggk0AZC5wbE9j1JyOApRxi4hJqNNZJKcId6+91a5pMLhen1ah1kRWzLU/sQ30YHHdXBDbW/zbwyiLma2OXts+K7Ras6W3TKF9sLfeOD93SbBnxAJihGPQPcl3zjMULPpSzEiIi7u2ahndPZRPiyNb5WSECn7oEfSYz2Ca+0CCUnx+5NTkc7SeEN7hLHoSfHGt62qQCCZ0os0sBYR7uxTZg3Ew1Y55UDtkJlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwlDC2hSdn3bzTQDF0Wwz4o14Hr6AvW8riPYziABUfVylaB4dn9vaSc4hAIPmHJLT/iJMJmvLeqbAcPI+srzqjCw=="
+    }
+  ]
+}

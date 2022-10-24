@@ -7,11 +7,12 @@ import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
+import { Meter } from '../../metrics/meter'
 import { YupUtils } from '../../utils/yup'
-import { Request } from '../request'
+import { RpcRequest } from '../request'
 import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
-import { IAdapter } from './adapter'
+import { IRpcAdapter } from './adapter'
 import { ERROR_CODES, ResponseError } from './errors'
 
 export type IpcRequest = {
@@ -79,15 +80,17 @@ export type IpcAdapterConnectionInfo =
       port: number
     }
 
-export class IpcAdapter implements IAdapter {
+export class RpcIpcAdapter implements IRpcAdapter {
   router: Router | null = null
   ipc: IPC | null = null
   server: IpcServer | null = null
   namespaces: ApiNamespace[]
   logger: Logger
-  pending = new Map<IpcSocketId, Request[]>()
+  pending = new Map<IpcSocketId, RpcRequest[]>()
   started = false
   connection: IpcAdapterConnectionInfo
+  inboundTraffic = new Meter()
+  outboundTraffic = new Meter()
 
   constructor(
     namespaces: ApiNamespace[],
@@ -104,6 +107,9 @@ export class IpcAdapter implements IAdapter {
       return
     }
     this.started = true
+
+    this.inboundTraffic.start()
+    this.outboundTraffic.start()
 
     const { IPC } = await import('node-ipc')
     const ipc = new IPC()
@@ -152,6 +158,9 @@ export class IpcAdapter implements IAdapter {
   }
 
   async stop(): Promise<void> {
+    this.inboundTraffic.stop()
+    this.outboundTraffic.stop()
+
     if (this.started && this.ipc) {
       this.ipc.server.stop()
 
@@ -224,6 +233,8 @@ export class IpcAdapter implements IAdapter {
       return
     }
 
+    this.inboundTraffic.add(Buffer.from(JSON.stringify(data)).byteLength)
+
     const message = result.result
     const router = this.router
     const server = this.server
@@ -231,8 +242,9 @@ export class IpcAdapter implements IAdapter {
     Assert.isNotNull(router)
     Assert.isNotNull(server)
 
-    const request = new Request(
+    const request = new RpcRequest(
       message.data,
+      message.type,
       (status: number, data?: unknown) => {
         this.emitResponse(socket, message.mid, status, data)
       },
@@ -263,11 +275,13 @@ export class IpcAdapter implements IAdapter {
   emitResponse(socket: IpcSocket, messageId: number, status: number, data: unknown): void {
     Assert.isNotNull(this.server)
     this.server.emit(socket, 'message', { id: messageId, status: status, data: data })
+    this.outboundTraffic.add(Buffer.from(JSON.stringify(data)).byteLength)
   }
 
   emitStream(socket: IpcSocket, messageId: number, data: unknown): void {
     Assert.isNotNull(this.server)
     this.server.emit(socket, 'stream', { id: messageId, data: data })
+    this.outboundTraffic.add(Buffer.from(JSON.stringify(data)).byteLength)
   }
 
   renderError(error: Error): IpcError {
@@ -296,5 +310,6 @@ export class IpcAdapter implements IAdapter {
     }
 
     this.server.emit(socket, 'malformedRequest', error)
+    this.outboundTraffic.add(Buffer.from(JSON.stringify(error)).byteLength)
   }
 }

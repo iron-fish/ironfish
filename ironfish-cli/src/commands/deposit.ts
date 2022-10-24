@@ -5,17 +5,17 @@
 import {
   Assert,
   displayIronAmountWithCurrency,
-  IronfishClient,
   ironToOre,
-  isValidAmount,
   MINIMUM_IRON_AMOUNT,
   oreToIron,
+  RpcClient,
   WebApi,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 import { ProgressBar } from '../types'
+import { verifyCanSend } from '../utils/currency'
 
 const REGISTER_URL = 'https://testnet.ironfish.network/signup'
 const IRON_TO_SEND = 0.1
@@ -23,39 +23,47 @@ const IRON_TO_SEND = 0.1
 export default class Bank extends IronfishCommand {
   static description = 'Deposit $IRON for testnet points'
 
-  client: IronfishClient | null = null
+  client: RpcClient | null = null
   api: WebApi | null = new WebApi()
 
   static flags = {
     ...RemoteFlags,
     fee: Flags.integer({
       char: 'f',
-      default: 1,
-      description: `the fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
+      description: `The fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
     }),
     expirationSequenceDelta: Flags.integer({
       char: 'e',
-      description: 'max number of blocks for the transaction to wait before expiring',
+      description: 'Max number of blocks for the transaction to wait before expiring',
     }),
     account: Flags.string({
       char: 'a',
       parse: (input) => Promise.resolve(input.trim()),
-      description: 'the account to send money from',
+      description: 'The account to send money from',
     }),
     confirm: Flags.boolean({
       default: false,
-      description: 'confirm without asking',
+      description: 'Confirm without asking',
     }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Bank)
 
-    this.client = await this.sdk.connectRpc()
+    this.client = await this.sdk.connectRpc(false, true)
     this.api = new WebApi()
 
-    const fee = flags.fee
-    const feeInIron = oreToIron(fee)
+    let fee = flags.fee
+
+    if (fee == null || Number.isNaN(fee)) {
+      try {
+        // fees p25 of last 100 blocks
+        fee = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+      } catch {
+        fee = 1
+      }
+    }
+
     const expirationSequenceDelta = flags.expirationSequenceDelta
 
     const accountName =
@@ -76,33 +84,55 @@ export default class Bank extends IronfishCommand {
       this.exit(1)
     }
 
-    const { canSend, errorReason } = await this.verifyCanSend(flags)
+    const graffiti = (await this.client.getConfig({ name: 'blockGraffiti' })).content
+      .blockGraffiti
+
+    if (!graffiti) {
+      this.log(
+        `No graffiti found. Register at ${REGISTER_URL} then run \`ironfish testnet\` to configure your graffiti`,
+      )
+      this.exit(1)
+    }
+    Assert.isNotUndefined(graffiti)
+    Assert.isNotNull(this.client)
+    Assert.isNotNull(this.api)
+
+    const { canSend, errorReason } = await verifyCanSend(
+      this.client,
+      this.api,
+      expirationSequenceDelta,
+      fee,
+      graffiti,
+    )
     if (!canSend) {
       Assert.isNotNull(errorReason)
       this.log(errorReason)
       this.exit(1)
     }
 
-    const graffiti = (await this.client.getConfig({ name: 'blockGraffiti' })).content
-      .blockGraffiti
-    Assert.isNotUndefined(graffiti)
-
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
     const confirmedBalance = Number(balanceResp.content.confirmed)
-    if (confirmedBalance < ironToOre(IRON_TO_SEND) + fee) {
-      const balance = oreToIron(confirmedBalance)
-      const required = IRON_TO_SEND + feeInIron
-      this.log(`Insufficient balance: ${balance}. Required: ${required}`)
+    const requiredBalance = ironToOre(IRON_TO_SEND) + fee
+
+    if (confirmedBalance < requiredBalance) {
+      this.log(`Insufficient balance: ${confirmedBalance}. Required: ${requiredBalance}`)
       this.exit(1)
     }
 
-    const newBalance = oreToIron(confirmedBalance - ironToOre(IRON_TO_SEND) - fee)
+    const newBalance = confirmedBalance - requiredBalance
 
+    const displayConfirmedBalance = displayIronAmountWithCurrency(
+      oreToIron(confirmedBalance),
+      true,
+    )
     const displayAmount = displayIronAmountWithCurrency(IRON_TO_SEND, true)
-    const displayFee = displayIronAmountWithCurrency(feeInIron, true)
-    const displayNewBalance = displayIronAmountWithCurrency(newBalance, true)
+    const displayFee = displayIronAmountWithCurrency(oreToIron(fee), true)
+    const displayNewBalance = displayIronAmountWithCurrency(oreToIron(newBalance), true)
+
     if (!flags.confirm) {
       this.log(`
+Your balance is ${displayConfirmedBalance}.
+
 You are about to send ${displayAmount} plus a transaction fee of ${displayFee} to the Iron Fish deposit account.
 Your remaining balance after this transaction will be ${displayNewBalance}.
 The memo will contain the graffiti "${graffiti}".
@@ -160,15 +190,16 @@ The memo will contain the graffiti "${graffiti}".
 
       const transaction = result.content
       this.log(`
-Depositing ${displayIronAmountWithCurrency(IRON_TO_SEND, true)} from ${
-        transaction.fromAccountName
-      }
-Transaction Hash: ${transaction.hash}
-Transaction fee: ${displayIronAmountWithCurrency(feeInIron, true)}
+Old Balance: ${displayConfirmedBalance}
 
-Find the transaction on https://explorer.ironfish.network/transaction/${
-        transaction.hash
-      } (it can take a few minutes before the transaction appears in the Explorer)`)
+Depositing ${displayAmount} from ${transaction.fromAccountName}
+Transaction Hash: ${transaction.hash}
+Transaction fee: ${displayFee}
+
+New Balance: ${displayNewBalance}
+
+Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash} 
+(it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while sending the transaction.`)
@@ -177,78 +208,5 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
       }
       this.exit(2)
     }
-  }
-
-  private async verifyCanSend(
-    flags: Record<string, unknown>,
-  ): Promise<{ canSend: boolean; errorReason: string | null }> {
-    Assert.isNotNull(this.client)
-    Assert.isNotNull(this.api)
-
-    const status = await this.client.status()
-    if (!status.content.blockchain.synced) {
-      return {
-        canSend: false,
-        errorReason: `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
-      }
-    }
-
-    const graffiti = (await this.client.getConfig({ name: 'blockGraffiti' })).content
-      .blockGraffiti
-    if (!graffiti) {
-      return {
-        canSend: false,
-        errorReason: `No graffiti found. Register at ${REGISTER_URL} then run \`ironfish testnet\` to configure your graffiti`,
-      }
-    }
-
-    let user
-    try {
-      user = await this.api.findUser({ graffiti })
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        this.error(error.message)
-      }
-
-      return {
-        canSend: false,
-        errorReason: `There is a problem with the Iron Fish API. Please try again later.`,
-      }
-    }
-
-    if (!user) {
-      return {
-        canSend: false,
-        errorReason: `Graffiti not registered. Register at ${REGISTER_URL} and try again`,
-      }
-    }
-
-    const expirationSequenceDelta = flags.expirationSequenceDelta as number | undefined
-    if (expirationSequenceDelta !== undefined && expirationSequenceDelta < 0) {
-      return {
-        canSend: false,
-        errorReason: `Expiration sequence delta must be non-negative`,
-      }
-    }
-
-    if (expirationSequenceDelta !== undefined && expirationSequenceDelta > 120) {
-      return {
-        canSend: false,
-        errorReason: 'Expiration sequence delta should not be above 120 blocks',
-      }
-    }
-
-    const fee = flags.fee as number
-    if (!isValidAmount(fee)) {
-      return {
-        canSend: false,
-        errorReason: `The minimum fee is ${displayIronAmountWithCurrency(
-          MINIMUM_IRON_AMOUNT,
-          false,
-        )}`,
-      }
-    }
-
-    return { canSend: true, errorReason: null }
   }
 }

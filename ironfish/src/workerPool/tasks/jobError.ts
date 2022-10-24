@@ -88,6 +88,7 @@ export class JobErrorMessage extends WorkerMessage {
 }
 
 export class JobError extends Error {
+  name = this.constructor.name
   type = 'JobError'
   code: string | undefined = undefined
 

@@ -1,90 +1,72 @@
 # Contributing
 
-Thank you for considering contributing to the Iron Fish project. We want to make contributing to this project as easy and transparent as possible, whether it's about:
-
-* Discussing the current state of the code
-* Documenting the code
-* Reporting a bug
-* Reporting a security threat
-* Submitting a fix
-* Suggesting a new feature
-
 We welcome contributions from anyone on the internet, and are grateful for even a one-word correction! Note that we have a [code of conduct](./CODE_OF_CONDUCT.md), please follow it in all your interactions with the project.
 
+Before you start, you should become familiar with pulling the code down locally, building the code, and running the tests. If you want more information you can visit our [install guide](https://github.com/iron-fish/ironfish#install), or [how to run tests](https://github.com/iron-fish/ironfish#running-tests).
 
 Thanks in advance for your help.
 
+# Verified Issues
 
-## We develop with GitHub
+At the heart of the community contribution system is our [verified issues](https://github.com/iron-fish/ironfish/issues?q=is%3Aopen+is%3Aissue+label%3Averified) list, and the idea of "verified" issues. These issues will have a green `verified` tag in Github, which indicates that the issue has been reviewed and confirmed by an IF core team member as an approved change for the product.
 
-We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
+All pull requests *must* reference a verified issue to be merged into the codebase. If the issue the PR solves does not link to a verified issue (or any issue at all), you must create that issue and get it verified before the PR can be reviewed.
 
+Verification review of new issues will happen multiple times per week, so new issues will be tagged generally within *3 business days*.
 
-## Pull Requests Guidelines
+# Contributor Workflow
 
-Pull requests are the best way to propose a new change to the codebase (we use the classic [GitHub Flow](https://guides.github.com/introduction/flow/index.html)).
+Pull requests are the best way to propose a new change to the codebase.
 
-To create a new pull request:
-1. Fork the repo and check out a new branch from `staging`.
-2. Add test - if your code change doesn't require a test change, please explain why in the PR description.
-   * To run tests from a specific .test.ts file, run `yarn test NAME` where your tests are in NAME.test.ts
-3. Update the documentation - Especially if you've changed APIs or created new functions.
-4. Ensure the entire test suite passes by running `yarn test`.
-5. Make sure your code lints by running `yarn lint`.
-6. Once 4 & 5 are passing, create a new pull request on GitHub targeted at the `staging` branch.
-7. Add the right label to your PR `documentation`, `bug`, `security-issue`, or `enhancement`.
-8. Add a description of what the PR is changing:
-   * What problem is the PR solving
-   * References to any bugs you're fixing with single lines of the form `Fix #123`
-   * Explain if it's adding a breaking change for clients
-   * Explain how you've tested your change
+- Fork the repo
+- Create a branch from `staging`
+- Find or create one or more issues that your change will fix, using our [new issue form](https://github.com/iron-fish/ironfish/issues/new/choose).
+  - ALL pull requests must refence a verified issue. If the issue is not verified, that has to happen before the PR is reviewed.
+  - Note that team members looking at a PR will try to verify any issues referenced before doing the review. As long as the issue is solid, this should be a fast process!
+- Open a pull request against `staging`
 
-Once the PR is created, one of the maintainers will review it and merge it into the master branch.
+Once the PR is created, one of the maintainers will review it and merge it. Reference any bugs you're fixing with single lines of the form `Fix #123`
+  - We aim to review any PR submitted within *5 business days*. This SLA includes verifying any issues associated with the PR.
 
-If you are thinking of working on a complex change, do not hesitate to discuss the change you wish to make via a GitHub Issue. You can also request feedback early, by opening a WIP pull request or discuss with a maintainer to ensure your work is in line with the philosophy and roadmap of Iron Fish.
+**NOTE:** Read [You should open a Feature Request if](#you-should-open-a-feature-request-if) if you are thinking of working on a change in functionality.
 
-
-## Where to start
+# Where to start
 
 Please read our [README.md](./README.md) first, to learn how to set up Iron Fish.
 
 If you don't know what contribution you can work on, here are a few suggestions:
-* Take a look at our current [list of issues](https://github.com/iron-fish/ironfish/issues). Update the issue if you are interested in working on it.
-* Take a look at our current [pull requests](https://github.com/iron-fish/ironfish/pulls) and help review them.
-* Help us add new tests. More testing allow everyone to ship quality code faster.
-* Write documentation or fix the existing documentation
-* If you still don't know what could be a good task for you, do not hesitate to contact us.
+- Start with our list of "good first issues", which can be [found here](https://github.com/iron-fish/ironfish/contribute), or take a look at our current [list of verified issues](https://github.com/iron-fish/ironfish/issues?q=is%3Aopen+is%3Aissue+label%3Averified). 
+  - Claim the issue if you are interested in working on it.
+- Take a look at our current [pull requests](https://github.com/iron-fish/ironfish/pulls) and help review them.
+- Help us add new tests. More testing allows everyone to ship quality code faster.
+- Write documentation or fix the existing documentation
+- If you still don't know what could be a good task for you, do not hesitate to contact us.
 
+# Feature Request
 
-## Testing
+The purpose of a Feature Request is to explain an improvement you would like to make to Iron Fish, and get consensus from the core development team of Iron Fish. The reason is that we want to make sure your change fits inside of the product vision, and that you don't try to fix a bug in a piece of code already being refactored.
 
-For our TypeScript codebase, you can run the entire test suite using `yarn test` in the root directory.
+You can submit a Feature Request by filing an issue here: https://github.com/iron-fish/ironfish/issues/new/choose
 
-For our Rust codebase, you can run the test suites for each project by running `cargo test` in the project directory.
+## You should open a Feature Request if
 
-## Continuous integration
+If you are working on something in one of these categories, we will not accept your PR if you don't open a Feature Request.
 
-After creating a PR on GitHub, the code will be tested automatically by GitHub Action. The tests can take up to 15 minutes to pass. We ask you to test your code on your machine before submitting a PR.
-
-
-## Style Guide
-
-Iron Fish uses `eslint` and `prettier` to maintain consistent formatting on the TypeScript codebase.
-For the Rust codebase, we are using `rustfmt`.
-
-Please run it before submitting a change.
-
-
-# Licensing
-
-Any contribution will be under the [MPL-2.0](https://www.mozilla.org/en-US/MPL/2.0/) Software License.
-When you submit a code change, your submissions are understood to be under the same license that covers the project.
-
-Please contact us if this a concern for you.
+ - #### Upgrading Package Versions
+   - This is a common attack vector by malicious agents. We lock down our packages for this very reason, and only allow the core team to upgrade packages unless you submit a Feature Request first explaining why you want to upgrade the package.
+ - #### Upgrading Node Versions
+   - There is a large impact in upgrading node versions. Iron Fish takes advantage of many experimental node features, some of which are not fully fleshed out. We use workers and native code boundaries. Node is also known to introduce bugs in newer versions, even LTS. Because of this, there is production testing we do on our side when upgrading node to ensure it's compatible. Because of this, we don't allow users to upgrade our node versions unless a Feature Request is filed.
+ - #### Refactor a core system
+   - Often engineers have visions for core systems, and may be in the process of changing them. Feature Requests help avoid overlap and having your changes overwritten. Some core systems include: MerkleTree, Blockchain, PeerNetwork, Verifier, and Consensus.
+ - #### Making new product design decisions that have no precedent
+   - This one is more complicated. If our product works one way, and you open a PR to change the core product principles to work in another way, then we are going to close your PR as it does not fit into our vision. Try to match existing precedent as much as possible in your code.
+ - #### Tests for CLI commands
+   - They are not useful in their current form. Most of these tests are mocking out the entire node and sending back handcrafted values which are merely asserted and make changes to these commands more annoying. We are accepting a Feature Request for refactoring command tests to be more valuable and not use mocking.
 
 
 # Contact Us
 
 In case of problems with trying to contribute to Iron Fish, you can contact us:
-* On [Discord](https://discord.gg/ironfish)
-* Via [email](contact@ironfish.network)
+- On [Github Discussions](https://github.com/iron-fish/ironfish/discussions)
+- On [Discord](https://discord.gg/ironfish)
+- Via [email](mailto:contact@ironfish.network)

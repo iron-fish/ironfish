@@ -5,7 +5,11 @@
 // From https://github.com/Level/errors
 
 declare module 'level-errors' {
-  class LevelUPError extends Error {}
+  class LevelUPError extends Error {
+    cause: string | undefined
+    type: string
+  }
+
   class NotFoundError extends LevelUPError {}
   class InitializationError extends LevelUPError {}
   class OpenError extends LevelUPError {}

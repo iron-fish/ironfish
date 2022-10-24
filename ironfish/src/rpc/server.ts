@@ -2,22 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { createRootLogger, Logger } from '../logger'
 import { IronfishNode } from '../node'
-import { IAdapter } from './adapters'
+import { IRpcAdapter } from './adapters'
 import { ApiNamespace, Router, router } from './routes'
 
 export class RpcServer {
   readonly node: IronfishNode
+  readonly adapters: IRpcAdapter[] = []
 
-  private readonly adapters: IAdapter[] = []
   private readonly router: Router
   private _isRunning = false
   private _startPromise: Promise<unknown> | null = null
+  logger: Logger
 
-  constructor(node: IronfishNode) {
+  constructor(node: IronfishNode, logger: Logger = createRootLogger()) {
     this.node = node
     this.router = router
     this.router.server = this
+    this.logger = logger.withTag('rpcserver')
   }
 
   get isRunning(): boolean {
@@ -57,7 +60,7 @@ export class RpcServer {
   }
 
   /** Adds an adapter to the RPC server and starts it if the server has already been started */
-  async mount(adapter: IAdapter): Promise<void> {
+  async mount(adapter: IRpcAdapter): Promise<void> {
     this.adapters.push(adapter)
     await adapter.attach(this)
 
@@ -72,5 +75,22 @@ export class RpcServer {
 
       this._startPromise = promise
     }
+  }
+
+  /** Authenticate the RPC request */
+  authenticate(requestAuthToken: string | undefined | null): boolean {
+    if (!requestAuthToken) {
+      this.logger.debug(`Missing Auth token in RPC request.`)
+      return false
+    }
+
+    const rpcAuthToken = this.node.internal.get('rpcAuthToken')
+
+    if (!rpcAuthToken) {
+      this.logger.debug(`Missing RPC Auth token in internal.json config.`)
+      return false
+    }
+
+    return requestAuthToken === rpcAuthToken
   }
 }

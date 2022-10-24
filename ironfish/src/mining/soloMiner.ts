@@ -7,7 +7,7 @@ import { Assert } from '../assert'
 import { Logger } from '../logger'
 import { Meter } from '../metrics/meter'
 import { Target } from '../primitives/target'
-import { IronfishRpcClient } from '../rpc/clients/rpcClient'
+import { RpcSocketClient } from '../rpc/clients/socketClient'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
@@ -22,7 +22,7 @@ export class MiningSoloMiner {
   readonly hashRate: Meter
   readonly threadPool: ThreadPoolHandler
   readonly logger: Logger
-  readonly rpc: IronfishRpcClient
+  readonly rpc: RpcSocketClient
 
   private started: boolean
   private stopPromise: Promise<void> | null
@@ -48,7 +48,7 @@ export class MiningSoloMiner {
     batchSize: number
     logger: Logger
     graffiti: Buffer
-    rpc: IronfishRpcClient
+    rpc: RpcSocketClient
   }) {
     this.rpc = options.rpc
     this.logger = options.logger
@@ -148,7 +148,7 @@ export class MiningSoloMiner {
   }
 
   private async processNewBlocks() {
-    for await (const payload of this.rpc.blockTemplateStream().contentStream(true)) {
+    for await (const payload of this.rpc.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
 
       const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
@@ -252,7 +252,7 @@ export class MiningSoloMiner {
     this.logger.info('Listening to node for new blocks')
 
     void this.processNewBlocks().catch((e: unknown) => {
-      this.logger.error('Fatal error occured while processing blocks from node:')
+      this.logger.error('Fatal error occurred while processing blocks from node:')
       this.logger.error(ErrorUtils.renderError(e, true))
       this.stop()
     })

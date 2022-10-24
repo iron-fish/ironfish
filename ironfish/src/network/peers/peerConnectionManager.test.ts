@@ -4,6 +4,7 @@
 
 jest.mock('ws')
 
+import { Assert } from '../../assert'
 import { createRootLogger } from '../../logger'
 import {
   getConnectedPeer,
@@ -13,6 +14,7 @@ import {
   webRtcCanInitiateIdentity,
   webRtcLocalIdentity,
 } from '../testUtilities'
+import { ConnectionRetry } from './connectionRetry'
 import {
   ConnectionDirection,
   ConnectionType,
@@ -39,13 +41,27 @@ describe('connectToDisconnectedPeers', () => {
 
   it('Should connect to disconnected unidentified peers with an address', () => {
     const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+
     const peer = pm.getOrCreatePeer(null)
     peer.setWebSocketAddress('testuri.com', 9033)
+    pm['tryDisposePeer'](peer)
+
+    pm.peerCandidateMap.set(peer.getWebSocketAddress(), {
+      address: 'testuri.com',
+      port: 9033,
+      neighbors: new Set(),
+      webRtcRetry: new ConnectionRetry(),
+      websocketRetry: new ConnectionRetry(),
+      localRequestedDisconnectUntil: null,
+      peerRequestedDisconnectUntil: null,
+    })
+
     const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
     pcm.start()
-    expect(peer.state).toEqual({
+    expect(pm.peers.length).toBe(1)
+    expect(pm.peers[0].state).toEqual({
       type: 'CONNECTING',
-      identity: null,
+      identity: peer.getWebSocketAddress(),
       connections: {
         webSocket: expect.any(WebSocketConnection),
       },
@@ -56,18 +72,30 @@ describe('connectToDisconnectedPeers', () => {
     const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
 
     const identity = mockIdentity('peer')
-    const peer = pm.getOrCreatePeer(identity)
-    peer.setWebSocketAddress('testuri.com', 9033)
+    pm.peerCandidateMap.set(identity, {
+      address: 'testuri.com',
+      port: 9033,
+      neighbors: new Set(),
+      webRtcRetry: new ConnectionRetry(),
+      websocketRetry: new ConnectionRetry(),
+      localRequestedDisconnectUntil: null,
+      peerRequestedDisconnectUntil: null,
+    })
 
     // We want to test websocket only
-    peer
-      .getConnectionRetry(ConnectionType.WebRtc, ConnectionDirection.Outbound)
-      .neverRetryConnecting()
+    const retry = pm.getConnectionRetry(
+      identity,
+      ConnectionType.WebRtc,
+      ConnectionDirection.Outbound,
+    )
+    Assert.isNotNull(retry)
+    retry.neverRetryConnecting()
 
     const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
     pcm.start()
 
-    expect(peer.state).toEqual({
+    expect(pm.peers.length).toBe(1)
+    expect(pm.peers[0].state).toEqual({
       type: 'CONNECTING',
       identity: identity,
       connections: { webSocket: expect.any(WebSocketConnection) },
@@ -78,13 +106,15 @@ describe('connectToDisconnectedPeers', () => {
     const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
 
     const identity = mockIdentity('peer')
-    const peer = peers.getOrCreatePeer(identity)
-    peer.setWebSocketAddress('testuri.com', 9033)
-
-    // Check both connections are eligible to connect to
-    expect(peers.canConnectToWebRTC(peer)).toBe(true)
-    expect(peers.canConnectToWebSocket(peer)).toBe(true)
-    expect(peer.state.type).toBe('DISCONNECTED')
+    peers.peerCandidateMap.set(identity, {
+      address: 'testuri.com',
+      port: 9033,
+      neighbors: new Set(),
+      webRtcRetry: new ConnectionRetry(),
+      websocketRetry: new ConnectionRetry(),
+      localRequestedDisconnectUntil: null,
+      peerRequestedDisconnectUntil: null,
+    })
 
     const peerConnections = new PeerConnectionManager(peers, createRootLogger(), {
       maxPeers: 50,
@@ -92,6 +122,8 @@ describe('connectToDisconnectedPeers', () => {
     peerConnections.start()
 
     // Check now that were connecting to websockets and webrtc failed
+    expect(peers.peers.length).toBe(1)
+    const peer = peers.peers[0]
     expect(peers.canConnectToWebRTC(peer)).toBe(false)
     expect(peers.canConnectToWebSocket(peer)).toBe(false)
     expect(peer.state).toEqual({
@@ -108,14 +140,30 @@ describe('connectToDisconnectedPeers', () => {
       mockHostsStore(),
     )
     const { peer: brokeringPeer } = getConnectedPeer(pm, 'brokering')
-    const peer = pm.getOrCreatePeer(peerIdentity)
     // Link the peers
-    brokeringPeer.knownPeers.set(peerIdentity, peer)
-    peer.knownPeers.set(brokeringPeer.getIdentityOrThrow(), brokeringPeer)
+    pm.peerCandidateMap.set(brokeringPeer.getIdentityOrThrow(), {
+      address: null,
+      port: null,
+      neighbors: new Set([peerIdentity]),
+      webRtcRetry: new ConnectionRetry(),
+      websocketRetry: new ConnectionRetry(),
+      localRequestedDisconnectUntil: null,
+      peerRequestedDisconnectUntil: null,
+    })
+    pm.peerCandidateMap.set(peerIdentity, {
+      address: null,
+      port: null,
+      neighbors: new Set([brokeringPeer.getIdentityOrThrow()]),
+      webRtcRetry: new ConnectionRetry(),
+      websocketRetry: new ConnectionRetry(),
+      localRequestedDisconnectUntil: null,
+      peerRequestedDisconnectUntil: null,
+    })
 
     const pcm = new PeerConnectionManager(pm, createRootLogger(), { maxPeers: 50 })
     pcm.start()
 
+    const peer = pm.getPeerOrThrow(peerIdentity)
     expect(peer.state).toEqual({
       type: 'CONNECTING',
       identity: peerIdentity,

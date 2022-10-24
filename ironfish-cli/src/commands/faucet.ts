@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { DEFAULT_DISCORD_INVITE, RequestError } from '@ironfish/sdk'
+import { DEFAULT_DISCORD_INVITE, RpcRequestError } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
@@ -74,7 +74,7 @@ export class FaucetCommand extends IronfishCommand {
         email,
       })
     } catch (error: unknown) {
-      if (error instanceof RequestError) {
+      if (error instanceof RpcRequestError) {
         CliUx.ux.action.stop(error.codeMessage)
       } else {
         CliUx.ux.action.stop(

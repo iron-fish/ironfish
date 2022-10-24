@@ -3,13 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { GENESIS_SUPPLY_IN_IRON, IRON_FISH_YEAR_IN_BLOCKS } from './consensus'
-import { NoteHasher } from './merkletree/hasher'
-import { BlockSerde } from './primitives/block'
-import { BlockHash, BlockHeaderSerde, hashBlockHeader } from './primitives/blockheader'
-import { NoteEncrypted } from './primitives/noteEncrypted'
-import { NullifierHasher } from './primitives/nullifier'
-import { Transaction, TransactionSerde } from './primitives/transaction'
-import { Serde } from './serde'
+import { Transaction } from './primitives/transaction'
 import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
 
@@ -18,37 +12,12 @@ import { WorkerPool } from './workerPool'
  */
 export class Strategy {
   readonly workerPool: WorkerPool
-  readonly noteHasher: NoteHasher
-  readonly nullifierHasher: NullifierHasher
-  readonly blockSerde: BlockSerde
-  readonly blockHeaderSerde: BlockHeaderSerde
-  readonly noteSerde: Serde<NoteEncrypted, Buffer>
-  readonly transactionSerde: TransactionSerde
 
   private miningRewardCachedByYear: Map<number, number>
 
   constructor(workerPool: WorkerPool) {
-    this.noteHasher = new NoteHasher()
-    this.nullifierHasher = new NullifierHasher()
-    this.transactionSerde = new TransactionSerde()
-    this.blockSerde = new BlockSerde(this)
-    this.blockHeaderSerde = new BlockHeaderSerde(this)
-    this.noteSerde = this.noteHasher.elementSerde()
     this.miningRewardCachedByYear = new Map<number, number>()
     this.workerPool = workerPool
-  }
-
-  /**
-   * Given the serialized bytes of a block header, return a 32-byte hash of that block.
-   *
-   * Note: in Ironfish, the hashing algorithm is hard-coded into the mining thread,
-   * and hashBlockHeader must always return the result of miningAlgorithm.hashBlockHeader.
-   *
-   * Ideally we could remove this method altogether, but unit tests rely
-   * on it heavily.
-   */
-  hashBlockHeader(serializedHeader: Buffer): BlockHash {
-    return hashBlockHeader(serializedHeader)
   }
 
   /**

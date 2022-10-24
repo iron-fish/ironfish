@@ -4,6 +4,7 @@
 
 import '../testUtilities/matchers/merkletree'
 import { makeTree } from '../testUtilities/helpers/merkletree'
+import { createTestDB } from '../testUtilities/helpers/storage'
 import { MerkleTree, Side } from './merkletree'
 import { depthAtLeafCount } from './utils'
 
@@ -17,12 +18,14 @@ describe('Merkle tree', function () {
   })
 
   it("doesn't reset db on second run", async () => {
-    const tree1 = await makeTree()
+    const { location } = await createTestDB(false)
+
+    const tree1 = await makeTree({ location })
     await tree1.add('a')
     await expect(tree1.size()).resolves.toBe(1)
     await tree1.db.close()
 
-    const tree2 = await makeTree({ db: tree1.db })
+    const tree2 = await makeTree({ location })
     await expect(tree2.size()).resolves.toBe(1)
     await tree2.db.close()
   })

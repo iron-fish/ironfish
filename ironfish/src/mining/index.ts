@@ -3,8 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export { MiningManager } from './manager'
-export { Discord } from './discord'
-export { Lark } from './lark'
+export { Discord } from './webhooks'
+export { Lark } from './webhooks'
+export { WebhookNotifier } from './webhooks'
 export { MiningPool } from './pool'
 export { MiningPoolMiner } from './poolMiner'
 export { MiningSoloMiner } from './soloMiner'
+export { StratumClient } from './stratum'
+export { MiningStatusMessage } from './stratum'

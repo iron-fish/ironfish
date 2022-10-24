@@ -25,7 +25,7 @@ declare module 'buffer-map' {
     toArray(): T[]
   }
 
-  export class BufferSet<T> implements Iterable<Buffer> {
+  export class BufferSet<T = Buffer> implements Iterable<Buffer> {
     constructor(iterable: Iterable<T> | null | undefined = null)
 
     readonly size: number
@@ -35,7 +35,7 @@ declare module 'buffer-map' {
     delete(key: Buffer): boolean
     clear(): void
 
-    [Symbol.iterator](): Iterator<[Buffer, T]>
+    [Symbol.iterator](): Iterator<Buffer>
 
     *entries(): Generator<[Buffer, Bufferd]>
     keys(): Iterator<Buffer>

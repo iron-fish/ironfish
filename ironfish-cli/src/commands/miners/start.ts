@@ -27,20 +27,24 @@ export class Miner extends IronfishCommand {
       char: 't',
       default: -1,
       description:
-        'number of CPU threads to use for mining. -1 will auto-detect based on number of CPU cores.',
+        'Number of CPU threads to use for mining. -1 will auto-detect based on number of CPU cores.',
     }),
     pool: Flags.string({
       char: 'p',
-      description: 'the host and port of the mining pool to connect to such as 92.191.17.232',
+      description: 'The host and port of the mining pool to connect to such as 92.191.17.232',
+    }),
+    name: Flags.string({
+      char: 'n',
+      description: 'The miner name distinguishes different miners',
     }),
     address: Flags.string({
       char: 'a',
-      description: 'the public address to receive pool payouts',
+      description: 'The public address to receive pool payouts',
     }),
     richOutput: Flags.boolean({
       default: true,
       allowNo: true,
-      description: 'enable fancy hashpower display',
+      description: 'Enable fancy hashpower display',
     }),
   }
 
@@ -85,7 +89,10 @@ export class Miner extends IronfishCommand {
         }
       }
 
-      this.log(`Starting to mine with public address: ${flags.address} at pool ${host}:${port}`)
+      const nameInfo = flags.name ? ` with name ${flags.name}` : ''
+      this.log(
+        `Starting to mine with public address: ${flags.address} at pool ${host}:${port}${nameInfo}`,
+      )
 
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
@@ -94,14 +101,17 @@ export class Miner extends IronfishCommand {
         batchSize,
         host: host,
         port: port,
+        name: flags.name,
       })
 
       miner.start()
+
       if (flags.richOutput) {
         this.displayHashrate(miner)
       }
 
       await miner.waitForStop()
+
       if (this.updateInterval) {
         clearInterval(this.updateInterval)
       }
@@ -121,11 +131,13 @@ export class Miner extends IronfishCommand {
       })
 
       miner.start()
+
       if (flags.richOutput) {
         this.displayHashrate(miner)
       }
 
       await miner.waitForStop()
+
       if (this.updateInterval) {
         clearInterval(this.updateInterval)
       }

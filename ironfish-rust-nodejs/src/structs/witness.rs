@@ -5,11 +5,12 @@
 use std::cell::RefCell;
 use std::ops::Deref;
 
+use ironfish_rust::sapling_bls12::Scalar;
+use ironfish_rust::MerkleNoteHash;
 use napi::bindgen_prelude::*;
 use napi::Env;
 use napi::JsObject;
 
-use ironfish_rust::sapling_bls12::{MerkleNoteHash, Scalar};
 use ironfish_rust::witness::{WitnessNode, WitnessTrait};
 
 pub struct JsWitness {

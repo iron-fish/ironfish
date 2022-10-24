@@ -11,9 +11,7 @@
     "config/eslint-config-ironfish",
     "config/eslint-plugin-ironfish",
     "ironfish",
-    "ironfish-rust-nodejs",
-    "ironfish-rust-wasm/nodejs",
-    "ironfish-rust-wasm/web"
+    "ironfish-rust-nodejs"
   ],
   "scripts": {
     "build": "lerna run build",
@@ -31,10 +29,11 @@
     "test:changed": "lerna run --since origin/master --include-dependents test",
     "test:update": "lerna run test -- -u",
     "test:update:changed": "lerna run --since origin/master --include-dependents test -- -u",
-    "test:slow:coverage": "lerna run test:slow --stream -- --collect-coverage  --testPathIgnorePatterns",
+    "test:slow": "lerna run test:slow",
+    "test:slow:coverage": "lerna run test:slow --stream -- --collect-coverage --testPathIgnorePatterns",
     "typecheck": "lerna exec -- tsc --noEmit",
     "typecheck:changed": "lerna exec --since origin/master --include-dependents -- tsc --noEmit",
-    "coverage:upload": " lerna exec '\"yarn codecov -t $CODECOV_TOKEN -f ./coverage/clover.xml -F $LERNA_PACKAGE_NAME -p $ROOT_PATH/ --disable=gcov\"'"
+    "coverage:upload": "lerna exec '\"yarn codecov -t $CODECOV_TOKEN -f ./coverage/clover.xml -F $LERNA_PACKAGE_NAME -p $ROOT_PATH/ --disable=gcov\"'"
   },
   "devDependencies": {
     "@types/jest": "26.0.23",
@@ -51,7 +50,7 @@
     "eslint-plugin-react-hooks": "4.2.0",
     "eslint-plugin-simple-import-sort": "7.0.0",
     "jest": "26.6.3",
-    "lerna": "4.0.0",
+    "lerna": "5.5.2",
     "node-gyp": "8.4.1",
     "prettier": "2.3.2",
     "ts-jest": "26.5.5",
@@ -60,7 +59,6 @@
   "resolutions": {
     "axios": "0.21.4",
     "handlebars": "4.7.7",
-    "node-notifier": "8.0.1",
-    "set-getter": "0.1.1"
+    "node-notifier": "8.0.1"
   }
 }

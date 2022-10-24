@@ -1,15 +1,19 @@
-FROM node:16.13.0-bullseye as build
+FROM node:16.15.1-bullseye as build
 ENV PATH="/root/.cargo/bin:${PATH}"
-
-COPY ./ ./
 
 RUN \
     apt-get update && \
-    apt-get install jq rsync gcc cmake python -y && \
-    curl https://sh.rustup.rs -sSf | sh -s -- -y && \
-    ./ironfish-cli/scripts/build.sh
+    apt-get install jq rsync gcc cmake python -y
 
-FROM node:16.13.0-bullseye-slim
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+WORKDIR ./app
+
+COPY ./ ./
+
+RUN ./ironfish-cli/scripts/build.sh
+
+FROM node:16.15.1-bullseye-slim
 EXPOSE 8020:8020
 EXPOSE 9033:9033
 VOLUME /root/.ironfish
@@ -21,8 +25,8 @@ RUN \
     apt-get install curl libc6 -y
 
 WORKDIR /usr/src
-COPY --from=build /ironfish-cli/build.cli/ironfish-cli ./app
-COPY --from=build /ironfish-cli/scripts/entrypoint.sh ./app/
+COPY --from=build /app/ironfish-cli/build.cli/ironfish-cli ./app
+COPY --from=build /app/ironfish-cli/scripts/entrypoint.sh ./app/
 RUN chmod +x ./app/entrypoint.sh
 
 WORKDIR /usr/src/app

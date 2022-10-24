@@ -46,12 +46,17 @@ router.register<typeof ImportAccountRequestSchema, ImportAccountResponse>(
   `${ApiNamespace.account}/importAccount`,
   ImportAccountRequestSchema,
   async (request, node): Promise<void> => {
-    const account = await node.accounts.importAccount(request.data.account)
-    void node.accounts.startScanTransactionsFor(account)
+    const account = await node.wallet.importAccount(request.data.account)
+
+    if (request.data.rescan) {
+      void node.wallet.scanTransactions()
+    } else {
+      await node.wallet.skipRescan(account)
+    }
 
     let isDefaultAccount = false
-    if (!node.accounts.hasDefaultAccount) {
-      await node.accounts.setDefaultAccount(account.name)
+    if (!node.wallet.hasDefaultAccount) {
+      await node.wallet.setDefaultAccount(account.name)
       isDefaultAccount = true
     }
 

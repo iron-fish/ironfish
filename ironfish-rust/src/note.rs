@@ -2,17 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::errors::IronfishError;
+
 use super::{
-    errors,
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
     serializing::{aead, read_scalar, scalar_to_bytes},
 };
 use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::PrimeField;
+use ironfish_zkp::{Nullifier, Rseed, SaplingNote};
 use jubjub::SubgroupPoint;
 use rand::{thread_rng, Rng};
-use zcash_primitives::primitives::{Note as SaplingNote, Nullifier, Rseed};
 
 use std::{fmt, io, io::Read};
 
@@ -20,7 +21,7 @@ pub const ENCRYPTED_NOTE_SIZE: usize = 83;
 
 /// Memo field on a Note. Used to encode transaction IDs or other information
 /// about the transaction.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Memo(pub [u8; 32]);
 
 impl From<&str> for Memo {
@@ -96,16 +97,13 @@ impl<'a> Note {
     ///
     /// You probably don't want to use this unless you are transmitting
     /// across nodejs threads in memory.
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingKeyError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let owner = PublicAddress::read(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
 
-        let mut memo_vec = vec![];
-        let mut memo = Memo([0; 32]);
-        reader.read_to_end(&mut memo_vec)?;
-        assert_eq!(memo_vec.len(), 32);
-        memo.0.copy_from_slice(&memo_vec[..]);
+        let mut memo = Memo::default();
+        reader.read_exact(&mut memo.0)?;
 
         Ok(Self {
             owner,
@@ -120,11 +118,12 @@ impl<'a> Note {
     /// This should generally never be used to serialize to disk or the network.
     /// It is primarily added as a device for transmitting the note across
     /// thread boundaries.
-    pub fn write<W: io::Write>(&self, mut writer: &mut W) -> io::Result<()> {
+    pub fn write<W: io::Write>(&self, mut writer: &mut W) -> Result<(), IronfishError> {
         self.owner.write(&mut writer)?;
         writer.write_u64::<LittleEndian>(self.value)?;
         writer.write_all(self.randomness.to_repr().as_ref())?;
         writer.write_all(&self.memo.0)?;
+
         Ok(())
     }
 
@@ -141,7 +140,7 @@ impl<'a> Note {
         owner_view_key: &'a IncomingViewKey,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<Self, errors::NoteError> {
+    ) -> Result<Self, IronfishError> {
         let (diversifier_bytes, randomness, value, memo) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let owner = owner_view_key.public_address(&diversifier_bytes)?;
@@ -167,7 +166,7 @@ impl<'a> Note {
         transmission_key: SubgroupPoint,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<Self, errors::NoteError> {
+    ) -> Result<Self, IronfishError> {
         let (diversifier_bytes, randomness, value, memo) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let (diversifier, diversifier_point) =
@@ -241,18 +240,18 @@ impl<'a> Note {
     }
 
     /// Verify that the note's commitment matches the one passed in
-    pub(crate) fn verify_commitment(&self, commitment: Scalar) -> Result<(), errors::NoteError> {
+    pub(crate) fn verify_commitment(&self, commitment: Scalar) -> Result<(), IronfishError> {
         if commitment == self.commitment_point() {
             Ok(())
         } else {
-            Err(errors::NoteError::InvalidCommitment)
+            Err(IronfishError::InvalidCommitment)
         }
     }
 
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<([u8; 11], jubjub::Fr, u64, Memo), errors::NoteError> {
+    ) -> Result<([u8; 11], jubjub::Fr, u64, Memo), IronfishError> {
         let mut plaintext_bytes = [0; ENCRYPTED_NOTE_SIZE];
         aead::decrypt(shared_secret, encrypted_bytes, &mut plaintext_bytes)?;
 
@@ -262,11 +261,10 @@ impl<'a> Note {
 
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
-        let mut memo_vec = vec![];
-        let mut memo = Memo([0; 32]);
-        reader.read_to_end(&mut memo_vec)?;
-        assert_eq!(memo_vec.len(), 32);
-        memo.0.copy_from_slice(&memo_vec[..]);
+
+        let mut memo = Memo::default();
+        reader.read_exact(&mut memo.0)?;
+
         Ok((diversifier_bytes, randomness, value, memo))
     }
 
@@ -321,7 +319,7 @@ mod test {
         let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
         let public_shared_secret =
             shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
-        let note = Note::new(public_address, 42, Memo([0; 32]));
+        let note = Note::new(public_address, 42, Memo::default());
         let encryption_result = note.encrypt(&public_shared_secret);
 
         let private_shared_secret = owner_key.incoming_view_key().shared_secret(&dh_public);

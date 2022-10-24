@@ -5,9 +5,7 @@
     "config/eslint-plugin-ironfish",
     "ironfish-cli",
     "ironfish",
-    "ironfish-rust-nodejs",
-    "ironfish-rust-wasm/nodejs",
-    "ironfish-rust-wasm/web"
+    "ironfish-rust-nodejs"
   ],
   "version": "independent",
   "npmClient": "yarn",
