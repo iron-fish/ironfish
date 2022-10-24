@@ -13,6 +13,9 @@ use ironfish_rust::MerkleNote;
 
 use crate::to_napi_err;
 
+#[napi]
+pub const ENCRYPTED_NOTE_LENGTH: u32 = 275;
+
 #[napi(js_name = "NoteEncrypted")]
 pub struct NativeNoteEncrypted {
     pub(crate) note: MerkleNote,

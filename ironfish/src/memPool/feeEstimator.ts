@@ -5,21 +5,22 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool, PriorityQueue } from '../memPool'
+import { getTransactionSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
 
-interface FeeEntry {
-  fee: bigint
+interface FeeRateEntry {
+  feeRate: bigint
   blockHash: Buffer
 }
 
-export class RecentFeeCache {
-  private queue: Array<FeeEntry>
+export class FeeEstimator {
+  private queue: Array<FeeRateEntry>
   readonly chain: Blockchain
   private readonly logger: Logger
   private numOfRecentBlocks = 10
   private numOfTxSamples = 3
   private maxQueueLength: number
-  private defaultSuggestedFee = BigInt(2)
+  private defaultFeeRate = BigInt(1)
 
   constructor(options: {
     chain: Blockchain
@@ -45,7 +46,7 @@ export class RecentFeeCache {
       const currentBlock = await this.chain.getBlock(currentBlockHash)
       Assert.isNotNull(currentBlock, 'No block found')
 
-      const lowestFeeTransactions = this.getLowestFeeTransactions(
+      const lowestFeeTransactions = this.getLowestFeeRateTransactions(
         currentBlock,
         this.numOfTxSamples,
       )
@@ -54,7 +55,7 @@ export class RecentFeeCache {
         if (this.isFull()) {
           break
         }
-        this.queue.push({ fee: transaction.fee(), blockHash: currentBlockHash })
+        this.queue.push({ feeRate: getFeeRate(transaction), blockHash: currentBlockHash })
       }
 
       currentBlockHash = currentBlock.header.previousBlockHash
@@ -62,7 +63,7 @@ export class RecentFeeCache {
   }
 
   onConnectBlock(block: Block, memPool: MemPool): void {
-    for (const transaction of this.getLowestFeeTransactions(
+    for (const transaction of this.getLowestFeeRateTransactions(
       block,
       this.numOfTxSamples,
       (t) => !memPool.exists(t.hash()),
@@ -71,7 +72,7 @@ export class RecentFeeCache {
         this.queue.shift()
       }
 
-      this.queue.push({ fee: transaction.fee(), blockHash: block.header.hash })
+      this.queue.push({ feeRate: getFeeRate(transaction), blockHash: block.header.hash })
     }
   }
 
@@ -86,19 +87,13 @@ export class RecentFeeCache {
     }
   }
 
-  private getLowestFeeTransactions(
+  private getLowestFeeRateTransactions(
     block: Block,
     numTransactions: number,
     exclude: (transaction: Transaction) => boolean = (t) => t.isMinersFee(),
   ): Transaction[] {
     const lowestTxFees = new PriorityQueue<Transaction>(
-      // TODO: @yajun compare transaction fee rate per byte when transaction size is available
-      (txA, txB) => {
-        if (txA.fee() === txB.fee()) {
-          return txA.hash().compare(txB.hash()) > 0
-        }
-        return txA.fee() > txB.fee()
-      },
+      (txA, txB) => getFeeRate(txA) > getFeeRate(txB),
       (t) => t.hash().toString('hex'),
     )
 
@@ -125,25 +120,17 @@ export class RecentFeeCache {
     return transactions.reverse()
   }
 
-  getSuggestedFee(percentile: number): bigint {
+  estimateFeeRate(percentile: number): bigint {
     if (this.queue.length < this.numOfRecentBlocks) {
-      return this.defaultSuggestedFee
+      return this.defaultFeeRate
     }
 
     const fees: bigint[] = []
     for (const entry of this.queue) {
-      fees.push(entry.fee)
+      fees.push(entry.feeRate)
     }
 
-    fees.sort((a, b) => {
-      if (a < b) {
-        return -1
-      } else if (a > b) {
-        return 1
-      } else {
-        return 0
-      }
-    })
+    fees.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
 
     return fees[Math.round(((this.queue.length - 1) * percentile) / 100)]
   }
@@ -155,4 +142,11 @@ export class RecentFeeCache {
   private isFull(): boolean {
     return this.queue.length === this.maxQueueLength
   }
+}
+
+export function getFeeRate(transaction: Transaction): bigint {
+  const transactionSizeKb = getTransactionSize(transaction.serialize()) / 1000
+  const rate = transaction.fee() / BigInt(Math.round(transactionSizeKb))
+
+  return rate > 0 ? rate : BigInt(1)
 }

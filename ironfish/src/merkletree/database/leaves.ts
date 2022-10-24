@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { IDatabaseEncoding } from '../../storage/database/types'
+import { ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 
@@ -12,7 +13,6 @@ export interface LeafValue<T> {
   parentIndex: number
 }
 
-const NOTE_BYTES = 275
 const NULLIFIER_BYTES = 32
 
 export type NoteLeafValue = LeafValue<NoteEncrypted>
@@ -33,7 +33,7 @@ export class NoteLeafEncoding implements IDatabaseEncoding<NoteLeafValue> {
   deserialize(buffer: Buffer): NoteLeafValue {
     const reader = bufio.read(buffer, true)
 
-    const element = new NoteEncrypted(reader.readBytes(NOTE_BYTES))
+    const element = new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH))
     const merkleHash = reader.readHash()
     const parentIndex = reader.readU32()
 
@@ -46,7 +46,7 @@ export class NoteLeafEncoding implements IDatabaseEncoding<NoteLeafValue> {
 
   getSize(): number {
     let size = 0
-    size += NOTE_BYTES // element
+    size += ENCRYPTED_NOTE_LENGTH // element
     size += 32 // merkleHash
     size += 4 // parentIndex
     return size

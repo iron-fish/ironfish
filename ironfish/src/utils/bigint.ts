@@ -112,6 +112,17 @@ function divide(a: bigint, b: bigint): number {
   return Number(div) + Number(a - div * b) / Number(b)
 }
 
+function tryParse(value: string): [bigint, null] | [null, Error] {
+  try {
+    return [BigInt(value), null]
+  } catch (e) {
+    if (e instanceof SyntaxError) {
+      return [null, e]
+    }
+    throw e
+  }
+}
+
 export const BigIntUtils = {
   toBytes,
   fromBytes,
@@ -120,4 +131,5 @@ export const BigIntUtils = {
   toBytesLE,
   max,
   divide,
+  tryParse,
 }

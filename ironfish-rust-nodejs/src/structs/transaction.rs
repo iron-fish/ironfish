@@ -15,6 +15,7 @@ use crate::to_napi_err;
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendProof;
 use super::witness::JsWitness;
+use super::ENCRYPTED_NOTE_LENGTH;
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {
@@ -67,8 +68,7 @@ impl NativeTransactionPosted {
             .map_err(|_| to_napi_err("Value out of range"))?;
 
         let proof = &self.transaction.receipts()[index_usize];
-        // Note bytes are 275
-        let mut vec: Vec<u8> = Vec::with_capacity(275);
+        let mut vec: Vec<u8> = Vec::with_capacity(ENCRYPTED_NOTE_LENGTH as usize);
         proof.merkle_note().write(&mut vec).map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
@@ -143,48 +143,33 @@ pub struct NativeTransaction {
     transaction: ProposedTransaction,
 }
 
-impl Default for NativeTransaction {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[napi]
 impl NativeTransaction {
     #[napi(constructor)]
-    pub fn new() -> NativeTransaction {
-        NativeTransaction {
-            transaction: ProposedTransaction::new(),
-        }
+    pub fn new(spender_hex_key: String) -> Result<NativeTransaction> {
+        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
+        Ok(NativeTransaction {
+            transaction: ProposedTransaction::new(spender_key),
+        })
     }
 
     /// Create a proof of a new note owned by the recipient in this transaction.
     #[napi]
-    pub fn receive(&mut self, spender_hex_key: String, note: &NativeNote) -> Result<String> {
-        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
-        self.transaction
-            .receive(&spender_key, &note.note)
-            .map_err(to_napi_err)?;
+    pub fn receive(&mut self, note: &NativeNote) -> Result<String> {
+        self.transaction.receive(&note.note).map_err(to_napi_err)?;
         Ok("".to_string())
     }
 
     /// Spend the note owned by spender_hex_key at the given witness location.
     #[napi]
-    pub fn spend(
-        &mut self,
-        env: Env,
-        spender_hex_key: String,
-        note: &NativeNote,
-        witness: Object,
-    ) -> Result<String> {
+    pub fn spend(&mut self, env: Env, note: &NativeNote, witness: Object) -> Result<String> {
         let w = JsWitness {
             cx: RefCell::new(env),
             obj: witness,
         };
 
-        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
         self.transaction
-            .spend(spender_key, &note.note, &w)
+            .spend(&note.note, &w)
             .map_err(to_napi_err)?;
 
         Ok("".to_string())
@@ -217,13 +202,11 @@ impl NativeTransaction {
     #[napi]
     pub fn post(
         &mut self,
-        spender_hex_key: String,
         change_goes_to: Option<String>,
         intended_transaction_fee: BigInt,
     ) -> Result<Buffer> {
         let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
 
-        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
         let change_key = match change_goes_to {
             Some(address) => Some(PublicAddress::from_hex(&address).map_err(to_napi_err)?),
             None => None,
@@ -231,7 +214,7 @@ impl NativeTransaction {
 
         let posted_transaction = self
             .transaction
-            .post(&spender_key, change_key, intended_transaction_fee_u64)
+            .post(change_key, intended_transaction_fee_u64)
             .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];

@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { createNodeTest, useBlockWithTx, useBlockWithTxs } from '../testUtilities'
-import { RecentFeeCache } from './recentFeeCache'
+import { FeeEstimator, getFeeRate } from './feeEstimator'
 
-describe('RecentFeeCache', () => {
+describe('FeeEstimator', () => {
   const nodeTest = createNodeTest()
 
   describe('setUp', () => {
@@ -18,14 +18,14 @@ describe('RecentFeeCache', () => {
 
       await node.chain.addBlock(block)
 
-      const recentFeeCache = new RecentFeeCache({
+      const feeEstimator = new FeeEstimator({
         chain: node.chain,
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
-      await recentFeeCache.setUp()
+      await feeEstimator.setUp()
 
-      expect(recentFeeCache.getSuggestedFee(60)).toBe(transaction.fee())
+      expect(feeEstimator.estimateFeeRate(60)).toBe(getFeeRate(transaction))
     })
 
     it('should build recent fee cache with more than one transaction', async () => {
@@ -51,15 +51,15 @@ describe('RecentFeeCache', () => {
 
       await node.chain.addBlock(block2)
 
-      const recentFeeCache = new RecentFeeCache({
+      const feeEstimator = new FeeEstimator({
         chain: node.chain,
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
-      await recentFeeCache.setUp()
+      await feeEstimator.setUp()
 
-      expect(recentFeeCache.size()).toBe(1)
-      expect(recentFeeCache.getSuggestedFee(60)).toBe(transaction2.fee())
+      expect(feeEstimator.size()).toBe(1)
+      expect(feeEstimator.estimateFeeRate(60)).toBe(getFeeRate(transaction2))
     })
   })
 
@@ -72,20 +72,20 @@ describe('RecentFeeCache', () => {
 
       await node.chain.addBlock(block)
 
-      const recentFeeCache = new RecentFeeCache({
+      const feeEstimator = new FeeEstimator({
         chain: node.chain,
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
 
-      expect(recentFeeCache.size()).toBe(0)
+      expect(feeEstimator.size()).toBe(0)
 
       node.memPool.acceptTransaction(transaction)
 
-      recentFeeCache.onConnectBlock(block, node.memPool)
+      feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(recentFeeCache.size()).toBe(1)
-      expect(recentFeeCache.getSuggestedFee(60)).toBe(transaction.fee())
+      expect(feeEstimator.size()).toBe(1)
+      expect(feeEstimator.estimateFeeRate(60)).toBe(getFeeRate(transaction))
     })
 
     it('should exclude transactions from a block that are not in the mempool', async () => {
@@ -96,25 +96,25 @@ describe('RecentFeeCache', () => {
 
       await node.chain.addBlock(block)
 
-      const recentFeeCache = new RecentFeeCache({
+      const feeEstimator = new FeeEstimator({
         chain: node.chain,
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
 
-      expect(recentFeeCache.size()).toBe(0)
+      expect(feeEstimator.size()).toBe(0)
 
       Assert.isFalse(node.memPool.exists(transaction.hash()))
 
-      recentFeeCache.onConnectBlock(block, node.memPool)
+      feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(recentFeeCache.size()).toBe(0)
+      expect(feeEstimator.size()).toBe(0)
     })
 
     it('should remove old transactions from the cache when its maximum size is reached', async () => {
       const node = nodeTest.node
 
-      const recentFeeCache = new RecentFeeCache({
+      const feeEstimator = new FeeEstimator({
         chain: node.chain,
         recentBlocksNum: 1,
         txSampleSize: 1,
@@ -130,9 +130,9 @@ describe('RecentFeeCache', () => {
 
       node.memPool.acceptTransaction(transaction)
 
-      recentFeeCache.onConnectBlock(block, node.memPool)
+      feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(recentFeeCache.size()).toBe(1)
+      expect(feeEstimator.size()).toBe(1)
 
       const fee = Number(transaction.fee()) - 1
       const { block: block2, transaction: transaction2 } = await useBlockWithTx(
@@ -147,16 +147,16 @@ describe('RecentFeeCache', () => {
 
       node.memPool.acceptTransaction(transaction2)
 
-      recentFeeCache.onConnectBlock(block2, node.memPool)
+      feeEstimator.onConnectBlock(block2, node.memPool)
 
-      expect(recentFeeCache.size()).toBe(1)
-      expect(recentFeeCache.getSuggestedFee(60)).toBe(transaction2.fee())
+      expect(feeEstimator.size()).toBe(1)
+      expect(feeEstimator.estimateFeeRate(60)).toBe(getFeeRate(transaction2))
     })
 
     it('should keep old transactions in the cache if its maximum size has not been reached', async () => {
       const node = nodeTest.node
 
-      const recentFeeCache = new RecentFeeCache({
+      const feeEstimator = new FeeEstimator({
         chain: node.chain,
         recentBlocksNum: 2,
         txSampleSize: 1,
@@ -172,9 +172,9 @@ describe('RecentFeeCache', () => {
 
       node.memPool.acceptTransaction(transaction)
 
-      recentFeeCache.onConnectBlock(block, node.memPool)
+      feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(recentFeeCache.size()).toBe(1)
+      expect(feeEstimator.size()).toBe(1)
 
       const fee = Number(transaction.fee()) - 1
       const { block: block2, transaction: transaction2 } = await useBlockWithTx(
@@ -189,15 +189,15 @@ describe('RecentFeeCache', () => {
 
       node.memPool.acceptTransaction(transaction2)
 
-      recentFeeCache.onConnectBlock(block2, node.memPool)
+      feeEstimator.onConnectBlock(block2, node.memPool)
 
-      expect(recentFeeCache.size()).toBe(2)
+      expect(feeEstimator.size()).toBe(2)
     })
 
     it('should add only add a limited number of transactions from each block', async () => {
       const node = nodeTest.node
 
-      const recentFeeCache = new RecentFeeCache({
+      const feeEstimator = new FeeEstimator({
         chain: node.chain,
         recentBlocksNum: 2,
         txSampleSize: 2,
@@ -215,9 +215,9 @@ describe('RecentFeeCache', () => {
 
       node.memPool.acceptTransaction(transaction)
 
-      recentFeeCache.onConnectBlock(block, node.memPool)
+      feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(recentFeeCache.size()).toBe(1)
+      expect(feeEstimator.size()).toBe(1)
 
       const { block: newBlock, transactions: newTransactions } = await useBlockWithTxs(
         node,
@@ -228,12 +228,12 @@ describe('RecentFeeCache', () => {
         node.memPool.acceptTransaction(newTransaction)
       }
 
-      recentFeeCache.onConnectBlock(newBlock, node.memPool)
+      feeEstimator.onConnectBlock(newBlock, node.memPool)
 
-      expect(recentFeeCache.size()).toBe(3)
+      expect(feeEstimator.size()).toBe(3)
 
       // transaction from first block is still in the cache
-      expect(recentFeeCache['queue'][0].blockHash).toEqualHash(block.header.hash)
+      expect(feeEstimator['queue'][0].blockHash).toEqualHash(block.header.hash)
     })
   })
 
@@ -241,7 +241,7 @@ describe('RecentFeeCache', () => {
     it('should remove all transactions from a block from the end of the queue', async () => {
       const node = nodeTest.node
 
-      const recentFeeCache = new RecentFeeCache({
+      const feeEstimator = new FeeEstimator({
         chain: node.chain,
         recentBlocksNum: 2,
         txSampleSize: 2,
@@ -251,19 +251,19 @@ describe('RecentFeeCache', () => {
 
       node.memPool.acceptTransaction(transaction)
 
-      recentFeeCache.onConnectBlock(block, node.memPool)
+      feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(recentFeeCache.size()).toBe(1)
+      expect(feeEstimator.size()).toBe(1)
 
-      recentFeeCache.onDisconnectBlock(block)
+      feeEstimator.onDisconnectBlock(block)
 
-      expect(recentFeeCache.size()).toBe(0)
+      expect(feeEstimator.size()).toBe(0)
     })
 
     it('should not remove transactions from the queue that did not come from the disconnected block', async () => {
       const node = nodeTest.node
 
-      const recentFeeCache = new RecentFeeCache({
+      const feeEstimator = new FeeEstimator({
         chain: node.chain,
         recentBlocksNum: 2,
         txSampleSize: 1,
@@ -279,9 +279,9 @@ describe('RecentFeeCache', () => {
 
       node.memPool.acceptTransaction(transaction)
 
-      recentFeeCache.onConnectBlock(block, node.memPool)
+      feeEstimator.onConnectBlock(block, node.memPool)
 
-      expect(recentFeeCache.size()).toBe(1)
+      expect(feeEstimator.size()).toBe(1)
 
       const fee = Number(transaction.fee()) - 1
       const { block: block2, transaction: transaction2 } = await useBlockWithTx(
@@ -296,13 +296,13 @@ describe('RecentFeeCache', () => {
 
       node.memPool.acceptTransaction(transaction2)
 
-      recentFeeCache.onConnectBlock(block2, node.memPool)
+      feeEstimator.onConnectBlock(block2, node.memPool)
 
-      expect(recentFeeCache.size()).toBe(2)
+      expect(feeEstimator.size()).toBe(2)
 
-      recentFeeCache.onDisconnectBlock(block2)
+      feeEstimator.onDisconnectBlock(block2)
 
-      expect(recentFeeCache.size()).toBe(1)
+      expect(feeEstimator.size()).toBe(1)
     })
   })
 })
