@@ -53,7 +53,7 @@ describe('Merkle tree', function () {
     )
   })
 
-  it('testing...', async () => {
+  it.only('testing...', async () => {
     const tree = await makeTree()
 
     await tree.add('a')
@@ -103,10 +103,14 @@ describe('Merkle tree', function () {
     await expect(tree).toHaveLeaves('a', [0])
     await expect(tree).toHaveNodes([])
 
+    console.log('A COMPLETE')
+
     await tree.add('b')
     await tree.rehashTree()
     await expect(tree).toHaveLeaves('ab', [1, 1])
     await expect(tree).toHaveNodes([[1, Side.Left, 0, '<a|b-0>']])
+
+    console.log('B COMPLETE')
 
     await tree.add('c')
     await tree.rehashTree()
@@ -117,6 +121,8 @@ describe('Merkle tree', function () {
       [3, Side.Left, 0, '<<a|b-0>|<c|c-0>-1>'],
     ])
 
+    console.log('C COMPLETE')
+
     await tree.add('d')
     await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcd', [1, 1, 2, 2])
@@ -125,6 +131,8 @@ describe('Merkle tree', function () {
       [2, Side.Right, 1, '<a|b-0>'],
       [3, Side.Left, 0, '<<a|b-0>|<c|d-0>-1>'],
     ])
+
+    console.log('D COMPLETE')
 
     await tree.add('e')
     await tree.rehashTree()
@@ -138,6 +146,8 @@ describe('Merkle tree', function () {
       [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|e-0>|<e|e-0>-1>-2>'],
     ])
 
+    console.log('E COMPLETE')
+
     await tree.add('f')
     await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcdef', [1, 1, 2, 2, 4, 4])
@@ -149,6 +159,8 @@ describe('Merkle tree', function () {
       [5, Side.Right, 3, '<<a|b-0>|<c|d-0>-1>'],
       [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<e|f-0>-1>-2>'],
     ])
+
+    console.log('F COMPLETE')
 
     await tree.add('g')
     await tree.rehashTree()
@@ -175,6 +187,8 @@ describe('Merkle tree', function () {
       [7, Side.Right, 4, '<e|f-0>'],
     ])
 
+    console.log('G COMPLETE')
+
     await tree.add('h')
     await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcdefgh', [1, 1, 2, 2, 4, 4, 7, 7])
@@ -187,6 +201,8 @@ describe('Merkle tree', function () {
       [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>'],
       [7, Side.Right, 4, '<e|f-0>'],
     ])
+
+    console.log('H COMPLETE')
 
     await tree.add('i')
     await tree.rehashTree()
