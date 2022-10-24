@@ -126,7 +126,7 @@ export class WebApi {
 
   async getMinAndMaxDeposit(): Promise<{ minDeposit: number; maxDeposit: number }> {
     const response = await axios.get<{ minDeposit: number; maxDeposit: number }>(
-      `${this.host}/deposits/min_and_max_deposit`,
+      `${this.host}/deposits/min_and_max_deposit_size`,
     )
     return response.data
   }

@@ -84,10 +84,6 @@ export default class Bank extends IronfishCommand {
       this.log('Error fetching deposit address. Please try again later.')
       this.exit(1)
     }
-    if (!minDeposit || !maxDeposit) {
-      this.log('Error fetching minimum and maximum deposit values. Please try again later.')
-      this.exit(1)
-    }
 
     const graffiti = (await this.client.getConfig({ name: 'blockGraffiti' })).content
       .blockGraffiti
@@ -120,12 +116,17 @@ export default class Bank extends IronfishCommand {
 
     if (confirmedBalance < fee + ironToOre(minDeposit)) {
       this.log(
-        `Insufficient balance: ${confirmedBalance} ORE. At minimum, depositing requires the fee (${fee} ORE) plus a minimum deposit (${minDeposit} IRON)`,
+        `Insufficient balance: ${oreToIron(
+          confirmedBalance,
+        )} IRON. At minimum, depositing requires the fee (${fee} ORE) plus a minimum deposit (${minDeposit} IRON)`,
       )
       this.exit(1)
     }
     const sendableIron = oreToIron(confirmedBalance - fee)
-    const ironToSend = sendableIron < maxDeposit ? sendableIron : maxDeposit
+    const ironToSend =
+      sendableIron < maxDeposit
+        ? Math.floor(sendableIron / minDeposit) * minDeposit
+        : maxDeposit
 
     const newBalance = confirmedBalance - ironToOre(ironToSend) - fee
 
