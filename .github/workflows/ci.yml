@@ -41,7 +41,8 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16.13.0'
+          # Using 16.10 to fix https://github.com/facebook/jest/issues/11956
+          node-version: '16.10.0'
           cache: 'yarn'
 
       - name: Cache Rust

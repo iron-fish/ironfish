@@ -13,7 +13,7 @@ interface FeeRateEntry {
   blockHash: Buffer
 }
 
-export class RecentFeeCache {
+export class FeeEstimator {
   private queue: Array<FeeRateEntry>
   readonly chain: Blockchain
   private readonly logger: Logger

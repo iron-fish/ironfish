@@ -103,11 +103,11 @@ export class TransactionPosted {
 }
 export type NativeTransaction = Transaction
 export class Transaction {
-  constructor()
+  constructor(spenderHexKey: string)
   /** Create a proof of a new note owned by the recipient in this transaction. */
-  receive(spenderHexKey: string, note: Note): string
+  receive(note: Note): string
   /** Spend the note owned by spender_hex_key at the given witness location. */
-  spend(spenderHexKey: string, note: Note, witness: object): string
+  spend(note: Note, witness: object): string
   /**
    * Special case for posting a miners fee transaction. Miner fee transactions
    * are unique in that they generate currency. They do not have any spends
@@ -128,7 +128,7 @@ export class Transaction {
    * sum(spends) - sum(outputs) - intended_transaction_fee - change = 0
    * aka: self.transaction_fee - intended_transaction_fee - change = 0
    */
-  post(spenderHexKey: string, changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
+  post(changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
   setExpirationSequence(expirationSequence: number): void
 }
 export class FoundBlockResult {

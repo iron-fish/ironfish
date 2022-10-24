@@ -1,5 +1,5 @@
 {
-  "RecentFeeCache setUpCache build recent fee cache with capacity of 1": [
+  "FeeEstimator setUpCache build recent fee cache with capacity of 1": [
     {
       "id": "0b75b151-4f1f-48ac-b4e9-73220afeb9e6",
       "name": "test",
@@ -73,7 +73,7 @@
       ]
     }
   ],
-  "RecentFeeCache setUpCache build recent fee cache with more than one transaction": [
+  "FeeEstimator setUpCache build recent fee cache with more than one transaction": [
     {
       "id": "9c01b177-103b-47f9-9ee2-6dc627ec454a",
       "name": "test",
@@ -211,7 +211,7 @@
       ]
     }
   ],
-  "RecentFeeCache add transaction to cache": [
+  "FeeEstimator add transaction to cache": [
     {
       "id": "0c16635b-1d89-4a53-80b6-e99053ccf40a",
       "name": "test",
@@ -349,7 +349,7 @@
       ]
     }
   ],
-  "RecentFeeCache add transaction to cache when cache is full": [
+  "FeeEstimator add transaction to cache when cache is full": [
     {
       "id": "b67f21b8-5c1c-4504-8265-623457ac75cf",
       "name": "test",
@@ -487,7 +487,7 @@
       ]
     }
   ],
-  "RecentFeeCache should add all transactions from a block that are in the mempool": [
+  "FeeEstimator should add all transactions from a block that are in the mempool": [
     {
       "id": "e4266669-d74b-4b8b-ab8a-c62589cd44a0",
       "name": "test",
@@ -561,7 +561,7 @@
       ]
     }
   ],
-  "RecentFeeCache onConnectBlock should add all transactions from a block that are in the mempool": [
+  "FeeEstimator onConnectBlock should add all transactions from a block that are in the mempool": [
     {
       "id": "e0f9d95d-c267-44eb-90fe-82c83b977a5a",
       "name": "test",
@@ -635,7 +635,7 @@
       ]
     }
   ],
-  "RecentFeeCache onConnectBlock should exclude  transactions from a block that are not in the mempool": [
+  "FeeEstimator onConnectBlock should exclude  transactions from a block that are not in the mempool": [
     {
       "id": "9d269993-5990-4652-8346-b3a06dd250cc",
       "name": "test",
@@ -709,7 +709,7 @@
       ]
     }
   ],
-  "RecentFeeCache onConnectBlock should exclude transactions from a block that are not in the mempool": [
+  "FeeEstimator onConnectBlock should exclude transactions from a block that are not in the mempool": [
     {
       "id": "fbfd53ad-8bb4-4eb2-a227-cd0e57644246",
       "name": "test",
@@ -783,7 +783,7 @@
       ]
     }
   ],
-  "RecentFeeCache onConnectBlock should remove old transactions from the cache when its maximum size is reached": [
+  "FeeEstimator onConnectBlock should remove old transactions from the cache when its maximum size is reached": [
     {
       "id": "f07426d9-acba-48f0-9dd3-78ec8d8543ea",
       "name": "test",
@@ -921,7 +921,7 @@
       ]
     }
   ],
-  "RecentFeeCache onConnectBlock should keep old transactions in the cache if its maximum size is not reached": [
+  "FeeEstimator onConnectBlock should keep old transactions in the cache if its maximum size is not reached": [
     {
       "id": "9f967d0c-4507-4242-9c1e-9e9af40fe640",
       "name": "test",
@@ -1059,7 +1059,7 @@
       ]
     }
   ],
-  "RecentFeeCache onConnectBlock should keep old transactions in the cache if its maximum size has not been reached": [
+  "FeeEstimator onConnectBlock should keep old transactions in the cache if its maximum size has not been reached": [
     {
       "id": "b69e3128-ed16-4786-8ed3-59bbbf58a8b4",
       "name": "test",
@@ -1197,7 +1197,7 @@
       ]
     }
   ],
-  "RecentFeeCache setUp should build recent fee cache with capacity of 1": [
+  "FeeEstimator setUp should build recent fee cache with capacity of 1": [
     {
       "id": "c488d89e-74e7-4887-a71d-e76746b390b3",
       "name": "test",
@@ -1271,7 +1271,7 @@
       ]
     }
   ],
-  "RecentFeeCache setUp should build recent fee cache with more than one transaction": [
+  "FeeEstimator setUp should build recent fee cache with more than one transaction": [
     {
       "id": "ae97b9de-ed01-48e7-bffa-c9423b4b35ac",
       "name": "test",
@@ -1409,7 +1409,7 @@
       ]
     }
   ],
-  "RecentFeeCache addTransaction should add transactions to the cache": [
+  "FeeEstimator addTransaction should add transactions to the cache": [
     {
       "id": "8a6e70be-755d-4282-9bde-6bfbb20a93dc",
       "name": "test",
@@ -1547,7 +1547,7 @@
       ]
     }
   ],
-  "RecentFeeCache addTransaction should remove the oldest transaction from the cache when the cache is full": [
+  "FeeEstimator addTransaction should remove the oldest transaction from the cache when the cache is full": [
     {
       "id": "19a57b1b-b060-4551-82ae-fb80d040e160",
       "name": "test",
@@ -1685,7 +1685,7 @@
       ]
     }
   ],
-  "RecentFeeCache onConnectBlock should add only add a limited number of transactions from each block": [
+  "FeeEstimator onConnectBlock should add only add a limited number of transactions from each block": [
     {
       "id": "f763b6c1-55cc-442e-b2c6-2aea5abc4cae",
       "name": "test",
@@ -1891,7 +1891,7 @@
       ]
     }
   ],
-  "RecentFeeCache onDisconnectBlock should remove all transactions from a block from the end of the queue": [
+  "FeeEstimator onDisconnectBlock should remove all transactions from a block from the end of the queue": [
     {
       "id": "37dbc1a7-443a-4e82-a8d1-683d21b18bc9",
       "name": "test",
@@ -1965,7 +1965,7 @@
       ]
     }
   ],
-  "RecentFeeCache onDisconnectBlock should not remove transactions from the queue that did not come from the disconnected block": [
+  "FeeEstimator onDisconnectBlock should not remove transactions from the queue that did not come from the disconnected block": [
     {
       "id": "0862af81-e82e-4e35-aa80-f4054fef74de",
       "name": "test",

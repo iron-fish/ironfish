@@ -71,13 +71,17 @@ pub struct ProposedTransaction {
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
     expiration_sequence: u32,
+
+    /// The key used to sign the transaction and any descriptions that need
+    /// signed.
+    spender_key: SaplingKey,
     //
     // NOTE: If adding fields here, you may need to add fields to
     // signature hash method, and also to Transaction.
 }
 
 impl ProposedTransaction {
-    pub fn new() -> ProposedTransaction {
+    pub fn new(spender_key: SaplingKey) -> ProposedTransaction {
         ProposedTransaction {
             binding_signature_key: <jubjub::Fr as Field>::zero(),
             binding_verification_key: ExtendedPoint::identity(),
@@ -85,17 +89,13 @@ impl ProposedTransaction {
             receipts: vec![],
             transaction_fee: 0,
             expiration_sequence: 0,
+            spender_key,
         }
     }
 
     /// Spend the note owned by spender_key at the given witness location.
-    pub fn spend(
-        &mut self,
-        spender_key: SaplingKey,
-        note: &Note,
-        witness: &dyn WitnessTrait,
-    ) -> Result<(), IronfishError> {
-        let proof = SpendParams::new(spender_key, note, witness)?;
+    pub fn spend(&mut self, note: &Note, witness: &dyn WitnessTrait) -> Result<(), IronfishError> {
+        let proof = SpendParams::new(self.spender_key.clone(), note, witness)?;
         self.add_spend_proof(proof, note.value());
         Ok(())
     }
@@ -114,8 +114,8 @@ impl ProposedTransaction {
 
     /// Create a proof of a new note owned by the recipient in this
     /// transaction.
-    pub fn receive(&mut self, spender_key: &SaplingKey, note: &Note) -> Result<(), IronfishError> {
-        let proof = ReceiptParams::new(spender_key, note)?;
+    pub fn receive(&mut self, note: &Note) -> Result<(), IronfishError> {
+        let proof = ReceiptParams::new(&self.spender_key, note)?;
 
         self.increment_binding_signature_key(&proof.value_commitment_randomness, true);
         self.increment_binding_verification_key(&proof.merkle_note.value_commitment, true);
@@ -138,7 +138,6 @@ impl ProposedTransaction {
     /// aka: self.transaction_fee - intended_transaction_fee - change = 0
     pub fn post(
         &mut self,
-        spender_key: &SaplingKey,
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction, IronfishError> {
@@ -154,13 +153,13 @@ impl ProposedTransaction {
             // But we haven't worked out why determinacy in public addresses
             // would be useful yet.
             let change_address =
-                change_goes_to.unwrap_or_else(|| spender_key.generate_public_address());
+                change_goes_to.unwrap_or_else(|| self.spender_key.generate_public_address());
             let change_note = Note::new(
                 change_address,
                 change_amount as u64, // we checked it was positive
                 Memo::default(),
             );
-            self.receive(spender_key, &change_note)?;
+            self.receive(&change_note)?;
         }
         self._partial_post()
     }
@@ -290,7 +289,7 @@ impl ProposedTransaction {
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 
         data_to_be_signed[..32].copy_from_slice(&public_key.0.to_bytes());
-        (&mut data_to_be_signed[32..]).copy_from_slice(&self.transaction_signature_hash());
+        data_to_be_signed[32..].copy_from_slice(&self.transaction_signature_hash());
 
         Ok(private_key.sign(
             &data_to_be_signed,
@@ -321,12 +320,6 @@ impl ProposedTransaction {
         }
         tmp += self.binding_verification_key;
         self.binding_verification_key = tmp;
-    }
-}
-
-impl Default for ProposedTransaction {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -495,7 +488,7 @@ impl Transaction {
 
         let mut data_to_verify_signature = [0; 64];
         data_to_verify_signature[..32].copy_from_slice(&public_key.0.to_bytes());
-        (&mut data_to_verify_signature[32..]).copy_from_slice(&self.transaction_signature_hash());
+        data_to_verify_signature[32..].copy_from_slice(&self.transaction_signature_hash());
 
         if !public_key.verify(
             &data_to_verify_signature,
