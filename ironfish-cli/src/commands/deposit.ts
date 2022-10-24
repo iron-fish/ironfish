@@ -76,7 +76,7 @@ export default class Bank extends IronfishCommand {
     Assert.isNotUndefined(accountName)
 
     const bankDepositAddress = await this.api.getDepositAddress()
-    const { minDeposit, maxDeposit } = await this.api.getMinAndMaxDeposit()
+    const { minDepositSize, maxDepositSize } = await this.api.getMinAndMaxDepositSize()
 
     // check if user has enough, if not default to total user has
 
@@ -114,19 +114,19 @@ export default class Bank extends IronfishCommand {
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
     const confirmedBalance = Number(balanceResp.content.confirmed)
 
-    if (confirmedBalance < fee + ironToOre(minDeposit)) {
+    if (confirmedBalance < fee + ironToOre(minDepositSize)) {
       this.log(
         `Insufficient balance: ${oreToIron(
           confirmedBalance,
-        )} IRON. At minimum, depositing requires the fee (${fee} ORE) plus a minimum deposit (${minDeposit} IRON)`,
+        )} IRON. At minimum, depositing requires the fee (${fee} ORE) plus a minimum deposit (${minDepositSize} IRON)`,
       )
       this.exit(1)
     }
     const sendableIron = oreToIron(confirmedBalance - fee)
     const ironToSend =
-      sendableIron < maxDeposit
-        ? Math.floor(sendableIron / minDeposit) * minDeposit
-        : maxDeposit
+      sendableIron < maxDepositSize
+        ? Math.floor(sendableIron / minDepositSize) * minDepositSize
+        : maxDepositSize
 
     const newBalance = confirmedBalance - ironToOre(ironToSend) - fee
 
