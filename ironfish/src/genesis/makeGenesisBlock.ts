@@ -78,7 +78,7 @@ export async function makeGenesisBlock(
   logger.info(`Generating an initial transaction with ${allocationSum} coins...`)
   const initialTransaction = new NativeTransaction(genesisKey.spending_key)
 
-  logger.info('  Generating the receipt...')
+  logger.info('  Generating the output...')
   initialTransaction.receive(genesisNote)
 
   logger.info('  Posting the initial transaction...')
@@ -118,7 +118,7 @@ export async function makeGenesisBlock(
 
   for (const alloc of info.allocations) {
     logger.info(
-      `  Generating a receipt for ${alloc.amount} coins for ${alloc.publicAddress}...`,
+      `  Generating an output for ${alloc.amount} coins for ${alloc.publicAddress}...`,
     )
     const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), info.memo)
     transaction.receive(note)

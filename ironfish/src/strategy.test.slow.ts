@@ -122,10 +122,10 @@ describe('Demonstrate the Sapling API', () => {
       expect(result).toEqual('')
     })
 
-    it('Can add a receive to the transaction', () => {
+    it('Can add an output to the transaction', () => {
       receiverKey = generateKey()
-      const receivingNote = new NativeNote(receiverKey.public_address, BigInt(40), '')
-      const result = transaction.receive(receivingNote)
+      const outputNote = new NativeNote(receiverKey.public_address, BigInt(40), '')
+      const result = transaction.receive(outputNote)
       expect(result).toEqual('')
     })
 
