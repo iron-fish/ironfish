@@ -5,7 +5,7 @@
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
-use ironfish_rust::{note::Memo, Note, SaplingKey};
+use ironfish_rust::{Note, SaplingKey};
 
 use crate::to_napi_err;
 
@@ -22,7 +22,7 @@ impl NativeNote {
 
         let owner_address = ironfish_rust::PublicAddress::from_hex(&owner).map_err(to_napi_err)?;
         Ok(NativeNote {
-            note: Note::new(owner_address, value_u64, Memo::from(memo)),
+            note: Note::new(owner_address, value_u64, memo),
         })
     }
 

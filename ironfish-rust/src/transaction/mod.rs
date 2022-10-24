@@ -7,7 +7,7 @@ use crate::{errors::IronfishError, sapling_bls12::SAPLING};
 use super::{
     keys::{PublicAddress, SaplingKey},
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
-    note::{Memo, Note},
+    note::Note,
     receiving::{ReceiptParams, ReceiptProof},
     spending::{SpendParams, SpendProof},
     witness::WitnessTrait,
@@ -148,7 +148,7 @@ impl ProposedTransaction {
             let change_note = Note::new(
                 change_address,
                 change_amount as u64, // we checked it was positive
-                Memo::default(),
+                "",
             );
             self.receive(&change_note)?;
         }

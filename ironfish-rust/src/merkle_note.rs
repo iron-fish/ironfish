@@ -251,10 +251,7 @@ fn calculate_key_for_encryption_keys(
 #[cfg(test)]
 mod test {
     use super::MerkleNote;
-    use crate::{
-        keys::SaplingKey,
-        note::{Memo, Note},
-    };
+    use crate::{keys::SaplingKey, note::Note};
 
     use bls12_381::Scalar;
     use ff::Field;
@@ -266,7 +263,7 @@ mod test {
     fn test_view_key_encryption() {
         let spender_key: SaplingKey = SaplingKey::generate_key();
         let receiver_key: SaplingKey = SaplingKey::generate_key();
-        let note = Note::new(receiver_key.generate_public_address(), 42, Memo::default());
+        let note = Note::new(receiver_key.generate_public_address(), 42, "");
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let value_commitment_randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
@@ -289,7 +286,7 @@ mod test {
     #[test]
     fn test_receipt_invalid_commitment() {
         let spender_key: SaplingKey = SaplingKey::generate_key();
-        let note = Note::new(spender_key.generate_public_address(), 42, Memo::default());
+        let note = Note::new(spender_key.generate_public_address(), 42, "");
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let value_commitment_randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());

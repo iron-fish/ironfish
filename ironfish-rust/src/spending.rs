@@ -405,11 +405,7 @@ fn serialize_signature_fields<W: io::Write>(
 #[cfg(test)]
 mod test {
     use super::{SpendParams, SpendProof};
-    use crate::{
-        keys::SaplingKey,
-        note::{Memo, Note},
-        test_util::make_fake_witness,
-    };
+    use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
     use group::Curve;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
@@ -421,7 +417,7 @@ mod test {
 
         let note_randomness = random();
 
-        let note = Note::new(public_address, note_randomness, Memo::default());
+        let note = Note::new(public_address, note_randomness, "");
         let witness = make_fake_witness(&note);
 
         let spend =

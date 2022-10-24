@@ -197,10 +197,7 @@ impl ReceiptProof {
 #[cfg(test)]
 mod test {
     use super::{ReceiptParams, ReceiptProof};
-    use crate::{
-        keys::SaplingKey,
-        note::{Memo, Note},
-    };
+    use crate::{keys::SaplingKey, note::Note};
     use ff::PrimeField;
     use group::Curve;
     use jubjub::ExtendedPoint;
@@ -208,7 +205,7 @@ mod test {
     #[test]
     fn test_receipt_round_trip() {
         let spender_key: SaplingKey = SaplingKey::generate_key();
-        let note = Note::new(spender_key.generate_public_address(), 42, Memo::default());
+        let note = Note::new(spender_key.generate_public_address(), 42, "");
 
         let receipt = ReceiptParams::new(&spender_key, &note)
             .expect("should be able to create receipt proof");
