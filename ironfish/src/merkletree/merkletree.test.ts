@@ -54,7 +54,7 @@ describe('Merkle tree', function () {
     )
   })
 
-  it('testing...', async () => {
+  it('rehashes tree when rightmost branch nodes have no sibling nodes', async () => {
     const tree = await makeTree()
 
     await tree.add('a')
@@ -96,7 +96,7 @@ describe('Merkle tree', function () {
     ])
   })
 
-  it.only('adds nodes correctly', async () => {
+  it('adds nodes correctly', async () => {
     const tree = await makeTree()
 
     await tree.add('a')
@@ -104,14 +104,10 @@ describe('Merkle tree', function () {
     await expect(tree).toHaveLeaves('a', [0])
     await expect(tree).toHaveNodes([])
 
-    console.log('A COMPLETE')
-
     await tree.add('b')
     await tree.rehashTree()
     await expect(tree).toHaveLeaves('ab', [1, 1])
     await expect(tree).toHaveNodes([[1, Side.Left, 0, '<a|b-0>']])
-
-    console.log('B COMPLETE')
 
     await tree.add('c')
     await tree.rehashTree()
@@ -122,8 +118,6 @@ describe('Merkle tree', function () {
       [3, Side.Left, 0, '<<a|b-0>|<c|c-0>-1>'],
     ])
 
-    console.log('C COMPLETE')
-
     await tree.add('d')
     await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcd', [1, 1, 2, 2])
@@ -132,8 +126,6 @@ describe('Merkle tree', function () {
       [2, Side.Right, 1, '<a|b-0>'],
       [3, Side.Left, 0, '<<a|b-0>|<c|d-0>-1>'],
     ])
-
-    console.log('D COMPLETE')
 
     await tree.add('e')
     await tree.rehashTree()
@@ -161,22 +153,8 @@ describe('Merkle tree', function () {
       [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<e|f-0>-1>-2>'],
     ])
 
-    console.log('F COMPLETE')
-
     await tree.add('g')
     await tree.rehashTree()
-
-    console.log('Leaves')
-
-    for await (const [k, v] of tree.leaves.getAllIter()) {
-      console.log(k, v)
-    }
-    console.log('Nodes')
-
-    for await (const [k, v] of tree.nodes.getAllIter()) {
-      console.log(k, v)
-    }
-
     await expect(tree).toHaveLeaves('abcdefg', [1, 1, 2, 2, 4, 4, 7])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -187,8 +165,6 @@ describe('Merkle tree', function () {
       [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|g-0>-1>-2>'],
       [7, Side.Right, 4, '<e|f-0>'],
     ])
-
-    console.log('G COMPLETE')
 
     await tree.add('h')
     await tree.rehashTree()
@@ -202,8 +178,6 @@ describe('Merkle tree', function () {
       [6, Side.Left, 0, '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>'],
       [7, Side.Right, 4, '<e|f-0>'],
     ])
-
-    console.log('H COMPLETE')
 
     await tree.add('i')
     await tree.rehashTree()

@@ -35,6 +35,7 @@ export class MerkleTree<
   readonly db: IDatabase
   readonly name: string = ''
   readonly depth: number = 32
+  readonly defaultValue: H
 
   readonly counter: IDatabaseStore<CounterSchema>
   readonly leaves: IDatabaseStore<LeavesSchema<E, H>>
@@ -49,6 +50,7 @@ export class MerkleTree<
     leafEncoding,
     leafIndexKeyEncoding,
     nodeEncoding,
+    defaultValue,
     name = '',
     depth = 32,
   }: {
@@ -57,6 +59,7 @@ export class MerkleTree<
     leafEncoding: IDatabaseEncoding<LeavesSchema<E, H>['value']>
     leafIndexKeyEncoding: IDatabaseEncoding<LeavesIndexSchema<H>['key']>
     nodeEncoding: IDatabaseEncoding<NodesSchema<H>['value']>
+    defaultValue: H
     name?: string
     depth?: number
   }) {
@@ -64,6 +67,7 @@ export class MerkleTree<
     this.db = db
     this.name = name
     this.depth = depth
+    this.defaultValue = defaultValue
 
     this.counter = db.addStore({
       name: `${name}c`,
@@ -220,7 +224,7 @@ export class MerkleTree<
 
         const leftLeafIndex = 0
         const leftLeaf = await this.getLeaf(leftLeafIndex, tx)
-        const hashOfSibling = '~' as H // this.hasher.combineHash(0, leftLeaf.merkleHash, merkleHash)
+        const hashOfSibling = this.defaultValue
 
         await this.nodes.put(
           newParentIndex,
@@ -256,8 +260,7 @@ export class MerkleTree<
         let previousParentIndex = previousLeaf.parentIndex
 
         let nextNodeIndex = await this.getCount('Nodes', tx)
-        let myHash = '~' as H // this.hasher.combineHash(0, merkleHash, merkleHash)
-        let depth = 1
+        let myHash = this.defaultValue
         let shouldContinue = true
 
         newParentIndex = nextNodeIndex
@@ -283,11 +286,7 @@ export class MerkleTree<
               const newParent = {
                 side: Side.Left,
                 parentIndex: 0,
-                hashOfSibling: '~' as H /* this.hasher.combineHash(
-                  depth,
-                  previousParent.hashOfSibling,
-                  myHash,
-                )*/,
+                hashOfSibling: this.defaultValue,
                 index: nextNodeIndex,
               }
 
@@ -310,7 +309,7 @@ export class MerkleTree<
             shouldContinue = false
           } else {
             // previous parent is a right node, gotta go up a step
-            myHash = '~' as H // this.hasher.combineHash(depth, myHash, myHash)
+            myHash = this.defaultValue
 
             if (previousParent.leftIndex === undefined) {
               throw new Error(`Parent has no left sibling`)
@@ -336,7 +335,6 @@ export class MerkleTree<
             await this.counter.put('Nodes', nextNodeIndex, tx)
 
             previousParentIndex = leftSiblingParentIndex
-            depth += 1
           }
         }
       }
@@ -352,8 +350,6 @@ export class MerkleTree<
         },
         tx,
       )
-
-      // await this.rehashRightPath(tx)
     })
   }
 
@@ -683,7 +679,7 @@ export class MerkleTree<
         leafIndex--
       }
 
-      console.log('preloop', hashStack)
+      // console.log('preloop', hashStack)
 
       for (leafIndex; leafIndex > this.lastHashIndex; leafIndex -= 2) {
         const leftLeaf = await this.getLeaf(leafIndex - 1, tx)
@@ -694,56 +690,74 @@ export class MerkleTree<
 
         let hash = this.hasher.combineHash(depth, leftLeaf.merkleHash, rightLeaf.merkleHash)
         let nodeIndex: number | undefined = leftLeaf.parentIndex
-        let node: NodeValue<H> = await this.getNode(nodeIndex)
+        let node: NodeValue<H> = await this.getNode(nodeIndex, tx)
 
         while (node.side === Side.Left && node.parentIndex !== 0) {
           const h = hashStack.pop()
-          Assert.isNotUndefined(h)
-          Assert.isNotNull(h.siblingIndex)
-          Assert.isEqual(nodeIndex, h.siblingIndex)
+          const stackHash = h?.hash ?? hash
+          // Should only be undefined if on the right side of the tree
+          // Ex: In a tree of 6 leaves, the two rightmost leaves will have
+          // a parent node with no sibling node
+          if (h === undefined) {
+            await this.putHash(nodeIndex, node, hash, tx)
+          } else {
+            Assert.isNotNull(h.siblingIndex)
+            Assert.isEqual(nodeIndex, h.siblingIndex)
 
-          const leftNode = await this.getNode(h.siblingIndex)
-          await this.putHash(h.siblingIndex, leftNode, h.hash, tx)
+            const leftNode = await this.getNode(h.siblingIndex, tx)
+            await this.putHash(h.siblingIndex, leftNode, h.hash, tx)
 
-          const rightNode = await this.getNode(h.intendedIndex)
-          await this.putHash(h.intendedIndex, rightNode, hash, tx)
+            const rightNode = await this.getNode(h.intendedIndex, tx)
+            await this.putHash(h.intendedIndex, rightNode, hash, tx)
+          }
 
           depth++
 
           nodeIndex = node.parentIndex
           Assert.isNotUndefined(nodeIndex)
-          node = await this.getNode(nodeIndex)
-          hash = this.hasher.combineHash(depth, hash, h.hash)
+          node = await this.getNode(nodeIndex, tx)
+          hash = this.hasher.combineHash(depth, hash, stackHash)
         }
 
         if (node.parentIndex === 0) {
           await this.putHash(nodeIndex, node, hash, tx)
         } else {
+          Assert.isNotUndefined(node.leftIndex)
           hashStack.push({
             hash,
             depth,
             intendedIndex: nodeIndex,
-            siblingIndex: node.leftIndex ?? null,
+            siblingIndex: node.leftIndex,
           })
         }
       }
 
-      console.log('postloop', hashStack)
+      // console.log('postloop', hashStack)
 
       // The first element should be the deepest, and all others should be dependent
-      while (hashStack.length > 1) {
-        hashStack.pop()
-      }
+      // while (hashStack.length > 1) {
+      //   hashStack.pop()
+      // }
 
       while (hashStack.length > 0 && leavesCount > 2) {
         // we have leftover hashes that need to be added
-        const hash = hashStack.shift()
+        // console.log('popping off hashStack', hashStack)
+
+        const hash = hashStack.pop()
         Assert.isNotUndefined(hash)
 
         const node = await this.getNode(hash.intendedIndex, tx)
         let siblingNode
 
-        console.log('figuring', hash, 'for', node)
+        // if sibling is null, look through hashStack to see if we've
+        // joined up with another tree
+        if (hash.siblingIndex === null) {
+          for (let i = 0; i < hashStack.length; i++) {
+            if (hashStack[i].siblingIndex === hash.intendedIndex) {
+              hash.siblingIndex = hashStack[i].intendedIndex
+            }
+          }
+        }
 
         // if sibling is null, set the hash on the node
         if (hash.siblingIndex === null) {
@@ -764,7 +778,7 @@ export class MerkleTree<
               ? this.hasher.combineHash(hash.depth + 1, hash.hash, node.hashOfSibling)
               : this.hasher.combineHash(hash.depth + 1, node.hashOfSibling, hash.hash)
 
-          hashStack.unshift({
+          hashStack.push({
             hash: newHash,
             intendedIndex: parentIndex,
             siblingIndex: parentNode.leftIndex ?? null,
@@ -778,7 +792,7 @@ export class MerkleTree<
   }
 
   putHash(index: number, node: NodeValue<H>, hash: H, tx: IDatabaseTransaction): Promise<void> {
-    console.log('putting hash', hash, 'at', index)
+    // console.log('putting hash', hash, 'at', index)
 
     return this.nodes.put(
       index,

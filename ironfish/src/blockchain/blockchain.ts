@@ -224,6 +224,7 @@ export class Blockchain {
       db: this.db,
       name: 'n',
       depth: 32,
+      defaultValue: Buffer.alloc(32),
     })
 
     this.nullifiers = new MerkleTree({
@@ -234,6 +235,7 @@ export class Blockchain {
       db: this.db,
       name: 'u',
       depth: 32,
+      defaultValue: Buffer.alloc(32),
     })
   }
 
@@ -1255,6 +1257,9 @@ export class Blockchain {
       await this.addNullifier(nullifierIndex, spend.nullifier, tx)
       nullifierIndex++
     }
+
+    await this.notes.rehashTree(tx)
+    await this.nullifiers.rehashTree(tx)
 
     const verify = await this.verifier.verifyConnectedBlock(block, tx)
 

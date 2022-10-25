@@ -113,6 +113,7 @@ export async function makeTree({
     db: db,
     name: name,
     depth: depth,
+    defaultValue: '~',
   })
 
   await db.open()
