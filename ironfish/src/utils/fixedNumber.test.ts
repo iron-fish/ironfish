@@ -6,7 +6,8 @@ import { FixedNumberUtils } from './fixedNumber'
 describe('FixedNumberUtils', () => {
   it('render', () => {
     expect(FixedNumberUtils.render(1n, 0)).toEqual('1')
-    expect(FixedNumberUtils.render(1n, 2)).toEqual('1.00')
-    expect(FixedNumberUtils.render(1n, 8)).toEqual('1.00000000')
+    expect(FixedNumberUtils.render(1n, 1)).toEqual('0.1')
+    expect(FixedNumberUtils.render(1n, 4)).toEqual('0.0001')
+    expect(FixedNumberUtils.render(1n, 8)).toEqual('0.00000001')
   })
 })

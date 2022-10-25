@@ -7,6 +7,10 @@ export class FixedNumberUtils {
   static render(amount: bigint | number, decimals: number): string {
     const value = formatFixed(amount, decimals)
 
+    if (decimals === 0) {
+      return value
+    }
+
     const index = value.indexOf('.')
     const currDecimals = value.length - 1 - index
 
