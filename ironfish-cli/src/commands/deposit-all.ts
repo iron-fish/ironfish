@@ -7,7 +7,6 @@ import {
   BigIntUtils,
   CurrencyUtils,
   ERROR_CODES,
-  ironToOre,
   MINIMUM_IRON_AMOUNT,
   PromiseUtils,
   RpcClient,
@@ -212,7 +211,7 @@ export default class DepositAll extends IronfishCommand {
       unconfirmedBalance = CurrencyUtils.decode(balanceResp.content.unconfirmed)
       pendingBalance = CurrencyUtils.decode(balanceResp.content.pending)
 
-      const sendOres = ironToOre(IRON_TO_SEND) + BigInt(fee)
+      const sendOres = CurrencyUtils.decodeIron(IRON_TO_SEND) + fee
 
       // terminate condition
       if (terminate && pendingBalance < sendOres) {
@@ -228,7 +227,7 @@ export default class DepositAll extends IronfishCommand {
             receives: [
               {
                 publicAddress: bankDepositAddress,
-                amount: ironToOre(IRON_TO_SEND).toString(),
+                amount: CurrencyUtils.encode(CurrencyUtils.decodeIron(IRON_TO_SEND)),
                 memo: graffiti,
               },
             ],
