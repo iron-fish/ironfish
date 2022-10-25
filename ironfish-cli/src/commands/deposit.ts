@@ -6,6 +6,7 @@ import {
   Assert,
   displayIronAmountWithCurrency,
   ironToOre,
+  MathUtils,
   MINIMUM_IRON_AMOUNT,
   oreToIron,
   RpcClient,
@@ -127,7 +128,7 @@ export default class Bank extends IronfishCommand {
     const sendableIron = oreToIron(confirmedBalance - fee)
     const ironToSend =
       sendableIron < maxDepositSize
-        ? Math.floor(sendableIron / minDepositSize) * minDepositSize
+        ? MathUtils.roundBy(sendableIron, minDepositSize)
         : maxDepositSize
 
     const newBalance = confirmedBalance - ironToOre(ironToSend) - fee
