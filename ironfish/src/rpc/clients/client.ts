@@ -72,7 +72,10 @@ import {
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
-import { EstimateFeeRatesRequest, EstimateFeeRatesResponse } from '../routes/fees/estimateFeeRates'
+import {
+  EstimateFeeRatesRequest,
+  EstimateFeeRatesResponse,
+} from '../routes/fees/estimateFeeRates'
 import {
   ExportMinedStreamRequest,
   ExportMinedStreamResponse,
