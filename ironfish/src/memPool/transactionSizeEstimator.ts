@@ -1,14 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Note, Transaction } from '@ironfish/rust-nodejs'
+import { Transaction } from '@ironfish/rust-nodejs'
 import { createRootLogger, Logger } from '../logger'
-import { Witness } from '../merkletree'
-import { NoteHasher } from '../merkletree/hasher'
 import { getTransactionSize } from '../network/utils/serializers'
 import { Wallet } from '../wallet'
 import { Account } from '../wallet/account'
 import { NotEnoughFundsError } from '../wallet/errors'
+
+const SPEND_SERIALIZED_SIZE_IN_BYTE_PERCENTILES = 388
+const NOTE_SERIALIZED_SIZE_IN_BYTE_PERCENTILES = 467
 
 export class TransactionSizeEstimator {
   private wallet: Wallet
@@ -22,9 +23,9 @@ export class TransactionSizeEstimator {
   async estimateTransactionSize(
     sender: Account,
     receives: { publicAddress: string; amount: bigint; memo: string }[],
-    transactionFee: bigint,
     defaultTransactionExpirationSequenceDelta: number,
     expirationSequence?: number | null,
+    estimateFeeRate?: bigint,
   ): Promise<number> {
     const heaviestHead = this.wallet.chain.head
     if (heaviestHead === null) {
@@ -37,8 +38,7 @@ export class TransactionSizeEstimator {
     const transaction = new Transaction(sender.spendingKey)
     transaction.setExpirationSequence(expirationSequence)
 
-    const amountNeeded =
-      receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
+    let amountNeeded = receives.reduce((acc, receive) => acc + receive.amount, BigInt(0))
 
     const { amount, notesToSpend } = await this.wallet.createSpends(sender, amountNeeded)
 
@@ -48,26 +48,25 @@ export class TransactionSizeEstimator {
       )
     }
 
-    const spends = notesToSpend.map((n) => ({
-      note: n.note,
-      treeSize: n.witness.treeSize(),
-      authPath: n.witness.authenticationPath,
-      rootHash: n.witness.rootHash,
-    }))
+    const spendsLength = notesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE_PERCENTILES
 
-    for (const spend of spends) {
-      const note = spend.note
-      transaction.spend(
-        note,
-        new Witness(spend.treeSize, spend.rootHash, spend.authPath, new NoteHasher()),
+    const notesLength = receives.length * NOTE_SERIALIZED_SIZE_IN_BYTE_PERCENTILES
+
+    let transactionSize =
+      getTransactionSize(transaction.serialize()) + spendsLength + notesLength
+
+    if (estimateFeeRate) {
+      amountNeeded += estimateFeeRate * BigInt(Math.ceil(transactionSize / 1000))
+      const { notesToSpend: newNotesToSpend } = await this.wallet.createSpends(
+        sender,
+        amountNeeded,
       )
+      const additionalSpendsLength =
+        (newNotesToSpend.length - notesToSpend.length) *
+        SPEND_SERIALIZED_SIZE_IN_BYTE_PERCENTILES
+      transactionSize += additionalSpendsLength
     }
 
-    for (const { publicAddress, amount, memo } of receives) {
-      const note = new Note(publicAddress, amount, memo)
-      transaction.receive(note)
-    }
-
-    return getTransactionSize(transaction.serialize()) / 1000
+    return Math.ceil(transactionSize / 1000)
   }
 }
