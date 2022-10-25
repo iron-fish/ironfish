@@ -160,6 +160,21 @@ describe('MemPool', () => {
   })
 
   describe('acceptTransaction', () => {
+    describe('with size larger than the max transaction size', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node } = nodeTest
+        const { chain, wallet, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+
+        chain.consensus.MAX_BLOCK_SIZE_BYTES = 0
+        expect(memPool.acceptTransaction(transaction)).toBe(false)
+      })
+    })
+
     describe('with an existing hash in the mempool', () => {
       const nodeTest = createNodeTest()
 
