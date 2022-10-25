@@ -97,6 +97,11 @@ impl ReceiptParams {
         self.merkle_note.write(&mut writer)?;
         Ok(())
     }
+
+    /// Stow the bytes of this ReceiptProof in the given writer.
+    pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
+        self.serialize_signature_fields(writer)
+    }
 }
 
 /// The publicly visible values of a received note in a transaction. These

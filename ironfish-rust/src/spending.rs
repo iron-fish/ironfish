@@ -157,6 +157,13 @@ impl SpendParams {
         Ok(spend_proof)
     }
 
+    /// Stow the bytes of this SpendProof in the given writer.
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        self.serialize_signature_fields(&mut writer)?;
+
+        Ok(())
+    }
+
     /// Serialize the fields that are needed in calculating a signature to
     /// the provided writer (probably a Blake2B writer)
     ///

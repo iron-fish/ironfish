@@ -190,7 +190,23 @@ impl ProposedTransaction {
         self.expiration_sequence = expiration_sequence;
     }
 
-    // Post transaction without much validation.
+    /// Store the bytes of this transaction in the given writer. 
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.receipts.len() as u64)?;
+        writer.write_i64::<LittleEndian>(self.transaction_fee)?;
+        writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
+        for spend in self.spends.iter() {
+            spend.write(&mut writer)?;
+        }
+        for receipt in self.receipts.iter() {
+            receipt.write(&mut writer)?;
+        }
+
+        Ok(())
+    }
+
+    // post transaction without much validation.
     fn _partial_post(&self) -> Result<Transaction, IronfishError> {
         self.check_value_consistency()?;
         let data_to_sign = self.transaction_signature_hash();
