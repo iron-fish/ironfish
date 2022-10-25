@@ -107,7 +107,7 @@ export class Pay extends IronfishCommand {
       let dynamicFee: bigint | null
       try {
         const response = await client.getFees({ numOfBlocks: 100 })
-        dynamicFee = CurrencyUtils.decode(response.content.p25.toString())
+        dynamicFee = CurrencyUtils.decode(response.content.p25)
       } catch {
         dynamicFee = null
       }
