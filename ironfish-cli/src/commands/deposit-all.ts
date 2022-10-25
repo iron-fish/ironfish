@@ -74,9 +74,8 @@ export default class DepositAll extends IronfishCommand {
     if (fee == null) {
       try {
         // fees p25 of last 100 blocks
-        const feeNumber = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
-        // TODO: NEVER use numbers for amounts
-        fee = BigInt(feeNumber)
+        const feeString = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+        fee = BigInt(feeString)
       } catch {
         fee = 1n
       }
