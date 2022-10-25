@@ -693,7 +693,6 @@ export class Wallet {
 
       const { amount, notesToSpend } = await this.createSpends(sender, amountNeeded)
 
-
       if (amount < amountNeeded) {
         throw new NotEnoughFundsError(
           `Insufficient funds: Needed ${amountNeeded.toString()} but have ${amount.toString()}`,
@@ -720,8 +719,7 @@ export class Wallet {
   async createSpends(
     sender: Account,
     amountNeeded: bigint,
-  ): Promise<{amount: bigint; notesToSpend:Array<{ note: Note; witness: NoteWitness }>}>{
-
+  ): Promise<{ amount: bigint; notesToSpend: Array<{ note: Note; witness: NoteWitness }> }> {
     let amount = BigInt(0)
 
     const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
@@ -742,9 +740,7 @@ export class Wallet {
       const witness = await this.chain.notes.witness(unspentNote.index)
 
       if (witness === null) {
-        this.logger.debug(
-          `Could not create a witness for note with index ${unspentNote.index}`,
-        )
+        this.logger.debug(`Could not create a witness for note with index ${unspentNote.index}`)
         continue
       }
 
@@ -765,7 +761,7 @@ export class Wallet {
 
     return {
       amount,
-      notesToSpend
+      notesToSpend,
     }
   }
 
