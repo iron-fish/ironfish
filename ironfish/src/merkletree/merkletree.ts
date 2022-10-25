@@ -753,19 +753,16 @@ export class MerkleTree<
           await this.putHash(hash.siblingIndex, siblingNode, hash.hash, tx)
         }
 
-        const nodeParentIndex: number | undefined = siblingNode?.parentIndex ?? node.parentIndex
-        Assert.isNotUndefined(nodeParentIndex)
-
-        const { index: parentIndex, node: parentNode } = await this.findParentNode(
-          nodeParentIndex,
-          tx,
-        )
+        const parentIndex: number | undefined = siblingNode?.parentIndex ?? node.parentIndex
+        Assert.isNotUndefined(parentIndex)
 
         if (parentIndex !== 0 && siblingNode) {
+          const parentNode = await this.getNode(parentIndex, tx)
+
           const newHash =
             node.side === 'Left'
-              ? this.hasher.combineHash(hash.depth + 1, siblingNode.hashOfSibling, hash.hash)
-              : this.hasher.combineHash(hash.depth + 1, hash.hash, siblingNode.hashOfSibling)
+              ? this.hasher.combineHash(hash.depth + 1, hash.hash, node.hashOfSibling)
+              : this.hasher.combineHash(hash.depth + 1, node.hashOfSibling, hash.hash)
 
           hashStack.unshift({
             hash: newHash,
