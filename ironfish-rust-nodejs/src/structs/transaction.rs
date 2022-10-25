@@ -53,7 +53,7 @@ impl NativeTransactionPosted {
     pub fn notes_length(&self) -> Result<i64> {
         let notes_len: i64 = self
             .transaction
-            .receipts()
+            .outputs()
             .len()
             .try_into()
             .map_err(|_| to_napi_err("Value out of range"))?;
@@ -67,7 +67,7 @@ impl NativeTransactionPosted {
             .try_into()
             .map_err(|_| to_napi_err("Value out of range"))?;
 
-        let proof = &self.transaction.receipts()[index_usize];
+        let proof = &self.transaction.outputs()[index_usize];
         let mut vec: Vec<u8> = Vec::with_capacity(ENCRYPTED_NOTE_LENGTH as usize);
         proof.merkle_note().write(&mut vec).map_err(to_napi_err)?;
 

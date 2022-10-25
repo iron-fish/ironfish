@@ -19,7 +19,7 @@ use std::io;
 /// Parameters used when constructing proof that a new note exists. The owner
 /// of this note is the recipient of funds in a transaction. The note is signed
 /// with the owners public key so only they can read it.
-pub struct ReceiptParams {
+pub struct OutputParams {
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,
 
@@ -31,12 +31,12 @@ pub struct ReceiptParams {
     pub(crate) merkle_note: MerkleNote,
 }
 
-impl ReceiptParams {
+impl OutputParams {
     /// Construct the parameters for proving a new specific note
     pub(crate) fn new(
         spender_key: &SaplingKey,
         note: &Note,
-    ) -> Result<ReceiptParams, IronfishError> {
+    ) -> Result<OutputParams, IronfishError> {
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let value_commitment_randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
@@ -56,32 +56,32 @@ impl ReceiptParams {
             esk: Some(diffie_hellman_keys.0),
         };
         let proof =
-            groth16::create_random_proof(output_circuit, &SAPLING.receipt_params, &mut OsRng)?;
+            groth16::create_random_proof(output_circuit, &SAPLING.output_params, &mut OsRng)?;
 
-        let receipt_proof = ReceiptParams {
+        let output_proof = OutputParams {
             proof,
             value_commitment_randomness,
             merkle_note,
         };
 
-        Ok(receipt_proof)
+        Ok(output_proof)
     }
 
-    /// Output the committed ReceiptProof for this receiving calculation.
+    /// Output the committed OutputProof for this receiving calculation.
     ///
-    /// The ReceiptProof is the publicly visible form of the new note, not
+    /// The OutputProof is the publicly visible form of the new note, not
     /// including any keys or intermediate working values.
     ///
     /// Verifies the proof before returning to prevent posting broken
     /// transactions.
-    pub fn post(&self) -> Result<ReceiptProof, IronfishError> {
-        let receipt_proof = ReceiptProof {
+    pub fn post(&self) -> Result<OutputProof, IronfishError> {
+        let output_proof = OutputProof {
             proof: self.proof.clone(),
             merkle_note: self.merkle_note.clone(),
         };
-        receipt_proof.verify_proof()?;
+        output_proof.verify_proof()?;
 
-        Ok(receipt_proof)
+        Ok(output_proof)
     }
 
     /// Write the signature of this proof to the provided writer.
@@ -103,28 +103,28 @@ impl ReceiptParams {
 /// values are calculated by the spender using only the public address of the
 /// owner of this new note.
 ///
-/// This is the variation of a Receipt that gets serialized to bytes and can
+/// This is the variation of a Output that gets serialized to bytes and can
 /// be loaded from bytes.
 #[derive(Clone)]
-pub struct ReceiptProof {
+pub struct OutputProof {
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,
 
     pub(crate) merkle_note: MerkleNote,
 }
 
-impl ReceiptProof {
-    /// Load a ReceiptProof from a Read implementation( e.g: socket, file)
+impl OutputProof {
+    /// Load a OutputProof from a Read implementation( e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
         let merkle_note = MerkleNote::read(&mut reader)?;
 
-        Ok(ReceiptProof { proof, merkle_note })
+        Ok(OutputProof { proof, merkle_note })
     }
 
-    /// Stow the bytes of this ReceiptProof in the given writer.
+    /// Stow the bytes of this OutputProof in the given writer.
     pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
         self.serialize_signature_fields(writer)
     }
@@ -135,7 +135,7 @@ impl ReceiptProof {
         self.verify_value_commitment()?;
 
         groth16::verify_proof(
-            &SAPLING.receipt_verifying_key,
+            &SAPLING.output_verifying_key,
             &self.proof,
             &self.public_inputs()[..],
         )?;
@@ -196,22 +196,20 @@ impl ReceiptProof {
 
 #[cfg(test)]
 mod test {
-    use super::{ReceiptParams, ReceiptProof};
+    use super::{OutputParams, OutputProof};
     use crate::{keys::SaplingKey, note::Note};
     use ff::PrimeField;
     use group::Curve;
     use jubjub::ExtendedPoint;
 
     #[test]
-    fn test_receipt_round_trip() {
+    fn test_output_round_trip() {
         let spender_key: SaplingKey = SaplingKey::generate_key();
         let note = Note::new(spender_key.generate_public_address(), 42, "");
 
-        let receipt = ReceiptParams::new(&spender_key, &note)
-            .expect("should be able to create receipt proof");
-        let proof = receipt
-            .post()
-            .expect("Should be able to post receipt proof");
+        let output =
+            OutputParams::new(&spender_key, &note).expect("should be able to create output proof");
+        let proof = output.post().expect("Should be able to post output proof");
         proof.verify_proof().expect("proof should check out");
 
         // test serialization
@@ -219,7 +217,7 @@ mod test {
         proof
             .write(&mut serialized_proof)
             .expect("Should be able to serialize proof");
-        let read_back_proof: ReceiptProof = ReceiptProof::read(&mut serialized_proof[..].as_ref())
+        let read_back_proof: OutputProof = OutputProof::read(&mut serialized_proof[..].as_ref())
             .expect("Should be able to deserialize valid proof");
 
         assert_eq!(proof.proof.a, read_back_proof.proof.a);

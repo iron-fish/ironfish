@@ -31,11 +31,11 @@ fn test_transaction() {
         .expect("should be consistent after spend");
     transaction
         .receive(&out_note)
-        .expect("should be able to prove receipt");
-    assert_eq!(transaction.receipts.len(), 1);
+        .expect("should be able to prove output");
+    assert_eq!(transaction.outputs.len(), 1);
     transaction
         .check_value_consistency()
-        .expect("should be consistent after receipt");
+        .expect("should be consistent after output");
 
     // This fails because witness and witness2 have different root hashes, and constructing
     // an auth_path with consistent hashes is non-trivial without a real merkle tree
@@ -56,7 +56,7 @@ fn test_transaction() {
     assert_eq!(public_transaction.transaction_fee(), 1);
 
     // A change note was created
-    assert_eq!(public_transaction.receipts.len(), 2);
+    assert_eq!(public_transaction.outputs.len(), 2);
 
     // test serialization
     let mut serialized_transaction = vec![];
@@ -75,8 +75,8 @@ fn test_transaction() {
         read_back_transaction.spends.len()
     );
     assert_eq!(
-        public_transaction.receipts.len(),
-        read_back_transaction.receipts.len()
+        public_transaction.outputs.len(),
+        read_back_transaction.outputs.len()
     );
     let mut serialized_again = vec![];
     read_back_transaction
@@ -97,7 +97,7 @@ fn test_miners_fee() {
     assert_eq!(posted_transaction.transaction_fee, -42);
     assert_eq!(
         posted_transaction
-            .iter_receipts()
+            .iter_outputs()
             .next()
             .unwrap()
             .merkle_note

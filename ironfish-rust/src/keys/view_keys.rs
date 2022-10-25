@@ -173,7 +173,7 @@ impl OutgoingViewKey {
 }
 
 /// Pair of outgoing and incoming view keys for a complete audit
-/// of spends and receipts
+/// of spends and outputs
 #[derive(Clone)]
 pub struct ViewKeys {
     pub incoming: IncomingViewKey,

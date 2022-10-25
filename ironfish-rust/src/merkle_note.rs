@@ -217,13 +217,13 @@ pub(crate) fn position(witness: &dyn WitnessTrait) -> u64 {
     pos
 }
 
-/// Calculate the key used to encrypt the shared keys for a ReceiptProof or
-/// ReceiptParams.
+/// Calculate the key used to encrypt the shared keys for a OutputProof or
+/// OutputParams.
 ///
 /// The shared keys are encrypted using the outgoing viewing key for the
 /// spender (the person creating the note owned by the receiver). This gets
-/// combined with hashes of the receipt values to make a key unique to, and
-/// signed by, the receipt.
+/// combined with hashes of the output values to make a key unique to, and
+/// signed by, the output.
 ///
 /// Naming is getting a bit far-fetched here because it's the keys used to
 /// encrypt other keys. Keys, all the way down!
@@ -284,7 +284,7 @@ mod test {
     }
 
     #[test]
-    fn test_receipt_invalid_commitment() {
+    fn test_output_invalid_commitment() {
         let spender_key: SaplingKey = SaplingKey::generate_key();
         let note = Note::new(spender_key.generate_public_address(), 42, "");
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();

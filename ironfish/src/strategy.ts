@@ -62,8 +62,8 @@ export class Strategy {
   /**
    * Create the miner's fee transaction for a given block.
    *
-   * The miner's fee is a special transaction with one receipt and
-   * zero spends. It's receipt value must be the total transaction fees
+   * The miner's fee is a special transaction with one output and
+   * zero spends. Its output value must be the total transaction fees
    * in the block plus the mining reward for the block.
    *
    * The mining reward may change over time, so we accept the block sequence
