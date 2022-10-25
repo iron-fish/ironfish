@@ -116,9 +116,11 @@ export default class Bank extends IronfishCommand {
 
     if (confirmedBalance < fee + ironToOre(minDepositSize)) {
       this.log(
-        `Insufficient balance: ${oreToIron(
-          confirmedBalance,
-        )} IRON. At minimum, depositing requires the fee (${fee} ORE) plus a minimum deposit (${minDepositSize} IRON)`,
+        `Insufficient balance: ${oreToIron(confirmedBalance)} IRON.  Fee (${oreToIron(
+          fee,
+        )} IRON) + minimum deposit (${minDepositSize} IRON), total required (${
+          oreToIron(fee) + minDepositSize
+        } IRON)`,
       )
       this.exit(1)
     }
