@@ -618,10 +618,9 @@ export class MerkleTree<
         depth: number
         siblingIndex: number | null
       }[] = []
-      let leafIndex = leavesCount - 1
 
       for (
-        leafIndex;
+        let leafIndex = leavesCount - 1;
         leafIndex > this.lastHashIndex;
         leafIndex % 2 !== 0 ? (leafIndex -= 2) : leafIndex--
       ) {
