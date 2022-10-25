@@ -239,8 +239,6 @@ export class IronfishNode {
       files,
     })
 
-    const memPool = new MemPool({ chain, metrics, logger })
-
     const accountDB = new WalletDB({
       location: config.accountDatabasePath,
       workerPool,
@@ -253,6 +251,8 @@ export class IronfishNode {
       database: accountDB,
       workerPool,
     })
+
+    const memPool = new MemPool({ wallet, metrics, logger })
 
     const minedBlocksIndexer = new MinedBlocksIndexer({
       files,
