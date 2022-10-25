@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   BlockSerde,
+  CurrencyUtils,
   GENESIS_SUPPLY_IN_IRON,
   GenesisBlockInfo,
   IJSON,
-  ironToOre,
   makeGenesisBlock,
   Target,
 } from '@ironfish/sdk'
@@ -79,7 +79,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
       allocations: [
         {
           publicAddress: account.publicAddress,
-          amount: ironToOre(GENESIS_SUPPLY_IN_IRON),
+          amount: CurrencyUtils.decodeIron(GENESIS_SUPPLY_IN_IRON),
         },
       ],
     }
