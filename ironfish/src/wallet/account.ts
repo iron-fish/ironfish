@@ -461,6 +461,19 @@ export class Account {
           hash: noteHash,
         })
       }
+
+      const decryptedNoteForSpender = note.decryptNoteForSpender(this.outgoingViewKey)
+      if (decryptedNoteForSpender) {
+        notes.push({
+          accountId: this.id,
+          note: decryptedNoteForSpender,
+          spent: true,
+          transactionHash: transaction.hash(),
+          index: null,
+          nullifier: null,
+          hash: noteHash,
+        })
+      }
     }
 
     return notes
