@@ -374,7 +374,7 @@ export abstract class RpcClient {
     params: EstimateFeeRatesRequest,
   ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> {
     return this.request<EstimateFeeRatesResponse>(
-      `${ApiNamespace.fees}/estimateFeesRate`,
+      `${ApiNamespace.fees}/estimateFeeRates`,
       params,
     ).waitForEnd()
   }

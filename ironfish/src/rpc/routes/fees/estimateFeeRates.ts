@@ -32,7 +32,7 @@ export const EstimateFeeRatesResponseSchema: yup.ObjectSchema<EstimateFeeRatesRe
   .defined()
 
 router.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
-  `${ApiNamespace.fees}/estimateFeeRate`,
+  `${ApiNamespace.fees}/estimateFeeRates`,
   EstimateFeeRatesRequestSchema,
   (request, node): void => {
     const priority = request.data.priority
