@@ -12,7 +12,7 @@ import { Logger } from '../../logger'
 import { Meter } from '../../metrics/meter'
 import { IronfishNode } from '../../node'
 import { Note, Transaction } from '../../primitives'
-import { NoteEncrypted } from '../../primitives/noteEncrypted'
+import { OutputDescription } from '../../primitives/outputDescription'
 import { IJsonSerializable } from '../../serde/Serde'
 import {
   BufferEncoding,
@@ -553,7 +553,7 @@ export class Migration013 extends Migration {
 function findNoteInTransaction(
   transaction: Transaction,
   noteHash: Buffer,
-): NoteEncrypted | null {
+): OutputDescription | null {
   for (const note of transaction.notes()) {
     if (note.merkleHash().equals(noteHash)) {
       return note

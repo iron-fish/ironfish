@@ -5,14 +5,14 @@
 import { Note, Transaction } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../../merkletree'
-import { NoteHasher } from '../../merkletree/hasher'
+import { NoteCommitmentHasher } from '../../merkletree/hasher'
 import { Side } from '../../merkletree/merkletree'
 import { BigIntUtils } from '../../utils/bigint'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
 // Needed for constructing a witness when creating transactions
-const noteHasher = new NoteHasher()
+const noteCommitmentHasher = new NoteCommitmentHasher()
 
 export class CreateTransactionRequest extends WorkerMessage {
   readonly spendKey: string
@@ -217,7 +217,7 @@ export class CreateTransactionTask extends WorkerTask {
       const note = Note.deserialize(spend.note)
       transaction.spend(
         note,
-        new Witness(spend.treeSize, spend.rootHash, spend.authPath, noteHasher),
+        new Witness(spend.treeSize, spend.rootHash, spend.authPath, noteCommitmentHasher),
       )
     }
 

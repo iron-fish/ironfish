@@ -12,11 +12,11 @@ mod serializing;
 
 pub mod errors;
 pub mod keys;
-pub mod merkle_note;
 pub mod merkle_note_hash;
 pub mod mining;
 pub mod nacl;
 pub mod note;
+pub mod output_description;
 pub mod outputs;
 pub mod rolling_filter;
 pub mod sapling_bls12;
@@ -25,9 +25,9 @@ pub mod transaction;
 pub mod witness;
 pub use {
     keys::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKeys},
-    merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,
     note::Note,
+    output_description::OutputDescription,
     outputs::{OutputParams, OutputProof},
     spending::{SpendParams, SpendProof},
     transaction::{ProposedTransaction, Transaction},

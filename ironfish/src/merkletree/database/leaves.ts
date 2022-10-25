@@ -5,7 +5,7 @@
 import type { IDatabaseEncoding } from '../../storage/database/types'
 import { ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { NoteEncrypted } from '../../primitives/noteEncrypted'
+import { OutputDescription } from '../../primitives/outputDescription'
 
 export interface LeafValue<T> {
   element: T
@@ -15,7 +15,7 @@ export interface LeafValue<T> {
 
 const NULLIFIER_BYTES = 32
 
-export type NoteLeafValue = LeafValue<NoteEncrypted>
+export type NoteLeafValue = LeafValue<OutputDescription>
 
 export type NullifierLeafValue = LeafValue<Buffer>
 
@@ -33,7 +33,7 @@ export class NoteLeafEncoding implements IDatabaseEncoding<NoteLeafValue> {
   deserialize(buffer: Buffer): NoteLeafValue {
     const reader = bufio.read(buffer, true)
 
-    const element = new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH))
+    const element = new OutputDescription(reader.readBytes(ENCRYPTED_NOTE_LENGTH))
     const merkleHash = reader.readHash()
     const parentIndex = reader.readU32()
 

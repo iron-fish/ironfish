@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
-  NoteEncrypted,
-  NoteEncryptedHash,
-  SerializedNoteEncrypted,
-  SerializedNoteEncryptedHash,
-} from '../primitives/noteEncrypted'
+  OutputDescription,
+  OutputDescriptionHash,
+  SerializedOutputDescription,
+  SerializedOutputDescriptionHash,
+} from '../primitives/outputDescription'
 import { JsonSerializable } from '../serde'
 import { MerkleHasher } from './hasher'
 import { Side } from './merkletree'
@@ -69,8 +69,8 @@ export class Witness<E, H, SE extends JsonSerializable, SH extends JsonSerializa
 }
 
 export type NoteWitness = Witness<
-  NoteEncrypted,
-  NoteEncryptedHash,
-  SerializedNoteEncrypted,
-  SerializedNoteEncryptedHash
+  OutputDescription,
+  OutputDescriptionHash,
+  SerializedOutputDescription,
+  SerializedOutputDescriptionHash
 >

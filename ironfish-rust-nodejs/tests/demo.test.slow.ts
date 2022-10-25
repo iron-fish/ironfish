@@ -7,7 +7,7 @@ import {
   generateKey,
   generateNewPublicAddress,
   Note,
-  NoteEncrypted,
+  OutputDescription,
   Transaction,
   TransactionPosted,
 } from '../'
@@ -53,7 +53,7 @@ describe('Demonstrate the Sapling API', () => {
     expect(postedTransaction.transactionSignature().byteLength).toBe(64)
     expect(postedTransaction.verify()).toBe(true)
 
-    const encryptedNote = new NoteEncrypted(postedTransaction.getNote(0))
+    const encryptedNote = new OutputDescription(postedTransaction.getNote(0))
     expect(encryptedNote.merkleHash().byteLength).toBe(32)
     expect(encryptedNote.equals(encryptedNote)).toBe(true)
 
@@ -84,7 +84,7 @@ describe('Demonstrate the Sapling API', () => {
 
     const transaction = new Transaction(key.spending_key)
     transaction.setExpirationSequence(10)
-    const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
+    const encryptedNote = new OutputDescription(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key)!)
     const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive')
 
@@ -95,7 +95,7 @@ describe('Demonstrate the Sapling API', () => {
         side: () => 'Left',
         hashOfSibling: () => tempHash,
       }
-      currentHash = NoteEncrypted.combineHash(depth, currentHash, currentHash)
+      currentHash = OutputDescription.combineHash(depth, currentHash, currentHash)
       return witnessNode
     })
 

@@ -4,7 +4,7 @@
 
 use crate::{errors::IronfishError, sapling_bls12::SAPLING};
 
-use super::{keys::SaplingKey, merkle_note::MerkleNote, note::Note};
+use super::{keys::SaplingKey, note::Note, output_description::OutputDescription};
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use ff::Field;
@@ -28,7 +28,7 @@ pub struct OutputParams {
 
     /// Merkle note containing all the values verified by the proof. These values
     /// are shared on the blockchain and can be snapshotted into a Merkle Tree
-    pub(crate) merkle_note: MerkleNote,
+    pub(crate) description: OutputDescription,
 }
 
 impl OutputParams {
@@ -46,8 +46,8 @@ impl OutputParams {
             randomness: value_commitment_randomness,
         };
 
-        let merkle_note =
-            MerkleNote::new(spender_key, note, &value_commitment, &diffie_hellman_keys);
+        let description =
+            OutputDescription::new(spender_key, note, &value_commitment, &diffie_hellman_keys);
 
         let output_circuit = Output {
             value_commitment: Some(value_commitment),
@@ -61,7 +61,7 @@ impl OutputParams {
         let output_proof = OutputParams {
             proof,
             value_commitment_randomness,
-            merkle_note,
+            description,
         };
 
         Ok(output_proof)
@@ -77,7 +77,7 @@ impl OutputParams {
     pub fn post(&self) -> Result<OutputProof, IronfishError> {
         let output_proof = OutputProof {
             proof: self.proof.clone(),
-            merkle_note: self.merkle_note.clone(),
+            description: self.description.clone(),
         };
         output_proof.verify_proof()?;
 
@@ -94,7 +94,7 @@ impl OutputParams {
         mut writer: W,
     ) -> Result<(), IronfishError> {
         self.proof.write(&mut writer)?;
-        self.merkle_note.write(&mut writer)?;
+        self.description.write(&mut writer)?;
         Ok(())
     }
 }
@@ -110,7 +110,7 @@ pub struct OutputProof {
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,
 
-    pub(crate) merkle_note: MerkleNote,
+    pub(crate) description: OutputDescription,
 }
 
 impl OutputProof {
@@ -119,9 +119,9 @@ impl OutputProof {
     /// transaction.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
-        let merkle_note = MerkleNote::read(&mut reader)?;
+        let description = OutputDescription::read(&mut reader)?;
 
-        Ok(OutputProof { proof, merkle_note })
+        Ok(OutputProof { proof, description })
     }
 
     /// Stow the bytes of this OutputProof in the given writer.
@@ -144,8 +144,8 @@ impl OutputProof {
     }
 
     pub fn verify_value_commitment(&self) -> Result<(), IronfishError> {
-        if self.merkle_note.value_commitment.is_small_order().into()
-            || ExtendedPoint::from(self.merkle_note.ephemeral_public_key)
+        if self.description.value_commitment.is_small_order().into()
+            || ExtendedPoint::from(self.description.ephemeral_public_key)
                 .is_small_order()
                 .into()
         {
@@ -160,22 +160,22 @@ impl OutputProof {
     /// and note_commitment
     pub fn public_inputs(&self) -> [Scalar; 5] {
         let mut public_inputs = [Scalar::zero(); 5];
-        let p = self.merkle_note.value_commitment.to_affine();
+        let p = self.description.value_commitment.to_affine();
         public_inputs[0] = p.get_u();
         public_inputs[1] = p.get_v();
 
-        let p = ExtendedPoint::from(self.merkle_note.ephemeral_public_key).to_affine();
+        let p = ExtendedPoint::from(self.description.ephemeral_public_key).to_affine();
         public_inputs[2] = p.get_u();
         public_inputs[3] = p.get_v();
 
-        public_inputs[4] = self.merkle_note.note_commitment;
+        public_inputs[4] = self.description.note_commitment;
 
         public_inputs
     }
 
-    /// Get a MerkleNote, which can be used as a node in a Merkle Tree.
-    pub fn merkle_note(&self) -> MerkleNote {
-        self.merkle_note.clone()
+    /// Get an OutputDescription, which can be used as a node in a Merkle Tree.
+    pub fn description(&self) -> OutputDescription {
+        self.description.clone()
     }
 
     /// Write the signature of this proof to the provided writer.
@@ -188,7 +188,7 @@ impl OutputProof {
         mut writer: W,
     ) -> Result<(), IronfishError> {
         self.proof.write(&mut writer)?;
-        self.merkle_note.write(&mut writer)?;
+        self.description.write(&mut writer)?;
 
         Ok(())
     }
@@ -224,24 +224,24 @@ mod test {
         assert_eq!(proof.proof.b, read_back_proof.proof.b);
         assert_eq!(proof.proof.c, read_back_proof.proof.c);
         assert_eq!(
-            proof.merkle_note.value_commitment.to_affine(),
-            read_back_proof.merkle_note.value_commitment.to_affine()
+            proof.description.value_commitment.to_affine(),
+            read_back_proof.description.value_commitment.to_affine()
         );
         assert_eq!(
-            proof.merkle_note.note_commitment.to_repr(),
-            read_back_proof.merkle_note.note_commitment.to_repr()
+            proof.description.note_commitment.to_repr(),
+            read_back_proof.description.note_commitment.to_repr()
         );
         assert_eq!(
-            ExtendedPoint::from(proof.merkle_note.ephemeral_public_key).to_affine(),
-            ExtendedPoint::from(read_back_proof.merkle_note.ephemeral_public_key).to_affine()
+            ExtendedPoint::from(proof.description.ephemeral_public_key).to_affine(),
+            ExtendedPoint::from(read_back_proof.description.ephemeral_public_key).to_affine()
         );
         assert_eq!(
-            proof.merkle_note.encrypted_note[..],
-            read_back_proof.merkle_note.encrypted_note[..]
+            proof.description.encrypted_note[..],
+            read_back_proof.description.encrypted_note[..]
         );
         assert_eq!(
-            proof.merkle_note.note_encryption_keys[..],
-            read_back_proof.merkle_note.note_encryption_keys[..]
+            proof.description.note_encryption_keys[..],
+            read_back_proof.description.note_encryption_keys[..]
         );
 
         let mut serialized_again = vec![];

@@ -48,11 +48,11 @@ export class RollingFilter {
   add(value: Buffer): void
   test(value: Buffer): boolean
 }
-export type NativeNoteEncrypted = NoteEncrypted
-export class NoteEncrypted {
+export type NativeOutputDescription = OutputDescription
+export class OutputDescription {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
-  equals(other: NoteEncrypted): boolean
+  equals(other: OutputDescription): boolean
   merkleHash(): Buffer
   /**
    * Hash two child hashes together to calculate the hash of the

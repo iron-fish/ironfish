@@ -5,7 +5,7 @@
 #[cfg(test)]
 use super::{ProposedTransaction, Transaction};
 use crate::{
-    keys::SaplingKey, merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note,
+    keys::SaplingKey, note::Note, output_description::NOTE_ENCRYPTION_MINER_KEYS,
     test_util::make_fake_witness,
 };
 
@@ -100,7 +100,7 @@ fn test_miners_fee() {
             .iter_outputs()
             .next()
             .unwrap()
-            .merkle_note
+            .description
             .note_encryption_keys[0..30],
         NOTE_ENCRYPTION_MINER_KEYS[0..30]
     );

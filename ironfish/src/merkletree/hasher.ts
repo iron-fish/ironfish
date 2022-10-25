@@ -1,15 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { NoteEncrypted as NativeNoteEncrypted } from '@ironfish/rust-nodejs'
+import { OutputDescription as NativeOutputDescription } from '@ironfish/rust-nodejs'
 import {
-  NoteEncrypted,
-  NoteEncryptedHash,
-  NoteEncryptedHashSerde,
-  NoteEncryptedSerde,
-  SerializedNoteEncrypted,
-  SerializedNoteEncryptedHash,
-} from '../primitives/noteEncrypted'
+  OutputDescription,
+  OutputDescriptionHash,
+  OutputDescriptionHashSerde,
+  OutputDescriptionSerde,
+  SerializedOutputDescription,
+  SerializedOutputDescriptionHash,
+} from '../primitives/outputDescription'
 import { StringSerde } from '../serde'
 import { JsonSerializable, Serde } from '../serde'
 
@@ -41,41 +41,41 @@ export interface MerkleHasher<E, H, SE extends JsonSerializable, SH extends Json
 /**
  * Hasher implementation for notes to satisfy the MerkleTree requirements.
  */
-export class NoteHasher
+export class NoteCommitmentHasher
   implements
     MerkleHasher<
-      NoteEncrypted,
-      NoteEncryptedHash,
-      SerializedNoteEncrypted,
-      SerializedNoteEncryptedHash
+      OutputDescription,
+      OutputDescriptionHash,
+      SerializedOutputDescription,
+      SerializedOutputDescriptionHash
     >
 {
-  _merkleNoteSerde: NoteEncryptedSerde
-  _merkleNoteHashSerde: NoteEncryptedHashSerde
+  _outputDescriptionSerde: OutputDescriptionSerde
+  _outputDescriptionHashSerde: OutputDescriptionHashSerde
 
   constructor() {
-    this._merkleNoteSerde = new NoteEncryptedSerde()
-    this._merkleNoteHashSerde = new NoteEncryptedHashSerde()
+    this._outputDescriptionSerde = new OutputDescriptionSerde()
+    this._outputDescriptionHashSerde = new OutputDescriptionHashSerde()
   }
 
-  elementSerde(): Serde<NoteEncrypted, SerializedNoteEncrypted> {
-    return this._merkleNoteSerde
+  elementSerde(): Serde<OutputDescription, SerializedOutputDescription> {
+    return this._outputDescriptionSerde
   }
 
-  hashSerde(): Serde<NoteEncryptedHash, SerializedNoteEncryptedHash> {
-    return this._merkleNoteHashSerde
+  hashSerde(): Serde<OutputDescriptionHash, SerializedOutputDescriptionHash> {
+    return this._outputDescriptionHashSerde
   }
 
-  merkleHash(note: NoteEncrypted): Buffer {
-    return note.merkleHash()
+  merkleHash(outputDescription: OutputDescription): Buffer {
+    return outputDescription.merkleHash()
   }
 
   combineHash(
     depth: number,
-    left: NoteEncryptedHash,
-    right: NoteEncryptedHash,
-  ): NoteEncryptedHash {
-    return Buffer.from(NativeNoteEncrypted.combineHash(depth, left, right))
+    left: OutputDescriptionHash,
+    right: OutputDescriptionHash,
+  ): OutputDescriptionHash {
+    return Buffer.from(NativeOutputDescription.combineHash(depth, left, right))
   }
 }
 

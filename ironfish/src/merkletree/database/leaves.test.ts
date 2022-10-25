@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKey, Note, Transaction, TransactionPosted } from '@ironfish/rust-nodejs'
-import { NoteEncrypted } from '../../primitives/noteEncrypted'
+import { OutputDescription } from '../../primitives/outputDescription'
 import { NoteLeafEncoding, NullifierLeafEncoding } from './leaves'
 
 describe('NoteLeafEncoding', () => {
@@ -14,7 +14,7 @@ describe('NoteLeafEncoding', () => {
     tx.receive(note)
     const buf = tx.post_miners_fee()
     const txp = new TransactionPosted(buf)
-    const noteEncrypted = new NoteEncrypted(txp.getNote(0))
+    const noteEncrypted = new OutputDescription(txp.getNote(0))
 
     const noteLeafValue = {
       element: noteEncrypted,

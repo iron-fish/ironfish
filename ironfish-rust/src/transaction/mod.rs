@@ -6,8 +6,8 @@ use crate::{errors::IronfishError, sapling_bls12::SAPLING};
 
 use super::{
     keys::{PublicAddress, SaplingKey},
-    merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
+    output_description::NOTE_ENCRYPTION_MINER_KEYS,
     outputs::{OutputParams, OutputProof},
     spending::{SpendParams, SpendProof},
     witness::WitnessTrait,
@@ -109,7 +109,7 @@ impl ProposedTransaction {
         let proof = OutputParams::new(&self.spender_key, note)?;
 
         self.binding_signature_key -= proof.value_commitment_randomness;
-        self.binding_verification_key -= proof.merkle_note.value_commitment;
+        self.binding_verification_key -= proof.description.value_commitment;
 
         self.outputs.push(proof);
         self.transaction_fee -= note.value as i64;
@@ -168,7 +168,7 @@ impl ProposedTransaction {
         self.outputs
             .get_mut(0)
             .expect("bounds checked above")
-            .merkle_note
+            .description
             .note_encryption_keys = *NOTE_ENCRYPTION_MINER_KEYS;
         self._partial_post()
     }
@@ -516,7 +516,7 @@ pub fn batch_verify_transactions<'a>(
             let public_inputs = output.public_inputs();
             output_verifier.queue((&output.proof, &public_inputs[..]));
 
-            binding_verification_key -= output.merkle_note.value_commitment;
+            binding_verification_key -= output.description.value_commitment;
         }
 
         transaction.verify_binding_signature(&binding_verification_key)?;

@@ -5,7 +5,7 @@
 import { ENCRYPTED_NOTE_LENGTH, TransactionPosted } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
-import { NoteEncrypted } from './noteEncrypted'
+import { OutputDescription } from './outputDescription'
 import { Spend } from './spend'
 
 export type TransactionHash = Buffer
@@ -18,7 +18,7 @@ export class Transaction {
   private readonly _fee: bigint
   private readonly _expirationSequence: number
   private readonly _spends: Spend[] = []
-  private readonly _notes: NoteEncrypted[]
+  private readonly _notes: OutputDescription[]
   private readonly _signature: Buffer
   private _hash?: TransactionHash
   private _unsignedHash?: TransactionHash
@@ -63,7 +63,7 @@ export class Transaction {
       // proof
       reader.seek(192)
 
-      return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
+      return new OutputDescription(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
     })
 
     this._signature = reader.readBytes(64, true)
@@ -117,7 +117,7 @@ export class Transaction {
     return this._notes.length
   }
 
-  getNote(index: number): NoteEncrypted {
+  getNote(index: number): OutputDescription {
     return this._notes[index]
   }
 
@@ -128,7 +128,7 @@ export class Transaction {
   /**
    * Iterate over all the notes created by this transaction.
    */
-  notes(): Iterable<NoteEncrypted> {
+  notes(): Iterable<OutputDescription> {
     return this._notes.values()
   }
 

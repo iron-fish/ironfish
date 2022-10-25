@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { NoteEncrypted } from '../../primitives/noteEncrypted'
+import { OutputDescription } from '../../primitives/outputDescription'
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
@@ -220,7 +220,7 @@ export class DecryptNotesTask extends WorkerTask {
       spendingKey,
       currentNoteIndex,
     } of payloads) {
-      const note = new NoteEncrypted(serializedNote)
+      const note = new OutputDescription(serializedNote)
 
       // Try decrypting the note as the owner
       const receivedNote = note.decryptNoteForOwner(incomingViewKey)

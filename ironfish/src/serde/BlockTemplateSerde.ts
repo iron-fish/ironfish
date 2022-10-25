@@ -4,7 +4,7 @@
 
 import { Block } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
-import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
+import { OutputDescriptionHashSerde } from '../primitives/outputDescription'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { BigIntUtils } from '../utils'
@@ -68,7 +68,7 @@ export class BlockTemplateSerde {
   }
 
   static deserialize(blockTemplate: SerializedBlockTemplate): Block {
-    const noteHasher = new NoteEncryptedHashSerde()
+    const noteHasher = new OutputDescriptionHashSerde()
     const header = new BlockHeader(
       blockTemplate.header.sequence,
       Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),

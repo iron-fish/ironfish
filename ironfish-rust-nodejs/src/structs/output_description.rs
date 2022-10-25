@@ -9,45 +9,45 @@ use napi::bindgen_prelude::*;
 use napi::JsBuffer;
 use napi_derive::napi;
 
-use ironfish_rust::MerkleNote;
+use ironfish_rust::OutputDescription;
 
 use crate::to_napi_err;
 
 #[napi]
 pub const ENCRYPTED_NOTE_LENGTH: u32 = 275;
 
-#[napi(js_name = "NoteEncrypted")]
-pub struct NativeNoteEncrypted {
-    pub(crate) note: MerkleNote,
+#[napi(js_name = "OutputDescription")]
+pub struct NativeOutputDescription {
+    pub(crate) description: OutputDescription,
 }
 
 #[napi]
-impl NativeNoteEncrypted {
+impl NativeOutputDescription {
     #[napi(constructor)]
     pub fn new(js_bytes: JsBuffer) -> Result<Self> {
         let bytes = js_bytes.into_value()?;
-        let note = MerkleNote::read(bytes.as_ref()).map_err(to_napi_err)?;
+        let description = OutputDescription::read(bytes.as_ref()).map_err(to_napi_err)?;
 
-        Ok(NativeNoteEncrypted { note })
+        Ok(NativeOutputDescription { description })
     }
 
     #[napi]
     pub fn serialize(&self) -> Result<Buffer> {
         let mut vec: Vec<u8> = vec![];
-        self.note.write(&mut vec).map_err(to_napi_err)?;
+        self.description.write(&mut vec).map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }
 
     #[napi]
-    pub fn equals(&self, other: &NativeNoteEncrypted) -> bool {
-        self.note.eq(&other.note)
+    pub fn equals(&self, other: &NativeOutputDescription) -> bool {
+        self.description.eq(&other.description)
     }
 
     #[napi]
     pub fn merkle_hash(&self) -> Result<Buffer> {
         let mut vec: Vec<u8> = Vec::with_capacity(32);
-        self.note
+        self.description
             .merkle_hash()
             .write(&mut vec)
             .map_err(to_napi_err)?;
@@ -89,14 +89,16 @@ impl NativeNoteEncrypted {
         let incoming_view_key =
             IncomingViewKey::from_hex(&incoming_hex_key).map_err(to_napi_err)?;
 
-        Ok(match self.note.decrypt_note_for_owner(&incoming_view_key) {
-            Ok(note) => {
-                let mut vec = vec![];
-                note.write(&mut vec).map_err(to_napi_err)?;
-                Some(Buffer::from(vec))
-            }
-            Err(_) => None,
-        })
+        Ok(
+            match self.description.decrypt_note_for_owner(&incoming_view_key) {
+                Ok(note) => {
+                    let mut vec = vec![];
+                    note.write(&mut vec).map_err(to_napi_err)?;
+                    Some(Buffer::from(vec))
+                }
+                Err(_) => None,
+            },
+        )
     }
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
@@ -105,7 +107,7 @@ impl NativeNoteEncrypted {
         let outgoing_view_key =
             OutgoingViewKey::from_hex(&outgoing_hex_key).map_err(to_napi_err)?;
         Ok(
-            match self.note.decrypt_note_for_spender(&outgoing_view_key) {
+            match self.description.decrypt_note_for_spender(&outgoing_view_key) {
                 Ok(note) => {
                     let mut vec = vec![];
                     note.write(&mut vec).map_err(to_napi_err)?;

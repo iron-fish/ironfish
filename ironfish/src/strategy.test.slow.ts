@@ -13,9 +13,9 @@ import {
 import { MerkleTree } from './merkletree'
 import { NoteLeafEncoding } from './merkletree/database/leaves'
 import { NodeEncoding } from './merkletree/database/nodes'
-import { NoteHasher } from './merkletree/hasher'
+import { NoteCommitmentHasher } from './merkletree/hasher'
 import { Note } from './primitives/note'
-import { NoteEncrypted, NoteEncryptedHash } from './primitives/noteEncrypted'
+import { OutputDescription, OutputDescriptionHash } from './primitives/outputDescription'
 import { BUFFER_ENCODING, IDatabase } from './storage'
 import { Strategy } from './strategy'
 import { makeDb, makeDbName } from './testUtilities/helpers/storage'
@@ -29,7 +29,7 @@ async function makeStrategyTree({
   depth?: number
   name?: string
   database?: IDatabase
-} = {}): Promise<MerkleTree<NoteEncrypted, NoteEncryptedHash, Buffer, Buffer>> {
+} = {}): Promise<MerkleTree<OutputDescription, OutputDescriptionHash, Buffer, Buffer>> {
   const openDb = !database
 
   if (!name) {
@@ -40,7 +40,7 @@ async function makeStrategyTree({
   }
 
   const tree = new MerkleTree({
-    hasher: new NoteHasher(),
+    hasher: new NoteCommitmentHasher(),
     leafIndexKeyEncoding: BUFFER_ENCODING,
     leafEncoding: new NoteLeafEncoding(),
     nodeEncoding: new NodeEncoding(),
@@ -102,7 +102,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Can add the miner transaction note to the tree', async () => {
       for (let i = 0; i < minerTransaction.notesLength(); i++) {
         const note = Buffer.from(minerTransaction.getNote(i))
-        await tree.add(new NoteEncrypted(note))
+        await tree.add(new OutputDescription(note))
       }
       const treeSize: number = await tree.size()
       expect(treeSize).toBeGreaterThan(0)
@@ -138,7 +138,7 @@ describe('Demonstrate the Sapling API', () => {
       expect(publicTransaction.verify()).toBeTruthy()
       for (let i = 0; i < publicTransaction.notesLength(); i++) {
         const note = Buffer.from(publicTransaction.getNote(i))
-        await tree.add(new NoteEncrypted(note))
+        await tree.add(new OutputDescription(note))
       }
     })
 
@@ -193,7 +193,7 @@ describe('Demonstrate the Sapling API', () => {
       const noteIterator = minersFee.notes()
       expect(minersFee['transactionPosted']).toBeNull()
 
-      let note: NoteEncrypted | null = null
+      let note: OutputDescription | null = null
       for (const n of noteIterator) {
         note = n
       }

@@ -5,8 +5,8 @@
 import { zip } from 'lodash'
 import { Assert } from '../assert'
 import { BlockHeader, BlockHeaderSerde, SerializedBlockHeader } from './blockheader'
-import { NoteEncrypted, NoteEncryptedHash } from './noteEncrypted'
 import { Nullifier } from './nullifier'
+import { OutputDescription, OutputDescriptionHash } from './outputDescription'
 import { SerializedTransaction, Transaction } from './transaction'
 
 /**
@@ -45,7 +45,7 @@ export class Block {
    */
   *spends(): Generator<{
     nullifier: Nullifier
-    commitment: NoteEncryptedHash
+    commitment: OutputDescriptionHash
     size: number
   }> {
     for (const transaction of this.transactions) {
@@ -59,7 +59,7 @@ export class Block {
    * Get a list of all notes created in this block including the miner's fee
    * note on the header.
    */
-  *notes(): Generator<NoteEncrypted> {
+  *notes(): Generator<OutputDescription> {
     for (const transaction of this.transactions) {
       for (const note of transaction.notes()) {
         yield note

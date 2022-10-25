@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import bufio from 'bufio'
-import { NoteEncryptedHash } from '../primitives/noteEncrypted'
 import { NullifierHash } from '../primitives/nullifier'
+import { OutputDescriptionHash } from '../primitives/outputDescription'
 import { Target } from '../primitives/target'
 import { BigIntUtils } from '../utils'
 
@@ -72,7 +72,7 @@ export type PartialBlockHeader = {
   sequence: number
   previousBlockHash: Buffer
   noteCommitment: {
-    commitment: NoteEncryptedHash
+    commitment: OutputDescriptionHash
     size: number
   }
   nullifierCommitment: {

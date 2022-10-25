@@ -69,7 +69,7 @@ impl NativeTransactionPosted {
 
         let proof = &self.transaction.outputs()[index_usize];
         let mut vec: Vec<u8> = Vec::with_capacity(ENCRYPTED_NOTE_LENGTH as usize);
-        proof.merkle_note().write(&mut vec).map_err(to_napi_err)?;
+        proof.description().write(&mut vec).map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }

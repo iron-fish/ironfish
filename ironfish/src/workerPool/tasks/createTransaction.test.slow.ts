@@ -6,9 +6,9 @@ import { TransactionPosted } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import { NoteLeafEncoding } from '../../merkletree/database/leaves'
 import { NodeEncoding } from '../../merkletree/database/nodes'
-import { NoteHasher } from '../../merkletree/hasher'
+import { NoteCommitmentHasher } from '../../merkletree/hasher'
 import { MerkleTree, Side } from '../../merkletree/merkletree'
-import { NoteEncrypted, NoteEncryptedHash } from '../../primitives/noteEncrypted'
+import { OutputDescription, OutputDescriptionHash } from '../../primitives/outputDescription'
 import { BUFFER_ENCODING, IDatabase } from '../../storage'
 import { createNodeTest, useAccountFixture, useMinersTxFixture } from '../../testUtilities'
 import { makeDb, makeDbName } from '../../testUtilities/helpers/storage'
@@ -26,7 +26,7 @@ async function makeStrategyTree({
   depth?: number
   name?: string
   database?: IDatabase
-} = {}): Promise<MerkleTree<NoteEncrypted, NoteEncryptedHash, Buffer, Buffer>> {
+} = {}): Promise<MerkleTree<OutputDescription, OutputDescriptionHash, Buffer, Buffer>> {
   const openDb = !database
 
   if (!name) {
@@ -37,7 +37,7 @@ async function makeStrategyTree({
   }
 
   const tree = new MerkleTree({
-    hasher: new NoteHasher(),
+    hasher: new NoteCommitmentHasher(),
     leafIndexKeyEncoding: BUFFER_ENCODING,
     leafEncoding: new NoteLeafEncoding(),
     nodeEncoding: new NodeEncoding(),
@@ -145,9 +145,9 @@ describe('CreateTransactionTask', () => {
       )
       expect(transactionPosted.verify()).toBe(true)
       expect(transactionPosted.notesLength()).toBe(2)
-      const decryptedNote = new NoteEncrypted(transactionPosted.getNote(0)).decryptNoteForOwner(
-        account.incomingViewKey,
-      )
+      const decryptedNote = new OutputDescription(
+        transactionPosted.getNote(0),
+      ).decryptNoteForOwner(account.incomingViewKey)
       expect(decryptedNote).toBeDefined()
     })
   })

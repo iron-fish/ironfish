@@ -21,19 +21,19 @@ import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
 import { NoteLeafEncoding, NullifierLeafEncoding } from '../merkletree/database/leaves'
 import { NodeEncoding } from '../merkletree/database/nodes'
-import { NoteHasher } from '../merkletree/hasher'
+import { NoteCommitmentHasher } from '../merkletree/hasher'
 import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
 import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { BlockHash, BlockHeader, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
-import {
-  NoteEncrypted,
-  NoteEncryptedHash,
-  SerializedNoteEncrypted,
-  SerializedNoteEncryptedHash,
-} from '../primitives/noteEncrypted'
 import { Nullifier, NullifierHash, NullifierHasher } from '../primitives/nullifier'
+import {
+  OutputDescription,
+  OutputDescriptionHash,
+  SerializedOutputDescription,
+  SerializedOutputDescriptionHash,
+} from '../primitives/outputDescription'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IJSON, NullifierSerdeInstance } from '../serde'
@@ -76,10 +76,10 @@ export class Blockchain {
   synced = false
   opened = false
   notes: MerkleTree<
-    NoteEncrypted,
-    NoteEncryptedHash,
-    SerializedNoteEncrypted,
-    SerializedNoteEncryptedHash
+    OutputDescription,
+    OutputDescriptionHash,
+    SerializedOutputDescription,
+    SerializedOutputDescriptionHash
   >
   nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
 
@@ -217,7 +217,7 @@ export class Blockchain {
     })
 
     this.notes = new MerkleTree({
-      hasher: new NoteHasher(),
+      hasher: new NoteCommitmentHasher(),
       leafIndexKeyEncoding: BUFFER_ENCODING,
       leafEncoding: new NoteLeafEncoding(),
       nodeEncoding: new NodeEncoding(),
@@ -969,7 +969,11 @@ export class Blockchain {
     })
   }
 
-  async addNote(index: number, note: NoteEncrypted, tx?: IDatabaseTransaction): Promise<void> {
+  async addNote(
+    index: number,
+    note: OutputDescription,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
     return this.db.withTransaction(tx, async (tx) => {
       const noteCount = await this.notes.size(tx)
 

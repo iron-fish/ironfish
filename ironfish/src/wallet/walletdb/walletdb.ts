@@ -5,8 +5,8 @@
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
-import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
+import { OutputDescriptionHash } from '../../primitives/outputDescription'
 import { TransactionHash } from '../../primitives/transaction'
 import {
   BigIntLEEncoding,
@@ -60,7 +60,7 @@ export class WalletDB {
   }>
 
   decryptedNotes: IDatabaseStore<{
-    key: [Account['prefix'], NoteEncryptedHash]
+    key: [Account['prefix'], OutputDescriptionHash]
     value: DecryptedNoteValue
   }>
 

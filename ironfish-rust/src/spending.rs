@@ -6,9 +6,9 @@ use crate::{errors::IronfishError, sapling_bls12::SAPLING};
 
 use super::{
     keys::SaplingKey,
-    merkle_note::{position as witness_position, sapling_auth_path},
     merkle_note_hash::MerkleNoteHash,
     note::Note,
+    output_description::{position as witness_position, sapling_auth_path},
     serializing::read_scalar,
     witness::WitnessTrait,
 };

@@ -37,7 +37,7 @@ pub const NOTE_ENCRYPTION_MINER_KEYS: &[u8; ENCRYPTED_SHARED_KEY_SIZE + aead::MA
 const SHARED_KEY_PERSONALIZATION: &[u8; 16] = b"Beanstalk Keyenc";
 
 #[derive(Clone)]
-pub struct MerkleNote {
+pub struct OutputDescription {
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
     /// random number. Commits this note to the value it contains
@@ -61,20 +61,20 @@ pub struct MerkleNote {
     pub(crate) note_encryption_keys: [u8; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE],
 }
 
-impl PartialEq for MerkleNote {
-    fn eq(&self, other: &MerkleNote) -> bool {
+impl PartialEq for OutputDescription {
+    fn eq(&self, other: &OutputDescription) -> bool {
         self.note_commitment == other.note_commitment
             && self.value_commitment == other.value_commitment
     }
 }
 
-impl MerkleNote {
+impl OutputDescription {
     pub fn new(
         spender_key: &SaplingKey,
         note: &Note,
         value_commitment: &ValueCommitment,
         diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
-    ) -> MerkleNote {
+    ) -> OutputDescription {
         let (secret_key, public_key) = diffie_hellman_keys;
 
         let encrypted_note = note.encrypt(&shared_secret(
@@ -96,7 +96,7 @@ impl MerkleNote {
         let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];
         aead::encrypt(&encryption_key, &key_bytes, &mut note_encryption_keys);
 
-        MerkleNote {
+        OutputDescription {
             value_commitment: value_commitment.commitment().into(),
             note_commitment: note.commitment_point(),
             ephemeral_public_key: (*public_key),
@@ -105,7 +105,7 @@ impl MerkleNote {
         }
     }
 
-    /// Load a MerkleNote from the given stream
+    /// Load a OutputDescription from the given stream
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let value_commitment = {
             let mut bytes = [0; 32];
@@ -126,7 +126,7 @@ impl MerkleNote {
         let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];
         reader.read_exact(&mut note_encryption_keys[..])?;
 
-        Ok(MerkleNote {
+        Ok(OutputDescription {
             value_commitment,
             note_commitment,
             ephemeral_public_key,
@@ -250,7 +250,7 @@ fn calculate_key_for_encryption_keys(
 
 #[cfg(test)]
 mod test {
-    use super::MerkleNote;
+    use super::OutputDescription;
     use crate::{keys::SaplingKey, note::Note};
 
     use bls12_381::Scalar;
@@ -273,12 +273,12 @@ mod test {
             randomness: value_commitment_randomness,
         };
 
-        let merkle_note =
-            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
-        merkle_note
+        let output_description =
+            OutputDescription::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+        output_description
             .decrypt_note_for_owner(receiver_key.incoming_view_key())
             .expect("should be able to decrypt note");
-        merkle_note
+        output_description
             .decrypt_note_for_spender(spender_key.outgoing_view_key())
             .expect("should be able to decrypt note");
     }
@@ -296,22 +296,22 @@ mod test {
             randomness: value_commitment_randomness,
         };
 
-        let mut merkle_note =
-            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
-        merkle_note
+        let mut output_description =
+            OutputDescription::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+        output_description
             .decrypt_note_for_owner(spender_key.incoming_view_key())
             .expect("should be able to decrypt note");
-        merkle_note
+        output_description
             .decrypt_note_for_spender(spender_key.outgoing_view_key())
             .expect("should be able to decrypt note");
 
         // should fail if note_commitment doesn't match
         let note_randomness: u64 = random();
-        merkle_note.note_commitment = Scalar::from(note_randomness);
-        assert!(merkle_note
+        output_description.note_commitment = Scalar::from(note_randomness);
+        assert!(output_description
             .decrypt_note_for_owner(spender_key.incoming_view_key())
             .is_err());
-        assert!(merkle_note
+        assert!(output_description
             .decrypt_note_for_spender(spender_key.outgoing_view_key())
             .is_err());
     }

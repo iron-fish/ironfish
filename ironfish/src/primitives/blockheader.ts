@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BlockHashSerdeInstance, GraffitiSerdeInstance, NullifierSerdeInstance } from '../serde'
-import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { NullifierHash } from './nullifier'
+import { OutputDescriptionHash, SerializedOutputDescriptionHash } from './outputDescription'
 import { Target } from './target'
 
 export type BlockHash = Buffer
@@ -59,7 +59,7 @@ export class BlockHeader {
    * block have been added to it. Stored as the hash and the size of the tree
    * at the time the hash was calculated.
    */
-  public noteCommitment: { commitment: NoteEncryptedHash; size: number }
+  public noteCommitment: { commitment: OutputDescriptionHash; size: number }
 
   /**
    * Commitment to the nullifier set after all the spends in this block have
@@ -117,7 +117,7 @@ export class BlockHeader {
   constructor(
     sequence: number,
     previousBlockHash: BlockHash,
-    noteCommitment: { commitment: NoteEncryptedHash; size: number },
+    noteCommitment: { commitment: OutputDescriptionHash; size: number },
     nullifierCommitment: { commitment: NullifierHash; size: number },
     target: Target,
     randomness = BigInt(0),
@@ -191,7 +191,7 @@ export type SerializedBlockHeader = {
   sequence: number
   previousBlockHash: string
   noteCommitment: {
-    commitment: SerializedNoteEncryptedHash
+    commitment: SerializedOutputDescriptionHash
     size: number
   }
   nullifierCommitment: {

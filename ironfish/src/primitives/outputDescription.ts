@@ -2,21 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { NoteEncrypted as NativeNoteEncrypted } from '@ironfish/rust-nodejs'
+import { OutputDescription as NativeOutputDescription } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Serde } from '../serde'
 import { Note } from './note'
 
-export type NoteEncryptedHash = Buffer
-export type SerializedNoteEncryptedHash = Buffer
-export type SerializedNoteEncrypted = Buffer
+export type OutputDescriptionHash = Buffer
+export type SerializedOutputDescriptionHash = Buffer
+export type SerializedOutputDescription = Buffer
 
-export class NoteEncrypted {
+export class OutputDescription {
   private readonly noteEncryptedSerialized: Buffer
 
   private readonly _noteCommitment: Buffer
 
-  private noteEncrypted: NativeNoteEncrypted | null = null
+  private noteEncrypted: NativeOutputDescription | null = null
   private referenceCount = 0
 
   constructor(noteEncryptedSerialized: Buffer) {
@@ -49,10 +49,10 @@ export class NoteEncrypted {
     return this.noteEncryptedSerialized
   }
 
-  takeReference(): NativeNoteEncrypted {
+  takeReference(): NativeOutputDescription {
     this.referenceCount++
     if (this.noteEncrypted === null) {
-      this.noteEncrypted = new NativeNoteEncrypted(this.noteEncryptedSerialized)
+      this.noteEncrypted = new NativeOutputDescription(this.noteEncryptedSerialized)
     }
     return this.noteEncrypted
   }
@@ -81,11 +81,11 @@ export class NoteEncrypted {
     }
   }
 
-  merkleHash(): NoteEncryptedHash {
+  merkleHash(): OutputDescriptionHash {
     return this._noteCommitment
   }
 
-  equals(other: NoteEncrypted): boolean {
+  equals(other: OutputDescription): boolean {
     return this.serialize().equals(other.serialize())
   }
 }
@@ -93,33 +93,35 @@ export class NoteEncrypted {
 /**
  * Serde implementation to convert an encrypted note to its serialized form and back.
  */
-export class NoteEncryptedSerde implements Serde<NoteEncrypted, SerializedNoteEncrypted> {
-  equals(note1: NoteEncrypted, note2: NoteEncrypted): boolean {
+export class OutputDescriptionSerde
+  implements Serde<OutputDescription, SerializedOutputDescription>
+{
+  equals(note1: OutputDescription, note2: OutputDescription): boolean {
     return note1.equals(note2)
   }
 
-  serialize(note: NoteEncrypted): SerializedNoteEncrypted {
+  serialize(note: OutputDescription): SerializedOutputDescription {
     return note.serialize()
   }
 
-  deserialize(serializedNote: SerializedNoteEncrypted): NoteEncrypted {
-    return new NoteEncrypted(serializedNote)
+  deserialize(serializedNote: SerializedOutputDescription): OutputDescription {
+    return new OutputDescription(serializedNote)
   }
 }
 
 /**
  * Serde implementation to convert an encrypted note's hash to its serialized form and back.
  */
-export class NoteEncryptedHashSerde
-  implements Serde<NoteEncryptedHash, SerializedNoteEncryptedHash>
+export class OutputDescriptionHashSerde
+  implements Serde<OutputDescriptionHash, SerializedOutputDescriptionHash>
 {
-  equals(hash1: NoteEncryptedHash, hash2: NoteEncryptedHash): boolean {
+  equals(hash1: OutputDescriptionHash, hash2: OutputDescriptionHash): boolean {
     return hash1.equals(hash2)
   }
-  serialize(note: NoteEncryptedHash): SerializedNoteEncryptedHash {
+  serialize(note: OutputDescriptionHash): SerializedOutputDescriptionHash {
     return note
   }
-  deserialize(serializedNote: SerializedNoteEncryptedHash): NoteEncryptedHash {
+  deserialize(serializedNote: SerializedOutputDescriptionHash): OutputDescriptionHash {
     return serializedNote
   }
 }
