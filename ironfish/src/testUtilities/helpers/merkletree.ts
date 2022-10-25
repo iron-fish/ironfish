@@ -122,6 +122,7 @@ export async function makeTree({
     for (const i of leaves) {
       await tree.add(i)
     }
+    await tree.rehashTree()
   }
 
   return tree
