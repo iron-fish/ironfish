@@ -4,11 +4,10 @@
 
 import {
   Assert,
-  displayIronAmountWithCurrency,
+  BigIntUtils,
+  CurrencyUtils,
   ERROR_CODES,
-  ironToOre,
   MINIMUM_IRON_AMOUNT,
-  oreToIron,
   PromiseUtils,
   RpcClient,
   RpcRequestError,
@@ -33,7 +32,7 @@ export default class DepositAll extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    fee: Flags.integer({
+    fee: Flags.string({
       char: 'f',
       description: `The fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
     }),
@@ -62,14 +61,24 @@ export default class DepositAll extends IronfishCommand {
     this.client = await this.sdk.connectRpc(false, true)
     this.api = new WebApi()
 
-    let fee = flags.fee
+    let fee = null
 
-    if (fee == null || Number.isNaN(fee)) {
+    if (flags.fee) {
+      const [parsedFee] = BigIntUtils.tryParse(flags.fee)
+
+      if (parsedFee != null) {
+        fee = parsedFee
+      }
+    }
+
+    if (fee == null) {
       try {
         // fees p25 of last 100 blocks
-        fee = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+        const feeNumber = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+        // TODO: NEVER use numbers for amounts
+        fee = BigInt(feeNumber)
       } catch {
-        fee = 1
+        fee = 1n
       }
     }
 
@@ -111,7 +120,7 @@ export default class DepositAll extends IronfishCommand {
       this.client,
       this.api,
       expirationSequenceDelta,
-      fee,
+      Number(fee),
       graffiti,
     )
     if (!canSend) {
@@ -121,8 +130,7 @@ export default class DepositAll extends IronfishCommand {
     }
 
     if (!flags.confirm) {
-      const feeInIron = oreToIron(fee)
-      const displayFee = displayIronAmountWithCurrency(feeInIron, true)
+      const displayFee = CurrencyUtils.renderIron(fee, true)
 
       this.log(
         `You are about to deposit all your $IRON to the Iron Fish deposit account. Each transaction will use a fee of ${displayFee}. The memos will contain the graffiti "${graffiti}".`,
@@ -138,8 +146,9 @@ export default class DepositAll extends IronfishCommand {
     this.log('Fetching account balance...')
 
     let balanceResp = await this.client.getAccountBalance({ account: accountName })
-    let confirmedBalance = Number(balanceResp.content.confirmed)
-    let pendingBalance = Number(balanceResp.content.pending)
+    let confirmedBalance = CurrencyUtils.decode(balanceResp.content.confirmed)
+    let unconfirmedBalance = CurrencyUtils.decode(balanceResp.content.unconfirmed)
+    let pendingBalance = CurrencyUtils.decode(balanceResp.content.pending)
 
     // Console log will create display issues with Blessed
     this.logger.pauseLogs()
@@ -159,7 +168,7 @@ export default class DepositAll extends IronfishCommand {
     })
 
     const list = blessed.textbox({
-      top: 1,
+      top: 4,
       alwaysScroll: true,
       scrollable: true,
       parent: screen,
@@ -182,13 +191,13 @@ export default class DepositAll extends IronfishCommand {
       }
 
       status.setContent(
-        `Balance: Confirmed - ${displayIronAmountWithCurrency(
-          oreToIron(Number(confirmedBalance)),
-          false,
-        )}, Unconfirmed - ${displayIronAmountWithCurrency(
-          oreToIron(Number(pendingBalance)),
-          false,
-        )}`,
+        `Balance\nConfirmed:   ${CurrencyUtils.renderIron(
+          confirmedBalance,
+          true,
+        )}\nUnconfirmed: ${CurrencyUtils.renderIron(
+          unconfirmedBalance,
+          true,
+        )}\nPending:     ${CurrencyUtils.renderIron(pendingBalance, true)}`,
       )
 
       screen.append(footer)
@@ -198,28 +207,31 @@ export default class DepositAll extends IronfishCommand {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       balanceResp = await this.client.getAccountBalance({ account: accountName })
-      confirmedBalance = Number(balanceResp.content.confirmed)
-      pendingBalance = Number(balanceResp.content.pending)
+      confirmedBalance = CurrencyUtils.decode(balanceResp.content.confirmed)
+      unconfirmedBalance = CurrencyUtils.decode(balanceResp.content.unconfirmed)
+      pendingBalance = CurrencyUtils.decode(balanceResp.content.pending)
+
+      const sendOres = CurrencyUtils.decodeIron(IRON_TO_SEND) + fee
 
       // terminate condition
-      if (terminate && pendingBalance < ironToOre(IRON_TO_SEND) + fee) {
+      if (terminate && pendingBalance < sendOres) {
         screen.destroy()
         process.exit(0)
       }
 
       // send transaction
-      if (confirmedBalance > ironToOre(IRON_TO_SEND) + fee) {
+      if (confirmedBalance > sendOres) {
         try {
           const result = await this.client.sendTransaction({
             fromAccountName: accountName,
             receives: [
               {
                 publicAddress: bankDepositAddress,
-                amount: ironToOre(IRON_TO_SEND).toString(),
+                amount: CurrencyUtils.encode(CurrencyUtils.decodeIron(IRON_TO_SEND)),
                 memo: graffiti,
               },
             ],
-            fee: fee.toString(),
+            fee: CurrencyUtils.encode(fee),
             expirationSequenceDelta: expirationSequenceDelta,
           })
 

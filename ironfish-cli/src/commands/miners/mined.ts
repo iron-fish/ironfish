@@ -4,10 +4,9 @@
 import {
   Assert,
   AsyncUtils,
+  CurrencyUtils,
   GENESIS_BLOCK_SEQUENCE,
-  MathUtils,
   Meter,
-  oreToIron,
   TimeUtils,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -113,7 +112,7 @@ export class MinedCommand extends IronfishCommand {
 
   logLineForMinedBlock(block: {
     hash: string
-    minersFee: number
+    minersFee: string
     sequence: number
     main: boolean
     account: string
@@ -121,7 +120,7 @@ export class MinedCommand extends IronfishCommand {
     readline.clearLine(process.stdout, -1)
     readline.cursorTo(process.stdout, 0)
 
-    const amount = MathUtils.round(oreToIron(block.minersFee), 2)
+    const amount = CurrencyUtils.renderIron(block.minersFee, true)
 
     const link = linkText(
       `https://explorer.ironfish.network/blocks/${block.hash}`,

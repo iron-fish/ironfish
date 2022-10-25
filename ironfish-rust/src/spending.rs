@@ -16,13 +16,13 @@ use bellman::gadgets::multipack;
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::PrimeField;
+use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::constants::SPENDING_KEY_GENERATOR;
 use ironfish_zkp::proofs::Spend;
 use ironfish_zkp::{redjubjub, Nullifier, ValueCommitment};
 use jubjub::ExtendedPoint;
-use rand::{rngs::OsRng, thread_rng, Rng};
+use rand::{rngs::OsRng, thread_rng};
 use std::io;
 
 /// Parameters used when constructing proof that the spender owns a note with
@@ -86,17 +86,12 @@ impl SpendParams {
             return Err(IronfishError::InconsistentWitness);
         }
 
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-
         let value_commitment = ValueCommitment {
             value: note.value,
-            randomness: jubjub::Fr::from_bytes_wide(&buffer),
+            randomness: jubjub::Fr::random(thread_rng()),
         };
 
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-        let public_key_randomness = jubjub::Fr::from_bytes_wide(&buffer);
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
 
         let proof_generation_key = spender_key.sapling_proof_generation_key();
 
@@ -258,11 +253,8 @@ impl SpendProof {
         let value_commitment = {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;
-            let point = ExtendedPoint::from_bytes(&bytes);
-            if point.is_none().into() {
-                return Err(IronfishError::InvalidData);
-            }
-            point.unwrap()
+
+            Option::from(ExtendedPoint::from_bytes(&bytes)).ok_or(IronfishError::InvalidData)?
         };
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
         let root_hash = read_scalar(&mut reader)?;
@@ -413,11 +405,7 @@ fn serialize_signature_fields<W: io::Write>(
 #[cfg(test)]
 mod test {
     use super::{SpendParams, SpendProof};
-    use crate::{
-        keys::SaplingKey,
-        note::{Memo, Note},
-        test_util::make_fake_witness,
-    };
+    use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
     use group::Curve;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
@@ -429,7 +417,7 @@ mod test {
 
         let note_randomness = random();
 
-        let note = Note::new(public_address, note_randomness, Memo::default());
+        let note = Note::new(public_address, note_randomness, "");
         let witness = make_fake_witness(&note);
 
         let spend =

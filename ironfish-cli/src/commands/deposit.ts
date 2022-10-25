@@ -4,10 +4,9 @@
 
 import {
   Assert,
-  displayIronAmountWithCurrency,
-  ironToOre,
+  BigIntUtils,
+  CurrencyUtils,
   MINIMUM_IRON_AMOUNT,
-  oreToIron,
   RpcClient,
   WebApi,
 } from '@ironfish/sdk'
@@ -28,7 +27,7 @@ export default class Bank extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    fee: Flags.integer({
+    fee: Flags.string({
       char: 'f',
       description: `The fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
     }),
@@ -53,14 +52,24 @@ export default class Bank extends IronfishCommand {
     this.client = await this.sdk.connectRpc(false, true)
     this.api = new WebApi()
 
-    let fee = flags.fee
+    let fee = null
 
-    if (fee == null || Number.isNaN(fee)) {
+    if (flags.fee) {
+      const [parsedFee] = BigIntUtils.tryParse(flags.fee)
+
+      if (parsedFee != null) {
+        fee = parsedFee
+      }
+    }
+
+    if (fee == null) {
       try {
         // fees p25 of last 100 blocks
-        fee = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+        const feeNumber = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+        // TODO: NEVER use numbers for amounts
+        fee = BigInt(feeNumber)
       } catch {
-        fee = 1
+        fee = 1n
       }
     }
 
@@ -101,7 +110,7 @@ export default class Bank extends IronfishCommand {
       this.client,
       this.api,
       expirationSequenceDelta,
-      fee,
+      Number(fee),
       graffiti,
     )
     if (!canSend) {
@@ -111,9 +120,8 @@ export default class Bank extends IronfishCommand {
     }
 
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
-    const confirmedBalance = Number(balanceResp.content.confirmed)
-    const requiredBalance = ironToOre(IRON_TO_SEND) + fee
-
+    const confirmedBalance = BigInt(balanceResp.content.confirmed)
+    const requiredBalance = CurrencyUtils.decodeIron(IRON_TO_SEND) + BigInt(fee)
     if (confirmedBalance < requiredBalance) {
       this.log(`Insufficient balance: ${confirmedBalance}. Required: ${requiredBalance}`)
       this.exit(1)
@@ -121,13 +129,10 @@ export default class Bank extends IronfishCommand {
 
     const newBalance = confirmedBalance - requiredBalance
 
-    const displayConfirmedBalance = displayIronAmountWithCurrency(
-      oreToIron(confirmedBalance),
-      true,
-    )
-    const displayAmount = displayIronAmountWithCurrency(IRON_TO_SEND, true)
-    const displayFee = displayIronAmountWithCurrency(oreToIron(fee), true)
-    const displayNewBalance = displayIronAmountWithCurrency(oreToIron(newBalance), true)
+    const displayConfirmedBalance = CurrencyUtils.renderIron(confirmedBalance, true)
+    const displayAmount = CurrencyUtils.renderIron(CurrencyUtils.decodeIron(IRON_TO_SEND), true)
+    const displayFee = CurrencyUtils.renderIron(fee, true)
+    const displayNewBalance = CurrencyUtils.renderIron(newBalance, true)
 
     if (!flags.confirm) {
       this.log(`
@@ -178,7 +183,7 @@ The memo will contain the graffiti "${graffiti}".
         receives: [
           {
             publicAddress: bankDepositAddress,
-            amount: ironToOre(IRON_TO_SEND).toString(),
+            amount: CurrencyUtils.decodeIron(IRON_TO_SEND).toString(),
             memo: graffiti,
           },
         ],
@@ -198,7 +203,7 @@ Transaction fee: ${displayFee}
 
 New Balance: ${displayNewBalance}
 
-Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash} 
+Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash}
 (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()

@@ -10,10 +10,10 @@ use super::{
 };
 use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::PrimeField;
+use ff::{Field, PrimeField};
 use ironfish_zkp::{Nullifier, Rseed, SaplingNote};
 use jubjub::SubgroupPoint;
-use rand::{thread_rng, Rng};
+use rand::thread_rng;
 
 use std::{fmt, io, io::Read};
 
@@ -79,17 +79,14 @@ pub struct Note {
 
 impl<'a> Note {
     /// Construct a new Note.
-    pub fn new(owner: PublicAddress, value: u64, memo: Memo) -> Self {
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-
-        let randomness: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
+    pub fn new(owner: PublicAddress, value: u64, memo: impl Into<Memo>) -> Self {
+        let randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
 
         Self {
             owner,
             value,
             randomness,
-            memo,
+            memo: memo.into(),
         }
     }
 
@@ -294,7 +291,7 @@ mod test {
     fn test_plaintext_serialization() {
         let owner_key: SaplingKey = SaplingKey::generate_key();
         let public_address = owner_key.generate_public_address();
-        let note = Note::new(public_address, 42, "serialize me".into());
+        let note = Note::new(public_address, 42, "serialize me");
         let mut serialized = Vec::new();
         note.write(&mut serialized)
             .expect("Should serialize cleanly");
@@ -319,7 +316,7 @@ mod test {
         let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
         let public_shared_secret =
             shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
-        let note = Note::new(public_address, 42, Memo::default());
+        let note = Note::new(public_address, 42, "");
         let encryption_result = note.encrypt(&public_shared_secret);
 
         let private_shared_secret = owner_key.incoming_view_key().shared_secret(&dh_public);

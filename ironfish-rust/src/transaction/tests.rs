@@ -5,9 +5,7 @@
 #[cfg(test)]
 use super::{ProposedTransaction, Transaction};
 use crate::{
-    keys::SaplingKey,
-    merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
-    note::{Memo, Note},
+    keys::SaplingKey, merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note,
     test_util::make_fake_witness,
 };
 
@@ -17,9 +15,9 @@ use ironfish_zkp::redjubjub::Signature;
 fn test_transaction() {
     let spender_key: SaplingKey = SaplingKey::generate_key();
     let receiver_key: SaplingKey = SaplingKey::generate_key();
-    let in_note = Note::new(spender_key.generate_public_address(), 42, Memo::default());
-    let out_note = Note::new(receiver_key.generate_public_address(), 40, Memo::default());
-    let in_note2 = Note::new(spender_key.generate_public_address(), 18, Memo::default());
+    let in_note = Note::new(spender_key.generate_public_address(), 42, "");
+    let out_note = Note::new(receiver_key.generate_public_address(), 40, "");
+    let in_note2 = Note::new(spender_key.generate_public_address(), 18, "");
     let witness = make_fake_witness(&in_note);
     let _witness2 = make_fake_witness(&in_note2);
 
@@ -90,7 +88,7 @@ fn test_transaction() {
 #[test]
 fn test_miners_fee() {
     let receiver_key: SaplingKey = SaplingKey::generate_key();
-    let out_note = Note::new(receiver_key.generate_public_address(), 42, Memo::default());
+    let out_note = Note::new(receiver_key.generate_public_address(), 42, "");
     let mut transaction = ProposedTransaction::new(receiver_key);
     transaction.receive(&out_note).expect("It's a valid note");
     let posted_transaction = transaction
@@ -116,8 +114,8 @@ fn test_transaction_signature() {
     let receiver_address = receiver_key.generate_public_address();
 
     let mut transaction = ProposedTransaction::new(spender_key);
-    let in_note = Note::new(spender_address, 42, Memo::default());
-    let out_note = Note::new(receiver_address, 41, Memo::default());
+    let in_note = Note::new(spender_address, 42, "");
+    let out_note = Note::new(receiver_address, 41, "");
     let witness = make_fake_witness(&in_note);
 
     transaction
