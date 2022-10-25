@@ -36,9 +36,9 @@ const percentile = (fees: bigint[], percentile: number): string => {
 
   if (fees[base + 1]) {
     const remainder = BigInt(pos - base)
-    return (fees[base] + remainder * (fees[base + 1] - fees[base])).toString(10)
+    return (fees[base] + remainder * (fees[base + 1] - fees[base])).toString()
   } else {
-    return fees[base].toString(10)
+    return fees[base].toString()
   }
 }
 

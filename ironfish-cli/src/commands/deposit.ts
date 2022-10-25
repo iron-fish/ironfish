@@ -66,8 +66,7 @@ export default class Bank extends IronfishCommand {
       try {
         // fees p25 of last 100 blocks
         const feeString = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
-        // TODO: NEVER use numbers for amounts
-        fee = BigInt(feeString)
+        fee = CurrencyUtils.decode(feeString)
       } catch {
         fee = 1n
       }
