@@ -10,8 +10,8 @@ import { Block, Transaction } from '../primitives'
 import { Wallet } from '../wallet'
 import { Account } from '../wallet/account'
 
-const SPEND_SERIALIZED_SIZE_IN_BYTE_PERCENTILES = 388
-const NOTE_SERIALIZED_SIZE_IN_BYTE_PERCENTILES = 467
+const SPEND_SERIALIZED_SIZE_IN_BYTE = 388
+const NOTE_SERIALIZED_SIZE_IN_BYTE = 467
 
 interface FeeRateEntry {
   feeRate: bigint
@@ -172,23 +172,22 @@ export class FeeEstimator {
     size += 4 // expiration
     size += 64 // signature
 
-    let amountNeeded = receives.reduce((acc, receive) => acc + receive.amount, BigInt(0))
+    const amountNeeded = receives.reduce((acc, receive) => acc + receive.amount, BigInt(0))
 
-    const { notesToSpend } = await this.wallet.createSpends(sender, amountNeeded)
+    const { amount, notesToSpend } = await this.wallet.createSpends(sender, amountNeeded)
 
-    size += notesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE_PERCENTILES
+    size += notesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE
 
-    size += receives.length * NOTE_SERIALIZED_SIZE_IN_BYTE_PERCENTILES
+    size += receives.length * NOTE_SERIALIZED_SIZE_IN_BYTE
 
     if (estimateFeeRate) {
-      amountNeeded += estimateFeeRate * BigInt(Math.ceil(size / 1000))
-      const { notesToSpend: newNotesToSpend } = await this.wallet.createSpends(
+      const additionalAmountNeeded = amount - estimateFeeRate * BigInt(Math.ceil(size / 1000))
+      const { notesToSpend: additionalNotesToSpend } = await this.wallet.createSpends(
         sender,
-        amountNeeded,
+        additionalAmountNeeded,
       )
       const additionalSpendsLength =
-        (newNotesToSpend.length - notesToSpend.length) *
-        SPEND_SERIALIZED_SIZE_IN_BYTE_PERCENTILES
+        additionalNotesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE
       size += additionalSpendsLength
     }
 
