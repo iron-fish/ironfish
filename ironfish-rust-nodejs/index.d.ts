@@ -130,7 +130,6 @@ export class Transaction {
    */
   post(changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
   setExpirationSequence(expirationSequence: number): void
-  serialize(): Buffer
 }
 export class FoundBlockResult {
   randomness: string

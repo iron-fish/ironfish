@@ -1,9 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Transaction } from '@ironfish/rust-nodejs'
 import { createRootLogger, Logger } from '../logger'
-import { getTransactionSize } from '../network/utils/serializers'
 import { Wallet } from '../wallet'
 import { Account } from '../wallet/account'
 import { NotEnoughFundsError } from '../wallet/errors'
@@ -20,23 +18,17 @@ export class TransactionSizeEstimator {
     this.wallet = options.wallet
   }
 
-  async estimateTransactionSize(
+  async getPendingTransactionSize(
     sender: Account,
     receives: { publicAddress: string; amount: bigint; memo: string }[],
-    defaultTransactionExpirationSequenceDelta: number,
-    expirationSequence?: number | null,
     estimateFeeRate?: bigint,
   ): Promise<number> {
-    const heaviestHead = this.wallet.chain.head
-    if (heaviestHead === null) {
-      throw new Error('You must have a genesis block to estimate a transaction size')
-    }
-
-    expirationSequence =
-      expirationSequence ?? heaviestHead.sequence + defaultTransactionExpirationSequenceDelta
-
-    const transaction = new Transaction(sender.spendingKey)
-    transaction.setExpirationSequence(expirationSequence)
+    let size = 0
+    size += 8 // spends length
+    size += 8 // notes length
+    size += 8 // fee
+    size += 4 // expiration
+    size += 64 // signature
 
     let amountNeeded = receives.reduce((acc, receive) => acc + receive.amount, BigInt(0))
 
@@ -48,15 +40,12 @@ export class TransactionSizeEstimator {
       )
     }
 
-    const spendsLength = notesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE_PERCENTILES
+    size += notesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE_PERCENTILES
 
-    const notesLength = receives.length * NOTE_SERIALIZED_SIZE_IN_BYTE_PERCENTILES
-
-    let transactionSize =
-      getTransactionSize(transaction.serialize()) + spendsLength + notesLength
+    size += receives.length * NOTE_SERIALIZED_SIZE_IN_BYTE_PERCENTILES
 
     if (estimateFeeRate) {
-      amountNeeded += estimateFeeRate * BigInt(Math.ceil(transactionSize / 1000))
+      amountNeeded += estimateFeeRate * BigInt(Math.ceil(size / 1000))
       const { notesToSpend: newNotesToSpend } = await this.wallet.createSpends(
         sender,
         amountNeeded,
@@ -64,9 +53,9 @@ export class TransactionSizeEstimator {
       const additionalSpendsLength =
         (newNotesToSpend.length - notesToSpend.length) *
         SPEND_SERIALIZED_SIZE_IN_BYTE_PERCENTILES
-      transactionSize += additionalSpendsLength
+      size += additionalSpendsLength
     }
 
-    return Math.ceil(transactionSize / 1000)
+    return Math.ceil(size / 1000)
   }
 }

@@ -228,14 +228,6 @@ impl NativeTransaction {
         self.transaction
             .set_expiration_sequence(expiration_sequence);
     }
-
-    #[napi]
-    pub fn serialize(&self) -> Result<Buffer> {
-        let mut vec: Vec<u8> = vec![];
-        self.transaction.write(&mut vec).map_err(to_napi_err)?;
-
-        Ok(Buffer::from(vec))
-    }
 }
 
 #[napi]
