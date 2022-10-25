@@ -181,14 +181,18 @@ export class FeeEstimator {
     size += receives.length * NOTE_SERIALIZED_SIZE_IN_BYTE
 
     if (estimateFeeRate) {
-      const additionalAmountNeeded = amount - estimateFeeRate * BigInt(Math.ceil(size / 1000))
-      const { notesToSpend: additionalNotesToSpend } = await this.wallet.createSpends(
-        sender,
-        additionalAmountNeeded,
-      )
-      const additionalSpendsLength =
-        additionalNotesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE
-      size += additionalSpendsLength
+      const additionalAmountNeeded =
+        estimateFeeRate * BigInt(Math.ceil(size / 1000)) - (amount - amountNeeded)
+
+      if (additionalAmountNeeded > 0) {
+        const { notesToSpend: additionalNotesToSpend } = await this.wallet.createSpends(
+          sender,
+          additionalAmountNeeded,
+        )
+        const additionalSpendsLength =
+          additionalNotesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE
+        size += additionalSpendsLength
+      }
     }
 
     return Math.ceil(size / 1000)
