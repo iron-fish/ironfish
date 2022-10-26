@@ -745,6 +745,309 @@ export class MerkleTree<
     return this.nodes.put(index, { ...node, hashOfSibling: hash }, tx)
   }
 
+  async rehashTreeRecursive(tx?: IDatabaseTransaction): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      const leavesCount = await this.getCount('Leaves', tx)
+      const nodeCount = await this.getCount('Nodes', tx)
+
+      if (this.lastHashIndex >= leavesCount - 1) {
+        return
+      }
+
+      const root = startingSubtree(nodeCount - 1)
+
+      const rootHash = await this.rehashSubtree(tx, root, nodeCount - 1)
+      const rootNode = await this.getNode(root.root, tx)
+
+      await this.updateHash(root.root, rootNode, rootHash, tx)
+    })
+  }
+
+  async rehashSubtree(
+    tx: IDatabaseTransaction,
+    subTree: SubTree,
+    nodeCount: number,
+  ): Promise<H> {
+    const left = leftSubtree(subTree)
+    const right = rightSubtree(subTree)
+
+    if (!left || !right) {
+      // we are at the leaf nodes
+      const leftLeaf = await this.getLeaf(subTree.leafMin, tx)
+      const rightLeaf = await this.getLeafOrNull(subTree.leafMax, tx)
+
+      if (rightLeaf) {
+        return this.hasher.combineHash(subTree.level, leftLeaf.merkleHash, rightLeaf.merkleHash)
+      } else {
+        return this.hasher.combineHash(subTree.level, leftLeaf.merkleHash, leftLeaf.merkleHash)
+      }
+    }
+
+    if (nodeCount >= right.root) {
+      // We have a right node
+      const rightHash = await this.rehashSubtree(tx, right, nodeCount)
+      const leftNode = await this.getNode(left.root, tx)
+      const rightNode = await this.getNode(right.root, tx)
+
+      if (this.lastHashIndex <= left.leafMax) {
+        // both left and right subtree need to be rehashed
+        const leftHash = await this.rehashSubtree(tx, left, nodeCount)
+
+        await this.updateHash(right.root, rightNode, leftHash, tx)
+        await this.updateHash(left.root, leftNode, rightHash, tx)
+
+        return this.hasher.combineHash(subTree.level, leftHash, rightHash)
+      } else {
+        // only right subtree needs to be rehashed
+        await this.updateHash(left.root, leftNode, rightHash, tx)
+
+        return this.hasher.combineHash(subTree.level, rightNode.hashOfSibling, rightHash)
+      }
+    } else {
+      const leftNode = await this.getNode(left.root, tx)
+      let leftHash = leftNode.hashOfSibling
+
+      if (this.lastHashIndex <= left.leafMax) {
+        // Rehash left node
+        leftHash = await this.rehashSubtree(tx, left, nodeCount)
+        await this.updateHash(left.root, leftNode, leftHash, tx)
+      }
+
+      return this.hasher.combineHash(subTree.level, leftHash, leftHash)
+    }
+  }
+
+  async rehashTreeOld(tx?: IDatabaseTransaction): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      const leavesCount = await this.getCount('Leaves', tx)
+
+      const hashStack: {
+        hash: H
+        index: number
+        depth: number
+        sibling: number | null
+        parent: number | null
+      }[] = []
+      let seenRight: number | null = null
+
+      let leafIndex = leavesCount - 1
+
+      if (leavesCount > 1 && leavesCount % 2 !== 0) {
+        const leaf = await this.getLeaf(leafIndex, tx)
+        let node = await this.getNode(leaf.parentIndex, tx)
+        let hash = leaf.merkleHash
+
+        let depth = 0
+        let parentIndex: number | undefined = leaf.parentIndex
+
+        while (node.side === 'Left') {
+          hash = this.hasher.combineHash(depth, hash, hash)
+
+          // console.log('putting hash', hash, 'at', parentIndex)
+
+          await this.nodes.put(
+            parentIndex,
+            {
+              ...node,
+              hashOfSibling: hash,
+            },
+            tx,
+          )
+
+          Assert.isNotUndefined(node.parentIndex)
+          parentIndex = node.parentIndex
+          node = await this.getNode(parentIndex, tx)
+
+          depth++
+        }
+
+        const leftIndex = node.leftIndex
+        Assert.isNotUndefined(leftIndex)
+
+        const leftNode = await this.getNode(leftIndex, tx)
+        hash = this.hasher.combineHash(depth, hash, hash)
+
+        // console.log('putting hash', hash, 'at', leftIndex)
+
+        await this.nodes.put(
+          leftIndex,
+          {
+            ...leftNode,
+            hashOfSibling: hash,
+          },
+          tx,
+        )
+
+        seenRight = parentIndex
+
+        if (leftNode.parentIndex !== 0) {
+          hashStack.unshift({
+            hash,
+            index: leftIndex,
+            sibling: leftNode.leftIndex ?? null,
+            parent: leftNode.parentIndex ?? null,
+            depth,
+          })
+        }
+
+        leafIndex--
+      }
+
+      for (leafIndex; leafIndex > this.lastHashIndex; leafIndex -= 2) {
+        const leftLeaf = await this.getLeaf(leafIndex - 1, tx)
+        const rightLeaf = await this.getLeaf(leafIndex, tx)
+        let depth = 0
+
+        Assert.isEqual(leftLeaf.parentIndex, rightLeaf.parentIndex)
+        const parentIndex = leftLeaf.parentIndex
+
+        const hash = this.hasher.combineHash(depth, leftLeaf.merkleHash, rightLeaf.merkleHash)
+
+        let node = await this.getNode(parentIndex, tx)
+        let index
+        if (node.side === 'Left') {
+          if (seenRight !== null) {
+            index = seenRight
+            seenRight = null
+          } else {
+            // Special case for the right side of the tree, where we may have nodes with no siblings
+            index = parentIndex
+          }
+        } else {
+          Assert.isEqual(node.side, 'Right')
+          Assert.isNotUndefined(node.leftIndex)
+          seenRight = parentIndex
+          index = node.leftIndex
+        }
+
+        const siblingNode = await this.getNode(index, tx)
+        // console.log('putting hash', hash, 'at', index)
+        await this.nodes.put(
+          index,
+          {
+            ...siblingNode,
+            hashOfSibling: hash,
+          },
+          tx,
+        )
+
+        if (siblingNode.parentIndex !== 0) {
+          hashStack.unshift({
+            hash,
+            index,
+            sibling: siblingNode.leftIndex ?? null,
+            parent: siblingNode.parentIndex ?? null,
+            depth,
+          })
+        }
+
+        while (!isEmpty(node.parentIndex)) {
+          depth++
+
+          const { index: parentIndex, node: parentNode } = await this.findParentNode(
+            node.parentIndex,
+            tx,
+          )
+
+          const leftHash = hashStack.shift()
+          const rightHash = hashStack.length === 0 ? leftHash : hashStack.shift()
+          Assert.isNotUndefined(leftHash)
+          Assert.isNotUndefined(rightHash)
+          const hash = this.hasher.combineHash(depth, leftHash.hash, rightHash.hash)
+
+          // console.log('putting hash', hash, 'at', parentIndex)
+
+          await this.nodes.put(
+            parentIndex,
+            {
+              ...parentNode,
+              hashOfSibling: hash,
+            },
+            tx,
+          )
+
+          if (parentNode.parentIndex !== 0) {
+            hashStack.unshift({
+              hash,
+              index: parentIndex,
+              sibling: parentNode.leftIndex ?? null,
+              parent: parentNode.parentIndex ?? null,
+              depth,
+            })
+          }
+
+          node = await this.getNode(node.parentIndex, tx)
+        }
+      }
+
+      // The first element should be the deepest, and all others should be dependent
+      while (hashStack.length > 1) {
+        hashStack.pop()
+      }
+
+      while (hashStack.length > 0 && leavesCount > 2) {
+        // we have leftover hashes that need to be added
+        const hash = hashStack.shift()
+        Assert.isNotUndefined(hash)
+
+        const node = await this.getNode(hash.index, tx)
+
+        let siblingNode
+
+        if (node.side === 'Right') {
+          Assert.isNotUndefined(node.leftIndex)
+          siblingNode = await this.getNode(node.leftIndex, tx)
+        } else {
+          for await (const [_, v] of this.nodes.getAllIter(tx)) {
+            if (v.leftIndex === hash.index) {
+              siblingNode = v
+            }
+          }
+        }
+
+        Assert.isNotUndefined(siblingNode)
+
+        const nodeParentIndex: number | undefined = node.parentIndex ?? siblingNode.parentIndex
+
+        Assert.isNotUndefined(nodeParentIndex)
+
+        const { index: parentIndex, node: parentNode } = await this.findParentNode(
+          nodeParentIndex,
+          tx,
+        )
+
+        const newHash =
+          node.side === 'Left'
+            ? this.hasher.combineHash(hash.depth + 1, siblingNode.hashOfSibling, hash.hash)
+            : this.hasher.combineHash(hash.depth + 1, hash.hash, siblingNode.hashOfSibling)
+
+        // console.log('putting hash', newHash, 'at', parentIndex)
+
+        await this.nodes.put(
+          parentIndex,
+          {
+            ...parentNode,
+            hashOfSibling: newHash,
+          },
+          tx,
+        )
+
+        if (parentNode.parentIndex !== 0) {
+          hashStack.unshift({
+            hash: newHash,
+            index: parentIndex,
+            sibling: parentNode.leftIndex ?? null,
+            parent: parentNode.parentIndex ?? null,
+            depth: hash.depth + 1,
+          })
+        }
+      }
+
+      this.lastHashIndex = leavesCount - 1
+    })
+>>>>>>> Stashed changes
+  }
+
   /**
    * Recalculate all the hashes between the most recently added leaf in the group
    * and the root hash.
@@ -823,11 +1126,76 @@ export class MerkleTree<
   }
 }
 
+// Properties of a subtree of the overall tree starting at a particular root node
+type SubTree = {
+  level: number // the level of the tree root node is at
+  root: number // index of the root of this subtree
+  parent: number // index of the parent of this subtree
+  min: number // min index in this subtree
+  missingNodes: number // number of indices included in the range [min - max] but not included in the subtree
+  max: number // max index in this subtree
+  leafMin: number // min leaf index in this subtree
+  leafMax: number // max leaf index in this subtree
+}
+
+const itemsUnderLevel = (n: number) => 2 ** (n + 1) - 1
+const rootOfSubtree = (n: number) => 2 ** n + n
+
+export const leftSubtree = (tree: SubTree): SubTree | null => {
+  if (tree.level === 0) {
+    return null
+  }
+
+  const isMinRoot = rootOfSubtree(tree.level) === tree.root
+  const maxLeft = tree.min + itemsUnderLevel(tree.level - 1) + tree.missingNodes
+  return {
+    level: tree.level - 1,
+    root: isMinRoot ? rootOfSubtree(tree.level - 1) : tree.root - 1,
+    min: tree.min,
+    parent: tree.root,
+    missingNodes: isMinRoot ? 0 : tree.missingNodes + 1,
+    max: isMinRoot ? maxLeft - 1 : maxLeft,
+    leafMin: tree.leafMin,
+    leafMax: tree.leafMin + Math.floor((tree.leafMax - tree.leafMin) / 2),
+  }
+}
+
+export const rightSubtree = (tree: SubTree): SubTree | null => {
+  if (tree.level === 0) {
+    return null
+  }
+
+  const isMinRoot = rootOfSubtree(tree.level) === tree.root
+  const maxLeft = tree.min + itemsUnderLevel(tree.level - 1) + tree.missingNodes
+  return {
+    level: tree.level - 1,
+    root: isMinRoot ? tree.root - 1 : maxLeft + tree.level,
+    parent: tree.root,
+    min: isMinRoot ? maxLeft : maxLeft + 1,
+    missingNodes: isMinRoot ? 1 : 0,
+    max: tree.max,
+    leafMin: tree.leafMax - Math.floor((tree.leafMax - tree.leafMin) / 2),
+    leafMax: tree.leafMax,
+  }
+}
+
+export const startingSubtree = (index: number): SubTree => {
+  const startingLevel = Math.floor(Math.log2(index))
+  return {
+    level: startingLevel,
+    root: rootOfSubtree(startingLevel),
+    min: 1,
+    parent: rootOfSubtree(startingLevel + 1),
+    missingNodes: 0,
+    max: itemsUnderLevel(startingLevel),
+    leafMin: 0,
+    leafMax: itemsUnderLevel(startingLevel),
+  }
+}
+
 /**
  * Takes an index and calculates that node's parent and children index by doing a binary search
- * of the tree for the node `i`. Along the binary search path we keep track of the
- * previous root. When we find the node `i` it's parent should be the previous
- * root in the binary search. To calculate it's children we just continue one more level down
+ * of the tree for the node `i`.
  *
  * Below is an example of a tree built with 31 elements
  *
@@ -838,89 +1206,42 @@ export class MerkleTree<
  *  [1]   [2]   [4]   [7]   [8]   [12]  [13]  [15]  [16]  [21]  [22]  [24]  [25]  [28]  [29]  [31]
  *
  * One key concept is minimum subtrees. we can see that subtrees are built in powers of two. Example:
- * nodes 1 - 3 form a subtree
- * nodes 1 - 7 form a subtree
- * nodes 1 - 15 form a subtree
- * nodes 1 - 31 form a subtree
+ * node  1     forms a subtree (level 0)
+ * nodes 1 - 3 form a subtree  (level 1)
+ * nodes 1 - 7 form a subtree  (level 2)
+ * nodes 1 - 15 ...
+ * nodes 1 - 31 ...
  *
  * This pattern continues the more nodes are added to the tree. We can use this pattern to do a binary
- * search for a node's parent or children indices based on its index alone
+ * search for a node's subtree information like it's parent and children. We start at the root
+ * of a minimum subtree containnig the node we are looking for and traverse down
  *
  **/
-export function family(
-  i: number,
-):
-  | { parent: number; left: number; right: number }
-  | { parent: number; left: null; right: null } {
-  const itemsUnderLevel = (n: number) => 2 ** (n + 1) - 1
-  const rootOfSubtree = (n: number) => 2 ** n + n
-
-  // We start the binary search at the minimum subtree that includes the node we're looking for.
-  // This will also be known as our 'level' since the root of the min subtree is at that
-  // level of the tree. E.g. subtree 1-15 has root of 11 and node 11 is at level 3 in the tree (indexing from 0)
-  let level = Math.floor(Math.log2(i))
-
-  // We then find the root of this minumum subtree. E.g. for any `i` 1-15 this will be 11
-  // or for any `i` 16 - 31 this will be 20
-  let root = rootOfSubtree(level)
-
-  // If `i` is actually the root of a subtree then we know the parent is the root of the
-  // subtree one level up, left is the root of subtree one level down and right is the
-  // current root - 1
-  if (root === i) {
-    return {
-      parent: rootOfSubtree(level + 1),
-      left: rootOfSubtree(level - 1),
-      right: root - 1,
-    }
+export const subtreeAt = (index: number): SubTree => {
+  const startingLevel = Math.floor(Math.log2(index))
+  let currSubtree = {
+    level: startingLevel,
+    root: rootOfSubtree(startingLevel),
+    min: 1,
+    parent: rootOfSubtree(startingLevel + 1),
+    missingNodes: 0,
+    max: itemsUnderLevel(startingLevel),
+    leafMin: 0,
+    leafMax: itemsUnderLevel(startingLevel),
   }
 
-  // Otherwise we go into our binary search. We start by going down one level and changing
-  // the root to the right child of our current root. Which will always be root - 1 at this point
-  let prevRoot = root
-  root = root - 1 // the current root of the subtree we're on
-  level = level - 1 // the current level we're on
-  let start = itemsUnderLevel(level) + 1 // the start of the subtree we're current in
+  while (currSubtree.root !== index && currSubtree.level > 0) {
+    const left = leftSubtree(currSubtree)
+    const right = rightSubtree(currSubtree)
 
-  // We also have this concept of missingNodes. As we walk down the tree there are some subtrees
-  // that have missing numbers in them. For example the subtree under node [17]. It has elements
-  // [16] - [21] but [18], [19] and [20] are not included in that range. Those nodes are above this
-  // subtree. In fact we can keep track of how many nodes are missing by how many steps we've taken
-  // towards a left child. Keeping track of this will help us calculate our new root node when we go
-  // into a left or a right subtree
-  let missingNodes = 1
+    // Should never be null since level > 0
+    Assert.isNotNull(left)
+    Assert.isNotNull(right)
 
-  while (root !== i) {
-    // This is the maximum node in the left subtree. For example the maxLeft in the subtree
-    // under node [19] would be [24]. We use this to determine if the node we're searching
-    // for is in the left or right side of our current root
-    const maxLeft = start + missingNodes + itemsUnderLevel(level - 1)
-    const inLeft = i <= maxLeft
-
-    prevRoot = root
-    level -= 1
-
-    if (inLeft) {
-      // every time we go to the left we need to account for one more missing node
-      missingNodes += 1
-      root = root - 1
-    } else {
-      start = maxLeft + 1
-      root = start + level
-      // every time you go to the right we no longer have missing nodes in the range
-      // so we reset to 0
-      missingNodes = 0
-    }
+    currSubtree = index <= left.max ? left : right
   }
 
-  // If the node is not a leaf node, return its children
-  return level > 0
-    ? {
-        left: root - 1,
-        right: start + missingNodes + itemsUnderLevel(level - 1) + level,
-        parent: prevRoot,
-      }
-    : { left: null, right: null, parent: prevRoot }
+  return currSubtree
 }
 
 export enum Side {

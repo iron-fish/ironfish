@@ -6,7 +6,7 @@ import '../testUtilities/matchers/merkletree'
 import { Assert } from '../assert'
 import { makeTree } from '../testUtilities/helpers/merkletree'
 import { createTestDB } from '../testUtilities/helpers/storage'
-import { family, MerkleTree, Side } from './merkletree'
+import { leftSubtree, MerkleTree, rightSubtree, Side, subtreeAt } from './merkletree'
 import { depthAtLeafCount } from './utils'
 
 describe('Merkle tree', function () {
@@ -293,16 +293,17 @@ describe('Merkle tree', function () {
 
           Assert.isNotUndefined(parentIndex)
 
-          expect(family(leftIndex).parent).toBe(parentIndex)
-          expect(family(rightIndex).parent).toBe(parentIndex)
+          expect(subtreeAt(leftIndex).parent).toBe(parentIndex)
+          expect(subtreeAt(rightIndex).parent).toBe(parentIndex)
 
-          const expectedChildren = family(parentIndex)
+          const expectedLeftChild = leftSubtree(subtreeAt(parentIndex))
+          const expectedRightChild = rightSubtree(subtreeAt(parentIndex))
 
-          Assert.isNotNull(expectedChildren.left)
-          Assert.isNotNull(expectedChildren.right)
+          Assert.isNotNull(expectedLeftChild)
+          Assert.isNotNull(expectedRightChild)
 
-          expect(expectedChildren.left).toBe(leftIndex)
-          expect(expectedChildren.right).toBe(rightIndex)
+          expect(expectedLeftChild.root).toBe(leftIndex)
+          expect(expectedRightChild.root).toBe(rightIndex)
 
           parents.push(parentIndex)
         } else {
@@ -314,14 +315,13 @@ describe('Merkle tree', function () {
 
           Assert.isNotUndefined(parentIndex)
 
-          expect(family(leftIndex).parent).toBe(parentIndex)
+          expect(subtreeAt(leftIndex).parent).toBe(parentIndex)
 
-          const expectedChildren = family(parentIndex)
+          const expectedLeftChild = leftSubtree(subtreeAt(parentIndex))
 
-          Assert.isNotNull(expectedChildren.left)
-          Assert.isNotNull(expectedChildren.right)
+          Assert.isNotNull(expectedLeftChild)
 
-          expect(expectedChildren.left).toBe(leftIndex)
+          expect(expectedLeftChild.root).toBe(leftIndex)
         }
       }
 
