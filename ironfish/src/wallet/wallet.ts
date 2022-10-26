@@ -387,15 +387,24 @@ export class Wallet {
     const notes: Array<DecryptedNoteValue & { hash: Buffer }> = []
     for (const [, decryptedNotes] of decryptedNotesByAccount) {
       for (const decryptedNote of decryptedNotes) {
-        notes.push({
-          accountId: account.id,
-          nullifier: decryptedNote.nullifier,
-          index: decryptedNote.index,
-          note: new Note(decryptedNote.serializedNote),
-          spent: false,
-          transactionHash: transaction.unsignedHash(),
-          hash: decryptedNote.hash,
-        })
+        const noteHash = decryptedNote.hash
+        const decryptedNoteForOwner = await account.getDecryptedNote(noteHash)
+        if (decryptedNoteForOwner) {
+          notes.push({
+            ...decryptedNoteForOwner,
+            hash: noteHash,
+          })
+        } else {
+          notes.push({
+            accountId: account.id,
+            nullifier: decryptedNote.nullifier,
+            index: decryptedNote.index,
+            note: new Note(decryptedNote.serializedNote),
+            spent: false,
+            transactionHash: transaction.unsignedHash(),
+            hash: noteHash,
+          })
+        }
       }
     }
     return notes
