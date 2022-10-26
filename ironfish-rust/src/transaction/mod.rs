@@ -495,7 +495,7 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
     Ok(value_balance.into())
 }
 
-/// Confirm that balance of input and receipt values is consistent with
+/// Confirm that balance of input and output values is consistent with
 /// those used in the proofs.
 ///
 /// Does not confirm that the transactions add up to zero. The calculation

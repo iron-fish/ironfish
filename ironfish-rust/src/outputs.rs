@@ -93,11 +93,11 @@ impl OutputBuilder {
             )
         };
 
-        let receipt_proof = OutputProof { proof, merkle_note };
+        let output_proof = OutputProof { proof, merkle_note };
 
-        receipt_proof.verify_proof()?;
+        output_proof.verify_proof()?;
 
-        Ok(receipt_proof)
+        Ok(output_proof)
     }
 }
 
