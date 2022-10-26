@@ -142,8 +142,6 @@ export default class Bank extends IronfishCommand {
       (sendableOre / minDepositOre) * minDepositOre,
       maxDepositOre,
     )
-    // ?
-    // : maxDepositOre
 
     const newBalance = confirmedBalance - oreToSend - fee
 
