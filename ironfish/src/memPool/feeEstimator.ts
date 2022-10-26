@@ -62,6 +62,10 @@ export class FeeEstimator {
         this.queue.push({ feeRate: getFeeRate(transaction), blockHash: currentBlockHash })
       }
 
+      if (currentBlockHash.equals(chain.genesis.hash)) {
+        break
+      }
+
       currentBlockHash = currentBlock.header.previousBlockHash
     }
 
