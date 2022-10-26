@@ -21,7 +21,7 @@ export type ExportMinedStreamResponse = {
   sequence?: number
   block?: {
     hash: string
-    minersFee: number
+    minersFee: string
     sequence: number
     main: boolean
     account: string
@@ -45,7 +45,7 @@ export const ExportMinedStreamResponseSchema: yup.ObjectSchema<ExportMinedStream
     block: yup
       .object({
         hash: yup.string().defined(),
-        minersFee: yup.number().defined(),
+        minersFee: yup.string().defined(),
         sequence: yup.number().defined(),
         main: yup.boolean().defined(),
         account: yup.string().defined(),
@@ -65,7 +65,14 @@ router.register<typeof ExportMinedStreamRequestSchema, ExportMinedStreamResponse
 
     if (blockHash) {
       const block = await node.minedBlocksIndexer.getMinedBlock(Buffer.from(blockHash, 'hex'))
-      request.stream({ block })
+      const serialized = block
+        ? {
+            ...block,
+            minersFee: block.minersFee.toString(),
+          }
+        : undefined
+
+      request.stream({ block: serialized })
       request.end()
     }
 
@@ -89,7 +96,10 @@ router.register<typeof ExportMinedStreamRequestSchema, ExportMinedStreamResponse
         start,
         stop,
         sequence: block.sequence,
-        block,
+        block: {
+          ...block,
+          minersFee: block.minersFee.toString(),
+        },
       })
     }
 

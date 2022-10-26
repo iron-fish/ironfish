@@ -2,15 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import {
-  displayIronAmount,
-  displayIronAmountWithCurrency,
-  ironToOre,
-  isValidAmount,
-  isValidPublicAddress,
-  MINIMUM_IRON_AMOUNT,
-  oreToIron,
-} from '@ironfish/sdk'
+import { CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -60,8 +52,8 @@ export class Pay extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Pay)
-    let amount = flags.amount ? Number(flags.amount) : undefined
-    let fee = flags.fee ? Number(flags.fee) : undefined
+    let amount = null
+    let fee = null
     let to = flags.to?.trim()
     let from = flags.account?.trim()
     const expirationSequence = flags.expirationSequence
@@ -70,7 +62,6 @@ export class Pay extends IronfishCommand {
     const client = await this.sdk.connectRpc(false, true)
 
     const status = await client.getNodeStatus()
-
     if (!status.content.blockchain.synced) {
       this.log(
         `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
@@ -78,56 +69,67 @@ export class Pay extends IronfishCommand {
       this.exit(1)
     }
 
-    if (amount == null || Number.isNaN(amount)) {
-      const response = await client.getAccountBalance({ account: from })
-
-      const input = Number(
-        await CliUx.ux.prompt(
-          `Enter the amount in $IRON (balance available: ${displayIronAmountWithCurrency(
-            oreToIron(Number(response.content.confirmed)),
-            false,
-          )})`,
-          {
-            required: true,
-          },
-        ),
-      )
-
-      if (Number.isNaN(input)) {
+    if (flags.amount) {
+      if (!CurrencyUtils.isValidIron(flags.amount)) {
         this.error(`A valid amount is required`)
       }
 
-      amount = input
+      amount = CurrencyUtils.decodeIron(flags.amount)
     }
 
-    if (fee == null || Number.isNaN(fee)) {
-      let dynamicFee: string | null
+    if (amount === null) {
+      const response = await client.getAccountBalance({ account: from })
 
+      const input = (await CliUx.ux.prompt(
+        `Enter the amount in $IRON (balance: ${CurrencyUtils.renderIron(
+          response.content.confirmed,
+        )})`,
+        {
+          required: true,
+        },
+      )) as string
+
+      if (!CurrencyUtils.isValidIron(input)) {
+        this.error(`A valid amount is required`)
+      }
+
+      amount = CurrencyUtils.decodeIron(input)
+    }
+
+    if (flags.fee) {
+      if (!CurrencyUtils.isValidIron(flags.fee)) {
+        this.error(`A valid fee is required`)
+      }
+      fee = CurrencyUtils.decodeIron(flags.fee)
+    }
+
+    if (fee == null) {
+      let dynamicFee: bigint | null
       try {
-        // fees p25 of last 100 blocks
-        dynamicFee = displayIronAmount(
-          oreToIron((await client.getFees({ numOfBlocks: 100 })).content.p25),
-        )
+        const response = await client.getFees({ numOfBlocks: 100 })
+        dynamicFee = CurrencyUtils.decode(response.content.p25)
       } catch {
         dynamicFee = null
       }
 
-      const input = Number(
-        await CliUx.ux.prompt(
-          `Enter the fee amount in $IRON (min: 0.00000001${
-            dynamicFee ? `, dynamic: ${dynamicFee}` : ''
-          })`,
-          {
-            required: true,
-          },
-        ),
-      )
+      const input = (await CliUx.ux.prompt(
+        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)}${
+          dynamicFee ? `, recommended: ${dynamicFee}` : ''
+        })`,
+        {
+          required: true,
+        },
+      )) as string
 
-      if (Number.isNaN(input)) {
-        this.error(`A valid fee amount is required`)
+      if (!CurrencyUtils.isValidIron(input)) {
+        this.error(`A valid amount is required`)
       }
 
-      fee = input
+      fee = CurrencyUtils.decodeIron(input)
+    }
+
+    if (fee < 1n) {
+      this.error(`The minimum fee is ${CurrencyUtils.renderOre(1n, true)}`)
     }
 
     if (!to) {
@@ -154,26 +156,6 @@ export class Pay extends IronfishCommand {
       from = defaultAccount.name
     }
 
-    if (!isValidAmount(amount)) {
-      this.log(
-        `The minimum transaction amount is ${displayIronAmountWithCurrency(
-          MINIMUM_IRON_AMOUNT,
-          false,
-        )}.`,
-      )
-      this.exit(0)
-    }
-
-    if (!isValidAmount(fee)) {
-      this.log(
-        `The minimum fee amount is ${displayIronAmountWithCurrency(
-          MINIMUM_IRON_AMOUNT,
-          false,
-        )}.`,
-      )
-      this.exit(0)
-    }
-
     if (!isValidPublicAddress(to)) {
       this.log(`A valid public address is required`)
       this.exit(1)
@@ -187,10 +169,7 @@ export class Pay extends IronfishCommand {
     if (!flags.confirm) {
       this.log(`
 You are about to send:
-${displayIronAmountWithCurrency(
-  amount,
-  true,
-)} plus a transaction fee of ${displayIronAmountWithCurrency(
+${CurrencyUtils.renderIron(amount, true)} plus a transaction fee of ${CurrencyUtils.renderIron(
         fee,
         true,
       )} to ${to} from the account ${from}
@@ -236,11 +215,11 @@ ${displayIronAmountWithCurrency(
         receives: [
           {
             publicAddress: to,
-            amount: ironToOre(amount).toString(),
+            amount: CurrencyUtils.encode(amount),
             memo: memo,
           },
         ],
-        fee: ironToOre(fee).toString(),
+        fee: CurrencyUtils.encode(fee),
         expirationSequence,
       })
 
@@ -249,11 +228,11 @@ ${displayIronAmountWithCurrency(
       const transaction = result.content
       const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
       this.log(`
-Sending ${displayIronAmountWithCurrency(amount, true)} to ${recipients} from ${
+Sending ${CurrencyUtils.renderIron(amount, true)} to ${recipients} from ${
         transaction.fromAccountName
       }
 Transaction Hash: ${transaction.hash}
-Transaction fee: ${displayIronAmountWithCurrency(fee, true)}
+Transaction fee: ${CurrencyUtils.renderIron(fee, true)}
 
 Find the transaction on https://explorer.ironfish.network/transaction/${
         transaction.hash

@@ -4,11 +4,10 @@
 
 import {
   Assert,
-  displayIronAmountWithCurrency,
-  ironToOre,
+  BigIntUtils,
+  CurrencyUtils,
   MathUtils,
   MINIMUM_IRON_AMOUNT,
-  oreToIron,
   RpcClient,
   WebApi,
 } from '@ironfish/sdk'
@@ -27,7 +26,7 @@ export default class Bank extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
-    fee: Flags.integer({
+    fee: Flags.string({
       char: 'f',
       description: `The fee amount in ORE, minimum of 1. 1 ORE is equal to ${MINIMUM_IRON_AMOUNT} IRON`,
     }),
@@ -52,14 +51,23 @@ export default class Bank extends IronfishCommand {
     this.client = await this.sdk.connectRpc(false, true)
     this.api = new WebApi()
 
-    let fee = flags.fee
+    let fee = null
 
-    if (fee == null || Number.isNaN(fee)) {
+    if (flags.fee) {
+      const [parsedFee] = BigIntUtils.tryParse(flags.fee)
+
+      if (parsedFee != null) {
+        fee = parsedFee
+      }
+    }
+
+    if (fee == null) {
       try {
         // fees p25 of last 100 blocks
-        fee = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+        const feeString = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+        fee = CurrencyUtils.decode(feeString)
       } catch {
-        fee = 1
+        fee = 1n
       }
     }
 
@@ -78,6 +86,8 @@ export default class Bank extends IronfishCommand {
 
     const bankDepositAddress = await this.api.getDepositAddress()
     const { minDepositSize, maxDepositSize } = await this.api.getMinAndMaxDepositSize()
+    const minDepositOre = CurrencyUtils.decodeIron(minDepositSize)
+    const maxDepositOre = CurrencyUtils.decodeIron(maxDepositSize)
 
     // check if user has enough, if not default to total user has
 
@@ -103,7 +113,7 @@ export default class Bank extends IronfishCommand {
       this.client,
       this.api,
       expirationSequenceDelta,
-      fee,
+      Number(fee),
       graffiti,
     )
     if (!canSend) {
@@ -113,33 +123,34 @@ export default class Bank extends IronfishCommand {
     }
 
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
-    const confirmedBalance = Number(balanceResp.content.confirmed)
+    const confirmedBalance = BigInt(balanceResp.content.confirmed)
 
-    if (confirmedBalance < fee + ironToOre(minDepositSize)) {
+    if (confirmedBalance < BigInt(fee) + minDepositOre) {
       this.log(
-        `Insufficient balance: ${oreToIron(confirmedBalance)} IRON.  Fee (${oreToIron(
+        `Insufficient balance: ${CurrencyUtils.encodeIron(
+          confirmedBalance,
+        )} IRON.  Fee (${CurrencyUtils.encodeIron(
           fee,
-        )} IRON) + minimum deposit (${minDepositSize} IRON) = total required (${
-          oreToIron(fee) + minDepositSize
-        } IRON)`,
+        )} IRON) + minimum deposit (${minDepositSize} IRON) = total required (${CurrencyUtils.encodeIron(
+          fee + minDepositOre,
+        )} IRON)`,
       )
       this.exit(1)
     }
-    const sendableIron = oreToIron(confirmedBalance - fee)
-    const ironToSend =
-      sendableIron < maxDepositSize
-        ? MathUtils.roundBy(sendableIron, minDepositSize)
-        : maxDepositSize
-
-    const newBalance = confirmedBalance - ironToOre(ironToSend) - fee
-
-    const displayConfirmedBalance = displayIronAmountWithCurrency(
-      oreToIron(confirmedBalance),
-      true,
+    const sendableOre = confirmedBalance - fee
+    const oreToSend = BigIntUtils.min(
+      (sendableOre / minDepositOre) * minDepositOre,
+      maxDepositOre,
     )
-    const displayAmount = displayIronAmountWithCurrency(ironToSend, true)
-    const displayFee = displayIronAmountWithCurrency(oreToIron(fee), true)
-    const displayNewBalance = displayIronAmountWithCurrency(oreToIron(newBalance), true)
+    // ?
+    // : maxDepositOre
+
+    const newBalance = confirmedBalance - oreToSend - fee
+
+    const displayConfirmedBalance = CurrencyUtils.renderIron(confirmedBalance, true)
+    const displayAmount = CurrencyUtils.renderIron(oreToSend, true)
+    const displayFee = CurrencyUtils.renderIron(fee, true)
+    const displayNewBalance = CurrencyUtils.renderIron(newBalance, true)
 
     if (!flags.confirm) {
       this.log(`
@@ -190,7 +201,7 @@ The memo will contain the graffiti "${graffiti}".
         receives: [
           {
             publicAddress: bankDepositAddress,
-            amount: ironToOre(ironToSend).toString(),
+            amount: oreToSend.toString(),
             memo: graffiti,
           },
         ],
@@ -210,7 +221,7 @@ Transaction fee: ${displayFee}
 
 New Balance: ${displayNewBalance}
 
-Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash} 
+Find the transaction on https://explorer.ironfish.network/transaction/${transaction.hash}
 (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()

@@ -7,7 +7,6 @@ import {
   BigIntUtils,
   CurrencyUtils,
   ERROR_CODES,
-  ironToOre,
   MINIMUM_IRON_AMOUNT,
   PromiseUtils,
   RpcClient,
@@ -75,9 +74,8 @@ export default class DepositAll extends IronfishCommand {
     if (fee == null) {
       try {
         // fees p25 of last 100 blocks
-        const feeNumber = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
-        // TODO: NEVER use numbers for amounts
-        fee = BigInt(feeNumber)
+        const feeString = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
+        fee = CurrencyUtils.decode(feeString)
       } catch {
         fee = 1n
       }
@@ -212,21 +210,23 @@ export default class DepositAll extends IronfishCommand {
       unconfirmedBalance = CurrencyUtils.decode(balanceResp.content.unconfirmed)
       pendingBalance = CurrencyUtils.decode(balanceResp.content.pending)
 
+      const sendOres = CurrencyUtils.decodeIron(IRON_TO_SEND) + fee
+
       // terminate condition
-      if (terminate && pendingBalance < BigInt(ironToOre(IRON_TO_SEND)) + BigInt(fee)) {
+      if (terminate && pendingBalance < sendOres) {
         screen.destroy()
         process.exit(0)
       }
 
       // send transaction
-      if (confirmedBalance > BigInt(ironToOre(IRON_TO_SEND)) + BigInt(fee)) {
+      if (confirmedBalance > sendOres) {
         try {
           const result = await this.client.sendTransaction({
             fromAccountName: accountName,
             receives: [
               {
                 publicAddress: bankDepositAddress,
-                amount: ironToOre(IRON_TO_SEND).toString(),
+                amount: CurrencyUtils.encode(CurrencyUtils.decodeIron(IRON_TO_SEND)),
                 memo: graffiti,
               },
             ],
