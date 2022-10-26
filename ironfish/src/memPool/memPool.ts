@@ -38,7 +38,7 @@ export class MemPool {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
 
-  private readonly feeEstimator: FeeEstimator
+  readonly feeEstimator: FeeEstimator
 
   constructor(options: {
     chain: Blockchain

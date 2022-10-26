@@ -30,7 +30,6 @@ const NOTE_SERIALIZED_SIZE_IN_BYTE = 467
 
 export class FeeEstimator {
   private queues: Map<PriorityLevel, Array<FeeRateEntry>>
-  readonly chain: Blockchain
   private wallet: Wallet
   private readonly logger: Logger
   private numOfRecentBlocks = 10
@@ -43,16 +42,18 @@ export class FeeEstimator {
 
     this.queues = new Map<PriorityLevel, FeeRateEntry[]>()
     PRIORITY_LEVELS.forEach((priorityLevel) => this.queues.set(priorityLevel, []))
-    this.chain = options.wallet.chain
     this.wallet = options.wallet
   }
 
-  async setUp(): Promise<void> {
-    // Mempool is empty
-    let currentBlockHash = this.chain.latest.hash
+  async init(chain: Blockchain): Promise<void> {
+    if (chain.isEmpty) {
+      return
+    }
+
+    let currentBlockHash = chain.latest.hash
 
     for (let i = 0; i < this.numOfRecentBlocks; i++) {
-      const currentBlock = await this.chain.getBlock(currentBlockHash)
+      const currentBlock = await chain.getBlock(currentBlockHash)
       Assert.isNotNull(currentBlock, 'No block found')
 
       const feeRateEntryList = this.getPercentileFeeRateEntries(currentBlock, this.percentiles)
@@ -69,8 +70,14 @@ export class FeeEstimator {
         }
       }
 
+      if (currentBlockHash.equals(chain.genesis.hash)) {
+        break
+      }
+
       currentBlockHash = currentBlock.header.previousBlockHash
     }
+
+    this.queue.reverse()
   }
 
   onConnectBlock(block: Block, memPool: MemPool): void {
