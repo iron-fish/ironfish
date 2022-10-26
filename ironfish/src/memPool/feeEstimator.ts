@@ -77,7 +77,7 @@ export class FeeEstimator {
       currentBlockHash = currentBlock.header.previousBlockHash
     }
 
-    this.queue.reverse()
+    this.queues.forEach((queue) => queue.reverse())
   }
 
   onConnectBlock(block: Block, memPool: MemPool): void {

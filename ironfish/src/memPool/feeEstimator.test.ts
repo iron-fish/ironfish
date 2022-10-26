@@ -103,14 +103,19 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        recentBlocksNum: 2,
-        txSampleSize: 1,
+        numOfRecentBlocks: 2,
       })
       await feeEstimator.init(node.chain)
 
-      expect(feeEstimator.size()).toBe(2)
-      expect(feeEstimator['queue'][0].feeRate).toEqual(getFeeRate(transaction))
-      expect(feeEstimator['queue'][1].feeRate).toEqual(getFeeRate(transaction2))
+      expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(2)
+      expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(2)
+      expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(2)
+      expect(feeEstimator['queues'].get(PRIORITY_LEVELS[0])![0].feeRate).toEqual(
+        getFeeRate(transaction),
+      )
+      expect(feeEstimator['queues'].get(PRIORITY_LEVELS[0])![1].feeRate).toEqual(
+        getFeeRate(transaction2),
+      )
     })
   })
 
