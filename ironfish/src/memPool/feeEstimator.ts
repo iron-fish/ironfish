@@ -10,9 +10,6 @@ import { Block, Transaction } from '../primitives'
 import { Wallet } from '../wallet'
 import { Account } from '../wallet/account'
 
-const SPEND_SERIALIZED_SIZE_IN_BYTE = 388
-const NOTE_SERIALIZED_SIZE_IN_BYTE = 467
-
 interface FeeRateEntry {
   feeRate: bigint
   blockHash: Buffer
@@ -28,6 +25,13 @@ const PERCENTILES_TO_PRIORITY_LEVELS = new Map<Percentile, PriorityLevel>([
   [20, 'medium'],
   [30, 'high'],
 ])
+const PRIORITY_LEVELS_TO_PERCENTILES = new Map<PriorityLevel, Percentile>([
+  ['low', 10],
+  ['medium', 20],
+  ['high', 30],
+])
+const SPEND_SERIALIZED_SIZE_IN_BYTE = 388
+const NOTE_SERIALIZED_SIZE_IN_BYTE = 467
 
 export class FeeEstimator {
   private queues: Map<PriorityLevel, Array<FeeRateEntry>>
@@ -35,8 +39,8 @@ export class FeeEstimator {
   private wallet: Wallet
   private readonly logger: Logger
   private numOfRecentBlocks = 10
-  private maxQueueLength: number
   private defaultFeeRate = BigInt(1)
+  private readonly percentiles = PRIORITY_LEVEL_PERCENTILES.map((x) => x)
 
   constructor(options: {
     wallet: Wallet
@@ -45,8 +49,6 @@ export class FeeEstimator {
   }) {
     this.logger = options.logger || createRootLogger().withTag('recentFeeCache')
     this.numOfRecentBlocks = options.numOfRecentBlocks ?? this.numOfRecentBlocks
-
-    this.maxQueueLength = this.numOfRecentBlocks
 
     this.queues = new Map<PriorityLevel, FeeRateEntry[]>()
     PRIORITY_LEVELS.forEach((priorityLevel) => this.queues.set(priorityLevel, []))
@@ -62,22 +64,19 @@ export class FeeEstimator {
       const currentBlock = await this.chain.getBlock(currentBlockHash)
       Assert.isNotNull(currentBlock, 'No block found')
 
-      const percentileTransactions = this.getPercentileFeeRateTransactions(
+      const feeRateEntryList = this.getPercentileFeeRateEntries(
         currentBlock,
         this.percentiles,
       )
 
-      this.percentiles.forEach((percentile, i) => {
-        const priorityLevel = PERCENTILES_TO_PRIORITY_LEVELS.get(percentile)
+      this.queues.forEach((queue, priorityLevel) => {
+        const percentile =  PRIORITY_LEVELS_TO_PERCENTILES.get(priorityLevel)
 
-        if (priorityLevel) {
-          const queue = this.queues.get(priorityLevel)
+        if(percentile){
+          const feeRateEntry = feeRateEntryList.get(percentile)
 
-          if (queue && percentileTransactions[i] && !this.isFull(queue)) {
-            queue.push({
-              feeRate: getFeeRate(percentileTransactions[i]),
-              blockHash: currentBlockHash,
-            })
+          if (feeRateEntry && !this.isFull(queue)) {
+            queue.push(feeRateEntry)
           }
         }
       })
@@ -87,26 +86,22 @@ export class FeeEstimator {
   }
 
   onConnectBlock(block: Block, memPool: MemPool): void {
-    const percentileTransactions = this.getPercentileFeeRateTransactions(
+    const feeRateEntryList = this.getPercentileFeeRateEntries(
       block,
       this.percentiles,
       (t) => !memPool.exists(t.hash()),
     )
 
-    this.percentiles.forEach((percentile, i) => {
-      const priorityLevel = PERCENTILES_TO_PRIORITY_LEVELS.get(percentile)
-
-      if (priorityLevel && percentileTransactions[i]) {
-        const queue = this.queues.get(priorityLevel)
-
-        if (queue && this.isFull(queue)) {
-          queue.shift()
+    this.queues.forEach((queue, priorityLevel) => {
+      if(PRIORITY_LEVELS_TO_PERCENTILES.has(priorityLevel)){
+        const feeRateEntry = feeRateEntryList.get(PRIORITY_LEVELS_TO_PERCENTILES.get(priorityLevel)!)
+        
+        if (feeRateEntry) {
+          if (this.isFull(queue)) {
+            queue.shift()
+          }
+          queue.push(feeRateEntry)
         }
-
-        queue?.push({
-          feeRate: getFeeRate(percentileTransactions[i]),
-          blockHash: block.header.hash,
-        })
       }
     })
   }
@@ -133,23 +128,31 @@ export class FeeEstimator {
     })
   }
 
-  private getPercentileFeeRateTransactions(
+  private getPercentileFeeRateEntries(
     block: Block,
-    percentiles: number[],
+    percentiles: Percentile[],
     exclude: (transaction: Transaction) => boolean = (t) => t.isMinersFee(),
-  ): Transaction[] {
+  ): Map<Percentile, FeeRateEntry> {
     const sortedTransaction = block.transactions
       .filter((transaction) => !exclude(transaction))
       .sort((txA, txB) => Number(getFeeRate(txA) - getFeeRate(txB)))
 
     if (sortedTransaction.length === 0) {
-      return []
+      return new Map()
     }
 
-    return percentiles.map(
-      (percentile) =>
-        sortedTransaction[Math.round(((sortedTransaction.length - 1) * percentile) / 100)],
-    )
+    const result = new Map<Percentile, FeeRateEntry>()
+
+    percentiles.map(
+      (percentile) => {
+        const transaction = sortedTransaction[Math.round(((sortedTransaction.length - 1) * percentile) / 100)]
+        result.set(percentile, {
+          feeRate: getFeeRate(transaction),
+          blockHash: block.header.hash,
+        })
+      })
+    
+    return result
   }
 
   estimateFeeRate(priorityLevel: PriorityLevel): bigint {
@@ -173,11 +176,11 @@ export class FeeEstimator {
   }
 
   async estimateFee(
-    percentile: number,
+    priorityLevel: PriorityLevel,
     sender: Account,
     receives: { publicAddress: string; amount: bigint; memo: string }[],
   ): Promise<bigint> {
-    const estimateFeeRate = this.estimateFeeRate(percentile)
+    const estimateFeeRate = this.estimateFeeRate(priorityLevel)
     const estimateTransactionSize = await this.getPendingTransactionSize(
       sender,
       receives,
@@ -225,7 +228,7 @@ export class FeeEstimator {
   }
 
   private isFull(array: FeeRateEntry[]): boolean {
-    return array.length === this.maxQueueLength
+    return array.length === this.numOfRecentBlocks
   }
 }
 
