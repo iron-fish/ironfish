@@ -107,23 +107,15 @@ export class FeeEstimator {
   }
 
   onDisconnectBlock(block: Block): void {
-    this.percentiles.forEach((percentile) => {
-      const priorityLevel = PERCENTILES_TO_PRIORITY_LEVELS.get(percentile)
+    this.queues.forEach((queue) => {
+      while (queue.length > 0) {
+        const lastEntry = queue[queue.length - 1]
 
-      if (priorityLevel) {
-        const queue = this.queues.get(priorityLevel)
-
-        if (queue) {
-          while (queue.length > 0) {
-            const lastEntry = queue[queue.length - 1]
-
-            if (!lastEntry.blockHash.equals(block.header.hash)) {
-              break
-            }
-
-            queue.pop()
-          }
+        if (!lastEntry.blockHash.equals(block.header.hash)) {
+          break
         }
+
+        queue.pop()
       }
     })
   }

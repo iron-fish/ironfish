@@ -358,12 +358,12 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        recentBlocksNum: 1,
-        txSampleSize: 1,
+        numOfRecentBlocks: 1,
       })
+
       await feeEstimator.setUp()
 
-      const fee = await feeEstimator.estimateFee(20, account, [
+      const fee = await feeEstimator.estimateFee('low', account, [
         {
           publicAddress: receiver.publicAddress,
           amount: BigInt(5),
