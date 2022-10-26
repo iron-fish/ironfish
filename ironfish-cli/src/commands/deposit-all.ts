@@ -21,7 +21,6 @@ import { RemoteFlags } from '../flags'
 import { verifyCanSend } from '../utils/currency'
 
 const REGISTER_URL = 'https://testnet.ironfish.network/signup'
-const IRON_TO_SEND = 0.1
 
 export default class DepositAll extends IronfishCommand {
   static aliases = ['depositAll']
