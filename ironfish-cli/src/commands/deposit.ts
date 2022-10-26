@@ -201,7 +201,7 @@ The memo will contain the graffiti "${graffiti}".
         receives: [
           {
             publicAddress: bankDepositAddress,
-            amount: oreToSend.toString(),
+            amount: CurrencyUtils.encode(oreToSend),
             memo: graffiti,
           },
         ],
