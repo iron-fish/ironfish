@@ -15,6 +15,7 @@ use crate::to_napi_err;
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendProof;
 use super::witness::JsWitness;
+use super::ENCRYPTED_NOTE_LENGTH;
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {
@@ -52,7 +53,7 @@ impl NativeTransactionPosted {
     pub fn notes_length(&self) -> Result<i64> {
         let notes_len: i64 = self
             .transaction
-            .receipts()
+            .outputs()
             .len()
             .try_into()
             .map_err(|_| to_napi_err("Value out of range"))?;
@@ -66,9 +67,8 @@ impl NativeTransactionPosted {
             .try_into()
             .map_err(|_| to_napi_err("Value out of range"))?;
 
-        let proof = &self.transaction.receipts()[index_usize];
-        // Note bytes are 275
-        let mut vec: Vec<u8> = Vec::with_capacity(275);
+        let proof = &self.transaction.outputs()[index_usize];
+        let mut vec: Vec<u8> = Vec::with_capacity(ENCRYPTED_NOTE_LENGTH as usize);
         proof.merkle_note().write(&mut vec).map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))

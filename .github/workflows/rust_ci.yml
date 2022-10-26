@@ -37,7 +37,7 @@ jobs:
       - name: Run cargo-tarpaulin on ironfish-rust
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: "0.20.0"
+          version: "0.22.0"
           args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust/Cargo.toml --release -- --test-threads 1
 
       # Upload code coverage to Codecov
@@ -78,18 +78,12 @@ jobs:
         with:
           shared-key: nodejs
 
-      # Build & Run test & Collect Code coverage
-      - name: Run cargo-tarpaulin on ironfish-rust-nodejs
-        uses: actions-rs/tarpaulin@v0.1
+      # Check
+      - name: Run cargo check on ironfish-rust-nodejs
+        uses: actions-rs/cargo@v1
         with:
-          version: "0.20.0"
-          args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust-nodejs/Cargo.toml --release -- --test-threads 1
-
-      # upload code coverage to Codecov
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v2.1.0
-        with:
-          flags: ironfish-rust-nodejs
+          command: "check"
+          args: --manifest-path ironfish-rust-nodejs/Cargo.toml
 
       - name: Check for license headers
         run: ./ci/lintHeaders.sh ./ironfish-rust-nodejs/src *.rs
@@ -126,7 +120,7 @@ jobs:
       - name: Run cargo-tarpaulin on ironfish-zkp
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: "0.20.0"
+          version: "0.22.0"
           args: --avoid-cfg-tarpaulin --manifest-path ironfish-zkp/Cargo.toml --release -- --test-threads 1
 
       # Upload code coverage to Codecov

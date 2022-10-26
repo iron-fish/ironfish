@@ -28,9 +28,9 @@ describe('Route chain.getFees', () => {
     expect(response.content).toMatchObject({
       startBlock: 1,
       endBlock: 2,
-      p25: 0,
-      p50: 0,
-      p75: 0,
+      p25: '0',
+      p50: '0',
+      p75: '0',
     })
   })
 
@@ -47,9 +47,9 @@ describe('Route chain.getFees', () => {
     expect(response.content).toMatchObject({
       startBlock: 2,
       endBlock: 3,
-      p25: Number(transaction.fee()),
-      p50: Number(transaction.fee()),
-      p75: Number(transaction.fee()),
+      p25: transaction.fee().toString(),
+      p50: transaction.fee().toString(),
+      p75: transaction.fee().toString(),
     })
   })
 })

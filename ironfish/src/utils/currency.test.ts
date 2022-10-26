@@ -1,51 +1,69 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { displayIronAmountWithCurrency, ironToOre, isValidAmount, oreToIron } from './currency'
+import { CurrencyUtils } from './currency'
 
-describe('Currency utils', () => {
-  test('displayIronAmountWithCurrency returns the right string', () => {
-    const displayLocale = (value: string, decimals: number) => {
-      return parseFloat(value).toLocaleString(undefined, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      })
-    }
-
-    expect(displayIronAmountWithCurrency(0.00000002, true)).toEqual(
-      `$IRON ${displayLocale('0.00000002', 8)} ($ORE ${displayLocale('2', 0)})`,
-    )
-    expect(displayIronAmountWithCurrency(0.0000001, true)).toEqual(
-      `$IRON ${displayLocale('0.00000010', 8)} ($ORE ${displayLocale('10', 0)})`,
-    )
-    expect(displayIronAmountWithCurrency(0, true)).toEqual(
-      `$IRON ${displayLocale('0.00000000', 8)} ($ORE ${displayLocale('0', 0)})`,
-    )
-    expect(displayIronAmountWithCurrency(1, true)).toEqual(
-      `$IRON ${displayLocale('1.00000000', 8)} ($ORE ${displayLocale('100000000', 0)})`,
-    )
-    expect(displayIronAmountWithCurrency(100, true)).toEqual(
-      `$IRON ${displayLocale('100.00000000', 8)} ($ORE ${displayLocale('10000000000', 0)})`,
-    )
-    expect(displayIronAmountWithCurrency(100, false)).toEqual(
-      `$IRON ${displayLocale('100.00000000', 8)}`,
-    )
+describe('CurrencyUtils', () => {
+  it('encode', () => {
+    expect(CurrencyUtils.encode(0n)).toEqual('0')
+    expect(CurrencyUtils.encode(1n)).toEqual('1')
+    expect(CurrencyUtils.encode(100n)).toEqual('100')
+    expect(CurrencyUtils.encode(10000n)).toEqual('10000')
+    expect(CurrencyUtils.encode(100000000n)).toEqual('100000000')
   })
 
-  test('isValidAmount returns the right value', () => {
-    expect(isValidAmount(0.0000000000001)).toBe(false)
-    expect(isValidAmount(100000000000000000000000000)).toBe(false)
-    expect(isValidAmount(0.00000001)).toBe(true)
-    expect(isValidAmount(10.000001)).toBe(true)
+  it('decode', () => {
+    expect(CurrencyUtils.decode('0')).toEqual(0n)
+    expect(CurrencyUtils.decode('1')).toEqual(1n)
+    expect(CurrencyUtils.decode('100')).toEqual(100n)
+    expect(CurrencyUtils.decode('10000')).toEqual(10000n)
+    expect(CurrencyUtils.decode('100000000')).toEqual(100000000n)
   })
 
-  test('oreToIron returns the right value', () => {
-    expect(oreToIron(2394)).toBe(0.00002394)
-    expect(oreToIron(999)).toBe(0.00000999)
+  it('encodeIron', () => {
+    expect(CurrencyUtils.encodeIron(0n)).toEqual('0.0')
+    expect(CurrencyUtils.encodeIron(1n)).toEqual('0.00000001')
+    expect(CurrencyUtils.encodeIron(100n)).toEqual('0.000001')
+    expect(CurrencyUtils.encodeIron(10000n)).toEqual('0.0001')
+    expect(CurrencyUtils.encodeIron(100000000n)).toEqual('1.0')
+
+    expect(CurrencyUtils.encodeIron(2394n)).toBe('0.00002394')
+    expect(CurrencyUtils.encodeIron(999n)).toBe('0.00000999')
   })
 
-  test('ironToOre returns the right value', () => {
-    expect(ironToOre(0.00002394)).toBe(2394)
-    expect(ironToOre(0.00000999)).toBe(999)
+  it('decodeIron', () => {
+    expect(CurrencyUtils.decodeIron('0.0')).toEqual(0n)
+    expect(CurrencyUtils.decodeIron('0.00000001')).toEqual(1n)
+    expect(CurrencyUtils.decodeIron('0.000001')).toEqual(100n)
+    expect(CurrencyUtils.decodeIron('0.0001')).toEqual(10000n)
+    expect(CurrencyUtils.decodeIron('1.0')).toEqual(100000000n)
+
+    expect(CurrencyUtils.decodeIron('0.00002394')).toBe(2394n)
+    expect(CurrencyUtils.decodeIron('0.00000999')).toBe(999n)
+  })
+
+  it('renderIron', () => {
+    expect(CurrencyUtils.renderIron(0n)).toEqual('0.00000000')
+    expect(CurrencyUtils.renderIron(1n)).toEqual('0.00000001')
+    expect(CurrencyUtils.renderIron(100n)).toEqual('0.00000100')
+    expect(CurrencyUtils.renderIron(10000n)).toEqual('0.00010000')
+    expect(CurrencyUtils.renderIron(100000000n)).toEqual('1.00000000')
+    expect(CurrencyUtils.renderIron(1n, true)).toEqual('$IRON 0.00000001')
+  })
+
+  it('renderOre', () => {
+    expect(CurrencyUtils.renderOre(0n)).toEqual('0')
+    expect(CurrencyUtils.renderOre(1n)).toEqual('1')
+    expect(CurrencyUtils.renderOre(100n)).toEqual('100')
+    expect(CurrencyUtils.renderOre(10000n)).toEqual('10000')
+    expect(CurrencyUtils.renderOre(100000000n)).toEqual('100000000')
+    expect(CurrencyUtils.renderOre(1n, true)).toEqual('$ORE 1')
+  })
+
+  test('isValidIronAmount returns the right value', () => {
+    expect(CurrencyUtils.isValidIron('0.0000000000001')).toBe(false)
+    expect(CurrencyUtils.isValidIron('100000000000000000000000000')).toBe(false)
+    expect(CurrencyUtils.isValidIron('0.00000001')).toBe(true)
+    expect(CurrencyUtils.isValidIron('10.000001')).toBe(true)
   })
 })

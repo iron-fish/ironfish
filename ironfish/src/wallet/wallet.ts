@@ -691,46 +691,7 @@ export class Wallet {
       const amountNeeded =
         receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
 
-      let amount = BigInt(0)
-
-      const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
-
-      for await (const unspentNote of this.getUnspentNotes(sender)) {
-        if (unspentNote.note.value() <= BigInt(0)) {
-          continue
-        }
-
-        Assert.isNotNull(unspentNote.index)
-        Assert.isNotNull(unspentNote.nullifier)
-
-        if (await this.checkNoteOnChainAndRepair(sender, unspentNote)) {
-          continue
-        }
-
-        // Try creating a witness from the note
-        const witness = await this.chain.notes.witness(unspentNote.index)
-
-        if (witness === null) {
-          this.logger.debug(
-            `Could not create a witness for note with index ${unspentNote.index}`,
-          )
-          continue
-        }
-
-        this.logger.debug(
-          `Accounts: spending note ${unspentNote.index} ${unspentNote.hash.toString(
-            'hex',
-          )} ${unspentNote.note.value()}`,
-        )
-
-        // Otherwise, push the note into the list of notes to spend
-        notesToSpend.push({ note: unspentNote.note, witness: witness })
-        amount += unspentNote.note.value()
-
-        if (amount >= amountNeeded) {
-          break
-        }
-      }
+      const { amount, notesToSpend } = await this.createSpends(sender, amountNeeded)
 
       if (amount < amountNeeded) {
         throw new NotEnoughFundsError(
@@ -752,6 +713,55 @@ export class Wallet {
       )
     } finally {
       unlock()
+    }
+  }
+
+  async createSpends(
+    sender: Account,
+    amountNeeded: bigint,
+  ): Promise<{ amount: bigint; notesToSpend: Array<{ note: Note; witness: NoteWitness }> }> {
+    let amount = BigInt(0)
+
+    const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
+
+    for await (const unspentNote of this.getUnspentNotes(sender)) {
+      if (unspentNote.note.value() <= BigInt(0)) {
+        continue
+      }
+
+      Assert.isNotNull(unspentNote.index)
+      Assert.isNotNull(unspentNote.nullifier)
+
+      if (await this.checkNoteOnChainAndRepair(sender, unspentNote)) {
+        continue
+      }
+
+      // Try creating a witness from the note
+      const witness = await this.chain.notes.witness(unspentNote.index)
+
+      if (witness === null) {
+        this.logger.debug(`Could not create a witness for note with index ${unspentNote.index}`)
+        continue
+      }
+
+      this.logger.debug(
+        `Accounts: spending note ${unspentNote.index} ${unspentNote.hash.toString(
+          'hex',
+        )} ${unspentNote.note.value()}`,
+      )
+
+      // Otherwise, push the note into the list of notes to spend
+      notesToSpend.push({ note: unspentNote.note, witness: witness })
+      amount += unspentNote.note.value()
+
+      if (amount >= amountNeeded) {
+        break
+      }
+    }
+
+    return {
+      amount,
+      notesToSpend,
     }
   }
 
@@ -836,6 +846,16 @@ export class Wallet {
 
         // Skip transactions that are already added to a block
         if (blockHash) {
+          continue
+        }
+
+        // Skip expired transactions
+        if (
+          this.chain.verifier.isExpiredSequence(
+            transaction.expirationSequence(),
+            this.chain.head.sequence,
+          )
+        ) {
           continue
         }
 

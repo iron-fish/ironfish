@@ -21,7 +21,7 @@ export type GenesisBlockInfo = {
   target: Target
   allocations: {
     publicAddress: string
-    amount: number
+    amount: bigint
   }[]
 }
 
@@ -41,7 +41,7 @@ export async function makeGenesisBlock(
     throw new Error('Database must be empty to create a genesis block.')
   }
   // Sum the allocations to get the total number of coins
-  const allocationSum = info.allocations.reduce((sum, cur) => sum + cur.amount, 0)
+  const allocationSum = info.allocations.reduce((sum, cur) => sum + cur.amount, 0n)
 
   // Track all of the transactions that will be added to the genesis block
   const transactionList = []
@@ -50,11 +50,7 @@ export async function makeGenesisBlock(
   // It should end up with 0 coins.
   const genesisKey = generateKey()
   // Create a genesis note granting the genesisKey allocationSum coins.
-  const genesisNote = new NativeNote(
-    genesisKey.public_address,
-    BigInt(allocationSum),
-    info.memo,
-  )
+  const genesisNote = new NativeNote(genesisKey.public_address, allocationSum, info.memo)
 
   // Create a miner's fee transaction for the block.
   // Since the block itself generates coins and we don't want the miner account to gain
@@ -78,7 +74,7 @@ export async function makeGenesisBlock(
   logger.info(`Generating an initial transaction with ${allocationSum} coins...`)
   const initialTransaction = new NativeTransaction(genesisKey.spending_key)
 
-  logger.info('  Generating the receipt...')
+  logger.info('  Generating the output...')
   initialTransaction.receive(genesisNote)
 
   logger.info('  Posting the initial transaction...')
@@ -118,7 +114,7 @@ export async function makeGenesisBlock(
 
   for (const alloc of info.allocations) {
     logger.info(
-      `  Generating a receipt for ${alloc.amount} coins for ${alloc.publicAddress}...`,
+      `  Generating an output for ${alloc.amount} coins for ${alloc.publicAddress}...`,
     )
     const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), info.memo)
     transaction.receive(note)

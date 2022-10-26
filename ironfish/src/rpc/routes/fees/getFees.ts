@@ -9,9 +9,9 @@ export type GetFeesRequest = { numOfBlocks: number }
 export type GetFeesResponse = {
   startBlock: number
   endBlock: number
-  p25: number
-  p50: number
-  p75: number
+  p25: string
+  p50: string
+  p75: string
 }
 
 export const GetFeesRequestSchema: yup.ObjectSchema<GetFeesRequest> = yup
@@ -24,21 +24,21 @@ export const GetFeesResponseSchema: yup.ObjectSchema<GetFeesResponse> = yup
   .object({
     startBlock: yup.number().defined(),
     endBlock: yup.number().defined(),
-    p25: yup.number().defined(),
-    p50: yup.number().defined(),
-    p75: yup.number().defined(),
+    p25: yup.string().defined(),
+    p50: yup.string().defined(),
+    p75: yup.string().defined(),
   })
   .defined()
 
-const percentile = (fees: number[], percentile: number): number => {
+const percentile = (fees: bigint[], percentile: number): string => {
   const pos = (fees.length - 1) * (percentile / 100)
   const base = Math.floor(pos)
 
   if (fees[base + 1]) {
-    const remainder = pos - base
-    return fees[base] + remainder * (fees[base + 1] - fees[base])
+    const remainder = BigInt(pos - base)
+    return (fees[base] + remainder * (fees[base + 1] - fees[base])).toString()
   } else {
-    return fees[base]
+    return fees[base].toString()
   }
 }
 
@@ -54,7 +54,7 @@ router.register<typeof GetFeesRequestSchema, GetFeesResponse>(
       'numOfBlocks must be less than the current head sequence',
     )
 
-    const fees: number[] = []
+    const fees: bigint[] = []
     const endBlock = node.chain.latest.sequence
     const startBlock = endBlock - numOfBlocks + 1
 
@@ -67,12 +67,12 @@ router.register<typeof GetFeesRequestSchema, GetFeesResponse>(
 
       latestBlock.transactions.forEach((transaction) => {
         if (!transaction.isMinersFee()) {
-          fees.push(Number(transaction.fee()))
+          fees.push(transaction.fee())
         }
       })
     }
 
-    fees.sort((a, b) => a - b)
+    fees.sort((a, b) => (a >= b ? 1 : -1))
 
     request.end({
       startBlock,

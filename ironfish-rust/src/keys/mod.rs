@@ -77,7 +77,7 @@ pub struct SaplingKey {
     pub(crate) incoming_viewing_key: IncomingViewKey,
 }
 
-impl<'a> SaplingKey {
+impl SaplingKey {
     /// Construct a new key from an array of bytes
     pub fn new(spending_key: [u8; 32]) -> Result<Self, IronfishError> {
         let spend_authorizing_key =

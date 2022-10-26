@@ -7,8 +7,8 @@ use crate::{errors::IronfishError, sapling_bls12::SAPLING};
 use super::{
     keys::{PublicAddress, SaplingKey},
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
-    note::{Memo, Note},
-    receiving::{ReceiptParams, ReceiptProof},
+    note::Note,
+    outputs::{OutputParams, OutputProof},
     spending::{SpendParams, SpendProof},
     witness::WitnessTrait,
 };
@@ -28,19 +28,16 @@ use ironfish_zkp::{
 
 use std::{io, iter, slice::Iter};
 
-use std::ops::AddAssign;
-use std::ops::SubAssign;
-
 #[cfg(test)]
 mod tests;
 
 const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"Bnsighsh";
 const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 
-/// A collection of spend and receipt proofs that can be signed and verified.
-/// In general, all the spent values should add up to all the receipt values.
+/// A collection of spend and output proofs that can be signed and verified.
+/// In general, all the spent values should add up to all the output values.
 ///
-/// The Transaction is used while the spends and receipts are being constructed,
+/// The Transaction is used while the spends and outputs are being constructed,
 /// and contains working state that is used to create the transaction information.
 ///
 /// The Transaction, below, contains the serializable version, without any
@@ -58,12 +55,12 @@ pub struct ProposedTransaction {
     /// the signatures.
     spends: Vec<SpendParams>,
 
-    /// proofs of the individual receipts with values required to calculate
+    /// proofs of the individual outputs with values required to calculate
     /// signatures. Note: This is commonly referred to as
     /// `outputs` in the literature.
-    receipts: Vec<ReceiptParams>,
+    outputs: Vec<OutputParams>,
 
-    /// The balance of all the spends minus all the receipts. The difference
+    /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
     transaction_fee: i64,
 
@@ -86,7 +83,7 @@ impl ProposedTransaction {
             binding_signature_key: <jubjub::Fr as Field>::zero(),
             binding_verification_key: ExtendedPoint::identity(),
             spends: vec![],
-            receipts: vec![],
+            outputs: vec![],
             transaction_fee: 0,
             expiration_sequence: 0,
             spender_key,
@@ -96,31 +93,25 @@ impl ProposedTransaction {
     /// Spend the note owned by spender_key at the given witness location.
     pub fn spend(&mut self, note: &Note, witness: &dyn WitnessTrait) -> Result<(), IronfishError> {
         let proof = SpendParams::new(self.spender_key.clone(), note, witness)?;
-        self.add_spend_proof(proof, note.value());
+
+        self.binding_signature_key += proof.value_commitment.randomness;
+        self.binding_verification_key += proof.value_commitment();
+
+        self.spends.push(proof);
+        self.transaction_fee += note.value() as i64;
+
         Ok(())
-    }
-
-    /// Add a spend proof that was created externally.
-    ///
-    /// This allows for parallel immutable spends without having to take
-    /// a mutable pointer out on self.
-    pub fn add_spend_proof(&mut self, spend: SpendParams, note_value: u64) {
-        self.increment_binding_signature_key(&spend.value_commitment.randomness, false);
-        self.increment_binding_verification_key(&spend.value_commitment(), false);
-
-        self.spends.push(spend);
-        self.transaction_fee += note_value as i64;
     }
 
     /// Create a proof of a new note owned by the recipient in this
     /// transaction.
     pub fn receive(&mut self, note: &Note) -> Result<(), IronfishError> {
-        let proof = ReceiptParams::new(&self.spender_key, note)?;
+        let proof = OutputParams::new(&self.spender_key, note)?;
 
-        self.increment_binding_signature_key(&proof.value_commitment_randomness, true);
-        self.increment_binding_verification_key(&proof.merkle_note.value_commitment, true);
+        self.binding_signature_key -= proof.value_commitment_randomness;
+        self.binding_verification_key -= proof.merkle_note.value_commitment;
 
-        self.receipts.push(proof);
+        self.outputs.push(proof);
         self.transaction_fee -= note.value as i64;
 
         Ok(())
@@ -157,7 +148,7 @@ impl ProposedTransaction {
             let change_note = Note::new(
                 change_address,
                 change_amount as u64, // we checked it was positive
-                Memo::default(),
+                "",
             );
             self.receive(&change_note)?;
         }
@@ -170,17 +161,18 @@ impl ProposedTransaction {
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
     pub fn post_miners_fee(&mut self) -> Result<Transaction, IronfishError> {
-        if !self.spends.is_empty() || self.receipts.len() != 1 {
+        if !self.spends.is_empty() || self.outputs.len() != 1 {
             return Err(IronfishError::InvalidMinersFeeTransaction);
         }
         // Ensure the merkle note has an identifiable encryption key
-        self.receipts
+        self.outputs
             .get_mut(0)
             .expect("bounds checked above")
             .merkle_note
             .note_encryption_keys = *NOTE_ENCRYPTION_MINER_KEYS;
         self._partial_post()
     }
+
     /// Super special case for generating an illegal transaction for the genesis block.
     /// Don't bother using this anywhere else, it won't pass verification.
     #[deprecated(note = "Use only in genesis block generation")]
@@ -198,7 +190,7 @@ impl ProposedTransaction {
         self.expiration_sequence = expiration_sequence;
     }
 
-    // post transaction without much validation.
+    // Post transaction without much validation.
     fn _partial_post(&self) -> Result<Transaction, IronfishError> {
         self.check_value_consistency()?;
         let data_to_sign = self.transaction_signature_hash();
@@ -207,15 +199,15 @@ impl ProposedTransaction {
         for spend in &self.spends {
             spend_proofs.push(spend.post(&data_to_sign)?);
         }
-        let mut receipt_proofs = Vec::with_capacity(self.receipts.len());
-        for receipt in &self.receipts {
-            receipt_proofs.push(receipt.post()?);
+        let mut output_proofs = Vec::with_capacity(self.outputs.len());
+        for output in &self.outputs {
+            output_proofs.push(output.post()?);
         }
         Ok(Transaction {
             expiration_sequence: self.expiration_sequence,
             transaction_fee: self.transaction_fee,
             spends: spend_proofs,
-            receipts: receipt_proofs,
+            outputs: output_proofs,
             binding_signature,
         })
     }
@@ -241,8 +233,8 @@ impl ProposedTransaction {
         for spend in self.spends.iter() {
             spend.serialize_signature_fields(&mut hasher).unwrap();
         }
-        for receipt in self.receipts.iter() {
-            receipt.serialize_signature_fields(&mut hasher).unwrap();
+        for output in self.outputs.iter() {
+            output.serialize_signature_fields(&mut hasher).unwrap();
         }
 
         let mut hash_result = [0; 32];
@@ -250,13 +242,13 @@ impl ProposedTransaction {
         hash_result
     }
 
-    /// Confirm that balance of input and receipt values is consistent with
+    /// Confirm that balance of input and output values is consistent with
     /// those used in the proofs.
     ///
     /// Does not confirm that the transactions add up to zero. The calculation
     /// for fees and change happens elsewhere.
     ///
-    /// Can be safely called after each spend or receipt is added.
+    /// Can be safely called after each spend or output is added.
     ///
     /// Note: There is some duplication of effort between this function and
     /// binding_signature below. I find the separation of concerns easier
@@ -265,17 +257,15 @@ impl ProposedTransaction {
         let private_key = PrivateKey(self.binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
-        let mut value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
+        let value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
 
-        value_balance_point = -value_balance_point;
-        let mut calculated_public_key = self.binding_verification_key;
-        calculated_public_key += value_balance_point;
+        let calculated_public_key = self.binding_verification_key - value_balance_point;
 
         if calculated_public_key != public_key.0 {
-            Err(IronfishError::InvalidBalance)
-        } else {
-            Ok(())
+            return Err(IronfishError::InvalidBalance);
         }
+
+        Ok(())
     }
 
     /// The binding signature ties up all the randomness generated with the
@@ -289,37 +279,13 @@ impl ProposedTransaction {
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 
         data_to_be_signed[..32].copy_from_slice(&public_key.0.to_bytes());
-        (&mut data_to_be_signed[32..]).copy_from_slice(&self.transaction_signature_hash());
+        data_to_be_signed[32..].copy_from_slice(&self.transaction_signature_hash());
 
         Ok(private_key.sign(
             &data_to_be_signed,
             &mut OsRng,
             VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ))
-    }
-
-    /// Helper method to encapsulate the verbose way incrementing the signature
-    /// key works
-    fn increment_binding_signature_key(&mut self, value: &jubjub::Fr, negate: bool) {
-        let tmp = *value;
-        if negate {
-            //binding_signature_key - value
-            self.binding_signature_key.sub_assign(&tmp);
-        } else {
-            //binding_signature_key + value
-            self.binding_signature_key.add_assign(&tmp);
-        }
-    }
-
-    /// Helper method to encapsulate the verboseness around incrementing the
-    /// binding verification key
-    fn increment_binding_verification_key(&mut self, value: &ExtendedPoint, negate: bool) {
-        let mut tmp = *value;
-        if negate {
-            tmp = -tmp;
-        }
-        tmp += self.binding_verification_key;
-        self.binding_verification_key = tmp;
     }
 }
 
@@ -335,11 +301,11 @@ pub struct Transaction {
     /// List of spends, or input notes, that have been destroyed.
     spends: Vec<SpendProof>,
 
-    /// List of receipts, or output notes that have been created.
-    receipts: Vec<ReceiptProof>,
+    /// List of outputs, or output notes that have been created.
+    outputs: Vec<OutputProof>,
 
     /// Signature calculated from accumulating randomness with all the spends
-    /// and receipts when the transaction was created.
+    /// and outputs when the transaction was created.
     binding_signature: Signature,
 
     /// This is the sequence in the chain the transaction will expire at and be
@@ -354,23 +320,26 @@ impl Transaction {
     /// for verifying.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
-        let num_receipts = reader.read_u64::<LittleEndian>()?;
+        let num_outputs = reader.read_u64::<LittleEndian>()?;
         let transaction_fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
+
         let mut spends = Vec::with_capacity(num_spends as usize);
-        let mut receipts = Vec::with_capacity(num_receipts as usize);
         for _ in 0..num_spends {
             spends.push(SpendProof::read(&mut reader)?);
         }
-        for _ in 0..num_receipts {
-            receipts.push(ReceiptProof::read(&mut reader)?);
+
+        let mut outputs = Vec::with_capacity(num_outputs as usize);
+        for _ in 0..num_outputs {
+            outputs.push(OutputProof::read(&mut reader)?);
         }
+
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(Transaction {
             transaction_fee,
             spends,
-            receipts,
+            outputs,
             binding_signature,
             expiration_sequence,
         })
@@ -380,15 +349,17 @@ impl Transaction {
     /// to serialize transactions to file or network
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
-        writer.write_u64::<LittleEndian>(self.receipts.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.transaction_fee)?;
         writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
+
         for spend in self.spends.iter() {
             spend.write(&mut writer)?;
         }
-        for receipt in self.receipts.iter() {
-            receipt.write(&mut writer)?;
+        for output in self.outputs.iter() {
+            output.write(&mut writer)?;
         }
+
         self.binding_signature.write(&mut writer)?;
 
         Ok(())
@@ -396,7 +367,7 @@ impl Transaction {
 
     /// Validate the transaction. Confirms that:
     ///  *  Each of the spend proofs has the inputs it says it does
-    ///  *  Each of the receipt proofs has the inputs it says it has
+    ///  *  Each of the output proofs has the inputs it says it has
     ///  *  Each of the spend proofs was signed by the owner
     ///  *  The entire transaction was signed with a binding signature
     ///     containing those proofs (and only those proofs)
@@ -415,13 +386,13 @@ impl Transaction {
         &self.spends
     }
 
-    /// Get an iterator over the receipts in this transaction, by reference
-    pub fn iter_receipts(&self) -> Iter<ReceiptProof> {
-        self.receipts.iter()
+    /// Get an iterator over the outputs in this transaction, by reference
+    pub fn iter_outputs(&self) -> Iter<OutputProof> {
+        self.outputs.iter()
     }
 
-    pub fn receipts(&self) -> &Vec<ReceiptProof> {
-        &self.receipts
+    pub fn outputs(&self) -> &Vec<OutputProof> {
+        &self.outputs
     }
 
     /// Get the transaction fee for this transaction. Miners should generally
@@ -439,11 +410,6 @@ impl Transaction {
     /// Get the expiration sequence for this transaction
     pub fn expiration_sequence(&self) -> u32 {
         self.expiration_sequence
-    }
-
-    /// Set the sequence to expire the transaction from the mempool.
-    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) {
-        self.expiration_sequence = expiration_sequence;
     }
 
     /// Calculate a hash of the transaction data. This hash was signed by the
@@ -464,8 +430,8 @@ impl Transaction {
         for spend in self.spends.iter() {
             spend.serialize_signature_fields(&mut hasher).unwrap();
         }
-        for receipt in self.receipts.iter() {
-            receipt.serialize_signature_fields(&mut hasher).unwrap();
+        for output in self.outputs.iter() {
+            output.serialize_signature_fields(&mut hasher).unwrap();
         }
 
         let mut hash_result = [0; 32];
@@ -479,26 +445,24 @@ impl Transaction {
         &self,
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), IronfishError> {
-        let mut value_balance_point = value_balance_to_point(self.transaction_fee)?;
-        value_balance_point = -value_balance_point;
+        let value_balance_point = value_balance_to_point(self.transaction_fee)?;
 
-        let mut public_key_point = *binding_verification_key;
-        public_key_point += value_balance_point;
+        let public_key_point = binding_verification_key - value_balance_point;
         let public_key = PublicKey(public_key_point);
 
         let mut data_to_verify_signature = [0; 64];
         data_to_verify_signature[..32].copy_from_slice(&public_key.0.to_bytes());
-        (&mut data_to_verify_signature[32..]).copy_from_slice(&self.transaction_signature_hash());
+        data_to_verify_signature[32..].copy_from_slice(&self.transaction_signature_hash());
 
         if !public_key.verify(
             &data_to_verify_signature,
             &self.binding_signature,
             VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ) {
-            Err(IronfishError::VerificationFailed)
-        } else {
-            Ok(())
+            return Err(IronfishError::VerificationFailed);
         }
+
+        Ok(())
     }
 }
 
@@ -526,7 +490,7 @@ pub fn batch_verify_transactions<'a>(
     transactions: impl IntoIterator<Item = &'a Transaction>,
 ) -> Result<(), IronfishError> {
     let mut spend_verifier = Verifier::<Bls12>::new();
-    let mut receipt_verifier = Verifier::<Bls12>::new();
+    let mut output_verifier = Verifier::<Bls12>::new();
 
     for transaction in transactions {
         // Context to accumulate a signature of all the spends and outputs and
@@ -546,13 +510,13 @@ pub fn batch_verify_transactions<'a>(
             spend.verify_signature(&hash_to_verify_signature)?;
         }
 
-        for receipt in transaction.receipts.iter() {
-            receipt.verify_value_commitment()?;
+        for output in transaction.outputs.iter() {
+            output.verify_value_commitment()?;
 
-            let public_inputs = receipt.public_inputs();
-            receipt_verifier.queue((&receipt.proof, &public_inputs[..]));
+            let public_inputs = output.public_inputs();
+            output_verifier.queue((&output.proof, &public_inputs[..]));
 
-            binding_verification_key -= receipt.merkle_note.value_commitment;
+            binding_verification_key -= output.merkle_note.value_commitment;
         }
 
         transaction.verify_binding_signature(&binding_verification_key)?;
@@ -560,7 +524,7 @@ pub fn batch_verify_transactions<'a>(
 
     spend_verifier.verify(&mut OsRng, &SAPLING.spend_params.vk)?;
 
-    receipt_verifier.verify(&mut OsRng, &SAPLING.receipt_params.vk)?;
+    output_verifier.verify(&mut OsRng, &SAPLING.output_params.vk)?;
 
     Ok(())
 }
