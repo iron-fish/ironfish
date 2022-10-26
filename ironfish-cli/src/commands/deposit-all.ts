@@ -209,24 +209,30 @@ export default class DepositAll extends IronfishCommand {
       confirmedBalance = CurrencyUtils.decode(balanceResp.content.confirmed)
       unconfirmedBalance = CurrencyUtils.decode(balanceResp.content.unconfirmed)
       pendingBalance = CurrencyUtils.decode(balanceResp.content.pending)
-
-      const sendOres = CurrencyUtils.decodeIron(IRON_TO_SEND) + fee
+      const { minDepositSize, maxDepositSize } = await this.api.getMinAndMaxDepositSize()
+      const minDepositOre = CurrencyUtils.decodeIron(minDepositSize)
+      const maxDepositOre = CurrencyUtils.decodeIron(maxDepositSize)
+      const sendableOre = confirmedBalance - fee
 
       // terminate condition
-      if (terminate && pendingBalance < sendOres) {
+      if (terminate && pendingBalance < sendableOre + fee) {
         screen.destroy()
         process.exit(0)
       }
 
       // send transaction
-      if (confirmedBalance > sendOres) {
+      if (confirmedBalance >= sendableOre + fee) {
         try {
+          const oreToSend = BigIntUtils.min(
+            (sendableOre / minDepositOre) * minDepositOre,
+            maxDepositOre,
+          )
           const result = await this.client.sendTransaction({
             fromAccountName: accountName,
             receives: [
               {
                 publicAddress: bankDepositAddress,
-                amount: CurrencyUtils.encode(CurrencyUtils.decodeIron(IRON_TO_SEND)),
+                amount: CurrencyUtils.encode(oreToSend),
                 memo: graffiti,
               },
             ],
