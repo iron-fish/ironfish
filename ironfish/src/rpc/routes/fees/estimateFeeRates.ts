@@ -46,14 +46,14 @@ router.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
         feeRates: [{ priority, feeRate: feeRate.toString() }],
       })
     } else {
-      const feeRates = feeEstimator.estimateFeeRates()
+      const feeRates = []
+
+      for (const { priority, feeRate } of feeEstimator.estimateFeeRates()) {
+        feeRates.push({ priority, feeRate: feeRate.toString() })
+      }
 
       request.end({
-        feeRates: [
-          { priority: 'low', feeRate: feeRates.low.toString() },
-          { priority: 'medium', feeRate: feeRates.medium.toString() },
-          { priority: 'high', feeRate: feeRates.high.toString() },
-        ],
+        feeRates,
       })
     }
   },
