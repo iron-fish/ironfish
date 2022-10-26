@@ -10,7 +10,6 @@ import { MetricsMonitor } from '../metrics'
 import { getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { Wallet } from '../wallet'
 import { FeeEstimator } from './feeEstimator'
 import { PriorityQueue } from './priorityQueue'
 
@@ -36,13 +35,17 @@ export class MemPool {
   head: BlockHeader | null
 
   private readonly chain: Blockchain
-  private readonly wallet: Wallet
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
 
   private readonly feeEstimator: FeeEstimator
 
-  constructor(options: { wallet: Wallet; metrics: MetricsMonitor; logger?: Logger }) {
+  constructor(options: {
+    chain: Blockchain
+    feeEstimator: FeeEstimator
+    metrics: MetricsMonitor
+    logger?: Logger
+  }) {
     const logger = options.logger || createRootLogger()
 
     this.head = null
@@ -62,12 +65,11 @@ export class MemPool {
       (t) => t.hash.toString('hex'),
     )
 
-    this.wallet = options.wallet
-    this.chain = options.wallet.chain
+    this.chain = options.chain
     this.logger = logger.withTag('mempool')
     this.metrics = options.metrics
 
-    this.feeEstimator = new FeeEstimator({ wallet: this.wallet })
+    this.feeEstimator = options.feeEstimator
 
     this.chain.onConnectBlock.on((block) => {
       this.feeEstimator.onConnectBlock(block, this)

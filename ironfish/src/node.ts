@@ -16,6 +16,7 @@ import { FileSystem } from './fileSystems'
 import { MinedBlocksIndexer } from './indexers/minedBlocksIndexer'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
+import { FeeEstimator } from './memPool/feeEstimator'
 import { MetricsMonitor } from './metrics'
 import { Migrator } from './migrations'
 import { MiningManager } from './mining'
@@ -252,7 +253,9 @@ export class IronfishNode {
       workerPool,
     })
 
-    const memPool = new MemPool({ wallet, metrics, logger })
+    const feeEstimator = new FeeEstimator({ wallet })
+
+    const memPool = new MemPool({ chain, feeEstimator, metrics, logger })
 
     const minedBlocksIndexer = new MinedBlocksIndexer({
       files,
