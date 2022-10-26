@@ -131,7 +131,7 @@ export default class Bank extends IronfishCommand {
           confirmedBalance,
         )} IRON.  Fee (${CurrencyUtils.renderIron(
           fee,
-        )} IRON) + minimum deposit (${minDepositSize} IRON) = total required (${CurrencyUtils.encodeIron(
+        )} IRON) + minimum deposit (${minDepositSize} IRON) = total required (${CurrencyUtils.renderIron(
           fee + minDepositOre,
         )} IRON)`,
       )
