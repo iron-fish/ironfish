@@ -44,6 +44,10 @@ export class FeeEstimator {
   }
 
   async init(chain: Blockchain): Promise<void> {
+    if (chain.isEmpty) {
+      return
+    }
+
     let currentBlockHash = chain.latest.hash
 
     for (let i = 0; i < this.numOfRecentBlocks; i++) {
