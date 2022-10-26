@@ -127,7 +127,7 @@ export default class Bank extends IronfishCommand {
 
     if (confirmedBalance < BigInt(fee) + minDepositOre) {
       this.log(
-        `Insufficient balance: ${CurrencyUtils.encodeIron(
+        `Insufficient balance: ${CurrencyUtils.renderIron(
           confirmedBalance,
         )} IRON.  Fee (${CurrencyUtils.renderIron(
           fee,
