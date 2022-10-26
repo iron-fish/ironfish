@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
-import { FeeEstimator, getFeeRate, PRIORITY_LEVELS } from './feeEstimator'
-
 import {
   createNodeTest,
   useAccountFixture,
   useBlockWithTx,
   useBlockWithTxs,
 } from '../testUtilities'
+import { FeeEstimator, getFeeRate, PRIORITY_LEVELS } from './feeEstimator'
 
 describe('FeeEstimator', () => {
   const nodeTest = createNodeTest()
@@ -62,7 +61,7 @@ describe('FeeEstimator', () => {
         wallet: node.wallet,
         numOfRecentBlocks: 1,
       })
-      
+
       await feeEstimator.setUp()
 
       expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(1)
@@ -226,7 +225,7 @@ describe('FeeEstimator', () => {
 
     it('should add only add a limited number of transactions from each block', async () => {
       const node = nodeTest.node
-      
+
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
         numOfRecentBlocks: 2,
