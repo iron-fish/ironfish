@@ -40,7 +40,12 @@ export class MemPool {
 
   private readonly feeEstimator: FeeEstimator
 
-  constructor(options: { chain: Blockchain; metrics: MetricsMonitor; logger?: Logger }) {
+  constructor(options: {
+    chain: Blockchain
+    feeEstimator: FeeEstimator
+    metrics: MetricsMonitor
+    logger?: Logger
+  }) {
     const logger = options.logger || createRootLogger()
 
     this.head = null
@@ -64,7 +69,7 @@ export class MemPool {
     this.logger = logger.withTag('mempool')
     this.metrics = options.metrics
 
-    this.feeEstimator = new FeeEstimator({ chain: this.chain })
+    this.feeEstimator = options.feeEstimator
 
     this.chain.onConnectBlock.on((block) => {
       this.feeEstimator.onConnectBlock(block, this)

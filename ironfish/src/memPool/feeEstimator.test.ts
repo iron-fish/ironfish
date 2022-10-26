@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
-import { createNodeTest, useBlockWithTx, useBlockWithTxs } from '../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useBlockWithTx,
+  useBlockWithTxs,
+} from '../testUtilities'
 import { FeeEstimator, getFeeRate } from './feeEstimator'
 
 describe('FeeEstimator', () => {
@@ -19,7 +24,7 @@ describe('FeeEstimator', () => {
       await node.chain.addBlock(block)
 
       const feeEstimator = new FeeEstimator({
-        chain: node.chain,
+        wallet: node.wallet,
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
@@ -52,7 +57,7 @@ describe('FeeEstimator', () => {
       await node.chain.addBlock(block2)
 
       const feeEstimator = new FeeEstimator({
-        chain: node.chain,
+        wallet: node.wallet,
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
@@ -73,7 +78,7 @@ describe('FeeEstimator', () => {
       await node.chain.addBlock(block)
 
       const feeEstimator = new FeeEstimator({
-        chain: node.chain,
+        wallet: node.wallet,
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
@@ -97,7 +102,7 @@ describe('FeeEstimator', () => {
       await node.chain.addBlock(block)
 
       const feeEstimator = new FeeEstimator({
-        chain: node.chain,
+        wallet: node.wallet,
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
@@ -115,7 +120,7 @@ describe('FeeEstimator', () => {
       const node = nodeTest.node
 
       const feeEstimator = new FeeEstimator({
-        chain: node.chain,
+        wallet: node.wallet,
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
@@ -157,7 +162,7 @@ describe('FeeEstimator', () => {
       const node = nodeTest.node
 
       const feeEstimator = new FeeEstimator({
-        chain: node.chain,
+        wallet: node.wallet,
         recentBlocksNum: 2,
         txSampleSize: 1,
       })
@@ -198,7 +203,7 @@ describe('FeeEstimator', () => {
       const node = nodeTest.node
 
       const feeEstimator = new FeeEstimator({
-        chain: node.chain,
+        wallet: node.wallet,
         recentBlocksNum: 2,
         txSampleSize: 2,
       })
@@ -242,7 +247,7 @@ describe('FeeEstimator', () => {
       const node = nodeTest.node
 
       const feeEstimator = new FeeEstimator({
-        chain: node.chain,
+        wallet: node.wallet,
         recentBlocksNum: 2,
         txSampleSize: 2,
       })
@@ -264,7 +269,7 @@ describe('FeeEstimator', () => {
       const node = nodeTest.node
 
       const feeEstimator = new FeeEstimator({
-        chain: node.chain,
+        wallet: node.wallet,
         recentBlocksNum: 2,
         txSampleSize: 1,
       })
@@ -303,6 +308,36 @@ describe('FeeEstimator', () => {
       feeEstimator.onDisconnectBlock(block2)
 
       expect(feeEstimator.size()).toBe(1)
+    })
+  })
+
+  describe('estimateFee', () => {
+    it('should estimate fee for a pending transaction', async () => {
+      const node = nodeTest.node
+      const { account, block } = await useBlockWithTx(node, undefined, undefined, true, {
+        fee: 10,
+      })
+
+      const receiver = await useAccountFixture(node.wallet, 'accountA')
+
+      await node.chain.addBlock(block)
+
+      const feeEstimator = new FeeEstimator({
+        wallet: node.wallet,
+        recentBlocksNum: 1,
+        txSampleSize: 1,
+      })
+      await feeEstimator.setUp()
+
+      const fee = await feeEstimator.estimateFee(20, account, [
+        {
+          publicAddress: receiver.publicAddress,
+          amount: BigInt(5),
+          memo: 'test',
+        },
+      ])
+
+      expect(fee).toBe(BigInt(10))
     })
   })
 })
