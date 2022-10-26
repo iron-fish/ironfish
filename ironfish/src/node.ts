@@ -296,6 +296,7 @@ export class IronfishNode {
       await this.chain.open()
       await this.wallet.open()
       await this.minedBlocksIndexer.open()
+      await this.memPool.feeEstimator.init(this.chain)
     } catch (e) {
       await this.chain.close()
       await this.wallet.close()
@@ -317,8 +318,6 @@ export class IronfishNode {
     // Work in the worker pool happens concurrently,
     // so we should start it as soon as possible
     this.workerPool.start()
-
-    await this.memPool.feeEstimator.init(this.chain)
 
     if (this.config.get('enableTelemetry')) {
       this.telemetry.start()
