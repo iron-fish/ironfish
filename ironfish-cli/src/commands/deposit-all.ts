@@ -209,6 +209,7 @@ export default class DepositAll extends IronfishCommand {
       confirmedBalance = CurrencyUtils.decode(balanceResp.content.confirmed)
       unconfirmedBalance = CurrencyUtils.decode(balanceResp.content.unconfirmed)
       pendingBalance = CurrencyUtils.decode(balanceResp.content.pending)
+      // putting this inside of loop to protect against future config changes to allowable size
       const { minDepositSize, maxDepositSize } = await this.api.getMinAndMaxDepositSize()
       const minDepositOre = CurrencyUtils.decodeIron(minDepositSize)
       const maxDepositOre = CurrencyUtils.decodeIron(maxDepositSize)
