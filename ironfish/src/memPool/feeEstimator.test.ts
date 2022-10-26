@@ -13,7 +13,7 @@ import { FeeEstimator, getFeeRate } from './feeEstimator'
 describe('FeeEstimator', () => {
   const nodeTest = createNodeTest()
 
-  describe('setUp', () => {
+  describe('init', () => {
     it('should build recent fee cache with capacity of 1', async () => {
       const node = nodeTest.node
 
@@ -28,7 +28,7 @@ describe('FeeEstimator', () => {
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
-      await feeEstimator.setUp()
+      await feeEstimator.init(node.chain)
 
       expect(feeEstimator.estimateFeeRate(60)).toBe(getFeeRate(transaction))
     })
@@ -61,10 +61,50 @@ describe('FeeEstimator', () => {
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
-      await feeEstimator.setUp()
+      await feeEstimator.init(node.chain)
 
       expect(feeEstimator.size()).toBe(1)
       expect(feeEstimator.estimateFeeRate(60)).toBe(getFeeRate(transaction2))
+    })
+
+    it('should initialize with the most recent block at the end of the queue', async () => {
+      const node = nodeTest.node
+      const { account, block, transaction } = await useBlockWithTx(
+        node,
+        undefined,
+        undefined,
+        true,
+        {
+          fee: 10,
+        },
+      )
+
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      const { block: block2, transaction: transaction2 } = await useBlockWithTx(
+        node,
+        account,
+        account,
+        false,
+        {
+          fee: 20,
+        },
+      )
+
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const feeEstimator = new FeeEstimator({
+        wallet: node.wallet,
+        recentBlocksNum: 2,
+        txSampleSize: 1,
+      })
+      await feeEstimator.init(node.chain)
+
+      expect(feeEstimator.size()).toBe(2)
+      expect(feeEstimator['queue'][0].feeRate).toEqual(getFeeRate(transaction))
+      expect(feeEstimator['queue'][1].feeRate).toEqual(getFeeRate(transaction2))
     })
   })
 
@@ -327,7 +367,7 @@ describe('FeeEstimator', () => {
         recentBlocksNum: 1,
         txSampleSize: 1,
       })
-      await feeEstimator.setUp()
+      await feeEstimator.init(node.chain)
 
       const fee = await feeEstimator.estimateFee(20, account, [
         {

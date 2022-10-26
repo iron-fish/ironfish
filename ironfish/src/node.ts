@@ -296,6 +296,7 @@ export class IronfishNode {
       await this.chain.open()
       await this.wallet.open()
       await this.minedBlocksIndexer.open()
+      await this.memPool.feeEstimator.init(this.chain)
     } catch (e) {
       await this.chain.close()
       await this.wallet.close()
