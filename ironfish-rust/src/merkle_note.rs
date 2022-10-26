@@ -24,6 +24,8 @@ use jubjub::{ExtendedPoint, SubgroupPoint};
 use std::{convert::TryInto, io};
 
 pub const ENCRYPTED_SHARED_KEY_SIZE: usize = 64;
+
+pub const NOTE_ENCRYPTION_KEY_SIZE: usize = ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE;
 /// The note encryption keys are used to allow the spender to
 /// read notes that they have themselves have spent.
 /// In the case of miner notes, the note is created out of thin air
@@ -32,7 +34,7 @@ pub const ENCRYPTED_SHARED_KEY_SIZE: usize = 64;
 ///
 /// This does not leak information, since miner notes are identifiably
 /// stored separately on the header of blocks already.
-pub const NOTE_ENCRYPTION_MINER_KEYS: &[u8; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE] =
+pub const NOTE_ENCRYPTION_MINER_KEYS: &[u8; NOTE_ENCRYPTION_KEY_SIZE] =
     b"Beanstalk note encryption miner key000000000000000000000000000000000000000000000";
 const SHARED_KEY_PERSONALIZATION: &[u8; 16] = b"Beanstalk Keyenc";
 
@@ -48,7 +50,7 @@ pub struct MerkleNote {
     pub(crate) note_commitment: Scalar,
 
     /// Public part of ephemeral diffie-hellman key-pair. See the discussion on
-    /// keys::shared_secret to understand how this is used
+    /// [`shared_secret`] to understand how this is used
     pub(crate) ephemeral_public_key: SubgroupPoint,
 
     /// note as encrypted by the diffie hellman public key
@@ -58,7 +60,7 @@ pub struct MerkleNote {
     /// using the spender's outgoing viewing key, and allow the spender to
     /// decrypt it. The receiver (owner) doesn't need these, as they can decrypt
     /// the note directly using their incoming viewing key.
-    pub(crate) note_encryption_keys: [u8; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE],
+    pub(crate) note_encryption_keys: [u8; NOTE_ENCRYPTION_KEY_SIZE],
 }
 
 impl PartialEq for MerkleNote {
@@ -77,12 +79,6 @@ impl MerkleNote {
     ) -> MerkleNote {
         let (secret_key, public_key) = diffie_hellman_keys;
 
-        let encrypted_note = note.encrypt(&shared_secret(
-            secret_key,
-            &note.owner.transmission_key,
-            public_key,
-        ));
-
         let mut key_bytes = [0; 64];
         key_bytes[..32].copy_from_slice(&note.owner.transmission_key.to_bytes());
         key_bytes[32..].clone_from_slice(secret_key.to_repr().as_ref());
@@ -93,8 +89,50 @@ impl MerkleNote {
             &note.commitment_point(),
             public_key,
         );
-        let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];
+        let mut note_encryption_keys = [0; NOTE_ENCRYPTION_KEY_SIZE];
         aead::encrypt(&encryption_key, &key_bytes, &mut note_encryption_keys);
+
+        Self::construct(
+            note,
+            value_commitment,
+            diffie_hellman_keys,
+            note_encryption_keys,
+        )
+    }
+
+    /// Helper function to instantiate a MerkleNote with pre-set
+    /// note_encryption_keys. Should only be used for miners fee transactions.
+    pub(crate) fn new_for_miners_fee(
+        note: &Note,
+        value_commitment: &ValueCommitment,
+        diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
+    ) -> MerkleNote {
+        let note_encryption_keys = *NOTE_ENCRYPTION_MINER_KEYS;
+
+        Self::construct(
+            note,
+            value_commitment,
+            diffie_hellman_keys,
+            note_encryption_keys,
+        )
+    }
+
+    /// Helper function to cut down on duplicated code between
+    /// `MerkleNote::new` and `MerkleNote::new_for_miners_fee`. Should not
+    /// be used directly.
+    fn construct(
+        note: &Note,
+        value_commitment: &ValueCommitment,
+        diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
+        note_encryption_keys: [u8; NOTE_ENCRYPTION_KEY_SIZE],
+    ) -> MerkleNote {
+        let (secret_key, public_key) = diffie_hellman_keys;
+
+        let encrypted_note = note.encrypt(&shared_secret(
+            secret_key,
+            &note.owner.transmission_key,
+            public_key,
+        ));
 
         MerkleNote {
             value_commitment: value_commitment.commitment().into(),
@@ -123,7 +161,7 @@ impl MerkleNote {
 
         let mut encrypted_note = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         reader.read_exact(&mut encrypted_note[..])?;
-        let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE + aead::MAC_SIZE];
+        let mut note_encryption_keys = [0; NOTE_ENCRYPTION_KEY_SIZE];
         reader.read_exact(&mut note_encryption_keys[..])?;
 
         Ok(MerkleNote {
@@ -217,8 +255,7 @@ pub(crate) fn position(witness: &dyn WitnessTrait) -> u64 {
     pos
 }
 
-/// Calculate the key used to encrypt the shared keys for a OutputProof or
-/// OutputParams.
+/// Calculate the key used to encrypt the shared keys for an [`crate::outputs::OutputProof`].
 ///
 /// The shared keys are encrypted using the outgoing viewing key for the
 /// spender (the person creating the note owned by the receiver). This gets

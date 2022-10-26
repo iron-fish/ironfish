@@ -28,8 +28,8 @@ pub use {
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,
     note::Note,
-    outputs::{OutputParams, OutputProof},
-    spending::{SpendParams, SpendProof},
+    outputs::OutputProof,
+    spending::SpendProof,
     transaction::{ProposedTransaction, Transaction},
 };
 

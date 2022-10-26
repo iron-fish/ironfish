@@ -22,20 +22,10 @@ fn test_transaction() {
     let _witness2 = make_fake_witness(&in_note2);
 
     let mut transaction = ProposedTransaction::new(spender_key);
-    transaction
-        .spend(&in_note, &witness)
-        .expect("should be able to prove spend");
+    transaction.add_spend(in_note, &witness);
     assert_eq!(transaction.spends.len(), 1);
-    transaction
-        .check_value_consistency()
-        .expect("should be consistent after spend");
-    transaction
-        .receive(&out_note)
-        .expect("should be able to prove output");
+    transaction.add_output(out_note);
     assert_eq!(transaction.outputs.len(), 1);
-    transaction
-        .check_value_consistency()
-        .expect("should be consistent after output");
 
     // This fails because witness and witness2 have different root hashes, and constructing
     // an auth_path with consistent hashes is non-trivial without a real merkle tree
@@ -90,19 +80,19 @@ fn test_miners_fee() {
     let receiver_key: SaplingKey = SaplingKey::generate_key();
     let out_note = Note::new(receiver_key.generate_public_address(), 42, "");
     let mut transaction = ProposedTransaction::new(receiver_key);
-    transaction.receive(&out_note).expect("It's a valid note");
+    transaction.add_output(out_note);
     let posted_transaction = transaction
         .post_miners_fee()
         .expect("it is a valid miner's fee");
     assert_eq!(posted_transaction.transaction_fee, -42);
     assert_eq!(
-        posted_transaction
+        &posted_transaction
             .iter_outputs()
             .next()
             .unwrap()
             .merkle_note
-            .note_encryption_keys[0..30],
-        NOTE_ENCRYPTION_MINER_KEYS[0..30]
+            .note_encryption_keys,
+        NOTE_ENCRYPTION_MINER_KEYS
     );
 }
 
@@ -118,13 +108,9 @@ fn test_transaction_signature() {
     let out_note = Note::new(receiver_address, 41, "");
     let witness = make_fake_witness(&in_note);
 
-    transaction
-        .spend(&in_note, &witness)
-        .expect("should be able to spend note");
+    transaction.add_spend(in_note, &witness);
 
-    transaction
-        .receive(&out_note)
-        .expect("Should be able to receive note");
+    transaction.add_output(out_note);
 
     transaction.set_expiration_sequence(1337);
 
