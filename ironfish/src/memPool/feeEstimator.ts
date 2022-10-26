@@ -20,7 +20,6 @@ interface FeeRateEntry {
 
 export class FeeEstimator {
   private queue: Array<FeeRateEntry>
-  readonly chain: Blockchain
   private wallet: Wallet
   private readonly logger: Logger
   private numOfRecentBlocks = 10
@@ -41,16 +40,14 @@ export class FeeEstimator {
     this.maxQueueLength = this.numOfRecentBlocks * this.numOfTxSamples
 
     this.queue = []
-    this.chain = options.wallet.chain
     this.wallet = options.wallet
   }
 
-  async setUp(): Promise<void> {
-    // Mempool is empty
-    let currentBlockHash = this.chain.latest.hash
+  async init(chain: Blockchain): Promise<void> {
+    let currentBlockHash = chain.latest.hash
 
     for (let i = 0; i < this.numOfRecentBlocks; i++) {
-      const currentBlock = await this.chain.getBlock(currentBlockHash)
+      const currentBlock = await chain.getBlock(currentBlockHash)
       Assert.isNotNull(currentBlock, 'No block found')
 
       const lowestFeeTransactions = this.getLowestFeeRateTransactions(
@@ -67,6 +64,8 @@ export class FeeEstimator {
 
       currentBlockHash = currentBlock.header.previousBlockHash
     }
+
+    this.queue.reverse()
   }
 
   onConnectBlock(block: Block, memPool: MemPool): void {

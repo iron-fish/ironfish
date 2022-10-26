@@ -318,6 +318,8 @@ export class IronfishNode {
     // so we should start it as soon as possible
     this.workerPool.start()
 
+    await this.memPool.feeEstimator.init(this.chain)
+
     if (this.config.get('enableTelemetry')) {
       this.telemetry.start()
     }
