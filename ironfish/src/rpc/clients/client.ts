@@ -9,6 +9,8 @@ import {
   BlockTemplateStreamResponse,
   CreateAccountRequest,
   CreateAccountResponse,
+  EstimateFeeRequest,
+  EstimateFeeResponse,
   GetAccountNotesStreamRequest,
   GetAccountNotesStreamResponse,
   GetAccountsRequest,
@@ -375,6 +377,15 @@ export abstract class RpcClient {
   ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> {
     return this.request<EstimateFeeRatesResponse>(
       `${ApiNamespace.fees}/estimateFeeRates`,
+      params,
+    ).waitForEnd()
+  }
+
+  async estimateFee(
+    params: EstimateFeeRequest,
+  ): Promise<RpcResponseEnded<EstimateFeeResponse>> {
+    return this.request<EstimateFeeResponse>(
+      `${ApiNamespace.fees}/estimateFee`,
       params,
     ).waitForEnd()
   }
