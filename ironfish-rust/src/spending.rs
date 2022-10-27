@@ -134,6 +134,8 @@ impl SpendBuilder {
             authorizing_signature: blank_sig,
         };
 
+        spend_proof.verify_proof()?;
+
         Ok(UnsignedSpendProof {
             public_key_randomness,
             spend_proof,
