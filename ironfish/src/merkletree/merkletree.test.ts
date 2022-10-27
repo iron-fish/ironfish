@@ -54,13 +54,12 @@ describe('Merkle tree', function () {
     )
   })
 
-  it('rehashes tree when rightmost branch nodes have no sibling nodes', async () => {
+  it.only('rehashes tree when rightmost branch nodes have no sibling nodes', async () => {
     const tree = await makeTree()
 
     await tree.add('a')
     await tree.add('b')
     await tree.add('c')
-    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abc', [1, 1, 2])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|c-0>'],
@@ -74,7 +73,6 @@ describe('Merkle tree', function () {
     await tree.add('g')
     await tree.add('h')
     await tree.add('i')
-    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcdefghi', [1, 1, 2, 2, 4, 4, 7, 7, 8])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -100,17 +98,14 @@ describe('Merkle tree', function () {
     const tree = await makeTree()
 
     await tree.add('a')
-    await tree.rehashTree()
     await expect(tree).toHaveLeaves('a', [0])
     await expect(tree).toHaveNodes([])
 
     await tree.add('b')
-    await tree.rehashTree()
     await expect(tree).toHaveLeaves('ab', [1, 1])
     await expect(tree).toHaveNodes([[1, Side.Left, 0, '<a|b-0>']])
 
     await tree.add('c')
-    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abc', [1, 1, 2])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|c-0>'],
@@ -119,7 +114,6 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('d')
-    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcd', [1, 1, 2, 2])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -128,7 +122,6 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('e')
-    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcde', [1, 1, 2, 2, 4])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -140,7 +133,6 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('f')
-    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcdef', [1, 1, 2, 2, 4, 4])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -152,7 +144,6 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('g')
-    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcdefg', [1, 1, 2, 2, 4, 4, 7])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -165,7 +156,6 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('h')
-    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcdefgh', [1, 1, 2, 2, 4, 4, 7, 7])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -178,7 +168,6 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('i')
-    await tree.rehashTree()
     await expect(tree).toHaveLeaves('abcdefghi', [1, 1, 2, 2, 4, 4, 7, 7, 8])
     await expect(tree).toHaveNodes([
       [1, Side.Left, 3, '<c|d-0>'],
@@ -216,7 +205,6 @@ describe('Merkle tree', function () {
     await tree.add('x')
     await tree.add('y')
     await tree.add('z')
-    await tree.rehashTree()
 
     await expect(tree).toHaveLeaves(
       'abcdefghijklmnopqrstuvwxyz',
@@ -365,21 +353,20 @@ describe('Merkle tree', function () {
     await tree.truncate(1)
     await tree.add('x')
     await tree.add('y')
-    await tree.rehashTree()
 
     await expect(tree).toMatchTree(await makeTree({ leaves: 'axy' }))
     await expect(tree.size()).resolves.toBe(3)
   })
 
-  it('iterates over notes', async () => {
+  it('iterates over leaves', async () => {
     const tree = await makeTree({ leaves: 'abcd' })
 
-    let notes = ''
-    for await (const note of tree.notes()) {
-      notes += note
+    let leaves = ''
+    for await (const leaf of tree.getLeaves()) {
+      leaves += leaf
     }
 
-    expect(notes).toBe('abcd')
+    expect(leaves).toBe('abcd')
   })
 
   it('calculates past and current root hashes correctly', async () => {
@@ -396,7 +383,6 @@ describe('Merkle tree', function () {
     )
 
     await tree.add('a')
-    await tree.rehashTree()
     await expect(tree.rootHash()).resolves.toBe(
       '<<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>|<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>-3>',
     )
@@ -408,7 +394,6 @@ describe('Merkle tree', function () {
     )
 
     await tree.add('b')
-    await tree.rehashTree()
     await expect(tree.rootHash()).resolves.toBe(
       '<<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>|<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>-3>',
     )
@@ -423,7 +408,6 @@ describe('Merkle tree', function () {
     )
 
     await tree.add('c')
-    await tree.rehashTree()
     await expect(tree.rootHash()).resolves.toBe(
       '<<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>|<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>-3>',
     )
@@ -441,7 +425,6 @@ describe('Merkle tree', function () {
     )
 
     await tree.add('d')
-    await tree.rehashTree()
     await expect(tree.rootHash()).resolves.toBe(
       '<<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>|<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>-3>',
     )
@@ -465,7 +448,6 @@ describe('Merkle tree', function () {
     for (let i = 0; i < 12; i++) {
       await tree.add(String(i))
     }
-    await tree.rehashTree()
     await expect(tree.rootHash()).resolves.toBe(
       '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|<<8|9-0>|<10|11-0>-1>-2>-3>',
     )
@@ -573,7 +555,6 @@ describe('Merkle tree', function () {
 
     await expect(tree.witness(0)).resolves.toBe(null)
     await tree.add('a')
-    await tree.rehashTree()
     await expect(tree.witness(1)).resolves.toBe(null)
 
     let witness = await witnessOrThrow(0)
@@ -587,7 +568,6 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('b')
-    await tree.rehashTree()
     await expect(tree.witness(2)).resolves.toBe(null)
     expectedRoot = '<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>'
     witness = await witnessOrThrow(0)
@@ -607,7 +587,6 @@ describe('Merkle tree', function () {
     ])
 
     await tree.add('c')
-    await tree.rehashTree()
     await expect(tree.witness(3)).resolves.toBe(null)
     expectedRoot = '<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>'
     witness = await witnessOrThrow(0)
@@ -632,7 +611,6 @@ describe('Merkle tree', function () {
       [Side.Left, '<<a|b-0>|<c|c-0>-1>'],
     ])
     await tree.add('d')
-    await tree.rehashTree()
     await expect(tree.witness(4)).resolves.toBe(null)
     expectedRoot = '<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>'
     witness = await witnessOrThrow(0)
@@ -668,7 +646,6 @@ describe('Merkle tree', function () {
     await tree.add('f')
     await tree.add('g')
     await tree.add('h')
-    await tree.rehashTree()
     await expect(tree.witness(8)).resolves.toBe(null)
     expectedRoot = '<<<a|b-0>|<c|d-0>-1>|<<e|f-0>|<g|h-0>-1>-2>'
     witness = await witnessOrThrow(0)

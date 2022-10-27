@@ -42,8 +42,6 @@ export class MerkleTree<
   readonly leavesIndex: IDatabaseStore<LeavesIndexSchema<H>>
   readonly nodes: IDatabaseStore<NodesSchema<H>>
 
-  lastHashIndex = 0
-
   constructor({
     hasher,
     db,
@@ -189,10 +187,10 @@ export class MerkleTree<
     return count
   }
 
-  /** Iterate over all notes in the tree. This happens asynchronously
+  /** Iterate over all leaves in the tree. This happens asynchronously
    * and behaviour is undefined if the tree changes while iterating.
    */
-  async *notes(tx?: IDatabaseTransaction): AsyncGenerator<E, void, unknown> {
+  async *getLeaves(tx?: IDatabaseTransaction): AsyncGenerator<E, void, unknown> {
     const numLeaves = await this.size(tx)
 
     for (let index = 0; index < numLeaves; index++) {
@@ -209,6 +207,22 @@ export class MerkleTree<
    * Add the new leaf element into the tree, and update all hashes.
    */
   async add(element: E, tx?: IDatabaseTransaction): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      const startingLeafIndex = await this.size(tx)
+
+      await this.addLeafWithNodes(element, tx)
+
+      console.log('calling hashTree with', startingLeafIndex)
+      await this.hashTree(startingLeafIndex, tx)
+    })
+  }
+
+  /**
+   * Add the new leaf element into the tree, creating new nodes if necessary.
+   *
+   * Requires running hashTree to update the tree's hash values.
+   */
+  private async addLeafWithNodes(element: E, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       const merkleHash = this.hasher.merkleHash(element)
       const indexOfNewLeaf = await this.getCount('Leaves', tx)
@@ -353,7 +367,17 @@ export class MerkleTree<
     })
   }
 
-  async addLeaf(
+  async addBatch(elements: Iterable<E>, tx?: IDatabaseTransaction): Promise<void> {
+    const startingLeafIndex = await this.size(tx)
+
+    for (const element of elements) {
+      await this.addLeafWithNodes(element, tx)
+    }
+
+    await this.hashTree(startingLeafIndex, tx)
+  }
+
+  private async addLeaf(
     index: LeavesSchema<E, H>['key'],
     value: LeavesSchema<E, H>['value'],
     tx?: IDatabaseTransaction,
@@ -443,9 +467,8 @@ export class MerkleTree<
       parent.parentIndex = 0
       await this.nodes.put(parentIndex, parent, tx)
       await this.counter.put('Nodes', maxParentIndex + 1, tx)
-      await this.rehashRightPath(tx)
+      await this.hashTree(pastSize - 1)
     })
-    this.lastHashIndex = pastSize - 1
   }
 
   /**
@@ -604,11 +627,11 @@ export class MerkleTree<
     })
   }
 
-  async rehashTree(tx?: IDatabaseTransaction): Promise<void> {
+  async hashTree(startingLeafIndex: number, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       const leavesCount = await this.getCount('Leaves', tx)
 
-      if (this.lastHashIndex >= leavesCount - 1) {
+      if (startingLeafIndex > leavesCount - 1) {
         return
       }
 
@@ -621,7 +644,7 @@ export class MerkleTree<
 
       for (
         let leafIndex = leavesCount - 1;
-        leafIndex > this.lastHashIndex;
+        leafIndex >= startingLeafIndex;
         leafIndex % 2 !== 0 ? (leafIndex -= 2) : leafIndex--
       ) {
         // if leafIndex is even, we have a leaf without a sibling on the right of the tree
@@ -728,8 +751,6 @@ export class MerkleTree<
           })
         }
       }
-
-      this.lastHashIndex = leavesCount - 1
     })
   }
 
@@ -745,18 +766,21 @@ export class MerkleTree<
     return this.nodes.put(index, { ...node, hashOfSibling: hash }, tx)
   }
 
-  async rehashTreeRecursive(tx?: IDatabaseTransaction): Promise<void> {
+  async rehashTreeRecursive(
+    startingLeafIndex: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       const leavesCount = await this.getCount('Leaves', tx)
       const nodeCount = await this.getCount('Nodes', tx)
 
-      if (this.lastHashIndex >= leavesCount - 1) {
+      if (startingLeafIndex >= leavesCount - 1) {
         return
       }
 
       const root = startingSubtree(nodeCount - 1)
 
-      const rootHash = await this.rehashSubtree(tx, root, nodeCount - 1)
+      const rootHash = await this.rehashSubtree(tx, startingLeafIndex, root, nodeCount - 1)
       const rootNode = await this.getNode(root.root, tx)
 
       await this.updateHash(root.root, rootNode, rootHash, tx)
@@ -765,6 +789,7 @@ export class MerkleTree<
 
   async rehashSubtree(
     tx: IDatabaseTransaction,
+    startingLeafIndex: number,
     subTree: SubTree,
     nodeCount: number,
   ): Promise<H> {
@@ -785,13 +810,13 @@ export class MerkleTree<
 
     if (nodeCount >= right.root) {
       // We have a right node
-      const rightHash = await this.rehashSubtree(tx, right, nodeCount)
+      const rightHash = await this.rehashSubtree(tx, startingLeafIndex, right, nodeCount)
       const leftNode = await this.getNode(left.root, tx)
       const rightNode = await this.getNode(right.root, tx)
 
-      if (this.lastHashIndex <= left.leafMax) {
+      if (startingLeafIndex <= left.leafMax) {
         // both left and right subtree need to be rehashed
-        const leftHash = await this.rehashSubtree(tx, left, nodeCount)
+        const leftHash = await this.rehashSubtree(tx, startingLeafIndex, left, nodeCount)
 
         await this.updateHash(right.root, rightNode, leftHash, tx)
         await this.updateHash(left.root, leftNode, rightHash, tx)
@@ -807,90 +832,13 @@ export class MerkleTree<
       const leftNode = await this.getNode(left.root, tx)
       let leftHash = leftNode.hashOfSibling
 
-      if (this.lastHashIndex <= left.leafMax) {
+      if (startingLeafIndex <= left.leafMax) {
         // Rehash left node
-        leftHash = await this.rehashSubtree(tx, left, nodeCount)
+        leftHash = await this.rehashSubtree(tx, startingLeafIndex, left, nodeCount)
         await this.updateHash(left.root, leftNode, leftHash, tx)
       }
 
       return this.hasher.combineHash(subTree.level, leftHash, leftHash)
-    }
-  }
-
-  /**
-   * Recalculate all the hashes between the most recently added leaf in the group
-   * and the root hash.
-   *
-   * `transaction` is passed in so that a rollback happens for the entire change
-   * if a conflict occurs.
-   */
-  private async rehashRightPath(tx: IDatabaseTransaction) {
-    let depth = 0
-    const leafIndex = (await this.getCount('Leaves', tx)) - 1
-    const leaf = await this.getLeaf(leafIndex, tx)
-    let parentIndex = leaf.parentIndex as NodeIndex | undefined
-    const leafHash = leaf.merkleHash
-    let parentHash
-
-    if (isRight(leafIndex)) {
-      const leftSiblingIndex = leafIndex - 1
-      const leftSibling = await this.getLeaf(leftSiblingIndex, tx)
-      const leftSiblingHash = leftSibling.merkleHash
-      parentHash = this.hasher.combineHash(depth, leftSiblingHash, leafHash)
-    } else {
-      parentHash = this.hasher.combineHash(depth, leafHash, leafHash)
-    }
-
-    while (!isEmpty(parentIndex)) {
-      const node = await this.getNode(parentIndex, tx)
-      depth += 1
-
-      switch (node.side) {
-        case Side.Left: {
-          // Since we are walking the rightmost path, left nodes do not
-          // have right children. Therefore its sibling hash is set to its
-          // own hash and its parent hash is set to the combination of that hash
-          // with itself
-          await this.nodes.put(
-            parentIndex,
-            {
-              side: Side.Left,
-              hashOfSibling: parentHash,
-              parentIndex: node.parentIndex,
-            },
-            tx,
-          )
-
-          parentIndex = node.parentIndex
-          parentHash = this.hasher.combineHash(depth, parentHash, parentHash)
-          break
-        }
-
-        case Side.Right: {
-          // since this is a new right node, we know that we have the correct
-          // hash because we set it correctly when we inserted it. But the left
-          // node needs to have its hashOfSibling set to our current hash.
-          if (node.leftIndex === undefined) {
-            throw new Error(`Expected node ${parentIndex} to have left node`)
-          }
-
-          const leftNode = await this.getNode(node.leftIndex, tx)
-
-          await this.nodes.put(
-            node.leftIndex,
-            {
-              side: Side.Left,
-              parentIndex: leftNode.parentIndex,
-              hashOfSibling: parentHash,
-            },
-            tx,
-          )
-
-          parentIndex = leftNode.parentIndex
-          parentHash = this.hasher.combineHash(depth, node.hashOfSibling, parentHash)
-          break
-        }
-      }
     }
   }
 }

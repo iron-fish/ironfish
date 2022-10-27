@@ -971,56 +971,6 @@ export class Blockchain {
     })
   }
 
-  async addNote(index: number, note: NoteEncrypted, tx?: IDatabaseTransaction): Promise<void> {
-    return this.db.withTransaction(tx, async (tx) => {
-      const noteCount = await this.notes.size(tx)
-
-      // do we have a note at this index already?
-      if (index < noteCount) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const oldNote = (await this.notes.get(index, tx))!
-        if (!note.equals(oldNote)) {
-          const message = `Tried to insert a note, but a different note already there for position ${index}`
-          this.logger.error(message)
-          throw new Error(message)
-        }
-        return
-      } else if (index > noteCount) {
-        const message = `Can't insert a note at index ${index}. Merkle tree has a count of ${noteCount}`
-        this.logger.error(message)
-        throw new Error(message)
-      }
-
-      await this.notes.add(note, tx)
-    })
-  }
-
-  async addNullifier(
-    index: number,
-    nullifier: Nullifier,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    return this.db.withTransaction(tx, async (tx) => {
-      const nullifierCount = await this.nullifiers.size(tx)
-      // do we have a nullifier at this index already?
-      if (index < nullifierCount) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const oldNullifier = (await this.nullifiers.get(index, tx))!
-        if (!NullifierSerdeInstance.equals(nullifier, oldNullifier)) {
-          const message = `Tried to insert a nullifier, but a different nullifier already there for position ${index}`
-          this.logger.error(message)
-          throw new Error(message)
-        }
-        return
-      } else if (index > nullifierCount) {
-        const message = `Can't insert a nullifier at index ${index}. Merkle tree has a count of ${nullifierCount}`
-        this.logger.error(message)
-        throw new Error(message)
-      }
-      await this.nullifiers.add(nullifier, tx)
-    })
-  }
-
   async getHeader(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHeader | null> {
     return (await this.headers.get(hash, tx))?.header || null
   }
@@ -1245,21 +1195,18 @@ export class Blockchain {
     await this.sequenceToHash.put(block.header.sequence, block.header.hash, tx)
     await this.meta.put('head', block.header.hash, tx)
 
-    let notesIndex = prev?.noteCommitment.size || 0
-    let nullifierIndex = prev?.nullifierCommitment.size || 0
+    // If the tree sizes don't match the previous block, we can't verify if the tree
+    // sizes on this block are correct
+    const prevNotesSize = prev?.noteCommitment.size || 0
+    const prevNullifierSize = prev?.nullifierCommitment.size || 0
+    Assert.isEqual(prevNotesSize, await this.notes.size(tx))
+    Assert.isEqual(prevNullifierSize, await this.nullifiers.size(tx))
 
-    for (const note of block.notes()) {
-      await this.addNote(notesIndex, note, tx)
-      notesIndex++
-    }
-
-    for (const spend of block.spends()) {
-      await this.addNullifier(nullifierIndex, spend.nullifier, tx)
-      nullifierIndex++
-    }
-
-    await this.notes.rehashTree(tx)
-    await this.nullifiers.rehashTree(tx)
+    await this.notes.addBatch(block.notes(), tx)
+    await this.nullifiers.addBatch(
+      [...block.spends()].map((s) => s.nullifier),
+      tx,
+    )
 
     const verify = await this.verifier.verifyConnectedBlock(block, tx)
 

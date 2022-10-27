@@ -119,10 +119,7 @@ export async function makeTree({
   await db.open()
 
   if (leaves) {
-    for (const i of leaves) {
-      await tree.add(i)
-    }
-    await tree.rehashTree()
+    await tree.addBatch(leaves)
   }
 
   return tree
