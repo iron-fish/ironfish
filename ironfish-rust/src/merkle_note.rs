@@ -288,6 +288,7 @@ fn calculate_key_for_encryption_keys(
 #[cfg(test)]
 mod test {
     use super::MerkleNote;
+    use super::NOTE_ENCRYPTION_MINER_KEYS;
     use crate::{keys::SaplingKey, note::Note};
 
     use bls12_381::Scalar;
@@ -297,17 +298,60 @@ mod test {
     use rand::thread_rng;
 
     #[test]
-    fn test_view_key_encryption() {
-        let spender_key: SaplingKey = SaplingKey::generate_key();
-        let receiver_key: SaplingKey = SaplingKey::generate_key();
+    /// Test to confirm that creating a [`MerkleNote`] via new() doesn't use the
+    /// hard-coded miners fee note encryption keys
+    fn test_new_not_miners_fee_key() {
+        let spender_key = SaplingKey::generate_key();
+        let receiver_key = SaplingKey::generate_key();
         let note = Note::new(receiver_key.generate_public_address(), 42, "");
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
-        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
+        let value_commitment = ValueCommitment {
+            value: note.value,
+            randomness: jubjub::Fr::random(thread_rng()),
+        };
+
+        let merkle_note =
+            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+
+        assert_ne!(
+            &merkle_note.note_encryption_keys,
+            NOTE_ENCRYPTION_MINER_KEYS
+        );
+    }
+
+    #[test]
+    /// Test to confirm that creating a [`MerkleNote`] via new_for_miners_note()
+    /// does use the hard-coded miners fee note encryption keys
+    fn test_new_miners_fee_key() {
+        let receiver_key = SaplingKey::generate_key();
+        let note = Note::new(receiver_key.generate_public_address(), 42, "");
+        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let value_commitment = ValueCommitment {
             value: note.value,
-            randomness: value_commitment_randomness,
+            randomness: jubjub::Fr::random(thread_rng()),
+        };
+
+        let merkle_note =
+            MerkleNote::new_for_miners_fee(&note, &value_commitment, &diffie_hellman_keys);
+
+        assert_eq!(
+            &merkle_note.note_encryption_keys,
+            NOTE_ENCRYPTION_MINER_KEYS
+        );
+    }
+
+    #[test]
+    fn test_view_key_encryption() {
+        let spender_key = SaplingKey::generate_key();
+        let receiver_key = SaplingKey::generate_key();
+        let note = Note::new(receiver_key.generate_public_address(), 42, "");
+        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
+
+        let value_commitment = ValueCommitment {
+            value: note.value,
+            randomness: jubjub::Fr::random(thread_rng()),
         };
 
         let merkle_note =
@@ -322,15 +366,13 @@ mod test {
 
     #[test]
     fn test_output_invalid_commitment() {
-        let spender_key: SaplingKey = SaplingKey::generate_key();
+        let spender_key = SaplingKey::generate_key();
         let note = Note::new(spender_key.generate_public_address(), 42, "");
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
-        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
-
         let value_commitment = ValueCommitment {
             value: note.value,
-            randomness: value_commitment_randomness,
+            randomness: jubjub::Fr::random(thread_rng()),
         };
 
         let mut merkle_note =

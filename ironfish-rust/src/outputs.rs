@@ -201,14 +201,51 @@ impl OutputProof {
 #[cfg(test)]
 mod test {
     use super::{OutputBuilder, OutputProof};
-    use crate::{keys::SaplingKey, note::Note};
+    use crate::{keys::SaplingKey, merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note};
     use ff::PrimeField;
     use group::Curve;
     use jubjub::ExtendedPoint;
 
     #[test]
+    /// Test to confirm that creating an output with the `is_miners_fee` flag
+    /// set will use the hard-coded note encryption keys
+    fn test_output_miners_fee() {
+        let spender_key = SaplingKey::generate_key();
+        let note = Note::new(spender_key.generate_public_address(), 42, "");
+
+        let mut output = OutputBuilder::new(note);
+        output.set_is_miners_fee();
+
+        let proof = output
+            .build(&spender_key)
+            .expect("should be able to build output proof");
+
+        assert_eq!(
+            &proof.merkle_note.note_encryption_keys,
+            NOTE_ENCRYPTION_MINER_KEYS
+        );
+    }
+
+    #[test]
+    fn test_output_not_miners_fee() {
+        let spender_key = SaplingKey::generate_key();
+        let note = Note::new(spender_key.generate_public_address(), 42, "");
+
+        let output = OutputBuilder::new(note);
+
+        let proof = output
+            .build(&spender_key)
+            .expect("should be able to build output proof");
+
+        assert_ne!(
+            &proof.merkle_note.note_encryption_keys,
+            NOTE_ENCRYPTION_MINER_KEYS
+        );
+    }
+
+    #[test]
     fn test_output_round_trip() {
-        let spender_key: SaplingKey = SaplingKey::generate_key();
+        let spender_key = SaplingKey::generate_key();
         let note = Note::new(spender_key.generate_public_address(), 42, "");
 
         let output = OutputBuilder::new(note);
