@@ -112,7 +112,7 @@ export default class Bank extends IronfishCommand {
       this.client,
       this.api,
       expirationSequenceDelta,
-      Number(fee),
+      fee,
       graffiti,
     )
     if (!canSend) {
@@ -124,7 +124,7 @@ export default class Bank extends IronfishCommand {
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
     const confirmedBalance = BigInt(balanceResp.content.confirmed)
 
-    if (confirmedBalance < BigInt(fee) + minDepositOre) {
+    if (confirmedBalance < fee + minDepositOre) {
       this.log(
         `Insufficient balance: ${CurrencyUtils.renderIron(
           confirmedBalance,
@@ -202,7 +202,7 @@ The memo will contain the graffiti "${graffiti}".
             memo: graffiti,
           },
         ],
-        fee: fee.toString(),
+        fee: CurrencyUtils.encode(fee),
         expirationSequenceDelta: expirationSequenceDelta,
       })
 
