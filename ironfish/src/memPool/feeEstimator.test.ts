@@ -111,7 +111,7 @@ describe('FeeEstimator', () => {
       expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(2)
       expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(2)
       let queue: FeeRateEntry[] | undefined
-      Assert.isNotUndefined((queue = feeEstimator['queues'].get(PRIORITY_LEVELS[0])))
+      Assert.isNotUndefined((queue = feeEstimator['queues']['low']))
       expect(queue[0].feeRate).toEqual(getFeeRate(transaction))
       expect(queue[1].feeRate).toEqual(getFeeRate(transaction2))
     })
@@ -308,9 +308,7 @@ describe('FeeEstimator', () => {
       expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(2)
 
       // transaction from first block is still in the cache
-      expect(feeEstimator['queues'].get(PRIORITY_LEVELS[0])?.at(0)?.blockHash).toEqualHash(
-        block.header.hash,
-      )
+      expect(feeEstimator['queues']['low'].at(0)?.blockHash).toEqualHash(block.header.hash)
     })
   })
 

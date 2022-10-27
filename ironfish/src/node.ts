@@ -256,6 +256,11 @@ export class IronfishNode {
     const feeEstimator = new FeeEstimator({
       wallet,
       maxBlockHistory: config.get('feeEstimatorMaxBlockHistory'),
+      percentiles: {
+        low: config.get('feeEstimatorPercentileLow'),
+        medium: config.get('feeEstimatorPercentileMedium'),
+        high: config.get('feeEstimatorPercentileHigh'),
+      },
     })
 
     const memPool = new MemPool({ chain, feeEstimator, metrics, logger })
