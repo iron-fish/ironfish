@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { useBlockWithTx } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { Account } from '../../../wallet'
 import { EstimateFeeRequest } from './estimateFee'
 
 describe('estimate Fee', () => {
   const routeTest = createRouteTest(true)
-  
+
   it('should return fee', async () => {
     await routeTest.node.wallet.createAccount('existingAccount', true)
     const node = routeTest.node
