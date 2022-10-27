@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { CurrencyUtils, EstimateFeeResponse, isValidPublicAddress } from '@ironfish/sdk'
+import { CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -133,21 +133,23 @@ export class Pay extends IronfishCommand {
     }
 
     if (fee == null) {
-      let suggestedFees: string = ""
+      let suggestedFees = ''
       try {
-        const response = await client.estimateFee({ 
-          fromAccountName: from, 
-          receives:  [{
-            publicAddress: to,
-            amount: CurrencyUtils.encode(amount),
-            memo: memo,
-          }]
-      })
+        const response = await client.estimateFee({
+          fromAccountName: from,
+          receives: [
+            {
+              publicAddress: to,
+              amount: CurrencyUtils.encode(amount),
+              memo: memo,
+            },
+          ],
+        })
         suggestedFees.concat(`low: ${CurrencyUtils.renderIron(response.content.low)}\n`)
         suggestedFees.concat(`medium: ${CurrencyUtils.renderIron(response.content.medium)}\n`)
         suggestedFees.concat(`high: ${CurrencyUtils.renderIron(response.content.high)}\n`)
       } catch {
-        suggestedFees = ""
+        suggestedFees = ''
       }
 
       const input = (await CliUx.ux.prompt(
