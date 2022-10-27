@@ -25,7 +25,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        numOfRecentBlocks: 1,
+        maxBlockHistory: 1,
       })
       await feeEstimator.init(node.chain)
 
@@ -59,7 +59,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        numOfRecentBlocks: 1,
+        maxBlockHistory: 1,
       })
 
       await feeEstimator.init(node.chain)
@@ -103,7 +103,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        numOfRecentBlocks: 2,
+        maxBlockHistory: 2,
       })
       await feeEstimator.init(node.chain)
 
@@ -128,7 +128,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        numOfRecentBlocks: 1,
+        maxBlockHistory: 1,
       })
 
       expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(0)
@@ -158,7 +158,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        numOfRecentBlocks: 1,
+        maxBlockHistory: 1,
       })
 
       expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(0)
@@ -179,7 +179,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        numOfRecentBlocks: 1,
+        maxBlockHistory: 1,
       })
 
       const { account, block, transaction } = await useBlockWithTx(
@@ -227,7 +227,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        numOfRecentBlocks: 2,
+        maxBlockHistory: 2,
       })
 
       const { account, block, transaction } = await useBlockWithTx(
@@ -271,7 +271,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        numOfRecentBlocks: 2,
+        maxBlockHistory: 2,
       })
 
       const { account, block, transaction } = await useBlockWithTx(
@@ -320,7 +320,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        numOfRecentBlocks: 2,
+        maxBlockHistory: 2,
       })
 
       const { block, transaction } = await useBlockWithTx(node, undefined, undefined, true)
@@ -345,7 +345,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        numOfRecentBlocks: 2,
+        maxBlockHistory: 2,
       })
 
       const { account, block, transaction } = await useBlockWithTx(
@@ -400,7 +400,7 @@ describe('FeeEstimator', () => {
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
-        numOfRecentBlocks: 1,
+        maxBlockHistory: 1,
       })
       await feeEstimator.init(node.chain)
 
