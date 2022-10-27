@@ -32,13 +32,13 @@ export class FeeEstimator {
   private queues: Map<PriorityLevel, Array<FeeRateEntry>>
   private wallet: Wallet
   private readonly logger: Logger
-  private maxBlocks = 10
+  private maxBlockHistory = 10
   private defaultFeeRate = BigInt(1)
   private readonly percentiles = PRIORITY_LEVEL_PERCENTILES.map((x) => x)
 
   constructor(options: { wallet: Wallet; maxBlockHistory?: number; logger?: Logger }) {
     this.logger = options.logger || createRootLogger().withTag('recentFeeCache')
-    this.maxBlocks = options.maxBlockHistory ?? this.maxBlocks
+    this.maxBlockHistory = options.maxBlockHistory ?? this.maxBlockHistory
 
     this.queues = new Map<PriorityLevel, FeeRateEntry[]>()
     PRIORITY_LEVELS.forEach((priorityLevel) => this.queues.set(priorityLevel, []))
@@ -52,7 +52,7 @@ export class FeeEstimator {
 
     let currentBlockHash = chain.latest.hash
 
-    for (let i = 0; i < this.maxBlocks; i++) {
+    for (let i = 0; i < this.maxBlockHistory; i++) {
       const currentBlock = await chain.getBlock(currentBlockHash)
       Assert.isNotNull(currentBlock, 'No block found')
 
@@ -143,7 +143,7 @@ export class FeeEstimator {
 
   estimateFeeRate(priorityLevel: PriorityLevel): bigint {
     const queue = this.queues.get(priorityLevel)
-    if (queue === undefined || queue.length < this.maxBlocks) {
+    if (queue === undefined || queue.length < this.maxBlockHistory) {
       return this.defaultFeeRate
     }
 
@@ -214,7 +214,7 @@ export class FeeEstimator {
   }
 
   private isFull(array: FeeRateEntry[]): boolean {
-    return array.length === this.maxBlocks
+    return array.length === this.maxBlockHistory
   }
 }
 
