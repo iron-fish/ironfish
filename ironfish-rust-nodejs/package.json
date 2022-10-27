@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "artifacts": "napi artifacts",
-    "build": "yarn clean; napi build --platform --release",
+    "build": "yarn clean && napi build --platform --release",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish --skip-gh-release",
     "test:slow": "jest --testPathIgnorePatterns --testMatch \"**/*.test.slow.ts\"",
