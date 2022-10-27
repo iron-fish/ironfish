@@ -253,7 +253,10 @@ export class IronfishNode {
       workerPool,
     })
 
-    const feeEstimator = new FeeEstimator({ wallet })
+    const feeEstimator = new FeeEstimator({
+      wallet,
+      maxBlockHistory: config.get('feeEstimatorMaxBlockHistory'),
+    })
 
     const memPool = new MemPool({ chain, feeEstimator, metrics, logger })
 
