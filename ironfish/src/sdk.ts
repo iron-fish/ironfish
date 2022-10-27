@@ -211,14 +211,7 @@ export class IronfishSdk {
       const namespaces = ALL_API_NAMESPACES
 
       await node.rpc.mount(
-        new RpcIpcAdapter(
-          namespaces,
-          {
-            mode: 'ipc',
-            socketPath: this.config.get('ipcPath'),
-          },
-          this.logger,
-        ),
+        new RpcIpcAdapter(this.config.get('ipcPath'), this.logger, namespaces),
       )
     }
 

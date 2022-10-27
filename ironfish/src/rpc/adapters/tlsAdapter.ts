@@ -27,7 +27,7 @@ export class RpcTlsAdapter extends RpcSocketAdapter {
     logger: Logger = createRootLogger(),
     namespaces: ApiNamespace[],
   ) {
-    super(host, port, logger, namespaces)
+    super({ host, port }, logger, namespaces)
     this.fileSystem = fileSystem
     this.nodeKeyPath = nodeKeyPath
     this.nodeCertPath = nodeCertPath

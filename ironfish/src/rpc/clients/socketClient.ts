@@ -7,7 +7,11 @@ import { Assert } from '../../assert'
 import { Event } from '../../event'
 import { Logger } from '../../logger'
 import { PromiseUtils, SetTimeoutToken, YupUtils } from '../../utils'
-import { IpcErrorSchema, IpcResponseSchema, IpcStreamSchema } from '../adapters'
+import {
+  SocketRpcErrorSchema,
+  SocketRpcResponseSchema,
+  SocketRpcStreamSchema,
+} from '../adapters'
 import { isRpcResponseError, RpcResponse } from '../response'
 import { Stream } from '../stream'
 import { RpcClient } from './client'
@@ -143,7 +147,7 @@ export abstract class RpcSocketClient extends RpcClient {
   }
 
   protected handleStream = async (data: unknown): Promise<void> => {
-    const { result, error } = await YupUtils.tryValidate(IpcStreamSchema, data)
+    const { result, error } = await YupUtils.tryValidate(SocketRpcStreamSchema, data)
     if (!result) {
       throw error
     }
@@ -172,7 +176,7 @@ export abstract class RpcSocketClient extends RpcClient {
   }
 
   protected handleEnd = async (data: unknown): Promise<void> => {
-    const { result, error } = await YupUtils.tryValidate(IpcResponseSchema, data)
+    const { result, error } = await YupUtils.tryValidate(SocketRpcResponseSchema, data)
     if (!result) {
       throw error
     }
@@ -186,7 +190,7 @@ export abstract class RpcSocketClient extends RpcClient {
 
     if (isRpcResponseError(pending.response)) {
       const { result: errorBody, error: errorError } = await YupUtils.tryValidate(
-        IpcErrorSchema,
+        SocketRpcErrorSchema,
         result.data,
       )
 

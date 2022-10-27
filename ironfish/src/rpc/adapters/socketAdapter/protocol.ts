@@ -84,3 +84,10 @@ export const SocketRpcResponseSchema: yup.ObjectSchema<SocketRpcResponse> = yup
     data: yup.mixed().notRequired(),
   })
   .defined()
+
+export const SocketRpcStreamSchema: yup.ObjectSchema<SocketRpcStream> = yup
+  .object({
+    id: yup.number().defined(),
+    data: yup.mixed().notRequired(),
+  })
+  .defined()
