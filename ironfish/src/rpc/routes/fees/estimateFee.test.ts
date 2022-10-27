@@ -8,10 +8,9 @@ import { EstimateFeeRequest } from './estimateFee'
 
 describe('estimate Fee', () => {
   const routeTest = createRouteTest(true)
-  let account: Account
-
+  
   it('should return fee', async () => {
-    account = await routeTest.node.wallet.createAccount('existingAccount', true)
+    await routeTest.node.wallet.createAccount('existingAccount', true)
     const node = routeTest.node
     const { block } = await useBlockWithTx(node, undefined, undefined, true, {
       fee: 1,
@@ -21,7 +20,6 @@ describe('estimate Fee', () => {
     const response = await routeTest.client
       .request<EstimateFeeRequest>('fees/estimateFee', {
         fromAccountName: 'existingAccount',
-        priority: 'low',
         receives: [
           {
             publicAddress: 'test2',
@@ -33,33 +31,9 @@ describe('estimate Fee', () => {
       .waitForEnd()
 
     expect(response.content).toMatchObject({
-      fee: '1',
-    })
-  })
-
-  it('should return fee with default priority', async () => {
-    const node = routeTest.node
-    const { block } = await useBlockWithTx(node, account, undefined, true, {
-      fee: 1,
-    })
-    await node.chain.addBlock(block)
-    await node.wallet.updateHead()
-
-    const response = await routeTest.client
-      .request<EstimateFeeRequest>('fees/estimateFee', {
-        fromAccountName: 'existingAccount',
-        receives: [
-          {
-            publicAddress: 'test2',
-            amount: BigInt(10).toString(),
-            memo: '',
-          },
-        ],
-      })
-      .waitForEnd()
-
-    expect(response.content).toMatchObject({
-      fee: '1',
+      low: '1',
+      medium: '1',
+      high: '1',
     })
   })
 })

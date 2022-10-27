@@ -7,7 +7,6 @@ import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
 export type EstimateFeeRequest = {
-  priority?: PriorityLevel
   fromAccountName: string
   receives: {
     publicAddress: string
@@ -16,7 +15,9 @@ export type EstimateFeeRequest = {
   }[]
 }
 export type EstimateFeeResponse = {
-  fee: string
+  low: string
+  medium: string
+  high: string
 }
 
 export const EstimateFeeRequestSchema: yup.ObjectSchema<EstimateFeeRequest> = yup
@@ -39,7 +40,9 @@ export const EstimateFeeRequestSchema: yup.ObjectSchema<EstimateFeeRequest> = yu
 
 export const EstimateFeeResponseSchema: yup.ObjectSchema<EstimateFeeResponse> = yup
   .object({
-    fee: yup.string(),
+    low: yup.string(),
+    medium: yup.string(),
+    high: yup.string(),
   })
   .defined()
 
@@ -53,8 +56,6 @@ router.register<typeof EstimateFeeRequestSchema, EstimateFeeResponse>(
       throw new ValidationError(`No account found with name ${request.data.fromAccountName}`)
     }
 
-    const priority = request.data.priority || 'medium'
-
     const receives = request.data.receives.map((receive) => {
       return {
         publicAddress: receive.publicAddress,
@@ -65,10 +66,14 @@ router.register<typeof EstimateFeeRequestSchema, EstimateFeeResponse>(
 
     const feeEstimator = node.memPool.feeEstimator
 
-    const fee = await feeEstimator.estimateFee(priority, account, receives)
+    const low = await feeEstimator.estimateFee('low', account, receives)
+    const medium = await feeEstimator.estimateFee('medium', account, receives)
+    const high = await feeEstimator.estimateFee('high', account, receives)
 
     request.end({
-      fee: fee.toString(),
+      low: low.toString(),
+      medium: medium.toString(),
+      high: high.toString(),
     })
   },
 )
