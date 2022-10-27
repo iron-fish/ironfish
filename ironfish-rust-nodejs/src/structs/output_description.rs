@@ -107,7 +107,10 @@ impl NativeOutputDescription {
         let outgoing_view_key =
             OutgoingViewKey::from_hex(&outgoing_hex_key).map_err(to_napi_err)?;
         Ok(
-            match self.description.decrypt_note_for_spender(&outgoing_view_key) {
+            match self
+                .description
+                .decrypt_note_for_spender(&outgoing_view_key)
+            {
                 Ok(note) => {
                     let mut vec = vec![];
                     note.write(&mut vec).map_err(to_napi_err)?;
