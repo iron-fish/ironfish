@@ -63,36 +63,40 @@ export default class EstimateFees extends IronfishCommand {
 
       const response = await this.sdk.client.estimateFeeRates({})
 
-      const feeRateLow = Number(CurrencyUtils.decode(response.content.low ?? '1'))
-      const feeRateMedium = Number(CurrencyUtils.decode(response.content.medium ?? '1'))
-      const feeRateHigh = Number(CurrencyUtils.decode(response.content.high ?? '1'))
+      if (!(response.content.low && response.content.medium && response.content.high)) {
+        this.log('Unexpected response from fees/estimateFeeRates')
+      } else {
+        const feeRateLow = Number(CurrencyUtils.decode(response.content.low))
+        const feeRateMedium = Number(CurrencyUtils.decode(response.content.medium))
+        const feeRateHigh = Number(CurrencyUtils.decode(response.content.high))
 
-      await api.submitTelemetry({
-        points: [
-          {
-            measurement: 'fee_rate_estimate',
-            timestamp: new Date(),
-            fields: [
-              {
-                name: `fee_rate_low`,
-                type: 'integer',
-                value: feeRateLow,
-              },
-              {
-                name: `fee_rate_medium`,
-                type: 'integer',
-                value: feeRateMedium,
-              },
-              {
-                name: `fee_rate_high`,
-                type: 'integer',
-                value: feeRateHigh,
-              },
-            ],
-            tags: [{ name: 'version', value: IronfishCliPKG.version }],
-          },
-        ],
-      })
+        await api.submitTelemetry({
+          points: [
+            {
+              measurement: 'fee_rate_estimate',
+              timestamp: new Date(),
+              fields: [
+                {
+                  name: `fee_rate_low`,
+                  type: 'integer',
+                  value: feeRateLow,
+                },
+                {
+                  name: `fee_rate_medium`,
+                  type: 'integer',
+                  value: feeRateMedium,
+                },
+                {
+                  name: `fee_rate_high`,
+                  type: 'integer',
+                  value: feeRateHigh,
+                },
+              ],
+              tags: [{ name: 'version', value: IronfishCliPKG.version }],
+            },
+          ],
+        })
+      }
 
       await PromiseUtils.sleep(flags.delay)
     }
