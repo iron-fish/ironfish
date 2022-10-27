@@ -412,7 +412,7 @@ describe('FeeEstimator', () => {
         },
       ])
 
-      expect(fee).toBe(BigInt(10))
+      expect(fee).toBe(BigInt(7))
     })
   })
 })
