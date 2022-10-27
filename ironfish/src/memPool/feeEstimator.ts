@@ -141,6 +141,14 @@ export class FeeEstimator {
     return result
   }
 
+  estimateFeeRates(): { low: bigint; medium: bigint; high: bigint } {
+    return {
+      low: this.estimateFeeRate('low'),
+      medium: this.estimateFeeRate('medium'),
+      high: this.estimateFeeRate('high'),
+    }
+  }
+
   estimateFeeRate(priorityLevel: PriorityLevel): bigint {
     const queue = this.queues.get(priorityLevel)
     if (queue === undefined || queue.length < this.maxBlockHistory) {
