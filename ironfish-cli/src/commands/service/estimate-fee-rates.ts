@@ -12,7 +12,7 @@ export default class EstimateFees extends IronfishCommand {
   static hidden = true
 
   static description = `
-     Meaures fee rate estimates and submits them to telemetry API
+     Measures fee rate estimates and submits them to telemetry API
    `
 
   static flags = {
