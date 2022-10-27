@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
-import { getBlockHeaderSize, getTransactionSize } from '../network/utils/serializers'
+import { getEmptyBlockSize, getTransactionSize } from '../network/utils/serializers'
 import { Transaction } from '../primitives'
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
 
@@ -170,7 +170,7 @@ describe('MemPool', () => {
         const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockHeaderSize() + 562 + 2
+        chain.consensus.MAX_BLOCK_SIZE_BYTES = getEmptyBlockSize()
         expect(memPool.acceptTransaction(transaction)).toBe(false)
       })
     })

@@ -13,6 +13,10 @@ import { SerializedTransaction } from '../../primitives/transaction'
 import { GraffitiSerdeInstance } from '../../serde/serdeInstances'
 import { BigIntUtils } from '../../utils/bigint'
 
+export const MINERS_FEE_TRANSACTION_SIZE_BYTES = 562
+
+const BLOCK_TRANSACTIONS_LENGTH_BYTES = 2
+
 export function writeBlockHeader(
   bw: bufio.StaticWriter | bufio.BufferWriter,
   header: SerializedBlockHeader,
@@ -114,12 +118,18 @@ export function readBlock(reader: bufio.BufferReader): SerializedBlock {
 export function getBlockSize(block: SerializedBlock): number {
   let size = getBlockHeaderSize()
 
-  size += 2 // transactions length
+  size += BLOCK_TRANSACTIONS_LENGTH_BYTES
   for (const transaction of block.transactions) {
     size += getTransactionSize(transaction)
   }
 
   return size
+}
+
+export function getEmptyBlockSize(): number {
+  return (
+    getBlockHeaderSize() + BLOCK_TRANSACTIONS_LENGTH_BYTES + MINERS_FEE_TRANSACTION_SIZE_BYTES
+  )
 }
 
 export function writeCompactBlock(
