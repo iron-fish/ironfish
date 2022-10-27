@@ -7,9 +7,9 @@ import { ApiNamespace, router } from '../router'
 
 export type EstimateFeeRatesRequest = { priority?: PriorityLevel }
 export type EstimateFeeRatesResponse = {
-  low?: string,
-  medium?: string,
-  high?: string,
+  low?: string
+  medium?: string
+  high?: string
 }
 
 export const EstimateFeeRatesRequestSchema: yup.ObjectSchema<EstimateFeeRatesRequest> = yup
@@ -38,7 +38,7 @@ router.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
       const feeRate = feeEstimator.estimateFeeRate(priority)
 
       request.end({
-        [priority]: feeRate
+        [priority]: feeRate,
       })
     } else {
       const feeRates = feeEstimator.estimateFeeRates()
