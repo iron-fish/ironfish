@@ -94,6 +94,16 @@ export abstract class RpcSocketClient extends RpcClient {
 
       Assert.isNotNull(options)
 
+      if (process.platform === 'win32') {
+        // Windows requires special socket paths. See this for more info:
+        // https://nodejs.org/api/net.html#identifying-paths-for-ipc-connections
+        if (options.path && !options.path.startsWith('\\\\.\\pipe\\')) {
+          options.path = options.path.replace(/^\//, '')
+          options.path = options.path.replace(/\//g, '-')
+          options.path = `\\\\.\\pipe\\${options.path}`
+        }
+      }
+
       this.logger.debug(`Connecting to ${this.describe()}`)
       const client = net.connect(options)
       client.on('error', onError)
