@@ -8,7 +8,7 @@ import {
   useBlockWithTx,
   useBlockWithTxs,
 } from '../testUtilities'
-import { FeeEstimator, getFeeRate, PRIORITY_LEVELS } from './feeEstimator'
+import { FeeEstimator, FeeRateEntry, getFeeRate, PRIORITY_LEVELS } from './feeEstimator'
 
 describe('FeeEstimator', () => {
   const nodeTest = createNodeTest()
@@ -110,12 +110,10 @@ describe('FeeEstimator', () => {
       expect(feeEstimator.size(PRIORITY_LEVELS[0])).toBe(2)
       expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(2)
       expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(2)
-      expect(feeEstimator['queues'].get(PRIORITY_LEVELS[0])![0].feeRate).toEqual(
-        getFeeRate(transaction),
-      )
-      expect(feeEstimator['queues'].get(PRIORITY_LEVELS[0])![1].feeRate).toEqual(
-        getFeeRate(transaction2),
-      )
+      let queue: FeeRateEntry[] | undefined
+      Assert.isNotUndefined((queue = feeEstimator['queues'].get(PRIORITY_LEVELS[0])))
+      expect(queue[0].feeRate).toEqual(getFeeRate(transaction))
+      expect(queue[1].feeRate).toEqual(getFeeRate(transaction2))
     })
   })
 

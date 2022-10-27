@@ -10,7 +10,7 @@ import { Block, Transaction } from '../primitives'
 import { Wallet } from '../wallet'
 import { Account } from '../wallet/account'
 
-interface FeeRateEntry {
+export interface FeeRateEntry {
   feeRate: bigint
   blockHash: Buffer
 }
@@ -59,9 +59,8 @@ export class FeeEstimator {
       const feeRateEntryList = this.getPercentileFeeRateEntries(currentBlock, this.percentiles)
 
       for (const [priorityLevel, queue] of this.queues) {
-        const percentile = PRIORITY_LEVELS_TO_PERCENTILES.get(priorityLevel)
-
-        if (percentile) {
+        let percentile: Percentile | undefined
+        if ((percentile = PRIORITY_LEVELS_TO_PERCENTILES.get(priorityLevel))) {
           const feeRateEntry = feeRateEntryList.get(percentile)
 
           if (feeRateEntry && !this.isFull(queue)) {
@@ -88,12 +87,10 @@ export class FeeEstimator {
     )
 
     for (const [priorityLevel, queue] of this.queues) {
-      if (PRIORITY_LEVELS_TO_PERCENTILES.has(priorityLevel)) {
-        const feeRateEntry = feeRateEntryList.get(
-          PRIORITY_LEVELS_TO_PERCENTILES.get(priorityLevel)!,
-        )
-
-        if (feeRateEntry) {
+      let percentile: Percentile | undefined
+      if ((percentile = PRIORITY_LEVELS_TO_PERCENTILES.get(priorityLevel))) {
+        let feeRateEntry: FeeRateEntry | undefined
+        if ((feeRateEntry = feeRateEntryList.get(percentile))) {
           if (this.isFull(queue)) {
             queue.shift()
           }
