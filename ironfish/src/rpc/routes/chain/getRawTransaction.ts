@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
@@ -49,17 +48,7 @@ router.register<typeof GetRawTransactionRequestSchema, GetRawTransactionResponse
       throw new ValidationError(`No block found`)
     }
 
-    let parentBlock
-    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-      parentBlock = block
-    } else {
-      parentBlock = await node.chain.getBlock(block.header.previousBlockHash)
-    }
-
-    if (!parentBlock) {
-      throw new ValidationError(`No parent block found`)
-    }
-
+    // Empty response used for case that transaction not found
     const rawTransaction: GetRawTransactionResponse = {
       fee: '0',
       expirationSequence: 0,
