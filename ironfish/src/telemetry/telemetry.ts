@@ -432,7 +432,7 @@ export class Telemetry {
         {
           name: 'notes',
           type: 'integer',
-          value: transaction.notesLength(),
+          value: transaction.outputDescriptionsLength(),
         },
         {
           name: 'spends',

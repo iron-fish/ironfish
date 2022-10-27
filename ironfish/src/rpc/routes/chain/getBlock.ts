@@ -161,7 +161,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     }
 
     const transactions = block.transactions.map((transaction) => {
-      const notes = [...transaction.notes()].map((note) => ({
+      const notes = [...transaction.outputDescriptions()].map((note) => ({
         commitment: Buffer.from(note.merkleHash()).toString('hex'),
       }))
 

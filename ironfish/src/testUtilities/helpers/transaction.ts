@@ -6,7 +6,7 @@ import { Transaction } from '../../primitives/transaction'
 import { Account } from '../../wallet'
 
 export function isTransactionMine(transaction: Transaction, account: Account): boolean {
-  for (const note of transaction.notes()) {
+  for (const note of transaction.outputDescriptions()) {
     const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)
     if (receivedNote) {
       return true

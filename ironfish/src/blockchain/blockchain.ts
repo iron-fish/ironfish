@@ -917,7 +917,7 @@ export class Blockchain {
       }
 
       for (const transaction of transactions) {
-        for (const note of transaction.notes()) {
+        for (const note of transaction.outputDescriptions()) {
           await this.notes.add(note, tx)
         }
         for (const spend of transaction.spends()) {
@@ -1213,7 +1213,7 @@ export class Blockchain {
     // header.noteCommitment is the size of the tree after the
     // last note in the block.
     for (const transaction of block.transactions.reverse()) {
-      noteIndex -= transaction.notesLength()
+      noteIndex -= transaction.outputDescriptionsLength()
 
       yield {
         transaction,

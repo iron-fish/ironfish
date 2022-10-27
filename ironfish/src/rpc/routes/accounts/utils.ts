@@ -40,7 +40,7 @@ export async function getTransactionNotes(
 > {
   const transactionNotes = []
 
-  for (const note of transaction.notes()) {
+  for (const note of transaction.outputDescriptions()) {
     let decryptedNote
     let owner
 

@@ -111,10 +111,12 @@ describe('CreateTransactionTask', () => {
       const account = await useAccountFixture(nodeTest.wallet)
       const minerTransaction = await useMinersTxFixture(nodeTest.wallet, account)
 
-      const spendNote = minerTransaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
+      const spendNote = minerTransaction
+        .getOutputDescription(0)
+        .decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(spendNote)
-      for (let i = 0; i < minerTransaction.notesLength(); i++) {
-        const note = minerTransaction.getNote(i)
+      for (let i = 0; i < minerTransaction.outputDescriptionsLength(); i++) {
+        const note = minerTransaction.getOutputDescription(i)
         await tree.add(note)
       }
 

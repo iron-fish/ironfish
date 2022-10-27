@@ -469,14 +469,14 @@ describe('Blockchain', () => {
       const txA2 = blockA2.transactions[1]
       const txB3 = blockB3.transactions[1]
 
-      expect(minersFeeA1.notesLength()).toBe(1)
-      expect(minersFeeA2.notesLength()).toBe(1)
-      expect(minersFeeB1.notesLength()).toBe(1)
-      expect(minersFeeB2.notesLength()).toBe(1)
-      expect(minersFeeB3.notesLength()).toBe(1)
-      expect(txA2.notesLength()).toBe(2)
+      expect(minersFeeA1.outputDescriptionsLength()).toBe(1)
+      expect(minersFeeA2.outputDescriptionsLength()).toBe(1)
+      expect(minersFeeB1.outputDescriptionsLength()).toBe(1)
+      expect(minersFeeB2.outputDescriptionsLength()).toBe(1)
+      expect(minersFeeB3.outputDescriptionsLength()).toBe(1)
+      expect(txA2.outputDescriptionsLength()).toBe(2)
       expect(txA2.spendsLength()).toBe(1)
-      expect(txB3.notesLength()).toBe(2)
+      expect(txB3.outputDescriptionsLength()).toBe(2)
       expect(txB3.spendsLength()).toBe(1)
 
       // Check nodeA has notes from blockA1, blockA2
@@ -485,10 +485,18 @@ describe('Blockchain', () => {
       let addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).element
       let addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).element
       let addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).element
-      expect(addedNoteA1.serialize().equals(minersFeeA1.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA2.serialize().equals(minersFeeA2.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA3.serialize().equals(txA2.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA4.serialize().equals(txA2.getNote(1).serialize())).toBe(true)
+      expect(
+        addedNoteA1.serialize().equals(minersFeeA1.getOutputDescription(0).serialize()),
+      ).toBe(true)
+      expect(
+        addedNoteA2.serialize().equals(minersFeeA2.getOutputDescription(0).serialize()),
+      ).toBe(true)
+      expect(addedNoteA3.serialize().equals(txA2.getOutputDescription(0).serialize())).toBe(
+        true,
+      )
+      expect(addedNoteA4.serialize().equals(txA2.getOutputDescription(1).serialize())).toBe(
+        true,
+      )
 
       // Check nodeA has nullifiers from blockA2
       expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
@@ -502,11 +510,21 @@ describe('Blockchain', () => {
       const addedNoteB3 = (await nodeB.chain.notes.getLeaf(countNoteB + 2)).element
       const addedNoteB4 = (await nodeB.chain.notes.getLeaf(countNoteB + 3)).element
       const addedNoteB5 = (await nodeB.chain.notes.getLeaf(countNoteB + 4)).element
-      expect(addedNoteB1.serialize().equals(minersFeeB1.getNote(0).serialize())).toBe(true)
-      expect(addedNoteB2.serialize().equals(minersFeeB2.getNote(0).serialize())).toBe(true)
-      expect(addedNoteB3.serialize().equals(minersFeeB3.getNote(0).serialize())).toBe(true)
-      expect(addedNoteB4.serialize().equals(txB3.getNote(0).serialize())).toBe(true)
-      expect(addedNoteB5.serialize().equals(txB3.getNote(1).serialize())).toBe(true)
+      expect(
+        addedNoteB1.serialize().equals(minersFeeB1.getOutputDescription(0).serialize()),
+      ).toBe(true)
+      expect(
+        addedNoteB2.serialize().equals(minersFeeB2.getOutputDescription(0).serialize()),
+      ).toBe(true)
+      expect(
+        addedNoteB3.serialize().equals(minersFeeB3.getOutputDescription(0).serialize()),
+      ).toBe(true)
+      expect(addedNoteB4.serialize().equals(txB3.getOutputDescription(0).serialize())).toBe(
+        true,
+      )
+      expect(addedNoteB5.serialize().equals(txB3.getOutputDescription(1).serialize())).toBe(
+        true,
+      )
 
       // Check nodeB has nullifiers from blockB3
       expect(await nodeB.chain.nullifiers.size()).toBe(countNullifierB + 1)
@@ -526,11 +544,21 @@ describe('Blockchain', () => {
       addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).element
       addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).element
       const addedNoteA5 = (await nodeA.chain.notes.getLeaf(countNoteA + 4)).element
-      expect(addedNoteA1.serialize().equals(minersFeeB1.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA2.serialize().equals(minersFeeB2.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA3.serialize().equals(minersFeeB3.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA4.serialize().equals(txB3.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA5.serialize().equals(txB3.getNote(1).serialize())).toBe(true)
+      expect(
+        addedNoteA1.serialize().equals(minersFeeB1.getOutputDescription(0).serialize()),
+      ).toBe(true)
+      expect(
+        addedNoteA2.serialize().equals(minersFeeB2.getOutputDescription(0).serialize()),
+      ).toBe(true)
+      expect(
+        addedNoteA3.serialize().equals(minersFeeB3.getOutputDescription(0).serialize()),
+      ).toBe(true)
+      expect(addedNoteA4.serialize().equals(txB3.getOutputDescription(0).serialize())).toBe(
+        true,
+      )
+      expect(addedNoteA5.serialize().equals(txB3.getOutputDescription(1).serialize())).toBe(
+        true,
+      )
 
       // Check nodeA's chain has removed blockA2 nullifiers and added blockB3
       expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
@@ -544,9 +572,11 @@ describe('Blockchain', () => {
       const tx2 = await useMinersTxFixture(nodeTest.wallet, account)
       const size = await nodeTest.chain.notes.size()
 
-      await nodeTest.chain.addNote(size, tx1.getNote(0))
+      await nodeTest.chain.addNote(size, tx1.getOutputDescription(0))
 
-      await expect(nodeTest.chain.addNote(size, tx2.getNote(0))).rejects.toThrowError(
+      await expect(
+        nodeTest.chain.addNote(size, tx2.getOutputDescription(0)),
+      ).rejects.toThrowError(
         `Tried to insert a note, but a different note already there for position 3`,
       )
     }, 30000)
@@ -556,9 +586,9 @@ describe('Blockchain', () => {
       const tx = await useMinersTxFixture(nodeTest.wallet, account)
       const size = await nodeTest.chain.notes.size()
 
-      await expect(nodeTest.chain.addNote(size + 1, tx.getNote(0))).rejects.toThrowError(
-        `Can't insert a note at index 4. Merkle tree has a count of 3`,
-      )
+      await expect(
+        nodeTest.chain.addNote(size + 1, tx.getOutputDescription(0)),
+      ).rejects.toThrowError(`Can't insert a note at index 4. Merkle tree has a count of 3`)
     }, 30000)
 
     it("throws if the nullifier doesn't match the previously inserted note that position", async () => {

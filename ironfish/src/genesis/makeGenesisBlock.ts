@@ -84,11 +84,11 @@ export async function makeGenesisBlock(
   // Temporarily add the miner's fee note and the note from the transaction to our merkle tree
   // so we can construct a witness. They will be re-added later when the block is constructed.
   logger.info('  Adding the note to the tree...')
-  if (postedInitialTransaction.notesLength() !== 1) {
+  if (postedInitialTransaction.outputDescriptionsLength() !== 1) {
     throw new Error('Expected postedInitialTransaction to have 1 note')
   }
-  await chain.notes.add(postedMinersFeeTransaction.getNote(0))
-  await chain.notes.add(postedInitialTransaction.getNote(0))
+  await chain.notes.add(postedMinersFeeTransaction.getOutputDescription(0))
+  await chain.notes.add(postedInitialTransaction.getOutputDescription(0))
 
   // Construct a witness of the Transaction 1 note
   logger.info('  Constructing a witness of the note...')

@@ -82,7 +82,7 @@ export class Verifier {
 
       transactionBatch.push(tx)
 
-      runningNotesCount += tx.notesLength()
+      runningNotesCount += tx.outputDescriptionsLength()
 
       if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
         verificationPromises.push(this.workerPool.verifyTransactions(transactionBatch))

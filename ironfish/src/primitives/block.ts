@@ -31,7 +31,7 @@ export class Block {
     let nullifiers = 0
 
     for (const transaction of this.transactions) {
-      notes += transaction.notesLength()
+      notes += transaction.outputDescriptionsLength()
       nullifiers += transaction.spendsLength()
     }
 
@@ -61,7 +61,7 @@ export class Block {
    */
   *notes(): Generator<OutputDescription> {
     for (const transaction of this.transactions) {
-      for (const note of transaction.notes()) {
+      for (const note of transaction.outputDescriptions()) {
         yield note
       }
     }

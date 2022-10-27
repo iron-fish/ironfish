@@ -18,7 +18,7 @@ export class Transaction {
   private readonly _fee: bigint
   private readonly _expirationSequence: number
   private readonly _spends: Spend[] = []
-  private readonly _notes: OutputDescription[]
+  private readonly _outputDescriptions: OutputDescription[]
   private readonly _signature: Buffer
   private _hash?: TransactionHash
   private _unsignedHash?: TransactionHash
@@ -32,7 +32,7 @@ export class Transaction {
     const reader = bufio.read(this.transactionPostedSerialized, true)
 
     const _spendsLength = reader.readU64() // 8
-    const _notesLength = reader.readU64() // 8
+    const _outputDescriptionsLength = reader.readU64() // 8
     this._fee = BigInt(reader.readI64()) // 8
     this._expirationSequence = reader.readU32() // 4
 
@@ -59,7 +59,7 @@ export class Transaction {
       }
     })
 
-    this._notes = Array.from({ length: _notesLength }, () => {
+    this._outputDescriptions = Array.from({ length: _outputDescriptionsLength }, () => {
       // proof
       reader.seek(192)
 
@@ -113,23 +113,23 @@ export class Transaction {
   /**
    * The number of notes in the transaction.
    */
-  notesLength(): number {
-    return this._notes.length
+  outputDescriptionsLength(): number {
+    return this._outputDescriptions.length
   }
 
-  getNote(index: number): OutputDescription {
-    return this._notes[index]
+  getOutputDescription(index: number): OutputDescription {
+    return this._outputDescriptions[index]
   }
 
   isMinersFee(): boolean {
-    return this._spends.length === 0 && this._notes.length === 1 && this._fee <= 0
+    return this._spends.length === 0 && this._outputDescriptions.length === 1 && this._fee <= 0
   }
 
   /**
    * Iterate over all the notes created by this transaction.
    */
-  notes(): Iterable<OutputDescription> {
-    return this._notes.values()
+  outputDescriptions(): Iterable<OutputDescription> {
+    return this._outputDescriptions.values()
   }
 
   /**

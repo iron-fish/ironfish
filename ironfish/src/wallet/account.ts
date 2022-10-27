@@ -327,7 +327,7 @@ export class Account {
     const transactionHash = transaction.hash()
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      for (const note of transaction.notes()) {
+      for (const note of transaction.outputDescriptions()) {
         const noteHash = note.merkleHash()
         const decryptedNote = await this.getDecryptedNote(noteHash)
 
@@ -451,7 +451,7 @@ export class Account {
   ): Promise<Array<DecryptedNoteValue & { hash: Buffer }>> {
     const notes = []
 
-    for (const note of transaction.notes()) {
+    for (const note of transaction.outputDescriptions()) {
       const noteHash = note.merkleHash()
       const decryptedNote = await this.getDecryptedNote(noteHash)
 

@@ -478,7 +478,7 @@ export class Migration013 extends Migration {
     ] of stores.old.transactions.getAllIter()) {
       const transaction = new Transaction(transactionValue.transaction)
 
-      for (const note of transaction.notes()) {
+      for (const note of transaction.outputDescriptions()) {
         const noteHash = note.merkleHash()
 
         batch.put(noteToTransactionCache, noteHash, transactionHash)
@@ -554,7 +554,7 @@ function findNoteInTransaction(
   transaction: Transaction,
   noteHash: Buffer,
 ): OutputDescription | null {
-  for (const note of transaction.notes()) {
+  for (const note of transaction.outputDescriptions()) {
     if (note.merkleHash().equals(noteHash)) {
       return note
     }

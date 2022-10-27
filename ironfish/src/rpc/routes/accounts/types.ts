@@ -27,7 +27,7 @@ export function serializeRpcAccountTransaction(
     hash: transaction.transaction.unsignedHash().toString('hex'),
     isMinersFee: transaction.transaction.isMinersFee(),
     fee: transaction.transaction.fee().toString(),
-    notesCount: transaction.transaction.notesLength(),
+    notesCount: transaction.transaction.outputDescriptionsLength(),
     spendsCount: transaction.transaction.spendsLength(),
     expirationSequence: transaction.transaction.expirationSequence(),
   }

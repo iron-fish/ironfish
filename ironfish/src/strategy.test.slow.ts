@@ -172,7 +172,7 @@ describe('Demonstrate the Sapling API', () => {
       await minersFee.withReference(async () => {
         expect(minersFee['transactionPosted']).not.toBeNull()
 
-        expect(minersFee.notesLength()).toEqual(1)
+        expect(minersFee.outputDescriptionsLength()).toEqual(1)
         expect(minersFee['transactionPosted']).not.toBeNull()
 
         // Reference returning happens on the promise jobs queue, so use an await
@@ -190,7 +190,7 @@ describe('Demonstrate the Sapling API', () => {
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, key.spending_key)
 
       expect(minersFee['transactionPosted']).toBeNull()
-      const noteIterator = minersFee.notes()
+      const noteIterator = minersFee.outputDescriptions()
       expect(minersFee['transactionPosted']).toBeNull()
 
       let note: OutputDescription | null = null

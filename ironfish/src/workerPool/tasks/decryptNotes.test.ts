@@ -59,7 +59,7 @@ describe('DecryptNotesTask', () => {
       const index = 2
       const request = new DecryptNotesRequest([
         {
-          serializedNote: transaction.getNote(0).serialize(),
+          serializedNote: transaction.getOutputDescription(0).serialize(),
           incomingViewKey: account.incomingViewKey,
           outgoingViewKey: account.outgoingViewKey,
           spendingKey: account.spendingKey,
