@@ -10,7 +10,7 @@ export async function verifyCanSend(
   client: RpcClient,
   api: WebApi,
   expirationSequenceDelta: number | undefined,
-  fee: number,
+  fee: bigint,
   graffiti: string,
 ): Promise<{ canSend: boolean; errorReason: string | null }> {
   const status = await client.getNodeStatus()

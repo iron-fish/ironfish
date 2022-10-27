@@ -118,7 +118,7 @@ export default class DepositAll extends IronfishCommand {
       this.client,
       this.api,
       expirationSequenceDelta,
-      Number(fee),
+      fee,
       graffiti,
     )
     if (!canSend) {
