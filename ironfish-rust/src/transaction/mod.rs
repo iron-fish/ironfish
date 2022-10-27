@@ -148,7 +148,7 @@ impl ProposedTransaction {
         // Ensure the merkle note has an identifiable encryption key
         self.outputs
             .get_mut(0)
-            .expect("bounds checked above")
+            .ok_or(IronfishError::InvalidMinersFeeTransaction)?
             .set_is_miners_fee();
         self._partial_post()
     }
