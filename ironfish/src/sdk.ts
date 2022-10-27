@@ -159,13 +159,7 @@ export class IronfishSdk {
         client = new RpcTcpClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
       }
     } else {
-      client = new RpcIpcClient(
-        {
-          mode: 'ipc',
-          socketPath: config.get('ipcPath'),
-        },
-        logger,
-      )
+      client = new RpcIpcClient(config.get('ipcPath'), logger)
     }
 
     return new IronfishSdk(

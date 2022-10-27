@@ -249,7 +249,7 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   }
 
   emitResponse(client: SocketClient, data: ServerSocketRpc, requestId?: string): void {
-    const message = this.encodeNodeIpc(data)
+    const message = this.encodeMessage(data)
     client.socket.write(message)
     this.outboundTraffic.add(message.byteLength)
 
@@ -260,18 +260,13 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
   }
 
   emitStream(client: SocketClient, data: ServerSocketRpc): void {
-    const message = this.encodeNodeIpc(data)
+    const message = this.encodeMessage(data)
     client.socket.write(message)
     this.outboundTraffic.add(message.byteLength)
   }
 
-  // `constructResponse`,  `constructStream` and `constructMalformedRequest` construct messages to return
-  // to a 'node-ipc' client. Once we remove 'node-ipc' we can return our own messages
-  // The '\f' is for handling the delimiter that 'node-ipc' expects when parsing
-  // messages it received. See 'node-ipc' parsing/formatting logic here:
-  // https://github.com/RIAEvangelist/node-ipc/blob/master/entities/EventParser.js
-  encodeNodeIpc(ipcResponse: ServerSocketRpc): Buffer {
-    return Buffer.from(JSON.stringify(ipcResponse) + MESSAGE_DELIMITER)
+  encodeMessage(data: ServerSocketRpc): Buffer {
+    return Buffer.from(JSON.stringify(data) + MESSAGE_DELIMITER)
   }
 
   constructMessage(messageId: number, status: number, data: unknown): ServerSocketRpc {
