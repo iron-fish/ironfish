@@ -141,17 +141,12 @@ export class FeeEstimator {
     return result
   }
 
-  estimateFeeRates(): { priority: PriorityLevel; feeRate: bigint }[] {
-    const feeRates = []
-
-    for (const priority of PRIORITY_LEVELS) {
-      feeRates.push({
-        priority,
-        feeRate: this.estimateFeeRate(priority),
-      })
+  estimateFeeRates(): { low: bigint; medium: bigint; high: bigint } {
+    return {
+      low: this.estimateFeeRate('low'),
+      medium: this.estimateFeeRate('medium'),
+      high: this.estimateFeeRate('high'),
     }
-
-    return feeRates
   }
 
   estimateFeeRate(priorityLevel: PriorityLevel): bigint {

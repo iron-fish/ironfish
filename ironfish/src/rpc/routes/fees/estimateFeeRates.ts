@@ -7,7 +7,9 @@ import { ApiNamespace, router } from '../router'
 
 export type EstimateFeeRatesRequest = { priority?: PriorityLevel }
 export type EstimateFeeRatesResponse = {
-  feeRates: { priority: PriorityLevel; feeRate: string }[]
+  low?: string,
+  medium?: string,
+  high?: string,
 }
 
 export const EstimateFeeRatesRequestSchema: yup.ObjectSchema<EstimateFeeRatesRequest> = yup
@@ -18,16 +20,9 @@ export const EstimateFeeRatesRequestSchema: yup.ObjectSchema<EstimateFeeRatesReq
 
 export const EstimateFeeRatesResponseSchema: yup.ObjectSchema<EstimateFeeRatesResponse> = yup
   .object({
-    feeRates: yup
-      .array(
-        yup
-          .object({
-            priority: yup.string().oneOf(PRIORITY_LEVELS).defined(),
-            feeRate: yup.string().defined(),
-          })
-          .defined(),
-      )
-      .defined(),
+    low: yup.string(),
+    medium: yup.string(),
+    high: yup.string(),
   })
   .defined()
 
@@ -43,17 +38,15 @@ router.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
       const feeRate = feeEstimator.estimateFeeRate(priority)
 
       request.end({
-        feeRates: [{ priority, feeRate: feeRate.toString() }],
+        [priority]: feeRate
       })
     } else {
-      const feeRates = []
-
-      for (const { priority, feeRate } of feeEstimator.estimateFeeRates()) {
-        feeRates.push({ priority, feeRate: feeRate.toString() })
-      }
+      const feeRates = feeEstimator.estimateFeeRates()
 
       request.end({
-        feeRates,
+        low: feeRates.low.toString(),
+        medium: feeRates.medium.toString(),
+        high: feeRates.high.toString(),
       })
     }
   },
