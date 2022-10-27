@@ -28,10 +28,7 @@ describe('IpcAdapter', () => {
       },
     })
 
-    ipc = new RpcIpcAdapter(ALL_API_NAMESPACES, {
-      mode: 'ipc',
-      socketPath: sdk.config.get('ipcPath'),
-    })
+    ipc = new RpcIpcAdapter(sdk.config.get('ipcPath'), undefined, ALL_API_NAMESPACES)
 
     const node = await sdk.node()
     await node.rpc.mount(ipc)
@@ -53,7 +50,7 @@ describe('IpcAdapter', () => {
     expect(ipc.started).toBe(true)
 
     await ipc.stop()
-    expect(ipc.started).toBe(true)
+    expect(ipc.started).toBe(false)
   })
 
   it('should send and receive message', async () => {

@@ -6,7 +6,7 @@ import { Assert } from '../../assert'
 import { Event } from '../../event'
 import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
-import { IpcRequest } from '../adapters'
+import { SocketRpcRequest } from '../adapters/socketAdapter/protocol'
 import { RpcConnectionRefusedError } from './errors'
 import { RpcClientConnectionInfo, RpcSocketClient } from './socketClient'
 
@@ -108,10 +108,11 @@ export class RpcIpcClient extends RpcSocketClient {
 
   protected send(messageId: number, route: string, data: unknown): void {
     Assert.isNotNull(this.client)
-    const message: IpcRequest = {
+    const message: SocketRpcRequest = {
       mid: messageId,
       type: route,
       data: data,
+      auth: null,
     }
     this.client.emit('message', message)
   }
