@@ -3,22 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { useBlockWithTx } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { Account } from '../../../wallet'
 import { EstimateFeeRequest } from './estimateFee'
 
 describe('estimate Fee', () => {
   const routeTest = createRouteTest(true)
+  let account: Account
 
-  beforeAll(async () => {
-    await routeTest.node.wallet.createAccount('existingAccount', true)
+  it('should return fee', async () => {
+    account = await routeTest.node.wallet.createAccount('existingAccount', true)
     const node = routeTest.node
     const { block } = await useBlockWithTx(node, undefined, undefined, true, {
       fee: 1,
     })
     await node.chain.addBlock(block)
     await node.wallet.updateHead()
-  })
-
-  it('should return fee', async () => {
     const response = await routeTest.client
       .request<EstimateFeeRequest>('fees/estimateFee', {
         fromAccountName: 'existingAccount',
@@ -39,6 +38,13 @@ describe('estimate Fee', () => {
   })
 
   it('should return fee with default priority', async () => {
+    const node = routeTest.node
+    const { block } = await useBlockWithTx(node, account, undefined, true, {
+      fee: 1,
+    })
+    await node.chain.addBlock(block)
+    await node.wallet.updateHead()
+
     const response = await routeTest.client
       .request<EstimateFeeRequest>('fees/estimateFee', {
         fromAccountName: 'existingAccount',
