@@ -26,7 +26,6 @@ The following steps should only be used to install if you are planning on contri
 1. Run `yarn install` from the root directory to install packages (see sections below for OS specific details).
 
 ### Troubleshooting
-1. MacOS:
    - If `yarn install` fails with an error that includes "Failed to build cmake", you may need to first install cmake. For example, on macOS:
 
      1. Run `brew install cmake`, you'll need cmake version 3.15 or higher.
@@ -41,7 +40,6 @@ The following steps should only be used to install if you are planning on contri
      
      1. Run `brew install python`
 
-1. Linux:
    - If `yarn install` fails with an error that includes "Error: not found: make", "make: cc: Command not found", or "make: g++: Command not found", you may need to [install a C/C++ compiler toolchain](https://github.com/nodejs/node-gyp#on-unix).
 
      1. On Ubuntu: `apt install build-essential`
