@@ -7,6 +7,8 @@ import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { getTransactionSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
+import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
+import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import { Wallet } from '../wallet'
 import { Account } from '../wallet/account'
 
@@ -25,8 +27,6 @@ const PRIORITY_LEVELS_TO_PERCENTILES = new Map<PriorityLevel, Percentile>([
   ['medium', 20],
   ['high', 30],
 ])
-const SPEND_SERIALIZED_SIZE_IN_BYTE = 388
-const NOTE_SERIALIZED_SIZE_IN_BYTE = 467
 
 export class FeeEstimator {
   private queues: Map<PriorityLevel, Array<FeeRateEntry>>
@@ -149,6 +149,9 @@ export class FeeEstimator {
     }
   }
 
+  /*
+   * returns an estimated fee rate as ore/kb
+   */
   estimateFeeRate(priorityLevel: PriorityLevel): bigint {
     const queue = this.queues.get(priorityLevel)
     if (queue === undefined || queue.length < this.maxBlockHistory) {
@@ -201,7 +204,7 @@ export class FeeEstimator {
 
     size += notesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE
 
-    size += receives.length * NOTE_SERIALIZED_SIZE_IN_BYTE
+    size += receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
 
     if (estimateFeeRate) {
       const additionalAmountNeeded =

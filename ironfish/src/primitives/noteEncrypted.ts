@@ -7,6 +7,8 @@ import bufio from 'bufio'
 import { Serde } from '../serde'
 import { Note } from './note'
 
+export const NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE = 467
+
 export type NoteEncryptedHash = Buffer
 export type SerializedNoteEncryptedHash = Buffer
 export type SerializedNoteEncrypted = Buffer
