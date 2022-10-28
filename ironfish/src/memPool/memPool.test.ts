@@ -5,6 +5,7 @@ import { Assert } from '../assert'
 import { getEmptyBlockSize, getTransactionSize } from '../network/utils/serializers'
 import { Transaction } from '../primitives'
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
+import { getFeeRate } from './feeEstimator'
 
 describe('MemPool', () => {
   describe('size', () => {
@@ -113,17 +114,13 @@ describe('MemPool', () => {
       const transactionB = block.minersFee
       const { transaction: transactionC } = await useBlockWithTx(node, accountC, accountA)
 
-      const transactionASize = getTransactionSize(transactionA.serialize())
-      const transactionBSize = getTransactionSize(transactionB.serialize())
-      const transactionCSize = getTransactionSize(transactionC.serialize())
+      jest.spyOn(transactionA, 'fee').mockImplementation(() => BigInt(4))
+      jest.spyOn(transactionB, 'fee').mockImplementation(() => BigInt(4))
+      jest.spyOn(transactionC, 'fee').mockImplementation(() => BigInt(1))
 
       // Miner's fee transaction has a smaller size than the normal transaction fixture
-      Assert.isTrue(transactionBSize < transactionASize)
-      Assert.isEqual(transactionASize, transactionCSize)
-
-      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => BigInt(4))
-      jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => BigInt(4))
-      jest.spyOn(transactionC, 'fee').mockImplementationOnce(() => BigInt(1))
+      expect(getFeeRate(transactionB)).toBeGreaterThan(getFeeRate(transactionA))
+      expect(getFeeRate(transactionA)).toBeGreaterThan(getFeeRate(transactionC))
 
       memPool.acceptTransaction(transactionA)
       memPool.acceptTransaction(transactionB)
