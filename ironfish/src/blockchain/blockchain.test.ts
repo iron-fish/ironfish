@@ -732,17 +732,6 @@ describe('Blockchain', () => {
     })
   })
 
-  it('reject block with null previous hash', async () => {
-    const { node } = await nodeTest.createSetup()
-    const block = await useMinerBlockFixture(node.chain)
-
-    const result = await node.chain.verifier.verifyBlockAdd(block, null)
-    expect(result).toMatchObject({
-      valid: false,
-      reason: VerificationResultReason.PREV_HASH_NULL,
-    })
-  })
-
   it('reject block with hash not matching previous hash', async () => {
     const { node } = await nodeTest.createSetup()
 

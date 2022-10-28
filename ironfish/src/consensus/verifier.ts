@@ -12,11 +12,7 @@ import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { WorkerPool } from '../workerPool'
-import {
-  ALLOWED_BLOCK_FUTURE_SECONDS,
-  GENESIS_BLOCK_SEQUENCE,
-  MAX_TRANSACTIONS_PER_BLOCK,
-} from './consensus'
+import { ALLOWED_BLOCK_FUTURE_SECONDS, MAX_TRANSACTIONS_PER_BLOCK } from './consensus'
 
 export class Verifier {
   chain: Blockchain
@@ -301,15 +297,7 @@ export class Verifier {
   }
 
   // TODO: Rename to verifyBlock but merge verifyBlock into this
-  async verifyBlockAdd(block: Block, prev: BlockHeader | null): Promise<VerificationResult> {
-    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-      return { valid: true }
-    }
-
-    if (!prev) {
-      return { valid: false, reason: VerificationResultReason.PREV_HASH_NULL }
-    }
-
+  async verifyBlockAdd(block: Block, prev: BlockHeader): Promise<VerificationResult> {
     const { notes, nullifiers } = block.counts()
 
     if (block.header.noteCommitment.size !== prev.noteCommitment.size + notes) {

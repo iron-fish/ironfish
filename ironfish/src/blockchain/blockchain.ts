@@ -260,9 +260,12 @@ export class Blockchain {
     const serialized = IJSON.parse(genesisBlockData) as SerializedBlock
     const genesis = BlockSerde.deserialize(serialized)
 
-    const result = await this.addBlock(genesis)
+    Assert.isFalse(this.hasGenesisBlock)
+    Assert.isTrue(genesis.header.sequence === GENESIS_BLOCK_SEQUENCE)
+
+    const result = await this.addGenesisBlock(genesis)
+
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
-    Assert.isEqual(result.isFork, false)
 
     const genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     Assert.isNotNull(
@@ -331,6 +334,36 @@ export class Blockchain {
     await this.db.close()
   }
 
+  async addGenesisBlock(genesis: Block): Promise<{
+    isAdded: boolean
+    reason: VerificationResultReason | null
+  }> {
+    try {
+      return await this.db.transaction(async (tx) => {
+        const work = genesis.header.target.toDifficulty()
+        genesis.header.work = BigInt(0) + work
+
+        const isFork = !this.isEmpty && !isBlockHeavier(genesis.header, this.head)
+        Assert.isFalse(isFork)
+
+        await this.saveBlock(genesis, null, false, tx)
+        this.head = genesis.header
+        this.genesis = genesis.header
+
+        await this.onConnectBlock.emitAsync(genesis, tx)
+
+        this.updateSynced()
+
+        return { isAdded: true, reason: null }
+      })
+    } catch (e) {
+      if (e instanceof VerifyError) {
+        return { isAdded: false, reason: e.reason }
+      }
+      throw e
+    }
+  }
+
   async addBlock(block: Block): Promise<{
     isAdded: boolean
     isFork: boolean | null
@@ -341,10 +374,6 @@ export class Blockchain {
     try {
       connectResult = await this.db.transaction(async (tx) => {
         const hash = block.header.recomputeHash()
-
-        if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-          return await this.connect(block, null, tx)
-        }
 
         const invalid = this.isInvalid(block.header)
         if (invalid) {
@@ -569,13 +598,13 @@ export class Blockchain {
 
   private async connect(
     block: Block,
-    prev: BlockHeader | null,
+    prev: BlockHeader,
     tx: IDatabaseTransaction,
   ): Promise<{ isFork: boolean }> {
     const start = BenchUtils.start()
 
     const work = block.header.target.toDifficulty()
-    block.header.work = (prev ? prev.work : BigInt(0)) + work
+    block.header.work = prev.work + work
 
     const isFork = !this.isEmpty && !isBlockHeavier(block.header, this.head)
 
@@ -650,7 +679,7 @@ export class Blockchain {
 
   private async addForkToChain(
     block: Block,
-    prev: BlockHeader | null,
+    prev: BlockHeader,
     tx: IDatabaseTransaction,
   ): Promise<void> {
     const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev)
@@ -686,7 +715,7 @@ export class Blockchain {
 
   private async addHeadToChain(
     block: Block,
-    prev: BlockHeader | null,
+    prev: BlockHeader,
     tx: IDatabaseTransaction,
   ): Promise<void> {
     if (prev && !block.header.previousBlockHash.equals(this.head.hash)) {
@@ -719,10 +748,6 @@ export class Blockchain {
 
     await this.saveBlock(block, prev, false, tx)
     this.head = block.header
-
-    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-      this.genesis = block.header
-    }
 
     await this.onConnectBlock.emitAsync(block, tx)
   }
