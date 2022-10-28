@@ -263,9 +263,26 @@ export class Blockchain {
     Assert.isFalse(this.hasGenesisBlock)
     Assert.isTrue(genesis.header.sequence === GENESIS_BLOCK_SEQUENCE)
 
-    const result = await this.addGenesisBlock(genesis)
+    const work = genesis.header.target.toDifficulty()
+    genesis.header.work = BigInt(0) + work
 
-    Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
+    const isFork = !this.isEmpty && !isBlockHeavier(genesis.header, this.head)
+    Assert.isFalse(isFork)
+
+    try {
+      await this.db.transaction(async (tx) => {
+        await this.saveBlock(genesis, null, false, tx)
+        this.head = genesis.header
+        this.genesis = genesis.header
+
+        await this.onConnectBlock.emitAsync(genesis, tx)
+
+        this.updateSynced()
+      })
+    } catch (e) {
+      const reason = e instanceof VerifyError ? e.reason : 'unknown'
+      throw new Error(`Could not seed genesis: ${reason}`)
+    }
 
     const genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     Assert.isNotNull(
