@@ -212,7 +212,6 @@ export class MerkleTree<
 
       await this.addLeafWithNodes(element, tx)
 
-      console.log('calling hashTree with', startingLeafIndex)
       await this.hashTree(startingLeafIndex, tx)
     })
   }
@@ -467,7 +466,7 @@ export class MerkleTree<
       parent.parentIndex = 0
       await this.nodes.put(parentIndex, parent, tx)
       await this.counter.put('Nodes', maxParentIndex + 1, tx)
-      await this.hashTree(pastSize - 1)
+      await this.hashTree(pastSize - 1, tx)
     })
   }
 
@@ -631,7 +630,7 @@ export class MerkleTree<
     await this.db.withTransaction(tx, async (tx) => {
       const leavesCount = await this.getCount('Leaves', tx)
 
-      if (startingLeafIndex > leavesCount - 1) {
+      if (leavesCount <= 1 || startingLeafIndex > leavesCount - 1) {
         return
       }
 
@@ -645,11 +644,11 @@ export class MerkleTree<
       for (
         let leafIndex = leavesCount - 1;
         leafIndex >= startingLeafIndex;
-        leafIndex % 2 !== 0 ? (leafIndex -= 2) : leafIndex--
+        isRight(leafIndex) ? (leafIndex -= 2) : leafIndex--
       ) {
         // if leafIndex is even, we have a leaf without a sibling on the right of the tree
         let leftLeaf, rightLeaf
-        if (leafIndex % 2 !== 0) {
+        if (isRight(leafIndex)) {
           leftLeaf = await this.getLeaf(leafIndex - 1, tx)
           rightLeaf = await this.getLeaf(leafIndex, tx)
         } else {
@@ -723,9 +722,8 @@ export class MerkleTree<
           }
         }
 
-        // if sibling is still null, it should be because this leftover hash belongs on the root node
+        // if sibling is still null, the node should either be the root or the rightmost branch
         if (hash.siblingIndex === null) {
-          Assert.isEqual(node.parentIndex, 0)
           await this.updateHash(hash.intendedIndex, node, hash.hash, tx)
         } else {
           siblingNode = await this.getNode(hash.siblingIndex, tx)
@@ -735,13 +733,18 @@ export class MerkleTree<
         const parentIndex: number | undefined = siblingNode?.parentIndex ?? node.parentIndex
         Assert.isNotUndefined(parentIndex)
 
-        if (parentIndex !== 0 && siblingNode) {
+        if (parentIndex !== 0) {
           const parentNode = await this.getNode(parentIndex, tx)
 
-          const newHash =
-            node.side === 'Left'
-              ? this.hasher.combineHash(hash.depth + 1, hash.hash, node.hashOfSibling)
-              : this.hasher.combineHash(hash.depth + 1, node.hashOfSibling, hash.hash)
+          let newHash
+          if (hash.siblingIndex === null) {
+            newHash = this.hasher.combineHash(hash.depth + 1, hash.hash, hash.hash)
+          } else {
+            newHash =
+              node.side === 'Left'
+                ? this.hasher.combineHash(hash.depth + 1, hash.hash, node.hashOfSibling)
+                : this.hasher.combineHash(hash.depth + 1, node.hashOfSibling, hash.hash)
+          }
 
           hashStack.push({
             hash: newHash,
