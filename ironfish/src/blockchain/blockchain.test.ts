@@ -545,7 +545,9 @@ describe('Blockchain', () => {
 
       await nodeTest.chain.notes.add(tx.getNote(0))
 
-      await expect(nodeTest.chain.addBlock(block)).rejects.toThrowError('')
+      await expect(nodeTest.chain.addBlock(block)).rejects.toThrowError(
+        'Notes tree must match previous block header',
+      )
     }, 30000)
 
     it('throws if the position is larger than the number of nullifiers', async () => {
@@ -554,7 +556,9 @@ describe('Blockchain', () => {
 
       await nodeTest.chain.nullifiers.add(transaction.getSpend(0).nullifier)
 
-      await expect(nodeTest.chain.addBlock(block)).rejects.toThrowError('')
+      await expect(nodeTest.chain.addBlock(block)).rejects.toThrowError(
+        'Nullifier tree must match previous block header',
+      )
     }, 30000)
   })
 

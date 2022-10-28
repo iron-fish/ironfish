@@ -36,7 +36,7 @@ import {
 import { Nullifier, NullifierHash, NullifierHasher } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
-import { IJSON, NullifierSerdeInstance } from '../serde'
+import { IJSON } from '../serde'
 import {
   BUFFER_ENCODING,
   IDatabase,
@@ -1199,8 +1199,16 @@ export class Blockchain {
     // sizes on this block are correct
     const prevNotesSize = prev?.noteCommitment.size || 0
     const prevNullifierSize = prev?.nullifierCommitment.size || 0
-    Assert.isEqual(prevNotesSize, await this.notes.size(tx))
-    Assert.isEqual(prevNullifierSize, await this.nullifiers.size(tx))
+    Assert.isEqual(
+      prevNotesSize,
+      await this.notes.size(tx),
+      'Notes tree must match previous block header',
+    )
+    Assert.isEqual(
+      prevNullifierSize,
+      await this.nullifiers.size(tx),
+      'Nullifier tree must match previous block header',
+    )
 
     await this.notes.addBatch(block.notes(), tx)
     await this.nullifiers.addBatch(
