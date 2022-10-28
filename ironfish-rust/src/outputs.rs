@@ -74,8 +74,8 @@ impl OutputParams {
     ///
     /// Verifies the proof before returning to prevent posting broken
     /// transactions.
-    pub fn post(&self) -> Result<OutputProof, IronfishError> {
-        let output_proof = OutputProof {
+    pub fn post(&self) -> Result<OutputDescription, IronfishError> {
+        let output_proof = OutputDescription {
             proof: self.proof.clone(),
             merkle_note: self.merkle_note.clone(),
         };
@@ -106,14 +106,14 @@ impl OutputParams {
 /// This is the variation of a Output that gets serialized to bytes and can
 /// be loaded from bytes.
 #[derive(Clone)]
-pub struct OutputProof {
+pub struct OutputDescription {
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,
 
     pub(crate) merkle_note: MerkleNote,
 }
 
-impl OutputProof {
+impl OutputDescription {
     /// Load a OutputProof from a Read implementation( e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
@@ -121,7 +121,7 @@ impl OutputProof {
         let proof = groth16::Proof::read(&mut reader)?;
         let merkle_note = MerkleNote::read(&mut reader)?;
 
-        Ok(OutputProof { proof, merkle_note })
+        Ok(OutputDescription { proof, merkle_note })
     }
 
     /// Stow the bytes of this OutputProof in the given writer.
@@ -196,7 +196,7 @@ impl OutputProof {
 
 #[cfg(test)]
 mod test {
-    use super::{OutputParams, OutputProof};
+    use super::{OutputDescription, OutputParams};
     use crate::{keys::SaplingKey, note::Note};
     use ff::PrimeField;
     use group::Curve;
@@ -217,8 +217,9 @@ mod test {
         proof
             .write(&mut serialized_proof)
             .expect("Should be able to serialize proof");
-        let read_back_proof: OutputProof = OutputProof::read(&mut serialized_proof[..].as_ref())
-            .expect("Should be able to deserialize valid proof");
+        let read_back_proof: OutputDescription =
+            OutputDescription::read(&mut serialized_proof[..].as_ref())
+                .expect("Should be able to deserialize valid proof");
 
         assert_eq!(proof.proof.a, read_back_proof.proof.a);
         assert_eq!(proof.proof.b, read_back_proof.proof.b);
