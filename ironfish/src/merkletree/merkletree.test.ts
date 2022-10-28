@@ -209,24 +209,7 @@ describe('Merkle tree', function () {
       ],
     ])
 
-    await tree.add('j')
-    await tree.add('k')
-    await tree.add('l')
-    await tree.add('m')
-    await tree.add('n')
-    await tree.add('o')
-    await tree.add('p')
-    await tree.add('q')
-    await tree.add('r')
-    await tree.add('s')
-    await tree.add('t')
-    await tree.add('u')
-    await tree.add('v')
-    await tree.add('w')
-    await tree.add('x')
-    await tree.add('y')
-    await tree.add('z')
-
+    await tree.addBatch('jklmnopqrstuvwxyz')
     await expect(tree).toHaveLeaves(
       'abcdefghijklmnopqrstuvwxyz',
       [

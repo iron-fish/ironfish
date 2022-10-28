@@ -273,7 +273,6 @@ export class MerkleTree<
         let previousParentIndex = previousLeaf.parentIndex
 
         let nextNodeIndex = await this.getCount('Nodes', tx)
-        let myHash = this.defaultValue
         let shouldContinue = true
 
         newParentIndex = nextNodeIndex
@@ -322,8 +321,6 @@ export class MerkleTree<
             shouldContinue = false
           } else {
             // previous parent is a right node, gotta go up a step
-            myHash = this.defaultValue
-
             if (previousParent.leftIndex === undefined) {
               throw new Error(`Parent has no left sibling`)
             }
@@ -338,7 +335,7 @@ export class MerkleTree<
             const newNode = {
               side: Side.Left,
               parentIndex: nextNodeIndex + 1, // where the next node will be (in the next iteration)
-              hashOfSibling: myHash,
+              hashOfSibling: this.defaultValue,
               index: nextNodeIndex,
             }
             await this.nodes.put(nextNodeIndex, newNode, tx)
