@@ -91,7 +91,7 @@ export default class Download extends IronfishCommand {
       if (!flags.confirm) {
         const confirm = await CliUx.ux.confirm(
           `Download ${fileSize} snapshot to update from block ${node.chain.head.sequence} to ${manifest.block_sequence}? ` +
-            `At least ${spaceRequired} of free disk space is required to download and unzip the snapshot file.` +
+            `\nAt least ${spaceRequired} of free disk space is required to download and unzip the snapshot file.` +
             `\nAre you sure? (Y)es / (N)o`,
         )
 
