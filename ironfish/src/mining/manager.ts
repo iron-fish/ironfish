@@ -10,9 +10,10 @@ import { Event } from '../event'
 import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
 import {
-  getBlockHeaderSize,
   getBlockSize,
+  getBlockWithMinersFeeSize,
   getTransactionSize,
+  MINERS_FEE_TRANSACTION_SIZE_BYTES,
 } from '../network/utils/serializers'
 import { IronfishNode } from '../node'
 import { Block, BlockSerde } from '../primitives/block'
@@ -80,6 +81,12 @@ export class MiningManager {
         break
       }
 
+      // Skip transactions that would cause the block to exceed the max size
+      const transactionSize = getTransactionSize(transaction.serialize())
+      if (currBlockSize + transactionSize > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
+        continue
+      }
+
       const isExpired = this.chain.verifier.isExpiredSequence(
         transaction.expirationSequence(),
         sequence,
@@ -104,13 +111,7 @@ export class MiningManager {
         nullifiers.add(spend.nullifier)
       }
 
-      // Stop adding transactions when the addition would cause the block to exceed the max size
-      const transactionSize = getTransactionSize(transaction.serialize())
-      if (currBlockSize + transactionSize > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
-        break
-      }
       currBlockSize += transactionSize
-
       blockTransactions.push(transaction)
     }
 
@@ -143,12 +144,8 @@ export class MiningManager {
     Assert.isNotNull(account, 'Cannot mine without an account')
 
     const newBlockSequence = currentBlock.header.sequence + 1
-    const newBlockHeaderSize = getBlockHeaderSize()
-    const newBlockMinersFeeTransactionSize = 562
-    const newBlockTransactionsLengthSize = 2
 
-    const currBlockSize =
-      newBlockHeaderSize + newBlockMinersFeeTransactionSize + newBlockTransactionsLengthSize
+    const currBlockSize = getBlockWithMinersFeeSize()
 
     const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
       newBlockSequence,
@@ -165,7 +162,7 @@ export class MiningManager {
       `Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
     )
     Assert.isEqual(
-      newBlockMinersFeeTransactionSize,
+      MINERS_FEE_TRANSACTION_SIZE_BYTES,
       getTransactionSize(minersFee.serialize()),
       "Incorrect miner's fee transaction size used during block creation",
     )
