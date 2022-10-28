@@ -397,6 +397,7 @@ describe('FeeEstimator', () => {
       const receiver = await useAccountFixture(node.wallet, 'accountA')
 
       await node.chain.addBlock(block)
+      await node.wallet.updateHead()
 
       const feeEstimator = new FeeEstimator({
         wallet: node.wallet,
@@ -412,7 +413,7 @@ describe('FeeEstimator', () => {
         },
       ])
 
-      expect(fee).toBe(BigInt(7))
+      expect(fee).toBe(BigInt(6))
     })
   })
 })
