@@ -636,10 +636,10 @@ export class MerkleTree<
     }
 
     const hashStack: {
-      hash: H
-      intendedIndex: number
-      depth: number
-      siblingIndex: number | null
+      hash: H // hash of a subtree
+      index: number // root node of the subtree
+      depth: number // depth of the root node
+      siblingIndex: number | null // index where the hash belongs
     }[] = []
 
     // Iterate over the leaves from right to left, hashing each leaf with its sibling (if it has one),
@@ -663,9 +663,6 @@ export class MerkleTree<
       }
 
       let depth = 0
-
-      Assert.isEqual(leftLeaf.parentIndex, rightLeaf.parentIndex)
-
       let hash = this.hasher.combineHash(depth, leftLeaf.merkleHash, rightLeaf.merkleHash)
       let nodeIndex: number | undefined = leftLeaf.parentIndex
       let node: NodeValue<H> = await this.getNode(nodeIndex, tx)
@@ -685,8 +682,8 @@ export class MerkleTree<
           const leftNode = await this.getNode(element.siblingIndex, tx)
           await this.updateHash(element.siblingIndex, leftNode, element.hash, tx)
 
-          const rightNode = await this.getNode(element.intendedIndex, tx)
-          await this.updateHash(element.intendedIndex, rightNode, hash, tx)
+          const rightNode = await this.getNode(element.index, tx)
+          await this.updateHash(element.index, rightNode, hash, tx)
         }
 
         depth++
@@ -697,6 +694,7 @@ export class MerkleTree<
         hash = this.hasher.combineHash(depth, hash, stackHash)
       }
 
+      // We're now either at a right node, or the root node of the entire tree.
       if (node.parentIndex === 0) {
         await this.updateHash(nodeIndex, node, hash, tx)
       } else {
@@ -704,7 +702,7 @@ export class MerkleTree<
         hashStack.push({
           hash,
           depth,
-          intendedIndex: nodeIndex,
+          index: nodeIndex,
           siblingIndex: node.leftIndex,
         })
       }
@@ -724,19 +722,19 @@ export class MerkleTree<
       // complete subtree.
       if (element.siblingIndex === null) {
         for (let i = 0; i < hashStack.length; i++) {
-          if (hashStack[i].siblingIndex === element.intendedIndex) {
-            element.siblingIndex = hashStack[i].intendedIndex
+          if (hashStack[i].siblingIndex === element.index) {
+            element.siblingIndex = hashStack[i].index
           }
         }
       }
 
       let siblingNode
-      const node = await this.getNode(element.intendedIndex, tx)
+      const node = await this.getNode(element.index, tx)
 
       // If we haven't encountered its sibling, the node will be a siblingless node -- either the root
       // of the tree, or a node on the rightmost branch.
       if (element.siblingIndex === null) {
-        await this.updateHash(element.intendedIndex, node, element.hash, tx)
+        await this.updateHash(element.index, node, element.hash, tx)
       } else {
         siblingNode = await this.getNode(element.siblingIndex, tx)
         await this.updateHash(element.siblingIndex, siblingNode, element.hash, tx)
@@ -767,7 +765,7 @@ export class MerkleTree<
 
       hashStack.push({
         hash: newHash,
-        intendedIndex: parentIndex,
+        index: parentIndex,
         siblingIndex: parentNode.leftIndex ?? null,
         depth: element.depth + 1,
       })
