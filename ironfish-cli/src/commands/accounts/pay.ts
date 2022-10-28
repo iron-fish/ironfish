@@ -145,16 +145,23 @@ export class Pay extends IronfishCommand {
             },
           ],
         })
-        suggestedFees.concat(`low: ${CurrencyUtils.renderIron(response.content.low)}\n`)
-        suggestedFees.concat(`medium: ${CurrencyUtils.renderIron(response.content.medium)}\n`)
-        suggestedFees.concat(`high: ${CurrencyUtils.renderIron(response.content.high)}\n`)
+        suggestedFees = suggestedFees.concat(
+          `  low: ${CurrencyUtils.renderIron(response.content.low)}\n`,
+        )
+        suggestedFees = suggestedFees.concat(
+          `  medium: ${CurrencyUtils.renderIron(response.content.medium)}\n`,
+        )
+        suggestedFees = suggestedFees.concat(
+          `  high: ${CurrencyUtils.renderIron(response.content.high)}\n`,
+        )
       } catch {
         suggestedFees = ''
       }
 
       const input = (await CliUx.ux.prompt(
-        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)} \n
-        recommended: ${suggestedFees}`,
+        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(
+          1n,
+        )})\nrecommended:\n${suggestedFees}`,
         {
           required: true,
         },
