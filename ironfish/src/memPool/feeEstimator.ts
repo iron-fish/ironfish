@@ -230,8 +230,8 @@ export class FeeEstimator {
 }
 
 export function getFeeRate(transaction: Transaction): bigint {
-  const transactionSizeKb = getTransactionSize(transaction.serialize()) / 1000
-  const rate = transaction.fee() / BigInt(Math.round(transactionSizeKb))
+  const rate =
+    (transaction.fee() * BigInt(1000)) / BigInt(getTransactionSize(transaction.serialize()))
 
   return rate > 0 ? rate : BigInt(1)
 }
