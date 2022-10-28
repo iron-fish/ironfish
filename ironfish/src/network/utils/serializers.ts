@@ -126,7 +126,7 @@ export function getBlockSize(block: SerializedBlock): number {
   return size
 }
 
-export function getEmptyBlockSize(): number {
+export function getBlockWithMinersFeeSize(): number {
   return (
     getBlockHeaderSize() + BLOCK_TRANSACTIONS_LENGTH_BYTES + MINERS_FEE_TRANSACTION_SIZE_BYTES
   )

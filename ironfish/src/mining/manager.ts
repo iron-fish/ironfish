@@ -11,7 +11,7 @@ import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
 import {
   getBlockSize,
-  getEmptyBlockSize,
+  getBlockWithMinersFeeSize,
   getTransactionSize,
   MINERS_FEE_TRANSACTION_SIZE_BYTES,
 } from '../network/utils/serializers'
@@ -145,7 +145,7 @@ export class MiningManager {
 
     const newBlockSequence = currentBlock.header.sequence + 1
 
-    const currBlockSize = getEmptyBlockSize()
+    const currBlockSize = getBlockWithMinersFeeSize()
 
     const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
       newBlockSequence,
