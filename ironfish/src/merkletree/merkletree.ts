@@ -642,6 +642,11 @@ export class MerkleTree<
       siblingIndex: number | null
     }[] = []
 
+    // Iterate over the leaves from right to left, hashing each leaf with its sibling (if it has one),
+    // then fetching the parent node:
+    // * If the node is a right node, push the current hash onto the stack.
+    // * If the node is a left node, pop a hash off the stack, update the hash of the node and its
+    //   siblings, push the hash of the node and sibling onto the stack, then move to the parent node.
     for (
       let leafIndex = leavesCount - 1;
       leafIndex >= startingLeafIndex;
@@ -666,22 +671,22 @@ export class MerkleTree<
       let node: NodeValue<H> = await this.getNode(nodeIndex, tx)
 
       while (node.side === Side.Left && node.parentIndex !== 0) {
-        const h = hashStack.pop()
-        const stackHash = h?.hash ?? hash
+        const element = hashStack.pop()
+        const stackHash = element?.hash ?? hash
         // Should only be undefined if on the right side of the tree
         // Ex: In a tree of 6 leaves, the two rightmost leaves will have
         // a parent node with no sibling node
-        if (h === undefined) {
+        if (element === undefined) {
           await this.updateHash(nodeIndex, node, hash, tx)
         } else {
-          Assert.isNotNull(h.siblingIndex)
-          Assert.isEqual(nodeIndex, h.siblingIndex)
+          Assert.isNotNull(element.siblingIndex)
+          Assert.isEqual(nodeIndex, element.siblingIndex)
 
-          const leftNode = await this.getNode(h.siblingIndex, tx)
-          await this.updateHash(h.siblingIndex, leftNode, h.hash, tx)
+          const leftNode = await this.getNode(element.siblingIndex, tx)
+          await this.updateHash(element.siblingIndex, leftNode, element.hash, tx)
 
-          const rightNode = await this.getNode(h.intendedIndex, tx)
-          await this.updateHash(h.intendedIndex, rightNode, hash, tx)
+          const rightNode = await this.getNode(element.intendedIndex, tx)
+          await this.updateHash(element.intendedIndex, rightNode, hash, tx)
         }
 
         depth++
@@ -705,55 +710,67 @@ export class MerkleTree<
       }
     }
 
+    // At this point, hashes have been set for complete subtrees of nodes above the leaves. Next, we need
+    // to update hashes for nodes that depend on the subtrees. If the root of a subtree is a right node, it
+    // will still be in hashStack, so we start at each of these nodes and continue up the tree.
     while (hashStack.length > 0) {
-      // we have leftover hashes that need to be added
-      const hash = hashStack.pop()
-      Assert.isNotUndefined(hash)
+      // We'll hash upward from the smallest subtree. This will be the leftmost subtree, which will be the
+      // most recently pushed hash onto the stack.
+      const element = hashStack.pop()
+      Assert.isNotUndefined(element)
 
-      const node = await this.getNode(hash.intendedIndex, tx)
-      let siblingNode
-
-      // if sibling is null, look through hashStack to see if we've
-      // joined up with another tree
-      if (hash.siblingIndex === null) {
+      // If siblingIndex is null, we're at a left node. We'll look through hashStack to see if we've
+      // already encountered its sibling, which will happen if its sibling is a right-node root of a
+      // complete subtree.
+      if (element.siblingIndex === null) {
         for (let i = 0; i < hashStack.length; i++) {
-          if (hashStack[i].siblingIndex === hash.intendedIndex) {
-            hash.siblingIndex = hashStack[i].intendedIndex
+          if (hashStack[i].siblingIndex === element.intendedIndex) {
+            element.siblingIndex = hashStack[i].intendedIndex
           }
         }
       }
 
-      // if sibling is still null, the node should either be the root or the rightmost branch
-      if (hash.siblingIndex === null) {
-        await this.updateHash(hash.intendedIndex, node, hash.hash, tx)
+      let siblingNode
+      const node = await this.getNode(element.intendedIndex, tx)
+
+      // If we haven't encountered its sibling, the node will be a siblingless node -- either the root
+      // of the tree, or a node on the rightmost branch.
+      if (element.siblingIndex === null) {
+        await this.updateHash(element.intendedIndex, node, element.hash, tx)
       } else {
-        siblingNode = await this.getNode(hash.siblingIndex, tx)
-        await this.updateHash(hash.siblingIndex, siblingNode, hash.hash, tx)
+        siblingNode = await this.getNode(element.siblingIndex, tx)
+        await this.updateHash(element.siblingIndex, siblingNode, element.hash, tx)
       }
 
+      // Either the node or its sibling will be a left node, so we'll have the index of its parent.
       const parentIndex: number | undefined = siblingNode?.parentIndex ?? node.parentIndex
       Assert.isNotUndefined(parentIndex)
 
-      if (parentIndex !== 0) {
-        const parentNode = await this.getNode(parentIndex, tx)
-
-        let newHash
-        if (hash.siblingIndex === null) {
-          newHash = this.hasher.combineHash(hash.depth + 1, hash.hash, hash.hash)
-        } else {
-          newHash =
-            node.side === 'Left'
-              ? this.hasher.combineHash(hash.depth + 1, hash.hash, node.hashOfSibling)
-              : this.hasher.combineHash(hash.depth + 1, node.hashOfSibling, hash.hash)
-        }
-
-        hashStack.push({
-          hash: newHash,
-          intendedIndex: parentIndex,
-          siblingIndex: parentNode.leftIndex ?? null,
-          depth: hash.depth + 1,
-        })
+      // If we've reached the root node, there may be other subtrees to process,
+      // so continue to the next hashStack element
+      if (parentIndex === 0) {
+        continue
       }
+
+      // If we're not at a root node, hash the node with its sibling and push it back onto the stack.
+      const parentNode = await this.getNode(parentIndex, tx)
+
+      let newHash
+      if (element.siblingIndex === null) {
+        newHash = this.hasher.combineHash(element.depth + 1, element.hash, element.hash)
+      } else {
+        newHash =
+          node.side === 'Left'
+            ? this.hasher.combineHash(element.depth + 1, element.hash, node.hashOfSibling)
+            : this.hasher.combineHash(element.depth + 1, node.hashOfSibling, element.hash)
+      }
+
+      hashStack.push({
+        hash: newHash,
+        intendedIndex: parentIndex,
+        siblingIndex: parentNode.leftIndex ?? null,
+        depth: element.depth + 1,
+      })
     }
   }
 
