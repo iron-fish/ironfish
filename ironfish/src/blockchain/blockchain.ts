@@ -351,36 +351,6 @@ export class Blockchain {
     await this.db.close()
   }
 
-  async addGenesisBlock(genesis: Block): Promise<{
-    isAdded: boolean
-    reason: VerificationResultReason | null
-  }> {
-    try {
-      return await this.db.transaction(async (tx) => {
-        const work = genesis.header.target.toDifficulty()
-        genesis.header.work = BigInt(0) + work
-
-        const isFork = !this.isEmpty && !isBlockHeavier(genesis.header, this.head)
-        Assert.isFalse(isFork)
-
-        await this.saveBlock(genesis, null, false, tx)
-        this.head = genesis.header
-        this.genesis = genesis.header
-
-        await this.onConnectBlock.emitAsync(genesis, tx)
-
-        this.updateSynced()
-
-        return { isAdded: true, reason: null }
-      })
-    } catch (e) {
-      if (e instanceof VerifyError) {
-        return { isAdded: false, reason: e.reason }
-      }
-      throw e
-    }
-  }
-
   async addBlock(block: Block): Promise<{
     isAdded: boolean
     isFork: boolean | null
