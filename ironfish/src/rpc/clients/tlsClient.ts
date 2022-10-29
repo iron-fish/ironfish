@@ -23,9 +23,7 @@ export class RpcTlsClient extends RpcTcpClient {
         client.off('secureConnection', onSecureConnect)
         client.off('error', onError)
 
-        if (ErrorUtils.isConnectRefusedError(error)) {
-          reject(new RpcConnectionRefusedError())
-        } else if (ErrorUtils.isNoEntityError(error)) {
+        if (ErrorUtils.isConnectFailError(error)) {
           reject(new RpcConnectionRefusedError())
         } else {
           reject(error)

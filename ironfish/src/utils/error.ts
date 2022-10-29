@@ -36,8 +36,25 @@ export function renderError(error: unknown, stack = false): string {
   return JSON.stringify(error)
 }
 
+function isConnectFailError(error: unknown): boolean {
+  return (
+    isConnectRefusedError(error) ||
+    isConnectResetError(error) ||
+    isConnectTimeOutError(error) ||
+    isNoEntityError(error)
+  )
+}
+
 function isConnectRefusedError(error: unknown): error is Error & { code: 'ECONNREFUSED' } {
   return isNodeError(error) && error.code === 'ECONNREFUSED'
+}
+
+function isConnectResetError(error: unknown): error is Error & { code: 'ECONNRESET' } {
+  return isNodeError(error) && error.code === 'ECONNRESET'
+}
+
+function isConnectTimeOutError(error: unknown): error is Error & { code: 'ETIMEDOUT' } {
+  return isNodeError(error) && error.code === 'ETIMEDOUT'
 }
 
 function isNoEntityError(error: unknown): error is Error & { code: 'ENOENT' } {
@@ -50,7 +67,10 @@ function isNodeError(error: unknown): error is Error & { code: string } {
 
 export const ErrorUtils = {
   renderError,
+  isConnectFailError,
   isConnectRefusedError,
+  isConnectResetError,
+  isConnectTimeOutError,
   isNoEntityError,
   isNodeError,
 }
