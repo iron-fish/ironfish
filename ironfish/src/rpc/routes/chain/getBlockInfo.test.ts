@@ -4,55 +4,85 @@
 import { Assert } from '../../../assert'
 import { makeBlockAfter } from '../../../testUtilities/helpers/blockchain'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { ERROR_CODES } from '../../adapters'
 
-describe('Route chain/getBlockInfo',  () => { //no async here?
+describe('Route chain/getBlockInfo',  () => {
   const routeTest = createRouteTest()
-
-  // Create a 2 block chain
-    const { chain, strategy } = routeTest
-    await chain.open()
-    strategy.disableMiningReward()
-
-    const genesis = await chain.getBlock(chain.genesis)
-    Assert.isNotNull(genesis)
-
-    const blockA1 = await makeBlockAfter(chain, genesis)
-    await expect(chain).toAddBlock(blockA1)
     
-    // does the original function force hash to one?
-    // Do we need to add an optional parameter to change hash at creation?
-    /*
-  describe('Hash input', () => {
-    it('test 1', async () => {
+    it('Processes hash input', async () => {
+    // Create a 3 block chain
+      const { chain, strategy } = routeTest
+      await chain.open()
+      strategy.disableMiningReward()
+
+      const genesis = await chain.getBlock(chain.genesis)
+      Assert.isNotNull(genesis)
+
+      const blockA1 = await makeBlockAfter(chain, genesis)
+      await expect(chain).toAddBlock(blockA1)
+
+      const blockA2 = await makeBlockAfter(chain, blockA1)
+      await expect(chain).toAddBlock(blockA2)
+
+      //Get hash of blocks
+      const hash0 = genesis.header.hash.toString('hex') // 69e
+      const hash1 = blockA1.header.hash.toString('hex') // 589
+      const hash2 = blockA2.header.hash.toString('hex') // cd9
+
+      //Find block matching hash
+
+      const response = await routeTest.client
+        .request('chain/getBlockInfo', { hash0 })
+        .waitForRoute()
+
+
+
+        let value = await response.contentStream().next()
+        expect.objectContaining({
+            message: expect.stringContaining(
+              'No block with header',
+            ),
+            status: 400,
+            code: ERROR_CODES.VALIDATION,
+          })
+        /*
+      //Receive and discard the first response (from getBlockRange)
+      let value = await response.contentStream().next()
+      //expect(response.status).toBe(200) //code = ERROR_CODES.VALIDATION
+
+      expect.objectContaining({ 
+        message: expect.stringContaining(
+          'Your balance is too low. Add funds to your account first',
+        ),
+        status: 400,
+        code: ERROR_CODES.VALIDATION,
+      })
+
+
+
+
+
+      // Receive and discard the genesis block
+      value = await response.contentStream().next()
+      expect(response.status).toBe(200)
+
+      expect(value).toMatchObject({
+        value: {
+          block: {
+            head: false,
+            hash: hash0,
+            seq: 0,
+          },
+        },
+      })
+
+
+
+      //Don't find block with non-matching hash
+*/
+
     })
     
-    it('test 2', async () => {
-    })
-
-    it('test 3', async () => {
-    })
-
-    it('test 4', async () => {
-    })
-  })
+    //it('Processes sequence input', async () => {
   
-  describe('Sequence input', () => {
-    // Both with negative numbers and with actual sequence values
-    it('Underflow', async () => {
-    })
-    
-    it('Sequence = 0', async () => {
-    })
-
-    it('Overflow', async () => {
-    })
-
-    it('In Range', async () => {
-    })
-
-    it('Negative', async () => {
-    })
-  })
-  */
 })
-
