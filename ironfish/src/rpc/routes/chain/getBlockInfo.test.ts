@@ -35,7 +35,13 @@ describe('Route chain/getBlockInfo', () => {
       .waitForEnd()
 
     expect(response.status).toBe(200)
-    expect(response.content.block.hash).toEqual(hash0)
+    //expect(response.content.block.hash).toEqual(hash0)
+    expect(response.content).toMatchObject({
+        block: {
+          hash: hash0,
+          sequence: 1,
+        },
+    })
   })
 
   //it('Processes sequence input', async () => {
