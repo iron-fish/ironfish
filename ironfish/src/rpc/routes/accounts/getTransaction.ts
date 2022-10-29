@@ -11,9 +11,12 @@ export type GetAccountTransactionRequest = { account?: string; hash: string }
 export type GetAccountTransactionResponse = {
   account: string
   transaction: {
+    hash: string
     status: string
     isMinersFee: boolean
     fee: string
+    blockHash?: string
+    blockSequence?: number
     notesCount: number
     spendsCount: number
     notes: {
@@ -38,9 +41,12 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
       account: yup.string().defined(),
       transaction: yup
         .object({
+          hash: yup.string().required(),
           status: yup.string().defined(),
           isMinersFee: yup.boolean().defined(),
           fee: yup.string().defined(),
+          blockHash: yup.string().optional(),
+          blockSequence: yup.number().optional(),
           notesCount: yup.number().defined(),
           spendsCount: yup.number().defined(),
           notes: yup
