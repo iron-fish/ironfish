@@ -24,7 +24,7 @@ export class CurrencyUtils {
   }
 
   /**
-   * Deseialize ore back into bigint
+   * Deserialize ore back into bigint
    */
   static decode(amount: string): bigint {
     return BigInt(amount)
@@ -38,7 +38,7 @@ export class CurrencyUtils {
   }
 
   /*
-   * Renders ore as iron for human readable purposes
+   * Renders ore as iron for human-readable purposes
    */
   static renderIron(amount: bigint | string, ticker = false): string {
     if (typeof amount === 'string') {
@@ -55,7 +55,7 @@ export class CurrencyUtils {
   }
 
   /*
-   * Renders ore for human readable purposes
+   * Renders ore for human-readable purposes
    */
   static renderOre(amount: bigint | string, ticker = false): string {
     if (typeof amount === 'string') {
