@@ -6,9 +6,9 @@ import { BlockHashSerdeInstance } from '../../../serde'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
-export type GetRawTransactionRequest = { blockHash: string; transactionHash: string }
+export type GetTransactionRequest = { blockHash: string; transactionHash: string }
 
-export type GetRawTransactionResponse = {
+export type GetTransactionResponse = {
   fee: string
   expirationSequence: number
   notesCount: number
@@ -16,14 +16,14 @@ export type GetRawTransactionResponse = {
   signature: string
   notesEncrypted: string[]
 }
-export const GetRawTransactionRequestSchema: yup.ObjectSchema<GetRawTransactionRequest> = yup
+export const GetTransactionRequestSchema: yup.ObjectSchema<GetTransactionRequest> = yup
   .object({
     blockHash: yup.string().defined(),
     transactionHash: yup.string().defined(),
   })
   .defined()
 
-export const GetRawTransactionResponseSchema: yup.ObjectSchema<GetRawTransactionResponse> = yup
+export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionResponse> = yup
   .object({
     fee: yup.string().defined(),
     expirationSequence: yup.number().defined(),
@@ -34,9 +34,9 @@ export const GetRawTransactionResponseSchema: yup.ObjectSchema<GetRawTransaction
   })
   .defined()
 
-router.register<typeof GetRawTransactionRequestSchema, GetRawTransactionResponse>(
-  `${ApiNamespace.chain}/getRawTransaction`,
-  GetRawTransactionRequestSchema,
+router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
+  `${ApiNamespace.chain}/getTransaction`,
+  GetTransactionRequestSchema,
   async (request, node): Promise<void> => {
     if (!request.data.blockHash || !request.data.transactionHash) {
       throw new ValidationError(`Missing block hash or transaction hash`)
@@ -49,7 +49,7 @@ router.register<typeof GetRawTransactionRequestSchema, GetRawTransactionResponse
     }
 
     // Empty response used for case that transaction not found
-    const rawTransaction: GetRawTransactionResponse = {
+    const rawTransaction: GetTransactionResponse = {
       fee: '0',
       expirationSequence: 0,
       notesCount: 0,
