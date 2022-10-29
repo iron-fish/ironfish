@@ -40,7 +40,7 @@ function isConnectRefusedError(error: unknown): error is Error & { code: 'ECONNR
   return isNodeError(error) && error.code === 'ECONNREFUSED'
 }
 
-function isNoEntityError(error: unknown): error is Error & { code: 'NOENT' } {
+function isNoEntityError(error: unknown): error is Error & { code: 'ENOENT' } {
   return isNodeError(error) && error.code === 'ENOENT'
 }
 
