@@ -97,6 +97,18 @@ export class CurrencyUtils {
       throw e
     }
   }
+
+  static isValidOre(amount: string): boolean {
+    try {
+      const ore = this.decode(amount)
+      return ore >= MINIMUM_ORE_AMOUNT && ore <= MAXIMUM_ORE_AMOUNT
+    } catch (e) {
+      if (ErrorUtils.isNodeError(e) && e.code === 'NUMERIC_FAULT') {
+        return false
+      }
+      throw e
+    }
+  }
 }
 
 export const ORE_TO_IRON = 100000000

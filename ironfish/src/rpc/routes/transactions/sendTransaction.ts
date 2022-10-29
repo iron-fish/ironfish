@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { CurrencyUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
@@ -88,6 +89,24 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     if (!node.chain.synced) {
       throw new ValidationError(
         `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
+      )
+    }
+
+    // Check whether amount and fee are valid or not
+    transaction.receives.map((receive) => {
+      if (!CurrencyUtils.isValidOre(receive.amount)) {
+        throw new ValidationError(
+          'Negative amount is not allowed',
+          undefined,
+          ERROR_CODES.VALIDATION,
+        )
+      }
+    })
+    if (!CurrencyUtils.isValidOre(transaction.fee)) {
+      throw new ValidationError(
+        'Negative fee is not allowed',
+        undefined,
+        ERROR_CODES.VALIDATION,
       )
     }
 
