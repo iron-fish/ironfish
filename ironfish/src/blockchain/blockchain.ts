@@ -1273,6 +1273,7 @@ export class Blockchain {
     }
 
     await tx.update()
+    this.notes.pastRootTxCommited(tx)
   }
 
   private updateSynced(): void {
