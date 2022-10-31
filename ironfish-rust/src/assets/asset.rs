@@ -4,11 +4,14 @@
 use crate::{
     assets::constants::{ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION},
     errors::IronfishError,
+    util::str_to_array,
     PublicAddress,
 };
 use blake2s_simd::Params as Blake2sParams;
+use ff::PrimeField;
 use group::{cofactor::CofactorGroup, Group, GroupEncoding};
 use ironfish_zkp::constants::{GH_FIRST_BLOCK, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION};
+use jubjub::ExtendedPoint;
 use std::slice::from_ref;
 
 #[allow(dead_code)]
@@ -47,17 +50,9 @@ impl Asset {
         chain: &str,
         network: &str,
     ) -> Result<Asset, IronfishError> {
-        let mut name_bytes = [0; 32];
-        let name_len = std::cmp::min(name.len(), 32);
-        name_bytes[..name_len].clone_from_slice(&name.as_bytes()[..name_len]);
-
-        let mut chain_bytes = [0; 32];
-        let chain_len = std::cmp::min(chain.len(), 32);
-        chain_bytes[..chain_len].clone_from_slice(&chain.as_bytes()[..chain_len]);
-
-        let mut network_bytes = [0; 32];
-        let network_len = std::cmp::min(network.len(), 32);
-        network_bytes[..network_len].clone_from_slice(&network.as_bytes()[..network_len]);
+        let name_bytes = str_to_array(name);
+        let chain_bytes = str_to_array(chain);
+        let network_bytes = str_to_array(network);
 
         let mut nonce = 0u8;
         loop {
@@ -88,8 +83,10 @@ impl Asset {
             .personal(ASSET_IDENTIFIER_PERSONALIZATION)
             .to_state()
             .update(GH_FIRST_BLOCK)
-            .update(&name)
             .update(&owner.public_address())
+            .update(&name)
+            .update(&chain)
+            .update(&network)
             .update(from_ref(&nonce))
             .finalize();
 
