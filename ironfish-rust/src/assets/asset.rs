@@ -7,7 +7,6 @@ use crate::{
     util::str_to_array,
     PublicAddress,
 };
-use blake2s_simd::Params as Blake2sParams;
 use ironfish_zkp::{constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, group_hash};
 use std::slice::from_ref;
 
@@ -75,7 +74,7 @@ impl Asset {
         assert_eq!(ASSET_IDENTIFIER_PERSONALIZATION.len(), 8);
 
         // Create a new BLAKE2s state for deriving the asset identifier
-        let h = Blake2sParams::new()
+        let h = blake2s_simd::Params::new()
             .hash_length(ASSET_IDENTIFIER_LENGTH)
             .personal(ASSET_IDENTIFIER_PERSONALIZATION)
             .to_state()
@@ -119,5 +118,58 @@ impl Asset {
     #[allow(dead_code)]
     pub fn identifier(&self) -> &AssetIdentifier {
         &self.identifier
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{util::str_to_array, PublicAddress, SaplingKey};
+
+    use super::Asset;
+
+    #[test]
+    fn test_new_with_nonce() {
+        let owner = PublicAddress::new(&[
+            19, 26, 159, 204, 98, 253, 225, 73, 168, 125, 3, 240, 3, 129, 255, 146, 50, 134, 44,
+            84, 181, 195, 50, 249, 78, 128, 228, 152, 239, 10, 106, 10, 27, 58, 155, 162, 114, 133,
+            17, 48, 177, 29, 72,
+        ])
+        .expect("can create a deterministic public address");
+        let name = str_to_array("name");
+        let chain = str_to_array("chain");
+        let network = str_to_array("network");
+        let nonce = 0;
+
+        let asset =
+            Asset::new_with_nonce(owner, name, chain, network, nonce).expect("can create an asset");
+
+        assert_eq!(asset.owner, owner);
+        assert_eq!(asset.name, name);
+        assert_eq!(asset.chain, chain);
+        assert_eq!(asset.network, network);
+        assert_eq!(asset.nonce, nonce);
+        assert_eq!(
+            asset.identifier,
+            [
+                63, 153, 26, 142, 149, 219, 17, 209, 253, 181, 149, 15, 213, 51, 143, 78, 12, 60,
+                164, 140, 4, 112, 88, 247, 113, 83, 236, 214, 242, 91, 103, 175
+            ]
+        );
+    }
+
+    #[test]
+    fn test_new() {
+        let key = SaplingKey::generate_key();
+        let owner = key.generate_public_address();
+        let name = "name";
+        let chain = "chain";
+        let network = "network";
+
+        let asset = Asset::new(owner, name, chain, network).expect("can create an asset");
+
+        assert_eq!(asset.owner, owner);
+        assert_eq!(asset.name, str_to_array(name));
+        assert_eq!(asset.chain, str_to_array(chain));
+        assert_eq!(asset.network, str_to_array(network));
     }
 }
