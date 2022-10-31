@@ -48,10 +48,9 @@ export class Pay extends IronfishCommand {
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
     }),
     priority: Flags.string({
-      default: 'medium', 
+      default: 'medium',
       char: 'p',
-      description:
-        'The priority level for transaction fee estimation.',
+      description: 'The priority level for transaction fee estimation.',
       options: ['low', 'medium', 'high'],
     }),
   }
