@@ -60,26 +60,6 @@ export default class DepositAll extends IronfishCommand {
     this.client = await this.sdk.connectRpc(false, true)
     this.api = new WebApi()
 
-    let fee = null
-
-    if (flags.fee) {
-      const [parsedFee] = BigIntUtils.tryParse(flags.fee)
-
-      if (parsedFee != null) {
-        fee = parsedFee
-      }
-    }
-
-    if (fee == null) {
-      try {
-        // fees p25 of last 100 blocks
-        const feeString = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
-        fee = CurrencyUtils.decode(feeString)
-      } catch {
-        fee = 1n
-      }
-    }
-
     const terminate = flags.terminate
     const expirationSequenceDelta = flags.expirationSequenceDelta
 
@@ -114,11 +94,21 @@ export default class DepositAll extends IronfishCommand {
     Assert.isNotNull(this.client)
     Assert.isNotNull(this.api)
 
+    let fee = null
+
+    if (flags.fee) {
+      const [parsedFee] = BigIntUtils.tryParse(flags.fee)
+
+      if (parsedFee != null) {
+        fee = parsedFee
+      }
+    }
+
     const { canSend, errorReason } = await verifyCanSend(
       this.client,
       this.api,
       expirationSequenceDelta,
-      fee,
+      fee || 1n,
       graffiti,
     )
     if (!canSend) {
@@ -128,10 +118,8 @@ export default class DepositAll extends IronfishCommand {
     }
 
     if (!flags.confirm) {
-      const displayFee = CurrencyUtils.renderIron(fee, true)
-
       this.log(
-        `You are about to deposit all your $IRON to the Iron Fish deposit account. Each transaction will use a fee of ${displayFee}. The memos will contain the graffiti "${graffiti}".`,
+        `You are about to deposit all your $IRON to the Iron Fish deposit account. Each transaction will use an estimate fee based on recent transactions. The memos will contain the graffiti "${graffiti}".`,
       )
 
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
@@ -208,6 +196,25 @@ export default class DepositAll extends IronfishCommand {
       confirmedBalance = CurrencyUtils.decode(balanceResp.content.confirmed)
       unconfirmedBalance = CurrencyUtils.decode(balanceResp.content.unconfirmed)
       pendingBalance = CurrencyUtils.decode(balanceResp.content.pending)
+
+      if (fee == null) {
+        try {
+          const response = await this.client.estimateFee({
+            fromAccountName: accountName,
+            receives: [
+              {
+                publicAddress: bankDepositAddress,
+                amount: CurrencyUtils.encode(confirmedBalance),
+                memo: graffiti,
+              },
+            ],
+          })
+          fee = CurrencyUtils.decode(response.content.medium)
+        } catch {
+          fee = 1n
+        }
+      }
+
       // putting this inside of loop to protect against future config changes to allowable size
       const { minDepositSize, maxDepositSize } = await this.api.getMinAndMaxDepositSize()
       const minDepositOre = CurrencyUtils.decodeIron(minDepositSize)
