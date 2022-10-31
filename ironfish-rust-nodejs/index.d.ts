@@ -20,7 +20,7 @@ export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recip
 export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
 export const ENCRYPTED_NOTE_LENGTH: number
 export const DECRYPTED_NOTE_LENGTH: number
-export interface NativeSpendProof {
+export interface NativeSpendDescription {
   treeSize: number
   rootHash: Buffer
   nullifier: Buffer
@@ -95,7 +95,7 @@ export class TransactionPosted {
   notesLength(): number
   getNote(index: number): Buffer
   spendsLength(): number
-  getSpend(index: number): NativeSpendProof
+  getSpend(index: number): NativeSpendDescription
   fee(): bigint
   transactionSignature(): Buffer
   hash(): Buffer
