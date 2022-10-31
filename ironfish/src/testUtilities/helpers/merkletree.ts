@@ -113,14 +113,13 @@ export async function makeTree({
     db: db,
     name: name,
     depth: depth,
+    defaultValue: '~',
   })
 
   await db.open()
 
   if (leaves) {
-    for (const i of leaves) {
-      await tree.add(i)
-    }
+    await tree.addBatch(leaves)
   }
 
   return tree
