@@ -167,7 +167,7 @@ export class Pay extends IronfishCommand {
       const input = (await CliUx.ux.prompt(
         `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(
           1n,
-        )})\nrecommended:${suggestedFees}`,
+        )})\nrecommended: ${suggestedFees}`,
         {
           required: true,
         },
