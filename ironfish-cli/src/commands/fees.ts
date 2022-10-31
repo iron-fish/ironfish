@@ -33,9 +33,9 @@ export class FeeCommand extends IronfishCommand {
 
       this.log(
         `Fee distribution for last ${JSON.stringify(numOfBlocks)} block\n` +
-          `percentile ${JSON.stringify(low)}: ${response.content.low || ''} ORE\n` +
-          `percentile ${JSON.stringify(medium)}: ${response.content.medium || ''} ORE\n` +
-          `percentile ${JSON.stringify(high)}: ${response.content.high || ''} ORE\n`,
+          `percentile ${JSON.stringify(low)}: ${response.content.low || ''} ORE/kb\n` +
+          `percentile ${JSON.stringify(medium)}: ${response.content.medium || ''} ORE/kb\n` +
+          `percentile ${JSON.stringify(high)}: ${response.content.high || ''} ORE/kb\n`,
       )
     } catch (error: unknown) {
       if (error instanceof Error) {

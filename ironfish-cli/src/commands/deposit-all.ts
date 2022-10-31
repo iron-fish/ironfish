@@ -99,16 +99,21 @@ export default class DepositAll extends IronfishCommand {
     if (flags.fee) {
       const [parsedFee] = BigIntUtils.tryParse(flags.fee)
 
-      if (parsedFee != null) {
-        fee = parsedFee
+      if (parsedFee == null) {
+        this.log(`Error reading the fee value, please enter a valid number.`)
+        this.exit(0)
+      } else if (parsedFee <= 0n) {
+        this.log(`The minimum fee is ${CurrencyUtils.renderIron(1n, true)}`)
+        this.exit(0)
       }
+
+      fee = parsedFee
     }
 
     const { canSend, errorReason } = await verifyCanSend(
       this.client,
       this.api,
       expirationSequenceDelta,
-      fee || 1n,
       graffiti,
     )
     if (!canSend) {
@@ -197,7 +202,7 @@ export default class DepositAll extends IronfishCommand {
       unconfirmedBalance = CurrencyUtils.decode(balanceResp.content.unconfirmed)
       pendingBalance = CurrencyUtils.decode(balanceResp.content.pending)
 
-      if (fee == null) {
+      if (flags.fee === undefined || fee == null) {
         try {
           const response = await this.client.estimateFee({
             fromAccountName: accountName,

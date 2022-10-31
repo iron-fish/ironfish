@@ -93,9 +93,15 @@ export default class Bank extends IronfishCommand {
     if (flags.fee) {
       const [parsedFee] = BigIntUtils.tryParse(flags.fee)
 
-      if (parsedFee != null) {
-        fee = parsedFee
+      if (parsedFee == null) {
+        this.log(`Error reading the fee value, please enter a valid number.`)
+        this.exit(0)
+      } else if (parsedFee <= 0n) {
+        this.log(`The minimum fee is ${CurrencyUtils.renderIron(1n, true)}`)
+        this.exit(0)
       }
+
+      fee = parsedFee
     }
 
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
@@ -123,7 +129,6 @@ export default class Bank extends IronfishCommand {
       this.client,
       this.api,
       expirationSequenceDelta,
-      fee,
       graffiti,
     )
     if (!canSend) {
