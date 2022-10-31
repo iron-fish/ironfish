@@ -367,7 +367,7 @@ export class Syncer {
       )
 
       const elapsedSeconds = BenchUtils.end(start) / 1000
-      this.downloadSpeed.add(blocks.length + 1 / elapsedSeconds)
+      this.downloadSpeed.add((blocks.length + 1) / elapsedSeconds)
 
       if (!headBlock) {
         peer.punish(BAN_SCORE.MAX, 'empty GetBlocks message')
