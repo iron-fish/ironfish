@@ -193,7 +193,7 @@ impl NativeTransaction {
     /// wouldn't accept a transaction that takes money away from them.
     ///
     /// sum(spends) - sum(outputs) - intended_transaction_fee - change = 0
-    /// aka: self.transaction_fee - intended_transaction_fee - change = 0
+    /// aka: self.value_balance - intended_transaction_fee - change = 0
     #[napi]
     pub fn post(
         &mut self,

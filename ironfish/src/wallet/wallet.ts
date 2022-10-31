@@ -665,6 +665,11 @@ export class Wallet {
       expirationSequence,
     )
 
+    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
+    if (!verify.valid) {
+      throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
+    }
+
     await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
     memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)

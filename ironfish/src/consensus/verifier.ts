@@ -4,7 +4,11 @@
 
 import { BufferSet } from 'buffer-map'
 import { Blockchain } from '../blockchain'
-import { getBlockSize } from '../network/utils/serializers'
+import {
+  getBlockSize,
+  getBlockWithMinersFeeSize,
+  getTransactionSize,
+} from '../network/utils/serializers'
 import { BlockSerde, Spend } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
@@ -201,7 +205,11 @@ export class Verifier {
    * the mempool and rebroadcasted to the network.
    */
   async verifyNewTransaction(transaction: Transaction): Promise<VerificationResult> {
-    let verificationResult
+    let verificationResult = this.chain.verifier.verifyCreatedTransaction(transaction)
+    if (!verificationResult.valid) {
+      return verificationResult
+    }
+
     try {
       verificationResult = await this.workerPool.verify(transaction)
     } catch {
@@ -231,6 +239,21 @@ export class Verifier {
 
     if (reason) {
       return { valid: false, reason }
+    }
+
+    return { valid: true }
+  }
+
+  /**
+   * Verify that a transaction created by the account can be accepted into the mempool
+   * and rebroadcasted to the network.
+   */
+  verifyCreatedTransaction(transaction: Transaction): VerificationResult {
+    if (
+      getTransactionSize(transaction.serialize()) >
+      this.chain.consensus.MAX_BLOCK_SIZE_BYTES - getBlockWithMinersFeeSize()
+    ) {
+      return { valid: false, reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED }
     }
 
     return { valid: true }
@@ -489,6 +512,7 @@ export enum VerificationResultReason {
   INVALID_TRANSACTION_PROOF = 'Invalid transaction proof',
   INVALID_PARENT = 'Invalid_parent',
   MAX_BLOCK_SIZE_EXCEEDED = 'Block size exceeds maximum',
+  MAX_TRANSACTION_SIZE_EXCEEDED = 'Transaction size exceeds maximum',
   MINERS_FEE_EXPECTED = 'Miners fee expected',
   MINERS_FEE_MISMATCH = 'Miners fee does not match block header',
   NOTE_COMMITMENT = 'Note_commitment',

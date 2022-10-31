@@ -6,7 +6,7 @@ jest.mock('ws')
 
 import '../testUtilities/matchers/blockchain'
 import { Assert } from '../assert'
-import { getBlockSize } from '../network/utils/serializers'
+import { getBlockSize, getBlockWithMinersFeeSize } from '../network/utils/serializers'
 import { BlockHeader, BlockSerde, Transaction } from '../primitives'
 import { Target } from '../primitives/target'
 import {
@@ -44,6 +44,18 @@ describe('Verifier', () => {
 
       expect(result).toEqual({
         reason: VerificationResultReason.ERROR,
+        valid: false,
+      })
+    })
+
+    it('returns false on transactions larger than max size', async () => {
+      const { transaction } = await useTxSpendsFixture(nodeTest.node)
+      nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockWithMinersFeeSize()
+
+      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+
+      expect(result).toEqual({
+        reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED,
         valid: false,
       })
     })

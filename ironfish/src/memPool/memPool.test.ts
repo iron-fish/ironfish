@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
-import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
+import { getTransactionSize } from '../network/utils/serializers'
 import { Transaction } from '../primitives'
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
 import { getFeeRate } from './feeEstimator'
@@ -157,21 +157,6 @@ describe('MemPool', () => {
   })
 
   describe('acceptTransaction', () => {
-    describe('with size larger than the max transaction size', () => {
-      const nodeTest = createNodeTest()
-
-      it('returns false', async () => {
-        const { node } = nodeTest
-        const { chain, wallet, memPool } = node
-        const accountA = await useAccountFixture(wallet, 'accountA')
-        const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(node, accountA, accountB)
-
-        chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockWithMinersFeeSize()
-        expect(memPool.acceptTransaction(transaction)).toBe(false)
-      })
-    })
-
     describe('with an existing hash in the mempool', () => {
       const nodeTest = createNodeTest()
 
