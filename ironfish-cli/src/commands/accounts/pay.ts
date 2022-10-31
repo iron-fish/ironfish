@@ -150,7 +150,7 @@ export class Pay extends IronfishCommand {
           ],
         })
 
-        switch (flags.priority || 'medium') {
+        switch (flags.priority) {
           case 'low':
             suggestedFees = CurrencyUtils.renderIron(response.content.low)
             break
