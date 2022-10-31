@@ -2,21 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{errors::IronfishError, sapling_bls12::SAPLING};
+use crate::{
+    errors::IronfishError,
+    outputs::OutputBuilder,
+    sapling_bls12::SAPLING,
+    spending::{SpendBuilder, UnsignedSpendProof},
+};
 
 use super::{
     keys::{PublicAddress, SaplingKey},
-    merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
-    outputs::{OutputDescription, OutputParams},
-    spending::{SpendParams, SpendProof},
+    outputs::OutputDescription,
+    spending::SpendProof,
     witness::WitnessTrait,
 };
 use bellman::groth16::batch::Verifier;
 use blake2b_simd::Params as Blake2b;
 use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::Field;
 use group::GroupEncoding;
 use jubjub::ExtendedPoint;
 use rand::rngs::OsRng;
@@ -43,22 +46,14 @@ const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 /// The Transaction, below, contains the serializable version, without any
 /// secret keys or state not needed for verifying.
 pub struct ProposedTransaction {
-    /// A "private key" manufactured from a bunch of randomness added for each
-    /// spend and output.
-    binding_signature_key: jubjub::Fr,
-
-    /// A "public key" manufactured from a combination of the values of each
-    /// transaction and the same randomness as above
-    binding_verification_key: ExtendedPoint,
-
-    /// Proofs of the individual spends with all values required to calculate
+    /// Builders for the proofs of the individual spends with all values required to calculate
     /// the signatures.
-    spends: Vec<SpendParams>,
+    spends: Vec<SpendBuilder>,
 
-    /// proofs of the individual outputs with values required to calculate
+    /// Builders for proofs of the individual outputs with values required to calculate
     /// signatures. Note: This is commonly referred to as
     /// `outputs` in the literature.
-    outputs: Vec<OutputParams>,
+    outputs: Vec<OutputBuilder>,
 
     /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
@@ -80,8 +75,6 @@ pub struct ProposedTransaction {
 impl ProposedTransaction {
     pub fn new(spender_key: SaplingKey) -> ProposedTransaction {
         ProposedTransaction {
-            binding_signature_key: <jubjub::Fr as Field>::zero(),
-            binding_verification_key: ExtendedPoint::identity(),
             spends: vec![],
             outputs: vec![],
             transaction_fee: 0,
@@ -91,30 +84,18 @@ impl ProposedTransaction {
     }
 
     /// Spend the note owned by spender_key at the given witness location.
-    pub fn spend(&mut self, note: &Note, witness: &dyn WitnessTrait) -> Result<(), IronfishError> {
-        let proof = SpendParams::new(self.spender_key.clone(), note, witness)?;
-
-        self.binding_signature_key += proof.value_commitment.randomness;
-        self.binding_verification_key += proof.value_commitment();
-
-        self.spends.push(proof);
+    pub fn add_spend(&mut self, note: Note, witness: &dyn WitnessTrait) {
         self.transaction_fee += note.value() as i64;
 
-        Ok(())
+        self.spends.push(SpendBuilder::new(note, witness));
     }
 
     /// Create a proof of a new note owned by the recipient in this
     /// transaction.
-    pub fn receive(&mut self, note: &Note) -> Result<(), IronfishError> {
-        let proof = OutputParams::new(&self.spender_key, note)?;
-
-        self.binding_signature_key -= proof.value_commitment_randomness;
-        self.binding_verification_key -= proof.merkle_note.value_commitment;
-
-        self.outputs.push(proof);
+    pub fn add_output(&mut self, note: Note) {
         self.transaction_fee -= note.value as i64;
 
-        Ok(())
+        self.outputs.push(OutputBuilder::new(note));
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
@@ -150,7 +131,7 @@ impl ProposedTransaction {
                 change_amount as u64, // we checked it was positive
                 "",
             );
-            self.receive(&change_note)?;
+            self.add_output(change_note);
         }
         self._partial_post()
     }
@@ -167,9 +148,8 @@ impl ProposedTransaction {
         // Ensure the merkle note has an identifiable encryption key
         self.outputs
             .get_mut(0)
-            .expect("bounds checked above")
-            .merkle_note
-            .note_encryption_keys = *NOTE_ENCRYPTION_MINER_KEYS;
+            .ok_or(IronfishError::InvalidMinersFeeTransaction)?
+            .set_is_miners_fee();
         self._partial_post()
     }
 
@@ -192,22 +172,36 @@ impl ProposedTransaction {
 
     // Post transaction without much validation.
     fn _partial_post(&self) -> Result<Transaction, IronfishError> {
-        self.check_value_consistency()?;
-        let data_to_sign = self.transaction_signature_hash();
-        let binding_signature = self.binding_signature()?;
-        let mut spend_proofs = Vec::with_capacity(self.spends.len());
+        // Generate binding signature keys
+        let bsig_keys = self.binding_signature_keys()?;
+
+        // Build descriptions
+        let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
-            spend_proofs.push(spend.post(&data_to_sign)?);
+            unsigned_spends.push(spend.build(&self.spender_key)?);
         }
-        let mut output_proofs = Vec::with_capacity(self.outputs.len());
+
+        let mut output_descriptions = Vec::with_capacity(self.outputs.len());
         for output in &self.outputs {
-            output_proofs.push(output.post()?);
+            output_descriptions.push(output.build(&self.spender_key)?);
         }
+
+        let data_to_sign = self.transaction_signature_hash(&unsigned_spends, &output_descriptions);
+
+        let binding_signature =
+            self.binding_signature(&bsig_keys.0, &bsig_keys.1, &data_to_sign)?;
+
+        // Sign spends now that we have the data needed to be signed
+        let mut spend_descriptions = Vec::with_capacity(unsigned_spends.len());
+        for spend in unsigned_spends.drain(0..) {
+            spend_descriptions.push(spend.sign(&self.spender_key, &data_to_sign)?);
+        }
+
         Ok(Transaction {
             expiration_sequence: self.expiration_sequence,
             transaction_fee: self.transaction_fee,
-            spends: spend_proofs,
-            outputs: output_proofs,
+            spends: spend_descriptions,
+            outputs: output_descriptions,
             binding_signature,
         })
     }
@@ -217,7 +211,11 @@ impl ProposedTransaction {
     ///
     /// This is called during final posting of the transaction
     ///
-    fn transaction_signature_hash(&self) -> [u8; 32] {
+    fn transaction_signature_hash(
+        &self,
+        spends: &[UnsignedSpendProof],
+        outputs: &[OutputDescription],
+    ) -> [u8; 32] {
         let mut hasher = Blake2b::new()
             .hash_length(32)
             .personal(SIGNATURE_HASH_PERSONALIZATION)
@@ -230,10 +228,14 @@ impl ProposedTransaction {
         hasher
             .write_i64::<LittleEndian>(self.transaction_fee)
             .unwrap();
-        for spend in self.spends.iter() {
-            spend.serialize_signature_fields(&mut hasher).unwrap();
+        for spend in spends {
+            spend
+                .spend_proof
+                .serialize_signature_fields(&mut hasher)
+                .unwrap();
         }
-        for output in self.outputs.iter() {
+
+        for output in outputs {
             output.serialize_signature_fields(&mut hasher).unwrap();
         }
 
@@ -242,50 +244,57 @@ impl ProposedTransaction {
         hash_result
     }
 
-    /// Confirm that balance of input and output values is consistent with
-    /// those used in the proofs.
-    ///
-    /// Does not confirm that the transactions add up to zero. The calculation
-    /// for fees and change happens elsewhere.
-    ///
-    /// Can be safely called after each spend or output is added.
-    ///
-    /// Note: There is some duplication of effort between this function and
-    /// binding_signature below. I find the separation of concerns easier
-    /// to read, but it's an easy win if we see a performance bottleneck here.
-    fn check_value_consistency(&self) -> Result<(), IronfishError> {
-        let private_key = PrivateKey(self.binding_signature_key);
-        let public_key =
-            PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
-        let value_balance_point = value_balance_to_point(self.transaction_fee as i64)?;
-
-        let calculated_public_key = self.binding_verification_key - value_balance_point;
-
-        if calculated_public_key != public_key.0 {
-            return Err(IronfishError::InvalidBalance);
-        }
-
-        Ok(())
-    }
-
     /// The binding signature ties up all the randomness generated with the
     /// transaction and uses it as a private key to sign all the values
     /// that were calculated as part of the transaction. This function
     /// performs the calculation and sets the value on this struct.
-    fn binding_signature(&self) -> Result<Signature, IronfishError> {
+    fn binding_signature(
+        &self,
+        private_key: &PrivateKey,
+        public_key: &PublicKey,
+        transaction_signature_hash: &[u8; 32],
+    ) -> Result<Signature, IronfishError> {
         let mut data_to_be_signed = [0u8; 64];
-        let private_key = PrivateKey(self.binding_signature_key);
-        let public_key =
-            PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
-
         data_to_be_signed[..32].copy_from_slice(&public_key.0.to_bytes());
-        data_to_be_signed[32..].copy_from_slice(&self.transaction_signature_hash());
+        data_to_be_signed[32..].copy_from_slice(transaction_signature_hash);
 
         Ok(private_key.sign(
             &data_to_be_signed,
             &mut OsRng,
             VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ))
+    }
+
+    fn binding_signature_keys(&self) -> Result<(PrivateKey, PublicKey), IronfishError> {
+        // A "private key" manufactured from a bunch of randomness added for each
+        // spend and output.
+        let mut binding_signature_key = jubjub::Fr::zero();
+
+        // A "public key" manufactured from a combination of the values of each
+        // transaction and the same randomneSpendParams, s as above
+        let mut binding_verification_key = ExtendedPoint::identity();
+
+        for spend in &self.spends {
+            binding_signature_key += spend.value_commitment.randomness;
+            binding_verification_key += spend.value_commitment_point();
+        }
+
+        for output in &self.outputs {
+            binding_signature_key -= output.value_commitment.randomness;
+            binding_verification_key -= output.value_commitment_point();
+        }
+
+        let private_key = PrivateKey(binding_signature_key);
+        let public_key =
+            PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
+
+        check_value_consistency(
+            &public_key,
+            &binding_verification_key,
+            self.transaction_fee as i64,
+        )?;
+
+        Ok((private_key, public_key))
     }
 }
 
@@ -466,8 +475,8 @@ impl Transaction {
     }
 }
 
-// Convert the integer value to a point on the Jubjub curve, accounting for
-// negative values
+/// Convert the integer value to a point on the Jubjub curve, accounting for
+/// negative values
 fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
     // Can only construct edwards point on positive numbers, so need to
     // add and possibly negate later
@@ -484,6 +493,27 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
     }
 
     Ok(value_balance.into())
+}
+
+/// Confirm that balance of input and output values is consistent with
+/// those used in the proofs.
+///
+/// Does not confirm that the transactions add up to zero. The calculation
+/// for fees and change happens elsewhere.
+fn check_value_consistency(
+    public_key: &PublicKey,
+    binding_verification_key: &ExtendedPoint,
+    value: i64,
+) -> Result<(), IronfishError> {
+    let value_balance_point = value_balance_to_point(value)?;
+
+    let calculated_public_key = binding_verification_key - value_balance_point;
+
+    if calculated_public_key != public_key.0 {
+        return Err(IronfishError::InvalidBalance);
+    }
+
+    Ok(())
 }
 
 pub fn batch_verify_transactions<'a>(

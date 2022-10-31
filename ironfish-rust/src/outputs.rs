@@ -12,90 +12,95 @@ use group::Curve;
 use ironfish_zkp::proofs::Output;
 use ironfish_zkp::ValueCommitment;
 use jubjub::ExtendedPoint;
-use rand::{rngs::OsRng, thread_rng};
+use rand::thread_rng;
 
 use std::io;
 
 /// Parameters used when constructing proof that a new note exists. The owner
 /// of this note is the recipient of funds in a transaction. The note is signed
 /// with the owners public key so only they can read it.
-pub struct OutputParams {
-    /// Proof that the output circuit was valid and successful
-    pub(crate) proof: groth16::Proof<Bls12>,
+pub struct OutputBuilder {
+    pub(crate) note: Note,
 
-    /// Randomness used to create the ValueCommitment point on the Merkle Note
-    pub(crate) value_commitment_randomness: jubjub::Fr,
+    /// Randomized value commitment. Sometimes referred to as
+    /// `cv` in the literature. It's calculated by multiplying a value by a
+    /// random number. Randomized to help maintain zero knowledge.
+    pub(crate) value_commitment: ValueCommitment,
 
-    /// Merkle note containing all the values verified by the proof. These values
-    /// are shared on the blockchain and can be snapshotted into a Merkle Tree
-    pub(crate) merkle_note: MerkleNote,
+    /// Flag to determine if the output to build is used for a miner's fee
+    /// transaction. Not used directly here, but passed down into the
+    /// [`MerkleNote`].
+    is_miners_fee: bool,
 }
 
-impl OutputParams {
-    /// Construct the parameters for proving a new specific note
-    pub(crate) fn new(
-        spender_key: &SaplingKey,
-        note: &Note,
-    ) -> Result<OutputParams, IronfishError> {
-        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
-
-        let value_commitment_randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
-
+impl OutputBuilder {
+    /// Create a new [`OutputBuilder`] attempting to create a note.
+    pub(crate) fn new(note: Note) -> Self {
         let value_commitment = ValueCommitment {
             value: note.value,
-            randomness: value_commitment_randomness,
+            randomness: jubjub::Fr::random(thread_rng()),
         };
 
-        let merkle_note =
-            MerkleNote::new(spender_key, note, &value_commitment, &diffie_hellman_keys);
-
-        let output_circuit = Output {
-            value_commitment: Some(value_commitment),
-            payment_address: Some(note.owner.sapling_payment_address()),
-            commitment_randomness: Some(note.randomness),
-            esk: Some(diffie_hellman_keys.0),
-        };
-        let proof =
-            groth16::create_random_proof(output_circuit, &SAPLING.output_params, &mut OsRng)?;
-
-        let output_proof = OutputParams {
-            proof,
-            value_commitment_randomness,
-            merkle_note,
-        };
-
-        Ok(output_proof)
+        Self {
+            note,
+            value_commitment,
+            is_miners_fee: false,
+        }
     }
 
-    /// Output the committed OutputProof for this receiving calculation.
+    /// Sets the `is_miners_fee` flag to true, indicating that this output is to
+    /// be used for a miner's fee transaction.
+    pub(crate) fn set_is_miners_fee(&mut self) {
+        self.is_miners_fee = true;
+    }
+
+    /// Get the value_commitment from this proof as an edwards Point.
     ///
-    /// The OutputProof is the publicly visible form of the new note, not
+    /// This integrates the value and randomness into a single point, using an
+    /// appropriate generator.
+    pub(crate) fn value_commitment_point(&self) -> ExtendedPoint {
+        ExtendedPoint::from(self.value_commitment.commitment())
+    }
+
+    /// Construct and return the committed [`OutputDescription`] for this receiving calculation.
+    ///
+    /// The [`OutputDescription`] is the publicly visible form of the new note, not
     /// including any keys or intermediate working values.
     ///
     /// Verifies the proof before returning to prevent posting broken
     /// transactions.
-    pub fn post(&self) -> Result<OutputDescription, IronfishError> {
-        let output_proof = OutputDescription {
-            proof: self.proof.clone(),
-            merkle_note: self.merkle_note.clone(),
+    pub(crate) fn build(
+        &self,
+        spender_key: &SaplingKey,
+    ) -> Result<OutputDescription, IronfishError> {
+        let diffie_hellman_keys = self.note.owner.generate_diffie_hellman_keys();
+
+        let circuit = Output {
+            value_commitment: Some(self.value_commitment.clone()),
+            payment_address: Some(self.note.owner.sapling_payment_address()),
+            commitment_randomness: Some(self.note.randomness),
+            esk: Some(diffie_hellman_keys.0),
         };
+
+        let proof =
+            groth16::create_random_proof(circuit, &SAPLING.output_params, &mut thread_rng())?;
+
+        let merkle_note = if self.is_miners_fee {
+            MerkleNote::new_for_miners_fee(&self.note, &self.value_commitment, &diffie_hellman_keys)
+        } else {
+            MerkleNote::new(
+                spender_key,
+                &self.note,
+                &self.value_commitment,
+                &diffie_hellman_keys,
+            )
+        };
+
+        let output_proof = OutputDescription { proof, merkle_note };
+
         output_proof.verify_proof()?;
 
         Ok(output_proof)
-    }
-
-    /// Write the signature of this proof to the provided writer.
-    ///
-    /// The signature is used by the transaction to calculate the signature
-    /// hash. Having this data essentially binds the note to the transaction,
-    /// proving that it is actually part of that transaction.
-    pub(crate) fn serialize_signature_fields<W: io::Write>(
-        &self,
-        mut writer: W,
-    ) -> Result<(), IronfishError> {
-        self.proof.write(&mut writer)?;
-        self.merkle_note.write(&mut writer)?;
-        Ok(())
     }
 }
 
@@ -103,18 +108,20 @@ impl OutputParams {
 /// values are calculated by the spender using only the public address of the
 /// owner of this new note.
 ///
-/// This is the variation of a Output that gets serialized to bytes and can
+/// This is the variation of an Output that gets serialized to bytes and can
 /// be loaded from bytes.
 #[derive(Clone)]
 pub struct OutputDescription {
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,
 
+    /// Merkle note containing all the values verified by the proof. These values
+    /// are shared on the blockchain and can be snapshotted into a Merkle Tree
     pub(crate) merkle_note: MerkleNote,
 }
 
 impl OutputDescription {
-    /// Load a OutputProof from a Read implementation( e.g: socket, file)
+    /// Load an [`OutputDescription`] from a Read implementation( e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
@@ -124,7 +131,7 @@ impl OutputDescription {
         Ok(OutputDescription { proof, merkle_note })
     }
 
-    /// Stow the bytes of this OutputProof in the given writer.
+    /// Stow the bytes of this [`OutputDescription`] in the given writer.
     pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
         self.serialize_signature_fields(writer)
     }
@@ -196,20 +203,58 @@ impl OutputDescription {
 
 #[cfg(test)]
 mod test {
-    use super::{OutputDescription, OutputParams};
-    use crate::{keys::SaplingKey, note::Note};
+    use super::{OutputBuilder, OutputDescription};
+    use crate::{keys::SaplingKey, merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note};
     use ff::PrimeField;
     use group::Curve;
     use jubjub::ExtendedPoint;
 
     #[test]
-    fn test_output_round_trip() {
-        let spender_key: SaplingKey = SaplingKey::generate_key();
+    /// Test to confirm that creating an output with the `is_miners_fee` flag
+    /// set will use the hard-coded note encryption keys
+    fn test_output_miners_fee() {
+        let spender_key = SaplingKey::generate_key();
         let note = Note::new(spender_key.generate_public_address(), 42, "");
 
-        let output =
-            OutputParams::new(&spender_key, &note).expect("should be able to create output proof");
-        let proof = output.post().expect("Should be able to post output proof");
+        let mut output = OutputBuilder::new(note);
+        output.set_is_miners_fee();
+
+        let proof = output
+            .build(&spender_key)
+            .expect("should be able to build output proof");
+
+        assert_eq!(
+            &proof.merkle_note.note_encryption_keys,
+            NOTE_ENCRYPTION_MINER_KEYS
+        );
+    }
+
+    #[test]
+    fn test_output_not_miners_fee() {
+        let spender_key = SaplingKey::generate_key();
+        let note = Note::new(spender_key.generate_public_address(), 42, "");
+
+        let output = OutputBuilder::new(note);
+
+        let proof = output
+            .build(&spender_key)
+            .expect("should be able to build output proof");
+
+        assert_ne!(
+            &proof.merkle_note.note_encryption_keys,
+            NOTE_ENCRYPTION_MINER_KEYS
+        );
+    }
+
+    #[test]
+    fn test_output_round_trip() {
+        let spender_key = SaplingKey::generate_key();
+        let note = Note::new(spender_key.generate_public_address(), 42, "");
+
+        let output = OutputBuilder::new(note);
+        let proof = output
+            .build(&spender_key)
+            .expect("Should be able to build output proof");
         proof.verify_proof().expect("proof should check out");
 
         // test serialization

@@ -87,7 +87,7 @@ describe('Demonstrate the Sapling API', () => {
       minerNote = new NativeNote(owner, BigInt(42), '')
 
       const transaction = new NativeTransaction(spenderKey.spending_key)
-      expect(transaction.receive(minerNote)).toBe('')
+      transaction.receive(minerNote)
       minerTransaction = new NativeTransactionPosted(transaction.post_miners_fee())
       expect(minerTransaction).toBeTruthy()
       expect(minerTransaction.notesLength()).toEqual(1)
@@ -113,23 +113,19 @@ describe('Demonstrate the Sapling API', () => {
       expect(transaction).toBeTruthy()
     })
 
-    it('Can add a spend to the transaction', async () => {
+    it('Can post the transaction', async () => {
+      // Add a spend to the transaction
       const witness = await tree.witness(0)
       if (witness === null) {
         throw new Error('Witness should not be null')
       }
-      const result = transaction.spend(minerNote, witness)
-      expect(result).toEqual('')
-    })
+      transaction.spend(minerNote, witness)
 
-    it('Can add an output to the transaction', () => {
+      // Add an output to the transaction
       receiverKey = generateKey()
       const outputNote = new NativeNote(receiverKey.public_address, BigInt(40), '')
-      const result = transaction.receive(outputNote)
-      expect(result).toEqual('')
-    })
+      transaction.receive(outputNote)
 
-    it('Can post the transaction', () => {
       publicTransaction = new NativeTransactionPosted(transaction.post(null, BigInt(0)))
       expect(publicTransaction).toBeTruthy()
     })
@@ -243,7 +239,7 @@ describe('Demonstrate the Sapling API', () => {
       expect(latestNote.decryptNoteForSpender(spenderKey.outgoing_view_key)).toBeTruthy()
     })
 
-    it('Can create a transaction', async () => {
+    it('Can create and post a transaction', async () => {
       transaction = new NativeTransaction(receiverKey.spending_key)
 
       const witness = await tree.witness(receiverWitnessIndex)
@@ -254,7 +250,7 @@ describe('Demonstrate the Sapling API', () => {
       // The `transaction.spend` method is used to spend the note. The owner needs to sign the transaction
       // with their private key; this is how the note gets authorized to spend.
       const note = receiverNote.takeReference()
-      expect(transaction.spend(note, witness)).toBe('')
+      transaction.spend(note, witness)
       receiverNote.returnReference()
 
       const noteForSpender = new NativeNote(spenderKey.public_address, BigInt(10), '')
@@ -264,11 +260,9 @@ describe('Demonstrate the Sapling API', () => {
         '',
       )
 
-      expect(transaction.receive(noteForSpender)).toBe('')
-      expect(transaction.receive(receiverNoteToSelf)).toBe('')
-    })
+      transaction.receive(noteForSpender)
+      transaction.receive(receiverNoteToSelf)
 
-    it('Can post a transaction', () => {
       const postedTransaction = new NativeTransactionPosted(
         transaction.post(undefined, BigInt(1)),
       )

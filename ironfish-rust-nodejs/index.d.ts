@@ -105,9 +105,9 @@ export type NativeTransaction = Transaction
 export class Transaction {
   constructor(spenderHexKey: string)
   /** Create a proof of a new note owned by the recipient in this transaction. */
-  receive(note: Note): string
+  receive(note: Note): void
   /** Spend the note owned by spender_hex_key at the given witness location. */
-  spend(note: Note, witness: object): string
+  spend(note: Note, witness: object): void
   /**
    * Special case for posting a miners fee transaction. Miner fee transactions
    * are unique in that they generate currency. They do not have any spends
