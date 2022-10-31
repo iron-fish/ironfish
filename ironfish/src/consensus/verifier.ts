@@ -250,7 +250,7 @@ export class Verifier {
   }
 
   /**
-   * Verify that a transaction created by the user can be accepted into the mempool
+   * Verify that a transaction created by the account can be accepted into the mempool
    * and rebroadcasted to the network.
    */
   verifyCreatedTransaction(transaction: Transaction): VerificationResult {
