@@ -214,7 +214,11 @@ export class Verifier {
    * the mempool and rebroadcasted to the network.
    */
   async verifyNewTransaction(transaction: Transaction): Promise<VerificationResult> {
-    let verificationResult
+    let verificationResult = this.chain.verifier.verifyCreatedTransaction(transaction)
+    if (!verificationResult.valid) {
+      return verificationResult
+    }
+
     try {
       verificationResult = await this.workerPool.verify(transaction)
     } catch {
