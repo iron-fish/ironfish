@@ -405,19 +405,17 @@ export class Wallet {
   ): Promise<void> {
     const initialNoteIndex = 'initialNoteIndex' in params ? params.initialNoteIndex : null
 
-    await transaction.withReference(async () => {
-      const decryptedNotesByAccountId = await this.decryptNotes(
-        transaction,
-        initialNoteIndex,
-        accounts,
-      )
+    const decryptedNotesByAccountId = await this.decryptNotes(
+      transaction,
+      initialNoteIndex,
+      accounts,
+    )
 
-      for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
-        const account = this.accounts.get(accountId)
-        Assert.isNotUndefined(account, `syncTransaction: No account found for ${accountId}`)
-        await account.syncTransaction(transaction, decryptedNotes, params)
-      }
-    })
+    for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
+      const account = this.accounts.get(accountId)
+      Assert.isNotUndefined(account, `syncTransaction: No account found for ${accountId}`)
+      await account.syncTransaction(transaction, decryptedNotes, params)
+    }
   }
 
   async scanTransactions(): Promise<void> {
