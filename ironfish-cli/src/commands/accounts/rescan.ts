@@ -42,6 +42,10 @@ export class RescanCommand extends IronfishCommand {
       this.error('You cannot pass both --local and --no-follow')
     }
 
+    if (from && !reset) {
+      this.error('Use from feature with reset at the same time for now')
+    }
+
     const client = await this.sdk.connectRpc(local)
 
     CliUx.ux.action.start('Asking node to start scanning', undefined, {
