@@ -127,9 +127,9 @@ impl<'a> Note {
     /// Create a note from its encrypted representation, given the owner's
     /// view key.
     ///
-    /// The note is stored on the OutputProof in encrypted form. The spender
-    /// encrypts it when they construct the output using a shared secret
-    /// derived from the owner's public key.
+    /// The note is stored on the [`crate::outputs::OutputDescription`] in
+    /// encrypted form. The spender encrypts it when they construct the output
+    /// using a shared secret derived from the owner's public key.
     ///
     /// This function allows the owner to decrypt the note using the derived
     /// shared secret and their own view key.
@@ -153,9 +153,9 @@ impl<'a> Note {
     /// Create a note from its encrypted representation, given the spender's
     /// view key.
     ///
-    /// The note is stored on the OutputProof in encrypted form. The spender
-    /// encrypts it when they construct the output using a shared secret
-    /// derived from the owner's public key.
+    /// The note is stored on the [`crate::outputs::OutputDescription`] in
+    /// encrypted form. The spender encrypts it when they construct the output
+    /// using a shared secret derived from the owner's public key.
     ///
     /// This function allows the owner to decrypt the note using the derived
     /// shared secret and their own view key.

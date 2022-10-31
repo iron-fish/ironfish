@@ -155,24 +155,19 @@ impl NativeTransaction {
 
     /// Create a proof of a new note owned by the recipient in this transaction.
     #[napi]
-    pub fn receive(&mut self, note: &NativeNote) -> Result<String> {
-        self.transaction.receive(&note.note).map_err(to_napi_err)?;
-        Ok("".to_string())
+    pub fn receive(&mut self, note: &NativeNote) {
+        self.transaction.add_output(note.note.clone());
     }
 
     /// Spend the note owned by spender_hex_key at the given witness location.
     #[napi]
-    pub fn spend(&mut self, env: Env, note: &NativeNote, witness: Object) -> Result<String> {
+    pub fn spend(&mut self, env: Env, note: &NativeNote, witness: Object) {
         let w = JsWitness {
             cx: RefCell::new(env),
             obj: witness,
         };
 
-        self.transaction
-            .spend(&note.note, &w)
-            .map_err(to_napi_err)?;
-
-        Ok("".to_string())
+        self.transaction.add_spend(note.note.clone(), &w);
     }
 
     /// Special case for posting a miners fee transaction. Miner fee transactions
