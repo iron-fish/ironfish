@@ -76,15 +76,15 @@ export default class Benchmark extends IronfishCommand {
     const endingHeader = await node.chain.getHeaderAtSequence(endingSequence)
 
     if (startingHeader === null) {
-      throw new Error(`Target chain is longer than source chain`)
+      return this.error(`Target chain is longer than source chain`)
     }
 
     if (endingHeader === null) {
-      throw new Error(`Chain must have at least ${blocks} blocks`)
+      return this.error(`Chain must have at least ${blocks} blocks`)
     }
 
     if (!tempNode.chain.head.hash.equals(startingHeader?.hash)) {
-      throw new Error(`The two chains do not match at sequence ${startingSequence}`)
+      return this.error(`The two chains do not match at sequence ${startingSequence}`)
     }
 
     let totalMs = 0
