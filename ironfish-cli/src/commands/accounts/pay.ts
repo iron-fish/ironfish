@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-import { CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
+import { CurrencyUtils, isValidPublicAddress, ConfigOptions } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -145,8 +144,13 @@ export class Pay extends IronfishCommand {
             },
           ],
         })
+
+        const config = await client.getConfig({})
+    
+        const feeEstimatorMaxBlockHistory = 'feeEstimatorMaxBlockHistory' as keyof Partial<ConfigOptions>
+
         suggestedFees = suggestedFees.concat(
-          `  low: ${CurrencyUtils.renderIron(response.content.low)}\n`,
+          `  low (*among ${config.content[feeEstimatorMaxBlockHistory]}% of recent transactions): ${CurrencyUtils.renderIron(response.content.low)}\n`,
         )
         suggestedFees = suggestedFees.concat(
           `  medium: ${CurrencyUtils.renderIron(response.content.medium)}\n`,
