@@ -5,7 +5,6 @@
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { MAX_TRANSACTIONS_PER_BLOCK } from '../consensus'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
@@ -76,11 +75,6 @@ export class MiningManager {
     const blockTransactions: Transaction[] = []
     const nullifiers = new BufferSet()
     for (const transaction of this.memPool.orderedTransactions()) {
-      // Stop adding transactions when max count reached (accounting for the miner's fee transaction added later)
-      if (blockTransactions.length >= MAX_TRANSACTIONS_PER_BLOCK - 1) {
-        break
-      }
-
       // Skip transactions that would cause the block to exceed the max size
       const transactionSize = getTransactionSize(transaction.serialize())
       if (currBlockSize + transactionSize > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {

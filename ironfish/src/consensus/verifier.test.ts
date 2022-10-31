@@ -17,7 +17,6 @@ import {
   useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
-import { MAX_TRANSACTIONS_PER_BLOCK } from './consensus'
 import { VerificationResultReason } from './verifier'
 
 describe('Verifier', () => {
@@ -117,17 +116,6 @@ describe('Verifier', () => {
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_MINERS_FEE,
         valid: false,
-      })
-    })
-
-    it('rejects a block with more than MAX_TRANSACTIONS_PER_BLOCK transactions', async () => {
-      const { block } = await useBlockWithTx(nodeTest.node)
-      const transactions = Array(MAX_TRANSACTIONS_PER_BLOCK + 1).fill(block.transactions[1])
-      block.transactions = transactions
-
-      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
-        valid: false,
-        reason: VerificationResultReason.MAX_TRANSACTIONS_EXCEEDED,
       })
     })
 
