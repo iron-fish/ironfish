@@ -65,7 +65,7 @@ export default class Benchmark extends IronfishCommand {
 
     const header = await node.chain.getHeaderAtSequence(blocks)
     if (header === null) {
-      throw new Error(`Chain must have at least ${blocks} blocks`)
+      return this.error(`Chain must have at least ${blocks} blocks`)
     }
 
     let totalMs = 0
