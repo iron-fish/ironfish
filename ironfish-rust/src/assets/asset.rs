@@ -8,10 +8,12 @@ use group::{cofactor::CofactorGroup, Group, GroupEncoding};
 use ironfish_zkp::constants::{GH_FIRST_BLOCK, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION};
 use std::slice::from_ref;
 
+#[allow(dead_code)]
 pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
 
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
+#[allow(dead_code)]
 pub struct Asset {
     /// Name of the asset
     name: [u8; 32],
@@ -35,6 +37,7 @@ pub struct Asset {
 
 impl Asset {
     /// Create a new AssetType from a public address, name, chain, and network
+    #[allow(dead_code)]
     pub fn new(
         owner: PublicAddress,
         name: &str,
@@ -65,6 +68,7 @@ impl Asset {
         }
     }
 
+    #[allow(dead_code)]
     fn new_with_nonce(
         owner: PublicAddress,
         name: [u8; 32],
@@ -101,6 +105,7 @@ impl Asset {
         }
     }
 
+    #[allow(dead_code)]
     fn hash_to_point(identifier: &AssetIdentifier) -> Option<jubjub::ExtendedPoint> {
         // Check the personalization is acceptable length
         assert_eq!(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION.len(), 8);
@@ -138,18 +143,22 @@ impl Asset {
         }
     }
 
+    #[allow(dead_code)]
     pub fn name(&self) -> &[u8] {
         &self.name
     }
 
+    #[allow(dead_code)]
     pub fn public_address(&self) -> &PublicAddress {
         &self.owner
     }
 
+    #[allow(dead_code)]
     pub fn nonce(&self) -> &u8 {
         &self.nonce
     }
 
+    #[allow(dead_code)]
     pub fn identifier(&self) -> &AssetIdentifier {
         &self.identifier
     }

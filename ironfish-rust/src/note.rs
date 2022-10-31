@@ -191,7 +191,7 @@ impl<'a> Note {
     }
 
     pub fn owner(&self) -> PublicAddress {
-        self.owner.clone()
+        self.owner
     }
 
     /// Send encrypted form of the note, which is what gets publicly stored on
