@@ -23,8 +23,8 @@ export default class ShowBlock extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(ShowBlock)
     const search = args.search as string
-    if (parseInt(search) < 1) {
-      this.log(`Sequence can't be negative: ${search}`)
+    if (parseInt(search) < 0) {
+      this.log(`Sequence can't be less than 1: ${search}`)
     } else {
       const client = await this.sdk.connectRpc()
       const data = await client.getBlockInfo({ search })
