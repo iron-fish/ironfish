@@ -153,17 +153,17 @@ export class Pay extends IronfishCommand {
 
         suggestedFees = suggestedFees.concat(
           `  low (*among ${JSON.stringify(
-            config.content[low],
+            config.content[low] || '10', 
           )}% of recent transactions): ${CurrencyUtils.renderIron(response.content.low)}\n`,
         )
         suggestedFees = suggestedFees.concat(
           `  medium (*among ${JSON.stringify(
-            config.content[medium],
+            config.content[medium] || '20',
           )}% of recent transactions): ${CurrencyUtils.renderIron(response.content.medium)}\n`,
         )
         suggestedFees = suggestedFees.concat(
           `  high (*among ${JSON.stringify(
-            config.content[high],
+            config.content[high] || '30',
           )}% of recent transactions): ${CurrencyUtils.renderIron(response.content.high)}\n`,
         )
       } catch {
