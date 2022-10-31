@@ -43,7 +43,7 @@ fn test_transaction() {
     public_transaction
         .verify()
         .expect("Should be able to verify transaction");
-    assert_eq!(public_transaction.transaction_fee(), 1);
+    assert_eq!(public_transaction.fee(), 1);
 
     // A change note was created
     assert_eq!(public_transaction.outputs.len(), 2);
@@ -56,10 +56,7 @@ fn test_transaction() {
     let read_back_transaction: Transaction =
         Transaction::read(&mut serialized_transaction[..].as_ref())
             .expect("should be able to deserialize valid transaction");
-    assert_eq!(
-        public_transaction.transaction_fee,
-        read_back_transaction.transaction_fee
-    );
+    assert_eq!(public_transaction.fee, read_back_transaction.fee);
     assert_eq!(
         public_transaction.spends.len(),
         read_back_transaction.spends.len()
@@ -84,7 +81,7 @@ fn test_miners_fee() {
     let posted_transaction = transaction
         .post_miners_fee()
         .expect("it is a valid miner's fee");
-    assert_eq!(posted_transaction.transaction_fee, -42);
+    assert_eq!(posted_transaction.fee, -42);
     assert_eq!(
         &posted_transaction
             .iter_outputs()
