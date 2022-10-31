@@ -5,12 +5,13 @@ import * as yup from 'yup'
 import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
-export type RescanAccountRequest = { follow?: boolean; reset?: boolean }
+export type RescanAccountRequest = { follow?: boolean; from?: number; reset?: boolean }
 export type RescanAccountResponse = { sequence: number; startedAt: number; endSequence: number }
 
 export const RescanAccountRequestSchema: yup.ObjectSchema<RescanAccountRequest> = yup
   .object({
     follow: yup.boolean().optional(),
+    from: yup.number().optional(),
     reset: yup.boolean().optional(),
   })
   .defined()
@@ -42,7 +43,15 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
         await node.wallet.reset()
       }
 
-      void node.wallet.scanTransactions()
+      let fromHash = undefined
+      if (request.data.from) {
+        const blockHash = await node.chain.getHashAtSequence(request.data.from)
+        if (blockHash) {
+          fromHash = blockHash
+        }
+      }
+
+      void node.wallet.scanTransactions(fromHash)
       scan = node.wallet.scan
 
       if (!scan) {

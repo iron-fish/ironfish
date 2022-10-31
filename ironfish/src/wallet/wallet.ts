@@ -420,7 +420,7 @@ export class Wallet {
     })
   }
 
-  async scanTransactions(): Promise<void> {
+  async scanTransactions(fromHash?: Buffer): Promise<void> {
     if (!this.isOpen) {
       throw new Error('Cannot start a scan if accounts are not loaded')
     }
@@ -439,6 +439,14 @@ export class Wallet {
 
     let startHash = await this.getEarliestHeadHash()
     let startHeader = startHash ? await this.chain.getHeader(startHash) : null
+
+    if (fromHash) {
+      const fromHeader = await this.chain.getHeader(fromHash)
+      if (fromHeader) {
+        startHash = fromHash
+        startHeader = fromHeader
+      }
+    }
 
     const endHash = this.chainProcessor.hash || this.chain.head.hash
     const endHeader = await this.chain.getHeader(endHash)
