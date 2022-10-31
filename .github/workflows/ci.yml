@@ -16,10 +16,10 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16.13.0'
           cache: 'yarn'
@@ -36,19 +36,19 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
-          node-version: '16.13.0'
+          # Using 16.10 to fix https://github.com/facebook/jest/issues/11956
+          node-version: '16.10.0'
           cache: 'yarn'
 
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
-          sharedKey: nodejs
-          working-directory: ironfish-rust-nodejs
+          shared-key: nodejs
 
       - name: Install packages
         run: yarn --non-interactive --frozen-lockfile
@@ -66,19 +66,18 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16.13.0'
           cache: 'yarn'
 
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
-          sharedKey: nodejs
-          working-directory: ironfish-rust-nodejs
+          shared-key: nodejs
 
       - name: Install packages
         run: yarn --non-interactive --frozen-lockfile

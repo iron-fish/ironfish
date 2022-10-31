@@ -1,10 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-#[macro_use]
-extern crate lazy_static;
-
 use bellman::groth16;
 use bls12_381::Bls12;
 
@@ -17,7 +13,7 @@ pub mod merkle_note_hash;
 pub mod mining;
 pub mod nacl;
 pub mod note;
-pub mod receiving;
+pub mod outputs;
 pub mod rolling_filter;
 pub mod sapling_bls12;
 pub mod spending;
@@ -28,8 +24,8 @@ pub use {
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,
     note::Note,
-    receiving::{ReceiptParams, ReceiptProof},
-    spending::{SpendParams, SpendProof},
+    outputs::OutputDescription,
+    spending::SpendDescription,
     transaction::{ProposedTransaction, Transaction},
 };
 
@@ -46,9 +42,9 @@ pub(crate) mod test_util; // I'm not sure if this is the right way to publish th
 // The values are all loaded from a file in serialized form.
 pub struct Sapling {
     spend_params: groth16::Parameters<Bls12>,
-    receipt_params: groth16::Parameters<Bls12>,
+    output_params: groth16::Parameters<Bls12>,
     spend_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
-    receipt_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
+    output_verifying_key: groth16::PreparedVerifyingKey<Bls12>,
 }
 
 impl Sapling {
@@ -58,19 +54,19 @@ impl Sapling {
         // TODO: We'll need to build our own parameters using a trusted set up at some point.
         // These params were borrowed from zcash
         let spend_bytes = include_bytes!("sapling_params/sapling-spend.params");
-        let receipt_bytes = include_bytes!("sapling_params/sapling-output.params");
+        let output_bytes = include_bytes!("sapling_params/sapling-output.params");
 
         let spend_params = Sapling::load_params(&spend_bytes[..]);
-        let receipt_params = Sapling::load_params(&receipt_bytes[..]);
+        let output_params = Sapling::load_params(&output_bytes[..]);
 
         let spend_vk = groth16::prepare_verifying_key(&spend_params.vk);
-        let receipt_vk = groth16::prepare_verifying_key(&receipt_params.vk);
+        let output_vk = groth16::prepare_verifying_key(&output_params.vk);
 
         Sapling {
             spend_verifying_key: spend_vk,
-            receipt_verifying_key: receipt_vk,
+            output_verifying_key: output_vk,
             spend_params,
-            receipt_params,
+            output_params,
         }
     }
 

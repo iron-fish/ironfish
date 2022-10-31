@@ -46,7 +46,10 @@ export type GetNodeStatusResponse = {
   }
   blockchain: {
     synced: boolean
-    head: string
+    head: {
+      hash: string
+      sequence: number
+    }
     headTimestamp: number
     newBlockSpeed: number
   }
@@ -55,6 +58,7 @@ export type GetNodeStatusResponse = {
     syncing?: {
       blockSpeed: number
       speed: number
+      downloadSpeed: number
       progress: number
     }
   }
@@ -84,7 +88,10 @@ export type GetNodeStatusResponse = {
       endSequence: number
       startedAt: number
     }
-    head: string
+    head: {
+      hash: string
+      sequence: number
+    }
   }
 }
 
@@ -141,7 +148,12 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
     blockchain: yup
       .object({
         synced: yup.boolean().defined(),
-        head: yup.string().defined(),
+        head: yup
+          .object({
+            hash: yup.string().defined(),
+            sequence: yup.number().defined(),
+          })
+          .defined(),
         headTimestamp: yup.number().defined(),
         newBlockSpeed: yup.number().defined(),
       })
@@ -162,6 +174,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
           .object({
             blockSpeed: yup.number().defined(),
             speed: yup.number().defined(),
+            downloadSpeed: yup.number().defined(),
             progress: yup.number().defined(),
           })
           .optional(),
@@ -187,7 +200,12 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
       .defined(),
     accounts: yup
       .object({
-        head: yup.string().defined(),
+        head: yup
+          .object({
+            hash: yup.string().defined(),
+            sequence: yup.number().defined(),
+          })
+          .defined(),
         scanning: yup
           .object({
             sequence: yup.number().defined(),
@@ -245,9 +263,10 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
     },
     blockchain: {
       synced: node.chain.synced,
-      head: `${node.chain.head.hash.toString('hex') || ''} (${
-        node.chain.head.sequence.toString() || ''
-      })`,
+      head: {
+        hash: node.chain.head.hash.toString('hex'),
+        sequence: node.chain.head.sequence,
+      },
       headTimestamp: node.chain.head.timestamp.getTime(),
       newBlockSpeed: node.metrics.chain_newBlock.avg,
     },
@@ -285,8 +304,9 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
     blockSyncer: {
       status: node.syncer.state,
       syncing: {
-        blockSpeed: MathUtils.round(node.chain.addSpeed.avg, 2),
-        speed: MathUtils.round(node.syncer.speed.rate1m, 2),
+        blockSpeed: MathUtils.round(node.chain.addSpeed.average, 2),
+        speed: MathUtils.round(node.syncer.speed.rollingRate1m, 2),
+        downloadSpeed: MathUtils.round(node.syncer.downloadSpeed.average, 2),
         progress: node.chain.getProgress(),
       },
     },
@@ -306,9 +326,10 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
     },
     accounts: {
       scanning: accountsScanning,
-      head: `${node.wallet.chainProcessor.hash?.toString('hex') || ''} (${
-        node.wallet.chainProcessor.sequence?.toString() || ''
-      })`,
+      head: {
+        hash: node.wallet.chainProcessor.hash?.toString('hex') ?? '',
+        sequence: node.wallet.chainProcessor.sequence ?? -1,
+      },
     },
   }
 

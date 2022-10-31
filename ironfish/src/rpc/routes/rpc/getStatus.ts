@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import net from 'net'
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
 import { RpcIpcAdapter } from '../../adapters'
@@ -104,29 +103,6 @@ function getRpcStatus(node: IronfishNode): GetRpcStatusResponse {
       writtenBytes: 0,
       clients: 0,
       pending: new Array<string>(),
-    }
-
-    if (adapter instanceof RpcIpcAdapter) {
-      if (!adapter.ipc) {
-        continue
-      }
-
-      for (const socket of adapter.ipc.server.sockets) {
-        if (socket instanceof net.Socket) {
-          formatted.readableBytes += socket.readableLength
-          formatted.writableBytes += socket.writableLength
-          formatted.readBytes += socket.bytesRead
-          formatted.writtenBytes += socket.bytesWritten
-        }
-      }
-
-      for (const pending of adapter.pending.values()) {
-        formatted.pending.push(...pending.flatMap((request) => request.route))
-      }
-
-      formatted.inbound = Math.max(adapter.inboundTraffic.rate1s, 0)
-      formatted.outbound = Math.max(adapter.outboundTraffic.rate1s, 0)
-      formatted.clients = adapter.ipc?.server.sockets.length ?? 0
     }
 
     if (adapter instanceof RpcSocketAdapter) {

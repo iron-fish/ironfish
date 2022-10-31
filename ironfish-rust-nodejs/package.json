@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/rust-nodejs",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "Node.js bindings for Rust code required by the Iron Fish SDK",
   "main": "index.js",
   "types": "index.d.ts",
@@ -12,10 +12,11 @@
   ],
   "scripts": {
     "artifacts": "napi artifacts",
-    "build": "napi build --platform --release",
+    "build": "yarn clean && napi build --platform --release",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish --skip-gh-release",
-    "test:slow": "jest --testPathIgnorePatterns --testMatch \"**/*.test.slow.ts\""
+    "test:slow": "jest --testPathIgnorePatterns --testMatch \"**/*.test.slow.ts\"",
+    "clean": "rimraf target"
   },
   "napi": {
     "name": "ironfish-rust-nodejs",

@@ -67,6 +67,10 @@ export default class CreateSnapshot extends IronfishCommand {
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
 
+    CliUx.ux.action.start(`Compacting chain database`)
+    await node.chain.db.compact()
+    CliUx.ux.action.stop()
+
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
     const timestamp = Date.now()

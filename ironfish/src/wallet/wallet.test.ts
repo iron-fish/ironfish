@@ -687,4 +687,44 @@ describe('Accounts', () => {
       expect(transactionStatus).toEqual(TransactionStatus.UNKNOWN)
     })
   })
+
+  describe('rebroadcastTransactions', () => {
+    it('should not rebroadcast expired transactions', async () => {
+      const { node } = nodeTest
+      node.chain['synced'] = true
+      node.wallet['isStarted'] = true
+      node.wallet['rebroadcastAfter'] = 0
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block1)
+      await node.wallet.updateHead()
+
+      // create expired transaction
+      const transaction = await useTxFixture(
+        node.wallet,
+        accountA,
+        accountA,
+        undefined,
+        undefined,
+        2,
+      )
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+
+      const transactionStatus = await node.wallet.getTransactionStatus(
+        accountA,
+        transactionValue,
+      )
+      expect(transactionStatus).toEqual(TransactionStatus.EXPIRED)
+
+      const broadcastSpy = jest.spyOn(node.wallet, 'broadcastTransaction')
+
+      await node.wallet.rebroadcastTransactions()
+
+      expect(broadcastSpy).toHaveBeenCalledTimes(0)
+    })
+  })
 })

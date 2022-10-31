@@ -75,6 +75,17 @@ export class Event<A extends unknown[]> {
   clear(): void {
     this.handlers.clear()
   }
+
+  /**
+   * Removes all handlers from the event in the next tick.
+   * Useful if you want to clear an event, but allow remaining
+   * handlers to execute
+   */
+  clearAfter(): void {
+    setImmediate(() => {
+      this.handlers.clear()
+    })
+  }
 }
 
 /**

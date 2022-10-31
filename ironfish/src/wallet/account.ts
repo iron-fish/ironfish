@@ -91,16 +91,17 @@ export class Account {
     }
   }
 
-  async *getUnspentNotes(): AsyncGenerator<{
-    hash: Buffer
-    index: number | null
-    note: Note
-    transactionHash: Buffer
-  }> {
+  async *getUnspentNotes(): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
     for await (const decryptedNote of this.getNotes()) {
-      if (!decryptedNote.spent) {
-        yield decryptedNote
+      if (decryptedNote.spent) {
+        continue
       }
+
+      if (!decryptedNote.index) {
+        continue
+      }
+
+      yield decryptedNote
     }
   }
 

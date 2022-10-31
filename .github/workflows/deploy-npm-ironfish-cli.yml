@@ -21,10 +21,9 @@ jobs:
           cache: yarn
 
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
-          sharedKey: nodejs
-          working-directory: ironfish-rust-nodejs
+          shared-key: nodejs
 
       - name: Insert Git hash into ironfish-cli/package.json as gitHash
         run: |

@@ -4,6 +4,7 @@
 import bufio from 'bufio'
 import { SerializedTransaction, TransactionHash } from '../../primitives/transaction'
 import { NetworkMessageType } from '../types'
+import { getTransactionSize, readTransaction, writeTransaction } from '../utils/serializers'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
 export class PooledTransactionsRequest extends RpcNetworkMessage {
@@ -64,7 +65,7 @@ export class PooledTransactionsResponse extends RpcNetworkMessage {
     bw.writeVarint(this.transactions.length)
 
     for (const transaction of this.transactions) {
-      bw.writeVarBytes(transaction)
+      writeTransaction(bw, transaction)
     }
 
     return bw.render()
@@ -73,10 +74,10 @@ export class PooledTransactionsResponse extends RpcNetworkMessage {
   static deserialize(buffer: Buffer, rpcId: number): PooledTransactionsResponse {
     const reader = bufio.read(buffer, true)
     const transactionsLength = reader.readVarint()
-    const transactions = []
+    const transactions: SerializedTransaction[] = []
 
     for (let i = 0; i < transactionsLength; i++) {
-      const transaction = reader.readVarBytes()
+      const transaction = readTransaction(reader)
       transactions.push(transaction)
     }
 
@@ -89,7 +90,7 @@ export class PooledTransactionsResponse extends RpcNetworkMessage {
     size += bufio.sizeVarint(this.transactions.length)
 
     for (const transaction of this.transactions) {
-      size += bufio.sizeVarBytes(transaction)
+      size += getTransactionSize(transaction)
     }
 
     return size

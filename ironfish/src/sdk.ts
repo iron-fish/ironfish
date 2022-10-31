@@ -32,7 +32,7 @@ import { RpcIpcClient } from './rpc/clients/ipcClient'
 import { RpcMemoryClient } from './rpc/clients/memoryClient'
 import { RpcTcpClient } from './rpc/clients/tcpClient'
 import { RpcTlsClient } from './rpc/clients/tlsClient'
-import { ALL_API_NAMESPACES, API_NAMESPACES_PROTECTED } from './rpc/routes/router'
+import { ALL_API_NAMESPACES } from './rpc/routes/router'
 import { Strategy } from './strategy'
 import { NodeUtils } from './utils'
 
@@ -159,13 +159,7 @@ export class IronfishSdk {
         client = new RpcTcpClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
       }
     } else {
-      client = new RpcIpcClient(
-        {
-          mode: 'ipc',
-          socketPath: config.get('ipcPath'),
-        },
-        logger,
-      )
+      client = new RpcIpcClient(config.get('ipcPath'), logger)
     }
 
     return new IronfishSdk(
@@ -211,26 +205,11 @@ export class IronfishSdk {
       const namespaces = ALL_API_NAMESPACES
 
       await node.rpc.mount(
-        new RpcIpcAdapter(
-          namespaces,
-          {
-            mode: 'ipc',
-            socketPath: this.config.get('ipcPath'),
-          },
-          this.logger,
-        ),
+        new RpcIpcAdapter(this.config.get('ipcPath'), this.logger, namespaces),
       )
     }
 
     if (this.config.get('enableRpcTcp')) {
-      const namespaces = ALL_API_NAMESPACES.filter(
-        (namespace) => !API_NAMESPACES_PROTECTED.includes(namespace),
-      )
-
-      if (this.config.get('rpcTcpSecure')) {
-        namespaces.push(...API_NAMESPACES_PROTECTED)
-      }
-
       if (this.config.get('enableRpcTls')) {
         await node.rpc.mount(
           new RpcTlsAdapter(
@@ -241,7 +220,7 @@ export class IronfishSdk {
             this.config.get('tlsCertPath'),
             node,
             this.logger,
-            namespaces,
+            ALL_API_NAMESPACES,
           ),
         )
       } else {
@@ -250,7 +229,7 @@ export class IronfishSdk {
             this.config.get('rpcTcpHost'),
             this.config.get('rpcTcpPort'),
             this.logger,
-            namespaces,
+            ALL_API_NAMESPACES,
           ),
         )
       }

@@ -6,8 +6,6 @@ import { Note as NativeNote } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { BufferUtils } from '../utils/buffer'
 
-export const NOTE_LENGTH = 43 + 8 + 32 + 32
-
 export class Note {
   private readonly noteSerialized: Buffer
   private note: NativeNote | null = null

@@ -6,6 +6,8 @@ use ironfish_rust::nacl::{self, box_message, bytes_to_secret_key, new_secret_key
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
+use crate::to_napi_err;
+
 #[napi]
 pub const KEY_LENGTH: u32 = nacl::KEY_LENGTH as u32;
 
@@ -33,12 +35,12 @@ impl BoxKeyPair {
 
     #[napi(factory)]
     pub fn from_hex(secret_hex: String) -> napi::Result<BoxKeyPair> {
-        let byte_vec = hex::decode(secret_hex)
-            .map_err(|_| Error::from_reason("Unable to decode secret key".to_owned()))?;
+        let byte_vec =
+            hex::decode(secret_hex).map_err(|_| to_napi_err("Unable to decode secret key"))?;
 
         let bytes: [u8; nacl::KEY_LENGTH] = byte_vec
             .try_into()
-            .map_err(|_| Error::from_reason("Unable to convert secret key".to_owned()))?;
+            .map_err(|_| to_napi_err("Unable to convert secret key"))?;
 
         let secret_key = bytes_to_secret_key(bytes);
 
@@ -79,17 +81,17 @@ pub fn native_box_message(
     let sender: [u8; 32] = sender_secret_key
         .to_vec()
         .try_into()
-        .map_err(|_| Error::from_reason("Unable to convert sender secret key".to_owned()))?;
+        .map_err(|_| to_napi_err("Unable to convert sender secret key"))?;
 
     let decoded_recipient = base64::decode(recipient_public_key)
-        .map_err(|_| Error::from_reason("Unable to decode recipient public key".to_owned()))?;
+        .map_err(|_| to_napi_err("Unable to decode recipient public key"))?;
 
     let recipient: [u8; 32] = decoded_recipient
         .try_into()
-        .map_err(|_| Error::from_reason("Unable to convert recipient public key".to_owned()))?;
+        .map_err(|_| to_napi_err("Unable to convert recipient public key"))?;
 
     let (nonce, ciphertext) = box_message(plaintext, sender, recipient)
-        .map_err(|_| Error::from_reason("Unable to box message".to_owned()))?;
+        .map_err(|_| to_napi_err("Unable to box message"))?;
 
     Ok(BoxedMessage {
         nonce: base64::encode(nonce),
@@ -105,23 +107,22 @@ pub fn native_unbox_message(
     recipient_secret_key: Uint8Array,
 ) -> Result<String> {
     let decoded_sender = base64::decode(sender_public_key)
-        .map_err(|_| Error::from_reason("Unable to decode sender public key".to_owned()))?;
+        .map_err(|_| to_napi_err("Unable to decode sender public key"))?;
 
     let sender: [u8; 32] = decoded_sender
         .try_into()
-        .map_err(|_| Error::from_reason("Unable to convert sender public key".to_owned()))?;
+        .map_err(|_| to_napi_err("Unable to convert sender public key"))?;
 
     let recipient: [u8; 32] = recipient_secret_key
         .to_vec()
         .try_into()
-        .map_err(|_| Error::from_reason("Unable to convert recipient secret key".to_owned()))?;
+        .map_err(|_| to_napi_err("Unable to convert recipient secret key"))?;
 
-    let decoded_nonce = base64::decode(nonce)
-        .map_err(|_| Error::from_reason("Unable to decode nonce".to_owned()))?;
+    let decoded_nonce = base64::decode(nonce).map_err(|_| to_napi_err("Unable to decode nonce"))?;
 
-    let decoded_ciphertext = base64::decode(boxed_message)
-        .map_err(|_| Error::from_reason("Unable to decode boxed_message".to_owned()))?;
+    let decoded_ciphertext =
+        base64::decode(boxed_message).map_err(|_| to_napi_err("Unable to decode boxed_message"))?;
 
     unbox_message(&decoded_ciphertext, &decoded_nonce, sender, recipient)
-        .map_err(|e| Error::from_reason(format!("Unable to unbox message: {}", e)))
+        .map_err(|e| to_napi_err(format!("Unable to unbox message: {}", e)))
 }

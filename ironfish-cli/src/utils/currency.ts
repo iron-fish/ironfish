@@ -2,13 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import {
-  displayIronAmountWithCurrency,
-  isValidAmount,
-  MINIMUM_IRON_AMOUNT,
-  RpcClient,
-  WebApi,
-} from '@ironfish/sdk'
+import { CurrencyUtils, RpcClient, WebApi } from '@ironfish/sdk'
 
 const REGISTER_URL = 'https://testnet.ironfish.network/signup'
 
@@ -16,7 +10,7 @@ export async function verifyCanSend(
   client: RpcClient,
   api: WebApi,
   expirationSequenceDelta: number | undefined,
-  fee: number,
+  fee: bigint,
   graffiti: string,
 ): Promise<{ canSend: boolean; errorReason: string | null }> {
   const status = await client.getNodeStatus()
@@ -65,13 +59,10 @@ export async function verifyCanSend(
     }
   }
 
-  if (!isValidAmount(fee)) {
+  if (fee <= 0n) {
     return {
       canSend: false,
-      errorReason: `The minimum fee is ${displayIronAmountWithCurrency(
-        MINIMUM_IRON_AMOUNT,
-        false,
-      )}`,
+      errorReason: `The minimum fee is ${CurrencyUtils.renderIron(1n, true)}`,
     }
   }
 

@@ -4,10 +4,22 @@
 
 /**
  * Accept two bigints and return the larger of the two,
- * in the day of equality, b is returned
+ * in the case of equality, b is returned
  */
 function max(a: bigint, b: bigint): bigint {
   if (a > b) {
+    return a
+  } else {
+    return b
+  }
+}
+
+/**
+ * Accept two bigints and return the smaller of the two,
+ * in the case of equality, b is returned
+ */
+function min(a: bigint, b: bigint): bigint {
+  if (a < b) {
     return a
   } else {
     return b
@@ -112,6 +124,17 @@ function divide(a: bigint, b: bigint): number {
   return Number(div) + Number(a - div * b) / Number(b)
 }
 
+function tryParse(value: string): [bigint, null] | [null, Error] {
+  try {
+    return [BigInt(value), null]
+  } catch (e) {
+    if (e instanceof SyntaxError) {
+      return [null, e]
+    }
+    throw e
+  }
+}
+
 export const BigIntUtils = {
   toBytes,
   fromBytes,
@@ -119,5 +142,7 @@ export const BigIntUtils = {
   toBytesBE,
   toBytesLE,
   max,
+  min,
   divide,
+  tryParse,
 }

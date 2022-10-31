@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BenchUtils, IronfishSdk, NodeUtils, TimeUtils } from '@ironfish/sdk'
+import { BenchUtils, IronfishSdk, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import blessed from 'blessed'
 import fs from 'fs/promises'
 import path from 'path'
 import { IronfishCommand } from '../../command'
@@ -19,7 +20,8 @@ export default class Benchmark extends IronfishCommand {
 
   static flags = {
     ...LocalFlags,
-    tempdir: Flags.string({
+    targetdir: Flags.string({
+      char: 't',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'Path to the temporary directory to use to test',
@@ -43,19 +45,23 @@ export default class Benchmark extends IronfishCommand {
     await NodeUtils.waitForOpen(node)
     CliUx.ux.action.stop('done.')
 
-    if (!flags.tempdir) {
+    let targetDirectory
+    if (!flags.targetdir) {
       await fs.mkdir(node.config.tempDir, { recursive: true })
-      flags.tempdir = node.config.tempDir
+      targetDirectory = path.join(node.config.tempDir)
+    } else {
+      targetDirectory = path.join(flags.targetdir)
     }
 
-    const tempDataDir = await fs.mkdtemp(path.join(flags.tempdir, 'benchmark-'))
+    CliUx.ux.action.start(`Opening node in ${targetDirectory}`)
 
-    CliUx.ux.action.start(`Opening temp node in ${tempDataDir}`)
+    const noLoggingConfig = Object.assign({}, this.sdk.config.overrides)
+    noLoggingConfig.logLevel = '*:error'
     const tmpSdk = await IronfishSdk.init({
       pkg: IronfishCliPKG,
-      configOverrides: this.sdk.config.overrides,
+      configOverrides: noLoggingConfig,
       configName: undefined,
-      dataDir: tempDataDir,
+      dataDir: targetDirectory,
       logger: this.logger,
     })
     const tempNode = await tmpSdk.node()
@@ -63,34 +69,80 @@ export default class Benchmark extends IronfishCommand {
     tempNode.workerPool.start()
     CliUx.ux.action.stop('done.')
 
-    const header = await node.chain.getHeaderAtSequence(blocks)
-    if (header === null) {
-      throw new Error(`Chain must have at least ${blocks} blocks`)
+    const startingSequence = tempNode.chain.head.sequence
+    const startingHeader = await node.chain.getHeaderAtSequence(startingSequence)
+
+    const endingSequence = startingSequence + blocks
+    const endingHeader = await node.chain.getHeaderAtSequence(endingSequence)
+
+    if (startingHeader === null) {
+      return this.error(`Target chain is longer than source chain`)
+    }
+
+    if (endingHeader === null) {
+      return this.error(`Chain must have at least ${blocks} blocks`)
+    }
+
+    if (!tempNode.chain.head.hash.equals(startingHeader?.hash)) {
+      return this.error(`The two chains do not match at sequence ${startingSequence}`)
     }
 
     let totalMs = 0
+    let totalBlocks = 0
+    let totalTransactions = 0
+    let totalSpends = 0
+    let totalNotes = 0
+    let status = renderStatus(0, 0, 0, 0, 0)
 
-    for await (const currentHeader of node.chain.iterateTo(node.chain.genesis, header)) {
+    const screen = blessed.screen({ smartCSR: true, fullUnicode: true })
+    const statusText = blessed.text()
+    screen.append(statusText)
+
+    statusText.setContent(status)
+    screen.render()
+
+    const screenInterval = setInterval(() => {
+      statusText.setContent(status)
+      screen.render()
+    }, 1000)
+
+    for await (const currentHeader of node.chain.iterateTo(startingHeader, endingHeader)) {
       const block = await node.chain.getBlock(currentHeader)
       if (block === null) {
         throw new Error('Should have block if we have header')
       }
       const startTime = BenchUtils.start()
       await tempNode.chain.addBlock(block)
+
       totalMs += BenchUtils.end(startTime)
+      totalBlocks += 1
+      totalSpends += block.transactions.reduce((count, tx) => count + tx.spendsLength(), 0)
+      totalNotes += block.transactions.reduce((count, tx) => count + tx.notesLength(), 0)
+      totalTransactions += block.transactions.length
+      status = renderStatus(
+        totalMs,
+        totalBlocks,
+        totalTransactions,
+        totalSpends,
+        totalNotes,
+        block.header.sequence,
+      )
     }
 
-    this.log(`Total time to import ${blocks} blocks: ${TimeUtils.renderSpan(totalMs)}`)
+    clearInterval(screenInterval)
+    screen.destroy()
+
+    this.log('\n' + status)
 
     // Check that data is consistent
-    const nodeNotesHash = await node.chain.notes.pastRoot(header.noteCommitment.size)
+    const nodeNotesHash = await node.chain.notes.pastRoot(endingHeader.noteCommitment.size)
     const tempNodeNotesHash = await tempNode.chain.notes.rootHash()
     if (!nodeNotesHash.equals(tempNodeNotesHash)) {
       throw new Error('/!\\ Note tree hashes were not consistent /!\\')
     }
 
     const nodeNullifiersHash = await node.chain.nullifiers.pastRoot(
-      header.nullifierCommitment.size,
+      endingHeader.nullifierCommitment.size,
     )
     const tempNodeNullifiersHash = await tempNode.chain.nullifiers.rootHash()
     if (!nodeNullifiersHash.equals(tempNodeNullifiersHash)) {
@@ -99,6 +151,28 @@ export default class Benchmark extends IronfishCommand {
 
     // Clean up the temporary node
     await tempNode.shutdown()
-    await fs.rm(tempDataDir, { recursive: true })
+    if (!flags.targetdir) {
+      this.log(`\nTemporary directory ${targetDirectory} deleted`)
+      await fs.rm(targetDirectory, { recursive: true })
+    } else {
+      this.log(`\n${blocks} blocks added to ${targetDirectory}`)
+    }
   }
+}
+
+function renderStatus(
+  totalMs: number,
+  totalBlocks: number,
+  totalTransactions: number,
+  totalSpends: number,
+  totalNotes: number,
+  sequence?: number,
+): string {
+  return `\
+Current Block        ${sequence ? sequence.toString() : '-'}
+Blocks Processed     ${totalBlocks.toString()}
+Blocks/sec           ${totalMs ? (totalBlocks / (totalMs / 1000)).toFixed(2) : 0}
+Transactions/sec     ${totalMs ? (totalTransactions / (totalMs / 1000)).toFixed(2) : 0}
+Spends/sec           ${totalMs ? (totalSpends / (totalMs / 1000)).toFixed(2) : 0}
+Notes/sec            ${totalMs ? (totalNotes / (totalMs / 1000)).toFixed(2) : 0}`
 }

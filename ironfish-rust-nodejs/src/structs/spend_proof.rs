@@ -6,7 +6,7 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
 #[napi(object)]
-pub struct NativeSpendProof {
+pub struct NativeSpendDescription {
     pub tree_size: u32,
     pub root_hash: Buffer,
     pub nullifier: Buffer,

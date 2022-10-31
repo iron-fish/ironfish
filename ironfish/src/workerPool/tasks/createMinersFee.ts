@@ -80,8 +80,8 @@ export class CreateMinersFeeTask extends WorkerTask {
     const minerPublicAddress = generateNewPublicAddress(spendKey).public_address
     const minerNote = new Note(minerPublicAddress, amount, memo)
 
-    const transaction = new Transaction()
-    transaction.receive(spendKey, minerNote)
+    const transaction = new Transaction(spendKey)
+    transaction.receive(minerNote)
 
     const serializedTransactionPosted = transaction.post_miners_fee()
     return new CreateMinersFeeResponse(serializedTransactionPosted, jobId)

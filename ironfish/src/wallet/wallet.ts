@@ -22,6 +22,7 @@ import { Account } from './account'
 import { NotEnoughFundsError } from './errors'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
+import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
@@ -404,19 +405,17 @@ export class Wallet {
   ): Promise<void> {
     const initialNoteIndex = 'initialNoteIndex' in params ? params.initialNoteIndex : null
 
-    await transaction.withReference(async () => {
-      const decryptedNotesByAccountId = await this.decryptNotes(
-        transaction,
-        initialNoteIndex,
-        accounts,
-      )
+    const decryptedNotesByAccountId = await this.decryptNotes(
+      transaction,
+      initialNoteIndex,
+      accounts,
+    )
 
-      for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
-        const account = this.accounts.get(accountId)
-        Assert.isNotUndefined(account, `syncTransaction: No account found for ${accountId}`)
-        await account.syncTransaction(transaction, decryptedNotes, params)
-      }
-    })
+    for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
+      const account = this.accounts.get(accountId)
+      Assert.isNotUndefined(account, `syncTransaction: No account found for ${accountId}`)
+      await account.syncTransaction(transaction, decryptedNotes, params)
+    }
   }
 
   async scanTransactions(): Promise<void> {
@@ -597,54 +596,44 @@ export class Wallet {
     })
   }
 
-  private async getUnspentNotes(account: Account): Promise<
-    ReadonlyArray<{
-      hash: Buffer
-      note: Note
-      index: number | null
-      confirmed: boolean
-    }>
-  > {
-    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
-    const notes = []
-    const unspentNotes = account.getUnspentNotes()
+  private async *getUnspentNotes(
+    account: Account,
+    options?: {
+      minimumBlockConfirmations?: number
+    },
+  ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+    const minimumBlockConfirmations =
+      options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations')
 
-    for await (const { hash, note, index, transactionHash } of unspentNotes) {
-      let confirmed = false
+    const headSequence = await this.getAccountHeadSequence(account)
+    if (!headSequence) {
+      return
+    }
 
-      if (transactionHash) {
-        const transaction = await account.getTransaction(transactionHash)
+    for await (const decryptedNote of account.getUnspentNotes()) {
+      if (minimumBlockConfirmations > 0) {
+        const transaction = await account.getTransaction(decryptedNote.transactionHash)
+
         Assert.isNotUndefined(
           transaction,
-          `Transaction '${transactionHash.toString('hex')}' missing for account '${
-            account.id
-          }'`,
+          `Transaction '${decryptedNote.transactionHash.toString(
+            'hex',
+          )}' missing for account '${account.id}'`,
         )
-        const { blockHash } = transaction
 
-        if (blockHash) {
-          const header = await this.chain.getHeader(blockHash)
-          Assert.isNotNull(
-            header,
-            `getUnspentNotes: No header found for hash ${blockHash.toString('hex')}`,
-          )
-          const main = await this.chain.isHeadChain(header)
-          if (main) {
-            const confirmations = this.chain.head.sequence - header.sequence
-            confirmed = confirmations >= minimumBlockConfirmations
-          }
+        if (!transaction.sequence) {
+          continue
+        }
+
+        const confirmations = headSequence - transaction.sequence
+
+        if (confirmations < minimumBlockConfirmations) {
+          continue
         }
       }
 
-      notes.push({
-        confirmed,
-        hash,
-        index,
-        note,
-      })
+      yield decryptedNote
     }
-
-    return notes
   }
 
   async pay(
@@ -674,6 +663,11 @@ export class Wallet {
       expirationSequence,
     )
 
+    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
+    if (!verify.valid) {
+      throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
+    }
+
     await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
     memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
@@ -693,82 +687,19 @@ export class Wallet {
     try {
       this.assertHasAccount(sender)
 
-      // check if the chain data is fully synced
       if (!this.isAccountUpToDate(sender)) {
-        throw new Error(
-          `Your node must be synced with the Iron Fish network to send a transaction. `,
-        )
+        throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
-      // TODO: If we're spending from multiple accounts, we need to figure out a
-      // way to split the transaction fee. - deekerno
-      let amountNeeded =
+      const amountNeeded =
         receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
 
-      const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
-      const unspentNotes = await this.getUnspentNotes(sender)
+      const { amount, notesToSpend } = await this.createSpends(sender, amountNeeded)
 
-      for (const unspentNote of unspentNotes) {
-        // Skip unconfirmed notes
-        if (unspentNote.index === null || !unspentNote.confirmed) {
-          continue
-        }
-
-        if (unspentNote.note.value() > BigInt(0)) {
-          // Double-check that the nullifier for the note isn't in the tree already
-          // This would indicate a bug in the account transaction stores
-          const nullifier = Buffer.from(
-            unspentNote.note.nullifier(sender.spendingKey, BigInt(unspentNote.index)),
-          )
-
-          if (await this.chain.nullifiers.contains(nullifier)) {
-            this.logger.debug(
-              `Note was marked unspent, but nullifier found in tree: ${nullifier.toString(
-                'hex',
-              )}`,
-            )
-
-            // Update our map so this doesn't happen again
-            const noteMapValue = await sender.getDecryptedNote(unspentNote.hash)
-            if (noteMapValue) {
-              this.logger.debug(`Unspent note has index ${String(noteMapValue.index)}`)
-              await sender.updateDecryptedNote(unspentNote.hash, {
-                ...noteMapValue,
-                spent: true,
-              })
-            }
-
-            // Move on to the next note
-            continue
-          }
-
-          // Try creating a witness from the note
-          const witness = await this.chain.notes.witness(unspentNote.index)
-
-          if (witness === null) {
-            this.logger.debug(
-              `Could not create a witness for note with index ${unspentNote.index}`,
-            )
-            continue
-          }
-
-          // Otherwise, push the note into the list of notes to spend
-          this.logger.debug(
-            `Accounts: spending note ${unspentNote.index} ${unspentNote.hash.toString(
-              'hex',
-            )} ${unspentNote.note.value()}`,
-          )
-          notesToSpend.push({ note: unspentNote.note, witness: witness })
-          amountNeeded -= unspentNote.note.value()
-        }
-
-        if (amountNeeded <= 0) {
-          break
-        }
-      }
-
-      if (amountNeeded > 0) {
-        throw new NotEnoughFundsError('Insufficient funds')
+      if (amount < amountNeeded) {
+        throw new NotEnoughFundsError(
+          `Insufficient funds: Needed ${amountNeeded.toString()} but have ${amount.toString()}`,
+        )
       }
 
       return this.workerPool.createTransaction(
@@ -786,6 +717,98 @@ export class Wallet {
     } finally {
       unlock()
     }
+  }
+
+  async createSpends(
+    sender: Account,
+    amountNeeded: bigint,
+  ): Promise<{ amount: bigint; notesToSpend: Array<{ note: Note; witness: NoteWitness }> }> {
+    let amount = BigInt(0)
+
+    const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
+
+    for await (const unspentNote of this.getUnspentNotes(sender)) {
+      if (unspentNote.note.value() <= BigInt(0)) {
+        continue
+      }
+
+      Assert.isNotNull(unspentNote.index)
+      Assert.isNotNull(unspentNote.nullifier)
+
+      if (await this.checkNoteOnChainAndRepair(sender, unspentNote)) {
+        continue
+      }
+
+      // Try creating a witness from the note
+      const witness = await this.chain.notes.witness(unspentNote.index)
+
+      if (witness === null) {
+        this.logger.debug(`Could not create a witness for note with index ${unspentNote.index}`)
+        continue
+      }
+
+      this.logger.debug(
+        `Accounts: spending note ${unspentNote.index} ${unspentNote.hash.toString(
+          'hex',
+        )} ${unspentNote.note.value()}`,
+      )
+
+      // Otherwise, push the note into the list of notes to spend
+      notesToSpend.push({ note: unspentNote.note, witness: witness })
+      amount += unspentNote.note.value()
+
+      if (amount >= amountNeeded) {
+        break
+      }
+    }
+
+    return {
+      amount,
+      notesToSpend,
+    }
+  }
+
+  /**
+   * Checks if a note is already on the chain when trying to spend it
+   *
+   * This function should be deleted once the wallet is detached from the chain,
+   * either way. It shouldn't be neccessary. It's just a hold over function to
+   * sanity check from wallet 1.0.
+   *
+   * @returns true if the note is on the chain already
+   */
+  private async checkNoteOnChainAndRepair(
+    sender: Account,
+    unspentNote: DecryptedNoteValue & { hash: Buffer },
+  ): Promise<boolean> {
+    if (!unspentNote.nullifier) {
+      return false
+    }
+
+    const spent = await this.chain.nullifiers.contains(unspentNote.nullifier)
+
+    if (!spent) {
+      return false
+    }
+
+    this.logger.debug(
+      `Note was marked unspent, but nullifier found in tree: ${unspentNote.nullifier.toString(
+        'hex',
+      )}`,
+    )
+
+    // Update our map so this doesn't happen again
+    const noteMapValue = await sender.getDecryptedNote(unspentNote.hash)
+
+    if (noteMapValue) {
+      this.logger.debug(`Unspent note has index ${String(noteMapValue.index)}`)
+      await sender.updateDecryptedNote(unspentNote.hash, {
+        ...noteMapValue,
+        spent: true,
+      })
+    }
+
+    return true
   }
 
   broadcastTransaction(transaction: Transaction): void {
@@ -826,6 +849,16 @@ export class Wallet {
 
         // Skip transactions that are already added to a block
         if (blockHash) {
+          continue
+        }
+
+        // Skip expired transactions
+        if (
+          this.chain.verifier.isExpiredSequence(
+            transaction.expirationSequence(),
+            this.chain.head.sequence,
+          )
+        ) {
           continue
         }
 
@@ -917,12 +950,15 @@ export class Wallet {
     transaction: TransactionValue,
     options?: {
       headSequence?: number | null
-      tx?: IDatabaseTransaction
+      minimumBlockConfirmations?: number
     },
+    tx?: IDatabaseTransaction,
   ): Promise<TransactionStatus> {
-    const minimumBlockConfirmations = this.config.get('minimumBlockConfirmations')
+    const minimumBlockConfirmations =
+      options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations')
+
     const headSequence =
-      options?.headSequence ?? (await this.getAccountHeadSequence(account, options?.tx))
+      options?.headSequence ?? (await this.getAccountHeadSequence(account, tx))
 
     if (!headSequence) {
       return TransactionStatus.UNKNOWN
@@ -1139,7 +1175,7 @@ export class Wallet {
             'hex',
           )}. This account needs to be rescanned.`,
         )
-        await this.walletDb.saveHeadHash(account, null)
+        await this.updateHeadHash(account, null)
         continue
       }
 
@@ -1154,16 +1190,24 @@ export class Wallet {
   async getLatestHeadHash(): Promise<Buffer | null> {
     let latestHeader = null
 
-    for (const headHash of this.headHashes.values()) {
+    for (const account of this.accounts.values()) {
+      const headHash = this.headHashes.get(account.id)
+
       if (!headHash) {
         continue
       }
 
       const header = await this.chain.getHeader(headHash)
-      Assert.isNotNull(
-        header,
-        `getLatestHeadHash: No header found for ${headHash.toString('hex')}`,
-      )
+
+      if (!header) {
+        this.logger.warn(
+          `${account.displayName} has an invalid head hash ${headHash.toString(
+            'hex',
+          )}. This account needs to be rescanned.`,
+        )
+        await this.updateHeadHash(account, null)
+        continue
+      }
 
       if (!latestHeader || latestHeader.sequence < header.sequence) {
         latestHeader = header

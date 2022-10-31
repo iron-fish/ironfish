@@ -47,9 +47,9 @@ describe('Mining manager', () => {
 
     const transaction = await useTxFixture(node.wallet, account, account)
 
-    expect(node.memPool.size()).toBe(0)
+    expect(node.memPool.count()).toBe(0)
     node.memPool.acceptTransaction(transaction)
-    expect(node.memPool.size()).toBe(1)
+    expect(node.memPool.count()).toBe(1)
 
     const spy = jest.spyOn(BlockTemplateSerde, 'serialize')
     spy.mockClear()
@@ -62,7 +62,7 @@ describe('Mining manager', () => {
     expect(newBlock.transactions).toHaveLength(2)
     expect(currentBlock).toEqual(previous)
     expect(isTransactionMine(newBlock.transactions[0], account)).toBe(true)
-    expect(node.memPool.size()).toBe(1)
+    expect(node.memPool.count()).toBe(1)
   })
 
   it('should not add transactions to block if they have invalid spends', async () => {
@@ -100,6 +100,7 @@ describe('Mining manager', () => {
 
     const { blockTransactions } = await nodeA.miningManager.getNewBlockTransactions(
       nodeA.chain.head.sequence + 1,
+      0,
     )
     expect(blockTransactions).toHaveLength(0)
   })

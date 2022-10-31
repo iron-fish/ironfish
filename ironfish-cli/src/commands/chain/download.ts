@@ -86,10 +86,12 @@ export default class Download extends IronfishCommand {
       }
 
       const fileSize = FileUtils.formatFileSize(manifest.file_size)
+      const spaceRequired = FileUtils.formatFileSize(manifest.file_size * 2)
 
       if (!flags.confirm) {
         const confirm = await CliUx.ux.confirm(
-          `Download ${fileSize} snapshot to update from block ${node.chain.head.sequence} to ${manifest.block_sequence}?` +
+          `Download ${fileSize} snapshot to update from block ${node.chain.head.sequence} to ${manifest.block_sequence}? ` +
+            `\nAt least ${spaceRequired} of free disk space is required to download and unzip the snapshot file.` +
             `\nAre you sure? (Y)es / (N)o`,
         )
 
@@ -227,6 +229,11 @@ export default class Download extends IronfishCommand {
       }
     }
 
+    // use a standard name, 'snapshot', for the unzipped database
+    const snapshotDatabasePath = this.sdk.fileSystem.join(this.sdk.config.tempDir, 'snapshot')
+    await fsAsync.mkdir(snapshotDatabasePath, { recursive: true })
+    await this.unzip(snapshotPath, snapshotDatabasePath)
+
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
     // chainDatabasePath must be empty before unzipping snapshot
@@ -236,10 +243,11 @@ export default class Download extends IronfishCommand {
     await fsAsync.rm(chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
     CliUx.ux.action.stop('done')
 
-    // ensure that chainDatabasePath exists
-    await fsAsync.mkdir(chainDatabasePath, { recursive: true })
-
-    await this.unzip(snapshotPath, chainDatabasePath)
+    CliUx.ux.action.start(
+      `Moving snapshot files from ${snapshotDatabasePath} to ${chainDatabasePath}`,
+    )
+    await fsAsync.rename(snapshotDatabasePath, chainDatabasePath)
+    CliUx.ux.action.stop('done')
 
     if (flags.cleanup) {
       CliUx.ux.action.start(`Cleaning up snapshot file at ${snapshotPath}`)
@@ -276,6 +284,7 @@ export default class Download extends IronfishCommand {
       file: source,
       C: dest,
       strip: 1,
+      strict: true,
       onentry: (_) => {
         speed.add(1)
         progressBar.update(++extracted, {

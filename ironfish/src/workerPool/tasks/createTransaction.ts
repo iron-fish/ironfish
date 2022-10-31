@@ -210,13 +210,12 @@ export class CreateTransactionTask extends WorkerTask {
     receives,
     expirationSequence,
   }: CreateTransactionRequest): CreateTransactionResponse {
-    const transaction = new Transaction()
+    const transaction = new Transaction(spendKey)
     transaction.setExpirationSequence(expirationSequence)
 
     for (const spend of spends) {
       const note = Note.deserialize(spend.note)
       transaction.spend(
-        spendKey,
         note,
         new Witness(spend.treeSize, spend.rootHash, spend.authPath, noteHasher),
       )
@@ -224,10 +223,10 @@ export class CreateTransactionTask extends WorkerTask {
 
     for (const { publicAddress, amount, memo } of receives) {
       const note = new Note(publicAddress, amount, memo)
-      transaction.receive(spendKey, note)
+      transaction.receive(note)
     }
 
-    const serializedTransactionPosted = transaction.post(spendKey, undefined, transactionFee)
+    const serializedTransactionPosted = transaction.post(undefined, transactionFee)
 
     return new CreateTransactionResponse(serializedTransactionPosted, jobId)
   }

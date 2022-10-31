@@ -4,6 +4,8 @@
 
 import { Nullifier } from './nullifier'
 
+export const SPEND_SERIALIZED_SIZE_IN_BYTE = 388
+
 export interface Spend {
   nullifier: Nullifier
   commitment: Buffer

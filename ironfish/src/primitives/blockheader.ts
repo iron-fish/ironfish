@@ -97,7 +97,7 @@ export class BlockHeader {
    * This is the only way inflation happens on the chain.
    *
    * Note that the transaction fee on a minersFee is negative. By "spending a negative value"
-   * the miner is awarding itself a positive receipt.
+   * the miner is awarding itself a positive output.
    */
   public minersFee: bigint
 

@@ -2,15 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes};
+use crate::{
+    errors::IronfishError,
+    serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes},
+};
+use ff::Field;
 use group::GroupEncoding;
+use ironfish_zkp::{Diversifier, PaymentAddress};
 use jubjub::SubgroupPoint;
-use rand::{thread_rng, Rng};
-use zcash_primitives::sapling::{Diversifier, PaymentAddress};
+use rand::thread_rng;
 
 use std::{convert::TryInto, io};
 
-use super::{errors, IncomingViewKey, SaplingKey};
+use super::{IncomingViewKey, SaplingKey};
 
 /// The address to which funds can be sent, stored as a diversifier and public
 /// transmission key. Combining a diversifier with an incoming_viewing_key allows
@@ -37,7 +41,7 @@ pub struct PublicAddress {
 
 impl PublicAddress {
     /// Initialize a public address from its 43 byte representation.
-    pub fn new(address_bytes: &[u8; 43]) -> Result<PublicAddress, errors::SaplingKeyError> {
+    pub fn new(address_bytes: &[u8; 43]) -> Result<PublicAddress, IronfishError> {
         let (diversifier, diversifier_point) =
             PublicAddress::load_diversifier(&address_bytes[..11])?;
         let transmission_key = PublicAddress::load_transmission_key(&address_bytes[11..])?;
@@ -50,7 +54,7 @@ impl PublicAddress {
     }
 
     /// Load a public address from a Read implementation (e.g: socket, file)
-    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, errors::SaplingKeyError> {
+    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
         let mut address_bytes = [0; 43];
         reader.read_exact(&mut address_bytes)?;
         Self::new(&address_bytes)
@@ -62,14 +66,14 @@ impl PublicAddress {
     pub fn from_key(
         sapling_key: &SaplingKey,
         diversifier: &[u8; 11],
-    ) -> Result<PublicAddress, errors::SaplingKeyError> {
+    ) -> Result<PublicAddress, IronfishError> {
         Self::from_view_key(sapling_key.incoming_view_key(), diversifier)
     }
 
     pub fn from_view_key(
         view_key: &IncomingViewKey,
         diversifier: &[u8; 11],
-    ) -> Result<PublicAddress, errors::SaplingKeyError> {
+    ) -> Result<PublicAddress, IronfishError> {
         let diversifier = Diversifier(*diversifier);
         if let Some(key_part) = diversifier.g_d() {
             Ok(PublicAddress {
@@ -78,23 +82,23 @@ impl PublicAddress {
                 transmission_key: key_part * view_key.view_key,
             })
         } else {
-            Err(errors::SaplingKeyError::DiversificationError)
+            Err(IronfishError::InvalidDiversificationPoint)
         }
     }
 
     /// Convert a String of hex values to a PublicAddress. The String must
     /// be 86 hexadecimal characters representing the 43 bytes of an address
     /// or it fails.
-    pub fn from_hex(value: &str) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         if value.len() != 86 {
-            return Err(errors::SaplingKeyError::InvalidPublicAddress);
+            return Err(IronfishError::InvalidPublicAddress);
         }
 
         match hex_to_bytes(value) {
-            Err(()) => Err(errors::SaplingKeyError::InvalidPublicAddress),
+            Err(()) => Err(IronfishError::InvalidPublicAddress),
             Ok(bytes) => {
                 if bytes.len() != 43 {
-                    Err(errors::SaplingKeyError::InvalidPublicAddress)
+                    Err(IronfishError::InvalidPublicAddress)
                 } else {
                     let mut byte_arr = [0; 43];
                     byte_arr.clone_from_slice(&bytes[0..43]);
@@ -122,26 +126,27 @@ impl PublicAddress {
     }
 
     /// Store the bytes of this public address in the given writer.
-    pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_all(&self.public_address())?;
+
         Ok(())
     }
 
     pub(crate) fn load_diversifier(
         diversifier_slice: &[u8],
-    ) -> Result<(Diversifier, SubgroupPoint), errors::SaplingKeyError> {
+    ) -> Result<(Diversifier, SubgroupPoint), IronfishError> {
         let mut diversifier_bytes = [0; 11];
         diversifier_bytes.clone_from_slice(diversifier_slice);
         let diversifier = Diversifier(diversifier_bytes);
         let diversifier_point = diversifier
             .g_d()
-            .ok_or(errors::SaplingKeyError::DiversificationError)?;
+            .ok_or(IronfishError::InvalidDiversificationPoint)?;
         Ok((diversifier, diversifier_point))
     }
 
     pub(crate) fn load_transmission_key(
         transmission_key_bytes: &[u8],
-    ) -> Result<SubgroupPoint, errors::SaplingKeyError> {
+    ) -> Result<SubgroupPoint, IronfishError> {
         assert!(transmission_key_bytes.len() == 32);
         let transmission_key_non_prime =
             SubgroupPoint::from_bytes(transmission_key_bytes.try_into().unwrap());
@@ -149,7 +154,7 @@ impl PublicAddress {
         if transmission_key_non_prime.is_some().into() {
             Ok(transmission_key_non_prime.unwrap())
         } else {
-            Err(errors::SaplingKeyError::InvalidPaymentAddress)
+            Err(IronfishError::InvalidPaymentAddress)
         }
     }
 
@@ -163,11 +168,9 @@ impl PublicAddress {
     ///  *  the ephemeral secret key as a scalar FS
     ///  *  the ephemeral public key as an edwards point
     pub fn generate_diffie_hellman_keys(&self) -> (jubjub::Fr, SubgroupPoint) {
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-
-        let secret_key: jubjub::Fr = jubjub::Fr::from_bytes_wide(&buffer);
+        let secret_key: jubjub::Fr = jubjub::Fr::random(thread_rng());
         let public_key = self.diversifier_point * secret_key;
+
         (secret_key, public_key)
     }
 

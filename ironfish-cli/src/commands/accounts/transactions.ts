@@ -16,6 +16,9 @@ export class TransactionsCommand extends IronfishCommand {
       char: 't',
       description: 'Transaction hash to get details for',
     }),
+    limit: Flags.integer({
+      description: 'Number of latest transactions to get details for',
+    }),
   }
 
   static args = [
@@ -32,7 +35,11 @@ export class TransactionsCommand extends IronfishCommand {
     const account = args.account as string | undefined
 
     const client = await this.sdk.connectRpc()
-    const response = client.getAccountTransactionsStream({ account, hash: flags.hash })
+    const response = client.getAccountTransactionsStream({
+      account,
+      hash: flags.hash,
+      limit: flags.limit,
+    })
 
     let showHeader = true
 

@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import ws from 'ws'
+import { Assert } from '../../assert'
 import { Identity, isIdentity } from '../identity'
 import { IncomingPeerMessage, NetworkMessage } from '../messages/networkMessage'
+import { ConnectionRetry } from '../peers/connectionRetry'
 import {
   Connection,
   ConnectionDirection,
-  ConnectionType,
   WebRtcConnection,
   WebSocketConnection,
 } from '../peers/connections'
@@ -18,15 +19,15 @@ import { mockIdentity } from './mockIdentity'
 
 export function getConnectingPeer(
   pm: PeerManager,
-  disposable = true,
   direction = ConnectionDirection.Outbound,
+  identity?: string | Identity,
 ): { peer: Peer; connection: WebSocketConnection } {
   let peer: Peer | null = null
 
   if (direction === ConnectionDirection.Outbound) {
     peer = pm.connectToWebSocketAddress('ws://testuri.com:9033')
   } else {
-    peer = pm.getOrCreatePeer(null)
+    peer = pm.getOrCreatePeer(identity ?? null)
 
     const connection = new WebSocketConnection(
       new ws(''),
@@ -35,12 +36,6 @@ export function getConnectingPeer(
     )
 
     peer.setWebSocketConnection(connection)
-  }
-
-  if (disposable) {
-    peer
-      .getConnectionRetry(ConnectionType.WebSocket, ConnectionDirection.Outbound)
-      ?.neverRetryConnecting()
   }
 
   expect(peer.state).toEqual({
@@ -66,10 +61,10 @@ export function getConnectingPeer(
 
 export function getWaitingForIdentityPeer(
   pm: PeerManager,
-  disposable = true,
   direction = ConnectionDirection.Outbound,
+  identity?: string | Identity,
 ): { peer: Peer; connection: WebSocketConnection } {
-  const { peer, connection } = getConnectingPeer(pm, disposable, direction)
+  const { peer, connection } = getConnectingPeer(pm, direction, identity)
   connection.setState({ type: 'WAITING_FOR_IDENTITY' })
 
   expect(peer.state.type).toBe('CONNECTING')
@@ -155,9 +150,30 @@ export function getSignalingWebRtcPeer(
   )
   const peer = pm.getOrCreatePeer(peerIdentity)
 
+  // We don't expect this function to be called multiple times, so make sure
+  // we're not resetting pre-existing peer candidate data.
+  Assert.isFalse(pm.peerCandidateMap.has(brokeringPeerIdentity))
+  Assert.isFalse(pm.peerCandidateMap.has(peerIdentity))
+
   // Link the peers
-  brokeringPeer.knownPeers.set(peerIdentity, peer)
-  peer.knownPeers.set(brokeringPeerIdentity, brokeringPeer)
+  pm.peerCandidateMap.set(brokeringPeerIdentity, {
+    address: brokeringPeer.address,
+    port: brokeringPeer.port,
+    neighbors: new Set([peerIdentity]),
+    webRtcRetry: new ConnectionRetry(),
+    websocketRetry: new ConnectionRetry(),
+    peerRequestedDisconnectUntil: null,
+    localRequestedDisconnectUntil: null,
+  })
+  pm.peerCandidateMap.set(peerIdentity, {
+    address: peer.address,
+    port: peer.port,
+    neighbors: new Set([brokeringPeerIdentity]),
+    webRtcRetry: new ConnectionRetry(),
+    websocketRetry: new ConnectionRetry(),
+    peerRequestedDisconnectUntil: null,
+    localRequestedDisconnectUntil: null,
+  })
 
   // Verify peer2 is not connected
   expect(peer.address).toBeNull()

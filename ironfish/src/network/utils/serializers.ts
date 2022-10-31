@@ -9,8 +9,13 @@ import {
   SerializedCompactBlock,
 } from '../../primitives/block'
 import { SerializedBlockHeader } from '../../primitives/blockheader'
+import { SerializedTransaction } from '../../primitives/transaction'
 import { GraffitiSerdeInstance } from '../../serde/serdeInstances'
 import { BigIntUtils } from '../../utils/bigint'
+
+export const MINERS_FEE_TRANSACTION_SIZE_BYTES = 562
+
+const BLOCK_TRANSACTIONS_LENGTH_BYTES = 2
 
 export function writeBlockHeader(
   bw: bufio.StaticWriter | bufio.BufferWriter,
@@ -30,40 +35,6 @@ export function writeBlockHeader(
   bw.writeBytes(BigIntUtils.toBytesLE(-BigInt(header.minersFee), 8))
 
   bw.writeBytes(GraffitiSerdeInstance.deserialize(header.graffiti))
-  return bw
-}
-
-export function writeBlock(
-  bw: bufio.StaticWriter | bufio.BufferWriter,
-  block: SerializedBlock,
-): bufio.StaticWriter | bufio.BufferWriter {
-  bw = writeBlockHeader(bw, block.header)
-
-  bw.writeU16(block.transactions.length)
-  for (const transaction of block.transactions) {
-    bw.writeVarBytes(transaction)
-  }
-
-  return bw
-}
-
-export function writeCompactBlock(
-  bw: bufio.StaticWriter | bufio.BufferWriter,
-  compactBlock: SerializedCompactBlock,
-): bufio.StaticWriter | bufio.BufferWriter {
-  bw = writeBlockHeader(bw, compactBlock.header)
-
-  bw.writeVarint(compactBlock.transactionHashes.length)
-  for (const transactionHash of compactBlock.transactionHashes) {
-    bw.writeHash(transactionHash)
-  }
-
-  bw.writeVarint(compactBlock.transactions.length)
-  for (const transaction of compactBlock.transactions) {
-    bw.writeVarint(transaction.index)
-    bw.writeVarBytes(transaction.transaction)
-  }
-
   return bw
 }
 
@@ -99,46 +70,6 @@ export function readBlockHeader(reader: bufio.BufferReader): SerializedBlockHead
   }
 }
 
-export function readBlock(reader: bufio.BufferReader): SerializedBlock {
-  const header = readBlockHeader(reader)
-
-  const transactionsLength = reader.readU16()
-  const transactions = []
-  for (let j = 0; j < transactionsLength; j++) {
-    transactions.push(reader.readVarBytes())
-  }
-
-  return {
-    header,
-    transactions,
-  }
-}
-
-export function readCompactBlock(reader: bufio.BufferReader): SerializedCompactBlock {
-  const header = readBlockHeader(reader)
-
-  const transactionHashes: Buffer[] = []
-  const transactionHashesLength = reader.readVarint()
-  for (let i = 0; i < transactionHashesLength; i++) {
-    const transactionHash = reader.readHash()
-    transactionHashes.push(transactionHash)
-  }
-
-  const transactions: CompactBlockTransaction[] = []
-  const transactionsLength = reader.readVarint()
-  for (let i = 0; i < transactionsLength; i++) {
-    const index = reader.readVarint()
-    const transaction = reader.readVarBytes()
-    transactions.push({ index, transaction })
-  }
-
-  return {
-    header,
-    transactionHashes,
-    transactions,
-  }
-}
-
 export function getBlockHeaderSize(): number {
   let size = 0
   size += 4 // sequence
@@ -155,15 +86,95 @@ export function getBlockHeaderSize(): number {
   return size
 }
 
+export function writeBlock(
+  bw: bufio.StaticWriter | bufio.BufferWriter,
+  block: SerializedBlock,
+): bufio.StaticWriter | bufio.BufferWriter {
+  bw = writeBlockHeader(bw, block.header)
+
+  bw.writeU16(block.transactions.length)
+  for (const transaction of block.transactions) {
+    writeTransaction(bw, transaction)
+  }
+
+  return bw
+}
+
+export function readBlock(reader: bufio.BufferReader): SerializedBlock {
+  const header = readBlockHeader(reader)
+
+  const transactionsLength = reader.readU16()
+  const transactions: SerializedTransaction[] = []
+  for (let j = 0; j < transactionsLength; j++) {
+    transactions.push(readTransaction(reader))
+  }
+
+  return {
+    header,
+    transactions,
+  }
+}
+
 export function getBlockSize(block: SerializedBlock): number {
   let size = getBlockHeaderSize()
 
-  size += 2 // transactions length
+  size += BLOCK_TRANSACTIONS_LENGTH_BYTES
   for (const transaction of block.transactions) {
-    size += bufio.sizeVarBytes(transaction)
+    size += getTransactionSize(transaction)
   }
 
   return size
+}
+
+export function getBlockWithMinersFeeSize(): number {
+  return (
+    getBlockHeaderSize() + BLOCK_TRANSACTIONS_LENGTH_BYTES + MINERS_FEE_TRANSACTION_SIZE_BYTES
+  )
+}
+
+export function writeCompactBlock(
+  bw: bufio.StaticWriter | bufio.BufferWriter,
+  compactBlock: SerializedCompactBlock,
+): bufio.StaticWriter | bufio.BufferWriter {
+  bw = writeBlockHeader(bw, compactBlock.header)
+
+  bw.writeVarint(compactBlock.transactionHashes.length)
+  for (const transactionHash of compactBlock.transactionHashes) {
+    bw.writeHash(transactionHash)
+  }
+
+  bw.writeVarint(compactBlock.transactions.length)
+  for (const transaction of compactBlock.transactions) {
+    bw.writeVarint(transaction.index)
+    writeTransaction(bw, transaction.transaction)
+  }
+
+  return bw
+}
+
+export function readCompactBlock(reader: bufio.BufferReader): SerializedCompactBlock {
+  const header = readBlockHeader(reader)
+
+  const transactionHashes: Buffer[] = []
+  const transactionHashesLength = reader.readVarint()
+  for (let i = 0; i < transactionHashesLength; i++) {
+    const transactionHash = reader.readHash()
+    transactionHashes.push(transactionHash)
+  }
+
+  const transactions: CompactBlockTransaction[] = []
+  const transactionsLength = reader.readVarint()
+  for (let i = 0; i < transactionsLength; i++) {
+    const index = reader.readVarint()
+    const transaction = readTransaction(reader)
+    transactions.push({ index, transaction })
+  }
+
+  return {
+    header,
+    transactionHashes,
+    transactions,
+  }
 }
 
 export function getCompactBlockSize(compactBlock: SerializedCompactBlock): number {
@@ -175,8 +186,23 @@ export function getCompactBlockSize(compactBlock: SerializedCompactBlock): numbe
   size += sizeVarint(compactBlock.transactions.length)
   for (const transaction of compactBlock.transactions) {
     size += sizeVarint(transaction.index)
-    size += sizeVarBytes(transaction.transaction)
+    size += getTransactionSize(transaction.transaction)
   }
 
   return size
+}
+
+export function writeTransaction(
+  bw: bufio.StaticWriter | bufio.BufferWriter,
+  transaction: SerializedTransaction,
+): void {
+  bw.writeVarBytes(transaction)
+}
+
+export function readTransaction(reader: bufio.BufferReader): SerializedTransaction {
+  return reader.readVarBytes()
+}
+
+export function getTransactionSize(transaction: SerializedTransaction): number {
+  return sizeVarBytes(transaction)
 }

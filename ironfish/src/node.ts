@@ -16,6 +16,7 @@ import { FileSystem } from './fileSystems'
 import { MinedBlocksIndexer } from './indexers/minedBlocksIndexer'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
+import { FeeEstimator } from './memPool/feeEstimator'
 import { MetricsMonitor } from './metrics'
 import { Migrator } from './migrations'
 import { MiningManager } from './mining'
@@ -239,8 +240,6 @@ export class IronfishNode {
       files,
     })
 
-    const memPool = new MemPool({ chain, metrics, logger })
-
     const accountDB = new WalletDB({
       location: config.accountDatabasePath,
       workerPool,
@@ -253,6 +252,18 @@ export class IronfishNode {
       database: accountDB,
       workerPool,
     })
+
+    const feeEstimator = new FeeEstimator({
+      wallet,
+      maxBlockHistory: config.get('feeEstimatorMaxBlockHistory'),
+      percentiles: {
+        low: config.get('feeEstimatorPercentileLow'),
+        medium: config.get('feeEstimatorPercentileMedium'),
+        high: config.get('feeEstimatorPercentileHigh'),
+      },
+    })
+
+    const memPool = new MemPool({ chain, feeEstimator, metrics, logger })
 
     const minedBlocksIndexer = new MinedBlocksIndexer({
       files,
@@ -293,6 +304,7 @@ export class IronfishNode {
       await this.chain.open()
       await this.wallet.open()
       await this.minedBlocksIndexer.open()
+      await this.memPool.feeEstimator.init(this.chain)
     } catch (e) {
       await this.chain.close()
       await this.wallet.close()

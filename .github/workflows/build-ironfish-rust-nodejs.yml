@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-latest
+          - host: macos-11
             target: x86_64-apple-darwin
             architecture: x64
             build: |
@@ -39,7 +39,7 @@ jobs:
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust@sha256:749e81d2fa2fdcda2732e284069fdd8469702da007eb6088df426cdb813b3ecc
             build: cd ironfish-rust-nodejs && yarn build && strip *.node
 
-          - host: macos-latest
+          - host: macos-11
             target: aarch64-apple-darwin
             build: |
               cd ironfish-rust-nodejs
@@ -71,10 +71,10 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         if: ${{ !matrix.settings.docker }}
         with:
           node-version: '16.13.0'
@@ -124,7 +124,7 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-latest
+          - host: macos-11
             target: x86_64-apple-darwin
 
           - host: windows-latest
@@ -151,14 +151,14 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up QEMU for Docker
         if: ${{ matrix.settings.docker }}
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16.13.0'
 

@@ -21,6 +21,10 @@ export const DEFAULT_MINER_BATCH_SIZE = 25000
 export const DEFAULT_EXPLORER_BLOCKS_URL = 'https://explorer.ironfish.network/blocks/'
 export const DEFAULT_EXPLORER_TRANSACTIONS_URL =
   'https://explorer.ironfish.network/transaction/'
+export const DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY = 10
+export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_LOW = 10
+export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_MEDIUM = 20
+export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_HIGH = 30
 
 // Pool defaults
 export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
@@ -103,7 +107,6 @@ export type ConfigOptions = {
   peerPort: number
   rpcTcpHost: string
   rpcTcpPort: number
-  rpcTcpSecure: boolean
   tlsKeyPath: string
   tlsCertPath: string
   /**
@@ -217,7 +220,6 @@ export type ConfigOptions = {
   poolMaxConnectionsPerIp: number
 
   /**
-
    * The lark webhook URL to post pool critical pool information to
    */
   poolLarkWebhook: ''
@@ -237,11 +239,90 @@ export type ConfigOptions = {
    * URL for viewing transaction information in a block explorer
    */
   explorerTransactionsUrl: string
+
+  feeEstimatorMaxBlockHistory: number
+  feeEstimatorPercentileLow: number
+  feeEstimatorPercentileMedium: number
+  feeEstimatorPercentileHigh: number
 }
 
+// Matches either an empty string, or a string that has no leading or trailing whitespace.
+const reNoWhitespaceBegEnd = /^[^\s]+(\s+[^\s]+)*$|^$/
+
+// config number value validators
+export const isWholeNumber = yup.number().integer().min(0)
+export const isPort = yup.number().integer().min(1).max(65535)
+export const isPercent = yup.number().min(0).max(100)
+
+// config string value validators
+export const noWhitespaceBegEnd = yup
+  .string()
+  .matches(reNoWhitespaceBegEnd, 'Path should not contain leading or trailing whitespace.')
+
+export const isUrl = yup.string().url('Invalid URL')
+
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
-  .object()
-  .shape({})
+  .object({
+    bootstrapNodes: yup.array().of(yup.string().defined()),
+    databaseName: yup.string(),
+    databaseMigrate: yup.boolean(),
+    editor: noWhitespaceBegEnd,
+    enableListenP2P: yup.boolean(),
+    enableLogFile: yup.boolean(),
+    enableRpc: yup.boolean(),
+    enableRpcIpc: yup.boolean(),
+    enableRpcTcp: yup.boolean(),
+    enableRpcTls: yup.boolean(),
+    enableSyncing: yup.boolean(),
+    enableTelemetry: yup.boolean(),
+    enableMetrics: yup.boolean(),
+    getFundsApi: yup.string(),
+    ipcPath: noWhitespaceBegEnd,
+    miningForce: yup.boolean(),
+    logPeerMessages: yup.boolean(),
+    // validated separately by logLevelParser
+    logLevel: yup.string(),
+    // not applying a regex pattern to avoid getting out of sync with logic
+    // to parse logPrefix
+    logPrefix: yup.string(),
+    blockGraffiti: yup.string(),
+    nodeName: yup.string(),
+    nodeWorkers: yup.number().integer().min(-1),
+    nodeWorkersMax: yup.number().integer().min(-1),
+    p2pSimulateLatency: isWholeNumber,
+    peerPort: isPort,
+    rpcTcpHost: noWhitespaceBegEnd,
+    rpcTcpPort: isPort,
+    tlsKeyPath: noWhitespaceBegEnd,
+    tlsCertPath: noWhitespaceBegEnd,
+    maxPeers: isWholeNumber,
+    minPeers: isWholeNumber,
+    targetPeers: yup.number().integer().min(1),
+    telemetryApi: yup.string(),
+    accountName: yup.string(),
+    generateNewIdentity: yup.boolean(),
+    defaultTransactionExpirationSequenceDelta: isWholeNumber,
+    blocksPerMessage: isWholeNumber,
+    minerBatchSize: isWholeNumber,
+    minimumBlockConfirmations: isWholeNumber,
+    poolName: yup.string(),
+    poolAccountName: yup.string(),
+    poolBanning: yup.boolean(),
+    poolBalancePercentPayout: isPercent,
+    poolHost: noWhitespaceBegEnd,
+    poolPort: isPort,
+    poolDifficulty: yup.string(),
+    poolAttemptPayoutInterval: isWholeNumber,
+    poolSuccessfulPayoutInterval: isWholeNumber,
+    poolStatusNotificationInterval: isWholeNumber,
+    poolRecentShareCutoff: isWholeNumber,
+    poolDiscordWebhook: yup.string(),
+    poolMaxConnectionsPerIp: isWholeNumber,
+    poolLarkWebhook: yup.string(),
+    jsonLogs: yup.boolean(),
+    explorerBlocksUrl: isUrl,
+    explorerTransactionsUrl: isUrl,
+  })
   .defined()
 
 export class Config extends KeyStore<ConfigOptions> {
@@ -301,11 +382,10 @@ export class Config extends KeyStore<ConfigOptions> {
       peerPort: DEFAULT_WEBSOCKET_PORT,
       rpcTcpHost: 'localhost',
       rpcTcpPort: 8020,
-      rpcTcpSecure: false,
       tlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'node-key.pem')),
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
       maxPeers: 50,
-      minimumBlockConfirmations: 12,
+      minimumBlockConfirmations: 2,
       minPeers: 1,
       targetPeers: 50,
       telemetryApi: DEFAULT_TELEMETRY_API,
@@ -330,6 +410,10 @@ export class Config extends KeyStore<ConfigOptions> {
       jsonLogs: false,
       explorerBlocksUrl: DEFAULT_EXPLORER_BLOCKS_URL,
       explorerTransactionsUrl: DEFAULT_EXPLORER_TRANSACTIONS_URL,
+      feeEstimatorMaxBlockHistory: DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY,
+      feeEstimatorPercentileLow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_LOW,
+      feeEstimatorPercentileMedium: DEFAULT_FEE_ESTIMATOR_PERCENTILE_MEDIUM,
+      feeEstimatorPercentileHigh: DEFAULT_FEE_ESTIMATOR_PERCENTILE_HIGH,
     }
   }
 }

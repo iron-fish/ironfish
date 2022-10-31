@@ -4,7 +4,7 @@
 
 import Axios, { AxiosInstance } from 'axios'
 import { createRootLogger, Logger } from '../../logger'
-import { displayIronAmountWithCurrency, ErrorUtils, oreToIron } from '../../utils'
+import { CurrencyUtils, ErrorUtils } from '../../utils'
 import { FileUtils } from '../../utils/file'
 
 export abstract class WebhookNotifier {
@@ -62,10 +62,7 @@ export abstract class WebhookNotifier {
     this.sendText(
       `Successfully created payout of ${totalShareCount} shares to ${
         receives.length
-      } users for ${displayIronAmountWithCurrency(
-        Number(oreToIron(Number(total.toString()))),
-        false,
-      )} in transaction ${this.renderHashHex(
+      } users for ${CurrencyUtils.renderIron(total, true)} in transaction ${this.renderHashHex(
         transactionHashHex,
         this.explorerTransactionsUrl,
       )}. Transaction pending (${payoutId})`,
@@ -88,10 +85,7 @@ export abstract class WebhookNotifier {
     this.sendText(
       `Creating payout of ${totalShareCount} shares to ${
         receives.length
-      } users for ${displayIronAmountWithCurrency(
-        Number(oreToIron(Number(total.toString()))),
-        false,
-      )}(${payoutId})`,
+      } users for ${CurrencyUtils.renderIron(total, true)} (${payoutId})`,
     )
   }
 

@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::sapling_bls12::SAPLING;
+use crate::{errors::IronfishError, sapling_bls12::SAPLING};
 
 use super::{
-    errors,
     keys::SaplingKey,
     merkle_note::{position as witness_position, sapling_auth_path},
-    merkle_note_hash::MerkleNoteHash,
     note::Note,
     serializing::read_scalar,
     witness::WitnessTrait,
@@ -17,45 +15,26 @@ use bellman::gadgets::multipack;
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
+use ironfish_zkp::proofs::Spend;
+use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub::Signature};
+use ironfish_zkp::{redjubjub, Nullifier, ValueCommitment};
 use jubjub::ExtendedPoint;
-use rand::{rngs::OsRng, thread_rng, Rng};
-
-use zcash_proofs::circuit::sapling::Spend;
-
-use ff::PrimeField;
+use rand::thread_rng;
 use std::io;
-use zcash_primitives::constants::SPENDING_KEY_GENERATOR;
-use zcash_primitives::sapling::{redjubjub, Nullifier, ValueCommitment};
 
 /// Parameters used when constructing proof that the spender owns a note with
 /// a given value.
 ///
-/// Contains all the working values needed to construct the proof, including
-/// private key of the spender.
-pub struct SpendParams {
-    /// Private key of the person spending the note.
-    spender_key: SaplingKey,
-
-    /// Used to add randomness to signature generation without leaking the key.
-    /// Referred to as
-    /// `ar` in the literature.
-    pub(crate) public_key_randomness: jubjub::Fr,
-
-    /// Proof that the spend was valid and successful for the provided owner
-    /// and note.
-    pub(crate) proof: groth16::Proof<Bls12>,
+/// Contains all the working values needed to construct the proof.
+pub struct SpendBuilder {
+    pub(crate) note: Note,
 
     /// Randomized value commitment. Sometimes referred to as
     /// `cv` in the literature. It's calculated by multiplying a value by a
     /// random number. Randomized to help maintain zero knowledge.
     pub(crate) value_commitment: ValueCommitment,
-
-    /// The public key after randomization has been applied. This is used
-    /// during signature verification. Referred to as
-    /// `rk` in the literature Calculated from the authorizing key and
-    /// the public_key_randomness.
-    pub(crate) randomized_public_key: redjubjub::PublicKey,
 
     /// The root hash of the tree at the time the proof was calculated. Referred to as
     /// `anchor` in the literature.
@@ -65,138 +44,144 @@ pub struct SpendParams {
     /// incorporated into the proof, but is supplied to help miners verify the
     /// root hash at the time of spend.
     pub(crate) tree_size: u32,
-
-    /// Bytes to be placed into the nullifier set to verify whether this
-    /// note has been previously spent.
-    pub(crate) nullifier: Nullifier,
+    pub(crate) witness_position: u64,
+    pub(crate) auth_path: Vec<Option<(Scalar, bool)>>,
 }
 
-impl<'a> SpendParams {
-    /// Construct a new SpendParams attempting to spend a note at a given location
-    /// in the merkle tree.
+impl SpendBuilder {
+    /// Create a new [`SpendBuilder`] attempting to spend a note at a given
+    /// location in the merkle tree.
     ///
     /// This is the only time this API thinks about the merkle tree. The witness
     /// contains the root-hash at the time the witness was created and the path
     /// to verify the location of that note in the tree.
-    pub fn new(
-        spender_key: SaplingKey,
-        note: &Note,
-        witness: &dyn WitnessTrait,
-    ) -> Result<SpendParams, errors::SaplingProofError> {
-        // This is a sanity check; it would be caught in proving the circuit anyway,
-        // but this gives us more information in the event of a failure
-        if !witness.verify(&MerkleNoteHash::new(note.commitment_point())) {
-            return Err(errors::SaplingProofError::InconsistentWitness);
-        }
-
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-
+    pub(crate) fn new(note: Note, witness: &dyn WitnessTrait) -> Self {
         let value_commitment = ValueCommitment {
             value: note.value,
-            randomness: jubjub::Fr::from_bytes_wide(&buffer),
+            randomness: jubjub::Fr::random(thread_rng()),
         };
 
-        let mut buffer = [0u8; 64];
-        thread_rng().fill(&mut buffer[..]);
-        let public_key_randomness = jubjub::Fr::from_bytes_wide(&buffer);
-
-        let proof_generation_key = spender_key.sapling_proof_generation_key();
-
-        let spend_circuit = Spend {
-            value_commitment: Some(value_commitment.clone()),
-            proof_generation_key: Some(proof_generation_key),
-            payment_address: Some(note.owner.sapling_payment_address()),
-            auth_path: sapling_auth_path(witness),
-            commitment_randomness: Some(note.randomness),
-            anchor: Some(witness.root_hash()),
-            ar: Some(public_key_randomness),
-        };
-        let proof = groth16::create_random_proof(spend_circuit, &SAPLING.spend_params, &mut OsRng)?;
-
-        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
-        let nullifier = note.nullifier(&spender_key, witness_position(witness));
-
-        Ok(SpendParams {
-            spender_key,
-            public_key_randomness,
-            proof,
+        SpendBuilder {
+            note,
             value_commitment,
-            randomized_public_key,
             root_hash: witness.root_hash(),
             tree_size: witness.tree_size(),
-            nullifier,
-        })
-    }
-
-    /// Sign this spend with the stored private key, and return a SpendProof
-    /// suitable for serialization.
-    ///
-    /// Verifies the proof before returning to prevent posting broken
-    /// transactions
-    pub fn post(&self, signature_hash: &[u8; 32]) -> Result<SpendProof, errors::SaplingProofError> {
-        let private_key = redjubjub::PrivateKey(self.spender_key.spend_authorizing_key);
-        let randomized_private_key = private_key.randomize(self.public_key_randomness);
-        let randomized_public_key =
-            redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
-        if randomized_public_key.0 != self.randomized_public_key.0 {
-            return Err(errors::SaplingProofError::SigningError);
+            witness_position: witness_position(witness),
+            auth_path: sapling_auth_path(witness),
         }
-        let mut data_to_be_signed = [0; 64];
-        data_to_be_signed[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
-        data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
-
-        let authorizing_signature =
-            randomized_private_key.sign(&data_to_be_signed, &mut OsRng, SPENDING_KEY_GENERATOR);
-
-        let spend_proof = SpendProof {
-            proof: self.proof.clone(),
-            value_commitment: self.value_commitment(),
-            randomized_public_key,
-            root_hash: self.root_hash,
-            tree_size: self.tree_size,
-            nullifier: self.nullifier,
-            authorizing_signature,
-        };
-
-        spend_proof.verify_proof()?;
-
-        Ok(spend_proof)
-    }
-
-    /// Serialize the fields that are needed in calculating a signature to
-    /// the provided writer (probably a Blake2B writer)
-    ///
-    /// This signature is used by the transaction to calculate the signature hash,
-    /// which binds the spend to the transaction.
-    ///
-    /// It is also used during verification, which is why there is an identical
-    /// function on the SpendProof struct.
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, writer: W) -> io::Result<()> {
-        serialize_signature_fields(
-            writer,
-            &self.proof,
-            &self.value_commitment(),
-            &self.randomized_public_key,
-            &self.root_hash,
-            self.tree_size,
-            &self.nullifier,
-        )
     }
 
     /// Get the value_commitment from this proof as an edwards Point.
     ///
-    /// This integrates the value and randomness into a single point, using
-    /// an appropriate generator.
-    pub(crate) fn value_commitment(&self) -> ExtendedPoint {
-        self.value_commitment.commitment().into()
+    /// This integrates the value and randomness into a single point, using an
+    /// appropriate generator.
+    pub fn value_commitment_point(&self) -> ExtendedPoint {
+        ExtendedPoint::from(self.value_commitment.commitment())
+    }
+
+    /// Sign this spend with the private key, and return a [`SpendDescription`]
+    /// suitable for serialization.
+    ///
+    /// Verifies the proof before returning to prevent posting broken
+    /// transactions
+    pub(crate) fn build(
+        &self,
+        spender_key: &SaplingKey,
+    ) -> Result<UnsignedSpendDescription, IronfishError> {
+        // Used to add randomness to signature generation without leaking the
+        // key. Referred to as `ar` in the literature.
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+
+        let value_commitment_point = self.value_commitment_point();
+
+        let circuit = Spend {
+            value_commitment: Some(self.value_commitment.clone()),
+            proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
+            payment_address: Some(self.note.owner.sapling_payment_address()),
+            auth_path: self.auth_path.clone(),
+            commitment_randomness: Some(self.note.randomness),
+            anchor: Some(self.root_hash),
+            ar: Some(public_key_randomness),
+        };
+
+        // Proof that the spend was valid and successful for the provided owner
+        // and note.
+        let proof =
+            groth16::create_random_proof(circuit, &SAPLING.spend_params, &mut thread_rng())?;
+
+        // The public key after randomization has been applied. This is used
+        // during signature verification. Referred to as `rk` in the literature
+        // Calculated from the authorizing key and the public_key_randomness.
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        // Bytes to be placed into the nullifier set to verify whether this note
+        // has been previously spent.
+        let nullifier = self.note.nullifier(spender_key, self.witness_position);
+
+        let blank_sig = {
+            let buf = [0u8; 64];
+            Signature::read(&mut buf.as_ref())?
+        };
+
+        let spend_proof = SpendDescription {
+            proof,
+            value_commitment: value_commitment_point,
+            randomized_public_key,
+            root_hash: self.root_hash,
+            tree_size: self.tree_size,
+            nullifier,
+            authorizing_signature: blank_sig,
+        };
+
+        spend_proof.verify_proof()?;
+
+        Ok(UnsignedSpendDescription {
+            public_key_randomness,
+            spend_proof,
+        })
     }
 }
+
+pub struct UnsignedSpendDescription {
+    public_key_randomness: jubjub::Fr,
+    pub(crate) spend_proof: SpendDescription,
+}
+
+impl UnsignedSpendDescription {
+    pub fn sign(
+        mut self,
+        spender_key: &SaplingKey,
+        signature_hash: &[u8; 32],
+    ) -> Result<SpendDescription, IronfishError> {
+        let private_key = redjubjub::PrivateKey(spender_key.spend_authorizing_key);
+        let randomized_private_key = private_key.randomize(self.public_key_randomness);
+        let randomized_public_key =
+            redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
+
+        if randomized_public_key.0 != self.spend_proof.randomized_public_key.0 {
+            return Err(IronfishError::InvalidSigningKey);
+        }
+
+        let mut data_to_be_signed = [0; 64];
+        data_to_be_signed[..32]
+            .copy_from_slice(&self.spend_proof.randomized_public_key.0.to_bytes());
+        data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
+
+        self.spend_proof.authorizing_signature = randomized_private_key.sign(
+            &data_to_be_signed,
+            &mut thread_rng(),
+            SPENDING_KEY_GENERATOR,
+        );
+
+        Ok(self.spend_proof)
+    }
+}
+
 /// The publicly visible value of a spent note. These get serialized to prove
 /// that the owner once had access to these values. It also publishes the
 /// nullifier so that they can't pretend they still have access to them.
-pub struct SpendProof {
+pub struct SpendDescription {
     /// Proof that the spend was valid and successful for the provided owner
     /// and note.
     pub(crate) proof: groth16::Proof<Bls12>,
@@ -234,10 +219,10 @@ pub struct SpendProof {
     pub(crate) authorizing_signature: redjubjub::Signature,
 }
 
-impl Clone for SpendProof {
-    fn clone(&self) -> SpendProof {
+impl Clone for SpendDescription {
+    fn clone(&self) -> SpendDescription {
         let randomized_public_key = redjubjub::PublicKey(self.randomized_public_key.0);
-        SpendProof {
+        SpendDescription {
             proof: self.proof.clone(),
             value_commitment: self.value_commitment,
             randomized_public_key,
@@ -249,20 +234,17 @@ impl Clone for SpendProof {
     }
 }
 
-impl SpendProof {
-    /// Load a SpendProof from a Read implementation (e.g: socket, file)
-    /// This is the main entry-point when reconstructing a serialized
+impl SpendDescription {
+    /// Load a [`SpendDescription`] from a Read implementation (e.g: socket,
+    /// file) This is the main entry-point when reconstructing a serialized
     /// transaction.
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, errors::SaplingProofError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
         let value_commitment = {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;
-            let point = ExtendedPoint::from_bytes(&bytes);
-            if point.is_none().into() {
-                return Err(errors::SaplingProofError::IOError);
-            }
-            point.unwrap()
+
+            Option::from(ExtendedPoint::from_bytes(&bytes)).ok_or(IronfishError::InvalidData)?
         };
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
         let root_hash = read_scalar(&mut reader)?;
@@ -271,7 +253,7 @@ impl SpendProof {
         reader.read_exact(&mut nullifier.0)?;
         let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
 
-        Ok(SpendProof {
+        Ok(SpendDescription {
             proof,
             value_commitment,
             randomized_public_key,
@@ -282,8 +264,8 @@ impl SpendProof {
         })
     }
 
-    /// Stow the bytes of this SpendProof in the given writer.
-    pub fn write<W: io::Write>(&self, mut writer: W) -> io::Result<()> {
+    /// Stow the bytes of this [`SpendDescription`] in the given writer.
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         self.serialize_signature_fields(&mut writer)?;
         self.authorizing_signature.write(&mut writer)?;
 
@@ -304,12 +286,9 @@ impl SpendProof {
 
     /// Verify that the signature on this proof is signing the provided input
     /// with the randomized_public_key on this proof.
-    pub fn verify_signature(
-        &self,
-        signature_hash_value: &[u8; 32],
-    ) -> Result<(), errors::SaplingProofError> {
+    pub fn verify_signature(&self, signature_hash_value: &[u8; 32]) -> Result<(), IronfishError> {
         if self.randomized_public_key.0.is_small_order().into() {
-            return Err(errors::SaplingProofError::VerificationFailed);
+            return Err(IronfishError::IsSmallOrder);
         }
         let mut data_to_be_signed = [0; 64];
         data_to_be_signed[..32].copy_from_slice(&self.randomized_public_key.0.to_bytes());
@@ -320,38 +299,38 @@ impl SpendProof {
             &self.authorizing_signature,
             SPENDING_KEY_GENERATOR,
         ) {
-            Err(errors::SaplingProofError::VerificationFailed)
-        } else {
-            Ok(())
-        }
-    }
-
-    /// Verify that the bellman proof confirms the randomized_public_key,
-    /// commitment_value, nullifier, and anchor attached to this SpendProof.
-    pub fn verify_proof(&self) -> Result<(), errors::SaplingProofError> {
-        self.verify_value_commitment()?;
-
-        match groth16::verify_proof(
-            &SAPLING.spend_verifying_key,
-            &self.proof,
-            &self.public_inputs()[..],
-        ) {
-            Ok(()) => Ok(()),
-            _ => Err(errors::SaplingProofError::VerificationFailed),
-        }
-    }
-
-    pub fn verify_value_commitment(&self) -> Result<(), errors::SaplingProofError> {
-        if self.value_commitment.is_small_order().into() {
-            return Err(errors::SaplingProofError::VerificationFailed);
+            return Err(IronfishError::VerificationFailed);
         }
 
         Ok(())
     }
 
-    /// Converts the values to appropriate inputs for verifying the bellman proof.
-    /// Confirms the randomized_public_key, commitment_value, anchor (root hash),
-    /// and nullifier attached to this SpendProof.
+    /// Verify that the bellman proof confirms the randomized_public_key,
+    /// commitment_value, nullifier, and anchor attached to this
+    /// [`SpendDescription`].
+    pub fn verify_proof(&self) -> Result<(), IronfishError> {
+        self.verify_value_commitment()?;
+
+        groth16::verify_proof(
+            &SAPLING.spend_verifying_key,
+            &self.proof,
+            &self.public_inputs()[..],
+        )?;
+
+        Ok(())
+    }
+
+    pub fn verify_value_commitment(&self) -> Result<(), IronfishError> {
+        if self.value_commitment.is_small_order().into() {
+            return Err(IronfishError::IsSmallOrder);
+        }
+
+        Ok(())
+    }
+
+    /// Converts the values to appropriate inputs for verifying the bellman
+    /// proof.  Confirms the randomized_public_key, commitment_value, anchor
+    /// (root hash), and nullifier attached to this [`SpendDescription`].
     pub fn public_inputs(&self) -> [Scalar; 7] {
         let mut public_inputs = [Scalar::zero(); 7];
         let p = self.randomized_public_key.0.to_affine();
@@ -374,7 +353,10 @@ impl SpendProof {
 
     /// Serialize the fields that are needed in calculating a signature to
     /// the provided writer (probably a Blake2B writer)
-    pub(crate) fn serialize_signature_fields<W: io::Write>(&self, writer: W) -> io::Result<()> {
+    pub(crate) fn serialize_signature_fields<W: io::Write>(
+        &self,
+        writer: W,
+    ) -> Result<(), IronfishError> {
         serialize_signature_fields(
             writer,
             &self.proof,
@@ -389,9 +371,6 @@ impl SpendProof {
 
 /// Given a writer (probably a Blake2b hasher), write byte representations
 /// of the parameters that are used in calculating the signature of a transaction.
-/// This function is called from both SpendProof and SpendParams because
-/// signing and verifying both need to calculate the signature after all spends
-/// have been recorded.
 fn serialize_signature_fields<W: io::Write>(
     mut writer: W,
     proof: &groth16::Proof<Bls12>,
@@ -400,24 +379,21 @@ fn serialize_signature_fields<W: io::Write>(
     root_hash: &Scalar,
     tree_size: u32,
     nullifier: &Nullifier,
-) -> io::Result<()> {
+) -> Result<(), IronfishError> {
     proof.write(&mut writer)?;
     writer.write_all(&value_commitment.to_bytes())?;
     writer.write_all(&randomized_public_key.0.to_bytes())?;
     writer.write_all(root_hash.to_repr().as_ref())?;
     writer.write_u32::<LittleEndian>(tree_size)?;
     writer.write_all(&nullifier.0)?;
+
     Ok(())
 }
 
 #[cfg(test)]
 mod test {
-    use super::{SpendParams, SpendProof};
-    use crate::{
-        keys::SaplingKey,
-        note::{Memo, Note},
-        test_util::make_fake_witness,
-    };
+    use super::{SpendBuilder, SpendDescription};
+    use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
     use group::Curve;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
@@ -429,17 +405,19 @@ mod test {
 
         let note_randomness = random();
 
-        let note = Note::new(public_address, note_randomness, Memo::default());
+        let note = Note::new(public_address, note_randomness, "");
         let witness = make_fake_witness(&note);
 
-        let spend =
-            SpendParams::new(key, &note, &witness).expect("should be able to create spend proof");
+        let spend = SpendBuilder::new(note, &witness);
 
         // signature comes from transaction, normally
         let mut sig_hash = [0u8; 32];
         thread_rng().fill(&mut sig_hash[..]);
 
-        let proof = spend.post(&sig_hash).expect("should be able to sign proof");
+        let unsigned_proof = spend.build(&key).expect("should be able to build proof");
+        let proof = unsigned_proof
+            .sign(&key, &sig_hash)
+            .expect("should be able to sign proof");
         proof.verify_proof().expect("proof should check out");
         proof
             .verify_signature(&sig_hash)
@@ -457,8 +435,9 @@ mod test {
         proof
             .write(&mut serialized_proof)
             .expect("should be able to serialize proof");
-        let read_back_proof: SpendProof = SpendProof::read(&mut serialized_proof[..].as_ref())
-            .expect("should be able to deserialize valid proof");
+        let read_back_proof: SpendDescription =
+            SpendDescription::read(&mut serialized_proof[..].as_ref())
+                .expect("should be able to deserialize valid proof");
 
         assert_eq!(proof.proof.a, read_back_proof.proof.a);
         assert_eq!(proof.proof.b, read_back_proof.proof.b);
