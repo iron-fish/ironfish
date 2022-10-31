@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
-import { getTransactionSize } from '../network/utils/serializers'
+import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
 import { Transaction } from '../primitives'
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
+import { getFeeRate } from './feeEstimator'
 
 describe('MemPool', () => {
   describe('size', () => {
@@ -99,26 +100,34 @@ describe('MemPool', () => {
   describe('orderedTransactions', () => {
     const nodeTest = createNodeTest()
 
-    it('returns transactions from the node mempool sorted by fees', async () => {
+    it('returns transactions from the node mempool sorted by fee rate', async () => {
       const { node } = nodeTest
       const { wallet, memPool } = node
       const accountA = await useAccountFixture(wallet, 'accountA')
       const accountB = await useAccountFixture(wallet, 'accountB')
       const accountC = await useAccountFixture(wallet, 'accountC')
-      const { transaction: transactionA } = await useBlockWithTx(node, accountA, accountB)
-      const { transaction: transactionB } = await useBlockWithTx(node, accountB, accountC)
+      const { block, transaction: transactionA } = await useBlockWithTx(
+        node,
+        accountA,
+        accountB,
+      )
+      const transactionB = block.minersFee
       const { transaction: transactionC } = await useBlockWithTx(node, accountC, accountA)
 
-      jest.spyOn(transactionA, 'fee').mockImplementationOnce(() => BigInt(1))
-      jest.spyOn(transactionB, 'fee').mockImplementationOnce(() => BigInt(4))
-      jest.spyOn(transactionC, 'fee').mockImplementationOnce(() => BigInt(3))
+      jest.spyOn(transactionA, 'fee').mockImplementation(() => BigInt(4))
+      jest.spyOn(transactionB, 'fee').mockImplementation(() => BigInt(4))
+      jest.spyOn(transactionC, 'fee').mockImplementation(() => BigInt(1))
+
+      // Miner's fee transaction has a smaller size than the normal transaction fixture
+      expect(getFeeRate(transactionB)).toBeGreaterThan(getFeeRate(transactionA))
+      expect(getFeeRate(transactionA)).toBeGreaterThan(getFeeRate(transactionC))
 
       memPool.acceptTransaction(transactionA)
       memPool.acceptTransaction(transactionB)
       memPool.acceptTransaction(transactionC)
 
       const transactions = Array.from(memPool.orderedTransactions())
-      expect(transactions).toEqual([transactionB, transactionC, transactionA])
+      expect(transactions).toEqual([transactionB, transactionA, transactionC])
     })
 
     it('does not return transactions that have been removed from the mempool', async () => {
@@ -148,6 +157,21 @@ describe('MemPool', () => {
   })
 
   describe('acceptTransaction', () => {
+    describe('with size larger than the max transaction size', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node } = nodeTest
+        const { chain, wallet, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+
+        chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockWithMinersFeeSize()
+        expect(memPool.acceptTransaction(transaction)).toBe(false)
+      })
+    })
+
     describe('with an existing hash in the mempool', () => {
       const nodeTest = createNodeTest()
 

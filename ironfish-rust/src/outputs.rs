@@ -62,14 +62,17 @@ impl OutputBuilder {
         ExtendedPoint::from(self.value_commitment.commitment())
     }
 
-    /// Construct and return the committed [`OutputProof`] for this receiving calculation.
+    /// Construct and return the committed [`OutputDescription`] for this receiving calculation.
     ///
-    /// The [`OutputProof`] is the publicly visible form of the new note, not
+    /// The [`OutputDescription`] is the publicly visible form of the new note, not
     /// including any keys or intermediate working values.
     ///
     /// Verifies the proof before returning to prevent posting broken
     /// transactions.
-    pub(crate) fn build(&self, spender_key: &SaplingKey) -> Result<OutputProof, IronfishError> {
+    pub(crate) fn build(
+        &self,
+        spender_key: &SaplingKey,
+    ) -> Result<OutputDescription, IronfishError> {
         let diffie_hellman_keys = self.note.owner.generate_diffie_hellman_keys();
 
         let circuit = Output {
@@ -93,7 +96,7 @@ impl OutputBuilder {
             )
         };
 
-        let output_proof = OutputProof { proof, merkle_note };
+        let output_proof = OutputDescription { proof, merkle_note };
 
         output_proof.verify_proof()?;
 
@@ -108,7 +111,7 @@ impl OutputBuilder {
 /// This is the variation of an Output that gets serialized to bytes and can
 /// be loaded from bytes.
 #[derive(Clone)]
-pub struct OutputProof {
+pub struct OutputDescription {
     /// Proof that the output circuit was valid and successful
     pub(crate) proof: groth16::Proof<Bls12>,
 
@@ -117,18 +120,18 @@ pub struct OutputProof {
     pub(crate) merkle_note: MerkleNote,
 }
 
-impl OutputProof {
-    /// Load an OutputProof from a Read implementation (e.g: socket, file)
+impl OutputDescription {
+    /// Load an [`OutputDescription`] from a Read implementation( e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
         let merkle_note = MerkleNote::read(&mut reader)?;
 
-        Ok(OutputProof { proof, merkle_note })
+        Ok(OutputDescription { proof, merkle_note })
     }
 
-    /// Stow the bytes of this OutputProof in the given writer.
+    /// Stow the bytes of this [`OutputDescription`] in the given writer.
     pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
         self.serialize_signature_fields(writer)
     }
@@ -200,7 +203,7 @@ impl OutputProof {
 
 #[cfg(test)]
 mod test {
-    use super::{OutputBuilder, OutputProof};
+    use super::{OutputBuilder, OutputDescription};
     use crate::{keys::SaplingKey, merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note};
     use ff::PrimeField;
     use group::Curve;
@@ -259,8 +262,9 @@ mod test {
         proof
             .write(&mut serialized_proof)
             .expect("Should be able to serialize proof");
-        let read_back_proof: OutputProof = OutputProof::read(&mut serialized_proof[..].as_ref())
-            .expect("Should be able to deserialize valid proof");
+        let read_back_proof: OutputDescription =
+            OutputDescription::read(&mut serialized_proof[..].as_ref())
+                .expect("Should be able to deserialize valid proof");
 
         assert_eq!(proof.proof.a, read_back_proof.proof.a);
         assert_eq!(proof.proof.b, read_back_proof.proof.b);

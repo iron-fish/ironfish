@@ -255,7 +255,7 @@ pub(crate) fn position(witness: &dyn WitnessTrait) -> u64 {
     pos
 }
 
-/// Calculate the key used to encrypt the shared keys for an [`crate::outputs::OutputProof`].
+/// Calculate the key used to encrypt the shared keys for an [`crate::outputs::OutputDescription`].
 ///
 /// The shared keys are encrypted using the outgoing viewing key for the
 /// spender (the person creating the note owned by the receiver). This gets

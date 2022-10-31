@@ -1,10 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-#[macro_use]
-extern crate lazy_static;
-
 use bellman::groth16;
 use bls12_381::Bls12;
 
@@ -28,7 +24,7 @@ pub use {
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,
     note::Note,
-    outputs::OutputProof,
+    outputs::OutputDescription,
     spending::SpendProof,
     transaction::{ProposedTransaction, Transaction},
 };

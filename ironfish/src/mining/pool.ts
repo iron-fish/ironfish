@@ -284,9 +284,7 @@ export class MiningPool {
 
     if (!connected) {
       if (!this.connectWarned) {
-        this.logger.warn(
-          `Failed to connect to node on ${String(this.rpc.connection.mode)}, retrying...`,
-        )
+        this.logger.warn(`Failed to connect to node on ${this.rpc.describe()}, retrying...`)
         this.connectWarned = true
       }
 

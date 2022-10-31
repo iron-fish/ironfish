@@ -21,6 +21,10 @@ export const DEFAULT_MINER_BATCH_SIZE = 25000
 export const DEFAULT_EXPLORER_BLOCKS_URL = 'https://explorer.ironfish.network/blocks/'
 export const DEFAULT_EXPLORER_TRANSACTIONS_URL =
   'https://explorer.ironfish.network/transaction/'
+export const DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY = 10
+export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_LOW = 10
+export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_MEDIUM = 20
+export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_HIGH = 30
 
 // Pool defaults
 export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
@@ -235,6 +239,11 @@ export type ConfigOptions = {
    * URL for viewing transaction information in a block explorer
    */
   explorerTransactionsUrl: string
+
+  feeEstimatorMaxBlockHistory: number
+  feeEstimatorPercentileLow: number
+  feeEstimatorPercentileMedium: number
+  feeEstimatorPercentileHigh: number
 }
 
 // Matches either an empty string, or a string that has no leading or trailing whitespace.
@@ -401,6 +410,10 @@ export class Config extends KeyStore<ConfigOptions> {
       jsonLogs: false,
       explorerBlocksUrl: DEFAULT_EXPLORER_BLOCKS_URL,
       explorerTransactionsUrl: DEFAULT_EXPLORER_TRANSACTIONS_URL,
+      feeEstimatorMaxBlockHistory: DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY,
+      feeEstimatorPercentileLow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_LOW,
+      feeEstimatorPercentileMedium: DEFAULT_FEE_ESTIMATOR_PERCENTILE_MEDIUM,
+      feeEstimatorPercentileHigh: DEFAULT_FEE_ESTIMATOR_PERCENTILE_HIGH,
     }
   }
 }

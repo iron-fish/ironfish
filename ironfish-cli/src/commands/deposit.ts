@@ -17,8 +17,6 @@ import { ProgressBar } from '../types'
 import { verifyCanSend } from '../utils/currency'
 
 const REGISTER_URL = 'https://testnet.ironfish.network/signup'
-const IRON_TO_SEND = 0.1
-
 export default class Bank extends IronfishCommand {
   static description = 'Deposit $IRON for testnet points'
 
@@ -86,6 +84,11 @@ export default class Bank extends IronfishCommand {
     Assert.isNotUndefined(accountName)
 
     const bankDepositAddress = await this.api.getDepositAddress()
+    const { minDepositSize, maxDepositSize } = await this.api.getMinAndMaxDepositSize()
+    const minDepositOre = CurrencyUtils.decodeIron(minDepositSize)
+    const maxDepositOre = CurrencyUtils.decodeIron(maxDepositSize)
+
+    // check if user has enough, if not default to total user has
 
     if (!bankDepositAddress) {
       this.log('Error fetching deposit address. Please try again later.')
@@ -109,7 +112,7 @@ export default class Bank extends IronfishCommand {
       this.client,
       this.api,
       expirationSequenceDelta,
-      Number(fee),
+      fee,
       graffiti,
     )
     if (!canSend) {
@@ -120,16 +123,29 @@ export default class Bank extends IronfishCommand {
 
     const balanceResp = await this.client.getAccountBalance({ account: accountName })
     const confirmedBalance = BigInt(balanceResp.content.confirmed)
-    const requiredBalance = CurrencyUtils.decodeIron(IRON_TO_SEND) + BigInt(fee)
-    if (confirmedBalance < requiredBalance) {
-      this.log(`Insufficient balance: ${confirmedBalance}. Required: ${requiredBalance}`)
+
+    if (confirmedBalance < fee + minDepositOre) {
+      this.log(
+        `Insufficient balance: ${CurrencyUtils.renderIron(
+          confirmedBalance,
+        )} IRON.  Fee (${CurrencyUtils.renderIron(
+          fee,
+        )} IRON) + minimum deposit (${minDepositSize} IRON) = total required (${CurrencyUtils.renderIron(
+          fee + minDepositOre,
+        )} IRON)`,
+      )
       this.exit(1)
     }
+    const sendableOre = confirmedBalance - fee
+    const oreToSend = BigIntUtils.min(
+      (sendableOre / minDepositOre) * minDepositOre,
+      maxDepositOre,
+    )
 
-    const newBalance = confirmedBalance - requiredBalance
+    const newBalance = confirmedBalance - oreToSend - fee
 
     const displayConfirmedBalance = CurrencyUtils.renderIron(confirmedBalance, true)
-    const displayAmount = CurrencyUtils.renderIron(CurrencyUtils.decodeIron(IRON_TO_SEND), true)
+    const displayAmount = CurrencyUtils.renderIron(oreToSend, true)
     const displayFee = CurrencyUtils.renderIron(fee, true)
     const displayNewBalance = CurrencyUtils.renderIron(newBalance, true)
 
@@ -182,11 +198,11 @@ The memo will contain the graffiti "${graffiti}".
         receives: [
           {
             publicAddress: bankDepositAddress,
-            amount: CurrencyUtils.decodeIron(IRON_TO_SEND).toString(),
+            amount: CurrencyUtils.encode(oreToSend),
             memo: graffiti,
           },
         ],
-        fee: fee.toString(),
+        fee: CurrencyUtils.encode(fee),
         expirationSequenceDelta: expirationSequenceDelta,
       })
 

@@ -86,10 +86,12 @@ export default class Download extends IronfishCommand {
       }
 
       const fileSize = FileUtils.formatFileSize(manifest.file_size)
+      const spaceRequired = FileUtils.formatFileSize(manifest.file_size * 2)
 
       if (!flags.confirm) {
         const confirm = await CliUx.ux.confirm(
-          `Download ${fileSize} snapshot to update from block ${node.chain.head.sequence} to ${manifest.block_sequence}?` +
+          `Download ${fileSize} snapshot to update from block ${node.chain.head.sequence} to ${manifest.block_sequence}? ` +
+            `\nAt least ${spaceRequired} of free disk space is required to download and unzip the snapshot file.` +
             `\nAre you sure? (Y)es / (N)o`,
         )
 
@@ -282,6 +284,7 @@ export default class Download extends IronfishCommand {
       file: source,
       C: dest,
       strip: 1,
+      strict: true,
       onentry: (_) => {
         speed.add(1)
         progressBar.update(++extracted, {

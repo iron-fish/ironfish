@@ -159,13 +159,7 @@ export class IronfishSdk {
         client = new RpcTcpClient(config.get('rpcTcpHost'), config.get('rpcTcpPort'), logger)
       }
     } else {
-      client = new RpcIpcClient(
-        {
-          mode: 'ipc',
-          socketPath: config.get('ipcPath'),
-        },
-        logger,
-      )
+      client = new RpcIpcClient(config.get('ipcPath'), logger)
     }
 
     return new IronfishSdk(
@@ -211,14 +205,7 @@ export class IronfishSdk {
       const namespaces = ALL_API_NAMESPACES
 
       await node.rpc.mount(
-        new RpcIpcAdapter(
-          namespaces,
-          {
-            mode: 'ipc',
-            socketPath: this.config.get('ipcPath'),
-          },
-          this.logger,
-        ),
+        new RpcIpcAdapter(this.config.get('ipcPath'), this.logger, namespaces),
       )
     }
 

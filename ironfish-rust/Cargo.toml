@@ -1,9 +1,13 @@
 [package]
-authors = ["Iron Fish <contact@ironfish.network> (https://ironfish.network)"]
-edition = "2021"
-license = "MPL-2.0"
 name = "ironfish_rust"
 version = "0.1.0"
+license = "MPL-2.0"
+
+[package.authors]
+workspace = true
+
+[package.edition]
+workspace = true
 
 [lib]
 name = "ironfish_rust"

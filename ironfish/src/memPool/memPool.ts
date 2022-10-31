@@ -7,15 +7,15 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
-import { getTransactionSize } from '../network/utils/serializers'
+import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
-import { FeeEstimator } from './feeEstimator'
+import { FeeEstimator, getFeeRate } from './feeEstimator'
 import { PriorityQueue } from './priorityQueue'
 
 interface MempoolEntry {
-  fee: bigint
   hash: TransactionHash
+  feeRate: bigint
 }
 
 interface ExpirationMempoolEntry {
@@ -38,7 +38,7 @@ export class MemPool {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
 
-  private readonly feeEstimator: FeeEstimator
+  readonly feeEstimator: FeeEstimator
 
   constructor(options: {
     chain: Blockchain
@@ -52,10 +52,11 @@ export class MemPool {
 
     this.queue = new PriorityQueue<MempoolEntry>(
       (firstTransaction, secondTransaction) => {
-        if (firstTransaction.fee === secondTransaction.fee) {
-          return firstTransaction.hash.compare(secondTransaction.hash) > 0
+        if (firstTransaction.feeRate !== secondTransaction.feeRate) {
+          return firstTransaction.feeRate > secondTransaction.feeRate
         }
-        return firstTransaction.fee > secondTransaction.fee
+
+        return firstTransaction.hash.compare(secondTransaction.hash) > 0
       },
       (t) => t.hash.toString('hex'),
     )
@@ -127,6 +128,14 @@ export class MemPool {
   acceptTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash().toString('hex')
     const sequence = transaction.expirationSequence()
+
+    if (
+      getTransactionSize(transaction.serialize()) >
+      this.chain.consensus.MAX_BLOCK_SIZE_BYTES - getBlockWithMinersFeeSize()
+    ) {
+      this.logger.debug(`Invalid transaction '${hash}': larger than max transaction size`)
+      return false
+    }
 
     if (this.exists(transaction.hash())) {
       return false
@@ -231,6 +240,7 @@ export class MemPool {
     }
 
     this.transactions.set(hash, transaction)
+
     this.transactionsBytes += getTransactionSize(transaction.serialize())
 
     for (const spend of transaction.spends()) {
@@ -239,7 +249,7 @@ export class MemPool {
       }
     }
 
-    this.queue.add({ fee: transaction.fee(), hash })
+    this.queue.add({ hash, feeRate: getFeeRate(transaction) })
     this.expirationQueue.add({ expirationSequence: transaction.expirationSequence(), hash })
     this.metrics.memPoolSize.value = this.count()
     return true

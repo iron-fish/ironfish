@@ -12,7 +12,7 @@ use crate::{
 use super::{
     keys::{PublicAddress, SaplingKey},
     note::Note,
-    outputs::OutputProof,
+    outputs::OutputDescription,
     spending::SpendProof,
     witness::WitnessTrait,
 };
@@ -214,7 +214,7 @@ impl ProposedTransaction {
     fn transaction_signature_hash(
         &self,
         spends: &[UnsignedSpendProof],
-        outputs: &[OutputProof],
+        outputs: &[OutputDescription],
     ) -> [u8; 32] {
         let mut hasher = Blake2b::new()
             .hash_length(32)
@@ -311,7 +311,7 @@ pub struct Transaction {
     spends: Vec<SpendProof>,
 
     /// List of outputs, or output notes that have been created.
-    outputs: Vec<OutputProof>,
+    outputs: Vec<OutputDescription>,
 
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
@@ -340,7 +340,7 @@ impl Transaction {
 
         let mut outputs = Vec::with_capacity(num_outputs as usize);
         for _ in 0..num_outputs {
-            outputs.push(OutputProof::read(&mut reader)?);
+            outputs.push(OutputDescription::read(&mut reader)?);
         }
 
         let binding_signature = Signature::read(&mut reader)?;
@@ -396,11 +396,11 @@ impl Transaction {
     }
 
     /// Get an iterator over the outputs in this transaction, by reference
-    pub fn iter_outputs(&self) -> Iter<OutputProof> {
+    pub fn iter_outputs(&self) -> Iter<OutputDescription> {
         self.outputs.iter()
     }
 
-    pub fn outputs(&self) -> &Vec<OutputProof> {
+    pub fn outputs(&self) -> &Vec<OutputDescription> {
         &self.outputs
     }
 

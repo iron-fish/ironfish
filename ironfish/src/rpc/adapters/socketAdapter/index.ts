@@ -2,12 +2,5 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Nullifier } from './nullifier'
-
-export const SPEND_SERIALIZED_SIZE_IN_BYTE = 388
-
-export interface Spend {
-  nullifier: Nullifier
-  commitment: Buffer
-  size: number
-}
+export * from './socketAdapter'
+export * from './protocol'
