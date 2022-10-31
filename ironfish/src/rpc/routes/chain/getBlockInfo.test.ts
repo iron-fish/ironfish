@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../../assert'
+import { useBlockWithTx } from '../../../testUtilities'
 import { makeBlockAfter } from '../../../testUtilities/helpers/blockchain'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { GetBlockInfoResponse } from './getBlockInfo'
 import { ERROR_CODES } from '../../adapters'
 import { RpcRequestError } from '../../clients/errors'
+import { GetBlockInfoResponse } from './getBlockInfo'
 
 describe('Route chain/getBlockInfo', () => {
   const routeTest = createRouteTest()
@@ -27,9 +28,9 @@ describe('Route chain/getBlockInfo', () => {
     await expect(chain).toAddBlock(blockA2)
 
     //Get hash of blocks
-    const hash0 = genesis.header.hash.toString('hex') // 69e
-    const hash1 = blockA1.header.hash.toString('hex') // "9de985c7492bd000d6a8312f7592737e869967c890aac22247ede00678d4a2b2"
-    const hash2 = blockA2.header.hash.toString('hex') // cd9
+    const hash0 = genesis.header.hash.toString('hex')
+    const hash1 = blockA1.header.hash.toString('hex')
+    const hash2 = blockA2.header.hash.toString('hex')
 
     //Find block matching hash
     let response = await routeTest.client
@@ -37,17 +38,19 @@ describe('Route chain/getBlockInfo', () => {
       .waitForEnd()
 
     expect(response.content).toMatchObject({
-        block: {
-          hash: hash2,
-          sequence: 3,
-        },
+      block: {
+        hash: hash2,
+        sequence: 3,
+      },
     })
 
-    //Now miss on a hash check.
+    //Now miss on a hash check
     try {
       await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: "123405c7492bd000d6a8312f7592737e869967c890aac22247ede00678d4a2b2" })
-      .waitForEnd()
+        .request<GetBlockInfoResponse>('chain/getBlockInfo', {
+          search: '123405c7492bd000d6a8312f7592737e869967c890aac22247ede00678d4a2b2',
+        })
+        .waitForEnd()
     } catch (e: unknown) {
       if (!(e instanceof RpcRequestError)) {
         throw e
@@ -55,38 +58,37 @@ describe('Route chain/getBlockInfo', () => {
       expect(e.status).toBe(400)
       expect(e.code).toBe(ERROR_CODES.VALIDATION)
       expect(e.message).toContain('No block found with hash')
-      
-    }    
+    }
 
     //Find block matching sequence
     response = await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search : "2" })
+      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '2' })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
-        block: {
-          hash: hash1,
-          sequence: 2,
-        },
+      block: {
+        hash: hash1,
+        sequence: 2,
+      },
     })
 
     //Find block matching sequence
     response = await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search : '-1' })
+      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '-1' })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
-        block: {
-          hash: hash2,
-          sequence: 3,
-        },
+      block: {
+        hash: hash2,
+        sequence: 3,
+      },
     })
 
-    //Now miss on a sequence check.
+    //Now miss on a sequence check
     try {
       await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: "1234" })
-      .waitForEnd()
+        .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '1234' })
+        .waitForEnd()
     } catch (e: unknown) {
       if (!(e instanceof RpcRequestError)) {
         throw e
@@ -96,7 +98,42 @@ describe('Route chain/getBlockInfo', () => {
       expect(e.message).toContain('No block found with sequence')
     }
 
+    // Force failure of getBlock()
+    jest.spyOn(chain, 'getBlock').mockResolvedValue(null)
+
+    try {
+      await routeTest.client
+        .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: hash0 })
+        .waitForEnd()
+    } catch (e: unknown) {
+      if (!(e instanceof RpcRequestError)) {
+        throw e
+      }
+      expect(e.status).toBe(400)
+      expect(e.code).toBe(ERROR_CODES.VALIDATION)
+      expect(e.message).toContain('No block with header')
+    }
   })
 
-  //it('Processes sequence input', async () => {
+  it('Displays transactions', async () => {
+    //Create separate test case for showing transactions
+    const { chain, node } = routeTest
+
+    await chain.open()
+
+    const { block, transaction } = await useBlockWithTx(node)
+    await expect(node.chain).toAddBlock(block)
+    const hash = block.header.hash.toString('hex')
+
+    const response = await routeTest.client
+      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '2' })
+      .waitForEnd()
+
+    expect(response.content).toMatchObject({
+      block: {
+        hash: hash,
+        sequence: 2,
+      },
+    })
+  })
 })
