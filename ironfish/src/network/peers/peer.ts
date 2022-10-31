@@ -10,12 +10,10 @@ import { createRootLogger, Logger } from '../../logger'
 import { MetricsMonitor } from '../../metrics'
 import { ErrorUtils } from '../../utils'
 import { Identity } from '../identity'
-import { DisconnectingReason } from '../messages/disconnecting'
 import { displayNetworkMessageType, NetworkMessage } from '../messages/networkMessage'
 import { NetworkMessageType } from '../types'
-import { ConnectionRetry } from './connectionRetry'
-import { WebRtcConnection, WebSocketConnection } from './connections'
-import { Connection, ConnectionDirection, ConnectionType } from './connections/connection'
+import { NetworkError, WebRtcConnection, WebSocketConnection } from './connections'
+import { Connection, ConnectionType } from './connections/connection'
 
 export enum BAN_SCORE {
   NO = 0,
@@ -102,26 +100,32 @@ export class Peer {
    * name associated with this peer
    */
   name: string | null = null
+
   /**
    * The peers protocol version
    */
   version: number | null = null
+
   /**
    * The peers agent
    */
   agent: string | null = null
+
   /**
    * The peers heaviest head hash
    */
   head: Buffer | null = null
+
   /**
    * The peers heaviest head cumulative work
    */
   work: bigint | null = null
+
   /**
    * The peers heaviest head sequence
    */
   sequence: number | null = null
+
   /**
    * The loggable name of the peer. For a more specific value,
    * try Peer.name or Peer.state.identity.
@@ -137,11 +141,6 @@ export class Peer {
     }
     return identitySlice
   }
-
-  /**
-   * Is the peer a node we will always attempt to connect to
-   */
-  isWhitelisted = false
 
   /**
    * address associated with this peer
@@ -161,41 +160,6 @@ export class Peer {
 
   /** how many outbound connections does the peer have */
   pendingRPC = 0
-
-  /**
-   * A map of peers connected to this peer, shared by the PeerList message.
-   */
-  knownPeers: Map<Identity, Peer> = new Map<Identity, Peer>()
-
-  private readonly supportedConnections: {
-    [ConnectionType.WebSocket]: ConnectionRetry
-    [ConnectionType.WebRtc]: ConnectionRetry
-  } = {
-    WebRtc: new ConnectionRetry(),
-    WebSocket: new ConnectionRetry(),
-  }
-
-  /**
-   * The reason why the Peer requested to disconnect from us.
-   */
-  peerRequestedDisconnectReason: DisconnectingReason | null = null
-
-  /**
-   * UTC timestamp. If set, the peer manager should not initiate connections to the
-   * Peer until after the timestamp.
-   */
-  peerRequestedDisconnectUntil: number | null = null
-
-  /**
-   * The reason why we requested the Peer not to connect to us.
-   */
-  localRequestedDisconnectReason: DisconnectingReason | null = null
-
-  /**
-   * UTC timestamp. If set, the peer manager should not accept connections from the
-   * Peer until after the timestamp.
-   */
-  localRequestedDisconnectUntil: number | null = null
 
   shouldLogMessages = false
 
@@ -275,13 +239,36 @@ export class Peer {
   }
 
   /**
+   * Replaces a WebRTC connection on the peer, moving it into the CONNECTING state if necessary.
+   * Closes the existing connection if the peer already has a WebRTC connection.
+   * @param connection The WebRTC connection to set
+   */
+  replaceWebRtcConnection(connection: WebRtcConnection): void {
+    let existingConnection = null
+    if (this.state.type !== 'DISCONNECTED' && this.state.connections.webRtc) {
+      existingConnection = this.state.connections.webRtc
+    }
+
+    const webSocket =
+      this.state.type !== 'DISCONNECTED' ? this.state.connections.webSocket : undefined
+
+    this.setState(this.computeStateFromConnections(webSocket, connection))
+
+    if (existingConnection) {
+      const error = `Replacing duplicate WebRTC connection on ${this.displayName}`
+      this.logger.debug(ErrorUtils.renderError(new NetworkError(error)))
+      existingConnection.close(new NetworkError(error))
+    }
+  }
+
+  /**
    * Sets a WebSocket connection on the peer, moving it into the CONNECTING state if necessary.
    * Ignores the connection if the peer already has a WebSocket connection.
    * @param connection The WebSocket connection to set
    */
   setWebSocketConnection(connection: WebSocketConnection): void {
     if (this.state.type !== 'DISCONNECTED' && this.state.connections.webSocket) {
-      this.logger.debug('Already have a WebSocket connection, ignoring the new one')
+      this.logger.warn('Already have a WebSocket connection, ignoring the new one')
       return
     }
 
@@ -289,6 +276,29 @@ export class Peer {
       this.state.type !== 'DISCONNECTED' ? this.state.connections.webRtc : undefined
 
     this.setState(this.computeStateFromConnections(connection, webRtc))
+  }
+
+  /**
+   * Replaces a WebSocket connection on the peer, moving it into the CONNECTING state if necessary.
+   * Closes the existing connection if the peer already has a WebSocket connection.
+   * @param connection The WebSocket connection to set
+   */
+  replaceWebSocketConnection(connection: WebSocketConnection): void {
+    let existingConnection = null
+    if (this.state.type !== 'DISCONNECTED' && this.state.connections.webSocket) {
+      existingConnection = this.state.connections.webSocket
+    }
+
+    const webRtc =
+      this.state.type !== 'DISCONNECTED' ? this.state.connections.webRtc : undefined
+
+    this.setState(this.computeStateFromConnections(connection, webRtc))
+
+    if (existingConnection) {
+      const error = `Replacing duplicate WebSocket connection on ${this.displayName}`
+      this.logger.debug(ErrorUtils.renderError(new NetworkError(error)))
+      existingConnection.close(new NetworkError(error))
+    }
   }
 
   private computeStateFromConnections(
@@ -424,19 +434,6 @@ export class Peer {
 
     this._address = address
     this._port = port
-
-    if (address === null && port === null) {
-      this.getConnectionRetry(
-        ConnectionType.WebSocket,
-        ConnectionDirection.Outbound,
-      )?.neverRetryConnecting()
-    } else {
-      // Reset ConnectionRetry since some component of the address changed
-      this.getConnectionRetry(
-        ConnectionType.WebSocket,
-        ConnectionDirection.Outbound,
-      )?.successfulConnection()
-    }
   }
 
   /**
@@ -520,25 +517,6 @@ export class Peer {
       : state.connections
   }
 
-  getConnectionRetry(type: ConnectionType, direction: ConnectionDirection.Inbound): null
-  getConnectionRetry(
-    type: ConnectionType,
-    direction: ConnectionDirection.Outbound,
-  ): ConnectionRetry
-  getConnectionRetry(
-    type: ConnectionType,
-    direction: ConnectionDirection,
-  ): ConnectionRetry | null
-  getConnectionRetry(
-    type: ConnectionType,
-    direction: ConnectionDirection,
-  ): ConnectionRetry | null {
-    if (direction === ConnectionDirection.Inbound) {
-      return null
-    }
-    return this.supportedConnections[type]
-  }
-
   private readonly connectionMessageHandlers: Map<
     Connection,
     (message: NetworkMessage) => void
@@ -574,11 +552,12 @@ export class Peer {
       return
     }
 
-    if (connection.state.type === 'CONNECTED') {
-      this.getConnectionRetry(connection.type, connection.direction)?.successfulConnection()
-      if (connection instanceof WebSocketConnection && connection.hostname) {
-        this.setWebSocketAddress(connection.hostname, connection.port || null)
-      }
+    if (
+      connection.state.type === 'CONNECTED' &&
+      connection instanceof WebSocketConnection &&
+      connection.hostname
+    ) {
+      this.setWebSocketAddress(connection.hostname, connection.port || null)
     }
 
     // onMessage
@@ -612,9 +591,6 @@ export class Peer {
 
           if (connection.error !== null) {
             this._error = connection.error
-            this.getConnectionRetry(connection.type, connection.direction)?.failedConnection(
-              this.isWhitelisted,
-            )
           }
 
           this.removeConnection(connection)
@@ -623,7 +599,6 @@ export class Peer {
 
         if (connection.state.type === 'CONNECTED') {
           // If connection goes to connected, transition the peer to connected
-          this.getConnectionRetry(connection.type, connection.direction)?.successfulConnection()
           if (connection instanceof WebSocketConnection && connection.hostname) {
             this.setWebSocketAddress(connection.hostname, connection.port || null)
           }
@@ -705,7 +680,7 @@ export class Peer {
    * Clean up all resources managed by the peer.
    */
   dispose(): void {
-    this.onStateChanged.clear()
+    this.onStateChanged.clearAfter()
     this.onMessage.clear()
     this.onBanned.clear()
     this.disposeMessageMeter()

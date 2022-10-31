@@ -71,7 +71,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
 
     if (!transaction) {
       return request.end({
-        account: account.displayName,
+        account: account.name,
         transaction: null,
       })
     }

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
+import { getTransactionSize } from '../network/utils/serializers'
 import { Transaction } from '../primitives'
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
 
@@ -18,7 +19,7 @@ describe('MemPool', () => {
 
       memPool.acceptTransaction(transaction)
 
-      expect(memPool.size()).toBe(1)
+      expect(memPool.count()).toBe(1)
     })
   })
 
@@ -38,10 +39,7 @@ describe('MemPool', () => {
       memPool.acceptTransaction(transaction)
 
       const size = (tx: Transaction) => {
-        const spendSize = [...tx.spends()].reduce((sum, spend) => {
-          return sum + spend.nullifier.byteLength + tx.hash().byteLength
-        }, 0)
-        return tx.serialize().byteLength + tx.hash().byteLength + spendSize + 32 + 8
+        return getTransactionSize(tx.serialize())
       }
 
       expect(memPool.sizeBytes()).toBe(size(transaction))

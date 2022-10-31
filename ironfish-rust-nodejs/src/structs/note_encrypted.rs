@@ -11,6 +11,11 @@ use napi_derive::napi;
 
 use ironfish_rust::MerkleNote;
 
+use crate::to_napi_err;
+
+#[napi]
+pub const ENCRYPTED_NOTE_LENGTH: u32 = 275;
+
 #[napi(js_name = "NoteEncrypted")]
 pub struct NativeNoteEncrypted {
     pub(crate) note: MerkleNote,
@@ -21,8 +26,7 @@ impl NativeNoteEncrypted {
     #[napi(constructor)]
     pub fn new(js_bytes: JsBuffer) -> Result<Self> {
         let bytes = js_bytes.into_value()?;
-        let note =
-            MerkleNote::read(bytes.as_ref()).map_err(|err| Error::from_reason(err.to_string()))?;
+        let note = MerkleNote::read(bytes.as_ref()).map_err(to_napi_err)?;
 
         Ok(NativeNoteEncrypted { note })
     }
@@ -30,9 +34,7 @@ impl NativeNoteEncrypted {
     #[napi]
     pub fn serialize(&self) -> Result<Buffer> {
         let mut vec: Vec<u8> = vec![];
-        self.note
-            .write(&mut vec)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        self.note.write(&mut vec).map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }
@@ -48,7 +50,7 @@ impl NativeNoteEncrypted {
         self.note
             .merkle_hash()
             .write(&mut vec)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+            .map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }
@@ -60,15 +62,13 @@ impl NativeNoteEncrypted {
         let left = js_left.into_value()?;
         let right = js_right.into_value()?;
 
-        let left_hash = MerkleNoteHash::read(left.as_ref())
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let left_hash = MerkleNoteHash::read(left.as_ref()).map_err(to_napi_err)?;
 
-        let right_hash = MerkleNoteHash::read(right.as_ref())
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let right_hash = MerkleNoteHash::read(right.as_ref()).map_err(to_napi_err)?;
 
         let converted_depth: usize = depth
             .try_into()
-            .map_err(|_| Error::from_reason("Value could not fit in usize".to_string()))?;
+            .map_err(|_| to_napi_err("Value could not fit in usize"))?;
 
         let mut vec = Vec::with_capacity(32);
 
@@ -78,7 +78,7 @@ impl NativeNoteEncrypted {
             &right_hash.0,
         ))
         .write(&mut vec)
-        .map_err(|err| Error::from_reason(err.to_string()))?;
+        .map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }
@@ -86,14 +86,13 @@ impl NativeNoteEncrypted {
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
     pub fn decrypt_note_for_owner(&self, incoming_hex_key: String) -> Result<Option<Buffer>> {
-        let incoming_view_key = IncomingViewKey::from_hex(&incoming_hex_key)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let incoming_view_key =
+            IncomingViewKey::from_hex(&incoming_hex_key).map_err(to_napi_err)?;
 
         Ok(match self.note.decrypt_note_for_owner(&incoming_view_key) {
             Ok(note) => {
                 let mut vec = vec![];
-                note.write(&mut vec)
-                    .map_err(|err| Error::from_reason(err.to_string()))?;
+                note.write(&mut vec).map_err(to_napi_err)?;
                 Some(Buffer::from(vec))
             }
             Err(_) => None,
@@ -103,14 +102,13 @@ impl NativeNoteEncrypted {
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
     pub fn decrypt_note_for_spender(&self, outgoing_hex_key: String) -> Result<Option<Buffer>> {
-        let outgoing_view_key = OutgoingViewKey::from_hex(&outgoing_hex_key)
-            .map_err(|err| Error::from_reason(err.to_string()))?;
+        let outgoing_view_key =
+            OutgoingViewKey::from_hex(&outgoing_hex_key).map_err(to_napi_err)?;
         Ok(
             match self.note.decrypt_note_for_spender(&outgoing_view_key) {
                 Ok(note) => {
                     let mut vec = vec![];
-                    note.write(&mut vec)
-                        .map_err(|err| Error::from_reason(err.to_string()))?;
+                    note.write(&mut vec).map_err(to_napi_err)?;
                     Some(Buffer::from(vec))
                 }
                 Err(_) => None,

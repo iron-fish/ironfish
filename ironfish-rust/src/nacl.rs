@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::error::Error;
-
 use crypto_box::{
     aead::{generic_array::GenericArray, Aead},
     rand_core::OsRng,
@@ -37,7 +35,7 @@ pub fn box_message(
     plaintext: String,
     sender_secret_key: [u8; KEY_LENGTH],
     recipient_public_key: [u8; KEY_LENGTH],
-) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Error>> {
+) -> Result<(Vec<u8>, Vec<u8>), IronfishError> {
     let mut rng = OsRng;
 
     let sender: SecretKey = SecretKey::from(sender_secret_key);
@@ -57,9 +55,9 @@ pub fn unbox_message(
     nonce: &[u8],
     sender_public_key: [u8; KEY_LENGTH],
     recipient_secret_key: [u8; KEY_LENGTH],
-) -> Result<String, Box<dyn Error>> {
+) -> Result<String, IronfishError> {
     if nonce.len() != NONCE_LENGTH {
-        return Err(Box::new(IronfishError::InvalidNonceLength));
+        return Err(IronfishError::InvalidNonceLength);
     }
 
     let nonce = GenericArray::from_slice(nonce);

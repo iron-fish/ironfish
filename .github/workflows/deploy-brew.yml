@@ -8,13 +8,12 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
-          sharedKey: nodejs
-          working-directory: ironfish-rust-nodejs
+          shared-key: nodejs
 
       - name: Cache Ironfish CLI Build
         id: cache-ironfish-cli-build
@@ -24,7 +23,7 @@ jobs:
           key: ${{ github.sha }}
 
       - name: Use Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '16.13.0'
           cache: 'yarn'

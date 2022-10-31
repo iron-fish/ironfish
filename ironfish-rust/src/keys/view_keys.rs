@@ -12,9 +12,10 @@
 //! that you have spent.
 //!
 
-use super::{errors, PublicAddress};
-use crate::serializing::{
-    bytes_to_hex, hex_to_bytes, point_to_bytes, read_scalar, scalar_to_bytes,
+use super::PublicAddress;
+use crate::{
+    errors::IronfishError,
+    serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes, read_scalar, scalar_to_bytes},
 };
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
@@ -35,18 +36,18 @@ pub struct IncomingViewKey {
 
 impl IncomingViewKey {
     /// load view key from a Read implementation
-    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, errors::SaplingKeyError> {
+    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
         let view_key = read_scalar(reader)?;
         Ok(IncomingViewKey { view_key })
     }
 
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(value: &str) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
-            Err(()) => Err(errors::SaplingKeyError::InvalidViewingKey),
+            Err(()) => Err(IronfishError::InvalidViewingKey),
             Ok(bytes) => {
                 if bytes.len() != 32 {
-                    Err(errors::SaplingKeyError::InvalidViewingKey)
+                    Err(IronfishError::InvalidViewingKey)
                 } else {
                     Self::read(&mut bytes[..].as_ref())
                 }
@@ -57,11 +58,11 @@ impl IncomingViewKey {
     /// Load a key from a string of words to be decoded into bytes.
     ///
     /// See https://github.com/BeanstalkNetwork/word-encoding
-    pub fn from_words(language_code: &str, value: String) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_words(language_code: &str, value: String) -> Result<Self, IronfishError> {
         let language = Language::from_language_code(language_code)
-            .ok_or(errors::SaplingKeyError::InvalidLanguageEncoding)?;
+            .ok_or(IronfishError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_phrase(&value, language)
-            .map_err(|_| errors::SaplingKeyError::InvalidPaymentAddress)?;
+            .map_err(|_| IronfishError::InvalidPaymentAddress)?;
         let bytes = mnemonic.entropy();
         let mut byte_arr = [0; 32];
         byte_arr.clone_from_slice(&bytes[0..32]);
@@ -74,9 +75,9 @@ impl IncomingViewKey {
     }
 
     /// Even more readable
-    pub fn words_key(&self, language_code: &str) -> Result<String, errors::SaplingKeyError> {
+    pub fn words_key(&self, language_code: &str) -> Result<String, IronfishError> {
         let language = Language::from_language_code(language_code)
-            .ok_or(errors::SaplingKeyError::InvalidLanguageEncoding)?;
+            .ok_or(IronfishError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_entropy(&scalar_to_bytes(&self.view_key), language).unwrap();
         Ok(mnemonic.phrase().to_string())
     }
@@ -88,10 +89,7 @@ impl IncomingViewKey {
     ///
     /// Note: This may need to be public at some point. I'm hoping the client
     /// API would never have to deal with diversifiers, but I'm not sure, yet.
-    pub fn public_address(
-        &self,
-        diversifier: &[u8; 11],
-    ) -> Result<PublicAddress, errors::SaplingKeyError> {
+    pub fn public_address(&self, diversifier: &[u8; 11]) -> Result<PublicAddress, IronfishError> {
         PublicAddress::from_view_key(self, diversifier)
     }
 
@@ -131,12 +129,12 @@ pub struct OutgoingViewKey {
 
 impl OutgoingViewKey {
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(value: &str) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
-            Err(()) => Err(errors::SaplingKeyError::InvalidViewingKey),
+            Err(()) => Err(IronfishError::InvalidViewingKey),
             Ok(bytes) => {
                 if bytes.len() != 32 {
-                    Err(errors::SaplingKeyError::InvalidViewingKey)
+                    Err(IronfishError::InvalidViewingKey)
                 } else {
                     let mut view_key = [0; 32];
                     view_key.clone_from_slice(&bytes[0..32]);
@@ -149,11 +147,11 @@ impl OutgoingViewKey {
     /// Load a key from a string of words to be decoded into bytes.
     ///
     /// See https://github.com/BeanstalkNetwork/word-encoding
-    pub fn from_words(language_code: &str, value: String) -> Result<Self, errors::SaplingKeyError> {
+    pub fn from_words(language_code: &str, value: String) -> Result<Self, IronfishError> {
         let language = Language::from_language_code(language_code)
-            .ok_or(errors::SaplingKeyError::InvalidLanguageEncoding)?;
+            .ok_or(IronfishError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_phrase(&value, language)
-            .map_err(|_| errors::SaplingKeyError::InvalidPaymentAddress)?;
+            .map_err(|_| IronfishError::InvalidPaymentAddress)?;
         let bytes = mnemonic.entropy();
         let mut view_key = [0; 32];
         view_key.clone_from_slice(&bytes[0..32]);
@@ -166,16 +164,16 @@ impl OutgoingViewKey {
     }
 
     /// Even more readable
-    pub fn words_key(&self, language_code: &str) -> Result<String, errors::SaplingKeyError> {
+    pub fn words_key(&self, language_code: &str) -> Result<String, IronfishError> {
         let language = Language::from_language_code(language_code)
-            .ok_or(errors::SaplingKeyError::InvalidLanguageEncoding)?;
+            .ok_or(IronfishError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_entropy(&self.view_key, language).unwrap();
         Ok(mnemonic.phrase().to_string())
     }
 }
 
 /// Pair of outgoing and incoming view keys for a complete audit
-/// of spends and receipts
+/// of spends and outputs
 #[derive(Clone)]
 pub struct ViewKeys {
     pub incoming: IncomingViewKey,

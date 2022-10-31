@@ -11,7 +11,7 @@ use std::fmt::{self, Debug};
 ///
 /// The Left/Right is the Hash of THIS node, but the MerkleHash at node.0 is
 /// the hash of the SIBLING node.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum WitnessNode<H: Clone + PartialEq + Debug> {
     Left(H),
     Right(H),

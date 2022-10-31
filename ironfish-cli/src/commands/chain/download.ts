@@ -227,6 +227,11 @@ export default class Download extends IronfishCommand {
       }
     }
 
+    // use a standard name, 'snapshot', for the unzipped database
+    const snapshotDatabasePath = this.sdk.fileSystem.join(this.sdk.config.tempDir, 'snapshot')
+    await fsAsync.mkdir(snapshotDatabasePath, { recursive: true })
+    await this.unzip(snapshotPath, snapshotDatabasePath)
+
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
     // chainDatabasePath must be empty before unzipping snapshot
@@ -236,10 +241,11 @@ export default class Download extends IronfishCommand {
     await fsAsync.rm(chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
     CliUx.ux.action.stop('done')
 
-    // ensure that chainDatabasePath exists
-    await fsAsync.mkdir(chainDatabasePath, { recursive: true })
-
-    await this.unzip(snapshotPath, chainDatabasePath)
+    CliUx.ux.action.start(
+      `Moving snapshot files from ${snapshotDatabasePath} to ${chainDatabasePath}`,
+    )
+    await fsAsync.rename(snapshotDatabasePath, chainDatabasePath)
+    CliUx.ux.action.stop('done')
 
     if (flags.cleanup) {
       CliUx.ux.action.start(`Cleaning up snapshot file at ${snapshotPath}`)

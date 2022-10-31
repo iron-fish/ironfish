@@ -4,6 +4,7 @@
 import bufio from 'bufio'
 import { SerializedTransaction } from '../../primitives/transaction'
 import { NetworkMessageType } from '../types'
+import { getTransactionSize, readTransaction, writeTransaction } from '../utils/serializers'
 import { NetworkMessage } from './networkMessage'
 
 export class NewTransactionV2Message extends NetworkMessage {
@@ -19,7 +20,7 @@ export class NewTransactionV2Message extends NetworkMessage {
 
     bw.writeVarint(this.transactions.length)
     for (const transaction of this.transactions) {
-      bw.writeVarBytes(transaction)
+      writeTransaction(bw, transaction)
     }
     return bw.render()
   }
@@ -29,9 +30,9 @@ export class NewTransactionV2Message extends NetworkMessage {
 
     const length = reader.readVarint()
 
-    const transactions = []
+    const transactions: SerializedTransaction[] = []
     for (let i = 0; i < length; i++) {
-      const transaction = reader.readVarBytes()
+      const transaction = readTransaction(reader)
       transactions.push(transaction)
     }
 
@@ -44,7 +45,7 @@ export class NewTransactionV2Message extends NetworkMessage {
     size += bufio.sizeVarint(this.transactions.length)
 
     for (const transaction of this.transactions) {
-      size += bufio.sizeVarBytes(transaction)
+      size += getTransactionSize(transaction)
     }
 
     return size

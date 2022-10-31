@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { NOTE_LENGTH } from '../../primitives/note'
-import { ENCRYPTED_NOTE_LENGTH, NoteEncrypted } from '../../primitives/noteEncrypted'
+import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
@@ -153,7 +153,7 @@ export class DecryptNotesResponse extends WorkerMessage {
       const hasNullifier = flags & (1 << 1)
       const forSpender = Boolean(flags & (1 << 2))
       const hash = reader.readHash()
-      const serializedNote = reader.readBytes(NOTE_LENGTH)
+      const serializedNote = reader.readBytes(DECRYPTED_NOTE_LENGTH)
 
       let index = null
       if (hasIndex) {
@@ -184,7 +184,7 @@ export class DecryptNotesResponse extends WorkerMessage {
       size += 1
 
       if (note) {
-        size += 1 + 32 + NOTE_LENGTH
+        size += 1 + 32 + DECRYPTED_NOTE_LENGTH
 
         if (note.index) {
           size += 4

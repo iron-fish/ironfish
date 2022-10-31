@@ -373,8 +373,11 @@ export async function useBlockWithTx(
 export async function useBlockWithTxs(
   node: IronfishNode,
   numTransactions: number,
+  from?: Account,
 ): Promise<{ account: Account; block: Block; transactions: Transaction[] }> {
-  const from = await useAccountFixture(node.wallet, () => node.wallet.createAccount('test'))
+  if (!from) {
+    from = await useAccountFixture(node.wallet, () => node.wallet.createAccount('test'))
+  }
   const to = from
 
   let previous
@@ -388,6 +391,8 @@ export async function useBlockWithTxs(
   const block = await useBlockFixture(node.chain, async () => {
     const transactions: Transaction[] = []
     for (let i = 0; i < numTransactions; i++) {
+      Assert.isNotUndefined(from)
+
       const transaction = await node.wallet.createTransaction(
         from,
         [

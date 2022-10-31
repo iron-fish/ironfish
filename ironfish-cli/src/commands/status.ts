@@ -84,11 +84,13 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
   const avgTimeToAddBlock = content.blockSyncer.syncing.blockSpeed
 
   if (content.blockSyncer.status === 'syncing') {
-    blockSyncerStatusDetails.push(`${content.blockSyncer.syncing.speed} blocks per seconds`)
+    blockSyncerStatusDetails.push(
+      `${content.blockSyncer.syncing.speed} blocks synced/sec, ${content.blockSyncer.syncing.downloadSpeed} blocks downloaded/sec`,
+    )
   }
 
   if (avgTimeToAddBlock) {
-    blockSyncerStatusDetails.push(`avg time to add block ${avgTimeToAddBlock} ms`)
+    blockSyncerStatusDetails.push(`${(1000 / avgTimeToAddBlock).toFixed(2)} blocks added/sec`)
   }
 
   if (!content.blockchain.synced) {
@@ -117,9 +119,11 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     content.peerNetwork.peers
   }`
 
-  const blockchainStatus = `${content.blockchain.head}, Since HEAD: ${TimeUtils.renderSpan(
-    Date.now() - content.blockchain.headTimestamp,
-  )} (${content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'})`
+  const blockchainStatus = `${content.blockchain.head.hash} (${
+    content.blockchain.head.sequence
+  }), Since HEAD: ${TimeUtils.renderSpan(Date.now() - content.blockchain.headTimestamp)} (${
+    content.blockchain.synced ? 'SYNCED' : 'NOT SYNCED'
+  })`
 
   let miningDirectorStatus = `${content.miningDirector.status.toUpperCase()} - ${
     content.miningDirector.miners
@@ -134,7 +138,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
   }
 
   const memPoolStorage = FileUtils.formatMemorySize(content.memPool.sizeBytes)
-  const memPoolStatus = `Size: ${content.memPool.size} tx, Bytes: ${memPoolStorage}`
+  const memPoolStatus = `Count: ${content.memPool.size} tx, Bytes: ${memPoolStorage}`
 
   let workersStatus = `${content.workers.started ? 'STARTED' : 'STOPPED'}`
   if (content.workers.started) {
@@ -160,7 +164,7 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
 
   let accountStatus
   if (content.accounts.scanning === undefined) {
-    accountStatus = `${content.accounts.head}`
+    accountStatus = `${content.accounts.head.hash} (${content.accounts.head.sequence})`
   } else {
     accountStatus = `SCANNING - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
   }

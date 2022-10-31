@@ -18,8 +18,6 @@ import {
   RpcTcpHostFlagKey,
   RpcTcpPortFlag,
   RpcTcpPortFlagKey,
-  RpcTcpSecureFlag,
-  RpcTcpSecureFlagKey,
   RpcTcpTlsFlag,
   RpcTcpTlsFlagKey,
   RpcUseIpcFlag,
@@ -47,7 +45,6 @@ export default class Start extends IronfishCommand {
     [RpcTcpTlsFlagKey]: RpcTcpTlsFlag,
     [RpcTcpHostFlagKey]: RpcTcpHostFlag,
     [RpcTcpPortFlagKey]: RpcTcpPortFlag,
-    [RpcTcpSecureFlagKey]: RpcTcpSecureFlag,
     bootstrap: Flags.string({
       char: 'b',
       description: 'Comma-separated addresses of bootstrap nodes to connect to',

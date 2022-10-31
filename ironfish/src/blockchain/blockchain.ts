@@ -22,7 +22,8 @@ import { MerkleTree } from '../merkletree'
 import { NoteLeafEncoding, NullifierLeafEncoding } from '../merkletree/database/leaves'
 import { NodeEncoding } from '../merkletree/database/nodes'
 import { NoteHasher } from '../merkletree/hasher'
-import { Meter, MetricsMonitor } from '../metrics'
+import { MetricsMonitor } from '../metrics'
+import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
 import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { BlockHash, BlockHeader, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
@@ -82,7 +83,7 @@ export class Blockchain {
   >
   nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
 
-  addSpeed: Meter
+  addSpeed: RollingAverage
   invalid: LRU<BlockHash, VerificationResultReason>
   orphans: LRU<BlockHash, BlockHeader>
   logAllBlockAdd: boolean
@@ -167,7 +168,7 @@ export class Blockchain {
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
     this.verifier = new Verifier(this, options.workerPool)
     this.db = createDB({ location: options.location })
-    this.addSpeed = this.metrics.addMeter()
+    this.addSpeed = new RollingAverage(500)
     this.invalid = new LRU(100, null, BufferMap)
     this.orphans = new LRU(100, null, BufferMap)
     this.logAllBlockAdd = options.logAllBlockAdd || false

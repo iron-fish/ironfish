@@ -4,6 +4,7 @@
 import bufio from 'bufio'
 import { SerializedTransaction } from '../../primitives/transaction'
 import { NetworkMessageType } from '../types'
+import { getTransactionSize, readTransaction, writeTransaction } from '../utils/serializers'
 import { GossipNetworkMessage } from './gossipNetworkMessage'
 
 export class NewTransactionMessage extends GossipNetworkMessage {
@@ -16,17 +17,17 @@ export class NewTransactionMessage extends GossipNetworkMessage {
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    bw.writeVarBytes(this.transaction)
+    writeTransaction(bw, this.transaction)
     return bw.render()
   }
 
   static deserialize(buffer: Buffer, nonce: Buffer): NewTransactionMessage {
     const reader = bufio.read(buffer, true)
-    const transaction = reader.readVarBytes()
+    const transaction = readTransaction(reader)
     return new NewTransactionMessage(transaction, nonce)
   }
 
   getSize(): number {
-    return bufio.sizeVarBytes(this.transaction)
+    return getTransactionSize(this.transaction)
   }
 }

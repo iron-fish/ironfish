@@ -3,14 +3,18 @@ on:
     paths:
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
+      - "ironfish-zkp/**"
       - "rust-toolchain"
+      - ".github/workflows/rust_ci.yml"
   push:
     branches:
       - master
     paths:
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
+      - "ironfish-zkp/**"
       - "rust-toolchain"
+      - ".github/workflows/rust_ci.yml"
 
 name: Rust CI
 
@@ -19,25 +23,21 @@ jobs:
     name: ironfish-rust
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
           components: rustfmt, clippy
 
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
-          sharedKey: base
-          working-directory: ironfish-rust
-
-      - name: Check for license headers
-        run: ./ci/lintHeaders.sh ./ironfish-rust/src *.rs
+          shared-key: base
 
       # Build & Run test & Collect Code coverage
       - name: Run cargo-tarpaulin on ironfish-rust
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: "0.20.0"
+          version: "0.22.0"
           args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust/Cargo.toml --release -- --test-threads 1
 
       # Upload code coverage to Codecov
@@ -46,6 +46,9 @@ jobs:
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           flags: ironfish-rust
+
+      - name: Check for license headers
+        run: ./ci/lintHeaders.sh ./ironfish-rust/src *.rs
 
       # fmt
       - uses: actions-rs/cargo@v1
@@ -65,32 +68,25 @@ jobs:
     name: ironfish-rust-nodejs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
           components: rustfmt, clippy
 
       - name: Cache Rust
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
         with:
-          sharedKey: nodejs
-          working-directory: ironfish-rust-nodejs
+          shared-key: nodejs
+
+      # Check
+      - name: Run cargo check on ironfish-rust-nodejs
+        uses: actions-rs/cargo@v1
+        with:
+          command: "check"
+          args: --manifest-path ironfish-rust-nodejs/Cargo.toml
 
       - name: Check for license headers
         run: ./ci/lintHeaders.sh ./ironfish-rust-nodejs/src *.rs
-
-      # Build & Run test & Collect Code coverage
-      - name: Run cargo-tarpaulin on ironfish-rust-nodejs
-        uses: actions-rs/tarpaulin@v0.1
-        with:
-          version: "0.20.0"
-          args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust-nodejs/Cargo.toml --release -- --test-threads 1
-
-      # upload code coverage to Codecov
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v2.1.0
-        with:
-          flags: ironfish-rust-nodejs
 
       # fmt
       - uses: actions-rs/cargo@v1
@@ -105,3 +101,45 @@ jobs:
         with:
           command: clippy
           args: --manifest-path ironfish-rust-nodejs/Cargo.toml -- -D warnings
+
+  ironfish_zkp:
+    name: ironfish-zkp
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: zkp
+
+      # Build & Run test & Collect Code coverage
+      - name: Run cargo-tarpaulin on ironfish-zkp
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: "0.22.0"
+          args: --avoid-cfg-tarpaulin --manifest-path ironfish-zkp/Cargo.toml --release -- --test-threads 1
+
+      # Upload code coverage to Codecov
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          flags: ironfish-zkp
+
+      # fmt
+      - uses: actions-rs/cargo@v1
+        name: "`cargo fmt` check on ironfish-zkp"
+        with:
+          command: fmt
+          args: --manifest-path ironfish-zkp/Cargo.toml --all -- --check
+
+      # clippy
+      - uses: actions-rs/cargo@v1
+        name: "Clippy check on ironfish-zkp"
+        with:
+          command: clippy
+          args: --manifest-path ironfish-zkp/Cargo.toml -- -D warnings

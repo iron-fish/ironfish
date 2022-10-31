@@ -65,7 +65,17 @@ export const GRAFFITI_SIZE = 32
  */
 export const IRON_FISH_YEAR_IN_BLOCKS = (365 * 24 * 60 * 60) / TARGET_BLOCK_TIME_IN_SECONDS
 
+/**
+ * Max transactions allowed per block
+ */
+export const MAX_TRANSACTIONS_PER_BLOCK = 301
+
 export class ConsensusParameters {
+  /**
+   * Max block size = 2 MB
+   */
+  MAX_BLOCK_SIZE_BYTES = 2000000
+
   /**
    * Before upgrade V1 we had double spends. At this block we do a double spend
    * check to disallow it.
@@ -73,6 +83,14 @@ export class ConsensusParameters {
    * TODO: remove this sequence check before mainnet
    */
   V1_DOUBLE_SPEND = 0
+
+  /**
+   * Before upgrade V2 we didn't enforce max block size.
+   * At this block we check that the block size doesn't exceed MAX_BLOCK_SIZE_BYTES.
+   *
+   * TODO: remove this sequence check before mainnet
+   */
+  V2_MAX_BLOCK_SIZE = 0
 
   isActive(upgrade: number, sequence: number): boolean {
     return sequence >= upgrade
@@ -83,5 +101,6 @@ export class TestnetParameters extends ConsensusParameters {
   constructor() {
     super()
     this.V1_DOUBLE_SPEND = 204000
+    this.V2_MAX_BLOCK_SIZE = 252000
   }
 }

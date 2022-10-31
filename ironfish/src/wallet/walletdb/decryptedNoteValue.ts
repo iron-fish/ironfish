@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { DECRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { Note, NOTE_LENGTH } from '../../primitives/note'
+import { Note } from '../../primitives/note'
 import { IDatabaseEncoding } from '../../storage'
 
 export interface DecryptedNoteValue {
@@ -49,7 +50,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
     const spent = Boolean(flags & (1 << 2))
 
     const accountId = reader.readVarString()
-    const serializedNote = reader.readBytes(NOTE_LENGTH)
+    const serializedNote = reader.readBytes(DECRYPTED_NOTE_LENGTH)
     const transactionHash = reader.readHash()
 
     let index = null
@@ -70,7 +71,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
   getSize(value: DecryptedNoteValue): number {
     let size = 1
     size += bufio.sizeVarString(value.accountId)
-    size += NOTE_LENGTH
+    size += DECRYPTED_NOTE_LENGTH
 
     // transaction hash
     size += 32

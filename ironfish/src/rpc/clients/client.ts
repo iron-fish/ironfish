@@ -9,6 +9,8 @@ import {
   BlockTemplateStreamResponse,
   CreateAccountRequest,
   CreateAccountResponse,
+  EstimateFeeRequest,
+  EstimateFeeResponse,
   GetAccountNotesStreamRequest,
   GetAccountNotesStreamResponse,
   GetAccountsRequest,
@@ -59,6 +61,7 @@ import {
   UseAccountResponse,
 } from '../routes'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/accounts/exportAccount'
+import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/accounts/getStatus'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/accounts/importAccount'
 import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/accounts/removeAccount'
 import { RescanAccountRequest, RescanAccountResponse } from '../routes/accounts/rescanAccount'
@@ -71,6 +74,10 @@ import {
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
+import {
+  EstimateFeeRatesRequest,
+  EstimateFeeRatesResponse,
+} from '../routes/fees/estimateFeeRates'
 import {
   ExportMinedStreamRequest,
   ExportMinedStreamResponse,
@@ -215,6 +222,15 @@ export abstract class RpcClient {
     )
   }
 
+  async getAccountsStatus(
+    params: GetAccountStatusRequest,
+  ): Promise<RpcResponseEnded<GetAccountStatusResponse>> {
+    return this.request<GetAccountStatusResponse>(
+      `${ApiNamespace.account}/getAccountsStatus`,
+      params,
+    ).waitForEnd()
+  }
+
   async getAccountTransaction(
     params: GetAccountTransactionRequest,
   ): Promise<RpcResponseEnded<GetAccountTransactionResponse>> {
@@ -352,6 +368,24 @@ export abstract class RpcClient {
   async getFunds(params: GetFundsRequest): Promise<RpcResponseEnded<GetFundsResponse>> {
     return this.request<GetFundsResponse>(
       `${ApiNamespace.faucet}/getFunds`,
+      params,
+    ).waitForEnd()
+  }
+
+  async estimateFeeRates(
+    params: EstimateFeeRatesRequest,
+  ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> {
+    return this.request<EstimateFeeRatesResponse>(
+      `${ApiNamespace.fees}/estimateFeeRates`,
+      params,
+    ).waitForEnd()
+  }
+
+  async estimateFee(
+    params: EstimateFeeRequest,
+  ): Promise<RpcResponseEnded<EstimateFeeResponse>> {
+    return this.request<EstimateFeeResponse>(
+      `${ApiNamespace.fees}/estimateFee`,
       params,
     ).waitForEnd()
   }

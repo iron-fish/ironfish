@@ -7,6 +7,7 @@ import { Blockchain } from './blockchain'
 import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from './consensus'
 import { createRootLogger, Logger } from './logger'
 import { Meter, MetricsMonitor } from './metrics'
+import { RollingAverage } from './metrics/rollingAverage'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { Block, BlockSerde, SerializedBlock } from './primitives/block'
@@ -30,6 +31,7 @@ export class Syncer {
   readonly telemetry: Telemetry
   readonly logger: Logger
   readonly speed: Meter
+  readonly downloadSpeed: RollingAverage
 
   state: 'stopped' | 'idle' | 'stopping' | 'syncing'
   stopping: Promise<void> | null
@@ -56,6 +58,7 @@ export class Syncer {
 
     this.state = 'stopped'
     this.speed = this.metrics.addMeter()
+    this.downloadSpeed = new RollingAverage(5)
     this.stopping = null
     this.eventLoopTimeout = null
 
@@ -355,11 +358,16 @@ export class Syncer {
         )} (${sequence}) from ${peer.displayName}`,
       )
 
+      const start = BenchUtils.start()
+
       const [headBlock, ...blocks]: SerializedBlock[] = await this.peerNetwork.getBlocks(
         peer,
         head,
         this.blocksPerMessage + 1,
       )
+
+      const elapsedSeconds = BenchUtils.end(start) / 1000
+      this.downloadSpeed.add(blocks.length + 1 / elapsedSeconds)
 
       if (!headBlock) {
         peer.punish(BAN_SCORE.MAX, 'empty GetBlocks message')

@@ -59,7 +59,7 @@ describe('Create genesis block', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
-    const amountNumber = 5
+    const amountNumber = 5n
     const amountBigint = BigInt(amountNumber)
 
     // Construct parameters for the genesis block

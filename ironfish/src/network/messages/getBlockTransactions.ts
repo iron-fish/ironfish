@@ -1,8 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import bufio, { sizeVarBytes, sizeVarint } from 'bufio'
+import bufio, { sizeVarint } from 'bufio'
+import { SerializedTransaction } from '../../primitives/transaction'
 import { NetworkMessageType } from '../types'
+import { getTransactionSize, readTransaction, writeTransaction } from '../utils/serializers'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
 
 export class GetBlockTransactionsRequest extends RpcNetworkMessage {
@@ -54,7 +56,7 @@ export class GetBlockTransactionsRequest extends RpcNetworkMessage {
 
 export class GetBlockTransactionsResponse extends RpcNetworkMessage {
   readonly blockHash: Buffer
-  readonly serializedTransactions: Buffer[]
+  readonly serializedTransactions: SerializedTransaction[]
 
   constructor(blockHash: Buffer, serializedTransactions: Buffer[], rpcId: number) {
     super(NetworkMessageType.GetBlockTransactionsResponse, Direction.Response, rpcId)
@@ -68,7 +70,7 @@ export class GetBlockTransactionsResponse extends RpcNetworkMessage {
 
     bw.writeVarint(this.serializedTransactions.length)
     for (const serializedTransaction of this.serializedTransactions) {
-      bw.writeVarBytes(serializedTransaction)
+      writeTransaction(bw, serializedTransaction)
     }
 
     return bw.render()
@@ -79,9 +81,9 @@ export class GetBlockTransactionsResponse extends RpcNetworkMessage {
     const blockHash = reader.readHash()
 
     const serializedTransactionsLength = reader.readVarint()
-    const serializedTransactions = []
+    const serializedTransactions: SerializedTransaction[] = []
     for (let i = 0; i < serializedTransactionsLength; i++) {
-      serializedTransactions.push(reader.readVarBytes())
+      serializedTransactions.push(readTransaction(reader))
     }
 
     return new GetBlockTransactionsResponse(blockHash, serializedTransactions, rpcId)
@@ -92,7 +94,7 @@ export class GetBlockTransactionsResponse extends RpcNetworkMessage {
     size += 32
     size += sizeVarint(this.serializedTransactions.length)
     for (const serializedTransaction of this.serializedTransactions) {
-      size += sizeVarBytes(serializedTransaction)
+      size += getTransactionSize(serializedTransaction)
     }
     return size
   }

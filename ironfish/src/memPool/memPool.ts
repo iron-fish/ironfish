@@ -7,8 +7,10 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
+import { getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
+import { FeeEstimator } from './feeEstimator'
 import { PriorityQueue } from './priorityQueue'
 
 interface MempoolEntry {
@@ -26,8 +28,6 @@ export class MemPool {
   /* Keep track of number of bytes stored in the transaction map */
   private transactionsBytes = 0
   private readonly nullifiers = new BufferMap<Buffer>()
-  /* Keep track of number of bytes stored in the nullifiers map */
-  private nullifiersBytes = 0
 
   private readonly queue: PriorityQueue<MempoolEntry>
   private readonly expirationQueue: PriorityQueue<ExpirationMempoolEntry>
@@ -38,7 +38,14 @@ export class MemPool {
   private readonly logger: Logger
   private readonly metrics: MetricsMonitor
 
-  constructor(options: { chain: Blockchain; metrics: MetricsMonitor; logger?: Logger }) {
+  readonly feeEstimator: FeeEstimator
+
+  constructor(options: {
+    chain: Blockchain
+    feeEstimator: FeeEstimator
+    metrics: MetricsMonitor
+    logger?: Logger
+  }) {
     const logger = options.logger || createRootLogger()
 
     this.head = null
@@ -62,22 +69,25 @@ export class MemPool {
     this.logger = logger.withTag('mempool')
     this.metrics = options.metrics
 
+    this.feeEstimator = options.feeEstimator
+
     this.chain.onConnectBlock.on((block) => {
+      this.feeEstimator.onConnectBlock(block, this)
       this.onConnectBlock(block)
     })
 
     this.chain.onDisconnectBlock.on(async (block) => {
+      this.feeEstimator.onDisconnectBlock(block)
       await this.onDisconnectBlock(block)
     })
   }
 
-  size(): number {
+  count(): number {
     return this.transactions.size
   }
 
   sizeBytes(): number {
-    const queueSize = this.queue.size() * (32 + 8) // estimate the queue size hash (32b) fee (8b)
-    return this.transactionsBytes + this.nullifiersBytes + queueSize
+    return this.transactionsBytes
   }
 
   exists(hash: TransactionHash): boolean {
@@ -152,7 +162,7 @@ export class MemPool {
 
     this.addTransaction(transaction)
 
-    this.logger.debug(`Accepted tx ${hash}, poolsize ${this.size()}`)
+    this.logger.debug(`Accepted tx ${hash}, poolsize ${this.count()}`)
     return true
   }
 
@@ -221,18 +231,17 @@ export class MemPool {
     }
 
     this.transactions.set(hash, transaction)
-    this.transactionsBytes += transaction.serialize().byteLength + hash.byteLength
+    this.transactionsBytes += getTransactionSize(transaction.serialize())
 
     for (const spend of transaction.spends()) {
       if (!this.nullifiers.has(spend.nullifier)) {
         this.nullifiers.set(spend.nullifier, hash)
-        this.nullifiersBytes += spend.nullifier.byteLength + hash.byteLength
       }
     }
 
     this.queue.add({ fee: transaction.fee(), hash })
     this.expirationQueue.add({ expirationSequence: transaction.expirationSequence(), hash })
-    this.metrics.memPoolSize.value = this.size()
+    this.metrics.memPoolSize.value = this.count()
     return true
   }
 
@@ -244,18 +253,16 @@ export class MemPool {
       return false
     }
 
-    this.transactionsBytes -= transaction.serialize().byteLength + hash.byteLength
+    this.transactionsBytes -= getTransactionSize(transaction.serialize())
 
     for (const spend of transaction.spends()) {
-      if (this.nullifiers.delete(spend.nullifier)) {
-        this.nullifiersBytes -= spend.nullifier.byteLength + hash.byteLength
-      }
+      this.nullifiers.delete(spend.nullifier)
     }
 
     this.queue.remove(hash.toString('hex'))
     this.expirationQueue.remove(hash.toString('hex'))
 
-    this.metrics.memPoolSize.value = this.size()
+    this.metrics.memPoolSize.value = this.count()
     return true
   }
 }

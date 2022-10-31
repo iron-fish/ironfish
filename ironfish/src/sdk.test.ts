@@ -8,7 +8,6 @@ import { IronfishNode } from './node'
 import { Platform } from './platform'
 import {
   ALL_API_NAMESPACES,
-  API_NAMESPACES_PROTECTED,
   RpcClient,
   RpcIpcAdapter,
   RpcMemoryClient,
@@ -120,7 +119,6 @@ describe('IronfishSdk', () => {
         const sdk = await IronfishSdk.init({
           configOverrides: {
             enableRpcTcp: true,
-            rpcTcpSecure: true,
           },
         })
 
@@ -152,34 +150,12 @@ describe('IronfishSdk', () => {
       expect(ipc?.namespaces).toEqual(ALL_API_NAMESPACES)
     })
 
-    it('should use secure RPC namespaces for TCP', async () => {
+    it('should use all RPC namespaces for TCP', async () => {
       const sdk = await IronfishSdk.init({
         dataDir: os.tmpdir(),
         configOverrides: {
           enableRpcTcp: true,
           enableRpcTls: false,
-        },
-      })
-
-      const node = await sdk.node()
-      const tcp = node.rpc.adapters.find<RpcTcpAdapter>(
-        (a): a is RpcTcpAdapter => a instanceof RpcTcpAdapter,
-      )
-
-      const allowedNamespaces = ALL_API_NAMESPACES.filter(
-        (namespace) => !API_NAMESPACES_PROTECTED.includes(namespace),
-      )
-
-      expect(tcp?.namespaces.sort()).toMatchObject(allowedNamespaces.sort())
-    })
-
-    it('should use all RPC namespaces for TCP with rpcTcpSecure flag', async () => {
-      const sdk = await IronfishSdk.init({
-        dataDir: os.tmpdir(),
-        configOverrides: {
-          enableRpcTcp: true,
-          enableRpcTls: false,
-          rpcTcpSecure: true,
         },
       })
 

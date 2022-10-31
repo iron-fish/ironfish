@@ -1,0 +1,16 @@
+[workspace]
+
+members = [
+    "ironfish-rust",
+    "ironfish-rust-nodejs",
+    "ironfish-zkp",
+]
+
+[workspace.package]
+authors = ["Iron Fish <contact@ironfish.network> (https://ironfish.network)"]
+edition = "2021"
+
+[patch.crates-io]
+bellman = { git = "https://github.com/iron-fish/bellman", rev = "1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec" }
+napi = { git = "https://github.com/napi-rs/napi-rs", rev = "26f6c926d30de744146fe54db6a6b399e142e63c" }
+napi-derive-backend = { git = "https://github.com/napi-rs/napi-rs", rev = "26f6c926d30de744146fe54db6a6b399e142e63c" }

@@ -48,7 +48,7 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
     const balance = await node.wallet.getBalance(account, { minimumBlockConfirmations })
 
     request.end({
-      account: account.displayName,
+      account: account.name,
       confirmed: balance.confirmed.toString(),
       pending: balance.pending.toString(),
       pendingCount: balance.pendingCount,

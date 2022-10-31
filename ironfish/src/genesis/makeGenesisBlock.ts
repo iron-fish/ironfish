@@ -21,7 +21,7 @@ export type GenesisBlockInfo = {
   target: Target
   allocations: {
     publicAddress: string
-    amount: number
+    amount: bigint
   }[]
 }
 
@@ -41,7 +41,7 @@ export async function makeGenesisBlock(
     throw new Error('Database must be empty to create a genesis block.')
   }
   // Sum the allocations to get the total number of coins
-  const allocationSum = info.allocations.reduce((sum, cur) => sum + cur.amount, 0)
+  const allocationSum = info.allocations.reduce((sum, cur) => sum + cur.amount, 0n)
 
   // Track all of the transactions that will be added to the genesis block
   const transactionList = []
@@ -50,11 +50,7 @@ export async function makeGenesisBlock(
   // It should end up with 0 coins.
   const genesisKey = generateKey()
   // Create a genesis note granting the genesisKey allocationSum coins.
-  const genesisNote = new NativeNote(
-    genesisKey.public_address,
-    BigInt(allocationSum),
-    info.memo,
-  )
+  const genesisNote = new NativeNote(genesisKey.public_address, allocationSum, info.memo)
 
   // Create a miner's fee transaction for the block.
   // Since the block itself generates coins and we don't want the miner account to gain
@@ -65,8 +61,8 @@ export async function makeGenesisBlock(
   logger.info(`Generating a miner's fee transaction for the block...`)
   const note = new NativeNote(account.publicAddress, BigInt(0), '')
 
-  const minersFeeTransaction = new NativeTransaction()
-  minersFeeTransaction.receive(account.spendingKey, note)
+  const minersFeeTransaction = new NativeTransaction(account.spendingKey)
+  minersFeeTransaction.receive(note)
   const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
 
   /**
@@ -76,10 +72,10 @@ export async function makeGenesisBlock(
    *
    */
   logger.info(`Generating an initial transaction with ${allocationSum} coins...`)
-  const initialTransaction = new NativeTransaction()
+  const initialTransaction = new NativeTransaction(genesisKey.spending_key)
 
-  logger.info('  Generating the receipt...')
-  initialTransaction.receive(genesisKey.spending_key, genesisNote)
+  logger.info('  Generating the output...')
+  initialTransaction.receive(genesisNote)
 
   logger.info('  Posting the initial transaction...')
   const postedInitialTransaction = new Transaction(initialTransaction.post_miners_fee())
@@ -112,22 +108,20 @@ export async function makeGenesisBlock(
    *
    */
   logger.info('Generating a transaction for distributing allocations...')
-  const transaction = new NativeTransaction()
+  const transaction = new NativeTransaction(genesisKey.spending_key)
   logger.info(`  Generating a spend for ${allocationSum} coins...`)
-  transaction.spend(genesisKey.spending_key, genesisNote, witness)
+  transaction.spend(genesisNote, witness)
 
   for (const alloc of info.allocations) {
     logger.info(
-      `  Generating a receipt for ${alloc.amount} coins for ${alloc.publicAddress}...`,
+      `  Generating an output for ${alloc.amount} coins for ${alloc.publicAddress}...`,
     )
     const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), info.memo)
-    transaction.receive(genesisKey.spending_key, note)
+    transaction.receive(note)
   }
 
   logger.info('  Posting the transaction...')
-  const postedTransaction = new Transaction(
-    transaction.post(genesisKey.spending_key, undefined, BigInt(0)),
-  )
+  const postedTransaction = new Transaction(transaction.post(undefined, BigInt(0)))
   transactionList.push(postedTransaction)
 
   /**
