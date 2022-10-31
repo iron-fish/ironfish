@@ -8,7 +8,7 @@ use super::{
     keys::{PublicAddress, SaplingKey},
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
-    outputs::{OutputParams, OutputProof},
+    outputs::{OutputDescription, OutputParams},
     spending::{SpendParams, SpendProof},
     witness::WitnessTrait,
 };
@@ -302,7 +302,7 @@ pub struct Transaction {
     spends: Vec<SpendProof>,
 
     /// List of outputs, or output notes that have been created.
-    outputs: Vec<OutputProof>,
+    outputs: Vec<OutputDescription>,
 
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
@@ -331,7 +331,7 @@ impl Transaction {
 
         let mut outputs = Vec::with_capacity(num_outputs as usize);
         for _ in 0..num_outputs {
-            outputs.push(OutputProof::read(&mut reader)?);
+            outputs.push(OutputDescription::read(&mut reader)?);
         }
 
         let binding_signature = Signature::read(&mut reader)?;
@@ -387,11 +387,11 @@ impl Transaction {
     }
 
     /// Get an iterator over the outputs in this transaction, by reference
-    pub fn iter_outputs(&self) -> Iter<OutputProof> {
+    pub fn iter_outputs(&self) -> Iter<OutputDescription> {
         self.outputs.iter()
     }
 
-    pub fn outputs(&self) -> &Vec<OutputProof> {
+    pub fn outputs(&self) -> &Vec<OutputDescription> {
         &self.outputs
     }
 
