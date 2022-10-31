@@ -48,9 +48,11 @@ export class Pay extends IronfishCommand {
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
     }),
     priority: Flags.string({
+      default: 'medium', 
       char: 'p',
       description:
-        'The priority level for transaction fee estimation. The possible values are low, medium and high.',
+        'The priority level for transaction fee estimation.',
+      options: ['low', 'medium', 'high'],
     }),
   }
 
@@ -137,7 +139,7 @@ export class Pay extends IronfishCommand {
     }
 
     if (fee == null) {
-      let suggestedFees = ''
+      let suggestedFee = ''
       try {
         const response = await client.estimateFee({
           fromAccountName: from,
@@ -152,24 +154,25 @@ export class Pay extends IronfishCommand {
 
         switch (flags.priority) {
           case 'low':
-            suggestedFees = CurrencyUtils.renderIron(response.content.low)
+            suggestedFee = CurrencyUtils.renderIron(response.content.low)
             break
           case 'high':
-            suggestedFees = CurrencyUtils.renderIron(response.content.high)
+            suggestedFee = CurrencyUtils.renderIron(response.content.high)
             break
           default:
-            suggestedFees = CurrencyUtils.renderIron(response.content.medium)
+            suggestedFee = CurrencyUtils.renderIron(response.content.medium)
         }
       } catch {
-        suggestedFees = ''
+        suggestedFee = ''
       }
 
       const input = (await CliUx.ux.prompt(
         `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(
           1n,
-        )})\nrecommended: ${suggestedFees}`,
+        )} recommended: ${suggestedFee})`,
         {
           required: true,
+          default: suggestedFee,
         },
       )) as string
 
