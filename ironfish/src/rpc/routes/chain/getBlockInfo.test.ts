@@ -72,13 +72,13 @@ describe('Route chain/getBlockInfo', () => {
 
     //Find block matching sequence
     response = await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search : '-3' })
+      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search : '-1' })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
         block: {
-          hash: hash0,
-          sequence: 1,
+          hash: hash2,
+          sequence: 3,
         },
     })
 
