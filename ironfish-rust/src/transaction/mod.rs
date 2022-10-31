@@ -205,7 +205,7 @@ impl ProposedTransaction {
         }
         Ok(Transaction {
             expiration_sequence: self.expiration_sequence,
-            transaction_fee: self.transaction_fee,
+            fee: self.transaction_fee,
             spends: spend_proofs,
             outputs: output_proofs,
             binding_signature,
@@ -296,7 +296,7 @@ impl ProposedTransaction {
 #[derive(Clone)]
 pub struct Transaction {
     /// The balance of total spends - outputs, which is the amount that the miner gets to keep
-    transaction_fee: i64,
+    fee: i64,
 
     /// List of spends, or input notes, that have been destroyed.
     spends: Vec<SpendProof>,
@@ -321,7 +321,7 @@ impl Transaction {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_outputs = reader.read_u64::<LittleEndian>()?;
-        let transaction_fee = reader.read_i64::<LittleEndian>()?;
+        let fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
 
         let mut spends = Vec::with_capacity(num_spends as usize);
@@ -337,7 +337,7 @@ impl Transaction {
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(Transaction {
-            transaction_fee,
+            fee,
             spends,
             outputs,
             binding_signature,
@@ -350,7 +350,7 @@ impl Transaction {
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
-        writer.write_i64::<LittleEndian>(self.transaction_fee)?;
+        writer.write_i64::<LittleEndian>(self.fee)?;
         writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
 
         for spend in self.spends.iter() {
@@ -398,8 +398,8 @@ impl Transaction {
     /// Get the transaction fee for this transaction. Miners should generally
     /// expect this to be positive (or they would lose money mining it!).
     /// The miners_fee transaction would be a special case.
-    pub fn transaction_fee(&self) -> i64 {
-        self.transaction_fee
+    pub fn fee(&self) -> i64 {
+        self.fee
     }
 
     /// Get the transaction signature for this transaction.
@@ -424,9 +424,7 @@ impl Transaction {
         hasher
             .write_u32::<LittleEndian>(self.expiration_sequence)
             .unwrap();
-        hasher
-            .write_i64::<LittleEndian>(self.transaction_fee)
-            .unwrap();
+        hasher.write_i64::<LittleEndian>(self.fee).unwrap();
         for spend in self.spends.iter() {
             spend.serialize_signature_fields(&mut hasher).unwrap();
         }
@@ -445,7 +443,7 @@ impl Transaction {
         &self,
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), IronfishError> {
-        let value_balance_point = value_balance_to_point(self.transaction_fee)?;
+        let value_balance_point = value_balance_to_point(self.fee)?;
 
         let public_key_point = binding_verification_key - value_balance_point;
         let public_key = PublicKey(public_key_point);

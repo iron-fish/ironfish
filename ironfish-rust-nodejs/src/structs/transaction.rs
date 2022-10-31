@@ -111,7 +111,7 @@ impl NativeTransactionPosted {
 
     #[napi]
     pub fn fee(&self) -> i64n {
-        i64n(self.transaction.transaction_fee())
+        i64n(self.transaction.fee())
     }
 
     #[napi]
