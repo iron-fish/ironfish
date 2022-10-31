@@ -1172,7 +1172,7 @@ export class Wallet {
             'hex',
           )}. This account needs to be rescanned.`,
         )
-        await this.walletDb.saveHeadHash(account, null)
+        await this.updateHeadHash(account, null)
         continue
       }
 
@@ -1202,7 +1202,7 @@ export class Wallet {
             'hex',
           )}. This account needs to be rescanned.`,
         )
-        await this.walletDb.saveHeadHash(account, null)
+        await this.updateHeadHash(account, null)
         continue
       }
 
