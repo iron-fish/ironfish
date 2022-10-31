@@ -1187,16 +1187,24 @@ export class Wallet {
   async getLatestHeadHash(): Promise<Buffer | null> {
     let latestHeader = null
 
-    for (const headHash of this.headHashes.values()) {
+    for (const account of this.accounts.values()) {
+      const headHash = this.headHashes.get(account.id)
+
       if (!headHash) {
         continue
       }
 
       const header = await this.chain.getHeader(headHash)
-      Assert.isNotNull(
-        header,
-        `getLatestHeadHash: No header found for ${headHash.toString('hex')}`,
-      )
+
+      if (!header) {
+        this.logger.warn(
+          `${account.displayName} has an invalid head hash ${headHash.toString(
+            'hex',
+          )}. This account needs to be rescanned.`,
+        )
+        await this.walletDb.saveHeadHash(account, null)
+        continue
+      }
 
       if (!latestHeader || latestHeader.sequence < header.sequence) {
         latestHeader = header
