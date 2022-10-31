@@ -7,7 +7,7 @@ import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
-import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
+import { getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { FeeEstimator, getFeeRate } from './feeEstimator'
@@ -128,15 +128,6 @@ export class MemPool {
   acceptTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash().toString('hex')
     const sequence = transaction.expirationSequence()
-
-    if (
-      getTransactionSize(transaction.serialize()) >
-      this.chain.consensus.MAX_BLOCK_SIZE_BYTES - getBlockWithMinersFeeSize()
-    ) {
-      this.logger.debug(`Invalid transaction '${hash}': larger than max transaction size`)
-      return false
-    }
-
     if (this.exists(transaction.hash())) {
       return false
     }
