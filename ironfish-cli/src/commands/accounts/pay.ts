@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 import { CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
@@ -47,6 +46,12 @@ export class Pay extends IronfishCommand {
       char: 'e',
       description:
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
+    }),
+    priority: Flags.string({
+      default: 'medium',
+      char: 'p',
+      description: 'The priority level for transaction fee estimation.',
+      options: ['low', 'medium', 'high'],
     }),
   }
 
@@ -103,45 +108,6 @@ export class Pay extends IronfishCommand {
       fee = CurrencyUtils.decodeIron(flags.fee)
     }
 
-    if (fee == null) {
-      let dynamicFee: bigint | null
-      try {
-        const response = await client.getFees({ numOfBlocks: 100 })
-        dynamicFee = CurrencyUtils.decode(response.content.p25)
-      } catch {
-        dynamicFee = null
-      }
-
-      const input = (await CliUx.ux.prompt(
-        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)}${
-          dynamicFee ? `, recommended: ${dynamicFee}` : ''
-        })`,
-        {
-          required: true,
-        },
-      )) as string
-
-      if (!CurrencyUtils.isValidIron(input)) {
-        this.error(`A valid amount is required`)
-      }
-
-      fee = CurrencyUtils.decodeIron(input)
-    }
-
-    if (fee < 1n) {
-      this.error(`The minimum fee is ${CurrencyUtils.renderOre(1n, true)}`)
-    }
-
-    if (!to) {
-      to = (await CliUx.ux.prompt('Enter the the public address of the recipient', {
-        required: true,
-      })) as string
-
-      if (!isValidPublicAddress(to)) {
-        this.error(`A valid public address is required`)
-      }
-    }
-
     if (!from) {
       const response = await client.getDefaultAccount()
       const defaultAccount = response.content.account
@@ -156,9 +122,68 @@ export class Pay extends IronfishCommand {
       from = defaultAccount.name
     }
 
+    if (!to) {
+      to = (await CliUx.ux.prompt('Enter the the public address of the recipient', {
+        required: true,
+      })) as string
+
+      if (!isValidPublicAddress(to)) {
+        this.error(`A valid public address is required`)
+      }
+    }
+
     if (!isValidPublicAddress(to)) {
       this.log(`A valid public address is required`)
       this.exit(1)
+    }
+
+    if (fee == null) {
+      let suggestedFee = ''
+      try {
+        const response = await client.estimateFee({
+          fromAccountName: from,
+          receives: [
+            {
+              publicAddress: to,
+              amount: CurrencyUtils.encode(amount),
+              memo: memo,
+            },
+          ],
+        })
+
+        switch (flags.priority) {
+          case 'low':
+            suggestedFee = CurrencyUtils.renderIron(response.content.low)
+            break
+          case 'high':
+            suggestedFee = CurrencyUtils.renderIron(response.content.high)
+            break
+          default:
+            suggestedFee = CurrencyUtils.renderIron(response.content.medium)
+        }
+      } catch {
+        suggestedFee = ''
+      }
+
+      const input = (await CliUx.ux.prompt(
+        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(
+          1n,
+        )} recommended: ${suggestedFee})`,
+        {
+          required: true,
+          default: suggestedFee,
+        },
+      )) as string
+
+      if (!CurrencyUtils.isValidIron(input)) {
+        this.error(`A valid amount is required`)
+      }
+
+      fee = CurrencyUtils.decodeIron(input)
+    }
+
+    if (fee < 1n) {
+      this.error(`The minimum fee is ${CurrencyUtils.renderOre(1n, true)}`)
     }
 
     if (expirationSequence !== undefined && expirationSequence < 0) {
