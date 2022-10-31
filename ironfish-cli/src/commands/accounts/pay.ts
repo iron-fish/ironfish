@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ConfigOptions, CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
+import { CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -46,6 +46,11 @@ export class Pay extends IronfishCommand {
       char: 'e',
       description:
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
+    }),
+    priority: Flags.string({
+      char: 'p',
+      description:
+        'The priority level for transaction fee estimation. The possible values are low, medium and high.',
     }),
   }
 
@@ -145,27 +150,16 @@ export class Pay extends IronfishCommand {
           ],
         })
 
-        const config = await client.getConfig({})
-
-        const low = 'feeEstimatorPercentileLow' as keyof Partial<ConfigOptions>
-        const medium = 'feeEstimatorPercentileMedium' as keyof Partial<ConfigOptions>
-        const high = 'feeEstimatorPercentileHigh' as keyof Partial<ConfigOptions>
-
-        suggestedFees = suggestedFees.concat(
-          `  low (*among ${JSON.stringify(
-            config.content[low] || '10', 
-          )}% of recent transactions): ${CurrencyUtils.renderIron(response.content.low)}\n`,
-        )
-        suggestedFees = suggestedFees.concat(
-          `  medium (*among ${JSON.stringify(
-            config.content[medium] || '20',
-          )}% of recent transactions): ${CurrencyUtils.renderIron(response.content.medium)}\n`,
-        )
-        suggestedFees = suggestedFees.concat(
-          `  high (*among ${JSON.stringify(
-            config.content[high] || '30',
-          )}% of recent transactions): ${CurrencyUtils.renderIron(response.content.high)}\n`,
-        )
+        switch (flags.priority || 'medium') {
+          case 'low':
+            suggestedFees = CurrencyUtils.renderIron(response.content.low)
+            break
+          case 'high':
+            suggestedFees = CurrencyUtils.renderIron(response.content.high)
+            break
+          default:
+            suggestedFees = CurrencyUtils.renderIron(response.content.medium)
+        }
       } catch {
         suggestedFees = ''
       }
@@ -173,7 +167,7 @@ export class Pay extends IronfishCommand {
       const input = (await CliUx.ux.prompt(
         `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(
           1n,
-        )})\nrecommended:\n${suggestedFees}`,
+        )})\nrecommended:${suggestedFees}`,
         {
           required: true,
         },
