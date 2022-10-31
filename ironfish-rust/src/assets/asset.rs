@@ -8,10 +8,7 @@ use crate::{
     PublicAddress,
 };
 use blake2s_simd::Params as Blake2sParams;
-use ff::PrimeField;
-use group::{cofactor::CofactorGroup, Group, GroupEncoding};
-use ironfish_zkp::constants::{GH_FIRST_BLOCK, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION};
-use jubjub::ExtendedPoint;
+use ironfish_zkp::{constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, group_hash};
 use std::slice::from_ref;
 
 #[allow(dead_code)]
@@ -82,7 +79,6 @@ impl Asset {
             .hash_length(ASSET_IDENTIFIER_LENGTH)
             .personal(ASSET_IDENTIFIER_PERSONALIZATION)
             .to_state()
-            .update(GH_FIRST_BLOCK)
             .update(&owner.public_address())
             .update(&name)
             .update(&chain)
@@ -90,8 +86,8 @@ impl Asset {
             .update(from_ref(&nonce))
             .finalize();
 
-        // If the hash state is a valid asset identifier, use it
-        if Self::hash_to_point(h.as_array()).is_some() {
+        // Check that this is valid as a value commitment generator point
+        if group_hash(h.as_bytes(), VALUE_COMMITMENT_GENERATOR_PERSONALIZATION).is_some() {
             Ok(Asset {
                 owner,
                 name,
@@ -102,44 +98,6 @@ impl Asset {
             })
         } else {
             Err(IronfishError::InvalidAssetIdentifier)
-        }
-    }
-
-    #[allow(dead_code)]
-    fn hash_to_point(identifier: &AssetIdentifier) -> Option<jubjub::ExtendedPoint> {
-        // Check the personalization is acceptable length
-        assert_eq!(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION.len(), 8);
-
-        // Check to see that scalar field is 255 bits
-        use ff::PrimeField;
-        assert_eq!(bls12_381::Scalar::NUM_BITS, 255);
-
-        // TODO: Is it correct that this uses VALUE_COMMITMENT_GENERATOR_PERSONALIZATION?
-        // Should this use it's own personalization? Is this only used for this? Should
-        // it be named something else, then?
-        let h = Blake2sParams::new()
-            .hash_length(32)
-            .personal(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
-            .to_state()
-            .update(identifier)
-            .finalize();
-
-        // Check to see if the BLAKE2s hash of the identifier is on the curve
-        let p = jubjub::ExtendedPoint::from_bytes(h.as_array());
-        if p.is_some().into() {
-            // <ExtendedPoint as CofactorGroup>::clear_cofactor is implemented using
-            // ExtendedPoint::mul_by_cofactor in the jubjub crate.
-            let p = p.unwrap();
-            let p_prime = CofactorGroup::clear_cofactor(&p);
-
-            if p_prime.is_identity().into() {
-                None
-            } else {
-                // If not small order, return *without* clearing the cofactor
-                Some(p)
-            }
-        } else {
-            None // invalid asset identifier
         }
     }
 
