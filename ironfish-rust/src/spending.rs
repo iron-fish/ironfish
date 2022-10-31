@@ -79,7 +79,7 @@ impl SpendBuilder {
         ExtendedPoint::from(self.value_commitment.commitment())
     }
 
-    /// Sign this spend with the private key, and return a [`SpendProof`]
+    /// Sign this spend with the private key, and return a [`SpendDescription`]
     /// suitable for serialization.
     ///
     /// Verifies the proof before returning to prevent posting broken
@@ -87,7 +87,7 @@ impl SpendBuilder {
     pub(crate) fn build(
         &self,
         spender_key: &SaplingKey,
-    ) -> Result<UnsignedSpendProof, IronfishError> {
+    ) -> Result<UnsignedSpendDescription, IronfishError> {
         // Used to add randomness to signature generation without leaking the
         // key. Referred to as `ar` in the literature.
         let public_key_randomness = jubjub::Fr::random(thread_rng());
@@ -124,7 +124,7 @@ impl SpendBuilder {
             Signature::read(&mut buf.as_ref())?
         };
 
-        let spend_proof = SpendProof {
+        let spend_proof = SpendDescription {
             proof,
             value_commitment: value_commitment_point,
             randomized_public_key,
@@ -136,24 +136,24 @@ impl SpendBuilder {
 
         spend_proof.verify_proof()?;
 
-        Ok(UnsignedSpendProof {
+        Ok(UnsignedSpendDescription {
             public_key_randomness,
             spend_proof,
         })
     }
 }
 
-pub struct UnsignedSpendProof {
+pub struct UnsignedSpendDescription {
     public_key_randomness: jubjub::Fr,
-    pub(crate) spend_proof: SpendProof,
+    pub(crate) spend_proof: SpendDescription,
 }
 
-impl UnsignedSpendProof {
+impl UnsignedSpendDescription {
     pub fn sign(
         mut self,
         spender_key: &SaplingKey,
         signature_hash: &[u8; 32],
-    ) -> Result<SpendProof, IronfishError> {
+    ) -> Result<SpendDescription, IronfishError> {
         let private_key = redjubjub::PrivateKey(spender_key.spend_authorizing_key);
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
         let randomized_public_key =
@@ -181,7 +181,7 @@ impl UnsignedSpendProof {
 /// The publicly visible value of a spent note. These get serialized to prove
 /// that the owner once had access to these values. It also publishes the
 /// nullifier so that they can't pretend they still have access to them.
-pub struct SpendProof {
+pub struct SpendDescription {
     /// Proof that the spend was valid and successful for the provided owner
     /// and note.
     pub(crate) proof: groth16::Proof<Bls12>,
@@ -219,10 +219,10 @@ pub struct SpendProof {
     pub(crate) authorizing_signature: redjubjub::Signature,
 }
 
-impl Clone for SpendProof {
-    fn clone(&self) -> SpendProof {
+impl Clone for SpendDescription {
+    fn clone(&self) -> SpendDescription {
         let randomized_public_key = redjubjub::PublicKey(self.randomized_public_key.0);
-        SpendProof {
+        SpendDescription {
             proof: self.proof.clone(),
             value_commitment: self.value_commitment,
             randomized_public_key,
@@ -234,9 +234,9 @@ impl Clone for SpendProof {
     }
 }
 
-impl SpendProof {
-    /// Load a SpendProof from a Read implementation (e.g: socket, file)
-    /// This is the main entry-point when reconstructing a serialized
+impl SpendDescription {
+    /// Load a [`SpendDescription`] from a Read implementation (e.g: socket,
+    /// file) This is the main entry-point when reconstructing a serialized
     /// transaction.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
@@ -253,7 +253,7 @@ impl SpendProof {
         reader.read_exact(&mut nullifier.0)?;
         let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
 
-        Ok(SpendProof {
+        Ok(SpendDescription {
             proof,
             value_commitment,
             randomized_public_key,
@@ -264,7 +264,7 @@ impl SpendProof {
         })
     }
 
-    /// Stow the bytes of this SpendProof in the given writer.
+    /// Stow the bytes of this [`SpendDescription`] in the given writer.
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         self.serialize_signature_fields(&mut writer)?;
         self.authorizing_signature.write(&mut writer)?;
@@ -306,7 +306,8 @@ impl SpendProof {
     }
 
     /// Verify that the bellman proof confirms the randomized_public_key,
-    /// commitment_value, nullifier, and anchor attached to this SpendProof.
+    /// commitment_value, nullifier, and anchor attached to this
+    /// [`SpendDescription`].
     pub fn verify_proof(&self) -> Result<(), IronfishError> {
         self.verify_value_commitment()?;
 
@@ -327,9 +328,9 @@ impl SpendProof {
         Ok(())
     }
 
-    /// Converts the values to appropriate inputs for verifying the bellman proof.
-    /// Confirms the randomized_public_key, commitment_value, anchor (root hash),
-    /// and nullifier attached to this SpendProof.
+    /// Converts the values to appropriate inputs for verifying the bellman
+    /// proof.  Confirms the randomized_public_key, commitment_value, anchor
+    /// (root hash), and nullifier attached to this [`SpendDescription`].
     pub fn public_inputs(&self) -> [Scalar; 7] {
         let mut public_inputs = [Scalar::zero(); 7];
         let p = self.randomized_public_key.0.to_affine();
@@ -370,9 +371,6 @@ impl SpendProof {
 
 /// Given a writer (probably a Blake2b hasher), write byte representations
 /// of the parameters that are used in calculating the signature of a transaction.
-/// This function is called from both SpendProof and SpendParams because
-/// signing and verifying both need to calculate the signature after all spends
-/// have been recorded.
 fn serialize_signature_fields<W: io::Write>(
     mut writer: W,
     proof: &groth16::Proof<Bls12>,
@@ -394,7 +392,7 @@ fn serialize_signature_fields<W: io::Write>(
 
 #[cfg(test)]
 mod test {
-    use super::{SpendBuilder, SpendProof};
+    use super::{SpendBuilder, SpendDescription};
     use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
     use group::Curve;
     use rand::prelude::*;
@@ -437,8 +435,9 @@ mod test {
         proof
             .write(&mut serialized_proof)
             .expect("should be able to serialize proof");
-        let read_back_proof: SpendProof = SpendProof::read(&mut serialized_proof[..].as_ref())
-            .expect("should be able to deserialize valid proof");
+        let read_back_proof: SpendDescription =
+            SpendDescription::read(&mut serialized_proof[..].as_ref())
+                .expect("should be able to deserialize valid proof");
 
         assert_eq!(proof.proof.a, read_back_proof.proof.a);
         assert_eq!(proof.proof.b, read_back_proof.proof.b);

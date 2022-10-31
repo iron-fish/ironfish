@@ -6,14 +6,14 @@ use crate::{
     errors::IronfishError,
     outputs::OutputBuilder,
     sapling_bls12::SAPLING,
-    spending::{SpendBuilder, UnsignedSpendProof},
+    spending::{SpendBuilder, UnsignedSpendDescription},
 };
 
 use super::{
     keys::{PublicAddress, SaplingKey},
     note::Note,
     outputs::OutputDescription,
-    spending::SpendProof,
+    spending::SpendDescription,
     witness::WitnessTrait,
 };
 use bellman::groth16::batch::Verifier;
@@ -213,7 +213,7 @@ impl ProposedTransaction {
     ///
     fn transaction_signature_hash(
         &self,
-        spends: &[UnsignedSpendProof],
+        spends: &[UnsignedSpendDescription],
         outputs: &[OutputDescription],
     ) -> [u8; 32] {
         let mut hasher = Blake2b::new()
@@ -308,7 +308,7 @@ pub struct Transaction {
     fee: i64,
 
     /// List of spends, or input notes, that have been destroyed.
-    spends: Vec<SpendProof>,
+    spends: Vec<SpendDescription>,
 
     /// List of outputs, or output notes that have been created.
     outputs: Vec<OutputDescription>,
@@ -335,7 +335,7 @@ impl Transaction {
 
         let mut spends = Vec::with_capacity(num_spends as usize);
         for _ in 0..num_spends {
-            spends.push(SpendProof::read(&mut reader)?);
+            spends.push(SpendDescription::read(&mut reader)?);
         }
 
         let mut outputs = Vec::with_capacity(num_outputs as usize);
@@ -387,11 +387,11 @@ impl Transaction {
 
     /// Get an iterator over the spends in this transaction. Each spend
     /// is by reference
-    pub fn iter_spends(&self) -> Iter<SpendProof> {
+    pub fn iter_spends(&self) -> Iter<SpendDescription> {
         self.spends.iter()
     }
 
-    pub fn spends(&self) -> &Vec<SpendProof> {
+    pub fn spends(&self) -> &Vec<SpendDescription> {
         &self.spends
     }
 

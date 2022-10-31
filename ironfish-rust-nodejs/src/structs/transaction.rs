@@ -13,7 +13,7 @@ use napi_derive::napi;
 use crate::to_napi_err;
 
 use super::note::NativeNote;
-use super::spend_proof::NativeSpendProof;
+use super::spend_proof::NativeSpendDescription;
 use super::witness::JsWitness;
 use super::ENCRYPTED_NOTE_LENGTH;
 
@@ -87,7 +87,7 @@ impl NativeTransactionPosted {
     }
 
     #[napi]
-    pub fn get_spend(&self, index: i64) -> Result<NativeSpendProof> {
+    pub fn get_spend(&self, index: i64) -> Result<NativeSpendDescription> {
         let index_usize: usize = index
             .try_into()
             .map_err(|_| to_napi_err("Value out of range"))?;
@@ -102,7 +102,7 @@ impl NativeTransactionPosted {
 
         let nullifier = Buffer::from(proof.nullifier().to_vec());
 
-        Ok(NativeSpendProof {
+        Ok(NativeSpendDescription {
             tree_size: proof.tree_size(),
             root_hash: Buffer::from(root_hash),
             nullifier,
