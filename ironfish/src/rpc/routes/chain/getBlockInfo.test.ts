@@ -121,19 +121,21 @@ describe('Route chain/getBlockInfo', () => {
 
     await chain.open()
 
-    const { block, transaction } = await useBlockWithTx(node)
+    const { block } = await useBlockWithTx(node)
     await expect(node.chain).toAddBlock(block)
     const hash = block.header.hash.toString('hex')
 
     const response = await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '2' })
+      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '3' })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
       block: {
         hash: hash,
-        sequence: 2,
+        sequence: 3,
       },
     })
+
+    expect(response.content.block.transactions[0].fee).toBe('-2000000001')
   })
 })
