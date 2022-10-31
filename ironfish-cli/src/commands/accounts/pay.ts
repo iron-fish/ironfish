@@ -147,16 +147,18 @@ export class Pay extends IronfishCommand {
 
         const config = await client.getConfig({})
     
-        const feeEstimatorMaxBlockHistory = 'feeEstimatorMaxBlockHistory' as keyof Partial<ConfigOptions>
+        const low = 'feeEstimatorPercentileLow' as keyof Partial<ConfigOptions>
+        const medium = 'feeEstimatorPercentileMedium' as keyof Partial<ConfigOptions>
+        const high = 'feeEstimatorPercentileHigh' as keyof Partial<ConfigOptions>
 
         suggestedFees = suggestedFees.concat(
-          `  low (*among ${config.content[feeEstimatorMaxBlockHistory]}% of recent transactions): ${CurrencyUtils.renderIron(response.content.low)}\n`,
+          `  low (*among ${config.content[low]}% of recent transactions): ${CurrencyUtils.renderIron(response.content.low)}\n`,
         )
         suggestedFees = suggestedFees.concat(
-          `  medium: ${CurrencyUtils.renderIron(response.content.medium)}\n`,
+          `  medium (*among ${config.content[medium]}% of recent transactions): ${CurrencyUtils.renderIron(response.content.medium)}\n`,
         )
         suggestedFees = suggestedFees.concat(
-          `  high: ${CurrencyUtils.renderIron(response.content.high)}\n`,
+          `  high (*among ${config.content[high]}% of recent transactions): ${CurrencyUtils.renderIron(response.content.high)}\n`,
         )
       } catch {
         suggestedFees = ''
