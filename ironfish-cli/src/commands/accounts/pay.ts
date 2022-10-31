@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, isValidPublicAddress, ConfigOptions } from '@ironfish/sdk'
+import { ConfigOptions, CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -146,19 +146,25 @@ export class Pay extends IronfishCommand {
         })
 
         const config = await client.getConfig({})
-    
+
         const low = 'feeEstimatorPercentileLow' as keyof Partial<ConfigOptions>
         const medium = 'feeEstimatorPercentileMedium' as keyof Partial<ConfigOptions>
         const high = 'feeEstimatorPercentileHigh' as keyof Partial<ConfigOptions>
 
         suggestedFees = suggestedFees.concat(
-          `  low (*among ${config.content[low]}% of recent transactions): ${CurrencyUtils.renderIron(response.content.low)}\n`,
+          `  low (*among ${JSON.stringify(
+            config.content[low],
+          )}% of recent transactions): ${CurrencyUtils.renderIron(response.content.low)}\n`,
         )
         suggestedFees = suggestedFees.concat(
-          `  medium (*among ${config.content[medium]}% of recent transactions): ${CurrencyUtils.renderIron(response.content.medium)}\n`,
+          `  medium (*among ${JSON.stringify(
+            config.content[medium],
+          )}% of recent transactions): ${CurrencyUtils.renderIron(response.content.medium)}\n`,
         )
         suggestedFees = suggestedFees.concat(
-          `  high (*among ${config.content[high]}% of recent transactions): ${CurrencyUtils.renderIron(response.content.high)}\n`,
+          `  high (*among ${JSON.stringify(
+            config.content[high],
+          )}% of recent transactions): ${CurrencyUtils.renderIron(response.content.high)}\n`,
         )
       } catch {
         suggestedFees = ''
