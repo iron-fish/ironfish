@@ -29,23 +29,22 @@ describe('Route chain/getBlockInfo', () => {
     //Get hash of blocks
     const hash0 = genesis.header.hash.toString('hex') // 69e
     const hash1 = blockA1.header.hash.toString('hex') // "9de985c7492bd000d6a8312f7592737e869967c890aac22247ede00678d4a2b2"
-    //const hash2 = blockA2.header.hash.toString('hex') // cd9
+    const hash2 = blockA2.header.hash.toString('hex') // cd9
 
     //Find block matching hash
     let response = await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: hash0 })
+      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: hash2 })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
         block: {
-          hash: hash0,
-          sequence: 1,
+          hash: hash2,
+          sequence: 3,
         },
     })
 
     //Now miss on a hash check.
     try {
-      expect.assertions(3)
       await routeTest.client
       .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: "123405c7492bd000d6a8312f7592737e869967c890aac22247ede00678d4a2b2" })
       .waitForEnd()
@@ -71,9 +70,20 @@ describe('Route chain/getBlockInfo', () => {
         },
     })
 
+    //Find block matching sequence
+    response = await routeTest.client
+      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search : '-3' })
+      .waitForEnd()
+
+    expect(response.content).toMatchObject({
+        block: {
+          hash: hash0,
+          sequence: 1,
+        },
+    })
+
     //Now miss on a sequence check.
     try {
-      expect.assertions(3+6)
       await routeTest.client
       .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: "1234" })
       .waitForEnd()
