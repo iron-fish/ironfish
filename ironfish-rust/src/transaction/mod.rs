@@ -57,7 +57,7 @@ pub struct ProposedTransaction {
 
     /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
-    transaction_fee: i64,
+    value_balance: i64,
 
     /// This is the sequence in the chain the transaction will expire at and be
     /// removed from the mempool. A value of 0 indicates the transaction will
@@ -77,7 +77,7 @@ impl ProposedTransaction {
         ProposedTransaction {
             spends: vec![],
             outputs: vec![],
-            transaction_fee: 0,
+            value_balance: 0,
             expiration_sequence: 0,
             spender_key,
         }
@@ -85,7 +85,7 @@ impl ProposedTransaction {
 
     /// Spend the note owned by spender_key at the given witness location.
     pub fn add_spend(&mut self, note: Note, witness: &dyn WitnessTrait) {
-        self.transaction_fee += note.value() as i64;
+        self.value_balance += note.value() as i64;
 
         self.spends.push(SpendBuilder::new(note, witness));
     }
@@ -93,7 +93,7 @@ impl ProposedTransaction {
     /// Create a proof of a new note owned by the recipient in this
     /// transaction.
     pub fn add_output(&mut self, note: Note) {
-        self.transaction_fee -= note.value as i64;
+        self.value_balance -= note.value as i64;
 
         self.outputs.push(OutputBuilder::new(note));
     }
@@ -107,13 +107,13 @@ impl ProposedTransaction {
     /// wouldn't accept a transaction that takes money away from them.
     ///
     /// sum(spends) - sum(outputs) - intended_transaction_fee - change = 0
-    /// aka: self.transaction_fee - intended_transaction_fee - change = 0
+    /// aka: self.value_balance - intended_transaction_fee - change = 0
     pub fn post(
         &mut self,
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction, IronfishError> {
-        let change_amount = self.transaction_fee - intended_transaction_fee as i64;
+        let change_amount = self.value_balance - intended_transaction_fee as i64;
 
         if change_amount < 0 {
             return Err(IronfishError::InvalidBalance);
@@ -199,7 +199,7 @@ impl ProposedTransaction {
 
         Ok(Transaction {
             expiration_sequence: self.expiration_sequence,
-            fee: self.transaction_fee,
+            fee: self.value_balance,
             spends: spend_descriptions,
             outputs: output_descriptions,
             binding_signature,
@@ -226,7 +226,7 @@ impl ProposedTransaction {
             .write_u32::<LittleEndian>(self.expiration_sequence)
             .unwrap();
         hasher
-            .write_i64::<LittleEndian>(self.transaction_fee)
+            .write_i64::<LittleEndian>(self.value_balance)
             .unwrap();
         for spend in spends {
             spend
@@ -291,7 +291,7 @@ impl ProposedTransaction {
         check_value_consistency(
             &public_key,
             &binding_verification_key,
-            self.transaction_fee as i64,
+            self.value_balance as i64,
         )?;
 
         Ok((private_key, public_key))
