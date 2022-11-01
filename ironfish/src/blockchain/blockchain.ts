@@ -645,7 +645,7 @@ export class Blockchain {
 
     await this.saveConnect(block, prev, tx)
     await tx.update()
-    this.notes.pastRootTxCommited(tx)
+    this.notes.pastRootTxCommitted(tx)
 
     this.head = block.header
     await this.onConnectBlock.emitAsync(block, tx)
@@ -1274,7 +1274,7 @@ export class Blockchain {
     }
 
     await tx.update()
-    this.notes.pastRootTxCommited(tx)
+    this.notes.pastRootTxCommitted(tx)
   }
 
   private updateSynced(): void {

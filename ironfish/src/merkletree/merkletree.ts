@@ -515,7 +515,7 @@ export class MerkleTree<
     return this.pastRootCache.get(pastSize)
   }
 
-  pastRootTxCommited(tx: IDatabaseTransaction): void {
+  pastRootTxCommitted(tx: IDatabaseTransaction): void {
     if (tx instanceof LevelupTransaction) {
       const local = this.transactionPastRootCache.get(tx.id)
       for (const [pastSize, hash] of local?.entries() || []) {
