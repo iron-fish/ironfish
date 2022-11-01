@@ -54,7 +54,7 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
         let asset_identifier = blake2s::blake2s(
             cs.namespace(|| "blake2s(asset info)"),
             &identifier_preimage,
-            ASSET_IDENTIFIER_PERSONALIZATION, // TODO: Another candidate for hard-coding the bits
+            ASSET_IDENTIFIER_PERSONALIZATION,
         )?;
 
         // Ensure the pre-image of the generator is 32 bytes
@@ -171,16 +171,35 @@ mod test {
         .expect("Can generate random params");
         let pvk = groth16::prepare_verifying_key(&params.vk);
 
+        let owner = [0u8; 43];
         let name = [1u8; 32];
         let chain = [2u8; 32];
         let network = [3u8; 32];
-        let owner = [0u8; 43];
-        let nonce = 1u8;
+        let nonce = 2u8;
+
+        let mut asset_plaintext: Vec<u8> = vec![];
+        asset_plaintext.extend(owner);
+        asset_plaintext.extend(name);
+        asset_plaintext.extend(chain);
+        asset_plaintext.extend(network);
+        asset_plaintext.extend(slice::from_ref(&nonce));
+
+        let identifier = blake2s_simd::Params::new()
+            .hash_length(ASSET_IDENTIFIER_LENGTH)
+            .personal(ASSET_IDENTIFIER_PERSONALIZATION)
+            .to_state()
+            .update(&asset_plaintext)
+            .finalize();
+
+        // let g = blake2s_simd::Params::new()
+        //     .personal(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
+        //     .hash(identifier.as_bytes());
+        // println!("{:?}", g.as_bytes());
 
         let generator = {
             let buffer = [
-                118, 234, 2, 151, 71, 31, 150, 18, 59, 211, 247, 61, 252, 52, 141, 105, 235, 87,
-                122, 78, 142, 34, 11, 208, 115, 177, 234, 183, 81, 225, 229, 92,
+                18, 99, 227, 36, 205, 104, 137, 88, 136, 154, 187, 153, 141, 7, 30, 2, 207, 108,
+                82, 81, 52, 39, 108, 209, 221, 171, 63, 200, 105, 250, 98, 114,
             ];
 
             jubjub::ExtendedPoint::from_bytes(&buffer).unwrap()
@@ -193,16 +212,9 @@ mod test {
             jubjub::Fr::from_bytes_wide(&buffer)
         };
 
-        let mut create_commitment_plaintext: Vec<u8> = vec![];
-        create_commitment_plaintext.extend(owner);
-        create_commitment_plaintext.extend(name);
-        create_commitment_plaintext.extend(chain);
-        create_commitment_plaintext.extend(network);
-        create_commitment_plaintext.extend(slice::from_ref(&nonce));
-
         let create_commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
             pedersen_hash::Personalization::NoteCommitment,
-            create_commitment_plaintext
+            asset_plaintext
                 .into_iter()
                 .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
         ));
@@ -217,17 +229,6 @@ mod test {
             generator.to_affine().get_v(),
             create_commitment,
         ];
-
-        let identifier = blake2s_simd::Params::new()
-            .hash_length(ASSET_IDENTIFIER_LENGTH)
-            .personal(ASSET_IDENTIFIER_PERSONALIZATION)
-            .to_state()
-            .update(&owner)
-            .update(&name)
-            .update(&chain)
-            .update(&network)
-            .update(slice::from_ref(&nonce))
-            .finalize();
 
         // Create proof
         let circuit = CreateAsset {
