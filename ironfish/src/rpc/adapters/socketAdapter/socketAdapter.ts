@@ -84,6 +84,19 @@ export abstract class RpcSocketAdapter implements IRpcAdapter {
       await fsAsync.unlink(this.listen.path).catch(() => {
         // Unlink the IPC socket if it exists, but we don't care if it doesn't
       })
+
+      if (process.platform === 'win32') {
+        // Windows requires special socket paths. See this for more info:
+        // https://nodejs.org/api/net.html#identifying-paths-for-ipc-connections
+        if (this.listen.path && !this.listen.path.startsWith('\\\\.\\pipe\\')) {
+          this.listen.path = this.listen.path.replace(/^\//, '')
+          this.listen.path = this.listen.path.replace(/\//g, '-')
+          this.listen.path = `\\\\.\\pipe\\${this.listen.path}`
+        }
+      }
+
+      this.listen.readableAll = false
+      this.listen.writableAll = false
     }
 
     return new Promise((resolve, reject) => {
