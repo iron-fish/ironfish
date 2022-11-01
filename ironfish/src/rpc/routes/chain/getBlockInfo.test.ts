@@ -12,7 +12,7 @@ import { GetBlockInfoResponse } from './getBlockInfo'
 describe('Route chain/getBlockInfo', () => {
   const routeTest = createRouteTest()
 
-  it('Processes hash input', async () => {
+  it('Processes hash and sequence inputs', async () => {
     // Create a 3 block chain
     const { chain, strategy } = routeTest
     await chain.open()
@@ -115,11 +115,9 @@ describe('Route chain/getBlockInfo', () => {
     }
   })
 
-  it('Displays transactions', async () => {
+  it('Receives transactions from a matched block', async () => {
     //Create separate test case for showing transactions
-    const { chain, node } = routeTest
-
-    await chain.open()
+    const { node } = routeTest
 
     const { block } = await useBlockWithTx(node)
     await expect(node.chain).toAddBlock(block)
