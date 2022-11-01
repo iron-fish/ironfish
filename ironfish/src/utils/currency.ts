@@ -72,7 +72,7 @@ export class CurrencyUtils {
   }
 
   /*
-   * Renders ore as either ore or iron for human readable purposes
+   * Renders ore as either ore or iron for human-readable purposes
    */
   static render(amount: bigint | string, ticker = false, ore = false): string {
     if (typeof amount === 'string') {
@@ -87,15 +87,8 @@ export class CurrencyUtils {
   }
 
   static isValidIron(amount: string): boolean {
-    try {
-      const ore = this.decodeIron(amount)
-      return ore >= MINIMUM_ORE_AMOUNT && ore <= MAXIMUM_ORE_AMOUNT
-    } catch (e) {
-      if (ErrorUtils.isNodeError(e) && e.code === 'NUMERIC_FAULT') {
-        return false
-      }
-      throw e
-    }
+    const ore = this.decodeIron(amount)
+    return this.isValidOre(this.encode(ore))
   }
 
   static isValidOre(amount: string): boolean {
@@ -103,10 +96,7 @@ export class CurrencyUtils {
       const ore = this.decode(amount)
       return ore >= MINIMUM_ORE_AMOUNT && ore <= MAXIMUM_ORE_AMOUNT
     } catch (e) {
-      if (ErrorUtils.isNodeError(e) && e.code === 'NUMERIC_FAULT') {
-        return false
-      }
-      throw e
+      return false
     }
   }
 }

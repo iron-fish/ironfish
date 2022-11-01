@@ -95,7 +95,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     // Check whether amount and fee are valid or not
     if (!CurrencyUtils.isValidOre(transaction.fee)) {
       throw new ValidationError(
-        'Transaction fee provided is invalid',
+        `Invalid transaction fee, ${transaction.fee}`,
         undefined,
         ERROR_CODES.VALIDATION,
       )
@@ -104,7 +104,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     transaction.receives.map((receive) => {
       if (!CurrencyUtils.isValidOre(receive.amount)) {
         throw new ValidationError(
-          'Transaction amount provided is invalid',
+          `Invalid transaction amount, ${receive.amount}`,
           undefined,
           ERROR_CODES.VALIDATION,
         )
