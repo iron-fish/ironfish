@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import LRU from 'blru'
 import { Assert } from '../assert'
 import { JsonSerializable } from '../serde'
 import {
@@ -10,6 +11,7 @@ import {
   IDatabaseEncoding,
   IDatabaseStore,
   IDatabaseTransaction,
+  LevelupTransaction,
   SchemaValue,
   StringEncoding,
   U32_ENCODING,
@@ -41,6 +43,12 @@ export class MerkleTree<
   readonly leaves: IDatabaseStore<LeavesSchema<E, H>>
   readonly leavesIndex: IDatabaseStore<LeavesIndexSchema<H>>
   readonly nodes: IDatabaseStore<NodesSchema<H>>
+
+  private readonly pastRootCache: LRU<number, H> = new LRU<number, H>(300 * 60)
+  private readonly transactionPastRootCache: LRU<number, Map<number, H>> = new LRU<
+    number,
+    Map<number, H>
+  >(5)
 
   constructor({
     hasher,
@@ -405,6 +413,7 @@ export class MerkleTree<
    * grows.
    */
   async truncate(pastSize: number, tx?: IDatabaseTransaction): Promise<void> {
+    this.invalidatePastRootCache(pastSize, tx)
     return await this.db.withTransaction(tx, async (tx) => {
       const oldSize = await this.getCount('Leaves', tx)
 
@@ -469,6 +478,53 @@ export class MerkleTree<
     })
   }
 
+  // Invalidate and pastSize entries greater than maxSize
+  private invalidatePastRootCache(maxSize: number, tx?: IDatabaseTransaction): void {
+    if (tx instanceof LevelupTransaction) {
+      const local = this.transactionPastRootCache.get(tx.id)
+      for (const pastSize of local?.keys() || []) {
+        if (pastSize > maxSize) {
+          local?.delete(pastSize)
+        }
+      }
+    }
+
+    for (const pastSize of this.pastRootCache.keys()) {
+      if (pastSize > maxSize) {
+        this.pastRootCache.remove(pastSize)
+      }
+    }
+  }
+
+  private setPastRootCache(pastSize: number, hash: H, tx: IDatabaseTransaction): void {
+    if (tx instanceof LevelupTransaction) {
+      const cache = this.transactionPastRootCache.get(tx.id) || new Map<number, H>()
+      cache.set(pastSize, hash)
+      this.transactionPastRootCache.set(tx.id, cache)
+    }
+  }
+
+  private getPastRootCache(pastSize: number, tx?: IDatabaseTransaction): H | null {
+    if (tx instanceof LevelupTransaction) {
+      const local = this.transactionPastRootCache.get(tx.id)
+      const localResult = local && local.get(pastSize)
+
+      return localResult || this.pastRootCache.get(pastSize)
+    }
+
+    return this.pastRootCache.get(pastSize)
+  }
+
+  pastRootTxCommitted(tx: IDatabaseTransaction): void {
+    if (tx instanceof LevelupTransaction) {
+      const local = this.transactionPastRootCache.get(tx.id)
+      for (const [pastSize, hash] of local?.entries() || []) {
+        this.pastRootCache.set(pastSize, hash)
+      }
+      this.transactionPastRootCache.remove(tx.id)
+    }
+  }
+
   /**
    * Calculate what the root hash was at the time the tree contained
    * `pastSize` elements. Throws an error if the tree is empty,
@@ -481,6 +537,11 @@ export class MerkleTree<
 
       if (leafCount === 0 || pastSize > leafCount || pastSize === 0) {
         throw new Error(`Unable to get past size ${pastSize} for tree with ${leafCount} nodes`)
+      }
+
+      const cached = this.getPastRootCache(pastSize, tx)
+      if (cached) {
+        return Promise.resolve(cached)
       }
 
       const rootDepth = depthAtLeafCount(pastSize)
@@ -527,6 +588,7 @@ export class MerkleTree<
         currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
       }
 
+      this.setPastRootCache(pastSize, currentHash, tx)
       return currentHash
     })
   }
