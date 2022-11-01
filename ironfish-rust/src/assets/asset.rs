@@ -4,11 +4,10 @@
 use crate::{
     assets::constants::{ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION},
     errors::IronfishError,
+    util::str_to_array,
     PublicAddress,
 };
-use blake2s_simd::Params as Blake2sParams;
-use group::{cofactor::CofactorGroup, Group, GroupEncoding};
-use ironfish_zkp::constants::{GH_FIRST_BLOCK, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION};
+use ironfish_zkp::{constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, group_hash};
 use std::slice::from_ref;
 
 #[allow(dead_code)]
@@ -47,17 +46,9 @@ impl Asset {
         chain: &str,
         network: &str,
     ) -> Result<Asset, IronfishError> {
-        let mut name_bytes = [0; 32];
-        let name_len = std::cmp::min(name.len(), 32);
-        name_bytes[..name_len].clone_from_slice(&name.as_bytes()[..name_len]);
-
-        let mut chain_bytes = [0; 32];
-        let chain_len = std::cmp::min(chain.len(), 32);
-        chain_bytes[..chain_len].clone_from_slice(&chain.as_bytes()[..chain_len]);
-
-        let mut network_bytes = [0; 32];
-        let network_len = std::cmp::min(network.len(), 32);
-        network_bytes[..network_len].clone_from_slice(&network.as_bytes()[..network_len]);
+        let name_bytes = str_to_array(name);
+        let chain_bytes = str_to_array(chain);
+        let network_bytes = str_to_array(network);
 
         let mut nonce = 0u8;
         loop {
@@ -83,18 +74,19 @@ impl Asset {
         assert_eq!(ASSET_IDENTIFIER_PERSONALIZATION.len(), 8);
 
         // Create a new BLAKE2s state for deriving the asset identifier
-        let h = Blake2sParams::new()
+        let h = blake2s_simd::Params::new()
             .hash_length(ASSET_IDENTIFIER_LENGTH)
             .personal(ASSET_IDENTIFIER_PERSONALIZATION)
             .to_state()
-            .update(GH_FIRST_BLOCK)
-            .update(&name)
             .update(&owner.public_address())
+            .update(&name)
+            .update(&chain)
+            .update(&network)
             .update(from_ref(&nonce))
             .finalize();
 
-        // If the hash state is a valid asset identifier, use it
-        if Self::hash_to_point(h.as_array()).is_some() {
+        // Check that this is valid as a value commitment generator point
+        if group_hash(h.as_bytes(), VALUE_COMMITMENT_GENERATOR_PERSONALIZATION).is_some() {
             Ok(Asset {
                 owner,
                 name,
@@ -105,44 +97,6 @@ impl Asset {
             })
         } else {
             Err(IronfishError::InvalidAssetIdentifier)
-        }
-    }
-
-    #[allow(dead_code)]
-    fn hash_to_point(identifier: &AssetIdentifier) -> Option<jubjub::ExtendedPoint> {
-        // Check the personalization is acceptable length
-        assert_eq!(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION.len(), 8);
-
-        // Check to see that scalar field is 255 bits
-        use ff::PrimeField;
-        assert_eq!(bls12_381::Scalar::NUM_BITS, 255);
-
-        // TODO: Is it correct that this uses VALUE_COMMITMENT_GENERATOR_PERSONALIZATION?
-        // Should this use it's own personalization? Is this only used for this? Should
-        // it be named something else, then?
-        let h = Blake2sParams::new()
-            .hash_length(32)
-            .personal(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
-            .to_state()
-            .update(identifier)
-            .finalize();
-
-        // Check to see if the BLAKE2s hash of the identifier is on the curve
-        let p = jubjub::ExtendedPoint::from_bytes(h.as_array());
-        if p.is_some().into() {
-            // <ExtendedPoint as CofactorGroup>::clear_cofactor is implemented using
-            // ExtendedPoint::mul_by_cofactor in the jubjub crate.
-            let p = p.unwrap();
-            let p_prime = CofactorGroup::clear_cofactor(&p);
-
-            if p_prime.is_identity().into() {
-                None
-            } else {
-                // If not small order, return *without* clearing the cofactor
-                Some(p)
-            }
-        } else {
-            None // invalid asset identifier
         }
     }
 
@@ -164,5 +118,58 @@ impl Asset {
     #[allow(dead_code)]
     pub fn identifier(&self) -> &AssetIdentifier {
         &self.identifier
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{util::str_to_array, PublicAddress, SaplingKey};
+
+    use super::Asset;
+
+    #[test]
+    fn test_new_with_nonce() {
+        let owner = PublicAddress::new(&[
+            19, 26, 159, 204, 98, 253, 225, 73, 168, 125, 3, 240, 3, 129, 255, 146, 50, 134, 44,
+            84, 181, 195, 50, 249, 78, 128, 228, 152, 239, 10, 106, 10, 27, 58, 155, 162, 114, 133,
+            17, 48, 177, 29, 72,
+        ])
+        .expect("can create a deterministic public address");
+        let name = str_to_array("name");
+        let chain = str_to_array("chain");
+        let network = str_to_array("network");
+        let nonce = 0;
+
+        let asset =
+            Asset::new_with_nonce(owner, name, chain, network, nonce).expect("can create an asset");
+
+        assert_eq!(asset.owner, owner);
+        assert_eq!(asset.name, name);
+        assert_eq!(asset.chain, chain);
+        assert_eq!(asset.network, network);
+        assert_eq!(asset.nonce, nonce);
+        assert_eq!(
+            asset.identifier,
+            [
+                63, 153, 26, 142, 149, 219, 17, 209, 253, 181, 149, 15, 213, 51, 143, 78, 12, 60,
+                164, 140, 4, 112, 88, 247, 113, 83, 236, 214, 242, 91, 103, 175
+            ]
+        );
+    }
+
+    #[test]
+    fn test_new() {
+        let key = SaplingKey::generate_key();
+        let owner = key.generate_public_address();
+        let name = "name";
+        let chain = "chain";
+        let network = "network";
+
+        let asset = Asset::new(owner, name, chain, network).expect("can create an asset");
+
+        assert_eq!(asset.owner, owner);
+        assert_eq!(asset.name, str_to_array(name));
+        assert_eq!(asset.chain, str_to_array(chain));
+        assert_eq!(asset.network, str_to_array(network));
     }
 }
