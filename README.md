@@ -14,15 +14,16 @@ See https://ironfish.network
 
 The following steps should only be used to install if you are planning on contributing to the Iron Fish codebase. Otherwise, we **strongly** recommend using the installation methods here: https://ironfish.network/docs/onboarding/installation-iron-fish
 
-1. Install [Node.js 16.x](https://nodejs.org/en/download/)
+1. Install [Node.js 16.x](https://nodejs.org/download/release/latest-v16.x/)
 1. Install [Rust](https://www.rust-lang.org/learn/get-started).
 1. Install [Yarn](https://classic.yarnpkg.com/en/docs/install).
 1. Windows:
-   1. Install [Build Tools for Visual Studio 2019](https://docs.microsoft.com/en-us/visualstudio/releases/2019/history#release-dates-and-build-numbers), including the C++ Build Tools and the Windows 10 SDK, for Rust.
-   1. Rust builds also require installing [MinGW-w64 via win-builds](http://win-builds.org/doku.php/download_and_installation_from_windows).
-      1. Choose `Native Windows`, `x86_64`, choose an empty directory, and click OK.
-      1. On the next screen, click `Process`.
-      1. Once it finishes, add the `bin` folder containing `cc` to your PATH environment variable.
+   1. Install the current version of Python from the [Microsoft Store package](https://www.microsoft.com/en-us/p/python-310/9pjpw5ldxlz5).
+   1. Install Visual C++ Build Environment: [Visual Studio Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools)
+   (using "Visual C++ build tools" or "Desktop development with C++" workload)
+
+   If the above steps didn't work for you, please visit [Microsoft's Node.js Guidelines for Windows](https://github.com/Microsoft/nodejs-guidelines/blob/master/windows-environment.md#compiling-native-addon-modules) for additional tips.
+
 1. Run `yarn install` from the root directory to install packages.
 
    - If `yarn install` fails with an error that includes "Failed to build cmake", you may need to first install cmake. For example, on macOS:
