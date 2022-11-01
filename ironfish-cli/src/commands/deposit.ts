@@ -50,26 +50,6 @@ export default class Bank extends IronfishCommand {
     this.client = await this.sdk.connectRpc(false, true)
     this.api = new WebApi()
 
-    let fee = null
-
-    if (flags.fee) {
-      const [parsedFee] = BigIntUtils.tryParse(flags.fee)
-
-      if (parsedFee != null) {
-        fee = parsedFee
-      }
-    }
-
-    if (fee == null) {
-      try {
-        // fees p25 of last 100 blocks
-        const feeString = (await this.client.getFees({ numOfBlocks: 100 })).content.p25
-        fee = CurrencyUtils.decode(feeString)
-      } catch {
-        fee = 1n
-      }
-    }
-
     const expirationSequenceDelta = flags.expirationSequenceDelta
 
     const accountName =
@@ -108,11 +88,47 @@ export default class Bank extends IronfishCommand {
     Assert.isNotNull(this.client)
     Assert.isNotNull(this.api)
 
+    let fee = null
+
+    if (flags.fee) {
+      const [parsedFee] = BigIntUtils.tryParse(flags.fee)
+
+      if (parsedFee == null) {
+        this.log(`Error reading the fee value, please enter a valid number.`)
+        this.exit(0)
+      } else if (parsedFee <= 0n) {
+        this.log(`The minimum fee is ${CurrencyUtils.renderIron(1n, true)}`)
+        this.exit(0)
+      }
+
+      fee = parsedFee
+    }
+
+    const balanceResp = await this.client.getAccountBalance({ account: accountName })
+    const confirmedBalance = BigInt(balanceResp.content.confirmed)
+
+    if (fee == null) {
+      try {
+        const response = await this.client.estimateFee({
+          fromAccountName: accountName,
+          receives: [
+            {
+              publicAddress: bankDepositAddress,
+              amount: CurrencyUtils.encode(confirmedBalance),
+              memo: graffiti,
+            },
+          ],
+        })
+        fee = CurrencyUtils.decode(response.content.medium)
+      } catch {
+        fee = 1n
+      }
+    }
+
     const { canSend, errorReason } = await verifyCanSend(
       this.client,
       this.api,
       expirationSequenceDelta,
-      fee,
       graffiti,
     )
     if (!canSend) {
@@ -120,9 +136,6 @@ export default class Bank extends IronfishCommand {
       this.log(errorReason)
       this.exit(1)
     }
-
-    const balanceResp = await this.client.getAccountBalance({ account: accountName })
-    const confirmedBalance = BigInt(balanceResp.content.confirmed)
 
     if (confirmedBalance < fee + minDepositOre) {
       this.log(
