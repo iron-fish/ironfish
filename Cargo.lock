@@ -690,6 +690,13 @@ dependencies = [
 name = "ironfish_zkp"
 version = "0.1.0"
 dependencies = [
+ "bellman",
+ "blake2s_simd",
+ "bls12_381",
+ "ff",
+ "group",
+ "jubjub",
+ "rand 0.8.5",
  "zcash_primitives",
  "zcash_proofs",
 ]

@@ -3,6 +3,8 @@ pub use zcash_primitives::sapling::{
     PaymentAddress, ProofGenerationKey, Rseed, ValueCommitment, ViewingKey,
 };
 
+pub mod circuits;
+
 pub mod constants {
     pub use zcash_primitives::constants::{
         CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
