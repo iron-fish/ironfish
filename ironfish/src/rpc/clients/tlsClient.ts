@@ -4,7 +4,7 @@
 import tls from 'tls'
 import { Assert } from '../../assert'
 import { ErrorUtils } from '../../utils'
-import { RpcConnectionRefusedError } from './errors'
+import { RpcConnectionLostError, RpcConnectionRefusedError } from './errors'
 import { RpcTcpClient } from './tcpClient'
 
 export class RpcTlsClient extends RpcTcpClient {
@@ -23,8 +23,13 @@ export class RpcTlsClient extends RpcTcpClient {
         client.off('secureConnection', onSecureConnect)
         client.off('error', onError)
 
-        if (ErrorUtils.isConnectFailError(error)) {
+        if (ErrorUtils.isConnectRefusedError(error) || ErrorUtils.isNoEntityError(error)) {
           reject(new RpcConnectionRefusedError())
+        } else if (
+          ErrorUtils.isConnectTimeOutError(error) ||
+          ErrorUtils.isConnectResetError(error)
+        ) {
+          reject(new RpcConnectionLostError())
         } else {
           reject(error)
         }

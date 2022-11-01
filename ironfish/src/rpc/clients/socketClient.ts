@@ -76,8 +76,13 @@ export abstract class RpcSocketClient extends RpcClient {
         client.off('connect', onConnect)
         client.off('error', onError)
 
-        if (ErrorUtils.isConnectFailError(error)) {
+        if (ErrorUtils.isConnectRefusedError(error) || ErrorUtils.isNoEntityError(error)) {
           reject(new RpcConnectionRefusedError())
+        } else if (
+          ErrorUtils.isConnectTimeOutError(error) ||
+          ErrorUtils.isConnectResetError(error)
+        ) {
+          reject(new RpcConnectionLostError())
         } else {
           reject(error)
         }
