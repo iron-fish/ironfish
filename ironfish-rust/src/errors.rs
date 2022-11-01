@@ -19,6 +19,7 @@ pub enum IronfishError {
     CryptoBox(crypto_box::aead::Error),
     IllegalValue,
     InconsistentWitness,
+    InvalidAssetIdentifier,
     InvalidBalance,
     InvalidCommitment,
     InvalidData,
@@ -34,6 +35,7 @@ pub enum IronfishError {
     InvalidWord,
     Io(io::Error),
     IsSmallOrder,
+    RandomnessError,
     Utf8(string::FromUtf8Error),
     VerificationFailed,
 }

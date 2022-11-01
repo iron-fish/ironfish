@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { formatFixed, parseFixed } from '@ethersproject/bignumber'
-import { ErrorUtils } from './error'
 import { FixedNumberUtils } from './fixedNumber'
 
 export class CurrencyUtils {
@@ -24,7 +23,7 @@ export class CurrencyUtils {
   }
 
   /**
-   * Deseialize ore back into bigint
+   * Deserialize ore back into bigint
    */
   static decode(amount: string): bigint {
     return BigInt(amount)
@@ -38,7 +37,7 @@ export class CurrencyUtils {
   }
 
   /*
-   * Renders ore as iron for human readable purposes
+   * Renders ore as iron for human-readable purposes
    */
   static renderIron(amount: bigint | string, ticker = false): string {
     if (typeof amount === 'string') {
@@ -55,7 +54,7 @@ export class CurrencyUtils {
   }
 
   /*
-   * Renders ore for human readable purposes
+   * Renders ore for human-readable purposes
    */
   static renderOre(amount: bigint | string, ticker = false): string {
     if (typeof amount === 'string') {
@@ -72,7 +71,7 @@ export class CurrencyUtils {
   }
 
   /*
-   * Renders ore as either ore or iron for human readable purposes
+   * Renders ore as either ore or iron for human-readable purposes
    */
   static render(amount: bigint | string, ticker = false, ore = false): string {
     if (typeof amount === 'string') {
@@ -89,12 +88,18 @@ export class CurrencyUtils {
   static isValidIron(amount: string): boolean {
     try {
       const ore = this.decodeIron(amount)
+      return this.isValidOre(this.encode(ore))
+    } catch (e) {
+      return false
+    }
+  }
+
+  static isValidOre(amount: string): boolean {
+    try {
+      const ore = this.decode(amount)
       return ore >= MINIMUM_ORE_AMOUNT && ore <= MAXIMUM_ORE_AMOUNT
     } catch (e) {
-      if (ErrorUtils.isNodeError(e) && e.code === 'NUMERIC_FAULT') {
-        return false
-      }
-      throw e
+      return false
     }
   }
 }

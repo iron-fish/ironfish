@@ -538,47 +538,26 @@ describe('Blockchain', () => {
       expect(addedNullifierA1.equals(txB3.getSpend(0).nullifier)).toBe(true)
     }, 300000)
 
-    it("throws if the note doesn't match the previously inserted note that position", async () => {
-      const account = await useAccountFixture(nodeTest.wallet)
-      const tx1 = await useMinersTxFixture(nodeTest.wallet, account)
-      const tx2 = await useMinersTxFixture(nodeTest.wallet, account)
-      const size = await nodeTest.chain.notes.size()
-
-      await nodeTest.chain.addNote(size, tx1.getNote(0))
-
-      await expect(nodeTest.chain.addNote(size, tx2.getNote(0))).rejects.toThrowError(
-        `Tried to insert a note, but a different note already there for position 3`,
-      )
-    }, 30000)
-
-    it('throws if the position is larger than the number of notes', async () => {
+    it(`throws if the notes tree size is greater than the previous block's note tree size`, async () => {
       const account = await useAccountFixture(nodeTest.wallet)
       const tx = await useMinersTxFixture(nodeTest.wallet, account)
-      const size = await nodeTest.chain.notes.size()
+      const block = await useMinerBlockFixture(nodeTest.chain)
 
-      await expect(nodeTest.chain.addNote(size + 1, tx.getNote(0))).rejects.toThrowError(
-        `Can't insert a note at index 4. Merkle tree has a count of 3`,
+      await nodeTest.chain.notes.add(tx.getNote(0))
+
+      await expect(nodeTest.chain.addBlock(block)).rejects.toThrowError(
+        'Notes tree must match previous block header',
       )
     }, 30000)
-
-    it("throws if the nullifier doesn't match the previously inserted note that position", async () => {
-      const { transaction } = await useTxSpendsFixture(nodeTest.node)
-
-      await expect(
-        nodeTest.chain.addNullifier(0, transaction.getSpend(0).nullifier),
-      ).rejects.toThrowError(
-        `Tried to insert a nullifier, but a different nullifier already there for position 0`,
-      )
-    }, 60000)
 
     it('throws if the position is larger than the number of nullifiers', async () => {
       const { transaction } = await useTxSpendsFixture(nodeTest.node)
-      const size = await nodeTest.chain.nullifiers.size()
+      const block = await useMinerBlockFixture(nodeTest.chain)
 
-      await expect(
-        nodeTest.chain.addNullifier(size + 1, transaction.getSpend(0).nullifier),
-      ).rejects.toThrowError(
-        `Can't insert a nullifier at index 2. Merkle tree has a count of 1`,
+      await nodeTest.chain.nullifiers.add(transaction.getSpend(0).nullifier)
+
+      await expect(nodeTest.chain.addBlock(block)).rejects.toThrowError(
+        'Nullifier tree must match previous block header',
       )
     }, 30000)
   })

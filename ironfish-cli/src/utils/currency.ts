@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { CurrencyUtils, RpcClient, WebApi } from '@ironfish/sdk'
+import { RpcClient, WebApi } from '@ironfish/sdk'
 
 const REGISTER_URL = 'https://testnet.ironfish.network/signup'
 
@@ -10,7 +10,6 @@ export async function verifyCanSend(
   client: RpcClient,
   api: WebApi,
   expirationSequenceDelta: number | undefined,
-  fee: bigint,
   graffiti: string,
 ): Promise<{ canSend: boolean; errorReason: string | null }> {
   const status = await client.getNodeStatus()
@@ -56,13 +55,6 @@ export async function verifyCanSend(
     return {
       canSend: false,
       errorReason: 'Expiration sequence delta should not be above 120 blocks',
-    }
-  }
-
-  if (fee <= 0n) {
-    return {
-      canSend: false,
-      errorReason: `The minimum fee is ${CurrencyUtils.renderIron(1n, true)}`,
     }
   }
 

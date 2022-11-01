@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::errors::IronfishError;
+use crate::{errors::IronfishError, util::str_to_array};
 
 use super::{
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
@@ -26,10 +26,7 @@ pub struct Memo(pub [u8; 32]);
 
 impl From<&str> for Memo {
     fn from(string: &str) -> Self {
-        let memo_as_bytes = string.as_bytes();
-        let num_to_clone = std::cmp::min(memo_as_bytes.len(), 32);
-        let mut memo_bytes = [0; 32];
-        memo_bytes[..num_to_clone].clone_from_slice(&memo_as_bytes[..num_to_clone]);
+        let memo_bytes = str_to_array(string);
         Memo(memo_bytes)
     }
 }
@@ -191,7 +188,7 @@ impl<'a> Note {
     }
 
     pub fn owner(&self) -> PublicAddress {
-        self.owner.clone()
+        self.owner
     }
 
     /// Send encrypted form of the note, which is what gets publicly stored on

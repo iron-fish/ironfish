@@ -47,6 +47,7 @@ async function makeStrategyTree({
     db: database,
     name: name,
     depth: depth,
+    defaultValue: Buffer.alloc(32),
   })
 
   if (openDb) {

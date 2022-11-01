@@ -31,8 +31,6 @@ import {
   GetConfigResponse,
   GetDefaultAccountRequest,
   GetDefaultAccountResponse,
-  GetFeesRequest,
-  GetFeesResponse,
   GetFundsRequest,
   GetFundsResponse,
   GetLogStreamResponse,
@@ -388,10 +386,6 @@ export abstract class RpcClient {
       `${ApiNamespace.fees}/estimateFee`,
       params,
     ).waitForEnd()
-  }
-
-  async getFees(params: GetFeesRequest): Promise<RpcResponseEnded<GetFeesResponse>> {
-    return this.request<GetFeesResponse>(`${ApiNamespace.fees}/getFees`, params).waitForEnd()
   }
 
   async getBlock(params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> {

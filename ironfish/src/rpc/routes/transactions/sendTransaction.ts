@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { CurrencyUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
@@ -91,11 +92,28 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
     }
 
+    // Check whether amount and fee are valid or not
+    if (!CurrencyUtils.isValidOre(transaction.fee)) {
+      throw new ValidationError(
+        `Invalid transaction fee, ${transaction.fee}`,
+        undefined,
+        ERROR_CODES.VALIDATION,
+      )
+    }
+    let sum = BigInt(transaction.fee)
+    transaction.receives.map((receive) => {
+      if (!CurrencyUtils.isValidOre(receive.amount)) {
+        throw new ValidationError(
+          `Invalid transaction amount, ${receive.amount}`,
+          undefined,
+          ERROR_CODES.VALIDATION,
+        )
+      }
+      sum += BigInt(receive.amount)
+    })
+
     // Check that the node account is updated
     const balance = await node.wallet.getBalance(account)
-    const sum =
-      transaction.receives.reduce((acc, receive) => acc + BigInt(receive.amount), BigInt(0)) +
-      BigInt(transaction.fee)
 
     if (balance.confirmed < sum && balance.unconfirmed < sum) {
       throw new ValidationError(
