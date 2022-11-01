@@ -305,6 +305,8 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     poolBalancePercentPayout: YupUtils.isPercent,
     poolHost: yup.string().trim(),
     poolPort: YupUtils.isPort,
+    poolTlsHost: yup.string().trim(),
+    poolTlsPort: YupUtils.isPort,
     poolDifficulty: yup.string(),
     poolAttemptPayoutInterval: YupUtils.isPositiveInteger,
     poolSuccessfulPayoutInterval: YupUtils.isPositiveInteger,
