@@ -258,7 +258,7 @@ export class Syncer {
       requests++
 
       const needle = start - i * 2
-      const hashes = await this.peerNetwork.getBlockHashes(peer, needle, 1)
+      const [hashes, _] = await this.peerNetwork.getBlockHashes(peer, needle, 1)
       if (!hashes.length) {
         continue
       }
@@ -299,13 +299,9 @@ export class Syncer {
     while (lower <= upper) {
       requests++
 
-      const start = BenchUtils.start()
-
       const needle = Math.floor((lower + upper) / 2)
-      const hashes = await this.peerNetwork.getBlockHashes(peer, needle, 1)
+      const [hashes, time] = await this.peerNetwork.getBlockHashes(peer, needle, 1)
       const remote = hashes.length === 1 ? hashes[0] : null
-
-      const end = BenchUtils.end(start)
 
       const { found, local } = await hasHash(remote)
 
@@ -314,7 +310,7 @@ export class Syncer {
           peer.displayName
         }, needle: ${needle}, lower: ${lower}, upper: ${upper}, hash: ${HashUtils.renderHash(
           remote,
-        )}, time: ${end.toFixed(2)}ms: ${found ? 'HIT' : 'MISS'}`,
+        )}, time: ${time.toFixed(2)}ms: ${found ? 'HIT' : 'MISS'}`,
       )
 
       if (!found) {
@@ -350,6 +346,11 @@ export class Syncer {
 
     let count = 0
     let skipped = 0
+    let blocksPromise: Promise<[SerializedBlock[], number]> = Promise.resolve([[], 0])
+
+    if (head) {
+      blocksPromise = this.peerNetwork.getBlocks(peer, head, this.blocksPerMessage + 1)
+    }
 
     while (head) {
       this.logger.info(
@@ -358,22 +359,29 @@ export class Syncer {
         )} (${sequence}) from ${peer.displayName}`,
       )
 
-      const start = BenchUtils.start()
-
-      const [headBlock, ...blocks]: SerializedBlock[] = await this.peerNetwork.getBlocks(
-        peer,
-        head,
-        this.blocksPerMessage + 1,
-      )
-
-      const elapsedSeconds = BenchUtils.end(start) / 1000
-      this.downloadSpeed.add((blocks.length + 1) / elapsedSeconds)
+      const [[headBlock, ...blocks], time]: [SerializedBlock[], number] = await blocksPromise
 
       if (!headBlock) {
         peer.punish(BAN_SCORE.MAX, 'empty GetBlocks message')
       }
 
       this.abort(peer)
+
+      // If they sent a full message they have more blocks so
+      // optimistically request the next batch
+      if (blocks.length >= this.blocksPerMessage) {
+        const lastBlock = blocks.at(-1) || headBlock
+        const block = BlockSerde.deserialize(lastBlock)
+
+        blocksPromise = this.peerNetwork.getBlocks(
+          peer,
+          block.header.hash,
+          this.blocksPerMessage + 1,
+        )
+      }
+
+      const elapsedSeconds = time / 1000
+      this.downloadSpeed.add((blocks.length + 1) / elapsedSeconds)
 
       for (const addBlock of blocks) {
         sequence += 1

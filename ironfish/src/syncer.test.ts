@@ -158,15 +158,15 @@ describe('Syncer', () => {
     const getBlocksSpy = jest
       .spyOn(peerNetwork, 'getBlocks')
       .mockImplementationOnce(() =>
-        Promise.resolve([BlockSerde.serialize(genesis), BlockSerde.serialize(blockA1)]),
+        Promise.resolve([[BlockSerde.serialize(genesis), BlockSerde.serialize(blockA1)], 100]),
       )
       .mockImplementationOnce(() =>
-        Promise.resolve([BlockSerde.serialize(blockA1), BlockSerde.serialize(blockA2)]),
+        Promise.resolve([[BlockSerde.serialize(blockA1), BlockSerde.serialize(blockA2)], 100]),
       )
       .mockImplementationOnce(() =>
-        Promise.resolve([BlockSerde.serialize(blockA2), BlockSerde.serialize(blockA3)]),
+        Promise.resolve([[BlockSerde.serialize(blockA2), BlockSerde.serialize(blockA3)], 100]),
       )
-      .mockImplementationOnce(() => Promise.resolve([BlockSerde.serialize(blockA3)]))
+      .mockImplementationOnce(() => Promise.resolve([[BlockSerde.serialize(blockA3)], 100]))
 
     syncer.loader = peer
     await syncer.syncBlocks(peer, genesis.header.hash, genesis.header.sequence)
@@ -178,7 +178,7 @@ describe('Syncer', () => {
     expect(getBlocksSpy).toHaveBeenNthCalledWith(4, peer, blockA3.header.hash, 2)
   })
 
-  it('should ban peers that send empty responses', async () => {
+  it.only('should ban peers that send empty responses', async () => {
     const { strategy, chain, peerNetwork, syncer } = nodeTest
 
     strategy.disableMiningReward()
@@ -193,7 +193,7 @@ describe('Syncer', () => {
 
     const getBlocksSpy = jest
       .spyOn(peerNetwork, 'getBlocks')
-      .mockImplementation(() => Promise.resolve([]))
+      .mockImplementation(() => Promise.resolve([[], 100]))
     const peerPunished = jest.spyOn(peer, 'punish')
 
     syncer.loader = peer
