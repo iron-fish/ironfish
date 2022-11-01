@@ -644,6 +644,7 @@ export class Blockchain {
     Assert.isNotNull(prev)
 
     await this.saveConnect(block, prev, tx)
+    this.notes.pastRootTxCommited(tx)
     await tx.update()
 
     this.head = block.header

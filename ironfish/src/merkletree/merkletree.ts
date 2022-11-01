@@ -44,8 +44,8 @@ export class MerkleTree<
   readonly leavesIndex: IDatabaseStore<LeavesIndexSchema<H>>
   readonly nodes: IDatabaseStore<NodesSchema<H>>
 
-  private readonly globalPastRootCache: LRU<number, H> = new LRU<number, H>(300 * 60)
-  private readonly localPastRootCache: LRU<number, Map<number, H>> = new LRU<
+  private readonly pastRootCache: LRU<number, H> = new LRU<number, H>(300 * 60)
+  private readonly transactionPastRootCache: LRU<number, Map<number, H>> = new LRU<
     number,
     Map<number, H>
   >(5)
@@ -481,7 +481,7 @@ export class MerkleTree<
   // Invalidate and pastSize entries greater than maxSize
   private invalidatePastRootCache(maxSize: number, tx?: IDatabaseTransaction): void {
     if (tx instanceof LevelupTransaction) {
-      const local = this.localPastRootCache.get(tx.id)
+      const local = this.transactionPastRootCache.get(tx.id)
       for (const pastSize of local?.keys() || []) {
         if (pastSize > maxSize) {
           local?.delete(pastSize)
@@ -489,39 +489,39 @@ export class MerkleTree<
       }
     }
 
-    for (const pastSize of this.globalPastRootCache.keys()) {
+    for (const pastSize of this.pastRootCache.keys()) {
       if (pastSize > maxSize) {
-        this.globalPastRootCache.remove(pastSize)
+        this.pastRootCache.remove(pastSize)
       }
     }
   }
 
   private setPastRootCache(pastSize: number, hash: H, tx: IDatabaseTransaction): void {
     if (tx instanceof LevelupTransaction) {
-      const cache = this.localPastRootCache.get(tx.id) || new Map<number, H>()
+      const cache = this.transactionPastRootCache.get(tx.id) || new Map<number, H>()
       cache.set(pastSize, hash)
-      this.localPastRootCache.set(tx.id, cache)
+      this.transactionPastRootCache.set(tx.id, cache)
     }
   }
 
   private getPastRootCache(pastSize: number, tx?: IDatabaseTransaction): H | null {
     if (tx instanceof LevelupTransaction) {
-      const local = this.localPastRootCache.get(tx.id)
+      const local = this.transactionPastRootCache.get(tx.id)
       const localResult = local && local.get(pastSize)
 
-      return localResult || this.globalPastRootCache.get(pastSize)
+      return localResult || this.pastRootCache.get(pastSize)
     }
 
-    return this.globalPastRootCache.get(pastSize)
+    return this.pastRootCache.get(pastSize)
   }
 
   pastRootTxCommited(tx: IDatabaseTransaction): void {
     if (tx instanceof LevelupTransaction) {
-      const local = this.localPastRootCache.get(tx.id)
+      const local = this.transactionPastRootCache.get(tx.id)
       for (const [pastSize, hash] of local?.entries() || []) {
-        this.globalPastRootCache.set(pastSize, hash)
+        this.pastRootCache.set(pastSize, hash)
       }
-      this.localPastRootCache.remove(tx.id)
+      this.transactionPastRootCache.remove(tx.id)
     }
   }
 
