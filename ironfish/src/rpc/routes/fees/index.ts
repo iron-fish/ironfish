@@ -4,4 +4,3 @@
 
 export * from './estimateFeeRates'
 export * from './estimateFee'
-export * from './getFees'
