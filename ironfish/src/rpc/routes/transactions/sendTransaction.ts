@@ -93,28 +93,27 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     // Check whether amount and fee are valid or not
-    transaction.receives.map((receive) => {
-      if (!CurrencyUtils.isValidOre(receive.amount)) {
-        throw new ValidationError(
-          'Negative amount is not allowed',
-          undefined,
-          ERROR_CODES.VALIDATION,
-        )
-      }
-    })
     if (!CurrencyUtils.isValidOre(transaction.fee)) {
       throw new ValidationError(
-        'Negative fee is not allowed',
+        'Transaction fee provided is invalid',
         undefined,
         ERROR_CODES.VALIDATION,
       )
     }
+    let sum = BigInt(transaction.fee)
+    transaction.receives.map((receive) => {
+      if (!CurrencyUtils.isValidOre(receive.amount)) {
+        throw new ValidationError(
+          'Transaction amount provided is invalid',
+          undefined,
+          ERROR_CODES.VALIDATION,
+        )
+      }
+      sum += BigInt(receive.amount)
+    })
 
     // Check that the node account is updated
     const balance = await node.wallet.getBalance(account)
-    const sum =
-      transaction.receives.reduce((acc, receive) => acc + BigInt(receive.amount), BigInt(0)) +
-      BigInt(transaction.fee)
 
     if (balance.confirmed < sum && balance.unconfirmed < sum) {
       throw new ValidationError(
