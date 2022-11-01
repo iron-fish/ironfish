@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { formatFixed, parseFixed } from '@ethersproject/bignumber'
-import { ErrorUtils } from './error'
 import { FixedNumberUtils } from './fixedNumber'
 
 export class CurrencyUtils {
@@ -87,8 +86,12 @@ export class CurrencyUtils {
   }
 
   static isValidIron(amount: string): boolean {
-    const ore = this.decodeIron(amount)
-    return this.isValidOre(this.encode(ore))
+    try {
+      const ore = this.decodeIron(amount)
+      return this.isValidOre(this.encode(ore))
+    } catch (e) {
+      return false
+    }
   }
 
   static isValidOre(amount: string): boolean {
