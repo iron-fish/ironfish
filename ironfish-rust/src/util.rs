@@ -21,12 +21,15 @@ mod test {
     use super::str_to_array;
 
     #[test]
-    fn test_str_to_array() {
+    fn test_str_to_array_string_fits() {
         let string_fits = "asdf";
         let arr: [u8; 8] = str_to_array(string_fits);
 
         assert_eq!(arr, [97, 115, 100, 102, 0, 0, 0, 0]);
+    }
 
+    #[test]
+    fn test_str_to_array_string_too_long() {
         let string_too_big = "asdfasdf";
         let arr: [u8; 4] = str_to_array(string_too_big);
 
