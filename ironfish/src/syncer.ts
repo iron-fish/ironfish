@@ -13,7 +13,7 @@ import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { Block, BlockSerde, SerializedBlock } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Telemetry } from './telemetry'
-import { BenchUtils, ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
+import { ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 import { ArrayUtils } from './utils/array'
 
 const SYNCER_TICK_MS = 10 * 1000

@@ -178,7 +178,7 @@ describe('Syncer', () => {
     expect(getBlocksSpy).toHaveBeenNthCalledWith(4, peer, blockA3.header.hash, 2)
   })
 
-  it.only('should ban peers that send empty responses', async () => {
+  it('should ban peers that send empty responses', async () => {
     const { strategy, chain, peerNetwork, syncer } = nodeTest
 
     strategy.disableMiningReward()
