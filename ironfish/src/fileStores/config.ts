@@ -391,7 +391,7 @@ export class Config extends KeyStore<ConfigOptions> {
       telemetryApi: DEFAULT_TELEMETRY_API,
       accountName: DEFAULT_WALLET_NAME,
       generateNewIdentity: false,
-      blocksPerMessage: 20,
+      blocksPerMessage: 5,
       minerBatchSize: DEFAULT_MINER_BATCH_SIZE,
       poolName: DEFAULT_POOL_NAME,
       poolAccountName: DEFAULT_POOL_ACCOUNT_NAME,
