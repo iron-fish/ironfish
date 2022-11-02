@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { SerializedCompactBlock } from '../../primitives/block'
+import { CompactBlock } from '../../primitives/block'
 import { NetworkMessageType } from '../types'
 import { getCompactBlockSize, readCompactBlock, writeCompactBlock } from '../utils/serializers'
 import { NetworkMessage } from './networkMessage'
 
 export class NewBlockV2Message extends NetworkMessage {
-  readonly compactBlock: SerializedCompactBlock
+  readonly compactBlock: CompactBlock
 
-  constructor(compactBlock: SerializedCompactBlock) {
+  constructor(compactBlock: CompactBlock) {
     super(NetworkMessageType.NewBlockV2)
     this.compactBlock = compactBlock
   }

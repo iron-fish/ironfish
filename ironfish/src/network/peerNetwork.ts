@@ -17,9 +17,9 @@ import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { Transaction } from '../primitives'
-import { Block, BlockSerde, SerializedBlock, SerializedCompactBlock } from '../primitives/block'
-import { BlockHash, BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
-import { SerializedTransaction, TransactionHash } from '../primitives/transaction'
+import { Block, CompactBlock } from '../primitives/block'
+import { BlockHash, BlockHeader } from '../primitives/blockheader'
+import { TransactionHash } from '../primitives/transaction'
 import { Telemetry } from '../telemetry'
 import { ArrayUtils, BenchUtils, HRTime } from '../utils'
 import { BlockFetcher } from './blockFetcher'
@@ -245,20 +245,16 @@ export class PeerNetwork {
     })
 
     this.node.miningManager.onNewBlock.on((block) => {
-      const serializedBlock = BlockSerde.serialize(block)
-
       const nonce = Buffer.alloc(16, block.header.hash)
-      const message = new NewBlockMessage(serializedBlock, nonce)
+      const message = new NewBlockMessage(block, nonce)
 
       this.broadcastBlock(message)
       this.broadcastBlockHash(block.header)
     })
 
     this.node.wallet.onBroadcastTransaction.on((transaction) => {
-      const serializedTransaction = transaction.serialize()
-
       const nonce = Buffer.alloc(16, transaction.hash())
-      const message = new NewTransactionMessage(serializedTransaction, nonce)
+      const message = new NewTransactionMessage(transaction, nonce)
 
       this.broadcastTransaction(message)
     })
@@ -380,8 +376,7 @@ export class PeerNetwork {
    * Send a block to all connected peers who haven't yet received the block.
    */
   private broadcastBlock(message: NewBlockMessage): void {
-    // TODO: This deserialization could be avoided by passing around a Block instead of a SerializedBlock
-    const block = BlockSerde.deserialize(message.block)
+    const block = message.block
     const hash = block.header.hash
 
     const isUpgraded = (peer: Peer) => peer.version !== null && peer.version >= 18
@@ -432,7 +427,7 @@ export class PeerNetwork {
   }
 
   private broadcastTransaction(message: NewTransactionMessage): void {
-    const hash = new Transaction(message.transaction).hash()
+    const hash = message.transaction.hash()
     const isUpgraded = (peer: Peer) => peer.version !== null && peer.version >= 17
 
     const peersToSendToArray = [...this.connectedPeersWithoutTransaction(hash)]
@@ -623,7 +618,7 @@ export class PeerNetwork {
     peer: Peer,
     start: Buffer,
     limit: number,
-  ): Promise<{ blocks: SerializedBlock[]; time: number }> {
+  ): Promise<{ blocks: Block[]; time: number }> {
     const begin = BenchUtils.start()
 
     const message = new GetBlocksRequest(start, limit)
@@ -654,7 +649,7 @@ export class PeerNetwork {
     } else if (message instanceof NewTransactionV2Message) {
       for (const transaction of message.transactions) {
         // Set the nonce to the hash of the transaction for older peers
-        const nonce = Buffer.alloc(16, new Transaction(transaction).hash())
+        const nonce = Buffer.alloc(16, transaction.hash())
         const gossipMessage = new NewTransactionMessage(transaction, nonce)
         await this.onNewTransaction(peer, gossipMessage)
       }
@@ -718,8 +713,8 @@ export class PeerNetwork {
         responseMessage instanceof PooledTransactionsResponse &&
         peer.state.identity
       ) {
-        for (const serializedTransaction of responseMessage.transactions) {
-          const hash = new Transaction(serializedTransaction).hash()
+        for (const transaction of responseMessage.transactions) {
+          const hash = transaction.hash()
           this.markKnowsTransaction(hash, peer.state.identity)
         }
       }
@@ -728,9 +723,9 @@ export class PeerNetwork {
       if (request) {
         request.resolve({ peerIdentity, message: rpcMessage })
       } else if (rpcMessage instanceof PooledTransactionsResponse) {
-        for (const serializedTransaction of rpcMessage.transactions) {
-          const nonce = Buffer.alloc(16, new Transaction(serializedTransaction).hash())
-          const gossipMessage = new NewTransactionMessage(serializedTransaction, nonce)
+        for (const transaction of rpcMessage.transactions) {
+          const nonce = Buffer.alloc(16, transaction.hash())
+          const gossipMessage = new NewTransactionMessage(transaction, nonce)
           await this.onNewTransaction(peer, gossipMessage)
         }
       } else if (rpcMessage instanceof GetBlockTransactionsResponse) {
@@ -740,7 +735,7 @@ export class PeerNetwork {
       } else if (rpcMessage instanceof GetBlocksResponse) {
         // Should happen when block is requested directly by the block fetcher
         for (const block of rpcMessage.blocks) {
-          const header = BlockHeaderSerde.deserialize(block.header)
+          const header = block.header
           const nonce = Buffer.alloc(16, header.hash)
           const message = new NewBlockMessage(block, nonce)
           await this.handleNewBlockMessage(peer, message)
@@ -789,7 +784,7 @@ export class PeerNetwork {
     })
   }
 
-  private assembleTransactionsFromMempool(block: SerializedCompactBlock):
+  private assembleTransactionsFromMempool(block: CompactBlock):
     | {
         ok: true
         partialTransactions: TransactionOrHash[]
@@ -838,7 +833,7 @@ export class PeerNetwork {
 
       partialTransactions.push({
         type: 'FULL',
-        value: new Transaction(nextFullTransaction.value.transaction),
+        value: nextFullTransaction.value.transaction,
       })
       nextFullTransaction = absoluteIndexTransactions.next()
       fullTransactionsConsumed++
@@ -853,7 +848,7 @@ export class PeerNetwork {
 
   assembleBlockFromResponse(
     partialTransactions: TransactionOrHash[],
-    responseTransactions: readonly SerializedTransaction[],
+    responseTransactions: readonly Transaction[],
   ): { ok: false } | { ok: true; transactions: Transaction[] } {
     const transactions: Transaction[] = []
     let currResponseIndex = 0
@@ -865,7 +860,7 @@ export class PeerNetwork {
         // did not respond with enough transactions
         return { ok: false }
       } else {
-        const next = new Transaction(responseTransactions[currResponseIndex])
+        const next = responseTransactions[currResponseIndex]
         if (!next.hash().equals(partial.value)) {
           // hashes are mismatched
           return { ok: false }
@@ -897,7 +892,7 @@ export class PeerNetwork {
     await this.onNewFullBlock(peer, block, prevHeader)
   }
 
-  private async onNewCompactBlock(peer: Peer, compactBlock: SerializedCompactBlock) {
+  private async onNewCompactBlock(peer: Peer, compactBlock: CompactBlock) {
     if (!this.shouldProcessNewBlocks()) {
       return
     }
@@ -909,10 +904,8 @@ export class PeerNetwork {
       return
     }
 
-    // deserialize the header
-    const header = BlockHeaderSerde.deserialize(compactBlock.header)
-
     // verify the header
+    const header = compactBlock.header
     const verifyHeaderResult = this.chain.verifier.verifyBlockHeader(header)
     if (!verifyHeaderResult.valid) {
       this.chain.addInvalid(
@@ -993,10 +986,7 @@ export class PeerNetwork {
       partial.type === 'FULL' && fullTransactions.push(partial.value)
     }
 
-    const fullBlock = new Block(
-      BlockHeaderSerde.deserialize(compactBlock.header),
-      fullTransactions,
-    )
+    const fullBlock = new Block(compactBlock.header, fullTransactions)
     await this.onNewFullBlock(peer, fullBlock, prevHeader)
   }
 
@@ -1012,7 +1002,7 @@ export class PeerNetwork {
       const transaction = this.node.memPool.get(hash)
       if (transaction && !this.alreadyHaveTransaction(hash)) {
         const nonce = Buffer.alloc(16, transaction.hash())
-        const gossipMessage = new NewTransactionMessage(transaction.serialize(), nonce)
+        const gossipMessage = new NewTransactionMessage(transaction, nonce)
         this.broadcastTransaction(gossipMessage)
       } else {
         this.transactionFetcher.hashReceived(hash, peer)
@@ -1117,24 +1107,24 @@ export class PeerNetwork {
 
     const blocks = await Promise.all(hashes.map((hash) => this.chain.getBlock(hash)))
 
-    const serialized = blocks.map((block) => {
+    const notNullBlocks = blocks.map((block) => {
       Assert.isNotNull(block)
-      return BlockSerde.serialize(block)
+      return block
     })
 
-    return new GetBlocksResponse(serialized, rpcId)
+    return new GetBlocksResponse(notNullBlocks, rpcId)
   }
 
   private onPooledTransactionsRequest(
     message: PooledTransactionsRequest,
     rpcId: number,
   ): PooledTransactionsResponse {
-    const transactions: SerializedTransaction[] = []
+    const transactions: Transaction[] = []
 
     for (const hash of message.transactionHashes) {
       const transaction = this.node.memPool.get(hash)
       if (transaction) {
-        transactions.push(transaction.serialize())
+        transactions.push(transaction)
       }
     }
 
@@ -1204,7 +1194,7 @@ export class PeerNetwork {
         throw new CannotSatisfyRequestError(errorMessage)
       }
 
-      transactions.push(block.transactions[currentIndex].serialize())
+      transactions.push(block.transactions[currentIndex])
       currentIndex++
     }
 
@@ -1253,7 +1243,7 @@ export class PeerNetwork {
       return
     }
 
-    const block = BlockSerde.deserialize(message.block)
+    const block = message.block
 
     if (await this.alreadyHaveBlock(block.header)) {
       return
@@ -1304,9 +1294,8 @@ export class PeerNetwork {
     this.blockFetcher.receivedFullBlock(block)
 
     // Re-gossip the full block
-    const serializedBlock = BlockSerde.serialize(block)
     const newBlockMessage = new NewBlockMessage(
-      serializedBlock,
+      block,
       nonce ?? Buffer.alloc(16, block.header.hash),
     )
 
@@ -1327,7 +1316,7 @@ export class PeerNetwork {
     }
 
     // add the block to the chain
-    const result = await this.node.syncer.addBlock(peer, BlockSerde.serialize(block))
+    const result = await this.node.syncer.addBlock(peer, block)
 
     // We should have checked if the block is an orphan or duplicate already, so we
     // don't have to handle those cases here. If there was a verification error, the
@@ -1404,7 +1393,7 @@ export class PeerNetwork {
     const received = new Date()
 
     // Mark the peer as knowing about the transaction
-    const transaction = new Transaction(message.transaction)
+    const transaction = message.transaction
     const hash = transaction.hash()
     peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
 

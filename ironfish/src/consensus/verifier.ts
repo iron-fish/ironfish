@@ -9,7 +9,7 @@ import {
   getBlockWithMinersFeeSize,
   getTransactionSize,
 } from '../network/utils/serializers'
-import { BlockSerde, Spend } from '../primitives'
+import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
@@ -48,9 +48,7 @@ export class Verifier {
         block.header.sequence,
       )
     ) {
-      if (
-        getBlockSize(BlockSerde.serialize(block)) > this.chain.consensus.MAX_BLOCK_SIZE_BYTES
-      ) {
+      if (getBlockSize(block) > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
         return { valid: false, reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED }
       }
     }
@@ -250,7 +248,7 @@ export class Verifier {
    */
   verifyCreatedTransaction(transaction: Transaction): VerificationResult {
     if (
-      getTransactionSize(transaction.serialize()) >
+      getTransactionSize(transaction) >
       this.chain.consensus.MAX_BLOCK_SIZE_BYTES - getBlockWithMinersFeeSize()
     ) {
       return { valid: false, reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED }

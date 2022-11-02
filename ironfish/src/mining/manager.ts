@@ -15,7 +15,7 @@ import {
   MINERS_FEE_TRANSACTION_SIZE_BYTES,
 } from '../network/utils/serializers'
 import { IronfishNode } from '../node'
-import { Block, BlockSerde } from '../primitives/block'
+import { Block } from '../primitives/block'
 import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { AsyncUtils } from '../utils/async'
@@ -76,7 +76,7 @@ export class MiningManager {
     const nullifiers = new BufferSet()
     for (const transaction of this.memPool.orderedTransactions()) {
       // Skip transactions that would cause the block to exceed the max size
-      const transactionSize = getTransactionSize(transaction.serialize())
+      const transactionSize = getTransactionSize(transaction)
       if (currBlockSize + transactionSize > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
         continue
       }
@@ -157,7 +157,7 @@ export class MiningManager {
     )
     Assert.isEqual(
       MINERS_FEE_TRANSACTION_SIZE_BYTES,
-      getTransactionSize(minersFee.serialize()),
+      getTransactionSize(minersFee),
       "Incorrect miner's fee transaction size used during block creation",
     )
 
@@ -169,7 +169,7 @@ export class MiningManager {
     )
     Assert.isEqual(
       newBlockSize,
-      getBlockSize(BlockSerde.serialize(newBlock)),
+      getBlockSize(newBlock),
       'Incorrect block size calculated during block creation',
     )
 

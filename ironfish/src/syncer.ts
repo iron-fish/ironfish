@@ -10,7 +10,7 @@ import { Meter, MetricsMonitor } from './metrics'
 import { RollingAverage } from './metrics/rollingAverage'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
-import { Block, BlockSerde, SerializedBlock } from './primitives/block'
+import { Block } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Telemetry } from './telemetry'
 import { ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
@@ -370,8 +370,7 @@ export class Syncer {
       // If they sent a full message they have more blocks so
       // optimistically request the next batch
       if (blocks.length >= this.blocksPerMessage) {
-        const lastBlock = blocks.at(-1) || headBlock
-        const block = BlockSerde.deserialize(lastBlock)
+        const block = blocks.at(-1) || headBlock
 
         this.logger.info(
           `Requesting ${this.blocksPerMessage} blocks starting at ${HashUtils.renderHash(
@@ -435,13 +434,12 @@ export class Syncer {
 
   async addBlock(
     peer: Peer,
-    serialized: SerializedBlock,
+    block: Block,
   ): Promise<{
     added: boolean
     block: Block
     reason: VerificationResultReason | null
   }> {
-    const block = BlockSerde.deserialize(serialized)
     const { isAdded, reason, score } = await this.chain.addBlock(block)
 
     this.speed.add(1)

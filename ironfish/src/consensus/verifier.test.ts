@@ -7,7 +7,7 @@ jest.mock('ws')
 import '../testUtilities/matchers/blockchain'
 import { Assert } from '../assert'
 import { getBlockSize, getBlockWithMinersFeeSize } from '../network/utils/serializers'
-import { BlockHeader, BlockSerde, Transaction } from '../primitives'
+import { BlockHeader, Transaction } from '../primitives'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
@@ -134,8 +134,7 @@ describe('Verifier', () => {
     it('accepts a block with size more than MAX_BLOCK_SIZE_BYTES before V2 consensus upgrade', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       nodeTest.chain.consensus.V2_MAX_BLOCK_SIZE = block.header.sequence + 1
-      nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES =
-        getBlockSize(BlockSerde.serialize(block)) - 1
+      nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockSize(block) - 1
 
       expect((await nodeTest.verifier.verifyBlock(block)).valid).toBe(true)
     })
@@ -143,8 +142,7 @@ describe('Verifier', () => {
     it('rejects a block with size more than MAX_BLOCK_SIZE_BYTES after V2 consensus upgrade', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       nodeTest.chain.consensus.V2_MAX_BLOCK_SIZE = block.header.sequence
-      nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES =
-        getBlockSize(BlockSerde.serialize(block)) - 1
+      nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockSize(block) - 1
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         valid: false,
