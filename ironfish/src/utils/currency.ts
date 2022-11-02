@@ -70,21 +70,6 @@ export class CurrencyUtils {
     return ore
   }
 
-  /*
-   * Renders ore as either ore or iron for human-readable purposes
-   */
-  static render(amount: bigint | string, ticker = false, ore = false): string {
-    if (typeof amount === 'string') {
-      amount = this.decode(amount)
-    }
-
-    if (ore) {
-      return this.renderOre(amount, ticker)
-    } else {
-      return this.renderIron(amount, ticker)
-    }
-  }
-
   static isValidIron(amount: string): boolean {
     try {
       const ore = this.decodeIron(amount)

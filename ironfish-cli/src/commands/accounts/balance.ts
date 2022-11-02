@@ -27,10 +27,6 @@ export class BalanceCommand extends IronfishCommand {
       required: false,
       description: 'Minimum number of blocks confirmations for a note',
     }),
-    ore: Flags.boolean({
-      default: false,
-      description: 'Show amounts in ore',
-    }),
   }
 
   static args = [
@@ -54,29 +50,23 @@ export class BalanceCommand extends IronfishCommand {
     })
 
     if (flags.explain) {
-      this.explainBalance(response.content, flags.ore)
+      this.explainBalance(response.content)
       return
     }
 
     if (flags.all) {
       this.log(`Account: ${response.content.account}`)
-      this.log(
-        `Balance:     ${CurrencyUtils.render(response.content.confirmed, true, flags.ore)}`,
-      )
-      this.log(
-        `Unconfirmed: ${CurrencyUtils.render(response.content.unconfirmed, true, flags.ore)}`,
-      )
-      this.log(
-        `Pending:     ${CurrencyUtils.render(response.content.pending, true, flags.ore)}`,
-      )
+      this.log(`Balance:     ${CurrencyUtils.renderIron(response.content.confirmed, true)}`)
+      this.log(`Unconfirmed: ${CurrencyUtils.renderIron(response.content.unconfirmed, true)}`)
+      this.log(`Pending:     ${CurrencyUtils.renderIron(response.content.pending, true)}`)
       return
     }
 
     this.log(`Account: ${response.content.account}`)
-    this.log(`Balance: ${CurrencyUtils.render(response.content.confirmed, true, flags.ore)}`)
+    this.log(`Balance: ${CurrencyUtils.renderIron(response.content.confirmed, true)}`)
   }
 
-  explainBalance(response: GetBalanceResponse, ore: boolean): void {
+  explainBalance(response: GetBalanceResponse): void {
     const unconfirmed = CurrencyUtils.decode(response.unconfirmed)
     const pending = CurrencyUtils.decode(response.pending)
     const confirmed = CurrencyUtils.decode(response.confirmed)
@@ -88,24 +78,24 @@ export class BalanceCommand extends IronfishCommand {
     this.log('')
 
     this.log(`Your balance is made of notes on the chain that are safe to spend`)
-    this.log(`Balance: ${CurrencyUtils.render(confirmed, true, ore)}`)
+    this.log(`Balance: ${CurrencyUtils.renderIron(confirmed, true)}`)
     this.log('')
 
     this.log(
-      `${response.unconfirmedCount} notes worth ${CurrencyUtils.render(
+      `${response.unconfirmedCount} notes worth ${CurrencyUtils.renderIron(
         unconfirmedDelta,
-        ore,
+        true,
       )} are on the chain within ${response.minimumBlockConfirmations.toString()} blocks of the head`,
     )
-    this.log(`Unconfirmed: ${CurrencyUtils.render(unconfirmed, ore)}`)
+    this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true)}`)
     this.log('')
 
     this.log(
-      `${response.pendingCount} notes worth ${CurrencyUtils.render(
+      `${response.pendingCount} notes worth ${CurrencyUtils.renderIron(
         pendingDelta,
-        ore,
+        true,
       )} are waiting for miners to add them to the chain`,
     )
-    this.log(`Pending: ${CurrencyUtils.render(pending, ore)}`)
+    this.log(`Pending: ${CurrencyUtils.renderIron(pending, true)}`)
   }
 }
