@@ -2,13 +2,20 @@ use bellman::{
     gadgets::{blake2s, boolean},
     Circuit,
 };
-use zcash_primitives::constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION;
+use ff::PrimeField;
+use zcash_primitives::{
+    constants::{CRH_IVK_PERSONALIZATION, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION},
+    sapling::{PaymentAddress, ProofGenerationKey},
+};
 use zcash_proofs::{
     circuit::{ecc, pedersen_hash},
-    constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
+    constants::{NOTE_COMMITMENT_RANDOMNESS_GENERATOR, PROOF_GENERATION_KEY_GENERATOR},
 };
 
-use crate::circuits::{constants::ASSET_IDENTIFIER_PERSONALIZATION, util::hash_asset_to_preimage};
+use crate::circuits::{
+    constants::ASSET_IDENTIFIER_PERSONALIZATION,
+    util::{hash_asset_to_preimage, slice_into_boolean_vec_le},
+};
 
 pub struct CreateAsset {
     /// Name of the asset
@@ -21,7 +28,7 @@ pub struct CreateAsset {
     pub network: [u8; 32],
 
     /// The owner who created the asset. Has permissions to mint
-    pub owner: [u8; 43],
+    pub owner: Option<PaymentAddress>,
 
     /// The random byte used to ensure we get a valid asset identifier
     pub nonce: u8,
@@ -33,6 +40,8 @@ pub struct CreateAsset {
     pub generator: Option<jubjub::ExtendedPoint>,
 
     pub create_commitment_randomness: Option<jubjub::Fr>,
+
+    pub proof_generation_key: Option<ProofGenerationKey>,
 }
 
 impl Circuit<bls12_381::Scalar> for CreateAsset {
@@ -40,13 +49,90 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
         self,
         cs: &mut CS,
     ) -> Result<(), bellman::SynthesisError> {
+        // Prover witnesses ak (ensures that it's on the curve)
+        let ak = ecc::EdwardsPoint::witness(
+            cs.namespace(|| "ak"),
+            self.proof_generation_key.as_ref().map(|k| k.ak.into()),
+        )?;
+
+        // There are no sensible attacks on small order points
+        // of ak (that we're aware of!) but it's a cheap check,
+        // so we do it.
+        ak.assert_not_small_order(cs.namespace(|| "ak not small order"))?;
+
+        // Compute nk = [nsk] ProofGenerationKey
+        let nk;
+        {
+            // Witness nsk as bits
+            let nsk = boolean::field_into_boolean_vec_le(
+                cs.namespace(|| "nsk"),
+                self.proof_generation_key.as_ref().map(|k| k.nsk),
+            )?;
+
+            // NB: We don't ensure that the bit representation of nsk
+            // is "in the field" (jubjub::Fr) because it's not used
+            // except to demonstrate the prover knows it. If they know
+            // a congruency then that's equivalent.
+
+            // Compute nk = [nsk] ProvingPublicKey
+            nk = ecc::fixed_base_multiplication(
+                cs.namespace(|| "computation of nk"),
+                &PROOF_GENERATION_KEY_GENERATOR,
+                &nsk,
+            )?;
+        }
+
+        // This is the "viewing key" preimage for CRH^ivk
+        let mut ivk_preimage = vec![];
+
+        // Place ak in the preimage for CRH^ivk
+        ivk_preimage.extend(ak.repr(cs.namespace(|| "representation of ak"))?);
+
+        // Extend ivk and nf preimages with the representation of
+        // nk.
+        {
+            let repr_nk = nk.repr(cs.namespace(|| "representation of nk"))?;
+
+            ivk_preimage.extend(repr_nk.iter().cloned());
+        }
+
+        assert_eq!(ivk_preimage.len(), 512);
+
+        // Compute the incoming viewing key ivk
+        let mut ivk = blake2s::blake2s(
+            cs.namespace(|| "computation of ivk"),
+            &ivk_preimage,
+            CRH_IVK_PERSONALIZATION,
+        )?;
+
+        // drop_5 to ensure it's in the field
+        ivk.truncate(jubjub::Fr::CAPACITY as usize);
+
+        // Witness g_d, checking that it's on the curve.
+        let g_d = {
+            ecc::EdwardsPoint::witness(
+                cs.namespace(|| "witness g_d"),
+                self.owner
+                    .as_ref()
+                    .and_then(|a| a.g_d().map(jubjub::ExtendedPoint::from)),
+            )?
+        };
+
+        // Check that g_d is not small order.
+        g_d.assert_not_small_order(cs.namespace(|| "g_d not small order"))?;
+
+        // Compute pk_d = g_d^ivk
+        let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
+
         // Hash the Asset Info pre-image
         let identifier_preimage = hash_asset_to_preimage(
             &mut cs.namespace(|| "asset info preimage"),
             self.name,
             self.chain,
             self.network,
-            self.owner,
+            // self.owner,
+            g_d,
+            pk_d,
             self.nonce,
         )?;
 
@@ -101,7 +187,7 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
         let mut commitment = pedersen_hash::pedersen_hash(
             cs.namespace(|| "asset note content hash"),
             pedersen_hash::Personalization::NoteCommitment,
-            &identifier_preimage,
+            &asset_identifier,
         )?;
 
         {
@@ -140,13 +226,16 @@ mod test {
 
     use bellman::groth16;
     use bls12_381::Bls12;
-    use group::{Curve, GroupEncoding};
+    use ff::Field;
+    use group::{Curve, Group, GroupEncoding};
     use rand::{rngs::OsRng, Rng};
     use zcash_primitives::{
         constants::{
             NOTE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
         },
-        sapling::{group_hash::group_hash, pedersen_hash},
+        sapling::{
+            group_hash::group_hash, pedersen_hash, Diversifier, PaymentAddress, ProofGenerationKey,
+        },
     };
 
     use crate::circuits::constants::{ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION};
@@ -160,29 +249,45 @@ mod test {
                 name: [0u8; 32],
                 chain: [0u8; 32],
                 network: [0u8; 32],
-                owner: [0u8; 43],
+                owner: None,
                 nonce: 0,
                 identifier: [0u8; 32],
                 generator: None,
                 create_commitment_randomness: None,
+                proof_generation_key: None,
             },
             &mut OsRng,
         )
         .expect("Can generate random params");
         let pvk = groth16::prepare_verifying_key(&params.vk);
 
-        let owner = [0u8; 43];
+        let diversifier = Diversifier([0; 11]);
+
+        println!("1");
+        let proof_generation_key = ProofGenerationKey {
+            ak: jubjub::SubgroupPoint::random(&mut OsRng),
+            nsk: jubjub::Fr::random(&mut OsRng),
+        };
+
+        let owner = proof_generation_key
+            .to_viewing_key()
+            .to_payment_address(diversifier)
+            .unwrap();
+
         let name = [1u8; 32];
         let chain = [2u8; 32];
         let network = [3u8; 32];
-        let nonce = 2u8;
+        let nonce = 1u8;
+        println!("2");
 
         let mut asset_plaintext: Vec<u8> = vec![];
-        asset_plaintext.extend(owner);
+        asset_plaintext.extend(owner.g_d().unwrap().to_bytes());
+        asset_plaintext.extend(owner.pk_d().to_bytes());
         asset_plaintext.extend(name);
         asset_plaintext.extend(chain);
         asset_plaintext.extend(network);
         asset_plaintext.extend(slice::from_ref(&nonce));
+        println!("3");
 
         let identifier = blake2s_simd::Params::new()
             .hash_length(ASSET_IDENTIFIER_LENGTH)
@@ -190,59 +295,63 @@ mod test {
             .to_state()
             .update(&asset_plaintext)
             .finalize();
-
-        // let g = blake2s_simd::Params::new()
-        //     .personal(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
-        //     .hash(identifier.as_bytes());
-        // println!("{:?}", g.as_bytes());
+        println!("4");
 
         let generator = {
-            let buffer = [
-                18, 99, 227, 36, 205, 104, 137, 88, 136, 154, 187, 153, 141, 7, 30, 2, 207, 108,
-                82, 81, 52, 39, 108, 209, 221, 171, 63, 200, 105, 250, 98, 114,
-            ];
+            let g = blake2s_simd::Params::new()
+                .personal(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
+                .hash(identifier.as_bytes());
 
-            jubjub::ExtendedPoint::from_bytes(&buffer).unwrap()
+            jubjub::ExtendedPoint::from_bytes(g.as_array()).unwrap()
         };
 
+        println!("5");
         let create_commitment_randomness = {
             let mut buffer = [0u8; 64];
             OsRng.fill(&mut buffer[..]);
 
             jubjub::Fr::from_bytes_wide(&buffer)
         };
+        println!("6");
 
         let create_commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
             pedersen_hash::Personalization::NoteCommitment,
-            asset_plaintext
-                .into_iter()
+            identifier
+                .as_bytes()
+                .iter()
                 .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
         ));
 
+        println!("7");
         let create_commitment_full_point = create_commitment_hash
             + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
 
+        println!("8");
         let create_commitment = create_commitment_full_point.to_affine().get_u();
 
+        println!("9");
         let public_inputs = [
             generator.to_affine().get_u(),
             generator.to_affine().get_v(),
             create_commitment,
         ];
 
+        println!("10");
         // Create proof
         let circuit = CreateAsset {
             name,
             chain,
             network,
-            owner,
+            owner: Some(owner),
             nonce,
             identifier: *identifier.as_array(),
             generator: Some(generator),
             create_commitment_randomness: Some(create_commitment_randomness),
+            proof_generation_key: Some(proof_generation_key),
         };
         let proof =
             groth16::create_random_proof(circuit, &params, &mut OsRng).expect("Create valid proof");
+        println!("10");
 
         groth16::verify_proof(&pvk, &proof, &public_inputs).expect("Can verify proof");
     }
