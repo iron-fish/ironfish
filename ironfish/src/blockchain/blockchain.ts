@@ -673,6 +673,8 @@ export class Blockchain {
     }
 
     await this.saveBlock(block, prev, true, tx)
+    await tx.update()
+    this.notes.pastRootTxCommitted(tx)
     await this.onForkBlock.emitAsync(block, tx)
 
     this.logger.warn(
@@ -706,7 +708,11 @@ export class Blockchain {
       await this.reorganizeChain(prev, tx)
     }
 
-    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev)
+    const verifyBlock = this.verifier.verifyBlockAdd(block, prev)
+
+    await this.saveBlock(block, prev, false, tx)
+
+    const { valid, reason } = await verifyBlock
     if (!valid) {
       Assert.isNotUndefined(reason)
 
@@ -720,7 +726,9 @@ export class Blockchain {
       throw new VerifyError(reason, BAN_SCORE.MAX)
     }
 
-    await this.saveBlock(block, prev, false, tx)
+    await tx.update()
+    this.notes.pastRootTxCommitted(tx)
+
     this.head = block.header
 
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
@@ -1272,9 +1280,6 @@ export class Blockchain {
       this.latest = block.header
       await this.meta.put('latest', hash, tx)
     }
-
-    await tx.update()
-    this.notes.pastRootTxCommitted(tx)
   }
 
   private updateSynced(): void {
