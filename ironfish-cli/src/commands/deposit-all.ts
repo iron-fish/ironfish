@@ -233,7 +233,7 @@ export default class DepositAll extends IronfishCommand {
       }
 
       // send transaction
-      if (confirmedBalance >= sendableOre + fee) {
+      if (sendableOre > minDepositOre) {
         try {
           const oreToSend = BigIntUtils.min(
             (sendableOre / minDepositOre) * minDepositOre,
