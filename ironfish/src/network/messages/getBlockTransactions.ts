@@ -58,10 +58,10 @@ export class GetBlockTransactionsResponse extends RpcNetworkMessage {
   readonly blockHash: Buffer
   readonly transactions: Transaction[]
 
-  constructor(blockHash: Buffer, serializedTransactions: Transaction[], rpcId: number) {
+  constructor(blockHash: Buffer, transactions: Transaction[], rpcId: number) {
     super(NetworkMessageType.GetBlockTransactionsResponse, Direction.Response, rpcId)
     this.blockHash = blockHash
-    this.transactions = serializedTransactions
+    this.transactions = transactions
   }
 
   serialize(): Buffer {
@@ -80,13 +80,13 @@ export class GetBlockTransactionsResponse extends RpcNetworkMessage {
     const reader = bufio.read(buffer, true)
     const blockHash = reader.readHash()
 
-    const serializedTransactionsLength = reader.readVarint()
-    const serializedTransactions: Transaction[] = []
-    for (let i = 0; i < serializedTransactionsLength; i++) {
-      serializedTransactions.push(readTransaction(reader))
+    const transactionsLength = reader.readVarint()
+    const transactions: Transaction[] = []
+    for (let i = 0; i < transactionsLength; i++) {
+      transactions.push(readTransaction(reader))
     }
 
-    return new GetBlockTransactionsResponse(blockHash, serializedTransactions, rpcId)
+    return new GetBlockTransactionsResponse(blockHash, transactions, rpcId)
   }
 
   getSize(): number {
