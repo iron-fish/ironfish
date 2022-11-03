@@ -33,7 +33,6 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
-import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import {
   displayNetworkMessageType,
   IncomingPeerMessage,
@@ -632,9 +631,7 @@ export class PeerNetwork {
   ): Promise<void> {
     const { message } = incomingMessage
 
-    if (message instanceof GossipNetworkMessage) {
-      await this.handleGossipMessage(peer, message)
-    } else if (message instanceof RpcNetworkMessage) {
+    if (message instanceof RpcNetworkMessage) {
       await this.handleRpcMessage(peer, message)
     } else if (message instanceof NewBlockHashesMessage) {
       await this.handleNewBlockHashesMessage(peer, message)
@@ -655,19 +652,6 @@ export class PeerNetwork {
           incomingMessage.message.type,
         )}'`,
       )
-    }
-  }
-
-  private async handleGossipMessage(
-    peer: Peer,
-    gossipMessage: GossipNetworkMessage,
-  ): Promise<void> {
-    if (gossipMessage instanceof NewBlockMessage) {
-      await this.handleNewBlockMessage(peer, gossipMessage)
-    } else if (gossipMessage instanceof NewTransactionMessage) {
-      await this.onNewTransaction(peer, gossipMessage)
-    } else {
-      throw new Error(`Invalid gossip message type: '${gossipMessage.type}'`)
     }
   }
 
