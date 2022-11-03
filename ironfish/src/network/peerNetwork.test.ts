@@ -12,7 +12,7 @@ import ws from 'ws'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
 import { Block, Transaction } from '../primitives'
-import { BlockSerde, SerializedCompactBlock } from '../primitives/block'
+import { SerializedCompactBlock } from '../primitives/block'
 import { BlockHeaderSerde } from '../primitives/blockheader'
 import {
   useAccountFixture,

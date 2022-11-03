@@ -17,7 +17,6 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
-import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { Peer } from './peers/peer'

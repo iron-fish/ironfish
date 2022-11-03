@@ -9,7 +9,6 @@ import { TransactionHash } from '../primitives/transaction'
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
 import { IncomingPeerMessage, NetworkMessage } from './messages/networkMessage'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionMessage } from './messages/newTransaction'
 import { NewTransactionV2Message } from './messages/newTransactionV2'
 import {
   PooledTransactionsRequest,
