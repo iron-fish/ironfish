@@ -68,40 +68,6 @@ describe('TransactionFetcher', () => {
     await peerNetwork.stop()
   })
 
-  it('does not send a request for a transaction if received NewTransactionMessage from another peer within 500ms', async () => {
-    const { peerNetwork, chain, node } = nodeTest
-
-    chain.synced = true
-    const { transaction } = await getValidTransactionOnBlock(node)
-
-    const hash = transaction.hash()
-
-    // The hash is received from 5 peers
-    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
-
-    for (const { peer } of peers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
-    }
-
-    // Another peer send the full transaction
-    const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    const peerIdentity = peer.getIdentityOrThrow()
-    const message = {
-      peerIdentity,
-      message: new NewTransactionMessage(transaction.serialize()),
-    }
-
-    await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
-
-    jest.runOnlyPendingTimers()
-
-    const sentPeers = peers.filter(({ sendSpy }) => sendSpy.mock.calls.length > 0)
-
-    expect(sentPeers).toHaveLength(0)
-
-    await peerNetwork.stop()
-  })
-
   it('does not send a request for a transaction if received NewTransactionV2Message from another peer within 500ms', async () => {
     const { peerNetwork, chain, node } = nodeTest
 

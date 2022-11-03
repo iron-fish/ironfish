@@ -371,23 +371,6 @@ describe('PeerNetwork', () => {
     const nodeTest = createNodeTest()
 
     describe('handles new blocks', () => {
-      it('adds new blocks', async () => {
-        const { peerNetwork, chain } = nodeTest
-
-        const block = await useMinerBlockFixture(chain)
-
-        expect(await chain.hasBlock(block.header.hash)).toBe(false)
-
-        const { peer } = getConnectedPeer(peerNetwork.peerManager)
-
-        const serializedBlock = BlockSerde.serialize(block)
-        await peerNetwork.peerManager.onMessage.emitAsync(
-          ...peerMessage(peer, new NewBlockMessage(serializedBlock)),
-        )
-
-        expect(await chain.hasBlock(block.header.hash)).toBe(true)
-      })
-
       it('does not sync or gossip invalid blocks', async () => {
         const { peerNetwork, node } = nodeTest
         const { chain } = node
@@ -567,7 +550,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction.serialize()]),
         })
 
         for (const { sendSpy } of peers) {
@@ -595,7 +578,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction.serialize()]),
         })
 
         for (const { sendSpy } of peers) {
@@ -625,7 +608,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction.serialize()]),
         })
 
         for (const { sendSpy } of peersWithoutTransaction) {
@@ -656,7 +639,7 @@ describe('PeerNetwork', () => {
         const { peer: peerWithTransaction2 } = peers[1]
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction2, {
           peerIdentity: peerWithTransaction2.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction.serialize()]),
         })
 
         // These functions should still only be called once
@@ -701,7 +684,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction.serialize()]),
         })
 
         // Peers should not be sent invalid transaction
@@ -763,7 +746,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction.serialize()]),
         })
 
         expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
@@ -812,7 +795,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction.serialize()]),
         })
 
         // Peers should not be sent invalid transaction
@@ -1009,7 +992,7 @@ describe('PeerNetwork', () => {
 
       await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
         peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-        message: new NewTransactionMessage(transaction.serialize()),
+        message: new NewTransactionV2Message([transaction.serialize()]),
       })
 
       expect(sendSpy).not.toHaveBeenCalled()
