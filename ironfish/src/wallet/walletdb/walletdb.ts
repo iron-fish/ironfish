@@ -531,15 +531,11 @@ export class WalletDB {
     headSequence: number,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<TransactionValue> {
-    const encoding = new PrefixEncoding(
-      BUFFER_ENCODING,
-      U32_ENCODING,
-      account.prefix.byteLength,
-    )
+    const encoding = this.pendingTransactionHashes.keyEncoding
 
     const expiredRange = StorageUtils.getPrefixesKeyRange(
-      encoding.serialize([account.prefix, 1]),
-      encoding.serialize([account.prefix, headSequence]),
+      encoding.serialize([account.prefix, [1, Buffer.alloc(0)]]),
+      encoding.serialize([account.prefix, [headSequence, Buffer.alloc(0)]]),
     )
 
     for await (const [, [, transactionHash]] of this.pendingTransactionHashes.getAllKeysIter(
@@ -558,15 +554,10 @@ export class WalletDB {
     headSequence: number,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<TransactionValue> {
-    const encoding = new PrefixEncoding(
-      BUFFER_ENCODING,
-      U32_ENCODING,
-      account.prefix.byteLength,
-    )
+    const encoding = this.pendingTransactionHashes.keyEncoding
 
-    const noExpirationRange = StorageUtils.getPrefixesKeyRange(
-      encoding.serialize([account.prefix, 0]),
-      encoding.serialize([account.prefix, 0]),
+    const noExpirationRange = StorageUtils.getPrefixKeyRange(
+      encoding.serialize([account.prefix, [0, Buffer.alloc(0)]]),
     )
 
     for await (const [, [, transactionHash]] of this.pendingTransactionHashes.getAllKeysIter(
@@ -580,8 +571,8 @@ export class WalletDB {
     }
 
     const pendingRange = StorageUtils.getPrefixesKeyRange(
-      encoding.serialize([account.prefix, headSequence + 1]),
-      encoding.serialize([account.prefix, 2 ^ 32]),
+      encoding.serialize([account.prefix, [headSequence + 1, Buffer.alloc(0)]]),
+      encoding.serialize([account.prefix, [2 ^ 32, Buffer.alloc(0)]]),
     )
 
     for await (const [, [, transactionHash]] of this.pendingTransactionHashes.getAllKeysIter(
