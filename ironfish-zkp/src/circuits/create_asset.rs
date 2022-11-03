@@ -1,21 +1,33 @@
+use std::hash;
+
 use bellman::{
     gadgets::{blake2s, boolean},
     Circuit,
 };
 use ff::PrimeField;
+use group::Group;
+use lazy_static::lazy_static;
 use zcash_primitives::{
     constants::{CRH_IVK_PERSONALIZATION, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION},
     sapling::{PaymentAddress, ProofGenerationKey},
 };
 use zcash_proofs::{
-    circuit::{ecc, pedersen_hash},
-    constants::{NOTE_COMMITMENT_RANDOMNESS_GENERATOR, PROOF_GENERATION_KEY_GENERATOR},
+    circuit::{
+        ecc::{self, fixed_base_multiplication},
+        pedersen_hash,
+    },
+    constants::{
+        generate_circuit_generator, FixedGenerator, FixedGeneratorOwned,
+        NOTE_COMMITMENT_RANDOMNESS_GENERATOR, PROOF_GENERATION_KEY_GENERATOR,
+    },
 };
 
-use crate::circuits::{
-    constants::ASSET_IDENTIFIER_PERSONALIZATION,
-    util::{hash_asset_to_preimage, slice_into_boolean_vec_le},
-};
+use crate::circuits::{constants::ASSET_IDENTIFIER_PERSONALIZATION, util::hash_asset_to_preimage};
+
+lazy_static! {
+    static ref SUBGROUP_IDENTITY: FixedGeneratorOwned =
+        generate_circuit_generator(jubjub::SubgroupPoint::identity());
+}
 
 pub struct CreateAsset {
     /// Name of the asset
@@ -36,8 +48,6 @@ pub struct CreateAsset {
     /// Unique byte array which is a hash of all of the identifying fields for
     /// an asset
     pub identifier: [u8; 32],
-
-    pub generator: Option<jubjub::ExtendedPoint>,
 
     pub create_commitment_randomness: Option<jubjub::Fr>,
 
@@ -152,66 +162,60 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
             &asset_identifier,
             VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
         )?;
+        println!("a");
 
-        // Witnessing this edwards point proves it's a valid point on the curve
-        // using the generator point passed in as a circuit parameter
-        let provided_asset_generator =
-            ecc::EdwardsPoint::witness(cs.namespace(|| "witness asset generator"), self.generator)?;
+        let hashed_asset_generator = fixed_base_multiplication(
+            cs.namespace(|| "convert asset generator to point"),
+            &SUBGROUP_IDENTITY,
+            &hashed_asset_generator_bits,
+        )?;
+        println!("b");
 
-        // Make the asset generator a public input
-        provided_asset_generator.inputize(cs.namespace(|| "inputize asset generator"))?;
-
-        let provided_asset_generator_bits =
-            provided_asset_generator.repr(cs.namespace(|| "unpack provided asset generator"))?;
-
-        // TODO: This is copied from sapling output circuit and I'm pretty sure there's
-        // a zcash or bellman fn that does this
-        // --
-        // Check integrity of the asset generator
-        // The following 256 constraints may not be strictly
-        // necessary; the output of the BLAKE2s hash may be
-        // interpreted directly as a curve point instead
-        // However, witnessing the asset generator separately
-        // and checking equality to the image of the hash
-        // is conceptually clear and not particularly expensive
+        let r = hashed_asset_generator.repr(cs.namespace(|| "foo"))?;
         for i in 0..256 {
+            println!("{:?}", hashed_asset_generator_bits[i].get_value() ==  r[i].get_value());
             boolean::Boolean::enforce_equal(
-                cs.namespace(|| format!("integrity of asset generator bit {}", i)),
+                cs.namespace(|| format!("integrity of asset
+ generator bit {}", i)),
                 &hashed_asset_generator_bits[i],
-                &provided_asset_generator_bits[i],
+                &r[i],
             )?;
         }
+
+        // Make the asset generator a public input
+        hashed_asset_generator.inputize(cs.namespace(|| "inputize asset generator"))?;
+        println!("c");
 
         // TODO: Create an Asset Note concept instead of using Asset Info
         // TODO: does this need a different personalization
-        let mut commitment = pedersen_hash::pedersen_hash(
-            cs.namespace(|| "asset note content hash"),
-            pedersen_hash::Personalization::NoteCommitment,
-            &asset_identifier,
-        )?;
+        // let mut commitment = pedersen_hash::pedersen_hash(
+        //     cs.namespace(|| "asset note content hash"),
+        //     pedersen_hash::Personalization::NoteCommitment,
+        //     &asset_identifier,
+        // )?;
 
-        {
-            // Booleanize the randomness
-            let randomness_bits = boolean::field_into_boolean_vec_le(
-                cs.namespace(|| "rcm"),
-                self.create_commitment_randomness,
-            )?;
+        // {
+        //     // Booleanize the randomness
+        //     let randomness_bits = boolean::field_into_boolean_vec_le(
+        //         cs.namespace(|| "rcm"),
+        //         self.create_commitment_randomness,
+        //     )?;
 
-            // Compute the note commitment randomness in the exponent
-            let commitment_randomness = ecc::fixed_base_multiplication(
-                cs.namespace(|| "computation of commitment randomness"),
-                &NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
-                &randomness_bits,
-            )?;
+        //     // Compute the note commitment randomness in the exponent
+        //     let commitment_randomness = ecc::fixed_base_multiplication(
+        //         cs.namespace(|| "computation of commitment randomness"),
+        //         &NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
+        //         &randomness_bits,
+        //     )?;
 
-            // Randomize our note commitment
-            commitment = commitment.add(
-                cs.namespace(|| "randomization of note commitment"),
-                &commitment_randomness,
-            )?;
-        }
+        //     // Randomize our note commitment
+        //     commitment = commitment.add(
+        //         cs.namespace(|| "randomization of note commitment"),
+        //         &commitment_randomness,
+        //     )?;
+        // }
 
-        commitment.get_u().inputize(cs.namespace(|| "commitment"))?;
+        // commitment.get_u().inputize(cs.namespace(|| "commitment"))?;
 
         // Note to selves: Create Asset circuit is going to be basically identical to Output circuit
         // with proving you own the public key in Asset Info
@@ -228,7 +232,7 @@ mod test {
     use bls12_381::Bls12;
     use ff::Field;
     use group::{Curve, Group, GroupEncoding};
-    use rand::{rngs::OsRng, Rng};
+    use rand::{rngs::{OsRng, StdRng}, Rng, SeedableRng};
     use zcash_primitives::{
         constants::{
             NOTE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
@@ -244,6 +248,9 @@ mod test {
 
     #[test]
     fn test_create_asset_circuit() {
+        let seed = 1;
+        let mut rng = StdRng::seed_from_u64(seed);
+
         let params = groth16::generate_random_parameters::<Bls12, _, _>(
             CreateAsset {
                 name: [0u8; 32],
@@ -252,11 +259,10 @@ mod test {
                 owner: None,
                 nonce: 0,
                 identifier: [0u8; 32],
-                generator: None,
                 create_commitment_randomness: None,
                 proof_generation_key: None,
             },
-            &mut OsRng,
+            &mut rng,
         )
         .expect("Can generate random params");
         let pvk = groth16::prepare_verifying_key(&params.vk);
@@ -265,8 +271,8 @@ mod test {
 
         println!("1");
         let proof_generation_key = ProofGenerationKey {
-            ak: jubjub::SubgroupPoint::random(&mut OsRng),
-            nsk: jubjub::Fr::random(&mut OsRng),
+            ak: jubjub::SubgroupPoint::random(&mut rng),
+            nsk: jubjub::Fr::random(&mut rng),
         };
 
         let owner = proof_generation_key
@@ -308,7 +314,7 @@ mod test {
         println!("5");
         let create_commitment_randomness = {
             let mut buffer = [0u8; 64];
-            OsRng.fill(&mut buffer[..]);
+            rng.fill(&mut buffer[..]);
 
             jubjub::Fr::from_bytes_wide(&buffer)
         };
@@ -333,7 +339,7 @@ mod test {
         let public_inputs = [
             generator.to_affine().get_u(),
             generator.to_affine().get_v(),
-            create_commitment,
+            // create_commitment,
         ];
 
         println!("10");
@@ -345,13 +351,12 @@ mod test {
             owner: Some(owner),
             nonce,
             identifier: *identifier.as_array(),
-            generator: Some(generator),
             create_commitment_randomness: Some(create_commitment_randomness),
             proof_generation_key: Some(proof_generation_key),
         };
         let proof =
-            groth16::create_random_proof(circuit, &params, &mut OsRng).expect("Create valid proof");
-        println!("10");
+            groth16::create_random_proof(circuit, &params, &mut rng).expect("Create valid proof");
+        println!("11");
 
         groth16::verify_proof(&pvk, &proof, &public_inputs).expect("Can verify proof");
     }
