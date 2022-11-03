@@ -8,22 +8,6 @@ import { NewBlockMessage } from './newBlock'
 describe('NewBlocksMessage', () => {
   const nodeTest = createNodeTest()
 
-  function expectNewBlockMessageToMatch(a: NewBlockMessage, b: NewBlockMessage): void {
-    // Test transaction separately because it's not a primitive type
-    expect(a.block.transactions.length).toEqual(b.block.transactions.length)
-    a.block.transactions.forEach((transactionA, transactionIndexA) => {
-      const transactionB = b.block.transactions[transactionIndexA]
-
-      expect(transactionA.hash().equals(transactionB.hash())).toBe(true)
-    })
-
-    expect({ ...a, transactions: undefined }).toMatchObject({
-      ...b,
-      transactions: undefined,
-    })
-  }
-
-  // eslint-disable-next-line jest/expect-expect
   it('serializes the object into a buffer and deserializes to the original object', async () => {
     const { transaction } = await useTxSpendsFixture(nodeTest.node)
 
@@ -54,6 +38,11 @@ describe('NewBlocksMessage', () => {
     const buffer = message.serialize()
     const deserializedMessage = NewBlockMessage.deserialize(buffer, nonce)
 
-    expectNewBlockMessageToMatch(message, deserializedMessage)
+    // Test block separately because it's not a primitive type
+    expect(message.block.equals(deserializedMessage.block)).toBe(true)
+    expect({ ...message, block: undefined }).toMatchObject({
+      ...deserializedMessage,
+      block: undefined,
+    })
   })
 })

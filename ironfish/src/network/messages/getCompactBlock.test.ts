@@ -26,7 +26,7 @@ describe('GetCompactBlockResponse', () => {
     a: GetCompactBlockResponse,
     b: GetCompactBlockResponse,
   ): void {
-    // Test transaction separately because it's not a primitive type
+    // Test transactions separately because Transaction is not a primitive type
     expect(a.compactBlock.transactions.length).toEqual(b.compactBlock.transactions.length)
     a.compactBlock.transactions.forEach((transactionA, transactionIndexA) => {
       const transactionB = b.compactBlock.transactions[transactionIndexA]

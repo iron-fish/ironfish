@@ -177,7 +177,7 @@ describe('PeerNetwork', () => {
       a: GetCompactBlockResponse,
       b: GetCompactBlockResponse,
     ): void {
-      // Test transaction separately because it's not a primitive type
+      // Test transactions separately because Transaction is not a primitive type
       expect(a.compactBlock.transactions.length).toEqual(b.compactBlock.transactions.length)
       a.compactBlock.transactions.forEach((transactionA, transactionIndexA) => {
         const transactionB = b.compactBlock.transactions[transactionIndexA]
@@ -281,7 +281,7 @@ describe('PeerNetwork', () => {
       a: GetBlockTransactionsResponse,
       b: GetBlockTransactionsResponse,
     ): void {
-      // Test transaction separately because it's not a primitive type
+      // Test transactions separately because Transaction is not a primitive type
       expect(a.transactions.length).toEqual(b.transactions.length)
       a.transactions.forEach((transactionA, transactionIndexA) => {
         const transactionB = b.transactions[transactionIndexA]

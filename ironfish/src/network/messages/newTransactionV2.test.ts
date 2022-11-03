@@ -11,7 +11,7 @@ describe('NewTransactionV2Message', () => {
     a: NewTransactionV2Message,
     b: NewTransactionV2Message,
   ): void {
-    // Test transaction separately because it's not a primitive type
+    // Test transactions separately because Transaction is not a primitive type
     expect(a.transactions.length).toEqual(b.transactions.length)
     a.transactions.forEach((transactionA, transactionIndexA) => {
       const transactionB = b.transactions[transactionIndexA]

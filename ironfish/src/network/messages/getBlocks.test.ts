@@ -19,17 +19,12 @@ describe('GetBlocksResponse', () => {
   const nodeTest = createNodeTest()
 
   function expectGetBlocksResponseToMatch(a: GetBlocksResponse, b: GetBlocksResponse): void {
-    // Test transaction separately because it's not a primitive type
+    // Test blocks separately because Block is not a primitive type
     expect(a.blocks.length).toEqual(b.blocks.length)
     a.blocks.forEach((blockA, blockIndexA) => {
       const blockB = b.blocks[blockIndexA]
 
-      expect(blockA.transactions.length).toEqual(blockB.transactions.length)
-      blockA.transactions.forEach((transactionA, transactionIndexA) => {
-        const transactionB = blockB.transactions[transactionIndexA]
-
-        expect(transactionA.hash().equals(transactionB.hash())).toBe(true)
-      })
+      expect(blockA.equals(blockB)).toBe(true)
     })
 
     expect({ ...a, blocks: undefined }).toMatchObject({ ...b, blocks: undefined })

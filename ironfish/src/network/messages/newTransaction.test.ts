@@ -7,16 +7,6 @@ import { NewTransactionMessage } from './newTransaction'
 describe('NewTransaction', () => {
   const nodeTest = createNodeTest()
 
-  function expectNewTransactionMessageToMatch(
-    a: NewTransactionMessage,
-    b: NewTransactionMessage,
-  ): void {
-    // Test transaction separately because it's not a primitive type
-    expect(a.transaction.hash().equals(b.transaction.hash())).toBe(true)
-    expect({ ...a, transaction: undefined }).toMatchObject({ ...b, transaction: undefined })
-  }
-
-  // eslint-disable-next-line jest/expect-expect
   it('serializes the object into a buffer and deserializes to the original object', async () => {
     const { transaction } = await useTxSpendsFixture(nodeTest.node)
 
@@ -24,6 +14,11 @@ describe('NewTransaction', () => {
     const message = new NewTransactionMessage(transaction, nonce)
     const deserializedMessage = NewTransactionMessage.deserialize(message.serialize(), nonce)
 
-    expectNewTransactionMessageToMatch(message, deserializedMessage)
+    // Test transaction separately because it's not a primitive type
+    expect(message.transaction.hash().equals(deserializedMessage.transaction.hash())).toBe(true)
+    expect({ ...message, transaction: undefined }).toMatchObject({
+      ...deserializedMessage,
+      transaction: undefined,
+    })
   })
 })
