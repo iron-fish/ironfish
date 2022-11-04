@@ -341,16 +341,14 @@ export class Syncer {
     }
   }
 
-  async syncBlocks(peer: Peer, head: Buffer | null, sequence: number): Promise<void> {
+  async syncBlocks(peer: Peer, head: Buffer, sequence: number): Promise<void> {
     this.abort(peer)
 
     let count = 0
     let skipped = 0
     let blocksPromise: Promise<[SerializedBlock[], number]> = Promise.resolve([[], 0])
 
-    if (head) {
-      blocksPromise = this.peerNetwork.getBlocks(peer, head, this.blocksPerMessage + 1)
-    }
+    blocksPromise = this.peerNetwork.getBlocks(peer, head, this.blocksPerMessage + 1)
 
     while (head) {
       this.logger.info(
