@@ -158,15 +158,26 @@ describe('Syncer', () => {
     const getBlocksSpy = jest
       .spyOn(peerNetwork, 'getBlocks')
       .mockImplementationOnce(() =>
-        Promise.resolve([[BlockSerde.serialize(genesis), BlockSerde.serialize(blockA1)], 100]),
+        Promise.resolve({
+          blocks: [BlockSerde.serialize(genesis), BlockSerde.serialize(blockA1)],
+          time: 100,
+        }),
       )
       .mockImplementationOnce(() =>
-        Promise.resolve([[BlockSerde.serialize(blockA1), BlockSerde.serialize(blockA2)], 100]),
+        Promise.resolve({
+          blocks: [BlockSerde.serialize(blockA1), BlockSerde.serialize(blockA2)],
+          time: 100,
+        }),
       )
       .mockImplementationOnce(() =>
-        Promise.resolve([[BlockSerde.serialize(blockA2), BlockSerde.serialize(blockA3)], 100]),
+        Promise.resolve({
+          blocks: [BlockSerde.serialize(blockA2), BlockSerde.serialize(blockA3)],
+          time: 100,
+        }),
       )
-      .mockImplementationOnce(() => Promise.resolve([[BlockSerde.serialize(blockA3)], 100]))
+      .mockImplementationOnce(() =>
+        Promise.resolve({ blocks: [BlockSerde.serialize(blockA3)], time: 100 }),
+      )
 
     syncer.loader = peer
     await syncer.syncBlocks(peer, genesis.header.hash, genesis.header.sequence)
@@ -193,7 +204,7 @@ describe('Syncer', () => {
 
     const getBlocksSpy = jest
       .spyOn(peerNetwork, 'getBlocks')
-      .mockImplementation(() => Promise.resolve([[], 100]))
+      .mockImplementation(() => Promise.resolve({ blocks: [], time: 100 }))
     const peerPunished = jest.spyOn(peer, 'punish')
 
     syncer.loader = peer

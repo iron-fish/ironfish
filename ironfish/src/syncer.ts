@@ -258,7 +258,7 @@ export class Syncer {
       requests++
 
       const needle = start - i * 2
-      const [hashes, _] = await this.peerNetwork.getBlockHashes(peer, needle, 1)
+      const { hashes } = await this.peerNetwork.getBlockHashes(peer, needle, 1)
       if (!hashes.length) {
         continue
       }
@@ -300,7 +300,7 @@ export class Syncer {
       requests++
 
       const needle = Math.floor((lower + upper) / 2)
-      const [hashes, time] = await this.peerNetwork.getBlockHashes(peer, needle, 1)
+      const { hashes, time } = await this.peerNetwork.getBlockHashes(peer, needle, 1)
       const remote = hashes.length === 1 ? hashes[0] : null
 
       const { found, local } = await hasHash(remote)
@@ -346,7 +346,10 @@ export class Syncer {
 
     let count = 0
     let skipped = 0
-    let blocksPromise: Promise<[SerializedBlock[], number]> = Promise.resolve([[], 0])
+    let blocksPromise: Promise<{ blocks: SerializedBlock[]; time: number }> = Promise.resolve({
+      blocks: [],
+      time: 0,
+    })
 
     blocksPromise = this.peerNetwork.getBlocks(peer, head, this.blocksPerMessage + 1)
 
@@ -357,7 +360,10 @@ export class Syncer {
         )} (${sequence}) from ${peer.displayName}`,
       )
 
-      const [[headBlock, ...blocks], time]: [SerializedBlock[], number] = await blocksPromise
+      const {
+        blocks: [headBlock, ...blocks],
+        time,
+      } = await blocksPromise
 
       if (!headBlock) {
         peer.punish(BAN_SCORE.MAX, 'empty GetBlocks message')
