@@ -1,7 +1,7 @@
 use std::hash;
 
 use bellman::{
-    gadgets::{blake2s, boolean},
+    gadgets::{blake2s, boolean, multipack},
     Circuit,
 };
 use ff::PrimeField;
@@ -49,8 +49,8 @@ pub struct CreateAsset {
     /// an asset
     pub identifier: [u8; 32],
 
-    pub create_commitment_randomness: Option<jubjub::Fr>,
-
+    /// Private keys associated with the public key used to create the
+    /// identifier
     pub proof_generation_key: Option<ProofGenerationKey>,
 }
 
@@ -140,7 +140,6 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
             self.name,
             self.chain,
             self.network,
-            // self.owner,
             g_d,
             pk_d,
             self.nonce,
@@ -156,69 +155,7 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
         // Ensure the pre-image of the generator is 32 bytes
         assert_eq!(asset_identifier.len(), 256);
 
-        // The asset generator computed in the circuit
-        let hashed_asset_generator_bits = blake2s::blake2s(
-            cs.namespace(|| "blake2s(asset identifier)"),
-            &asset_identifier,
-            VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
-        )?;
-        println!("a");
-
-        let hashed_asset_generator = fixed_base_multiplication(
-            cs.namespace(|| "convert asset generator to point"),
-            &SUBGROUP_IDENTITY,
-            &hashed_asset_generator_bits,
-        )?;
-        println!("b");
-
-        let r = hashed_asset_generator.repr(cs.namespace(|| "foo"))?;
-        for i in 0..256 {
-            println!("{:?}", hashed_asset_generator_bits[i].get_value() ==  r[i].get_value());
-            boolean::Boolean::enforce_equal(
-                cs.namespace(|| format!("integrity of asset
- generator bit {}", i)),
-                &hashed_asset_generator_bits[i],
-                &r[i],
-            )?;
-        }
-
-        // Make the asset generator a public input
-        hashed_asset_generator.inputize(cs.namespace(|| "inputize asset generator"))?;
-        println!("c");
-
-        // TODO: Create an Asset Note concept instead of using Asset Info
-        // TODO: does this need a different personalization
-        // let mut commitment = pedersen_hash::pedersen_hash(
-        //     cs.namespace(|| "asset note content hash"),
-        //     pedersen_hash::Personalization::NoteCommitment,
-        //     &asset_identifier,
-        // )?;
-
-        // {
-        //     // Booleanize the randomness
-        //     let randomness_bits = boolean::field_into_boolean_vec_le(
-        //         cs.namespace(|| "rcm"),
-        //         self.create_commitment_randomness,
-        //     )?;
-
-        //     // Compute the note commitment randomness in the exponent
-        //     let commitment_randomness = ecc::fixed_base_multiplication(
-        //         cs.namespace(|| "computation of commitment randomness"),
-        //         &NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
-        //         &randomness_bits,
-        //     )?;
-
-        //     // Randomize our note commitment
-        //     commitment = commitment.add(
-        //         cs.namespace(|| "randomization of note commitment"),
-        //         &commitment_randomness,
-        //     )?;
-        // }
-
-        // commitment.get_u().inputize(cs.namespace(|| "commitment"))?;
-
-        // Note to selves: Create Asset circuit is going to be basically identical to Output circuit
-        // with proving you own the public key in Asset Info
+        multipack::pack_into_inputs(cs.namespace(|| "pack identifier"), &asset_identifier)?;
 
         Ok(())
     }
@@ -228,19 +165,12 @@ impl Circuit<bls12_381::Scalar> for CreateAsset {
 mod test {
     use std::slice;
 
-    use bellman::groth16;
+    use bellman::{gadgets::multipack, groth16};
     use bls12_381::Bls12;
     use ff::Field;
-    use group::{Curve, Group, GroupEncoding};
-    use rand::{rngs::{OsRng, StdRng}, Rng, SeedableRng};
-    use zcash_primitives::{
-        constants::{
-            NOTE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
-        },
-        sapling::{
-            group_hash::group_hash, pedersen_hash, Diversifier, PaymentAddress, ProofGenerationKey,
-        },
-    };
+    use group::{Group, GroupEncoding};
+    use rand::{rngs::StdRng, SeedableRng};
+    use zcash_primitives::sapling::{Diversifier, ProofGenerationKey};
 
     use crate::circuits::constants::{ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION};
 
@@ -248,9 +178,11 @@ mod test {
 
     #[test]
     fn test_create_asset_circuit() {
+        // Seed a fixed rng for determinstism in the test
         let seed = 1;
         let mut rng = StdRng::seed_from_u64(seed);
 
+        // Generate parameters
         let params = groth16::generate_random_parameters::<Bls12, _, _>(
             CreateAsset {
                 name: [0u8; 32],
@@ -259,7 +191,6 @@ mod test {
                 owner: None,
                 nonce: 0,
                 identifier: [0u8; 32],
-                create_commitment_randomness: None,
                 proof_generation_key: None,
             },
             &mut rng,
@@ -267,13 +198,12 @@ mod test {
         .expect("Can generate random params");
         let pvk = groth16::prepare_verifying_key(&params.vk);
 
-        let diversifier = Diversifier([0; 11]);
-
-        println!("1");
         let proof_generation_key = ProofGenerationKey {
             ak: jubjub::SubgroupPoint::random(&mut rng),
             nsk: jubjub::Fr::random(&mut rng),
         };
+
+        let diversifier = Diversifier([0; 11]);
 
         let owner = proof_generation_key
             .to_viewing_key()
@@ -284,7 +214,6 @@ mod test {
         let chain = [2u8; 32];
         let network = [3u8; 32];
         let nonce = 1u8;
-        println!("2");
 
         let mut asset_plaintext: Vec<u8> = vec![];
         asset_plaintext.extend(owner.g_d().unwrap().to_bytes());
@@ -293,7 +222,6 @@ mod test {
         asset_plaintext.extend(chain);
         asset_plaintext.extend(network);
         asset_plaintext.extend(slice::from_ref(&nonce));
-        println!("3");
 
         let identifier = blake2s_simd::Params::new()
             .hash_length(ASSET_IDENTIFIER_LENGTH)
@@ -301,48 +229,10 @@ mod test {
             .to_state()
             .update(&asset_plaintext)
             .finalize();
-        println!("4");
 
-        let generator = {
-            let g = blake2s_simd::Params::new()
-                .personal(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
-                .hash(identifier.as_bytes());
+        let identifier_bits = multipack::bytes_to_bits_le(identifier.as_bytes());
+        let public_inputs = multipack::compute_multipacking(&identifier_bits);
 
-            jubjub::ExtendedPoint::from_bytes(g.as_array()).unwrap()
-        };
-
-        println!("5");
-        let create_commitment_randomness = {
-            let mut buffer = [0u8; 64];
-            rng.fill(&mut buffer[..]);
-
-            jubjub::Fr::from_bytes_wide(&buffer)
-        };
-        println!("6");
-
-        let create_commitment_hash = jubjub::ExtendedPoint::from(pedersen_hash::pedersen_hash(
-            pedersen_hash::Personalization::NoteCommitment,
-            identifier
-                .as_bytes()
-                .iter()
-                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
-        ));
-
-        println!("7");
-        let create_commitment_full_point = create_commitment_hash
-            + (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * create_commitment_randomness);
-
-        println!("8");
-        let create_commitment = create_commitment_full_point.to_affine().get_u();
-
-        println!("9");
-        let public_inputs = [
-            generator.to_affine().get_u(),
-            generator.to_affine().get_v(),
-            // create_commitment,
-        ];
-
-        println!("10");
         // Create proof
         let circuit = CreateAsset {
             name,
@@ -351,12 +241,10 @@ mod test {
             owner: Some(owner),
             nonce,
             identifier: *identifier.as_array(),
-            create_commitment_randomness: Some(create_commitment_randomness),
             proof_generation_key: Some(proof_generation_key),
         };
         let proof =
             groth16::create_random_proof(circuit, &params, &mut rng).expect("Create valid proof");
-        println!("11");
 
         groth16::verify_proof(&pvk, &proof, &public_inputs).expect("Can verify proof");
     }
