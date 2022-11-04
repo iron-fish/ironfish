@@ -164,9 +164,17 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
 
   let accountStatus
   if (content.accounts.scanning === undefined) {
-    accountStatus = `${content.accounts.head.hash} (${content.accounts.head.sequence})`
+    accountStatus = `${content.accounts.head.hash}`
+
+    if (content.accounts.head.sequence !== -1) {
+      accountStatus += ` (${content.accounts.head.sequence})`
+    }
   } else {
-    accountStatus = `SCANNING - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
+    accountStatus = `SCANNING`
+
+    if (content.accounts.scanning.sequence !== -1) {
+      accountStatus += ` - ${content.accounts.scanning.sequence} / ${content.accounts.scanning.endSequence}`
+    }
   }
 
   const cores = `Cores: ${content.cpu.cores}`
