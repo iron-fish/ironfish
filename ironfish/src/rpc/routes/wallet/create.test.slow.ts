@@ -18,9 +18,7 @@ describe('Route wallet/create', () => {
 
     const name = uuid()
 
-    const response = await routeTest.client
-      .request<any>('wallet/create', { name })
-      .waitForEnd()
+    const response = await routeTest.client.request<any>('wallet/create', { name }).waitForEnd()
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
       name: name,
@@ -40,9 +38,7 @@ describe('Route wallet/create', () => {
 
     const name = uuid()
 
-    const response = await routeTest.client
-      .request<any>('wallet/create', { name })
-      .waitForEnd()
+    const response = await routeTest.client.request<any>('wallet/create', { name }).waitForEnd()
     expect(response.content).toMatchObject({
       name: name,
       publicAddress: expect.any(String),
