@@ -346,20 +346,16 @@ export class Syncer {
 
     let count = 0
     let skipped = 0
-    let blocksPromise: Promise<{ blocks: SerializedBlock[]; time: number }> = Promise.resolve({
-      blocks: [],
-      time: 0,
-    })
 
-    blocksPromise = this.peerNetwork.getBlocks(peer, head, this.blocksPerMessage + 1)
+    this.logger.info(
+      `Requesting ${this.blocksPerMessage} blocks starting at ${HashUtils.renderHash(
+        head,
+      )} (${sequence}) from ${peer.displayName}`,
+    )
+
+    let blocksPromise = this.peerNetwork.getBlocks(peer, head, this.blocksPerMessage + 1)
 
     while (head) {
-      this.logger.info(
-        `Requesting ${this.blocksPerMessage} blocks starting at ${HashUtils.renderHash(
-          head,
-        )} (${sequence}) from ${peer.displayName}`,
-      )
-
       const {
         blocks: [headBlock, ...blocks],
         time,
@@ -376,6 +372,12 @@ export class Syncer {
       if (blocks.length >= this.blocksPerMessage) {
         const lastBlock = blocks.at(-1) || headBlock
         const block = BlockSerde.deserialize(lastBlock)
+
+        this.logger.info(
+          `Requesting ${this.blocksPerMessage} blocks starting at ${HashUtils.renderHash(
+            head,
+          )} (${sequence}) from ${peer.displayName}`,
+        )
 
         blocksPromise = this.peerNetwork.getBlocks(
           peer,
