@@ -1,12 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use crate::{
-    errors::IronfishError,
-    util::str_to_array,
-    PublicAddress,
+use crate::{errors::IronfishError, util::str_to_array, PublicAddress};
+use ironfish_zkp::{
+    constants::{
+        ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION,
+        VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
+    },
+    group_hash,
 };
-use ironfish_zkp::{constants::{ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION}, group_hash};
 use std::slice::from_ref;
 
 #[allow(dead_code)]

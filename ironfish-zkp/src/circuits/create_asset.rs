@@ -1,33 +1,18 @@
-use std::hash;
-
 use bellman::{
     gadgets::{blake2s, boolean, multipack},
     Circuit,
 };
 use ff::PrimeField;
-use group::Group;
-use lazy_static::lazy_static;
 use zcash_primitives::{
-    constants::{CRH_IVK_PERSONALIZATION, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION},
+    constants::CRH_IVK_PERSONALIZATION,
     sapling::{PaymentAddress, ProofGenerationKey},
 };
 use zcash_proofs::{
-    circuit::{
-        ecc::{self, fixed_base_multiplication},
-        pedersen_hash,
-    },
-    constants::{
-        generate_circuit_generator, FixedGenerator, FixedGeneratorOwned,
-        NOTE_COMMITMENT_RANDOMNESS_GENERATOR, PROOF_GENERATION_KEY_GENERATOR,
-    },
+    circuit::ecc::{self},
+    constants::PROOF_GENERATION_KEY_GENERATOR,
 };
 
-use crate::circuits::{constants::ASSET_IDENTIFIER_PERSONALIZATION, util::hash_asset_to_preimage};
-
-lazy_static! {
-    static ref SUBGROUP_IDENTITY: FixedGeneratorOwned =
-        generate_circuit_generator(jubjub::SubgroupPoint::identity());
-}
+use crate::{circuits::util::hash_asset_to_preimage, constants::ASSET_IDENTIFIER_PERSONALIZATION};
 
 pub struct CreateAsset {
     /// Name of the asset
@@ -172,7 +157,7 @@ mod test {
     use rand::{rngs::StdRng, SeedableRng};
     use zcash_primitives::sapling::{Diversifier, ProofGenerationKey};
 
-    use crate::circuits::constants::{ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION};
+    use crate::constants::{ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION};
 
     use super::CreateAsset;
 
