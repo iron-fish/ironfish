@@ -9,6 +9,7 @@ import { getTransactionSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
 import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
+import { BigIntUtils } from '../utils'
 import { Wallet } from '../wallet'
 import { Account } from '../wallet/account'
 
@@ -160,25 +161,37 @@ export class FeeEstimator {
     return this.queues[priorityLevel].length
   }
 
+  async estimateFees(
+    sender: Account,
+    receives: { publicAddress: string; amount: bigint; memo: string }[],
+  ): Promise<{ low: bigint; medium: bigint; high: bigint }> {
+    const pendingTransaction = await this.getPendingTransaction(sender, receives)
+
+    const feeRates = this.estimateFeeRates()
+
+    return {
+      low: this.getPendingTransactionFee(feeRates.low, pendingTransaction),
+      medium: this.getPendingTransactionFee(feeRates.medium, pendingTransaction),
+      high: this.getPendingTransactionFee(feeRates.high, pendingTransaction),
+    }
+  }
+
   async estimateFee(
     priorityLevel: PriorityLevel,
     sender: Account,
     receives: { publicAddress: string; amount: bigint; memo: string }[],
   ): Promise<bigint> {
-    const estimateFeeRate = this.estimateFeeRate(priorityLevel)
-    const estimateTransactionSize = await this.getPendingTransactionSize(
-      sender,
-      receives,
-      estimateFeeRate,
-    )
-    return this.getFee(estimateFeeRate, estimateTransactionSize)
+    const feeRate = this.estimateFeeRate(priorityLevel)
+
+    const pendingTransaction = await this.getPendingTransaction(sender, receives)
+
+    return this.getPendingTransactionFee(feeRate, pendingTransaction)
   }
 
-  private async getPendingTransactionSize(
+  private async getPendingTransaction(
     sender: Account,
     receives: { publicAddress: string; amount: bigint; memo: string }[],
-    estimateFeeRate?: bigint,
-  ): Promise<number> {
+  ): Promise<{ size: number; spenderChange: bigint }> {
     let size = 0
     size += 8 // spends length
     size += 8 // notes length
@@ -194,22 +207,37 @@ export class FeeEstimator {
 
     size += receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
 
-    if (estimateFeeRate) {
-      const additionalAmountNeeded =
-        this.getFee(estimateFeeRate, size) - (amount - amountNeeded)
+    const spenderChange = amount - amountNeeded
 
-      if (additionalAmountNeeded > 0) {
-        const { notesToSpend: additionalNotesToSpend } = await this.wallet.createSpends(
-          sender,
-          additionalAmountNeeded,
-        )
-        const additionalSpendsLength =
-          additionalNotesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE
-        size += additionalSpendsLength
-      }
+    return { size, spenderChange }
+  }
+
+  private getPendingTransactionFee(
+    feeRate: bigint,
+    pendingTransaction: { size: number; spenderChange: bigint },
+  ): bigint {
+    const { size, spenderChange } = pendingTransaction
+
+    const pendingFee = this.getFee(feeRate, size)
+
+    if (spenderChange === pendingFee) {
+      // sender will not receive a note with change
+      return pendingFee
+    } else if (spenderChange > pendingFee) {
+      // sender will receive a note with the remainder in change
+      // unless that note makes the fee more expensive than the change received
+      return BigIntUtils.min(
+        spenderChange,
+        this.getFee(feeRate, size + NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE),
+      )
+    } else {
+      // paying the fee will require at least one more spend
+      // calculate fee for only one more spend (and change) to avoid recursively checking notes
+      return this.getFee(
+        feeRate,
+        size + SPEND_SERIALIZED_SIZE_IN_BYTE + NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE,
+      )
     }
-
-    return size
   }
 
   private isFull(array: FeeRateEntry[]): boolean {

@@ -64,14 +64,12 @@ router.register<typeof EstimateFeeRequestSchema, EstimateFeeResponse>(
 
     const feeEstimator = node.memPool.feeEstimator
 
-    const low = await feeEstimator.estimateFee('low', account, receives)
-    const medium = await feeEstimator.estimateFee('medium', account, receives)
-    const high = await feeEstimator.estimateFee('high', account, receives)
+    const fees = await feeEstimator.estimateFees(account, receives)
 
     request.end({
-      low: low.toString(),
-      medium: medium.toString(),
-      high: high.toString(),
+      low: fees.low.toString(),
+      medium: fees.medium.toString(),
+      high: fees.high.toString(),
     })
   },
 )
