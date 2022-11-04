@@ -11,14 +11,11 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
-import { GossipNetworkMessage } from './messages/gossipNetworkMessage'
 import { IdentifyMessage } from './messages/identify'
 import { NetworkMessage } from './messages/networkMessage'
-import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionMessage } from './messages/newTransaction'
 import { NewTransactionV2Message } from './messages/newTransactionV2'
 import { PeerListMessage } from './messages/peerList'
 import { PeerListRequestMessage } from './messages/peerListRequest'
@@ -36,8 +33,6 @@ export const parseNetworkMessage = (buffer: Buffer): NetworkMessage => {
 
   if (isRpcNetworkMessageType(type)) {
     return parseRpcNetworkMessage(type, body)
-  } else if (isGossipNetworkMessageType(type)) {
-    return parseGossipNetworkMessage(type, body)
   }
 
   return parseGenericNetworkMessage(type, body)
@@ -57,10 +52,6 @@ export const isRpcNetworkMessageType = (type: NetworkMessageType): boolean => {
     NetworkMessageType.GetCompactBlockRequest,
     NetworkMessageType.GetCompactBlockResponse,
   ].includes(type)
-}
-
-const isGossipNetworkMessageType = (type: NetworkMessageType): boolean => {
-  return [NetworkMessageType.NewBlock, NetworkMessageType.NewTransaction].includes(type)
 }
 
 const parseRpcNetworkMessage = (
@@ -94,22 +85,6 @@ const parseRpcNetworkMessage = (
       return GetCompactBlockResponse.deserialize(body, rpcId)
     default:
       throw new Error(`Unknown RPC network message type: ${type}`)
-  }
-}
-
-const parseGossipNetworkMessage = (
-  type: NetworkMessageType,
-  bodyWithHeader: Buffer,
-): GossipNetworkMessage => {
-  const { nonce, remaining: body } = GossipNetworkMessage.deserializeHeader(bodyWithHeader)
-
-  switch (type) {
-    case NetworkMessageType.NewBlock:
-      return NewBlockMessage.deserialize(body, nonce)
-    case NetworkMessageType.NewTransaction:
-      return NewTransactionMessage.deserialize(body, nonce)
-    default:
-      throw new Error(`Unknown gossip network message type: ${type}`)
   }
 }
 
