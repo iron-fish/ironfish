@@ -37,7 +37,7 @@ export const ExportAccountResponseSchema: yup.ObjectSchema<ExportAccountResponse
   .defined()
 
 router.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
-  `${ApiNamespace.account}/exportAccount`,
+  `${ApiNamespace.wallet}/exportAccount`,
   ExportAccountRequestSchema,
   (request, node): void => {
     const account = getAccount(node, request.data.account)

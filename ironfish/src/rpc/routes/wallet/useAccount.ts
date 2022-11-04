@@ -19,7 +19,7 @@ export const UseAccountResponseSchema: yup.MixedSchema<UseAccountResponse> = yup
   .oneOf([undefined] as const)
 
 router.register<typeof UseAccountRequestSchema, UseAccountResponse>(
-  `${ApiNamespace.account}/use`,
+  `${ApiNamespace.wallet}/use`,
   UseAccountRequestSchema,
   async (request, node): Promise<void> => {
     const name = request.data.name

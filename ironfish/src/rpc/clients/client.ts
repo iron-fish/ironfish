@@ -60,11 +60,6 @@ import {
   UseAccountRequest,
   UseAccountResponse,
 } from '../routes'
-import { ExportAccountRequest, ExportAccountResponse } from '../routes/accounts/exportAccount'
-import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/accounts/getStatus'
-import { ImportAccountRequest, ImportAccountResponse } from '../routes/accounts/importAccount'
-import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/accounts/removeAccount'
-import { RescanAccountRequest, RescanAccountResponse } from '../routes/accounts/rescanAccount'
 import {
   ExportChainStreamRequest,
   ExportChainStreamResponse,
@@ -84,6 +79,11 @@ import {
   GetPeerMessagesResponse,
 } from '../routes/peers/getPeerMessages'
 import { GetRpcStatusRequest, GetRpcStatusResponse } from '../routes/rpc/getStatus'
+import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
+import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
+import { ImportAccountRequest, ImportAccountResponse } from '../routes/wallet/importAccount'
+import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/wallet/removeAccount'
+import { RescanAccountRequest, RescanAccountResponse } from '../routes/wallet/rescanAccount'
 
 export abstract class RpcClient {
   readonly logger: Logger
@@ -125,7 +125,7 @@ export abstract class RpcClient {
     params: GetAccountsRequest = undefined,
   ): Promise<RpcResponseEnded<GetAccountsResponse>> {
     return await this.request<GetAccountsResponse>(
-      `${ApiNamespace.account}/getAccounts`,
+      `${ApiNamespace.wallet}/getAccounts`,
       params,
     ).waitForEnd()
   }
@@ -134,7 +134,7 @@ export abstract class RpcClient {
     params: GetDefaultAccountRequest = undefined,
   ): Promise<RpcResponseEnded<GetDefaultAccountResponse>> {
     return await this.request<GetDefaultAccountResponse>(
-      `${ApiNamespace.account}/getDefaultAccount`,
+      `${ApiNamespace.wallet}/getDefaultAccount`,
       params,
     ).waitForEnd()
   }
@@ -143,14 +143,14 @@ export abstract class RpcClient {
     params: CreateAccountRequest,
   ): Promise<RpcResponseEnded<CreateAccountResponse>> {
     return await this.request<CreateAccountResponse>(
-      `${ApiNamespace.account}/create`,
+      `${ApiNamespace.wallet}/create`,
       params,
     ).waitForEnd()
   }
 
   async useAccount(params: UseAccountRequest): Promise<RpcResponseEnded<UseAccountResponse>> {
     return await this.request<UseAccountResponse>(
-      `${ApiNamespace.account}/use`,
+      `${ApiNamespace.wallet}/use`,
       params,
     ).waitForEnd()
   }
@@ -159,7 +159,7 @@ export abstract class RpcClient {
     params: RemoveAccountRequest,
   ): Promise<RpcResponseEnded<RemoveAccountResponse>> {
     return await this.request<RemoveAccountResponse>(
-      `${ApiNamespace.account}/remove`,
+      `${ApiNamespace.wallet}/remove`,
       params,
     ).waitForEnd()
   }
@@ -168,7 +168,7 @@ export abstract class RpcClient {
     params: GetBalanceRequest = {},
   ): Promise<RpcResponseEnded<GetBalanceResponse>> {
     return this.request<GetBalanceResponse>(
-      `${ApiNamespace.account}/getBalance`,
+      `${ApiNamespace.wallet}/getBalance`,
       params,
     ).waitForEnd()
   }
@@ -177,7 +177,7 @@ export abstract class RpcClient {
     params: RescanAccountRequest = {},
   ): RpcResponse<void, RescanAccountResponse> {
     return this.request<void, RescanAccountResponse>(
-      `${ApiNamespace.account}/rescanAccount`,
+      `${ApiNamespace.wallet}/rescanAccount`,
       params,
     )
   }
@@ -186,7 +186,7 @@ export abstract class RpcClient {
     params: ExportAccountRequest = {},
   ): Promise<RpcResponseEnded<ExportAccountResponse>> {
     return this.request<ExportAccountResponse>(
-      `${ApiNamespace.account}/exportAccount`,
+      `${ApiNamespace.wallet}/exportAccount`,
       params,
     ).waitForEnd()
   }
@@ -195,7 +195,7 @@ export abstract class RpcClient {
     params: ImportAccountRequest,
   ): Promise<RpcResponseEnded<ImportAccountResponse>> {
     return this.request<ImportAccountResponse>(
-      `${ApiNamespace.account}/importAccount`,
+      `${ApiNamespace.wallet}/importAccount`,
       params,
     ).waitForEnd()
   }
@@ -204,7 +204,7 @@ export abstract class RpcClient {
     params: GetPublicKeyRequest,
   ): Promise<RpcResponseEnded<GetPublicKeyResponse>> {
     return this.request<GetPublicKeyResponse>(
-      `${ApiNamespace.account}/getPublicKey`,
+      `${ApiNamespace.wallet}/getPublicKey`,
       params,
     ).waitForEnd()
   }
@@ -213,7 +213,7 @@ export abstract class RpcClient {
     params: GetAccountNotesStreamRequest = {},
   ): RpcResponse<void, GetAccountNotesStreamResponse> {
     return this.request<void, GetAccountNotesStreamResponse>(
-      `${ApiNamespace.account}/getAccountNotesStream`,
+      `${ApiNamespace.wallet}/getAccountNotesStream`,
       params,
     )
   }
@@ -222,7 +222,7 @@ export abstract class RpcClient {
     params: GetAccountStatusRequest,
   ): Promise<RpcResponseEnded<GetAccountStatusResponse>> {
     return this.request<GetAccountStatusResponse>(
-      `${ApiNamespace.account}/getAccountsStatus`,
+      `${ApiNamespace.wallet}/getAccountsStatus`,
       params,
     ).waitForEnd()
   }
@@ -231,7 +231,7 @@ export abstract class RpcClient {
     params: GetAccountTransactionRequest,
   ): Promise<RpcResponseEnded<GetAccountTransactionResponse>> {
     return await this.request<GetAccountTransactionResponse>(
-      `${ApiNamespace.account}/getAccountTransaction`,
+      `${ApiNamespace.wallet}/getAccountTransaction`,
       params,
     ).waitForEnd()
   }
@@ -240,7 +240,7 @@ export abstract class RpcClient {
     params: GetAccountTransactionsRequest,
   ): RpcResponse<void, GetAccountTransactionsResponse> {
     return this.request<void, GetAccountTransactionsResponse>(
-      `${ApiNamespace.account}/getAccountTransactions`,
+      `${ApiNamespace.wallet}/getAccountTransactions`,
       params,
     )
   }

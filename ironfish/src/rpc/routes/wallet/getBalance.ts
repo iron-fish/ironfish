@@ -36,7 +36,7 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
   .defined()
 
 router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
-  `${ApiNamespace.account}/getBalance`,
+  `${ApiNamespace.wallet}/getBalance`,
   GetBalanceRequestSchema,
   async (request, node): Promise<void> => {
     const minimumBlockConfirmations = Math.max(

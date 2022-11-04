@@ -10,7 +10,7 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account, ScanState } from '../../../wallet'
 import { RescanAccountResponse } from './rescanAccount'
 
-describe('account/rescanAccount', () => {
+describe('wallet/rescanAccount', () => {
   const routeTest = createRouteTest()
   let account: Account
 
@@ -26,7 +26,7 @@ describe('account/rescanAccount', () => {
       routeTest.node.wallet.scan = scan
 
       const response = routeTest.client
-        .request<RescanAccountResponse>('account/rescanAccount', {
+        .request<RescanAccountResponse>('wallet/rescanAccount', {
           follow: false,
         })
         .waitForEnd()
@@ -43,7 +43,7 @@ describe('account/rescanAccount', () => {
       const wait = jest.spyOn(scan, 'wait').mockImplementationOnce(async () => {})
 
       await routeTest.client
-        .request<RescanAccountResponse>('account/rescanAccount', {
+        .request<RescanAccountResponse>('wallet/rescanAccount', {
           follow: true,
         })
         .waitForEnd()
@@ -58,7 +58,7 @@ describe('account/rescanAccount', () => {
       jest.spyOn(scan, 'wait').mockImplementationOnce(async () => {})
 
       const response = await routeTest.client
-        .request<RescanAccountResponse>('account/rescanAccount', {
+        .request<RescanAccountResponse>('wallet/rescanAccount', {
           follow: true,
         })
         .waitForEnd()
@@ -73,7 +73,7 @@ describe('account/rescanAccount', () => {
       .mockReturnValue(Promise.resolve())
 
     const response = await routeTest.client
-      .request<RescanAccountResponse>('account/rescanAccount', {
+      .request<RescanAccountResponse>('wallet/rescanAccount', {
         follow: false,
       })
       .waitForEnd()
@@ -90,7 +90,7 @@ describe('account/rescanAccount', () => {
       .mockReturnValue(Promise.resolve())
 
     await routeTest.client
-      .request<RescanAccountResponse>('account/rescanAccount', {
+      .request<RescanAccountResponse>('wallet/rescanAccount', {
         follow: false,
         reset: true,
       })

@@ -25,7 +25,7 @@ export const GetDefaultAccountResponseSchema: yup.ObjectSchema<GetDefaultAccount
   .defined()
 
 router.register<typeof GetDefaultAccountRequestSchema, GetDefaultAccountResponse>(
-  `${ApiNamespace.account}/getDefaultAccount`,
+  `${ApiNamespace.wallet}/getDefaultAccount`,
   GetDefaultAccountRequestSchema,
   (request, node): void => {
     const account = node.wallet.getDefaultAccount()

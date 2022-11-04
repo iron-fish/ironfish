@@ -33,7 +33,7 @@ export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNot
     .defined()
 
 router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStreamResponse>(
-  `${ApiNamespace.account}/getAccountNotesStream`,
+  `${ApiNamespace.wallet}/getAccountNotesStream`,
   GetAccountNotesStreamRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)

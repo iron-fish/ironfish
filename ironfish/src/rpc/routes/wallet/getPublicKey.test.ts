@@ -20,7 +20,7 @@ jest.mock('@ironfish/rust-nodejs', () => {
   }
 })
 
-describe('Route account/getPublicKey', () => {
+describe('Route wallet/getPublicKey', () => {
   const routeTest = createRouteTest(true)
   let account = {} as Account
   let publicAddress = ''
@@ -33,7 +33,7 @@ describe('Route account/getPublicKey', () => {
 
   it('should return the account data', async () => {
     const response = await routeTest.client
-      .request<any>('account/getPublicKey', {
+      .request<any>('wallet/getPublicKey', {
         account: account.name,
         generate: false,
       })
