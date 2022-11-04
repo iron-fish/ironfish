@@ -599,7 +599,13 @@ export class PeerNetwork {
     })
   }
 
-  async getBlockHashes(peer: Peer, start: number, limit: number): Promise<Buffer[]> {
+  async getBlockHashes(
+    peer: Peer,
+    start: number,
+    limit: number,
+  ): Promise<{ hashes: Buffer[]; time: number }> {
+    const begin = BenchUtils.start()
+
     const message = new GetBlockHashesRequest(start, limit)
     const response = await this.requestFrom(peer, message)
 
@@ -610,10 +616,16 @@ export class PeerNetwork {
       )
     }
 
-    return response.message.hashes
+    return { hashes: response.message.hashes, time: BenchUtils.end(begin) }
   }
 
-  async getBlocks(peer: Peer, start: Buffer, limit: number): Promise<SerializedBlock[]> {
+  async getBlocks(
+    peer: Peer,
+    start: Buffer,
+    limit: number,
+  ): Promise<{ blocks: SerializedBlock[]; time: number }> {
+    const begin = BenchUtils.start()
+
     const message = new GetBlocksRequest(start, limit)
     const response = await this.requestFrom(peer, message)
 
@@ -622,7 +634,7 @@ export class PeerNetwork {
       throw new Error(`Invalid GetBlocksResponse: ${displayNetworkMessageType(message.type)}`)
     }
 
-    return response.message.blocks
+    return { blocks: response.message.blocks, time: BenchUtils.end(begin) }
   }
 
   private async handleMessage(
