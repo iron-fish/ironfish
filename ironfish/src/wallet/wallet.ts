@@ -839,7 +839,7 @@ export class Wallet {
         return
       }
 
-      for await (const transactionInfo of account.getPendingTransactions(head.sequence)) {
+      for await (const transactionInfo of account.getTransactions()) {
         if (this.eventLoopAbortController.signal.aborted) {
           return
         }
@@ -849,6 +849,16 @@ export class Wallet {
 
         // Skip transactions that are already added to a block
         if (blockHash) {
+          continue
+        }
+
+        // Skip expired transactions
+        if (
+          this.chain.verifier.isExpiredSequence(
+            transaction.expirationSequence(),
+            this.chain.head.sequence,
+          )
+        ) {
           continue
         }
 
