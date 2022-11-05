@@ -316,13 +316,6 @@ export class Account {
     return this.walletDb.loadTransactions(this, tx)
   }
 
-  getPendingTransactions(
-    headSequence: number,
-    tx?: IDatabaseTransaction,
-  ): AsyncGenerator<TransactionValue> {
-    return this.walletDb.loadPendingTransactions(this, headSequence, tx)
-  }
-
   getExpiredTransactions(
     headSequence: number,
     tx?: IDatabaseTransaction,
