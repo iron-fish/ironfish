@@ -220,10 +220,7 @@ export class FeeEstimator {
 
     const pendingFee = this.getFee(feeRate, size)
 
-    if (spenderChange === pendingFee) {
-      // sender will not receive a note with change
-      return pendingFee
-    } else if (spenderChange > pendingFee) {
+    if (spenderChange >= pendingFee) {
       // sender will receive a note with the remainder in change
       // unless that note makes the fee more expensive than the change received
       return BigIntUtils.min(
