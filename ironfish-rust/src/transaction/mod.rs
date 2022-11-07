@@ -123,6 +123,11 @@ impl ProposedTransaction {
         for (asset_identifier, value) in self.value_balances.iter() {
             let is_native_asset = asset_identifier == &NATIVE_ASSET;
 
+            // TODO: Remove this once we actually allow custom assets
+            if !is_native_asset {
+                return Err(IronfishError::InvalidBalance);
+            }
+
             let change_amount = match is_native_asset {
                 true => *value - intended_transaction_fee as i64,
                 false => *value,
