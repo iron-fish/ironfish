@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { blake3 } from '@napi-rs/blake-hash'
 import { v4 as uuid } from 'uuid'
-import { createNodeTest, useTxSpendsFixture } from '../../testUtilities'
+import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
 import { PooledTransactionsRequest, PooledTransactionsResponse } from './pooledTransactions'
 
 describe('PooledTransactionsRequest', () => {
@@ -26,7 +26,7 @@ describe('PooledTransactionsResponse', () => {
     a: PooledTransactionsResponse,
     b: PooledTransactionsResponse,
   ): void {
-    // Test transactions separately because Transaction not a primitive type
+    // Test transactions separately because Transaction is not a primitive type
     expect(a.transactions.length).toEqual(b.transactions.length)
     a.transactions.forEach((transactionA, transactionIndexA) => {
       const transactionB = b.transactions[transactionIndexA]
@@ -37,12 +37,12 @@ describe('PooledTransactionsResponse', () => {
     expect({ ...a, transactions: undefined }).toMatchObject({ ...b, transactions: undefined })
   }
 
-  // eslint-disable-next-line jest/expect-expect
   it('serializes the object into a buffer and deserializes to the original object', async () => {
-    const { transaction } = await useTxSpendsFixture(nodeTest.node)
+    const { account, transaction: transactionA } = await useTxSpendsFixture(nodeTest.node)
+    const transactionB = await useMinersTxFixture(nodeTest.node.wallet, account)
 
     const rpcId = 53242
-    const transactions = [...Array(100)].map((_) => transaction)
+    const transactions = [transactionA, transactionB]
 
     const message = new PooledTransactionsResponse(transactions, rpcId)
 

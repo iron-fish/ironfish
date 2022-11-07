@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BlockHeader, Target } from '../../primitives'
 import { CompactBlock } from '../../primitives/block'
-import { createNodeTest, useTxSpendsFixture } from '../../testUtilities'
+import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
+import { expectGetCompactBlockResponseToMatch } from '../testUtilities'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './getCompactBlock'
 
 describe('GetCompactBlockRequest', () => {
@@ -22,28 +23,9 @@ describe('GetCompactBlockRequest', () => {
 describe('GetCompactBlockResponse', () => {
   const nodeTest = createNodeTest()
 
-  function expectGetCompactBlockResponseToMatch(
-    a: GetCompactBlockResponse,
-    b: GetCompactBlockResponse,
-  ): void {
-    // Test transactions separately because Transaction is not a primitive type
-    expect(a.compactBlock.transactions.length).toEqual(b.compactBlock.transactions.length)
-    a.compactBlock.transactions.forEach((transactionA, transactionIndexA) => {
-      const transactionB = b.compactBlock.transactions[transactionIndexA]
-
-      expect(transactionA.index).toEqual(transactionB.index)
-      expect(transactionA.transaction.hash().equals(transactionB.transaction.hash())).toBe(true)
-    })
-
-    expect({
-      ...a,
-      compactBlock: { ...a.compactBlock, transactions: undefined },
-    }).toMatchObject({ ...b, compactBlock: { ...b.compactBlock, transactions: undefined } })
-  }
-
-  // eslint-disable-next-line jest/expect-expect
   it('serializes the object into a buffer and deserializes to the original object', async () => {
-    const { transaction } = await useTxSpendsFixture(nodeTest.node)
+    const { account, transaction: transactionA } = await useTxSpendsFixture(nodeTest.node)
+    const transactionB = await useMinersTxFixture(nodeTest.node.wallet, account)
 
     const compactBlock: CompactBlock = {
       header: new BlockHeader(
@@ -64,8 +46,8 @@ describe('GetCompactBlockResponse', () => {
         Buffer.alloc(32, 'graffiti1', 'utf8'),
       ),
       transactions: [
-        { transaction: transaction, index: 0 },
-        { transaction: transaction, index: 2 },
+        { transaction: transactionA, index: 0 },
+        { transaction: transactionB, index: 2 },
       ],
       transactionHashes: [
         Buffer.alloc(32, 'a'),

@@ -43,6 +43,8 @@ import {
 } from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
 import {
+  expectGetBlockTransactionsResponseToMatch,
+  expectGetCompactBlockResponseToMatch,
   getConnectedPeer,
   getConnectedPeersWithSpies,
   mockHostsStore,
@@ -173,27 +175,6 @@ describe('PeerNetwork', () => {
   describe('handles requests for compact blocks', () => {
     const nodeTest = createNodeTest()
 
-    function expectGetCompactBlockResponseToMatch(
-      a: GetCompactBlockResponse,
-      b: GetCompactBlockResponse,
-    ): void {
-      // Test transactions separately because Transaction is not a primitive type
-      expect(a.compactBlock.transactions.length).toEqual(b.compactBlock.transactions.length)
-      a.compactBlock.transactions.forEach((transactionA, transactionIndexA) => {
-        const transactionB = b.compactBlock.transactions[transactionIndexA]
-
-        expect(transactionA.index).toEqual(transactionB.index)
-        expect(transactionA.transaction.hash().equals(transactionB.transaction.hash())).toBe(
-          true,
-        )
-      })
-
-      expect({
-        ...a,
-        compactBlock: { ...a.compactBlock, transactions: undefined },
-      }).toMatchObject({ ...b, compactBlock: { ...b.compactBlock, transactions: undefined } })
-    }
-
     it('should respond to GetCompactBlockRequest', async () => {
       const { peerNetwork, node } = nodeTest
 
@@ -276,21 +257,6 @@ describe('PeerNetwork', () => {
 
   describe('handles requests for block transactions', () => {
     const nodeTest = createNodeTest()
-
-    function expectGetBlockTransactionsResponseToMatch(
-      a: GetBlockTransactionsResponse,
-      b: GetBlockTransactionsResponse,
-    ): void {
-      // Test transactions separately because Transaction is not a primitive type
-      expect(a.transactions.length).toEqual(b.transactions.length)
-      a.transactions.forEach((transactionA, transactionIndexA) => {
-        const transactionB = b.transactions[transactionIndexA]
-
-        expect(transactionA.hash().equals(transactionB.hash())).toBe(true)
-      })
-
-      expect({ ...a, transactions: undefined }).toMatchObject({ ...b, transactions: undefined })
-    }
 
     it('should respond to GetBlockTransactionsRequest', async () => {
       const { peerNetwork, node } = nodeTest

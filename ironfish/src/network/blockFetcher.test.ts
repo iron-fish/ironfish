@@ -188,7 +188,7 @@ describe('BlockFetcher', () => {
     // The peer we requested responds with the transactions not in mempool
     const response = new GetBlockTransactionsResponse(
       block.header.hash,
-      transactions.filter((t) => t !== transactions[2]).map((t) => t),
+      transactions.filter((t) => t !== transactions[2]),
       (request as GetBlockTransactionsRequest).rpcId,
     )
 
@@ -253,7 +253,7 @@ describe('BlockFetcher', () => {
     // The peer we requested responds with the transactions
     const response = new GetBlockTransactionsResponse(
       block.header.hash,
-      transactions.map((t) => t),
+      transactions,
       getBlockTransactionsRequest.rpcId,
     )
 

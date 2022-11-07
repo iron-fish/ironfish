@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Block, BlockHeader, Target } from '../../primitives'
-import { createNodeTest, useTxSpendsFixture } from '../../testUtilities'
+import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
 import { GetBlocksRequest, GetBlocksResponse } from './getBlocks'
 
 describe('GetBlocksRequest', () => {
@@ -30,9 +30,10 @@ describe('GetBlocksResponse', () => {
     expect({ ...a, blocks: undefined }).toMatchObject({ ...b, blocks: undefined })
   }
 
-  // eslint-disable-next-line jest/expect-expect
   it('serializes the object into a buffer and deserializes to the original object', async () => {
-    const { transaction } = await useTxSpendsFixture(nodeTest.node)
+    const { account, transaction: transactionA } = await useTxSpendsFixture(nodeTest.node)
+    const transactionB = await useMinersTxFixture(nodeTest.node.wallet, account)
+
     const rpcId = 0
     const message = new GetBlocksResponse(
       [
@@ -54,7 +55,7 @@ describe('GetBlocksResponse', () => {
             BigInt(0),
             Buffer.alloc(32, 'graffiti1', 'utf8'),
           ),
-          [transaction, transaction, transaction],
+          [transactionA, transactionB],
         ),
         new Block(
           new BlockHeader(
@@ -74,7 +75,7 @@ describe('GetBlocksResponse', () => {
             BigInt(-10),
             Buffer.alloc(32, 'graffiti2', 'utf8'),
           ),
-          [transaction, transaction, transaction],
+          [transactionA, transactionB],
         ),
       ],
       rpcId,

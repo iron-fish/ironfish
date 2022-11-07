@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useTxSpendsFixture } from '../../testUtilities'
+import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
+import { expectGetBlockTransactionsResponseToMatch } from '../testUtilities'
 import {
   GetBlockTransactionsRequest,
   GetBlockTransactionsResponse,
@@ -24,28 +25,13 @@ describe('GetBlockTransactionsRequest', () => {
 describe('GetBlockTransactionsResponse', () => {
   const nodeTest = createNodeTest()
 
-  function expectGetBlockTransactionsResponseToMatch(
-    a: GetBlockTransactionsResponse,
-    b: GetBlockTransactionsResponse,
-  ): void {
-    // Test transactions separately because Transaction is not a primitive type
-    expect(a.transactions.length).toEqual(b.transactions.length)
-    a.transactions.forEach((transactionA, transactionIndexA) => {
-      const transactionB = b.transactions[transactionIndexA]
-
-      expect(transactionA.hash().equals(transactionB.hash())).toBe(true)
-    })
-
-    expect({ ...a, transactions: undefined }).toMatchObject({ ...b, transactions: undefined })
-  }
-
-  // eslint-disable-next-line jest/expect-expect
   it('serializes the object into a buffer and deserializes to the original object', async () => {
-    const { transaction } = await useTxSpendsFixture(nodeTest.node)
+    const { account, transaction: transactionA } = await useTxSpendsFixture(nodeTest.node)
+    const transactionB = await useMinersTxFixture(nodeTest.node.wallet, account)
 
     const rpcId = 0
     const blockHash = Buffer.alloc(32, 1)
-    const transactions = [transaction, transaction, transaction]
+    const transactions = [transactionA, transactionB]
 
     const message = new GetBlockTransactionsResponse(blockHash, transactions, rpcId)
     const buffer = message.serialize()

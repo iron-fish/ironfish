@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BlockHeader, Target } from '../../primitives'
 import { CompactBlock } from '../../primitives/block'
-import { createNodeTest, useTxSpendsFixture } from '../../testUtilities'
+import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
 import { NewBlockV2Message } from './newBlockV2'
 
 describe('NewBlockV2Message', () => {
@@ -27,7 +27,8 @@ describe('NewBlockV2Message', () => {
 
   // eslint-disable-next-line jest/expect-expect
   it('serializes the object into a buffer and deserializes to the original object', async () => {
-    const { transaction } = await useTxSpendsFixture(nodeTest.node)
+    const { account, transaction: transactionA } = await useTxSpendsFixture(nodeTest.node)
+    const transactionB = await useMinersTxFixture(nodeTest.node.wallet, account)
 
     const compactBlock: CompactBlock = {
       header: new BlockHeader(
@@ -48,8 +49,8 @@ describe('NewBlockV2Message', () => {
         Buffer.alloc(32, 'graffiti1', 'utf8'),
       ),
       transactions: [
-        { transaction, index: 0 },
-        { transaction, index: 2 },
+        { transaction: transactionA, index: 0 },
+        { transaction: transactionB, index: 2 },
       ],
       transactionHashes: [
         Buffer.alloc(32, 'a'),

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useTxSpendsFixture } from '../../testUtilities'
+import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
 import { NewTransactionV2Message } from './newTransactionV2'
 
 describe('NewTransactionV2Message', () => {
@@ -24,9 +24,10 @@ describe('NewTransactionV2Message', () => {
 
   // eslint-disable-next-line jest/expect-expect
   it('serializes the object into a buffer and deserializes to the original object', async () => {
-    const { transaction } = await useTxSpendsFixture(nodeTest.node)
+    const { account, transaction: transactionA } = await useTxSpendsFixture(nodeTest.node)
+    const transactionB = await useMinersTxFixture(nodeTest.node.wallet, account)
 
-    const transactions = [...new Array(10)].map((_) => transaction)
+    const transactions = [transactionA, transactionB]
 
     const message = new NewTransactionV2Message(transactions)
 

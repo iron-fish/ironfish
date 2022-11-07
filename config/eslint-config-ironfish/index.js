@@ -105,5 +105,12 @@ module.exports = {
         groups: [['\\u0000', '^@?\\w', '^', '\\.']],
       },
     ],
+
+    "jest/expect-expect": [
+      "error",
+      {
+        "assertFunctionNames": ["expect*"],
+      }
+    ],
   },
 }

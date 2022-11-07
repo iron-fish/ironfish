@@ -7,11 +7,6 @@ import { Block, CompactBlock, CompactBlockTransaction } from '../../primitives/b
 import { BlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { Transaction } from '../../primitives/transaction'
-import {
-  BlockHashSerdeInstance,
-  GraffitiSerdeInstance,
-  NullifierSerdeInstance,
-} from '../../serde/serdeInstances'
 import { BigIntUtils } from '../../utils/bigint'
 
 export const MINERS_FEE_TRANSACTION_SIZE_BYTES = 562
@@ -28,46 +23,47 @@ export function writeBlockHeader(
   bw.writeU32(header.noteCommitment.size)
   bw.writeHash(header.nullifierCommitment.commitment)
   bw.writeU32(header.nullifierCommitment.size)
-  bw.writeBytes(BigIntUtils.toBytesLE(BigInt(header.target.targetValue.toString()), 32))
-  bw.writeBytes(BigIntUtils.toBytesLE(BigInt(header.randomness), 8))
+  bw.writeBytes(BigIntUtils.toBytesLE(header.target.targetValue, 32))
+  bw.writeBytes(BigIntUtils.toBytesLE(header.randomness, 8))
   bw.writeU64(header.timestamp.getTime())
 
-  Assert.isTrue(BigInt(header.minersFee) <= 0)
-  bw.writeBytes(BigIntUtils.toBytesLE(-BigInt(header.minersFee), 8))
+  Assert.isTrue(header.minersFee <= 0)
+  bw.writeBytes(BigIntUtils.toBytesLE(-header.minersFee, 8))
 
+  Assert.isTrue(header.graffiti.byteLength === 32)
   bw.writeBytes(header.graffiti)
   return bw
 }
 
 export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
   const sequence = reader.readU32()
-  const previousBlockHash = reader.readHash('hex')
+  const previousBlockHash = reader.readHash()
   const noteCommitment = reader.readHash()
   const noteCommitmentSize = reader.readU32()
-  const nullifierCommitment = reader.readHash('hex')
+  const nullifierCommitment = reader.readHash()
   const nullifierCommitmentSize = reader.readU32()
-  const target = BigIntUtils.fromBytesLE(reader.readBytes(32)).toString()
-  const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8)).toString()
+  const target = BigIntUtils.fromBytesLE(reader.readBytes(32))
+  const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8))
   const timestamp = reader.readU64()
-  const minersFee = (-BigIntUtils.fromBytesLE(reader.readBytes(8))).toString()
-  const graffiti = GraffitiSerdeInstance.serialize(reader.readBytes(32))
+  const minersFee = -BigIntUtils.fromBytesLE(reader.readBytes(8))
+  const graffiti = reader.readBytes(32)
 
   return new BlockHeader(
     sequence,
-    Buffer.from(BlockHashSerdeInstance.deserialize(previousBlockHash)),
+    Buffer.from(previousBlockHash),
     {
       commitment: noteCommitment,
       size: noteCommitmentSize,
     },
     {
-      commitment: NullifierSerdeInstance.deserialize(nullifierCommitment),
+      commitment: nullifierCommitment,
       size: nullifierCommitmentSize,
     },
     new Target(target),
-    BigInt(randomness),
+    randomness,
     new Date(timestamp),
-    BigInt(minersFee),
-    Buffer.from(GraffitiSerdeInstance.deserialize(graffiti)),
+    minersFee,
+    graffiti,
   )
 }
 

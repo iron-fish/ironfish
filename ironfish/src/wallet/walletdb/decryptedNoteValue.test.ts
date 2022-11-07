@@ -15,7 +15,6 @@ describe('DecryptedNoteValueEncoding', () => {
   }
 
   describe('with a null note index and nullifier hash', () => {
-    // eslint-disable-next-line jest/expect-expect
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new DecryptedNoteValueEncoding()
 
@@ -39,7 +38,6 @@ describe('DecryptedNoteValueEncoding', () => {
   })
 
   describe('with all fields defined', () => {
-    // eslint-disable-next-line jest/expect-expect
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new DecryptedNoteValueEncoding()
 
