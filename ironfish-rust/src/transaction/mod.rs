@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    assets::asset::{AssetIdentifier, NATIVE_ASSET},
+    assets::asset::NATIVE_ASSET,
     errors::IronfishError,
     outputs::OutputBuilder,
     sapling_bls12::SAPLING,
@@ -33,7 +33,6 @@ use ironfish_zkp::{
 };
 
 use std::{
-    collections::{hash_map, HashMap},
     io, iter,
     slice::Iter,
 };
