@@ -14,7 +14,7 @@ use zcash_proofs::{
 
 use crate::{circuits::util::hash_asset_to_preimage, constants::ASSET_IDENTIFIER_PERSONALIZATION};
 
-pub struct CreateAsset {
+pub struct MintAsset {
     /// Name of the asset
     pub name: [u8; 32],
 
@@ -39,7 +39,7 @@ pub struct CreateAsset {
     pub proof_generation_key: Option<ProofGenerationKey>,
 }
 
-impl Circuit<bls12_381::Scalar> for CreateAsset {
+impl Circuit<bls12_381::Scalar> for MintAsset {
     fn synthesize<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
         self,
         cs: &mut CS,
@@ -159,17 +159,17 @@ mod test {
 
     use crate::constants::{ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION};
 
-    use super::CreateAsset;
+    use super::MintAsset;
 
     #[test]
-    fn test_create_asset_circuit() {
+    fn test_mint_asset_circuit() {
         // Seed a fixed rng for determinstism in the test
         let seed = 1;
         let mut rng = StdRng::seed_from_u64(seed);
 
         // Generate parameters
         let params = groth16::generate_random_parameters::<Bls12, _, _>(
-            CreateAsset {
+            MintAsset {
                 name: [0u8; 32],
                 chain: [0u8; 32],
                 network: [0u8; 32],
@@ -218,8 +218,8 @@ mod test {
         let identifier_bits = multipack::bytes_to_bits_le(identifier.as_bytes());
         let public_inputs = multipack::compute_multipacking(&identifier_bits);
 
-        // Create proof
-        let circuit = CreateAsset {
+        // Mint proof
+        let circuit = MintAsset {
             name,
             chain,
             network,
