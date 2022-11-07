@@ -400,10 +400,12 @@ export class Account {
     const pending = await this.getUnconfirmedBalance(tx)
 
     let unconfirmed = pending
+    const notOnChainNotes: DecryptedNoteValue[] = []
     for await (const note of this.walletDb.loadNotesNotOnChain(this, tx)) {
       if (!note.spent) {
         pendingCount++
         unconfirmed -= note.note.value()
+        notOnChainNotes.push(note)
       }
     }
 
@@ -423,6 +425,11 @@ export class Account {
         tx,
       )) {
         if (!note.spent) {
+          if (notOnChainNotes.includes(note)) {
+            pendingCount--
+            unconfirmed += note.note.value()
+            confirmed += note.note.value()
+          }
           unconfirmedCount++
           confirmed -= note.note.value()
         }
