@@ -696,7 +696,6 @@ dependencies = [
  "ff",
  "group",
  "jubjub",
- "lazy_static",
  "rand 0.8.5",
  "zcash_primitives",
  "zcash_proofs",
