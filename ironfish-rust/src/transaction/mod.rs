@@ -81,7 +81,7 @@ impl ProposedTransaction {
         ProposedTransaction {
             spends: vec![],
             outputs: vec![],
-            value_balances: ValueBalances::default(),
+            value_balances: ValueBalances::new(),
             expiration_sequence: 0,
             spender_key,
         }
