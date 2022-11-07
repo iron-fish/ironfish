@@ -32,10 +32,7 @@ use ironfish_zkp::{
     redjubjub::{PrivateKey, PublicKey, Signature},
 };
 
-use std::{
-    io, iter,
-    slice::Iter,
-};
+use std::{io, iter, slice::Iter};
 
 #[cfg(test)]
 mod tests;
