@@ -14,6 +14,11 @@ use std::slice::from_ref;
 #[allow(dead_code)]
 pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
 
+pub const NATIVE_ASSET: AssetIdentifier = [
+    63, 153, 26, 142, 149, 219, 17, 209, 253, 181, 149, 15, 213, 51, 143, 78, 12, 60, 164, 140, 4,
+    112, 88, 247, 113, 83, 236, 214, 242, 91, 103, 175,
+];
+
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
 #[allow(dead_code)]
