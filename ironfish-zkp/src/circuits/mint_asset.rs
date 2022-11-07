@@ -150,7 +150,10 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 mod test {
     use std::slice;
 
-    use bellman::{gadgets::multipack, groth16};
+    use bellman::{
+        gadgets::{multipack, test::TestConstraintSystem},
+        groth16, Circuit,
+    };
     use bls12_381::Bls12;
     use ff::Field;
     use group::{Group, GroupEncoding};
@@ -167,21 +170,7 @@ mod test {
         let seed = 1;
         let mut rng = StdRng::seed_from_u64(seed);
 
-        // Generate parameters
-        let params = groth16::generate_random_parameters::<Bls12, _, _>(
-            MintAsset {
-                name: [0u8; 32],
-                chain: [0u8; 32],
-                network: [0u8; 32],
-                owner: None,
-                nonce: 0,
-                identifier: [0u8; 32],
-                proof_generation_key: None,
-            },
-            &mut rng,
-        )
-        .expect("Can generate random params");
-        let pvk = groth16::prepare_verifying_key(&params.vk);
+        let mut cs = TestConstraintSystem::new();
 
         let proof_generation_key = ProofGenerationKey {
             ak: jubjub::SubgroupPoint::random(&mut rng),
@@ -228,9 +217,9 @@ mod test {
             identifier: *identifier.as_array(),
             proof_generation_key: Some(proof_generation_key),
         };
-        let proof =
-            groth16::create_random_proof(circuit, &params, &mut rng).expect("Create valid proof");
+        circuit.synthesize(&mut cs).unwrap();
 
-        groth16::verify_proof(&pvk, &proof, &public_inputs).expect("Can verify proof");
+        assert!(cs.is_satisfied());
+        assert!(cs.verify(&public_inputs));
     }
 }
