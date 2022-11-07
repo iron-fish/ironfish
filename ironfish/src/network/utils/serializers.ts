@@ -50,7 +50,7 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
 
   return new BlockHeader(
     sequence,
-    Buffer.from(previousBlockHash),
+    previousBlockHash,
     {
       commitment: noteCommitment,
       size: noteCommitmentSize,
