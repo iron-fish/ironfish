@@ -38,11 +38,9 @@ import {
   IncomingPeerMessage,
   NetworkMessage,
 } from './messages/networkMessage'
-import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionMessage } from './messages/newTransaction'
 import { NewTransactionV2Message } from './messages/newTransactionV2'
 import {
   PooledTransactionsRequest,
@@ -245,18 +243,12 @@ export class PeerNetwork {
     })
 
     this.node.miningManager.onNewBlock.on((block) => {
-      const nonce = Buffer.alloc(16, block.header.hash)
-      const message = new NewBlockMessage(block, nonce)
-
-      this.broadcastBlock(message)
+      this.broadcastBlock(block)
       this.broadcastBlockHash(block.header)
     })
 
     this.node.wallet.onBroadcastTransaction.on((transaction) => {
-      const nonce = Buffer.alloc(16, transaction.hash())
-      const message = new NewTransactionMessage(transaction, nonce)
-
-      this.broadcastTransaction(message)
+      this.broadcastTransaction(transaction)
     })
   }
 
@@ -373,38 +365,21 @@ export class PeerNetwork {
   }
 
   /**
-   * Send a block to all connected peers who haven't yet received the block.
+   * Send a compact block to a sqrt subset of peers who haven't yet received the block
    */
-  private broadcastBlock(message: NewBlockMessage): void {
-    const block = message.block
+  private broadcastBlock(block: Block): void {
     const hash = block.header.hash
 
-    const isUpgraded = (peer: Peer) => peer.version !== null && peer.version >= 18
+    const peersToSendToArray = ArrayUtils.shuffle([...this.connectedPeersWithoutBlock(hash)])
 
-    const peersWithoutBlock = [...this.connectedPeersWithoutBlock(hash)]
+    const sqrtSize = Math.floor(Math.sqrt(peersToSendToArray.length))
 
-    const peersToSendToArray: Peer[] = peersWithoutBlock.filter((p) => !isUpgraded(p))
+    const compactBlockMessage = new NewBlockV2Message(block.toCompactBlock())
 
-    const sqrtSize = Math.floor(Math.sqrt(peersWithoutBlock.length))
-
-    const upgradedPeers: Peer[] = ArrayUtils.shuffle(
-      peersWithoutBlock.filter((p) => isUpgraded(p)),
-    )
-
-    for (const peer of upgradedPeers) {
-      if (peersToSendToArray.length < sqrtSize) {
-        peersToSendToArray.push(peer)
-      } else {
-        break
-      }
-    }
-
-    const newBlockMessage = new NewBlockV2Message(block.toCompactBlock())
-    for (const peer of peersToSendToArray) {
-      const messageToSend = isUpgraded(peer) ? newBlockMessage : message
-
-      if (peer.send(messageToSend)) {
-        peer.knownBlockHashes.set(block.header.hash, KnownBlockHashesValue.Sent)
+    // Send compact block to random subset of sqrt of peers
+    for (const peer of peersToSendToArray.slice(0, sqrtSize)) {
+      if (peer.send(compactBlockMessage)) {
+        peer.knownBlockHashes.set(hash, KnownBlockHashesValue.Sent)
       }
     }
   }
@@ -413,62 +388,47 @@ export class PeerNetwork {
    * Send a block hash to all connected peers who haven't yet received the block.
    */
   private broadcastBlockHash(header: BlockHeader): void {
-    const isUpgraded = (peer: Peer) => peer.version !== null && peer.version >= 18
-
     const hashMessage = new NewBlockHashesMessage([
       { hash: header.hash, sequence: header.sequence },
     ])
 
     for (const peer of this.connectedPeersWithoutBlock(header.hash)) {
-      if (isUpgraded(peer) && peer.send(hashMessage)) {
+      if (peer.send(hashMessage)) {
         peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Sent)
       }
     }
   }
 
-  private broadcastTransaction(message: NewTransactionMessage): void {
-    const hash = message.transaction.hash()
-    const isUpgraded = (peer: Peer) => peer.version !== null && peer.version >= 17
+  private broadcastTransaction(transaction: Transaction): void {
+    const hash = transaction.hash()
 
-    const peersToSendToArray = [...this.connectedPeersWithoutTransaction(hash)]
-    const sendHash: Peer[] = []
-    const sendFull: Peer[] = peersToSendToArray.filter((p) => !isUpgraded(p))
-
-    const upgradedPeers: Peer[] = ArrayUtils.shuffle(
-      peersToSendToArray.filter((p) => isUpgraded(p)),
-    )
+    const peersToSendToArray = ArrayUtils.shuffle([
+      ...this.connectedPeersWithoutTransaction(hash),
+    ])
 
     const sqrtSize = Math.floor(Math.sqrt(peersToSendToArray.length))
 
-    for (const peer of upgradedPeers) {
-      if (sendFull.length < sqrtSize) {
-        sendFull.push(peer)
-      } else {
-        sendHash.push(peer)
+    const fullTransactionMessage = new NewTransactionV2Message([transaction])
+    const hashMessage = new NewPooledTransactionHashes([hash])
+
+    // Send full transaction to random subset of sqrt of peers
+    for (const peer of peersToSendToArray.slice(0, sqrtSize)) {
+      if (peer.state.type !== 'CONNECTED') {
+        continue
+      }
+
+      if (peer.send(fullTransactionMessage)) {
+        this.markKnowsTransaction(hash, peer.state.identity)
       }
     }
 
-    const hashMessage = new NewPooledTransactionHashes([hash])
-
-    for (const peer of sendHash) {
+    // Send just the hash to the remaining peers
+    for (const peer of peersToSendToArray.slice(sqrtSize)) {
       if (peer.state.type !== 'CONNECTED') {
         continue
       }
 
       if (peer.send(hashMessage)) {
-        this.markKnowsTransaction(hash, peer.state.identity)
-      }
-    }
-
-    const newTransactionMessage = new NewTransactionV2Message([message.transaction])
-    for (const peer of sendFull) {
-      if (peer.state.type !== 'CONNECTED') {
-        continue
-      }
-
-      const messageToSend = isUpgraded(peer) ? newTransactionMessage : message
-
-      if (peer.send(messageToSend)) {
         this.markKnowsTransaction(hash, peer.state.identity)
       }
     }
@@ -648,10 +608,7 @@ export class PeerNetwork {
       this.handleNewPooledTransactionHashes(peer, message)
     } else if (message instanceof NewTransactionV2Message) {
       for (const transaction of message.transactions) {
-        // Set the nonce to the hash of the transaction for older peers
-        const nonce = Buffer.alloc(16, transaction.hash())
-        const gossipMessage = new NewTransactionMessage(transaction, nonce)
-        await this.onNewTransaction(peer, gossipMessage)
+        await this.onNewTransaction(peer, transaction)
       }
     } else {
       throw new Error(
@@ -724,9 +681,7 @@ export class PeerNetwork {
         request.resolve({ peerIdentity, message: rpcMessage })
       } else if (rpcMessage instanceof PooledTransactionsResponse) {
         for (const transaction of rpcMessage.transactions) {
-          const nonce = Buffer.alloc(16, transaction.hash())
-          const gossipMessage = new NewTransactionMessage(transaction, nonce)
-          await this.onNewTransaction(peer, gossipMessage)
+          await this.onNewTransaction(peer, transaction)
         }
       } else if (rpcMessage instanceof GetBlockTransactionsResponse) {
         await this.onNewBlockTransactions(peer, rpcMessage)
@@ -735,10 +690,7 @@ export class PeerNetwork {
       } else if (rpcMessage instanceof GetBlocksResponse) {
         // Should happen when block is requested directly by the block fetcher
         for (const block of rpcMessage.blocks) {
-          const header = block.header
-          const nonce = Buffer.alloc(16, header.hash)
-          const message = new NewBlockMessage(block, nonce)
-          await this.handleNewBlockMessage(peer, message)
+          await this.handleRequestedBlock(peer, block)
         }
       }
     }
@@ -1001,9 +953,7 @@ export class PeerNetwork {
       // If the transaction is already in the mempool the only thing we have to do is broadcast
       const transaction = this.node.memPool.get(hash)
       if (transaction && !this.alreadyHaveTransaction(hash)) {
-        const nonce = Buffer.alloc(16, transaction.hash())
-        const gossipMessage = new NewTransactionMessage(transaction, nonce)
-        this.broadcastTransaction(gossipMessage)
+        this.broadcastTransaction(transaction)
       } else {
         this.transactionFetcher.hashReceived(hash, peer)
       }
@@ -1238,12 +1188,10 @@ export class PeerNetwork {
     return new GetCompactBlockResponse(block.toCompactBlock(), message.rpcId)
   }
 
-  private async handleNewBlockMessage(peer: Peer, message: NewBlockMessage) {
+  private async handleRequestedBlock(peer: Peer, block: Block) {
     if (!this.shouldProcessNewBlocks()) {
       return
     }
-
-    const block = message.block
 
     if (await this.alreadyHaveBlock(block.header)) {
       return
@@ -1284,7 +1232,6 @@ export class PeerNetwork {
     peer: Peer,
     block: Block,
     prevHeader: BlockHeader,
-    nonce?: Buffer,
   ): Promise<void> {
     if (!this.shouldProcessNewBlocks()) {
       return
@@ -1293,13 +1240,7 @@ export class PeerNetwork {
     // Mark that we've assembled a full block in the block fetcher
     this.blockFetcher.receivedFullBlock(block)
 
-    // Re-gossip the full block
-    const newBlockMessage = new NewBlockMessage(
-      block,
-      nonce ?? Buffer.alloc(16, block.header.hash),
-    )
-
-    this.broadcastBlock(newBlockMessage)
+    this.broadcastBlock(block)
 
     // log that we've validated the block enough to gossip it
     this.telemetry.submitNewBlockSeen(block, new Date())
@@ -1389,11 +1330,10 @@ export class PeerNetwork {
     return await this.chain.hasBlock(hash)
   }
 
-  private async onNewTransaction(peer: Peer, message: NewTransactionMessage): Promise<void> {
+  private async onNewTransaction(peer: Peer, transaction: Transaction): Promise<void> {
     const received = new Date()
 
     // Mark the peer as knowing about the transaction
-    const transaction = message.transaction
     const hash = transaction.hash()
     peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
 
@@ -1421,7 +1361,7 @@ export class PeerNetwork {
       }
 
       if (this.node.memPool.exists(transaction.hash())) {
-        this.broadcastTransaction(message)
+        this.broadcastTransaction(transaction)
       }
     }
 
