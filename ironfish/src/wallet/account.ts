@@ -133,9 +133,12 @@ export class Account {
 
       await this.walletDb.saveDecryptedNote(this, noteHash, note, tx)
 
-      const transaction = await this.getTransaction(note.transactionHash, tx)
+      if (note.nullifier !== null) {
+        await this.updateNullifierNoteHash(note.nullifier, noteHash, tx)
+      }
 
-      await this.walletDb.setNoteHashSequence(this, noteHash, transaction?.sequence ?? null, tx)
+      const oldSequence = existingNote?.sequence ?? null
+      await this.walletDb.updateNoteHashSequence(this, noteHash, oldSequence, note.sequence, tx)
     })
   }
 
@@ -169,8 +172,15 @@ export class Account {
         )
       }
 
+      await this.bulkUpdateDecryptedNotes(
+        transactionHash,
+        blockHash,
+        sequence,
+        decryptedNotes,
+        tx,
+      )
+
       const isRemovingTransaction = submittedSequence === null && blockHash === null
-      await this.bulkUpdateDecryptedNotes(transactionHash, decryptedNotes, tx)
       await this.processTransactionSpends(transaction, isRemovingTransaction, tx)
     })
   }
@@ -195,6 +205,8 @@ export class Account {
 
   private async bulkUpdateDecryptedNotes(
     transactionHash: Buffer,
+    blockHash: Buffer | null,
+    sequence: number | null,
     decryptedNotes: Array<DecryptedNote>,
     tx?: IDatabaseTransaction,
   ) {
@@ -202,10 +214,6 @@ export class Account {
       for (const decryptedNote of decryptedNotes) {
         if (decryptedNote.forSpender) {
           continue
-        }
-
-        if (decryptedNote.nullifier !== null) {
-          await this.updateNullifierNoteHash(decryptedNote.nullifier, decryptedNote.hash, tx)
         }
 
         await this.updateDecryptedNote(
@@ -217,8 +225,8 @@ export class Account {
             note: new Note(decryptedNote.serializedNote),
             spent: false,
             transactionHash,
-            blockHash: null,
-            sequence: null,
+            blockHash,
+            sequence,
           },
           tx,
         )
@@ -255,7 +263,6 @@ export class Account {
 
   private async deleteDecryptedNote(
     noteHash: Buffer,
-    transactionHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
@@ -272,11 +279,15 @@ export class Account {
           await this.saveUnconfirmedBalance(currentUnconfirmedBalance - value, tx)
         }
 
+        if (existingNote.nullifier) {
+          await this.deleteNullifier(existingNote.nullifier, tx)
+        }
+
         await this.walletDb.deleteDecryptedNote(this, noteHash, tx)
       }
 
-      const record = await this.getTransaction(transactionHash, tx)
-      await this.walletDb.deleteNoteHashSequence(this, noteHash, record?.sequence ?? null, tx)
+      const sequence = existingNote?.sequence ?? null
+      await this.walletDb.deleteNoteHashSequence(this, noteHash, sequence, tx)
     })
   }
 
@@ -341,34 +352,11 @@ export class Account {
         const decryptedNote = await this.getDecryptedNote(noteHash)
 
         if (decryptedNote) {
-          await this.deleteDecryptedNote(noteHash, transactionHash, tx)
-
-          if (decryptedNote.nullifier) {
-            await this.deleteNullifier(decryptedNote.nullifier, tx)
-          }
+          await this.deleteDecryptedNote(noteHash, tx)
         }
       }
 
-      for (const spend of transaction.spends()) {
-        const noteHash = await this.getNoteHash(spend.nullifier)
-
-        if (noteHash) {
-          const decryptedNote = await this.getDecryptedNote(noteHash)
-          Assert.isNotUndefined(
-            decryptedNote,
-            'nullifierToNote mappings must have a corresponding decryptedNote',
-          )
-
-          await this.updateDecryptedNote(
-            noteHash,
-            {
-              ...decryptedNote,
-              spent: false,
-            },
-            tx,
-          )
-        }
-      }
+      await this.processTransactionSpends(transaction, true, tx)
 
       await this.walletDb.deletePendingTransactionHash(
         this,

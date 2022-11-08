@@ -612,20 +612,11 @@ export class Wallet {
 
     for await (const decryptedNote of account.getUnspentNotes()) {
       if (minimumBlockConfirmations > 0) {
-        const transaction = await account.getTransaction(decryptedNote.transactionHash)
-
-        Assert.isNotUndefined(
-          transaction,
-          `Transaction '${decryptedNote.transactionHash.toString(
-            'hex',
-          )}' missing for account '${account.id}'`,
-        )
-
-        if (!transaction.sequence) {
+        if (!decryptedNote.sequence) {
           continue
         }
 
-        const confirmations = headSequence - transaction.sequence
+        const confirmations = headSequence - decryptedNote.sequence
 
         if (confirmations < minimumBlockConfirmations) {
           continue

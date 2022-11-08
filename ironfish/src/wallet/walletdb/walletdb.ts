@@ -317,6 +317,20 @@ export class WalletDB {
     return this.transactions.get([account.prefix, transactionHash], tx)
   }
 
+  async updateNoteHashSequence(
+    account: Account,
+    noteHash: Buffer,
+    oldSequence: number | null,
+    newSequence: number | null,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    if (oldSequence) {
+      await this.sequenceToNoteHash.del([account.prefix, [oldSequence, noteHash]], tx)
+    }
+
+    await this.setNoteHashSequence(account, noteHash, newSequence, tx)
+  }
+
   async setNoteHashSequence(
     account: Account,
     noteHash: Buffer,
@@ -335,9 +349,9 @@ export class WalletDB {
     account: Account,
     noteHash: Buffer,
     sequence: number | null,
-    tx: IDatabaseTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.nonChainNoteHashes.del([account.prefix, noteHash])
+    await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
 
     if (sequence !== null) {
       await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
