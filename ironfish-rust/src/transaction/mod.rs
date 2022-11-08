@@ -7,7 +7,7 @@ use spending::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::NATIVE_ASSET,
+    assets::asset::{NATIVE_ASSET, AssetIdentifier, Asset},
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,
@@ -108,6 +108,12 @@ impl ProposedTransaction {
             .subtract(&NATIVE_ASSET, note.value() as i64);
 
         self.outputs.push(OutputBuilder::new(note));
+    }
+
+    pub fn add_mint(&mut self, asset: Asset, value: u64) {
+        self.value_balances.add(&asset.identifier(), value as i64);
+
+        self.mints.push(MintBuilder::new(asset));
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
@@ -234,6 +240,7 @@ impl ProposedTransaction {
             fee: *self.value_balances.fee(),
             spends: spend_descriptions,
             outputs: output_descriptions,
+            mints: mint_descriptions,
             binding_signature,
         })
     }
@@ -345,6 +352,9 @@ pub struct Transaction {
     /// List of outputs, or output notes that have been created.
     outputs: Vec<OutputDescription>,
 
+    /// List of mint descriptions
+    mints: Vec<MintDescription>,
+
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
     binding_signature: Signature,
@@ -362,6 +372,7 @@ impl Transaction {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_outputs = reader.read_u64::<LittleEndian>()?;
+        let num_mints = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
 
@@ -375,12 +386,18 @@ impl Transaction {
             outputs.push(OutputDescription::read(&mut reader)?);
         }
 
+        let mut mints = Vec::with_capacity(num_mints as usize);
+        for _ in 0..num_mints {
+            mints.push(MintDescription::read(&mut reader)?);
+        }
+
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(Transaction {
             fee,
             spends,
             outputs,
+            mints,
             binding_signature,
             expiration_sequence,
         })
@@ -391,6 +408,7 @@ impl Transaction {
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.fee)?;
         writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
 
@@ -399,6 +417,9 @@ impl Transaction {
         }
         for output in self.outputs.iter() {
             output.write(&mut writer)?;
+        }
+        for mints in self.mints.iter() {
+            mints.write(&mut writer)?;
         }
 
         self.binding_signature.write(&mut writer)?;
