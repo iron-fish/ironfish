@@ -147,7 +147,7 @@ export class WebRtcConnection extends Connection {
       try {
         message = parseNetworkMessage(bufferData)
       } catch (error) {
-        this.logger.warn(`Unable to parse webrtc message ${data.toString()}`)
+        this.logger.warn(`Unable to parse webrtc message`)
         this.close(error)
         return
       }

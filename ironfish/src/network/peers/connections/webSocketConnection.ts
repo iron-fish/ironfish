@@ -99,8 +99,8 @@ export class WebSocketConnection extends Connection {
         // TODO: any socket that sends invalid messages should probably
         // be punished with some kind of "downgrade" event. This should
         // probably happen at a higher layer of abstraction
-        const message = 'error parsing message'
-        this.logger.warn(`${message} ${event.data.toString()}`)
+        const message = 'Error parsing message'
+        this.logger.warn(message)
         this.close(new NetworkError(message))
         return
       }
