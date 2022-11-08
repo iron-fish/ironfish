@@ -31,6 +31,7 @@ use ironfish_zkp::{
 
 use std::{io, iter, slice::Iter};
 
+pub mod mints;
 pub mod outputs;
 pub mod spending;
 #[cfg(test)]

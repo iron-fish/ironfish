@@ -9,6 +9,7 @@ use ironfish_zkp::{
     },
     group_hash,
 };
+use jubjub::SubgroupPoint;
 use std::slice::from_ref;
 
 #[allow(dead_code)]
@@ -22,28 +23,29 @@ pub const NATIVE_ASSET: AssetIdentifier = [
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
 #[allow(dead_code)]
+#[derive(Clone, Copy)]
 pub struct Asset {
     /// Name of the asset
-    name: [u8; 32],
+    pub(crate) name: [u8; 32],
 
     /// Chain on the network the asset originated from (ex. Ropsten)
-    chain: [u8; 32],
+    pub(crate) chain: [u8; 32],
 
     /// Network the asset originated from (ex. Ethereum)
-    network: [u8; 32],
+    pub(crate) network: [u8; 32],
 
     /// Identifier field for bridged asset address, or if a native custom asset, random bytes.
-    token_identifier: [u8; 32],
+    pub(crate) token_identifier: [u8; 32],
 
     /// The owner who created the asset. Has permissions to mint
-    owner: PublicAddress,
+    pub(crate) owner: PublicAddress,
 
     /// The random byte used to ensure we get a valid asset identifier
-    nonce: u8,
+    pub(crate) nonce: u8,
 
     /// Unique byte array which is a hash of all of the identifying fields for
     /// an asset
-    identifier: AssetIdentifier,
+    pub(crate) identifier: AssetIdentifier,
 }
 
 impl Asset {
@@ -104,7 +106,7 @@ impl Asset {
             .finalize();
 
         // Check that this is valid as a value commitment generator point
-        if group_hash(h.as_bytes(), VALUE_COMMITMENT_GENERATOR_PERSONALIZATION).is_some() {
+        if asset_generator_point(h.as_array()).is_ok() {
             Ok(Asset {
                 owner,
                 name,
@@ -138,6 +140,11 @@ impl Asset {
     pub fn identifier(&self) -> &AssetIdentifier {
         &self.identifier
     }
+}
+
+pub fn asset_generator_point(asset: &AssetIdentifier) -> Result<SubgroupPoint, IronfishError> {
+    group_hash(asset, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
+        .ok_or(IronfishError::InvalidAssetIdentifier)
 }
 
 #[cfg(test)]
