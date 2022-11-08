@@ -12,7 +12,7 @@ use zcash_proofs::{
     constants::PROOF_GENERATION_KEY_GENERATOR,
 };
 
-use crate::{circuits::util::hash_asset_to_preimage, constants::ASSET_IDENTIFIER_PERSONALIZATION};
+use crate::{circuits::util::asset_info_preimage, constants::ASSET_IDENTIFIER_PERSONALIZATION};
 
 pub struct MintAsset {
     /// Name of the asset
@@ -23,6 +23,9 @@ pub struct MintAsset {
 
     /// Network the asset originated from (ex. Ethereum)
     pub network: [u8; 32],
+
+    /// Identifier field for bridged asset address, or if a native custom asset, random bytes.
+    token_identifier: [u8; 32],
 
     /// The owner who created the asset. Has permissions to mint
     pub owner: Option<PaymentAddress>,
@@ -119,12 +122,13 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         // Compute pk_d = g_d^ivk
         let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
 
-        // Hash the Asset Info pre-image
-        let identifier_preimage = hash_asset_to_preimage(
+        // Create the Asset Info pre-image
+        let identifier_preimage = asset_info_preimage(
             &mut cs.namespace(|| "asset info preimage"),
             self.name,
             self.chain,
             self.network,
+            self.token_identifier,
             g_d,
             pk_d,
             self.nonce,
@@ -186,6 +190,7 @@ mod test {
         let name = [1u8; 32];
         let chain = [2u8; 32];
         let network = [3u8; 32];
+        let token_identifier = [4u8; 32];
         let nonce = 1u8;
 
         let mut asset_plaintext: Vec<u8> = vec![];
@@ -194,6 +199,7 @@ mod test {
         asset_plaintext.extend(name);
         asset_plaintext.extend(chain);
         asset_plaintext.extend(network);
+        asset_plaintext.extend(token_identifier);
         asset_plaintext.extend(slice::from_ref(&nonce));
 
         let identifier = blake2s_simd::Params::new()
@@ -211,6 +217,7 @@ mod test {
             name,
             chain,
             network,
+            token_identifier,
             owner: Some(owner),
             nonce,
             identifier: *identifier.as_array(),
