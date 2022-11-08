@@ -20,23 +20,24 @@ fn test_transaction() {
     let spender_key: SaplingKey = SaplingKey::generate_key();
     let receiver_key: SaplingKey = SaplingKey::generate_key();
     let in_note = Note::new(
-        spender_key.generate_public_address(),
+        spender_key.public_address(),
         42,
         Memo::default(),
         AssetType::default(),
     );
     let out_note = Note::new(
-        receiver_key.generate_public_address(),
+        receiver_key.public_address(),
         40,
         Memo::default(),
         AssetType::default(),
     );
     let in_note2 = Note::new(
-        spender_key.generate_public_address(),
+        spender_key.public_address(),
         18,
         Memo::default(),
         AssetType::default(),
     );
+
     let witness = make_fake_witness(&in_note);
     let _witness2 = make_fake_witness(&in_note2);
     transaction
@@ -107,7 +108,7 @@ fn test_miners_fee() {
     let mut transaction = ProposedTransaction::new();
     let receiver_key: SaplingKey = SaplingKey::generate_key();
     let out_note = Note::new(
-        receiver_key.generate_public_address(),
+        receiver_key.public_address(),
         42,
         Memo::default(),
         AssetType::default(),
@@ -115,6 +116,7 @@ fn test_miners_fee() {
     transaction
         .receive(&receiver_key, &out_note)
         .expect("It's a valid note");
+
     let posted_transaction = transaction
         .post_miners_fee()
         .expect("it is a valid miner's fee");
@@ -134,8 +136,8 @@ fn test_miners_fee() {
 fn test_transaction_signature() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
-    let spender_address = spender_key.generate_public_address();
-    let receiver_address = receiver_key.generate_public_address();
+    let spender_address = spender_key.public_address();
+    let receiver_address = receiver_key.public_address();
 
     let mut transaction = ProposedTransaction::new();
     let in_note = Note::new(spender_address, 42, Memo::default(), AssetType::default());

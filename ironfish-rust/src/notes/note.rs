@@ -18,6 +18,7 @@ use rand::{thread_rng, Rng};
 use zcash_primitives::sapling::{Nullifier, Rseed};
 
 use std::{fmt, io, io::Read};
+use crate::keys::PUBLIC_KEY_GENERATOR;
 
 pub const ENCRYPTED_NOTE_SIZE: usize = 115;
 
@@ -150,9 +151,9 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, errors::NoteError> {
-        let (diversifier_bytes, randomness, value, memo, asset_type) =
+        let (randomness, value, memo, asset_type) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
-        let owner = owner_view_key.public_address(&diversifier_bytes)?;
+        let owner = owner_view_key.public_address();
 
         Ok(Note {
             owner,
@@ -177,13 +178,10 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, errors::NoteError> {
-        let (diversifier_bytes, randomness, value, memo, asset_type) =
+        let (randomness, value, memo, asset_type) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
-        let (diversifier, diversifier_point) =
-            PublicAddress::load_diversifier(&diversifier_bytes[..])?;
+        
         let owner = PublicAddress {
-            diversifier,
-            diversifier_point,
             transmission_key,
         };
 
@@ -230,13 +228,11 @@ impl<'a> Note {
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<([u8; 11], jubjub::Fr, u64, Memo, AssetType), errors::NoteError> {
+    ) -> Result<([jubjub::Fr, u64, Memo, AssetType), errors::NoteError> {
         let mut plaintext_bytes = [0; ENCRYPTED_NOTE_SIZE];
         aead::decrypt(shared_secret, encrypted_bytes, &mut plaintext_bytes)?;
 
         let mut reader = plaintext_bytes[..].as_ref();
-        let mut diversifier_bytes = [0; 11];
-        reader.read_exact(&mut diversifier_bytes[..])?;
 
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
@@ -245,7 +241,7 @@ impl<'a> Note {
         reader.read_exact(&mut memo.0)?;
 
         let asset_type = AssetType::read(&mut reader)?;
-        Ok((diversifier_bytes, randomness, value, memo, asset_type))
+        Ok((randomness, value, memo, asset_type))
     }
 
     /// The zcash_primitives version of the Note API is kind of klunky with
@@ -260,7 +256,7 @@ impl<'a> Note {
         SaplingNote {
             asset_type: self.asset_type,
             value: self.value,
-            g_d: self.owner.diversifier.g_d().unwrap(),
+            g_d: PUBLIC_KEY_GENERATOR,
             pk_d: self.owner.transmission_key,
             rseed: Rseed::BeforeZip212(self.randomness),
         }
@@ -352,13 +348,14 @@ mod test {
     #[test]
     fn test_plaintext_serialization() {
         let owner_key: SaplingKey = SaplingKey::generate_key();
-        let public_address = owner_key.generate_public_address();
+        let public_address = owner_key.public_address();
         let note = Note::new(
             public_address,
             42,
             "serialize me".into(),
             AssetType::default(),
         );
+
         let mut serialized = Vec::new();
         note.write(&mut serialized)
             .expect("Should serialize cleanly");
@@ -379,7 +376,7 @@ mod test {
     #[test]
     fn test_note_encryption() {
         let owner_key: SaplingKey = SaplingKey::generate_key();
-        let public_address = owner_key.generate_public_address();
+        let public_address = owner_key.public_address();
         let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
         let public_shared_secret =
             shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);

@@ -156,27 +156,9 @@ impl<'a> SaplingKey {
         }
     }
 
-    /// Generate a public address from the incoming viewing key, given a specific
-    /// 11 byte diversifier.
-    ///
-    /// This may fail, as not all diversifiers are created equal.
-    ///
-    /// Note: This may need to be public at some point. I'm hoping the client
-    /// API would never have to deal with diversifiers, but I'm not sure, yet.
-    pub fn public_address(
-        &self,
-        diversifier: &[u8; 11],
-    ) -> Result<PublicAddress, errors::SaplingKeyError> {
-        PublicAddress::from_key(self, diversifier)
-    }
-
-    /// Generate a public address from this key's incoming viewing key,
-    /// picking a diversifier that is guaranteed to work with it.
-    ///
-    /// This method always succeeds, retrying with a different diversifier if
-    /// one doesn't work
-    pub fn generate_public_address(&self) -> PublicAddress {
-        self.incoming_viewing_key.generate_public_address()
+    /// Generate a public address from the incoming viewing key
+    pub fn public_address(&self) -> PublicAddress {
+        PublicAddress::from_key(self)
     }
 
     // Write a bytes representation of this key to the provided stream

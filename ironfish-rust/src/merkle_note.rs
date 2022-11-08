@@ -286,11 +286,12 @@ mod test {
         let spender_key: SaplingKey = SaplingKey::generate_key();
         let receiver_key: SaplingKey = SaplingKey::generate_key();
         let note = Note::new(
-            receiver_key.generate_public_address(),
+            receiver_key.public_address(),
             42,
             Memo::default(),
             AssetType::default(),
         );
+
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];
@@ -315,11 +316,12 @@ mod test {
     fn test_receipt_invalid_commitment() {
         let spender_key: SaplingKey = SaplingKey::generate_key();
         let note = Note::new(
-            spender_key.generate_public_address(),
+            spender_key.public_address(),
             42,
             Memo::default(),
             AssetType::default(),
         );
+
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let mut buffer = [0u8; 64];

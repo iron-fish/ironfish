@@ -432,7 +432,7 @@ mod test {
     #[test]
     fn test_spend_round_trip() {
         let key = SaplingKey::generate_key();
-        let public_address = key.generate_public_address();
+        let public_address = key.public_address();
 
         let note_randomness = random();
 
