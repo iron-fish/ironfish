@@ -371,7 +371,7 @@ export abstract class RpcClient {
   }
 
   async estimateFeeRates(
-    params: EstimateFeeRatesRequest,
+    params?: EstimateFeeRatesRequest,
   ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> {
     return this.request<EstimateFeeRatesResponse>(
       `${ApiNamespace.fees}/estimateFeeRates`,

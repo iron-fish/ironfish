@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { PRIORITY_LEVELS, PriorityLevel } from '../../../memPool/feeEstimator'
 import { ApiNamespace, router } from '../router'
 
-export type EstimateFeeRatesRequest = { priority?: PriorityLevel }
+export type EstimateFeeRatesRequest = { priority?: PriorityLevel } | undefined
 export type EstimateFeeRatesResponse = {
   low?: string
   medium?: string
@@ -16,7 +16,7 @@ export const EstimateFeeRatesRequestSchema: yup.ObjectSchema<EstimateFeeRatesReq
   .object({
     priority: yup.string().oneOf(PRIORITY_LEVELS),
   })
-  .defined()
+  .optional()
 
 export const EstimateFeeRatesResponseSchema: yup.ObjectSchema<EstimateFeeRatesResponse> = yup
   .object({
@@ -30,7 +30,7 @@ router.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
   `${ApiNamespace.fees}/estimateFeeRates`,
   EstimateFeeRatesRequestSchema,
   (request, node): void => {
-    const priority = request.data.priority
+    const priority = request.data?.priority
 
     const feeEstimator = node.memPool.feeEstimator
 
