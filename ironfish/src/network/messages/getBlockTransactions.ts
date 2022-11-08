@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio, { sizeVarint } from 'bufio'
-import { SerializedTransaction } from '../../primitives/transaction'
+import { Transaction } from '../../primitives/transaction'
 import { NetworkMessageType } from '../types'
 import { getTransactionSize, readTransaction, writeTransaction } from '../utils/serializers'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
@@ -56,21 +56,21 @@ export class GetBlockTransactionsRequest extends RpcNetworkMessage {
 
 export class GetBlockTransactionsResponse extends RpcNetworkMessage {
   readonly blockHash: Buffer
-  readonly serializedTransactions: SerializedTransaction[]
+  readonly transactions: Transaction[]
 
-  constructor(blockHash: Buffer, serializedTransactions: Buffer[], rpcId: number) {
+  constructor(blockHash: Buffer, transactions: Transaction[], rpcId: number) {
     super(NetworkMessageType.GetBlockTransactionsResponse, Direction.Response, rpcId)
     this.blockHash = blockHash
-    this.serializedTransactions = serializedTransactions
+    this.transactions = transactions
   }
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
     bw.writeHash(this.blockHash)
 
-    bw.writeVarint(this.serializedTransactions.length)
-    for (const serializedTransaction of this.serializedTransactions) {
-      writeTransaction(bw, serializedTransaction)
+    bw.writeVarint(this.transactions.length)
+    for (const transaction of this.transactions) {
+      writeTransaction(bw, transaction)
     }
 
     return bw.render()
@@ -80,21 +80,21 @@ export class GetBlockTransactionsResponse extends RpcNetworkMessage {
     const reader = bufio.read(buffer, true)
     const blockHash = reader.readHash()
 
-    const serializedTransactionsLength = reader.readVarint()
-    const serializedTransactions: SerializedTransaction[] = []
-    for (let i = 0; i < serializedTransactionsLength; i++) {
-      serializedTransactions.push(readTransaction(reader))
+    const transactionsLength = reader.readVarint()
+    const transactions: Transaction[] = []
+    for (let i = 0; i < transactionsLength; i++) {
+      transactions.push(readTransaction(reader))
     }
 
-    return new GetBlockTransactionsResponse(blockHash, serializedTransactions, rpcId)
+    return new GetBlockTransactionsResponse(blockHash, transactions, rpcId)
   }
 
   getSize(): number {
     let size = 0
     size += 32
-    size += sizeVarint(this.serializedTransactions.length)
-    for (const serializedTransaction of this.serializedTransactions) {
-      size += getTransactionSize(serializedTransaction)
+    size += sizeVarint(this.transactions.length)
+    for (const transaction of this.transactions) {
+      size += getTransactionSize(transaction)
     }
     return size
   }

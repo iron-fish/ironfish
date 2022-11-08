@@ -77,8 +77,8 @@ export class Block {
     return tx
   }
 
-  toCompactBlock(): SerializedCompactBlock {
-    const header = BlockHeaderSerde.serialize(this.header)
+  toCompactBlock(): CompactBlock {
+    const header = this.header
 
     const [minersFee, ...transactions] = this.transactions
     const transactionHashes = transactions.map((t) => t.hash())
@@ -89,7 +89,7 @@ export class Block {
       transactions: [
         {
           index: 0,
-          transaction: minersFee.serialize(),
+          transaction: minersFee,
         },
       ],
     }
@@ -98,11 +98,11 @@ export class Block {
 
 export type CompactBlockTransaction = {
   index: number
-  transaction: SerializedTransaction
+  transaction: Transaction
 }
 
-export type SerializedCompactBlock = {
-  header: SerializedBlockHeader
+export type CompactBlock = {
+  header: BlockHeader
   transactionHashes: Buffer[]
   transactions: CompactBlockTransaction[]
 }

@@ -87,7 +87,7 @@ describe('TransactionFetcher', () => {
     const peerIdentity = peer.getIdentityOrThrow()
     const message = {
       peerIdentity,
-      message: new NewTransactionV2Message([transaction.serialize()]),
+      message: new NewTransactionV2Message([transaction]),
     }
 
     await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
@@ -129,7 +129,7 @@ describe('TransactionFetcher', () => {
     const rpcId = (sentMessage as PooledTransactionsRequest).rpcId
     const message = {
       peerIdentity: sentPeer.getIdentityOrThrow(),
-      message: new PooledTransactionsResponse([transaction.serialize()], rpcId),
+      message: new PooledTransactionsResponse([transaction], rpcId),
     }
 
     expect(node.memPool.exists(transaction.hash())).toBe(false)

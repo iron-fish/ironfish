@@ -76,7 +76,7 @@ describe('Mining manager', () => {
     expect(results).toHaveLength(0)
 
     // Expand max block size, should allow transaction to be added to block
-    chain.consensus.MAX_BLOCK_SIZE_BYTES = getTransactionSize(transaction.serialize())
+    chain.consensus.MAX_BLOCK_SIZE_BYTES = getTransactionSize(transaction)
 
     results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1, 0))
       .blockTransactions

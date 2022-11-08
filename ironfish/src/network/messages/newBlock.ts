@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { SerializedBlock } from '../../primitives/block'
+import { Block } from '../../primitives/block'
 import { NetworkMessageType } from '../types'
 import { getBlockSize, readBlock, writeBlock } from '../utils/serializers'
 import { GossipNetworkMessage } from './gossipNetworkMessage'
 
 export class NewBlockMessage extends GossipNetworkMessage {
-  readonly block: SerializedBlock
+  readonly block: Block
 
-  constructor(block: SerializedBlock, nonce?: Buffer) {
+  constructor(block: Block, nonce?: Buffer) {
     super(NetworkMessageType.NewBlock, nonce)
     this.block = block
   }

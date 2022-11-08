@@ -232,7 +232,7 @@ export class MemPool {
 
     this.transactions.set(hash, transaction)
 
-    this.transactionsBytes += getTransactionSize(transaction.serialize())
+    this.transactionsBytes += getTransactionSize(transaction)
 
     for (const spend of transaction.spends()) {
       if (!this.nullifiers.has(spend.nullifier)) {
@@ -254,7 +254,7 @@ export class MemPool {
       return false
     }
 
-    this.transactionsBytes -= getTransactionSize(transaction.serialize())
+    this.transactionsBytes -= getTransactionSize(transaction)
 
     for (const spend of transaction.spends()) {
       this.nullifiers.delete(spend.nullifier)

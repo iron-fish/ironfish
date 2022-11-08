@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
+import { expectGetBlockTransactionsResponseToMatch } from '../testUtilities'
 import {
   GetBlockTransactionsRequest,
   GetBlockTransactionsResponse,
@@ -21,19 +23,20 @@ describe('GetBlockTransactionsRequest', () => {
 })
 
 describe('GetBlockTransactionsResponse', () => {
-  it('serializes the object into a buffer and deserializes to the original object', () => {
+  const nodeTest = createNodeTest()
+
+  it('serializes the object into a buffer and deserializes to the original object', async () => {
+    const { account, transaction: transactionA } = await useTxSpendsFixture(nodeTest.node)
+    const transactionB = await useMinersTxFixture(nodeTest.node.wallet, account)
+
     const rpcId = 0
     const blockHash = Buffer.alloc(32, 1)
-    const serializedTransactions = [
-      Buffer.alloc(32, 1),
-      Buffer.alloc(32, 2),
-      Buffer.alloc(32, 3),
-    ]
+    const transactions = [transactionA, transactionB]
 
-    const message = new GetBlockTransactionsResponse(blockHash, serializedTransactions, rpcId)
+    const message = new GetBlockTransactionsResponse(blockHash, transactions, rpcId)
     const buffer = message.serialize()
     const deserializedMessage = GetBlockTransactionsResponse.deserialize(buffer, rpcId)
 
-    expect(deserializedMessage).toEqual(message)
+    expectGetBlockTransactionsResponseToMatch(message, deserializedMessage)
   })
 })

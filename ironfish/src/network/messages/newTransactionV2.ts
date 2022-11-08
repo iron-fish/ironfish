@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { SerializedTransaction } from '../../primitives/transaction'
+import { Transaction } from '../../primitives/transaction'
 import { NetworkMessageType } from '../types'
 import { getTransactionSize, readTransaction, writeTransaction } from '../utils/serializers'
 import { NetworkMessage } from './networkMessage'
 
 export class NewTransactionV2Message extends NetworkMessage {
-  readonly transactions: SerializedTransaction[]
+  readonly transactions: Transaction[]
 
-  constructor(transactions: SerializedTransaction[]) {
+  constructor(transactions: Transaction[]) {
     super(NetworkMessageType.NewTransactionV2)
     this.transactions = transactions
   }
@@ -30,7 +30,7 @@ export class NewTransactionV2Message extends NetworkMessage {
 
     const length = reader.readVarint()
 
-    const transactions: SerializedTransaction[] = []
+    const transactions: Transaction[] = []
     for (let i = 0; i < length; i++) {
       const transaction = readTransaction(reader)
       transactions.push(transaction)

@@ -14,7 +14,6 @@ describe('TransactionValueEncoding', () => {
   }
 
   describe('with a null block hash and sequence', () => {
-    // eslint-disable-next-line jest/expect-expect
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
@@ -33,7 +32,6 @@ describe('TransactionValueEncoding', () => {
   })
 
   describe('with a null block hash', () => {
-    // eslint-disable-next-line jest/expect-expect
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
@@ -52,7 +50,6 @@ describe('TransactionValueEncoding', () => {
   })
 
   describe('with a null sequence', () => {
-    // eslint-disable-next-line jest/expect-expect
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 
@@ -71,7 +68,6 @@ describe('TransactionValueEncoding', () => {
   })
 
   describe('with all fields defined', () => {
-    // eslint-disable-next-line jest/expect-expect
     it('serializes the object into a buffer and deserializes to the original object', async () => {
       const encoder = new TransactionValueEncoding()
 

@@ -4,7 +4,7 @@
 
 import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
-import { Block, BlockSerde } from '../primitives/block'
+import { Block } from '../primitives/block'
 import {
   createNodeTest,
   useBlockWithTx,
@@ -188,7 +188,7 @@ describe('BlockFetcher', () => {
     // The peer we requested responds with the transactions not in mempool
     const response = new GetBlockTransactionsResponse(
       block.header.hash,
-      transactions.filter((t) => t !== transactions[2]).map((t) => t.serialize()),
+      transactions.filter((t) => t !== transactions[2]),
       (request as GetBlockTransactionsRequest).rpcId,
     )
 
@@ -253,7 +253,7 @@ describe('BlockFetcher', () => {
     // The peer we requested responds with the transactions
     const response = new GetBlockTransactionsResponse(
       block.header.hash,
-      transactions.map((t) => t.serialize()),
+      transactions,
       getBlockTransactionsRequest.rpcId,
     )
 
@@ -317,10 +317,7 @@ describe('BlockFetcher', () => {
 
     // The peer should respond with a GetBlocksResponse
     await peerNetwork.peerManager.onMessage.emitAsync(
-      ...peerMessage(
-        otherSentPeer,
-        new GetBlocksResponse([BlockSerde.serialize(block)], getBlocksRequest.rpcId),
-      ),
+      ...peerMessage(otherSentPeer, new GetBlocksResponse([block], getBlocksRequest.rpcId)),
     )
 
     await expect(chain.hasBlock(block.header.hash)).resolves.toBe(true)
