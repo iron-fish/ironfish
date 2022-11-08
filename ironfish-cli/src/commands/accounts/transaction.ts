@@ -54,6 +54,10 @@ export class TransactionCommand extends IronfishCommand {
       this.log(`---Notes---\n`)
 
       CliUx.ux.table(response.content.transaction.notes, {
+        owner: {
+          header: 'Owner',
+          get: (note) => (note.owner ? `✔` : `x`),
+        },
         amount: {
           header: 'Amount ($IRON)',
           get: (note) => CurrencyUtils.renderIron(note.value),

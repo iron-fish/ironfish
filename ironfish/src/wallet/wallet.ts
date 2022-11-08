@@ -327,7 +327,7 @@ export class Wallet {
     }
   }
 
-  private async decryptNotes(
+  async decryptNotes(
     transaction: Transaction,
     initialNoteIndex: number | null,
     accounts?: Array<Account>,
@@ -376,38 +376,6 @@ export class Wallet {
     }
 
     return decryptedNotesByAccountId
-  }
-
-  async decryptNotesForRawTransaction(
-    transaction: Transaction,
-    account: Account,
-  ): Promise<Array<DecryptedNoteValue & { hash: Buffer }>> {
-    const decryptedNotesByAccount = await this.decryptNotes(transaction, null, [account])
-
-    const notes: Array<DecryptedNoteValue & { hash: Buffer }> = []
-    for (const [, decryptedNotes] of decryptedNotesByAccount) {
-      for (const decryptedNote of decryptedNotes) {
-        const noteHash = decryptedNote.hash
-        const decryptedNoteForOwner = await account.getDecryptedNote(noteHash)
-        if (decryptedNoteForOwner) {
-          notes.push({
-            ...decryptedNoteForOwner,
-            hash: noteHash,
-          })
-        } else {
-          notes.push({
-            accountId: account.id,
-            nullifier: decryptedNote.nullifier,
-            index: decryptedNote.index,
-            note: new Note(decryptedNote.serializedNote),
-            spent: false,
-            transactionHash: transaction.unsignedHash(),
-            hash: noteHash,
-          })
-        }
-      }
-    }
-    return notes
   }
 
   private async decryptNotesFromTransaction(

@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Note } from '../../../primitives/note'
 import { ApiNamespace, router } from '../router'
-import { serializeRpcAccountDecryptedNote, serializeRpcAccountTransaction } from './types'
+import { RpcAccountDecryptedNote, serializeRpcAccountTransaction } from './types'
 import { getAccount } from './utils'
 
 export type GetAccountTransactionRequest = { account?: string; hash: string }
@@ -16,11 +17,7 @@ export type GetAccountTransactionResponse = {
     fee: string
     notesCount: number
     spendsCount: number
-    notes: {
-      value: string
-      memo: string
-      spent: boolean
-    }[]
+    notes: RpcAccountDecryptedNote[]
   } | null
 }
 
@@ -47,6 +44,7 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
             .array(
               yup
                 .object({
+                  owner: yup.boolean().defined(),
                   value: yup.string().defined(),
                   memo: yup.string().trim().defined(),
                   spent: yup.boolean(),
@@ -76,12 +74,30 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       })
     }
 
-    const notes = await node.wallet.decryptNotesForRawTransaction(
-      transaction.transaction,
+    const notesByAccount = await node.wallet.decryptNotes(transaction.transaction, null, [
       account,
-    )
+    ])
+    const notes = notesByAccount.get(account.id) ?? []
 
-    const serializedNotes = notes.map(serializeRpcAccountDecryptedNote)
+    const serializedNotes: RpcAccountDecryptedNote[] = []
+    for await (const decryptedNote of notes) {
+      const noteHash = decryptedNote.hash
+      const decryptedNoteForOwner = await account.getDecryptedNote(noteHash)
+
+      const owner = !!decryptedNoteForOwner
+      const spent = decryptedNoteForOwner ? decryptedNoteForOwner.spent : false
+      const note = decryptedNoteForOwner
+        ? decryptedNoteForOwner.note
+        : new Note(decryptedNote.serializedNote)
+
+      serializedNotes.push({
+        owner,
+        memo: note.memo(),
+        value: note.value().toString(),
+        spent: spent,
+      })
+    }
+
     const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
     const status = await node.wallet.getTransactionStatus(account, transaction)
