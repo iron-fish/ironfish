@@ -25,7 +25,7 @@ pub struct MintAsset {
     pub network: [u8; 32],
 
     /// Identifier field for bridged asset address, or if a native custom asset, random bytes.
-    token_identifier: [u8; 32],
+    pub token_identifier: [u8; 32],
 
     /// The owner who created the asset. Has permissions to mint
     pub owner: Option<PaymentAddress>,
