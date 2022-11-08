@@ -3,11 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
+    assets::asset::NATIVE_ASSET,
     errors::IronfishError,
     outputs::OutputBuilder,
     sapling_bls12::SAPLING,
     spending::{SpendBuilder, UnsignedSpendDescription},
 };
+
+use self::value_balances::ValueBalances;
 
 use super::{
     keys::{PublicAddress, SaplingKey},
@@ -33,6 +36,7 @@ use std::{io, iter, slice::Iter};
 
 #[cfg(test)]
 mod tests;
+mod value_balances;
 
 const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"Bnsighsh";
 const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
@@ -57,7 +61,7 @@ pub struct ProposedTransaction {
 
     /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
-    value_balance: i64,
+    value_balances: ValueBalances,
 
     /// This is the sequence in the chain the transaction will expire at and be
     /// removed from the mempool. A value of 0 indicates the transaction will
@@ -77,7 +81,7 @@ impl ProposedTransaction {
         ProposedTransaction {
             spends: vec![],
             outputs: vec![],
-            value_balance: 0,
+            value_balances: ValueBalances::new(),
             expiration_sequence: 0,
             spender_key,
         }
@@ -85,7 +89,7 @@ impl ProposedTransaction {
 
     /// Spend the note owned by spender_key at the given witness location.
     pub fn add_spend(&mut self, note: Note, witness: &dyn WitnessTrait) {
-        self.value_balance += note.value() as i64;
+        self.value_balances.add(&NATIVE_ASSET, note.value() as i64);
 
         self.spends.push(SpendBuilder::new(note, witness));
     }
@@ -93,7 +97,8 @@ impl ProposedTransaction {
     /// Create a proof of a new note owned by the recipient in this
     /// transaction.
     pub fn add_output(&mut self, note: Note) {
-        self.value_balance -= note.value as i64;
+        self.value_balances
+            .subtract(&NATIVE_ASSET, note.value() as i64);
 
         self.outputs.push(OutputBuilder::new(note));
     }
@@ -113,26 +118,46 @@ impl ProposedTransaction {
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
     ) -> Result<Transaction, IronfishError> {
-        let change_amount = self.value_balance - intended_transaction_fee as i64;
+        let mut change_notes = vec![];
 
-        if change_amount < 0 {
-            return Err(IronfishError::InvalidBalance);
+        for (asset_identifier, value) in self.value_balances.iter() {
+            let is_native_asset = asset_identifier == &NATIVE_ASSET;
+
+            // TODO: Remove this once we actually allow custom assets
+            if !is_native_asset {
+                return Err(IronfishError::InvalidBalance);
+            }
+
+            let change_amount = match is_native_asset {
+                true => *value - intended_transaction_fee as i64,
+                false => *value,
+            };
+
+            if change_amount < 0 {
+                return Err(IronfishError::InvalidBalance);
+            }
+            if change_amount > 0 {
+                // TODO: The public address generated from the spender_key if
+                // change_goes_to is None should probably be associated with a
+                // known diversifier (eg: that used on other notes?)
+                // But we haven't worked out why determinacy in public addresses
+                // would be useful yet.
+                let change_address =
+                    change_goes_to.unwrap_or_else(|| self.spender_key.generate_public_address());
+                let change_note = Note::new(
+                    change_address,
+                    change_amount as u64, // we checked it was positive
+                    "",
+                );
+
+                change_notes.push(change_note);
+            }
         }
-        if change_amount > 0 {
-            // TODO: The public address generated from the spender_key if
-            // change_goes_to is None should probably be associated with a
-            // known diversifier (eg: that used on other notes?)
-            // But we haven't worked out why determinacy in public addresses
-            // would be useful yet.
-            let change_address =
-                change_goes_to.unwrap_or_else(|| self.spender_key.generate_public_address());
-            let change_note = Note::new(
-                change_address,
-                change_amount as u64, // we checked it was positive
-                "",
-            );
+
+        for change_note in change_notes {
             self.add_output(change_note);
         }
+
         self._partial_post()
     }
 
@@ -199,7 +224,7 @@ impl ProposedTransaction {
 
         Ok(Transaction {
             expiration_sequence: self.expiration_sequence,
-            fee: self.value_balance,
+            fee: *self.value_balances.fee(),
             spends: spend_descriptions,
             outputs: output_descriptions,
             binding_signature,
@@ -226,7 +251,7 @@ impl ProposedTransaction {
             .write_u32::<LittleEndian>(self.expiration_sequence)
             .unwrap();
         hasher
-            .write_i64::<LittleEndian>(self.value_balance)
+            .write_i64::<LittleEndian>(*self.value_balances.fee())
             .unwrap();
         for spend in spends {
             spend
@@ -291,7 +316,7 @@ impl ProposedTransaction {
         check_value_consistency(
             &public_key,
             &binding_verification_key,
-            self.value_balance as i64,
+            *self.value_balances.fee(),
         )?;
 
         Ok((private_key, public_key))

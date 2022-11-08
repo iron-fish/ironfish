@@ -14,6 +14,11 @@ use std::slice::from_ref;
 #[allow(dead_code)]
 pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
 
+pub const NATIVE_ASSET: AssetIdentifier = [
+    215, 200, 103, 6, 245, 129, 122, 167, 24, 205, 28, 250, 208, 50, 51, 188, 214, 74, 119, 137,
+    253, 148, 34, 211, 177, 122, 246, 130, 58, 126, 106, 198,
+];
+
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
 #[allow(dead_code)]
@@ -124,9 +129,12 @@ impl Asset {
 
 #[cfg(test)]
 mod test {
+    use group::GroupEncoding;
+    use ironfish_zkp::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
+
     use crate::{util::str_to_array, PublicAddress, SaplingKey};
 
-    use super::Asset;
+    use super::{Asset, NATIVE_ASSET};
 
     #[test]
     fn test_new_with_nonce() {
@@ -172,5 +180,12 @@ mod test {
         assert_eq!(asset.name, str_to_array(name));
         assert_eq!(asset.chain, str_to_array(chain));
         assert_eq!(asset.network, str_to_array(network));
+    }
+
+    #[test]
+    fn test_native_asset_identifier() {
+        // Native asset uses the original value commitment generator, no
+        // particular reason other than it is easier to think about this way.
+        assert_eq!(NATIVE_ASSET, VALUE_COMMITMENT_VALUE_GENERATOR.to_bytes());
     }
 }

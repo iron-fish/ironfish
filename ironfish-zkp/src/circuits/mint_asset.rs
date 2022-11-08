@@ -152,9 +152,8 @@ mod test {
 
     use bellman::{
         gadgets::{multipack, test::TestConstraintSystem},
-        groth16, Circuit,
+        Circuit,
     };
-    use bls12_381::Bls12;
     use ff::Field;
     use group::{Group, GroupEncoding};
     use rand::{rngs::StdRng, SeedableRng};
