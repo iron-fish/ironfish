@@ -14,10 +14,11 @@ use ff::{Field, PrimeField};
 use ironfish_zkp::{Nullifier, Rseed, SaplingNote};
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
+use crate::keys::PUBLIC_KEY_GENERATOR;
 
 use std::{fmt, io, io::Read};
 
-pub const ENCRYPTED_NOTE_SIZE: usize = 83;
+pub const ENCRYPTED_NOTE_SIZE: usize = 72;
 
 /// Memo field on a Note. Used to encode transaction IDs or other information
 /// about the transaction.
@@ -135,9 +136,9 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (diversifier_bytes, randomness, value, memo) =
+        let (randomness, value, memo) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
-        let owner = owner_view_key.public_address(&diversifier_bytes)?;
+        let owner = owner_view_key.public_address();
 
         Ok(Note {
             owner,
@@ -161,13 +162,10 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (diversifier_bytes, randomness, value, memo) =
+        let (randomness, value, memo) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
-        let (diversifier, diversifier_point) =
-            PublicAddress::load_diversifier(&diversifier_bytes[..])?;
+        
         let owner = PublicAddress {
-            diversifier,
-            diversifier_point,
             transmission_key,
         };
 
@@ -196,11 +194,10 @@ impl<'a> Note {
     /// actually read the contents.
     pub fn encrypt(&self, shared_secret: &[u8; 32]) -> [u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE] {
         let mut bytes_to_encrypt = [0; ENCRYPTED_NOTE_SIZE];
-        bytes_to_encrypt[..11].copy_from_slice(&self.owner.diversifier.0[..]);
-        bytes_to_encrypt[11..43].clone_from_slice(self.randomness.to_repr().as_ref());
+        bytes_to_encrypt[..32].clone_from_slice(self.randomness.to_repr().as_ref());
 
-        LittleEndian::write_u64_into(&[self.value], &mut bytes_to_encrypt[43..51]);
-        bytes_to_encrypt[51..].copy_from_slice(&self.memo.0[..]);
+        LittleEndian::write_u64_into(&[self.value], &mut bytes_to_encrypt[32..40]);
+        bytes_to_encrypt[40..].copy_from_slice(&self.memo.0[..]);
         let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes);
 
@@ -245,13 +242,11 @@ impl<'a> Note {
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<([u8; 11], jubjub::Fr, u64, Memo), IronfishError> {
+    ) -> Result<(jubjub::Fr, u64, Memo), IronfishError> {
         let mut plaintext_bytes = [0; ENCRYPTED_NOTE_SIZE];
         aead::decrypt(shared_secret, encrypted_bytes, &mut plaintext_bytes)?;
 
         let mut reader = plaintext_bytes[..].as_ref();
-        let mut diversifier_bytes = [0; 11];
-        reader.read_exact(&mut diversifier_bytes[..])?;
 
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
@@ -259,7 +254,7 @@ impl<'a> Note {
         let mut memo = Memo::default();
         reader.read_exact(&mut memo.0)?;
 
-        Ok((diversifier_bytes, randomness, value, memo))
+        Ok((randomness, value, memo))
     }
 
     /// The zcash_primitives version of the Note API is kind of klunky with
@@ -272,7 +267,7 @@ impl<'a> Note {
     fn sapling_note(&self) -> SaplingNote {
         SaplingNote {
             value: self.value,
-            g_d: self.owner.diversifier.g_d().unwrap(),
+            g_d: PUBLIC_KEY_GENERATOR,
             pk_d: self.owner.transmission_key,
             rseed: Rseed::BeforeZip212(self.randomness),
         }
@@ -287,7 +282,7 @@ mod test {
     #[test]
     fn test_plaintext_serialization() {
         let owner_key: SaplingKey = SaplingKey::generate_key();
-        let public_address = owner_key.generate_public_address();
+        let public_address = owner_key.public_address();
         let note = Note::new(public_address, 42, "serialize me");
         let mut serialized = Vec::new();
         note.write(&mut serialized)
@@ -309,7 +304,7 @@ mod test {
     #[test]
     fn test_note_encryption() {
         let owner_key: SaplingKey = SaplingKey::generate_key();
-        let public_address = owner_key.generate_public_address();
+        let public_address = owner_key.public_address();
         let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
         let public_shared_secret =
             shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
