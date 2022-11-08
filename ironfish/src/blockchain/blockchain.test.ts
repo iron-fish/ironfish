@@ -403,7 +403,7 @@ describe('Blockchain', () => {
     // Should not add blockB3
     const { isAdded, reason } = await node.chain.addBlock(blockB3)
     expect(isAdded).toBe(false)
-    expect(reason).toBe(VerificationResultReason.NOTE_COMMITMENT_SIZE)
+    expect(reason).toBe(VerificationResultReason.NOTE_COMMITMENT)
 
     expect(node.chain.head?.hash).toEqualBuffer(blockB2.header.hash)
     const result = await node.chain.verifier.verifyConnectedBlock(blockB2)

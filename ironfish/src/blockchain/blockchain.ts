@@ -656,8 +656,11 @@ export class Blockchain {
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev)
+    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev)
 
+    await this.saveBlock(block, prev, true, tx)
+
+    const { valid, reason } = await verifyBlockAdd
     if (!valid) {
       Assert.isNotUndefined(reason)
 
@@ -672,7 +675,6 @@ export class Blockchain {
       throw new VerifyError(reason, BAN_SCORE.MAX)
     }
 
-    await this.saveBlock(block, prev, true, tx)
     await tx.update()
     this.notes.pastRootTxCommitted(tx)
     await this.onForkBlock.emitAsync(block, tx)
