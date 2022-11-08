@@ -2,23 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use outputs::OutputBuilder;
+use spending::{SpendBuilder, UnsignedSpendDescription};
+use value_balances::ValueBalances;
+
 use crate::{
     assets::asset::NATIVE_ASSET,
     errors::IronfishError,
-    outputs::OutputBuilder,
-    sapling_bls12::SAPLING,
-    spending::{SpendBuilder, UnsignedSpendDescription},
-};
-
-use self::value_balances::ValueBalances;
-
-use super::{
     keys::{PublicAddress, SaplingKey},
     note::Note,
-    outputs::OutputDescription,
-    spending::SpendDescription,
+    sapling_bls12::SAPLING,
     witness::WitnessTrait,
+    OutputDescription, SpendDescription,
 };
+
 use bellman::groth16::batch::Verifier;
 use blake2b_simd::Params as Blake2b;
 use bls12_381::Bls12;
@@ -34,6 +31,8 @@ use ironfish_zkp::{
 
 use std::{io, iter, slice::Iter};
 
+pub mod outputs;
+pub mod spending;
 #[cfg(test)]
 mod tests;
 mod value_balances;

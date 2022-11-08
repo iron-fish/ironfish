@@ -14,10 +14,8 @@ pub mod merkle_note_hash;
 pub mod mining;
 pub mod nacl;
 pub mod note;
-pub mod outputs;
 pub mod rolling_filter;
 pub mod sapling_bls12;
-pub mod spending;
 pub mod transaction;
 pub mod util;
 pub mod witness;
@@ -26,9 +24,9 @@ pub use {
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,
     note::Note,
-    outputs::OutputDescription,
-    spending::SpendDescription,
-    transaction::{ProposedTransaction, Transaction},
+    transaction::{
+        outputs::OutputDescription, spending::SpendDescription, ProposedTransaction, Transaction,
+    },
 };
 
 #[cfg(test)]

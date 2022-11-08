@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{errors::IronfishError, sapling_bls12::SAPLING};
-
-use super::{
+use crate::{
+    errors::IronfishError,
     keys::SaplingKey,
     merkle_note::{position as witness_position, sapling_auth_path},
     note::Note,
+    sapling_bls12::SAPLING,
     serializing::read_scalar,
     witness::WitnessTrait,
 };
+
 use bellman::gadgets::multipack;
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
