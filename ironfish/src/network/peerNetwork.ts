@@ -690,7 +690,7 @@ export class PeerNetwork {
       } else if (rpcMessage instanceof GetBlocksResponse) {
         // Should happen when block is requested directly by the block fetcher
         for (const block of rpcMessage.blocks) {
-          await this.handleNewBlockMessage(peer, block)
+          await this.handleRequestedBlock(peer, block)
         }
       }
     }
@@ -1188,7 +1188,7 @@ export class PeerNetwork {
     return new GetCompactBlockResponse(block.toCompactBlock(), message.rpcId)
   }
 
-  private async handleNewBlockMessage(peer: Peer, block: Block) {
+  private async handleRequestedBlock(peer: Peer, block: Block) {
     if (!this.shouldProcessNewBlocks()) {
       return
     }
