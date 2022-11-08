@@ -31,6 +31,8 @@ use ironfish_zkp::{
 
 use std::{io, iter, slice::Iter};
 
+use self::mints::{MintDescription, MintBuilder};
+
 pub mod mints;
 pub mod outputs;
 pub mod spending;
@@ -59,6 +61,10 @@ pub struct ProposedTransaction {
     /// `outputs` in the literature.
     outputs: Vec<OutputBuilder>,
 
+    /// Builders for proofs of the individual mints with all values required to
+    /// calculate the signatures.
+    mints: Vec<MintBuilder>,
+
     /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
     value_balances: ValueBalances,
@@ -81,6 +87,7 @@ impl ProposedTransaction {
         ProposedTransaction {
             spends: vec![],
             outputs: vec![],
+            mints: vec![],
             value_balances: ValueBalances::new(),
             expiration_sequence: 0,
             spender_key,
