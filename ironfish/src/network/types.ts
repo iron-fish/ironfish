@@ -12,8 +12,8 @@ export enum NetworkMessageType {
   GetBlocksRequest = 4,
   GetBlocksResponse = 5,
   Identify = 6,
-  NewBlock = 7,
-  NewTransaction = 8,
+  NewBlock = 7, //DEPRECATED
+  NewTransaction = 8, //DEPRECATED
   PeerList = 9,
   PeerListRequest = 10,
   Signal = 11,
