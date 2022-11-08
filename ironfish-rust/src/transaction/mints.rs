@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use bellman::groth16;
+use std::io;
+
+use bellman::{groth16, gadgets::multipack};
 use bls12_381::{Bls12, Scalar};
 use ironfish_zkp::{circuits::mint_asset::MintAsset, ProofGenerationKey};
 use rand::thread_rng;
@@ -50,6 +52,7 @@ impl MintBuilder {
     }
 }
 
+#[derive(Clone)]
 pub struct MintDescription {
     pub proof: groth16::Proof<Bls12>,
 
@@ -70,7 +73,22 @@ impl MintDescription {
         Ok(())
     }
 
-    pub fn public_inputs(&self) -> [Scalar; 0] {
-        []
+    pub fn public_inputs(&self) -> [Scalar; 2] {
+        let mut public_inputs = [Scalar::zero(); 2];
+
+        let identifier_bits = multipack::bytes_to_bits_le(self.asset.identifier());
+        let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
+        public_inputs[0] = identifier_inputs[0];
+        public_inputs[1] = identifier_inputs[1];
+        
+        public_inputs
+    }
+
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        Err(IronfishError::IllegalValue)
+    }
+
+    pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
+        Err(IronfishError::IllegalValue)
     }
 }
