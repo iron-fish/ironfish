@@ -15,7 +15,10 @@ use crate::{
     sapling_bls12::SAPLING,
 };
 
+/// Parameters used to build a circuit that verifies an asset can be minted with
+/// a given key
 pub struct MintBuilder {
+    /// Asset to be minted
     pub asset: Asset,
 }
 
@@ -52,10 +55,14 @@ impl MintBuilder {
     }
 }
 
+/// This description represents an action to increase the supply of an existing
+/// asset on Iron Fish
 #[derive(Clone)]
 pub struct MintDescription {
+    /// Proof that the mint was valid for the provided owner and asset
     pub proof: groth16::Proof<Bls12>,
 
+    /// Asset which is being minted
     pub asset: Asset,
 }
 
@@ -109,5 +116,33 @@ impl MintDescription {
     /// Stow the bytes of this [`MintDescription`] in the given writer.
     pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
         self.serialize_signature_fields(writer)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{assets::asset::Asset, transaction::mints::MintBuilder, SaplingKey};
+
+    #[test]
+    /// Test that we can create a builder with a valid asset and proof
+    /// generation key
+    fn test_mint_builder() {
+        let key = SaplingKey::generate_key();
+        let owner = key.generate_public_address();
+        let name = "name";
+        let chain = "chain";
+        let network = "network";
+        let token_identifier = "token identifier";
+
+        let asset = Asset::new(owner, name, chain, network, token_identifier).unwrap();
+
+        let mint = MintBuilder::new(asset);
+        // let mint_description = mint.build(key.sapling_proof_generation_key()).expect("should build valid mint description");
+
+        // assert_eq!(mint_description.asset.identifier(), asset.identifier());
+
+        // TODO(mgeist, rohanjadvani):
+        // This is a placeholder assertion until the mint parameters are generated
+        assert_eq!(asset.identifier(), mint.asset.identifier());
     }
 }
