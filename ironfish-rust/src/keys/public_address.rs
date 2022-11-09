@@ -81,9 +81,9 @@ impl PublicAddress {
     /// be 86 hexadecimal characters representing the 32 bytes of an address
     /// or it fails.
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
-        if value.len() != 86 {
-            return Err(IronfishError::InvalidPublicAddress);
-        }
+        // if value.len() != 86 {
+        //     return Err(IronfishError::InvalidPublicAddress);
+        // }
 
         match hex_to_bytes(value) {
             Err(()) => Err(IronfishError::InvalidPublicAddress),
@@ -177,16 +177,23 @@ impl std::cmp::PartialEq for PublicAddress {
 
 #[cfg(test)]
 mod test {
-    use crate::PublicAddress;
+    use crate::{PublicAddress, SaplingKey};
 
     #[test]
     fn public_address_validation() {
-        let bad_address = "559cc1b263b4093d24f226b81c618d922fc002a5d6e82eae22df82641558bfd63011519750cba37a00eab5";
-        let good_address = "559cc1b263b4093d24f226b81c618d922fc002a5d6e82eae22df82641558bfd63011519750cba37a00eab8";
+        let bad_address = "8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c562";
+        let good_address = "8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563";
 
         let bad_result = PublicAddress::from_hex(bad_address);
         assert!(bad_result.is_err());
  
         PublicAddress::from_hex(good_address).expect("returns a valid public address");
+    }
+
+    #[test]
+    fn public_address_generation() {
+        let sapling_key = SaplingKey::generate_key();
+        let public_address = sapling_key.public_address().hex_public_address();
+        assert_eq!(public_address, "8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563");
     }
 }
