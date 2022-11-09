@@ -37,7 +37,6 @@ pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecke
 /// the creation of a unqiue public addresses without revealing the viewing key.
 #[derive(Clone, Copy)]
 pub struct PublicAddress {
-
     /// The transmission key is the result of combining the diversifier with the
     /// incoming viewing key (a non-reversible operation). Together, the two
     /// form a public address to which payments can be sent.
@@ -49,9 +48,7 @@ impl PublicAddress {
     pub fn new(address_bytes: &[u8; 32]) -> Result<PublicAddress, IronfishError> {
         let transmission_key = PublicAddress::load_transmission_key(&address_bytes[0..])?;
 
-        Ok(PublicAddress {
-            transmission_key,
-        })
+        Ok(PublicAddress { transmission_key })
     }
 
     /// Load a public address from a Read implementation (e.g: socket, file)
@@ -63,15 +60,11 @@ impl PublicAddress {
 
     /// Initialize a public address from a sapling key. Typically constructed from
     /// SaplingKey::public_address()
-    pub fn from_key(
-        sapling_key: &SaplingKey,
-    ) -> PublicAddress {
+    pub fn from_key(sapling_key: &SaplingKey) -> PublicAddress {
         Self::from_view_key(sapling_key.incoming_view_key())
     }
 
-    pub fn from_view_key(
-        view_key: &IncomingViewKey,
-    ) -> PublicAddress {
+    pub fn from_view_key(view_key: &IncomingViewKey) -> PublicAddress {
         PublicAddress {
             transmission_key: PUBLIC_KEY_GENERATOR * view_key.view_key,
         }
@@ -186,7 +179,7 @@ mod test {
 
         let bad_result = PublicAddress::from_hex(bad_address);
         assert!(bad_result.is_err());
- 
+
         PublicAddress::from_hex(good_address).expect("returns a valid public address");
     }
 

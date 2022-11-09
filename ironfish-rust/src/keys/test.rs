@@ -57,7 +57,7 @@ fn test_serialization() {
 
     let read_back_address: PublicAddress = PublicAddress::new(&serialized_address)
         .expect("Should be able to construct address from valid bytes");
-    
+
     assert_eq!(
         ExtendedPoint::from(read_back_address.transmission_key).to_affine(),
         ExtendedPoint::from(public_address.transmission_key).to_affine()

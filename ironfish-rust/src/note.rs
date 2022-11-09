@@ -8,13 +8,13 @@ use super::{
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
     serializing::{aead, read_scalar, scalar_to_bytes},
 };
+use crate::keys::PUBLIC_KEY_GENERATOR;
 use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
 use ironfish_zkp::{Nullifier, Rseed, SaplingNote};
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
-use crate::keys::PUBLIC_KEY_GENERATOR;
 
 use std::{fmt, io, io::Read};
 
@@ -136,8 +136,7 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (randomness, value, memo) =
-            Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
+        let (randomness, value, memo) = Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let owner = owner_view_key.public_address();
 
         Ok(Note {
@@ -162,12 +161,9 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (randomness, value, memo) =
-            Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
-        
-        let owner = PublicAddress {
-            transmission_key,
-        };
+        let (randomness, value, memo) = Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
+
+        let owner = PublicAddress { transmission_key };
 
         Ok(Note {
             owner,
