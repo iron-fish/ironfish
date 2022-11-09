@@ -656,7 +656,9 @@ export class Blockchain {
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev)
+    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev).catch((_) => {
+      return { valid: false, reason: VerificationResultReason.ERROR }
+    })
 
     await this.saveBlock(block, prev, true, tx)
 
@@ -710,7 +712,9 @@ export class Blockchain {
       await this.reorganizeChain(prev, tx)
     }
 
-    const verifyBlock = this.verifier.verifyBlockAdd(block, prev)
+    const verifyBlock = this.verifier.verifyBlockAdd(block, prev).catch((_) => {
+      return { valid: false, reason: VerificationResultReason.ERROR }
+    })
 
     await this.saveBlock(block, prev, false, tx)
 
