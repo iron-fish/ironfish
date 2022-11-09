@@ -356,6 +356,8 @@ export class Syncer {
       this.logger.warn(
         `Error while syncing from ${peer.displayName}: ${ErrorUtils.renderError(e)}`,
       )
+
+      peer.close()
       this.stopSync(peer)
       return {
         blocks: [],
