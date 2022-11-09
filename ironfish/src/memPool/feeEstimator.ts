@@ -226,7 +226,7 @@ export class FeeEstimator {
   private async getPendingTransactionSize(
     sender: Account,
     receives: { publicAddress: string; amount: bigint; memo: string }[],
-    estimateFeeRate?: bigint,
+    feeRate: bigint,
   ): Promise<number> {
     let size = 0
     size += 8 // spends length
@@ -243,21 +243,19 @@ export class FeeEstimator {
 
     size += receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
 
-    if (estimateFeeRate) {
-      const additionalAmountNeeded = getFee(estimateFeeRate, size) - (amount - amountNeeded)
+    const spenderChange = amount - amountNeeded
 
-      if (additionalAmountNeeded > 0) {
-        const { notesToSpend: additionalNotesToSpend } = await this.wallet.createSpends(
-          sender,
-          additionalAmountNeeded,
-        )
-        const additionalSpendsLength =
-          additionalNotesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE
-        size += additionalSpendsLength
-      }
+    const pendingFee = getFee(feeRate, size)
+
+    if (spenderChange === pendingFee) {
+      return size
+    } else if (spenderChange > pendingFee) {
+      // add a note for spender change
+      return size + NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
+    } else {
+      // add a spend for the fee and a note for spender change
+      return size + NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE + SPEND_SERIALIZED_SIZE_IN_BYTE
     }
-
-    return size
   }
 
   private isFull(arrayLength: number): boolean {
