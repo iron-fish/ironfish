@@ -64,7 +64,7 @@ export class TransactionCommand extends IronfishCommand {
         },
         isSpent: {
           header: 'Spent',
-          get: (note) => (note.spent ? `✔` : `x`),
+          get: (note) => (!note.owner ? '?' : note.spent ? `✔` : `x`),
         },
         memo: {
           header: 'Memo',
