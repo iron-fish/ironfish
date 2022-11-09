@@ -4,7 +4,7 @@
 
 use std::io;
 
-use bellman::{groth16, gadgets::multipack};
+use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
 use ironfish_zkp::{circuits::mint_asset::MintAsset, ProofGenerationKey};
 use rand::thread_rng;
@@ -80,15 +80,34 @@ impl MintDescription {
         let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
         public_inputs[0] = identifier_inputs[0];
         public_inputs[1] = identifier_inputs[1];
-        
+
         public_inputs
     }
 
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        Err(IronfishError::IllegalValue)
+    /// Write the signature of this proof to the provided writer.
+    ///
+    /// The signature is used by the transaction to calculate the signature
+    /// hash. Having this data essentially binds the note to the transaction,
+    /// proving that it is actually part of that transaction.
+    pub(crate) fn serialize_signature_fields<W: io::Write>(
+        &self,
+        mut writer: W,
+    ) -> Result<(), IronfishError> {
+        self.proof.write(&mut writer)?;
+        self.asset.write(&mut writer)?;
+
+        Ok(())
     }
 
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        let proof = groth16::Proof::read(&mut reader)?;
+        let asset = Asset::read(&mut reader)?;
+
+        Ok(MintDescription { proof, asset })
+    }
+
+    /// Stow the bytes of this [`MintDescription`] in the given writer.
     pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
-        Err(IronfishError::IllegalValue)
+        self.serialize_signature_fields(writer)
     }
 }
