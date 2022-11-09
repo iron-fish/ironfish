@@ -7,7 +7,7 @@ use spending::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::{NATIVE_ASSET, AssetIdentifier, Asset},
+    assets::asset::{Asset, NATIVE_ASSET},
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,
@@ -31,7 +31,7 @@ use ironfish_zkp::{
 
 use std::{io, iter, slice::Iter};
 
-use self::mints::{MintDescription, MintBuilder};
+use self::mints::{MintBuilder, MintDescription};
 
 pub mod mints;
 pub mod outputs;
@@ -224,7 +224,16 @@ impl ProposedTransaction {
             output_descriptions.push(output.build(&self.spender_key)?);
         }
 
-        let data_to_sign = self.transaction_signature_hash(&unsigned_spends, &output_descriptions);
+        let mut mint_descriptions = Vec::with_capacity(self.mints.len());
+        for mint in &self.mints {
+            mint_descriptions.push(mint.build(self.spender_key.sapling_proof_generation_key())?);
+        }
+
+        let data_to_sign = self.transaction_signature_hash(
+            &unsigned_spends,
+            &output_descriptions,
+            &mint_descriptions,
+        );
 
         let binding_signature =
             self.binding_signature(&bsig_keys.0, &bsig_keys.1, &data_to_sign)?;
@@ -254,6 +263,7 @@ impl ProposedTransaction {
         &self,
         spends: &[UnsignedSpendDescription],
         outputs: &[OutputDescription],
+        mints: &[MintDescription],
     ) -> [u8; 32] {
         let mut hasher = Blake2b::new()
             .hash_length(32)
@@ -276,6 +286,10 @@ impl ProposedTransaction {
 
         for output in outputs {
             output.serialize_signature_fields(&mut hasher).unwrap();
+        }
+
+        for mint in mints {
+            mint.serialize_signature_fields(&mut hasher).unwrap();
         }
 
         let mut hash_result = [0; 32];
@@ -492,6 +506,9 @@ impl Transaction {
         }
         for output in self.outputs.iter() {
             output.serialize_signature_fields(&mut hasher).unwrap();
+        }
+        for mint in self.mints.iter() {
+            mint.serialize_signature_fields(&mut hasher).unwrap();
         }
 
         let mut hash_result = [0; 32];

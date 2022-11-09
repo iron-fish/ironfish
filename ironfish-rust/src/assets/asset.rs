@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use crate::{errors::IronfishError, util::str_to_array, PublicAddress};
+use byteorder::{ReadBytesExt, WriteBytesExt};
 use ironfish_zkp::{
     constants::{
         ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION,
@@ -10,7 +11,7 @@ use ironfish_zkp::{
     group_hash,
 };
 use jubjub::SubgroupPoint;
-use std::slice::from_ref;
+use std::{io, slice::from_ref};
 
 #[allow(dead_code)]
 pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
@@ -139,6 +140,38 @@ impl Asset {
     #[allow(dead_code)]
     pub fn identifier(&self) -> &AssetIdentifier {
         &self.identifier
+    }
+
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        let owner = PublicAddress::read(&mut reader)?;
+
+        let mut name = [0; 32];
+        reader.read_exact(&mut name[..])?;
+
+        let mut chain = [0; 32];
+        reader.read_exact(&mut chain[..])?;
+
+        let mut network = [0; 32];
+        reader.read_exact(&mut network[..])?;
+
+        let mut token_identifier = [0; 32];
+        reader.read_exact(&mut token_identifier[..])?;
+
+        let nonce = reader.read_u8()?;
+
+        Asset::new_with_nonce(owner, name, chain, network, token_identifier, nonce)
+    }
+
+    /// Stow the bytes of this [`MintDescription`] in the given writer.
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        self.owner.write(&mut writer)?;
+        writer.write_all(&self.name)?;
+        writer.write_all(&self.chain)?;
+        writer.write_all(&self.network)?;
+        writer.write_all(&self.token_identifier)?;
+        writer.write_u8(self.nonce)?;
+
+        Ok(())
     }
 }
 
