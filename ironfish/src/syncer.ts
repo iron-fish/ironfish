@@ -341,21 +341,38 @@ export class Syncer {
     }
   }
 
-  async syncBlocks(peer: Peer, head: Buffer, sequence: number): Promise<void> {
-    this.abort(peer)
-
-    let count = 0
-    let skipped = 0
-
+  private async getBlocks(
+    peer: Peer,
+    start: Buffer,
+    limit: number,
+  ): Promise<{ blocks: Block[]; time: number }> {
     this.logger.info(
-      `Requesting ${this.blocksPerMessage} blocks starting at ${HashUtils.renderHash(
-        head,
-      )} (${sequence}) from ${peer.displayName}`,
+      `Requesting ${limit - 1} blocks starting at ${HashUtils.renderHash(start)} from ${
+        peer.displayName
+      }`,
     )
 
-    let blocksPromise = this.peerNetwork.getBlocks(peer, head, this.blocksPerMessage + 1)
+    return this.peerNetwork.getBlocks(peer, start, limit).catch((e) => {
+      this.logger.warn(
+        `Error while syncing from ${peer.displayName}: ${ErrorUtils.renderError(e)}`,
+      )
 
-    while (head) {
+      peer.close()
+      this.stopSync(peer)
+      return {
+        blocks: [],
+        time: 0,
+      }
+    })
+  }
+
+  async syncBlocks(peer: Peer, head: Buffer, sequence: number): Promise<void> {
+    let currentHead = head
+    let currentSequence = sequence
+
+    let blocksPromise = this.getBlocks(peer, head, this.blocksPerMessage + 1)
+
+    while (currentHead) {
       const {
         blocks: [headBlock, ...blocks],
         time,
@@ -364,6 +381,8 @@ export class Syncer {
       if (!headBlock) {
         peer.punish(BAN_SCORE.MAX, 'empty GetBlocks message')
       }
+
+      this.downloadSpeed.add((blocks.length + 1) / (time / 1000))
 
       this.abort(peer)
 
@@ -375,28 +394,21 @@ export class Syncer {
         this.logger.info(
           `Requesting ${this.blocksPerMessage} blocks starting at ${HashUtils.renderHash(
             head,
-          )} (${sequence}) from ${peer.displayName}`,
+          )} (${currentSequence}) from ${peer.displayName}`,
         )
 
-        blocksPromise = this.peerNetwork.getBlocks(
-          peer,
-          block.header.hash,
-          this.blocksPerMessage + 1,
-        )
+        blocksPromise = this.getBlocks(peer, block.header.hash, this.blocksPerMessage + 1)
       }
 
-      const elapsedSeconds = time / 1000
-      this.downloadSpeed.add((blocks.length + 1) / elapsedSeconds)
-
       for (const addBlock of blocks) {
-        sequence += 1
+        currentSequence += 1
 
-        const { added, block } = await this.addBlock(peer, addBlock)
+        const { block } = await this.addBlock(peer, addBlock)
         this.abort(peer)
 
-        if (block.header.sequence !== sequence) {
+        if (block.header.sequence !== currentSequence) {
           this.logger.warn(
-            `Peer ${peer.displayName} sent block out of sequence. Expected ${sequence} but got ${block.header.sequence}`,
+            `Peer ${peer.displayName} sent block out of sequence. Expected ${currentSequence} but got ${block.header.sequence}`,
           )
 
           peer.punish(BAN_SCORE.MAX, 'out of sequence')
@@ -410,12 +422,7 @@ export class Syncer {
           peer.work = block.header.work
         }
 
-        head = block.header.hash
-        count += 1
-
-        if (!added) {
-          skipped += 1
-        }
+        currentHead = block.header.hash
       }
 
       // They didn't send a full message so they have no more blocks
@@ -426,10 +433,7 @@ export class Syncer {
       this.abort(peer)
     }
 
-    this.logger.info(
-      `Finished syncing ${count} blocks from ${peer.displayName}` +
-        (skipped ? `, skipped ${skipped}` : ''),
-    )
+    this.logger.info(`Finished syncing from ${peer.displayName}`)
   }
 
   async addBlock(
