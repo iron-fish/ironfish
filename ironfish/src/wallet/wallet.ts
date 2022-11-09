@@ -327,7 +327,7 @@ export class Wallet {
     }
   }
 
-  private async decryptNotes(
+  async decryptNotes(
     transaction: Transaction,
     initialNoteIndex: number | null,
     accounts?: Array<Account>,
