@@ -92,16 +92,6 @@ export class BlockHeader {
   public timestamp: Date
 
   /**
-   * A single transaction representing the miner's fee, awarded to the successful
-   * miner for mining the block plus the transaction fees offered by spending users.
-   * This is the only way inflation happens on the chain.
-   *
-   * Note that the transaction fee on a minersFee is negative. By "spending a negative value"
-   * the miner is awarding itself a positive output.
-   */
-  public minersFee: bigint
-
-  /**
    * A 32 byte field that may be assigned at will by the miner who mined the block.
    */
   public graffiti: Buffer
@@ -122,7 +112,6 @@ export class BlockHeader {
     target: Target,
     randomness = BigInt(0),
     timestamp: Date | undefined = undefined,
-    minersFee: bigint,
     graffiti: Buffer,
     work = BigInt(0),
     hash?: Buffer,
@@ -134,7 +123,6 @@ export class BlockHeader {
     this.target = target
     this.randomness = randomness
     this.timestamp = timestamp || new Date()
-    this.minersFee = minersFee
     this.work = work
     this.graffiti = graffiti
     this.hash = hash || this.recomputeHash()
@@ -154,7 +142,6 @@ export class BlockHeader {
       nullifierCommitment: this.nullifierCommitment,
       target: this.target,
       timestamp: this.timestamp,
-      minersFee: this.minersFee,
       graffiti: this.graffiti,
     })
   }
@@ -201,7 +188,6 @@ export type SerializedBlockHeader = {
   target: string
   randomness: string
   timestamp: number
-  minersFee: string
 
   work?: string
   graffiti: string
@@ -221,7 +207,6 @@ export class BlockHeaderSerde {
       element1.target.equals(element2.target) &&
       element1.randomness === element2.randomness &&
       element1.timestamp.getTime() === element2.timestamp.getTime() &&
-      element1.minersFee === element2.minersFee &&
       element1.graffiti.equals(element2.graffiti)
     )
   }
@@ -241,7 +226,6 @@ export class BlockHeaderSerde {
       target: header.target.targetValue.toString(),
       randomness: header.randomness.toString(),
       timestamp: header.timestamp.getTime(),
-      minersFee: header.minersFee.toString(),
       work: header.work.toString(),
       hash: BlockHashSerdeInstance.serialize(header.hash),
       graffiti: GraffitiSerdeInstance.serialize(header.graffiti),
@@ -265,7 +249,6 @@ export class BlockHeaderSerde {
       new Target(data.target),
       BigInt(data.randomness),
       new Date(data.timestamp),
-      BigInt(data.minersFee),
       Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
       data.work ? BigInt(data.work) : BigInt(0),
     )

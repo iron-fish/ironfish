@@ -40,6 +40,38 @@ describe('MinedBlockIndexer', () => {
     await node.minedBlocksIndexer.close()
   })
 
+  it('should add block info to the store when a block is mined 2', async () => {
+    const { node, chain } = await nodeTest.createSetup()
+    const genesis = await chain.getBlock(chain.genesis)
+    Assert.isNotNull(genesis)
+
+    await node.minedBlocksIndexer.open()
+    await node.minedBlocksIndexer.start()
+
+    const putSpy = jest.spyOn(node.minedBlocksIndexer['minedBlocks'], 'put')
+
+    const accountA = await useAccountFixture(node.wallet, 'a')
+    const blockA1 = await useMinerBlockFixture(chain, undefined, accountA, node.wallet)
+    await expect(chain).toAddBlock(blockA1)
+
+    await node.minedBlocksIndexer.updateHead()
+
+    expect(putSpy).toHaveBeenCalledTimes(1)
+    expect(putSpy).toHaveBeenCalledWith(
+      blockA1.header.hash,
+      {
+        main: true,
+        sequence: blockA1.header.sequence,
+        account: 'a',
+        minersFee: -2000000000,
+      },
+      expect.anything(),
+    )
+
+    await node.minedBlocksIndexer.stop()
+    await node.minedBlocksIndexer.close()
+  })
+
   it('should change main block to fork on chain fork', async () => {
     const { node: nodeA, strategy } = await nodeTest.createSetup()
     const { node: nodeB, strategy: strategyB } = await nodeTest.createSetup()

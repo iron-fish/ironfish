@@ -118,11 +118,6 @@ export class Verifier {
       }
     }
 
-    // minersFee should match the block header
-    if (block.header.minersFee !== minersFee) {
-      return { valid: false, reason: VerificationResultReason.MINERS_FEE_MISMATCH }
-    }
-
     // minersFee should be (negative) miningReward + totalTransactionFees
     const miningReward = this.chain.strategy.miningReward(block.header.sequence)
     if (minersFee !== BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)) {
@@ -512,7 +507,6 @@ export enum VerificationResultReason {
   MAX_BLOCK_SIZE_EXCEEDED = 'Block size exceeds maximum',
   MAX_TRANSACTION_SIZE_EXCEEDED = 'Transaction size exceeds maximum',
   MINERS_FEE_EXPECTED = 'Miners fee expected',
-  MINERS_FEE_MISMATCH = 'Miners fee does not match block header',
   NOTE_COMMITMENT = 'Note_commitment',
   NOTE_COMMITMENT_SIZE = 'Note commitment sizes do not match',
   NOTE_COMMITMENT_SIZE_TOO_LARGE = 'Note commitment tree is smaller than referenced by the spend',

@@ -4,7 +4,6 @@
 
 import type { IDatabaseEncoding } from '../../storage/database/types'
 import bufio from 'bufio'
-import { Assert } from '../../assert'
 import { BlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { BigIntUtils } from '../../utils/bigint'
@@ -27,9 +26,6 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     bw.writeBytes(BigIntUtils.toBytesLE(value.header.randomness, 8))
     bw.writeU64(value.header.timestamp.getTime())
 
-    Assert.isTrue(value.header.minersFee <= 0)
-    bw.writeBytes(BigIntUtils.toBytesLE(-value.header.minersFee, 8))
-
     bw.writeBytes(value.header.graffiti)
     bw.writeVarBytes(BigIntUtils.toBytesLE(value.header.work))
     bw.writeHash(value.header.hash)
@@ -49,7 +45,6 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const target = new Target(BigIntUtils.fromBytesLE(reader.readBytes(32)))
     const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8))
     const timestamp = reader.readU64()
-    const minersFee = -BigIntUtils.fromBytesLE(reader.readBytes(8))
     const graffiti = reader.readBytes(32)
     const work = BigIntUtils.fromBytesLE(reader.readVarBytes())
     const hash = reader.readHash()
@@ -68,7 +63,6 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
       target,
       randomness,
       new Date(timestamp),
-      minersFee,
       graffiti,
       work,
       hash,
@@ -88,7 +82,6 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     size += 32 // target
     size += 8 // randomness
     size += 8 // timestamp
-    size += 8 // minersFee
     size += 32 // graffiti
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(value.header.work))
     size += 32 // hash
