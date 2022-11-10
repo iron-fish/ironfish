@@ -8264,10 +8264,10 @@ node-cleanup@^2.1.2:
   resolved "https://registry.yarnpkg.com/node-cleanup/-/node-cleanup-2.1.2.tgz#7ac19abd297e09a7f72a71545d951b517e4dde2c"
   integrity sha1-esGavSl+Caf3KnFUXZUbUX5N3iw=
 
-node-datachannel@0.3.5:
-  version "0.3.5"
-  resolved "https://registry.yarnpkg.com/node-datachannel/-/node-datachannel-0.3.5.tgz#a8ec9c99ec1d4e06aef7d6f1966129d23c30b060"
-  integrity sha512-hlNdgjTsmXS+0ZPpV+/JdCQwDPz+CWRnaC4i9jj08KyAqEWRkYV7gkNKiR0wV+E9NlbJrgcYB5GzaCwxLk6gug==
+node-datachannel@0.4.0:
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/node-datachannel/-/node-datachannel-0.4.0.tgz#cd237cbc121221f5f6342cbf2226120dda6dc52f"
+  integrity sha512-4ljypzRaWfM7bLtd4fpQaE4u+bAg5d8wPADycY60RfaZLoxVjcHk+Hsg+gtyyxNIeG6Cdtp3iDN+DUGAAjeVuw==
   dependencies:
     prebuild-install "^7.0.1"
 

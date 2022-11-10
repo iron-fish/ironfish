@@ -262,9 +262,9 @@ export class WebRtcConnection extends Connection {
     this.datachannel?.close()
 
     try {
-      this.peer.close()
+      this.peer.destroy()
     } catch (e) {
-      // peer.close() may throw "It seems peer-connection is closed" if the
+      // peer.destroy() may throw "It seems peer-connection is closed" if the
       // peer connection has been disposed already
     }
     this.datachannel = null
