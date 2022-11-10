@@ -5,7 +5,16 @@ use bellman::{
     ConstraintSystem, SynthesisError,
 };
 use ff::PrimeField;
-use zcash_proofs::circuit::ecc::EdwardsPoint;
+use zcash_primitives::sapling::{
+ ValueCommitment,
+};
+use zcash_proofs::{
+    circuit::ecc::{self, EdwardsPoint},
+    constants::{
+        VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+        VALUE_COMMITMENT_VALUE_GENERATOR,
+    }
+};
 
 #[allow(clippy::too_many_arguments)]
 pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
@@ -99,4 +108,50 @@ pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar
         .collect::<Result<Vec<_>, SynthesisError>>()?;
 
     Ok(bits)
+}
+
+/// Exposes a Pedersen commitment to the value as an
+/// input to the circuit
+pub fn expose_value_commitment<CS>(
+    mut cs: CS,
+    value_commitment: Option<ValueCommitment>,
+) -> Result<Vec<boolean::Boolean>, SynthesisError>
+where
+    CS: ConstraintSystem<bls12_381::Scalar>,
+{
+    // Booleanize the value into little-endian bit order
+    let value_bits = boolean::u64_into_boolean_vec_le(
+        cs.namespace(|| "value"),
+        value_commitment.as_ref().map(|c| c.value),
+    )?;
+
+    // Compute the note value in the exponent
+    let value = ecc::fixed_base_multiplication(
+        cs.namespace(|| "compute the value in the exponent"),
+        &VALUE_COMMITMENT_VALUE_GENERATOR,
+        &value_bits,
+    )?;
+
+    // Booleanize the randomness. This does not ensure
+    // the bit representation is "in the field" because
+    // it doesn't matter for security.
+    let rcv = boolean::field_into_boolean_vec_le(
+        cs.namespace(|| "rcv"),
+        value_commitment.as_ref().map(|c| c.randomness),
+    )?;
+
+    // Compute the randomness in the exponent
+    let rcv = ecc::fixed_base_multiplication(
+        cs.namespace(|| "computation of rcv"),
+        &VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+        &rcv,
+    )?;
+
+    // Compute the Pedersen commitment to the value
+    let cv = value.add(cs.namespace(|| "computation of cv"), &rcv)?;
+
+    // Expose the commitment as an input to the circuit
+    cv.inputize(cs.namespace(|| "commitment point"))?;
+
+    Ok(value_bits)
 }
