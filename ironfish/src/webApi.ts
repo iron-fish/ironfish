@@ -31,6 +31,23 @@ export type ApiDepositUpload = {
   }[]
 }
 
+export type ApiMaspUpload = {
+  type: 'connected' | 'disconnected' | 'fork'
+  block: {
+    hash: string
+    timestamp: number
+    sequence: number
+  }
+  transactions: {
+    hash: string
+    notes: {
+      memo: string
+      type: 'MASP_TRANSFER' | 'MASP_BURN' | 'MASP_MINT'
+      assetName: string
+    }[]
+  }[]
+}
+
 type ApiUser = {
   id: number
   country_code: string
@@ -75,6 +92,20 @@ export class WebApi {
 
     return response?.data.block_hash || null
   }
+  async headMaspTransactions(): Promise<string | null> {
+    const response = await axios
+      .get<{ block_hash: string }>(`${this.host}/masp/head`)
+      .catch((e) => {
+        // The API returns 404 for no head
+        if (IsAxiosError(e) && e.response?.status === 404) {
+          return null
+        }
+
+        throw e
+      })
+
+    return response?.data.block_hash || null
+  }
 
   async headBlocks(): Promise<string | null> {
     const response = await axios
@@ -96,6 +127,13 @@ export class WebApi {
 
     const options = this.options({ 'Content-Type': 'application/json' })
     await axios.post(`${this.host}/deposits`, { operations: deposits }, options)
+  }
+
+  async uploadMaspTransactions(maspTransactions: ApiMaspUpload[]): Promise<void> {
+    this.requireToken()
+
+    const options = this.options({ 'Content-Type': 'application/json' })
+    await axios.post(`${this.host}/masp`, { operations: maspTransactions }, options)
   }
 
   async blocks(blocks: FollowChainStreamResponse[]): Promise<void> {

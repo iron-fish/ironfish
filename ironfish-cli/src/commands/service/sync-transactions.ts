@@ -1,13 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  ApiDepositUpload,
-  GetTransactionStreamResponse,
-  Meter,
-  TimeUtils,
-  WebApi,
-} from '@ironfish/sdk'
+import { GetTransactionStreamResponse, Meter, TimeUtils, WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -16,8 +10,8 @@ const RAW_MAX_UPLOAD = Number(process.env.MAX_UPLOAD)
 const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 500 : RAW_MAX_UPLOAD
 const NEAR_SYNC_THRESHOLD = 5
 
-export default class SyncTransactions extends IronfishCommand {
-  static aliases = ['service:syncTransactions']
+export abstract class SyncTransactions extends IronfishCommand {
+  // static aliases = ['service:syncTransactions']
   static hidden = true
 
   static description = 'Upload transactions to an HTTP API using IronfishApi'
@@ -82,7 +76,7 @@ export default class SyncTransactions extends IronfishCommand {
     let head = args.head as string | null
     if (!head) {
       this.log(`Fetching head from ${apiHost}`)
-      head = await api.headDeposits()
+      head = await this.getHead(api)
       this.log(`Starting from ${head || 'Genesis Block'}`)
     }
 
@@ -101,14 +95,7 @@ export default class SyncTransactions extends IronfishCommand {
 
     const speed = new Meter()
     speed.start()
-
     const buffer = new Array<GetTransactionStreamResponse>()
-
-    async function commit(): Promise<void> {
-      const serialized = buffer.map(serializeDeposit)
-      buffer.length = 0
-      await api.uploadDeposits(serialized)
-    }
 
     for await (const content of response.contentStream()) {
       buffer.push(content)
@@ -140,22 +127,10 @@ export default class SyncTransactions extends IronfishCommand {
       )
 
       if (committing) {
-        await commit()
+        await this.commit(api, buffer)
       }
     }
   }
-}
-
-function serializeDeposit(data: GetTransactionStreamResponse): ApiDepositUpload {
-  return {
-    ...data,
-    transactions: data.transactions.map((tx) => ({
-      ...tx,
-      notes: tx.notes.map((note) => ({
-        ...note,
-        memo: note.memo,
-        amount: Number(note.amount),
-      })),
-    })),
-  }
+  abstract commit(api: WebApi, buffer: Array<GetTransactionStreamResponse>): Promise<void>
+  abstract getHead(api: WebApi): Promise<string | null>
 }
