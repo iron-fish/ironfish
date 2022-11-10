@@ -5,15 +5,10 @@ use bellman::{
     ConstraintSystem, SynthesisError,
 };
 use ff::PrimeField;
-use zcash_primitives::sapling::{
- ValueCommitment,
-};
+use zcash_primitives::sapling::ValueCommitment;
 use zcash_proofs::{
     circuit::ecc::{self, EdwardsPoint},
-    constants::{
-        VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-        VALUE_COMMITMENT_VALUE_GENERATOR,
-    }
+    constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
 };
 
 #[allow(clippy::too_many_arguments)]

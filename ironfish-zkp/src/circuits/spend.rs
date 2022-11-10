@@ -1,31 +1,27 @@
-use ff::PrimeField;
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
+use ff::PrimeField;
 
-use zcash_primitives::{
-    constants::CRH_IVK_PERSONALIZATION,
-    constants::PRF_NF_PERSONALIZATION,
-    sapling::{
-        PaymentAddress, ProofGenerationKey, ValueCommitment,
-    }
-};
-use zcash_proofs::{
-    circuit::{
-        pedersen_hash,
-        ecc::{self},
-    },
-    constants::{
-        PROOF_GENERATION_KEY_GENERATOR,
-        NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
-        SPENDING_KEY_GENERATOR,
-        NULLIFIER_POSITION_GENERATOR,
-    },
-};
+use super::util::expose_value_commitment;
 use bellman::gadgets::blake2s;
 use bellman::gadgets::boolean;
 use bellman::gadgets::multipack;
 use bellman::gadgets::num;
 use bellman::gadgets::Assignment;
-use super::util::expose_value_commitment;
+use zcash_primitives::{
+    constants::CRH_IVK_PERSONALIZATION,
+    constants::PRF_NF_PERSONALIZATION,
+    sapling::{PaymentAddress, ProofGenerationKey, ValueCommitment},
+};
+use zcash_proofs::{
+    circuit::{
+        ecc::{self},
+        pedersen_hash,
+    },
+    constants::{
+        NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
+        PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
+    },
+};
 
 /// This is an instance of the `Spend` circuit.
 pub struct Spend {

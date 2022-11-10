@@ -3,29 +3,25 @@ use group::Curve;
 
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 
-use zcash_primitives::sapling::{
-    PaymentAddress, ProofGenerationKey, ValueCommitment
-};
+use zcash_primitives::sapling::{PaymentAddress, ProofGenerationKey, ValueCommitment};
 
 use zcash_proofs::{
     circuit::{
-        pedersen_hash,
         ecc::{self, EdwardsPoint},
+        pedersen_hash,
     },
     constants::{
-        PROOF_GENERATION_KEY_GENERATOR,
-        NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
-        SPENDING_KEY_GENERATOR,
-        NULLIFIER_POSITION_GENERATOR,
+        NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
+        PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
     },
 };
 
+use super::util::expose_value_commitment;
 use bellman::gadgets::blake2s;
 use bellman::gadgets::boolean;
 use bellman::gadgets::multipack;
 use bellman::gadgets::num;
 use bellman::gadgets::Assignment;
-use super::util::expose_value_commitment;
 
 /// This is an output circuit instance.
 pub struct Output {
