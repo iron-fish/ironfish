@@ -120,7 +120,7 @@ mod test {
 
         // Second batch
         start += batch_size + step_size as u64 - (batch_size % step_size as u64);
-        // Simple sanity check to make sure the batch 2 start is not using values from batch 1
+        // Simple sanity check to make sure this batch is not overlapping values from the previous batch
         assert!(start > end);
 
         // Uses i values: 12, 15, 18, 21
@@ -149,7 +149,7 @@ mod test {
 
         // Third batch
         start += batch_size + step_size as u64 - (batch_size % step_size as u64);
-        // Simple sanity check to make sure the batch 2 start is not using values from batch 2
+        // Simple sanity check to make sure this batch is not overlapping values from the previous batch
         assert!(start > end);
 
         // Uses i values: 24, 27, 30, 33
