@@ -2,17 +2,12 @@ use bellman::{
     gadgets::{blake2s, boolean, multipack},
     Circuit,
 };
-use ff::PrimeField;
-use zcash_primitives::{
-    constants::CRH_IVK_PERSONALIZATION,
-    sapling::{PaymentAddress, ProofGenerationKey},
-};
-use zcash_proofs::{
-    circuit::ecc::{self},
-    constants::PROOF_GENERATION_KEY_GENERATOR,
-};
+use zcash_proofs::circuit::ecc;
 
-use crate::{circuits::util::asset_info_preimage, constants::ASSET_IDENTIFIER_PERSONALIZATION};
+use crate::{
+    circuits::util::asset_info_preimage,
+    constants::{proof::ASSET_KEY_GENERATOR, ASSET_IDENTIFIER_PERSONALIZATION},
+};
 
 pub struct MintAsset {
     /// Name of the asset
@@ -25,21 +20,14 @@ pub struct MintAsset {
     pub network: [u8; 32],
 
     /// Identifier field for bridged asset address, or if a native custom asset, random bytes.
-    token_identifier: [u8; 32],
-
-    /// The owner who created the asset. Has permissions to mint
-    pub owner: Option<PaymentAddress>,
+    pub token_identifier: [u8; 32],
 
     /// The random byte used to ensure we get a valid asset identifier
     pub nonce: u8,
 
-    /// Unique byte array which is a hash of all of the identifying fields for
-    /// an asset
-    pub identifier: [u8; 32],
-
     /// Private keys associated with the public key used to create the
     /// identifier
-    pub proof_generation_key: Option<ProofGenerationKey>,
+    pub asset_authorization_key: Option<jubjub::Fr>,
 }
 
 impl Circuit<bls12_381::Scalar> for MintAsset {
@@ -47,80 +35,19 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         self,
         cs: &mut CS,
     ) -> Result<(), bellman::SynthesisError> {
-        // Prover witnesses ak (ensures that it's on the curve)
-        let ak = ecc::EdwardsPoint::witness(
-            cs.namespace(|| "ak"),
-            self.proof_generation_key.as_ref().map(|k| k.ak.into()),
+        let asset_authorization_key_bits = boolean::field_into_boolean_vec_le(
+            cs.namespace(|| "booleanize asset authorization key"),
+            self.asset_authorization_key,
         )?;
 
-        // There are no sensible attacks on small order points
-        // of ak (that we're aware of!) but it's a cheap check,
-        // so we do it.
-        ak.assert_not_small_order(cs.namespace(|| "ak not small order"))?;
-
-        // Compute nk = [nsk] ProofGenerationKey
-        let nk;
-        {
-            // Witness nsk as bits
-            let nsk = boolean::field_into_boolean_vec_le(
-                cs.namespace(|| "nsk"),
-                self.proof_generation_key.as_ref().map(|k| k.nsk),
-            )?;
-
-            // NB: We don't ensure that the bit representation of nsk
-            // is "in the field" (jubjub::Fr) because it's not used
-            // except to demonstrate the prover knows it. If they know
-            // a congruency then that's equivalent.
-
-            // Compute nk = [nsk] ProvingPublicKey
-            nk = ecc::fixed_base_multiplication(
-                cs.namespace(|| "computation of nk"),
-                &PROOF_GENERATION_KEY_GENERATOR,
-                &nsk,
-            )?;
-        }
-
-        // This is the "viewing key" preimage for CRH^ivk
-        let mut ivk_preimage = vec![];
-
-        // Place ak in the preimage for CRH^ivk
-        ivk_preimage.extend(ak.repr(cs.namespace(|| "representation of ak"))?);
-
-        // Extend ivk and nf preimages with the representation of
-        // nk.
-        {
-            let repr_nk = nk.repr(cs.namespace(|| "representation of nk"))?;
-
-            ivk_preimage.extend(repr_nk.iter().cloned());
-        }
-
-        assert_eq!(ivk_preimage.len(), 512);
-
-        // Compute the incoming viewing key ivk
-        let mut ivk = blake2s::blake2s(
-            cs.namespace(|| "computation of ivk"),
-            &ivk_preimage,
-            CRH_IVK_PERSONALIZATION,
+        let asset_public_key = ecc::fixed_base_multiplication(
+            cs.namespace(|| "computation of asset public key"),
+            &ASSET_KEY_GENERATOR,
+            &asset_authorization_key_bits,
         )?;
 
-        // drop_5 to ensure it's in the field
-        ivk.truncate(jubjub::Fr::CAPACITY as usize);
-
-        // Witness g_d, checking that it's on the curve.
-        let g_d = {
-            ecc::EdwardsPoint::witness(
-                cs.namespace(|| "witness g_d"),
-                self.owner
-                    .as_ref()
-                    .and_then(|a| a.g_d().map(jubjub::ExtendedPoint::from)),
-            )?
-        };
-
-        // Check that g_d is not small order.
-        g_d.assert_not_small_order(cs.namespace(|| "g_d not small order"))?;
-
-        // Compute pk_d = g_d^ivk
-        let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
+        asset_public_key
+            .assert_not_small_order(cs.namespace(|| "asset_public_key not small order"))?;
 
         // Create the Asset Info pre-image
         let identifier_preimage = asset_info_preimage(
@@ -129,8 +56,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
             self.chain,
             self.network,
             self.token_identifier,
-            g_d,
-            pk_d,
+            asset_public_key,
             self.nonce,
         )?;
 
@@ -159,11 +85,12 @@ mod test {
         Circuit,
     };
     use ff::Field;
-    use group::{Group, GroupEncoding};
+    use group::GroupEncoding;
     use rand::{rngs::StdRng, SeedableRng};
-    use zcash_primitives::sapling::{Diversifier, ProofGenerationKey};
 
-    use crate::constants::{ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION};
+    use crate::constants::{
+        ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION, ASSET_KEY_GENERATOR,
+    };
 
     use super::MintAsset;
 
@@ -175,17 +102,8 @@ mod test {
 
         let mut cs = TestConstraintSystem::new();
 
-        let proof_generation_key = ProofGenerationKey {
-            ak: jubjub::SubgroupPoint::random(&mut rng),
-            nsk: jubjub::Fr::random(&mut rng),
-        };
-
-        let diversifier = Diversifier([0; 11]);
-
-        let owner = proof_generation_key
-            .to_viewing_key()
-            .to_payment_address(diversifier)
-            .unwrap();
+        let asset_auth_key = jubjub::Fr::random(&mut rng);
+        let asset_public_key = ASSET_KEY_GENERATOR * asset_auth_key;
 
         let name = [1u8; 32];
         let chain = [2u8; 32];
@@ -194,8 +112,7 @@ mod test {
         let nonce = 1u8;
 
         let mut asset_plaintext: Vec<u8> = vec![];
-        asset_plaintext.extend(owner.g_d().unwrap().to_bytes());
-        asset_plaintext.extend(owner.pk_d().to_bytes());
+        asset_plaintext.extend(&asset_public_key.to_bytes());
         asset_plaintext.extend(name);
         asset_plaintext.extend(chain);
         asset_plaintext.extend(network);
@@ -218,10 +135,8 @@ mod test {
             chain,
             network,
             token_identifier,
-            owner: Some(owner),
             nonce,
-            identifier: *identifier.as_array(),
-            proof_generation_key: Some(proof_generation_key),
+            asset_authorization_key: Some(asset_auth_key),
         };
         circuit.synthesize(&mut cs).unwrap();
 

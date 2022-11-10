@@ -14,14 +14,13 @@ pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
     chain: [u8; 32],
     network: [u8; 32],
     token_identifier: [u8; 32],
-    g_d: EdwardsPoint,
-    pk_d: EdwardsPoint,
+    asset_public_key: EdwardsPoint,
     nonce: u8,
 ) -> Result<Vec<boolean::Boolean>, SynthesisError> {
     let mut combined_preimage = vec![];
 
-    combined_preimage.extend(g_d.repr(cs.namespace(|| "booleanize g_d"))?); // 32
-    combined_preimage.extend(pk_d.repr(cs.namespace(|| "booleanize pk_d"))?); // 32
+    combined_preimage
+        .extend(asset_public_key.repr(cs.namespace(|| "booleanize asset_public_key"))?); // 32
 
     let name_bits =
         slice_into_boolean_vec_le(cs.namespace(|| "booleanize name"), Some(&name), 32 * 8)?;
@@ -59,8 +58,7 @@ pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
 
     assert_eq!(
         8 * (
-            32 + // g_d
-            32 +  // pk_d
+            32 + // asset_public_key
             32 + // name
             32 + // chain
             32 + // network
