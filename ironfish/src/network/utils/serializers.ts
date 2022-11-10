@@ -27,9 +27,6 @@ export function writeBlockHeader(
   bw.writeBytes(BigIntUtils.toBytesLE(header.randomness, 8))
   bw.writeU64(header.timestamp.getTime())
 
-  Assert.isTrue(header.minersFee <= 0)
-  bw.writeBytes(BigIntUtils.toBytesLE(-header.minersFee, 8))
-
   Assert.isTrue(header.graffiti.byteLength === 32)
   bw.writeBytes(header.graffiti)
   return bw
@@ -45,7 +42,6 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
   const target = BigIntUtils.fromBytesLE(reader.readBytes(32))
   const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8))
   const timestamp = reader.readU64()
-  const minersFee = -BigIntUtils.fromBytesLE(reader.readBytes(8))
   const graffiti = reader.readBytes(32)
 
   return new BlockHeader(
@@ -62,7 +58,6 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
     new Target(target),
     randomness,
     new Date(timestamp),
-    minersFee,
     graffiti,
   )
 }
@@ -78,7 +73,6 @@ export function getBlockHeaderSize(): number {
   size += 32 // target
   size += 8 // randomness
   size += 8 // timestamp
-  size += 8 // minersFee
   size += 32 // graffiti
   return size
 }

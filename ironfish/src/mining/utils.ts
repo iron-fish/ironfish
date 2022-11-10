@@ -16,7 +16,6 @@ export function mineableHeaderString(header: SerializedBlockTemplate['header']):
   bw.writeU64(header.nullifierCommitment.size)
   bw.writeHash(header.target)
   bw.writeU64(header.timestamp)
-  bw.writeBytes(Buffer.from(header.minersFee, 'hex'))
   bw.writeBytes(Buffer.from(header.graffiti, 'hex'))
   return bw.render()
 }
@@ -33,7 +32,6 @@ export function minedPartialHeader(data: Buffer): SerializedBlockTemplate['heade
   const nullifierCommitmentSize = br.readU64()
   const target = br.readBytes(32)
   const timestamp = br.readU64()
-  const minersFee = br.readBytes(8)
   const graffiti = br.readBytes(32)
 
   return {
@@ -42,7 +40,6 @@ export function minedPartialHeader(data: Buffer): SerializedBlockTemplate['heade
     previousBlockHash: previousBlockHash.toString('hex'),
     target: target.toString('hex'),
     timestamp: timestamp,
-    minersFee: minersFee.toString('hex'),
     graffiti: graffiti.toString('hex'),
     noteCommitment: {
       commitment: noteCommitment.toString('hex'),

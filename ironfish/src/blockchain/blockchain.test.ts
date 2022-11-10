@@ -738,19 +738,6 @@ describe('Blockchain', () => {
     })
   })
 
-  it('reject added block with invalid miners fee', async () => {
-    const { node } = await nodeTest.createSetup()
-    const block = await useMinerBlockFixture(node.chain)
-
-    block.header.minersFee = BigInt(-1)
-
-    const result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
-    expect(result).toMatchObject({
-      valid: false,
-      reason: VerificationResultReason.MINERS_FEE_MISMATCH,
-    })
-  })
-
   it('rejects double spend transactions', async () => {
     /**
      * This test tests that our double spend code is working properly. We had a
