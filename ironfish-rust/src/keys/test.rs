@@ -75,7 +75,7 @@ fn test_hex_conversion() {
 
     let address = key.public_address();
     let hex = address.hex_public_address();
-    assert_eq!(hex.len(), 86);
+    assert_eq!(hex.len(), 64);
     let second_address = PublicAddress::from_hex(&hex).unwrap();
     assert_eq!(second_address, address);
 

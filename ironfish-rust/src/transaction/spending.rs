@@ -98,7 +98,7 @@ impl SpendBuilder {
         let circuit = Spend {
             value_commitment: Some(self.value_commitment.clone()),
             proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
-            payment_address: Some(self.note.owner.sapling_payment_address()),
+            payment_address: Some(self.note.owner.public_address()),
             auth_path: self.auth_path.clone(),
             commitment_randomness: Some(self.note.randomness),
             anchor: Some(self.root_hash),
