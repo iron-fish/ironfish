@@ -30,6 +30,8 @@ export class FeeEstimator {
   private readonly logger: Logger
   private maxBlockHistory = 10
   private defaultFeeRate = BigInt(1)
+  private latestBlockSize: number
+  private latestBlockHash: Buffer
 
   constructor(options: {
     wallet: Wallet
@@ -43,6 +45,8 @@ export class FeeEstimator {
     this.queues = { low: [], medium: [], high: [] }
     this.percentiles = options.percentiles ?? DEFAULT_PRIORITY_LEVEL_PERCENTILES
     this.wallet = options.wallet
+    this.latestBlockSize = this.wallet.chain.consensus.MAX_BLOCK_SIZE_BYTES / 2
+    this.latestBlockHash = this.wallet.chain.latest.hash
   }
 
   async init(chain: Blockchain): Promise<void> {
@@ -51,6 +55,7 @@ export class FeeEstimator {
     }
 
     let currentBlockHash = chain.latest.hash
+    this.latestBlockHash = currentBlockHash
 
     for (let i = 0; i < this.maxBlockHistory; i++) {
       const currentBlock = await chain.getBlock(currentBlockHash)
@@ -66,6 +71,12 @@ export class FeeEstimator {
         if (feeRate !== undefined && !this.isFull(queue)) {
           queue.push({ feeRate, blockHash: currentBlock.header.hash })
         }
+      }
+      if (i === 0) {
+        this.latestBlockSize = currentBlock.transactions.reduce(
+          (a, t) => a + t.serialize.length,
+          0,
+        )
       }
 
       if (currentBlockHash.equals(chain.genesis.hash)) {
@@ -128,18 +139,35 @@ export class FeeEstimator {
     return feeRates.sort((a, b) => (a > b ? 1 : -1))
   }
 
-  estimateFeeRates(): { low: bigint; medium: bigint; high: bigint } {
+  private async getLastBlockSizeBytes(): Promise<number> {
+    if (this.wallet.chain.isEmpty) {
+      return this.latestBlockSize
+    }
+
+    const latestBlockHash = this.wallet.chain.latest.hash
+
+    if (latestBlockHash.equals(this.latestBlockHash)) {
+      return this.latestBlockSize
+    }
+
+    const latestBlock = await this.wallet.chain.getBlock(latestBlockHash)
+    Assert.isNotNull(latestBlock, 'No block found')
+    const result = latestBlock.transactions.reduce((a, t) => a + t.serialize.length, 0)
+    return result
+  }
+
+  async estimateFeeRates(): Promise<{ low: bigint; medium: bigint; high: bigint }> {
     return {
-      low: this.estimateFeeRate('low'),
-      medium: this.estimateFeeRate('medium'),
-      high: this.estimateFeeRate('high'),
+      low: await this.estimateFeeRate('low'),
+      medium: await this.estimateFeeRate('medium'),
+      high: await this.estimateFeeRate('high'),
     }
   }
 
   /*
    * returns an estimated fee rate as ore/kb
    */
-  estimateFeeRate(priorityLevel: PriorityLevel): bigint {
+  async estimateFeeRate(priorityLevel: PriorityLevel): Promise<bigint> {
     const queue = this.queues[priorityLevel]
 
     if (queue.length < this.maxBlockHistory) {
@@ -152,8 +180,12 @@ export class FeeEstimator {
     }
 
     fees.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+    const lastBlockSize = await this.getLastBlockSizeBytes()
+    const blockSizeRatio = BigInt(
+      lastBlockSize / this.wallet.chain.consensus.MAX_BLOCK_SIZE_BYTES,
+    )
 
-    return fees[Math.round((queue.length - 1) / 2)]
+    return fees[Math.round((queue.length - 1) / 2)] * blockSizeRatio
   }
 
   size(priorityLevel: PriorityLevel): number | undefined {
@@ -165,7 +197,7 @@ export class FeeEstimator {
     sender: Account,
     receives: { publicAddress: string; amount: bigint; memo: string }[],
   ): Promise<bigint> {
-    const estimateFeeRate = this.estimateFeeRate(priorityLevel)
+    const estimateFeeRate = await this.estimateFeeRate(priorityLevel)
     const estimateTransactionSize = await this.getPendingTransactionSize(
       sender,
       receives,
