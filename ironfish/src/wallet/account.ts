@@ -267,11 +267,11 @@ export class Account {
   ): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       const existingNote = await this.getDecryptedNote(noteHash)
+      const currentUnconfirmedBalance = await this.walletDb.getUnconfirmedBalance(this, tx)
 
       if (existingNote) {
         const note = existingNote.note
         const value = note.value()
-        const currentUnconfirmedBalance = await this.walletDb.getUnconfirmedBalance(this, tx)
 
         if (existingNote.spent) {
           await this.saveUnconfirmedBalance(currentUnconfirmedBalance + value, tx)
