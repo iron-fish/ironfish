@@ -28,7 +28,7 @@ pub(crate) fn mine_batch(
     step_size: usize,
     batch_size: u64,
 ) -> Option<u64> {
-    let end = start + batch_size - step_size as u64;
+    let end = start + batch_size;
     for i in (start..=end).step_by(step_size) {
         randomize_header(i, header_bytes);
         let hash = blake3::hash(header_bytes);
@@ -86,66 +86,95 @@ mod test {
         let header_bytes_base = &mut (0..128).collect::<Vec<u8>>();
         let target = &[0u8; 32];
         let mut start = 0;
-        let batch_size = 10;
-        let step_size = 3;
-        // This is a helper var to hold the value of the start of the next batch basically
-        // Batch 1 should only test i values between start (0) and batch_size - 1 (9)
-        // Batch 2 should only test i values between 10 and 19, etc.
-        let mut expected_end = batch_size;
+        let batch_size: u64 = 10;
+        let step_size: usize = 3;
+        // Batch 1 should test i values between 0 and 11. Technically (thread 3
+        // start (2) + batch_size (10) = 12), but with step_size being 3, the last
+        // value in bounds is 11.
+        // Batch 2 should test i values between 12 and 23
+        // Batch 3 should test i values between 24 and 35
 
-        // Uses i values: 0, 3, 6
+        // Uses i values: 0, 3, 6, 9
         let header_bytes = &mut header_bytes_base.clone();
         let _ = mine_batch(header_bytes, target, start, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
-        assert!(end < expected_end);
+        assert_eq!(end, 9);
 
-        // Uses i values: 1, 4, 7
+        // Uses i values: 1, 4, 7, 10
         let header_bytes = &mut header_bytes_base.clone();
         let _ = mine_batch(header_bytes, target, start + 1, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
-        assert!(end < expected_end);
+        assert_eq!(end, 10);
 
-        // Uses i values: 2, 5, 8
+        // Uses i values: 2, 5, 8, 11
         let header_bytes = &mut header_bytes_base.clone();
         let _ = mine_batch(header_bytes, target, start + 2, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
-        assert!(end < expected_end);
+        assert_eq!(end, 11);
 
         // Second batch
-        start += batch_size;
+        start += batch_size + step_size as u64 - (batch_size % step_size as u64);
         // Simple sanity check to make sure the batch 2 start is not using values from batch 1
-        assert_eq!(start, expected_end);
-        expected_end = start + batch_size;
+        assert!(start > end);
 
-        // Uses i values: 10, 13, 16
+        // Uses i values: 12, 15, 18, 21
         let header_bytes = &mut header_bytes_base.clone();
         let _ = mine_batch(header_bytes, target, start, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
-        assert!(end < expected_end);
+        assert_eq!(end, 21);
 
-        // Uses i values: 11, 14, 17
+        // Uses i values: 13, 16, 19, 22
         let header_bytes = &mut header_bytes_base.clone();
         let _ = mine_batch(header_bytes, target, start + 1, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
-        assert!(end < expected_end);
+        assert_eq!(end, 22);
 
-        // Uses i values: 12, 15, 18
+        // Uses i values: 14, 17, 20, 23
         let header_bytes = &mut header_bytes_base.clone();
         let _ = mine_batch(header_bytes, target, start + 2, step_size, batch_size);
 
         let mut cursor = Cursor::new(header_bytes);
         let end = cursor.read_u64::<BigEndian>().unwrap();
-        assert!(end < expected_end);
+        assert_eq!(end, 23);
+
+        // Third batch
+        start += batch_size + step_size as u64 - (batch_size % step_size as u64);
+        // Simple sanity check to make sure the batch 2 start is not using values from batch 2
+        assert!(start > end);
+
+        // Uses i values: 24, 27, 30, 33
+        let header_bytes = &mut header_bytes_base.clone();
+        let _ = mine_batch(header_bytes, target, start, step_size, batch_size);
+
+        let mut cursor = Cursor::new(header_bytes);
+        let end = cursor.read_u64::<BigEndian>().unwrap();
+        assert_eq!(end, 33);
+
+        // Uses i values: 25, 28, 31, 34
+        let header_bytes = &mut header_bytes_base.clone();
+        let _ = mine_batch(header_bytes, target, start + 1, step_size, batch_size);
+
+        let mut cursor = Cursor::new(header_bytes);
+        let end = cursor.read_u64::<BigEndian>().unwrap();
+        assert_eq!(end, 34);
+
+        // Uses i values: 26, 29, 32, 35
+        let header_bytes = &mut header_bytes_base.clone();
+        let _ = mine_batch(header_bytes, target, start + 2, step_size, batch_size);
+
+        let mut cursor = Cursor::new(header_bytes);
+        let end = cursor.read_u64::<BigEndian>().unwrap();
+        assert_eq!(end, 35);
     }
 
     #[test]
