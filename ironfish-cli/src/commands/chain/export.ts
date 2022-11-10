@@ -56,14 +56,8 @@ export default class Export extends IronfishCommand {
       stop: argStop,
     })
     const { start, stop } = await AsyncUtils.first(stream.contentStream())
-    if (
-      (argStart && argStart < Number(GENESIS_BLOCK_SEQUENCE)) ||
-      (argStop != null && argStop > stop)
-    ) {
-      this.error(
-        `You can can only export chain from ${Number(GENESIS_BLOCK_SEQUENCE)} -> ${stop}`,
-      )
-      this.exit(1)
+    if (argStop != null && argStop > stop) {
+      this.log(`Argument stop is greater than the chain head of the node: ${argStop} > ${stop}`)
     }
     this.log(`Exporting chain from ${start} -> ${stop} to ${exportPath}`)
     const progress = CliUx.ux.progress({
