@@ -20,54 +20,32 @@ pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
     let mut combined_preimage = vec![];
 
     combined_preimage
-        .extend(asset_public_key.repr(cs.namespace(|| "booleanize asset_public_key"))?); // 32
+        .extend(asset_public_key.repr(cs.namespace(|| "booleanize asset_public_key"))?);
 
-    let name_bits =
-        slice_into_boolean_vec_le(cs.namespace(|| "booleanize name"), Some(&name), 32 * 8)?;
-    assert_eq!(name_bits.len(), 32 * 8);
-    combined_preimage.extend(name_bits); // 32
+    let name_bits = slice_into_boolean_vec_le(cs.namespace(|| "booleanize name"), Some(&name), 32)?;
+    combined_preimage.extend(name_bits);
 
     let chain_bits =
-        slice_into_boolean_vec_le(cs.namespace(|| "booleanize chain"), Some(&chain), 32 * 8)?;
-    assert_eq!(chain_bits.len(), 32 * 8);
-    combined_preimage.extend(chain_bits); // 32
+        slice_into_boolean_vec_le(cs.namespace(|| "booleanize chain"), Some(&chain), 32)?;
+    combined_preimage.extend(chain_bits);
 
-    let network_bits = slice_into_boolean_vec_le(
-        cs.namespace(|| "booleanize network"),
-        Some(&network),
-        32 * 8,
-    )?;
-    assert_eq!(network_bits.len(), 32 * 8);
-    combined_preimage.extend(network_bits); // 32
+    let network_bits =
+        slice_into_boolean_vec_le(cs.namespace(|| "booleanize network"), Some(&network), 32)?;
+    combined_preimage.extend(network_bits);
 
     let token_identifier_bits = slice_into_boolean_vec_le(
         cs.namespace(|| "booleanize token_identifier"),
         Some(&token_identifier),
-        32 * 8,
+        32,
     )?;
-    assert_eq!(token_identifier_bits.len(), 32 * 8);
-    combined_preimage.extend(token_identifier_bits); // 32
+    combined_preimage.extend(token_identifier_bits);
 
     let nonce_bits = slice_into_boolean_vec_le(
         cs.namespace(|| "booleanize nonce"),
         Some(slice::from_ref(&nonce)),
-        8,
+        1,
     )?;
-    assert_eq!(nonce_bits.len(), 8);
-    combined_preimage.extend(nonce_bits); // 1
-
-    assert_eq!(
-        8 * (
-            32 + // asset_public_key
-            32 + // name
-            32 + // chain
-            32 + // network
-            32 + // token identifier
-            1
-            // nonce
-        ),
-        combined_preimage.len()
-    );
+    combined_preimage.extend(nonce_bits);
 
     Ok(combined_preimage)
 }
@@ -75,14 +53,15 @@ pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
 pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
     mut cs: CS,
     value: Option<&[u8]>,
-    length: u32,
+    byte_length: u32,
 ) -> Result<Vec<Boolean>, SynthesisError> {
+    let bit_length = byte_length * 8;
     let values: Vec<Option<bool>> = match value {
         Some(value) => value
             .iter()
             .flat_map(|&v| (0..8).map(move |i| Some((v >> i) & 1 == 1)))
             .collect(),
-        None => vec![None; length as usize],
+        None => vec![None; bit_length as usize],
     };
 
     let bits = values
@@ -95,6 +74,11 @@ pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar
             )?))
         })
         .collect::<Result<Vec<_>, SynthesisError>>()?;
+
+    if bits.len() != bit_length as usize {
+        // Not the best error type here, but easier than forking the error types right now
+        return Err(SynthesisError::Unsatisfiable);
+    }
 
     Ok(bits)
 }
