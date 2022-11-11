@@ -55,7 +55,7 @@ pub struct SaplingKey {
 
     /// Part of the expanded form of the spending key. Derived from spending key
     /// using a seeded pseudorandom hash function. Used to construct
-    /// asset_public_key
+    /// asset_public_key. This is not part of the official Sapling spec.
     pub(crate) asset_authorization_key: jubjub::Fr,
 
     /// Part of the expanded form of the spending key, as well as being used
