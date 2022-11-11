@@ -10,7 +10,7 @@ const RAW_MAX_UPLOAD = Number(process.env.MAX_UPLOAD)
 const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 500 : RAW_MAX_UPLOAD
 const NEAR_SYNC_THRESHOLD = 5
 
-export abstract class SyncTransactions extends IronfishCommand {
+export abstract class SyncTransactions<ApiPayload> extends IronfishCommand {
   // static aliases = ['service:syncTransactions']
   static hidden = true
 
@@ -131,6 +131,12 @@ export abstract class SyncTransactions extends IronfishCommand {
       }
     }
   }
-  abstract commit(api: WebApi, buffer: Array<GetTransactionStreamResponse>): Promise<void>
+  async commit(api: WebApi, buffer: Array<GetTransactionStreamResponse>): Promise<void> {
+    const serialized = buffer.map(this.serialize)
+    buffer.length = 0
+    await this.upload(api, serialized)
+  }
   abstract getHead(api: WebApi): Promise<string | null>
+  abstract serialize: (data: GetTransactionStreamResponse) => ApiPayload
+  abstract upload: (api: WebApi, payload: ApiPayload[]) => Promise<void>
 }
