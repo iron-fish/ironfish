@@ -11,12 +11,10 @@ export default class SyncMaspTransactions extends SyncTransactions<ApiMaspUpload
 
   upload = (api: WebApi, payload: ApiMaspUpload[]): Promise<void> =>
     api.uploadMaspTransactions(payload)
-  async getHead(api: WebApi): Promise<string | null> {
-    return await api.headDeposits()
-  }
+
+  getHead = (api: WebApi): Promise<string | null> => api.headDeposits()
 
   serialize = (data: GetTransactionStreamResponse): ApiMaspUpload => {
-    // Values here for `type` and `assetName` are stubbed until we update the transaction model
     return {
       ...data,
       transactions: data.transactions.map((tx) => ({
@@ -24,6 +22,7 @@ export default class SyncMaspTransactions extends SyncTransactions<ApiMaspUpload
         notes: tx.notes.map((note) => ({
           ...note,
           memo: note.memo,
+          // Values here for `type` and `assetName` are stubbed until we update the transaction model for MASP in typescript
           type: 'MASP_TRANSFER',
           assetName: 'STUBBED',
         })),
