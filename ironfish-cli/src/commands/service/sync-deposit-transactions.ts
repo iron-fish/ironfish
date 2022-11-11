@@ -10,21 +10,21 @@ export default class SyncMaspTransactions extends SyncTransactions<ApiDepositUpl
   static description = 'Upload deposit transactions to an HTTP API using IronfishApi'
 
   upload = (api: WebApi, payload: ApiDepositUpload[]): Promise<void> =>
-    api.uploadMaspTransactions(payload)
+    api.uploadDeposits(payload)
   getHead = (api: WebApi): Promise<string | null> => api.headDeposits()
 
   serialize = (data: GetTransactionStreamResponse): ApiDepositUpload => {
     // Values here for `type` and `assetName` are stubbed until we update the transaction model
     return {
-        ...data,
-        transactions: data.transactions.map((tx) => ({
-          ...tx,
-          notes: tx.notes.map((note) => ({
-            ...note,
-            memo: note.memo,
-            amount: Number(note.amount),
-          })),
+      ...data,
+      transactions: data.transactions.map((tx) => ({
+        ...tx,
+        notes: tx.notes.map((note) => ({
+          ...note,
+          memo: note.memo,
+          amount: Number(note.amount),
         })),
-      }
+      })),
     }
+  }
 }
