@@ -345,25 +345,25 @@ export class Syncer {
     peer: Peer,
     start: Buffer,
     limit: number,
-  ): Promise<{ blocks: Block[]; time: number }> {
+  ): Promise<{ ok: true; blocks: Block[]; time: number } | { ok: false }> {
     this.logger.info(
       `Requesting ${limit - 1} blocks starting at ${HashUtils.renderHash(start)} from ${
         peer.displayName
       }`,
     )
 
-    return this.peerNetwork.getBlocks(peer, start, limit).catch((e) => {
-      this.logger.warn(
-        `Error while syncing from ${peer.displayName}: ${ErrorUtils.renderError(e)}`,
-      )
+    return this.peerNetwork
+      .getBlocks(peer, start, limit)
+      .then((result): { ok: true; blocks: Block[]; time: number } => {
+        return { ok: true, blocks: result.blocks, time: result.time }
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Error while syncing from ${peer.displayName}: ${ErrorUtils.renderError(e)}`,
+        )
 
-      peer.close()
-      this.stopSync(peer)
-      return {
-        blocks: [],
-        time: 0,
-      }
-    })
+        return { ok: false }
+      })
   }
 
   async syncBlocks(peer: Peer, head: Buffer, sequence: number): Promise<void> {
@@ -373,10 +373,17 @@ export class Syncer {
     let blocksPromise = this.getBlocks(peer, head, this.blocksPerMessage + 1)
 
     while (currentHead) {
+      const blocksResult = await blocksPromise
+      if (!blocksResult.ok) {
+        peer.close()
+        this.stopSync(peer)
+        return
+      }
+
       const {
         blocks: [headBlock, ...blocks],
         time,
-      } = await blocksPromise
+      } = blocksResult
 
       if (!headBlock) {
         peer.punish(BAN_SCORE.MAX, 'empty GetBlocks message')
