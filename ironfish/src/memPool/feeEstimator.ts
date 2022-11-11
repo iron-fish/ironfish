@@ -31,7 +31,7 @@ export class FeeEstimator {
   private maxBlockHistory = 10
   private defaultFeeRate = BigInt(1)
   private latestBlockSize: number
-  private latestBlockHash: Buffer
+  private latestBlockHash: Buffer | null = null
 
   constructor(options: {
     wallet: Wallet
@@ -46,7 +46,6 @@ export class FeeEstimator {
     this.percentiles = options.percentiles ?? DEFAULT_PRIORITY_LEVEL_PERCENTILES
     this.wallet = options.wallet
     this.latestBlockSize = this.wallet.chain.consensus.MAX_BLOCK_SIZE_BYTES / 2
-    this.latestBlockHash = this.wallet.chain.latest.hash
   }
 
   async init(chain: Blockchain): Promise<void> {
@@ -74,7 +73,7 @@ export class FeeEstimator {
       }
       if (i === 0) {
         this.latestBlockSize = currentBlock.transactions.reduce(
-          (a, t) => a + t.serialize.length,
+          (a, t) => a + t.serialize().length,
           0,
         )
       }
@@ -146,13 +145,13 @@ export class FeeEstimator {
 
     const latestBlockHash = this.wallet.chain.latest.hash
 
-    if (latestBlockHash.equals(this.latestBlockHash)) {
+    if (this.latestBlockHash?.equals(latestBlockHash)) {
       return this.latestBlockSize
     }
 
     const latestBlock = await this.wallet.chain.getBlock(latestBlockHash)
     Assert.isNotNull(latestBlock, 'No block found')
-    const result = latestBlock.transactions.reduce((a, t) => a + t.serialize.length, 0)
+    const result = latestBlock.transactions.reduce((a, t) => a + t.serialize().length, 0)
     return result
   }
 
@@ -181,11 +180,12 @@ export class FeeEstimator {
 
     fees.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
     const lastBlockSize = await this.getLastBlockSizeBytes()
-    const blockSizeRatio = BigInt(
-      lastBlockSize / this.wallet.chain.consensus.MAX_BLOCK_SIZE_BYTES,
-    )
+    const blockSizeRatio = lastBlockSize / this.wallet.chain.consensus.MAX_BLOCK_SIZE_BYTES
 
-    return fees[Math.round((queue.length - 1) / 2)] * blockSizeRatio
+    let feeRate = fees[Math.round((queue.length - 1) / 2)]
+    feeRate = BigInt(Math.ceil(Number(feeRate) * blockSizeRatio))
+
+    return feeRate
   }
 
   size(priorityLevel: PriorityLevel): number | undefined {
