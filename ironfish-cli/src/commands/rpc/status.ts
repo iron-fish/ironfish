@@ -4,6 +4,8 @@
 import { FileUtils, GetRpcStatusResponse, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
+import { table } from 'table'
+import { TableUserConfig } from 'table'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -58,21 +60,36 @@ export default class Status extends IronfishCommand {
 }
 
 function renderStatus(content: GetRpcStatusResponse): string {
-  let result = `STARTED: ${String(content.started)}`
+  const resultStatus = `STARTED: ${String(content.started)}`
 
+  const output = []
   for (const adapter of content.adapters) {
-    result += `\n\n[${adapter.name}]\n`
-    result += `Clients:          ${adapter.clients}\n`
-    result += `Requests Pending: ${adapter.pending.length}\n`
-    result += `Routes Pending:   ${adapter.pending.join(', ')}\n`
-    result += `Inbound Traffic:  ${FileUtils.formatMemorySize(adapter.inbound)}/s\n`
-    result += `Outbound Traffic: ${FileUtils.formatMemorySize(adapter.outbound)}/s\n`
-    result += `Outbound Total:   ${FileUtils.formatMemorySize(adapter.writtenBytes)}\n`
-    result += `Inbound Total:    ${FileUtils.formatMemorySize(adapter.readBytes)}\n`
-    result += `RW Backlog:       ${FileUtils.formatMemorySize(
-      adapter.readableBytes,
-    )} / ${FileUtils.formatMemorySize(adapter.writableBytes)}`
+    const result = []
+    result.push(['Clients', `${adapter.clients}`])
+    result.push(['Clients', `${adapter.clients}`])
+    result.push(['Requests Pending', `${adapter.pending.length}`])
+    result.push(['Routes Pending', `${adapter.pending.join(', ')}`])
+    result.push(['Inbound Traffic', `${adapter.clients}`])
+    result.push(['Outbound Traffic', `${FileUtils.formatMemorySize(adapter.inbound)}`])
+    result.push(['Outbound Traffic', `${FileUtils.formatMemorySize(adapter.outbound)}`])
+    result.push(['Outbound Total', `${FileUtils.formatMemorySize(adapter.writtenBytes)}`])
+    result.push(['Inbound Total', `${FileUtils.formatMemorySize(adapter.readBytes)}`])
+    result.push([
+      'RW Backlog',
+      `${FileUtils.formatMemorySize(adapter.readableBytes)} / ${FileUtils.formatMemorySize(
+        adapter.writableBytes,
+      )}`,
+    ])
+
+    const config: TableUserConfig = {
+      header: {
+        alignment: 'center',
+        content: `${adapter.name}`,
+      },
+    }
+
+    output.push(table(result, config))
   }
 
-  return result
+  return `${resultStatus}\n${output.join('\n')}`
 }
