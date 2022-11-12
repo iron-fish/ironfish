@@ -337,11 +337,25 @@ export class WalletDB {
     sequence: number | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    await this.nonChainNoteHashes.del([account.prefix, noteHash])
+    await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
 
     if (sequence !== null) {
       await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
     }
+  }
+
+  /*
+   * clears sequenceToNoteHash entries for all accounts for a given sequence
+   */
+  async clearSequenceNoteHashes(sequence: number, tx?: IDatabaseTransaction): Promise<void> {
+    const encoding = this.sequenceToNoteHash.keyEncoding
+
+    const keyRange = StorageUtils.getPrefixesKeyRange(
+      encoding.serialize([Buffer.alloc(4, 0), [sequence, Buffer.alloc(0)]]),
+      encoding.serialize([Buffer.alloc(4, 255), [sequence, Buffer.alloc(0)]]),
+    )
+
+    await this.sequenceToNoteHash.clear(tx, keyRange)
   }
 
   async loadNoteHash(
