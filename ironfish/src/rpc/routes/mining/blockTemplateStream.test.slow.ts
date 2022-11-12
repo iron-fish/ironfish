@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { createNodeTest, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
+import { createNodeTest, useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { flushTimeout } from '../../../testUtilities/helpers/tests'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { PromiseUtils } from '../../../utils'
@@ -41,12 +41,13 @@ describe('Block template stream', () => {
     const { chain } = routeTest.node
     routeTest.node.config.set('miningForce', true)
 
-    const account = await node.wallet.createAccount('testAccount', true)
+    const account = await useAccountFixture(node.wallet, 'testAccount')
+    await node.wallet.setDefaultAccount('testAccount')
 
     // Create another node
     const nodeTest = createNodeTest()
     await nodeTest.setup()
-    await nodeTest.wallet.importAccount(account)
+    const nodeTestAccount = await nodeTest.wallet.importAccount(account)
     await nodeTest.wallet.setDefaultAccount(account.name)
 
     // Generate a block
@@ -57,8 +58,8 @@ describe('Block template stream', () => {
     await nodeTest.wallet.updateHead()
     const tx = await useTxFixture(
       nodeTest.node.wallet,
-      account,
-      account,
+      nodeTestAccount,
+      nodeTestAccount,
       undefined,
       undefined,
       3,

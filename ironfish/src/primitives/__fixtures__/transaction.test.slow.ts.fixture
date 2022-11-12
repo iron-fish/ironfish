@@ -1,0 +1,116 @@
+{
+  "Accounts produces unique transaction hashes": [
+    {
+      "id": "e4fef0f7-7b28-432b-8be0-a938bdd41ec7",
+      "name": "test",
+      "spendingKey": "405db233efaeab2f329fadf72053fb2bda4f77f270128fbd3cdfdf254a720836",
+      "incomingViewKey": "defa9ba3d871731dd7380bdf2405698cc4b0f49affbb9a9e1274b52fa3630906",
+      "outgoingViewKey": "ad6c3a147b721de0b65574790dd743117993e14d1d45bb89edfe8269747a2597",
+      "publicAddress": "06360d23dad3eba2b317db6825268f31c93f93c15d2f2b5b67a179f3082953965bb86b2a7ef9e561c58b19"
+    }
+  ],
+  "Accounts check if a transaction is a miners fee": [
+    {
+      "id": "bc906658-5326-4699-83f0-61df11f92efa",
+      "name": "test",
+      "spendingKey": "be67269b7db696880ae9c1bc37d6717843d0ae28506ea1549e7d465ae0ee128d",
+      "incomingViewKey": "acc198e0273fa4306bda96c69fd372055047c9ccaf7bb0b2251448b9cf76fa01",
+      "outgoingViewKey": "d2d4f296a5a55180be75b7bf0439b0859ad13b568f9397c8d1b7c0e5c7f8e302",
+      "publicAddress": "e8b1269bbf8e846b040c93fb4449a04eb940b4a47a20015fec24c5660d85f821ee57ab9d932f2d1e9a6192"
+    }
+  ],
+  "Accounts throw error if account is not fully synced when creating transaction": [
+    {
+      "id": "cb71bb54-c606-4f2d-956e-01c1b47fb043",
+      "name": "testA",
+      "spendingKey": "cceb9bb67241e774067b5f6b8731334545a654800ad3fef3e1c6263e84ca39ab",
+      "incomingViewKey": "f1fba9fc56b174b0ed551ba7e9e0de7385bfbd79afe3dffce097497eb0e41901",
+      "outgoingViewKey": "5789e385db6486f954692c9f110442061de438ccdc5bf88ea5983fde65b9c5e6",
+      "publicAddress": "59bdc2bd2987100bfdbf1ad0b3c619d6b36387fa0b100a5ab835f8a83292b31a1b0255557111c043b370bd"
+    },
+    {
+      "id": "f8b4d56a-69e4-4985-9037-10f6838c4fd6",
+      "name": "testB",
+      "spendingKey": "959f6e6459365f4890d148c9852ea4f207c173d641e4762fbc01754444932af8",
+      "incomingViewKey": "baeaf40096bbb091e45b5ff93895af7130da51d8b70a97fc37ba308a95319a03",
+      "outgoingViewKey": "480a1a5da4cf0d01813d306a69c41444462c56e5885ef46170d026e546535488",
+      "publicAddress": "8fa7407202e04a82d2cdd827c9c3a7de1481aee1c22bcdec12a1e38c65092e61e0bba893fa035d968d88d0"
+    },
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "4A59B5C5556384FB3A72827FE42D91E1B5BA2C0CBC0F807AFA86A3EAB521F0E1",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:BczCh07AQ+BaBcB/LBl3LT8x0/2Y/VJGnHw9UDCggBw="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "E2484D0BF38F29EFFD63EF9D5A61202F198129862B12845182A4CA77AA557A4B",
+          "size": 1
+        },
+        "target": "12167378078913471945996581698193578003257923478462384564023044230",
+        "randomness": "0",
+        "timestamp": 1668273717188,
+        "work": "0",
+        "hash": "EDCC695F788BF419FD1500890AE3156B2374BEDC20C299A63E66D2A906FECDC3",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAKtzTTVj/TU2CtcRkeT1sToehLkc7mYe1nfPPwzW8U9jSPxiC5zYVluh7QTLyxvWYo5xejV80c7Cdo4CpR5rDTeDHB29O130PGCeEyaW/E90hnvAIN6FpjH8loAI9Vul2RUMxfBTKdPAPsmQJumN/A/OLNhABBx1NTdv6O8ZXprEhhVo+UsEC7y8kpSNcA2S/KxrGmDG2PZzZLYs3mLa/0VErRunBVnk6bRGeQ1Pi32N4zqbjyO1Epz7+YoKxnhyGmrx2HL/9JE8GHjy1DFMWp1PHU6tXkfNpvbGOUVIJ0veiYoxCcPviBPjNBoDyxNl+b1FZjsEDi3Q7RBNKIj1DHMKxQc6sWbuFyYk2j/Lpii979jLJdm6+tyuZS6bR4DcSo31+UMkMeDYKuPOUV6gYGu8G2ebJ15mggWZ198p+4cCyF/BhXcIvuLS04Eop3jSWHfqzGwQj8V0ZVKa4zKUD81sm4E88Ktpg2kiiuSYjibCJqeHYqQOXO3qcNhiMnhhmtGwK0JlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwypGXh2YOTVi3oY8Cp1M829aFQYoigRbUHQHorHfhwIYlklqzCUT2EL1jfRa5aDKt2snyiy0uFeoF4iqtkrS6BA=="
+        }
+      ]
+    }
+  ],
+  "Accounts check if a transaction is not a miners fee": [
+    {
+      "id": "36a8b225-c5ad-4265-8d17-ecaf34df099c",
+      "name": "testA",
+      "spendingKey": "d5fa40a0ca52fbf98e1c4561a51f16a2cdbfe9b8e49cd50ce5801c343ca9bb56",
+      "incomingViewKey": "c656a04f1d44661bedb8e8a45d62428059e0438beb874ecceca7446542ed8102",
+      "outgoingViewKey": "419253daef68bf168044511b37a7df2dfd2e68d4ea815d50ef8cd03ecc9d1566",
+      "publicAddress": "35b968554b8bb7f62a9a91f21623328ec0f3c7b32493d4f4cdcf455150e56c5c0ca0deb65203146d43bdc3"
+    },
+    {
+      "id": "84f516e0-da04-45fb-a7ad-7bc9317647c8",
+      "name": "testB",
+      "spendingKey": "91082e7e7051516105eb6a5673b44556101f63b53c3d7c693316e4314c681ee1",
+      "incomingViewKey": "2a6ec4564c2a792001d97979be9f35940b81cac6edb54be721737b9c142cfb02",
+      "outgoingViewKey": "bf2067fe94ff7271cce781b32442a1222fe4aa9bb3991ea20fe9ebf23797e0fb",
+      "publicAddress": "2425b4b764ff5221ad873443db77aff2e029230629d5d1b8a893ac1f736065124ac7c1f078483eeb3a64b1"
+    },
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "4A59B5C5556384FB3A72827FE42D91E1B5BA2C0CBC0F807AFA86A3EAB521F0E1",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:Z54sbCWMjGH0aHDUHNpEGkZBDjEsFRsDhivDeb0yIUQ="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "E2484D0BF38F29EFFD63EF9D5A61202F198129862B12845182A4CA77AA557A4B",
+          "size": 1
+        },
+        "target": "12167378078913471945996581698193578003257923478462384564023044230",
+        "randomness": "0",
+        "timestamp": 1668273718726,
+        "work": "0",
+        "hash": "BEEF1B7FF89E33E298B60097D846014986A89191BE0CFCF6D7FF1DE9B1D2E76E",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAAJKs2rek5Cn08ng0/QZUX3UIYgH4Ng8yDq4lJau5mNLgsgU8bILyRMa7DwjTscY8jIOvcIQ8w9YgNW501kXiHQn+abcGk6m8uVQU/leHClkoF2tCwPYK87JfpnlMi80lEBJkst3f4tIdamXBiPZ7cn4lF2CvU4nXdFAAq7fZqv1odUUp2xzxe13QmBslKUgNhoE9ObjRyPo5iNp9B+/1r7TcA2GGIE1zmYgIpClNNLUbqLLNxhC4Hd2FP/H9bY6e4Wsv5EtwK1RRpvrrShOBxGEt0deSWaNE8JYhaGvKJZxzA+Y9SjYrj1o5/CvV7c0I6IxmNVv8Bf3OFgVUDABESjW+QJWQJ0ewYd2DEQNG+1NR2qD3/mI6v0NsXBjZr65FaHzYry79sysWfI+3dxqIUwIiT6qEcRb4KbyYUZbS8TMN0t2SZe6/TG/3yRLR9/9CZXTI9FAoJrzq+/I2zk80NvTR4eJ6SVHtjl0JTjE9KbHhTxbqn1B6BGZuuEEaJfLC+6iV40JlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwbQwHIi3dhBfNOb3BUuqkfVYFzzJ2ATfZQ4e08A8gUGXrgAQYQJ4a6lsZt7bCpGv+BlpXHsIhRopPzclGAP6TAA=="
+        }
+      ]
+    }
+  ]
+}
