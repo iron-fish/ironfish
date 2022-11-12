@@ -66,11 +66,9 @@ function renderStatus(content: GetRpcStatusResponse): string {
   for (const adapter of content.adapters) {
     const result = []
     result.push(['Clients', `${adapter.clients}`])
-    result.push(['Clients', `${adapter.clients}`])
     result.push(['Requests Pending', `${adapter.pending.length}`])
     result.push(['Routes Pending', `${adapter.pending.join(', ')}`])
-    result.push(['Inbound Traffic', `${adapter.clients}`])
-    result.push(['Outbound Traffic', `${FileUtils.formatMemorySize(adapter.inbound)}`])
+    result.push(['Inbound Traffic', `${FileUtils.formatMemorySize(adapter.inbound)}`])
     result.push(['Outbound Traffic', `${FileUtils.formatMemorySize(adapter.outbound)}`])
     result.push(['Outbound Total', `${FileUtils.formatMemorySize(adapter.writtenBytes)}`])
     result.push(['Inbound Total', `${FileUtils.formatMemorySize(adapter.readBytes)}`])
