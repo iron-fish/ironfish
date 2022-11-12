@@ -15,6 +15,7 @@ import { Flags } from '@oclif/core'
 import blessed from 'blessed'
 import dns from 'dns'
 import { table } from 'table'
+import { TableUserConfig } from 'table'
 import { IronfishCommand } from '../../../command'
 
 export class PoolStatus extends IronfishCommand {
@@ -102,22 +103,36 @@ export class PoolStatus extends IronfishCommand {
   renderStatus(status: MiningStatusMessage): string {
     const output = []
     let result = []
+    const config: TableUserConfig = {
+      header: {
+        alignment: 'center',
+        content: `Status of mining pool: ${status.name}`,
+      },
+    }
+
     result.push(['Status of mining pool', `${status.name}`])
     result.push(['Miners', `${status.clients}`])
     result.push(['Hashrate', `${FileUtils.formatHashRate(status.hashRate)}`])
     result.push(['Shares pending payout', `${status.sharesPending}`])
     result.push(['Clients', `${status.clients}`])
     result.push(['Bans', `${status.bans}`])
-    output.push(table(result))
+    output.push(table(result, config))
 
     if (status.addressStatus) {
+      const config: TableUserConfig = {
+        header: {
+          alignment: 'center',
+          content: `Mining status for address: ${status.addressStatus.publicAddress}`,
+        },
+      }
+
       result = []
       result.push(['Mining status for address', `${status.addressStatus.publicAddress}`])
       result.push(['Number of miners', `${status.addressStatus.miners}`])
       result.push(['Connected miners', `${status.addressStatus.connectedMiners.join(', ')}`])
       result.push(['Hashrate', `${FileUtils.formatHashRate(status.addressStatus.hashRate)}`])
       result.push(['Shares pending payout', `${status.addressStatus.sharesPending}`])
-      output.push(table(result))
+      output.push(table(result, config))
     }
 
     return output.join('\n')
