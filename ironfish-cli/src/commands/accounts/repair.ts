@@ -181,6 +181,9 @@ export default class Repair extends IronfishCommand {
     })
 
     this.log(
+      `\tRepaired ${missingNotes} nullifiers that map to notes that are not in the wallet`,
+    )
+    this.log(
       `\tRepaired ${nullifierNoteHashMismatches} nullifiers that map to notes that are not on chain`,
     )
   }
