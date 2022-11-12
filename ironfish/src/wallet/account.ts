@@ -205,7 +205,12 @@ export class Account {
         }
 
         if (decryptedNote.nullifier !== null) {
-          await this.updateNullifierNoteHash(decryptedNote.nullifier, decryptedNote.hash, tx)
+          await this.walletDb.saveNullifierNoteHash(
+            this,
+            decryptedNote.nullifier,
+            decryptedNote.hash,
+            tx,
+          )
         }
 
         await this.updateDecryptedNote(
@@ -282,18 +287,6 @@ export class Account {
     return await this.walletDb.loadNoteHash(this, nullifier)
   }
 
-  private async updateNullifierNoteHash(
-    nullifier: Buffer,
-    noteHash: Buffer,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.walletDb.saveNullifierNoteHash(this, nullifier, noteHash, tx)
-  }
-
-  private async deleteNullifier(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<void> {
-    await this.walletDb.deleteNullifier(this, nullifier, tx)
-  }
-
   async getTransaction(
     hash: Buffer,
     tx?: IDatabaseTransaction,
@@ -342,7 +335,7 @@ export class Account {
           await this.deleteDecryptedNote(noteHash, transactionHash, tx)
 
           if (decryptedNote.nullifier) {
-            await this.deleteNullifier(decryptedNote.nullifier, tx)
+            await this.walletDb.deleteNullifier(this, decryptedNote.nullifier, tx)
           }
         }
       }
