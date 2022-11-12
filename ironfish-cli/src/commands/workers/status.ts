@@ -4,6 +4,7 @@
 import { GetWorkersStatusResponse, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
+import { table } from 'table'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -63,15 +64,11 @@ function renderStatus(content: GetWorkersStatusResponse): string {
     workersStatus += ` - ${content.queued} -> ${content.executing} / ${content.capacity} - ${content.change} jobs Δ, ${content.speed} jobs/s`
   }
 
-  let status = `\n${'JOB'.padEnd(20, ' ')} | QUEUE | EXECUTE | ERROR | DONE \n`
+  const status = []
+  status.push(['JOB', 'QUEUE', 'EXECUTE', 'ERROR', 'DONE'])
   for (const job of content.jobs) {
-    status += `${job.name.padEnd(20, ' ')} | ${String(job.queue).padStart(5, ' ')} | ${String(
-      job.execute,
-    ).padStart(7, ' ')} | ${String(job.error).padStart(5, ' ')} | ${String(job.complete).padEnd(
-      6,
-      ' ',
-    )}\n`
+    status.push([job.name, job.queue, job.execute, job.error, job.complete])
   }
 
-  return `Workers: ${workersStatus}\n${status}`
+  return `Workers: ${workersStatus}\n${table(status)}`
 }
