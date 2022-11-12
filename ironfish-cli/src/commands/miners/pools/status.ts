@@ -110,7 +110,6 @@ export class PoolStatus extends IronfishCommand {
       },
     }
 
-    result.push(['Status of mining pool', `${status.name}`])
     result.push(['Miners', `${status.clients}`])
     result.push(['Hashrate', `${FileUtils.formatHashRate(status.hashRate)}`])
     result.push(['Shares pending payout', `${status.sharesPending}`])
@@ -127,7 +126,6 @@ export class PoolStatus extends IronfishCommand {
       }
 
       result = []
-      result.push(['Mining status for address', `${status.addressStatus.publicAddress}`])
       result.push(['Number of miners', `${status.addressStatus.miners}`])
       result.push(['Connected miners', `${status.addressStatus.connectedMiners.join(', ')}`])
       result.push(['Hashrate', `${FileUtils.formatHashRate(status.addressStatus.hashRate)}`])
