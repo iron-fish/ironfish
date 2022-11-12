@@ -13,9 +13,8 @@ import {
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
-import { table } from 'table'
-import { TableUserConfig } from 'table'
 import dns from 'dns'
+import { table } from 'table'
 import { IronfishCommand } from '../../../command'
 
 export class PoolStatus extends IronfishCommand {
