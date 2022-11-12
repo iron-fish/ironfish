@@ -1352,16 +1352,19 @@ export class PeerNetwork {
         return
       }
 
-      // The accounts need to know about the transaction since it could be
-      // relevant to the accounts, despite coming from a different node.
-      await this.node.wallet.syncTransaction(transaction, {})
+      const accepted = this.node.memPool.acceptTransaction(transaction)
 
-      if (this.node.memPool.acceptTransaction(transaction)) {
-        this.onTransactionAccepted.emit(transaction, received)
-      }
-
+      // Check 'exists' rather than 'accepted' to allow for rebroadcasting to nodes that
+      // may not have seen the transaction yet
       if (this.node.memPool.exists(transaction.hash())) {
         this.broadcastTransaction(transaction)
+      }
+
+      // The accounts need to know about the transaction since it could be
+      // relevant to the accounts, despite coming from a different node.
+      if (accepted) {
+        this.onTransactionAccepted.emit(transaction, received)
+        await this.node.wallet.syncTransaction(transaction, {})
       }
     }
 
