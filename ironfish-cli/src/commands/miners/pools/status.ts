@@ -108,7 +108,7 @@ export class PoolStatus extends IronfishCommand {
         alignment: 'center',
         content: `Status of mining pool: ${status.name}`,
       },
-      columns: [{ alignment: 'left', width: 100 }],
+      columns: [{ alignment: 'left', width: 110 }],
     }
 
     result.push(['Miners', `${status.clients}`])
@@ -124,7 +124,7 @@ export class PoolStatus extends IronfishCommand {
           alignment: 'center',
           content: `Mining status for address: ${status.addressStatus.publicAddress}`,
         },
-        columns: [{ alignment: 'left', width: 100 }],
+        columns: [{ alignment: 'left', width: 110 }],
       }
 
       result = []
