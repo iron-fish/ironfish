@@ -13,6 +13,8 @@ import {
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import blessed from 'blessed'
+import { table } from 'table'
+import { TableUserConfig } from 'table'
 import dns from 'dns'
 import { IronfishCommand } from '../../../command'
 
@@ -99,23 +101,26 @@ export class PoolStatus extends IronfishCommand {
   }
 
   renderStatus(status: MiningStatusMessage): string {
-    let result = ''
-    result += `Status of mining pool '${status.name}':\n`
-    result += `Miners:                ${status.miners}\n`
-    result += `Hashrate:              ${FileUtils.formatHashRate(status.hashRate)}\n`
-    result += `Shares pending payout: ${status.sharesPending}\n`
-    result += `Clients:               ${status.clients}\n`
-    result += `Bans:                  ${status.bans}\n`
+    const output = []
+    let result = []
+    result.push(['Status of mining pool', `${status.name}`])
+    result.push(['Miners', `${status.clients}`])
+    result.push(['Hashrate', `${FileUtils.formatHashRate(status.hashRate)}`])
+    result.push(['Shares pending payout', `${status.sharesPending}`])
+    result.push(['Clients', `${status.clients}`])
+    result.push(['Bans', `${status.bans}`])
+    output.push(table(result))
 
     if (status.addressStatus) {
-      result += `\nMining status for address '${status.addressStatus.publicAddress}':\n`
-      result += `Number of miners:      ${status.addressStatus.miners}\n`
-      result += `Connected miners:      ${status.addressStatus.connectedMiners.join(', ')}\n`
-      result += `Hashrate:              ${FileUtils.formatHashRate(
-        status.addressStatus.hashRate,
-      )}\n`
-      result += `Shares pending payout: ${status.addressStatus.sharesPending}`
+      result = []
+      result.push(['Mining status for address', `${status.addressStatus.publicAddress}`])
+      result.push(['Number of miners', `${status.addressStatus.miners}`])
+      result.push(['Connected miners', `${status.addressStatus.connectedMiners.join(', ')}`])
+      result.push(['Hashrate', `${FileUtils.formatHashRate(status.addressStatus.hashRate)}`])
+      result.push(['Shares pending payout', `${status.addressStatus.sharesPending}`])
+      output.push(table(result))
     }
-    return result
+
+    return output.join('\n')
   }
 }
