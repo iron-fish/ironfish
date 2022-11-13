@@ -605,7 +605,7 @@ export class Blockchain {
     return { isFork: isFork }
   }
 
-  private async disconnect(block: Block, tx: IDatabaseTransaction): Promise<void> {
+  async disconnect(block: Block, tx: IDatabaseTransaction): Promise<void> {
     Assert.isTrue(
       block.header.hash.equals(this.head.hash),
       `Cannot disconnect ${HashUtils.renderHash(
