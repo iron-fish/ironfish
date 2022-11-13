@@ -32,7 +32,7 @@ export default class Rewind extends IronfishCommand {
     const toDisconnect = node.chain.head.sequence - args.sequence
 
     this.log(
-      `Chain head currently at ${node.chain.head.sequence}. Rewinding ${toDisconnect} to sequence ${args.sequence}`,
+      `Chain head currently at ${node.chain.head.sequence}. Rewinding ${toDisconnect} blocks to ${args.sequence}.`,
     )
 
     const progressBar = CliUx.ux.progress({
