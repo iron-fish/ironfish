@@ -13,7 +13,7 @@ export default class Rewind extends IronfishCommand {
   static args = [
     {
       name: 'sequence',
-      parse: (input: string): Promise<number> => Promise.resolve(Number(input.trim())),
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
     },
   ]
@@ -25,14 +25,24 @@ export default class Rewind extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(Rewind)
 
+    const sequence = Number(args.sequence)
+
     const node = await this.sdk.node()
 
     await NodeUtils.waitForOpen(node)
 
-    const toDisconnect = node.chain.head.sequence - args.sequence
+    const toDisconnect = node.chain.head.sequence - sequence
+
+    if (toDisconnect <= 0) {
+      this.log(
+        `Chain head currently at ${node.chain.head.sequence}. '
+        'Cannot rewind to ${sequence} because it is is greater than the head sequence.`,
+      )
+      this.exit(1)
+    }
 
     this.log(
-      `Chain head currently at ${node.chain.head.sequence}. Rewinding ${toDisconnect} blocks to ${args.sequence}.`,
+      `Chain head currently at ${node.chain.head.sequence}. Rewinding ${toDisconnect} blocks to ${sequence}.`,
     )
 
     const progressBar = CliUx.ux.progress({
@@ -51,7 +61,7 @@ export default class Rewind extends IronfishCommand {
     speed.start()
 
     let disconnected = 0
-    while (node.chain.head.sequence > args.sequence) {
+    while (node.chain.head.sequence > sequence) {
       const head = node.chain.head
 
       const block = await node.chain.getBlock(head)
