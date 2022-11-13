@@ -1,20 +1,28 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, Meter, NodeUtils, TimeUtils } from '@ironfish/sdk'
+import { Meter, NodeUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 
 export default class Rewind extends IronfishCommand {
-  static description = 'Rewinds the chain database to the given sequence'
+  static description =
+    'Rewinds the chain database to the given sequence by deleting all blocks with greater sequences'
 
   static args = [
     {
-      name: 'sequence',
+      name: 'to',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
+      description: 'The block sequence to rewind to',
+    },
+    {
+      name: 'from',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'The sequence to start removing blocks from',
     },
   ]
 
@@ -25,24 +33,27 @@ export default class Rewind extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(Rewind)
 
-    const sequence = Number(args.sequence)
+    const sequence = Number(args.to)
 
     const node = await this.sdk.node()
 
     await NodeUtils.waitForOpen(node)
 
-    const toDisconnect = node.chain.head.sequence - sequence
+    let fromSequence = args.from
+      ? Math.max(Number(args.from), node.chain.latest.sequence)
+      : node.chain.latest.sequence
+
+    const toDisconnect = fromSequence - sequence
 
     if (toDisconnect <= 0) {
       this.log(
-        `Chain head currently at ${node.chain.head.sequence}. '
-        'Cannot rewind to ${sequence} because it is is greater than the head sequence.`,
+        `Chain head currently at ${fromSequence}. Cannot rewind to ${sequence} because it is is greater than the latest sequence in the chain.`,
       )
       this.exit(1)
     }
 
     this.log(
-      `Chain head currently at ${node.chain.head.sequence}. Rewinding ${toDisconnect} blocks to ${sequence}.`,
+      `Chain currently has blocks up to ${fromSequence}. Rewinding ${toDisconnect} blocks to ${sequence}.`,
     )
 
     const progressBar = CliUx.ux.progress({
@@ -61,16 +72,15 @@ export default class Rewind extends IronfishCommand {
     speed.start()
 
     let disconnected = 0
-    while (node.chain.head.sequence > sequence) {
-      const head = node.chain.head
 
-      const block = await node.chain.getBlock(head)
+    while (fromSequence > sequence) {
+      const hashes = await node.chain.getHashesAtSequence(fromSequence)
 
-      Assert.isNotNull(block)
+      for (const hash of hashes) {
+        await node.chain.removeBlock(hash)
+      }
 
-      await node.chain.db.transaction(async (tx) => {
-        await node.chain.disconnect(block, tx)
-      })
+      fromSequence--
 
       speed.add(1)
       progressBar.update(++disconnected, {

@@ -1069,12 +1069,12 @@ export class Blockchain {
 
   async removeBlock(hash: Buffer): Promise<void> {
     await this.db.transaction(async (tx) => {
-      this.logger.info(`Deleting block ${hash.toString('hex')}`)
+      this.logger.debug(`Deleting block ${hash.toString('hex')}`)
 
       const exists = await this.hasBlock(hash, tx)
 
       if (!exists) {
-        this.logger.warn(`No block exists at ${hash.toString('hex')}`)
+        this.logger.debug(`No block exists at ${hash.toString('hex')}`)
         return
       }
 
