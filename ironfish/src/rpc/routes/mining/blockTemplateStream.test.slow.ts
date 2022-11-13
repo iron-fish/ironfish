@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { createNodeTest, useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useMinerBlockFixture,
+  useTxFixture,
+} from '../../../testUtilities'
 import { flushTimeout } from '../../../testUtilities/helpers/tests'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { PromiseUtils } from '../../../utils'
