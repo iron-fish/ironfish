@@ -1,8 +1,8 @@
 use bellman::{
-    gadgets::{blake2s, boolean, multipack},
+    gadgets::{boolean, multipack},
     Circuit,
 };
-use zcash_proofs::circuit::ecc;
+use zcash_proofs::circuit::{ecc, pedersen_hash};
 
 use crate::{
     circuits::util::asset_info_preimage,
@@ -15,7 +15,7 @@ pub struct MintAsset {
 
     /// Identifier field for bridged asset address, or if a native custom asset, random bytes.
     /// Metadata for the asset (ex. chain, network, token identifier)
-    pub metadata: [u8; 96],
+    pub metadata: [u8; 76],
 
     /// The random byte used to ensure we get a valid asset identifier
     pub nonce: u8,
@@ -54,11 +54,14 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         )?;
 
         // Computed identifier bits from the given asset info
-        let asset_identifier = blake2s::blake2s(
-            cs.namespace(|| "blake2s(asset info)"),
-            &identifier_preimage,
+        let asset_identifier_point = pedersen_hash::pedersen_hash(
+            cs.namespace(|| "asset identifier hash"),
             ASSET_IDENTIFIER_PERSONALIZATION,
+            &identifier_preimage,
         )?;
+
+        let asset_identifier =
+            asset_identifier_point.repr(cs.namespace(|| "asset identifier bytes"))?;
 
         // Ensure the pre-image of the generator is 32 bytes
         assert_eq!(asset_identifier.len(), 256);
@@ -80,10 +83,9 @@ mod test {
     use ff::Field;
     use group::GroupEncoding;
     use rand::{rngs::StdRng, SeedableRng};
+    use zcash_primitives::sapling::pedersen_hash;
 
-    use crate::constants::{
-        ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION, ASSET_KEY_GENERATOR,
-    };
+    use crate::constants::{ASSET_IDENTIFIER_PERSONALIZATION, ASSET_KEY_GENERATOR};
 
     use super::MintAsset;
 
@@ -99,7 +101,7 @@ mod test {
         let asset_public_key = ASSET_KEY_GENERATOR * asset_auth_key;
 
         let name = [1u8; 32];
-        let metadata = [2u8; 96];
+        let metadata = [2u8; 76];
         let nonce = 1u8;
 
         let mut asset_plaintext: Vec<u8> = vec![];
@@ -108,14 +110,14 @@ mod test {
         asset_plaintext.extend(metadata);
         asset_plaintext.extend(slice::from_ref(&nonce));
 
-        let identifier = blake2s_simd::Params::new()
-            .hash_length(ASSET_IDENTIFIER_LENGTH)
-            .personal(ASSET_IDENTIFIER_PERSONALIZATION)
-            .to_state()
-            .update(&asset_plaintext)
-            .finalize();
+        let asset_plaintext_bits = multipack::bytes_to_bits_le(&asset_plaintext);
 
-        let identifier_bits = multipack::bytes_to_bits_le(identifier.as_bytes());
+        let identifier_point =
+            pedersen_hash::pedersen_hash(ASSET_IDENTIFIER_PERSONALIZATION, asset_plaintext_bits);
+
+        let identifier = identifier_point.to_bytes();
+
+        let identifier_bits = multipack::bytes_to_bits_le(&identifier);
         let public_inputs = multipack::compute_multipacking(&identifier_bits);
 
         // Mint proof
@@ -129,5 +131,6 @@ mod test {
 
         assert!(cs.is_satisfied());
         assert!(cs.verify(&public_inputs));
+        assert_eq!(cs.num_constraints(), 5356);
     }
 }
