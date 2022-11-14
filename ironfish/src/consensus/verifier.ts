@@ -10,7 +10,7 @@ import {
   getTransactionSize,
 } from '../network/utils/serializers'
 import { Spend } from '../primitives'
-import { Block } from '../primitives/block'
+import { Block, LocalBlock } from '../primitives/block'
 import { BlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
@@ -39,7 +39,7 @@ export class Verifier {
    *  *  Miner's fee is transaction list fees + miner's reward
    */
   async verifyBlock(
-    block: Block,
+    block: LocalBlock,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
   ): Promise<VerificationResult> {
     if (
@@ -182,10 +182,6 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
     }
 
-    if (current.sequence !== previousHeader.sequence + 1) {
-      return { valid: false, reason: VerificationResultReason.SEQUENCE_OUT_OF_ORDER }
-    }
-
     if (!this.isValidTarget(current, previousHeader)) {
       return { valid: false, reason: VerificationResultReason.INVALID_TARGET }
     }
@@ -308,7 +304,10 @@ export class Verifier {
   }
 
   // TODO: Rename to verifyBlock but merge verifyBlock into this
-  async verifyBlockAdd(block: Block, prev: BlockHeader | null): Promise<VerificationResult> {
+  async verifyBlockAdd(
+    block: LocalBlock,
+    prev: BlockHeader | null,
+  ): Promise<VerificationResult> {
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       return { valid: true }
     }
@@ -382,7 +381,7 @@ export class Verifier {
    * Verify the block before connecting it to the main chain
    */
   async verifyBlockConnect(
-    block: Block,
+    block: LocalBlock,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     if (
@@ -515,7 +514,6 @@ export enum VerificationResultReason {
   ORPHAN = 'Block is an orphan',
   PREV_HASH_NULL = 'Previous block hash is null',
   PREV_HASH_MISMATCH = 'Previous block hash does not match expected hash',
-  SEQUENCE_OUT_OF_ORDER = 'Block sequence is out of order',
   TOO_FAR_IN_FUTURE = 'Timestamp is in future',
   TRANSACTION_EXPIRED = 'Transaction expired',
   VERIFY_TRANSACTION = 'Verify_transaction',

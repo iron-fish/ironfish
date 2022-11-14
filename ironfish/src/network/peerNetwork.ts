@@ -17,7 +17,7 @@ import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { Transaction } from '../primitives'
-import { Block, CompactBlock } from '../primitives/block'
+import { Block, CompactBlock, LocalBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { TransactionHash } from '../primitives/transaction'
 import { Telemetry } from '../telemetry'
@@ -841,7 +841,9 @@ export class PeerNetwork {
       return
     }
 
-    await this.onNewFullBlock(peer, block, prevHeader)
+    const localBlock = LocalBlock.fromBlock(block, prevHeader)
+
+    await this.onNewFullBlock(peer, localBlock, prevHeader)
   }
 
   private async onNewCompactBlock(peer: Peer, compactBlock: CompactBlock) {
@@ -1230,7 +1232,7 @@ export class PeerNetwork {
 
   private async onNewFullBlock(
     peer: Peer,
-    block: Block,
+    block: LocalBlock,
     prevHeader: BlockHeader,
   ): Promise<void> {
     if (!this.shouldProcessNewBlocks()) {

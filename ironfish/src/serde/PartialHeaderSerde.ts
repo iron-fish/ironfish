@@ -10,10 +10,7 @@ import { BigIntUtils } from '../utils'
 
 export default class PartialBlockHeaderSerde {
   static serialize(header: PartialBlockHeader): Buffer {
-    const bw = bufio.write(192)
-    // TODO: change sequence to u32. expiration_sequence is u32 on transactions, and we're not
-    // likely to overflow for a long time.
-    bw.writeU64(header.sequence)
+    const bw = bufio.write(184)
     bw.writeHash(header.previousBlockHash)
     bw.writeHash(header.noteCommitment.commitment)
     // TODO: change commitment size to u32. tree_size on spend proofs is
@@ -32,7 +29,6 @@ export default class PartialBlockHeaderSerde {
 
   static deserialize(data: Buffer): PartialBlockHeader {
     const br = bufio.read(data)
-    const sequence = br.readU64()
     const previousBlockHash = br.readHash()
     const noteCommitment = br.readHash()
     const noteCommitmentSize = br.readU64()
@@ -43,7 +39,6 @@ export default class PartialBlockHeaderSerde {
     const graffiti = br.readBytes(32)
 
     return {
-      sequence: sequence,
       previousBlockHash: previousBlockHash,
       target: new Target(target),
       timestamp: new Date(timestamp),
@@ -65,7 +60,6 @@ export default class PartialBlockHeaderSerde {
 }
 
 export type PartialBlockHeader = {
-  sequence: number
   previousBlockHash: Buffer
   noteCommitment: {
     commitment: NoteEncryptedHash

@@ -10,8 +10,8 @@ import { Meter, MetricsMonitor } from './metrics'
 import { RollingAverage } from './metrics/rollingAverage'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
-import { Block } from './primitives/block'
-import { BlockHeader } from './primitives/blockheader'
+import { Block, LocalBlock } from './primitives/block'
+import { LocalBlockHeader } from './primitives/blockheader'
 import { Telemetry } from './telemetry'
 import { ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 import { ArrayUtils } from './utils/array'
@@ -231,7 +231,7 @@ export class Syncer {
 
     const hasHash = async (
       hash: Buffer | null,
-    ): Promise<{ found: boolean; local: BlockHeader | null }> => {
+    ): Promise<{ found: boolean; local: LocalBlockHeader | null }> => {
       if (hash === null) {
         return { found: false, local: null }
       }
@@ -410,26 +410,43 @@ export class Syncer {
       for (const addBlock of blocks) {
         currentSequence += 1
 
-        const { block } = await this.addBlock(peer, addBlock)
+        const addResult = await this.addBlock(peer, addBlock)
         this.abort(peer)
 
-        if (block.header.sequence !== currentSequence) {
+        if (!addResult.added) {
           this.logger.warn(
-            `Peer ${peer.displayName} sent block out of sequence. Expected ${currentSequence} but got ${block.header.sequence}`,
+            `Peer ${
+              peer.displayName
+            } sent block out of order. Expected ${currentHead.toString(
+              'hex',
+            )} but got ${block.header.previousBlockHash.toString('hex')}`,
           )
-
-          peer.punish(BAN_SCORE.MAX, 'out of sequence')
-          this.abort(peer)
-          return
         }
 
-        if (!peer.sequence || block.header.sequence > peer.sequence) {
-          peer.sequence = block.header.sequence
-          peer.head = block.header.hash
-          peer.work = block.header.work
-        }
+        if (addResult.added) {
+          const { block } = addResult
+          if (!block.header.previousBlockHash.equals(currentHead)) {
+            this.logger.warn(
+              `Peer ${
+                peer.displayName
+              } sent block out of order. Expected ${currentHead.toString(
+                'hex',
+              )} but got ${block.header.previousBlockHash.toString('hex')}`,
+            )
 
-        currentHead = block.header.hash
+            peer.punish(BAN_SCORE.MAX, 'block out of order')
+            this.abort(peer)
+            return
+          }
+
+          if (!peer.sequence || block.header.sequence > peer.sequence) {
+            peer.sequence = block.header.sequence
+            peer.head = block.header.hash
+            peer.work = block.header.work
+          }
+
+          currentHead = block.header.hash
+        }
       }
 
       // They didn't send a full message so they have no more blocks
@@ -446,53 +463,59 @@ export class Syncer {
   async addBlock(
     peer: Peer,
     block: Block,
-  ): Promise<{
-    added: boolean
-    block: Block
-    reason: VerificationResultReason | null
-  }> {
-    const { isAdded, reason, score } = await this.chain.addBlock(block)
+  ): Promise<
+    | {
+        added: true
+        block: LocalBlock
+      }
+    | {
+        added: false
+        reason: VerificationResultReason
+      }
+  > {
+    const addResult = await this.chain.addBlock(block)
 
     this.speed.add(1)
 
-    if (reason === VerificationResultReason.ORPHAN) {
-      this.logger.info(
-        `Peer ${peer.displayName} sent orphan ${HashUtils.renderBlockHeaderHash(
-          block.header,
-        )} (${block.header.sequence})`,
-      )
+    if (!addResult.isAdded) {
+      const { reason, score } = addResult
+      if (reason === VerificationResultReason.ORPHAN) {
+        this.logger.info(
+          `Peer ${peer.displayName} sent orphan ${HashUtils.renderBlockHeaderHash(
+            block.header,
+          )}`,
+        )
 
-      if (!this.loader) {
-        this.logger.info(`Syncing orphan chain from ${peer.displayName}`)
-        this.startSync(peer)
-      } else {
-        this.logger.info(`Sync already in progress from ${this.loader.displayName}`)
+        if (!this.loader) {
+          this.logger.info(`Syncing orphan chain from ${peer.displayName}`)
+          this.startSync(peer)
+        } else {
+          this.logger.info(`Sync already in progress from ${this.loader.displayName}`)
+        }
+
+        return { added: false, reason: VerificationResultReason.ORPHAN }
       }
 
-      return { added: false, block, reason: VerificationResultReason.ORPHAN }
+      if (reason === VerificationResultReason.DUPLICATE) {
+        return { added: false, reason: VerificationResultReason.DUPLICATE }
+      }
+
+      if (reason) {
+        this.logger.warn(
+          `Peer ${
+            peer.displayName
+          } sent an invalid block. score: ${score}, hash: ${HashUtils.renderHash(
+            block.header.hash,
+          )}, reason: ${reason}`,
+        )
+
+        peer.punish(score, reason)
+        return { added: false, reason }
+      }
     }
 
-    if (reason === VerificationResultReason.DUPLICATE) {
-      return { added: false, block, reason: VerificationResultReason.DUPLICATE }
-    }
-
-    if (reason) {
-      Assert.isNotNull(score)
-
-      this.logger.warn(
-        `Peer ${
-          peer.displayName
-        } sent an invalid block. score: ${score}, hash: ${HashUtils.renderHash(
-          block.header.hash,
-        )} (${Number(block.header.sequence)}), reason: ${reason}`,
-      )
-
-      peer.punish(score, reason)
-      return { added: false, block, reason }
-    }
-
-    Assert.isTrue(isAdded)
-    return { added: true, block, reason: reason || null }
+    Assert.isTrue(addResult.isAdded)
+    return { added: true, block: addResult.block }
   }
 
   /**

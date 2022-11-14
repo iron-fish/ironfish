@@ -17,7 +17,7 @@ export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
   return blake3(serializedHeader)
 }
 
-export function isBlockLater(a: BlockHeader, b: BlockHeader): boolean {
+export function isBlockLater(a: LocalBlockHeader, b: LocalBlockHeader): boolean {
   if (a.sequence !== b.sequence) {
     return a.sequence > b.sequence
   }
@@ -25,7 +25,7 @@ export function isBlockLater(a: BlockHeader, b: BlockHeader): boolean {
   return a.hash.compare(b.hash) < 0
 }
 
-export function isBlockHeavier(a: BlockHeader, b: BlockHeader): boolean {
+export function isBlockHeavier(a: LocalBlockHeader, b: LocalBlockHeader): boolean {
   if (a.work !== b.work) {
     return a.work > b.work
   }
@@ -42,13 +42,6 @@ export function isBlockHeavier(a: BlockHeader, b: BlockHeader): boolean {
 }
 
 export class BlockHeader {
-  /**
-   * The sequence number of the block. Blocks in a chain increase in ascending
-   * order of sequence. More than one block may have the same sequence,
-   * indicating a fork in the chain, but only one fork is selected at a time.
-   */
-  public sequence: number
-
   /**
    * The hash of the previous block in the chain
    */
@@ -96,16 +89,9 @@ export class BlockHeader {
    */
   public graffiti: Buffer
 
-  /**
-   * (For internal uses — excluded when sent over the network)
-   * Cumulative work from genesis to this block
-   */
-  public work: bigint
-
   public hash: Buffer
 
   constructor(
-    sequence: number,
     previousBlockHash: BlockHash,
     noteCommitment: { commitment: NoteEncryptedHash; size: number },
     nullifierCommitment: { commitment: NullifierHash; size: number },
@@ -113,17 +99,14 @@ export class BlockHeader {
     randomness = BigInt(0),
     timestamp: Date | undefined = undefined,
     graffiti: Buffer,
-    work = BigInt(0),
     hash?: Buffer,
   ) {
-    this.sequence = sequence
     this.previousBlockHash = previousBlockHash
     this.noteCommitment = noteCommitment
     this.nullifierCommitment = nullifierCommitment
     this.target = target
     this.randomness = randomness
     this.timestamp = timestamp || new Date()
-    this.work = work
     this.graffiti = graffiti
     this.hash = hash || this.recomputeHash()
   }
@@ -136,7 +119,6 @@ export class BlockHeader {
    */
   serializePartial(): Buffer {
     return PartialBlockHeaderSerde.serialize({
-      sequence: this.sequence,
       previousBlockHash: this.previousBlockHash,
       noteCommitment: this.noteCommitment,
       nullifierCommitment: this.nullifierCommitment,
@@ -174,8 +156,48 @@ export class BlockHeader {
   }
 }
 
+export class LocalBlockHeader extends BlockHeader {
+  /**
+   * The sequence number of the block. Blocks in a chain increase in ascending
+   * order of sequence. More than one block may have the same sequence,
+   * indicating a fork in the chain, but only one fork is selected at a time.
+   */
+  public readonly sequence: number
+
+  /**
+   * Cumulative work from genesis to this block.
+   */
+  public readonly work: bigint
+
+  constructor(
+    sequence: number,
+    previousBlockHash: BlockHash,
+    noteCommitment: { commitment: NoteEncryptedHash; size: number },
+    nullifierCommitment: { commitment: NullifierHash; size: number },
+    target: Target,
+    randomness = BigInt(0),
+    timestamp: Date | undefined = undefined,
+    graffiti: Buffer,
+    work: bigint,
+    hash?: Buffer,
+  ) {
+    super(
+      previousBlockHash,
+      noteCommitment,
+      nullifierCommitment,
+      target,
+      randomness,
+      timestamp,
+      graffiti,
+      hash,
+    )
+
+    this.sequence = sequence
+    this.work = work
+  }
+}
+
 export type SerializedBlockHeader = {
-  sequence: number
   previousBlockHash: string
   noteCommitment: {
     commitment: SerializedNoteEncryptedHash
@@ -196,7 +218,6 @@ export type SerializedBlockHeader = {
 export class BlockHeaderSerde {
   static equals(element1: BlockHeader, element2: BlockHeader): boolean {
     return (
-      element1.sequence === element2.sequence &&
       element1.noteCommitment.commitment.equals(element2.noteCommitment.commitment) &&
       element1.noteCommitment.size === element2.noteCommitment.size &&
       NullifierSerdeInstance.equals(
@@ -213,7 +234,6 @@ export class BlockHeaderSerde {
 
   static serialize(header: BlockHeader): SerializedBlockHeader {
     const serialized = {
-      sequence: header.sequence,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
       noteCommitment: {
         commitment: header.noteCommitment.commitment,
@@ -226,7 +246,6 @@ export class BlockHeaderSerde {
       target: header.target.targetValue.toString(),
       randomness: header.randomness.toString(),
       timestamp: header.timestamp.getTime(),
-      work: header.work.toString(),
       hash: BlockHashSerdeInstance.serialize(header.hash),
       graffiti: GraffitiSerdeInstance.serialize(header.graffiti),
     }
@@ -236,7 +255,6 @@ export class BlockHeaderSerde {
 
   static deserialize(data: SerializedBlockHeader): BlockHeader {
     return new BlockHeader(
-      Number(data.sequence),
       Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
       {
         commitment: data.noteCommitment.commitment,
@@ -250,7 +268,6 @@ export class BlockHeaderSerde {
       BigInt(data.randomness),
       new Date(data.timestamp),
       Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
-      data.work ? BigInt(data.work) : BigInt(0),
     )
   }
 }

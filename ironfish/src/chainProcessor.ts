@@ -6,6 +6,7 @@ import type { BlockHeader } from './primitives'
 import { Assert } from './assert'
 import { Event } from './event'
 import { createRootLogger, Logger } from './logger'
+import { LocalBlockHeader } from './primitives/blockheader'
 
 /**
  * This is used to get a non synchronous chain of block events from the blockchain
@@ -33,8 +34,8 @@ export class ChainProcessor {
   hash: Buffer | null = null
   sequence: number | null = null
   logger: Logger
-  onAdd = new Event<[block: BlockHeader]>()
-  onRemove = new Event<[block: BlockHeader]>()
+  onAdd = new Event<[block: LocalBlockHeader]>()
+  onRemove = new Event<[block: LocalBlockHeader]>()
 
   constructor(options: { logger?: Logger; chain: Blockchain; head: Buffer | null }) {
     this.chain = options.chain
@@ -42,11 +43,11 @@ export class ChainProcessor {
     this.hash = options.head
   }
 
-  private async add(header: BlockHeader): Promise<void> {
+  private async add(header: LocalBlockHeader): Promise<void> {
     await this.onAdd.emitAsync(header)
   }
 
-  private async remove(header: BlockHeader): Promise<void> {
+  private async remove(header: LocalBlockHeader): Promise<void> {
     await this.onRemove.emitAsync(header)
   }
 

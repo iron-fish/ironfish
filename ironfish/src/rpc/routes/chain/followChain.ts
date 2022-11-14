@@ -5,7 +5,9 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
 import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
-import { Block, BlockHeader } from '../../../primitives'
+import { Block } from '../../../primitives'
+import { LocalBlock } from '../../../primitives/block'
+import { LocalBlockHeader } from '../../../primitives/blockheader'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { BufferUtils, PromiseUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
@@ -112,7 +114,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       head: head,
     })
 
-    const send = (block: Block, type: 'connected' | 'disconnected' | 'fork') => {
+    const send = (block: LocalBlock, type: 'connected' | 'disconnected' | 'fork') => {
       const transactions = block.transactions.map((transaction) => {
         return transaction.withReference(() => {
           return {
@@ -149,13 +151,13 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
       })
     }
 
-    const onAdd = async (header: BlockHeader) => {
+    const onAdd = async (header: LocalBlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
       send(block, 'connected')
     }
 
-    const onRemove = async (header: BlockHeader) => {
+    const onRemove = async (header: LocalBlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
       send(block, 'disconnected')

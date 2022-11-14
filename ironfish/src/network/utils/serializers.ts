@@ -33,7 +33,6 @@ export function writeBlockHeader(
 }
 
 export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
-  const sequence = reader.readU32()
   const previousBlockHash = reader.readHash()
   const noteCommitment = reader.readHash()
   const noteCommitmentSize = reader.readU32()
@@ -45,7 +44,6 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
   const graffiti = reader.readBytes(32)
 
   return new BlockHeader(
-    sequence,
     previousBlockHash,
     {
       commitment: noteCommitment,
@@ -64,7 +62,6 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
 
 export function getBlockHeaderSize(): number {
   let size = 0
-  size += 4 // sequence
   size += 32 // previousBlockHash
   size += 32 // noteCommitment.commitment
   size += 4 // noteCommitment.size
