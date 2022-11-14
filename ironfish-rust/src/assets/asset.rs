@@ -15,13 +15,15 @@ use ironfish_zkp::{
 use jubjub::SubgroupPoint;
 use std::{io, slice::from_ref};
 
-#[allow(dead_code)]
-pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
-
 pub const NATIVE_ASSET: AssetIdentifier = [
     215, 200, 103, 6, 245, 129, 122, 167, 24, 205, 28, 250, 208, 50, 51, 188, 214, 74, 119, 137,
     253, 148, 34, 211, 177, 122, 246, 130, 58, 126, 106, 198,
 ];
+
+pub const METADATA_LENGTH: usize = 76;
+
+#[allow(dead_code)]
+pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
 
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
@@ -32,7 +34,7 @@ pub struct Asset {
     pub(crate) name: [u8; 32],
 
     /// Metadata fields for the asset (ex. chain, network, token identifier)
-    pub(crate) metadata: [u8; 76],
+    pub(crate) metadata: [u8; METADATA_LENGTH],
 
     /// The owner who created the asset. Has permissions to mint
     pub(crate) owner: AssetPublicKey,
@@ -66,10 +68,10 @@ impl Asset {
     fn new_with_nonce(
         owner: AssetPublicKey,
         name: [u8; 32],
-        metadata: [u8; 76],
+        metadata: [u8; METADATA_LENGTH],
         nonce: u8,
     ) -> Result<Asset, IronfishError> {
-        let mut preimage = Vec::new();
+        let mut preimage = Vec::with_capacity(METADATA_LENGTH);
         preimage.extend(owner.to_bytes());
         preimage.extend(name);
         preimage.extend(metadata);
@@ -126,7 +128,7 @@ impl Asset {
         let mut name = [0; 32];
         reader.read_exact(&mut name[..])?;
 
-        let mut metadata = [0; 76];
+        let mut metadata = [0; METADATA_LENGTH];
         reader.read_exact(&mut metadata[..])?;
 
         let nonce = reader.read_u8()?;
