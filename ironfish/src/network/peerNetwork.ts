@@ -1352,17 +1352,19 @@ export class PeerNetwork {
         return
       }
 
-      // The accounts need to know about the transaction since it could be
-      // relevant to the accounts, despite coming from a different node.
-      await this.node.wallet.syncTransaction(transaction, {})
-
       if (this.node.memPool.acceptTransaction(transaction)) {
         this.onTransactionAccepted.emit(transaction, received)
       }
 
+      // Check 'exists' rather than 'accepted' to allow for rebroadcasting to nodes that
+      // may not have seen the transaction yet
       if (this.node.memPool.exists(transaction.hash())) {
         this.broadcastTransaction(transaction)
       }
+
+      // Sync every transaction to the wallet, since senders and recipients may want to know
+      // about pending transactions even if they're not accepted to the mempool.
+      await this.node.wallet.syncTransaction(transaction, {})
     }
 
     this.transactionFetcher.removeTransaction(hash)
