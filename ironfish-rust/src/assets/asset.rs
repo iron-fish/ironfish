@@ -165,7 +165,7 @@ mod test {
         .expect("can create a deterministic public address");
         let name = str_to_array("name");
         let metadata = str_to_array("{ 'token_identifier': '0x123' }");
-        let nonce = 0;
+        let nonce = 1;
 
         let asset =
             Asset::new_with_nonce(owner, name, metadata, nonce).expect("can create an asset");
@@ -177,8 +177,8 @@ mod test {
         assert_eq!(
             asset.identifier,
             [
-                174, 9, 19, 214, 96, 63, 10, 51, 94, 42, 41, 186, 207, 162, 48, 235, 1, 255, 211,
-                190, 228, 93, 137, 120, 138, 89, 61, 168, 168, 11, 150, 127
+                102, 249, 50, 118, 93, 130, 153, 64, 92, 174, 174, 140, 149, 242, 98, 169, 103,
+                236, 48, 27, 29, 116, 191, 177, 233, 13, 88, 217, 152, 255, 174, 4
             ],
         );
     }
