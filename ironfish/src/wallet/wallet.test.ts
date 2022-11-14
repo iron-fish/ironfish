@@ -149,6 +149,124 @@ describe('Accounts', () => {
     expect(balanceA.confirmed).toBeGreaterThanOrEqual(0n)
   })
 
+  it('should update balances for expired transactions with spends on a fork', async () => {
+    const { node: nodeA } = await nodeTest.createSetup()
+    const { node: nodeB } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(nodeA.wallet, 'a')
+    const accountB = await useAccountFixture(nodeA.wallet, 'b')
+
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    await nodeA.wallet.updateHead()
+
+    const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+    await expect(nodeB.chain).toAddBlock(blockB1)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+    await expect(nodeB.chain).toAddBlock(blockB3)
+
+    // This transaction will be invalid after the reorg
+    const { block: blockA2, transaction: forkTx } = await useBlockWithTx(
+      nodeA,
+      accountA,
+      accountB,
+      false,
+    )
+    await expect(nodeA.chain).toAddBlock(blockA2)
+    await nodeA.wallet.updateHead()
+
+    // Create a transaction that spends notes from the invalid transaction
+    const forkSpendTx = await useTxFixture(nodeA.wallet, accountA, accountB)
+
+    await expect(nodeA.wallet.getBalance(accountA)).resolves.toMatchObject({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
+      pending: BigInt(1999999997), // change from transactions
+    })
+
+    // re-org
+    await expect(nodeA.chain).toAddBlock(blockB1)
+    await expect(nodeA.chain).toAddBlock(blockB2)
+    await expect(nodeA.chain).toAddBlock(blockB3)
+    expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
+    await nodeA.wallet.updateHead()
+
+    await expect(nodeA.wallet.getBalance(accountA)).resolves.toMatchObject({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
+      pending: BigInt(5999999995), // minersFee from blockA1 + change from transactions
+    })
+
+    // expire original transaction from fork
+    await accountA.expireTransaction(forkTx)
+
+    await expect(nodeA.wallet.getBalance(accountA)).resolves.toMatchObject({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
+      pending: BigInt(3999999997), // minersFee from blockA1 + change from invalid fork spend
+    })
+
+    // expire transaction that spends from fork
+    await accountA.expireTransaction(forkSpendTx)
+
+    await expect(nodeA.wallet.getBalance(accountA)).resolves.toMatchObject({
+      confirmed: BigInt(0),
+      unconfirmed: BigInt(0),
+      pending: BigInt(2000000000), // minersFee from blockA1
+    })
+  })
+
+  it('should update nullifiers for notes created on a fork', async () => {
+    const { node: nodeA } = await nodeTest.createSetup()
+    const { node: nodeB } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(nodeA.wallet, 'a')
+    const accountB = await useAccountFixture(nodeA.wallet, 'b')
+
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    await nodeA.wallet.updateHead()
+
+    const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+    await expect(nodeB.chain).toAddBlock(blockB1)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+    await expect(nodeB.chain).toAddBlock(blockB3)
+
+    // This transaction will be invalid after the reorg
+    const { block: blockA2 } = await useBlockWithTx(nodeA, accountA, accountB, false)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+    await nodeA.wallet.updateHead()
+
+    // Create a transaction that spends notes from the invalid transaction
+    const forkSpendTx = await useTxFixture(nodeA.wallet, accountA, accountB)
+
+    expect(forkSpendTx.spendsLength()).toEqual(1)
+
+    const forkSpendNullifier = [...forkSpendTx.spends()][0].nullifier
+    const forkSpendNoteHash = await accountA.getNoteHash(forkSpendNullifier)
+
+    // nullifier should be non-null
+    Assert.isNotNull(forkSpendNoteHash)
+
+    // re-org
+    await expect(nodeA.chain).toAddBlock(blockB1)
+    await expect(nodeA.chain).toAddBlock(blockB2)
+    await expect(nodeA.chain).toAddBlock(blockB3)
+    expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
+    await nodeA.wallet.updateHead()
+
+    const forkSpendNote = await accountA.getDecryptedNote(forkSpendNoteHash)
+    expect(forkSpendNote).toBeDefined()
+    expect(forkSpendNote?.nullifier).toBeNull()
+
+    // nullifier should have been removed from nullifierToNote
+    expect(await accountA.getNoteHash(forkSpendNullifier)).toBeNull()
+  })
+
   describe('updateHeadHash', () => {
     it('should update head hashes for all existing accounts', async () => {
       const { node } = nodeTest
