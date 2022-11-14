@@ -127,6 +127,8 @@ export class Wallet {
         await this.syncTransaction(transaction, {})
       }
 
+      await this.walletDb.clearSequenceNoteHashes(header.sequence)
+
       await this.updateHeadHashes(header.previousBlockHash)
     })
   }

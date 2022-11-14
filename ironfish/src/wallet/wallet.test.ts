@@ -6,6 +6,7 @@ import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from '../consensus'
 import {
   createNodeTest,
   useAccountFixture,
+  useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
   useTxFixture,
@@ -100,6 +101,52 @@ describe('Accounts', () => {
     // It should now be planned to be processed at head + 1
     invalidTxEntry = await accountA.getTransaction(invalidTx.hash())
     expect(invalidTxEntry?.submittedSequence).toEqual(blockB2.header.sequence)
+  })
+
+  it('should update sequenceToNoteHash for notes created on a fork', async () => {
+    const { node: nodeA } = await nodeTest.createSetup()
+    const { node: nodeB } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(nodeA.wallet, 'a')
+    const accountB = await useAccountFixture(nodeA.wallet, 'b')
+
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    await nodeA.wallet.updateHead()
+
+    const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+    await expect(nodeB.chain).toAddBlock(blockB1)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+    await expect(nodeB.chain).toAddBlock(blockB3)
+
+    // Notes from this transaction will not be on chain after the reorg
+    const { block: blockA2 } = await useBlockWithTx(nodeA, accountA, accountB, false)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+    await nodeA.wallet.updateHead()
+
+    // re-org
+    await expect(nodeA.chain).toAddBlock(blockB1)
+    await expect(nodeA.chain).toAddBlock(blockB2)
+    await expect(nodeA.chain).toAddBlock(blockB3)
+    expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
+
+    await nodeA.wallet.updateHead()
+
+    const notesOnChainA = await AsyncUtils.materialize(
+      accountA['walletDb'].loadNotesInSequenceRange(accountA, 0, nodeB.chain.head.sequence),
+    )
+    const notesNotOnChainA = await AsyncUtils.materialize(
+      accountA['walletDb'].loadNotesNotOnChain(accountA),
+    )
+    // set minimumBlockConfirmations so that balance considers confirmations
+    const balanceA = await nodeA.wallet.getBalance(accountA, { minimumBlockConfirmations: 2 })
+
+    expect(balanceA.confirmed).toBeGreaterThanOrEqual(0n)
+    expect(notesOnChainA.length).toEqual(0)
+    expect(notesNotOnChainA.length).toEqual(2)
+    expect(balanceA.confirmed).toBeGreaterThanOrEqual(0n)
   })
 
   describe('updateHeadHash', () => {
