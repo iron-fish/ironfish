@@ -6,13 +6,18 @@ use std::io;
 
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
-use ironfish_zkp::circuits::mint_asset::MintAsset;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use ff::Field;
+use group::GroupEncoding;
+use ironfish_zkp::{circuits::mint_asset::MintAsset, ValueCommitment};
+use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
 use crate::{
     assets::asset::{asset_generator_point, Asset},
     errors::IronfishError,
     sapling_bls12::SAPLING,
+    serializing::read_scalar,
 };
 
 /// Parameters used to build a circuit that verifies an asset can be minted with
@@ -20,11 +25,31 @@ use crate::{
 pub struct MintBuilder {
     /// Asset to be minted
     pub asset: Asset,
+
+    /// Commitment to represent the value. Even though the value of the mint is
+    /// public, we still need the commitment to balance the transaction
+    pub value_commitment: ValueCommitment,
 }
 
 impl MintBuilder {
-    pub fn new(asset: Asset) -> Self {
-        Self { asset }
+    pub fn new(asset: Asset, value: u64) -> Self {
+        let value_commitment = ValueCommitment {
+            value,
+            randomness: jubjub::Fr::random(thread_rng()),
+        };
+
+        Self {
+            asset,
+            value_commitment,
+        }
+    }
+
+    /// Get the value_commitment from this proof as an edwards Point.
+    ///
+    /// This integrates the value and randomness into a single point, using an
+    /// appropriate generator.
+    pub fn value_commitment_point(&self) -> ExtendedPoint {
+        ExtendedPoint::from(self.value_commitment.commitment())
     }
 
     pub fn build(
@@ -43,6 +68,7 @@ impl MintBuilder {
         let mint_description = MintDescription {
             proof,
             asset: self.asset,
+            value_commitment: self.value_commitment.clone(),
         };
 
         mint_description.verify_proof()?;
@@ -60,6 +86,10 @@ pub struct MintDescription {
 
     /// Asset which is being minted
     pub asset: Asset,
+
+    /// Commitment to represent the value. Even though the value of the mint is
+    /// public, we still need the commitment to balance the transaction
+    pub value_commitment: ValueCommitment,
 }
 
 impl MintDescription {
@@ -67,11 +97,22 @@ impl MintDescription {
         // Verify that the identifier maps to a valid generator point
         asset_generator_point(&self.asset.identifier)?;
 
+        self.verify_not_small_order()?;
+
         groth16::verify_proof(
             &SAPLING.mint_verifying_key,
             &self.proof,
             &self.public_inputs()[..],
         )?;
+
+        Ok(())
+    }
+
+    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
+        let value_commitment_point = ExtendedPoint::from(self.value_commitment.commitment());
+        if value_commitment_point.is_small_order().into() {
+            return Err(IronfishError::IsSmallOrder);
+        }
 
         Ok(())
     }
@@ -98,6 +139,7 @@ impl MintDescription {
     ) -> Result<(), IronfishError> {
         self.proof.write(&mut writer)?;
         self.asset.write(&mut writer)?;
+        writer.write_all(&self.value_commitment.commitment().to_bytes())?;
 
         Ok(())
     }
@@ -106,12 +148,27 @@ impl MintDescription {
         let proof = groth16::Proof::read(&mut reader)?;
         let asset = Asset::read(&mut reader)?;
 
-        Ok(MintDescription { proof, asset })
+        let value = reader.read_u64::<LittleEndian>()?;
+        let randomness: jubjub::Fr = read_scalar(&mut reader)?;
+
+        let value_commitment = ValueCommitment { value, randomness };
+
+        Ok(MintDescription {
+            proof,
+            asset,
+            value_commitment,
+        })
     }
 
     /// Stow the bytes of this [`MintDescription`] in the given writer.
-    pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
-        self.serialize_signature_fields(writer)
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        self.proof.write(&mut writer)?;
+        self.asset.write(&mut writer)?;
+
+        writer.write_u64::<LittleEndian>(self.value_commitment.value)?;
+        writer.write_all(&self.value_commitment.randomness.to_bytes())?;
+
+        Ok(())
     }
 }
 
@@ -130,7 +187,9 @@ mod test {
 
         let asset = Asset::new(owner, name, metadata).unwrap();
 
-        let mint = MintBuilder::new(asset);
+        let value = 5;
+
+        let mint = MintBuilder::new(asset, value);
         // let mint_description = mint.build(key.sapling_proof_generation_key()).expect("should build valid mint description");
 
         // assert_eq!(mint_description.asset.identifier(), asset.identifier());

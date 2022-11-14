@@ -310,7 +310,7 @@ impl SpendDescription {
     /// commitment_value, nullifier, and anchor attached to this
     /// [`SpendDescription`].
     pub fn verify_proof(&self) -> Result<(), IronfishError> {
-        self.verify_value_commitment()?;
+        self.verify_not_small_order()?;
 
         groth16::verify_proof(
             &SAPLING.spend_verifying_key,
@@ -321,7 +321,7 @@ impl SpendDescription {
         Ok(())
     }
 
-    pub fn verify_value_commitment(&self) -> Result<(), IronfishError> {
+    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
         if self.value_commitment.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
         }
