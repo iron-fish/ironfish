@@ -24,6 +24,8 @@ const SPEED_ESTIMATE = 42
 export default class RepairChain extends IronfishCommand {
   static description = 'Rebuild the main chain to fix corruption'
 
+  static hidden = true
+
   static flags = {
     ...LocalFlags,
     confirm: Flags.boolean({

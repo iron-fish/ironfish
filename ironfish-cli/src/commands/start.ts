@@ -308,7 +308,7 @@ export default class Start extends IronfishCommand {
 
     if (hash270446?.equals(corruptBlockHash)) {
       this.log(
-        'Your chain contains a corrupt block at sequence 270446 that contains a double spend. You must run `chain:repair` before starting your node.',
+        'Your chain contains a corrupt block at sequence 270446 that contains a double spend.\nYou must run `chain:hardfork` before starting your node.',
       )
       this.exit(1)
     }
