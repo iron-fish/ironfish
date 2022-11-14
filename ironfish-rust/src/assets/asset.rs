@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use crate::{errors::IronfishError, util::str_to_array, PublicAddress};
+use crate::{errors::IronfishError, keys::AssetPublicKey, util::str_to_array};
 use byteorder::{ReadBytesExt, WriteBytesExt};
+use group::GroupEncoding;
 use ironfish_zkp::{
     constants::{
         ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION,
@@ -33,7 +34,7 @@ pub struct Asset {
     pub(crate) metadata: [u8; 96],
 
     /// The owner who created the asset. Has permissions to mint
-    pub(crate) owner: PublicAddress,
+    pub(crate) owner: AssetPublicKey,
 
     /// The random byte used to ensure we get a valid asset identifier
     pub(crate) nonce: u8,
@@ -46,7 +47,7 @@ pub struct Asset {
 impl Asset {
     /// Create a new AssetType from a public address, name, chain, and network
     #[allow(dead_code)]
-    pub fn new(owner: PublicAddress, name: &str, metadata: &str) -> Result<Asset, IronfishError> {
+    pub fn new(owner: AssetPublicKey, name: &str, metadata: &str) -> Result<Asset, IronfishError> {
         let name_bytes = str_to_array(name);
         let metadata_bytes = str_to_array(metadata);
 
@@ -63,7 +64,7 @@ impl Asset {
 
     #[allow(dead_code)]
     fn new_with_nonce(
-        owner: PublicAddress,
+        owner: AssetPublicKey,
         name: [u8; 32],
         metadata: [u8; 96],
         nonce: u8,
@@ -76,7 +77,7 @@ impl Asset {
             .hash_length(ASSET_IDENTIFIER_LENGTH)
             .personal(ASSET_IDENTIFIER_PERSONALIZATION)
             .to_state()
-            .update(&owner.public_address())
+            .update(&owner.to_bytes())
             .update(&name)
             .update(&metadata)
             .update(from_ref(&nonce))
@@ -102,7 +103,7 @@ impl Asset {
     }
 
     #[allow(dead_code)]
-    pub fn public_address(&self) -> &PublicAddress {
+    pub fn owner(&self) -> &AssetPublicKey {
         &self.owner
     }
 
@@ -117,7 +118,12 @@ impl Asset {
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        let owner = PublicAddress::read(&mut reader)?;
+        let owner = {
+            let mut buf = [0; 32];
+            reader.read_exact(&mut buf)?;
+
+            Option::from(SubgroupPoint::from_bytes(&buf)).ok_or(IronfishError::IllegalValue)?
+        };
 
         let mut name = [0; 32];
         reader.read_exact(&mut name[..])?;
@@ -132,7 +138,7 @@ impl Asset {
 
     /// Stow the bytes of this [`MintDescription`] in the given writer.
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
-        self.owner.write(&mut writer)?;
+        writer.write_all(&self.owner.to_bytes())?;
         writer.write_all(&self.name)?;
         writer.write_all(&self.metadata)?;
         writer.write_u8(self.nonce)?;
@@ -148,24 +154,22 @@ pub fn asset_generator_point(asset: &AssetIdentifier) -> Result<SubgroupPoint, I
 
 #[cfg(test)]
 mod test {
-    use group::GroupEncoding;
+    use group::{Group, GroupEncoding};
     use ironfish_zkp::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
+    use rand::{rngs::StdRng, SeedableRng};
 
-    use crate::{util::str_to_array, PublicAddress, SaplingKey};
+    use crate::{keys::AssetPublicKey, util::str_to_array, SaplingKey};
 
     use super::{Asset, NATIVE_ASSET};
 
     #[test]
     fn test_asset_new_with_nonce() {
-        let owner = PublicAddress::new(&[
-            19, 26, 159, 204, 98, 253, 225, 73, 168, 125, 3, 240, 3, 129, 255, 146, 50, 134, 44,
-            84, 181, 195, 50, 249, 78, 128, 228, 152, 239, 10, 106, 10, 27, 58, 155, 162, 114, 133,
-            17, 48, 177, 29, 72,
-        ])
-        .expect("can create a deterministic public address");
+        let mut rng = StdRng::seed_from_u64(0);
+
+        let owner = AssetPublicKey::random(&mut rng);
         let name = str_to_array("name");
         let metadata = str_to_array("{ 'token_identifier': '0x123' }");
-        let nonce = 1;
+        let nonce = 2;
 
         let asset =
             Asset::new_with_nonce(owner, name, metadata, nonce).expect("can create an asset");
@@ -177,16 +181,16 @@ mod test {
         assert_eq!(
             asset.identifier,
             [
-                102, 249, 50, 118, 93, 130, 153, 64, 92, 174, 174, 140, 149, 242, 98, 169, 103,
-                236, 48, 27, 29, 116, 191, 177, 233, 13, 88, 217, 152, 255, 174, 4
-            ],
+                95, 1, 18, 100, 38, 25, 92, 116, 241, 228, 228, 103, 141, 85, 133, 198, 179, 38,
+                47, 89, 80, 163, 255, 230, 196, 150, 111, 237, 197, 155, 189, 92
+            ]
         );
     }
 
     #[test]
     fn test_asset_new() {
         let key = SaplingKey::generate_key();
-        let owner = key.generate_public_address();
+        let owner = key.asset_public_key();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 

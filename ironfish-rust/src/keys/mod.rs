@@ -31,6 +31,8 @@ mod test;
 
 const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Beanstalk Money ";
 
+pub(crate) type AssetPublicKey = SubgroupPoint;
+
 /// A single private key generates multiple other key parts that can
 /// be used to allow various forms of access to a commitment note:
 ///
@@ -215,7 +217,7 @@ impl SaplingKey {
 
     /// Retrieve the asset public key associated with the asset authorization
     /// key
-    pub fn asset_public_key(&self) -> SubgroupPoint {
+    pub fn asset_public_key(&self) -> AssetPublicKey {
         ASSET_KEY_GENERATOR * self.asset_authorization_key
     }
 
