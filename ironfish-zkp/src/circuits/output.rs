@@ -158,7 +158,7 @@ mod test {
     use bellman::{gadgets::test::*, Circuit};
     use ff::Field;
     use group::{Curve, Group};
-    use rand_core::{RngCore, SeedableRng};
+    use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
     use zcash_primitives::sapling::ValueCommitment;
     use zcash_primitives::sapling::{Diversifier, ProofGenerationKey, Rseed};

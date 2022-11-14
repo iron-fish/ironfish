@@ -333,7 +333,7 @@ mod test {
     };
     use ff::{Field, PrimeField, PrimeFieldBits};
     use group::{Curve, Group};
-    use rand_core::{RngCore, SeedableRng};
+    use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
     use zcash_primitives::sapling::ValueCommitment;
     use zcash_primitives::sapling::{pedersen_hash, Diversifier, Note, ProofGenerationKey, Rseed};
