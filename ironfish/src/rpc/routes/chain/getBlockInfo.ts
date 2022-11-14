@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
-import { BlockHeader } from '../../../primitives'
+import { LocalBlockHeader } from '../../../primitives/blockheader'
 import { BufferUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
@@ -81,7 +81,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
   `${ApiNamespace.chain}/getBlockInfo`,
   GetBlockInfoRequestSchema,
   async (request, node): Promise<void> => {
-    let header: BlockHeader | null = null
+    let header: LocalBlockHeader | null = null
     let error = ''
 
     if (request.data.search) {

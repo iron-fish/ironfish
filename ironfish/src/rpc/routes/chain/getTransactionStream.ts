@@ -4,8 +4,8 @@
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
-import { Block } from '../../../primitives/block'
-import { BlockHeader } from '../../../primitives/blockheader'
+import { LocalBlock } from '../../../primitives/block'
+import { LocalBlockHeader } from '../../../primitives/blockheader'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
@@ -105,7 +105,10 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       head: head,
     })
 
-    const processBlock = (block: Block, type: 'connected' | 'disconnected' | 'fork'): void => {
+    const processBlock = (
+      block: LocalBlock,
+      type: 'connected' | 'disconnected' | 'fork',
+    ): void => {
       const transactions: Transaction[] = []
 
       for (const tx of block.transactions) {
@@ -146,19 +149,19 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       })
     }
 
-    const onAdd = async (header: BlockHeader) => {
+    const onAdd = async (header: LocalBlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
       processBlock(block, 'connected')
     }
 
-    const onRemove = async (header: BlockHeader) => {
+    const onRemove = async (header: LocalBlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
       processBlock(block, 'disconnected')
     }
 
-    const onFork = (block: Block) => {
+    const onFork = (block: LocalBlock) => {
       processBlock(block, 'fork')
     }
 

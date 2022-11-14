@@ -25,8 +25,14 @@ import { NoteHasher } from '../merkletree/hasher'
 import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
-import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
-import { BlockHash, BlockHeader, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
+import { Block, BlockSerde, LocalBlock, SerializedBlock } from '../primitives/block'
+import {
+  BlockHash,
+  BlockHeader,
+  isBlockHeavier,
+  isBlockLater,
+  LocalBlockHeader,
+} from '../primitives/blockheader'
 import {
   NoteEncrypted,
   NoteEncryptedHash,
@@ -106,22 +112,22 @@ export class Blockchain {
   // When ever the blockchain becomes synced
   onSynced = new Event<[]>()
   // When ever a block is added to the heaviest chain and the trees have been updated
-  onConnectBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
+  onConnectBlock = new Event<[block: LocalBlock, tx?: IDatabaseTransaction]>()
   // When ever a block is removed from the heaviest chain, trees have not been updated yet
-  onDisconnectBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
+  onDisconnectBlock = new Event<[block: LocalBlock, tx?: IDatabaseTransaction]>()
   // When ever a block is added to a fork
-  onForkBlock = new Event<[block: Block, tx?: IDatabaseTransaction]>()
+  onForkBlock = new Event<[block: LocalBlock, tx?: IDatabaseTransaction]>()
 
-  private _head: BlockHeader | null = null
+  private _head: LocalBlockHeader | null = null
 
-  get head(): BlockHeader {
+  get head(): LocalBlockHeader {
     Assert.isNotNull(
       this._head,
       'Blockchain.head should never be null. Is the chain database open?',
     )
     return this._head
   }
-  set head(newHead: BlockHeader) {
+  set head(newHead: LocalBlockHeader) {
     this._head = newHead
   }
 
@@ -137,15 +143,15 @@ export class Blockchain {
     this._latest = newLatest
   }
 
-  private _genesis: BlockHeader | null = null
-  get genesis(): BlockHeader {
+  private _genesis: LocalBlockHeader | null = null
+  get genesis(): LocalBlockHeader {
     Assert.isNotNull(
       this._genesis,
       'Blockchain.genesis should never be null. Is the chain database open?',
     )
     return this._genesis
   }
-  set genesis(newGenesis: BlockHeader) {
+  set genesis(newGenesis: LocalBlockHeader) {
     this._genesis = newGenesis
   }
 
@@ -345,7 +351,8 @@ export class Blockchain {
         const hash = block.header.recomputeHash()
 
         if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-          return await this.connect(block, null, tx)
+          const localBlock = LocalBlock.fromGenesis(block)
+          return await this.connect(localBlock, null, tx)
         }
 
         const invalid = this.isInvalid(block.header)
@@ -371,7 +378,9 @@ export class Blockchain {
           throw new VerifyError(VerificationResultReason.ORPHAN)
         }
 
-        const connectResult = await this.connect(block, previous, tx)
+        const localBlock = LocalBlock.fromBlock(block, previous)
+
+        const connectResult = await this.connect(localBlock, previous, tx)
 
         this.resolveOrphans(block)
 
@@ -448,8 +457,8 @@ export class Blockchain {
     end?: BlockHeader,
     tx?: IDatabaseTransaction,
     reachable = true,
-  ): AsyncGenerator<BlockHeader, void, void> {
-    let lastHeader: BlockHeader | null = null
+  ): AsyncGenerator<LocalBlockHeader, void, void> {
+    let lastHeader: LocalBlockHeader | null = null
 
     for await (const hash of this.iterateToHashes(start, end, tx, reachable)) {
       const header = await this.getHeader(hash, tx)
@@ -479,8 +488,8 @@ export class Blockchain {
     tx?: IDatabaseTransaction,
     reachable = true,
   ): AsyncGenerator<BlockHash, void, void> {
-    let current = start.hash as BlockHash | null
-    let last = null as BlockHash | null
+    let current: BlockHash | null = start.hash
+    let last: BlockHash | null = null
 
     const max = end ? end.sequence - start.sequence + 1 : null
     let count = 0
@@ -516,12 +525,12 @@ export class Blockchain {
    * Start and end being included in the yielded blocks.
    * */
   async *iterateFrom(
-    start: BlockHeader,
+    start: LocalBlockHeader,
     end?: BlockHeader,
     tx?: IDatabaseTransaction,
     reachable = true,
-  ): AsyncGenerator<BlockHeader, void, void> {
-    let current = start as BlockHeader | null
+  ): AsyncGenerator<LocalBlockHeader, void, void> {
+    let current: LocalBlockHeader | null = start
     const max = end ? start.sequence - end.sequence : null
     let count = 0
 
@@ -570,14 +579,11 @@ export class Blockchain {
   }
 
   private async connect(
-    block: Block,
-    prev: BlockHeader | null,
+    block: LocalBlock,
+    prev: LocalBlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<{ isFork: boolean }> {
     const start = BenchUtils.start()
-
-    const work = block.header.target.toDifficulty()
-    block.header.work = (prev ? prev.work : BigInt(0)) + work
 
     const isFork = !this.isEmpty && !isBlockHeavier(block.header, this.head)
 
@@ -605,7 +611,7 @@ export class Blockchain {
     return { isFork: isFork }
   }
 
-  async disconnect(block: Block, tx: IDatabaseTransaction): Promise<void> {
+  async disconnect(block: LocalBlock, tx: IDatabaseTransaction): Promise<void> {
     Assert.isTrue(
       block.header.hash.equals(this.head.hash),
       `Cannot disconnect ${HashUtils.renderHash(
@@ -628,7 +634,7 @@ export class Blockchain {
     await this.onDisconnectBlock.emitAsync(block, tx)
   }
 
-  private async reconnect(block: Block, tx: IDatabaseTransaction): Promise<void> {
+  private async reconnect(block: LocalBlock, tx: IDatabaseTransaction): Promise<void> {
     Assert.isTrue(
       block.header.previousBlockHash.equals(this.head.hash),
       `Reconnecting block ${block.header.hash.toString('hex')} (${
@@ -652,7 +658,7 @@ export class Blockchain {
   }
 
   private async addForkToChain(
-    block: Block,
+    block: LocalBlock,
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
@@ -694,8 +700,8 @@ export class Blockchain {
   }
 
   private async addHeadToChain(
-    block: Block,
-    prev: BlockHeader | null,
+    block: LocalBlock,
+    prev: LocalBlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
     if (prev && !block.header.previousBlockHash.equals(this.head.hash)) {
@@ -748,7 +754,10 @@ export class Blockchain {
    * Disconnects all blocks on another fork, and reconnects blocks
    * on the new head chain before `head`
    */
-  private async reorganizeChain(newHead: BlockHeader, tx: IDatabaseTransaction): Promise<void> {
+  private async reorganizeChain(
+    newHead: LocalBlockHeader,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
     const oldHead = this.head
     Assert.isNotNull(oldHead, 'No genesis block with fork')
 
@@ -820,11 +829,12 @@ export class Blockchain {
    * Get the block with the given hash, if it exists.
    */
   async getBlock(
-    hashOrHeader: BlockHash | BlockHeader,
+    hashOrHeader: BlockHash | LocalBlockHeader,
     tx?: IDatabaseTransaction,
-  ): Promise<Block | null> {
-    const blockHeader = hashOrHeader instanceof BlockHeader ? hashOrHeader : null
-    const blockHash = hashOrHeader instanceof BlockHeader ? hashOrHeader.hash : hashOrHeader
+  ): Promise<LocalBlock | null> {
+    const blockHeader = hashOrHeader instanceof LocalBlockHeader ? hashOrHeader : null
+    const blockHash =
+      hashOrHeader instanceof LocalBlockHeader ? hashOrHeader.hash : hashOrHeader
 
     return this.db.withTransaction(tx, async (tx) => {
       const [header, transactions] = await Promise.all([
@@ -842,7 +852,7 @@ export class Blockchain {
         )
       }
 
-      return new Block(header, transactions.transactions)
+      return new LocalBlock(header, transactions.transactions)
     })
   }
 
@@ -986,14 +996,17 @@ export class Blockchain {
     })
   }
 
-  async getHeader(hash: BlockHash, tx?: IDatabaseTransaction): Promise<BlockHeader | null> {
+  async getHeader(
+    hash: BlockHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<LocalBlockHeader | null> {
     return (await this.headers.get(hash, tx))?.header || null
   }
 
   async getPrevious(
     header: BlockHeader,
     tx?: IDatabaseTransaction,
-  ): Promise<BlockHeader | null> {
+  ): Promise<LocalBlockHeader | null> {
     return this.getHeader(header.previousBlockHash, tx)
   }
 
@@ -1016,7 +1029,7 @@ export class Blockchain {
   /**
    * Gets the header of the block at the sequence on the head chain
    */
-  async getHeaderAtSequence(sequence: number): Promise<BlockHeader | null> {
+  async getHeaderAtSequence(sequence: number): Promise<LocalBlockHeader | null> {
     const hash = await this.sequenceToHash.get(sequence)
 
     if (!hash) {
@@ -1029,7 +1042,7 @@ export class Blockchain {
   async getHeadersAtSequence(
     sequence: number,
     tx?: IDatabaseTransaction,
-  ): Promise<BlockHeader[]> {
+  ): Promise<LocalBlockHeader[]> {
     const hashes = await this.sequenceToHashes.get(sequence, tx)
 
     if (!hashes) {
@@ -1127,15 +1140,15 @@ export class Blockchain {
     toHash: Buffer | null = null,
     tx?: IDatabaseTransaction,
     reachable = true,
-  ): AsyncGenerator<BlockHeader, void, void> {
-    let from: BlockHeader | null
+  ): AsyncGenerator<LocalBlockHeader, void, void> {
+    let from: LocalBlockHeader | null
     if (fromHash) {
       from = await this.getHeader(fromHash, tx)
     } else {
       from = this.genesis
     }
 
-    let to: BlockHeader | null
+    let to: LocalBlockHeader | null
     if (toHash) {
       to = await this.getHeader(toHash, tx)
     } else {
@@ -1151,7 +1164,7 @@ export class Blockchain {
   }
 
   async *iterateBlockTransactions(
-    header: BlockHeader,
+    header: LocalBlockHeader,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<
     {
@@ -1260,7 +1273,7 @@ export class Blockchain {
   }
 
   private async saveBlock(
-    block: Block,
+    block: LocalBlock,
     prev: BlockHeader | null,
     fork: boolean,
     tx: IDatabaseTransaction,

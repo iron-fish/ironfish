@@ -5,12 +5,12 @@
 import type { IDatabaseEncoding } from '../../storage/database/types'
 import bufio from 'bufio'
 import { Assert } from '../../assert'
-import { BlockHeader } from '../../primitives/blockheader'
+import { LocalBlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { BigIntUtils } from '../../utils/bigint'
 
 export type HeaderValue = {
-  header: BlockHeader
+  header: LocalBlockHeader
 }
 
 export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
@@ -54,7 +54,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const work = BigIntUtils.fromBytesLE(reader.readVarBytes())
     const hash = reader.readHash()
 
-    const header = new BlockHeader(
+    const header = new LocalBlockHeader(
       sequence,
       previousBlockHash,
       {

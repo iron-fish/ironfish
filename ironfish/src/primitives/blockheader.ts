@@ -25,7 +25,7 @@ export function isBlockLater(a: BlockHeader, b: BlockHeader): boolean {
   return a.hash.compare(b.hash) < 0
 }
 
-export function isBlockHeavier(a: BlockHeader, b: BlockHeader): boolean {
+export function isBlockHeavier(a: LocalBlockHeader, b: LocalBlockHeader): boolean {
   if (a.work !== b.work) {
     return a.work > b.work
   }
@@ -106,12 +106,6 @@ export class BlockHeader {
    */
   public graffiti: Buffer
 
-  /**
-   * (For internal uses — excluded when sent over the network)
-   * Cumulative work from genesis to this block
-   */
-  public work: bigint
-
   public hash: Buffer
 
   constructor(
@@ -124,7 +118,6 @@ export class BlockHeader {
     timestamp: Date | undefined = undefined,
     minersFee: bigint,
     graffiti: Buffer,
-    work = BigInt(0),
     hash?: Buffer,
   ) {
     this.sequence = sequence
@@ -135,7 +128,6 @@ export class BlockHeader {
     this.randomness = randomness
     this.timestamp = timestamp || new Date()
     this.minersFee = minersFee
-    this.work = work
     this.graffiti = graffiti
     this.hash = hash || this.recomputeHash()
   }
@@ -187,6 +179,42 @@ export class BlockHeader {
   }
 }
 
+export class LocalBlockHeader extends BlockHeader {
+  /**
+   * Cumulative work from genesis to this block.
+   */
+  public readonly work: bigint
+
+  constructor(
+    sequence: number,
+    previousBlockHash: BlockHash,
+    noteCommitment: { commitment: NoteEncryptedHash; size: number },
+    nullifierCommitment: { commitment: NullifierHash; size: number },
+    target: Target,
+    randomness = BigInt(0),
+    timestamp: Date | undefined = undefined,
+    minersFee: bigint,
+    graffiti: Buffer,
+    work: bigint,
+    hash?: Buffer,
+  ) {
+    super(
+      sequence,
+      previousBlockHash,
+      noteCommitment,
+      nullifierCommitment,
+      target,
+      randomness,
+      timestamp,
+      minersFee,
+      graffiti,
+      hash,
+    )
+
+    this.work = work
+  }
+}
+
 export type SerializedBlockHeader = {
   sequence: number
   previousBlockHash: string
@@ -203,7 +231,6 @@ export type SerializedBlockHeader = {
   timestamp: number
   minersFee: string
 
-  work?: string
   graffiti: string
 }
 
@@ -242,7 +269,6 @@ export class BlockHeaderSerde {
       randomness: header.randomness.toString(),
       timestamp: header.timestamp.getTime(),
       minersFee: header.minersFee.toString(),
-      work: header.work.toString(),
       hash: BlockHashSerdeInstance.serialize(header.hash),
       graffiti: GraffitiSerdeInstance.serialize(header.graffiti),
     }
@@ -267,7 +293,6 @@ export class BlockHeaderSerde {
       new Date(data.timestamp),
       BigInt(data.minersFee),
       Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
-      data.work ? BigInt(data.work) : BigInt(0),
     )
   }
 }
