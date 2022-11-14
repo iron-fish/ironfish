@@ -124,7 +124,7 @@ mod test {
     /// generation key
     fn test_mint_builder() {
         let key = SaplingKey::generate_key();
-        let owner = key.generate_public_address();
+        let owner = key.asset_public_key();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
