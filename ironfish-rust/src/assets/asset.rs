@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use crate::{errors::IronfishError, keys::AssetPublicKey, util::str_to_array};
+use bellman::gadgets::multipack;
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use ironfish_zkp::{
@@ -9,18 +10,20 @@ use ironfish_zkp::{
         ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION,
         VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
     },
-    group_hash,
+    group_hash, pedersen_hash,
 };
 use jubjub::SubgroupPoint;
 use std::{io, slice::from_ref};
-
-#[allow(dead_code)]
-pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
 
 pub const NATIVE_ASSET: AssetIdentifier = [
     215, 200, 103, 6, 245, 129, 122, 167, 24, 205, 28, 250, 208, 50, 51, 188, 214, 74, 119, 137,
     253, 148, 34, 211, 177, 122, 246, 130, 58, 126, 106, 198,
 ];
+
+pub const METADATA_LENGTH: usize = 76;
+
+#[allow(dead_code)]
+pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
 
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
@@ -31,7 +34,7 @@ pub struct Asset {
     pub(crate) name: [u8; 32],
 
     /// Metadata fields for the asset (ex. chain, network, token identifier)
-    pub(crate) metadata: [u8; 96],
+    pub(crate) metadata: [u8; METADATA_LENGTH],
 
     /// The owner who created the asset. Has permissions to mint
     pub(crate) owner: AssetPublicKey,
@@ -62,35 +65,32 @@ impl Asset {
         }
     }
 
-    #[allow(dead_code)]
     fn new_with_nonce(
         owner: AssetPublicKey,
         name: [u8; 32],
-        metadata: [u8; 96],
+        metadata: [u8; METADATA_LENGTH],
         nonce: u8,
     ) -> Result<Asset, IronfishError> {
-        // Check the personalization is acceptable length
-        assert_eq!(ASSET_IDENTIFIER_PERSONALIZATION.len(), 8);
+        let mut preimage = Vec::with_capacity(METADATA_LENGTH);
+        preimage.extend(owner.to_bytes());
+        preimage.extend(name);
+        preimage.extend(metadata);
+        preimage.extend(from_ref(&nonce));
 
-        // Create a new BLAKE2s state for deriving the asset identifier
-        let h = blake2s_simd::Params::new()
-            .hash_length(ASSET_IDENTIFIER_LENGTH)
-            .personal(ASSET_IDENTIFIER_PERSONALIZATION)
-            .to_state()
-            .update(&owner.to_bytes())
-            .update(&name)
-            .update(&metadata)
-            .update(from_ref(&nonce))
-            .finalize();
+        let preimage_bits = multipack::bytes_to_bits_le(&preimage);
+
+        let point = pedersen_hash::pedersen_hash(ASSET_IDENTIFIER_PERSONALIZATION, preimage_bits);
+
+        let bytes = point.to_bytes();
 
         // Check that this is valid as a value commitment generator point
-        if asset_generator_point(h.as_array()).is_ok() {
+        if asset_generator_point(&bytes).is_ok() {
             Ok(Asset {
                 owner,
                 name,
                 metadata,
                 nonce,
-                identifier: *h.as_array(),
+                identifier: bytes,
             })
         } else {
             Err(IronfishError::InvalidAssetIdentifier)
@@ -128,7 +128,7 @@ impl Asset {
         let mut name = [0; 32];
         reader.read_exact(&mut name[..])?;
 
-        let mut metadata = [0; 96];
+        let mut metadata = [0; METADATA_LENGTH];
         reader.read_exact(&mut metadata[..])?;
 
         let nonce = reader.read_u8()?;
@@ -181,8 +181,8 @@ mod test {
         assert_eq!(
             asset.identifier,
             [
-                95, 1, 18, 100, 38, 25, 92, 116, 241, 228, 228, 103, 141, 85, 133, 198, 179, 38,
-                47, 89, 80, 163, 255, 230, 196, 150, 111, 237, 197, 155, 189, 92
+                170, 34, 193, 132, 126, 219, 5, 38, 84, 16, 124, 134, 247, 247, 114, 69, 220, 169,
+                234, 12, 33, 112, 141, 13, 149, 43, 135, 241, 158, 174, 231, 85
             ]
         );
     }
