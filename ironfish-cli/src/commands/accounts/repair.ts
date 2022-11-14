@@ -49,7 +49,7 @@ export default class Repair extends IronfishCommand {
     await this.repairNullifierToNoteHash(account, node.wallet.walletDb)
 
     this.log('Repairing sequenceToNoteHash')
-    await this.repairSequenceToNoteHash(account, node.wallet.walletDb)
+    await this.repairSequenceToNoteHash(account, node.wallet.walletDb, node.chain)
   }
 
   private loadAccount(wallet: Wallet, accountName: string | undefined): Account {
@@ -88,7 +88,13 @@ export default class Repair extends IronfishCommand {
 
         Assert.isNotUndefined(
           transactionValue,
-          'Account has a note but is missing the transaction that it received the note from. Account must be rescanned',
+          'Account has a note but is missing the transaction that it received the note from. Account must be rescanned using `accounts:rescan --reset`',
+        )
+
+        await this.verifyBlockContainsTransaction(
+          decryptedNoteValue.transactionHash,
+          transactionValue.blockHash,
+          chain,
         )
 
         await walletDb.setNoteHashSequence(
@@ -101,7 +107,7 @@ export default class Repair extends IronfishCommand {
         if (!decryptedNoteValue.nullifier) {
           if (transactionValue.sequence) {
             throw new Error(
-              'Transaction marked as on chain, but note missing nullifier. Account must be rescanned.',
+              'Transaction marked as on chain, but note missing nullifier. Account must be rescanned using `accounts:rescan --reset`.',
             )
           }
 
@@ -188,7 +194,11 @@ export default class Repair extends IronfishCommand {
     )
   }
 
-  private async repairSequenceToNoteHash(account: Account, walletDb: WalletDB): Promise<void> {
+  private async repairSequenceToNoteHash(
+    account: Account,
+    walletDb: WalletDB,
+    chain: Blockchain,
+  ): Promise<void> {
     let sequenceMismatches = 0
     let missingNotes = 0
 
@@ -210,7 +220,13 @@ export default class Repair extends IronfishCommand {
 
           Assert.isNotUndefined(
             transactionValue,
-            'Account has a note but is missing the transaction that it received the note from. Account must be rescanned.',
+            'Account has a note but is missing the transaction that it received the note from. Account must be rescanned using `accounts:rescan --reset`.',
+          )
+
+          await this.verifyBlockContainsTransaction(
+            decryptedNoteValue.transactionHash,
+            transactionValue.blockHash,
+            chain,
           )
 
           if (transactionValue.sequence !== sequence) {
@@ -227,6 +243,34 @@ export default class Repair extends IronfishCommand {
     this.log(`\tRepaired ${missingNotes} sequenceToNoteHash mappings with missing notes`)
     this.log(
       `\tRepaired ${sequenceMismatches} sequenceToNoteHash mappings with incorrect sequences`,
+    )
+  }
+
+  async verifyBlockContainsTransaction(
+    transactionHash: Buffer,
+    blockHash: Buffer | null,
+    chain: Blockchain,
+  ): Promise<void> {
+    if (!blockHash) {
+      return
+    }
+
+    const block = await chain.getBlock(blockHash)
+
+    if (!block) {
+      throw new Error(
+        'Transaction marked as on chain, but missing from block. Account must be rescanned using `accounts:rescan --reset`.',
+      )
+    }
+
+    for (const transaction of block.transactions) {
+      if (transaction.hash().equals(transactionHash)) {
+        return
+      }
+    }
+
+    throw new Error(
+      'Transaction marked as on chain, but missing from block. Account must be rescanned using `accounts:rescan --reset`.',
     )
   }
 }
