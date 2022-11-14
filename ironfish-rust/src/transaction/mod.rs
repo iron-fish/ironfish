@@ -111,7 +111,7 @@ impl ProposedTransaction {
     }
 
     pub fn add_mint(&mut self, asset: Asset, value: u64) {
-        self.value_balances.add(&asset.identifier(), value as i64);
+        self.value_balances.add(asset.identifier(), value as i64);
 
         self.mints.push(MintBuilder::new(asset));
     }
