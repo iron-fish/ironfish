@@ -901,4 +901,67 @@ describe('Blockchain', () => {
       })
     }
   })
+
+  it('does not remove nullifiers from double spends during reorg', async () => {
+    const { node: nodeA } = await nodeTest.createSetup()
+    const { node: nodeB } = await nodeTest.createSetup()
+
+    nodeA.chain.consensus.V1_DOUBLE_SPEND = 5
+
+    const accountA = await useAccountFixture(nodeB.wallet, 'accountA')
+    const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
+
+    // create the chain
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 2, accountA)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    await expect(nodeA.chain).toAddBlock(blockB2)
+
+    // create the double spend tx
+    await nodeB.wallet.updateHead()
+    const tx = await useTxFixture(nodeB.wallet, accountA, accountB)
+
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, 3, undefined, undefined, [tx])
+    await expect(nodeB.chain).toAddBlock(blockB3)
+    await expect(nodeA.chain).toAddBlock(blockB3)
+
+    // create a fork with a double spend
+    const blockA4 = await useMinerBlockFixture(nodeA.chain, 4, undefined, undefined, [tx])
+    await expect(nodeA.chain).toAddBlock(blockA4)
+
+    // continue the main chain
+    const blockB4 = await useMinerBlockFixture(nodeB.chain, 4)
+    await expect(nodeB.chain).toAddBlock(blockB4)
+
+    const blockB5 = await useMinerBlockFixture(nodeB.chain, 5)
+    await expect(nodeB.chain).toAddBlock(blockB5)
+
+    // now start adding the main chain until we reorg to it
+    await expect(nodeA.chain).toAddBlock(blockB4)
+    await expect(nodeA.chain).toAddBlock(blockB5)
+
+    // both chains should contain the nullifiers from the double spend transaction
+    for (const spend of tx.spends()) {
+      await expect(nodeB.chain.nullifiers.contains(spend.nullifier)).resolves.toBe(true)
+    }
+
+    for (const spend of tx.spends()) {
+      await expect(nodeA.chain.nullifiers.contains(spend.nullifier)).resolves.toBe(true)
+    }
+
+    // create another block with a double spend
+    const blockA6 = await useMinerBlockFixture(nodeB.chain, 6, undefined, undefined, [tx])
+
+    // neither chain should add it
+    await expect(nodeB.chain.addBlock(blockA6)).resolves.toMatchObject({
+      isAdded: false,
+      isFork: null,
+      reason: VerificationResultReason.DOUBLE_SPEND,
+    })
+
+    await expect(nodeA.chain.addBlock(blockA6)).resolves.toMatchObject({
+      isAdded: false,
+      isFork: null,
+      reason: VerificationResultReason.DOUBLE_SPEND,
+    })
+  })
 })
