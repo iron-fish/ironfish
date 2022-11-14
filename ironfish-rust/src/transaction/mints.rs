@@ -6,7 +6,7 @@ use std::io;
 
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
-use ironfish_zkp::{circuits::mint_asset::MintAsset, ProofGenerationKey};
+use ironfish_zkp::circuits::mint_asset::MintAsset;
 use rand::thread_rng;
 
 use crate::{
@@ -29,17 +29,13 @@ impl MintBuilder {
 
     pub fn build(
         &self,
-        proof_generation_key: ProofGenerationKey,
+        asset_authorization_key: jubjub::Fr,
     ) -> Result<MintDescription, IronfishError> {
         let circuit = MintAsset {
             name: self.asset.name,
-            chain: self.asset.chain,
-            network: self.asset.network,
-            token_identifier: self.asset.token_identifier,
-            owner: Some(self.asset.owner.sapling_payment_address()),
+            metadata: self.asset.metadata,
             nonce: self.asset.nonce,
-            identifier: self.asset.identifier,
-            proof_generation_key: Some(proof_generation_key),
+            asset_authorization_key: Some(asset_authorization_key),
         };
 
         let proof = groth16::create_random_proof(circuit, &SAPLING.mint_params, &mut thread_rng())?;
@@ -130,11 +126,9 @@ mod test {
         let key = SaplingKey::generate_key();
         let owner = key.generate_public_address();
         let name = "name";
-        let chain = "chain";
-        let network = "network";
-        let token_identifier = "token identifier";
+        let metadata = "{ 'token_identifier': '0x123' }";
 
-        let asset = Asset::new(owner, name, chain, network, token_identifier).unwrap();
+        let asset = Asset::new(owner, name, metadata).unwrap();
 
         let mint = MintBuilder::new(asset);
         // let mint_description = mint.build(key.sapling_proof_generation_key()).expect("should build valid mint description");
