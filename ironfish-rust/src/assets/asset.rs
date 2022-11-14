@@ -29,14 +29,8 @@ pub struct Asset {
     /// Name of the asset
     pub(crate) name: [u8; 32],
 
-    /// Chain on the network the asset originated from (ex. Ropsten)
-    pub(crate) chain: [u8; 32],
-
-    /// Network the asset originated from (ex. Ethereum)
-    pub(crate) network: [u8; 32],
-
-    /// Identifier field for bridged asset address, or if a native custom asset, random bytes.
-    pub(crate) token_identifier: [u8; 32],
+    /// Metadata fields for the asset (ex. chain, network, token identifier)
+    pub(crate) metadata: [u8; 96],
 
     /// The owner who created the asset. Has permissions to mint
     pub(crate) owner: PublicAddress,
@@ -52,28 +46,14 @@ pub struct Asset {
 impl Asset {
     /// Create a new AssetType from a public address, name, chain, and network
     #[allow(dead_code)]
-    pub fn new(
-        owner: PublicAddress,
-        name: &str,
-        chain: &str,
-        network: &str,
-        token_identifier: &str,
-    ) -> Result<Asset, IronfishError> {
+    pub fn new(owner: PublicAddress, name: &str, metadata: &str) -> Result<Asset, IronfishError> {
         let name_bytes = str_to_array(name);
-        let chain_bytes = str_to_array(chain);
-        let network_bytes = str_to_array(network);
-        let token_identifier_bytes = str_to_array(token_identifier);
+        let metadata_bytes = str_to_array(metadata);
 
         let mut nonce = 0u8;
         loop {
-            if let Ok(asset_info) = Asset::new_with_nonce(
-                owner,
-                name_bytes,
-                chain_bytes,
-                network_bytes,
-                token_identifier_bytes,
-                nonce,
-            ) {
+            if let Ok(asset_info) = Asset::new_with_nonce(owner, name_bytes, metadata_bytes, nonce)
+            {
                 return Ok(asset_info);
             }
 
@@ -85,9 +65,7 @@ impl Asset {
     fn new_with_nonce(
         owner: PublicAddress,
         name: [u8; 32],
-        chain: [u8; 32],
-        network: [u8; 32],
-        token_identifier: [u8; 32],
+        metadata: [u8; 96],
         nonce: u8,
     ) -> Result<Asset, IronfishError> {
         // Check the personalization is acceptable length
@@ -100,9 +78,7 @@ impl Asset {
             .to_state()
             .update(&owner.public_address())
             .update(&name)
-            .update(&chain)
-            .update(&network)
-            .update(&token_identifier)
+            .update(&metadata)
             .update(from_ref(&nonce))
             .finalize();
 
@@ -111,9 +87,7 @@ impl Asset {
             Ok(Asset {
                 owner,
                 name,
-                chain,
-                network,
-                token_identifier,
+                metadata,
                 nonce,
                 identifier: *h.as_array(),
             })
@@ -148,27 +122,19 @@ impl Asset {
         let mut name = [0; 32];
         reader.read_exact(&mut name[..])?;
 
-        let mut chain = [0; 32];
-        reader.read_exact(&mut chain[..])?;
-
-        let mut network = [0; 32];
-        reader.read_exact(&mut network[..])?;
-
-        let mut token_identifier = [0; 32];
-        reader.read_exact(&mut token_identifier[..])?;
+        let mut metadata = [0; 96];
+        reader.read_exact(&mut metadata[..])?;
 
         let nonce = reader.read_u8()?;
 
-        Asset::new_with_nonce(owner, name, chain, network, token_identifier, nonce)
+        Asset::new_with_nonce(owner, name, metadata, nonce)
     }
 
     /// Stow the bytes of this [`MintDescription`] in the given writer.
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         self.owner.write(&mut writer)?;
         writer.write_all(&self.name)?;
-        writer.write_all(&self.chain)?;
-        writer.write_all(&self.network)?;
-        writer.write_all(&self.token_identifier)?;
+        writer.write_all(&self.metadata)?;
         writer.write_u8(self.nonce)?;
 
         Ok(())
@@ -198,25 +164,21 @@ mod test {
         ])
         .expect("can create a deterministic public address");
         let name = str_to_array("name");
-        let chain = str_to_array("chain");
-        let network = str_to_array("network");
-        let token_identifier = str_to_array("token identifier");
-        let nonce = 0;
+        let metadata = str_to_array("{ 'token_identifier': '0x123' }");
+        let nonce = 1;
 
-        let asset = Asset::new_with_nonce(owner, name, chain, network, token_identifier, nonce)
-            .expect("can create an asset");
+        let asset =
+            Asset::new_with_nonce(owner, name, metadata, nonce).expect("can create an asset");
 
         assert_eq!(asset.owner, owner);
         assert_eq!(asset.name, name);
-        assert_eq!(asset.chain, chain);
-        assert_eq!(asset.network, network);
-        assert_eq!(asset.token_identifier, token_identifier);
+        assert_eq!(asset.metadata, metadata);
         assert_eq!(asset.nonce, nonce);
         assert_eq!(
             asset.identifier,
             [
-                174, 9, 19, 214, 96, 63, 10, 51, 94, 42, 41, 186, 207, 162, 48, 235, 1, 255, 211,
-                190, 228, 93, 137, 120, 138, 89, 61, 168, 168, 11, 150, 127
+                102, 249, 50, 118, 93, 130, 153, 64, 92, 174, 174, 140, 149, 242, 98, 169, 103,
+                236, 48, 27, 29, 116, 191, 177, 233, 13, 88, 217, 152, 255, 174, 4
             ],
         );
     }
@@ -226,18 +188,13 @@ mod test {
         let key = SaplingKey::generate_key();
         let owner = key.generate_public_address();
         let name = "name";
-        let chain = "chain";
-        let network = "network";
-        let token_identifier = "token identifier";
+        let metadata = "{ 'token_identifier': '0x123' }";
 
-        let asset =
-            Asset::new(owner, name, chain, network, token_identifier).expect("can create an asset");
+        let asset = Asset::new(owner, name, metadata).expect("can create an asset");
 
         assert_eq!(asset.owner, owner);
         assert_eq!(asset.name, str_to_array(name));
-        assert_eq!(asset.chain, str_to_array(chain));
-        assert_eq!(asset.network, str_to_array(network));
-        assert_eq!(asset.token_identifier, str_to_array(token_identifier));
+        assert_eq!(asset.metadata, str_to_array(metadata));
     }
 
     #[test]
