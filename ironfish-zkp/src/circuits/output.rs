@@ -3,25 +3,18 @@ use group::Curve;
 
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 
-use zcash_primitives::sapling::{PaymentAddress, ProofGenerationKey, ValueCommitment};
+use zcash_primitives::sapling::{PaymentAddress, ValueCommitment};
 
 use zcash_proofs::{
     circuit::{
-        ecc::{self, EdwardsPoint},
+        ecc::{self},
         pedersen_hash,
     },
-    constants::{
-        NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
-        PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
-    },
+    constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
 use super::util::expose_value_commitment;
-use bellman::gadgets::blake2s;
 use bellman::gadgets::boolean;
-use bellman::gadgets::multipack;
-use bellman::gadgets::num;
-use bellman::gadgets::Assignment;
 
 /// This is an output circuit instance.
 pub struct Output {
@@ -160,104 +153,111 @@ impl Circuit<bls12_381::Scalar> for Output {
     }
 }
 
-#[test]
-fn test_output_circuit_with_bls12_381() {
-    use bellman::gadgets::test::*;
+#[cfg(test)]
+mod test {
+    use bellman::{gadgets::test::*, Circuit};
     use ff::Field;
-    use group::Group;
+    use group::{Curve, Group};
     use rand_core::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
+    use zcash_primitives::sapling::ValueCommitment;
     use zcash_primitives::sapling::{Diversifier, ProofGenerationKey, Rseed};
 
-    let mut rng = XorShiftRng::from_seed([
-        0x58, 0x62, 0xbe, 0x3d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06, 0xbc,
-        0xe5,
-    ]);
+    use crate::circuits::output::Output;
 
-    for _ in 0..100 {
-        let value_commitment = ValueCommitment {
-            value: rng.next_u64(),
-            randomness: jubjub::Fr::random(&mut rng),
-        };
+    #[test]
+    fn test_output_circuit_with_bls12_381() {
+        let mut rng = XorShiftRng::from_seed([
+            0x58, 0x62, 0xbe, 0x3d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
 
-        let nsk = jubjub::Fr::random(&mut rng);
-        let ak = jubjub::SubgroupPoint::random(&mut rng);
-
-        let proof_generation_key = ProofGenerationKey { ak, nsk };
-
-        let viewing_key = proof_generation_key.to_viewing_key();
-
-        let payment_address;
-
-        loop {
-            let diversifier = {
-                let mut d = [0; 11];
-                rng.fill_bytes(&mut d);
-                Diversifier(d)
+        for _ in 0..100 {
+            let value_commitment = ValueCommitment {
+                value: rng.next_u64(),
+                randomness: jubjub::Fr::random(&mut rng),
             };
 
-            if let Some(p) = viewing_key.to_payment_address(diversifier) {
-                payment_address = p;
-                break;
+            let nsk = jubjub::Fr::random(&mut rng);
+            let ak = jubjub::SubgroupPoint::random(&mut rng);
+
+            let proof_generation_key = ProofGenerationKey { ak, nsk };
+
+            let viewing_key = proof_generation_key.to_viewing_key();
+
+            let payment_address;
+
+            loop {
+                let diversifier = {
+                    let mut d = [0; 11];
+                    rng.fill_bytes(&mut d);
+                    Diversifier(d)
+                };
+
+                if let Some(p) = viewing_key.to_payment_address(diversifier) {
+                    payment_address = p;
+                    break;
+                }
             }
-        }
 
-        let commitment_randomness = jubjub::Fr::random(&mut rng);
-        let esk = jubjub::Fr::random(&mut rng);
+            let commitment_randomness = jubjub::Fr::random(&mut rng);
+            let esk = jubjub::Fr::random(&mut rng);
 
-        {
-            let mut cs = TestConstraintSystem::new();
+            {
+                let mut cs = TestConstraintSystem::new();
 
-            let instance = Output {
-                value_commitment: Some(value_commitment.clone()),
-                payment_address: Some(payment_address.clone()),
-                commitment_randomness: Some(commitment_randomness),
-                esk: Some(esk),
-            };
+                let instance = Output {
+                    value_commitment: Some(value_commitment.clone()),
+                    payment_address: Some(payment_address.clone()),
+                    commitment_randomness: Some(commitment_randomness),
+                    esk: Some(esk),
+                };
 
-            instance.synthesize(&mut cs).unwrap();
+                instance.synthesize(&mut cs).unwrap();
 
-            assert!(cs.is_satisfied());
-            assert_eq!(cs.num_constraints(), 7827);
-            assert_eq!(
-                cs.hash(),
-                "c26d5cdfe6ccd65c03390902c02e11393ea6bb96aae32a7f2ecb12eb9103faee"
-            );
+                assert!(cs.is_satisfied());
+                assert_eq!(cs.num_constraints(), 7827);
+                assert_eq!(
+                    cs.hash(),
+                    "c26d5cdfe6ccd65c03390902c02e11393ea6bb96aae32a7f2ecb12eb9103faee"
+                );
 
-            let expected_cmu = payment_address
-                .create_note(
-                    value_commitment.value,
-                    Rseed::BeforeZip212(commitment_randomness),
+                let expected_cmu = payment_address
+                    .create_note(
+                        value_commitment.value,
+                        Rseed::BeforeZip212(commitment_randomness),
+                    )
+                    .expect("should be valid")
+                    .cmu();
+
+                let expected_value_commitment =
+                    jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
+
+                let expected_epk = jubjub::ExtendedPoint::from(
+                    payment_address.g_d().expect("should be valid") * esk,
                 )
-                .expect("should be valid")
-                .cmu();
+                .to_affine();
 
-            let expected_value_commitment =
-                jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
-
-            let expected_epk =
-                jubjub::ExtendedPoint::from(payment_address.g_d().expect("should be valid") * esk)
-                    .to_affine();
-
-            assert_eq!(cs.num_inputs(), 6);
-            assert_eq!(cs.get_input(0, "ONE"), bls12_381::Scalar::one());
-            assert_eq!(
-                cs.get_input(1, "value commitment/commitment point/u/input variable"),
-                expected_value_commitment.get_u()
-            );
-            assert_eq!(
-                cs.get_input(2, "value commitment/commitment point/v/input variable"),
-                expected_value_commitment.get_v()
-            );
-            assert_eq!(
-                cs.get_input(3, "epk/u/input variable"),
-                expected_epk.get_u()
-            );
-            assert_eq!(
-                cs.get_input(4, "epk/v/input variable"),
-                expected_epk.get_v()
-            );
-            assert_eq!(cs.get_input(5, "commitment/input variable"), expected_cmu);
+                assert_eq!(cs.num_inputs(), 6);
+                assert_eq!(cs.get_input(0, "ONE"), bls12_381::Scalar::one());
+                assert_eq!(
+                    cs.get_input(1, "value commitment/commitment point/u/input variable"),
+                    expected_value_commitment.get_u()
+                );
+                assert_eq!(
+                    cs.get_input(2, "value commitment/commitment point/v/input variable"),
+                    expected_value_commitment.get_v()
+                );
+                assert_eq!(
+                    cs.get_input(3, "epk/u/input variable"),
+                    expected_epk.get_u()
+                );
+                assert_eq!(
+                    cs.get_input(4, "epk/v/input variable"),
+                    expected_epk.get_v()
+                );
+                assert_eq!(cs.get_input(5, "commitment/input variable"), expected_cmu);
+            }
         }
     }
 }
