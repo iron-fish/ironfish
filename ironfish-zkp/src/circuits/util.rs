@@ -11,9 +11,7 @@ use zcash_proofs::circuit::ecc::EdwardsPoint;
 pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
     cs: &mut CS,
     name: [u8; 32],
-    chain: [u8; 32],
-    network: [u8; 32],
-    token_identifier: [u8; 32],
+    metadata: [u8; 96],
     asset_public_key: EdwardsPoint,
     nonce: u8,
 ) -> Result<Vec<boolean::Boolean>, SynthesisError> {
@@ -25,20 +23,9 @@ pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
     let name_bits = slice_into_boolean_vec_le(cs.namespace(|| "booleanize name"), Some(&name), 32)?;
     combined_preimage.extend(name_bits);
 
-    let chain_bits =
-        slice_into_boolean_vec_le(cs.namespace(|| "booleanize chain"), Some(&chain), 32)?;
-    combined_preimage.extend(chain_bits);
-
-    let network_bits =
-        slice_into_boolean_vec_le(cs.namespace(|| "booleanize network"), Some(&network), 32)?;
-    combined_preimage.extend(network_bits);
-
-    let token_identifier_bits = slice_into_boolean_vec_le(
-        cs.namespace(|| "booleanize token_identifier"),
-        Some(&token_identifier),
-        32,
-    )?;
-    combined_preimage.extend(token_identifier_bits);
+    let metadata_bits =
+        slice_into_boolean_vec_le(cs.namespace(|| "booleanize metadata"), Some(&metadata), 96)?;
+    combined_preimage.extend(metadata_bits);
 
     let nonce_bits = slice_into_boolean_vec_le(
         cs.namespace(|| "booleanize nonce"),

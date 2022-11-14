@@ -13,14 +13,9 @@ pub struct MintAsset {
     /// Name of the asset
     pub name: [u8; 32],
 
-    /// Chain on the network the asset originated from (ex. Ropsten)
-    pub chain: [u8; 32],
-
-    /// Network the asset originated from (ex. Ethereum)
-    pub network: [u8; 32],
-
     /// Identifier field for bridged asset address, or if a native custom asset, random bytes.
-    pub token_identifier: [u8; 32],
+    /// Metadata for the asset (ex. chain, network, token identifier)
+    pub metadata: [u8; 96],
 
     /// The random byte used to ensure we get a valid asset identifier
     pub nonce: u8,
@@ -53,9 +48,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         let identifier_preimage = asset_info_preimage(
             &mut cs.namespace(|| "asset info preimage"),
             self.name,
-            self.chain,
-            self.network,
-            self.token_identifier,
+            self.metadata,
             asset_public_key,
             self.nonce,
         )?;
@@ -106,17 +99,13 @@ mod test {
         let asset_public_key = ASSET_KEY_GENERATOR * asset_auth_key;
 
         let name = [1u8; 32];
-        let chain = [2u8; 32];
-        let network = [3u8; 32];
-        let token_identifier = [4u8; 32];
+        let metadata = [2u8; 96];
         let nonce = 1u8;
 
         let mut asset_plaintext: Vec<u8> = vec![];
         asset_plaintext.extend(&asset_public_key.to_bytes());
         asset_plaintext.extend(name);
-        asset_plaintext.extend(chain);
-        asset_plaintext.extend(network);
-        asset_plaintext.extend(token_identifier);
+        asset_plaintext.extend(metadata);
         asset_plaintext.extend(slice::from_ref(&nonce));
 
         let identifier = blake2s_simd::Params::new()
@@ -132,9 +121,7 @@ mod test {
         // Mint proof
         let circuit = MintAsset {
             name,
-            chain,
-            network,
-            token_identifier,
+            metadata,
             nonce,
             asset_authorization_key: Some(asset_auth_key),
         };
