@@ -226,7 +226,7 @@ impl ProposedTransaction {
 
         let mut mint_descriptions = Vec::with_capacity(self.mints.len());
         for mint in &self.mints {
-            mint_descriptions.push(mint.build(self.spender_key.sapling_proof_generation_key())?);
+            mint_descriptions.push(mint.build(self.spender_key.asset_authorization_key())?);
         }
 
         let data_to_sign = self.transaction_signature_hash(
