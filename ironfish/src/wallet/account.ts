@@ -132,7 +132,7 @@ export class Account {
       }
 
       if (existingNote && existingNote.nullifier !== null && note.nullifier == null) {
-        await this.deleteNullifier(existingNote.nullifier, tx)
+        await this.walletDb.deleteNullifier(this, existingNote.nullifier, tx)
       }
 
       await this.walletDb.saveDecryptedNote(this, noteHash, note, tx)
