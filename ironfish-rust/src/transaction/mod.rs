@@ -113,7 +113,7 @@ impl ProposedTransaction {
     pub fn add_mint(&mut self, asset: Asset, value: u64) {
         self.value_balances.add(asset.identifier(), value as i64);
 
-        self.mints.push(MintBuilder::new(asset));
+        self.mints.push(MintBuilder::new(asset, value));
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
@@ -335,6 +335,11 @@ impl ProposedTransaction {
         for output in &self.outputs {
             binding_signature_key -= output.value_commitment.randomness;
             binding_verification_key -= output.value_commitment_point();
+        }
+
+        for mint in &self.mints {
+            binding_signature_key += mint.value_commitment.randomness;
+            binding_verification_key += mint.value_commitment_point();
         }
 
         let private_key = PrivateKey(binding_signature_key);
@@ -598,7 +603,7 @@ pub fn batch_verify_transactions<'a>(
         let hash_to_verify_signature = transaction.transaction_signature_hash();
 
         for spend in transaction.spends.iter() {
-            spend.verify_value_commitment()?;
+            spend.verify_not_small_order()?;
 
             let public_inputs = spend.public_inputs();
             spend_verifier.queue((&spend.proof, &public_inputs[..]));
@@ -609,7 +614,7 @@ pub fn batch_verify_transactions<'a>(
         }
 
         for output in transaction.outputs.iter() {
-            output.verify_value_commitment()?;
+            output.verify_not_small_order()?;
 
             let public_inputs = output.public_inputs();
             output_verifier.queue((&output.proof, &public_inputs[..]));
