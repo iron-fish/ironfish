@@ -122,7 +122,7 @@ impl Asset {
             let mut buf = [0; 32];
             reader.read_exact(&mut buf)?;
 
-            Option::from(SubgroupPoint::from_bytes(&buf)).ok_or(IronfishError::IllegalValue)?
+            Option::from(AssetPublicKey::from_bytes(&buf)).ok_or(IronfishError::IllegalValue)?
         };
 
         let mut name = [0; 32];
