@@ -141,7 +141,7 @@ impl OutputDescription {
     /// Verify that the proof demonstrates knowledge that a note exists with
     /// the value_commitment, public_key, and note_commitment on this proof.
     pub fn verify_proof(&self) -> Result<(), IronfishError> {
-        self.verify_value_commitment()?;
+        self.verify_not_small_order()?;
 
         groth16::verify_proof(
             &SAPLING.output_verifying_key,
@@ -152,7 +152,7 @@ impl OutputDescription {
         Ok(())
     }
 
-    pub fn verify_value_commitment(&self) -> Result<(), IronfishError> {
+    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
         if self.merkle_note.value_commitment.is_small_order().into()
             || ExtendedPoint::from(self.merkle_note.ephemeral_public_key)
                 .is_small_order()
