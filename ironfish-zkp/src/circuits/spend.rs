@@ -1,5 +1,9 @@
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use ff::PrimeField;
+use jubjub::ExtendedPoint;
+use jubjub::SubgroupPoint;
+
+use crate::constants::PUBLIC_KEY_GENERATOR;
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::blake2s;
@@ -10,7 +14,7 @@ use bellman::gadgets::Assignment;
 use zcash_primitives::{
     constants::CRH_IVK_PERSONALIZATION,
     constants::PRF_NF_PERSONALIZATION,
-    sapling::{PaymentAddress, ProofGenerationKey, ValueCommitment},
+    sapling::{ProofGenerationKey, ValueCommitment},
 };
 use zcash_proofs::{
     circuit::{
@@ -33,7 +37,7 @@ pub struct Spend {
     pub proof_generation_key: Option<ProofGenerationKey>,
 
     /// The payment address associated with the note
-    pub payment_address: Option<PaymentAddress>,
+    pub payment_address: Option<SubgroupPoint>,
 
     /// The randomness of the note commitment
     pub commitment_randomness: Option<jubjub::Fr>,
@@ -135,14 +139,10 @@ impl Circuit<bls12_381::Scalar> for Spend {
         ivk.truncate(jubjub::Fr::CAPACITY as usize);
 
         // Witness g_d, checking that it's on the curve.
-        let g_d = {
-            ecc::EdwardsPoint::witness(
-                cs.namespace(|| "witness g_d"),
-                self.payment_address
-                    .as_ref()
-                    .and_then(|a| a.g_d().map(jubjub::ExtendedPoint::from)),
-            )?
-        };
+        let g_d = ecc::EdwardsPoint::witness(
+            cs.namespace(|| "witness g_d"),
+            Some(ExtendedPoint::from(PUBLIC_KEY_GENERATOR)),
+        )?;
 
         // Check that g_d is not small order. Technically, this check
         // is already done in the Output circuit, and this proof ensures
@@ -336,9 +336,9 @@ mod test {
     use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
     use zcash_primitives::sapling::ValueCommitment;
-    use zcash_primitives::sapling::{pedersen_hash, Diversifier, Note, ProofGenerationKey, Rseed};
+    use zcash_primitives::sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed};
 
-    use crate::circuits::spend::Spend;
+    use crate::{circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR};
 
     #[test]
     fn test_input_circuit_with_bls12_381() {
@@ -362,22 +362,8 @@ mod test {
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
-            let payment_address;
+            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
 
-            loop {
-                let diversifier = {
-                    let mut d = [0; 11];
-                    rng.fill_bytes(&mut d);
-                    Diversifier(d)
-                };
-
-                if let Some(p) = viewing_key.to_payment_address(diversifier) {
-                    payment_address = p;
-                    break;
-                }
-            }
-
-            let g_d = payment_address.diversifier().g_d().unwrap();
             let commitment_randomness = jubjub::Fr::random(&mut rng);
             let auth_path =
                 vec![
@@ -392,8 +378,8 @@ mod test {
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
                 let note = Note {
                     value: value_commitment.value,
-                    g_d,
-                    pk_d: *payment_address.pk_d(),
+                    g_d: PUBLIC_KEY_GENERATOR,
+                    pk_d: payment_address,
                     rseed: Rseed::BeforeZip212(commitment_randomness),
                 };
 
@@ -528,22 +514,8 @@ mod test {
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
-            let payment_address;
+            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
 
-            loop {
-                let diversifier = {
-                    let mut d = [0; 11];
-                    rng.fill_bytes(&mut d);
-                    Diversifier(d)
-                };
-
-                if let Some(p) = viewing_key.to_payment_address(diversifier) {
-                    payment_address = p;
-                    break;
-                }
-            }
-
-            let g_d = payment_address.diversifier().g_d().unwrap();
             let commitment_randomness = jubjub::Fr::random(&mut rng);
             let auth_path =
                 vec![
@@ -568,8 +540,8 @@ mod test {
                 );
                 let note = Note {
                     value: value_commitment.value,
-                    g_d,
-                    pk_d: *payment_address.pk_d(),
+                    g_d: PUBLIC_KEY_GENERATOR,
+                    pk_d: payment_address,
                     rseed: Rseed::BeforeZip212(commitment_randomness),
                 };
 
