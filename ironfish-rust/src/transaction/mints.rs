@@ -6,10 +6,14 @@ use std::io;
 
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
-use group::GroupEncoding;
-use ironfish_zkp::{circuits::mint_asset::MintAsset, ValueCommitment};
+use group::{Curve, GroupEncoding};
+use ironfish_zkp::{
+    circuits::mint_asset::MintAsset,
+    constants::ASSET_KEY_GENERATOR,
+    redjubjub::{self, Signature},
+    ValueCommitment,
+};
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
@@ -17,7 +21,7 @@ use crate::{
     assets::asset::{asset_generator_point, Asset},
     errors::IronfishError,
     sapling_bls12::SAPLING,
-    serializing::read_scalar,
+    SaplingKey,
 };
 
 /// Parameters used to build a circuit that verifies an asset can be minted with
@@ -54,26 +58,75 @@ impl MintBuilder {
 
     pub fn build(
         &self,
-        asset_authorization_key: jubjub::Fr,
-    ) -> Result<MintDescription, IronfishError> {
+        spender_key: &SaplingKey,
+    ) -> Result<UnsignedMintDescription, IronfishError> {
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+
         let circuit = MintAsset {
             name: self.asset.name,
             metadata: self.asset.metadata,
             nonce: self.asset.nonce,
-            asset_authorization_key: Some(asset_authorization_key),
+            asset_authorization_key: Some(spender_key.asset_authorization_key()),
+            value_commitment: Some(self.value_commitment.clone()),
+            public_key_randomness: Some(public_key_randomness),
         };
 
         let proof = groth16::create_random_proof(circuit, &SAPLING.mint_params, &mut thread_rng())?;
 
+        let randomized_public_key = redjubjub::PublicKey(spender_key.asset_public_key().into())
+            .randomize(public_key_randomness, ASSET_KEY_GENERATOR);
+
+        let blank_signature = {
+            let buf = [0u8; 64];
+            Signature::read(&mut buf.as_ref())?
+        };
+
         let mint_description = MintDescription {
             proof,
             asset: self.asset,
-            value_commitment: self.value_commitment.clone(),
+            value_commitment: self.value_commitment_point(),
+            randomized_public_key,
+            authorizing_signature: blank_signature,
         };
 
         mint_description.verify_proof()?;
 
-        Ok(mint_description)
+        Ok(UnsignedMintDescription {
+            public_key_randomness,
+            description: mint_description,
+        })
+    }
+}
+
+pub struct UnsignedMintDescription {
+    public_key_randomness: jubjub::Fr,
+    pub(crate) description: MintDescription,
+}
+
+impl UnsignedMintDescription {
+    pub fn sign(
+        mut self,
+        spender_key: &SaplingKey,
+        signature_hash: &[u8; 32],
+    ) -> Result<MintDescription, IronfishError> {
+        let private_key = redjubjub::PrivateKey(spender_key.asset_authorization_key);
+        let randomized_private_key = private_key.randomize(self.public_key_randomness);
+        let randomized_public_key =
+            redjubjub::PublicKey::from_private(&randomized_private_key, ASSET_KEY_GENERATOR);
+
+        if randomized_public_key.0 != self.description.randomized_public_key.0 {
+            return Err(IronfishError::InvalidSigningKey);
+        }
+
+        let mut data_to_be_signed = [0; 64];
+        data_to_be_signed[..32]
+            .copy_from_slice(&self.description.randomized_public_key.0.to_bytes());
+        data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
+
+        self.description.authorizing_signature =
+            randomized_private_key.sign(&data_to_be_signed, &mut thread_rng(), ASSET_KEY_GENERATOR);
+
+        Ok(self.description)
     }
 }
 
@@ -87,9 +140,11 @@ pub struct MintDescription {
     /// Asset which is being minted
     pub asset: Asset,
 
-    /// Commitment to represent the value. Even though the value of the mint is
-    /// public, we still need the commitment to balance the transaction
-    pub value_commitment: ValueCommitment,
+    pub value_commitment: ExtendedPoint,
+
+    pub randomized_public_key: redjubjub::PublicKey,
+
+    pub authorizing_signature: redjubjub::Signature,
 }
 
 impl MintDescription {
@@ -109,21 +164,49 @@ impl MintDescription {
     }
 
     pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
-        let value_commitment_point = ExtendedPoint::from(self.value_commitment.commitment());
-        if value_commitment_point.is_small_order().into() {
+        if self.value_commitment.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
         }
 
         Ok(())
     }
 
-    pub fn public_inputs(&self) -> [Scalar; 2] {
-        let mut public_inputs = [Scalar::zero(); 2];
+    /// Verify that the signature on this proof is signing the provided input
+    /// with the randomized_public_key on this proof.
+    pub fn verify_signature(&self, signature_hash_value: &[u8; 32]) -> Result<(), IronfishError> {
+        if self.randomized_public_key.0.is_small_order().into() {
+            return Err(IronfishError::IsSmallOrder);
+        }
+        let mut data_to_be_signed = [0; 64];
+        data_to_be_signed[..32].copy_from_slice(&self.randomized_public_key.0.to_bytes());
+        data_to_be_signed[32..].copy_from_slice(&signature_hash_value[..]);
+
+        if !self.randomized_public_key.verify(
+            &data_to_be_signed,
+            &self.authorizing_signature,
+            ASSET_KEY_GENERATOR,
+        ) {
+            return Err(IronfishError::VerificationFailed);
+        }
+
+        Ok(())
+    }
+
+    pub fn public_inputs(&self) -> [Scalar; 6] {
+        let mut public_inputs = [Scalar::zero(); 6];
 
         let identifier_bits = multipack::bytes_to_bits_le(self.asset.identifier());
         let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
         public_inputs[0] = identifier_inputs[0];
         public_inputs[1] = identifier_inputs[1];
+
+        let value_commitment_point = self.value_commitment.to_affine();
+        public_inputs[2] = value_commitment_point.get_u();
+        public_inputs[3] = value_commitment_point.get_v();
+
+        let randomized_public_key_point = self.randomized_public_key.0.to_affine();
+        public_inputs[4] = randomized_public_key_point.get_u();
+        public_inputs[5] = randomized_public_key_point.get_v();
 
         public_inputs
     }
@@ -139,7 +222,8 @@ impl MintDescription {
     ) -> Result<(), IronfishError> {
         self.proof.write(&mut writer)?;
         self.asset.write(&mut writer)?;
-        writer.write_all(&self.value_commitment.commitment().to_bytes())?;
+        writer.write_all(&self.value_commitment.to_bytes())?;
+        writer.write_all(&self.randomized_public_key.0.to_bytes())?;
 
         Ok(())
     }
@@ -148,25 +232,30 @@ impl MintDescription {
         let proof = groth16::Proof::read(&mut reader)?;
         let asset = Asset::read(&mut reader)?;
 
-        let value = reader.read_u64::<LittleEndian>()?;
-        let randomness: jubjub::Fr = read_scalar(&mut reader)?;
+        let value_commitment = {
+            let mut bytes = [0; 32];
+            reader.read_exact(&mut bytes)?;
 
-        let value_commitment = ValueCommitment { value, randomness };
+            Option::from(ExtendedPoint::from_bytes(&bytes)).ok_or(IronfishError::InvalidData)?
+        };
+
+        let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
+
+        let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
 
         Ok(MintDescription {
             proof,
             asset,
             value_commitment,
+            randomized_public_key,
+            authorizing_signature,
         })
     }
 
     /// Stow the bytes of this [`MintDescription`] in the given writer.
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
-        self.proof.write(&mut writer)?;
-        self.asset.write(&mut writer)?;
-
-        writer.write_u64::<LittleEndian>(self.value_commitment.value)?;
-        writer.write_all(&self.value_commitment.randomness.to_bytes())?;
+        self.serialize_signature_fields(&mut writer)?;
+        self.authorizing_signature.write(&mut writer)?;
 
         Ok(())
     }

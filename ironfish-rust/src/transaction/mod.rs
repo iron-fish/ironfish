@@ -31,7 +31,7 @@ use ironfish_zkp::{
 
 use std::{io, iter, slice::Iter};
 
-use self::mints::{MintBuilder, MintDescription};
+use self::mints::{MintBuilder, MintDescription, UnsignedMintDescription};
 
 pub mod mints;
 pub mod outputs;
@@ -224,15 +224,15 @@ impl ProposedTransaction {
             output_descriptions.push(output.build(&self.spender_key)?);
         }
 
-        let mut mint_descriptions = Vec::with_capacity(self.mints.len());
+        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
         for mint in &self.mints {
-            mint_descriptions.push(mint.build(self.spender_key.asset_authorization_key())?);
+            unsigned_mints.push(mint.build(&self.spender_key)?);
         }
 
         let data_to_sign = self.transaction_signature_hash(
             &unsigned_spends,
             &output_descriptions,
-            &mint_descriptions,
+            &unsigned_mints,
         );
 
         let binding_signature =
@@ -242,6 +242,12 @@ impl ProposedTransaction {
         let mut spend_descriptions = Vec::with_capacity(unsigned_spends.len());
         for spend in unsigned_spends.drain(0..) {
             spend_descriptions.push(spend.sign(&self.spender_key, &data_to_sign)?);
+        }
+
+        // Sign mints now that we have the data needed to be signed
+        let mut mint_descriptions = Vec::with_capacity(unsigned_mints.len());
+        for mint in unsigned_mints.drain(0..) {
+            mint_descriptions.push(mint.sign(&self.spender_key, &data_to_sign)?);
         }
 
         Ok(Transaction {
@@ -263,7 +269,7 @@ impl ProposedTransaction {
         &self,
         spends: &[UnsignedSpendDescription],
         outputs: &[OutputDescription],
-        mints: &[MintDescription],
+        mints: &[UnsignedMintDescription],
     ) -> [u8; 32] {
         let mut hasher = Blake2b::new()
             .hash_length(32)
@@ -289,7 +295,9 @@ impl ProposedTransaction {
         }
 
         for mint in mints {
-            mint.serialize_signature_fields(&mut hasher).unwrap();
+            mint.description
+                .serialize_signature_fields(&mut hasher)
+                .unwrap();
         }
 
         let mut hash_result = [0; 32];
