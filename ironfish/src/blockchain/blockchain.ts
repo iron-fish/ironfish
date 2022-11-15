@@ -933,14 +933,19 @@ export class Blockchain {
         target = Target.calculateTarget(timestamp, heaviestHead.timestamp, heaviestHead.target)
       }
 
+      const blockNotes = []
+      const blockNullifiers = []
       for (const transaction of transactions) {
         for (const note of transaction.notes()) {
-          await this.notes.add(note, tx)
+          blockNotes.push(note)
         }
         for (const spend of transaction.spends()) {
-          await this.nullifiers.add(spend.nullifier, tx)
+          blockNullifiers.push(spend.nullifier)
         }
       }
+
+      await this.notes.addBatch(blockNotes, tx)
+      await this.nullifiers.addBatch(blockNullifiers, tx)
 
       const noteCommitment = {
         commitment: await this.notes.rootHash(tx),
