@@ -231,10 +231,6 @@ export default class Start extends IronfishCommand {
       await this.firstRun(node)
     }
 
-    if (!node.wallet.getDefaultAccount()) {
-      await this.setDefaultAccount(node)
-    }
-
     await node.start()
     this.node = node
 
@@ -261,6 +257,10 @@ export default class Start extends IronfishCommand {
       this.log('')
       this.log('To help improve Iron Fish, opt in to collecting telemetry by running')
       this.log(` > ironfish config:set ${ENABLE_TELEMETRY_CONFIG_KEY} true`)
+    }
+
+    if (!node.wallet.getDefaultAccount()) {
+      await this.setDefaultAccount(node)
     }
 
     this.log('')
