@@ -8,5 +8,5 @@ pub use zcash_primitives::sapling::{
 
 pub mod proofs {
     pub use crate::circuits::mint_asset::MintAsset;
-    pub use zcash_proofs::circuit::sapling::{Output, Spend};
+    pub use crate::circuits::{output::Output, spend::Spend};
 }

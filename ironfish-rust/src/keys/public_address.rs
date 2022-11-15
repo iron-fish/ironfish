@@ -8,7 +8,6 @@ use crate::{
 };
 use ff::Field;
 use group::GroupEncoding;
-use ironfish_zkp::{Diversifier, PaymentAddress};
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
 

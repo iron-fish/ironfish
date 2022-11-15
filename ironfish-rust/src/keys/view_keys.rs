@@ -20,7 +20,6 @@ use crate::{
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use jubjub::SubgroupPoint;
-use rand::{thread_rng, Rng};
 
 use std::io;
 
