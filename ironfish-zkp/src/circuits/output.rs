@@ -3,6 +3,7 @@ use group::Curve;
 
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 
+use jubjub::{SubgroupPoint, ExtendedPoint};
 use zcash_primitives::sapling::{PaymentAddress, ValueCommitment};
 
 use zcash_proofs::{
@@ -16,13 +17,28 @@ use zcash_proofs::{
 use super::util::expose_value_commitment;
 use bellman::gadgets::boolean;
 
+pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(
+    bls12_381::Scalar::from_raw([
+        0x3edc_c85f_4d1a_44cd,
+        0x77ff_8c90_a9a0_d8f4,
+        0x0daf_03b5_47e2_022b,
+        0x6dad_65e6_2328_d37a,
+    ]),
+    bls12_381::Scalar::from_raw([
+        0x5095_1f1f_eff0_8278,
+        0xf0b7_03d5_3a3e_dd4e,
+        0xca01_f580_9c00_eee2,
+        0x6996_932c_ece1_f4bb,
+    ]),
+);
+
 /// This is an output circuit instance.
 pub struct Output {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
 
     /// The payment address of the recipient
-    pub payment_address: Option<PaymentAddress>,
+    pub payment_address: Option<SubgroupPoint>,
 
     /// The randomness used to hide the note commitment data
     pub commitment_randomness: Option<jubjub::Fr>,
@@ -53,10 +69,8 @@ impl Circuit<bls12_381::Scalar> for Output {
             // curve.
             let g_d = ecc::EdwardsPoint::witness(
                 cs.namespace(|| "witness g_d"),
-                self.payment_address
-                    .as_ref()
-                    .and_then(|a| a.g_d().map(jubjub::ExtendedPoint::from)),
-            )?;
+        Some(ExtendedPoint::from(PUBLIC_KEY_GENERATOR))
+    )?;
 
             // g_d is ensured to be large order. The relationship
             // between g_d and pk_d ultimately binds ivk to the
@@ -91,7 +105,7 @@ impl Circuit<bls12_381::Scalar> for Output {
             let pk_d = self
                 .payment_address
                 .as_ref()
-                .map(|e| jubjub::ExtendedPoint::from(*e.pk_d()).to_affine());
+                .map(|e| jubjub::ExtendedPoint::from(*e).to_affine());
 
             // Witness the v-coordinate, encoded as little
             // endian bits (to match the representation)
@@ -160,10 +174,12 @@ mod test {
     use group::{Curve, Group};
     use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
-    use zcash_primitives::sapling::ValueCommitment;
-    use zcash_primitives::sapling::{Diversifier, ProofGenerationKey, Rseed};
+    use zcash_primitives::sapling::{ValueCommitment, Note};
+    use zcash_primitives::sapling::{ProofGenerationKey, Rseed};
 
     use crate::circuits::output::Output;
+
+    use super::PUBLIC_KEY_GENERATOR;
 
     #[test]
     fn test_output_circuit_with_bls12_381() {
@@ -185,20 +201,7 @@ mod test {
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
-            let payment_address;
-
-            loop {
-                let diversifier = {
-                    let mut d = [0; 11];
-                    rng.fill_bytes(&mut d);
-                    Diversifier(d)
-                };
-
-                if let Some(p) = viewing_key.to_payment_address(diversifier) {
-                    payment_address = p;
-                    break;
-                }
-            }
+            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0  ;
 
             let commitment_randomness = jubjub::Fr::random(&mut rng);
             let esk = jubjub::Fr::random(&mut rng);
@@ -222,19 +225,19 @@ mod test {
                     "c26d5cdfe6ccd65c03390902c02e11393ea6bb96aae32a7f2ecb12eb9103faee"
                 );
 
-                let expected_cmu = payment_address
-                    .create_note(
-                        value_commitment.value,
-                        Rseed::BeforeZip212(commitment_randomness),
-                    )
-                    .expect("should be valid")
-                    .cmu();
+                let expected_cmu = Some(Note {
+                    value: value_commitment.value,
+                    rseed: Rseed::BeforeZip212(commitment_randomness),
+                    g_d: PUBLIC_KEY_GENERATOR,
+                    pk_d: payment_address,
+                }).expect("should be valid")
+                .cmu();
 
                 let expected_value_commitment =
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
 
                 let expected_epk = jubjub::ExtendedPoint::from(
-                    payment_address.g_d().expect("should be valid") * esk,
+                    PUBLIC_KEY_GENERATOR * esk,
                 )
                 .to_affine();
 
