@@ -75,9 +75,9 @@ export const rewindChainTo = async (
     `Chain currently has blocks up to ${fromSequence}. Rewinding ${toDisconnect} blocks to ${sequence}.`,
   )
 
-  await rewindWalletHead(chain, wallet, sequence)
-
   await disconnectBlocks(chain, toDisconnect)
+
+  await rewindWalletHead(chain, wallet, sequence)
 
   await removeBlocks(chain, sequence, fromSequence)
 }
@@ -129,6 +129,7 @@ async function rewindWalletHead(
       const speed = new Meter()
 
       const toRewind = walletHead.sequence - sequence
+      let rewound = 0
 
       bar.start(toRewind, 0, {
         speed: '0',
@@ -136,27 +137,15 @@ async function rewindWalletHead(
       })
       speed.start()
 
-      let header: BlockHeader | null = walletHead
-      let headSequence = header.sequence
-      let removed = 0
-
-      while (header && header.sequence > sequence) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        await wallet['chainProcessor']['remove'](header)
-
-        header = await chain.getHeaderAtSequence(--headSequence)
-
-        if (header) {
-          wallet['chainProcessor'].hash = header.hash
-          wallet['chainProcessor'].sequence = header.sequence
-        }
-
+      wallet.chainProcessor.onRemove.on((_) => {
         speed.add(1)
-        bar.update(++removed, {
+        bar.update(++rewound, {
           speed: speed.rate1s.toFixed(2),
-          estimate: TimeUtils.renderEstimate(removed, toRewind, speed.rate1m),
+          estimate: TimeUtils.renderEstimate(rewound, toRewind, speed.rate1m),
         })
-      }
+      })
+
+      await wallet.updateHead()
 
       bar.stop()
       speed.stop()
