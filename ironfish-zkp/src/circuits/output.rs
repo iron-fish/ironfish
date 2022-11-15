@@ -3,8 +3,8 @@ use group::Curve;
 
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 
-use jubjub::{SubgroupPoint, ExtendedPoint};
-use zcash_primitives::sapling::{PaymentAddress, ValueCommitment};
+use jubjub::{ExtendedPoint, SubgroupPoint};
+use zcash_primitives::sapling::ValueCommitment;
 
 use zcash_proofs::{
     circuit::{
@@ -69,8 +69,8 @@ impl Circuit<bls12_381::Scalar> for Output {
             // curve.
             let g_d = ecc::EdwardsPoint::witness(
                 cs.namespace(|| "witness g_d"),
-        Some(ExtendedPoint::from(PUBLIC_KEY_GENERATOR))
-    )?;
+                Some(ExtendedPoint::from(PUBLIC_KEY_GENERATOR)),
+            )?;
 
             // g_d is ensured to be large order. The relationship
             // between g_d and pk_d ultimately binds ivk to the
@@ -174,7 +174,7 @@ mod test {
     use group::{Curve, Group};
     use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
-    use zcash_primitives::sapling::{ValueCommitment, Note};
+    use zcash_primitives::sapling::{Note, ValueCommitment};
     use zcash_primitives::sapling::{ProofGenerationKey, Rseed};
 
     use crate::circuits::output::Output;
@@ -201,7 +201,7 @@ mod test {
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
-            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0  ;
+            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
 
             let commitment_randomness = jubjub::Fr::random(&mut rng);
             let esk = jubjub::Fr::random(&mut rng);
@@ -230,16 +230,15 @@ mod test {
                     rseed: Rseed::BeforeZip212(commitment_randomness),
                     g_d: PUBLIC_KEY_GENERATOR,
                     pk_d: payment_address,
-                }).expect("should be valid")
+                })
+                .expect("should be valid")
                 .cmu();
 
                 let expected_value_commitment =
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
 
-                let expected_epk = jubjub::ExtendedPoint::from(
-                    PUBLIC_KEY_GENERATOR * esk,
-                )
-                .to_affine();
+                let expected_epk =
+                    jubjub::ExtendedPoint::from(PUBLIC_KEY_GENERATOR * esk).to_affine();
 
                 assert_eq!(cs.num_inputs(), 6);
                 assert_eq!(cs.get_input(0, "ONE"), bls12_381::Scalar::one());

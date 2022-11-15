@@ -2,7 +2,6 @@ use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use ff::PrimeField;
 use jubjub::ExtendedPoint;
 use jubjub::SubgroupPoint;
-use zcash_primitives::sapling::PaymentAddress;
 
 use crate::circuits::output::PUBLIC_KEY_GENERATOR;
 
@@ -142,7 +141,7 @@ impl Circuit<bls12_381::Scalar> for Spend {
         // Witness g_d, checking that it's on the curve.
         let g_d = ecc::EdwardsPoint::witness(
             cs.namespace(|| "witness g_d"),
-            Some(ExtendedPoint::from(PUBLIC_KEY_GENERATOR))
+            Some(ExtendedPoint::from(PUBLIC_KEY_GENERATOR)),
         )?;
 
         // Check that g_d is not small order. Technically, this check
@@ -339,7 +338,7 @@ mod test {
     use zcash_primitives::sapling::ValueCommitment;
     use zcash_primitives::sapling::{pedersen_hash, Diversifier, Note, ProofGenerationKey, Rseed};
 
-    use crate::circuits::{spend::Spend, output::PUBLIC_KEY_GENERATOR};
+    use crate::circuits::{output::PUBLIC_KEY_GENERATOR, spend::Spend};
 
     #[test]
     fn test_input_circuit_with_bls12_381() {
@@ -363,7 +362,7 @@ mod test {
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
-            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0  ;
+            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
 
             let commitment_randomness = jubjub::Fr::random(&mut rng);
             let auth_path =
@@ -515,7 +514,7 @@ mod test {
 
             let viewing_key = proof_generation_key.to_viewing_key();
 
-            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0  ;
+            let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
 
             let commitment_randomness = jubjub::Fr::random(&mut rng);
             let auth_path =
