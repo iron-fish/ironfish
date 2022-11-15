@@ -71,7 +71,7 @@ export const rewindChainTo = async (
   }
 
   command.log(
-    `Chain currently has blocks up to ${fromSequence}. Disconnecting ${toDisconnect} blocks to ${sequence}.`,
+    `Chain currently has blocks up to ${fromSequence}. Rewinding ${toDisconnect} blocks to ${sequence}.`,
   )
 
   await disconnectBlocks(chain, toDisconnect)
@@ -93,21 +93,21 @@ async function disconnectBlocks(chain: Blockchain, toDisconnect: number): Promis
 
   let disconnected = 0
 
-  await chain.db.transaction(async (tx) => {
-    while (disconnected < toDisconnect) {
-      const headBlock = await chain.getBlock(chain.head, tx)
+  while (disconnected < toDisconnect) {
+    const headBlock = await chain.getBlock(chain.head, tx)
 
-      Assert.isNotNull(headBlock)
+    Assert.isNotNull(headBlock)
 
+    await chain.db.transaction(async (tx) => {
       await chain.disconnect(headBlock, tx)
+    })
 
-      speed.add(1)
-      bar.update(++disconnected, {
-        speed: speed.rate1s.toFixed(2),
-        estimate: TimeUtils.renderEstimate(disconnected, toDisconnect, speed.rate1m),
-      })
-    }
-  })
+    speed.add(1)
+    bar.update(++disconnected, {
+      speed: speed.rate1s.toFixed(2),
+      estimate: TimeUtils.renderEstimate(disconnected, toDisconnect, speed.rate1m),
+    })
+  }
 
   bar.stop()
   speed.stop()
