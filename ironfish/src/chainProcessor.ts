@@ -96,24 +96,6 @@ export class ChainProcessor {
       }
     }
 
-    if (chainHead.sequence < head.sequence) {
-      const iterBackwards = this.chain.iterateFrom(head, chainHead, undefined, false)
-
-      for await (const remove of iterBackwards) {
-        if (signal?.aborted) {
-          return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
-        }
-
-        if (remove.hash.equals(chainHead.hash)) {
-          continue
-        }
-
-        await this.remove(remove)
-        this.hash = remove.hash
-        this.sequence = remove.sequence
-      }
-    }
-
     if (head.sequence < chainHead.sequence) {
       const iter = this.chain.iterateTo(fork, chainHead, undefined, false)
 
@@ -129,6 +111,24 @@ export class ChainProcessor {
         await this.add(add)
         this.hash = add.hash
         this.sequence = add.sequence
+      }
+    }
+
+    if (chainHead.sequence < head.sequence) {
+      const iterBackwards = this.chain.iterateFrom(head, chainHead, undefined, false)
+
+      for await (const remove of iterBackwards) {
+        if (signal?.aborted) {
+          return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+        }
+
+        if (remove.hash.equals(chainHead.hash)) {
+          continue
+        }
+
+        await this.remove(remove)
+        this.hash = remove.hash
+        this.sequence = remove.sequence
       }
     }
 
