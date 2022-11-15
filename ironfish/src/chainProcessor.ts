@@ -96,20 +96,40 @@ export class ChainProcessor {
       }
     }
 
-    const iter = this.chain.iterateTo(fork, chainHead, undefined, false)
+    if (chainHead.sequence < head.sequence) {
+      const iterBackwards = this.chain.iterateFrom(head, chainHead, undefined, false)
 
-    for await (const add of iter) {
-      if (signal?.aborted) {
-        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+      for await (const remove of iterBackwards) {
+        if (signal?.aborted) {
+          return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+        }
+
+        if (remove.hash.equals(chainHead.hash)) {
+          continue
+        }
+
+        await this.remove(remove)
+        this.hash = remove.hash
+        this.sequence = remove.sequence
       }
+    }
 
-      if (add.hash.equals(fork.hash)) {
-        continue
+    if (head.sequence < chainHead.sequence) {
+      const iter = this.chain.iterateTo(fork, chainHead, undefined, false)
+
+      for await (const add of iter) {
+        if (signal?.aborted) {
+          return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+        }
+
+        if (add.hash.equals(fork.hash)) {
+          continue
+        }
+
+        await this.add(add)
+        this.hash = add.hash
+        this.sequence = add.sequence
       }
-
-      await this.add(add)
-      this.hash = add.hash
-      this.sequence = add.sequence
     }
 
     return { hashChanged: !oldHash || !this.hash.equals(oldHash) }

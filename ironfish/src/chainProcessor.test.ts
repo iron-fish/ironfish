@@ -68,6 +68,48 @@ describe('ChainProcessor', () => {
     expect(onEvent).toHaveBeenCalledTimes(9)
   })
 
+  it('handles rewinding', async () => {
+    const { strategy, chain } = nodeTest
+    strategy.disableMiningReward()
+
+    const genesis = await chain.getBlock(chain.genesis)
+    Assert.isNotNull(genesis)
+
+    const processor = new ChainProcessor({
+      chain: chain,
+      head: genesis.header.hash,
+    })
+
+    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+    processor.onAdd.on((block) => onEvent(block, 'add'))
+    processor.onRemove.on((block) => onEvent(block, 'remove'))
+
+    await processor.update()
+    expect(onEvent).toHaveBeenCalledTimes(0)
+
+    // G -> A1 -> A2 -> A3
+    const blockA1 = await makeBlockAfter(chain, genesis)
+    await expect(chain).toAddBlock(blockA1)
+    const blockA2 = await makeBlockAfter(chain, blockA1)
+    await expect(chain).toAddBlock(blockA2)
+    const blockA3 = await makeBlockAfter(chain, blockA2)
+    await expect(chain).toAddBlock(blockA3)
+
+    await processor.update()
+
+    await chain.db.transaction(async (tx) => {
+      await chain.disconnect(blockA3, tx)
+      await chain.disconnect(blockA2, tx)
+    })
+
+    expect(chain.head.hash).toEqual(blockA1.header.hash)
+
+    await processor.update()
+
+    expect(onEvent).toHaveBeenNthCalledWith(4, blockA3.header, 'remove')
+    expect(onEvent).toHaveBeenNthCalledWith(5, blockA2.header, 'remove')
+  })
+
   it('cancels updates when abort signal is triggered', async () => {
     const { strategy, chain } = nodeTest
     strategy.disableMiningReward()
