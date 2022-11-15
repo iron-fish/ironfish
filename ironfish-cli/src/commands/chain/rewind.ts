@@ -94,7 +94,7 @@ async function disconnectBlocks(chain: Blockchain, toDisconnect: number): Promis
   let disconnected = 0
 
   while (disconnected < toDisconnect) {
-    const headBlock = await chain.getBlock(chain.head, tx)
+    const headBlock = await chain.getBlock(chain.head)
 
     Assert.isNotNull(headBlock)
 
