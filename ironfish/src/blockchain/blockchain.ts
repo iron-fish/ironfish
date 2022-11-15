@@ -269,7 +269,9 @@ export class Blockchain {
     const genesis = BlockSerde.deserialize(serialized)
 
     const result = await this.addBlock(genesis)
-    Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
+    if (!result.isAdded) {
+      throw new Error(`Could not seed genesis: ${result.reason}`)
+    }
     Assert.isEqual(result.isFork, false)
 
     const genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
@@ -339,12 +341,12 @@ export class Blockchain {
     await this.db.close()
   }
 
-  async addBlock(block: Block): Promise<{
-    isAdded: boolean
-    isFork: boolean | null
-    reason: VerificationResultReason | null
-    score: number | null
-  }> {
+  async addBlock(
+    block: Block,
+  ): Promise<
+    | { isAdded: true; block: LocalBlock; isFork: boolean }
+    | { isAdded: false; reason: VerificationResultReason; score: number }
+  > {
     let connectResult = null
     try {
       connectResult = await this.db.transaction(async (tx) => {
@@ -352,7 +354,8 @@ export class Blockchain {
 
         if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
           const localBlock = LocalBlock.fromGenesis(block)
-          return await this.connect(localBlock, null, tx)
+          const connectResult = await this.connect(localBlock, null, tx)
+          return { block: localBlock, isFork: connectResult.isFork }
         }
 
         const invalid = this.isInvalid(block.header)
@@ -384,16 +387,16 @@ export class Blockchain {
 
         this.resolveOrphans(block)
 
-        return connectResult
+        return { block: localBlock, isFork: connectResult.isFork }
       })
     } catch (e) {
       if (e instanceof VerifyError) {
-        return { isAdded: false, isFork: null, reason: e.reason, score: e.score }
+        return { isAdded: false, reason: e.reason, score: e.score }
       }
       throw e
     }
 
-    return { isAdded: true, isFork: connectResult.isFork, reason: null, score: null }
+    return { isAdded: true, block: connectResult.block, isFork: connectResult.isFork }
   }
 
   /**

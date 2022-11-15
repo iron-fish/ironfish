@@ -10,7 +10,7 @@ import { Meter, MetricsMonitor } from './metrics'
 import { RollingAverage } from './metrics/rollingAverage'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
-import { Block } from './primitives/block'
+import { Block, LocalBlock } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Telemetry } from './telemetry'
 import { ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
@@ -410,8 +410,14 @@ export class Syncer {
       for (const addBlock of blocks) {
         currentSequence += 1
 
-        const { block } = await this.addBlock(peer, addBlock)
+        const result = await this.addBlock(peer, addBlock)
         this.abort(peer)
+
+        if (!result.added) {
+          return
+        }
+
+        const { block } = result
 
         if (block.header.sequence !== currentSequence) {
           this.logger.warn(
@@ -446,38 +452,39 @@ export class Syncer {
   async addBlock(
     peer: Peer,
     block: Block,
-  ): Promise<{
-    added: boolean
-    block: Block
-    reason: VerificationResultReason | null
-  }> {
-    const { isAdded, reason, score } = await this.chain.addBlock(block)
+  ): Promise<
+    | {
+        added: true
+        block: LocalBlock
+      }
+    | { added: false; reason: VerificationResultReason }
+  > {
+    const addResult = await this.chain.addBlock(block)
 
     this.speed.add(1)
 
-    if (reason === VerificationResultReason.ORPHAN) {
-      this.logger.info(
-        `Peer ${peer.displayName} sent orphan ${HashUtils.renderBlockHeaderHash(
-          block.header,
-        )} (${block.header.sequence})`,
-      )
+    if (!addResult.isAdded) {
+      const { score, reason } = addResult
+      if (reason === VerificationResultReason.ORPHAN) {
+        this.logger.info(
+          `Peer ${peer.displayName} sent orphan ${HashUtils.renderBlockHeaderHash(
+            block.header,
+          )} (${block.header.sequence})`,
+        )
 
-      if (!this.loader) {
-        this.logger.info(`Syncing orphan chain from ${peer.displayName}`)
-        this.startSync(peer)
-      } else {
-        this.logger.info(`Sync already in progress from ${this.loader.displayName}`)
+        if (!this.loader) {
+          this.logger.info(`Syncing orphan chain from ${peer.displayName}`)
+          this.startSync(peer)
+        } else {
+          this.logger.info(`Sync already in progress from ${this.loader.displayName}`)
+        }
+
+        return { added: false, reason: VerificationResultReason.ORPHAN }
       }
 
-      return { added: false, block, reason: VerificationResultReason.ORPHAN }
-    }
-
-    if (reason === VerificationResultReason.DUPLICATE) {
-      return { added: false, block, reason: VerificationResultReason.DUPLICATE }
-    }
-
-    if (reason) {
-      Assert.isNotNull(score)
+      if (reason === VerificationResultReason.DUPLICATE) {
+        return { added: false, reason: VerificationResultReason.DUPLICATE }
+      }
 
       this.logger.warn(
         `Peer ${
@@ -488,11 +495,10 @@ export class Syncer {
       )
 
       peer.punish(score, reason)
-      return { added: false, block, reason }
+      return { added: false, reason }
     }
 
-    Assert.isTrue(isAdded)
-    return { added: true, block, reason: reason || null }
+    return { added: true, block: addResult.block }
   }
 
   /**
