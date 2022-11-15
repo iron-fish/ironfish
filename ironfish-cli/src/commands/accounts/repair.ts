@@ -5,7 +5,6 @@ import {
   Account,
   Assert,
   Blockchain,
-  BufferUtils,
   CurrencyUtils,
   NodeUtils,
   Wallet,
@@ -43,14 +42,14 @@ export default class Repair extends IronfishCommand {
 
     this.log(`Repairing wallet for account ${account.name}`)
 
-    this.log('Repairing decryptedNotes and balance')
-    await this.repairDecryptedNotes(account, node.wallet.walletDb, node.chain)
+    this.log('Repairing balance')
+    await this.repairBalance(account, node.wallet.walletDb, node.chain)
 
     this.log('Repairing nullifierToNote')
     await this.repairNullifierToNoteHash(account, node.wallet.walletDb)
 
     this.log('Repairing sequenceToNoteHash')
-    await this.repairSequenceToNoteHash(account, node.wallet.walletDb, node.chain)
+    await this.repairSequenceToNoteHash(account, node.wallet.walletDb)
   }
 
   private loadAccount(wallet: Wallet, accountName: string | undefined): Account {
@@ -70,7 +69,7 @@ export default class Repair extends IronfishCommand {
     throw new Error('Could not find an account to repair.')
   }
 
-  private async repairDecryptedNotes(
+  private async repairBalance(
     account: Account,
     walletDb: WalletDB,
     chain: Blockchain,
@@ -78,7 +77,6 @@ export default class Repair extends IronfishCommand {
     let unconfirmedBalance = 0n
 
     let noteUnspentMismatches = 0
-    let nullifierNoteHashMismatches = 0
 
     await walletDb.db.transaction(async (tx) => {
       for await (const decryptedNoteValue of account.getNotes()) {
@@ -92,30 +90,11 @@ export default class Repair extends IronfishCommand {
           `Account has a note but is missing the transaction that it received the note from. ${RESCAN_MESSAGE}`,
         )
 
-        const transactionOnMain = await this.verifyBlockContainsTransaction(
-          decryptedNoteValue.transactionHash,
-          transactionValue.blockHash,
-          chain,
-        )
-
-        const noteOnMain = !!(await chain.notes.leavesIndex.get(decryptedNoteValue.hash, tx))
-
-        if (noteOnMain && !transactionOnMain) {
-          throw new Error(`Note is in chain database, but transaction is not on chain. ${RESCAN_MESSAGE}`)
-        } else if (!noteOnMain && transactionOnMain) {
-          throw new Error('Chain database is corrupt. Run `chain:repair` before starting your node.')
-        }
-
-        await walletDb.setNoteHashSequence(
-          account,
-          decryptedNoteValue.hash,
-          transactionValue.sequence,
-          tx,
-        )
-
         if (!decryptedNoteValue.nullifier) {
           if (transactionValue.sequence) {
-            throw new Error(`Transaction marked as on chain, but note missing nullifier. ${RESCAN_MESSAGE}`)
+            throw new Error(
+              `Transaction marked as on chain, but note missing nullifier. ${RESCAN_MESSAGE}`,
+            )
           }
 
           continue
@@ -138,19 +117,6 @@ export default class Repair extends IronfishCommand {
         } else if (!spent) {
           unconfirmedBalance += decryptedNoteValue.note.value()
         }
-
-        const nullifierNoteHash = await account.getNoteHash(decryptedNoteValue.nullifier)
-
-        if (!nullifierNoteHash || !nullifierNoteHash.equals(decryptedNoteValue.hash)) {
-          nullifierNoteHashMismatches++
-
-          await walletDb.saveNullifierNoteHash(
-            account,
-            decryptedNoteValue.nullifier,
-            decryptedNoteValue.hash,
-            tx,
-          )
-        }
       }
 
       this.log(
@@ -165,14 +131,10 @@ export default class Repair extends IronfishCommand {
     this.log(
       `\tRepaired ${noteUnspentMismatches} decrypted notes incorrectly marked as unspent`,
     )
-    this.log(
-      `\tRepaired ${nullifierNoteHashMismatches} nullifiers mapped to an incorrect note hash`,
-    )
   }
 
   private async repairNullifierToNoteHash(account: Account, walletDb: WalletDB): Promise<void> {
     let missingNotes = 0
-    let nullifierNoteHashMismatches = 0
 
     await walletDb.db.transaction(async (tx) => {
       for await (const [[, nullifier], noteHash] of walletDb.nullifierToNoteHash.getAllIter(
@@ -185,10 +147,6 @@ export default class Repair extends IronfishCommand {
           missingNotes++
 
           await walletDb.deleteNullifier(account, nullifier, tx)
-        } else if (!BufferUtils.equalsNullable(nullifier, decryptedNoteValue.nullifier)) {
-          nullifierNoteHashMismatches++
-
-          await walletDb.deleteNullifier(account, nullifier, tx)
         }
       }
     })
@@ -196,18 +154,10 @@ export default class Repair extends IronfishCommand {
     this.log(
       `\tRepaired ${missingNotes} nullifiers that map to notes that are not in the wallet`,
     )
-    this.log(
-      `\tRepaired ${nullifierNoteHashMismatches} nullifiers that map to notes that are not on chain`,
-    )
   }
 
-  private async repairSequenceToNoteHash(
-    account: Account,
-    walletDb: WalletDB,
-    chain: Blockchain,
-  ): Promise<void> {
-    let sequenceMismatches = 0
-    let missingNotes = 0
+  private async repairSequenceToNoteHash(account: Account, walletDb: WalletDB): Promise<void> {
+    let incorrectSequences = 0
 
     await walletDb.db.transaction(async (tx) => {
       for await (const [, [sequence, noteHash]] of walletDb.sequenceToNoteHash.getAllKeysIter(
@@ -217,65 +167,31 @@ export default class Repair extends IronfishCommand {
         const decryptedNoteValue = await account.getDecryptedNote(noteHash)
 
         if (!decryptedNoteValue) {
-          missingNotes++
+          incorrectSequences++
 
           await walletDb.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
-        } else {
-          const transactionValue = await account.getTransaction(
-            decryptedNoteValue.transactionHash,
-          )
 
-          Assert.isNotUndefined(
-            transactionValue,
-            `Account has a note but is missing the transaction that it received the note from. ${RESCAN_MESSAGE}`,
-          )
+          continue
+        }
 
-          await this.verifyBlockContainsTransaction(
-            decryptedNoteValue.transactionHash,
-            transactionValue.blockHash,
-            chain,
-          )
+        const transactionValue = await account.getTransaction(
+          decryptedNoteValue.transactionHash,
+          tx,
+        )
 
-          if (transactionValue.sequence !== sequence) {
-            sequenceMismatches++
+        Assert.isNotUndefined(
+          transactionValue,
+          `Account has a note but is missing the transaction that it received the note from. ${RESCAN_MESSAGE}`,
+        )
 
-            await walletDb.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
+        if (transactionValue.sequence !== sequence) {
+          incorrectSequences++
 
-            await walletDb.setNoteHashSequence(account, noteHash, transactionValue.sequence, tx)
-          }
+          await walletDb.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
         }
       }
     })
 
-    this.log(`\tRepaired ${missingNotes} sequenceToNoteHash mappings with missing notes`)
-    this.log(
-      `\tRepaired ${sequenceMismatches} sequenceToNoteHash mappings with incorrect sequences`,
-    )
-  }
-
-  async verifyBlockContainsTransaction(
-    transactionHash: Buffer,
-    blockHash: Buffer | null,
-    chain: Blockchain,
-  ): Promise<boolean> {
-    if (!blockHash) {
-      return false
-    }
-
-    const block = await chain.getBlock(blockHash)
-
-    if (!block) {
-      throw new Error(`Transaction marked as on chain, but missing from block. ${RESCAN_MESSAGE}`)
-    }
-
-    for (const transaction of block.transactions) {
-      if (transaction.hash().equals(transactionHash)) {
-        const mainBlock = await chain.getHeaderAtSequence(block.header.sequence)
-
-        return mainBlock !== null && mainBlock.hash.equals(block.header.hash)
-      }
-    }
-
-    throw new Error(`Transaction marked as on chain, but missing from block. ${RESCAN_MESSAGE}`)
+    this.log(`\tRepaired ${incorrectSequences} incorrect sequenceToNoteHash mappings`)
   }
 }
