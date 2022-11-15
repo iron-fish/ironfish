@@ -4,6 +4,7 @@
 import {
   Assert,
   Blockchain,
+  BlockHeader,
   IronfishNode,
   Meter,
   NodeUtils,
@@ -74,9 +75,9 @@ export const rewindChainTo = async (
     `Chain currently has blocks up to ${fromSequence}. Rewinding ${toDisconnect} blocks to ${sequence}.`,
   )
 
-  await disconnectBlocks(chain, toDisconnect)
-
   await rewindWalletHead(chain, wallet, sequence)
+
+  await disconnectBlocks(chain, toDisconnect)
 
   await removeBlocks(chain, sequence, fromSequence)
 }
@@ -124,11 +125,44 @@ async function rewindWalletHead(
     const walletHead = await chain.getHeader(walletHeadHash)
 
     if (walletHead && walletHead.sequence > sequence) {
-      CliUx.ux.action.start('Rewinding wallet...')
+      const bar = getProgressBar('Rewiding wallet')
+      const speed = new Meter()
 
-      await wallet.updateHead()
+      const toRewind = walletHead.sequence - sequence
 
-      CliUx.ux.action.stop()
+      bar.start(toRewind, 0, {
+        speed: '0',
+        estimate: TimeUtils.renderEstimate(0, 0, 0),
+      })
+      speed.start()
+
+      let header: BlockHeader | null = walletHead
+      let headSequence = header.sequence
+      let removed = 0
+
+      const accounts = wallet.listAccounts()
+
+      while (header && header.sequence > sequence) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        await wallet['chainProcessor']['remove'](header)
+
+        header = await chain.getHeaderAtSequence(--headSequence)
+
+        if (header) {
+          for (const account of accounts) {
+            await wallet.updateHeadHash(account, header.hash)
+          }
+        }
+
+        speed.add(1)
+        bar.update(++removed, {
+          speed: speed.rate1s.toFixed(2),
+          estimate: TimeUtils.renderEstimate(removed, toRewind, speed.rate1m),
+        })
+      }
+
+      bar.stop()
+      speed.stop()
     }
   }
 }
@@ -138,11 +172,11 @@ async function removeBlocks(
   sequence: number,
   fromSequence: number,
 ): Promise<void> {
-  const toDisconnect = fromSequence - sequence
+  const toRemove = fromSequence - sequence
   const bar = getProgressBar('Removing blocks')
   const speed = new Meter()
 
-  bar.start(toDisconnect, 0, {
+  bar.start(toRemove, 0, {
     speed: '0',
     estimate: TimeUtils.renderEstimate(0, 0, 0),
   })
@@ -162,7 +196,7 @@ async function removeBlocks(
     speed.add(1)
     bar.update(++removed, {
       speed: speed.rate1s.toFixed(2),
-      estimate: TimeUtils.renderEstimate(removed, toDisconnect, speed.rate1m),
+      estimate: TimeUtils.renderEstimate(removed, toRemove, speed.rate1m),
     })
   }
 
