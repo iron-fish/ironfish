@@ -90,8 +90,8 @@ export class ChainProcessor {
       }
 
       await this.remove(remove)
-      this.hash = remove.hash
-      this.sequence = remove.sequence
+      this.hash = remove.previousBlockHash
+      this.sequence = remove.sequence - 1
     }
 
     const iterForwards = this.chain.iterateTo(fork, chainHead, undefined, false)

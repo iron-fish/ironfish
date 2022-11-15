@@ -40,6 +40,7 @@ describe('ChainProcessor', () => {
     await expect(chain).toAddBlock(blockA1)
 
     await processor.update()
+    expect(processor.hash?.equals(blockA1.header.hash)).toBe(true)
     expect(onEvent).toHaveBeenNthCalledWith(1, blockA1.header, 'add')
     expect(onEvent).toHaveBeenCalledTimes(1)
 
@@ -49,6 +50,7 @@ describe('ChainProcessor', () => {
     await expect(chain).toAddBlock(blockB2)
 
     await processor.update()
+    expect(processor.hash?.equals(blockB2.header.hash)).toBe(true)
     expect(onEvent).toHaveBeenNthCalledWith(2, blockA1.header, 'remove')
     expect(onEvent).toHaveBeenNthCalledWith(3, blockB1.header, 'add')
     expect(onEvent).toHaveBeenNthCalledWith(4, blockB2.header, 'add')
@@ -60,6 +62,7 @@ describe('ChainProcessor', () => {
     await expect(chain).toAddBlock(blockA3)
 
     await processor.update()
+    expect(processor.hash?.equals(blockA3.header.hash)).toBe(true)
     expect(onEvent).toHaveBeenNthCalledWith(5, blockB2.header, 'remove')
     expect(onEvent).toHaveBeenNthCalledWith(6, blockB1.header, 'remove')
     expect(onEvent).toHaveBeenNthCalledWith(7, blockA1.header, 'add')
@@ -96,6 +99,7 @@ describe('ChainProcessor', () => {
     await expect(chain).toAddBlock(blockA3)
 
     await processor.update()
+    expect(processor.hash?.equals(blockA3.header.hash)).toBe(true)
 
     await chain.db.transaction(async (tx) => {
       await chain.disconnect(blockA3, tx)
@@ -105,7 +109,7 @@ describe('ChainProcessor', () => {
     expect(chain.head.hash).toEqual(blockA1.header.hash)
 
     await processor.update()
-
+    expect(processor.hash?.equals(blockA1.header.hash)).toBe(true)
     expect(onEvent).toHaveBeenNthCalledWith(4, blockA3.header, 'remove')
     expect(onEvent).toHaveBeenNthCalledWith(5, blockA2.header, 'remove')
   })
