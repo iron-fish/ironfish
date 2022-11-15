@@ -73,63 +73,38 @@ export class ChainProcessor {
       `Chain processor head not found in chain: ${this.hash.toString('hex')}`,
     )
 
-    const { fork, isLinear } = await this.chain.findFork(head, chainHead)
-    if (!fork) {
-      return { hashChanged: false }
+    const { fork } = await this.chain.findFork(head, chainHead)
+
+    const iterBackwards = this.chain.iterateFrom(head, fork, undefined, false)
+
+    for await (const remove of iterBackwards) {
+      if (signal?.aborted) {
+        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
+      }
+
+      if (remove.hash.equals(fork.hash)) {
+        continue
+      }
+
+      await this.remove(remove)
+      this.hash = remove.hash
+      this.sequence = remove.sequence
     }
 
-    if (!isLinear) {
-      const iter = this.chain.iterateFrom(head, fork, undefined, false)
+    const iterForwards = this.chain.iterateTo(fork, chainHead, undefined, false)
 
-      for await (const remove of iter) {
-        if (signal?.aborted) {
-          return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
-        }
-
-        if (remove.hash.equals(fork.hash)) {
-          continue
-        }
-
-        await this.remove(remove)
-        this.hash = remove.previousBlockHash
-        this.sequence = remove.sequence - 1
+    for await (const add of iterForwards) {
+      if (signal?.aborted) {
+        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
       }
-    }
 
-    if (head.sequence < chainHead.sequence) {
-      const iter = this.chain.iterateTo(fork, chainHead, undefined, false)
-
-      for await (const add of iter) {
-        if (signal?.aborted) {
-          return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
-        }
-
-        if (add.hash.equals(fork.hash)) {
-          continue
-        }
-
-        await this.add(add)
-        this.hash = add.hash
-        this.sequence = add.sequence
+      if (add.hash.equals(fork.hash)) {
+        continue
       }
-    }
 
-    if (chainHead.sequence < head.sequence) {
-      const iterBackwards = this.chain.iterateFrom(head, chainHead, undefined, false)
-
-      for await (const remove of iterBackwards) {
-        if (signal?.aborted) {
-          return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
-        }
-
-        if (remove.hash.equals(chainHead.hash)) {
-          continue
-        }
-
-        await this.remove(remove)
-        this.hash = remove.hash
-        this.sequence = remove.sequence
-      }
+      await this.add(add)
+      this.hash = add.hash
+      this.sequence = add.sequence
     }
 
     return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
