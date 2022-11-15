@@ -147,7 +147,6 @@ async function rewindWalletHead(
         header = await chain.getHeaderAtSequence(--headSequence)
 
         if (header) {
-          await wallet.updateHeadHashes(header.hash)
           wallet['chainProcessor'].hash = header.hash
           wallet['chainProcessor'].sequence = header.sequence
         }
