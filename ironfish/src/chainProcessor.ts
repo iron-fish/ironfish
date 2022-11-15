@@ -75,6 +75,9 @@ export class ChainProcessor {
 
     const { fork } = await this.chain.findFork(head, chainHead)
 
+    // All cases can be handled by rewinding to the fork point
+    // and then fast-forwarding to the destination. In cases where `head` and `chainHead`
+    // are on the same linear chain, either rewind or fast-forward will just be a no-op
     const iterBackwards = this.chain.iterateFrom(head, fork, undefined, false)
 
     for await (const remove of iterBackwards) {
