@@ -120,7 +120,7 @@ impl SpendBuilder {
         // has been previously spent.
         let nullifier = self.note.nullifier(spender_key, self.witness_position);
 
-        let blank_sig = {
+        let blank_signature = {
             let buf = [0u8; 64];
             Signature::read(&mut buf.as_ref())?
         };
@@ -132,7 +132,7 @@ impl SpendBuilder {
             root_hash: self.root_hash,
             tree_size: self.tree_size,
             nullifier,
-            authorizing_signature: blank_sig,
+            authorizing_signature: blank_signature,
         };
 
         spend_proof.verify_proof()?;

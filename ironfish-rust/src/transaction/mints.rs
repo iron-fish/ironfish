@@ -76,7 +76,7 @@ impl MintBuilder {
         let randomized_public_key = redjubjub::PublicKey(spender_key.asset_public_key().into())
             .randomize(public_key_randomness, ASSET_KEY_GENERATOR);
 
-        let blank_sig = {
+        let blank_signature = {
             let buf = [0u8; 64];
             Signature::read(&mut buf.as_ref())?
         };
@@ -86,7 +86,7 @@ impl MintBuilder {
             asset: self.asset,
             value_commitment: self.value_commitment_point(),
             randomized_public_key,
-            authorizing_signature: blank_sig,
+            authorizing_signature: blank_signature,
         };
 
         mint_description.verify_proof()?;
