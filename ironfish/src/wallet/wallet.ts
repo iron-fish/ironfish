@@ -134,7 +134,7 @@ export class Wallet {
   }
 
   async updateHead(): Promise<void> {
-    if (this.scan || this.updateHeadState) {
+    if (this.scan || this.updateHeadState || this.accounts.size === 0) {
       return
     }
 
