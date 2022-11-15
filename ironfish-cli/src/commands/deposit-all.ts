@@ -202,6 +202,11 @@ export default class DepositAll extends IronfishCommand {
       unconfirmedBalance = CurrencyUtils.decode(balanceResp.content.unconfirmed)
       pendingBalance = CurrencyUtils.decode(balanceResp.content.pending)
 
+      if (confirmedBalance < 0 || unconfirmedBalance < 0 || pendingBalance < 0) {
+        await PromiseUtils.sleep(30000)
+        continue
+      }
+
       if (flags.fee === undefined || fee == null) {
         try {
           const response = await this.client.estimateFee({
