@@ -140,8 +140,6 @@ async function rewindWalletHead(
       let headSequence = header.sequence
       let removed = 0
 
-      const accounts = wallet.listAccounts()
-
       while (header && header.sequence > sequence) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         await wallet['chainProcessor']['remove'](header)
@@ -149,9 +147,9 @@ async function rewindWalletHead(
         header = await chain.getHeaderAtSequence(--headSequence)
 
         if (header) {
-          for (const account of accounts) {
-            await wallet.updateHeadHash(account, header.hash)
-          }
+          await wallet.updateHeadHashes(header.hash)
+          wallet['chainProcessor'].hash = header.hash
+          wallet['chainProcessor'].sequence = header.sequence
         }
 
         speed.add(1)
