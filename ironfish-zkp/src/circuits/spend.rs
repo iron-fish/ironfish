@@ -3,7 +3,7 @@ use ff::PrimeField;
 use jubjub::ExtendedPoint;
 use jubjub::SubgroupPoint;
 
-use crate::circuits::output::PUBLIC_KEY_GENERATOR;
+use crate::constants::PUBLIC_KEY_GENERATOR;
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::blake2s;
@@ -336,9 +336,9 @@ mod test {
     use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
     use zcash_primitives::sapling::ValueCommitment;
-    use zcash_primitives::sapling::{pedersen_hash, Diversifier, Note, ProofGenerationKey, Rseed};
+    use zcash_primitives::sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed};
 
-    use crate::circuits::{output::PUBLIC_KEY_GENERATOR, spend::Spend};
+    use crate::{circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR};
 
     #[test]
     fn test_input_circuit_with_bls12_381() {

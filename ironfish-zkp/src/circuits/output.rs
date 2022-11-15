@@ -14,23 +14,10 @@ use zcash_proofs::{
     constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
+use crate::constants::PUBLIC_KEY_GENERATOR;
+
 use super::util::expose_value_commitment;
 use bellman::gadgets::boolean;
-
-pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(
-    bls12_381::Scalar::from_raw([
-        0x3edc_c85f_4d1a_44cd,
-        0x77ff_8c90_a9a0_d8f4,
-        0x0daf_03b5_47e2_022b,
-        0x6dad_65e6_2328_d37a,
-    ]),
-    bls12_381::Scalar::from_raw([
-        0x5095_1f1f_eff0_8278,
-        0xf0b7_03d5_3a3e_dd4e,
-        0xca01_f580_9c00_eee2,
-        0x6996_932c_ece1_f4bb,
-    ]),
-);
 
 /// This is an output circuit instance.
 pub struct Output {
