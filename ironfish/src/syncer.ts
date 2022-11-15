@@ -343,13 +343,14 @@ export class Syncer {
 
   private async getBlocks(
     peer: Peer,
+    sequence: number,
     start: Buffer,
     limit: number,
   ): Promise<{ ok: true; blocks: Block[]; time: number } | { ok: false }> {
     this.logger.info(
-      `Requesting ${limit - 1} blocks starting at ${HashUtils.renderHash(start)} from ${
-        peer.displayName
-      }`,
+      `Requesting ${limit - 1} blocks starting at ${HashUtils.renderHash(
+        start,
+      )} (${sequence}) from ${peer.displayName}`,
     )
 
     return this.peerNetwork
@@ -370,7 +371,12 @@ export class Syncer {
     let currentHead = head
     let currentSequence = sequence
 
-    let blocksPromise = this.getBlocks(peer, head, this.blocksPerMessage + 1)
+    let blocksPromise = this.getBlocks(
+      peer,
+      currentSequence,
+      currentHead,
+      this.blocksPerMessage + 1,
+    )
 
     while (currentHead) {
       const blocksResult = await blocksPromise
@@ -398,13 +404,12 @@ export class Syncer {
       if (blocks.length >= this.blocksPerMessage) {
         const block = blocks.at(-1) || headBlock
 
-        this.logger.info(
-          `Requesting ${this.blocksPerMessage} blocks starting at ${HashUtils.renderHash(
-            head,
-          )} (${currentSequence}) from ${peer.displayName}`,
+        blocksPromise = this.getBlocks(
+          peer,
+          block.header.sequence,
+          block.header.hash,
+          this.blocksPerMessage + 1,
         )
-
-        blocksPromise = this.getBlocks(peer, block.header.hash, this.blocksPerMessage + 1)
       }
 
       for (const addBlock of blocks) {
