@@ -8,15 +8,21 @@ use super::{
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
     serializing::{aead, read_scalar, scalar_to_bytes},
 };
+use blake2s_simd::Params as Blake2sParams;
 use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
-use ironfish_zkp::{proofs::PUBLIC_KEY_GENERATOR, Nullifier, Rseed, SaplingNote};
+use group::{Curve, GroupEncoding};
+use ironfish_zkp::{
+    constants::{
+        NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION,
+    },
+    pedersen_hash::{pedersen_hash, Personalization},
+    Nullifier,
+};
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
-
 use std::{fmt, io, io::Read};
-
 pub const ENCRYPTED_NOTE_SIZE: usize = 72;
 
 /// Memo field on a Note. Used to encode transaction IDs or other information
@@ -199,14 +205,59 @@ impl<'a> Note {
         encrypted_bytes
     }
 
+    /// Computes the note commitment, returning the full point.
+    fn cm_full_point(&self) -> jubjub::SubgroupPoint {
+        // Calculate the note contents, as bytes
+        let mut note_contents = vec![];
+
+        // Writing the value in little endian
+        (&mut note_contents)
+            .write_u64::<LittleEndian>(self.value)
+            .unwrap();
+
+        // Write pk_d
+        note_contents.extend_from_slice(&self.owner.transmission_key.to_bytes());
+
+        assert_eq!(
+            note_contents.len(),
+            32 // pk_g
+            + 8 // value
+        );
+
+        // Compute the Pedersen hash of the note contents
+        let hash_of_contents = pedersen_hash(
+            Personalization::NoteCommitment,
+            note_contents
+                .into_iter()
+                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
+        );
+
+        // Compute final commitment
+        (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness) + hash_of_contents
+    }
+
     /// Compute the nullifier for this note, given the private key of its owner.
     ///
     /// The nullifier is a series of bytes that is published by the note owner
     /// only at the time the note is spent. This key is collected in a massive
     /// 'nullifier set', preventing double-spend.
     pub fn nullifier(&self, private_key: &SaplingKey, position: u64) -> Nullifier {
-        self.sapling_note()
-            .nf(&private_key.sapling_viewing_key(), position)
+        // Compute rho = cm + position.G
+        let rho =
+            self.cm_full_point() + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+
+        // Compute nf = BLAKE2s(nk | rho)
+        Nullifier::from_slice(
+            Blake2sParams::new()
+                .hash_length(32)
+                .personal(PRF_NF_PERSONALIZATION)
+                .to_state()
+                .update(&private_key.sapling_viewing_key().nk.to_bytes())
+                .update(&rho.to_bytes())
+                .finalize()
+                .as_bytes(),
+        )
+        .unwrap()
     }
 
     /// Get the commitment hash for this note. This encapsulates all the values
@@ -222,7 +273,11 @@ impl<'a> Note {
     /// The owner can publish this value to commit to the fact that the note
     /// exists, without revealing any of the values on the note until later.
     pub(crate) fn commitment_point(&self) -> Scalar {
-        self.sapling_note().cmu()
+        // The commitment is in the prime order subgroup, so mapping the
+        // commitment to the u-coordinate is an injective encoding.
+        jubjub::ExtendedPoint::from(self.cm_full_point())
+            .to_affine()
+            .get_u()
     }
 
     /// Verify that the note's commitment matches the one passed in
@@ -250,22 +305,6 @@ impl<'a> Note {
         reader.read_exact(&mut memo.0)?;
 
         Ok((randomness, value, memo))
-    }
-
-    /// The zcash_primitives version of the Note API is kind of klunky with
-    /// annoying variable names and exposed values, but it contains the methods
-    /// used to calculate nullifier and commitment.
-    ///
-    /// This is somewhat suboptimal with extra calculations and bytes being
-    /// passed around. I'm not worried about it yet, since only notes actively
-    /// being spent have to create these.
-    fn sapling_note(&self) -> SaplingNote {
-        SaplingNote {
-            value: self.value,
-            g_d: PUBLIC_KEY_GENERATOR,
-            pk_d: self.owner.transmission_key,
-            rseed: Rseed::BeforeZip212(self.randomness),
-        }
     }
 }
 
