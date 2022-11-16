@@ -569,15 +569,17 @@ describe('Accounts', () => {
       const accountA = await useAccountFixture(node.wallet, 'accountA')
       const accountB = await useAccountFixture(node.wallet, 'accountB')
 
-      const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await node.chain.addBlock(block1)
+      const block2 = await useMinerBlockFixture(node.chain, 2, accountA, node.wallet)
+      await node.chain.addBlock(block2)
 
       await node.wallet.updateHead()
 
-      await useTxFixture(node.wallet, accountA, accountB, undefined, undefined, 1)
+      const tx = await useTxFixture(node.wallet, accountA, accountB, undefined, undefined, 3)
 
-      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await node.chain.addBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, node.wallet)
+      await node.chain.addBlock(block3)
+
+      await accountA.getTransaction(tx.hash())
 
       await node.wallet.updateHead()
 
@@ -612,8 +614,8 @@ describe('Accounts', () => {
       const accountA = await useAccountFixture(node.wallet, 'accountA')
       const accountB = await useAccountFixture(node.wallet, 'accountB')
 
-      const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await node.chain.addBlock(block1)
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
 
       await node.wallet.updateHead()
 
@@ -623,11 +625,11 @@ describe('Accounts', () => {
         accountB,
         undefined,
         undefined,
-        1,
+        3,
       )
 
-      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await node.chain.addBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block3)
 
       await node.wallet.updateHead()
 
@@ -766,8 +768,8 @@ describe('Accounts', () => {
       const accountA = await useAccountFixture(node.wallet, 'a')
       const accountB = await useAccountFixture(node.wallet, 'b')
 
-      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await expect(node.chain).toAddBlock(blockA1)
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
 
       await node.wallet.updateHead()
 
@@ -777,8 +779,13 @@ describe('Accounts', () => {
         accountB,
         undefined,
         undefined,
-        1,
+        3,
       )
+
+      const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA3)
+
+      await node.wallet.updateHead()
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
       Assert.isNotUndefined(transactionValue)
@@ -862,8 +869,8 @@ describe('Accounts', () => {
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
 
-      const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await node.chain.addBlock(block1)
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
       await node.wallet.updateHead()
 
       // create expired transaction
@@ -873,8 +880,12 @@ describe('Accounts', () => {
         accountA,
         undefined,
         undefined,
-        2,
+        3,
       )
+
+      const block3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
       Assert.isNotUndefined(transactionValue)
