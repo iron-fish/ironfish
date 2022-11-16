@@ -75,10 +75,6 @@ export class Pay extends IronfishCommand {
     }
 
     if (flags.amount) {
-      if (!CurrencyUtils.isValidIron(flags.amount)) {
-        this.error(`A valid amount is required`)
-      }
-
       amount = CurrencyUtils.decodeIron(flags.amount)
     }
 
@@ -94,17 +90,10 @@ export class Pay extends IronfishCommand {
         },
       )) as string
 
-      if (!CurrencyUtils.isValidIron(input)) {
-        this.error(`A valid amount is required`)
-      }
-
       amount = CurrencyUtils.decodeIron(input)
     }
 
     if (flags.fee) {
-      if (!CurrencyUtils.isValidIron(flags.fee)) {
-        this.error(`A valid fee is required`)
-      }
       fee = CurrencyUtils.decodeIron(flags.fee)
     }
 
@@ -174,10 +163,6 @@ export class Pay extends IronfishCommand {
           default: suggestedFee,
         },
       )) as string
-
-      if (!CurrencyUtils.isValidIron(input)) {
-        this.error(`A valid amount is required`)
-      }
 
       fee = CurrencyUtils.decodeIron(input)
     }
