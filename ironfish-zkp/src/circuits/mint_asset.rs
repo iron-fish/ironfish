@@ -25,8 +25,12 @@ pub struct MintAsset {
     /// identifier
     pub asset_authorization_key: Option<jubjub::Fr>,
 
+    /// Randomized commitment to represent the value being minted in this proof
+    /// needed to balance the transaction.
     pub value_commitment: Option<ValueCommitment>,
 
+    /// Used to add randomness to signature generation without leaking the
+    /// key. Referred to as `ar` in the literature.
     pub public_key_randomness: Option<jubjub::Fr>,
 }
 

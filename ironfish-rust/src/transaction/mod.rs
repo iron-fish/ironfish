@@ -285,7 +285,7 @@ impl ProposedTransaction {
             .unwrap();
         for spend in spends {
             spend
-                .spend_proof
+                .description
                 .serialize_signature_fields(&mut hasher)
                 .unwrap();
         }
