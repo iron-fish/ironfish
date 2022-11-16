@@ -16,7 +16,7 @@ const RAW_MAX_UPLOAD = Number(process.env.MAX_UPLOAD)
 const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 500 : RAW_MAX_UPLOAD
 const NEAR_SYNC_THRESHOLD = 5
 
-export default class SyncTransactions extends IronfishCommand {
+export default class SyncMaspTransactions extends IronfishCommand {
   static aliases = ['service:syncMaspTransactions']
   static hidden = true
 
@@ -53,7 +53,7 @@ export default class SyncTransactions extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(SyncTransactions)
+    const { flags, args } = await this.parse(SyncMaspTransactions)
 
     const apiHost = (flags.endpoint || process.env.IRONFISH_API_HOST || '').trim()
     const apiToken = (flags.token || process.env.IRONFISH_API_TOKEN || '').trim()
