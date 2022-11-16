@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
-import { SerializedBlock } from '../../primitives/block'
+import { Block } from '../../primitives/block'
 import { NetworkMessageType } from '../types'
 import { getBlockSize, readBlock, writeBlock } from '../utils/serializers'
 import { Direction, RpcNetworkMessage } from './rpcNetworkMessage'
@@ -40,9 +40,9 @@ export class GetBlocksRequest extends RpcNetworkMessage {
 }
 
 export class GetBlocksResponse extends RpcNetworkMessage {
-  readonly blocks: SerializedBlock[]
+  readonly blocks: Block[]
 
-  constructor(blocks: SerializedBlock[], rpcId: number) {
+  constructor(blocks: Block[], rpcId: number) {
     super(NetworkMessageType.GetBlocksResponse, Direction.Response, rpcId)
     this.blocks = blocks
   }

@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
-import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useMinerBlockFixture,
+  useTxFixture,
+} from '../testUtilities'
 import { AsyncUtils } from '../utils/async'
 
 describe('Accounts', () => {
@@ -128,5 +133,64 @@ describe('Accounts', () => {
 
     // record of expired transaction is preserved
     await expect(account.getTransaction(tx.hash())).resolves.toBeDefined()
+  })
+
+  describe('loadPendingTransactions', () => {
+    it('should load pending transactions', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(block1)
+      await node.wallet.updateHead()
+
+      // create pending transaction
+      await useTxFixture(node.wallet, account, account, undefined, undefined, 4)
+
+      const pendingTransactions = await AsyncUtils.materialize(
+        account.getPendingTransactions(node.chain.head.sequence),
+      )
+
+      expect(pendingTransactions.length).toEqual(1)
+    })
+
+    it('should load transactions with no expiration', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(block1)
+      await node.wallet.updateHead()
+
+      // create transaction with no expiration
+      await useTxFixture(node.wallet, account, account)
+
+      const pendingTransactions = await AsyncUtils.materialize(
+        account.getPendingTransactions(node.chain.head.sequence),
+      )
+
+      expect(pendingTransactions.length).toEqual(1)
+    })
+
+    it('should not load expired transactions', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(block1)
+      await node.wallet.updateHead()
+
+      // create expired transaction
+      await useTxFixture(node.wallet, account, account, undefined, undefined, 1)
+
+      const pendingTransactions = await AsyncUtils.materialize(
+        account.getPendingTransactions(node.chain.head.sequence),
+      )
+
+      expect(pendingTransactions.length).toEqual(0)
+    })
   })
 })

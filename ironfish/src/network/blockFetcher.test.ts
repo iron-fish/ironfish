@@ -4,7 +4,7 @@
 
 import { Blockchain } from '../blockchain'
 import { VerificationResultReason } from '../consensus'
-import { Block, BlockSerde } from '../primitives/block'
+import { Block } from '../primitives/block'
 import {
   createNodeTest,
   useBlockWithTx,
@@ -17,7 +17,6 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
-import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { Peer } from './peers/peer'
@@ -74,33 +73,6 @@ describe('BlockFetcher', () => {
     expect(sentPeers[0].sendSpy).toHaveBeenCalledWith(
       new GetCompactBlockRequest(hash, expect.any(Number)),
     )
-
-    await peerNetwork.stop()
-  })
-
-  it('does not send a request for a block if received NewBlockMessage from another peer within 500ms', async () => {
-    const { peerNetwork, chain } = nodeTest
-
-    const block = await useMinerBlockFixture(chain)
-
-    // The hash is received from 5 peers
-    const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
-
-    for (const { peer } of peers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(...newHashMessageEvent(peer, block))
-    }
-
-    // Another peer sends a full block
-    const { peer } = getConnectedPeer(peerNetwork.peerManager)
-
-    const message = peerMessage(peer, new NewBlockMessage(BlockSerde.serialize(block)))
-    await peerNetwork.peerManager.onMessage.emitAsync(...message)
-
-    jest.runOnlyPendingTimers()
-
-    const sentPeers = peers.filter(({ sendSpy }) => sendSpy.mock.calls.length > 0)
-
-    expect(sentPeers).toHaveLength(0)
 
     await peerNetwork.stop()
   })
@@ -216,7 +188,7 @@ describe('BlockFetcher', () => {
     // The peer we requested responds with the transactions not in mempool
     const response = new GetBlockTransactionsResponse(
       block.header.hash,
-      transactions.filter((t) => t !== transactions[2]).map((t) => t.serialize()),
+      transactions.filter((t) => t !== transactions[2]),
       (request as GetBlockTransactionsRequest).rpcId,
     )
 
@@ -281,7 +253,7 @@ describe('BlockFetcher', () => {
     // The peer we requested responds with the transactions
     const response = new GetBlockTransactionsResponse(
       block.header.hash,
-      transactions.map((t) => t.serialize()),
+      transactions,
       getBlockTransactionsRequest.rpcId,
     )
 
@@ -345,10 +317,7 @@ describe('BlockFetcher', () => {
 
     // The peer should respond with a GetBlocksResponse
     await peerNetwork.peerManager.onMessage.emitAsync(
-      ...peerMessage(
-        otherSentPeer,
-        new GetBlocksResponse([BlockSerde.serialize(block)], getBlocksRequest.rpcId),
-      ),
+      ...peerMessage(otherSentPeer, new GetBlocksResponse([block], getBlocksRequest.rpcId)),
     )
 
     await expect(chain.hasBlock(block.header.hash)).resolves.toBe(true)

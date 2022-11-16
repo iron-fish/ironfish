@@ -12,8 +12,7 @@ import ws from 'ws'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
 import { Block, Transaction } from '../primitives'
-import { BlockSerde, SerializedCompactBlock } from '../primitives/block'
-import { BlockHeaderSerde } from '../primitives/blockheader'
+import { CompactBlock } from '../primitives/block'
 import {
   useAccountFixture,
   useBlockWithTx,
@@ -30,11 +29,9 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
-import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionMessage } from './messages/newTransaction'
 import { NewTransactionV2Message } from './messages/newTransactionV2'
 import { PeerListMessage } from './messages/peerList'
 import {
@@ -43,6 +40,8 @@ import {
 } from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
 import {
+  expectGetBlockTransactionsResponseToMatch,
+  expectGetCompactBlockResponseToMatch,
   getConnectedPeer,
   getConnectedPeersWithSpies,
   mockHostsStore,
@@ -188,9 +187,9 @@ describe('PeerNetwork', () => {
         transactions: [transaction1, transaction2, transaction3],
       })
 
-      const compactBlock: SerializedCompactBlock = {
-        header: BlockHeaderSerde.serialize(block.header),
-        transactions: [{ index: 0, transaction: transaction1.serialize() }],
+      const compactBlock: CompactBlock = {
+        header: block.header,
+        transactions: [{ index: 0, transaction: transaction1 }],
         transactionHashes: [transaction2.hash(), transaction3.hash()],
       }
 
@@ -205,7 +204,11 @@ describe('PeerNetwork', () => {
 
       await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
 
-      expect(sendSpy).toHaveBeenCalledWith(response)
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetCompactBlockResponse)
+      expectGetCompactBlockResponseToMatch(
+        sendSpy.mock.calls[0][0] as GetCompactBlockResponse,
+        response,
+      )
     })
 
     it('responds with CannotSatisfy when requesting an old compact block', async () => {
@@ -276,13 +279,17 @@ describe('PeerNetwork', () => {
       const message = new GetBlockTransactionsRequest(block.header.hash, [0, 1], rpcId)
       const response = new GetBlockTransactionsResponse(
         block.header.hash,
-        [transaction1.serialize(), transaction3.serialize()],
+        [transaction1, transaction3],
         rpcId,
       )
 
       await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
 
-      expect(sendSpy).toHaveBeenCalledWith(response)
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockTransactionsResponse)
+      expectGetBlockTransactionsResponseToMatch(
+        sendSpy.mock.calls[0][0] as GetBlockTransactionsResponse,
+        response,
+      )
     })
 
     it('responds with CannotSatisfy when requesting transactions from an old block', async () => {
@@ -371,23 +378,6 @@ describe('PeerNetwork', () => {
     const nodeTest = createNodeTest()
 
     describe('handles new blocks', () => {
-      it('adds new blocks', async () => {
-        const { peerNetwork, chain } = nodeTest
-
-        const block = await useMinerBlockFixture(chain)
-
-        expect(await chain.hasBlock(block.header.hash)).toBe(false)
-
-        const { peer } = getConnectedPeer(peerNetwork.peerManager)
-
-        const serializedBlock = BlockSerde.serialize(block)
-        await peerNetwork.peerManager.onMessage.emitAsync(
-          ...peerMessage(peer, new NewBlockMessage(serializedBlock)),
-        )
-
-        expect(await chain.hasBlock(block.header.hash)).toBe(true)
-      })
-
       it('does not sync or gossip invalid blocks', async () => {
         const { peerNetwork, node } = nodeTest
         const { chain } = node
@@ -399,7 +389,7 @@ describe('PeerNetwork', () => {
         }
 
         const changes: ((block: Block) => {
-          block: SerializedCompactBlock
+          block: CompactBlock
           reason: VerificationResultReason
         })[] = [
           (b: Block) => {
@@ -409,7 +399,7 @@ describe('PeerNetwork', () => {
           },
           (b: Block) => {
             const newBlock = b.toCompactBlock()
-            newBlock.header.timestamp = 8640000000000000
+            newBlock.header.timestamp = new Date(8640000000000000)
             return { block: newBlock, reason: VerificationResultReason.TOO_FAR_IN_FUTURE }
           },
         ]
@@ -427,7 +417,7 @@ describe('PeerNetwork', () => {
             expect(sendSpy).not.toHaveBeenCalled()
           }
 
-          const invalidHeader = BlockHeaderSerde.deserialize(invalidBlock.header)
+          const invalidHeader = invalidBlock.header
           await expect(chain.hasBlock(invalidHeader.hash)).resolves.toBe(false)
           expect(chain.isInvalid(invalidHeader)).toBe(reason)
         }
@@ -464,64 +454,6 @@ describe('PeerNetwork', () => {
         expect(sentHash.length).toBe(7)
         expect(sentNewBlockV2.length).toBe(3)
       })
-
-      it('broadcasts a new block but does not send new messages to old peers', async () => {
-        const { peerNetwork, node, chain } = nodeTest
-
-        const block = await useMinerBlockFixture(chain)
-
-        // Create 10 peers on the current version
-        const newPeers = getConnectedPeersWithSpies(peerNetwork.peerManager, 10)
-        for (const { peer } of newPeers) {
-          peer.version = VERSION_PROTOCOL
-        }
-
-        // Create 10 peers on an old version
-        const oldPeers = getConnectedPeersWithSpies(peerNetwork.peerManager, 10)
-        for (const { peer } of oldPeers) {
-          peer.version = 17 // version that does not accept block hashes
-        }
-
-        await node.miningManager.onNewBlock.emitAsync(block)
-
-        const sentHash = oldPeers.filter(({ sendSpy }) => {
-          return (
-            sendSpy.mock.calls.filter(([message]) => {
-              return message instanceof NewBlockHashesMessage
-            }).length > 0
-          )
-        })
-
-        const sentNewBlockV2 = oldPeers.filter(({ sendSpy }) => {
-          const hashCalls = sendSpy.mock.calls.filter(([message]) => {
-            return message instanceof NewBlockV2Message
-          })
-          return hashCalls.length > 0
-        })
-
-        const sentNewBlock = oldPeers.filter(({ sendSpy }) => {
-          const hashCalls = sendSpy.mock.calls.filter(([message]) => {
-            return message instanceof NewBlockMessage
-          })
-          return hashCalls.length > 0
-        })
-
-        // None of the old peers should send new messages, only the old messages
-        expect(sentHash.length).toBe(0)
-        expect(sentNewBlockV2.length).toBe(0)
-        expect(sentNewBlock.length).toBe(10)
-
-        // All of the new peers got hashes since the old peers took up full block slots
-        const sentHashNew = newPeers.filter(({ sendSpy }) => {
-          return (
-            sendSpy.mock.calls.filter(([message]) => {
-              return message instanceof NewBlockHashesMessage
-            }).length > 0
-          )
-        })
-
-        expect(sentHashNew.length).toBe(10)
-      })
     })
 
     describe('handles requests for mempool transactions', () => {
@@ -538,7 +470,7 @@ describe('PeerNetwork', () => {
 
         const rpcId = 432
         const message = new PooledTransactionsRequest([transaction.hash()], rpcId)
-        const response = new PooledTransactionsResponse([transaction.serialize()], rpcId)
+        const response = new PooledTransactionsResponse([transaction], rpcId)
 
         peerNetwork.peerManager.onMessage.emit(peer, {
           peerIdentity: peer.getIdentityOrThrow(),
@@ -567,7 +499,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction]),
         })
 
         for (const { sendSpy } of peers) {
@@ -595,7 +527,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction]),
         })
 
         for (const { sendSpy } of peers) {
@@ -625,13 +557,12 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction]),
         })
 
         for (const { sendSpy } of peersWithoutTransaction) {
           const transactionMessages = sendSpy.mock.calls.filter(([message]) => {
             return (
-              message instanceof NewTransactionMessage ||
               message instanceof NewTransactionV2Message ||
               message instanceof NewPooledTransactionHashes
             )
@@ -656,14 +587,13 @@ describe('PeerNetwork', () => {
         const { peer: peerWithTransaction2 } = peers[1]
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction2, {
           peerIdentity: peerWithTransaction2.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction]),
         })
 
         // These functions should still only be called once
         for (const { sendSpy } of peersWithoutTransaction) {
           const transactionMessages = sendSpy.mock.calls.filter(([message]) => {
             return (
-              message instanceof NewTransactionMessage ||
               message instanceof NewTransactionV2Message ||
               message instanceof NewPooledTransactionHashes
             )
@@ -701,7 +631,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction]),
         })
 
         // Peers should not be sent invalid transaction
@@ -763,7 +693,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction]),
         })
 
         expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
@@ -777,7 +707,6 @@ describe('PeerNetwork', () => {
         for (const { sendSpy } of peersWithoutTransaction) {
           const transactionMessages = sendSpy.mock.calls.filter(([message]) => {
             return (
-              message instanceof NewTransactionMessage ||
               message instanceof NewTransactionV2Message ||
               message instanceof NewPooledTransactionHashes
             )
@@ -812,7 +741,7 @@ describe('PeerNetwork', () => {
 
         await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
           peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionMessage(transaction.serialize()),
+          message: new NewTransactionV2Message([transaction]),
         })
 
         // Peers should not be sent invalid transaction
@@ -885,66 +814,6 @@ describe('PeerNetwork', () => {
         expect(sentHash.length).toBe(7)
         expect(sentFullV2Transaction.length).toBe(3)
       })
-
-      it('broadcasts a new transaction but does not send new messages to old peers', async () => {
-        const { peerNetwork, node, wallet } = nodeTest
-
-        // Create 10 peers on the current version
-        const newPeers = getConnectedPeersWithSpies(peerNetwork.peerManager, 10)
-        for (const { peer } of newPeers) {
-          peer.version = VERSION_PROTOCOL
-        }
-
-        // Create 10 peers on an old version
-        const oldPeers = getConnectedPeersWithSpies(peerNetwork.peerManager, 10)
-        for (const { peer } of oldPeers) {
-          peer.version = 16 // version that does not accept transaction hashes
-        }
-
-        const accountA = await useAccountFixture(wallet, 'accountA')
-        const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(node, accountA, accountB)
-
-        await wallet.onBroadcastTransaction.emitAsync(transaction)
-
-        const sentHash = oldPeers.filter(({ sendSpy }) => {
-          return (
-            sendSpy.mock.calls.filter(([message]) => {
-              return message instanceof NewPooledTransactionHashes
-            }).length > 0
-          )
-        })
-
-        const sentFullV2Transaction = oldPeers.filter(({ sendSpy }) => {
-          const hashCalls = sendSpy.mock.calls.filter(([message]) => {
-            return message instanceof NewTransactionV2Message
-          })
-          return hashCalls.length > 0
-        })
-
-        const sentFullTransaction = oldPeers.filter(({ sendSpy }) => {
-          const hashCalls = sendSpy.mock.calls.filter(([message]) => {
-            return message instanceof NewTransactionMessage
-          })
-          return hashCalls.length > 0
-        })
-
-        // None of the old peers should send new messages, only the old messages
-        expect(sentHash.length).toBe(0)
-        expect(sentFullV2Transaction.length).toBe(0)
-        expect(sentFullTransaction.length).toBe(10)
-
-        // All of the new peers got hashes since the old peers took up full transaction slots
-        const sentHashNew = newPeers.filter(({ sendSpy }) => {
-          return (
-            sendSpy.mock.calls.filter(([message]) => {
-              return message instanceof NewPooledTransactionHashes
-            }).length > 0
-          )
-        })
-
-        expect(sentHashNew.length).toBe(10)
-      })
     })
   })
 
@@ -955,37 +824,15 @@ describe('PeerNetwork', () => {
       const { peerNetwork, node, chain } = nodeTest
       chain.synced = false
 
+      const block = await useMinerBlockFixture(chain)
+
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
 
-      const block = {
-        header: {
-          graffiti: 'chipotle',
-          minersFee: '0',
-          noteCommitment: {
-            commitment: Buffer.from('commitment'),
-            size: 1,
-          },
-          nullifierCommitment: {
-            commitment: 'commitment',
-            size: 2,
-          },
-          previousBlockHash: 'burrito',
-          randomness: '1',
-          sequence: 2,
-          target: 'icecream',
-          timestamp: 200000,
-          work: '123',
-          hash: 'ramen',
-        },
-        transactions: [],
-      }
+      const message = new NewBlockV2Message(block.toCompactBlock())
 
       jest.spyOn(node.syncer, 'addBlock')
 
-      await peerNetwork['handleNewBlockMessage'](
-        peer,
-        new NewBlockMessage(block, Buffer.alloc(16, 'nonce')),
-      )
+      await peerNetwork.peerManager.onMessage.emitAsync(...peerMessage(peer, message))
 
       expect(node.syncer.addBlock).not.toHaveBeenCalled()
     })
@@ -1009,7 +856,7 @@ describe('PeerNetwork', () => {
 
       await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
         peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-        message: new NewTransactionMessage(transaction.serialize()),
+        message: new NewTransactionV2Message([transaction]),
       })
 
       expect(sendSpy).not.toHaveBeenCalled()

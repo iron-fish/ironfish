@@ -1,17 +1,23 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use crate::{
-    assets::constants::{ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION},
-    errors::IronfishError,
-    util::str_to_array,
-    PublicAddress,
+use crate::{errors::IronfishError, util::str_to_array, PublicAddress};
+use ironfish_zkp::{
+    constants::{
+        ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION,
+        VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
+    },
+    group_hash,
 };
-use ironfish_zkp::{constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, group_hash};
 use std::slice::from_ref;
 
 #[allow(dead_code)]
 pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
+
+pub const NATIVE_ASSET: AssetIdentifier = [
+    215, 200, 103, 6, 245, 129, 122, 167, 24, 205, 28, 250, 208, 50, 51, 188, 214, 74, 119, 137,
+    253, 148, 34, 211, 177, 122, 246, 130, 58, 126, 106, 198,
+];
 
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
@@ -25,6 +31,9 @@ pub struct Asset {
 
     /// Network the asset originated from (ex. Ethereum)
     network: [u8; 32],
+
+    /// Identifier field for bridged asset address, or if a native custom asset, random bytes.
+    token_identifier: [u8; 32],
 
     /// The owner who created the asset. Has permissions to mint
     owner: PublicAddress,
@@ -45,16 +54,23 @@ impl Asset {
         name: &str,
         chain: &str,
         network: &str,
+        token_identifier: &str,
     ) -> Result<Asset, IronfishError> {
         let name_bytes = str_to_array(name);
         let chain_bytes = str_to_array(chain);
         let network_bytes = str_to_array(network);
+        let token_identifier_bytes = str_to_array(token_identifier);
 
         let mut nonce = 0u8;
         loop {
-            if let Ok(asset_info) =
-                Asset::new_with_nonce(owner, name_bytes, chain_bytes, network_bytes, nonce)
-            {
+            if let Ok(asset_info) = Asset::new_with_nonce(
+                owner,
+                name_bytes,
+                chain_bytes,
+                network_bytes,
+                token_identifier_bytes,
+                nonce,
+            ) {
                 return Ok(asset_info);
             }
 
@@ -68,6 +84,7 @@ impl Asset {
         name: [u8; 32],
         chain: [u8; 32],
         network: [u8; 32],
+        token_identifier: [u8; 32],
         nonce: u8,
     ) -> Result<Asset, IronfishError> {
         // Check the personalization is acceptable length
@@ -82,6 +99,7 @@ impl Asset {
             .update(&name)
             .update(&chain)
             .update(&network)
+            .update(&token_identifier)
             .update(from_ref(&nonce))
             .finalize();
 
@@ -92,6 +110,7 @@ impl Asset {
                 name,
                 chain,
                 network,
+                token_identifier,
                 nonce,
                 identifier: *h.as_array(),
             })
@@ -123,12 +142,15 @@ impl Asset {
 
 #[cfg(test)]
 mod test {
+    use group::GroupEncoding;
+    use ironfish_zkp::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
+
     use crate::{util::str_to_array, PublicAddress, SaplingKey};
 
-    use super::Asset;
+    use super::{Asset, NATIVE_ASSET};
 
     #[test]
-    fn test_new_with_nonce() {
+    fn test_asset_new_with_nonce() {
         let owner = PublicAddress::new(&[
             19, 26, 159, 204, 98, 253, 225, 73, 168, 125, 3, 240, 3, 129, 255, 146, 50, 134, 44,
             84, 181, 195, 50, 249, 78, 128, 228, 152, 239, 10, 106, 10, 27, 58, 155, 162, 114, 133,
@@ -138,38 +160,50 @@ mod test {
         let name = str_to_array("name");
         let chain = str_to_array("chain");
         let network = str_to_array("network");
+        let token_identifier = str_to_array("token identifier");
         let nonce = 0;
 
-        let asset =
-            Asset::new_with_nonce(owner, name, chain, network, nonce).expect("can create an asset");
+        let asset = Asset::new_with_nonce(owner, name, chain, network, token_identifier, nonce)
+            .expect("can create an asset");
 
         assert_eq!(asset.owner, owner);
         assert_eq!(asset.name, name);
         assert_eq!(asset.chain, chain);
         assert_eq!(asset.network, network);
+        assert_eq!(asset.token_identifier, token_identifier);
         assert_eq!(asset.nonce, nonce);
         assert_eq!(
             asset.identifier,
             [
-                63, 153, 26, 142, 149, 219, 17, 209, 253, 181, 149, 15, 213, 51, 143, 78, 12, 60,
-                164, 140, 4, 112, 88, 247, 113, 83, 236, 214, 242, 91, 103, 175
-            ]
+                174, 9, 19, 214, 96, 63, 10, 51, 94, 42, 41, 186, 207, 162, 48, 235, 1, 255, 211,
+                190, 228, 93, 137, 120, 138, 89, 61, 168, 168, 11, 150, 127
+            ],
         );
     }
 
     #[test]
-    fn test_new() {
+    fn test_asset_new() {
         let key = SaplingKey::generate_key();
         let owner = key.generate_public_address();
         let name = "name";
         let chain = "chain";
         let network = "network";
+        let token_identifier = "token identifier";
 
-        let asset = Asset::new(owner, name, chain, network).expect("can create an asset");
+        let asset =
+            Asset::new(owner, name, chain, network, token_identifier).expect("can create an asset");
 
         assert_eq!(asset.owner, owner);
         assert_eq!(asset.name, str_to_array(name));
         assert_eq!(asset.chain, str_to_array(chain));
         assert_eq!(asset.network, str_to_array(network));
+        assert_eq!(asset.token_identifier, str_to_array(token_identifier));
+    }
+
+    #[test]
+    fn test_asset_native_identifier() {
+        // Native asset uses the original value commitment generator, no
+        // particular reason other than it is easier to think about this way.
+        assert_eq!(NATIVE_ASSET, VALUE_COMMITMENT_VALUE_GENERATOR.to_bytes());
     }
 }

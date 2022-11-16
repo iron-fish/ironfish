@@ -127,12 +127,14 @@ export class Wallet {
         await this.syncTransaction(transaction, {})
       }
 
+      await this.walletDb.clearSequenceNoteHashes(header.sequence)
+
       await this.updateHeadHashes(header.previousBlockHash)
     })
   }
 
   async updateHead(): Promise<void> {
-    if (this.scan || this.updateHeadState) {
+    if (this.scan || this.updateHeadState || this.accounts.size === 0) {
       return
     }
 
@@ -327,7 +329,7 @@ export class Wallet {
     }
   }
 
-  private async decryptNotes(
+  async decryptNotes(
     transaction: Transaction,
     initialNoteIndex: number | null,
     accounts?: Array<Account>,
@@ -839,7 +841,7 @@ export class Wallet {
         return
       }
 
-      for await (const transactionInfo of account.getTransactions()) {
+      for await (const transactionInfo of account.getPendingTransactions(head.sequence)) {
         if (this.eventLoopAbortController.signal.aborted) {
           return
         }
@@ -849,16 +851,6 @@ export class Wallet {
 
         // Skip transactions that are already added to a block
         if (blockHash) {
-          continue
-        }
-
-        // Skip expired transactions
-        if (
-          this.chain.verifier.isExpiredSequence(
-            transaction.expirationSequence(),
-            this.chain.head.sequence,
-          )
-        ) {
           continue
         }
 

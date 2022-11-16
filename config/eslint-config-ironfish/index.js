@@ -47,11 +47,19 @@ module.exports = {
         '@typescript-eslint/no-unsafe-assignment': 'off',
         // It's common to want to mock unbound methods.
         '@typescript-eslint/unbound-method': 'off',
-        // Using try catch with expect.assertsions(n) is the recommended way to
+        // Using try catch with expect.assertions(n) is the recommended way to
         // test async code where you need a reference to the error to validate the
         // type and properties
         'jest/no-conditional-expect': 'off',
         'jest/no-try-expect': 'off',
+        // It's common to want to compare non-primitive types using expect
+        // statements grouped in a helper function.
+        'jest/expect-expect': [
+          'error',
+          {
+            'assertFunctionNames': ['expect*'],
+          }
+        ],
       },
     },
   ],

@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { blake3 } from '@napi-rs/blake-hash'
-import { randomBytes, randomInt } from 'crypto'
 import { v4 as uuid } from 'uuid'
+import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
 import { PooledTransactionsRequest, PooledTransactionsResponse } from './pooledTransactions'
 
 describe('PooledTransactionsRequest', () => {
@@ -20,14 +20,35 @@ describe('PooledTransactionsRequest', () => {
 })
 
 describe('PooledTransactionsResponse', () => {
-  it('serializes the object into a buffer and deserializes to the original object', () => {
+  const nodeTest = createNodeTest()
+
+  function expectPooledTransactionsResponseToMatch(
+    a: PooledTransactionsResponse,
+    b: PooledTransactionsResponse,
+  ): void {
+    // Test transactions separately because Transaction is not a primitive type
+    expect(a.transactions.length).toEqual(b.transactions.length)
+    a.transactions.forEach((transactionA, transactionIndexA) => {
+      const transactionB = b.transactions[transactionIndexA]
+
+      expect(transactionA.hash().equals(transactionB.hash())).toBe(true)
+    })
+
+    expect({ ...a, transactions: undefined }).toMatchObject({ ...b, transactions: undefined })
+  }
+
+  it('serializes the object into a buffer and deserializes to the original object', async () => {
+    const { account, transaction: transactionA } = await useTxSpendsFixture(nodeTest.node)
+    const transactionB = await useMinersTxFixture(nodeTest.node.wallet, account)
+
     const rpcId = 53242
-    const transactions = [...Array(100)].map((_) => randomBytes(randomInt(500, 10000)))
+    const transactions = [transactionA, transactionB]
 
     const message = new PooledTransactionsResponse(transactions, rpcId)
 
     const buffer = message.serialize()
     const deserializedMessage = PooledTransactionsResponse.deserialize(buffer, rpcId)
-    expect(deserializedMessage).toEqual(message)
+
+    expectPooledTransactionsResponseToMatch(message, deserializedMessage)
   })
 })

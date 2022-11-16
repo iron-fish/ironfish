@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
-import { Block, SerializedCompactBlock } from '../primitives/block'
-import { BlockHash, BlockHeader, BlockHeaderSerde } from '../primitives/blockheader'
+import { Block, CompactBlock } from '../primitives/block'
+import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { ArrayUtils } from '../utils/array'
 import { Identity } from './identity'
 import { GetBlocksRequest } from './messages/getBlocks'
@@ -45,7 +45,7 @@ type BlockState =
   | {
       action: 'PROCESSING_COMPACT_BLOCK'
       peer: Identity
-      compactBlock: SerializedCompactBlock
+      compactBlock: CompactBlock
       sources: Set<Identity> // Set of peers that have sent us the hash or compact block
     }
   | {
@@ -180,8 +180,8 @@ export class BlockFetcher {
    * but has not yet been processed (validated, assembled into a full
    * block, etc.) Returns true if the caller (PeerNetwork) should continue
    * processing this compact block or not */
-  receivedCompactBlock(compactBlock: SerializedCompactBlock, peer: Peer): boolean {
-    const hash = BlockHeaderSerde.deserialize(compactBlock.header).hash
+  receivedCompactBlock(compactBlock: CompactBlock, peer: Peer): boolean {
+    const hash = compactBlock.header.hash
     const currentState = this.pending.get(hash)
 
     // If the peer is not connected or identified, ignore them
@@ -287,7 +287,7 @@ export class BlockFetcher {
     // Check if we're still missing transactions
     const assembleResult = this.peerNetwork.assembleBlockFromResponse(
       currentState.partialTransactions,
-      message.serializedTransactions,
+      message.transactions,
     )
 
     // Either mismatched hashes or missing transactions

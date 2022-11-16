@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{errors::IronfishError, sapling_bls12::SAPLING};
+use crate::{
+    errors::IronfishError, keys::SaplingKey, merkle_note::MerkleNote, note::Note,
+    sapling_bls12::SAPLING,
+};
 
-use super::{keys::SaplingKey, merkle_note::MerkleNote, note::Note};
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use ff::Field;

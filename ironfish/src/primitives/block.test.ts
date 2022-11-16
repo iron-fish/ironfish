@@ -103,7 +103,7 @@ describe('Block', () => {
     expect(compactBlock.transactions).toHaveLength(1)
     const transaction = compactBlock.transactions[0]
     expect(transaction.index).toBe(0)
-    expect(transaction.transaction).toEqual(block.minersFee.serialize())
+    expect(transaction.transaction).toEqual(block.minersFee)
 
     // The remaining transactions are hashed
     const hashedTransactions = block.transactions.slice(1)

@@ -12,5 +12,14 @@ workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bellman = { version = "0.13.1" }
+blake2s_simd = "1.0.0"
+bls12_381 = "0.7.0"
+ff = "0.12.0"
+group = "0.12.0"
+jubjub = "0.9.0"
+lazy_static = "1.4.0"
+rand = "0.8.5"
 zcash_primitives = "0.7.0"
 zcash_proofs = "0.7.1"
+rand_xorshift = "0.3.0"

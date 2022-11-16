@@ -171,7 +171,7 @@ export class FeeEstimator {
       receives,
       estimateFeeRate,
     )
-    return this.getFee(estimateFeeRate, estimateTransactionSize)
+    return getFee(estimateFeeRate, estimateTransactionSize)
   }
 
   private async getPendingTransactionSize(
@@ -195,8 +195,7 @@ export class FeeEstimator {
     size += receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
 
     if (estimateFeeRate) {
-      const additionalAmountNeeded =
-        this.getFee(estimateFeeRate, size) - (amount - amountNeeded)
+      const additionalAmountNeeded = getFee(estimateFeeRate, size) - (amount - amountNeeded)
 
       if (additionalAmountNeeded > 0) {
         const { notesToSpend: additionalNotesToSpend } = await this.wallet.createSpends(
@@ -215,17 +214,16 @@ export class FeeEstimator {
   private isFull(array: FeeRateEntry[]): boolean {
     return array.length === this.maxBlockHistory
   }
+}
 
-  private getFee(feeRate: bigint, transactionSize: number): bigint {
-    const fee = (feeRate * BigInt(transactionSize)) / BigInt(1000)
+export function getFee(feeRate: bigint, transactionSize: number): bigint {
+  const fee = (feeRate * BigInt(transactionSize)) / BigInt(1000)
 
-    return fee > BigInt(0) ? fee : BigInt(1)
-  }
+  return fee > BigInt(0) ? fee : BigInt(1)
 }
 
 export function getFeeRate(transaction: Transaction): bigint {
-  const rate =
-    (transaction.fee() * BigInt(1000)) / BigInt(getTransactionSize(transaction.serialize()))
+  const rate = (transaction.fee() * BigInt(1000)) / BigInt(getTransactionSize(transaction))
 
   return rate > 0 ? rate : BigInt(1)
 }

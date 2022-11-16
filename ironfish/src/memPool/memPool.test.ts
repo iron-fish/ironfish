@@ -40,7 +40,7 @@ describe('MemPool', () => {
       memPool.acceptTransaction(transaction)
 
       const size = (tx: Transaction) => {
-        return getTransactionSize(tx.serialize())
+        return getTransactionSize(tx)
       }
 
       expect(memPool.sizeBytes()).toBe(size(transaction))

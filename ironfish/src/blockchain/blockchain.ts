@@ -605,7 +605,7 @@ export class Blockchain {
     return { isFork: isFork }
   }
 
-  private async disconnect(block: Block, tx: IDatabaseTransaction): Promise<void> {
+  async disconnect(block: Block, tx: IDatabaseTransaction): Promise<void> {
     Assert.isTrue(
       block.header.hash.equals(this.head.hash),
       `Cannot disconnect ${HashUtils.renderHash(
@@ -656,8 +656,13 @@ export class Blockchain {
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev)
+    const verifyBlockAdd = this.verifier.verifyBlockAdd(block, prev).catch((_) => {
+      return { valid: false, reason: VerificationResultReason.ERROR }
+    })
 
+    await this.saveBlock(block, prev, true, tx)
+
+    const { valid, reason } = await verifyBlockAdd
     if (!valid) {
       Assert.isNotUndefined(reason)
 
@@ -672,7 +677,8 @@ export class Blockchain {
       throw new VerifyError(reason, BAN_SCORE.MAX)
     }
 
-    await this.saveBlock(block, prev, true, tx)
+    await tx.update()
+    this.notes.pastRootTxCommitted(tx)
     await this.onForkBlock.emitAsync(block, tx)
 
     this.logger.warn(
@@ -706,7 +712,13 @@ export class Blockchain {
       await this.reorganizeChain(prev, tx)
     }
 
-    const { valid, reason } = await this.verifier.verifyBlockAdd(block, prev)
+    const verifyBlock = this.verifier.verifyBlockAdd(block, prev).catch((_) => {
+      return { valid: false, reason: VerificationResultReason.ERROR }
+    })
+
+    await this.saveBlock(block, prev, false, tx)
+
+    const { valid, reason } = await verifyBlock
     if (!valid) {
       Assert.isNotUndefined(reason)
 
@@ -720,7 +732,9 @@ export class Blockchain {
       throw new VerifyError(reason, BAN_SCORE.MAX)
     }
 
-    await this.saveBlock(block, prev, false, tx)
+    await tx.update()
+    this.notes.pastRootTxCommitted(tx)
+
     this.head = block.header
 
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
@@ -919,14 +933,19 @@ export class Blockchain {
         target = Target.calculateTarget(timestamp, heaviestHead.timestamp, heaviestHead.target)
       }
 
+      const blockNotes = []
+      const blockNullifiers = []
       for (const transaction of transactions) {
         for (const note of transaction.notes()) {
-          await this.notes.add(note, tx)
+          blockNotes.push(note)
         }
         for (const spend of transaction.spends()) {
-          await this.nullifiers.add(spend.nullifier, tx)
+          blockNullifiers.push(spend.nullifier)
         }
       }
+
+      await this.notes.addBatch(blockNotes, tx)
+      await this.nullifiers.addBatch(blockNullifiers, tx)
 
       const noteCommitment = {
         commitment: await this.notes.rootHash(tx),
@@ -1055,12 +1074,12 @@ export class Blockchain {
 
   async removeBlock(hash: Buffer): Promise<void> {
     await this.db.transaction(async (tx) => {
-      this.logger.info(`Deleting block ${hash.toString('hex')}`)
+      this.logger.debug(`Deleting block ${hash.toString('hex')}`)
 
       const exists = await this.hasBlock(hash, tx)
 
       if (!exists) {
-        this.logger.warn(`No block exists at ${hash.toString('hex')}`)
+        this.logger.debug(`No block exists at ${hash.toString('hex')}`)
         return
       }
 
@@ -1272,9 +1291,6 @@ export class Blockchain {
       this.latest = block.header
       await this.meta.put('latest', hash, tx)
     }
-
-    await tx.update()
-    this.notes.pastRootTxCommitted(tx)
   }
 
   private updateSynced(): void {

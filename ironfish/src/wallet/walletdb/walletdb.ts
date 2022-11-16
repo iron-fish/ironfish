@@ -337,11 +337,25 @@ export class WalletDB {
     sequence: number | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    await this.nonChainNoteHashes.del([account.prefix, noteHash])
+    await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
 
     if (sequence !== null) {
       await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
     }
+  }
+
+  /*
+   * clears sequenceToNoteHash entries for all accounts for a given sequence
+   */
+  async clearSequenceNoteHashes(sequence: number, tx?: IDatabaseTransaction): Promise<void> {
+    const encoding = this.sequenceToNoteHash.keyEncoding
+
+    const keyRange = StorageUtils.getPrefixesKeyRange(
+      encoding.serialize([Buffer.alloc(4, 0), [sequence, Buffer.alloc(0)]]),
+      encoding.serialize([Buffer.alloc(4, 255), [sequence, Buffer.alloc(0)]]),
+    )
+
+    await this.sequenceToNoteHash.clear(tx, keyRange)
   }
 
   async loadNoteHash(
@@ -531,20 +545,53 @@ export class WalletDB {
     headSequence: number,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<TransactionValue> {
-    const encoding = new PrefixEncoding(
-      BUFFER_ENCODING,
-      U32_ENCODING,
-      account.prefix.byteLength,
-    )
+    const encoding = this.pendingTransactionHashes.keyEncoding
 
     const expiredRange = StorageUtils.getPrefixesKeyRange(
-      encoding.serialize([account.prefix, 1]),
-      encoding.serialize([account.prefix, headSequence]),
+      encoding.serialize([account.prefix, [1, Buffer.alloc(0)]]),
+      encoding.serialize([account.prefix, [headSequence, Buffer.alloc(0)]]),
     )
 
     for await (const [, [, transactionHash]] of this.pendingTransactionHashes.getAllKeysIter(
       tx,
       expiredRange,
+    )) {
+      const transaction = await this.loadTransaction(account, transactionHash, tx)
+      Assert.isNotUndefined(transaction)
+
+      yield transaction
+    }
+  }
+
+  async *loadPendingTransactions(
+    account: Account,
+    headSequence: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<TransactionValue> {
+    const encoding = this.pendingTransactionHashes.keyEncoding
+
+    const noExpirationRange = StorageUtils.getPrefixKeyRange(
+      encoding.serialize([account.prefix, [0, Buffer.alloc(0)]]),
+    )
+
+    for await (const [, [, transactionHash]] of this.pendingTransactionHashes.getAllKeysIter(
+      tx,
+      noExpirationRange,
+    )) {
+      const transaction = await this.loadTransaction(account, transactionHash, tx)
+      Assert.isNotUndefined(transaction)
+
+      yield transaction
+    }
+
+    const pendingRange = StorageUtils.getPrefixesKeyRange(
+      encoding.serialize([account.prefix, [headSequence + 1, Buffer.alloc(0)]]),
+      encoding.serialize([account.prefix, [2 ^ 32, Buffer.alloc(0)]]),
+    )
+
+    for await (const [, [, transactionHash]] of this.pendingTransactionHashes.getAllKeysIter(
+      tx,
+      pendingRange,
     )) {
       const transaction = await this.loadTransaction(account, transactionHash, tx)
       Assert.isNotUndefined(transaction)

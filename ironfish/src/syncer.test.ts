@@ -5,7 +5,6 @@
 import { Assert } from './assert'
 import { BAN_SCORE } from './network/peers/peer'
 import { getConnectedPeer } from './network/testUtilities'
-import { BlockSerde } from './primitives/block'
 import { makeBlockAfter } from './testUtilities/helpers/blockchain'
 import { createNodeTest } from './testUtilities/nodeTest'
 import { PromiseUtils } from './utils'
@@ -158,15 +157,24 @@ describe('Syncer', () => {
     const getBlocksSpy = jest
       .spyOn(peerNetwork, 'getBlocks')
       .mockImplementationOnce(() =>
-        Promise.resolve([BlockSerde.serialize(genesis), BlockSerde.serialize(blockA1)]),
+        Promise.resolve({
+          blocks: [genesis, blockA1],
+          time: 100,
+        }),
       )
       .mockImplementationOnce(() =>
-        Promise.resolve([BlockSerde.serialize(blockA1), BlockSerde.serialize(blockA2)]),
+        Promise.resolve({
+          blocks: [blockA1, blockA2],
+          time: 100,
+        }),
       )
       .mockImplementationOnce(() =>
-        Promise.resolve([BlockSerde.serialize(blockA2), BlockSerde.serialize(blockA3)]),
+        Promise.resolve({
+          blocks: [blockA2, blockA3],
+          time: 100,
+        }),
       )
-      .mockImplementationOnce(() => Promise.resolve([BlockSerde.serialize(blockA3)]))
+      .mockImplementationOnce(() => Promise.resolve({ blocks: [blockA3], time: 100 }))
 
     syncer.loader = peer
     await syncer.syncBlocks(peer, genesis.header.hash, genesis.header.sequence)
@@ -193,7 +201,7 @@ describe('Syncer', () => {
 
     const getBlocksSpy = jest
       .spyOn(peerNetwork, 'getBlocks')
-      .mockImplementation(() => Promise.resolve([]))
+      .mockImplementation(() => Promise.resolve({ blocks: [], time: 100 }))
     const peerPunished = jest.spyOn(peer, 'punish')
 
     syncer.loader = peer
