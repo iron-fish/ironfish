@@ -49,14 +49,17 @@ export default class Export extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
+    const argStart = args.start as number | null
+    const argStop = args.stop as number | null
     const stream = client.exportChainStream({
-      start: args.start as number | null,
-      stop: args.stop as number | null,
+      start: argStart,
+      stop: argStop,
     })
-
     const { start, stop } = await AsyncUtils.first(stream.contentStream())
+    if (argStop != null && argStop > stop) {
+      this.log(`Argument stop is greater than the chain head of the node: ${argStop} > ${stop}`)
+    }
     this.log(`Exporting chain from ${start} -> ${stop} to ${exportPath}`)
-
     const progress = CliUx.ux.progress({
       format: 'Exporting blocks: [{bar}] {value}/{total} {percentage}% | ETA: {eta}s',
     }) as ProgressBar
