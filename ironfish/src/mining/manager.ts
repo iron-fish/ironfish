@@ -59,6 +59,7 @@ export class MiningManager {
    * the sum of the associated fees.
    *
    * @param sequence The sequence of the next block to be included in the chain
+   * @param currBlockSize The initial size of the next block
    * @returns
    */
   async getNewBlockTransactions(
