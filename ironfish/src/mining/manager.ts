@@ -87,6 +87,7 @@ export class MiningManager {
         sequence,
       )
       if (isExpired) {
+        this.memPool.deleteTransaction(transaction)
         continue
       }
 
@@ -99,6 +100,7 @@ export class MiningManager {
 
       const { valid: isValid } = await this.chain.verifier.verifyTransactionSpends(transaction)
       if (!isValid) {
+        this.memPool.deleteTransaction(transaction)
         continue
       }
 

@@ -138,7 +138,7 @@ describe('FeeEstimator', () => {
       expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(0)
       expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(0)
 
-      expect(node.memPool.acceptTransaction(transaction)).toBe(true)
+      expect(await node.memPool.acceptTransaction(transaction)).toBe(true)
 
       feeEstimator.onConnectBlock(block, node.memPool)
 
@@ -192,7 +192,7 @@ describe('FeeEstimator', () => {
         fee: 10,
       })
 
-      expect(node.memPool.acceptTransaction(transaction)).toBe(true)
+      expect(await node.memPool.acceptTransaction(transaction)).toBe(true)
 
       feeEstimator.onConnectBlock(block, node.memPool)
 
@@ -211,7 +211,7 @@ describe('FeeEstimator', () => {
         },
       )
 
-      expect(node.memPool.acceptTransaction(transaction2)).toBe(true)
+      expect(await node.memPool.acceptTransaction(transaction2)).toBe(true)
 
       feeEstimator.onConnectBlock(block2, node.memPool)
 
@@ -238,7 +238,7 @@ describe('FeeEstimator', () => {
         fee: 10,
       })
 
-      const result = node.memPool.acceptTransaction(transaction)
+      const result = await node.memPool.acceptTransaction(transaction)
       expect(result).toBe(true)
 
       feeEstimator.onConnectBlock(block, node.memPool)
@@ -258,7 +258,7 @@ describe('FeeEstimator', () => {
         },
       )
 
-      expect(node.memPool.acceptTransaction(transaction2)).toBe(true)
+      expect(await node.memPool.acceptTransaction(transaction2)).toBe(true)
 
       feeEstimator.onConnectBlock(block2, node.memPool)
 
@@ -282,7 +282,7 @@ describe('FeeEstimator', () => {
         fee: 10,
       })
 
-      expect(node.memPool.acceptTransaction(transaction)).toBe(true)
+      expect(await node.memPool.acceptTransaction(transaction)).toBe(true)
 
       feeEstimator.onConnectBlock(block, node.memPool)
 
@@ -296,7 +296,7 @@ describe('FeeEstimator', () => {
         account2,
       )
       for (const newTransaction of newTransactions) {
-        expect(node.memPool.acceptTransaction(newTransaction)).toBe(true)
+        expect(await node.memPool.acceptTransaction(newTransaction)).toBe(true)
       }
 
       feeEstimator.onConnectBlock(newBlock, node.memPool)
@@ -321,7 +321,7 @@ describe('FeeEstimator', () => {
 
       const { block, transaction } = await useBlockWithTx(node, undefined, undefined, true)
 
-      expect(node.memPool.acceptTransaction(transaction)).toBe(true)
+      expect(await node.memPool.acceptTransaction(transaction)).toBe(true)
 
       feeEstimator.onConnectBlock(block, node.memPool)
 
@@ -351,7 +351,7 @@ describe('FeeEstimator', () => {
         fee: 10,
       })
 
-      expect(node.memPool.acceptTransaction(transaction)).toBe(true)
+      expect(await node.memPool.acceptTransaction(transaction)).toBe(true)
 
       feeEstimator.onConnectBlock(block, node.memPool)
 
@@ -366,7 +366,7 @@ describe('FeeEstimator', () => {
         },
       )
 
-      expect(node.memPool.acceptTransaction(transaction2)).toBe(true)
+      expect(await node.memPool.acceptTransaction(transaction2)).toBe(true)
 
       feeEstimator.onConnectBlock(block2, node.memPool)
 

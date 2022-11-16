@@ -125,7 +125,7 @@ export class MemPool {
   /**
    * Accepts a transaction from the network
    */
-  acceptTransaction(transaction: Transaction): boolean {
+  async acceptTransaction(transaction: Transaction): Promise<boolean> {
     const hash = transaction.hash().toString('hex')
     const sequence = transaction.expirationSequence()
     if (this.exists(transaction.hash())) {
@@ -139,6 +139,14 @@ export class MemPool {
 
     if (isExpiredSequence) {
       this.logger.debug(`Invalid transaction '${hash}': expired sequence ${sequence}`)
+      return false
+    }
+
+    const { valid: isValid, reason } = await this.chain.verifier.verifyTransactionSpends(
+      transaction,
+    )
+    if (!isValid) {
+      this.logger.debug(`Invalid transaction '${hash}': ${reason ?? ''}`)
       return false
     }
 
@@ -246,7 +254,7 @@ export class MemPool {
     return true
   }
 
-  private deleteTransaction(transaction: Transaction): boolean {
+  deleteTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
     const deleted = this.transactions.delete(hash)
 

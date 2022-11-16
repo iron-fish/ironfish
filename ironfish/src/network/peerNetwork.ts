@@ -1352,7 +1352,7 @@ export class PeerNetwork {
         return
       }
 
-      if (this.node.memPool.acceptTransaction(transaction)) {
+      if (await this.node.memPool.acceptTransaction(transaction)) {
         this.onTransactionAccepted.emit(transaction, received)
       }
 

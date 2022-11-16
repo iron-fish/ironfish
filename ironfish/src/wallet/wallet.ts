@@ -671,7 +671,7 @@ export class Wallet {
     }
 
     await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
-    memPool.acceptTransaction(transaction)
+    await memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
     this.onTransactionCreated.emit(transaction)
 

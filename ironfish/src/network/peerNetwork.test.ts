@@ -464,7 +464,7 @@ describe('PeerNetwork', () => {
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
-        memPool.acceptTransaction(transaction)
+        await memPool.acceptTransaction(transaction)
 
         const { peer, sendSpy } = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)[0]
 

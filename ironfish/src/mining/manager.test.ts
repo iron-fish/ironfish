@@ -68,7 +68,7 @@ describe('Mining manager', () => {
       chain.head.sequence + 2,
     )
 
-    node.memPool.acceptTransaction(transaction)
+    await node.memPool.acceptTransaction(transaction)
     chain.consensus.MAX_BLOCK_SIZE_BYTES = 0
 
     let results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1, 0))

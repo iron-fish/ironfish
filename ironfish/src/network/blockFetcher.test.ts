@@ -164,7 +164,7 @@ describe('BlockFetcher', () => {
     expect(block.header.sequence - chain.head.sequence).toEqual(1)
 
     // We accept one of the the transaction in our mempool
-    node.memPool.acceptTransaction(transactions[2])
+    await node.memPool.acceptTransaction(transactions[2])
 
     // Create 5 connected peers
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
