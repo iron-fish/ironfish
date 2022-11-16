@@ -98,8 +98,16 @@ impl MintBuilder {
     }
 }
 
+/// The publicly visible values of a mint description in a transaction.
+/// These fields get serialized when computing the transaction hash and are used
+/// to prove that the owner has knowledge of these values.
 pub struct UnsignedMintDescription {
+    /// Used to add randomness to signature generation. Referred to as `ar` in
+    /// the literature.
     public_key_randomness: jubjub::Fr,
+
+    /// Proof and public parameters for a user action to issue supply for an
+    /// asset.
     pub(crate) description: MintDescription,
 }
 
@@ -140,10 +148,17 @@ pub struct MintDescription {
     /// Asset which is being minted
     pub asset: Asset,
 
+    /// Randomized commitment to represent the value being minted in this proof
+    /// needed to balance the transaction.
     pub value_commitment: ExtendedPoint,
 
+    /// Used to add randomness to signature generation without leaking the
+    /// key. Referred to as `ar` in the literature.
     pub randomized_public_key: redjubjub::PublicKey,
 
+    /// Signature of the owner authorizing the mint action. This value is
+    /// calculated after the transaction is signed since the value is dependent
+    /// on the binding signature key
     pub authorizing_signature: redjubjub::Signature,
 }
 
