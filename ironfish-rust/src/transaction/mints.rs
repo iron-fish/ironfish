@@ -102,8 +102,8 @@ impl MintBuilder {
 /// These fields get serialized when computing the transaction hash and are used
 /// to prove that the owner has knowledge of these values.
 pub struct UnsignedMintDescription {
-    /// Used to add randomness to signature generation without leaking the
-    /// key. Referred to as `ar` in the literature.
+    /// Used to add randomness to signature generation. Referred to as `ar` in
+    /// the literature.
     public_key_randomness: jubjub::Fr,
 
     /// Proof and public parameters for a user action to issue supply for an
