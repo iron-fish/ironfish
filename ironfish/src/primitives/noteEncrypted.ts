@@ -35,7 +35,7 @@ export class NoteEncrypted {
     // ephemeral public key
     reader.seek(32)
     // encrypted note
-    reader.seek(83)
+    reader.seek(72)
     // aead MAC
     reader.seek(16)
     // note encryption keys
@@ -44,7 +44,7 @@ export class NoteEncrypted {
     reader.seek(16)
 
     // total serialized size: 192 (proof from transaction)
-    // + 32 + 32 + 32 + 83 + 16 + 64 + 16 = 467 bytes
+    // + 32 + 32 + 32 + 72 + 16 + 64 + 16 = 456 bytes
   }
 
   serialize(): Buffer {

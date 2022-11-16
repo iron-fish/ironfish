@@ -8,7 +8,7 @@ use crate::{
 };
 use ff::Field;
 use group::GroupEncoding;
-use ironfish_zkp::proofs::PUBLIC_KEY_GENERATOR;
+use ironfish_zkp::constants::PUBLIC_KEY_GENERATOR;
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
 
@@ -79,11 +79,8 @@ impl PublicAddress {
     /// Retrieve the public address in byte form. It is comprised of the
     /// 11 byte diversifier followed by the 32 byte transmission key.
     pub fn public_address(&self) -> [u8; 32] {
-        let mut result = [0; 32];
-        result[..32].copy_from_slice(
-            &point_to_bytes(&self.transmission_key)
-                .expect("transmission key should be convertible to bytes"),
-        );
+        let result = point_to_bytes(&self.transmission_key)
+            .expect("transmission key should be convertible to bytes");
         result
     }
 

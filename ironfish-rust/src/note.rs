@@ -206,7 +206,7 @@ impl<'a> Note {
     }
 
     /// Computes the note commitment, returning the full point.
-    fn cm_full_point(&self) -> jubjub::SubgroupPoint {
+    fn commitment_full_point(&self) -> jubjub::SubgroupPoint {
         // Calculate the note contents, as bytes
         let mut note_contents = vec![];
 
@@ -243,8 +243,8 @@ impl<'a> Note {
     /// 'nullifier set', preventing double-spend.
     pub fn nullifier(&self, private_key: &SaplingKey, position: u64) -> Nullifier {
         // Compute rho = cm + position.G
-        let rho =
-            self.cm_full_point() + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+        let rho = self.commitment_full_point()
+            + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
 
         // Compute nf = BLAKE2s(nk | rho)
         Nullifier::from_slice(
@@ -275,7 +275,7 @@ impl<'a> Note {
     pub(crate) fn commitment_point(&self) -> Scalar {
         // The commitment is in the prime order subgroup, so mapping the
         // commitment to the u-coordinate is an injective encoding.
-        jubjub::ExtendedPoint::from(self.cm_full_point())
+        jubjub::ExtendedPoint::from(self.commitment_full_point())
             .to_affine()
             .get_u()
     }

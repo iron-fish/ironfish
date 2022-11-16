@@ -3,7 +3,7 @@ use group::Curve;
 
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 
-use jubjub::{ExtendedPoint, SubgroupPoint};
+use jubjub::SubgroupPoint;
 use zcash_primitives::sapling::ValueCommitment;
 
 use zcash_proofs::{
@@ -14,7 +14,7 @@ use zcash_proofs::{
     constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
-use crate::constants::PUBLIC_KEY_GENERATOR;
+use crate::constants::proof::PUBLIC_KEY_GENERATOR;
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::boolean;
@@ -52,33 +52,15 @@ impl Circuit<bls12_381::Scalar> for Output {
 
         // Let's deal with g_d
         {
-            // Prover witnesses g_d, ensuring it's on the
-            // curve.
-            let g_d = ecc::EdwardsPoint::witness(
-                cs.namespace(|| "witness g_d"),
-                Some(ExtendedPoint::from(PUBLIC_KEY_GENERATOR)),
-            )?;
-
-            // g_d is ensured to be large order. The relationship
-            // between g_d and pk_d ultimately binds ivk to the
-            // note. If this were a small order point, it would
-            // not do this correctly, and the prover could
-            // double-spend by finding random ivk's that satisfy
-            // the relationship.
-            //
-            // Further, if it were small order, epk would be
-            // small order too!
-            g_d.assert_not_small_order(cs.namespace(|| "g_d not small order"))?;
-
-            // Extend our note contents with the representation of
-            // g_d.
-            note_contents.extend(g_d.repr(cs.namespace(|| "representation of g_d"))?);
-
             // Booleanize our ephemeral secret key
             let esk = boolean::field_into_boolean_vec_le(cs.namespace(|| "esk"), self.esk)?;
 
             // Create the ephemeral public key from g_d.
-            let epk = g_d.mul(cs.namespace(|| "epk computation"), &esk)?;
+            let epk = ecc::fixed_base_multiplication(
+                cs.namespace(|| "epk computation"),
+                &PUBLIC_KEY_GENERATOR,
+                &esk,
+            )?;
 
             // Expose epk publicly.
             epk.inputize(cs.namespace(|| "epk"))?;
@@ -115,7 +97,6 @@ impl Circuit<bls12_381::Scalar> for Output {
         assert_eq!(
             note_contents.len(),
             64 + // value
-            256 + // g_d
             256 // pk_d
         );
 
@@ -166,7 +147,7 @@ mod test {
 
     use crate::circuits::output::Output;
 
-    use super::PUBLIC_KEY_GENERATOR;
+    use crate::constants::PUBLIC_KEY_GENERATOR;
 
     #[test]
     fn test_output_circuit_with_bls12_381() {

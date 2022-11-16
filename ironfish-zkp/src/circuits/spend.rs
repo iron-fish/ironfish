@@ -1,9 +1,8 @@
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use ff::PrimeField;
-use jubjub::ExtendedPoint;
 use jubjub::SubgroupPoint;
 
-use crate::constants::PUBLIC_KEY_GENERATOR;
+use crate::constants::proof::PUBLIC_KEY_GENERATOR;
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::blake2s;
@@ -138,23 +137,15 @@ impl Circuit<bls12_381::Scalar> for Spend {
         // drop_5 to ensure it's in the field
         ivk.truncate(jubjub::Fr::CAPACITY as usize);
 
-        // Witness g_d, checking that it's on the curve.
-        let g_d = ecc::EdwardsPoint::witness(
-            cs.namespace(|| "witness g_d"),
-            Some(ExtendedPoint::from(PUBLIC_KEY_GENERATOR)),
+        // Compute pk_d = g_d^ivk
+        let pk_d = ecc::fixed_base_multiplication(
+            cs.namespace(|| "compute pk_d"),
+            &PUBLIC_KEY_GENERATOR,
+            &ivk,
         )?;
 
-        // Check that g_d is not small order. Technically, this check
-        // is already done in the Output circuit, and this proof ensures
-        // g_d is bound to a product of that check, but for defense in
-        // depth let's check it anyway. It's cheap.
-        g_d.assert_not_small_order(cs.namespace(|| "g_d not small order"))?;
-
-        // Compute pk_d = g_d^ivk
-        let pk_d = g_d.mul(cs.namespace(|| "compute pk_d"), &ivk)?;
-
         // Compute note contents:
-        // value (in big endian) followed by g_d and pk_d
+        // value (in big endian) followed by pk_d
         let mut note_contents = vec![];
 
         // Handle the value; we'll need it later for the
@@ -179,16 +170,12 @@ impl Circuit<bls12_381::Scalar> for Spend {
             note_contents.extend(value_bits);
         }
 
-        // Place g_d in the note
-        note_contents.extend(g_d.repr(cs.namespace(|| "representation of g_d"))?);
-
         // Place pk_d in the note
         note_contents.extend(pk_d.repr(cs.namespace(|| "representation of pk_d"))?);
 
         assert_eq!(
             note_contents.len(),
             64 + // value
-            256 + // g_d
             256 // p_d
         );
 
