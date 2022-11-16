@@ -1,7 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { GetTransactionStreamResponse, Meter, TimeUtils, WebApi } from '@ironfish/sdk'
+import {
+  ApiDepositUpload,
+  GetTransactionStreamResponse,
+  Meter,
+  TimeUtils,
+  WebApi,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -10,7 +16,8 @@ const RAW_MAX_UPLOAD = Number(process.env.MAX_UPLOAD)
 const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 500 : RAW_MAX_UPLOAD
 const NEAR_SYNC_THRESHOLD = 5
 
-export abstract class SyncTransactions<T> extends IronfishCommand {
+export default class SyncTransactions extends IronfishCommand {
+  static aliases = ['service:syncTransactions']
   static hidden = true
 
   static description = 'Upload transactions to an HTTP API using IronfishApi'
@@ -75,7 +82,7 @@ export abstract class SyncTransactions<T> extends IronfishCommand {
     let head = args.head as string | null
     if (!head) {
       this.log(`Fetching head from ${apiHost}`)
-      head = await this.getHead(api)
+      head = await api.headDeposits()
       this.log(`Starting from ${head || 'Genesis Block'}`)
     }
 
@@ -94,7 +101,14 @@ export abstract class SyncTransactions<T> extends IronfishCommand {
 
     const speed = new Meter()
     speed.start()
+
     const buffer = new Array<GetTransactionStreamResponse>()
+
+    async function commit(): Promise<void> {
+      const serialized = buffer.map(serializeDeposit)
+      buffer.length = 0
+      await api.uploadDeposits(serialized)
+    }
 
     for await (const content of response.contentStream()) {
       buffer.push(content)
@@ -126,19 +140,22 @@ export abstract class SyncTransactions<T> extends IronfishCommand {
       )
 
       if (committing) {
-        await this.commit(api, buffer)
+        await commit()
       }
     }
   }
-  async commit(api: WebApi, buffer: Array<GetTransactionStreamResponse>): Promise<void> {
-    const serialized = buffer.map(this.serialize)
-    buffer.length = 0
-    await this.upload(api, serialized)
+}
+
+function serializeDeposit(data: GetTransactionStreamResponse): ApiDepositUpload {
+  return {
+    ...data,
+    transactions: data.transactions.map((tx) => ({
+      ...tx,
+      notes: tx.notes.map((note) => ({
+        ...note,
+        memo: note.memo,
+        amount: Number(note.amount),
+      })),
+    })),
   }
-  // determine which transaction to start syncer from
-  abstract getHead: (api: WebApi) => Promise<string | null>
-  // turn transaction stream info into the expected payload type
-  abstract serialize: (data: GetTransactionStreamResponse) => T
-  // use the WebApi to upload the serialized payloads
-  abstract upload: (api: WebApi, payload: T[]) => Promise<void>
 }

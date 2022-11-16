@@ -40,11 +40,8 @@ export type ApiMaspUpload = {
   }
   transactions: {
     hash: string
-    notes: {
-      memo: string
-      type: 'MASP_TRANSFER' | 'MASP_BURN' | 'MASP_MINT'
-      assetName: string
-    }[]
+    type: 'MASP_TRANSFER' | 'MASP_BURN' | 'MASP_MINT'
+    assetName: string
   }[]
 }
 
