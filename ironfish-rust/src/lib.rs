@@ -57,7 +57,7 @@ impl Sapling {
         // These params were borrowed from zcash
         let spend_bytes = include_bytes!("sapling_params/sapling-spend.params");
         let output_bytes = include_bytes!("sapling_params/sapling-output.params");
-        let mint_bytes = include_bytes!("sapling_params/sapling-output.params");
+        let mint_bytes = include_bytes!("sapling_params/sapling-mint.params");
 
         let spend_params = Sapling::load_params(&spend_bytes[..]);
         let output_params = Sapling::load_params(&output_bytes[..]);

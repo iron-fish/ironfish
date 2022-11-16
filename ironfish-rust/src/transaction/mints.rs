@@ -9,8 +9,8 @@ use bls12_381::{Bls12, Scalar};
 use ff::Field;
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
-    circuits::mint_asset::MintAsset,
     constants::ASSET_KEY_GENERATOR,
+    proofs::MintAsset,
     redjubjub::{self, Signature},
     ValueCommitment,
 };
@@ -280,6 +280,8 @@ impl MintDescription {
 mod test {
     use crate::{assets::asset::Asset, transaction::mints::MintBuilder, SaplingKey};
 
+    use super::MintDescription;
+
     #[test]
     /// Test that we can create a builder with a valid asset and proof
     /// generation key
@@ -294,12 +296,100 @@ mod test {
         let value = 5;
 
         let mint = MintBuilder::new(asset, value);
-        // let mint_description = mint.build(key.sapling_proof_generation_key()).expect("should build valid mint description");
+        let unsigned_mint = mint
+            .build(&key)
+            .expect("should build valid mint description");
 
-        // assert_eq!(mint_description.asset.identifier(), asset.identifier());
+        // Signature comes from the transaction, normally
+        let sig_hash = [0u8; 32];
 
-        // TODO(mgeist, rohanjadvani):
-        // This is a placeholder assertion until the mint parameters are generated
-        assert_eq!(asset.identifier(), mint.asset.identifier());
+        let description = unsigned_mint
+            .sign(&key, &sig_hash)
+            .expect("should be able to sign proof");
+
+        description.verify_proof().expect("proof should check out");
+
+        description
+            .verify_signature(&sig_hash)
+            .expect("should be able to verify signature");
+
+        let other_sig_hash = [1u8; 32];
+        assert!(description.verify_signature(&other_sig_hash).is_err());
+    }
+
+    #[test]
+    fn test_mint_description_serialization() {
+        let key = SaplingKey::generate_key();
+        let owner = key.asset_public_key();
+        let name = "name";
+        let metadata = "{ 'token_identifier': '0x123' }";
+
+        let asset = Asset::new(owner, name, metadata).unwrap();
+
+        let value = 5;
+
+        let mint = MintBuilder::new(asset, value);
+        let unsigned_mint = mint
+            .build(&key)
+            .expect("should build valid mint description");
+
+        // Signature comes from the transaction, normally
+        let sig_hash = [0u8; 32];
+
+        let description = unsigned_mint
+            .sign(&key, &sig_hash)
+            .expect("should be able to sign proof");
+
+        description.verify_proof().expect("proof should check out");
+
+        let mut serialized_description = vec![];
+        description
+            .write(&mut serialized_description)
+            .expect("should be able to serialize description");
+
+        let deserialized_description = MintDescription::read(&serialized_description[..])
+            .expect("should be able to deserialize valid proof");
+
+        assert_eq!(description.proof.a, deserialized_description.proof.a);
+        assert_eq!(description.proof.b, deserialized_description.proof.b);
+        assert_eq!(description.proof.c, deserialized_description.proof.c);
+        assert_eq!(
+            description.value_commitment,
+            deserialized_description.value_commitment
+        );
+        assert_eq!(
+            description.value_commitment,
+            deserialized_description.value_commitment
+        );
+        assert_eq!(
+            description.randomized_public_key.0,
+            deserialized_description.randomized_public_key.0
+        );
+        assert_eq!(
+            description.randomized_public_key.0,
+            deserialized_description.randomized_public_key.0
+        );
+
+        // Instantiated with different data just to ensure this test actually does what we expect
+        let mut description_sig = [9u8; 64];
+        let mut deserialized_description_sig = [5u8; 64];
+
+        description
+            .authorizing_signature
+            .write(&mut description_sig[..])
+            .unwrap();
+
+        deserialized_description
+            .authorizing_signature
+            .write(&mut deserialized_description_sig[..])
+            .unwrap();
+
+        assert_eq!(description_sig, deserialized_description_sig);
+
+        let mut reserialized_description = vec![];
+        deserialized_description
+            .write(&mut reserialized_description)
+            .expect("should be able to serialize proof again");
+        assert_eq!(serialized_description, reserialized_description);
     }
 }
