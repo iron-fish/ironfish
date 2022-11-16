@@ -7,6 +7,7 @@ import {
   Blockchain,
   CurrencyUtils,
   NodeUtils,
+  Transaction,
   Wallet,
   WalletDB,
 } from '@ironfish/sdk'
@@ -114,7 +115,13 @@ export default class Repair extends IronfishCommand {
             },
             tx,
           )
-        } else if (!spent) {
+        } else if (
+          !spent &&
+          !chain.verifier.isExpiredSequence(
+            transactionValue.transaction.expirationSequence(),
+            chain.head.sequence,
+          )
+        ) {
           unconfirmedBalance += decryptedNoteValue.note.value()
         }
       }
