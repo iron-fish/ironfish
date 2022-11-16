@@ -11,7 +11,7 @@ use super::{
 use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
-use ironfish_zkp::{Nullifier, Rseed, SaplingNote, proofs::PUBLIC_KEY_GENERATOR};
+use ironfish_zkp::{proofs::PUBLIC_KEY_GENERATOR, Nullifier, Rseed, SaplingNote};
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
 
