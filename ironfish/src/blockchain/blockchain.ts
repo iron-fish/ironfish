@@ -63,6 +63,12 @@ import {
 
 export const VERSION_DATABASE_CHAIN = 10
 
+// TODO: Remove this during network reset
+const HARD_FORK_HASH = Buffer.from(
+  '00000000000006ce61057e714ede8471d15cc9d19f0ff58eee179cadf3ba1f31',
+  'hex',
+)
+
 export class Blockchain {
   db: IDatabase
   logger: Logger
@@ -174,12 +180,6 @@ export class Blockchain {
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
     this.consensus = new TestnetParameters()
-
-    // TODO: Remove this during network reset
-    this.invalid.set(
-      Buffer.from('00000000000006ce61057e714ede8471d15cc9d19f0ff58eee179cadf3ba1f31', 'hex'),
-      VerificationResultReason.DOUBLE_SPEND,
-    )
 
     // Flat Fields
     this.meta = this.db.addStore({
@@ -557,6 +557,11 @@ export class Blockchain {
 
   isInvalid(headerOrHash: BlockHeader | BlockHash): VerificationResultReason | null {
     const hash = Buffer.isBuffer(headerOrHash) ? headerOrHash : headerOrHash.hash
+
+    // TODO: Remove this during network reset
+    if (hash.equals(HARD_FORK_HASH)) {
+      return VerificationResultReason.DOUBLE_SPEND
+    }
 
     const invalid = this.invalid.get(hash)
     if (invalid) {
