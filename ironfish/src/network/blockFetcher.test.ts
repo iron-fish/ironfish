@@ -202,7 +202,7 @@ describe('BlockFetcher', () => {
     }
 
     await peerNetwork.stop()
-  }, 60000)
+  })
 
   it('fills missing transactions from transaction request if not in mempool', async () => {
     const { peerNetwork, chain, node } = nodeTest
@@ -269,7 +269,7 @@ describe('BlockFetcher', () => {
     expect(sentPeers3).toHaveLength(1)
 
     await peerNetwork.stop()
-  }, 60000)
+  })
 
   it('requests full block if transaction request fails', async () => {
     const { peerNetwork, chain, node } = nodeTest
