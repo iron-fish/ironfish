@@ -9,4 +9,5 @@ pub use zcash_primitives::sapling::{
 pub mod proofs {
     pub use crate::circuits::mint_asset::MintAsset;
     pub use crate::circuits::{output::Output, spend::Spend};
+    pub use crate::constants::PUBLIC_KEY_GENERATOR;
 }

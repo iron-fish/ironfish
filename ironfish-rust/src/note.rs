@@ -8,11 +8,10 @@ use super::{
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
     serializing::{aead, read_scalar, scalar_to_bytes},
 };
-use crate::keys::PUBLIC_KEY_GENERATOR;
 use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
-use ironfish_zkp::{Nullifier, Rseed, SaplingNote};
+use ironfish_zkp::{Nullifier, Rseed, SaplingNote, proofs::PUBLIC_KEY_GENERATOR};
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
 
