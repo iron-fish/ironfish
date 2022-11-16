@@ -1,7 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Blockchain, Meter, NodeUtils, TimeUtils } from '@ironfish/sdk'
+import {
+  Assert,
+  Blockchain,
+  IronfishNode,
+  Meter,
+  NodeUtils,
+  TimeUtils,
+  Wallet,
+} from '@ironfish/sdk'
 import { CliUx, Command } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -36,19 +44,22 @@ export default class Rewind extends IronfishCommand {
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
 
-    await rewindChainTo(this, node.chain, Number(args.to), Number(args.from))
+    await rewindChainTo(this, node, Number(args.to), Number(args.from))
   }
 }
 
 export const rewindChainTo = async (
   command: Command,
-  chain: Blockchain,
+  node: IronfishNode,
   to: number,
   from?: number,
 ): Promise<void> => {
+  const chain = node.chain
+  const wallet = node.wallet
+
   const sequence = to
 
-  let fromSequence = from ? Math.max(from, chain.latest.sequence) : chain.latest.sequence
+  const fromSequence = from ? Math.max(from, chain.latest.sequence) : chain.latest.sequence
 
   const toDisconnect = fromSequence - sequence
 
@@ -63,22 +74,100 @@ export const rewindChainTo = async (
     `Chain currently has blocks up to ${fromSequence}. Rewinding ${toDisconnect} blocks to ${sequence}.`,
   )
 
-  const progressBar = CliUx.ux.progress({
-    barCompleteChar: '\u2588',
-    barIncompleteChar: '\u2591',
-    format:
-      'Rewinding chain: [{bar}] {percentage}% | {value} / {total} blocks | {speed}/s | ETA: {estimate}',
-  }) as ProgressBar
+  await disconnectBlocks(chain, toDisconnect)
 
+  await rewindWalletHead(chain, wallet, sequence)
+
+  await removeBlocks(chain, sequence, fromSequence)
+}
+
+async function disconnectBlocks(chain: Blockchain, toDisconnect: number): Promise<void> {
+  const bar = getProgressBar('Disconnecting blocks')
   const speed = new Meter()
-  speed.start()
 
-  progressBar.start(toDisconnect, 0, {
+  bar.start(toDisconnect, 0, {
     speed: '0',
     estimate: TimeUtils.renderEstimate(0, 0, 0),
   })
+  speed.start()
 
   let disconnected = 0
+
+  while (disconnected < toDisconnect) {
+    const headBlock = await chain.getBlock(chain.head)
+
+    Assert.isNotNull(headBlock)
+
+    await chain.db.transaction(async (tx) => {
+      await chain.disconnect(headBlock, tx)
+    })
+
+    speed.add(1)
+    bar.update(++disconnected, {
+      speed: speed.rate1s.toFixed(2),
+      estimate: TimeUtils.renderEstimate(disconnected, toDisconnect, speed.rate1m),
+    })
+  }
+
+  bar.stop()
+  speed.stop()
+}
+
+async function rewindWalletHead(
+  chain: Blockchain,
+  wallet: Wallet,
+  sequence: number,
+): Promise<void> {
+  const walletHeadHash = await wallet.getLatestHeadHash()
+
+  if (walletHeadHash) {
+    const walletHead = await chain.getHeader(walletHeadHash)
+
+    if (walletHead && walletHead.sequence > sequence) {
+      const bar = getProgressBar('Rewiding wallet')
+      const speed = new Meter()
+
+      const toRewind = walletHead.sequence - sequence
+      let rewound = 0
+
+      bar.start(toRewind, 0, {
+        speed: '0',
+        estimate: TimeUtils.renderEstimate(0, 0, 0),
+      })
+      speed.start()
+
+      wallet.chainProcessor.onRemove.on((_) => {
+        speed.add(1)
+        bar.update(++rewound, {
+          speed: speed.rate1s.toFixed(2),
+          estimate: TimeUtils.renderEstimate(rewound, toRewind, speed.rate1m),
+        })
+      })
+
+      await wallet.updateHead()
+
+      bar.stop()
+      speed.stop()
+    }
+  }
+}
+
+async function removeBlocks(
+  chain: Blockchain,
+  sequence: number,
+  fromSequence: number,
+): Promise<void> {
+  const toRemove = fromSequence - sequence
+  const bar = getProgressBar('Removing blocks')
+  const speed = new Meter()
+
+  bar.start(toRemove, 0, {
+    speed: '0',
+    estimate: TimeUtils.renderEstimate(0, 0, 0),
+  })
+  speed.start()
+
+  let removed = 0
 
   while (fromSequence > sequence) {
     const hashes = await chain.getHashesAtSequence(fromSequence)
@@ -90,12 +179,20 @@ export const rewindChainTo = async (
     fromSequence--
 
     speed.add(1)
-    progressBar.update(++disconnected, {
+    bar.update(++removed, {
       speed: speed.rate1s.toFixed(2),
-      estimate: TimeUtils.renderEstimate(disconnected, toDisconnect, speed.rate1m),
+      estimate: TimeUtils.renderEstimate(removed, toRemove, speed.rate1m),
     })
   }
 
   speed.stop()
-  progressBar.stop()
+  bar.stop()
+}
+
+function getProgressBar(label: string): ProgressBar {
+  return CliUx.ux.progress({
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+    format: `${label}: [{bar}] {percentage}% | {value} / {total} blocks | {speed}/s | ETA: {estimate}`,
+  }) as ProgressBar
 }

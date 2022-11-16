@@ -180,7 +180,7 @@ export default class RepairHardFork extends IronfishCommand {
     this.log(`Rewinding your blockchain to before the hard fork.`)
 
     if (!dryRun) {
-      await rewindChainTo(this, node.chain, HARD_FORK_SEQUENCE - 1)
+      await rewindChainTo(this, node, HARD_FORK_SEQUENCE - 1)
     }
   }
 }
