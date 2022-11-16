@@ -7,7 +7,6 @@ import {
   Blockchain,
   CurrencyUtils,
   NodeUtils,
-  Transaction,
   Wallet,
   WalletDB,
 } from '@ironfish/sdk'
