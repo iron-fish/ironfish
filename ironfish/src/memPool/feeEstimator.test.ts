@@ -74,7 +74,7 @@ describe('FeeEstimator', () => {
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(getFeeRate(transaction2))
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(getFeeRate(transaction2))
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(getFeeRate(transaction2))
-    }, 60000)
+    })
 
     it('should initialize with the most recent block at the end of the queue', async () => {
       const node = nodeTest.node
@@ -117,7 +117,7 @@ describe('FeeEstimator', () => {
       Assert.isNotUndefined((queue = feeEstimator['queues']['low']))
       expect(queue[0].feeRate).toEqual(getFeeRate(transaction))
       expect(queue[1].feeRate).toEqual(getFeeRate(transaction2))
-    }, 60000)
+    })
   })
 
   describe('onConnectBlock', () => {
@@ -307,7 +307,7 @@ describe('FeeEstimator', () => {
 
       // transaction from first block is still in the cache
       expect(feeEstimator['queues']['low'].at(0)?.blockHash).toEqualHash(block.header.hash)
-    }, 60000)
+    })
   })
 
   describe('onDisconnectBlock', () => {
