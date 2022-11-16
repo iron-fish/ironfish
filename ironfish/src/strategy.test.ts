@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { IRON_FISH_YEAR_IN_BLOCKS, TestnetParameters } from './consensus'
+import { ConsensusParameters, IRON_FISH_YEAR_IN_BLOCKS } from './consensus'
 import { Strategy } from './strategy'
 import { WorkerPool } from './workerPool'
 
@@ -12,7 +12,7 @@ describe('Miners reward', () => {
   beforeAll(() => {
     strategy = new Strategy({
       workerPool: new WorkerPool(),
-      consensus: new TestnetParameters(),
+      consensus: new ConsensusParameters(),
     })
   })
 
@@ -32,5 +32,11 @@ describe('Miners reward', () => {
   it('miners reward is properly calculated for year 1-2', () => {
     const minersReward = strategy.miningReward(IRON_FISH_YEAR_IN_BLOCKS + 1)
     expect(minersReward).toBe(19 * 10 ** 8)
+  })
+
+  it('miner reward is 0 after V3 activation', () => {
+    strategy.consensus.V3_DISABLE_MINING_REWARD = 1000
+    expect(strategy.miningReward(999)).toBe(20 * 10 ** 8)
+    expect(strategy.miningReward(1005)).toBe(0)
   })
 })

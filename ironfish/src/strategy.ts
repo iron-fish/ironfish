@@ -43,6 +43,10 @@ export class Strategy {
    * @returns mining reward (in ORE) per block given the block sequence
    */
   miningReward(sequence: number): number {
+    if (this.consensus.isActive(this.consensus.V3_DISABLE_MINING_REWARD, sequence)) {
+      return 0
+    }
+
     const yearsAfterLaunch = Math.floor(Number(sequence) / IRON_FISH_YEAR_IN_BLOCKS)
 
     let reward = this.miningRewardCachedByYear.get(yearsAfterLaunch)
