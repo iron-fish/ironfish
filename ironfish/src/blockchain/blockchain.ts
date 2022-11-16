@@ -175,6 +175,12 @@ export class Blockchain {
     this.autoSeed = options.autoSeed ?? true
     this.consensus = new TestnetParameters()
 
+    // TODO: Remove this during network reset
+    this.invalid.set(
+      Buffer.from('00000000000006ce61057e714ede8471d15cc9d19f0ff58eee179cadf3ba1f31', 'hex'),
+      VerificationResultReason.DOUBLE_SPEND,
+    )
+
     // Flat Fields
     this.meta = this.db.addStore({
       name: 'bm',
