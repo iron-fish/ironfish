@@ -318,14 +318,21 @@ mod test {
         gadgets::{multipack, test::*},
         Circuit,
     };
+    use blake2s_simd::Params as Blake2sParams;
     use ff::{Field, PrimeField, PrimeFieldBits};
-    use group::{Curve, Group};
+    use group::{Curve, Group, GroupEncoding};
     use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
-    use zcash_primitives::sapling::ValueCommitment;
     use zcash_primitives::sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed};
+    use zcash_primitives::{
+        constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
+        sapling::{Nullifier, ValueCommitment},
+    };
 
-    use crate::{circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR};
+    use crate::{
+        circuits::{spend::Spend, util::commitment_full_point},
+        constants::PUBLIC_KEY_GENERATOR,
+    };
 
     #[test]
     fn test_input_circuit_with_bls12_381() {
@@ -371,7 +378,10 @@ mod test {
                 };
 
                 let mut position = 0u64;
-                let cmu = note.cmu();
+                let cmu = jubjub::ExtendedPoint::from(commitment_full_point(note.clone()))
+                    .to_affine()
+                    .get_u();
+
                 let mut cur = cmu;
 
                 for (i, val) in auth_path.clone().into_iter().enumerate() {
@@ -406,7 +416,22 @@ mod test {
                     }
                 }
 
-                let expected_nf = note.nf(&viewing_key, position);
+                let rho = commitment_full_point(note)
+                    + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+
+                // Compute nf = BLAKE2s(nk | rho)
+                let expected_nf = Nullifier::from_slice(
+                    Blake2sParams::new()
+                        .hash_length(32)
+                        .personal(PRF_NF_PERSONALIZATION)
+                        .to_state()
+                        .update(&viewing_key.nk.to_bytes())
+                        .update(&rho.to_bytes())
+                        .finalize()
+                        .as_bytes(),
+                )
+                .unwrap();
+
                 let expected_nf = multipack::bytes_to_bits_le(&expected_nf.0);
                 let expected_nf = multipack::compute_multipacking(&expected_nf);
                 assert_eq!(expected_nf.len(), 2);
@@ -426,10 +451,10 @@ mod test {
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 98777);
+                assert_eq!(cs.num_constraints(), 95043);
                 assert_eq!(
                     cs.hash(),
-                    "d37c738e83df5d9b0bb6495ac96abf21bcb2697477e2c15c2c7916ff7a3b6a89"
+                    "6dff1cb1cb932a2cd9a60e3f29baaa149fff549cf5a62982488fb6aabf374c78"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
@@ -533,7 +558,11 @@ mod test {
                 };
 
                 let mut position = 0u64;
-                let cmu = note.cmu();
+
+                let cmu = jubjub::ExtendedPoint::from(commitment_full_point(note.clone()))
+                    .to_affine()
+                    .get_u();
+
                 let mut cur = cmu;
 
                 for (i, val) in auth_path.clone().into_iter().enumerate() {
@@ -568,7 +597,22 @@ mod test {
                     }
                 }
 
-                let expected_nf = note.nf(&viewing_key, position);
+                let rho = commitment_full_point(note)
+                    + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+
+                // Compute nf = BLAKE2s(nk | rho)
+                let expected_nf = Nullifier::from_slice(
+                    Blake2sParams::new()
+                        .hash_length(32)
+                        .personal(PRF_NF_PERSONALIZATION)
+                        .to_state()
+                        .update(&viewing_key.nk.to_bytes())
+                        .update(&rho.to_bytes())
+                        .finalize()
+                        .as_bytes(),
+                )
+                .unwrap();
+
                 let expected_nf = multipack::bytes_to_bits_le(&expected_nf.0);
                 let expected_nf = multipack::compute_multipacking(&expected_nf);
                 assert_eq!(expected_nf.len(), 2);
@@ -588,10 +632,10 @@ mod test {
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 98777);
+                assert_eq!(cs.num_constraints(), 95043);
                 assert_eq!(
                     cs.hash(),
-                    "d37c738e83df5d9b0bb6495ac96abf21bcb2697477e2c15c2c7916ff7a3b6a89"
+                    "6dff1cb1cb932a2cd9a60e3f29baaa149fff549cf5a62982488fb6aabf374c78"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);

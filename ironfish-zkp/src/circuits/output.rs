@@ -187,7 +187,7 @@ mod test {
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 7827);
+                assert_eq!(cs.num_constraints(), 4081);
                 assert_eq!(
                     cs.hash(),
                     "c26d5cdfe6ccd65c03390902c02e11393ea6bb96aae32a7f2ecb12eb9103faee"
