@@ -1,13 +1,13 @@
 use bellman::{groth16, Circuit};
 use bls12_381::Bls12;
-use ironfish_zkp::proofs::{Output, Spend};
+use ironfish_zkp::proofs::{MintAsset, Output, Spend};
 use rand::thread_rng;
 
 use std::{env, fs::File};
 
 const TREE_DEPTH: usize = 32;
 
-const ALLOWED_ARGUMENTS: [&str; 3] = ["all", "spend", "output"];
+const ALLOWED_ARGUMENTS: [&str; 4] = ["all", "spend", "output", "mint"];
 
 fn generate_params(filename: &str, circuit: impl Circuit<bls12_381::Scalar>) {
     let full_filename = format!("{filename}.params");
@@ -65,6 +65,20 @@ fn main() {
                 payment_address: None,
                 commitment_randomness: None,
                 esk: None,
+            },
+        );
+    }
+
+    if circuit == "all" || circuit == "mint" {
+        generate_params(
+            "sapling-mint",
+            MintAsset {
+                name: [0u8; 32],
+                metadata: [0u8; 76],
+                nonce: 0,
+                asset_authorization_key: None,
+                value_commitment: None,
+                public_key_randomness: None,
             },
         );
     }
