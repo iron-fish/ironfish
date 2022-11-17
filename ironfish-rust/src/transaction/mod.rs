@@ -400,7 +400,8 @@ impl Transaction {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_outputs = reader.read_u64::<LittleEndian>()?;
-        let num_mints = reader.read_u64::<LittleEndian>()?;
+        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
+        // let num_mints = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
 
@@ -414,10 +415,11 @@ impl Transaction {
             outputs.push(OutputDescription::read(&mut reader)?);
         }
 
-        let mut mints = Vec::with_capacity(num_mints as usize);
-        for _ in 0..num_mints {
-            mints.push(MintDescription::read(&mut reader)?);
-        }
+        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
+        // let mut mints = Vec::with_capacity(num_mints as usize);
+        // for _ in 0..num_mints {
+        //     mints.push(MintDescription::read(&mut reader)?);
+        // }
 
         let binding_signature = Signature::read(&mut reader)?;
 
@@ -425,7 +427,7 @@ impl Transaction {
             fee,
             spends,
             outputs,
-            mints,
+            mints: vec![],
             binding_signature,
             expiration_sequence,
         })
@@ -436,7 +438,8 @@ impl Transaction {
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
-        writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
+        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
+        // writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.fee)?;
         writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
 
@@ -448,9 +451,10 @@ impl Transaction {
             output.write(&mut writer)?;
         }
 
-        for mints in self.mints.iter() {
-            mints.write(&mut writer)?;
-        }
+        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
+        // for mints in self.mints.iter() {
+        //     mints.write(&mut writer)?;
+        // }
 
         self.binding_signature.write(&mut writer)?;
 
