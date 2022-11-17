@@ -5,7 +5,7 @@ import bufio from 'bufio'
 import { IDatabaseEncoding, IDatabaseStore } from '../../../../storage'
 
 const KEY_LENGTH = 32
-const PUBLIC_ADDRESS_LENGTH = 43
+const PUBLIC_ADDRESS_LENGTH = 32
 
 export type AccountsStore = IDatabaseStore<{ key: string; value: AccountsValue }>
 

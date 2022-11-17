@@ -66,7 +66,7 @@ export class Transaction {
       return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
     })
 
-    this._signature = reader.readBytes(64, true)
+    this._signature = reader.readBytes(53, true)
   }
 
   serialize(): Buffer {
