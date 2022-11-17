@@ -126,13 +126,13 @@ impl Asset {
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let owner = {
-            let mut buf = [0; 32];
+            let mut buf = [0; OWNER_LENGTH];
             reader.read_exact(&mut buf)?;
 
             Option::from(AssetPublicKey::from_bytes(&buf)).ok_or(IronfishError::IllegalValue)?
         };
 
-        let mut name = [0; 32];
+        let mut name = [0; NAME_LENGTH];
         reader.read_exact(&mut name[..])?;
 
         let mut metadata = [0; METADATA_LENGTH];
