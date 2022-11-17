@@ -11,42 +11,31 @@ use zcash_proofs::{
     constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
 };
 
+use crate::constants::proof::ASSET_KEY_GENERATOR;
+
 #[allow(clippy::too_many_arguments)]
 pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
     cs: &mut CS,
-    name: [u8; 32],
-    chain: [u8; 32],
-    network: [u8; 32],
-    token_identifier: [u8; 32],
-    asset_public_key: EdwardsPoint,
-    nonce: u8,
+    name: &[u8; 32],
+    metadata: &[u8; 76],
+    asset_public_key: &EdwardsPoint,
+    nonce: &u8,
 ) -> Result<Vec<boolean::Boolean>, SynthesisError> {
     let mut combined_preimage = vec![];
 
     combined_preimage
         .extend(asset_public_key.repr(cs.namespace(|| "booleanize asset_public_key"))?);
 
-    let name_bits = slice_into_boolean_vec_le(cs.namespace(|| "booleanize name"), Some(&name), 32)?;
+    let name_bits = slice_into_boolean_vec_le(cs.namespace(|| "booleanize name"), Some(name), 32)?;
     combined_preimage.extend(name_bits);
 
-    let chain_bits =
-        slice_into_boolean_vec_le(cs.namespace(|| "booleanize chain"), Some(&chain), 32)?;
-    combined_preimage.extend(chain_bits);
-
-    let network_bits =
-        slice_into_boolean_vec_le(cs.namespace(|| "booleanize network"), Some(&network), 32)?;
-    combined_preimage.extend(network_bits);
-
-    let token_identifier_bits = slice_into_boolean_vec_le(
-        cs.namespace(|| "booleanize token_identifier"),
-        Some(&token_identifier),
-        32,
-    )?;
-    combined_preimage.extend(token_identifier_bits);
+    let metadata_bits =
+        slice_into_boolean_vec_le(cs.namespace(|| "booleanize metadata"), Some(metadata), 76)?;
+    combined_preimage.extend(metadata_bits);
 
     let nonce_bits = slice_into_boolean_vec_le(
         cs.namespace(|| "booleanize nonce"),
-        Some(slice::from_ref(&nonce)),
+        Some(slice::from_ref(nonce)),
         1,
     )?;
     combined_preimage.extend(nonce_bits);
@@ -131,4 +120,31 @@ where
     cv.inputize(cs.namespace(|| "commitment point"))?;
 
     Ok(value_bits)
+}
+
+pub fn expose_randomized_public_key(
+    mut cs: impl ConstraintSystem<bls12_381::Scalar>,
+    public_key_randomness: Option<jubjub::Fr>,
+    asset_public_key: &EdwardsPoint,
+) -> Result<(), SynthesisError> {
+    // Randomize public address and expose it
+    let public_key_randomness_bits = boolean::field_into_boolean_vec_le(
+        cs.namespace(|| "public key randomness"),
+        public_key_randomness,
+    )?;
+
+    let public_key_randomness = ecc::fixed_base_multiplication(
+        cs.namespace(|| "asset public key"),
+        &ASSET_KEY_GENERATOR,
+        &public_key_randomness_bits,
+    )?;
+
+    let randomized_public_key = asset_public_key.add(
+        cs.namespace(|| "computation of randomized public key"),
+        &public_key_randomness,
+    )?;
+
+    randomized_public_key.inputize(cs.namespace(|| "inputize randomized public key"))?;
+
+    Ok(())
 }
