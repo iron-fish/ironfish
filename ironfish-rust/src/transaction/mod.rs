@@ -31,8 +31,12 @@ use ironfish_zkp::{
 
 use std::{io, iter, slice::Iter};
 
-use self::mints::{MintBuilder, MintDescription, UnsignedMintDescription};
+use self::{
+    burns::BurnDescription,
+    mints::{MintBuilder, MintDescription, UnsignedMintDescription},
+};
 
+pub mod burns;
 pub mod mints;
 pub mod outputs;
 pub mod spending;
@@ -65,6 +69,11 @@ pub struct ProposedTransaction {
     /// calculate the signatures.
     mints: Vec<MintBuilder>,
 
+    /// Descriptions containing the assets and value commitments to be burned.
+    /// We do not need to use a builder here since we only need to handle
+    /// balancing and effects are handled by outputs.
+    burns: Vec<BurnDescription>,
+
     /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
     value_balances: ValueBalances,
@@ -88,6 +97,7 @@ impl ProposedTransaction {
             spends: vec![],
             outputs: vec![],
             mints: vec![],
+            burns: vec![],
             value_balances: ValueBalances::new(),
             expiration_sequence: 0,
             spender_key,
@@ -114,6 +124,13 @@ impl ProposedTransaction {
         self.value_balances.add(asset.identifier(), value as i64);
 
         self.mints.push(MintBuilder::new(asset, value));
+    }
+
+    pub fn add_burn(&mut self, asset: Asset, value: u64) {
+        self.value_balances
+            .subtract(&asset.identifier(), value as i64);
+
+        self.burns.push(BurnDescription::new(asset, value));
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
@@ -233,6 +250,7 @@ impl ProposedTransaction {
             &unsigned_spends,
             &output_descriptions,
             &unsigned_mints,
+            &self.burns,
         );
 
         let binding_signature =
@@ -256,6 +274,7 @@ impl ProposedTransaction {
             spends: spend_descriptions,
             outputs: output_descriptions,
             mints: mint_descriptions,
+            burns: self.burns.clone(),
             binding_signature,
         })
     }
@@ -270,6 +289,7 @@ impl ProposedTransaction {
         spends: &[UnsignedSpendDescription],
         outputs: &[OutputDescription],
         mints: &[UnsignedMintDescription],
+        burns: &[BurnDescription],
     ) -> [u8; 32] {
         let mut hasher = Blake2b::new()
             .hash_length(32)
@@ -299,6 +319,10 @@ impl ProposedTransaction {
             mint.description
                 .serialize_signature_fields(&mut hasher)
                 .unwrap();
+        }
+
+        for burn in burns {
+            burn.serialize_signature_fields(&mut hasher).unwrap();
         }
 
         let mut hash_result = [0; 32];
@@ -383,6 +407,9 @@ pub struct Transaction {
     /// List of mint descriptions
     mints: Vec<MintDescription>,
 
+    /// List of burn descriptions
+    burns: Vec<BurnDescription>,
+
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
     binding_signature: Signature,
@@ -401,6 +428,7 @@ impl Transaction {
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_outputs = reader.read_u64::<LittleEndian>()?;
         let num_mints = reader.read_u64::<LittleEndian>()?;
+        let num_burns = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
 
@@ -419,6 +447,11 @@ impl Transaction {
             mints.push(MintDescription::read(&mut reader)?);
         }
 
+        let mut burns = Vec::with_capacity(num_burns as usize);
+        for _ in 0..num_burns {
+            burns.push(BurnDescription::read(&mut reader)?);
+        }
+
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(Transaction {
@@ -426,6 +459,7 @@ impl Transaction {
             spends,
             outputs,
             mints,
+            burns,
             binding_signature,
             expiration_sequence,
         })
@@ -437,6 +471,7 @@ impl Transaction {
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.burns.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.fee)?;
         writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
 
@@ -450,6 +485,10 @@ impl Transaction {
 
         for mints in self.mints.iter() {
             mints.write(&mut writer)?;
+        }
+
+        for burns in self.burns.iter() {
+            burns.write(&mut writer)?;
         }
 
         self.binding_signature.write(&mut writer)?;
@@ -530,6 +569,10 @@ impl Transaction {
 
         for mint in self.mints.iter() {
             mint.serialize_signature_fields(&mut hasher).unwrap();
+        }
+
+        for burn in self.burns.iter() {
+            burn.serialize_signature_fields(&mut hasher).unwrap();
         }
 
         let mut hash_result = [0; 32];
@@ -648,6 +691,12 @@ pub fn batch_verify_transactions<'a>(
             binding_verification_key += mint.value_commitment;
 
             mint.verify_signature(&hash_to_verify_signature)?;
+        }
+
+        for burn in transaction.burns.iter() {
+            burn.verify_not_small_order()?;
+
+            binding_verification_key -= burn.value_commitment;
         }
 
         transaction.verify_binding_signature(&binding_verification_key)?;
