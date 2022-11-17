@@ -7,7 +7,7 @@ use spending::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::NATIVE_ASSET,
+    assets::asset::{Asset, NATIVE_ASSET},
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,
@@ -31,6 +31,9 @@ use ironfish_zkp::{
 
 use std::{io, iter, slice::Iter};
 
+use self::mints::{MintBuilder, MintDescription, UnsignedMintDescription};
+
+pub mod mints;
 pub mod outputs;
 pub mod spending;
 #[cfg(test)]
@@ -58,6 +61,10 @@ pub struct ProposedTransaction {
     /// `outputs` in the literature.
     outputs: Vec<OutputBuilder>,
 
+    /// Builders for proofs of the individual mints with all values required to
+    /// calculate the signatures.
+    mints: Vec<MintBuilder>,
+
     /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
     value_balances: ValueBalances,
@@ -80,6 +87,7 @@ impl ProposedTransaction {
         ProposedTransaction {
             spends: vec![],
             outputs: vec![],
+            mints: vec![],
             value_balances: ValueBalances::new(),
             expiration_sequence: 0,
             spender_key,
@@ -102,6 +110,12 @@ impl ProposedTransaction {
         self.outputs.push(OutputBuilder::new(note));
     }
 
+    pub fn add_mint(&mut self, asset: Asset, value: u64) {
+        self.value_balances.add(asset.identifier(), value as i64);
+
+        self.mints.push(MintBuilder::new(asset, value));
+    }
+
     /// Post the transaction. This performs a bit of validation, and signs
     /// the spends with a signature that proves the spends are part of this
     /// transaction.
@@ -110,7 +124,7 @@ impl ProposedTransaction {
     /// for mining this transaction. This has to be non-negative; sane miners
     /// wouldn't accept a transaction that takes money away from them.
     ///
-    /// sum(spends) - sum(outputs) - intended_transaction_fee - change = 0
+    /// sum(spends) + sum(mints) - sum(outputs) - intended_transaction_fee - change = 0
     /// aka: self.value_balance - intended_transaction_fee - change = 0
     pub fn post(
         &mut self,
@@ -210,7 +224,16 @@ impl ProposedTransaction {
             output_descriptions.push(output.build(&self.spender_key)?);
         }
 
-        let data_to_sign = self.transaction_signature_hash(&unsigned_spends, &output_descriptions);
+        let mut unsigned_mints = Vec::with_capacity(self.mints.len());
+        for mint in &self.mints {
+            unsigned_mints.push(mint.build(&self.spender_key)?);
+        }
+
+        let data_to_sign = self.transaction_signature_hash(
+            &unsigned_spends,
+            &output_descriptions,
+            &unsigned_mints,
+        );
 
         let binding_signature =
             self.binding_signature(&bsig_keys.0, &bsig_keys.1, &data_to_sign)?;
@@ -221,11 +244,18 @@ impl ProposedTransaction {
             spend_descriptions.push(spend.sign(&self.spender_key, &data_to_sign)?);
         }
 
+        // Sign mints now that we have the data needed to be signed
+        let mut mint_descriptions = Vec::with_capacity(unsigned_mints.len());
+        for mint in unsigned_mints.drain(0..) {
+            mint_descriptions.push(mint.sign(&self.spender_key, &data_to_sign)?);
+        }
+
         Ok(Transaction {
             expiration_sequence: self.expiration_sequence,
             fee: *self.value_balances.fee(),
             spends: spend_descriptions,
             outputs: output_descriptions,
+            mints: mint_descriptions,
             binding_signature,
         })
     }
@@ -239,6 +269,7 @@ impl ProposedTransaction {
         &self,
         spends: &[UnsignedSpendDescription],
         outputs: &[OutputDescription],
+        mints: &[UnsignedMintDescription],
     ) -> [u8; 32] {
         let mut hasher = Blake2b::new()
             .hash_length(32)
@@ -252,15 +283,22 @@ impl ProposedTransaction {
         hasher
             .write_i64::<LittleEndian>(*self.value_balances.fee())
             .unwrap();
+
         for spend in spends {
             spend
-                .spend_proof
+                .description
                 .serialize_signature_fields(&mut hasher)
                 .unwrap();
         }
 
         for output in outputs {
             output.serialize_signature_fields(&mut hasher).unwrap();
+        }
+
+        for mint in mints {
+            mint.description
+                .serialize_signature_fields(&mut hasher)
+                .unwrap();
         }
 
         let mut hash_result = [0; 32];
@@ -308,6 +346,11 @@ impl ProposedTransaction {
             binding_verification_key -= output.value_commitment_point();
         }
 
+        for mint in &self.mints {
+            binding_signature_key += mint.value_commitment.randomness;
+            binding_verification_key += mint.value_commitment_point();
+        }
+
         let private_key = PrivateKey(binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
@@ -337,6 +380,9 @@ pub struct Transaction {
     /// List of outputs, or output notes that have been created.
     outputs: Vec<OutputDescription>,
 
+    /// List of mint descriptions
+    mints: Vec<MintDescription>,
+
     /// Signature calculated from accumulating randomness with all the spends
     /// and outputs when the transaction was created.
     binding_signature: Signature,
@@ -354,6 +400,8 @@ impl Transaction {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_outputs = reader.read_u64::<LittleEndian>()?;
+        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
+        // let num_mints = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
 
@@ -367,12 +415,19 @@ impl Transaction {
             outputs.push(OutputDescription::read(&mut reader)?);
         }
 
+        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
+        // let mut mints = Vec::with_capacity(num_mints as usize);
+        // for _ in 0..num_mints {
+        //     mints.push(MintDescription::read(&mut reader)?);
+        // }
+
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(Transaction {
             fee,
             spends,
             outputs,
+            mints: vec![],
             binding_signature,
             expiration_sequence,
         })
@@ -383,15 +438,23 @@ impl Transaction {
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
+        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
+        // writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.fee)?;
         writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
 
         for spend in self.spends.iter() {
             spend.write(&mut writer)?;
         }
+
         for output in self.outputs.iter() {
             output.write(&mut writer)?;
         }
+
+        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
+        // for mints in self.mints.iter() {
+        //     mints.write(&mut writer)?;
+        // }
 
         self.binding_signature.write(&mut writer)?;
 
@@ -401,7 +464,9 @@ impl Transaction {
     /// Validate the transaction. Confirms that:
     ///  *  Each of the spend proofs has the inputs it says it does
     ///  *  Each of the output proofs has the inputs it says it has
+    ///  *  Each of the mint proofs has the inputs it says it has
     ///  *  Each of the spend proofs was signed by the owner
+    ///  *  Each of the mint proofs was signed by the owner
     ///  *  The entire transaction was signed with a binding signature
     ///     containing those proofs (and only those proofs)
     ///
@@ -458,11 +523,17 @@ impl Transaction {
             .write_u32::<LittleEndian>(self.expiration_sequence)
             .unwrap();
         hasher.write_i64::<LittleEndian>(self.fee).unwrap();
+
         for spend in self.spends.iter() {
             spend.serialize_signature_fields(&mut hasher).unwrap();
         }
+
         for output in self.outputs.iter() {
             output.serialize_signature_fields(&mut hasher).unwrap();
+        }
+
+        for mint in self.mints.iter() {
+            mint.serialize_signature_fields(&mut hasher).unwrap();
         }
 
         let mut hash_result = [0; 32];
@@ -543,6 +614,7 @@ pub fn batch_verify_transactions<'a>(
 ) -> Result<(), IronfishError> {
     let mut spend_verifier = Verifier::<Bls12>::new();
     let mut output_verifier = Verifier::<Bls12>::new();
+    let mut mint_verifier = Verifier::<Bls12>::new();
 
     for transaction in transactions {
         // Context to accumulate a signature of all the spends and outputs and
@@ -552,7 +624,7 @@ pub fn batch_verify_transactions<'a>(
         let hash_to_verify_signature = transaction.transaction_signature_hash();
 
         for spend in transaction.spends.iter() {
-            spend.verify_value_commitment()?;
+            spend.verify_not_small_order()?;
 
             let public_inputs = spend.public_inputs();
             spend_verifier.queue((&spend.proof, &public_inputs[..]));
@@ -563,7 +635,7 @@ pub fn batch_verify_transactions<'a>(
         }
 
         for output in transaction.outputs.iter() {
-            output.verify_value_commitment()?;
+            output.verify_not_small_order()?;
 
             let public_inputs = output.public_inputs();
             output_verifier.queue((&output.proof, &public_inputs[..]));
@@ -571,12 +643,23 @@ pub fn batch_verify_transactions<'a>(
             binding_verification_key -= output.merkle_note.value_commitment;
         }
 
+        for mint in transaction.mints.iter() {
+            mint.verify_not_small_order()?;
+
+            let public_inputs = mint.public_inputs();
+            mint_verifier.queue((&mint.proof, &public_inputs[..]));
+
+            binding_verification_key += mint.value_commitment;
+
+            mint.verify_signature(&hash_to_verify_signature)?;
+        }
+
         transaction.verify_binding_signature(&binding_verification_key)?;
     }
 
     spend_verifier.verify(&mut OsRng, &SAPLING.spend_params.vk)?;
-
     output_verifier.verify(&mut OsRng, &SAPLING.output_params.vk)?;
+    mint_verifier.verify(&mut OsRng, &SAPLING.mint_params.vk)?;
 
     Ok(())
 }
