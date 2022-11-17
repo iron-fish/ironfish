@@ -358,14 +358,6 @@ mod test {
             deserialized_description.value_commitment
         );
         assert_eq!(
-            description.value_commitment,
-            deserialized_description.value_commitment
-        );
-        assert_eq!(
-            description.randomized_public_key.0,
-            deserialized_description.randomized_public_key.0
-        );
-        assert_eq!(
             description.randomized_public_key.0,
             deserialized_description.randomized_public_key.0
         );
