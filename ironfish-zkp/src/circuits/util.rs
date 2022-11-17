@@ -163,7 +163,7 @@ pub fn commitment_full_point(note: Note) -> jubjub::SubgroupPoint {
     let mut note_contents = vec![];
 
     // Writing the value in little endian
-    (&mut note_contents)
+    (note_contents)
         .write_u64::<LittleEndian>(note.value)
         .unwrap();
 
