@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{errors::IronfishError, util::str_to_array};
+use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array};
 
 use super::{
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
@@ -23,12 +23,19 @@ use ironfish_zkp::{
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
 use std::{fmt, io, io::Read};
-pub const ENCRYPTED_NOTE_SIZE: usize = 72;
+pub const ENCRYPTED_NOTE_SIZE: usize = SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SIZE;
+//   8  value
+// + 32 randomness
+// + 32 memo
+// = 72
+pub const SCALAR_SIZE: usize = 32;
+pub const MEMO_SIZE: usize = 32;
+pub const AMOUNT_VALUE_SIZE: usize = 8;
 
 /// Memo field on a Note. Used to encode transaction IDs or other information
 /// about the transaction.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct Memo(pub [u8; 32]);
+pub struct Memo(pub [u8; MEMO_SIZE]);
 
 impl From<&str> for Memo {
     fn from(string: &str) -> Self {
@@ -195,10 +202,13 @@ impl<'a> Note {
     /// actually read the contents.
     pub fn encrypt(&self, shared_secret: &[u8; 32]) -> [u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE] {
         let mut bytes_to_encrypt = [0; ENCRYPTED_NOTE_SIZE];
-        bytes_to_encrypt[..32].clone_from_slice(self.randomness.to_repr().as_ref());
+        bytes_to_encrypt[..SCALAR_SIZE].clone_from_slice(self.randomness.to_repr().as_ref());
 
-        LittleEndian::write_u64_into(&[self.value], &mut bytes_to_encrypt[32..40]);
-        bytes_to_encrypt[40..].copy_from_slice(&self.memo.0[..]);
+        LittleEndian::write_u64_into(
+            &[self.value],
+            &mut bytes_to_encrypt[SCALAR_SIZE..(SCALAR_SIZE + AMOUNT_VALUE_SIZE)],
+        );
+        bytes_to_encrypt[(SCALAR_SIZE + AMOUNT_VALUE_SIZE)..].copy_from_slice(&self.memo.0[..]);
         let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes);
 
@@ -220,7 +230,7 @@ impl<'a> Note {
 
         assert_eq!(
             note_contents.len(),
-            32 // pk_g
+            PUBLIC_ADDRESS_SIZE // pk_g
             + 8 // value
         );
 
@@ -323,10 +333,7 @@ mod test {
             .expect("Should serialize cleanly");
 
         let note2 = Note::read(&serialized[..]).expect("It should deserialize cleanly");
-        assert_eq!(
-            note2.owner.public_address().unwrap(),
-            note.owner.public_address().unwrap()
-        );
+        assert_eq!(note2.owner.public_address(), note.owner.public_address());
         assert_eq!(note2.value, 42);
         assert_eq!(note2.randomness, note.randomness);
         assert_eq!(note2.memo, note.memo);
@@ -358,8 +365,7 @@ mod test {
         )
         .expect("Should be able to decrypt bytes");
         assert!(
-            restored_note.owner.public_address().unwrap().as_ref()
-                == note.owner.public_address().unwrap().as_ref()
+            restored_note.owner.public_address().as_ref() == note.owner.public_address().as_ref()
         );
         assert!(note.value == restored_note.value);
         assert!(note.randomness == restored_note.randomness);
@@ -372,8 +378,8 @@ mod test {
         )
         .expect("Should be able to load from transmission key");
         assert!(
-            spender_decrypted.owner.public_address().unwrap().as_ref()
-                == note.owner.public_address().unwrap().as_ref()
+            spender_decrypted.owner.public_address().as_ref()
+                == note.owner.public_address().as_ref()
         );
         assert!(note.value == spender_decrypted.value);
         assert!(note.randomness == spender_decrypted.randomness);

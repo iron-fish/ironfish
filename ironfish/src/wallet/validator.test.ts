@@ -10,15 +10,15 @@ import {
 } from './validator'
 
 describe('account-validator tests', () => {
-  test('valid public address should return true', () => {
+  test.only('valid public address should return true', () => {
     const VALID_PUBLIC_ADDRESS =
-      'e877d6903692094b67d889c483d09ad2f8438efc8f00c82e1ec3b2ccd1798ceca48216546dbae48c685f50'
+      '8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563'
     expect(isValidPublicAddress(VALID_PUBLIC_ADDRESS)).toBe(true)
   })
 
   test('valid uppercase public address should return true', () => {
     const VALID_PUBLIC_ADDRESS =
-      'E877D6903692094B67D889C483D09AD2F8438EFC8F00C82E1EC3B2CCD1798CECA48216546DBAE48C685F50'
+      '8A4685307F159E95418A0DD3D38A3245F488C1BAF64BC914F53486EFD370C563'
     expect(isValidPublicAddress(VALID_PUBLIC_ADDRESS)).toBe(true)
   })
 

@@ -15,8 +15,7 @@ jest.mock('@ironfish/rust-nodejs', () => {
   return {
     ...moduleMock,
     generateNewPublicAddress: jest.fn().mockReturnValue({
-      public_address:
-        'f0486664761c625bad7024f11724b42968244a4bb05446b17719bcc48d5fb65899da4fb204358a3b9d6d05',
+      public_address: '8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563',
     }),
   }
 })

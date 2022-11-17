@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { DECRYPTED_NOTE_LENGTH } from '..'
 import {
   initializeSapling,
   generateKey,
@@ -59,7 +60,7 @@ describe('Demonstrate the Sapling API', () => {
 
     const decryptedNoteBuffer = encryptedNote.decryptNoteForOwner(key.incoming_view_key)
     expect(decryptedNoteBuffer).toBeInstanceOf(Buffer)
-    expect(decryptedNoteBuffer!.byteLength).toBe(104)
+    expect(decryptedNoteBuffer!.byteLength).toBe(DECRYPTED_NOTE_LENGTH)
 
     const decryptedSpenderNote = encryptedNote.decryptNoteForSpender(key.outgoing_view_key)
     expect(decryptedSpenderNote).toBe(null)

@@ -19,7 +19,7 @@ export class Note {
 
     const reader = bufio.read(this.noteSerialized, true)
 
-    // skip owner
+    // skip owner public address
     reader.seek(32)
 
     this._value = BigInt(reader.readU64())

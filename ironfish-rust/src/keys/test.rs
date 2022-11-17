@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::keys::PUBLIC_ADDRESS_SIZE;
+
 use super::{shared_secret, PublicAddress, SaplingKey};
 use group::Curve;
 use jubjub::ExtendedPoint;
@@ -37,10 +39,10 @@ fn test_diffie_hellman_shared_key() {
 #[test]
 fn test_serialization() {
     let key: SaplingKey = SaplingKey::generate_key();
-    let mut serialized_key = [0; 32];
+    let mut serialized_key = [0; PUBLIC_ADDRESS_SIZE];
     key.write(&mut serialized_key[..])
         .expect("Should be able to serialize key");
-    assert_ne!(serialized_key, [0; 32]);
+    assert_ne!(serialized_key, [0; PUBLIC_ADDRESS_SIZE]);
 
     let read_back_key: SaplingKey = SaplingKey::read(&mut serialized_key.as_ref())
         .expect("Should be able to load key from valid bytes");
@@ -50,7 +52,7 @@ fn test_serialization() {
     );
 
     let public_address = key.public_address();
-    let mut serialized_address = [0; 32];
+    let mut serialized_address = [0; PUBLIC_ADDRESS_SIZE];
     public_address
         .write(&mut serialized_address[..])
         .expect("should be able to serialize address");
@@ -75,7 +77,7 @@ fn test_hex_conversion() {
 
     let address = key.public_address();
     let hex = address.hex_public_address();
-    assert_eq!(hex.len(), 64);
+    assert_eq!(hex.len(), 2 * PUBLIC_ADDRESS_SIZE);
     let second_address = PublicAddress::from_hex(&hex).unwrap();
     assert_eq!(second_address, address);
 

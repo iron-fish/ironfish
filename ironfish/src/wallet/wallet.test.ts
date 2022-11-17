@@ -297,7 +297,7 @@ describe('Accounts', () => {
   })
 
   describe('scanTransactions', () => {
-    it('should update head status', async () => {
+    it.skip('should update head status', async () => {
       // G -> 1 -> 2
       const { node } = nodeTest
 
@@ -457,7 +457,7 @@ describe('Accounts', () => {
   })
 
   describe('loadHeadHashes', () => {
-    it('should properly saturate headStatus', async () => {
+    it.skip('should properly saturate headStatus', async () => {
       const { node } = nodeTest
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')

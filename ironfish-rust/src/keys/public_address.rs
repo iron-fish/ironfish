@@ -4,7 +4,7 @@
 
 use crate::{
     errors::IronfishError,
-    serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes},
+    serializing::{bytes_to_hex, hex_to_bytes},
 };
 use ff::Field;
 use group::GroupEncoding;
@@ -15,6 +15,7 @@ use rand::thread_rng;
 use std::{convert::TryInto, io};
 
 use super::{IncomingViewKey, SaplingKey};
+pub const PUBLIC_ADDRESS_SIZE: usize = 32;
 
 /// The address to which funds can be sent, stored as a public
 /// transmission key. Using the incoming_viewing_key allows
@@ -29,7 +30,7 @@ pub struct PublicAddress {
 
 impl PublicAddress {
     /// Initialize a public address from its 32 byte representation.
-    pub fn new(address_bytes: &[u8; 32]) -> Result<PublicAddress, IronfishError> {
+    pub fn new(address_bytes: &[u8; PUBLIC_ADDRESS_SIZE]) -> Result<PublicAddress, IronfishError> {
         let transmission_key = PublicAddress::load_transmission_key(&address_bytes[0..])?;
 
         Ok(PublicAddress { transmission_key })
@@ -37,7 +38,7 @@ impl PublicAddress {
 
     /// Load a public address from a Read implementation (e.g: socket, file)
     pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
-        let mut address_bytes = [0; 32];
+        let mut address_bytes = [0; PUBLIC_ADDRESS_SIZE];
         reader.read_exact(&mut address_bytes)?;
         Self::new(&address_bytes)
     }
@@ -58,18 +59,18 @@ impl PublicAddress {
     /// be 64 hexadecimal characters representing the 32 bytes of an address
     /// or it fails.
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
-        if value.len() != 64 {
+        if value.len() != 2 * PUBLIC_ADDRESS_SIZE {
             return Err(IronfishError::InvalidPublicAddress);
         }
 
         match hex_to_bytes(value) {
             Err(()) => Err(IronfishError::InvalidPublicAddress),
             Ok(bytes) => {
-                if bytes.len() != 32 {
+                if bytes.len() != PUBLIC_ADDRESS_SIZE {
                     Err(IronfishError::InvalidPublicAddress)
                 } else {
-                    let mut byte_arr = [0; 32];
-                    byte_arr.clone_from_slice(&bytes[0..32]);
+                    let mut byte_arr = [0; PUBLIC_ADDRESS_SIZE];
+                    byte_arr.clone_from_slice(&bytes[0..PUBLIC_ADDRESS_SIZE]);
                     Self::new(&byte_arr)
                 }
             }
@@ -78,24 +79,20 @@ impl PublicAddress {
 
     /// Retrieve the public address in byte form. It is comprised of the
     /// 11 byte diversifier followed by the 32 byte transmission key.
-    pub fn public_address(&self) -> Result<[u8; 32], IronfishError> {
-        point_to_bytes(&self.transmission_key)
+    pub fn public_address(&self) -> [u8; PUBLIC_ADDRESS_SIZE] {
+        self.transmission_key.to_bytes()
     }
 
     /// Retrieve the public address in hex form.
     pub fn hex_public_address(&self) -> String {
-        bytes_to_hex(&self.public_address().unwrap())
+        bytes_to_hex(&self.public_address())
     }
 
     /// Store the bytes of this public address in the given writer.
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
-        let public_address = self.public_address();
-        if public_address.is_ok() {
-            writer.write_all(&public_address.unwrap())?;
-            Ok(())
-        } else {
-            Err(IronfishError::InvalidPaymentAddress)
-        }
+        writer.write_all(&self.public_address())?;
+
+        Ok(())
     }
 
     pub(crate) fn load_transmission_key(
@@ -143,7 +140,7 @@ impl std::cmp::PartialEq for PublicAddress {
 
 #[cfg(test)]
 mod test {
-    use crate::{PublicAddress, SaplingKey};
+    use crate::{keys::PUBLIC_ADDRESS_SIZE, PublicAddress, SaplingKey};
 
     #[test]
     fn public_address_validation() {
@@ -160,6 +157,6 @@ mod test {
     fn public_address_generation() {
         let sapling_key = SaplingKey::generate_key();
         let public_address = sapling_key.public_address();
-        assert_eq!(public_address.public_address().unwrap().len(), 32);
+        assert_eq!(public_address.public_address().len(), PUBLIC_ADDRESS_SIZE);
     }
 }

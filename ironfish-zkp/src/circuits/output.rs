@@ -50,7 +50,7 @@ impl Circuit<bls12_381::Scalar> for Output {
             self.value_commitment,
         )?);
 
-        // Let's deal with g_d
+        // Let's deal with ephemeral public key
         {
             // Booleanize our ephemeral secret key
             let esk = boolean::field_into_boolean_vec_le(cs.namespace(|| "esk"), self.esk)?;
@@ -147,7 +147,7 @@ mod test {
 
     use crate::circuits::output::Output;
 
-    use crate::{circuits::util::commitment_full_point, constants::PUBLIC_KEY_GENERATOR};
+    use crate::{constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point};
 
     #[test]
     fn test_output_circuit_with_bls12_381() {
@@ -204,15 +204,6 @@ mod test {
                 let expected_cmu = jubjub::ExtendedPoint::from(commitment_full_point(note))
                     .to_affine()
                     .get_u();
-
-                // let expected_cmu = Some(Note {
-                //     value: value_commitment.value,
-                //     rseed: Rseed::BeforeZip212(commitment_randomness),
-                //     g_d: PUBLIC_KEY_GENERATOR,
-                //     pk_d: payment_address,
-                // })
-                // .expect("should be valid")
-                // .cmu();
 
                 let expected_value_commitment =
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();

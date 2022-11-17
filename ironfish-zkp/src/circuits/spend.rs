@@ -137,7 +137,7 @@ impl Circuit<bls12_381::Scalar> for Spend {
         // drop_5 to ensure it's in the field
         ivk.truncate(jubjub::Fr::CAPACITY as usize);
 
-        // Compute pk_d = g_d^ivk
+        // Compute pk_d
         let pk_d = ecc::fixed_base_multiplication(
             cs.namespace(|| "compute pk_d"),
             &PUBLIC_KEY_GENERATOR,
@@ -330,8 +330,7 @@ mod test {
     };
 
     use crate::{
-        circuits::{spend::Spend, util::commitment_full_point},
-        constants::PUBLIC_KEY_GENERATOR,
+        circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point,
     };
 
     #[test]
