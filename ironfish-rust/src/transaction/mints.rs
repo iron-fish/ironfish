@@ -48,7 +48,7 @@ impl MintBuilder {
         }
     }
 
-    /// Get the value_commitment from this proof as an edwards Point.
+    /// Get the value_commitment from this proof as an Edwards Point.
     ///
     /// This integrates the value and randomness into a single point, using an
     /// appropriate generator.
@@ -278,9 +278,11 @@ impl MintDescription {
 
 #[cfg(test)]
 mod test {
-    use crate::{assets::asset::Asset, transaction::mints::MintBuilder, SaplingKey};
-
-    use super::MintDescription;
+    use crate::{
+        assets::asset::Asset,
+        transaction::mints::{MintBuilder, MintDescription},
+        SaplingKey,
+    };
 
     #[test]
     /// Test that we can create a builder with a valid asset and proof
@@ -348,7 +350,7 @@ mod test {
             .expect("should be able to serialize description");
 
         let deserialized_description = MintDescription::read(&serialized_description[..])
-            .expect("should be able to deserialize valid proof");
+            .expect("should be able to deserialize valid description");
 
         assert_eq!(description.proof.a, deserialized_description.proof.a);
         assert_eq!(description.proof.b, deserialized_description.proof.b);
