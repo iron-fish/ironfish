@@ -120,33 +120,37 @@ impl SpendBuilder {
         // has been previously spent.
         let nullifier = self.note.nullifier(spender_key, self.witness_position);
 
-        let blank_sig = {
+        let blank_signature = {
             let buf = [0u8; 64];
             Signature::read(&mut buf.as_ref())?
         };
 
-        let spend_proof = SpendDescription {
+        let description = SpendDescription {
             proof,
             value_commitment: value_commitment_point,
             randomized_public_key,
             root_hash: self.root_hash,
             tree_size: self.tree_size,
             nullifier,
-            authorizing_signature: blank_sig,
+            authorizing_signature: blank_signature,
         };
 
-        spend_proof.verify_proof()?;
+        description.verify_proof()?;
 
         Ok(UnsignedSpendDescription {
             public_key_randomness,
-            spend_proof,
+            description,
         })
     }
 }
 
 pub struct UnsignedSpendDescription {
+    /// Used to add randomness to signature generation without leaking the
+    /// key. Referred to as `ar` in the literature.
     public_key_randomness: jubjub::Fr,
-    pub(crate) spend_proof: SpendDescription,
+
+    /// Proof and public parameters for a user action to spend tokens.
+    pub(crate) description: SpendDescription,
 }
 
 impl UnsignedSpendDescription {
@@ -160,22 +164,22 @@ impl UnsignedSpendDescription {
         let randomized_public_key =
             redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
 
-        if randomized_public_key.0 != self.spend_proof.randomized_public_key.0 {
+        if randomized_public_key.0 != self.description.randomized_public_key.0 {
             return Err(IronfishError::InvalidSigningKey);
         }
 
         let mut data_to_be_signed = [0; 64];
         data_to_be_signed[..32]
-            .copy_from_slice(&self.spend_proof.randomized_public_key.0.to_bytes());
+            .copy_from_slice(&self.description.randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
 
-        self.spend_proof.authorizing_signature = randomized_private_key.sign(
+        self.description.authorizing_signature = randomized_private_key.sign(
             &data_to_be_signed,
             &mut thread_rng(),
             SPENDING_KEY_GENERATOR,
         );
 
-        Ok(self.spend_proof)
+        Ok(self.description)
     }
 }
 
@@ -310,7 +314,7 @@ impl SpendDescription {
     /// commitment_value, nullifier, and anchor attached to this
     /// [`SpendDescription`].
     pub fn verify_proof(&self) -> Result<(), IronfishError> {
-        self.verify_value_commitment()?;
+        self.verify_not_small_order()?;
 
         groth16::verify_proof(
             &SAPLING.spend_verifying_key,
@@ -321,7 +325,7 @@ impl SpendDescription {
         Ok(())
     }
 
-    pub fn verify_value_commitment(&self) -> Result<(), IronfishError> {
+    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
         if self.value_commitment.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
         }
