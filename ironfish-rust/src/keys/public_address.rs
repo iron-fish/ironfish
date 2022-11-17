@@ -78,22 +78,24 @@ impl PublicAddress {
 
     /// Retrieve the public address in byte form. It is comprised of the
     /// 11 byte diversifier followed by the 32 byte transmission key.
-    pub fn public_address(&self) -> [u8; 32] {
-        let result = point_to_bytes(&self.transmission_key)
-            .expect("transmission key should be convertible to bytes");
-        result
+    pub fn public_address(&self) -> Result<[u8; 32], IronfishError> {
+        point_to_bytes(&self.transmission_key)
     }
 
     /// Retrieve the public address in hex form.
     pub fn hex_public_address(&self) -> String {
-        bytes_to_hex(&self.public_address())
+        bytes_to_hex(&self.public_address().unwrap())
     }
 
     /// Store the bytes of this public address in the given writer.
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
-        writer.write_all(&self.public_address())?;
-
-        Ok(())
+        let public_address = self.public_address();
+        if public_address.is_ok() {
+            writer.write_all(&public_address.unwrap())?;
+            Ok(())
+        } else {
+            Err(IronfishError::InvalidPaymentAddress)
+        }
     }
 
     pub(crate) fn load_transmission_key(
@@ -158,6 +160,6 @@ mod test {
     fn public_address_generation() {
         let sapling_key = SaplingKey::generate_key();
         let public_address = sapling_key.public_address();
-        assert_eq!(public_address.public_address().len(), 32);
+        assert_eq!(public_address.public_address().unwrap().len(), 32);
     }
 }

@@ -211,7 +211,7 @@ impl<'a> Note {
         let mut note_contents = vec![];
 
         // Writing the value in little endian
-        (&mut note_contents)
+        (note_contents)
             .write_u64::<LittleEndian>(self.value)
             .unwrap();
 
@@ -323,7 +323,10 @@ mod test {
             .expect("Should serialize cleanly");
 
         let note2 = Note::read(&serialized[..]).expect("It should deserialize cleanly");
-        assert_eq!(note2.owner.public_address(), note.owner.public_address());
+        assert_eq!(
+            note2.owner.public_address().unwrap(),
+            note.owner.public_address().unwrap()
+        );
         assert_eq!(note2.value, 42);
         assert_eq!(note2.randomness, note.randomness);
         assert_eq!(note2.memo, note.memo);
@@ -355,7 +358,8 @@ mod test {
         )
         .expect("Should be able to decrypt bytes");
         assert!(
-            restored_note.owner.public_address().as_ref() == note.owner.public_address().as_ref()
+            restored_note.owner.public_address().unwrap().as_ref()
+                == note.owner.public_address().unwrap().as_ref()
         );
         assert!(note.value == restored_note.value);
         assert!(note.randomness == restored_note.randomness);
@@ -368,8 +372,8 @@ mod test {
         )
         .expect("Should be able to load from transmission key");
         assert!(
-            spender_decrypted.owner.public_address().as_ref()
-                == note.owner.public_address().as_ref()
+            spender_decrypted.owner.public_address().unwrap().as_ref()
+                == note.owner.public_address().unwrap().as_ref()
         );
         assert!(note.value == spender_decrypted.value);
         assert!(note.randomness == spender_decrypted.randomness);
