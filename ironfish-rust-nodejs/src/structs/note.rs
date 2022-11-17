@@ -12,7 +12,7 @@ use crate::to_napi_err;
 #[napi]
 pub const DECRYPTED_NOTE_LENGTH: u32 = 104;
 //  32 randomness
-//+ 32 memo 
+//+ 32 memo
 //+ 32 public address
 //+ 8  value
 //= 104 bytes

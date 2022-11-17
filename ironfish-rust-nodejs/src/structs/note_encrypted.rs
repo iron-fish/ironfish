@@ -16,7 +16,7 @@ use crate::to_napi_err;
 #[napi]
 pub const ENCRYPTED_NOTE_LENGTH: u32 = 264;
 //  32 value commitment
-//+ 32 note commitment 
+//+ 32 note commitment
 //+ 32 ephemeral public key
 //+ 72 encrypted note
 //+ 16 aead MAC
