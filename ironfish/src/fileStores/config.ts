@@ -259,7 +259,7 @@ export const noWhitespaceBegEnd = yup
   .string()
   .matches(reNoWhitespaceBegEnd, 'Path should not contain leading or trailing whitespace.')
 
-export const isUrl = yup.string().url('Invalid URL')
+export const isUrl = yup.string().url()
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .object({
