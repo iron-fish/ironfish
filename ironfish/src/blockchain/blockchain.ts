@@ -11,7 +11,6 @@ import {
   GENESIS_BLOCK_SEQUENCE,
   MAX_SYNCED_AGE_MS,
   TARGET_BLOCK_TIME_IN_SECONDS,
-  TestnetParameters,
 } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
@@ -164,6 +163,7 @@ export class Blockchain {
     logAllBlockAdd?: boolean
     autoSeed?: boolean
     files: FileSystem
+    consensus: ConsensusParameters
   }) {
     const logger = options.logger || createRootLogger()
 
@@ -179,7 +179,7 @@ export class Blockchain {
     this.orphans = new LRU(100, null, BufferMap)
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
-    this.consensus = new TestnetParameters()
+    this.consensus = options.consensus
 
     // Flat Fields
     this.meta = this.db.addStore({
