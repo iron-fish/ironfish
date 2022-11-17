@@ -13,6 +13,46 @@ use rand::thread_rng;
 
 use crate::{assets::asset::Asset, errors::IronfishError};
 
+/// Parameters used to build a burn description
+pub struct BurnBuilder {
+    /// Asset to be burned
+    pub asset: Asset,
+
+    /// Commitment to represent the value. Even though the value of the burn is
+    /// public, we still need the commitment to balance the transaction
+    pub value_commitment: ValueCommitment,
+}
+
+impl BurnBuilder {
+    pub fn new(asset: Asset, value: u64) -> Self {
+        let value_commitment = ValueCommitment {
+            value,
+            randomness: jubjub::Fr::random(thread_rng()),
+        };
+
+        Self {
+            asset,
+            value_commitment,
+        }
+    }
+
+    /// Get the value_commitment from this proof as an Edwards Point.
+    ///
+    /// This integrates the value and randomness into a single point, using an
+    /// appropriate generator.
+    pub fn value_commitment_point(&self) -> ExtendedPoint {
+        ExtendedPoint::from(self.value_commitment.commitment())
+    }
+
+    pub fn build(&self) -> BurnDescription {
+        BurnDescription {
+            asset: self.asset,
+            value: self.value_commitment.value,
+            value_commitment: self.value_commitment_point(),
+        }
+    }
+}
+
 /// This description represents an action to decrease the supply of an existing
 /// asset on Iron Fish
 #[derive(Clone)]
@@ -95,8 +135,10 @@ impl BurnDescription {
 mod test {
     use crate::{assets::asset::Asset, transaction::burns::BurnDescription, SaplingKey};
 
+    use super::BurnBuilder;
+
     #[test]
-    fn test_burn_value_commitment() {
+    fn test_burn_builder() {
         let key = SaplingKey::generate_key();
         let owner = key.asset_public_key();
         let name = "name";
@@ -105,7 +147,8 @@ mod test {
         let asset = Asset::new(owner, name, metadata).unwrap();
         let value = 5;
 
-        let burn = BurnDescription::new(asset, value);
+        let builder = BurnBuilder::new(asset, value);
+        let burn = builder.build();
 
         burn.verify_not_small_order()
             .expect("value commitment should not be small order");

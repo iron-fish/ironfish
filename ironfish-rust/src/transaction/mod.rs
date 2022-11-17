@@ -32,7 +32,7 @@ use ironfish_zkp::{
 use std::{io, iter, slice::Iter};
 
 use self::{
-    burns::BurnDescription,
+    burns::{BurnBuilder, BurnDescription},
     mints::{MintBuilder, MintDescription, UnsignedMintDescription},
 };
 
@@ -72,7 +72,7 @@ pub struct ProposedTransaction {
     /// Descriptions containing the assets and value commitments to be burned.
     /// We do not need to use a builder here since we only need to handle
     /// balancing and effects are handled by outputs.
-    burns: Vec<BurnDescription>,
+    burns: Vec<BurnBuilder>,
 
     /// The balance of all the spends minus all the outputs. The difference
     /// is the fee paid to the miner for mining the transaction.
@@ -128,9 +128,9 @@ impl ProposedTransaction {
 
     pub fn add_burn(&mut self, asset: Asset, value: u64) {
         self.value_balances
-            .subtract(&asset.identifier(), value as i64);
+            .subtract(asset.identifier(), value as i64);
 
-        self.burns.push(BurnDescription::new(asset, value));
+        self.burns.push(BurnBuilder::new(asset, value));
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
@@ -141,7 +141,7 @@ impl ProposedTransaction {
     /// for mining this transaction. This has to be non-negative; sane miners
     /// wouldn't accept a transaction that takes money away from them.
     ///
-    /// sum(spends) + sum(mints) - sum(outputs) - intended_transaction_fee - change = 0
+    /// sum(spends) + sum(mints) - sum(outputs) - sum(burns) - intended_transaction_fee - change = 0
     /// aka: self.value_balance - intended_transaction_fee - change = 0
     pub fn post(
         &mut self,
@@ -246,11 +246,16 @@ impl ProposedTransaction {
             unsigned_mints.push(mint.build(&self.spender_key)?);
         }
 
+        let mut burn_descriptions = Vec::with_capacity(self.burns.len());
+        for burn in &self.burns {
+            burn_descriptions.push(burn.build());
+        }
+
         let data_to_sign = self.transaction_signature_hash(
             &unsigned_spends,
             &output_descriptions,
             &unsigned_mints,
-            &self.burns,
+            &burn_descriptions,
         );
 
         let binding_signature =
@@ -274,7 +279,7 @@ impl ProposedTransaction {
             spends: spend_descriptions,
             outputs: output_descriptions,
             mints: mint_descriptions,
-            burns: self.burns.clone(),
+            burns: burn_descriptions,
             binding_signature,
         })
     }
@@ -373,6 +378,11 @@ impl ProposedTransaction {
         for mint in &self.mints {
             binding_signature_key += mint.value_commitment.randomness;
             binding_verification_key += mint.value_commitment_point();
+        }
+
+        for burn in &self.burns {
+            binding_signature_key -= burn.value_commitment.randomness;
+            binding_verification_key -= burn.value_commitment_point();
         }
 
         let private_key = PrivateKey(binding_signature_key);

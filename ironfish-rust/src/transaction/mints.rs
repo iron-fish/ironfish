@@ -48,7 +48,7 @@ impl MintBuilder {
         }
     }
 
-    /// Get the value_commitment from this proof as an edwards Point.
+    /// Get the value_commitment from this proof as an Edwards Point.
     ///
     /// This integrates the value and randomness into a single point, using an
     /// appropriate generator.
