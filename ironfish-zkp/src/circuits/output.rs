@@ -147,7 +147,7 @@ mod test {
 
     use crate::circuits::output::Output;
 
-    use crate::constants::PUBLIC_KEY_GENERATOR;
+    use crate::{circuits::util::commitment_full_point, constants::PUBLIC_KEY_GENERATOR};
 
     #[test]
     fn test_output_circuit_with_bls12_381() {
@@ -190,17 +190,29 @@ mod test {
                 assert_eq!(cs.num_constraints(), 4081);
                 assert_eq!(
                     cs.hash(),
-                    "c26d5cdfe6ccd65c03390902c02e11393ea6bb96aae32a7f2ecb12eb9103faee"
+                    "afdf3f46cc103ea1214906ca3586abe0a47292889175d11909821708ed2d7901"
                 );
 
-                let expected_cmu = Some(Note {
+                let note = Some(Note {
                     value: value_commitment.value,
                     rseed: Rseed::BeforeZip212(commitment_randomness),
                     g_d: PUBLIC_KEY_GENERATOR,
                     pk_d: payment_address,
                 })
-                .expect("should be valid")
-                .cmu();
+                .expect("should be valid");
+
+                let expected_cmu = jubjub::ExtendedPoint::from(commitment_full_point(note))
+                    .to_affine()
+                    .get_u();
+
+                // let expected_cmu = Some(Note {
+                //     value: value_commitment.value,
+                //     rseed: Rseed::BeforeZip212(commitment_randomness),
+                //     g_d: PUBLIC_KEY_GENERATOR,
+                //     pk_d: payment_address,
+                // })
+                // .expect("should be valid")
+                // .cmu();
 
                 let expected_value_commitment =
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
