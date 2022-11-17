@@ -20,6 +20,8 @@ pub const NATIVE_ASSET: AssetIdentifier = [
     253, 148, 34, 211, 177, 122, 246, 130, 58, 126, 106, 198,
 ];
 
+const NAME_LENGTH: usize = 32;
+const OWNER_LENGTH: usize = 32;
 pub const METADATA_LENGTH: usize = 76;
 
 #[allow(dead_code)]
@@ -71,11 +73,16 @@ impl Asset {
         metadata: [u8; METADATA_LENGTH],
         nonce: u8,
     ) -> Result<Asset, IronfishError> {
-        let mut preimage = Vec::with_capacity(METADATA_LENGTH);
+        let capacity = METADATA_LENGTH + NAME_LENGTH + OWNER_LENGTH + 1;
+        let mut preimage = Vec::with_capacity(capacity);
         preimage.extend(owner.to_bytes());
         preimage.extend(name);
         preimage.extend(metadata);
         preimage.extend(from_ref(&nonce));
+
+        if preimage.len() != capacity {
+            return Err(IronfishError::InvalidData);
+        }
 
         let preimage_bits = multipack::bytes_to_bits_le(&preimage);
 
@@ -119,13 +126,13 @@ impl Asset {
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let owner = {
-            let mut buf = [0; 32];
+            let mut buf = [0; OWNER_LENGTH];
             reader.read_exact(&mut buf)?;
 
             Option::from(AssetPublicKey::from_bytes(&buf)).ok_or(IronfishError::IllegalValue)?
         };
 
-        let mut name = [0; 32];
+        let mut name = [0; NAME_LENGTH];
         reader.read_exact(&mut name[..])?;
 
         let mut metadata = [0; METADATA_LENGTH];
