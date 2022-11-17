@@ -10,7 +10,7 @@ import {
 } from './validator'
 
 describe('account-validator tests', () => {
-  test.only('valid public address should return true', () => {
+  test('valid public address should return true', () => {
     const VALID_PUBLIC_ADDRESS =
       '8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563'
     expect(isValidPublicAddress(VALID_PUBLIC_ADDRESS)).toBe(true)
