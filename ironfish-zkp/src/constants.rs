@@ -1,6 +1,7 @@
 use jubjub::SubgroupPoint;
 pub use zcash_primitives::constants::{
-    CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
+    CRH_IVK_PERSONALIZATION, NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
+    PRF_NF_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
     VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
     VALUE_COMMITMENT_VALUE_GENERATOR,
 };
@@ -52,5 +53,10 @@ pub mod proof {
     lazy_static! {
         pub static ref ASSET_KEY_GENERATOR: FixedGeneratorOwned =
             generate_circuit_generator(super::ASSET_KEY_GENERATOR);
+    }
+
+    lazy_static! {
+        pub static ref PUBLIC_KEY_GENERATOR: FixedGeneratorOwned =
+            generate_circuit_generator(super::PUBLIC_KEY_GENERATOR);
     }
 }

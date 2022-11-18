@@ -3,7 +3,7 @@ use group::Curve;
 
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 
-use jubjub::{ExtendedPoint, SubgroupPoint};
+use jubjub::SubgroupPoint;
 use zcash_primitives::sapling::ValueCommitment;
 
 use zcash_proofs::{
@@ -14,7 +14,7 @@ use zcash_proofs::{
     constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
-use crate::constants::PUBLIC_KEY_GENERATOR;
+use crate::constants::proof::PUBLIC_KEY_GENERATOR;
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::boolean;
@@ -50,35 +50,17 @@ impl Circuit<bls12_381::Scalar> for Output {
             self.value_commitment,
         )?);
 
-        // Let's deal with g_d
+        // Let's deal with ephemeral public key
         {
-            // Prover witnesses g_d, ensuring it's on the
-            // curve.
-            let g_d = ecc::EdwardsPoint::witness(
-                cs.namespace(|| "witness g_d"),
-                Some(ExtendedPoint::from(PUBLIC_KEY_GENERATOR)),
-            )?;
-
-            // g_d is ensured to be large order. The relationship
-            // between g_d and pk_d ultimately binds ivk to the
-            // note. If this were a small order point, it would
-            // not do this correctly, and the prover could
-            // double-spend by finding random ivk's that satisfy
-            // the relationship.
-            //
-            // Further, if it were small order, epk would be
-            // small order too!
-            g_d.assert_not_small_order(cs.namespace(|| "g_d not small order"))?;
-
-            // Extend our note contents with the representation of
-            // g_d.
-            note_contents.extend(g_d.repr(cs.namespace(|| "representation of g_d"))?);
-
             // Booleanize our ephemeral secret key
             let esk = boolean::field_into_boolean_vec_le(cs.namespace(|| "esk"), self.esk)?;
 
             // Create the ephemeral public key from g_d.
-            let epk = g_d.mul(cs.namespace(|| "epk computation"), &esk)?;
+            let epk = ecc::fixed_base_multiplication(
+                cs.namespace(|| "epk computation"),
+                &PUBLIC_KEY_GENERATOR,
+                &esk,
+            )?;
 
             // Expose epk publicly.
             epk.inputize(cs.namespace(|| "epk"))?;
@@ -115,7 +97,6 @@ impl Circuit<bls12_381::Scalar> for Output {
         assert_eq!(
             note_contents.len(),
             64 + // value
-            256 + // g_d
             256 // pk_d
         );
 
@@ -166,7 +147,7 @@ mod test {
 
     use crate::circuits::output::Output;
 
-    use super::PUBLIC_KEY_GENERATOR;
+    use crate::{constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point};
 
     #[test]
     fn test_output_circuit_with_bls12_381() {
@@ -206,20 +187,23 @@ mod test {
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 7827);
+                assert_eq!(cs.num_constraints(), 4081);
                 assert_eq!(
                     cs.hash(),
-                    "c26d5cdfe6ccd65c03390902c02e11393ea6bb96aae32a7f2ecb12eb9103faee"
+                    "afdf3f46cc103ea1214906ca3586abe0a47292889175d11909821708ed2d7901"
                 );
 
-                let expected_cmu = Some(Note {
+                let note = Some(Note {
                     value: value_commitment.value,
                     rseed: Rseed::BeforeZip212(commitment_randomness),
                     g_d: PUBLIC_KEY_GENERATOR,
                     pk_d: payment_address,
                 })
-                .expect("should be valid")
-                .cmu();
+                .expect("should be valid");
+
+                let expected_cmu = jubjub::ExtendedPoint::from(commitment_full_point(note))
+                    .to_affine()
+                    .get_u();
 
                 let expected_value_commitment =
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();

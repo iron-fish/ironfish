@@ -2,12 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { NoteEncrypted as NativeNoteEncrypted } from '@ironfish/rust-nodejs'
+import {
+  ENCRYPTED_NOTE_LENGTH,
+  NoteEncrypted as NativeNoteEncrypted,
+} from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Serde } from '../serde'
 import { Note } from './note'
 
-export const NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE = 467
+const PROOF_LENGTH = 192
+export const NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE = PROOF_LENGTH + ENCRYPTED_NOTE_LENGTH
 
 export type NoteEncryptedHash = Buffer
 export type SerializedNoteEncryptedHash = Buffer
@@ -35,7 +39,7 @@ export class NoteEncrypted {
     // ephemeral public key
     reader.seek(32)
     // encrypted note
-    reader.seek(83)
+    reader.seek(72)
     // aead MAC
     reader.seek(16)
     // note encryption keys
@@ -44,7 +48,7 @@ export class NoteEncrypted {
     reader.seek(16)
 
     // total serialized size: 192 (proof from transaction)
-    // + 32 + 32 + 32 + 83 + 16 + 64 + 16 = 467 bytes
+    // + 32 + 32 + 32 + 72 + 16 + 64 + 16 = 456 bytes
   }
 
   serialize(): Buffer {

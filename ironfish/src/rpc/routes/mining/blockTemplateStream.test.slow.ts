@@ -46,18 +46,23 @@ describe('Block template stream', () => {
     // Create another node
     const nodeTest = createNodeTest()
     await nodeTest.setup()
-    await nodeTest.wallet.importAccount(account)
+    const importedAccount = await nodeTest.wallet.importAccount(account)
     await nodeTest.wallet.setDefaultAccount(account.name)
 
     // Generate a block
-    const block2 = await useMinerBlockFixture(nodeTest.chain, 2, account, nodeTest.node.wallet)
+    const block2 = await useMinerBlockFixture(
+      nodeTest.chain,
+      2,
+      importedAccount,
+      nodeTest.node.wallet,
+    )
 
     // Generate a transaction on that block with an expiry at sequence 3
     await expect(nodeTest.chain).toAddBlock(block2)
     await nodeTest.wallet.updateHead()
     const tx = await useTxFixture(
       nodeTest.node.wallet,
-      account,
+      importedAccount,
       account,
       undefined,
       undefined,

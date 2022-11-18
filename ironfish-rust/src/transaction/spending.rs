@@ -98,7 +98,7 @@ impl SpendBuilder {
         let circuit = Spend {
             value_commitment: Some(self.value_commitment.clone()),
             proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
-            payment_address: Some(self.note.owner.sapling_payment_address()),
+            payment_address: Some(self.note.owner.transmission_key),
             auth_path: self.auth_path.clone(),
             commitment_randomness: Some(self.note.randomness),
             anchor: Some(self.root_hash),
@@ -406,7 +406,7 @@ mod test {
     #[test]
     fn test_spend_round_trip() {
         let key = SaplingKey::generate_key();
-        let public_address = key.generate_public_address();
+        let public_address = key.public_address();
 
         let note_randomness = random();
 
