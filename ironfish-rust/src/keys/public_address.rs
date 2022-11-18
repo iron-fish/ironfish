@@ -77,7 +77,7 @@ impl PublicAddress {
         }
     }
 
-     /// Retrieve the public address in byte form.
+    /// Retrieve the public address in byte form.
     pub fn public_address(&self) -> [u8; PUBLIC_ADDRESS_SIZE] {
         self.transmission_key.to_bytes()
     }
