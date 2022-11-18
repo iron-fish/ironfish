@@ -246,18 +246,10 @@ export type ConfigOptions = {
   feeEstimatorPercentileHigh: number
 }
 
-// Matches either an empty string, or a string that has no leading or trailing whitespace.
-const reNoWhitespaceBegEnd = /^[^\s]+(\s+[^\s]+)*$|^$/
-
 // config number value validators
 export const isWholeNumber = yup.number().integer().min(0)
 export const isPort = yup.number().integer().min(1).max(65535)
 export const isPercent = yup.number().min(0).max(100)
-
-// config string value validators
-export const noWhitespaceBegEnd = yup
-  .string()
-  .matches(reNoWhitespaceBegEnd, 'Path should not contain leading or trailing whitespace.')
 
 export const isUrl = yup.string().url()
 
@@ -266,7 +258,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     bootstrapNodes: yup.array().of(yup.string().defined()),
     databaseName: yup.string(),
     databaseMigrate: yup.boolean(),
-    editor: noWhitespaceBegEnd,
+    editor: yup.string().trim(),
     enableListenP2P: yup.boolean(),
     enableLogFile: yup.boolean(),
     enableRpc: yup.boolean(),
@@ -277,7 +269,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     enableTelemetry: yup.boolean(),
     enableMetrics: yup.boolean(),
     getFundsApi: yup.string(),
-    ipcPath: noWhitespaceBegEnd,
+    ipcPath: yup.string().trim(),
     miningForce: yup.boolean(),
     logPeerMessages: yup.boolean(),
     // validated separately by logLevelParser
@@ -291,10 +283,10 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     nodeWorkersMax: yup.number().integer().min(-1),
     p2pSimulateLatency: isWholeNumber,
     peerPort: isPort,
-    rpcTcpHost: noWhitespaceBegEnd,
+    rpcTcpHost: yup.string().trim(),
     rpcTcpPort: isPort,
-    tlsKeyPath: noWhitespaceBegEnd,
-    tlsCertPath: noWhitespaceBegEnd,
+    tlsKeyPath: yup.string().trim(),
+    tlsCertPath: yup.string().trim(),
     maxPeers: isWholeNumber,
     minPeers: isWholeNumber,
     targetPeers: yup.number().integer().min(1),
@@ -309,7 +301,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     poolAccountName: yup.string(),
     poolBanning: yup.boolean(),
     poolBalancePercentPayout: isPercent,
-    poolHost: noWhitespaceBegEnd,
+    poolHost: yup.string().trim(),
     poolPort: isPort,
     poolDifficulty: yup.string(),
     poolAttemptPayoutInterval: isWholeNumber,

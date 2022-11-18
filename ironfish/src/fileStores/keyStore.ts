@@ -48,9 +48,14 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
 
     // Validate file store if we have a schema
     if (this.schema) {
-      const { error } = await YupUtils.tryValidate(this.schema, data)
+      const { error, result } = await YupUtils.tryValidate(this.schema, data)
+
       if (error) {
         throw new Error(error.message)
+      }
+
+      if (result) {
+        Object.assign(data, result)
       }
     }
 
