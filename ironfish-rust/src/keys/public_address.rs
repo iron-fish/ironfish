@@ -77,8 +77,7 @@ impl PublicAddress {
         }
     }
 
-    /// Retrieve the public address in byte form. It is comprised of the
-    /// 11 byte diversifier followed by the 32 byte transmission key.
+     /// Retrieve the public address in byte form.
     pub fn public_address(&self) -> [u8; PUBLIC_ADDRESS_SIZE] {
         self.transmission_key.to_bytes()
     }
