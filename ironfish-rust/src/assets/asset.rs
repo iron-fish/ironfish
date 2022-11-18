@@ -172,7 +172,6 @@ mod test {
     #[test]
     fn test_asset_new_with_nonce() {
         let mut rng = StdRng::seed_from_u64(0);
-
         let owner = AssetPublicKey::random(&mut rng);
         let name = str_to_array("name");
         let metadata = str_to_array("{ 'token_identifier': '0x123' }");

@@ -2,27 +2,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{errors::IronfishError, util::str_to_array};
+use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array};
 
 use super::{
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
     serializing::{aead, read_scalar, scalar_to_bytes},
 };
+use blake2s_simd::Params as Blake2sParams;
 use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
-use ironfish_zkp::{Nullifier, Rseed, SaplingNote};
+use group::{Curve, GroupEncoding};
+use ironfish_zkp::{
+    constants::{
+        NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION,
+    },
+    pedersen_hash::{pedersen_hash, Personalization},
+    Nullifier,
+};
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
-
 use std::{fmt, io, io::Read};
-
-pub const ENCRYPTED_NOTE_SIZE: usize = 83;
+pub const ENCRYPTED_NOTE_SIZE: usize = SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SIZE;
+//   8  value
+// + 32 randomness
+// + 32 memo
+// = 72
+pub const SCALAR_SIZE: usize = 32;
+pub const MEMO_SIZE: usize = 32;
+pub const AMOUNT_VALUE_SIZE: usize = 8;
 
 /// Memo field on a Note. Used to encode transaction IDs or other information
 /// about the transaction.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct Memo(pub [u8; 32]);
+pub struct Memo(pub [u8; MEMO_SIZE]);
 
 impl From<&str> for Memo {
     fn from(string: &str) -> Self {
@@ -135,9 +148,8 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (diversifier_bytes, randomness, value, memo) =
-            Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
-        let owner = owner_view_key.public_address(&diversifier_bytes)?;
+        let (randomness, value, memo) = Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
+        let owner = owner_view_key.public_address();
 
         Ok(Note {
             owner,
@@ -161,15 +173,9 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (diversifier_bytes, randomness, value, memo) =
-            Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
-        let (diversifier, diversifier_point) =
-            PublicAddress::load_diversifier(&diversifier_bytes[..])?;
-        let owner = PublicAddress {
-            diversifier,
-            diversifier_point,
-            transmission_key,
-        };
+        let (randomness, value, memo) = Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
+
+        let owner = PublicAddress { transmission_key };
 
         Ok(Note {
             owner,
@@ -196,15 +202,48 @@ impl<'a> Note {
     /// actually read the contents.
     pub fn encrypt(&self, shared_secret: &[u8; 32]) -> [u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE] {
         let mut bytes_to_encrypt = [0; ENCRYPTED_NOTE_SIZE];
-        bytes_to_encrypt[..11].copy_from_slice(&self.owner.diversifier.0[..]);
-        bytes_to_encrypt[11..43].clone_from_slice(self.randomness.to_repr().as_ref());
+        bytes_to_encrypt[..SCALAR_SIZE].clone_from_slice(self.randomness.to_repr().as_ref());
 
-        LittleEndian::write_u64_into(&[self.value], &mut bytes_to_encrypt[43..51]);
-        bytes_to_encrypt[51..].copy_from_slice(&self.memo.0[..]);
+        LittleEndian::write_u64_into(
+            &[self.value],
+            &mut bytes_to_encrypt[SCALAR_SIZE..(SCALAR_SIZE + AMOUNT_VALUE_SIZE)],
+        );
+        bytes_to_encrypt[(SCALAR_SIZE + AMOUNT_VALUE_SIZE)..].copy_from_slice(&self.memo.0[..]);
         let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes);
 
         encrypted_bytes
+    }
+
+    /// Computes the note commitment, returning the full point.
+    fn commitment_full_point(&self) -> jubjub::SubgroupPoint {
+        // Calculate the note contents, as bytes
+        let mut note_contents = vec![];
+
+        // Writing the value in little endian
+        (note_contents)
+            .write_u64::<LittleEndian>(self.value)
+            .unwrap();
+
+        // Write pk_d
+        note_contents.extend_from_slice(&self.owner.transmission_key.to_bytes());
+
+        assert_eq!(
+            note_contents.len(),
+            PUBLIC_ADDRESS_SIZE // pk_g
+            + 8 // value
+        );
+
+        // Compute the Pedersen hash of the note contents
+        let hash_of_contents = pedersen_hash(
+            Personalization::NoteCommitment,
+            note_contents
+                .into_iter()
+                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
+        );
+
+        // Compute final commitment
+        (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness) + hash_of_contents
     }
 
     /// Compute the nullifier for this note, given the private key of its owner.
@@ -213,8 +252,22 @@ impl<'a> Note {
     /// only at the time the note is spent. This key is collected in a massive
     /// 'nullifier set', preventing double-spend.
     pub fn nullifier(&self, private_key: &SaplingKey, position: u64) -> Nullifier {
-        self.sapling_note()
-            .nf(&private_key.sapling_viewing_key(), position)
+        // Compute rho = cm + position.G
+        let rho = self.commitment_full_point()
+            + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+
+        // Compute nf = BLAKE2s(nk | rho)
+        Nullifier::from_slice(
+            Blake2sParams::new()
+                .hash_length(32)
+                .personal(PRF_NF_PERSONALIZATION)
+                .to_state()
+                .update(&private_key.sapling_viewing_key().nk.to_bytes())
+                .update(&rho.to_bytes())
+                .finalize()
+                .as_bytes(),
+        )
+        .unwrap()
     }
 
     /// Get the commitment hash for this note. This encapsulates all the values
@@ -230,7 +283,11 @@ impl<'a> Note {
     /// The owner can publish this value to commit to the fact that the note
     /// exists, without revealing any of the values on the note until later.
     pub(crate) fn commitment_point(&self) -> Scalar {
-        self.sapling_note().cmu()
+        // The commitment is in the prime order subgroup, so mapping the
+        // commitment to the u-coordinate is an injective encoding.
+        jubjub::ExtendedPoint::from(self.commitment_full_point())
+            .to_affine()
+            .get_u()
     }
 
     /// Verify that the note's commitment matches the one passed in
@@ -245,13 +302,11 @@ impl<'a> Note {
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<([u8; 11], jubjub::Fr, u64, Memo), IronfishError> {
+    ) -> Result<(jubjub::Fr, u64, Memo), IronfishError> {
         let mut plaintext_bytes = [0; ENCRYPTED_NOTE_SIZE];
         aead::decrypt(shared_secret, encrypted_bytes, &mut plaintext_bytes)?;
 
         let mut reader = plaintext_bytes[..].as_ref();
-        let mut diversifier_bytes = [0; 11];
-        reader.read_exact(&mut diversifier_bytes[..])?;
 
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
@@ -259,23 +314,7 @@ impl<'a> Note {
         let mut memo = Memo::default();
         reader.read_exact(&mut memo.0)?;
 
-        Ok((diversifier_bytes, randomness, value, memo))
-    }
-
-    /// The zcash_primitives version of the Note API is kind of klunky with
-    /// annoying variable names and exposed values, but it contains the methods
-    /// used to calculate nullifier and commitment.
-    ///
-    /// This is somewhat suboptimal with extra calculations and bytes being
-    /// passed around. I'm not worried about it yet, since only notes actively
-    /// being spent have to create these.
-    fn sapling_note(&self) -> SaplingNote {
-        SaplingNote {
-            value: self.value,
-            g_d: self.owner.diversifier.g_d().unwrap(),
-            pk_d: self.owner.transmission_key,
-            rseed: Rseed::BeforeZip212(self.randomness),
-        }
+        Ok((randomness, value, memo))
     }
 }
 
@@ -287,7 +326,7 @@ mod test {
     #[test]
     fn test_plaintext_serialization() {
         let owner_key: SaplingKey = SaplingKey::generate_key();
-        let public_address = owner_key.generate_public_address();
+        let public_address = owner_key.public_address();
         let note = Note::new(public_address, 42, "serialize me");
         let mut serialized = Vec::new();
         note.write(&mut serialized)
@@ -309,7 +348,7 @@ mod test {
     #[test]
     fn test_note_encryption() {
         let owner_key: SaplingKey = SaplingKey::generate_key();
-        let public_address = owner_key.generate_public_address();
+        let public_address = owner_key.public_address();
         let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
         let public_shared_secret =
             shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
