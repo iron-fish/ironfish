@@ -11,7 +11,6 @@ import {
   isPort,
   isUrl,
   isWholeNumber,
-  noWhitespaceBegEnd,
 } from './config'
 
 function valid(schema: yup.ObjectSchema, obj: unknown) {
@@ -106,44 +105,15 @@ describe('ConfigOptionsSchema::numbers', () => {
 // Tests the string validations in the config schema
 describe('ConfigOptionsSchema::strings', () => {
   type Config = {
-    s1: string
-    s2: string
     url1: string
   }
 
   const schema: yup.ObjectSchema<Partial<Config>> = yup
     .object({
-      s1: noWhitespaceBegEnd,
-      s2: noWhitespaceBegEnd,
       url1: isUrl,
     })
     .defined()
 
-  {
-    const obj = {
-      s1: '/usr/bin/nvim',
-      s2: String.raw`C:\ironfish\is best`,
-    }
-    it('isPath', () => {
-      expect(valid(schema, obj)).toBe(true)
-    })
-  }
-  {
-    const obj = {
-      s1: ' /usr/bin/nvim',
-    }
-    it('isNotPathLeadingWhitespace', () => {
-      expect(valid(schema, obj)).toBe(false)
-    })
-  }
-  {
-    const obj = {
-      s1: '/usr/bin/nvim   ',
-    }
-    it('isNotPathTrailingWhitspace', () => {
-      expect(valid(schema, obj)).toBe(false)
-    })
-  }
   {
     const obj = {
       url1: DEFAULT_EXPLORER_BLOCKS_URL,
