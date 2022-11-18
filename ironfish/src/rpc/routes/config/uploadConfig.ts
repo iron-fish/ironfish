@@ -69,7 +69,7 @@ export function setUnknownConfigValue(
   }
 
   if (typeof sourceValue !== typeof targetValue) {
-    value = convertValue(sourceValue, targetValue)
+    value = convertValue(sourceKey, sourceValue, targetValue)
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,12 +89,12 @@ function stringToStringArray(value: string): string[] | null {
   return parsedValue.map((v) => v.trim())
 }
 
-function convertValue(sourceValue: unknown, targetValue: unknown): unknown {
+function convertValue(sourceKey: string, sourceValue: unknown, targetValue: unknown): unknown {
   if (typeof sourceValue !== 'string') {
     throw new ValidationError(
-      `Could not convert ${JSON.stringify(sourceValue)} from ${typeof sourceValue} to ${String(
-        typeof targetValue,
-      )}`,
+      `${sourceKey} has an invalid value: Cannot convert ${JSON.stringify(
+        sourceValue,
+      )} from ${typeof sourceValue} to ${String(typeof targetValue)}`,
     )
   }
 
@@ -132,8 +132,8 @@ function convertValue(sourceValue: unknown, targetValue: unknown): unknown {
   }
 
   throw new ValidationError(
-    `Could not convert ${JSON.stringify(sourceValue)} from ${typeof sourceValue} to ${String(
-      targetType,
-    )}`,
+    `${sourceKey} has an invalid value: Could not convert ${JSON.stringify(
+      sourceValue,
+    )} from ${typeof sourceValue} to ${String(targetType)}`,
   )
 }
