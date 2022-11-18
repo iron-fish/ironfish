@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { FileSystem } from '../fileSystems'
+import { YupUtils } from '../utils'
 import { KeyStore } from './keyStore'
 
 export const DEFAULT_CONFIG_NAME = 'config.json'
@@ -246,13 +247,6 @@ export type ConfigOptions = {
   feeEstimatorPercentileHigh: number
 }
 
-// config number value validators
-export const isWholeNumber = yup.number().integer().min(0)
-export const isPort = yup.number().integer().min(1).max(65535)
-export const isPercent = yup.number().min(0).max(100)
-
-export const isUrl = yup.string().url()
-
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .object({
     bootstrapNodes: yup.array().of(yup.string().defined()),
@@ -281,39 +275,39 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     nodeName: yup.string(),
     nodeWorkers: yup.number().integer().min(-1),
     nodeWorkersMax: yup.number().integer().min(-1),
-    p2pSimulateLatency: isWholeNumber,
-    peerPort: isPort,
+    p2pSimulateLatency: YupUtils.isPositiveInteger,
+    peerPort: YupUtils.isPort,
     rpcTcpHost: yup.string().trim(),
-    rpcTcpPort: isPort,
+    rpcTcpPort: YupUtils.isPort,
     tlsKeyPath: yup.string().trim(),
     tlsCertPath: yup.string().trim(),
-    maxPeers: isWholeNumber,
-    minPeers: isWholeNumber,
+    maxPeers: YupUtils.isPositiveInteger,
+    minPeers: YupUtils.isPositiveInteger,
     targetPeers: yup.number().integer().min(1),
     telemetryApi: yup.string(),
     accountName: yup.string(),
     generateNewIdentity: yup.boolean(),
-    defaultTransactionExpirationSequenceDelta: isWholeNumber,
-    blocksPerMessage: isWholeNumber,
-    minerBatchSize: isWholeNumber,
-    minimumBlockConfirmations: isWholeNumber,
+    defaultTransactionExpirationSequenceDelta: YupUtils.isPositiveInteger,
+    blocksPerMessage: YupUtils.isPositiveInteger,
+    minerBatchSize: YupUtils.isPositiveInteger,
+    minimumBlockConfirmations: YupUtils.isPositiveInteger,
     poolName: yup.string(),
     poolAccountName: yup.string(),
     poolBanning: yup.boolean(),
-    poolBalancePercentPayout: isPercent,
+    poolBalancePercentPayout: YupUtils.isPercent,
     poolHost: yup.string().trim(),
-    poolPort: isPort,
+    poolPort: YupUtils.isPort,
     poolDifficulty: yup.string(),
-    poolAttemptPayoutInterval: isWholeNumber,
-    poolSuccessfulPayoutInterval: isWholeNumber,
-    poolStatusNotificationInterval: isWholeNumber,
-    poolRecentShareCutoff: isWholeNumber,
+    poolAttemptPayoutInterval: YupUtils.isPositiveInteger,
+    poolSuccessfulPayoutInterval: YupUtils.isPositiveInteger,
+    poolStatusNotificationInterval: YupUtils.isPositiveInteger,
+    poolRecentShareCutoff: YupUtils.isPositiveInteger,
     poolDiscordWebhook: yup.string(),
-    poolMaxConnectionsPerIp: isWholeNumber,
+    poolMaxConnectionsPerIp: YupUtils.isPositiveInteger,
     poolLarkWebhook: yup.string(),
     jsonLogs: yup.boolean(),
-    explorerBlocksUrl: isUrl,
-    explorerTransactionsUrl: isUrl,
+    explorerBlocksUrl: YupUtils.isUrl,
+    explorerTransactionsUrl: YupUtils.isUrl,
   })
   .defined()
 
