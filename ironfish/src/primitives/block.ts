@@ -106,13 +106,12 @@ export class Block {
  * block, along with locally generated fields relevant to the block (like the
  * total work on the chain at this block).
  */
-export class LocalBlock {
+export class LocalBlock extends Block {
   header: LocalBlockHeader
-  transactions: Transaction[]
 
   constructor(header: LocalBlockHeader, transactions: Transaction[]) {
+    super(header, transactions)
     this.header = header
-    this.transactions = transactions
   }
 
   static fromGenesis(block: Block): LocalBlock {
@@ -155,78 +154,6 @@ export class LocalBlock {
     )
 
     return new LocalBlock(header, transactions)
-  }
-
-  /**
-   * Get the number of notes and nullifiers stored on this block.
-   */
-  counts(): SerializedCounts {
-    let notes = 0
-    let nullifiers = 0
-
-    for (const transaction of this.transactions) {
-      notes += transaction.notesLength()
-      nullifiers += transaction.spendsLength()
-    }
-
-    return { notes, nullifiers }
-  }
-
-  /**
-   * Get a list of all spends on transactions in this block.
-   *
-   * Note: there is no spend on a miner's fee transaction in the header
-   */
-  *spends(): Generator<{
-    nullifier: Nullifier
-    commitment: NoteEncryptedHash
-    size: number
-  }> {
-    for (const transaction of this.transactions) {
-      for (const spend of transaction.spends()) {
-        yield spend
-      }
-    }
-  }
-
-  /**
-   * Get a list of all notes created in this block including the miner's fee
-   * note on the header.
-   */
-  *notes(): Generator<NoteEncrypted> {
-    for (const transaction of this.transactions) {
-      for (const note of transaction.notes()) {
-        yield note
-      }
-    }
-  }
-
-  equals(block: Block): boolean {
-    return block === this || BlockSerde.equals(this, block)
-  }
-
-  get minersFee(): Transaction {
-    const tx = this.transactions[0]
-    Assert.isNotUndefined(tx, 'Block has no miners fee')
-    return tx
-  }
-
-  toCompactBlock(): CompactBlock {
-    const header = this.header
-
-    const [minersFee, ...transactions] = this.transactions
-    const transactionHashes = transactions.map((t) => t.hash())
-
-    return {
-      header,
-      transactionHashes,
-      transactions: [
-        {
-          index: 0,
-          transaction: minersFee,
-        },
-      ],
-    }
   }
 }
 

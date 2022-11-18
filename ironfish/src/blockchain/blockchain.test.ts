@@ -621,7 +621,7 @@ describe('Blockchain', () => {
 
     // This should succeed but before the fix it would fail
     const result = await nodeB.chain.addBlock(blockA2)
-    expect(result).toMatchObject({ isAdded: true, reason: null })
+    expect(result).toMatchObject({ isAdded: true })
 
     // Head should still be blockB4
     expect(nodeB.chain.head.hash.equals(blockB4.header.hash)).toBe(true)
@@ -896,7 +896,6 @@ describe('Blockchain', () => {
 
       expect(addedB6).toMatchObject({
         isAdded: false,
-        isFork: null,
         reason: VerificationResultReason.DOUBLE_SPEND,
       })
     }
