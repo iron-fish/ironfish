@@ -131,7 +131,11 @@ export async function useAccountFixture(
     },
 
     deserialize: async (accountData: AccountValue): Promise<Account> => {
-      return wallet.importAccount(accountData)
+      const account = await wallet.importAccount(accountData)
+
+      await wallet.updateHeadHash(account, wallet.chainProcessor.hash)
+
+      return account
     },
   })
 }
