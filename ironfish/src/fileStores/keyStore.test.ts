@@ -22,7 +22,7 @@ describe('KeyStore', () => {
     expect(store.get('foo')).toEqual('baz')
   })
 
-  it('should use schema', async () => {
+  it('should validate schema in load', async () => {
     const dir = getUniqueTestDataDir()
     const files = await new NodeFileProvider().init()
 
@@ -40,7 +40,7 @@ describe('KeyStore', () => {
     await expect(store2.load()).rejects.toThrowError('foo must be a `string`')
   })
 
-  it('should use schema result', async () => {
+  it('should use schema result in load', async () => {
     const dir = getUniqueTestDataDir()
     const files = await new NodeFileProvider().init()
 
@@ -50,13 +50,47 @@ describe('KeyStore', () => {
       })
       .defined()
 
-    const store = new KeyStore<{ foo: string }>(files, 'store', { foo: 'bar' }, dir, schema)
-    store.set('foo', ' hello ')
+    const store1 = new KeyStore<{ foo: string }>(files, 'store', { foo: 'bar' }, dir)
+    const store2 = new KeyStore<{ foo: string }>(files, 'store', { foo: 'bar' }, dir, schema)
 
-    await store.save()
-    expect(store.get('foo')).toEqual(' hello ')
+    store1.set('foo', ' hello ')
+    await store1.save()
+    expect(store1.get('foo')).toEqual(' hello ')
 
-    await store.load()
-    expect(store.get('foo')).toEqual('hello')
+    await store2.load()
+    expect(store2.get('foo')).toEqual('hello')
+  })
+
+  it('should validate schema in set', async () => {
+    const dir = getUniqueTestDataDir()
+    const files = await new NodeFileProvider().init()
+
+    const schema = yup
+      .object({
+        foo: yup.number(),
+      })
+      .defined()
+
+    const store = new KeyStore<{ foo: number }>(files, 'store', { foo: 0 }, dir, schema)
+
+    expect(() => store.set('foo', 'Hello world' as unknown as number)).toThrowError(
+      'this must be a `number` type',
+    )
+  })
+
+  it('should use schema result in set', async () => {
+    const dir = getUniqueTestDataDir()
+    const files = await new NodeFileProvider().init()
+
+    const schema = yup
+      .object({
+        foo: yup.string().trim(),
+      })
+      .defined()
+
+    const store = new KeyStore<{ foo: string }>(files, 'store', { foo: '' }, dir, schema)
+
+    store.set('foo', ' trim me ')
+    expect(store.get('foo')).toEqual('trim me')
   })
 })
