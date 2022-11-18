@@ -1,7 +1,9 @@
+use std::io::Write;
+
 use byteorder::{LittleEndian, WriteBytesExt};
 use group::GroupEncoding;
 use zcash_primitives::{
-    constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
+    constants::{NOTE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR},
     sapling::{
         pedersen_hash::{pedersen_hash, Personalization},
         Note,
@@ -13,6 +15,11 @@ pub fn commitment_full_point(note: Note) -> jubjub::SubgroupPoint {
     // Calculate the note contents, as bytes
     let mut note_contents = vec![];
 
+    // TODO(mgeist,rohanjadvani): Fetch from asset
+    note_contents
+        .write_all(&VALUE_COMMITMENT_RANDOMNESS_GENERATOR.to_bytes())
+        .unwrap();
+
     // Writing the value in little endian
     (note_contents)
         .write_u64::<LittleEndian>(note.value)
@@ -23,8 +30,9 @@ pub fn commitment_full_point(note: Note) -> jubjub::SubgroupPoint {
 
     assert_eq!(
         note_contents.len(),
-        32 // pk_g
-        + 8 // value
+        32 + // asset generator
+        32 + // pk_d
+        8 // value
     );
 
     // Compute the Pedersen hash of the note contents

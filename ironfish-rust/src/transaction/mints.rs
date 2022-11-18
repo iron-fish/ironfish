@@ -69,6 +69,7 @@ impl MintBuilder {
             asset_authorization_key: Some(spender_key.asset_authorization_key()),
             value_commitment: Some(self.value_commitment.clone()),
             public_key_randomness: Some(public_key_randomness),
+            asset_generator: Some(asset_generator_point(self.asset.identifier())?.into()),
         };
 
         let proof = groth16::create_random_proof(circuit, &SAPLING.mint_params, &mut thread_rng())?;

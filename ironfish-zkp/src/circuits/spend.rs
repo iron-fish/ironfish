@@ -31,6 +31,9 @@ pub struct Spend {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
 
+    /// Asset generator derived from the asset identifier
+    pub asset_generator: Option<jubjub::ExtendedPoint>,
+
     /// Key required to construct proofs for spending notes
     /// for a particular spending key
     pub proof_generation_key: Option<ProofGenerationKey>,
@@ -145,8 +148,13 @@ impl Circuit<bls12_381::Scalar> for Spend {
         )?;
 
         // Compute note contents:
-        // value (in big endian) followed by pk_d
+        // asset generator, value (in big endian), followed by pk_d
         let mut note_contents = vec![];
+
+        let asset_generator =
+            ecc::EdwardsPoint::witness(cs.namespace(|| "asset_generator"), self.asset_generator)?;
+        note_contents
+            .extend(asset_generator.repr(cs.namespace(|| "representation of asset_generator"))?);
 
         // Handle the value; we'll need it later for the
         // dummy input check.
@@ -155,6 +163,7 @@ impl Circuit<bls12_381::Scalar> for Spend {
             // Get the value in little-endian bit order
             let value_bits = expose_value_commitment(
                 cs.namespace(|| "value commitment"),
+                asset_generator,
                 self.value_commitment,
             )?;
 
@@ -175,6 +184,7 @@ impl Circuit<bls12_381::Scalar> for Spend {
 
         assert_eq!(
             note_contents.len(),
+            256 + // asset generator
             64 + // value
             256 // p_d
         );
@@ -323,7 +333,10 @@ mod test {
     use group::{Curve, Group, GroupEncoding};
     use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
-    use zcash_primitives::sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed};
+    use zcash_primitives::{
+        constants::VALUE_COMMITMENT_VALUE_GENERATOR,
+        sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed},
+    };
     use zcash_primitives::{
         constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
         sapling::{Nullifier, ValueCommitment},
@@ -445,6 +458,7 @@ mod test {
                     ar: Some(ar),
                     auth_path: auth_path.clone(),
                     anchor: Some(cur),
+                    asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
@@ -626,15 +640,16 @@ mod test {
                     ar: Some(ar),
                     auth_path: auth_path.clone(),
                     anchor: Some(cur),
+                    asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 95043);
+                assert_eq!(cs.num_constraints(), 96888);
                 assert_eq!(
                     cs.hash(),
-                    "6dff1cb1cb932a2cd9a60e3f29baaa149fff549cf5a62982488fb6aabf374c78"
+                    "e12f68469696e28c532522c803db66d7fcaa4b694c98df7ba1fbb5a897ffebfa"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);

@@ -8,7 +8,7 @@ use ff::PrimeField;
 use zcash_primitives::sapling::ValueCommitment;
 use zcash_proofs::{
     circuit::ecc::{self, EdwardsPoint},
-    constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
+    constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
 use crate::constants::proof::ASSET_KEY_GENERATOR;
@@ -80,6 +80,7 @@ pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar
 /// input to the circuit
 pub fn expose_value_commitment<CS>(
     mut cs: CS,
+    asset_generator: EdwardsPoint,
     value_commitment: Option<ValueCommitment>,
 ) -> Result<Vec<boolean::Boolean>, SynthesisError>
 where
@@ -92,9 +93,8 @@ where
     )?;
 
     // Compute the note value in the exponent
-    let value = ecc::fixed_base_multiplication(
+    let value = asset_generator.mul(
         cs.namespace(|| "compute the value in the exponent"),
-        &VALUE_COMMITMENT_VALUE_GENERATOR,
         &value_bits,
     )?;
 

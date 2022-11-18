@@ -24,6 +24,9 @@ pub struct Output {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
 
+    /// Asset generator derived from the asset identifier
+    pub asset_generator: Option<jubjub::ExtendedPoint>,
+
     /// The payment address of the recipient
     pub payment_address: Option<SubgroupPoint>,
 
@@ -43,10 +46,16 @@ impl Circuit<bls12_381::Scalar> for Output {
         // value (big endian)
         let mut note_contents = vec![];
 
+        let asset_generator =
+            ecc::EdwardsPoint::witness(cs.namespace(|| "asset_generator"), self.asset_generator)?;
+        note_contents
+            .extend(asset_generator.repr(cs.namespace(|| "representation of asset_generator"))?);
+
         // Expose the value commitment and place the value
         // in the note.
         note_contents.extend(expose_value_commitment(
             cs.namespace(|| "value commitment"),
+            asset_generator,
             self.value_commitment,
         )?);
 
@@ -96,6 +105,7 @@ impl Circuit<bls12_381::Scalar> for Output {
 
         assert_eq!(
             note_contents.len(),
+            256 + // asset generator
             64 + // value
             256 // pk_d
         );
@@ -142,6 +152,7 @@ mod test {
     use group::{Curve, Group};
     use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
+    use zcash_primitives::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
     use zcash_primitives::sapling::{Note, ValueCommitment};
     use zcash_primitives::sapling::{ProofGenerationKey, Rseed};
 
@@ -182,15 +193,16 @@ mod test {
                     payment_address: Some(payment_address),
                     commitment_randomness: Some(commitment_randomness),
                     esk: Some(esk),
+                    asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 4081);
+                assert_eq!(cs.num_constraints(), 5926);
                 assert_eq!(
                     cs.hash(),
-                    "afdf3f46cc103ea1214906ca3586abe0a47292889175d11909821708ed2d7901"
+                    "fe17a277936c74ef5dc404f014871aa59a300b00f0528cd8db1d9d07a55dfbf1"
                 );
 
                 let note = Some(Note {

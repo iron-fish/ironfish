@@ -103,6 +103,7 @@ impl SpendBuilder {
             commitment_randomness: Some(self.note.randomness),
             anchor: Some(self.root_hash),
             ar: Some(public_key_randomness),
+            asset_generator: Some(self.note.asset_generator()),
         };
 
         // Proof that the spend was valid and successful for the provided owner

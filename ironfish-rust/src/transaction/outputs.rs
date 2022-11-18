@@ -82,6 +82,7 @@ impl OutputBuilder {
             payment_address: Some(self.note.owner.transmission_key),
             commitment_randomness: Some(self.note.randomness),
             esk: Some(diffie_hellman_keys.0),
+            asset_generator: Some(self.note.asset_generator()),
         };
 
         let proof =
