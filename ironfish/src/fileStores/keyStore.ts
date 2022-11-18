@@ -97,6 +97,18 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
   }
 
   set<T extends keyof TSchema>(key: T, value: TSchema[T]): void {
+    const schema = this.schema?.fields[key]
+
+    if (schema) {
+      const { error, result } = YupUtils.tryValidateSync(schema, value)
+
+      if (error) {
+        throw error
+      }
+
+      value = result as TSchema[T]
+    }
+
     const previousValue = this.config[key]
 
     Object.assign(this.loaded, { [key]: value })
