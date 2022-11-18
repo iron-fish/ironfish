@@ -307,7 +307,11 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(block1)
       await node.wallet.updateHead()
 
-      const accountB = await useAccountFixture(node.wallet, 'accountB')
+      // create a second account and import it so that its head hash is null
+      const { node: nodeB } = await nodeTest.createSetup()
+      const toImport = await useAccountFixture(nodeB.wallet, 'accountB')
+      const accountB = await node.wallet.importAccount(toImport)
+
       const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
       await expect(node.chain).toAddBlock(block2)
 
@@ -466,7 +470,11 @@ describe('Accounts', () => {
 
       await node.wallet.updateHead()
 
-      const accountB = await useAccountFixture(node.wallet, 'accountB')
+      // create a second account and import it so that its head hash is null
+      const { node: nodeB } = await nodeTest.createSetup()
+      const toImport = await useAccountFixture(nodeB.wallet, 'accountB')
+      const accountB = await node.wallet.importAccount(toImport)
+
       const blockB = await useMinerBlockFixture(node.chain, 2, accountA)
       await node.chain.addBlock(blockB)
 
