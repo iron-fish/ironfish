@@ -68,7 +68,7 @@ jobs:
         name: "Clippy check on ironfish-rust"
         with:
           command: clippy
-          args: --manifest-path ironfish-rust/Cargo.toml -- -D warnings
+          args: --manifest-path ironfish-rust/Cargo.toml -- -D warnings --all-targets
 
   ironfish_rust_nodejs:
     name: ironfish-rust-nodejs
@@ -106,7 +106,7 @@ jobs:
         name: "Clippy check on ironfish-rust-nodejs"
         with:
           command: clippy
-          args: --manifest-path ironfish-rust-nodejs/Cargo.toml -- -D warnings
+          args: --manifest-path ironfish-rust-nodejs/Cargo.toml -- -D warnings --all-targets
 
   ironfish_zkp:
     name: ironfish-zkp
@@ -148,4 +148,4 @@ jobs:
         name: "Clippy check on ironfish-zkp"
         with:
           command: clippy
-          args: --manifest-path ironfish-zkp/Cargo.toml -- -D warnings
+          args: --manifest-path ironfish-zkp/Cargo.toml -- -D warnings --all-targets
