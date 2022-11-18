@@ -1868,5 +1868,75 @@
         }
       ]
     }
+  ],
+  "Blockchain does not grant mining reward after V3_DISABLE_MINING_REWARD": [
+    {
+      "id": "29b775ff-ead1-4bd2-b7aa-af92714922ff",
+      "name": "test",
+      "spendingKey": "e513465f9213ba0ed31b9737bb6b342cbc954a3484b5e179906a0fd58c5e3325",
+      "incomingViewKey": "ff4f5e9ac1ec57def4ea77eab0717759277dfaae2cf40821eceba0ed4a8e2407",
+      "outgoingViewKey": "c92029f3aac586ab97429a57d832717a6d8912de3e2448835b71a822e988cf6c",
+      "publicAddress": "36a995ab772edf57b8fac3b79a8aae9edd5dfdd60ef82cf035db2a0873b53f4bcbdd5778ca130298b96337"
+    },
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "69E263E931FA1A2A4B0437A8EFF79FFB7A353B6384A7AEAC9F90AC12AE4811EF",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:P8rqlkk2exaMxGoe5AmkK2+cj6iv+sUsJNg1bXvc+SM="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "E2484D0BF38F29EFFD63EF9D5A61202F198129862B12845182A4CA77AA557A4B",
+          "size": 1
+        },
+        "target": "12167378078913471945996581698193578003257923478462384564023044230",
+        "randomness": "0",
+        "timestamp": 1668725306390,
+        "minersFee": "-2000000000",
+        "work": "0",
+        "hash": "6B85750A385456C0B98D544B20BB90D03286E711714B602983E95FE59E11EC29",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAABsyoj/////AAAAALCa6bInu5vjZdq5Sr0RbOPKfcC3M8vruHIrQEty2HXNxuSROOz8KVeXNBO+qLvr5bcjOHgV/zG2iIXIyHsGZKS00gYJQHlm1TzuT5E4G1A17FMhmtMItZKqa7xY8QBfPgAwZWRtNZURpYeAyIN467q3QOiBvMJy7NXmu9W/4B+SliUBxGswE5jJI8sQMJ8f5oiM3aViGvPipN9L1gvi1g2FIahOz8n9Fx8KUpHg/DBnN8QCDJAbGisxCTuQl0swkFlviJ9hv8p97ehr6Srqgry0j5s1aYT6uuhFnEOOQGfmfReVsxBdwfc6Fq5lCPYNheZhZ3lOmAvLr3aUDSd4lAV120YnuxaG0SGszC5+OKpvHEymPf/eiio90ud/8kD4xK6BCeQdwFtaBdaO1GKvMn1EmtBBldyntyzq0JlnlXQ74wtpNoSr0DcCo9NtGi4vt5vqJVnE/3niFMDazMz1PRAlPya6OVb/YGFqc9DeUaaaWnGgeXvveh25PzJiUH6bRjwUs0JlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwEOMcafnHkIPx21WcopObHhDUByhVMvO0zVHsjC8W7DGq2veWvoptfMw1kpFWwngiiv4MazjqQFEacO1vn2FzCw=="
+        }
+      ]
+    },
+    {
+      "header": {
+        "sequence": 3,
+        "previousBlockHash": "6B85750A385456C0B98D544B20BB90D03286E711714B602983E95FE59E11EC29",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:CF6fn1dy7aLLNRzMdTji9hZ2HVKQynk6jrWJC/3Jmm8="
+          },
+          "size": 5
+        },
+        "nullifierCommitment": {
+          "commitment": "E2484D0BF38F29EFFD63EF9D5A61202F198129862B12845182A4CA77AA557A4B",
+          "size": 1
+        },
+        "target": "12131835591833296355903882315508391652467087441833704656133504637",
+        "randomness": "0",
+        "timestamp": 1668725306564,
+        "minersFee": "0",
+        "work": "0",
+        "hash": "975E845A21543AC75161D09386D2B36696029D4C10BF52E8CDF9D52B994C0D72",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAILkVVqXNUC92/giUIjQt7oT3vgm6bu6/ubb3yqqCj8LmZlP5ymkFLnTIXYGjJfelKLnimgKFFhyKbWw/e3ut6L2+Mes6HIZdVrcxLPj4ZzU7yKC2F4xvOGOGvbmJe8jXAlHv4FdVDwcaQb7jls8+oi2Ae8kobFhfAvH2Xdhz6d+R1/F8EfQjMjW18So+NHMgKi06ehmB6FGbXkpfDd5R8N/HwnAqKqUoGdVl7MsTCiyut5XHSxAuFanU8WAECMVfutHRLvTx6TlnNrdjaZNwxdm5XZjEfnfAUrWSWiODG+LLHVuhw4ye4aKpEhdOVHm2uZlad1ONlKlj61TCn4vClYZkkb3BvKoF6VZx8pEdRDwju8Byze00CAkaziCTkCyuG+JUqbuC04oDENG3d4PW6KNCRcgRXlbFFzJLqB7kJ3F9V0q2rFXyrOnKdLM4EYFPul/Rl2QHHM0gITfyK8RKb1k+0XbFbxStncUe/zPF9Er+eUMJw6FxtDDRBAn/RA9HxDDq0JlYW5zdGFsayBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwGpURf4Kdm8EgH1jtft5tPQQtEkCxp7cMK3O75ewIVDL0RIvjl6DUP5d3TOy48aR/ipEjyZS14quSkF+drhL9CQ=="
+        }
+      ]
+    }
   ]
 }
