@@ -4,7 +4,7 @@
 
 import { Assert } from './assert'
 import { ChainProcessor } from './chainProcessor'
-import { BlockHeader } from './primitives/blockheader'
+import { NetworkBlockHeader } from './primitives/blockheader'
 import { createNodeTest } from './testUtilities'
 import { makeBlockAfter } from './testUtilities/helpers/blockchain'
 
@@ -29,7 +29,7 @@ describe('ChainProcessor', () => {
       head: genesis.header.hash,
     })
 
-    const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
+    const onEvent: jest.Mock<void, [NetworkBlockHeader, 'add' | 'remove']> = jest.fn()
     processor.onAdd.on((block) => onEvent(block, 'add'))
     processor.onRemove.on((block) => onEvent(block, 'remove'))
 

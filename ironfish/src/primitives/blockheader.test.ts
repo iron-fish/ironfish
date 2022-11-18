@@ -4,11 +4,11 @@
 
 import { GraffitiUtils } from '../utils'
 import {
-  BlockHeader,
   BlockHeaderSerde,
   isBlockHeavier,
   isBlockLater,
   LocalBlockHeader,
+  NetworkBlockHeader,
 } from './blockheader'
 import { Target } from './target'
 
@@ -16,7 +16,7 @@ describe('BlockHeader', () => {
   const serde = BlockHeaderSerde
 
   it('checks equal block headers', () => {
-    const header1 = new BlockHeader(
+    const header1 = new NetworkBlockHeader(
       5,
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32, 'header'), size: 8 },
@@ -28,7 +28,7 @@ describe('BlockHeader', () => {
       Buffer.alloc(32),
     )
 
-    const header2 = new BlockHeader(
+    const header2 = new NetworkBlockHeader(
       5,
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32, 'header'), size: 8 },
@@ -98,7 +98,7 @@ describe('BlockHeader', () => {
   })
 
   it('serializes and deserializes a block header', () => {
-    const header = new BlockHeader(
+    const header = new NetworkBlockHeader(
       5,
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32), size: 8 },
@@ -116,7 +116,7 @@ describe('BlockHeader', () => {
   })
 
   it('checks block is later than', () => {
-    const header1 = new BlockHeader(
+    const header1 = new NetworkBlockHeader(
       5,
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32), size: 0 },

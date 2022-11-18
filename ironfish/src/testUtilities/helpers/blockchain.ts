@@ -6,7 +6,7 @@ import '../matchers/blockchain'
 import { Assert } from '../../assert'
 import { Blockchain } from '../../blockchain'
 import { Block, LocalBlock } from '../../primitives/block'
-import { BlockHeader, LocalBlockHeader } from '../../primitives/blockheader'
+import { NetworkBlockHeader, LocalBlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { GraffitiUtils } from '../../utils/graffiti'
 
@@ -30,7 +30,7 @@ export async function makeBlockAfter(
   const randomness = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
   const graffiti = GraffitiUtils.fromString('fake block')
 
-  const header = new BlockHeader(
+  const header = new NetworkBlockHeader(
     sequence,
     after.hash,
     after.noteCommitment,

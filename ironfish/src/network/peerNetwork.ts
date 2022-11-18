@@ -18,7 +18,7 @@ import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
 import { Transaction } from '../primitives'
 import { Block, CompactBlock } from '../primitives/block'
-import { BlockHash, BlockHeader } from '../primitives/blockheader'
+import { BlockHash, NetworkBlockHeader } from '../primitives/blockheader'
 import { TransactionHash } from '../primitives/transaction'
 import { Telemetry } from '../telemetry'
 import { ArrayUtils, BenchUtils, HRTime } from '../utils'
@@ -107,7 +107,7 @@ export class PeerNetwork {
   readonly peerManager: PeerManager
   readonly onIsReadyChanged = new Event<[boolean]>()
   readonly onTransactionAccepted = new Event<[transaction: Transaction, received: Date]>()
-  readonly onBlockGossipReceived = new Event<[BlockHeader]>()
+  readonly onBlockGossipReceived = new Event<[NetworkBlockHeader]>()
 
   private started = false
   private readonly minPeers: number
@@ -387,7 +387,7 @@ export class PeerNetwork {
   /**
    * Send a block hash to all connected peers who haven't yet received the block.
    */
-  private broadcastBlockHash(header: BlockHeader): void {
+  private broadcastBlockHash(header: NetworkBlockHeader): void {
     const hashMessage = new NewBlockHashesMessage([
       { hash: header.hash, sequence: header.sequence },
     ])
@@ -969,7 +969,7 @@ export class PeerNetwork {
     }
   }
 
-  private async resolveSequenceOrHash(start: Buffer | number): Promise<BlockHeader | null> {
+  private async resolveSequenceOrHash(start: Buffer | number): Promise<NetworkBlockHeader | null> {
     if (Buffer.isBuffer(start)) {
       return await this.chain.getHeader(start)
     }
@@ -1231,7 +1231,7 @@ export class PeerNetwork {
   private async onNewFullBlock(
     peer: Peer,
     block: Block,
-    prevHeader: BlockHeader,
+    prevHeader: NetworkBlockHeader,
   ): Promise<void> {
     if (!this.shouldProcessNewBlocks()) {
       return
@@ -1317,7 +1317,7 @@ export class PeerNetwork {
     )
   }
 
-  async alreadyHaveBlock(headerOrHash: BlockHeader | BlockHash): Promise<boolean> {
+  async alreadyHaveBlock(headerOrHash: NetworkBlockHeader | BlockHash): Promise<boolean> {
     const hash = Buffer.isBuffer(headerOrHash) ? headerOrHash : headerOrHash.hash
     if (this.chain.isInvalid(headerOrHash)) {
       return true

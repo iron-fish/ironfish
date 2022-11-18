@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export { Block, BlockSerde } from './block'
-export { BlockHeader } from './blockheader'
+export { NetworkBlockHeader as BlockHeader } from './blockheader'
 export { Note } from './note'
 export { Spend } from './spend'
 export { Target } from './target'

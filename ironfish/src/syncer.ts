@@ -11,7 +11,7 @@ import { RollingAverage } from './metrics/rollingAverage'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
 import { Block, LocalBlock } from './primitives/block'
-import { BlockHeader } from './primitives/blockheader'
+import { NetworkBlockHeader } from './primitives/blockheader'
 import { Telemetry } from './telemetry'
 import { ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
 import { ArrayUtils } from './utils/array'
@@ -231,7 +231,7 @@ export class Syncer {
 
     const hasHash = async (
       hash: Buffer | null,
-    ): Promise<{ found: boolean; local: BlockHeader | null }> => {
+    ): Promise<{ found: boolean; local: NetworkBlockHeader | null }> => {
       if (hash === null) {
         return { found: false, local: null }
       }

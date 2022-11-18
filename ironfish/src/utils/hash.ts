@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Block } from '../primitives/block'
-import { BlockHeader } from '../primitives/blockheader'
+import { NetworkBlockHeader } from '../primitives/blockheader'
 
 function renderHashHex(hashHex: string | null | undefined): string {
   if (!hashHex) {
@@ -19,7 +19,7 @@ function renderHash(hash: Buffer | null | undefined): string {
   return renderHashHex(hash.toString('hex'))
 }
 
-function renderBlockHeaderHash(header: BlockHeader | null | undefined): string {
+function renderBlockHeaderHash(header: NetworkBlockHeader | null | undefined): string {
   if (!header) {
     return ''
   }

@@ -11,7 +11,7 @@ import {
 } from '../network/utils/serializers'
 import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
-import { BlockHeader } from '../primitives/blockheader'
+import { NetworkBlockHeader } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
@@ -144,7 +144,7 @@ export class Verifier {
    *  *  the timestamp is not in future by our local clock time
    */
   verifyBlockHeader(
-    blockHeader: BlockHeader,
+    blockHeader: NetworkBlockHeader,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
   ): VerificationResult {
     if (blockHeader.graffiti.byteLength !== 32) {
@@ -173,8 +173,8 @@ export class Verifier {
    *  -  The target matches the expected value
    */
   verifyBlockHeaderContextual(
-    current: BlockHeader,
-    previousHeader: BlockHeader,
+    current: NetworkBlockHeader,
+    previousHeader: NetworkBlockHeader,
   ): VerificationResult {
     if (!current.previousBlockHash.equals(previousHeader.hash)) {
       return { valid: false, reason: VerificationResultReason.PREV_HASH_MISMATCH }
@@ -298,7 +298,7 @@ export class Verifier {
   /**
    * Verify that the target of this block is correct against the block before it.
    */
-  protected isValidTarget(header: BlockHeader, previous: BlockHeader): boolean {
+  protected isValidTarget(header: NetworkBlockHeader, previous: NetworkBlockHeader): boolean {
     if (!this.enableVerifyTarget) {
       return true
     }
@@ -313,7 +313,7 @@ export class Verifier {
   }
 
   // TODO: Rename to verifyBlock but merge verifyBlock into this
-  async verifyBlockAdd(block: Block, prev: BlockHeader | null): Promise<VerificationResult> {
+  async verifyBlockAdd(block: Block, prev: NetworkBlockHeader | null): Promise<VerificationResult> {
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       return { valid: true }
     }

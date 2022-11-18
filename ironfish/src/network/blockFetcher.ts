@@ -4,7 +4,7 @@
 
 import { BufferMap } from 'buffer-map'
 import { Block, CompactBlock } from '../primitives/block'
-import { BlockHash, BlockHeader } from '../primitives/blockheader'
+import { BlockHash, NetworkBlockHeader } from '../primitives/blockheader'
 import { ArrayUtils } from '../utils/array'
 import { Identity } from './identity'
 import { GetBlocksRequest } from './messages/getBlocks'
@@ -51,7 +51,7 @@ type BlockState =
   | {
       action: 'TRANSACTION_REQUEST_IN_FLIGHT'
       peer: Identity
-      header: BlockHeader
+      header: NetworkBlockHeader
       partialTransactions: TransactionOrHash[]
       timeout: NodeJS.Timeout
       clearDisconnectHandler: () => void
@@ -220,7 +220,7 @@ export class BlockFetcher {
 
   requestBlockTransactions(
     peer: Peer,
-    header: BlockHeader,
+    header: NetworkBlockHeader,
     partialTransactions: TransactionOrHash[],
     missingTransactions: number[],
   ): void {

@@ -5,7 +5,7 @@
 import { zip } from 'lodash'
 import { Assert } from '../assert'
 import {
-  BlockHeader,
+  NetworkBlockHeader,
   BlockHeaderSerde,
   LocalBlockHeader,
   SerializedBlockHeader,
@@ -20,10 +20,10 @@ import { SerializedTransaction, Transaction } from './transaction'
  * previous block and the ones committed to in this header.
  */
 export class Block {
-  header: BlockHeader
+  header: NetworkBlockHeader
   transactions: Transaction[]
 
-  constructor(header: BlockHeader, transactions: Transaction[]) {
+  constructor(header: NetworkBlockHeader, transactions: Transaction[]) {
     this.header = header
     this.transactions = transactions
   }
@@ -163,7 +163,7 @@ export type CompactBlockTransaction = {
 }
 
 export type CompactBlock = {
-  header: BlockHeader
+  header: NetworkBlockHeader
   transactionHashes: Buffer[]
   transactions: CompactBlockTransaction[]
 }

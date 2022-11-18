@@ -17,7 +17,7 @@ export function hashBlockHeader(serializedHeader: Buffer): BlockHash {
   return blake3(serializedHeader)
 }
 
-export function isBlockLater(a: BlockHeader, b: BlockHeader): boolean {
+export function isBlockLater(a: NetworkBlockHeader, b: NetworkBlockHeader): boolean {
   if (a.sequence !== b.sequence) {
     return a.sequence > b.sequence
   }
@@ -41,7 +41,7 @@ export function isBlockHeavier(a: LocalBlockHeader, b: LocalBlockHeader): boolea
   return a.hash.compare(b.hash) < 0
 }
 
-export class BlockHeader {
+export class NetworkBlockHeader {
   /**
    * The sequence number of the block. Blocks in a chain increase in ascending
    * order of sequence. More than one block may have the same sequence,
@@ -179,7 +179,7 @@ export class BlockHeader {
   }
 }
 
-export class LocalBlockHeader extends BlockHeader {
+export class LocalBlockHeader extends NetworkBlockHeader {
   /**
    * Cumulative work from genesis to this block.
    */
@@ -235,7 +235,7 @@ export type SerializedBlockHeader = {
 }
 
 export class BlockHeaderSerde {
-  static equals(element1: BlockHeader, element2: BlockHeader): boolean {
+  static equals(element1: NetworkBlockHeader, element2: NetworkBlockHeader): boolean {
     return (
       element1.sequence === element2.sequence &&
       element1.noteCommitment.commitment.equals(element2.noteCommitment.commitment) &&
@@ -253,7 +253,7 @@ export class BlockHeaderSerde {
     )
   }
 
-  static serialize(header: BlockHeader): SerializedBlockHeader {
+  static serialize(header: NetworkBlockHeader): SerializedBlockHeader {
     const serialized = {
       sequence: header.sequence,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
@@ -276,8 +276,8 @@ export class BlockHeaderSerde {
     return serialized
   }
 
-  static deserialize(data: SerializedBlockHeader): BlockHeader {
-    return new BlockHeader(
+  static deserialize(data: SerializedBlockHeader): NetworkBlockHeader {
+    return new NetworkBlockHeader(
       Number(data.sequence),
       Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
       {

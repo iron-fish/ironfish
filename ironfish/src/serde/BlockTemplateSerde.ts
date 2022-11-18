@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Block } from '../primitives/block'
-import { BlockHeader } from '../primitives/blockheader'
+import { NetworkBlockHeader } from '../primitives/blockheader'
 import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
@@ -69,7 +69,7 @@ export class BlockTemplateSerde {
 
   static deserialize(blockTemplate: SerializedBlockTemplate): Block {
     const noteHasher = new NoteEncryptedHashSerde()
-    const header = new BlockHeader(
+    const header = new NetworkBlockHeader(
       blockTemplate.header.sequence,
       Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
       {

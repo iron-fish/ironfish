@@ -4,7 +4,7 @@
 import bufio, { sizeVarBytes, sizeVarint } from 'bufio'
 import { Assert } from '../../assert'
 import { Block, CompactBlock, CompactBlockTransaction } from '../../primitives/block'
-import { BlockHeader } from '../../primitives/blockheader'
+import { NetworkBlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { Transaction } from '../../primitives/transaction'
 import { BigIntUtils } from '../../utils/bigint'
@@ -15,7 +15,7 @@ const BLOCK_TRANSACTIONS_LENGTH_BYTES = 2
 
 export function writeBlockHeader(
   bw: bufio.StaticWriter | bufio.BufferWriter,
-  header: BlockHeader,
+  header: NetworkBlockHeader,
 ): bufio.StaticWriter | bufio.BufferWriter {
   bw.writeU32(header.sequence)
   bw.writeHash(header.previousBlockHash)
@@ -35,7 +35,7 @@ export function writeBlockHeader(
   return bw
 }
 
-export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
+export function readBlockHeader(reader: bufio.BufferReader): NetworkBlockHeader {
   const sequence = reader.readU32()
   const previousBlockHash = reader.readHash()
   const noteCommitment = reader.readHash()
@@ -48,7 +48,7 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
   const minersFee = -BigIntUtils.fromBytesLE(reader.readBytes(8))
   const graffiti = reader.readBytes(32)
 
-  return new BlockHeader(
+  return new NetworkBlockHeader(
     sequence,
     previousBlockHash,
     {

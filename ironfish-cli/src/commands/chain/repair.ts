@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   Assert,
-  BlockHeader,
+  NetworkBlockHeader,
   IDatabaseTransaction,
   IronfishNode,
   TimeUtils,
@@ -93,7 +93,7 @@ export default class RepairChain extends IronfishCommand {
 
     const total = Number(node.chain.head.sequence)
     let done = 0
-    let head = node.chain.head as BlockHeader | null
+    let head: NetworkBlockHeader | null = node.chain.head
 
     speed.start()
     progress.start(total, 0, {
