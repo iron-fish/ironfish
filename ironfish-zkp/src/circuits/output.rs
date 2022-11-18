@@ -179,7 +179,7 @@ mod test {
 
                 let instance = Output {
                     value_commitment: Some(value_commitment.clone()),
-                    payment_address: Some(payment_address.clone()),
+                    payment_address: Some(payment_address),
                     commitment_randomness: Some(commitment_randomness),
                     esk: Some(esk),
                 };
