@@ -5,16 +5,16 @@
 import '../matchers/blockchain'
 import { Assert } from '../../assert'
 import { Blockchain } from '../../blockchain'
-import { Block } from '../../primitives/block'
-import { BlockHeader } from '../../primitives/blockheader'
+import { Block, LocalBlock } from '../../primitives/block'
+import { BlockHeader, LocalBlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { GraffitiUtils } from '../../utils/graffiti'
 
 export async function makeBlockAfter(
   chain: Blockchain,
-  after: BlockHeader | Block,
-): Promise<Block> {
-  if (after instanceof Block) {
+  after: LocalBlockHeader | LocalBlock,
+): Promise<LocalBlock> {
+  if (after instanceof LocalBlock) {
     after = after.header
   }
 
@@ -40,13 +40,13 @@ export async function makeBlockAfter(
     timestamp,
     miningReward,
     graffiti,
-    BigInt(1),
   )
 
   const block = new Block(header, [])
 
   Assert.isUndefined((await chain.verifier.verifyBlock(block)).reason)
-  return block
+
+  return LocalBlock.fromBlock(block, after)
 }
 
 export function acceptsAllTarget(): Target {

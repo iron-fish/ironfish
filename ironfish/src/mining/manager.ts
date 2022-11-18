@@ -206,16 +206,17 @@ export class MiningManager {
       return MINED_RESULT.INVALID_BLOCK
     }
 
-    const { isAdded, reason, isFork } = await this.node.chain.addBlock(block)
+    const addResult = await this.node.chain.addBlock(block)
 
-    if (!isAdded) {
+    if (!addResult.isAdded) {
+      const reason = addResult.reason
       this.node.logger.info(
         `Failed to add mined block ${blockDisplay} to chain with reason ${String(reason)}`,
       )
       return MINED_RESULT.ADD_FAILED
     }
 
-    if (isFork) {
+    if (addResult.isFork) {
       this.node.logger.info(
         `Failed to add mined block ${blockDisplay} to main chain. Block was added as a fork`,
       )

@@ -401,9 +401,9 @@ describe('Blockchain', () => {
     await expect(node.chain).toAddBlock(blockB2)
 
     // Should not add blockB3
-    const { isAdded, reason } = await node.chain.addBlock(blockB3)
-    expect(isAdded).toBe(false)
-    expect(reason).toBe(VerificationResultReason.NOTE_COMMITMENT)
+    const addResult = await node.chain.addBlock(blockB3)
+    Assert.isFalse(addResult.isAdded)
+    expect(addResult.reason).toBe(VerificationResultReason.NOTE_COMMITMENT)
 
     expect(node.chain.head?.hash).toEqualBuffer(blockB2.header.hash)
     const result = await node.chain.verifier.verifyConnectedBlock(blockB2)

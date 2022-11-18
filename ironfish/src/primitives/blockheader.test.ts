@@ -3,10 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { GraffitiUtils } from '../utils'
-import { BlockHeader, BlockHeaderSerde, isBlockHeavier, isBlockLater } from './blockheader'
+import {
+  BlockHeader,
+  BlockHeaderSerde,
+  isBlockHeavier,
+  isBlockLater,
+  LocalBlockHeader,
+} from './blockheader'
 import { Target } from './target'
 
-describe('BlockHeaderSerde', () => {
+describe('BlockHeader', () => {
   const serde = BlockHeaderSerde
 
   it('checks equal block headers', () => {
@@ -137,61 +143,133 @@ describe('BlockHeaderSerde', () => {
     expect(isBlockLater(header1, header2)).toBe(true)
   })
 
-  it('checks block is heavier than', () => {
-    const header1 = new BlockHeader(
-      5,
-      Buffer.alloc(32),
-      { commitment: Buffer.alloc(32), size: 0 },
-      { commitment: Buffer.alloc(32), size: 0 },
-      new Target(1),
-      BigInt(0),
-      new Date(0),
-      BigInt(0),
-      Buffer.alloc(32),
-    )
+  describe('isBlockHeavierThan', () => {
+    it('work is greater', () => {
+      const header1 = new LocalBlockHeader(
+        5,
+        Buffer.alloc(32),
+        { commitment: Buffer.alloc(32), size: 0 },
+        { commitment: Buffer.alloc(32), size: 0 },
+        new Target(100),
+        BigInt(0),
+        new Date(0),
+        BigInt(0),
+        Buffer.alloc(32),
+        BigInt(1),
+        Buffer.alloc(32),
+      )
 
-    const serialized = serde.serialize(header1)
-    const header2 = serde.deserialize(serialized)
-    expect(isBlockHeavier(header1, header2)).toBe(false)
+      const header2 = new LocalBlockHeader(
+        5,
+        Buffer.alloc(32),
+        { commitment: Buffer.alloc(32), size: 0 },
+        { commitment: Buffer.alloc(32), size: 0 },
+        new Target(100),
+        BigInt(0),
+        new Date(0),
+        BigInt(0),
+        Buffer.alloc(32),
+        BigInt(0),
+        Buffer.alloc(32),
+      )
 
-    header1.work = BigInt(1)
-    header2.work = BigInt(0)
-    header1.sequence = 5
-    header2.sequence = 5
-    header1.target = new Target(100)
-    header2.target = new Target(100)
-    header1.hash = Buffer.alloc(32, 0)
-    header1.hash = Buffer.alloc(32, 0)
-    expect(isBlockHeavier(header1, header2)).toBe(true)
+      expect(isBlockHeavier(header1, header2)).toBe(true)
+    })
 
-    header1.work = BigInt(0)
-    header2.work = BigInt(0)
-    header1.sequence = 6
-    header2.sequence = 5
-    header1.target = new Target(100)
-    header2.target = new Target(100)
-    header1.hash = Buffer.alloc(32, 0)
-    header1.hash = Buffer.alloc(32, 0)
-    expect(isBlockHeavier(header1, header2)).toBe(true)
+    it('work is same, but sequence is greater', () => {
+      const header1 = new LocalBlockHeader(
+        6,
+        Buffer.alloc(32),
+        { commitment: Buffer.alloc(32), size: 0 },
+        { commitment: Buffer.alloc(32), size: 0 },
+        new Target(100),
+        BigInt(0),
+        new Date(0),
+        BigInt(0),
+        Buffer.alloc(32),
+        BigInt(0),
+        Buffer.alloc(32),
+      )
 
-    header1.work = BigInt(0)
-    header2.work = BigInt(0)
-    header1.sequence = 5
-    header2.sequence = 5
-    header1.target = new Target(100)
-    header2.target = new Target(200)
-    header1.hash = Buffer.alloc(32, 0)
-    header1.hash = Buffer.alloc(32, 0)
-    expect(isBlockHeavier(header1, header2)).toBe(true)
+      const header2 = new LocalBlockHeader(
+        5,
+        Buffer.alloc(32),
+        { commitment: Buffer.alloc(32), size: 0 },
+        { commitment: Buffer.alloc(32), size: 0 },
+        new Target(100),
+        BigInt(0),
+        new Date(0),
+        BigInt(0),
+        Buffer.alloc(32),
+        BigInt(0),
+        Buffer.alloc(32),
+      )
 
-    header1.work = BigInt(0)
-    header2.work = BigInt(0)
-    header1.sequence = 5
-    header2.sequence = 5
-    header1.target = new Target(100)
-    header2.target = new Target(100)
-    header1.hash = Buffer.alloc(32, 0)
-    header2.hash = Buffer.alloc(32, 1)
-    expect(isBlockHeavier(header1, header2)).toBe(true)
+      expect(isBlockHeavier(header1, header2)).toBe(true)
+    })
+
+    it('work and sequence are same, but target is lower', () => {
+      const header1 = new LocalBlockHeader(
+        5,
+        Buffer.alloc(32),
+        { commitment: Buffer.alloc(32), size: 0 },
+        { commitment: Buffer.alloc(32), size: 0 },
+        new Target(100),
+        BigInt(0),
+        new Date(0),
+        BigInt(0),
+        Buffer.alloc(32),
+        BigInt(0),
+        Buffer.alloc(32),
+      )
+
+      const header2 = new LocalBlockHeader(
+        5,
+        Buffer.alloc(32),
+        { commitment: Buffer.alloc(32), size: 0 },
+        { commitment: Buffer.alloc(32), size: 0 },
+        new Target(200),
+        BigInt(0),
+        new Date(0),
+        BigInt(0),
+        Buffer.alloc(32),
+        BigInt(0),
+        Buffer.alloc(32),
+      )
+
+      expect(isBlockHeavier(header1, header2)).toBe(true)
+    })
+
+    it('Is heavier when work and sequence are same, but target is lower', () => {
+      const header1 = new LocalBlockHeader(
+        5,
+        Buffer.alloc(32),
+        { commitment: Buffer.alloc(32), size: 0 },
+        { commitment: Buffer.alloc(32), size: 0 },
+        new Target(100),
+        BigInt(0),
+        new Date(0),
+        BigInt(0),
+        Buffer.alloc(32),
+        BigInt(0),
+        Buffer.alloc(32),
+      )
+
+      const header2 = new LocalBlockHeader(
+        5,
+        Buffer.alloc(32),
+        { commitment: Buffer.alloc(32), size: 0 },
+        { commitment: Buffer.alloc(32), size: 0 },
+        new Target(100),
+        BigInt(0),
+        new Date(0),
+        BigInt(0),
+        Buffer.alloc(32),
+        BigInt(0),
+        Buffer.alloc(32, 1),
+      )
+
+      expect(isBlockHeavier(header1, header2)).toBe(true)
+    })
   })
 })

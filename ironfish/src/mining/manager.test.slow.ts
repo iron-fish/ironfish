@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
+import { LocalBlock } from '../primitives/block'
 import { BlockTemplateSerde } from '../serde/BlockTemplateSerde'
 import {
   createNodeTest,
@@ -159,7 +161,6 @@ describe('Mining manager', () => {
 
       jest.spyOn(chain, 'addBlock').mockResolvedValue({
         isAdded: false,
-        isFork: null,
         reason: VerificationResultReason.INVALID_TARGET,
         score: 0,
       })
@@ -179,11 +180,13 @@ describe('Mining manager', () => {
       const blockA1 = await useMinerBlockFixture(chain, 2)
       const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
 
+      const previousHeader = await chain.getHeader(blockA1.header.previousBlockHash)
+      Assert.isNotNull(previousHeader)
+
       jest.spyOn(chain, 'addBlock').mockResolvedValue({
         isAdded: true,
         isFork: true,
-        reason: null,
-        score: 0,
+        block: LocalBlock.fromBlock(blockA1, previousHeader),
       })
 
       await expect(miningManager.submitBlockTemplate(blockTemplateA1)).resolves.toBe(
@@ -204,8 +207,6 @@ describe('Mining manager', () => {
       const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
 
       const validBlock = BlockTemplateSerde.deserialize(blockTemplateA1)
-      // This value is what the code generates from the fixture block
-      validBlock.header.work = expect.any(BigInt)
 
       // This populates the _hash field on all transactions so that
       // the test passes. Without it the expected block and the actual
