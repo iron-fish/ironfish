@@ -103,7 +103,7 @@ export default class Repair extends IronfishCommand {
 
         await walletDb.saveDecryptedNote(account, decryptedNoteValue.hash, {
           ...decryptedNoteValue,
-          spent,
+          spent: true,
         })
       } else if (
         !spent &&
@@ -112,6 +112,13 @@ export default class Repair extends IronfishCommand {
           chain.head.sequence,
         )
       ) {
+        if (decryptedNoteValue.spent) {
+          await walletDb.saveDecryptedNote(account, decryptedNoteValue.hash, {
+            ...decryptedNoteValue,
+            spent: false,
+          })
+        }
+
         unconfirmedBalance += decryptedNoteValue.note.value()
       }
     }
@@ -135,7 +142,7 @@ export default class Repair extends IronfishCommand {
     )) {
       const decryptedNoteValue = await account.getDecryptedNote(noteHash)
 
-      if (!decryptedNoteValue) {
+      if (!decryptedNoteValue || !decryptedNoteValue.nullifier) {
         missingNotes++
 
         await walletDb.deleteNullifier(account, nullifier)
@@ -175,6 +182,8 @@ export default class Repair extends IronfishCommand {
         incorrectSequences++
 
         await walletDb.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]])
+
+        await walletDb.setNoteHashSequence(account, noteHash, transactionValue.sequence)
       }
     }
 
