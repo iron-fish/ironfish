@@ -100,7 +100,7 @@ mod test {
         Circuit,
     };
     use ff::Field;
-    use group::{Curve, GroupEncoding};
+    use group::{Curve, Group, GroupEncoding};
     use jubjub::ExtendedPoint;
     use rand::{rngs::StdRng, SeedableRng};
     use zcash_primitives::sapling::{pedersen_hash, redjubjub, ValueCommitment};
@@ -111,9 +111,8 @@ mod test {
 
     #[test]
     fn test_mint_asset_circuit() {
-        // Seed a fixed rng for determinstism in the test
-        let seed = 1;
-        let mut rng = StdRng::seed_from_u64(seed);
+        // Seed a fixed rng for determinism in the test
+        let mut rng = StdRng::seed_from_u64(1);
 
         let mut cs = TestConstraintSystem::new();
 
@@ -175,5 +174,95 @@ mod test {
         assert!(cs.is_satisfied());
         assert!(cs.verify(&public_inputs));
         assert_eq!(cs.num_constraints(), 7631);
+    }
+
+    #[test]
+    fn test_mint_asset_circuit_bad_inputs() {
+        // Seed a fixed rng for determinism in the test
+        let mut rng = StdRng::seed_from_u64(1);
+
+        let mut cs = TestConstraintSystem::new();
+
+        let asset_auth_key = jubjub::Fr::random(&mut rng);
+        let asset_public_key = ASSET_KEY_GENERATOR * asset_auth_key;
+
+        let name = [1u8; 32];
+        let metadata = [2u8; 76];
+        let nonce = 1u8;
+
+        let mut asset_plaintext: Vec<u8> = vec![];
+        asset_plaintext.extend(&asset_public_key.to_bytes());
+        asset_plaintext.extend(name);
+        asset_plaintext.extend(metadata);
+        asset_plaintext.extend(slice::from_ref(&nonce));
+
+        let asset_plaintext_bits = multipack::bytes_to_bits_le(&asset_plaintext);
+
+        let identifier_point =
+            pedersen_hash::pedersen_hash(ASSET_IDENTIFIER_PERSONALIZATION, asset_plaintext_bits);
+
+        let identifier = identifier_point.to_bytes();
+
+        let identifier_bits = multipack::bytes_to_bits_le(&identifier);
+        let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
+
+        let value_commitment = ValueCommitment {
+            value: 5,
+            randomness: jubjub::Fr::random(&mut rng),
+        };
+
+        let value_commitment_point = ExtendedPoint::from(value_commitment.commitment()).to_affine();
+
+        let public_key_randomness = jubjub::Fr::random(&mut rng);
+        let randomized_public_key = redjubjub::PublicKey(asset_public_key.into())
+            .randomize(public_key_randomness, ASSET_KEY_GENERATOR);
+        let randomized_public_key_point = randomized_public_key.0.to_affine();
+
+        let public_inputs = vec![
+            identifier_inputs[0],
+            identifier_inputs[1],
+            value_commitment_point.get_u(),
+            value_commitment_point.get_v(),
+            randomized_public_key_point.get_u(),
+            randomized_public_key_point.get_v(),
+        ];
+
+        // Mint proof
+        let circuit = MintAsset {
+            name,
+            metadata,
+            nonce,
+            asset_authorization_key: Some(asset_auth_key),
+            value_commitment: Some(value_commitment),
+            public_key_randomness: Some(public_key_randomness),
+        };
+        circuit.synthesize(&mut cs).unwrap();
+
+        let bad_identifier = [1u8; 32];
+        let bad_identifier_bits = multipack::bytes_to_bits_le(&bad_identifier);
+        let bad_identifier_inputs = multipack::compute_multipacking(&bad_identifier_bits);
+
+        // Bad identifier
+        let mut bad_inputs = public_inputs.clone();
+        bad_inputs[0] = bad_identifier_inputs[0];
+
+        assert!(!cs.verify(&bad_inputs));
+
+        // Bad value commitment
+        let bad_value_commitment_point = ExtendedPoint::random(&mut rng).to_affine();
+        let mut bad_inputs = public_inputs.clone();
+        bad_inputs[2] = bad_value_commitment_point.get_u();
+
+        assert!(!cs.verify(&bad_inputs));
+
+        // Bad randomized public key
+        let bad_randomized_public_key_point = ExtendedPoint::random(&mut rng).to_affine();
+        let mut bad_inputs = public_inputs.clone();
+        bad_inputs[4] = bad_randomized_public_key_point.get_u();
+
+        assert!(!cs.verify(&bad_inputs));
+
+        // Sanity check
+        assert!(cs.verify(&public_inputs));
     }
 }
