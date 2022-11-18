@@ -12,6 +12,11 @@ export type YupSchemaResult<S extends yup.Schema<unknown, unknown>> = UnwrapProm
 >
 
 export class YupUtils {
+  static isPositiveInteger = yup.number().integer().min(0)
+  static isPort = yup.number().integer().min(1).max(65535)
+  static isPercent = yup.number().min(0).max(100)
+  static isUrl = yup.string().url()
+
   static async tryValidate<S extends YupSchema>(
     schema: S,
     value: unknown,
