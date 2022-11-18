@@ -40,7 +40,7 @@ pub fn generate_key() -> Key {
         spending_key: sapling_key.hex_spending_key(),
         incoming_view_key: sapling_key.incoming_view_key().hex_key(),
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
-        public_address: sapling_key.generate_public_address().hex_public_address(),
+        public_address: sapling_key.public_address().hex_public_address(),
     }
 }
 
@@ -52,7 +52,7 @@ pub fn generate_new_public_address(private_key: String) -> Result<Key> {
         spending_key: sapling_key.hex_spending_key(),
         incoming_view_key: sapling_key.incoming_view_key().hex_key(),
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
-        public_address: sapling_key.generate_public_address().hex_public_address(),
+        public_address: sapling_key.public_address().hex_public_address(),
     })
 }
 

@@ -693,6 +693,7 @@ dependencies = [
  "bellman",
  "blake2s_simd",
  "bls12_381",
+ "byteorder",
  "ff",
  "group",
  "jubjub",

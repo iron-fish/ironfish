@@ -20,7 +20,6 @@ use crate::{
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use jubjub::SubgroupPoint;
-use rand::{thread_rng, Rng};
 
 use std::io;
 
@@ -82,34 +81,9 @@ impl IncomingViewKey {
         Ok(mnemonic.phrase().to_string())
     }
 
-    /// Generate a public address from the incoming viewing key, given a specific
-    /// 11 byte diversifier.
-    ///
-    /// This may fail, as not all diversifiers are created equal.
-    ///
-    /// Note: This may need to be public at some point. I'm hoping the client
-    /// API would never have to deal with diversifiers, but I'm not sure, yet.
-    pub fn public_address(&self, diversifier: &[u8; 11]) -> Result<PublicAddress, IronfishError> {
-        PublicAddress::from_view_key(self, diversifier)
-    }
-
-    /// Generate a public address from this key,
-    /// picking a diversifier that is guaranteed to work with it.
-    ///
-    /// This method always succeeds, retrying with a different diversifier if
-    /// one doesn't work.
-    pub fn generate_public_address(&self) -> PublicAddress {
-        let public_address;
-        loop {
-            let mut diversifier_candidate = [0u8; 11];
-            thread_rng().fill(&mut diversifier_candidate);
-
-            if let Ok(key) = self.public_address(&diversifier_candidate) {
-                public_address = key;
-                break;
-            }
-        }
-        public_address
+    /// Generate a public address from the incoming viewing key
+    pub fn public_address(&self) -> PublicAddress {
+        PublicAddress::from_view_key(self)
     }
 
     /// Calculate the shared secret key given the ephemeral public key that was
