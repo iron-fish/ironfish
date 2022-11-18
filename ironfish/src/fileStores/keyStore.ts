@@ -54,7 +54,9 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
         throw new Error(error.message)
       }
 
-      Object.assign(data, result)
+      if (data != null) {
+        Object.assign(data, result)
+      }
     }
 
     this.keysLoaded.clear()
