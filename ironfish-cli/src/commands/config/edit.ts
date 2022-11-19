@@ -79,6 +79,7 @@ export class EditCommand extends IronfishCommand {
     const filePath = path.join(folderPath, DEFAULT_CONFIG_NAME)
 
     await writeFileAsync(filePath, output)
+    const existingContent = await readFileAsync(filePath, { encoding: 'utf8' })
     const code = await launchEditor(filePath, this.sdk.config)
 
     if (code !== 0) {
@@ -86,10 +87,26 @@ export class EditCommand extends IronfishCommand {
     }
 
     const content = await readFileAsync(filePath, { encoding: 'utf8' })
-    const config = JSONUtils.parse<Record<string, unknown>>(content)
 
-    await client.uploadConfig({ config })
-    this.log('Uploaded config successfully.')
-    this.exit(0)
+    try {
+      const config = JSONUtils.parse<Record<string, unknown>>(content)
+      this.log(jsonColorizer(content))
+      await ConfigOptionsSchema.validate(config, { strict: true })
+      await client.uploadConfig({ config })
+      this.log('Uploaded config successfully.')
+      this.exit(0)
+    } catch (err) {
+      if (err instanceof ParseJsonError) {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+        this.log(`${err} Not a Valid JSON, Aborting changes !!`)
+        await writeFileAsync(filePath, existingContent)
+        this.exit(1)
+      } else {
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+        this.log(`${err}, Aborting changes !!`)
+        await writeFileAsync(filePath, existingContent)
+        this.exit(1)
+      }
+    }
   }
 }
