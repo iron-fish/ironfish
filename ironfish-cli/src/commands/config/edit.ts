@@ -1,9 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DEFAULT_CONFIG_NAME, JSONUtils } from '@ironfish/sdk'
+import {
+  ConfigOptionsSchema,
+  DEFAULT_CONFIG_NAME,
+  JSONUtils,
+  ParseJsonError,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { mkdtemp, readFile, writeFile } from 'fs'
+import jsonColorizer from 'json-colorizer'
 import os from 'os'
 import path from 'path'
 import { promisify } from 'util'
@@ -34,8 +40,33 @@ export class EditCommand extends IronfishCommand {
 
     if (!flags.remote) {
       const configPath = this.sdk.config.storage.configPath
+      const existingContent = await readFileAsync(configPath, { encoding: 'utf8' })
       this.log(`Editing ${configPath}`)
       const code = await launchEditor(configPath, this.sdk.config)
+
+      if (code !== 0) {
+        this.exit(code || undefined)
+      }
+
+      const content = await readFileAsync(configPath, { encoding: 'utf8' })
+      try {
+        const config = JSONUtils.parse<Record<string, unknown>>(content)
+        this.log(jsonColorizer(content))
+        await ConfigOptionsSchema.validate(config, { strict: true })
+      } catch (err) {
+        if (err instanceof ParseJsonError) {
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          this.log(`${err} Not a Valid JSON, Aborting changes !!`)
+          await writeFileAsync(configPath, existingContent)
+          this.exit(1)
+        } else {
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          this.log(`${err}, Aborting changes !!`)
+          await writeFileAsync(configPath, existingContent)
+          this.exit(1)
+        }
+      }
+
       this.exit(code || undefined)
     }
 
