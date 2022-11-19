@@ -102,6 +102,6 @@ export class TestnetParameters extends ConsensusParameters {
     super()
     this.V1_DOUBLE_SPEND = 204000
     this.V2_MAX_BLOCK_SIZE = 255000
-    this.V3_DISABLE_MINING_REWARD = 278500
+    this.V3_DISABLE_MINING_REWARD = 279900
   }
 }
