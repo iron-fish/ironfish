@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { Block, Transaction } from '../primitives'
-import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
-import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import {
   createNodeTest,
   useAccountFixture,
@@ -425,7 +423,7 @@ describe('FeeEstimator', () => {
       const account1 = await useAccountFixture(node.wallet, 'account1')
       const account2 = await useAccountFixture(node.wallet, 'account2')
 
-      const { block, transaction } = await useBlockWithTx(node, account1, account2, true, {
+      const { block } = await useBlockWithTx(node, account1, account2, true, {
         fee: 10,
       })
 
