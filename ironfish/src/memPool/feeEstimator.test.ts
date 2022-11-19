@@ -442,15 +442,6 @@ describe('FeeEstimator', () => {
       })
       await feeEstimator.init(node.chain)
 
-      const size =
-        8 +
-        8 +
-        8 +
-        4 +
-        64 +
-        NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE +
-        SPEND_SERIALIZED_SIZE_IN_BYTE
-
       const fee = await feeEstimator.estimateFee('low', account1, [
         {
           publicAddress: account2.publicAddress,
@@ -459,16 +450,7 @@ describe('FeeEstimator', () => {
         },
       ])
 
-      const feeRate = getEstimateFeeRate(
-        block,
-        transaction,
-        node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
-      )
-
-      // const blockSize = block.transactions.reduce((a, t) => a + t.serialize().length, 0)
-      // const blockSizeRatio = blockSize / node.chain.consensus.MAX_BLOCK_SIZE_BYTES
-
-      expect(fee).toBe(feeRate * BigInt(size))
+      expect(fee).toBe(1n)
     })
   })
 })
