@@ -29,19 +29,19 @@ export const EstimateFeeRatesResponseSchema: yup.ObjectSchema<EstimateFeeRatesRe
 router.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
   `${ApiNamespace.fees}/estimateFeeRates`,
   EstimateFeeRatesRequestSchema,
-  async (request, node): Promise<void> => {
+  (request, node): void => {
     const priority = request.data?.priority
 
     const feeEstimator = node.memPool.feeEstimator
 
     if (priority) {
-      const feeRate = await feeEstimator.estimateFeeRate(priority)
+      const feeRate = feeEstimator.estimateFeeRate(priority)
 
       request.end({
         [priority]: feeRate,
       })
     } else {
-      const feeRates = await feeEstimator.estimateFeeRates()
+      const feeRates = feeEstimator.estimateFeeRates()
 
       request.end({
         low: feeRates.low.toString(),

@@ -17,14 +17,25 @@ export interface FeeRateEntry {
   blockHash: Buffer
 }
 
+export interface BlockSizeEntry {
+  blockSize: number
+  blockHash: Buffer
+}
+
 export type PriorityLevel = typeof PRIORITY_LEVELS[number]
 export type PriorityLevelPercentiles = { low: number; medium: number; high: number }
 
 export const PRIORITY_LEVELS = ['low', 'medium', 'high'] as const
+export const BLOCK_SIZE = 'blockSize' as const
 const DEFAULT_PRIORITY_LEVEL_PERCENTILES = { low: 10, medium: 20, high: 30 }
 
 export class FeeEstimator {
-  private queues: { low: FeeRateEntry[]; medium: FeeRateEntry[]; high: FeeRateEntry[] }
+  private queues: {
+    low: FeeRateEntry[]
+    medium: FeeRateEntry[]
+    high: FeeRateEntry[]
+    blockSize: BlockSizeEntry[]
+  }
   private percentiles: PriorityLevelPercentiles
   private wallet: Wallet
   private readonly logger: Logger
@@ -42,7 +53,7 @@ export class FeeEstimator {
     this.logger = options.logger || createRootLogger().withTag('recentFeeCache')
     this.maxBlockHistory = options.maxBlockHistory ?? this.maxBlockHistory
 
-    this.queues = { low: [], medium: [], high: [] }
+    this.queues = { low: [], medium: [], high: [], blockSize: [] }
     this.percentiles = options.percentiles ?? DEFAULT_PRIORITY_LEVEL_PERCENTILES
     this.wallet = options.wallet
     this.latestBlockSize = this.wallet.chain.consensus.MAX_BLOCK_SIZE_BYTES / 2
@@ -62,20 +73,24 @@ export class FeeEstimator {
 
       const sortedFeeRates = this.getTransactionFeeRates(currentBlock)
 
+      // construct fee rate cache
       for (const priorityLevel of PRIORITY_LEVELS) {
         const queue = this.queues[priorityLevel]
         const percentile = this.percentiles[priorityLevel]
         const feeRate = getPercentileEntry(sortedFeeRates, percentile)
 
-        if (feeRate !== undefined && !this.isFull(queue)) {
+        if (feeRate !== undefined && !this.isFull(queue.length)) {
           queue.push({ feeRate, blockHash: currentBlock.header.hash })
         }
       }
-      if (i === 0) {
-        this.latestBlockSize = currentBlock.transactions.reduce(
+
+      // construct block size cache
+      if (!this.isFull(this.queues[BLOCK_SIZE].length)) {
+        const blockSize = currentBlock.transactions.reduce(
           (a, t) => a + t.serialize().length,
           0,
         )
+        this.queues[BLOCK_SIZE].push({ blockSize, blockHash: currentBlock.header.hash })
       }
 
       if (currentBlockHash.equals(chain.genesis.hash)) {
@@ -98,13 +113,22 @@ export class FeeEstimator {
       const feeRate = getPercentileEntry(sortedFeeRates, percentile)
 
       if (feeRate !== undefined) {
-        if (this.isFull(queue)) {
+        if (this.isFull(queue.length)) {
           queue.shift()
         }
 
         queue.push({ feeRate, blockHash: block.header.hash })
       }
     }
+
+    const blockSize = block.transactions.reduce((a, t) => a + t.serialize().length, 0)
+
+    const queue = this.queues[BLOCK_SIZE]
+    if (this.isFull(queue.length)) {
+      queue.shift()
+    }
+
+    this.queues[BLOCK_SIZE].push({ blockSize, blockHash: block.header.hash })
   }
 
   onDisconnectBlock(block: Block): void {
@@ -120,6 +144,18 @@ export class FeeEstimator {
 
         queue.pop()
       }
+    }
+
+    const queue = this.queues[BLOCK_SIZE]
+
+    while (queue.length > 0) {
+      const lastEntry = queue[queue.length - 1]
+
+      if (!lastEntry.blockHash.equals(block.header.hash)) {
+        break
+      }
+
+      queue.pop()
     }
   }
 
@@ -138,35 +174,18 @@ export class FeeEstimator {
     return feeRates.sort((a, b) => (a > b ? 1 : -1))
   }
 
-  private async getLastBlockSizeBytes(): Promise<number> {
-    if (this.wallet.chain.isEmpty) {
-      return this.latestBlockSize
-    }
-
-    const latestBlockHash = this.wallet.chain.latest.hash
-
-    if (this.latestBlockHash?.equals(latestBlockHash)) {
-      return this.latestBlockSize
-    }
-
-    const latestBlock = await this.wallet.chain.getBlock(latestBlockHash)
-    Assert.isNotNull(latestBlock, 'No block found')
-    const result = latestBlock.transactions.reduce((a, t) => a + t.serialize().length, 0)
-    return result
-  }
-
-  async estimateFeeRates(): Promise<{ low: bigint; medium: bigint; high: bigint }> {
+  estimateFeeRates(): { low: bigint; medium: bigint; high: bigint } {
     return {
-      low: await this.estimateFeeRate('low'),
-      medium: await this.estimateFeeRate('medium'),
-      high: await this.estimateFeeRate('high'),
+      low: this.estimateFeeRate('low'),
+      medium: this.estimateFeeRate('medium'),
+      high: this.estimateFeeRate('high'),
     }
   }
 
   /*
    * returns an estimated fee rate as ore/kb
    */
-  async estimateFeeRate(priorityLevel: PriorityLevel): Promise<bigint> {
+  estimateFeeRate(priorityLevel: PriorityLevel): bigint {
     const queue = this.queues[priorityLevel]
 
     if (queue.length < this.maxBlockHistory) {
@@ -179,11 +198,15 @@ export class FeeEstimator {
     }
 
     fees.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-    const lastBlockSize = await this.getLastBlockSizeBytes()
-    const blockSizeRatio = lastBlockSize / this.wallet.chain.consensus.MAX_BLOCK_SIZE_BYTES
+    const averageBlockSize =
+      this.queues[BLOCK_SIZE].reduce((a, b) => a + b.blockSize, 0) /
+      this.queues[BLOCK_SIZE].length
+    const blockSizeRatio = BigInt(
+      Math.round((averageBlockSize / this.wallet.chain.consensus.MAX_BLOCK_SIZE_BYTES) * 100),
+    )
 
     let feeRate = fees[Math.round((queue.length - 1) / 2)]
-    feeRate = BigInt(Math.ceil(Number(feeRate) * blockSizeRatio))
+    feeRate = (feeRate * blockSizeRatio) / 100n
 
     return feeRate
   }
@@ -197,7 +220,7 @@ export class FeeEstimator {
     sender: Account,
     receives: { publicAddress: string; amount: bigint; memo: string }[],
   ): Promise<bigint> {
-    const estimateFeeRate = await this.estimateFeeRate(priorityLevel)
+    const estimateFeeRate = this.estimateFeeRate(priorityLevel)
     const estimateTransactionSize = await this.getPendingTransactionSize(
       sender,
       receives,
@@ -243,8 +266,8 @@ export class FeeEstimator {
     return size
   }
 
-  private isFull(array: FeeRateEntry[]): boolean {
-    return array.length === this.maxBlockHistory
+  private isFull(arrayLength: number): boolean {
+    return arrayLength === this.maxBlockHistory
   }
 }
 

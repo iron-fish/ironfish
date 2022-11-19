@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
+import { Block, Transaction } from '../primitives'
 import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
-import { Block, Transaction } from '../primitives'
-import { 
+import {
   createNodeTest,
   useAccountFixture,
   useBlockWithTx,
   useBlockWithTxs,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils/async'
-import { FeeEstimator, FeeRateEntry, getFee, getFeeRate, PRIORITY_LEVELS } from './feeEstimator'
+import { FeeEstimator, FeeRateEntry, getFeeRate, PRIORITY_LEVELS } from './feeEstimator'
 
 function getEstimateFeeRate(
   block: Block,
@@ -20,9 +20,9 @@ function getEstimateFeeRate(
   maxBlockSize: number,
 ): bigint {
   const blockSize = block.transactions.reduce((a, t) => a + t.serialize().length, 0)
-  const blockSizeRatio = blockSize / maxBlockSize
+  const blockSizeRatio = BigInt(Math.round((blockSize / maxBlockSize) * 100))
   let feeRate = getFeeRate(transaction)
-  feeRate = BigInt(Math.ceil(Number(feeRate) * blockSizeRatio))
+  feeRate = (feeRate * blockSizeRatio) / 100n
   return feeRate
 }
 
@@ -50,9 +50,9 @@ describe('FeeEstimator', () => {
         transaction,
         node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
       )
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(feeRate)
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(feeRate)
     })
 
     it('should build recent fee cache with more than one transaction', async () => {
@@ -95,9 +95,9 @@ describe('FeeEstimator', () => {
         node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
       )
 
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(feeRate)
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(feeRate)
     })
 
     it('should initialize with the most recent block at the end of the queue', async () => {
@@ -176,9 +176,9 @@ describe('FeeEstimator', () => {
         node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
       )
 
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(feeRate)
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(feeRate)
     })
 
     it('should exclude transactions from a block that are not in the mempool', async () => {
@@ -255,9 +255,9 @@ describe('FeeEstimator', () => {
         node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
       )
 
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(feeRate)
-      expect(await feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(feeRate)
+      expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(feeRate)
     })
 
     it('should keep old transactions in the cache if its maximum size has not been reached', async () => {
@@ -442,8 +442,6 @@ describe('FeeEstimator', () => {
       })
       await feeEstimator.init(node.chain)
 
-      const feeRate = getFeeRate(transaction)
-
       const size =
         8 +
         8 +
@@ -461,10 +459,16 @@ describe('FeeEstimator', () => {
         },
       ])
 
-      const blockSize = block.transactions.reduce((a, t) => a + t.serialize().length, 0)
-      const blockSizeRatio = blockSize / node.chain.consensus.MAX_BLOCK_SIZE_BYTES
+      const feeRate = getEstimateFeeRate(
+        block,
+        transaction,
+        node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
+      )
 
-      expect(fee).toBe(BigInt(Math.ceil(9 * blockSizeRatio)))
+      // const blockSize = block.transactions.reduce((a, t) => a + t.serialize().length, 0)
+      // const blockSizeRatio = blockSize / node.chain.consensus.MAX_BLOCK_SIZE_BYTES
+
+      expect(fee).toBe(feeRate * BigInt(size))
     })
   })
 })
