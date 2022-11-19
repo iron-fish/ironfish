@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { GENESIS_SUPPLY_IN_IRON, IRON_FISH_YEAR_IN_BLOCKS } from './consensus'
+import {
+  ConsensusParameters,
+  GENESIS_SUPPLY_IN_IRON,
+  IRON_FISH_YEAR_IN_BLOCKS,
+} from './consensus'
 import { Transaction } from './primitives/transaction'
 import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
@@ -12,12 +16,14 @@ import { WorkerPool } from './workerPool'
  */
 export class Strategy {
   readonly workerPool: WorkerPool
+  readonly consensus: ConsensusParameters
 
   private miningRewardCachedByYear: Map<number, number>
 
-  constructor(workerPool: WorkerPool) {
+  constructor(options: { workerPool: WorkerPool; consensus: ConsensusParameters }) {
     this.miningRewardCachedByYear = new Map<number, number>()
-    this.workerPool = workerPool
+    this.workerPool = options.workerPool
+    this.consensus = options.consensus
   }
 
   /**
@@ -37,6 +43,10 @@ export class Strategy {
    * @returns mining reward (in ORE) per block given the block sequence
    */
   miningReward(sequence: number): number {
+    if (this.consensus.isActive(this.consensus.V3_DISABLE_MINING_REWARD, sequence)) {
+      return 0
+    }
+
     const yearsAfterLaunch = Math.floor(Number(sequence) / IRON_FISH_YEAR_IN_BLOCKS)
 
     let reward = this.miningRewardCachedByYear.get(yearsAfterLaunch)

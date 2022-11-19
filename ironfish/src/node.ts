@@ -5,6 +5,7 @@ import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { Blockchain } from './blockchain'
+import { TestnetParameters } from './consensus'
 import {
   Config,
   ConfigOptions,
@@ -225,8 +226,10 @@ export class IronfishNode {
     }
     const workerPool = new WorkerPool({ metrics, numWorkers: workers })
 
+    const consensus = new TestnetParameters()
+
     strategyClass = strategyClass || Strategy
-    const strategy = new strategyClass(workerPool)
+    const strategy = new strategyClass({ workerPool, consensus })
 
     metrics = metrics || new MetricsMonitor({ logger })
 
@@ -238,6 +241,7 @@ export class IronfishNode {
       autoSeed,
       workerPool,
       files,
+      consensus,
     })
 
     const accountDB = new WalletDB({
