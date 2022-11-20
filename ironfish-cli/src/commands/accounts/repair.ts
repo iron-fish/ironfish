@@ -42,6 +42,9 @@ export default class Repair extends IronfishCommand {
 
     this.log(`Repairing wallet for account ${account.name}`)
 
+    this.log('Repairing expired transactions')
+    await this.repairTransactions(account, node.wallet.walletDb, node.chain)
+
     this.log('Repairing balance')
     await this.repairBalance(account, node.wallet.walletDb, node.chain)
 
@@ -67,6 +70,36 @@ export default class Repair extends IronfishCommand {
     }
 
     throw new Error('Could not find an account to repair.')
+  }
+
+  private async repairTransactions(
+    account: Account,
+    walletDb: WalletDB,
+    chain: Blockchain,
+  ): Promise<void> {
+    let unexpiredTransactions = 0
+
+    for await (const transactionValue of account.getTransactions()) {
+      const expirationSequence = transactionValue.transaction.expirationSequence()
+      const transactionHash = transactionValue.transaction.hash()
+
+      const isExpired =
+        !transactionValue.sequence &&
+        chain.verifier.isExpiredSequence(expirationSequence, chain.head.sequence)
+
+      const pendingTransactionHash = await walletDb.pendingTransactionHashes.get([
+        account.prefix,
+        [expirationSequence, transactionHash],
+      ])
+
+      if (isExpired && !pendingTransactionHash) {
+        unexpiredTransactions++
+
+        await account.expireTransaction(transactionValue.transaction)
+      }
+    }
+
+    this.log(`Repaired ${unexpiredTransactions} expired transactions stuck in unexpired state.`)
   }
 
   private async repairBalance(
@@ -105,13 +138,14 @@ export default class Repair extends IronfishCommand {
           ...decryptedNoteValue,
           spent: true,
         })
-      } else if (
-        !spent &&
-        !chain.verifier.isExpiredSequence(
-          transactionValue.transaction.expirationSequence(),
-          chain.head.sequence,
-        )
-      ) {
+      } else if (!spent) {
+        const isExpired =
+          !transactionValue.sequence &&
+          chain.verifier.isExpiredSequence(
+            transactionValue.transaction.expirationSequence(),
+            chain.head.sequence,
+          )
+
         if (decryptedNoteValue.spent) {
           await walletDb.saveDecryptedNote(account, decryptedNoteValue.hash, {
             ...decryptedNoteValue,
@@ -119,7 +153,9 @@ export default class Repair extends IronfishCommand {
           })
         }
 
-        unconfirmedBalance += decryptedNoteValue.note.value()
+        if (!isExpired) {
+          unconfirmedBalance += decryptedNoteValue.note.value()
+        }
       }
     }
 
