@@ -26,8 +26,9 @@ use std::{fmt, io, io::Read};
 pub const ENCRYPTED_NOTE_SIZE: usize = SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SIZE + GENERATOR_SIZE;
 //   8  value
 // + 32 randomness
+// + 32 asset generator
 // + 32 memo
-// = 72
+// = 100
 pub const SCALAR_SIZE: usize = 32;
 pub const MEMO_SIZE: usize = 32;
 pub const AMOUNT_VALUE_SIZE: usize = 8;
@@ -69,7 +70,7 @@ impl fmt::Display for Memo {
 #[derive(Clone)]
 pub struct Note {
     /// Asset generator the note is associated with
-    pub asset_generator: jubjub::SubgroupPoint,
+    pub(crate) asset_generator: jubjub::SubgroupPoint,
 
     /// A public address for the owner of the note. One owner can have multiple public addresses,
     /// each associated with a different diversifier.

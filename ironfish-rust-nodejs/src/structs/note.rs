@@ -10,12 +10,13 @@ use ironfish_rust::{Note, SaplingKey};
 use crate::to_napi_err;
 
 #[napi]
-pub const DECRYPTED_NOTE_LENGTH: u32 = 104;
+pub const DECRYPTED_NOTE_LENGTH: u32 = 136;
 //  32 randomness
 //+ 32 memo
 //+ 32 public address
+//+ 32 asset generator
 //+ 8  value
-//= 104 bytes
+//= 136 bytes
 
 #[napi(js_name = "Note")]
 pub struct NativeNote {
