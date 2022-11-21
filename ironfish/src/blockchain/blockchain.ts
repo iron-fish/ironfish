@@ -977,7 +977,6 @@ export class Blockchain {
         target,
         BigInt(0),
         timestamp,
-        minersFee.fee(),
         graffiti,
       )
 

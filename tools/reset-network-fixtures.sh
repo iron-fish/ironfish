@@ -9,19 +9,19 @@ cd "$(dirname "$0")"
     cd ../ironfish-cli
     yarn test
     cd ../ironfish
-    yarn test
+    yarn test --testTimeout=180000
 )
 
 (
     echo ""
     echo "Generating slow test fixtures"
     cd ../ironfish
-    yarn test:slow
+    yarn test:slow --testTimeout=180000
 )
 
 (
     echo ""
     echo "Generating perf test fixtures"
     cd ../ironfish
-    yarn test:perf
+    yarn test:perf --testTimeout=600000
 )
