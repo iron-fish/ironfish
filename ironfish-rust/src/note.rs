@@ -227,17 +227,22 @@ impl<'a> Note {
     /// actually read the contents.
     pub fn encrypt(&self, shared_secret: &[u8; 32]) -> [u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE] {
         let mut bytes_to_encrypt = [0; ENCRYPTED_NOTE_SIZE];
+
+        let mut index = 0;
+
         bytes_to_encrypt[..SCALAR_SIZE].clone_from_slice(self.randomness.to_repr().as_ref());
+        index += SCALAR_SIZE;
 
         LittleEndian::write_u64_into(
             &[self.value],
-            &mut bytes_to_encrypt[SCALAR_SIZE..(SCALAR_SIZE + AMOUNT_VALUE_SIZE)],
+            &mut bytes_to_encrypt[index..(index + AMOUNT_VALUE_SIZE)],
         );
-        bytes_to_encrypt
-            [(SCALAR_SIZE + AMOUNT_VALUE_SIZE)..(SCALAR_SIZE + AMOUNT_VALUE_SIZE + GENERATOR_SIZE)]
-            .copy_from_slice(&self.memo.0[..]);
-        bytes_to_encrypt[(SCALAR_SIZE + AMOUNT_VALUE_SIZE + GENERATOR_SIZE)..]
-            .copy_from_slice(&self.asset_generator.to_bytes());
+        index += AMOUNT_VALUE_SIZE;
+
+        bytes_to_encrypt[index..(index + GENERATOR_SIZE)].copy_from_slice(&self.memo.0[..]);
+        index += GENERATOR_SIZE;
+
+        bytes_to_encrypt[index..].copy_from_slice(&self.asset_generator.to_bytes());
         let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes);
 

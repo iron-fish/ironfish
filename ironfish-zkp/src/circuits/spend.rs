@@ -356,7 +356,7 @@ mod test {
 
         let tree_depth = 32;
 
-        for _ in 0..10 {
+        for _ in 0..5 {
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: jubjub::Fr::random(&mut rng),
@@ -531,7 +531,7 @@ mod test {
             "32959334601512756708397683646222389414681003290313255304927423560477040775488",
         ];
 
-        for i in 0..10 {
+        for i in 0..5 {
             let value_commitment = ValueCommitment {
                 value: i,
                 randomness: jubjub::Fr::from(1000 * (i + 1)),

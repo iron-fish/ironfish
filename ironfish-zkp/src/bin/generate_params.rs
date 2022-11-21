@@ -81,7 +81,6 @@ fn main() {
                 asset_authorization_key: None,
                 value_commitment: None,
                 public_key_randomness: None,
-                asset_generator: None,
             },
         );
     }

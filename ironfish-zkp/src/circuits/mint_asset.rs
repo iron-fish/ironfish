@@ -32,9 +32,6 @@ pub struct MintAsset {
     /// Used to add randomness to signature generation without leaking the
     /// key. Referred to as `ar` in the literature.
     pub public_key_randomness: Option<jubjub::Fr>,
-
-    /// Asset generator derived from the asset identifier
-    pub asset_generator: Option<jubjub::ExtendedPoint>,
 }
 
 impl Circuit<bls12_381::Scalar> for MintAsset {
@@ -81,8 +78,12 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         multipack::pack_into_inputs(cs.namespace(|| "pack identifier"), &asset_identifier)?;
 
         // Witness and expose the value commitment
-        let asset_generator =
-            ecc::EdwardsPoint::witness(cs.namespace(|| "asset_generator"), self.asset_generator)?;
+        let asset_generator = ecc::EdwardsPoint::witness(
+            cs.namespace(|| "asset_generator"),
+            self.value_commitment
+                .as_ref()
+                .map(|vc| vc.asset_generator.into()),
+        )?;
 
         expose_value_commitment(
             cs.namespace(|| "value commitment"),
@@ -185,7 +186,6 @@ mod test {
             asset_authorization_key: Some(asset_auth_key),
             value_commitment: Some(value_commitment),
             public_key_randomness: Some(public_key_randomness),
-            asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
         };
         circuit.synthesize(&mut cs).unwrap();
 
@@ -254,7 +254,6 @@ mod test {
             asset_authorization_key: Some(asset_auth_key),
             value_commitment: Some(value_commitment),
             public_key_randomness: Some(public_key_randomness),
-            asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
         };
         circuit.synthesize(&mut cs).unwrap();
 
