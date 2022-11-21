@@ -44,3 +44,6 @@ lerna-debug.log*
 bin/ironfish-cli/databases
 .dockerignore
 ironfish-cli/segfault.log
+
+# TODO(mat-if): Temporarily ignores fixtures, remove this before merging network-reset into staging
+*.fixture
