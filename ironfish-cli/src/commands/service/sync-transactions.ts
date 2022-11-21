@@ -3,7 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   ApiDepositUpload,
+  BenchUtils,
   GetTransactionStreamResponse,
+  IsAxiosError,
   Meter,
   TimeUtils,
   WebApi,
@@ -13,7 +15,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 const RAW_MAX_UPLOAD = Number(process.env.MAX_UPLOAD)
-const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 500 : RAW_MAX_UPLOAD
+const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 1000 : RAW_MAX_UPLOAD
 const NEAR_SYNC_THRESHOLD = 5
 
 export default class SyncTransactions extends IronfishCommand {
@@ -103,31 +105,64 @@ export default class SyncTransactions extends IronfishCommand {
     speed.start()
 
     const buffer = new Array<GetTransactionStreamResponse>()
+    let bufferTxCount = 0
 
-    async function commit(): Promise<void> {
+    const commit = async (): Promise<void> => {
+      const start = BenchUtils.start()
       const serialized = buffer.map(serializeDeposit)
+
+      try {
+        await api.uploadDeposits(serialized)
+      } catch (e) {
+        if (IsAxiosError(e)) {
+          if (e.response?.status === 503) {
+            this.log(`Error while uploading deposits: 503 - rate limited`)
+          } else {
+            this.log(
+              `Error while uploading deposits: ${String(e.response?.status)} - ${
+                e.response?.data ? JSON.stringify(e.response?.data, undefined, ' ') : 'unknown'
+              }`,
+            )
+          }
+
+          this.exit(1)
+        }
+
+        throw e
+      }
+
+      const end = BenchUtils.end(start)
+      const slow = end > 5000
+
+      if (slow) {
+        this.log(
+          `Uploading ${
+            buffer.length
+          } blocks and ${bufferTxCount} tx took ${TimeUtils.renderSpan(end)}`,
+        )
+      }
+
       buffer.length = 0
-      await api.uploadDeposits(serialized)
+      bufferTxCount = 0
     }
 
     for await (const content of response.contentStream()) {
       buffer.push(content)
       speed.add(content.block.sequence - lastCountedSequence)
       lastCountedSequence = content.block.sequence
+      bufferTxCount += content.transactions.length
 
       // We're almost done syncing if we are within NEAR_SYNC_THRESHOLD sequence to the HEAD
       const finishing =
         Math.abs(content.head.sequence - content.block.sequence) < NEAR_SYNC_THRESHOLD
 
       // Should we commit the current batch?
-      let txLength = 0
-      for (const block of buffer) {
-        txLength += block.transactions.length
-      }
-      const committing = txLength >= MAX_UPLOAD || finishing
+      const committing = bufferTxCount >= MAX_UPLOAD || finishing
 
       this.log(
-        `${content.type}: ${content.block.hash} - ${content.block.sequence}${
+        `${content.type}: ${content.block.hash} - ${
+          content.block.sequence
+        } - ${bufferTxCount} tx${
           committing
             ? ' - ' +
               TimeUtils.renderEstimate(
