@@ -18,7 +18,8 @@ use crate::{constants::proof::PUBLIC_KEY_GENERATOR, ValueCommitment};
 use super::util::expose_value_commitment;
 use bellman::gadgets::boolean;
 
-/// This is an output circuit instance.
+/// This is a circuit instance inspired from ZCash's `Output` circuit in the Sapling protocol
+/// https://github.com/zcash/librustzcash/blob/main/zcash_proofs/src/circuit/sapling.rs#L57-L70
 pub struct Output {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,

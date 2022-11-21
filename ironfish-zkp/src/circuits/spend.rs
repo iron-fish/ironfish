@@ -25,7 +25,8 @@ use zcash_proofs::{
     },
 };
 
-/// This is an instance of the `Spend` circuit.
+/// This is a circuit instance inspired from ZCash's `Spend` circuit in the Sapling protocol
+/// https://github.com/zcash/librustzcash/blob/main/zcash_proofs/src/circuit/sapling.rs#L31-L55
 pub struct Spend {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
