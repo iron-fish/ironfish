@@ -44,12 +44,16 @@ export default class Backup extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'S3 access key ID',
+      env: 'AWS_ACCESS_KEY_ID',
+      dependsOn: ['secretAccessKey'],
     }),
     secretAccessKey: Flags.string({
       char: 's',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'S3 secret access key',
+      env: 'AWS_SECRET_ACCESS_KEY',
+      dependsOn: ['accessKeyId'],
     }),
   }
 
@@ -65,12 +69,8 @@ export default class Backup extends IronfishCommand {
     const { flags, args } = await this.parse(Backup)
     const bucket = (args.bucket as string).trim()
 
-    const accessKeyId = (flags.accessKeyId || process.env.AWS_ACCESS_KEY_ID || '').trim()
-    const secretAccessKey = (
-      flags.secretAccessKey ||
-      process.env.AWS_SECRET_ACCESS_KEY ||
-      ''
-    ).trim()
+    const accessKeyId = flags.accessKeyId
+    const secretAccessKey = flags.secretAccessKey
     const region = 'us-east-1'
 
     let id = uuid().slice(0, 5)
@@ -113,13 +113,19 @@ export default class Backup extends IronfishCommand {
 
     CliUx.ux.action.start(`Uploading to ${bucket}`)
 
-    const s3 = new S3Client({
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
-      region,
-    })
+    let s3Params = {}
+
+    if (accessKeyId && secretAccessKey) {
+      s3Params = {
+        credentials: {
+          accessKeyId,
+          secretAccessKey,
+        },
+        region,
+      }
+    }
+
+    const s3 = new S3Client(s3Params)
 
     await S3Utils.uploadToBucket(
       s3,
