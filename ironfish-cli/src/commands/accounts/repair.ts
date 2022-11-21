@@ -42,14 +42,14 @@ export default class Repair extends IronfishCommand {
 
     this.log(`Repairing wallet for account ${account.name}`)
 
+    this.log('Repairing nullifierToNote')
+    await this.repairNullifierToNoteHash(account, node.wallet.walletDb)
+
     this.log('Repairing expired transactions')
     await this.repairTransactions(account, node.wallet.walletDb, node.chain)
 
     this.log('Repairing balance')
     await this.repairBalance(account, node.wallet.walletDb, node.chain)
-
-    this.log('Repairing nullifierToNote')
-    await this.repairNullifierToNoteHash(account, node.wallet.walletDb)
 
     this.log('Repairing sequenceToNoteHash')
     await this.repairSequenceToNoteHash(account, node.wallet.walletDb)
@@ -99,7 +99,9 @@ export default class Repair extends IronfishCommand {
       }
     }
 
-    this.log(`Repaired ${unexpiredTransactions} expired transactions stuck in unexpired state.`)
+    this.log(
+      `\tRepaired ${unexpiredTransactions} expired transactions stuck in unexpired state.`,
+    )
   }
 
   private async repairBalance(
