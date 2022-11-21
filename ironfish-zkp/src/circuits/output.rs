@@ -4,7 +4,6 @@ use group::Curve;
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 
 use jubjub::SubgroupPoint;
-use zcash_primitives::sapling::ValueCommitment;
 
 use zcash_proofs::{
     circuit::{
@@ -14,7 +13,7 @@ use zcash_proofs::{
     constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
-use crate::constants::proof::PUBLIC_KEY_GENERATOR;
+use crate::{constants::proof::PUBLIC_KEY_GENERATOR, ValueCommitment};
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::boolean;
@@ -153,12 +152,13 @@ mod test {
     use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
     use zcash_primitives::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
-    use zcash_primitives::sapling::{Note, ValueCommitment};
+    use zcash_primitives::sapling::Note;
     use zcash_primitives::sapling::{ProofGenerationKey, Rseed};
 
-    use crate::circuits::output::Output;
-
-    use crate::{constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point};
+    use crate::{
+        circuits::output::Output, constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point,
+        ValueCommitment,
+    };
 
     #[test]
     fn test_output_circuit_with_bls12_381() {
@@ -171,6 +171,7 @@ mod test {
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: jubjub::Fr::random(&mut rng),
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
             };
 
             let nsk = jubjub::Fr::random(&mut rng);
@@ -213,9 +214,13 @@ mod test {
                 })
                 .expect("should be valid");
 
-                let expected_cmu = jubjub::ExtendedPoint::from(commitment_full_point(note))
-                    .to_affine()
-                    .get_u();
+                let commitment = commitment_full_point(
+                    value_commitment.asset_generator,
+                    value_commitment.value,
+                    payment_address,
+                    note.rcm(),
+                );
+                let expected_cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
 
                 let expected_value_commitment =
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();

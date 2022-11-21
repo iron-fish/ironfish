@@ -40,6 +40,7 @@ pub mod burns;
 pub mod mints;
 pub mod outputs;
 pub mod spending;
+
 #[cfg(test)]
 mod tests;
 mod value_balances;

@@ -3,30 +3,29 @@ use std::io::Write;
 use byteorder::{LittleEndian, WriteBytesExt};
 use group::GroupEncoding;
 use zcash_primitives::{
-    constants::{NOTE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR},
-    sapling::{
-        pedersen_hash::{pedersen_hash, Personalization},
-        Note,
-    },
+    constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
+    sapling::pedersen_hash::{pedersen_hash, Personalization},
 };
 
 /// Computes the note commitment, returning the full point.
-pub fn commitment_full_point(note: Note) -> jubjub::SubgroupPoint {
+pub fn commitment_full_point(
+    asset_generator: jubjub::SubgroupPoint,
+    value: u64,
+    pk_d: jubjub::SubgroupPoint,
+    rcm: jubjub::Fr,
+) -> jubjub::SubgroupPoint {
     // Calculate the note contents, as bytes
     let mut note_contents = vec![];
 
-    // TODO(mgeist,rohanjadvani): Fetch from asset
     note_contents
-        .write_all(&VALUE_COMMITMENT_RANDOMNESS_GENERATOR.to_bytes())
+        .write_all(&asset_generator.to_bytes())
         .unwrap();
 
     // Writing the value in little endian
-    (note_contents)
-        .write_u64::<LittleEndian>(note.value)
-        .unwrap();
+    (note_contents).write_u64::<LittleEndian>(value).unwrap();
 
     // Write pk_d
-    note_contents.extend_from_slice(&note.pk_d.to_bytes());
+    note_contents.extend_from_slice(&pk_d.to_bytes());
 
     assert_eq!(
         note_contents.len(),
@@ -44,5 +43,5 @@ pub fn commitment_full_point(note: Note) -> jubjub::SubgroupPoint {
     );
 
     // Compute final commitment
-    (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * note.rcm()) + hash_of_contents
+    (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * rcm) + hash_of_contents
 }

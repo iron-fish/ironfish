@@ -18,9 +18,12 @@ use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
-use ironfish_zkp::proofs::Spend;
-use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub::Signature};
-use ironfish_zkp::{redjubjub, Nullifier, ValueCommitment};
+use ironfish_zkp::{
+    constants::SPENDING_KEY_GENERATOR,
+    proofs::Spend,
+    redjubjub::{self, Signature},
+    Nullifier, ValueCommitment,
+};
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 use std::io;
@@ -60,6 +63,7 @@ impl SpendBuilder {
         let value_commitment = ValueCommitment {
             value: note.value,
             randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator: note.asset_generator(),
         };
 
         SpendBuilder {
@@ -103,7 +107,7 @@ impl SpendBuilder {
             commitment_randomness: Some(self.note.randomness),
             anchor: Some(self.root_hash),
             ar: Some(public_key_randomness),
-            asset_generator: Some(self.note.asset_generator()),
+            asset_generator: Some(self.note.asset_generator().into()),
         };
 
         // Proof that the spend was valid and successful for the provided owner

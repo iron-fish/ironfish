@@ -2,12 +2,12 @@ use bellman::{
     gadgets::{boolean, multipack},
     Circuit,
 };
-use zcash_primitives::sapling::ValueCommitment;
 use zcash_proofs::circuit::{ecc, pedersen_hash};
 
 use crate::{
     circuits::util::{asset_info_preimage, expose_randomized_public_key, expose_value_commitment},
     constants::{proof::ASSET_KEY_GENERATOR, ASSET_IDENTIFIER_PERSONALIZATION},
+    ValueCommitment,
 };
 
 pub struct MintAsset {
@@ -115,10 +115,13 @@ mod test {
     use rand::{rngs::StdRng, SeedableRng};
     use zcash_primitives::{
         constants::VALUE_COMMITMENT_VALUE_GENERATOR,
-        sapling::{pedersen_hash, redjubjub, ValueCommitment},
+        sapling::{pedersen_hash, redjubjub},
     };
 
-    use crate::constants::{ASSET_IDENTIFIER_PERSONALIZATION, ASSET_KEY_GENERATOR};
+    use crate::{
+        constants::{ASSET_IDENTIFIER_PERSONALIZATION, ASSET_KEY_GENERATOR},
+        ValueCommitment,
+    };
 
     use super::MintAsset;
 
@@ -155,6 +158,7 @@ mod test {
         let value_commitment = ValueCommitment {
             value: 5,
             randomness: jubjub::Fr::random(&mut rng),
+            asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
         };
 
         let value_commitment_point = ExtendedPoint::from(value_commitment.commitment()).to_affine();
@@ -223,6 +227,7 @@ mod test {
         let value_commitment = ValueCommitment {
             value: 5,
             randomness: jubjub::Fr::random(&mut rng),
+            asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
         };
 
         let value_commitment_point = ExtendedPoint::from(value_commitment.commitment()).to_affine();

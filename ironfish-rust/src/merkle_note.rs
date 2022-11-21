@@ -309,6 +309,7 @@ mod test {
         let value_commitment = ValueCommitment {
             value: note.value,
             randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator: note.asset_generator(),
         };
 
         let merkle_note =
@@ -331,6 +332,7 @@ mod test {
         let value_commitment = ValueCommitment {
             value: note.value,
             randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator: note.asset_generator(),
         };
 
         let merkle_note =
@@ -352,6 +354,7 @@ mod test {
         let value_commitment = ValueCommitment {
             value: note.value,
             randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator: note.asset_generator(),
         };
 
         let merkle_note =
@@ -373,6 +376,7 @@ mod test {
         let value_commitment = ValueCommitment {
             value: note.value,
             randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator: note.asset_generator(),
         };
 
         let mut merkle_note =

@@ -16,8 +16,10 @@ use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::{
         NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION,
+        VALUE_COMMITMENT_VALUE_GENERATOR,
     },
     pedersen_hash::{pedersen_hash, Personalization},
+    util::commitment_full_point,
     Nullifier,
 };
 use jubjub::SubgroupPoint;
@@ -69,7 +71,7 @@ impl fmt::Display for Memo {
 #[derive(Clone)]
 pub struct Note {
     /// Asset generator the note is associated with
-    pub asset_generator: jubjub::ExtendedPoint,
+    pub asset_generator: jubjub::SubgroupPoint,
 
     /// A public address for the owner of the note. One owner can have multiple public addresses,
     /// each associated with a different diversifier.
@@ -94,11 +96,7 @@ pub struct Note {
 impl<'a> Note {
     /// Construct a new Note.
     pub fn new(owner: PublicAddress, value: u64, memo: impl Into<Memo>) -> Self {
-        let asset_generator = jubjub::ExtendedPoint::from_bytes(&[
-            215, 200, 103, 6, 245, 129, 122, 167, 24, 205, 28, 250, 208, 50, 51, 188, 214, 74, 119,
-            137, 253, 148, 34, 211, 177, 122, 246, 130, 58, 126, 106, 198,
-        ])
-        .unwrap();
+        let asset_generator = VALUE_COMMITMENT_VALUE_GENERATOR;
         let randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
 
         Self {
@@ -121,7 +119,7 @@ impl<'a> Note {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;
 
-            Option::from(jubjub::ExtendedPoint::from_bytes(&bytes))
+            Option::from(jubjub::SubgroupPoint::from_bytes(&bytes))
                 .ok_or(IronfishError::InvalidData)?
         };
 
@@ -222,7 +220,7 @@ impl<'a> Note {
         self.owner
     }
 
-    pub fn asset_generator(&self) -> jubjub::ExtendedPoint {
+    pub fn asset_generator(&self) -> jubjub::SubgroupPoint {
         self.asset_generator
     }
 
@@ -250,33 +248,12 @@ impl<'a> Note {
 
     /// Computes the note commitment, returning the full point.
     fn commitment_full_point(&self) -> jubjub::SubgroupPoint {
-        // Calculate the note contents, as bytes
-        let mut note_contents = vec![];
-
-        // Writing the value in little endian
-        (note_contents)
-            .write_u64::<LittleEndian>(self.value)
-            .unwrap();
-
-        // Write pk_d
-        note_contents.extend_from_slice(&self.owner.transmission_key.to_bytes());
-
-        assert_eq!(
-            note_contents.len(),
-            PUBLIC_ADDRESS_SIZE // pk_g
-            + 8 // value
-        );
-
-        // Compute the Pedersen hash of the note contents
-        let hash_of_contents = pedersen_hash(
-            Personalization::NoteCommitment,
-            note_contents
-                .into_iter()
-                .flat_map(|byte| (0..8).map(move |i| ((byte >> i) & 1) == 1)),
-        );
-
-        // Compute final commitment
-        (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness) + hash_of_contents
+        commitment_full_point(
+            self.asset_generator,
+            self.value,
+            self.owner.transmission_key,
+            self.randomness,
+        )
     }
 
     /// Compute the nullifier for this note, given the private key of its owner.
@@ -335,7 +312,7 @@ impl<'a> Note {
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<(jubjub::Fr, jubjub::ExtendedPoint, u64, Memo), IronfishError> {
+    ) -> Result<(jubjub::Fr, jubjub::SubgroupPoint, u64, Memo), IronfishError> {
         let mut plaintext_bytes = [0; ENCRYPTED_NOTE_SIZE];
         aead::decrypt(shared_secret, encrypted_bytes, &mut plaintext_bytes)?;
 
@@ -351,7 +328,7 @@ impl<'a> Note {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;
 
-            Option::from(jubjub::ExtendedPoint::from_bytes(&bytes))
+            Option::from(jubjub::SubgroupPoint::from_bytes(&bytes))
                 .ok_or(IronfishError::InvalidData)?
         };
 

@@ -5,13 +5,12 @@ use bellman::{
     ConstraintSystem, SynthesisError,
 };
 use ff::PrimeField;
-use zcash_primitives::sapling::ValueCommitment;
 use zcash_proofs::{
     circuit::ecc::{self, EdwardsPoint},
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
-use crate::constants::proof::ASSET_KEY_GENERATOR;
+use crate::{constants::proof::ASSET_KEY_GENERATOR, ValueCommitment};
 
 #[allow(clippy::too_many_arguments)]
 pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(

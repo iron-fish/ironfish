@@ -40,6 +40,7 @@ impl MintBuilder {
         let value_commitment = ValueCommitment {
             value,
             randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator: asset_generator_point(asset.identifier()).unwrap(),
         };
 
         Self {

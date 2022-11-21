@@ -2,7 +2,7 @@ use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use ff::PrimeField;
 use jubjub::SubgroupPoint;
 
-use crate::constants::proof::PUBLIC_KEY_GENERATOR;
+use crate::{constants::proof::PUBLIC_KEY_GENERATOR, ValueCommitment};
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::blake2s;
@@ -11,9 +11,8 @@ use bellman::gadgets::multipack;
 use bellman::gadgets::num;
 use bellman::gadgets::Assignment;
 use zcash_primitives::{
-    constants::CRH_IVK_PERSONALIZATION,
-    constants::PRF_NF_PERSONALIZATION,
-    sapling::{ProofGenerationKey, ValueCommitment},
+    constants::CRH_IVK_PERSONALIZATION, constants::PRF_NF_PERSONALIZATION,
+    sapling::ProofGenerationKey,
 };
 use zcash_proofs::{
     circuit::{
@@ -339,11 +338,12 @@ mod test {
     };
     use zcash_primitives::{
         constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
-        sapling::{Nullifier, ValueCommitment},
+        sapling::Nullifier,
     };
 
     use crate::{
         circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point,
+        ValueCommitment,
     };
 
     #[test]
@@ -359,6 +359,7 @@ mod test {
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: jubjub::Fr::random(&mut rng),
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
             };
 
             let proof_generation_key = ProofGenerationKey {
@@ -390,9 +391,13 @@ mod test {
                 };
 
                 let mut position = 0u64;
-                let cmu = jubjub::ExtendedPoint::from(commitment_full_point(note.clone()))
-                    .to_affine()
-                    .get_u();
+                let commitment = commitment_full_point(
+                    value_commitment.asset_generator,
+                    value_commitment.value,
+                    payment_address,
+                    note.rcm(),
+                );
+                let cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
 
                 let mut cur = cmu;
 
@@ -428,8 +433,7 @@ mod test {
                     }
                 }
 
-                let rho = commitment_full_point(note)
-                    + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+                let rho = commitment + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
 
                 // Compute nf = BLAKE2s(nk | rho)
                 let expected_nf = Nullifier::from_slice(
@@ -464,10 +468,10 @@ mod test {
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 95043);
+                assert_eq!(cs.num_constraints(), 96888);
                 assert_eq!(
                     cs.hash(),
-                    "6dff1cb1cb932a2cd9a60e3f29baaa149fff549cf5a62982488fb6aabf374c78"
+                    "e12f68469696e28c532522c803db66d7fcaa4b694c98df7ba1fbb5a897ffebfa"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
@@ -530,6 +534,7 @@ mod test {
             let value_commitment = ValueCommitment {
                 value: i,
                 randomness: jubjub::Fr::from(1000 * (i + 1)),
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
             };
 
             let proof_generation_key = ProofGenerationKey {
@@ -572,9 +577,13 @@ mod test {
 
                 let mut position = 0u64;
 
-                let cmu = jubjub::ExtendedPoint::from(commitment_full_point(note.clone()))
-                    .to_affine()
-                    .get_u();
+                let commitment = commitment_full_point(
+                    value_commitment.asset_generator,
+                    value_commitment.value,
+                    payment_address,
+                    note.rcm(),
+                );
+                let cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
 
                 let mut cur = cmu;
 
@@ -610,8 +619,7 @@ mod test {
                     }
                 }
 
-                let rho = commitment_full_point(note)
-                    + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+                let rho = commitment + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
 
                 // Compute nf = BLAKE2s(nk | rho)
                 let expected_nf = Nullifier::from_slice(
