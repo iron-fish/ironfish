@@ -2,19 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
-  ApiMaspUpload,
-  GetTransactionStreamResponse,
-  Meter,
-  TimeUtils,
+  // ApiMaspUpload,
+  // GetTransactionStreamResponse,
+  MaspTransactionTypes,
+  // Meter,
+  PromiseUtils,
+  // TimeUtils,
   WebApi,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
+import { v4 as uuid } from 'uuid'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-const RAW_MAX_UPLOAD = Number(process.env.MAX_UPLOAD)
-const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 500 : RAW_MAX_UPLOAD
-const NEAR_SYNC_THRESHOLD = 5
+// const RAW_MAX_UPLOAD = Number(process.env.MAX_UPLOAD)
+// const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 500 : RAW_MAX_UPLOAD
+// const NEAR_SYNC_THRESHOLD = 5
 
 export default class SyncMaspTransactions extends IronfishCommand {
   static aliases = ['service:syncMaspTransactions']
@@ -75,85 +78,112 @@ export default class SyncMaspTransactions extends IronfishCommand {
     this.log('Watching with view key: ', flags.viewKey)
     this.log('Connecting to node...')
 
-    const client = await this.sdk.connectRpc()
-
     const api = new WebApi({ host: apiHost, token: apiToken })
 
-    let head = args.head as string | null
-    if (!head) {
-      this.log(`Fetching head from ${apiHost}`)
-      head = await api.headMaspTransactions()
-      this.log(`Starting from ${head || 'Genesis Block'}`)
+    // const client = await this.sdk.connectRpc()
+    // let head = args.head as string | null
+    // if (!head) {
+    //   this.log(`Fetching head from ${apiHost}`)
+    //   head = await api.headMaspTransactions()
+    //   this.log(`Starting from ${head || 'Genesis Block'}`)
+    // }
+
+    // let lastCountedSequence = 0
+
+    // if (head) {
+    //   this.log(`Starting from head ${head}`)
+    //   const blockInfo = await client.getBlockInfo({ hash: head })
+    //   lastCountedSequence = blockInfo.content.block.sequence
+    // }
+
+    // const response = this.sdk.client.getTransactionStream({
+    //   incomingViewKey: flags.viewKey,
+    //   head: head,
+    // })
+
+    // const speed = new Meter()
+    // speed.start()
+
+    const sendRandom = async () => {
+      const headHash = (await api.headMaspTransactions()) || ''
+
+      const choices: MaspTransactionTypes[] = ['MASP_MINT', 'MASP_BURN', 'MASP_TRANSFER']
+      const choice = choices[Math.floor(Math.random() * choices.length)]
+      await api.uploadMaspTransactions([
+        {
+          type: 'connected',
+          block: {
+            hash: uuid(),
+            previousBlockHash: headHash,
+            timestamp: new Date().getTime(),
+            sequence: 1,
+          },
+          transactions: [
+            {
+              hash: uuid(),
+              type: choice,
+              assetName: 'jowparks',
+            },
+          ],
+        },
+      ])
     }
-
-    let lastCountedSequence = 0
-
-    if (head) {
-      this.log(`Starting from head ${head}`)
-      const blockInfo = await client.getBlockInfo({ hash: head })
-      lastCountedSequence = blockInfo.content.block.sequence
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      await sendRandom()
+      await PromiseUtils.sleep(60000)
     }
+    // const buffer = new Array<GetTransactionStreamResponse>()
 
-    const response = this.sdk.client.getTransactionStream({
-      incomingViewKey: flags.viewKey,
-      head: head,
-    })
+    // async function commit(): Promise<void> {
+    //   const serialized = buffer.map(serializeMasp)
+    //   buffer.length = 0
+    //   await api.uploadMaspTransactions(serialized)
+    // }
+    // for await (const content of response.contentStream()) {
+    //   buffer.push(content)
+    //   speed.add(content.block.sequence - lastCountedSequence)
+    //   lastCountedSequence = content.block.sequence
 
-    const speed = new Meter()
-    speed.start()
+    //   // We're almost done syncing if we are within NEAR_SYNC_THRESHOLD sequence to the HEAD
+    //   const finishing =
+    //     Math.abs(content.head.sequence - content.block.sequence) < NEAR_SYNC_THRESHOLD
 
-    const buffer = new Array<GetTransactionStreamResponse>()
+    //   // Should we commit the current batch?
+    //   let txLength = 0
+    //   for (const block of buffer) {
+    //     txLength += block.transactions.length
+    //   }
+    //   const committing = txLength >= MAX_UPLOAD || finishing
 
-    async function commit(): Promise<void> {
-      const serialized = buffer.map(serializeMasp)
-      buffer.length = 0
-      await api.uploadMaspTransactions(serialized)
-    }
+    //   this.log(
+    //     `${content.type}: ${content.block.hash} - ${content.block.sequence}${
+    //       committing
+    //         ? ' - ' +
+    //           TimeUtils.renderEstimate(
+    //             content.block.sequence,
+    //             content.head.sequence,
+    //             speed.rate5m,
+    //           )
+    //         : ''
+    //     }`,
+    //   )
 
-    for await (const content of response.contentStream()) {
-      buffer.push(content)
-      speed.add(content.block.sequence - lastCountedSequence)
-      lastCountedSequence = content.block.sequence
-
-      // We're almost done syncing if we are within NEAR_SYNC_THRESHOLD sequence to the HEAD
-      const finishing =
-        Math.abs(content.head.sequence - content.block.sequence) < NEAR_SYNC_THRESHOLD
-
-      // Should we commit the current batch?
-      let txLength = 0
-      for (const block of buffer) {
-        txLength += block.transactions.length
-      }
-      const committing = txLength >= MAX_UPLOAD || finishing
-
-      this.log(
-        `${content.type}: ${content.block.hash} - ${content.block.sequence}${
-          committing
-            ? ' - ' +
-              TimeUtils.renderEstimate(
-                content.block.sequence,
-                content.head.sequence,
-                speed.rate5m,
-              )
-            : ''
-        }`,
-      )
-
-      if (committing) {
-        await commit()
-      }
-    }
+    //   if (committing) {
+    //     await commit()
+    //   }
+    // }
   }
 }
 
-function serializeMasp(data: GetTransactionStreamResponse): ApiMaspUpload {
-  return {
-    ...data,
-    transactions: data.transactions.map((tx) => ({
-      ...tx,
-      hash: tx.hash,
-      type: 'MASP_TRANSFER',
-      assetName: 'STUBBED',
-    })),
-  }
-}
+// function serializeMasp(data: GetTransactionStreamResponse): ApiMaspUpload {
+//   return {
+//     ...data,
+//     transactions: data.transactions.map((tx) => ({
+//       ...tx,
+//       hash: tx.hash,
+//       type: 'MASP_TRANSFER',
+//       assetName: 'STUBBED',
+//     })),
+//   }
+// }

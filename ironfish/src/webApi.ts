@@ -31,16 +31,19 @@ export type ApiDepositUpload = {
   }[]
 }
 
+export type MaspTransactionTypes = 'MASP_TRANSFER' | 'MASP_BURN' | 'MASP_MINT'
+
 export type ApiMaspUpload = {
   type: 'connected' | 'disconnected' | 'fork'
   block: {
     hash: string
+    previousBlockHash: string
     timestamp: number
     sequence: number
   }
   transactions: {
     hash: string
-    type: 'MASP_TRANSFER' | 'MASP_BURN' | 'MASP_MINT'
+    type: MaspTransactionTypes
     assetName: string
   }[]
 }
