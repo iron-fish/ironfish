@@ -6,6 +6,7 @@ import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { getTransactionSize } from '../network/utils/serializers'
+import { getBlockSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
 import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
@@ -41,8 +42,6 @@ export class FeeEstimator {
   private readonly logger: Logger
   private maxBlockHistory = 10
   private defaultFeeRate = BigInt(1)
-  private latestBlockSize: number
-  private latestBlockHash: Buffer | null = null
 
   constructor(options: {
     wallet: Wallet
@@ -56,7 +55,6 @@ export class FeeEstimator {
     this.queues = { low: [], medium: [], high: [], blockSize: [] }
     this.percentiles = options.percentiles ?? DEFAULT_PRIORITY_LEVEL_PERCENTILES
     this.wallet = options.wallet
-    this.latestBlockSize = this.wallet.chain.consensus.MAX_BLOCK_SIZE_BYTES / 2
   }
 
   async init(chain: Blockchain): Promise<void> {
@@ -65,7 +63,6 @@ export class FeeEstimator {
     }
 
     let currentBlockHash = chain.latest.hash
-    this.latestBlockHash = currentBlockHash
 
     for (let i = 0; i < this.maxBlockHistory; i++) {
       const currentBlock = await chain.getBlock(currentBlockHash)
@@ -86,10 +83,7 @@ export class FeeEstimator {
 
       // construct block size cache
       if (!this.isFull(this.queues[BLOCK_SIZE].length)) {
-        const blockSize = currentBlock.transactions.reduce(
-          (a, t) => a + t.serialize().length,
-          0,
-        )
+        const blockSize = getBlockSize(currentBlock)
         this.queues[BLOCK_SIZE].push({ blockSize, blockHash: currentBlock.header.hash })
       }
 
@@ -121,7 +115,7 @@ export class FeeEstimator {
       }
     }
 
-    const blockSize = block.transactions.reduce((a, t) => a + t.serialize().length, 0)
+    const blockSize = getBlockSize(block)
 
     const queue = this.queues[BLOCK_SIZE]
     if (this.isFull(queue.length)) {

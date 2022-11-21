@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
+import { getBlockSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
 import {
   createNodeTest,
@@ -17,7 +18,7 @@ function getEstimateFeeRate(
   transaction: Transaction,
   maxBlockSize: number,
 ): bigint {
-  const blockSize = block.transactions.reduce((a, t) => a + t.serialize().length, 0)
+  const blockSize = getBlockSize(block)
   const blockSizeRatio = BigInt(Math.round((blockSize / maxBlockSize) * 100))
   let feeRate = getFeeRate(transaction)
   feeRate = (feeRate * blockSizeRatio) / 100n
