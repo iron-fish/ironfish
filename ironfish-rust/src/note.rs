@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array};
+use crate::{errors::IronfishError, util::str_to_array};
 
 use super::{
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
@@ -15,10 +15,8 @@ use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::{
-        NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION,
-        VALUE_COMMITMENT_VALUE_GENERATOR,
+        NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR,
     },
-    pedersen_hash::{pedersen_hash, Personalization},
     util::commitment_full_point,
     Nullifier,
 };
