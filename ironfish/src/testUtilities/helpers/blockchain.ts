@@ -38,7 +38,6 @@ export async function makeBlockAfter(
     target,
     randomness,
     timestamp,
-    miningReward,
     graffiti,
     BigInt(1),
   )

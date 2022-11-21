@@ -25,7 +25,6 @@ export type SerializedBlockTemplate = {
     target: string
     randomness: string
     timestamp: number
-    minersFee: string
     graffiti: string
   }
   transactions: string[]
@@ -51,7 +50,6 @@ export class BlockTemplateSerde {
       target: BigIntUtils.toBytesBE(block.header.target.asBigInt(), 32).toString('hex'),
       randomness: BigIntUtils.toBytesBE(block.header.randomness, 8).toString('hex'),
       timestamp: block.header.timestamp.getTime(),
-      minersFee: BigIntUtils.toBytesBE(block.header.minersFee, 8).toString('hex'),
       graffiti: block.header.graffiti.toString('hex'),
     }
     const previousBlockInfo = {
@@ -87,7 +85,6 @@ export class BlockTemplateSerde {
       new Target(Buffer.from(blockTemplate.header.target, 'hex')),
       BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.randomness, 'hex')),
       new Date(blockTemplate.header.timestamp),
-      BigInt(-1) * BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.minersFee, 'hex')),
       Buffer.from(blockTemplate.header.graffiti, 'hex'),
     )
 

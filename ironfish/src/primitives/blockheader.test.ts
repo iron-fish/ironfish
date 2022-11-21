@@ -18,7 +18,6 @@ describe('BlockHeaderSerde', () => {
       new Target(17),
       BigInt(25),
       new Date(1598467858637),
-      BigInt(0),
       Buffer.alloc(32),
     )
 
@@ -30,7 +29,6 @@ describe('BlockHeaderSerde', () => {
       new Target(17),
       BigInt(25),
       new Date(1598467858637),
-      BigInt(0),
       Buffer.alloc(32),
     )
 
@@ -100,7 +98,6 @@ describe('BlockHeaderSerde', () => {
       new Target(17),
       BigInt(25),
       new Date(1598467858637),
-      BigInt(-1),
       GraffitiUtils.fromString('test'),
     )
 
@@ -118,7 +115,6 @@ describe('BlockHeaderSerde', () => {
       new Target(0),
       BigInt(0),
       new Date(0),
-      BigInt(0),
       Buffer.alloc(32),
     )
 
@@ -146,7 +142,6 @@ describe('BlockHeaderSerde', () => {
       new Target(1),
       BigInt(0),
       new Date(0),
-      BigInt(0),
       Buffer.alloc(32),
     )
 

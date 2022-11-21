@@ -42,7 +42,6 @@ describe('GetCompactBlockResponse', () => {
         new Target(12),
         BigInt(1),
         new Date(200000),
-        BigInt(0),
         Buffer.alloc(32, 'graffiti1', 'utf8'),
       ),
       transactions: [
