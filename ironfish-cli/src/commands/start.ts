@@ -98,9 +98,8 @@ export default class Start extends IronfishCommand {
     // TODO: Update description with a list of network IDs for mainet and official testnets.
     networkId: Flags.integer({
       char: 'i',
-      default: 1,
-      description:
-        'Network ID of an existing, official Iron Fish network to connect to. Ignored if networkDefinition flag specified.',
+      default: undefined,
+      description: 'Network ID of an official Iron Fish network to connect to',
     }),
     customNetwork: Flags.string({
       char: 'c',
@@ -174,7 +173,9 @@ export default class Start extends IronfishCommand {
     }
 
     if (networkId !== undefined && customNetwork !== undefined) {
-      // throw error
+      throw new Error(
+        'Cannot specify both the networkId and customNetwork flags at the same time',
+      )
     }
     if (networkId !== undefined && networkId !== this.sdk.config.get('networkId')) {
       this.sdk.config.setOverride('networkId', networkId)

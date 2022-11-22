@@ -245,7 +245,7 @@ export type ConfigOptions = {
   feeEstimatorPercentileHigh: number
 
   /**
-   * Network ID of an existing, official Iron Fish network
+   * Network ID of an official Iron Fish network
    */
   networkId: number
 

@@ -237,7 +237,7 @@ export class IronfishNode {
     metrics = metrics || new MetricsMonitor({ logger })
 
     let networkDefinitionJSON = ''
-    // Try fetching custom network definition first
+    // Try fetching custom network definition first, if it exists
     if (config.get('customNetwork') !== '') {
       networkDefinitionJSON = await files.readFile(files.resolve(config.get('customNetwork')))
     } else if (config.get('networkId') === 0) {
