@@ -1,8 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { CognitoIdentity } from '@aws-sdk/client-cognito-identity'
 import { S3Client } from '@aws-sdk/client-s3'
-import { FileUtils, NodeUtils } from '@ironfish/sdk'
+import { Credentials } from '@aws-sdk/types/dist-types/credentials'
+import { Assert, FileUtils, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import os from 'os'
@@ -71,7 +73,6 @@ export default class Backup extends IronfishCommand {
 
     const accessKeyId = flags.accessKeyId
     const secretAccessKey = flags.secretAccessKey
-    const region = 'us-east-1'
 
     let id = uuid().slice(0, 5)
     const name = this.sdk.config.get('nodeName')
@@ -113,19 +114,7 @@ export default class Backup extends IronfishCommand {
 
     CliUx.ux.action.start(`Uploading to ${bucket}`)
 
-    let s3Params = {}
-
-    if (accessKeyId && secretAccessKey) {
-      s3Params = {
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-        },
-        region,
-      }
-    }
-
-    const s3 = new S3Client(s3Params)
+    const s3 = await this.getS3Client(accessKeyId, secretAccessKey)
 
     await S3Utils.uploadToBucket(
       s3,
@@ -140,5 +129,54 @@ export default class Backup extends IronfishCommand {
     CliUx.ux.action.start(`Removing backup dir ${destDir}`)
     await fsAsync.rm(destDir, { recursive: true })
     CliUx.ux.action.stop(`done`)
+  }
+
+  private async getS3Client(accessKeyId?: string, secretAccessKey?: string): Promise<S3Client> {
+    const region = 'us-east-1'
+
+    if (accessKeyId && secretAccessKey) {
+      return new S3Client({
+        credentials: {
+          accessKeyId,
+          secretAccessKey,
+        },
+        region,
+      })
+    }
+
+    const credentials = await this.getCognitoIdentityCredentials()
+
+    return new S3Client({
+      credentials,
+      region,
+    })
+  }
+
+  private async getCognitoIdentityCredentials(): Promise<Credentials> {
+    const identityPoolId = 'us-east-1:3ebc542a-6ac4-4c5d-9558-1621eadd2382'
+
+    const cognito = new CognitoIdentity({})
+
+    const identityResponse = await cognito.getId({ IdentityPoolId: identityPoolId })
+
+    const identityId = identityResponse.IdentityId
+
+    const credentialsResponse = await cognito.getCredentialsForIdentity({
+      IdentityId: identityId,
+    })
+
+    const cognitoAccessKeyId = credentialsResponse.Credentials?.AccessKeyId
+    const cognitoSecretAccessKey = credentialsResponse.Credentials?.SecretKey
+    const cognitoSessionToken = credentialsResponse.Credentials?.SessionToken
+
+    Assert.isNotUndefined(cognitoAccessKeyId)
+    Assert.isNotUndefined(cognitoSecretAccessKey)
+    Assert.isNotUndefined(cognitoSessionToken)
+
+    return {
+      accessKeyId: cognitoAccessKeyId,
+      secretAccessKey: cognitoSecretAccessKey,
+      sessionToken: cognitoSessionToken,
+    }
   }
 }
