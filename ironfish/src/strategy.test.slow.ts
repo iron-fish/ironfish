@@ -10,7 +10,7 @@ import {
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
-import { TestnetParameters } from './consensus/consensus'
+import { ConsensusParameters, TestnetConsensus } from './consensus'
 import { MerkleTree } from './merkletree'
 import { NoteLeafEncoding } from './merkletree/database/leaves'
 import { NodeEncoding } from './merkletree/database/nodes'
@@ -59,6 +59,17 @@ async function makeStrategyTree({
 }
 
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T
+
+const consensusParameters: ConsensusParameters = {
+  genesisBlockPrevious: Buffer.alloc(32),
+  genesisBlockSequence: 1,
+  allowedBlockFutureSeconds: 15,
+  genesisSupplyInIron: 42000000,
+  targetBlockTimeInSeconds: 60,
+  maxSyncedAgeBlocks: 60,
+  targetBucketTimeInSeconds: 10,
+  maxBlockSizeBytes: 2000000,
+}
 
 /**
  * Tests whether it's possible to create a miner reward and transfer those funds
@@ -154,7 +165,10 @@ describe('Demonstrate the Sapling API', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
       const workerPool = new WorkerPool()
-      const strategy = new Strategy({ workerPool, consensus: new TestnetParameters() })
+      const strategy = new Strategy({
+        workerPool,
+        consensus: new TestnetConsensus(consensusParameters),
+      })
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       expect(minersFee['transactionPosted']).toBeNull()
@@ -166,7 +180,7 @@ describe('Demonstrate the Sapling API', () => {
       // Generate a miner's fee transaction
       const strategy = new Strategy({
         workerPool: new WorkerPool(),
-        consensus: new TestnetParameters(),
+        consensus: new TestnetConsensus(consensusParameters),
       })
 
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
@@ -190,7 +204,7 @@ describe('Demonstrate the Sapling API', () => {
       const key = generateKey()
       const strategy = new Strategy({
         workerPool: new WorkerPool(),
-        consensus: new TestnetParameters(),
+        consensus: new TestnetConsensus(consensusParameters),
       })
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, key.spending_key)
 

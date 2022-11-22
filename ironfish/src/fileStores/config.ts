@@ -13,7 +13,6 @@ export const DEFAULT_WALLET_NAME = 'default'
 export const DEFAULT_WEBSOCKET_PORT = 9033
 export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/telemetry'
-export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
@@ -40,7 +39,6 @@ export const DEFAULT_POOL_STATUS_NOTIFICATION_INTERVAL = 30 * 60 // 30 minutes
 export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 
 export type ConfigOptions = {
-  bootstrapNodes: string[]
   databaseName: string
   databaseMigrate: boolean
   editor: string
@@ -245,11 +243,20 @@ export type ConfigOptions = {
   feeEstimatorPercentileLow: number
   feeEstimatorPercentileMedium: number
   feeEstimatorPercentileHigh: number
+
+  /**
+   * Network ID of an existing, official Iron Fish network
+   */
+  networkId: number
+
+  /**
+   * JSON file containing the network definition of a custom network
+   */
+  customNetwork: string
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .object({
-    bootstrapNodes: yup.array().of(yup.string().defined()),
     databaseName: yup.string(),
     databaseMigrate: yup.boolean(),
     editor: yup.string().trim(),
@@ -308,6 +315,8 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     jsonLogs: yup.boolean(),
     explorerBlocksUrl: YupUtils.isUrl,
     explorerTransactionsUrl: YupUtils.isUrl,
+    networkId: yup.number().integer().min(0),
+    customNetwork: yup.string().trim(),
   })
   .defined()
 
@@ -340,7 +349,6 @@ export class Config extends KeyStore<ConfigOptions> {
 
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
-      bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
       databaseName: DEFAULT_DATABASE_NAME,
       databaseMigrate: false,
       defaultTransactionExpirationSequenceDelta: 15,
@@ -400,6 +408,8 @@ export class Config extends KeyStore<ConfigOptions> {
       feeEstimatorPercentileLow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_LOW,
       feeEstimatorPercentileMedium: DEFAULT_FEE_ESTIMATOR_PERCENTILE_MEDIUM,
       feeEstimatorPercentileHigh: DEFAULT_FEE_ESTIMATOR_PERCENTILE_HIGH,
+      networkId: 1,
+      customNetwork: '',
     }
   }
 }

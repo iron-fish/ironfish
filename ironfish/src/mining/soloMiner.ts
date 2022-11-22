@@ -148,6 +148,8 @@ export class MiningSoloMiner {
   }
 
   private async processNewBlocks() {
+    const consensusParameters = (await this.rpc.getConsensusParameters()).content
+
     for await (const payload of this.rpc.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
 
@@ -155,7 +157,10 @@ export class MiningSoloMiner {
       this.currentHeadDifficulty = currentHeadTarget.toDifficulty()
       this.currentHeadTimestamp = payload.previousBlockInfo.timestamp
 
-      this.restartCalculateTargetInterval()
+      this.restartCalculateTargetInterval(
+        consensusParameters.targetBlockTimeInSeconds,
+        consensusParameters.targetBucketTimeInSeconds,
+      )
       this.startNewWork(payload)
     }
   }
@@ -256,7 +261,10 @@ export class MiningSoloMiner {
     })
   }
 
-  private recalculateTarget() {
+  private recalculateTarget(
+    targetBlockTimeInSeconds: number,
+    targetBucketTimeInSeconds: number,
+  ) {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
 
@@ -269,6 +277,8 @@ export class MiningSoloMiner {
         newTime,
         new Date(this.currentHeadTimestamp),
         this.currentHeadDifficulty,
+        targetBlockTimeInSeconds,
+        targetBucketTimeInSeconds,
       ),
     )
 
@@ -278,13 +288,16 @@ export class MiningSoloMiner {
     this.startNewWork(latestBlock)
   }
 
-  private restartCalculateTargetInterval() {
+  private restartCalculateTargetInterval(
+    targetBlockTimeInSeconds: number,
+    targetBucketTimeInSeconds: number,
+  ) {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
 
     this.recalculateTargetInterval = setInterval(() => {
-      this.recalculateTarget()
+      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds)
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 }

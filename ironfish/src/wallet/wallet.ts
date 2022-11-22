@@ -604,7 +604,12 @@ export class Wallet {
         }
       }
 
-      return account.getBalance(headSequence, minimumBlockConfirmations, tx)
+      return account.getBalance(
+        headSequence,
+        minimumBlockConfirmations,
+        this.chain.consensus.parameters.genesisBlockSequence,
+        tx,
+      )
     })
   }
 

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { BlockHeader } from '../../../primitives'
 import { BufferUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
@@ -99,7 +98,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
     if (request.data.sequence && request.data.sequence < 0) {
       request.data.sequence = Math.max(
         node.chain.head.sequence + request.data.sequence + 1,
-        GENESIS_BLOCK_SEQUENCE,
+        node.chain.consensus.parameters.genesisBlockSequence,
       )
     }
 

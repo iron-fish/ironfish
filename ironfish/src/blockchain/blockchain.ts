@@ -5,17 +5,10 @@
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
-import {
-  ConsensusParameters,
-  GENESIS_BLOCK_PREVIOUS,
-  GENESIS_BLOCK_SEQUENCE,
-  MAX_SYNCED_AGE_MS,
-  TARGET_BLOCK_TIME_IN_SECONDS,
-} from '../consensus'
+import { Consensus } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
 import { FileSystem } from '../fileSystems'
-import { genesisBlockData } from '../genesis'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
 import { NoteLeafEncoding, NullifierLeafEncoding } from '../merkletree/database/leaves'
@@ -41,7 +34,6 @@ import {
 import { Nullifier, NullifierHash, NullifierHasher } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
-import { IJSON } from '../serde'
 import {
   BUFFER_ENCODING,
   IDatabase,
@@ -82,7 +74,8 @@ export class Blockchain {
   metrics: MetricsMonitor
   location: string
   files: FileSystem
-  consensus: ConsensusParameters
+  consensus: Consensus
+  seedGenesisBlock: SerializedBlock
 
   synced = false
   opened = false
@@ -169,7 +162,8 @@ export class Blockchain {
     logAllBlockAdd?: boolean
     autoSeed?: boolean
     files: FileSystem
-    consensus: ConsensusParameters
+    consensus: Consensus
+    genesis: SerializedBlock
   }) {
     const logger = options.logger || createRootLogger()
 
@@ -186,6 +180,7 @@ export class Blockchain {
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
     this.consensus = options.consensus
+    this.seedGenesisBlock = options.genesis
 
     // Flat Fields
     this.meta = this.db.addStore({
@@ -263,7 +258,7 @@ export class Blockchain {
     const start = this.genesis.timestamp.valueOf()
     const current = this.head.timestamp.valueOf()
     const end = Date.now()
-    const offset = TARGET_BLOCK_TIME_IN_SECONDS * 4 * 1000
+    const offset = this.consensus.parameters.targetBlockTimeInSeconds * 4 * 1000
 
     const progress = (current - start) / (end - offset - start)
 
@@ -271,14 +266,15 @@ export class Blockchain {
   }
 
   private async seed() {
-    const serialized = IJSON.parse(genesisBlockData) as SerializedBlock
-    const genesis = BlockSerde.deserialize(serialized)
+    const genesis = BlockSerde.deserialize(this.seedGenesisBlock)
 
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
     Assert.isEqual(result.isFork, false)
 
-    const genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+    const genesisHeader = await this.getHeaderAtSequence(
+      this.consensus.parameters.genesisBlockSequence,
+    )
     Assert.isNotNull(
       genesisHeader,
       'Added the genesis block to the chain, but could not fetch the header',
@@ -297,7 +293,9 @@ export class Blockchain {
     await this.db.open()
     await this.db.upgrade(VERSION_DATABASE_CHAIN)
 
-    let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+    let genesisHeader = await this.getHeaderAtSequence(
+      this.consensus.parameters.genesisBlockSequence,
+    )
     if (!genesisHeader && this.autoSeed) {
       genesisHeader = await this.seed()
     }
@@ -356,7 +354,10 @@ export class Blockchain {
       connectResult = await this.db.transaction(async (tx) => {
         const hash = block.header.recomputeHash()
 
-        if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+        if (
+          !this.hasGenesisBlock &&
+          block.header.sequence === this.consensus.parameters.genesisBlockSequence
+        ) {
           return await this.connect(block, null, tx)
         }
 
@@ -638,7 +639,7 @@ export class Blockchain {
     )
 
     Assert.isFalse(
-      block.header.sequence === GENESIS_BLOCK_SEQUENCE,
+      block.header.sequence === this.consensus.parameters.genesisBlockSequence,
       'You cannot disconnect the genesisBlock',
     )
 
@@ -761,7 +762,7 @@ export class Blockchain {
 
     this.head = block.header
 
-    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+    if (block.header.sequence === this.consensus.parameters.genesisBlockSequence) {
       this.genesis = block.header
     }
 
@@ -935,7 +936,7 @@ export class Blockchain {
       const timestamp = new Date(Date.now())
 
       if (!this.hasGenesisBlock) {
-        previousBlockHash = GENESIS_BLOCK_PREVIOUS
+        previousBlockHash = this.consensus.parameters.genesisBlockPrevious
         previousSequence = 0
         target = Target.maxTarget()
       } else {
@@ -956,7 +957,13 @@ export class Blockchain {
         if (!previousHeader && previousSequence !== 1) {
           throw new Error('There is no previous block to calculate a target')
         }
-        target = Target.calculateTarget(timestamp, heaviestHead.timestamp, heaviestHead.target)
+        target = Target.calculateTarget(
+          timestamp,
+          heaviestHead.timestamp,
+          heaviestHead.target,
+          this.consensus.parameters.targetBlockTimeInSeconds,
+          this.consensus.parameters.targetBucketTimeInSeconds,
+        )
       }
 
       const blockNotes = []
@@ -997,7 +1004,7 @@ export class Blockchain {
       )
 
       const block = new Block(header, transactions)
-      if (!previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
+      if (!previousBlockHash.equals(this.consensus.parameters.genesisBlockPrevious)) {
         // since we're creating a block that hasn't been mined yet, don't
         // verify target because it'll always fail target check here
         const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })
@@ -1331,7 +1338,11 @@ export class Blockchain {
       return
     }
 
-    if (this.head.timestamp.valueOf() < Date.now() - MAX_SYNCED_AGE_MS) {
+    const maxSyncedAgeMs =
+      this.consensus.parameters.maxSyncedAgeBlocks *
+      this.consensus.parameters.targetBlockTimeInSeconds *
+      1000
+    if (this.head.timestamp.valueOf() < Date.now() - maxSyncedAgeMs) {
       return
     }
 

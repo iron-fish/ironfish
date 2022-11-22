@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
-import { GENESIS_BLOCK_SEQUENCE } from '../consensus/consensus'
 import { Transaction } from '../primitives'
 import { Note } from '../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../storage'
@@ -383,6 +382,7 @@ export class Account {
   async getBalance(
     headSequence: number,
     minimumBlockConfirmations: number,
+    genesisBlockSequence: number,
     tx?: IDatabaseTransaction,
   ): Promise<{
     unconfirmed: bigint
@@ -410,7 +410,7 @@ export class Account {
 
       const unconfirmedSequenceStart = Math.max(
         unconfirmedSequenceEnd - minimumBlockConfirmations + 1,
-        GENESIS_BLOCK_SEQUENCE,
+        genesisBlockSequence,
       )
 
       for await (const note of this.walletDb.loadNotesInSequenceRange(

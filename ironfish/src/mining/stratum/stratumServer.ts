@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
 import { Assert } from '../../assert'
-import { GRAFFITI_SIZE } from '../../consensus/consensus'
 import { Config } from '../../fileStores/config'
 import { Logger } from '../../logger'
+import { GRAFFITI_SIZE } from '../../network/utils/serializers'
 import { SerializedBlockTemplate } from '../../serde/BlockTemplateSerde'
 import { GraffitiUtils, StringUtils } from '../../utils'
 import { ErrorUtils } from '../../utils/error'

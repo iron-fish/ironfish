@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { AsyncUtils, GENESIS_BLOCK_SEQUENCE } from '@ironfish/sdk'
+import { AsyncUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs'
 import { parseNumber } from '../../args'
@@ -26,7 +26,7 @@ export default class Export extends IronfishCommand {
     {
       name: 'start',
       parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
-      default: Number(GENESIS_BLOCK_SEQUENCE),
+      default: undefined,
       required: false,
       description: 'The sequence to start at (inclusive, genesis block is 1)',
     },
@@ -48,6 +48,10 @@ export default class Export extends IronfishCommand {
     const exportPath = this.sdk.fileSystem.join(exportDir, 'data.json')
 
     const client = await this.sdk.connectRpc()
+
+    if (args.start === undefined) {
+      args.start = (await client.getConsensusParameters()).content.genesisBlockSequence
+    }
 
     const stream = client.exportChainStream({
       start: args.start as number | null,

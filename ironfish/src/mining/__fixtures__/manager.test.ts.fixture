@@ -73,7 +73,7 @@
       ]
     }
   ],
-  "Mining manager should stop adding transactions before block size exceeds MAX_BLOCK_SIZE_BYTES": [
+  "Mining manager should stop adding transactions before block size exceeds maxBlockSizeBytes": [
     {
       "id": "0557515e-fa7b-452a-8c2c-a57dcd24fad3",
       "name": "test",

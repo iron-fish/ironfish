@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Blockchain } from '../blockchain'
-import { GENESIS_BLOCK_SEQUENCE } from '../consensus/consensus'
 import { Block } from '../primitives'
 import { isTransactionMine } from '../testUtilities/helpers/transaction'
 import { Account } from '../wallet'
@@ -15,7 +14,7 @@ export function getBlockRange(
     stop?: number | null
   },
 ): { start: number; stop: number } {
-  const min = Number(GENESIS_BLOCK_SEQUENCE)
+  const min = Number(chain.consensus.parameters.genesisBlockSequence)
   const max = Number(chain.latest.sequence)
 
   let start = range?.start ? range.start : min

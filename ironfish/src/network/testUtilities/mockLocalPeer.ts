@@ -24,5 +24,5 @@ export function mockLocalPeer({
   version?: number
   chain?: Blockchain
 } = {}): LocalPeer {
-  return new LocalPeer(identity, agent, version, chain || mockChain(), ws)
+  return new LocalPeer(identity, agent, version, chain || mockChain(), ws, 0)
 }

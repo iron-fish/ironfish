@@ -1,10 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RpcBlockHeader, SetIntervalToken, TARGET_BLOCK_TIME_IN_SECONDS } from '@ironfish/sdk'
+import { RpcBlockHeader, SetIntervalToken } from '@ironfish/sdk'
 import LRU from 'blru'
 
-const STALE_THRESHOLD = TARGET_BLOCK_TIME_IN_SECONDS * 3 * 1000
 export type GossipFork = {
   header: RpcBlockHeader
   timestamp: number
@@ -21,9 +20,11 @@ export class GossipForkCounter {
   private tickInterval: SetIntervalToken | null = null
   private delay: number
   private active: Array<GossipFork> = []
+  private staleThreshold: number
 
-  constructor(options?: { delayMs?: number }) {
+  constructor(targetBlockTimeInSeconds: number, options?: { delayMs?: number }) {
     this.delay = options?.delayMs ?? 1000
+    this.staleThreshold = targetBlockTimeInSeconds * 3 * 1000
   }
 
   start(): void {
@@ -47,7 +48,7 @@ export class GossipForkCounter {
     for (const { header, timestamp, ageSequence, old } of values) {
       const age = now - timestamp
 
-      if (age >= STALE_THRESHOLD) {
+      if (age >= this.staleThreshold) {
         continue
       }
 

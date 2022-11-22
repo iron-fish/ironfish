@@ -4,7 +4,7 @@
 
 import { Assert } from './assert'
 import { Blockchain } from './blockchain'
-import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from './consensus'
+import { VerificationResultReason } from './consensus'
 import { createRootLogger, Logger } from './logger'
 import { Meter, MetricsMonitor } from './metrics'
 import { RollingAverage } from './metrics/rollingAverage'
@@ -220,10 +220,12 @@ export class Syncer {
 
     let requests = 0
 
+    const genesisBlockSequence = this.chain.consensus.parameters.genesisBlockSequence
+
     // If we only added the genesis block, we'll just start from there
-    if (this.chain.head.sequence === GENESIS_BLOCK_SEQUENCE) {
+    if (this.chain.head.sequence === genesisBlockSequence) {
       return {
-        sequence: GENESIS_BLOCK_SEQUENCE,
+        sequence: genesisBlockSequence,
         ancestor: this.chain.head.hash,
         requests: requests,
       }
@@ -289,7 +291,7 @@ export class Syncer {
     // Then we try a binary search to fine the forking point between us and peer
     let ancestorHash: Buffer | null = null
     let ancestorSequence: number | null = null
-    let lower = Number(GENESIS_BLOCK_SEQUENCE)
+    let lower = Number(genesisBlockSequence)
     let upper = Number(peer.sequence)
 
     this.logger.info(

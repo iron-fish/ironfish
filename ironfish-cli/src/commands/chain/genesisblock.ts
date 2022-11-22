@@ -4,7 +4,6 @@
 import {
   BlockSerde,
   CurrencyUtils,
-  GENESIS_SUPPLY_IN_IRON,
   GenesisBlockInfo,
   IJSON,
   makeGenesisBlock,
@@ -79,7 +78,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
       allocations: [
         {
           publicAddress: account.publicAddress,
-          amount: CurrencyUtils.decodeIron(GENESIS_SUPPLY_IN_IRON),
+          amount: CurrencyUtils.decodeIron(node.chain.consensus.parameters.genesisSupplyInIron),
         },
       ],
     }

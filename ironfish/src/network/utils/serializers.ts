@@ -11,6 +11,8 @@ import { BigIntUtils } from '../../utils/bigint'
 
 export const MINERS_FEE_TRANSACTION_SIZE_BYTES = 599
 
+export const GRAFFITI_SIZE = 32
+
 const BLOCK_TRANSACTIONS_LENGTH_BYTES = 2
 
 export function writeBlockHeader(
@@ -27,7 +29,7 @@ export function writeBlockHeader(
   bw.writeBytes(BigIntUtils.toBytesLE(header.randomness, 8))
   bw.writeU64(header.timestamp.getTime())
 
-  Assert.isTrue(header.graffiti.byteLength === 32)
+  Assert.isTrue(header.graffiti.byteLength === GRAFFITI_SIZE)
   bw.writeBytes(header.graffiti)
   return bw
 }
@@ -42,7 +44,7 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
   const target = BigIntUtils.fromBytesLE(reader.readBytes(32))
   const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8))
   const timestamp = reader.readU64()
-  const graffiti = reader.readBytes(32)
+  const graffiti = reader.readBytes(GRAFFITI_SIZE)
 
   return new BlockHeader(
     sequence,
@@ -71,7 +73,7 @@ export function getBlockHeaderSize(): number {
   size += 32 // target
   size += 8 // randomness
   size += 8 // timestamp
-  size += 32 // graffiti
+  size += GRAFFITI_SIZE // graffiti
   return size
 }
 

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { TARGET_BLOCK_TIME_IN_SECONDS, TARGET_BUCKET_TIME_IN_SECONDS } from '../consensus'
 import { BigIntUtils } from '../utils/bigint'
 
 /**
@@ -72,6 +71,8 @@ export class Target {
     time: Date,
     previousBlockTimestamp: Date,
     previousBlockTarget: Target,
+    targetBlockTimeInSeconds: number,
+    targetBucketTimeInSeconds: number,
   ): Target {
     const parentDifficulty = previousBlockTarget.toDifficulty()
 
@@ -79,6 +80,8 @@ export class Target {
       time,
       previousBlockTimestamp,
       parentDifficulty,
+      targetBlockTimeInSeconds,
+      targetBucketTimeInSeconds,
     )
 
     return Target.fromDifficulty(difficulty)
@@ -109,14 +112,14 @@ export class Target {
     time: Date,
     previousBlockTimestamp: Date,
     previousBlockDifficulty: bigint,
+    targetBlockTimeInSeconds: number,
+    targetBucketTimeInSeconds: number,
   ): bigint {
     const diffInSeconds = (time.getTime() - previousBlockTimestamp.getTime()) / 1000
 
     let bucket = Math.floor(
-      (diffInSeconds -
-        TARGET_BLOCK_TIME_IN_SECONDS +
-        Math.floor(TARGET_BUCKET_TIME_IN_SECONDS / 2)) /
-        TARGET_BUCKET_TIME_IN_SECONDS,
+      (diffInSeconds - targetBlockTimeInSeconds + Math.floor(targetBucketTimeInSeconds / 2)) /
+        targetBucketTimeInSeconds,
     )
 
     // Should not change difficulty by more than 99 buckets from last block's difficulty

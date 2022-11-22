@@ -29,6 +29,8 @@ import {
   GetChainInfoResponse,
   GetConfigRequest,
   GetConfigResponse,
+  GetConsensusParametersRequest,
+  GetConsensusParametersResponse,
   GetDefaultAccountRequest,
   GetDefaultAccountResponse,
   GetFundsRequest,
@@ -467,6 +469,15 @@ export abstract class RpcClient {
   ): Promise<RpcResponseEnded<UploadConfigResponse>> {
     return this.request<UploadConfigResponse>(
       `${ApiNamespace.config}/uploadConfig`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getConsensusParameters(
+    params: GetConsensusParametersRequest = undefined,
+  ): Promise<RpcResponseEnded<GetConsensusParametersResponse>> {
+    return this.request<GetConsensusParametersResponse>(
+      `${ApiNamespace.chain}/getConsensusParameters`,
       params,
     ).waitForEnd()
   }

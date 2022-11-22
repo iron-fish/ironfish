@@ -4,3 +4,6 @@
 
 export const VERSION_PROTOCOL = 18
 export const VERSION_PROTOCOL_MIN = 18
+
+export const MAX_REQUESTED_BLOCKS = 50
+export const MAX_MESSAGE_SIZE = 256 * 1024 * 1024

@@ -51,7 +51,7 @@ describe('Verifier', () => {
 
     it('returns false on transactions larger than max size', async () => {
       const { transaction } = await useTxSpendsFixture(nodeTest.node)
-      nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockWithMinersFeeSize()
+      nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize()
 
       const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
 
@@ -125,18 +125,18 @@ describe('Verifier', () => {
       })
     })
 
-    it('accepts a block with size more than MAX_BLOCK_SIZE_BYTES before V2 consensus upgrade', async () => {
+    it('accepts a block with size more than maxBlockSizeBytes before V2 consensus upgrade', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       nodeTest.chain.consensus.V2_MAX_BLOCK_SIZE = block.header.sequence + 1
-      nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockSize(block) - 1
+      nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockSize(block) - 1
 
       expect((await nodeTest.verifier.verifyBlock(block)).valid).toBe(true)
     })
 
-    it('rejects a block with size more than MAX_BLOCK_SIZE_BYTES after V2 consensus upgrade', async () => {
+    it('rejects a block with size more than maxBlockSizeBytes after V2 consensus upgrade', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       nodeTest.chain.consensus.V2_MAX_BLOCK_SIZE = block.header.sequence
-      nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockSize(block) - 1
+      nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockSize(block) - 1
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         valid: false,

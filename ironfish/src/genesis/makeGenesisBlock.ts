@@ -57,7 +57,7 @@ export async function makeGenesisBlock(
   // additional coins, we'll manually create a non-standard/invalid miner's fee transaction.
   //
   // This transaction will cause block.verify to fail, but we skip block verification
-  // throughout the code when the block header's previousBlockHash is GENESIS_BLOCK_PREVIOUS.
+  // throughout the code when the block header's previousBlockHash is genesisBlockPrevious.
   logger.info(`Generating a miner's fee transaction for the block...`)
   const note = new NativeNote(account.publicAddress, BigInt(0), '')
 

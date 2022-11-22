@@ -7,7 +7,7 @@ import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { MAX_REQUESTED_BLOCKS, VerificationResultReason } from '../consensus'
+import { VerificationResultReason } from '../consensus'
 import { Event } from '../event'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
 import { HostsStore } from '../fileStores/hosts'
@@ -64,7 +64,7 @@ import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
 import { parseUrl } from './utils/parseUrl'
-import { VERSION_PROTOCOL } from './version'
+import { MAX_REQUESTED_BLOCKS, VERSION_PROTOCOL } from './version'
 import { WebSocketServer } from './webSocketServer'
 
 /**
@@ -100,6 +100,7 @@ interface Indexable {
  * and provides abstractions for several methods of sending/receiving network messages.
  */
 export class PeerNetwork {
+  private readonly networkId: number
   // optional WebSocket server, started from Node.JS
   private webSocketServer?: WebSocketServer
 
@@ -150,6 +151,7 @@ export class PeerNetwork {
   }
 
   constructor(options: {
+    networkId: number
     identity: PrivateIdentity
     agent?: string
     webSocket: IsomorphicWebSocketConstructor
@@ -170,6 +172,7 @@ export class PeerNetwork {
     chain: Blockchain
     hostsStore: HostsStore
   }) {
+    this.networkId = options.networkId
     this.enableSyncing = options.enableSyncing ?? true
     this.node = options.node
     this.chain = options.chain
@@ -184,6 +187,7 @@ export class PeerNetwork {
       VERSION_PROTOCOL,
       options.chain,
       options.webSocket,
+      options.networkId,
     )
 
     this.localPeer.port = options.port === undefined ? null : options.port

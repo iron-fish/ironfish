@@ -52,11 +52,6 @@ export default class Start extends IronfishCommand {
     [RpcTcpTlsFlagKey]: RpcTcpTlsFlag,
     [RpcTcpHostFlagKey]: RpcTcpHostFlag,
     [RpcTcpPortFlagKey]: RpcTcpPortFlag,
-    bootstrap: Flags.string({
-      char: 'b',
-      description: 'Comma-separated addresses of bootstrap nodes to connect to',
-      multiple: true,
-    }),
     port: Flags.integer({
       char: 'p',
       description: 'Port to run the local ws server on',
@@ -100,6 +95,19 @@ export default class Start extends IronfishCommand {
       allowNo: true,
       description: 'Run migrations when an upgrade is required',
     }),
+    // TODO: Update description with a list of network IDs for mainet and official testnets.
+    networkId: Flags.integer({
+      char: 'i',
+      default: 1,
+      description:
+        'Network ID of an existing, official Iron Fish network to connect to. Ignored if networkDefinition flag specified.',
+    }),
+    customNetwork: Flags.string({
+      char: 'c',
+      default: undefined,
+      description:
+        'JSON file containing the network definition of a custom network to connect to',
+    }),
   }
 
   node: IronfishNode | null = null
@@ -118,7 +126,6 @@ export default class Start extends IronfishCommand {
 
     const { flags } = await this.parse(Start)
     const {
-      bootstrap,
       forceMining,
       graffiti,
       listen,
@@ -128,17 +135,10 @@ export default class Start extends IronfishCommand {
       workers,
       generateNewIdentity,
       upgrade,
+      networkId,
+      customNetwork,
     } = flags
 
-    if (bootstrap !== undefined) {
-      // Parse comma-separated bootstrap nodes
-      const bootstrapNodes = bootstrap
-        .flatMap((b) => b.split(','))
-        .filter(Boolean)
-        .map((b) => b.trim())
-
-      this.sdk.config.setOverride('bootstrapNodes', bootstrapNodes)
-    }
     if (port !== undefined && port !== this.sdk.config.get('peerPort')) {
       this.sdk.config.setOverride('peerPort', port)
     }
@@ -173,6 +173,16 @@ export default class Start extends IronfishCommand {
       this.sdk.config.setOverride('databaseMigrate', upgrade)
     }
 
+    if (networkId !== undefined && customNetwork !== undefined) {
+      // throw error
+    }
+    if (networkId !== undefined && networkId !== this.sdk.config.get('networkId')) {
+      this.sdk.config.setOverride('networkId', networkId)
+    }
+    if (customNetwork !== undefined && customNetwork !== this.sdk.config.get('customNetwork')) {
+      this.sdk.config.setOverride('customNetwork', customNetwork)
+    }
+
     if (!this.sdk.internal.get('telemetryNodeId')) {
       this.sdk.internal.set('telemetryNodeId', uuid())
       await this.sdk.internal.save()
@@ -185,7 +195,6 @@ export default class Start extends IronfishCommand {
     const nodeName = this.sdk.config.get('nodeName').trim() || null
     const blockGraffiti = this.sdk.config.get('blockGraffiti').trim() || null
     const peerPort = this.sdk.config.get('peerPort')
-    const bootstraps = this.sdk.config.getArray('bootstrapNodes')
 
     this.log(`\n${ONE_FISH_IMAGE}`)
     this.log(`Version       ${node.pkg.version} @ ${node.pkg.git}`)
@@ -194,7 +203,6 @@ export default class Start extends IronfishCommand {
     this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
     this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
-    this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
     if (inspector.url()) {
       this.log(`Inspector     ${String(inspector.url())}`)
     }

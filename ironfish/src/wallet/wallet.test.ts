@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
-import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from '../consensus'
+import { VerificationResultReason } from '../consensus'
 import {
   createNodeTest,
   useAccountFixture,
@@ -89,7 +89,9 @@ describe('Accounts', () => {
 
     // Check that it was last broadcast at its added height
     let invalidTxEntry = await accountA.getTransaction(invalidTx.hash())
-    expect(invalidTxEntry?.submittedSequence).toEqual(GENESIS_BLOCK_SEQUENCE)
+    expect(invalidTxEntry?.submittedSequence).toEqual(
+      nodeA.chain.consensus.parameters.genesisBlockSequence,
+    )
 
     // Check that the TX is not rebroadcast but has it's sequence updated
     nodeA.wallet['rebroadcastAfter'] = 1

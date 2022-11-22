@@ -1,15 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  Assert,
-  Block,
-  GENESIS_BLOCK_SEQUENCE,
-  IronfishNode,
-  Meter,
-  NodeUtils,
-  TimeUtils,
-} from '@ironfish/sdk'
+import { Assert, Block, IronfishNode, Meter, NodeUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -45,9 +37,11 @@ export default class RepairHardFork extends IronfishCommand {
   async start(): Promise<void> {
     const { args, flags } = await this.parse(RepairHardFork)
 
-    const start = args.start ? Number(args.start) : GENESIS_BLOCK_SEQUENCE
-
     const node = await this.sdk.node()
+
+    const start = args.start
+      ? Number(args.start)
+      : node.chain.consensus.parameters.genesisBlockSequence
 
     await NodeUtils.waitForOpen(node)
     await this.rewindChain(node, flags.dry)

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { BlockSerde } from '../../../primitives/block'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { ValidationError } from '../../adapters'
@@ -150,7 +149,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     }
 
     let parentBlock
-    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+    if (block.header.sequence === node.chain.consensus.parameters.genesisBlockSequence) {
       parentBlock = block
     } else {
       parentBlock = await node.chain.getBlock(block.header.previousBlockHash)

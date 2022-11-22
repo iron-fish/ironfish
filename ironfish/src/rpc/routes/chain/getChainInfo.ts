@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { ApiNamespace, router } from '../router'
 
@@ -65,7 +64,8 @@ router.register<typeof GetChainInfoRequestSchema, GetChainInfoResponse>(
     }
 
     const genesisBlockIdentifier = {} as BlockIdentifier
-    genesisBlockIdentifier.index = GENESIS_BLOCK_SEQUENCE.toString()
+    genesisBlockIdentifier.index =
+      node.chain.consensus.parameters.genesisBlockSequence.toString()
     genesisBlockIdentifier.hash = BlockHashSerdeInstance.serialize(node.chain.genesis.hash)
 
     request.end({
