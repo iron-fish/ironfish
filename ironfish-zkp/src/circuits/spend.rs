@@ -186,7 +186,7 @@ impl Circuit<bls12_381::Scalar> for Spend {
             note_contents.len(),
             256 + // asset generator
             64 + // value
-            256 // p_d
+            256 // pk_d
         );
 
         // Compute the hash of the note contents
