@@ -11,10 +11,7 @@ use ironfish_zkp::ValueCommitment;
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
-use crate::{
-    assets::asset::{asset_generator_point, Asset},
-    errors::IronfishError,
-};
+use crate::{assets::asset::Asset, errors::IronfishError};
 
 /// Parameters used to build a burn description
 pub struct BurnBuilder {

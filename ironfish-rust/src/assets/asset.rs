@@ -190,7 +190,7 @@ mod test {
         assert_eq!(asset.metadata, metadata);
         assert_eq!(asset.nonce, nonce);
         assert_eq!(
-            asset.identifier,
+            asset.asset_info_hashed,
             [
                 170, 34, 193, 132, 126, 219, 5, 38, 84, 16, 124, 134, 247, 247, 114, 69, 220, 169,
                 234, 12, 33, 112, 141, 13, 149, 43, 135, 241, 158, 174, 231, 85
