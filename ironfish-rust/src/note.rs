@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{errors::IronfishError, util::str_to_array};
+use crate::{assets::asset::AssetIdentifier, errors::IronfishError, util::str_to_array};
 
 use super::{
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
@@ -14,9 +14,7 @@ use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
-    constants::{
-        NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR,
-    },
+    constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
     util::commitment_full_point,
     Nullifier,
 };
@@ -94,8 +92,12 @@ pub struct Note {
 
 impl<'a> Note {
     /// Construct a new Note.
-    pub fn new(owner: PublicAddress, value: u64, memo: impl Into<Memo>) -> Self {
-        let asset_generator = VALUE_COMMITMENT_VALUE_GENERATOR;
+    pub fn new(
+        owner: PublicAddress,
+        value: u64,
+        memo: impl Into<Memo>,
+        asset_generator: SubgroupPoint,
+    ) -> Self {
         let randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
 
         Self {
@@ -223,6 +225,10 @@ impl<'a> Note {
         self.asset_generator
     }
 
+    pub fn asset_identifier(&self) -> AssetIdentifier {
+        self.asset_generator.to_bytes()
+    }
+
     /// Send encrypted form of the note, which is what gets publicly stored on
     /// the tree. Only someone with the incoming viewing key for the note can
     /// actually read the contents.
@@ -343,13 +349,16 @@ impl<'a> Note {
 #[cfg(test)]
 mod test {
     use super::{Memo, Note};
-    use crate::keys::{shared_secret, SaplingKey};
+    use crate::{
+        assets::asset::NATIVE_ASSET_GENERATOR,
+        keys::{shared_secret, SaplingKey},
+    };
 
     #[test]
     fn test_plaintext_serialization() {
         let owner_key: SaplingKey = SaplingKey::generate_key();
         let public_address = owner_key.public_address();
-        let note = Note::new(public_address, 42, "serialize me");
+        let note = Note::new(public_address, 42, "serialize me", NATIVE_ASSET_GENERATOR);
         let mut serialized = Vec::new();
         note.write(&mut serialized)
             .expect("Should serialize cleanly");
@@ -374,7 +383,7 @@ mod test {
         let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
         let public_shared_secret =
             shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
-        let note = Note::new(public_address, 42, "");
+        let note = Note::new(public_address, 42, "", NATIVE_ASSET_GENERATOR);
         let encryption_result = note.encrypt(&public_shared_secret);
 
         let private_shared_secret = owner_key.incoming_view_key().shared_secret(&dh_public);

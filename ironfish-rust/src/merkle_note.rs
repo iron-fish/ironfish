@@ -289,6 +289,7 @@ fn calculate_key_for_encryption_keys(
 mod test {
     use super::MerkleNote;
     use super::NOTE_ENCRYPTION_MINER_KEYS;
+    use crate::assets::asset::NATIVE_ASSET_GENERATOR;
     use crate::{keys::SaplingKey, note::Note};
 
     use bls12_381::Scalar;
@@ -303,7 +304,12 @@ mod test {
     fn test_new_not_miners_fee_key() {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
-        let note = Note::new(receiver_key.public_address(), 42, "");
+        let note = Note::new(
+            receiver_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+        );
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let value_commitment = ValueCommitment {
@@ -326,7 +332,12 @@ mod test {
     /// does use the hard-coded miners fee note encryption keys
     fn test_new_miners_fee_key() {
         let receiver_key = SaplingKey::generate_key();
-        let note = Note::new(receiver_key.public_address(), 42, "");
+        let note = Note::new(
+            receiver_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+        );
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let value_commitment = ValueCommitment {
@@ -348,7 +359,12 @@ mod test {
     fn test_view_key_encryption() {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
-        let note = Note::new(receiver_key.public_address(), 42, "");
+        let note = Note::new(
+            receiver_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+        );
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let value_commitment = ValueCommitment {
@@ -370,7 +386,7 @@ mod test {
     #[test]
     fn test_output_invalid_commitment() {
         let spender_key = SaplingKey::generate_key();
-        let note = Note::new(spender_key.public_address(), 42, "");
+        let note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let value_commitment = ValueCommitment {
