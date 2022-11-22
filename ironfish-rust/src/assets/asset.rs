@@ -8,7 +8,7 @@ use group::GroupEncoding;
 use ironfish_zkp::{
     constants::{
         ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION,
-        VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
+        VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR,
     },
     group_hash, pedersen_hash,
 };
@@ -20,20 +20,22 @@ pub const NATIVE_ASSET: AssetIdentifier = [
     253, 148, 34, 211, 177, 122, 246, 130, 58, 126, 106, 198,
 ];
 
+// Uses the original value commitment generator as the native asset generator
+pub const NATIVE_ASSET_GENERATOR: SubgroupPoint = VALUE_COMMITMENT_VALUE_GENERATOR;
+
 const NAME_LENGTH: usize = 32;
 const OWNER_LENGTH: usize = 32;
+const ASSET_INFO_HASHED_LENGTH: usize = 32;
 pub const METADATA_LENGTH: usize = 76;
 
-#[allow(dead_code)]
 pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
 
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
-#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub struct Asset {
     /// Name of the asset
-    pub(crate) name: [u8; 32],
+    pub(crate) name: [u8; NAME_LENGTH],
 
     /// Metadata fields for the asset (ex. chain, network, token identifier)
     pub(crate) metadata: [u8; METADATA_LENGTH],
@@ -44,14 +46,15 @@ pub struct Asset {
     /// The random byte used to ensure we get a valid asset identifier
     pub(crate) nonce: u8,
 
-    /// Unique byte array which is a hash of all of the identifying fields for
-    /// an asset
+    /// The pedersen-hash of the asset info plaintext (name, metadata, owner, nonce)
+    pub(crate) asset_info_hashed: [u8; ASSET_INFO_HASHED_LENGTH],
+
+    /// The byte representation of the generator point derived from the hashed asset info
     pub(crate) identifier: AssetIdentifier,
 }
 
 impl Asset {
     /// Create a new AssetType from a public address, name, chain, and network
-    #[allow(dead_code)]
     pub fn new(owner: AssetPublicKey, name: &str, metadata: &str) -> Result<Asset, IronfishError> {
         let name_bytes = str_to_array(name);
         let metadata_bytes = str_to_array(metadata);
@@ -69,7 +72,7 @@ impl Asset {
 
     fn new_with_nonce(
         owner: AssetPublicKey,
-        name: [u8; 32],
+        name: [u8; NAME_LENGTH],
         metadata: [u8; METADATA_LENGTH],
         nonce: u8,
     ) -> Result<Asset, IronfishError> {
@@ -86,42 +89,44 @@ impl Asset {
 
         let preimage_bits = multipack::bytes_to_bits_le(&preimage);
 
-        let point = pedersen_hash::pedersen_hash(ASSET_IDENTIFIER_PERSONALIZATION, preimage_bits);
+        let asset_info_hashed_point =
+            pedersen_hash::pedersen_hash(ASSET_IDENTIFIER_PERSONALIZATION, preimage_bits);
 
-        let bytes = point.to_bytes();
+        let asset_info_hashed = asset_info_hashed_point.to_bytes();
 
         // Check that this is valid as a value commitment generator point
-        if asset_generator_point(&bytes).is_ok() {
+        if let Ok(generator_point) = asset_generator_point(&asset_info_hashed) {
             Ok(Asset {
                 owner,
                 name,
                 metadata,
                 nonce,
-                identifier: bytes,
+                asset_info_hashed,
+                identifier: generator_point.to_bytes(),
             })
         } else {
             Err(IronfishError::InvalidAssetIdentifier)
         }
     }
 
-    #[allow(dead_code)]
     pub fn name(&self) -> &[u8] {
         &self.name
     }
 
-    #[allow(dead_code)]
     pub fn owner(&self) -> &AssetPublicKey {
         &self.owner
     }
 
-    #[allow(dead_code)]
     pub fn nonce(&self) -> &u8 {
         &self.nonce
     }
 
-    #[allow(dead_code)]
     pub fn identifier(&self) -> &AssetIdentifier {
         &self.identifier
+    }
+
+    pub fn generator(&self) -> SubgroupPoint {
+        SubgroupPoint::from_bytes(&self.identifier).unwrap()
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
@@ -185,7 +190,7 @@ mod test {
         assert_eq!(asset.metadata, metadata);
         assert_eq!(asset.nonce, nonce);
         assert_eq!(
-            asset.identifier,
+            asset.asset_info_hashed,
             [
                 170, 34, 193, 132, 126, 219, 5, 38, 84, 16, 124, 134, 247, 247, 114, 69, 220, 169,
                 234, 12, 33, 112, 141, 13, 149, 43, 135, 241, 158, 174, 231, 85

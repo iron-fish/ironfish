@@ -11,10 +11,7 @@ use ironfish_zkp::ValueCommitment;
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
-use crate::{
-    assets::asset::{asset_generator_point, Asset},
-    errors::IronfishError,
-};
+use crate::{assets::asset::Asset, errors::IronfishError};
 
 /// Parameters used to build a burn description
 pub struct BurnBuilder {
@@ -31,7 +28,7 @@ impl BurnBuilder {
         let value_commitment = ValueCommitment {
             value,
             randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: asset_generator_point(asset.identifier()).unwrap(),
+            asset_generator: asset.generator(),
         };
 
         Self {
@@ -77,7 +74,7 @@ impl BurnDescription {
         let value_commitment = ValueCommitment {
             value,
             randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: asset_generator_point(asset.identifier()).unwrap(),
+            asset_generator: asset.generator(),
         };
 
         Self {

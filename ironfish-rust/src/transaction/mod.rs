@@ -21,7 +21,7 @@ use blake2b_simd::Params as Blake2b;
 use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
-use jubjub::ExtendedPoint;
+use jubjub::{ExtendedPoint, SubgroupPoint};
 use rand::rngs::OsRng;
 
 use ironfish_zkp::{
@@ -107,7 +107,8 @@ impl ProposedTransaction {
 
     /// Spend the note owned by spender_key at the given witness location.
     pub fn add_spend(&mut self, note: Note, witness: &dyn WitnessTrait) {
-        self.value_balances.add(&NATIVE_ASSET, note.value() as i64);
+        self.value_balances
+            .add(&note.asset_identifier(), note.value() as i64);
 
         self.spends.push(SpendBuilder::new(note, witness));
     }
@@ -116,7 +117,7 @@ impl ProposedTransaction {
     /// transaction.
     pub fn add_output(&mut self, note: Note) {
         self.value_balances
-            .subtract(&NATIVE_ASSET, note.value() as i64);
+            .subtract(&note.asset_identifier(), note.value() as i64);
 
         self.outputs.push(OutputBuilder::new(note));
     }
@@ -154,11 +155,6 @@ impl ProposedTransaction {
         for (asset_identifier, value) in self.value_balances.iter() {
             let is_native_asset = asset_identifier == &NATIVE_ASSET;
 
-            // TODO: Remove this once we actually allow custom assets
-            if !is_native_asset {
-                return Err(IronfishError::InvalidBalance);
-            }
-
             let change_amount = match is_native_asset {
                 true => *value - intended_transaction_fee as i64,
                 false => *value,
@@ -174,6 +170,7 @@ impl ProposedTransaction {
                     change_address,
                     change_amount as u64, // we checked it was positive
                     "",
+                    SubgroupPoint::from_bytes(asset_identifier).unwrap(),
                 );
 
                 change_notes.push(change_note);
@@ -433,9 +430,8 @@ impl Transaction {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_outputs = reader.read_u64::<LittleEndian>()?;
-        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
-        // let num_mints = reader.read_u64::<LittleEndian>()?;
-        // let num_burns = reader.read_u64::<LittleEndian>()?;
+        let num_mints = reader.read_u64::<LittleEndian>()?;
+        let num_burns = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
 
@@ -449,16 +445,15 @@ impl Transaction {
             outputs.push(OutputDescription::read(&mut reader)?);
         }
 
-        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
-        // let mut mints = Vec::with_capacity(num_mints as usize);
-        // for _ in 0..num_mints {
-        //     mints.push(MintDescription::read(&mut reader)?);
-        // }
+        let mut mints = Vec::with_capacity(num_mints as usize);
+        for _ in 0..num_mints {
+            mints.push(MintDescription::read(&mut reader)?);
+        }
 
-        // let mut burns = Vec::with_capacity(num_burns as usize);
-        // for _ in 0..num_burns {
-        //     burns.push(BurnDescription::read(&mut reader)?);
-        // }
+        let mut burns = Vec::with_capacity(num_burns as usize);
+        for _ in 0..num_burns {
+            burns.push(BurnDescription::read(&mut reader)?);
+        }
 
         let binding_signature = Signature::read(&mut reader)?;
 
@@ -466,8 +461,8 @@ impl Transaction {
             fee,
             spends,
             outputs,
-            mints: vec![],
-            burns: vec![],
+            mints,
+            burns,
             binding_signature,
             expiration_sequence,
         })
@@ -478,9 +473,8 @@ impl Transaction {
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
-        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
-        // writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
-        // writer.write_u64::<LittleEndian>(self.burns.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
+        writer.write_u64::<LittleEndian>(self.burns.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.fee)?;
         writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
 
@@ -492,14 +486,13 @@ impl Transaction {
             output.write(&mut writer)?;
         }
 
-        // TODO(mgeist,rohanjadvani): Remove after asset is added to spend/output
-        // for mints in self.mints.iter() {
-        //     mints.write(&mut writer)?;
-        // }
+        for mints in self.mints.iter() {
+            mints.write(&mut writer)?;
+        }
 
-        // for burns in self.burns.iter() {
-        //     burns.write(&mut writer)?;
-        // }
+        for burns in self.burns.iter() {
+            burns.write(&mut writer)?;
+        }
 
         self.binding_signature.write(&mut writer)?;
 

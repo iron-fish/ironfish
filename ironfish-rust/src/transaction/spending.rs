@@ -403,6 +403,7 @@ fn serialize_signature_fields<W: io::Write>(
 #[cfg(test)]
 mod test {
     use super::{SpendBuilder, SpendDescription};
+    use crate::assets::asset::NATIVE_ASSET_GENERATOR;
     use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
     use group::Curve;
     use rand::prelude::*;
@@ -415,7 +416,7 @@ mod test {
 
         let note_randomness = random();
 
-        let note = Note::new(public_address, note_randomness, "");
+        let note = Note::new(public_address, note_randomness, "", NATIVE_ASSET_GENERATOR);
         let witness = make_fake_witness(&note);
 
         let spend = SpendBuilder::new(note, &witness);

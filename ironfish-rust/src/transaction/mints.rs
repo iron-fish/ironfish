@@ -41,7 +41,7 @@ impl MintBuilder {
         let value_commitment = ValueCommitment {
             value,
             randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: asset_generator_point(asset.identifier()).unwrap(),
+            asset_generator: asset.generator(),
         };
 
         Self {
@@ -171,7 +171,7 @@ pub struct MintDescription {
 impl MintDescription {
     pub fn verify_proof(&self) -> Result<(), IronfishError> {
         // Verify that the identifier maps to a valid generator point
-        asset_generator_point(&self.asset.identifier)?;
+        asset_generator_point(&self.asset.asset_info_hashed)?;
 
         self.verify_not_small_order()?;
 
@@ -216,7 +216,7 @@ impl MintDescription {
     pub fn public_inputs(&self) -> [Scalar; 6] {
         let mut public_inputs = [Scalar::zero(); 6];
 
-        let identifier_bits = multipack::bytes_to_bits_le(self.asset.identifier());
+        let identifier_bits = multipack::bytes_to_bits_le(&self.asset.asset_info_hashed);
         let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
         public_inputs[0] = identifier_inputs[0];
         public_inputs[1] = identifier_inputs[1];
