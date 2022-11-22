@@ -16,7 +16,7 @@ use group::GroupEncoding;
 use ironfish_zkp::redjubjub::Signature;
 
 #[test]
-fn test_transaction_asdf() {
+fn test_transaction() {
     let spender_key: SaplingKey = SaplingKey::generate_key();
     let receiver_key: SaplingKey = SaplingKey::generate_key();
 
