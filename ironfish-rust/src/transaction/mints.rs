@@ -6,6 +6,7 @@ use std::io;
 
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
@@ -85,6 +86,7 @@ impl MintBuilder {
         let mint_description = MintDescription {
             proof,
             asset: self.asset,
+            value: self.value_commitment.value,
             value_commitment: self.value_commitment_point(),
             randomized_public_key,
             authorizing_signature: blank_signature,
@@ -148,6 +150,9 @@ pub struct MintDescription {
 
     /// Asset which is being minted
     pub asset: Asset,
+
+    /// Amount of asset to mint
+    pub value: u64,
 
     /// Randomized commitment to represent the value being minted in this proof
     /// needed to balance the transaction.
@@ -238,6 +243,7 @@ impl MintDescription {
     ) -> Result<(), IronfishError> {
         self.proof.write(&mut writer)?;
         self.asset.write(&mut writer)?;
+        writer.write_u64::<LittleEndian>(self.value)?;
         writer.write_all(&self.value_commitment.to_bytes())?;
         writer.write_all(&self.randomized_public_key.0.to_bytes())?;
 
@@ -247,6 +253,8 @@ impl MintDescription {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
         let asset = Asset::read(&mut reader)?;
+
+        let value = reader.read_u64::<LittleEndian>()?;
 
         let value_commitment = {
             let mut bytes = [0; 32];
@@ -262,6 +270,7 @@ impl MintDescription {
         Ok(MintDescription {
             proof,
             asset,
+            value,
             value_commitment,
             randomized_public_key,
             authorizing_signature,
@@ -353,9 +362,16 @@ mod test {
         let deserialized_description = MintDescription::read(&serialized_description[..])
             .expect("should be able to deserialize valid description");
 
+        // Proof
         assert_eq!(description.proof.a, deserialized_description.proof.a);
         assert_eq!(description.proof.b, deserialized_description.proof.b);
         assert_eq!(description.proof.c, deserialized_description.proof.c);
+
+        // Value
+        assert_eq!(description.value, deserialized_description.value);
+        assert_eq!(description.value, value);
+
+        // Value commitment
         assert_eq!(
             description.value_commitment,
             deserialized_description.value_commitment
@@ -365,6 +381,7 @@ mod test {
             deserialized_description.randomized_public_key.0
         );
 
+        // Signature
         // Instantiated with different data just to ensure this test actually does what we expect
         let mut description_sig = [9u8; 64];
         let mut deserialized_description_sig = [5u8; 64];
@@ -381,6 +398,7 @@ mod test {
 
         assert_eq!(description_sig, deserialized_description_sig);
 
+        // Re-serialize for one final sanity check
         let mut reserialized_description = vec![];
         deserialized_description
             .write(&mut reserialized_description)
