@@ -64,6 +64,7 @@ export default class Backup extends IronfishCommand {
       name: 'bucket',
       required: true,
       description: 'The S3 bucket to upload to',
+      default: '601c603e-5529-411f-bf72-adfb7d7d2580',
     },
   ]
 
