@@ -297,7 +297,7 @@ describe('Accounts', () => {
   })
 
   describe('scanTransactions', () => {
-    it.only('should update head status', async () => {
+    it('should update head status', async () => {
       // G -> 1 -> 2
       const { chain, wallet } = nodeTest
 
@@ -330,7 +330,7 @@ describe('Accounts', () => {
       expect(wallet['headHashes'].get(accountB.id)).toEqual(block2.header.hash)
     })
 
-    it.only('should rescan and update chain processor', async () => {
+    it('should rescan and update chain processor', async () => {
       const { chain, wallet } = nodeTest
 
       await useAccountFixture(wallet, 'accountA')
