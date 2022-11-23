@@ -310,6 +310,7 @@ describe('Accounts', () => {
       // create a second account and import it so that its head hash is null
       const { node: nodeB } = await nodeTest.createSetup()
       const toImport = await useAccountFixture(nodeB.wallet, 'accountB')
+
       const accountB = await node.wallet.importAccount(toImport)
 
       const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
