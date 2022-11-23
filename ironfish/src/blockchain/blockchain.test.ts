@@ -390,7 +390,7 @@ describe('Blockchain', () => {
     const genesis = nodeTest.chain.genesis
     expect(node.chain.head?.hash).toEqualBuffer(genesis.hash)
 
-    blockB3.header.noteCommitment.set(Array.from({ length: 32 }, () => 0))
+    blockB3.header.noteCommitment = Buffer.alloc(32)
 
     await expect(node.chain).toAddBlock(blockA1)
     expect(node.chain.head?.hash).toEqualBuffer(blockA1.header.hash)
