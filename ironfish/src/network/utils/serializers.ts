@@ -19,8 +19,7 @@ export function writeBlockHeader(
 ): bufio.StaticWriter | bufio.BufferWriter {
   bw.writeU32(header.sequence)
   bw.writeHash(header.previousBlockHash)
-  bw.writeHash(header.noteCommitment.commitment)
-  bw.writeU32(header.noteCommitment.size)
+  bw.writeHash(header.noteCommitment)
   bw.writeHash(header.nullifierCommitment.commitment)
   bw.writeU32(header.nullifierCommitment.size)
   bw.writeHash(header.transactionCommitment)
@@ -37,7 +36,6 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
   const sequence = reader.readU32()
   const previousBlockHash = reader.readHash()
   const noteCommitment = reader.readHash()
-  const noteCommitmentSize = reader.readU32()
   const nullifierCommitment = reader.readHash()
   const nullifierCommitmentSize = reader.readU32()
   const transactionCommitment = reader.readHash()
@@ -49,10 +47,7 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
   return new BlockHeader(
     sequence,
     previousBlockHash,
-    {
-      commitment: noteCommitment,
-      size: noteCommitmentSize,
-    },
+    noteCommitment,
     {
       commitment: nullifierCommitment,
       size: nullifierCommitmentSize,
@@ -69,8 +64,7 @@ export function getBlockHeaderSize(): number {
   let size = 0
   size += 4 // sequence
   size += 32 // previousBlockHash
-  size += 32 // noteCommitment.commitment
-  size += 4 // noteCommitment.size
+  size += 32 // noteCommitment
   size += 32 // nullifierCommitment.commitment
   size += 4 // nullifierCommitment.size
   size += 32 // transactionCommitment

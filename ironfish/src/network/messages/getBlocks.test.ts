@@ -42,10 +42,7 @@ describe('GetBlocksResponse', () => {
           new BlockHeader(
             2,
             Buffer.alloc(32, 2),
-            {
-              commitment: Buffer.alloc(32, 4),
-              size: 1,
-            },
+            Buffer.alloc(32, 4),
             {
               commitment: Buffer.alloc(32, 6),
               size: 2,
@@ -62,10 +59,7 @@ describe('GetBlocksResponse', () => {
           new BlockHeader(
             2,
             Buffer.alloc(32, 1),
-            {
-              commitment: Buffer.alloc(32, 5),
-              size: 1,
-            },
+            Buffer.alloc(32, 5),
             {
               commitment: Buffer.alloc(32, 7),
               size: 2,

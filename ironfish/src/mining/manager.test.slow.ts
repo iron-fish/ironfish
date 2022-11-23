@@ -204,7 +204,8 @@ describe('Mining manager', () => {
       const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
 
       const validBlock = BlockTemplateSerde.deserialize(blockTemplateA1)
-      // This value is what the code generates from the fixture block
+      // These values are what the code generates from the fixture block
+      validBlock.header.noteSize = 4
       validBlock.header.work = expect.any(BigInt)
 
       // This populates the _hash field on all transactions so that

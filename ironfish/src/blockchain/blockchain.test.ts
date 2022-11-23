@@ -390,7 +390,7 @@ describe('Blockchain', () => {
     const genesis = nodeTest.chain.genesis
     expect(node.chain.head?.hash).toEqualBuffer(genesis.hash)
 
-    blockB3.header.noteCommitment.size -= 2
+    blockB3.header.noteCommitment.set(Array.from({ length: 32 }, () => 0))
 
     await expect(node.chain).toAddBlock(blockA1)
     expect(node.chain.head?.hash).toEqualBuffer(blockA1.header.hash)
@@ -411,7 +411,7 @@ describe('Blockchain', () => {
 
     await expect(node.chain).toAddBlock(blockA3)
     expect(node.chain.head?.hash).toEqualBuffer(blockA3.header.hash)
-    expect(await node.chain.notes.size()).toBe(blockA3.header.noteCommitment.size)
+    expect(await node.chain.notes.size()).toBe(blockA3.header.noteSize)
   })
 
   describe('MerkleTrees', () => {

@@ -18,8 +18,8 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
 
     bw.writeU32(value.header.sequence)
     bw.writeHash(value.header.previousBlockHash)
-    bw.writeHash(value.header.noteCommitment.commitment)
-    bw.writeU32(value.header.noteCommitment.size)
+    bw.writeHash(value.header.noteCommitment)
+    bw.writeU32(value.header.noteSize ?? 0)
     bw.writeHash(value.header.nullifierCommitment.commitment)
     bw.writeU32(value.header.nullifierCommitment.size)
     bw.writeHash(value.header.transactionCommitment)
@@ -40,7 +40,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const sequence = reader.readU32()
     const previousBlockHash = reader.readHash()
     const noteCommitment = reader.readHash()
-    const noteCommitmentSize = reader.readU32()
+    const noteSize = reader.readU32() || null
     const nullifierCommitment = reader.readHash()
     const nullifierCommitmentSize = reader.readU32()
     const transactionCommitment = reader.readHash()
@@ -54,10 +54,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const header = new BlockHeader(
       sequence,
       previousBlockHash,
-      {
-        commitment: noteCommitment,
-        size: noteCommitmentSize,
-      },
+      noteCommitment,
       {
         commitment: nullifierCommitment,
         size: nullifierCommitmentSize,
@@ -67,6 +64,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
       randomness,
       new Date(timestamp),
       graffiti,
+      noteSize,
       work,
       hash,
     )
@@ -78,8 +76,8 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     let size = 0
     size += 4 // sequence
     size += 32 // previousBlockHash
-    size += 32 // noteCommitment.commitment
-    size += 4 // noteCommitment.size
+    size += 32 // noteCommitment
+    size += 4 // noteSize
     size += 32 // nullifierCommitment.commitment
     size += 4 // nullifierCommitment.size
     size += 32 // transactionCommitment

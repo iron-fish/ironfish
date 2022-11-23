@@ -25,13 +25,7 @@ const serializedBlockTemplateSchema: yup.ObjectSchema<SubmitBlockRequest> = yup
       .object({
         sequence: yup.number().required(),
         previousBlockHash: yup.string().required(),
-        noteCommitment: yup
-          .object({
-            commitment: yup.string().required(),
-            size: yup.number().required(),
-          })
-          .required()
-          .defined(),
+        noteCommitment: yup.string().required(),
         nullifierCommitment: yup
           .object({
             commitment: yup.string().required(),

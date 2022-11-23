@@ -119,7 +119,7 @@ export class BlockHeader {
    * block have been added to it. Stored as the hash and the size of the tree
    * at the time the hash was calculated.
    */
-  public noteCommitment: { commitment: NoteEncryptedHash; size: number }
+  public noteCommitment: NoteEncryptedHash
 
   /**
    * Commitment to the nullifier set after all the spends in this block have
@@ -163,6 +163,12 @@ export class BlockHeader {
   public graffiti: Buffer
 
   /**
+   * (For internal uses - excluded when sent over the network)
+   * The size of the notes tree after adding transactions from this block.
+   */
+  public noteSize: number | null
+
+  /**
    * (For internal uses — excluded when sent over the network)
    * Cumulative work from genesis to this block
    */
@@ -173,13 +179,14 @@ export class BlockHeader {
   constructor(
     sequence: number,
     previousBlockHash: BlockHash,
-    noteCommitment: { commitment: NoteEncryptedHash; size: number },
+    noteCommitment: NoteEncryptedHash,
     nullifierCommitment: { commitment: NullifierHash; size: number },
     transactionCommitment: Buffer,
     target: Target,
     randomness = BigInt(0),
     timestamp: Date | undefined = undefined,
     graffiti: Buffer,
+    noteSize?: number | null,
     work = BigInt(0),
     hash?: Buffer,
   ) {
@@ -191,8 +198,9 @@ export class BlockHeader {
     this.target = target
     this.randomness = randomness
     this.timestamp = timestamp || new Date()
-    this.work = work
     this.graffiti = graffiti
+    this.noteSize = noteSize ?? null
+    this.work = work
     this.hash = hash || this.recomputeHash()
   }
 
@@ -246,10 +254,7 @@ export class BlockHeader {
 export type SerializedBlockHeader = {
   sequence: number
   previousBlockHash: string
-  noteCommitment: {
-    commitment: SerializedNoteEncryptedHash
-    size: number
-  }
+  noteCommitment: SerializedNoteEncryptedHash
   nullifierCommitment: {
     commitment: string
     size: number
@@ -259,6 +264,7 @@ export type SerializedBlockHeader = {
   randomness: string
   timestamp: number
 
+  noteSize: number | null
   work?: string
   graffiti: string
 }
@@ -267,8 +273,7 @@ export class BlockHeaderSerde {
   static equals(element1: BlockHeader, element2: BlockHeader): boolean {
     return (
       element1.sequence === element2.sequence &&
-      element1.noteCommitment.commitment.equals(element2.noteCommitment.commitment) &&
-      element1.noteCommitment.size === element2.noteCommitment.size &&
+      element1.noteCommitment.equals(element2.noteCommitment) &&
       NullifierSerdeInstance.equals(
         element1.nullifierCommitment.commitment,
         element2.nullifierCommitment.commitment,
@@ -286,10 +291,7 @@ export class BlockHeaderSerde {
     const serialized = {
       sequence: header.sequence,
       previousBlockHash: BlockHashSerdeInstance.serialize(header.previousBlockHash),
-      noteCommitment: {
-        commitment: header.noteCommitment.commitment,
-        size: header.noteCommitment.size,
-      },
+      noteCommitment: header.noteCommitment,
       nullifierCommitment: {
         commitment: NullifierSerdeInstance.serialize(header.nullifierCommitment.commitment),
         size: header.nullifierCommitment.size,
@@ -298,9 +300,9 @@ export class BlockHeaderSerde {
       target: header.target.targetValue.toString(),
       randomness: header.randomness.toString(),
       timestamp: header.timestamp.getTime(),
-      work: header.work.toString(),
-      hash: BlockHashSerdeInstance.serialize(header.hash),
       graffiti: GraffitiSerdeInstance.serialize(header.graffiti),
+      noteSize: header.noteSize,
+      work: header.work.toString(),
     }
 
     return serialized
@@ -310,10 +312,7 @@ export class BlockHeaderSerde {
     return new BlockHeader(
       Number(data.sequence),
       Buffer.from(BlockHashSerdeInstance.deserialize(data.previousBlockHash)),
-      {
-        commitment: data.noteCommitment.commitment,
-        size: data.noteCommitment.size,
-      },
+      data.noteCommitment,
       {
         commitment: NullifierSerdeInstance.deserialize(data.nullifierCommitment.commitment),
         size: data.nullifierCommitment.size,
@@ -323,6 +322,7 @@ export class BlockHeaderSerde {
       BigInt(data.randomness),
       new Date(data.timestamp),
       Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
+      data.noteSize,
       data.work ? BigInt(data.work) : BigInt(0),
     )
   }

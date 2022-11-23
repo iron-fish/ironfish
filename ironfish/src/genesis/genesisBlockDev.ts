@@ -8,11 +8,8 @@ export const genesisBlockData = `
     "sequence": 1,
     "previousBlockHash": "0000000000000000000000000000000000000000000000000000000000000000",
     "noteCommitment": {
-      "commitment": {
-        "type": "Buffer",
-        "data": "base64:06Sl4v9BqNu0nwgft15kBtk2AHbSKX1w65Wz5h0//gk="
-      },
-      "size": 3
+      "type": "Buffer",
+      "data": "base64:06Sl4v9BqNu0nwgft15kBtk2AHbSKX1w65Wz5h0//gk="
     },
     "nullifierCommitment": {
       "commitment": "68412AF594D80DD8D651A57F4D8EBA7F37D88419AB0FF5F90E6517CEB0D6D3DB",
@@ -22,7 +19,6 @@ export const genesisBlockData = `
     "randomness": 0,
     "timestamp": 1638249991358,
     "work": "0",
-    "hash": "4655C8E9B27EEC8129830AD94C970A0AE3C2338B8CB29CBA3AB572ED65ACAC1C",
     "graffiti": "67656E6573697300000000000000000000000000000000000000000000000000"
   },
   "transactions": [
