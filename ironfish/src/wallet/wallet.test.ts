@@ -297,40 +297,40 @@ describe('Accounts', () => {
   })
 
   describe('scanTransactions', () => {
-    it('should update head status', async () => {
+    it.only('should update head status', async () => {
       // G -> 1 -> 2
-      const { node } = nodeTest
+      const { chain, wallet } = nodeTest
 
-      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountA = await useAccountFixture(wallet, 'accountA')
 
-      const block1 = await useMinerBlockFixture(node.chain, 2, accountA)
-      await expect(node.chain).toAddBlock(block1)
-      await node.wallet.updateHead()
+      const block1 = await useMinerBlockFixture(chain, 2, accountA)
+      await expect(chain).toAddBlock(block1)
+      await wallet.updateHead()
 
       // create a second account and import it so that its head hash is null
       const { node: nodeB } = await nodeTest.createSetup()
       const toImport = await useAccountFixture(nodeB.wallet, 'accountB')
-      const accountB = await node.wallet.importAccount(toImport)
+      const accountB = await wallet.importAccount(toImport)
 
-      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
-      await expect(node.chain).toAddBlock(block2)
+      const block2 = await useMinerBlockFixture(chain, 2, accountA)
+      await expect(chain).toAddBlock(block2)
 
-      expect(node.wallet['headHashes'].get(accountA.id)).toEqual(block1.header.hash)
-      expect(node.wallet['headHashes'].get(accountB.id)).toEqual(null)
+      expect(wallet['headHashes'].get(accountA.id)).toEqual(block1.header.hash)
+      expect(wallet['headHashes'].get(accountB.id)).toEqual(null)
 
-      await node.wallet.updateHead()
+      await wallet.updateHead()
 
       // Confirm pre-rescan state
-      expect(node.wallet['headHashes'].get(accountA.id)).toEqual(block2.header.hash)
-      expect(node.wallet['headHashes'].get(accountB.id)).toEqual(null)
+      expect(wallet['headHashes'].get(accountA.id)).toEqual(block2.header.hash)
+      expect(wallet['headHashes'].get(accountB.id)).toEqual(null)
 
-      await node.wallet.scanTransactions()
+      await wallet.scanTransactions()
 
-      expect(node.wallet['headHashes'].get(accountA.id)).toEqual(block2.header.hash)
-      expect(node.wallet['headHashes'].get(accountB.id)).toEqual(block2.header.hash)
+      expect(wallet['headHashes'].get(accountA.id)).toEqual(block2.header.hash)
+      expect(wallet['headHashes'].get(accountB.id)).toEqual(block2.header.hash)
     })
 
-    it('should rescan and update chain processor', async () => {
+    it.only('should rescan and update chain processor', async () => {
       const { chain, wallet } = nodeTest
 
       await useAccountFixture(wallet, 'accountA')
