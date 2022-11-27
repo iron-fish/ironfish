@@ -31,6 +31,10 @@ export class SetCommand extends IronfishCommand {
     }),
   }
 
+  static examples = [
+    '$ ironfish config:set bootstrapNodes "test.bn1.ironfish.network,example.com"',
+  ]
+
   async start(): Promise<void> {
     const { args, flags } = await this.parse(SetCommand)
     const name = args.name as string

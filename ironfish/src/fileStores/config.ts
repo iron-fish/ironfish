@@ -39,6 +39,7 @@ export const DEFAULT_POOL_STATUS_NOTIFICATION_INTERVAL = 30 * 60 // 30 minutes
 export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 
 export type ConfigOptions = {
+  bootstrapNodes: string[]
   databaseName: string
   databaseMigrate: boolean
   editor: string
@@ -257,6 +258,7 @@ export type ConfigOptions = {
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .object({
+    bootstrapNodes: yup.array().of(yup.string().defined()),
     databaseName: yup.string(),
     databaseMigrate: yup.boolean(),
     editor: yup.string().trim(),
@@ -349,6 +351,7 @@ export class Config extends KeyStore<ConfigOptions> {
 
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
+      bootstrapNodes: [],
       databaseName: DEFAULT_DATABASE_NAME,
       databaseMigrate: false,
       defaultTransactionExpirationSequenceDelta: 15,

@@ -52,6 +52,11 @@ export default class Start extends IronfishCommand {
     [RpcTcpTlsFlagKey]: RpcTcpTlsFlag,
     [RpcTcpHostFlagKey]: RpcTcpHostFlag,
     [RpcTcpPortFlagKey]: RpcTcpPortFlag,
+    bootstrap: Flags.string({
+      char: 'b',
+      description: 'Comma-separated addresses of bootstrap nodes to connect to',
+      multiple: true,
+    }),
     port: Flags.integer({
       char: 'p',
       description: 'Port to run the local ws server on',
@@ -125,6 +130,7 @@ export default class Start extends IronfishCommand {
 
     const { flags } = await this.parse(Start)
     const {
+      bootstrap,
       forceMining,
       graffiti,
       listen,
@@ -138,6 +144,15 @@ export default class Start extends IronfishCommand {
       customNetwork,
     } = flags
 
+    if (bootstrap !== undefined) {
+      // Parse comma-separated bootstrap nodes
+      const bootstrapNodes = bootstrap
+        .flatMap((b) => b.split(','))
+        .filter(Boolean)
+        .map((b) => b.trim())
+
+      this.sdk.config.setOverride('bootstrapNodes', bootstrapNodes)
+    }
     if (port !== undefined && port !== this.sdk.config.get('peerPort')) {
       this.sdk.config.setOverride('peerPort', port)
     }
@@ -196,6 +211,7 @@ export default class Start extends IronfishCommand {
     const nodeName = this.sdk.config.get('nodeName').trim() || null
     const blockGraffiti = this.sdk.config.get('blockGraffiti').trim() || null
     const peerPort = this.sdk.config.get('peerPort')
+    const bootstraps = this.sdk.config.getArray('bootstrapNodes')
 
     this.log(`\n${ONE_FISH_IMAGE}`)
     this.log(`Version       ${node.pkg.version} @ ${node.pkg.git}`)
@@ -204,6 +220,7 @@ export default class Start extends IronfishCommand {
     this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
     this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
+    this.log(`Bootstrap     ${bootstraps.join(',') || 'FROM NETWORK DEFINITION'}`)
     if (inspector.url()) {
       this.log(`Inspector     ${String(inspector.url())}`)
     }

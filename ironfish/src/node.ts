@@ -253,6 +253,11 @@ export class IronfishNode {
       consensus: ConsensusParameters
     }
 
+    const bootstrapNodes =
+      config.get('bootstrapNodes').length === 0
+        ? networkDefinition.bootstrapNodes
+        : config.get('bootstrapNodes')
+
     const consensus = new TestnetConsensus(networkDefinition.consensus)
 
     strategyClass = strategyClass || Strategy
@@ -320,7 +325,7 @@ export class IronfishNode {
       hostsStore,
       minedBlocksIndexer,
       networkId: networkDefinition.id,
-      bootstrapNodes: networkDefinition.bootstrapNodes,
+      bootstrapNodes,
     })
   }
 
