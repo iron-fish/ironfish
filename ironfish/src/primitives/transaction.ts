@@ -33,6 +33,8 @@ export class Transaction {
 
     const _spendsLength = reader.readU64() // 8
     const _notesLength = reader.readU64() // 8
+    const _mintsLength = reader.readU64() // 8
+    const _burnsLength = reader.readU64() // 8
     this._fee = BigInt(reader.readI64()) // 8
     this._expirationSequence = reader.readU32() // 4
 

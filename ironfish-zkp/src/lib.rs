@@ -2,9 +2,11 @@ mod circuits;
 pub mod constants;
 pub mod util;
 
+pub use crate::circuits::value_commitment::ValueCommitment;
+
 pub use zcash_primitives::sapling::{
     group_hash::group_hash, pedersen_hash, redjubjub, Diversifier, Note as SaplingNote, Nullifier,
-    PaymentAddress, ProofGenerationKey, Rseed, ValueCommitment, ViewingKey,
+    PaymentAddress, ProofGenerationKey, Rseed, ViewingKey,
 };
 
 pub mod proofs {

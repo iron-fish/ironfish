@@ -4,7 +4,6 @@ use group::Curve;
 use bellman::{Circuit, ConstraintSystem, SynthesisError};
 
 use jubjub::SubgroupPoint;
-use zcash_primitives::sapling::ValueCommitment;
 
 use zcash_proofs::{
     circuit::{
@@ -14,15 +13,19 @@ use zcash_proofs::{
     constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
-use crate::constants::proof::PUBLIC_KEY_GENERATOR;
+use crate::{constants::proof::PUBLIC_KEY_GENERATOR, ValueCommitment};
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::boolean;
 
-/// This is an output circuit instance.
+/// This is a circuit instance inspired from ZCash's `Output` circuit in the Sapling protocol
+/// https://github.com/zcash/librustzcash/blob/main/zcash_proofs/src/circuit/sapling.rs#L57-L70
 pub struct Output {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
+
+    /// Asset generator derived from the hashed asset info
+    pub asset_generator: Option<jubjub::ExtendedPoint>,
 
     /// The payment address of the recipient
     pub payment_address: Option<SubgroupPoint>,
@@ -43,10 +46,16 @@ impl Circuit<bls12_381::Scalar> for Output {
         // value (big endian)
         let mut note_contents = vec![];
 
+        let asset_generator =
+            ecc::EdwardsPoint::witness(cs.namespace(|| "asset_generator"), self.asset_generator)?;
+        note_contents
+            .extend(asset_generator.repr(cs.namespace(|| "representation of asset_generator"))?);
+
         // Expose the value commitment and place the value
         // in the note.
         note_contents.extend(expose_value_commitment(
             cs.namespace(|| "value commitment"),
+            asset_generator,
             self.value_commitment,
         )?);
 
@@ -96,6 +105,7 @@ impl Circuit<bls12_381::Scalar> for Output {
 
         assert_eq!(
             note_contents.len(),
+            256 + // asset generator
             64 + // value
             256 // pk_d
         );
@@ -142,12 +152,14 @@ mod test {
     use group::{Curve, Group};
     use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
-    use zcash_primitives::sapling::{Note, ValueCommitment};
+    use zcash_primitives::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
+    use zcash_primitives::sapling::Note;
     use zcash_primitives::sapling::{ProofGenerationKey, Rseed};
 
-    use crate::circuits::output::Output;
-
-    use crate::{constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point};
+    use crate::{
+        circuits::output::Output, constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point,
+        ValueCommitment,
+    };
 
     #[test]
     fn test_output_circuit_with_bls12_381() {
@@ -160,6 +172,7 @@ mod test {
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: jubjub::Fr::random(&mut rng),
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
             };
 
             let nsk = jubjub::Fr::random(&mut rng);
@@ -182,15 +195,16 @@ mod test {
                     payment_address: Some(payment_address),
                     commitment_randomness: Some(commitment_randomness),
                     esk: Some(esk),
+                    asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 4081);
+                assert_eq!(cs.num_constraints(), 5926);
                 assert_eq!(
                     cs.hash(),
-                    "afdf3f46cc103ea1214906ca3586abe0a47292889175d11909821708ed2d7901"
+                    "fe17a277936c74ef5dc404f014871aa59a300b00f0528cd8db1d9d07a55dfbf1"
                 );
 
                 let note = Some(Note {
@@ -201,9 +215,13 @@ mod test {
                 })
                 .expect("should be valid");
 
-                let expected_cmu = jubjub::ExtendedPoint::from(commitment_full_point(note))
-                    .to_affine()
-                    .get_u();
+                let commitment = commitment_full_point(
+                    value_commitment.asset_generator,
+                    value_commitment.value,
+                    payment_address,
+                    note.rcm(),
+                );
+                let expected_cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
 
                 let expected_value_commitment =
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();

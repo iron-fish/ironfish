@@ -53,6 +53,7 @@ fn main() {
                 ar: None,
                 auth_path: vec![None; TREE_DEPTH],
                 anchor: None,
+                asset_generator: None,
             },
         );
     }
@@ -65,6 +66,7 @@ fn main() {
                 payment_address: None,
                 commitment_randomness: None,
                 esk: None,
+                asset_generator: None,
             },
         );
     }

@@ -11,8 +11,7 @@ use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use ff::Field;
 use group::Curve;
-use ironfish_zkp::proofs::Output;
-use ironfish_zkp::ValueCommitment;
+use ironfish_zkp::{proofs::Output, ValueCommitment};
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
@@ -41,6 +40,7 @@ impl OutputBuilder {
         let value_commitment = ValueCommitment {
             value: note.value,
             randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator: note.asset_generator(),
         };
 
         Self {
@@ -82,6 +82,7 @@ impl OutputBuilder {
             payment_address: Some(self.note.owner.transmission_key),
             commitment_randomness: Some(self.note.randomness),
             esk: Some(diffie_hellman_keys.0),
+            asset_generator: Some(self.note.asset_generator().into()),
         };
 
         let proof =
@@ -206,7 +207,10 @@ impl OutputDescription {
 #[cfg(test)]
 mod test {
     use super::{OutputBuilder, OutputDescription};
-    use crate::{keys::SaplingKey, merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note};
+    use crate::{
+        assets::asset::NATIVE_ASSET_GENERATOR, keys::SaplingKey,
+        merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note,
+    };
     use ff::PrimeField;
     use group::Curve;
     use jubjub::ExtendedPoint;
@@ -216,7 +220,7 @@ mod test {
     /// set will use the hard-coded note encryption keys
     fn test_output_miners_fee() {
         let spender_key = SaplingKey::generate_key();
-        let note = Note::new(spender_key.public_address(), 42, "");
+        let note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
 
         let mut output = OutputBuilder::new(note);
         output.set_is_miners_fee();
@@ -234,7 +238,7 @@ mod test {
     #[test]
     fn test_output_not_miners_fee() {
         let spender_key = SaplingKey::generate_key();
-        let note = Note::new(spender_key.public_address(), 42, "");
+        let note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
 
         let output = OutputBuilder::new(note);
 
@@ -251,7 +255,7 @@ mod test {
     #[test]
     fn test_output_round_trip() {
         let spender_key = SaplingKey::generate_key();
-        let note = Note::new(spender_key.public_address(), 42, "");
+        let note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
 
         let output = OutputBuilder::new(note);
         let proof = output
