@@ -2,9 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { ENCRYPTED_NOTE_LENGTH, TransactionPosted } from '@ironfish/rust-nodejs'
+import {
+  ASSET_LENGTH,
+  ENCRYPTED_NOTE_LENGTH,
+  NativeAsset,
+  TransactionPosted,
+} from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
+import { MintDescription } from './mintDescription'
 import { NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
 
@@ -19,6 +25,7 @@ export class Transaction {
   private readonly _expirationSequence: number
   private readonly _spends: Spend[] = []
   private readonly _notes: NoteEncrypted[]
+  private readonly _mints: MintDescription[]
   private readonly _signature: Buffer
   private _hash?: TransactionHash
   private _unsignedHash?: TransactionHash
@@ -66,6 +73,23 @@ export class Transaction {
       reader.seek(192)
 
       return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
+    })
+
+    this._mints = Array.from({ length: _mintsLength }, () => {
+      // proof
+      reader.seek(192)
+
+      const asset = new NativeAsset(reader.readBytes(ASSET_LENGTH))
+      const value = reader.readU8()
+
+      // value commitment
+      reader.seek(32)
+      // randomized public key
+      reader.seek(32)
+      // authorizing signature
+      reader.seek(64)
+
+      return new MintDescription(asset, value)
     })
 
     this._signature = reader.readBytes(64, true)
