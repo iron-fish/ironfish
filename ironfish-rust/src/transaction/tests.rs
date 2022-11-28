@@ -12,17 +12,15 @@ use crate::{
     test_util::make_fake_witness,
 };
 
-use group::GroupEncoding;
 use ironfish_zkp::redjubjub::Signature;
 
 #[test]
 fn test_transaction() {
-    let spender_key: SaplingKey = SaplingKey::generate_key();
-    let receiver_key: SaplingKey = SaplingKey::generate_key();
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
 
     // Native asset
     let in_note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
-    println!("NATIVE ASSET::: {:?}", NATIVE_ASSET_GENERATOR.to_bytes());
     let out_note = Note::new(
         receiver_key.public_address(),
         40,
@@ -58,11 +56,11 @@ fn test_transaction() {
     transaction.add_mint(asset, mint_value);
     assert_eq!(transaction.mints.len(), 1);
 
-    // Mint output 2 coin to receiver
+    // Mint output 2 tokens to receiver
     transaction.add_output(mint_out_note);
     assert_eq!(transaction.outputs.len(), 2);
 
-    // Burn 2 coin, leaving 1 coin left to be put into a change note
+    // Burn 2 tokens, leaving 1 token left to be put into a change note
     transaction.add_burn(asset, burn_value);
     assert_eq!(transaction.burns.len(), 1);
 
@@ -76,7 +74,7 @@ fn test_transaction() {
 
     // 4 outputs:
     // - 1 change note for the native asset
-    // - 1 change notefor the custom asset
+    // - 1 change note for the custom asset
     // - 1 provided output to receiver for native asset
     // - 1 provided output to receiver for minted asset
     assert_eq!(public_transaction.outputs.len(), 4);
@@ -121,8 +119,8 @@ fn test_transaction() {
 
 #[test]
 fn test_transaction_simple() {
-    let spender_key: SaplingKey = SaplingKey::generate_key();
-    let receiver_key: SaplingKey = SaplingKey::generate_key();
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
     let in_note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
     let out_note = Note::new(
         receiver_key.public_address(),
@@ -155,7 +153,7 @@ fn test_transaction_simple() {
 
 #[test]
 fn test_miners_fee() {
-    let receiver_key: SaplingKey = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
     let out_note = Note::new(
         receiver_key.public_address(),
         42,

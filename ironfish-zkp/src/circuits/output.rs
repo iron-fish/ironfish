@@ -24,7 +24,7 @@ pub struct Output {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
 
-    /// Asset generator derived from the asset identifier
+    /// Asset generator derived from the hashed asset info
     pub asset_generator: Option<jubjub::ExtendedPoint>,
 
     /// The payment address of the recipient

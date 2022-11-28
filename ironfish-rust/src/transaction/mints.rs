@@ -170,7 +170,7 @@ pub struct MintDescription {
 
 impl MintDescription {
     pub fn verify_proof(&self) -> Result<(), IronfishError> {
-        // Verify that the identifier maps to a valid generator point
+        // Verify that the asset info hash maps to a valid generator point
         asset_generator_point(&self.asset.asset_info_hashed)?;
 
         self.verify_not_small_order()?;
@@ -216,10 +216,10 @@ impl MintDescription {
     pub fn public_inputs(&self) -> [Scalar; 6] {
         let mut public_inputs = [Scalar::zero(); 6];
 
-        let identifier_bits = multipack::bytes_to_bits_le(&self.asset.asset_info_hashed);
-        let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
-        public_inputs[0] = identifier_inputs[0];
-        public_inputs[1] = identifier_inputs[1];
+        let asset_info_hashed_bits = multipack::bytes_to_bits_le(&self.asset.asset_info_hashed);
+        let asset_info_hashed_inputs = multipack::compute_multipacking(&asset_info_hashed_bits);
+        public_inputs[0] = asset_info_hashed_inputs[0];
+        public_inputs[1] = asset_info_hashed_inputs[1];
 
         let value_commitment_point = self.value_commitment.to_affine();
         public_inputs[2] = value_commitment_point.get_u();

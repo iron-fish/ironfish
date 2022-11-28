@@ -31,7 +31,7 @@ pub struct Spend {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
 
-    /// Asset generator derived from the asset identifier
+    /// Asset generator derived from the hashed asset info
     pub asset_generator: Option<jubjub::ExtendedPoint>,
 
     /// Key required to construct proofs for spending notes
