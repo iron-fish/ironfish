@@ -25,7 +25,13 @@ import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
 import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
-import { BlockHash, BlockHeader, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
+import {
+  BlockHash,
+  BlockHeader,
+  isBlockHeavier,
+  isBlockLater,
+  transactionCommitment,
+} from '../primitives/blockheader'
 import {
   NoteEncrypted,
   NoteEncryptedHash,
@@ -974,6 +980,7 @@ export class Blockchain {
         previousBlockHash,
         noteCommitment,
         nullifierCommitment,
+        transactionCommitment(transactions),
         target,
         BigInt(0),
         timestamp,

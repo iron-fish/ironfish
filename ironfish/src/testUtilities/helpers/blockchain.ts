@@ -6,7 +6,7 @@ import '../matchers/blockchain'
 import { Assert } from '../../assert'
 import { Blockchain } from '../../blockchain'
 import { Block } from '../../primitives/block'
-import { BlockHeader } from '../../primitives/blockheader'
+import { BlockHeader, transactionCommitment } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { GraffitiUtils } from '../../utils/graffiti'
 
@@ -35,6 +35,7 @@ export async function makeBlockAfter(
     after.hash,
     after.noteCommitment,
     after.nullifierCommitment,
+    transactionCommitment([]),
     target,
     randomness,
     timestamp,

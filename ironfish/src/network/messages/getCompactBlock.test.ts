@@ -39,6 +39,7 @@ describe('GetCompactBlockResponse', () => {
           commitment: Buffer.alloc(32, 2),
           size: 2,
         },
+        Buffer.alloc(32, 2),
         new Target(12),
         BigInt(1),
         new Date(200000),

@@ -6,7 +6,7 @@ import bufio from 'bufio'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 
 export function mineableHeaderString(header: SerializedBlockTemplate['header']): Buffer {
-  const bw = bufio.write(208)
+  const bw = bufio.write(240)
   bw.writeBytes(Buffer.from(header.randomness, 'hex'))
   bw.writeU64(header.sequence)
   bw.writeHash(header.previousBlockHash)
@@ -14,6 +14,7 @@ export function mineableHeaderString(header: SerializedBlockTemplate['header']):
   bw.writeU64(header.noteCommitment.size)
   bw.writeHash(header.nullifierCommitment.commitment)
   bw.writeU64(header.nullifierCommitment.size)
+  bw.writeHash(Buffer.from(header.transactionCommitment, 'hex'))
   bw.writeHash(header.target)
   bw.writeU64(header.timestamp)
   bw.writeBytes(Buffer.from(header.graffiti, 'hex'))
@@ -30,6 +31,7 @@ export function minedPartialHeader(data: Buffer): SerializedBlockTemplate['heade
   const noteCommitmentSize = br.readU64()
   const nullifierCommitment = br.readHash()
   const nullifierCommitmentSize = br.readU64()
+  const transactionCommitment = br.readHash()
   const target = br.readBytes(32)
   const timestamp = br.readU64()
   const graffiti = br.readBytes(32)
@@ -49,5 +51,6 @@ export function minedPartialHeader(data: Buffer): SerializedBlockTemplate['heade
       commitment: nullifierCommitment.toString('hex'),
       size: nullifierCommitmentSize,
     },
+    transactionCommitment: transactionCommitment.toString('hex'),
   }
 }

@@ -34,6 +34,7 @@ export const BlockTemplateStreamResponseSchema: yup.ObjectSchema<BlockTemplateSt
             })
             .required()
             .defined(),
+          transactionCommitment: yup.string().required(),
           target: yup.string().required(),
           randomness: yup.string().required(),
           timestamp: yup.number().required(),

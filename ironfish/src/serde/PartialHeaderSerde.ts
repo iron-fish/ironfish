@@ -10,7 +10,7 @@ import { BigIntUtils } from '../utils'
 
 export default class PartialBlockHeaderSerde {
   static serialize(header: PartialBlockHeader): Buffer {
-    const bw = bufio.write(192)
+    const bw = bufio.write(224)
     // TODO: change sequence to u32. expiration_sequence is u32 on transactions, and we're not
     // likely to overflow for a long time.
     bw.writeU64(header.sequence)
@@ -23,6 +23,7 @@ export default class PartialBlockHeaderSerde {
     // TODO: change commitment size to u32. tree_size on spend proofs is
     // a u32, and our merkle trees have depth of 32.
     bw.writeU64(header.nullifierCommitment.size)
+    bw.writeHash(header.transactionCommitment)
     // TODO: Change to little-endian for consistency, since other non-bigint numbers are serialized as little-endian.
     bw.writeBytes(BigIntUtils.toBytesBE(header.target.asBigInt(), 32))
     bw.writeU64(header.timestamp.getTime())
@@ -38,6 +39,7 @@ export default class PartialBlockHeaderSerde {
     const noteCommitmentSize = br.readU64()
     const nullifierCommitment = br.readHash()
     const nullifierCommitmentSize = br.readU64()
+    const transactionCommitment = br.readHash()
     const target = br.readBytes(32)
     const timestamp = br.readU64()
     const graffiti = br.readBytes(32)
@@ -56,6 +58,7 @@ export default class PartialBlockHeaderSerde {
         commitment: nullifierCommitment,
         size: nullifierCommitmentSize,
       },
+      transactionCommitment,
     }
   }
 
@@ -75,6 +78,7 @@ export type PartialBlockHeader = {
     commitment: NullifierHash
     size: number
   }
+  transactionCommitment: Buffer
   target: Target
   timestamp: Date
   graffiti: Buffer

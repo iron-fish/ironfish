@@ -22,6 +22,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     bw.writeU32(value.header.noteCommitment.size)
     bw.writeHash(value.header.nullifierCommitment.commitment)
     bw.writeU32(value.header.nullifierCommitment.size)
+    bw.writeHash(value.header.transactionCommitment)
     bw.writeBytes(BigIntUtils.toBytesLE(value.header.target.asBigInt(), 32))
     bw.writeBytes(BigIntUtils.toBytesLE(value.header.randomness, 8))
     bw.writeU64(value.header.timestamp.getTime())
@@ -42,6 +43,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const noteCommitmentSize = reader.readU32()
     const nullifierCommitment = reader.readHash()
     const nullifierCommitmentSize = reader.readU32()
+    const transactionCommitment = reader.readHash()
     const target = new Target(BigIntUtils.fromBytesLE(reader.readBytes(32)))
     const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8))
     const timestamp = reader.readU64()
@@ -60,6 +62,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
         commitment: nullifierCommitment,
         size: nullifierCommitmentSize,
       },
+      transactionCommitment,
       target,
       randomness,
       new Date(timestamp),
@@ -79,6 +82,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     size += 4 // noteCommitment.size
     size += 32 // nullifierCommitment.commitment
     size += 4 // nullifierCommitment.size
+    size += 32 // transactionCommitment
     size += 32 // target
     size += 8 // randomness
     size += 8 // timestamp

@@ -23,6 +23,7 @@ export function writeBlockHeader(
   bw.writeU32(header.noteCommitment.size)
   bw.writeHash(header.nullifierCommitment.commitment)
   bw.writeU32(header.nullifierCommitment.size)
+  bw.writeHash(header.transactionCommitment)
   bw.writeBytes(BigIntUtils.toBytesLE(header.target.targetValue, 32))
   bw.writeBytes(BigIntUtils.toBytesLE(header.randomness, 8))
   bw.writeU64(header.timestamp.getTime())
@@ -39,6 +40,7 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
   const noteCommitmentSize = reader.readU32()
   const nullifierCommitment = reader.readHash()
   const nullifierCommitmentSize = reader.readU32()
+  const transactionCommitment = reader.readHash()
   const target = BigIntUtils.fromBytesLE(reader.readBytes(32))
   const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8))
   const timestamp = reader.readU64()
@@ -55,6 +57,7 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
       commitment: nullifierCommitment,
       size: nullifierCommitmentSize,
     },
+    transactionCommitment,
     new Target(target),
     randomness,
     new Date(timestamp),
@@ -70,6 +73,7 @@ export function getBlockHeaderSize(): number {
   size += 4 // noteCommitment.size
   size += 32 // nullifierCommitment.commitment
   size += 4 // nullifierCommitment.size
+  size += 32 // transactionCommitment
   size += 32 // target
   size += 8 // randomness
   size += 8 // timestamp
