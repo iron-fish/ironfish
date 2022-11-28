@@ -54,7 +54,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
             .assert_not_small_order(cs.namespace(|| "asset_public_key not small order"))?;
 
         // Create the Asset Info pre-image
-        let identifier_preimage = asset_info_preimage(
+        let asset_info_preimage = asset_info_preimage(
             &mut cs.namespace(|| "asset info preimage"),
             &self.name,
             &self.metadata,
@@ -63,19 +63,19 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         )?;
 
         // Computed identifier bits from the given asset info
-        let asset_identifier_point = pedersen_hash::pedersen_hash(
-            cs.namespace(|| "asset identifier hash"),
+        let asset_info_hashed_point = pedersen_hash::pedersen_hash(
+            cs.namespace(|| "asset info hash"),
             ASSET_IDENTIFIER_PERSONALIZATION,
-            &identifier_preimage,
+            &asset_info_preimage,
         )?;
 
-        let asset_identifier =
-            asset_identifier_point.repr(cs.namespace(|| "asset identifier bytes"))?;
+        let asset_info_hashed_bits =
+            asset_info_hashed_point.repr(cs.namespace(|| "asset info hashed bytes"))?;
 
         // Ensure the pre-image of the generator is 32 bytes
-        assert_eq!(asset_identifier.len(), 256);
+        assert_eq!(asset_info_hashed_bits.len(), 256);
 
-        multipack::pack_into_inputs(cs.namespace(|| "pack identifier"), &asset_identifier)?;
+        multipack::pack_into_inputs(cs.namespace(|| "pack asset info"), &asset_info_hashed_bits)?;
 
         // Witness and expose the value commitment
         let asset_generator = ecc::EdwardsPoint::witness(
@@ -148,13 +148,13 @@ mod test {
 
         let asset_plaintext_bits = multipack::bytes_to_bits_le(&asset_plaintext);
 
-        let identifier_point =
+        let asset_info_hashed_point =
             pedersen_hash::pedersen_hash(ASSET_IDENTIFIER_PERSONALIZATION, asset_plaintext_bits);
 
-        let identifier = identifier_point.to_bytes();
+        let asset_info_hashed_bytes = asset_info_hashed_point.to_bytes();
 
-        let identifier_bits = multipack::bytes_to_bits_le(&identifier);
-        let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
+        let asset_info_hashed_bits = multipack::bytes_to_bits_le(&asset_info_hashed_bytes);
+        let asset_info_hashed_inputs = multipack::compute_multipacking(&asset_info_hashed_bits);
 
         let value_commitment = ValueCommitment {
             value: 5,
@@ -170,8 +170,8 @@ mod test {
         let randomized_public_key_point = randomized_public_key.0.to_affine();
 
         let public_inputs = vec![
-            identifier_inputs[0],
-            identifier_inputs[1],
+            asset_info_hashed_inputs[0],
+            asset_info_hashed_inputs[1],
             value_commitment_point.get_u(),
             value_commitment_point.get_v(),
             randomized_public_key_point.get_u(),
@@ -216,13 +216,13 @@ mod test {
 
         let asset_plaintext_bits = multipack::bytes_to_bits_le(&asset_plaintext);
 
-        let identifier_point =
+        let asset_info_hashed_point =
             pedersen_hash::pedersen_hash(ASSET_IDENTIFIER_PERSONALIZATION, asset_plaintext_bits);
 
-        let identifier = identifier_point.to_bytes();
+        let asset_info_hashed_bytes = asset_info_hashed_point.to_bytes();
 
-        let identifier_bits = multipack::bytes_to_bits_le(&identifier);
-        let identifier_inputs = multipack::compute_multipacking(&identifier_bits);
+        let asset_info_hashed_bits = multipack::bytes_to_bits_le(&asset_info_hashed_bytes);
+        let asset_info_hashed_inputs = multipack::compute_multipacking(&asset_info_hashed_bits);
 
         let value_commitment = ValueCommitment {
             value: 5,
@@ -238,8 +238,8 @@ mod test {
         let randomized_public_key_point = randomized_public_key.0.to_affine();
 
         let public_inputs = vec![
-            identifier_inputs[0],
-            identifier_inputs[1],
+            asset_info_hashed_inputs[0],
+            asset_info_hashed_inputs[1],
             value_commitment_point.get_u(),
             value_commitment_point.get_v(),
             randomized_public_key_point.get_u(),
@@ -257,13 +257,14 @@ mod test {
         };
         circuit.synthesize(&mut cs).unwrap();
 
-        let bad_identifier = [1u8; 32];
-        let bad_identifier_bits = multipack::bytes_to_bits_le(&bad_identifier);
-        let bad_identifier_inputs = multipack::compute_multipacking(&bad_identifier_bits);
+        let bad_asset_info_hashed = [1u8; 32];
+        let bad_asset_info_hashed_bits = multipack::bytes_to_bits_le(&bad_asset_info_hashed);
+        let bad_asset_info_hashed_inputs =
+            multipack::compute_multipacking(&bad_asset_info_hashed_bits);
 
-        // Bad identifier
+        // Bad asset info hash
         let mut bad_inputs = public_inputs.clone();
-        bad_inputs[0] = bad_identifier_inputs[0];
+        bad_inputs[0] = bad_asset_info_hashed_inputs[0];
 
         assert!(!cs.verify(&bad_inputs));
 
