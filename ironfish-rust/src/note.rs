@@ -26,7 +26,7 @@ pub const ENCRYPTED_NOTE_SIZE: usize = SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SI
 // + 32 randomness
 // + 32 asset generator
 // + 32 memo
-// = 100
+// = 104
 pub const SCALAR_SIZE: usize = 32;
 pub const MEMO_SIZE: usize = 32;
 pub const AMOUNT_VALUE_SIZE: usize = 8;
