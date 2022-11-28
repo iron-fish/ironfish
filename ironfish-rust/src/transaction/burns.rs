@@ -28,6 +28,7 @@ impl BurnBuilder {
         let value_commitment = ValueCommitment {
             value,
             randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator: asset.generator(),
         };
 
         Self {
@@ -73,6 +74,7 @@ impl BurnDescription {
         let value_commitment = ValueCommitment {
             value,
             randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator: asset.generator(),
         };
 
         Self {

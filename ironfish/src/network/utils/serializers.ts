@@ -9,7 +9,7 @@ import { Target } from '../../primitives/target'
 import { Transaction } from '../../primitives/transaction'
 import { BigIntUtils } from '../../utils/bigint'
 
-export const MINERS_FEE_TRANSACTION_SIZE_BYTES = 551
+export const MINERS_FEE_TRANSACTION_SIZE_BYTES = 599
 
 const BLOCK_TRANSACTIONS_LENGTH_BYTES = 2
 
