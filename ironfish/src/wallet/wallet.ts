@@ -134,7 +134,7 @@ export class Wallet {
   }
 
   async updateHead(): Promise<void> {
-    if (this.scan || this.updateHeadState) {
+    if (this.scan || this.updateHeadState || this.accounts.size === 0) {
       return
     }
 
@@ -405,6 +405,16 @@ export class Wallet {
     params: SyncTransactionParams,
     accounts?: Array<Account>,
   ): Promise<void> {
+    if (
+      !('blockHash' in params) &&
+      this.chain.verifier.isExpiredSequence(
+        transaction.expirationSequence(),
+        this.chainProcessor.sequence ?? 1,
+      )
+    ) {
+      return
+    }
+
     const initialNoteIndex = 'initialNoteIndex' in params ? params.initialNoteIndex : null
 
     const decryptedNotesByAccountId = await this.decryptNotes(

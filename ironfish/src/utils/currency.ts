@@ -69,24 +69,6 @@ export class CurrencyUtils {
 
     return ore
   }
-
-  static isValidIron(amount: string): boolean {
-    try {
-      const ore = this.decodeIron(amount)
-      return this.isValidOre(this.encode(ore))
-    } catch (e) {
-      return false
-    }
-  }
-
-  static isValidOre(amount: string): boolean {
-    try {
-      const ore = this.decode(amount)
-      return ore >= MINIMUM_ORE_AMOUNT && ore <= MAXIMUM_ORE_AMOUNT
-    } catch (e) {
-      return false
-    }
-  }
 }
 
 export const ORE_TO_IRON = 100000000

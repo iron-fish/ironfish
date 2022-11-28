@@ -6,6 +6,7 @@ import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { getTransactionSize } from '../network/utils/serializers'
+import { getBlockSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
 import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
@@ -17,14 +18,25 @@ export interface FeeRateEntry {
   blockHash: Buffer
 }
 
+export interface BlockSizeEntry {
+  blockSize: number
+  blockHash: Buffer
+}
+
 export type PriorityLevel = typeof PRIORITY_LEVELS[number]
 export type PriorityLevelPercentiles = { low: number; medium: number; high: number }
 
 export const PRIORITY_LEVELS = ['low', 'medium', 'high'] as const
+export const BLOCK_SIZE = 'blockSize' as const
 const DEFAULT_PRIORITY_LEVEL_PERCENTILES = { low: 10, medium: 20, high: 30 }
 
 export class FeeEstimator {
-  private queues: { low: FeeRateEntry[]; medium: FeeRateEntry[]; high: FeeRateEntry[] }
+  private queues: {
+    low: FeeRateEntry[]
+    medium: FeeRateEntry[]
+    high: FeeRateEntry[]
+    blockSize: BlockSizeEntry[]
+  }
   private percentiles: PriorityLevelPercentiles
   private wallet: Wallet
   private readonly logger: Logger
@@ -40,7 +52,7 @@ export class FeeEstimator {
     this.logger = options.logger || createRootLogger().withTag('recentFeeCache')
     this.maxBlockHistory = options.maxBlockHistory ?? this.maxBlockHistory
 
-    this.queues = { low: [], medium: [], high: [] }
+    this.queues = { low: [], medium: [], high: [], blockSize: [] }
     this.percentiles = options.percentiles ?? DEFAULT_PRIORITY_LEVEL_PERCENTILES
     this.wallet = options.wallet
   }
@@ -58,14 +70,21 @@ export class FeeEstimator {
 
       const sortedFeeRates = this.getTransactionFeeRates(currentBlock)
 
+      // construct fee rate cache
       for (const priorityLevel of PRIORITY_LEVELS) {
         const queue = this.queues[priorityLevel]
         const percentile = this.percentiles[priorityLevel]
         const feeRate = getPercentileEntry(sortedFeeRates, percentile)
 
-        if (feeRate !== undefined && !this.isFull(queue)) {
+        if (feeRate !== undefined && !this.isFull(queue.length)) {
           queue.push({ feeRate, blockHash: currentBlock.header.hash })
         }
+      }
+
+      // construct block size cache
+      if (!this.isFull(this.queues[BLOCK_SIZE].length)) {
+        const blockSize = getBlockSize(currentBlock)
+        this.queues[BLOCK_SIZE].push({ blockSize, blockHash: currentBlock.header.hash })
       }
 
       if (currentBlockHash.equals(chain.genesis.hash)) {
@@ -88,13 +107,22 @@ export class FeeEstimator {
       const feeRate = getPercentileEntry(sortedFeeRates, percentile)
 
       if (feeRate !== undefined) {
-        if (this.isFull(queue)) {
+        if (this.isFull(queue.length)) {
           queue.shift()
         }
 
         queue.push({ feeRate, blockHash: block.header.hash })
       }
     }
+
+    const blockSize = getBlockSize(block)
+
+    const queue = this.queues[BLOCK_SIZE]
+    if (this.isFull(queue.length)) {
+      queue.shift()
+    }
+
+    this.queues[BLOCK_SIZE].push({ blockSize, blockHash: block.header.hash })
   }
 
   onDisconnectBlock(block: Block): void {
@@ -110,6 +138,18 @@ export class FeeEstimator {
 
         queue.pop()
       }
+    }
+
+    const queue = this.queues[BLOCK_SIZE]
+
+    while (queue.length > 0) {
+      const lastEntry = queue[queue.length - 1]
+
+      if (!lastEntry.blockHash.equals(block.header.hash)) {
+        break
+      }
+
+      queue.pop()
     }
   }
 
@@ -152,8 +192,17 @@ export class FeeEstimator {
     }
 
     fees.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+    const averageBlockSize =
+      this.queues[BLOCK_SIZE].reduce((a, b) => a + b.blockSize, 0) /
+      this.queues[BLOCK_SIZE].length
+    const blockSizeRatio = BigInt(
+      Math.round((averageBlockSize / this.wallet.chain.consensus.MAX_BLOCK_SIZE_BYTES) * 100),
+    )
 
-    return fees[Math.round((queue.length - 1) / 2)]
+    let feeRate = fees[Math.round((queue.length - 1) / 2)]
+    feeRate = (feeRate * blockSizeRatio) / 100n
+
+    return feeRate
   }
 
   size(priorityLevel: PriorityLevel): number | undefined {
@@ -177,7 +226,7 @@ export class FeeEstimator {
   private async getPendingTransactionSize(
     sender: Account,
     receives: { publicAddress: string; amount: bigint; memo: string }[],
-    estimateFeeRate?: bigint,
+    feeRate: bigint,
   ): Promise<number> {
     let size = 0
     size += 8 // spends length
@@ -194,25 +243,23 @@ export class FeeEstimator {
 
     size += receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
 
-    if (estimateFeeRate) {
-      const additionalAmountNeeded = getFee(estimateFeeRate, size) - (amount - amountNeeded)
+    const spenderChange = amount - amountNeeded
 
-      if (additionalAmountNeeded > 0) {
-        const { notesToSpend: additionalNotesToSpend } = await this.wallet.createSpends(
-          sender,
-          additionalAmountNeeded,
-        )
-        const additionalSpendsLength =
-          additionalNotesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE
-        size += additionalSpendsLength
-      }
+    const pendingFee = getFee(feeRate, size)
+
+    if (spenderChange === pendingFee) {
+      return size
+    } else if (spenderChange > pendingFee) {
+      // add a note for spender change
+      return size + NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
+    } else {
+      // add a spend for the fee and a note for spender change
+      return size + NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE + SPEND_SERIALIZED_SIZE_IN_BYTE
     }
-
-    return size
   }
 
-  private isFull(array: FeeRateEntry[]): boolean {
-    return array.length === this.maxBlockHistory
+  private isFull(arrayLength: number): boolean {
+    return arrayLength === this.maxBlockHistory
   }
 }
 

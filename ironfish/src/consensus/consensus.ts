@@ -87,6 +87,11 @@ export class ConsensusParameters {
    */
   V2_MAX_BLOCK_SIZE = 0
 
+  /**
+   * All mined blocks give 0 mining reward
+   */
+  V3_DISABLE_MINING_REWARD = Number.MAX_SAFE_INTEGER
+
   isActive(upgrade: number, sequence: number): boolean {
     return sequence >= upgrade
   }
@@ -97,5 +102,6 @@ export class TestnetParameters extends ConsensusParameters {
     super()
     this.V1_DOUBLE_SPEND = 204000
     this.V2_MAX_BLOCK_SIZE = 255000
+    this.V3_DISABLE_MINING_REWARD = 279900
   }
 }

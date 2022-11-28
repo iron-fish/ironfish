@@ -73,32 +73,30 @@ export class ChainProcessor {
       `Chain processor head not found in chain: ${this.hash.toString('hex')}`,
     )
 
-    const { fork, isLinear } = await this.chain.findFork(head, chainHead)
-    if (!fork) {
-      return { hashChanged: false }
-    }
+    const { fork } = await this.chain.findFork(head, chainHead)
 
-    if (!isLinear) {
-      const iter = this.chain.iterateFrom(head, fork, undefined, false)
+    // All cases can be handled by rewinding to the fork point
+    // and then fast-forwarding to the destination. In cases where `head` and `chainHead`
+    // are on the same linear chain, either rewind or fast-forward will just be a no-op
+    const iterBackwards = this.chain.iterateFrom(head, fork, undefined, false)
 
-      for await (const remove of iter) {
-        if (signal?.aborted) {
-          return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
-        }
-
-        if (remove.hash.equals(fork.hash)) {
-          continue
-        }
-
-        await this.remove(remove)
-        this.hash = remove.previousBlockHash
-        this.sequence = remove.sequence - 1
+    for await (const remove of iterBackwards) {
+      if (signal?.aborted) {
+        return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
       }
+
+      if (remove.hash.equals(fork.hash)) {
+        continue
+      }
+
+      await this.remove(remove)
+      this.hash = remove.previousBlockHash
+      this.sequence = remove.sequence - 1
     }
 
-    const iter = this.chain.iterateTo(fork, chainHead, undefined, false)
+    const iterForwards = this.chain.iterateTo(fork, chainHead, undefined, false)
 
-    for await (const add of iter) {
+    for await (const add of iterForwards) {
       if (signal?.aborted) {
         return { hashChanged: !oldHash || !this.hash.equals(oldHash) }
       }
