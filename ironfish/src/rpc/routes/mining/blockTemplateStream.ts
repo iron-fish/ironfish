@@ -37,7 +37,6 @@ export const BlockTemplateStreamResponseSchema: yup.ObjectSchema<BlockTemplateSt
           target: yup.string().required(),
           randomness: yup.string().required(),
           timestamp: yup.number().required(),
-          minersFee: yup.string().required(),
           graffiti: yup.string().required(),
         })
         .required()
