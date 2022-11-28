@@ -19,6 +19,9 @@ export class Note {
 
     const reader = bufio.read(this.noteSerialized, true)
 
+    // skip asset generator
+    reader.seek(32)
+
     // skip owner public address
     reader.seek(32)
 

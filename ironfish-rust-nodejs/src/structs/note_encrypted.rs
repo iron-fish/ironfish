@@ -14,11 +14,11 @@ use ironfish_rust::MerkleNote;
 use crate::to_napi_err;
 
 #[napi]
-pub const ENCRYPTED_NOTE_LENGTH: u32 = 264;
+pub const ENCRYPTED_NOTE_LENGTH: u32 = 296;
 //  32 value commitment
 //+ 32 note commitment
 //+ 32 ephemeral public key
-//+ 72 encrypted note
+//+ 100 encrypted note
 //+ 16 aead MAC
 //+ 64 note encryption keys
 //+ 16 aead MAC

@@ -2,7 +2,7 @@ use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use ff::PrimeField;
 use jubjub::SubgroupPoint;
 
-use crate::constants::proof::PUBLIC_KEY_GENERATOR;
+use crate::{constants::proof::PUBLIC_KEY_GENERATOR, ValueCommitment};
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::blake2s;
@@ -11,9 +11,8 @@ use bellman::gadgets::multipack;
 use bellman::gadgets::num;
 use bellman::gadgets::Assignment;
 use zcash_primitives::{
-    constants::CRH_IVK_PERSONALIZATION,
-    constants::PRF_NF_PERSONALIZATION,
-    sapling::{ProofGenerationKey, ValueCommitment},
+    constants::CRH_IVK_PERSONALIZATION, constants::PRF_NF_PERSONALIZATION,
+    sapling::ProofGenerationKey,
 };
 use zcash_proofs::{
     circuit::{
@@ -26,10 +25,14 @@ use zcash_proofs::{
     },
 };
 
-/// This is an instance of the `Spend` circuit.
+/// This is a circuit instance inspired from ZCash's `Spend` circuit in the Sapling protocol
+/// https://github.com/zcash/librustzcash/blob/main/zcash_proofs/src/circuit/sapling.rs#L31-L55
 pub struct Spend {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
+
+    /// Asset generator derived from the hashed asset info
+    pub asset_generator: Option<jubjub::ExtendedPoint>,
 
     /// Key required to construct proofs for spending notes
     /// for a particular spending key
@@ -145,8 +148,13 @@ impl Circuit<bls12_381::Scalar> for Spend {
         )?;
 
         // Compute note contents:
-        // value (in big endian) followed by pk_d
+        // asset generator, value (in big endian), followed by pk_d
         let mut note_contents = vec![];
+
+        let asset_generator =
+            ecc::EdwardsPoint::witness(cs.namespace(|| "asset_generator"), self.asset_generator)?;
+        note_contents
+            .extend(asset_generator.repr(cs.namespace(|| "representation of asset_generator"))?);
 
         // Handle the value; we'll need it later for the
         // dummy input check.
@@ -155,6 +163,7 @@ impl Circuit<bls12_381::Scalar> for Spend {
             // Get the value in little-endian bit order
             let value_bits = expose_value_commitment(
                 cs.namespace(|| "value commitment"),
+                asset_generator,
                 self.value_commitment,
             )?;
 
@@ -175,8 +184,9 @@ impl Circuit<bls12_381::Scalar> for Spend {
 
         assert_eq!(
             note_contents.len(),
+            256 + // asset generator
             64 + // value
-            256 // p_d
+            256 // pk_d
         );
 
         // Compute the hash of the note contents
@@ -323,14 +333,18 @@ mod test {
     use group::{Curve, Group, GroupEncoding};
     use rand::{RngCore, SeedableRng};
     use rand_xorshift::XorShiftRng;
-    use zcash_primitives::sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed};
+    use zcash_primitives::{
+        constants::VALUE_COMMITMENT_VALUE_GENERATOR,
+        sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed},
+    };
     use zcash_primitives::{
         constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
-        sapling::{Nullifier, ValueCommitment},
+        sapling::Nullifier,
     };
 
     use crate::{
         circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point,
+        ValueCommitment,
     };
 
     #[test]
@@ -342,10 +356,11 @@ mod test {
 
         let tree_depth = 32;
 
-        for _ in 0..10 {
+        for _ in 0..5 {
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: jubjub::Fr::random(&mut rng),
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
             };
 
             let proof_generation_key = ProofGenerationKey {
@@ -377,9 +392,13 @@ mod test {
                 };
 
                 let mut position = 0u64;
-                let cmu = jubjub::ExtendedPoint::from(commitment_full_point(note.clone()))
-                    .to_affine()
-                    .get_u();
+                let commitment = commitment_full_point(
+                    value_commitment.asset_generator,
+                    value_commitment.value,
+                    payment_address,
+                    note.rcm(),
+                );
+                let cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
 
                 let mut cur = cmu;
 
@@ -415,8 +434,7 @@ mod test {
                     }
                 }
 
-                let rho = commitment_full_point(note)
-                    + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+                let rho = commitment + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
 
                 // Compute nf = BLAKE2s(nk | rho)
                 let expected_nf = Nullifier::from_slice(
@@ -445,15 +463,16 @@ mod test {
                     ar: Some(ar),
                     auth_path: auth_path.clone(),
                     anchor: Some(cur),
+                    asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 95043);
+                assert_eq!(cs.num_constraints(), 96888);
                 assert_eq!(
                     cs.hash(),
-                    "6dff1cb1cb932a2cd9a60e3f29baaa149fff549cf5a62982488fb6aabf374c78"
+                    "e12f68469696e28c532522c803db66d7fcaa4b694c98df7ba1fbb5a897ffebfa"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
@@ -512,10 +531,11 @@ mod test {
             "32959334601512756708397683646222389414681003290313255304927423560477040775488",
         ];
 
-        for i in 0..10 {
+        for i in 0..5 {
             let value_commitment = ValueCommitment {
                 value: i,
                 randomness: jubjub::Fr::from(1000 * (i + 1)),
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
             };
 
             let proof_generation_key = ProofGenerationKey {
@@ -558,9 +578,13 @@ mod test {
 
                 let mut position = 0u64;
 
-                let cmu = jubjub::ExtendedPoint::from(commitment_full_point(note.clone()))
-                    .to_affine()
-                    .get_u();
+                let commitment = commitment_full_point(
+                    value_commitment.asset_generator,
+                    value_commitment.value,
+                    payment_address,
+                    note.rcm(),
+                );
+                let cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
 
                 let mut cur = cmu;
 
@@ -596,8 +620,7 @@ mod test {
                     }
                 }
 
-                let rho = commitment_full_point(note)
-                    + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+                let rho = commitment + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
 
                 // Compute nf = BLAKE2s(nk | rho)
                 let expected_nf = Nullifier::from_slice(
@@ -626,15 +649,16 @@ mod test {
                     ar: Some(ar),
                     auth_path: auth_path.clone(),
                     anchor: Some(cur),
+                    asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 95043);
+                assert_eq!(cs.num_constraints(), 96888);
                 assert_eq!(
                     cs.hash(),
-                    "6dff1cb1cb932a2cd9a60e3f29baaa149fff549cf5a62982488fb6aabf374c78"
+                    "e12f68469696e28c532522c803db66d7fcaa4b694c98df7ba1fbb5a897ffebfa"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
