@@ -253,7 +253,9 @@ export class BlockHeader {
 
   equals(other: BlockHeader): boolean {
     return (
-      this.noteSize === other.noteSize && this.recomputeHash().equals(other.recomputeHash())
+      this.noteSize === other.noteSize &&
+      this.work === other.work &&
+      this.recomputeHash().equals(other.recomputeHash())
     )
   }
 }
