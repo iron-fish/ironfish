@@ -10,7 +10,7 @@ import { Meter, MetricsMonitor } from './metrics'
 import { RollingAverage } from './metrics/rollingAverage'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
-import { Block } from './primitives/block'
+import { Block, GENESIS_BLOCK_SEQUENCE } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Telemetry } from './telemetry'
 import { ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
@@ -220,12 +220,10 @@ export class Syncer {
 
     let requests = 0
 
-    const genesisBlockSequence = this.chain.consensus.parameters.genesisBlockSequence
-
     // If we only added the genesis block, we'll just start from there
-    if (this.chain.head.sequence === genesisBlockSequence) {
+    if (this.chain.head.sequence === GENESIS_BLOCK_SEQUENCE) {
       return {
-        sequence: genesisBlockSequence,
+        sequence: GENESIS_BLOCK_SEQUENCE,
         ancestor: this.chain.head.hash,
         requests: requests,
       }
@@ -291,7 +289,7 @@ export class Syncer {
     // Then we try a binary search to fine the forking point between us and peer
     let ancestorHash: Buffer | null = null
     let ancestorSequence: number | null = null
-    let lower = Number(genesisBlockSequence)
+    let lower = Number(GENESIS_BLOCK_SEQUENCE)
     let upper = Number(peer.sequence)
 
     this.logger.info(

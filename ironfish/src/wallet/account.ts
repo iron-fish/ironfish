@@ -4,6 +4,7 @@
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
+import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { Note } from '../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../storage'
 import { StorageUtils } from '../storage/database/utils'
@@ -382,7 +383,6 @@ export class Account {
   async getBalance(
     headSequence: number,
     minimumBlockConfirmations: number,
-    genesisBlockSequence: number,
     tx?: IDatabaseTransaction,
   ): Promise<{
     unconfirmed: bigint
@@ -410,7 +410,7 @@ export class Account {
 
       const unconfirmedSequenceStart = Math.max(
         unconfirmedSequenceEnd - minimumBlockConfirmations + 1,
-        genesisBlockSequence,
+        GENESIS_BLOCK_SEQUENCE,
       )
 
       for await (const note of this.walletDb.loadNotesInSequenceRange(

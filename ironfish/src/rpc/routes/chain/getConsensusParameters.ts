@@ -6,8 +6,6 @@ import { Assert } from '../../../assert'
 import { ApiNamespace, router } from '../router'
 
 interface ConsensusParameters {
-  genesisBlockPrevious: string
-  genesisBlockSequence: number
   allowedBlockFuturesSeconds: number
   genesisSupplyInIron: number
   targetBlockTimeInSeconds: number
@@ -25,8 +23,6 @@ export const GetConsensusParametersRequestSchema: yup.MixedSchema<GetConsensusPa
 export const GetConsensusParametersResponseSchema: yup.ObjectSchema<GetConsensusParametersResponse> =
   yup
     .object({
-      genesisBlockPrevious: yup.string().defined(),
-      genesisBlockSequence: yup.number().defined(),
       allowedBlockFuturesSeconds: yup.number().defined(),
       genesisSupplyInIron: yup.number().defined(),
       targetBlockTimeInSeconds: yup.number().defined(),
@@ -45,8 +41,6 @@ router.register<typeof GetConsensusParametersRequestSchema, GetConsensusParamete
     const consensusParameters = node.chain.consensus.parameters
 
     request.end({
-      genesisBlockPrevious: consensusParameters.genesisBlockPrevious.toString(),
-      genesisBlockSequence: consensusParameters.genesisBlockSequence,
       allowedBlockFuturesSeconds: consensusParameters.allowedBlockFutureSeconds,
       genesisSupplyInIron: consensusParameters.genesisSupplyInIron,
       targetBlockTimeInSeconds: consensusParameters.targetBlockTimeInSeconds,

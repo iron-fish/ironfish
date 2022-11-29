@@ -10,8 +10,6 @@ describe('Miners reward', () => {
   let strategy: Strategy
 
   const consensusParameters: ConsensusParameters = {
-    genesisBlockPrevious: Buffer.alloc(32),
-    genesisBlockSequence: 1,
     allowedBlockFutureSeconds: 15,
     genesisSupplyInIron: 42000000,
     targetBlockTimeInSeconds: 60,

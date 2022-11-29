@@ -10,6 +10,17 @@ import { Nullifier } from './nullifier'
 import { SerializedTransaction, Transaction } from './transaction'
 
 /**
+ * The hash used in the "previousHash" field on the initial block in the
+ * chain. The initial block is intentionally invalid, so we need to special
+ * case it.
+ */
+export const GENESIS_BLOCK_PREVIOUS = Buffer.alloc(32)
+
+export const GENESIS_BLOCK_SEQUENCE = 1
+
+export const GRAFFITI_SIZE = 32
+
+/**
  * Represent a single block in the chain. Essentially just a block header
  * and the list of transactions that were added to the tree between the
  * previous block and the ones committed to in this header.

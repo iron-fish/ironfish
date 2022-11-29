@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
+import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import {
   createNodeTest,
   useAccountFixture,
@@ -89,9 +90,7 @@ describe('Accounts', () => {
 
     // Check that it was last broadcast at its added height
     let invalidTxEntry = await accountA.getTransaction(invalidTx.hash())
-    expect(invalidTxEntry?.submittedSequence).toEqual(
-      nodeA.chain.consensus.parameters.genesisBlockSequence,
-    )
+    expect(invalidTxEntry?.submittedSequence).toEqual(GENESIS_BLOCK_SEQUENCE)
 
     // Check that the TX is not rebroadcast but has it's sequence updated
     nodeA.wallet['rebroadcastAfter'] = 1

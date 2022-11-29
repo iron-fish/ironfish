@@ -11,7 +11,7 @@ import {
   getTransactionSize,
 } from '../network/utils/serializers'
 import { Spend } from '../primitives'
-import { Block } from '../primitives/block'
+import { Block, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BlockHeader, transactionCommitment } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
@@ -323,7 +323,7 @@ export class Verifier {
 
   // TODO: Rename to verifyBlock but merge verifyBlock into this
   async verifyBlockAdd(block: Block, prev: BlockHeader | null): Promise<VerificationResult> {
-    if (block.header.sequence === this.chain.consensus.parameters.genesisBlockSequence) {
+    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       return { valid: true }
     }
 

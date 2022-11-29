@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { BlockHeader } from '../../../primitives'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
@@ -98,7 +99,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
     if (request.data.sequence && request.data.sequence < 0) {
       request.data.sequence = Math.max(
         node.chain.head.sequence + request.data.sequence + 1,
-        node.chain.consensus.parameters.genesisBlockSequence,
+        GENESIS_BLOCK_SEQUENCE,
       )
     }
 

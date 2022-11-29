@@ -5,7 +5,8 @@ import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { Blockchain } from './blockchain'
-import { ConsensusParameters, TestnetConsensus } from './consensus'
+import { TestnetConsensus } from './consensus'
+import { DEV, TESTING, TESTNET_PHASE_2 } from './defaultNetworkDefinitions'
 import {
   Config,
   ConfigOptions,
@@ -23,10 +24,9 @@ import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
-import { TESTING, TESTNET_PHASE_2 } from './networkDefinitions'
+import { NetworkDefinition, networkDefinitionSchema } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
-import { SerializedBlock } from './primitives/block'
 import { RpcServer } from './rpc/server'
 import { IJSON } from './serde'
 import { Strategy } from './strategy'
@@ -76,7 +76,6 @@ export class IronfishNode {
     hostsStore,
     minedBlocksIndexer,
     networkId,
-    bootstrapNodes,
   }: {
     pkg: Package
     files: FileSystem
@@ -94,7 +93,6 @@ export class IronfishNode {
     hostsStore: HostsStore
     minedBlocksIndexer: MinedBlocksIndexer
     networkId: number
-    bootstrapNodes: string[]
   }) {
     this.files = files
     this.config = config
@@ -142,7 +140,7 @@ export class IronfishNode {
       targetPeers: config.get('targetPeers'),
       logPeerMessages: config.get('logPeerMessages'),
       simulateLatency: config.get('p2pSimulateLatency'),
-      bootstrapNodes,
+      bootstrapNodes: config.getArray('bootstrapNodes'),
       webSocket: webSocket,
       node: this,
       chain: chain,
@@ -243,20 +241,18 @@ export class IronfishNode {
     } else if (config.get('networkId') === 0) {
       networkDefinitionJSON = TESTING
     } else if (config.get('networkId') === 1) {
+      networkDefinitionJSON = DEV
+    } else if (config.get('networkId') === 2) {
       networkDefinitionJSON = TESTNET_PHASE_2
     }
 
-    const networkDefinition = IJSON.parse(networkDefinitionJSON) as {
-      id: number
-      bootstrapNodes: string[]
-      genesis: SerializedBlock
-      consensus: ConsensusParameters
-    }
+    const networkDefinition = await networkDefinitionSchema.validate(
+      IJSON.parse(networkDefinitionJSON) as NetworkDefinition,
+    )
 
-    const bootstrapNodes =
-      config.get('bootstrapNodes').length === 0
-        ? networkDefinition.bootstrapNodes
-        : config.get('bootstrapNodes')
+    if (!config.isBootstrapNodesSet()) {
+      config.setOverride('bootstrapNodes', networkDefinition.bootstrapNodes)
+    }
 
     const consensus = new TestnetConsensus(networkDefinition.consensus)
 
@@ -325,7 +321,6 @@ export class IronfishNode {
       hostsStore,
       minedBlocksIndexer,
       networkId: networkDefinition.id,
-      bootstrapNodes,
     })
   }
 

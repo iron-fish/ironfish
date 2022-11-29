@@ -28,7 +28,7 @@ export class Strategy {
    * See https://ironfish.network/docs/whitepaper/4_mining#include-the-miner-reward-based-on-coin-emission-schedule
    *
    * Annual coin issuance from mining goes down every year. Year is defined here by the
-   * number of blocks (IRON_FISH_YEAR_IN_BLOCKS)
+   * number of blocks
    *
    * Given the genesis block supply (genesisSupplyInIron) the formula to calculate
    * reward per block is:

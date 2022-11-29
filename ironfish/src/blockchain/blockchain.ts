@@ -17,7 +17,13 @@ import { NoteHasher } from '../merkletree/hasher'
 import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
-import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
+import {
+  Block,
+  BlockSerde,
+  GENESIS_BLOCK_PREVIOUS,
+  GENESIS_BLOCK_SEQUENCE,
+  SerializedBlock,
+} from '../primitives/block'
 import {
   BlockHash,
   BlockHeader,
@@ -272,9 +278,7 @@ export class Blockchain {
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
     Assert.isEqual(result.isFork, false)
 
-    const genesisHeader = await this.getHeaderAtSequence(
-      this.consensus.parameters.genesisBlockSequence,
-    )
+    const genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     Assert.isNotNull(
       genesisHeader,
       'Added the genesis block to the chain, but could not fetch the header',
@@ -293,9 +297,7 @@ export class Blockchain {
     await this.db.open()
     await this.db.upgrade(VERSION_DATABASE_CHAIN)
 
-    let genesisHeader = await this.getHeaderAtSequence(
-      this.consensus.parameters.genesisBlockSequence,
-    )
+    let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
     if (!genesisHeader && this.autoSeed) {
       genesisHeader = await this.seed()
     }
@@ -354,10 +356,7 @@ export class Blockchain {
       connectResult = await this.db.transaction(async (tx) => {
         const hash = block.header.recomputeHash()
 
-        if (
-          !this.hasGenesisBlock &&
-          block.header.sequence === this.consensus.parameters.genesisBlockSequence
-        ) {
+        if (!this.hasGenesisBlock && block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
           return await this.connect(block, null, tx)
         }
 
@@ -639,7 +638,7 @@ export class Blockchain {
     )
 
     Assert.isFalse(
-      block.header.sequence === this.consensus.parameters.genesisBlockSequence,
+      block.header.sequence === GENESIS_BLOCK_SEQUENCE,
       'You cannot disconnect the genesisBlock',
     )
 
@@ -762,7 +761,7 @@ export class Blockchain {
 
     this.head = block.header
 
-    if (block.header.sequence === this.consensus.parameters.genesisBlockSequence) {
+    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
       this.genesis = block.header
     }
 
@@ -936,7 +935,7 @@ export class Blockchain {
       const timestamp = new Date(Date.now())
 
       if (!this.hasGenesisBlock) {
-        previousBlockHash = this.consensus.parameters.genesisBlockPrevious
+        previousBlockHash = GENESIS_BLOCK_PREVIOUS
         previousSequence = 0
         target = Target.maxTarget()
       } else {
@@ -1004,7 +1003,7 @@ export class Blockchain {
       )
 
       const block = new Block(header, transactions)
-      if (!previousBlockHash.equals(this.consensus.parameters.genesisBlockPrevious)) {
+      if (!previousBlockHash.equals(GENESIS_BLOCK_PREVIOUS)) {
         // since we're creating a block that hasn't been mined yet, don't
         // verify target because it'll always fail target check here
         const verification = await this.verifier.verifyBlock(block, { verifyTarget: false })

@@ -106,7 +106,6 @@ describe('Accounts', () => {
     const noteEncrypted = Array.from(block.notes())[0]
     const note = noteEncrypted.decryptNoteForOwner(account.incomingViewKey)
     Assert.isNotUndefined(note)
-    const genesisBlockSequence = node.chain.consensus.parameters.genesisBlockSequence
 
     await expect(AsyncUtils.materialize(account.getNotes())).resolves.toHaveLength(1)
 
@@ -114,7 +113,7 @@ describe('Accounts', () => {
       AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(1)
 
-    await expect(account.getBalance(1, 1, genesisBlockSequence)).resolves.toMatchObject({
+    await expect(account.getBalance(1, 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
       pending: BigInt(2000000000),
     })
@@ -127,7 +126,7 @@ describe('Accounts', () => {
       AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(0)
 
-    await expect(account.getBalance(1, 1, genesisBlockSequence)).resolves.toMatchObject({
+    await expect(account.getBalance(1, 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
       pending: BigInt(0),
     })

@@ -100,7 +100,6 @@ export default class Start extends IronfishCommand {
       allowNo: true,
       description: 'Run migrations when an upgrade is required',
     }),
-    // TODO: Update description with a list of network IDs for mainet and official testnets.
     networkId: Flags.integer({
       char: 'i',
       default: undefined,
@@ -110,7 +109,7 @@ export default class Start extends IronfishCommand {
       char: 'c',
       default: undefined,
       description:
-        'JSON file containing the network definition of a custom network to connect to',
+        'Path to a JSON file containing the network definition of a custom network to connect to',
     }),
   }
 
@@ -220,7 +219,7 @@ export default class Start extends IronfishCommand {
     this.log(`Peer Identity ${node.peerNetwork.localPeer.publicIdentity}`)
     this.log(`Peer Agent    ${node.peerNetwork.localPeer.agent}`)
     this.log(`Peer Port     ${peerPort}`)
-    this.log(`Bootstrap     ${bootstraps.join(',') || 'FROM NETWORK DEFINITION'}`)
+    this.log(`Bootstrap     ${bootstraps.join(',') || 'NONE'}`)
     if (inspector.url()) {
       this.log(`Inspector     ${String(inspector.url())}`)
     }

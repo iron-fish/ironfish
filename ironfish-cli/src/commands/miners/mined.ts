@@ -1,7 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, AsyncUtils, CurrencyUtils, Meter, TimeUtils } from '@ironfish/sdk'
+import {
+  Assert,
+  AsyncUtils,
+  CurrencyUtils,
+  GENESIS_BLOCK_SEQUENCE,
+  Meter,
+  TimeUtils,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import readline from 'readline'
 import { parseNumber } from '../../args'
@@ -28,7 +35,7 @@ export class MinedCommand extends IronfishCommand {
     {
       name: 'start',
       parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
-      default: undefined,
+      default: Number(GENESIS_BLOCK_SEQUENCE),
       required: false,
       description: 'the sequence to start at (inclusive, genesis block is 1)',
     },
@@ -60,10 +67,6 @@ export class MinedCommand extends IronfishCommand {
       }
 
       return
-    }
-
-    if (args.start === undefined) {
-      args.start = (await client.getConsensusParameters()).content.genesisBlockSequence
     }
 
     const stream = client.exportMinedStream({

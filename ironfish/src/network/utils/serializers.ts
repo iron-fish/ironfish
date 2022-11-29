@@ -3,15 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio, { sizeVarBytes, sizeVarint } from 'bufio'
 import { Assert } from '../../assert'
-import { Block, CompactBlock, CompactBlockTransaction } from '../../primitives/block'
+import {
+  Block,
+  CompactBlock,
+  CompactBlockTransaction,
+  GRAFFITI_SIZE,
+} from '../../primitives/block'
 import { BlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { Transaction } from '../../primitives/transaction'
 import { BigIntUtils } from '../../utils/bigint'
 
 export const MINERS_FEE_TRANSACTION_SIZE_BYTES = 599
-
-export const GRAFFITI_SIZE = 32
 
 const BLOCK_TRANSACTIONS_LENGTH_BYTES = 2
 

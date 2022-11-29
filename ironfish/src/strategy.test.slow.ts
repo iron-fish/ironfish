@@ -61,8 +61,6 @@ async function makeStrategyTree({
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T
 
 const consensusParameters: ConsensusParameters = {
-  genesisBlockPrevious: Buffer.alloc(32),
-  genesisBlockSequence: 1,
   allowedBlockFutureSeconds: 15,
   genesisSupplyInIron: 42000000,
   targetBlockTimeInSeconds: 60,

@@ -4,18 +4,6 @@
 
 export type ConsensusParameters = {
   /**
-   * The hash used in the "previousHash" field on the initial block in the
-   * chain. The initial block is intentionally invalid, so we need to special
-   * case it.
-   */
-  genesisBlockPrevious: Buffer
-
-  /**
-   * The sequence of the genesis block
-   */
-  genesisBlockSequence: number
-
-  /**
    * When adding a block, the block can be this amount of seconds into the future
    * without rejecting it
    */

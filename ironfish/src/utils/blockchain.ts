@@ -4,6 +4,7 @@
 
 import { Blockchain } from '../blockchain'
 import { Block } from '../primitives'
+import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { isTransactionMine } from '../testUtilities/helpers/transaction'
 import { Account } from '../wallet'
 
@@ -14,7 +15,7 @@ export function getBlockRange(
     stop?: number | null
   },
 ): { start: number; stop: number } {
-  const min = Number(chain.consensus.parameters.genesisBlockSequence)
+  const min = Number(GENESIS_BLOCK_SEQUENCE)
   const max = Number(chain.latest.sequence)
 
   let start = range?.start ? range.start : min

@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { ConsensusParameters } from '../consensus'
 import { FileSystem } from '../fileSystems'
+import { SerializedBlock } from '../primitives/block'
 import { YupUtils } from '../utils'
 import { KeyStore } from './keyStore'
 
@@ -251,7 +253,7 @@ export type ConfigOptions = {
   networkId: number
 
   /**
-   * JSON file containing the network definition of a custom network
+   * Path to a JSON file containing the network definition of a custom network
    */
   customNetwork: string
 }
@@ -349,6 +351,10 @@ export class Config extends KeyStore<ConfigOptions> {
     return this.files.join(this.storage.dataDir, 'temp')
   }
 
+  isBootstrapNodesSet(): boolean {
+    return this.keysLoaded.has('bootstrapNodes') || this.overrides.bootstrapNodes?.length !== 0
+  }
+
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
       bootstrapNodes: [],
@@ -411,7 +417,7 @@ export class Config extends KeyStore<ConfigOptions> {
       feeEstimatorPercentileLow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_LOW,
       feeEstimatorPercentileMedium: DEFAULT_FEE_ESTIMATOR_PERCENTILE_MEDIUM,
       feeEstimatorPercentileHigh: DEFAULT_FEE_ESTIMATOR_PERCENTILE_HIGH,
-      networkId: 1,
+      networkId: 2,
       customNetwork: '',
     }
   }

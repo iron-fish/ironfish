@@ -13,12 +13,6 @@ describe('Route chain.getConsensusParameters', () => {
       .request<GetConsensusParametersResponse>('chain/getConsensusParameters')
       .waitForEnd()
 
-    expect(response.content.genesisBlockPrevious).toEqual(
-      routeTest.chain.consensus.parameters.genesisBlockPrevious.toString(),
-    )
-    expect(response.content.genesisBlockSequence).toEqual(
-      routeTest.chain.consensus.parameters.genesisBlockSequence,
-    )
     expect(response.content.allowedBlockFuturesSeconds).toEqual(
       routeTest.chain.consensus.parameters.allowedBlockFutureSeconds,
     )
