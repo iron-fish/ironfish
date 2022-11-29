@@ -84,6 +84,8 @@ export class Note {
    * the proof in any way.
    */
   memo(): string
+  /** Asset identifier associated with this note */
+  assetIdentifier(): Buffer
   /**
    * Compute the nullifier for this note, given the private key of its owner.
    *
