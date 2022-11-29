@@ -59,6 +59,11 @@ export class Verifier {
       return blockHeaderValid
     }
 
+    const expectedTransactionCommitment = transactionCommitment(block.transactions)
+    if (!expectedTransactionCommitment.equals(block.header.transactionCommitment)) {
+      return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_COMMITMENT }
+    }
+
     // Verify the transactions
     const notesLimit = 10
     const verificationPromises = []
@@ -122,11 +127,6 @@ export class Verifier {
     const miningReward = this.chain.strategy.miningReward(block.header.sequence)
     if (minersFee !== BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
-    }
-
-    const expectedTransactionCommitment = transactionCommitment(block.transactions)
-    if (!expectedTransactionCommitment.equals(block.header.transactionCommitment)) {
-      return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_COMMITMENT }
     }
 
     return { valid: true }
