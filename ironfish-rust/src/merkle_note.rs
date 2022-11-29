@@ -90,10 +90,7 @@ impl MerkleNote {
             public_key,
         );
         let note_encryption_keys: [u8; NOTE_ENCRYPTION_KEY_SIZE] =
-            aead::encrypt(&encryption_key, &key_bytes)
-                .unwrap()
-                .try_into()
-                .unwrap();
+            aead::encrypt(&encryption_key, &key_bytes).unwrap();
 
         Self::construct(
             note,

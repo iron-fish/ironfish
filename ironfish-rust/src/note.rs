@@ -247,9 +247,8 @@ impl<'a> Note {
         index += MEMO_SIZE;
 
         bytes_to_encrypt[index..].copy_from_slice(&self.asset_generator.to_bytes());
-        let encrypted_bytes = aead::encrypt(shared_secret, &bytes_to_encrypt).unwrap();
 
-        encrypted_bytes
+        aead::encrypt(shared_secret, &bytes_to_encrypt).unwrap()
     }
 
     /// Computes the note commitment, returning the full point.
