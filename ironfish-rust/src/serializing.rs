@@ -71,8 +71,6 @@ pub(crate) mod aead {
     /// Encrypt the plaintext using the given key, and append the MAC tag to the
     /// end of the output array to be decrypted and checked in one step below.
     ///
-    /// This is just a facade around the ChaCha20Poly1305 struct. It ignores
-    /// nonce and aad and automatically stores the mac tag.
     /// This is just a facade around the ChaCha20Poly1305 struct. The nonce and
     /// associated data are zeroed.
     pub(crate) fn encrypt<const SIZE: usize>(
@@ -98,8 +96,6 @@ pub(crate) mod aead {
 
     /// Decrypt the encrypted text using the given key and ciphertext, also checking
     /// that the mac tag is correct.
-    ///
-    /// Returns Ok(()) if the mac matches the decrypted text, Err(()) if not
 
     pub(crate) fn decrypt<const SIZE: usize>(
         key: &[u8; 32],
