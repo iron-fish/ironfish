@@ -4,9 +4,9 @@
 
 import {
   ENCRYPTED_NOTE_LENGTH,
+  ENCRYPTED_NOTE_PLAINTEXT_LENGTH,
   MAC_LENGTH,
   NOTE_ENCRYPTION_KEY_LENGTH,
-  ENCRYPTED_NOTE_PLAINTEXT_LENGTH,
   NoteEncrypted as NativeNoteEncrypted,
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'

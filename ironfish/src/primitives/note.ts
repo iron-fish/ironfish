@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Note as NativeNote, RANDOMNESS_LENGTH, PUBLIC_ADDRESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH } from '@ironfish/rust-nodejs'
+import {
+  GENERATOR_LENGTH,
+  MEMO_LENGTH,
+  Note as NativeNote,
+  PUBLIC_ADDRESS_LENGTH,
+  RANDOMNESS_LENGTH,
+} from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { BufferUtils } from '../utils/buffer'
 
