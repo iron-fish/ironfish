@@ -8,7 +8,7 @@ use crate::{
     merkle_note::{position as witness_position, sapling_auth_path},
     note::Note,
     sapling_bls12::SAPLING,
-    serializing::read_scalar,
+    serializing::{read_point, read_scalar},
     witness::WitnessTrait,
 };
 
@@ -250,12 +250,7 @@ impl SpendDescription {
     /// transaction.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
-        let value_commitment = {
-            let mut bytes = [0; 32];
-            reader.read_exact(&mut bytes)?;
-
-            Option::from(ExtendedPoint::from_bytes(&bytes)).ok_or(IronfishError::InvalidData)?
-        };
+        let value_commitment = read_point(&mut reader)?;
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
         let root_hash = read_scalar(&mut reader)?;
         let tree_size = reader.read_u32::<LittleEndian>()?;

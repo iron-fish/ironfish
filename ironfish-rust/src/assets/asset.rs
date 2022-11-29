@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use crate::{errors::IronfishError, keys::AssetPublicKey, util::str_to_array};
+use crate::{
+    errors::IronfishError, keys::AssetPublicKey, serializing::read_point, util::str_to_array,
+};
 use bellman::gadgets::multipack;
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
@@ -131,12 +133,7 @@ impl Asset {
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        let owner = {
-            let mut buf = [0; OWNER_LENGTH];
-            reader.read_exact(&mut buf)?;
-
-            Option::from(AssetPublicKey::from_bytes(&buf)).ok_or(IronfishError::IllegalValue)?
-        };
+        let owner = read_point(&mut reader)?;
 
         let mut name = [0; NAME_LENGTH];
         reader.read_exact(&mut name[..])?;

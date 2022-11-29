@@ -64,7 +64,7 @@ impl PublicAddress {
         }
 
         match hex_to_bytes(value) {
-            Err(()) => Err(IronfishError::InvalidPublicAddress),
+            Err(_) => Err(IronfishError::InvalidPublicAddress),
             Ok(bytes) => {
                 if bytes.len() != PUBLIC_ADDRESS_SIZE {
                     Err(IronfishError::InvalidPublicAddress)

@@ -11,40 +11,25 @@ use crate::errors::IronfishError;
 /// can be a bit clunky if you're just working with bytearrays.
 use ff::PrimeField;
 use group::GroupEncoding;
-use jubjub::SubgroupPoint;
 
 use std::io;
-
-/// convert an edwards point of prime order to a bytes representation
-pub(crate) fn point_to_bytes(point: &SubgroupPoint) -> Result<[u8; 32], IronfishError> {
-    let mut result: [u8; 32] = [0; 32];
-    result[..32].copy_from_slice(&point.to_bytes());
-    Ok(result)
-}
-
-/// convert a scalar to a bytes representation
-pub(crate) fn scalar_to_bytes<F: PrimeField>(scalar: &F) -> [u8; 32] {
-    let mut result = [0; 32];
-    result[..].clone_from_slice(scalar.to_repr().as_ref());
-
-    result
-}
-
-#[allow(dead_code)]
-pub(crate) fn bytes_to_scalar<F: PrimeField>(bytes: &[u8; 32]) -> F {
-    read_scalar(bytes[..].as_ref())
-        .expect("Should be able to construct prime field from hash bytes")
-}
 
 pub(crate) fn read_scalar<F: PrimeField, R: io::Read>(mut reader: R) -> Result<F, IronfishError> {
     let mut fr_repr = F::Repr::default();
     reader.read_exact(fr_repr.as_mut())?;
-    let scalar = Option::from(F::from_repr(fr_repr)).ok_or(IronfishError::InvalidData)?;
-    Ok(scalar)
+
+    Option::from(F::from_repr(fr_repr)).ok_or(IronfishError::InvalidData)
+}
+
+pub(crate) fn read_point<G: GroupEncoding, R: io::Read>(mut reader: R) -> Result<G, IronfishError> {
+    let mut point_repr = G::Repr::default();
+    reader.read_exact(point_repr.as_mut())?;
+
+    Option::from(G::from_bytes(&point_repr)).ok_or(IronfishError::InvalidData)
 }
 
 /// Output the bytes as a hexadecimal String
-pub(crate) fn bytes_to_hex(bytes: &[u8]) -> String {
+pub fn bytes_to_hex(bytes: &[u8]) -> String {
     bytes
         .iter()
         .map(|b| format!("{:02x}", b))
@@ -53,12 +38,12 @@ pub(crate) fn bytes_to_hex(bytes: &[u8]) -> String {
 }
 
 /// Output the hexadecimal String as bytes
-pub(crate) fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, ()> {
+pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, IronfishError> {
     let mut bite_iterator = hex.as_bytes().iter().map(|b| match b {
         b'0'..=b'9' => Ok(b - b'0'),
         b'a'..=b'f' => Ok(b - b'a' + 10),
         b'A'..=b'F' => Ok(b - b'A' + 10),
-        _ => Err(()),
+        _ => Err(IronfishError::InvalidData),
     });
     let mut bytes = Vec::new();
     let mut high = bite_iterator.next();
@@ -67,7 +52,7 @@ pub(crate) fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, ()> {
         match (high, low) {
             (Some(Ok(h)), Some(Ok(l))) => bytes.push(h << 4 | l),
             (None, None) => break,
-            _ => return Err(()),
+            _ => return Err(IronfishError::InvalidData),
         }
         high = bite_iterator.next();
         low = bite_iterator.next();

@@ -4,9 +4,7 @@
 
 use crate::errors::IronfishError;
 
-use super::serializing::{
-    bytes_to_hex, hex_to_bytes, point_to_bytes, read_scalar, scalar_to_bytes,
-};
+use super::serializing::{bytes_to_hex, hex_to_bytes, read_scalar};
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use blake2s_simd::Params as Blake2s;
@@ -135,7 +133,7 @@ impl SaplingKey {
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
-            Err(()) => Err(IronfishError::InvalidPaymentAddress),
+            Err(_) => Err(IronfishError::InvalidPaymentAddress),
             Ok(bytes) => {
                 if bytes.len() != 32 {
                     Err(IronfishError::InvalidPaymentAddress)
@@ -242,32 +240,6 @@ impl SaplingKey {
             incoming: self.incoming_view_key().clone(),
             outgoing: self.outgoing_view_key().clone(),
         }
-    }
-
-    #[deprecated(note = "I'm not aware that this ever needs to be publicly visible")]
-    /// Retrieve the spend authorizing key
-    pub fn spend_authorizing_key(&self) -> [u8; 32] {
-        scalar_to_bytes(&self.spend_authorizing_key)
-    }
-
-    #[deprecated(note = "I'm not aware that this ever needs to be publicly visible")]
-    /// Retrieve the byte representation of the proof authorizing key
-    pub fn proof_authorizing_key(&self) -> [u8; 32] {
-        scalar_to_bytes(&self.proof_authorizing_key)
-    }
-
-    #[deprecated(note = "I'm not aware that this ever needs to be publicly visible")]
-    /// Retrieve the byte representation of the authorizing key
-    pub fn authorizing_key(&self) -> [u8; 32] {
-        point_to_bytes(&self.authorizing_key)
-            .expect("authorizing key should be convertible to bytes")
-    }
-
-    #[deprecated(note = "I'm not aware that this ever needs to be publicly visible")]
-    /// Retrieve the byte representation of the nullifier_deriving_key
-    pub fn nullifier_deriving_key(&self) -> [u8; 32] {
-        point_to_bytes(&self.nullifier_deriving_key)
-            .expect("nullifier deriving key should be convertible to bytes")
     }
 
     /// Adapter to convert this key to a viewing key for use in sapling

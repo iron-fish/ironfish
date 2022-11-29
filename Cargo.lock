@@ -656,7 +656,6 @@ name = "ironfish-rust-nodejs"
 version = "0.1.0"
 dependencies = [
  "base64 0.13.0",
- "hex 0.4.3",
  "ironfish_rust",
  "napi",
  "napi-build",
