@@ -4,6 +4,7 @@
 
 import type { IDatabaseEncoding } from '../../storage/database/types'
 import bufio from 'bufio'
+import { Assert } from '../../assert'
 import { BlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { BigIntUtils } from '../../utils/bigint'
@@ -14,12 +15,17 @@ export type HeaderValue = {
 
 export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
   serialize(value: HeaderValue): Buffer {
+    Assert.isNotNull(
+      value.header.noteSize,
+      'The note tree size should be set on the block header before saving it to the database.',
+    )
+
     const bw = bufio.write(this.getSize(value))
 
     bw.writeU32(value.header.sequence)
     bw.writeHash(value.header.previousBlockHash)
     bw.writeHash(value.header.noteCommitment)
-    bw.writeU32(value.header.noteSize ?? 0)
+    bw.writeU32(value.header.noteSize)
     bw.writeHash(value.header.nullifierCommitment.commitment)
     bw.writeU32(value.header.nullifierCommitment.size)
     bw.writeHash(value.header.transactionCommitment)
@@ -40,7 +46,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const sequence = reader.readU32()
     const previousBlockHash = reader.readHash()
     const noteCommitment = reader.readHash()
-    const noteSize = reader.readU32() || null
+    const noteSize = reader.readU32()
     const nullifierCommitment = reader.readHash()
     const nullifierCommitmentSize = reader.readU32()
     const transactionCommitment = reader.readHash()
