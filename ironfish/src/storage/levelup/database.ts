@@ -186,7 +186,7 @@ export class LevelupDatabase extends Database {
     return batch.commit()
   }
 
-  async get(key: Readonly<SchemaKey<DatabaseSchema>>): Promise<Buffer | undefined> {
+  async get(key: Readonly<Buffer>): Promise<Buffer | undefined> {
     try {
       const data = (await this.levelup.get(key)) as unknown
 

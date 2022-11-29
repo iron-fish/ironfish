@@ -145,7 +145,7 @@ export interface IDatabase {
   *
   * @returns resolves with the serialized value if found, or undefined if not found.
   */
-  get(key: Readonly<SchemaKey<DatabaseSchema>>): Promise<Buffer | undefined>
+  get(key: Readonly<Buffer>): Promise<Buffer | undefined>
 }
 
 export abstract class Database implements IDatabase {
@@ -176,7 +176,7 @@ export abstract class Database implements IDatabase {
     >[],
   ): Promise<void>
 
-  abstract get(key: Readonly<SchemaKey<DatabaseSchema>>): Promise<Buffer | undefined>
+  abstract get(key: Readonly<Buffer>): Promise<Buffer | undefined>
 
   protected abstract _createStore<Schema extends DatabaseSchema>(
     options: IDatabaseStoreOptions<Schema>,
