@@ -49,7 +49,8 @@ export class RollingFilter {
   add(value: Buffer): void
   test(value: Buffer): boolean
 }
-export class NativeAsset {
+export type NativeAsset = Asset
+export class Asset {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
 }

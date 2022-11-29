@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
+  Asset,
   ASSET_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
-  NativeAsset,
   TransactionPosted,
 } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
@@ -79,7 +79,7 @@ export class Transaction {
       // proof
       reader.seek(192)
 
-      const asset = new NativeAsset(reader.readBytes(ASSET_LENGTH))
+      const asset = new Asset(reader.readBytes(ASSET_LENGTH))
       const value = reader.readU8()
 
       // value commitment

@@ -14,7 +14,7 @@ use crate::to_napi_err;
 #[napi(js_name = "ASSET_LENGTH")]
 pub const NATIVE_ASSET_LENGTH: u32 = ASSET_LENGTH as u32;
 
-#[napi]
+#[napi(js_name = "Asset")]
 pub struct NativeAsset {
     asset: Asset,
 }
