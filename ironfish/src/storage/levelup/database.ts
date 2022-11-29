@@ -31,6 +31,14 @@ import { LevelupBatch } from './batch'
 import { LevelupStore } from './store'
 import { LevelupTransaction } from './transaction'
 
+interface INotFoundError {
+  type: 'NotFoundError'
+}
+
+function isNotFoundError(error: unknown): error is INotFoundError {
+  return (error as INotFoundError)?.type === 'NotFoundError'
+}
+
 type MetaSchema = {
   key: string
   value: IJsonSerializable
@@ -176,6 +184,24 @@ export class LevelupDatabase extends Database {
     }
 
     return batch.commit()
+  }
+
+  async get(key: Readonly<Buffer>): Promise<Buffer | undefined> {
+    try {
+      const data = (await this.levelup.get(key)) as unknown
+
+      if (!(data instanceof Buffer)) {
+        return undefined
+      }
+
+      return data
+    } catch (error: unknown) {
+      if (isNotFoundError(error)) {
+        return undefined
+      }
+
+      throw error
+    }
   }
 
   async getVersion(): Promise<number> {

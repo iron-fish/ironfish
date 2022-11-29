@@ -137,6 +137,15 @@ export interface IDatabase {
       SchemaValue<DatabaseSchema>
     >[],
   ): Promise<void>
+
+  /**
+   * Used to get a value from the database at a given key
+
+  * @param key - The key to fetch
+  *
+  * @returns resolves with the serialized value if found, or undefined if not found.
+  */
+  get(key: Readonly<Buffer>): Promise<Buffer | undefined>
 }
 
 export abstract class Database implements IDatabase {
@@ -166,6 +175,8 @@ export abstract class Database implements IDatabase {
       SchemaValue<DatabaseSchema>
     >[],
   ): Promise<void>
+
+  abstract get(key: Readonly<Buffer>): Promise<Buffer | undefined>
 
   protected abstract _createStore<Schema extends DatabaseSchema>(
     options: IDatabaseStoreOptions<Schema>,
