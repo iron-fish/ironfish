@@ -15,10 +15,11 @@
 use super::PublicAddress;
 use crate::{
     errors::IronfishError,
-    serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes, read_scalar, scalar_to_bytes},
+    serializing::{bytes_to_hex, hex_to_bytes, read_scalar},
 };
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
+use group::GroupEncoding;
 use jubjub::SubgroupPoint;
 
 use std::io;
@@ -70,14 +71,14 @@ impl IncomingViewKey {
 
     /// Viewing key as hexadecimal, for readability.
     pub fn hex_key(&self) -> String {
-        bytes_to_hex(&scalar_to_bytes(&self.view_key))
+        bytes_to_hex(&self.view_key.to_bytes())
     }
 
     /// Even more readable
     pub fn words_key(&self, language_code: &str) -> Result<String, IronfishError> {
         let language = Language::from_language_code(language_code)
             .ok_or(IronfishError::InvalidLanguageEncoding)?;
-        let mnemonic = Mnemonic::from_entropy(&scalar_to_bytes(&self.view_key), language).unwrap();
+        let mnemonic = Mnemonic::from_entropy(&self.view_key.to_bytes(), language).unwrap();
         Ok(mnemonic.phrase().to_string())
     }
 
@@ -186,10 +187,8 @@ pub(crate) fn shared_secret(
     other_public_key: &SubgroupPoint,
     reference_public_key: &SubgroupPoint,
 ) -> [u8; 32] {
-    let shared_secret = point_to_bytes(&(other_public_key * secret_key))
-        .expect("should be able to convert point to bytes");
-    let reference_bytes =
-        point_to_bytes(reference_public_key).expect("should be able to convert point to bytes");
+    let shared_secret = (other_public_key * secret_key).to_bytes();
+    let reference_bytes = reference_public_key.to_bytes();
 
     let mut hasher = Blake2b::new()
         .hash_length(32)

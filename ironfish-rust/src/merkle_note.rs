@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::errors::IronfishError;
+use crate::{errors::IronfishError, serializing::read_point};
 
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
@@ -145,19 +145,9 @@ impl MerkleNote {
 
     /// Load a MerkleNote from the given stream
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        let value_commitment = {
-            let mut bytes = [0; 32];
-            reader.read_exact(&mut bytes)?;
-            Option::from(ExtendedPoint::from_bytes(&bytes)).ok_or(IronfishError::InvalidData)?
-        };
-
+        let value_commitment = read_point(&mut reader)?;
         let note_commitment = read_scalar(&mut reader)?;
-
-        let ephemeral_public_key = {
-            let mut bytes = [0; 32];
-            reader.read_exact(&mut bytes)?;
-            Option::from(SubgroupPoint::from_bytes(&bytes)).ok_or(IronfishError::InvalidData)?
-        };
+        let ephemeral_public_key = read_point(&mut reader)?;
 
         let mut encrypted_note = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
         reader.read_exact(&mut encrypted_note[..])?;
@@ -175,10 +165,10 @@ impl MerkleNote {
 
     pub fn write<W: io::Write>(&self, writer: &mut W) -> Result<(), IronfishError> {
         writer.write_all(&self.value_commitment.to_bytes())?;
-        writer.write_all(self.note_commitment.to_repr().as_ref())?;
+        writer.write_all(&self.note_commitment.to_bytes())?;
         writer.write_all(&self.ephemeral_public_key.to_bytes())?;
-        writer.write_all(&self.encrypted_note[..])?;
-        writer.write_all(&self.note_encryption_keys[..])?;
+        writer.write_all(&self.encrypted_note)?;
+        writer.write_all(&self.note_encryption_keys)?;
 
         Ok(())
     }

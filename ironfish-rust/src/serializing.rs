@@ -11,36 +11,21 @@ use crate::errors::IronfishError;
 /// can be a bit clunky if you're just working with bytearrays.
 use ff::PrimeField;
 use group::GroupEncoding;
-use jubjub::SubgroupPoint;
 
 use std::io;
-
-/// convert an edwards point of prime order to a bytes representation
-pub(crate) fn point_to_bytes(point: &SubgroupPoint) -> Result<[u8; 32], IronfishError> {
-    let mut result: [u8; 32] = [0; 32];
-    result[..32].copy_from_slice(&point.to_bytes());
-    Ok(result)
-}
-
-/// convert a scalar to a bytes representation
-pub(crate) fn scalar_to_bytes<F: PrimeField>(scalar: &F) -> [u8; 32] {
-    let mut result = [0; 32];
-    result[..].clone_from_slice(scalar.to_repr().as_ref());
-
-    result
-}
-
-#[allow(dead_code)]
-pub(crate) fn bytes_to_scalar<F: PrimeField>(bytes: &[u8; 32]) -> F {
-    read_scalar(bytes[..].as_ref())
-        .expect("Should be able to construct prime field from hash bytes")
-}
 
 pub(crate) fn read_scalar<F: PrimeField, R: io::Read>(mut reader: R) -> Result<F, IronfishError> {
     let mut fr_repr = F::Repr::default();
     reader.read_exact(fr_repr.as_mut())?;
-    let scalar = Option::from(F::from_repr(fr_repr)).ok_or(IronfishError::InvalidData)?;
-    Ok(scalar)
+
+    Option::from(F::from_repr(fr_repr)).ok_or(IronfishError::InvalidData)
+}
+
+pub(crate) fn read_point<G: GroupEncoding, R: io::Read>(mut reader: R) -> Result<G, IronfishError> {
+    let mut point_repr = G::Repr::default();
+    reader.read_exact(point_repr.as_mut())?;
+
+    Option::from(G::from_bytes(&point_repr)).ok_or(IronfishError::InvalidData)
 }
 
 /// Output the bytes as a hexadecimal String
