@@ -11,11 +11,8 @@ export const TESTING = `
           "sequence": 1,
           "previousBlockHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "noteCommitment": {
-            "commitment": {
-              "type": "Buffer",
-              "data": "base64:76AeW/Y/OReid2EQ5DQGuBLEja7YRmo0cPob+89ARxE="
-            },
-            "size": 3
+            "type": "Buffer",
+            "data": "base64:76AeW/Y/OReid2EQ5DQGuBLEja7YRmo0cPob+89ARxE="
           },
           "nullifierCommitment": {
             "commitment": "75B6424460A60EF177035E4265EAD201B0197A1D07989619E67C07575B53995B",
@@ -58,7 +55,7 @@ export const TESTING = `
 }
  `
 
-// TODO: DEV genesis block needs to be updated with transactionCommitment
+// TODO: DEV genesis block needs to be updated with new block changes
 export const DEV = `
 {
     "id": 1,
@@ -123,11 +120,8 @@ export const TESTNET_PHASE_2 = `
           "sequence": 1,
           "previousBlockHash": "0000000000000000000000000000000000000000000000000000000000000000",
           "noteCommitment": {
-            "commitment": {
-              "type": "Buffer",
-              "data": "base64:76AeW/Y/OReid2EQ5DQGuBLEja7YRmo0cPob+89ARxE="
-            },
-            "size": 3
+            "type": "Buffer",
+            "data": "base64:76AeW/Y/OReid2EQ5DQGuBLEja7YRmo0cPob+89ARxE="
           },
           "nullifierCommitment": {
             "commitment": "75B6424460A60EF177035E4265EAD201B0197A1D07989619E67C07575B53995B",
