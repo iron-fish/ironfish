@@ -61,6 +61,12 @@ export class Note {
     return BufferUtils.toHuman(this._memo)
   }
 
+  assetIdentifier(): Buffer {
+    const identifier = this.takeReference().assetIdentifier()
+    this.returnReference()
+    return identifier
+  }
+
   nullifier(ownerPrivateKey: string, position: bigint): Buffer {
     const buf = this.takeReference().nullifier(ownerPrivateKey, position)
     this.returnReference()

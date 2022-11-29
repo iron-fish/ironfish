@@ -51,8 +51,11 @@ export class RollingFilter {
 }
 export type NativeAsset = Asset
 export class Asset {
-  constructor(jsBytes: Buffer)
+  constructor(ownerPrivateKey: string, name: string, metadata: string)
+  static nativeIdentifier(): Buffer
+  identifier(): Buffer
   serialize(): Buffer
+  static deserialize(jsBytes: Buffer): NativeAsset
 }
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {

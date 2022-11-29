@@ -12,5 +12,15 @@
       "type": "Buffer",
       "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACmGw6WaEmVbJxqzfHVV5p5q/ZOIlLWXNx7nZUm1IDIkKYb4RXzBjDjXpDXTkqWCvCIsxfefwiK7Fq2KySGsjY3gQPh5rvoUfuMT9o+KgLs0xQUXz5/ZfQU3qV/xx1ObXEOj7V/KfxpiWmQHATlJoyTNydFYKx/o6tQvD+uWX3OKIMMOkuDEQTZ3pDdkgTNy4qiBYQgEzqdBv7YOkfWugco9r1JyGbhhKgnpXDL83c2sZ835HS6Brt/XDQ495Hw+RBz09K7e5OfoOnaIGOXwgLgEhw+nkrkHTbj3d2Q0LfIYQvXHxU6BUptYM+WknIt5nqJIjoSxSDe9u6fZA1j63ZE5Vw4RLZeMCsAr4xD1KX1r3G+lVLOElWdCnC4G13ZEospm1gqY6h0+ibD0yrUHLud4j4Qw6/YXtFObHUkDlv8INL4mw0vwiq+55W/Bast+Yezt2ntjES7nOUc2qltTNlgUlNoqGDzpvf2fnvJyvA1ys8W2VluvxQ2gQ3YXLUfvHeIS50guSudtScyRC0/C9SxErMTkX5ClkJCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMF2CiEHP+zh5ATbeq1MmsBDI8oJ0qX5CFwRxvZYOmEChLqmHcI+fk4/2GaQ7NlEDmCPYrGDUPeYU/CApNtMAfwg="
     }
+  ],
+  "CreateTransactionRequest serializes the object into a buffer and deserializes to the original object": [
+    {
+      "id": "204b77dc-878c-4f79-8c2b-99fe6a4986f4",
+      "name": "test",
+      "spendingKey": "c3c7b90f8261e4cb550a32f9b0517691a2d67d64762a99b14992ca9d271e3d4d",
+      "incomingViewKey": "2be3f34197ee7f1d74f830b4663590f6dfa5d66d362f0d65fdad8992a5ba8c02",
+      "outgoingViewKey": "01cb847a4b02cb7881cede0eefd85c4b78236387560175c46b147b019a1be3d0",
+      "publicAddress": "5394eff3e4b94bf24b75a0a4b408280b8fa98e0799d4d7db589fdb089c817c1a"
+    }
   ]
 }
