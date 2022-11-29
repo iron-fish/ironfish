@@ -91,9 +91,7 @@ describe('transactionMerkleRoot', () => {
   })
 })
 
-describe('BlockHeaderSerde', () => {
-  const serde = BlockHeaderSerde
-
+describe('BlockHeader', () => {
   it('checks equal block headers', () => {
     const header1 = new BlockHeader(
       5,
@@ -119,56 +117,66 @@ describe('BlockHeaderSerde', () => {
       Buffer.alloc(32),
     )
 
-    expect(serde.equals(header1, header2)).toBe(true)
+    expect(header1.equals(header2)).toBe(true)
 
     // sequence
     header2.sequence = 6
-    expect(serde.equals(header1, header2)).toBe(false)
+    expect(header1.equals(header2)).toBe(false)
     header2.sequence = header1.sequence
-    expect(serde.equals(header1, header2)).toBe(true)
+    expect(header1.equals(header2)).toBe(true)
 
     // note commitment
     header2.noteCommitment = Buffer.alloc(32, 'not  header')
-    expect(serde.equals(header1, header2)).toBe(false)
+    expect(header1.equals(header2)).toBe(false)
     header2.noteCommitment = header1.noteCommitment
-    expect(serde.equals(header1, header2)).toBe(true)
+    expect(header1.equals(header2)).toBe(true)
+
+    // note size
+    header2.noteSize = 7
+    expect(header1.equals(header2)).toBe(false)
+    header2.noteSize = header1.noteSize
+    expect(header1.equals(header2)).toBe(true)
 
     // nullifier commitment
     header2.nullifierCommitment.commitment = Buffer.alloc(32, 'not  header')
-    expect(serde.equals(header1, header2)).toBe(false)
+    expect(header1.equals(header2)).toBe(false)
     header2.nullifierCommitment.commitment = header1.nullifierCommitment.commitment
-    expect(serde.equals(header1, header2)).toBe(true)
+    expect(header1.equals(header2)).toBe(true)
 
     // nullifier size
     header2.nullifierCommitment.size = 7
-    expect(serde.equals(header1, header2)).toBe(false)
+    expect(header1.equals(header2)).toBe(false)
     header2.nullifierCommitment.size = header1.nullifierCommitment.size
-    expect(serde.equals(header1, header2)).toBe(true)
+    expect(header1.equals(header2)).toBe(true)
 
     // target
     header2.target = new Target(10)
-    expect(serde.equals(header1, header2)).toBe(false)
+    expect(header1.equals(header2)).toBe(false)
     header2.target = header1.target
-    expect(serde.equals(header1, header2)).toBe(true)
+    expect(header1.equals(header2)).toBe(true)
 
     // randomness
     header2.randomness = BigInt(19)
-    expect(serde.equals(header1, header2)).toBe(false)
+    expect(header1.equals(header2)).toBe(false)
     header2.randomness = header1.randomness
-    expect(serde.equals(header1, header2)).toBe(true)
+    expect(header1.equals(header2)).toBe(true)
 
     // timestamp
     header2.timestamp = new Date(1000)
-    expect(serde.equals(header1, header2)).toBe(false)
+    expect(header1.equals(header2)).toBe(false)
     header2.timestamp = header1.timestamp
-    expect(serde.equals(header1, header2)).toBe(true)
+    expect(header1.equals(header2)).toBe(true)
 
     // graffiti
     header2.graffiti = Buffer.alloc(32, 'a')
-    expect(serde.equals(header1, header2)).toBe(false)
+    expect(header1.equals(header2)).toBe(false)
     header2.graffiti = header1.graffiti
-    expect(serde.equals(header1, header2)).toBe(true)
+    expect(header1.equals(header2)).toBe(true)
   })
+})
+
+describe('BlockHeaderSerde', () => {
+  const serde = BlockHeaderSerde
 
   it('serializes and deserializes a block header', () => {
     const header = new BlockHeader(
@@ -185,7 +193,7 @@ describe('BlockHeaderSerde', () => {
 
     const serialized = serde.serialize(header)
     const deserialized = serde.deserialize(serialized)
-    expect(serde.equals(header, deserialized)).toBe(true)
+    expect(header.equals(deserialized)).toBe(true)
   })
 
   it('checks block is later than', () => {

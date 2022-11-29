@@ -238,6 +238,7 @@ export class BlockHeader {
     this.hash = hash
     return hash
   }
+
   /**
    * Check whether the hash of this block is less than the target stored
    * within the block header. This is the primary proof of work function.
@@ -248,6 +249,14 @@ export class BlockHeader {
    */
   verifyTarget(): boolean {
     return Target.meets(new Target(this.recomputeHash()).asBigInt(), this.target)
+  }
+
+  equals(other: BlockHeader): boolean {
+    return (
+      this.noteSize === other.noteSize &&
+      this.work === other.work &&
+      this.recomputeHash().equals(other.recomputeHash())
+    )
   }
 }
 
@@ -270,23 +279,6 @@ export type SerializedBlockHeader = {
 }
 
 export class BlockHeaderSerde {
-  static equals(element1: BlockHeader, element2: BlockHeader): boolean {
-    return (
-      element1.sequence === element2.sequence &&
-      element1.noteCommitment.equals(element2.noteCommitment) &&
-      NullifierSerdeInstance.equals(
-        element1.nullifierCommitment.commitment,
-        element2.nullifierCommitment.commitment,
-      ) &&
-      element1.nullifierCommitment.size === element2.nullifierCommitment.size &&
-      element1.transactionCommitment.equals(element2.transactionCommitment) &&
-      element1.target.equals(element2.target) &&
-      element1.randomness === element2.randomness &&
-      element1.timestamp.getTime() === element2.timestamp.getTime() &&
-      element1.graffiti.equals(element2.graffiti)
-    )
-  }
-
   static serialize(header: BlockHeader): SerializedBlockHeader {
     const serialized = {
       sequence: header.sequence,

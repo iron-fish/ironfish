@@ -39,7 +39,7 @@ describe('Block', () => {
     expect(serialized).toMatchObject({ header: { timestamp: expect.any(Number) } })
 
     const deserialized = BlockSerde.deserialize(serialized)
-    expect(BlockSerde.equals(deserialized, block)).toBe(true)
+    expect(block.equals(deserialized)).toBe(true)
   })
 
   it('throws when deserializing invalid block', () => {

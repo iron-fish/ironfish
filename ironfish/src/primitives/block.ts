@@ -68,7 +68,25 @@ export class Block {
   }
 
   equals(block: Block): boolean {
-    return block === this || BlockSerde.equals(this, block)
+    if (block === this) {
+      return true
+    }
+
+    if (!this.header.equals(block.header)) {
+      return false
+    }
+
+    if (this.transactions.length !== block.transactions.length) {
+      return false
+    }
+
+    for (const [transaction1, transaction2] of zip(this.transactions, block.transactions)) {
+      if (!transaction1 || !transaction2 || !transaction1.equals(transaction2)) {
+        return false
+      }
+    }
+
+    return true
   }
 
   get minersFee(): Transaction {
@@ -115,24 +133,6 @@ export type SerializedBlock = {
 export type SerializedCounts = { notes: number; nullifiers: number }
 
 export class BlockSerde {
-  static equals(block1: Block, block2: Block): boolean {
-    if (!BlockHeaderSerde.equals(block1.header, block2.header)) {
-      return false
-    }
-
-    if (block1.transactions.length !== block2.transactions.length) {
-      return false
-    }
-
-    for (const [transaction1, transaction2] of zip(block1.transactions, block2.transactions)) {
-      if (!transaction1 || !transaction2 || !transaction1.equals(transaction2)) {
-        return false
-      }
-    }
-
-    return true
-  }
-
   static serialize(block: Block): SerializedBlock {
     return {
       header: BlockHeaderSerde.serialize(block.header),
