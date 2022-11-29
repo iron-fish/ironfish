@@ -44,7 +44,7 @@ impl IncomingViewKey {
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
-            Err(()) => Err(IronfishError::InvalidViewingKey),
+            Err(_) => Err(IronfishError::InvalidViewingKey),
             Ok(bytes) => {
                 if bytes.len() != 32 {
                     Err(IronfishError::InvalidViewingKey)
@@ -106,7 +106,7 @@ impl OutgoingViewKey {
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
-            Err(()) => Err(IronfishError::InvalidViewingKey),
+            Err(_) => Err(IronfishError::InvalidViewingKey),
             Ok(bytes) => {
                 if bytes.len() != 32 {
                     Err(IronfishError::InvalidViewingKey)

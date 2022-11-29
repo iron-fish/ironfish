@@ -29,7 +29,7 @@ pub(crate) fn read_point<G: GroupEncoding, R: io::Read>(mut reader: R) -> Result
 }
 
 /// Output the bytes as a hexadecimal String
-pub(crate) fn bytes_to_hex(bytes: &[u8]) -> String {
+pub fn bytes_to_hex(bytes: &[u8]) -> String {
     bytes
         .iter()
         .map(|b| format!("{:02x}", b))
@@ -38,12 +38,12 @@ pub(crate) fn bytes_to_hex(bytes: &[u8]) -> String {
 }
 
 /// Output the hexadecimal String as bytes
-pub(crate) fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, ()> {
+pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, IronfishError> {
     let mut bite_iterator = hex.as_bytes().iter().map(|b| match b {
         b'0'..=b'9' => Ok(b - b'0'),
         b'a'..=b'f' => Ok(b - b'a' + 10),
         b'A'..=b'F' => Ok(b - b'A' + 10),
-        _ => Err(()),
+        _ => Err(IronfishError::InvalidData),
     });
     let mut bytes = Vec::new();
     let mut high = bite_iterator.next();
@@ -52,7 +52,7 @@ pub(crate) fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, ()> {
         match (high, low) {
             (Some(Ok(h)), Some(Ok(l))) => bytes.push(h << 4 | l),
             (None, None) => break,
-            _ => return Err(()),
+            _ => return Err(IronfishError::InvalidData),
         }
         high = bite_iterator.next();
         low = bite_iterator.next();

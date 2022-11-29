@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_rust::nacl::{self, box_message, bytes_to_secret_key, new_secret_key, unbox_message};
+use ironfish_rust::{
+    nacl::{self, box_message, bytes_to_secret_key, new_secret_key, unbox_message},
+    serializing::hex_to_bytes,
+};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
@@ -36,7 +39,7 @@ impl BoxKeyPair {
     #[napi(factory)]
     pub fn from_hex(secret_hex: String) -> napi::Result<BoxKeyPair> {
         let byte_vec =
-            hex::decode(secret_hex).map_err(|_| to_napi_err("Unable to decode secret key"))?;
+            hex_to_bytes(&secret_hex).map_err(|_| to_napi_err("Unable to decode secret key"))?;
 
         let bytes: [u8; nacl::KEY_LENGTH] = byte_vec
             .try_into()

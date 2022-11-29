@@ -133,7 +133,7 @@ impl SaplingKey {
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
-            Err(()) => Err(IronfishError::InvalidPaymentAddress),
+            Err(_) => Err(IronfishError::InvalidPaymentAddress),
             Ok(bytes) => {
                 if bytes.len() != 32 {
                     Err(IronfishError::InvalidPaymentAddress)
