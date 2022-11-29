@@ -8,6 +8,7 @@ import '../testUtilities/matchers/blockchain'
 import { Assert } from '../assert'
 import { getBlockSize, getBlockWithMinersFeeSize } from '../network/utils/serializers'
 import { BlockHeader, Transaction } from '../primitives'
+import { transactionCommitment } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
@@ -93,6 +94,7 @@ describe('Verifier', () => {
     it("rejects a block with standard (non-miner's) transaction fee as first transaction", async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       block.transactions = [block.transactions[1], block.transactions[0]]
+      block.header.transactionCommitment = transactionCommitment(block.transactions)
       expect(block.transactions[0].fee()).toBeGreaterThan(0)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
@@ -104,6 +106,7 @@ describe('Verifier', () => {
     it('rejects a block with miners fee as second transaction', async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       block.transactions[1] = block.transactions[0]
+      block.header.transactionCommitment = transactionCommitment(block.transactions)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_TRANSACTION_FEE,
@@ -114,6 +117,7 @@ describe('Verifier', () => {
     it('rejects block with incorrect fee sum', async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       block.transactions[2] = block.transactions[1]
+      block.header.transactionCommitment = transactionCommitment(block.transactions)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_MINERS_FEE,
