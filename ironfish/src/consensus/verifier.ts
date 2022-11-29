@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferSet } from 'buffer-map'
+import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import {
   getBlockSize,
@@ -322,11 +323,7 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.PREV_HASH_NULL }
     }
 
-    const { notes, nullifiers } = block.counts()
-
-    if (block.header.noteCommitment.size !== prev.noteCommitment.size + notes) {
-      return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
-    }
+    const { nullifiers } = block.counts()
 
     if (block.header.nullifierCommitment.size !== prev.nullifierCommitment.size + nullifiers) {
       return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
@@ -358,7 +355,8 @@ export class Verifier {
       const { nullifiers: nullifiersCount } = block.counts()
       const processedSpends = new BufferSet()
 
-      const previousNotesSize = block.header.noteCommitment.size
+      const previousNotesSize = block.header.noteSize
+      Assert.isNotNull(previousNotesSize)
       const previousNullifierSize = block.header.nullifierCommitment.size - nullifiersCount
 
       for (const spend of block.spends()) {
@@ -462,21 +460,16 @@ export class Verifier {
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const header = block.header
-      const noteSize = header.noteCommitment.size
       const nullifierSize = header.nullifierCommitment.size
-      const actualNoteSize = await this.chain.notes.size(tx)
       const actualNullifierSize = await this.chain.nullifiers.size(tx)
-
-      if (noteSize > actualNoteSize) {
-        return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
-      }
 
       if (nullifierSize > actualNullifierSize) {
         return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
       }
 
-      const pastNoteRoot = await this.chain.notes.pastRoot(noteSize, tx)
-      if (!pastNoteRoot.equals(header.noteCommitment.commitment)) {
+      Assert.isNotNull(header.noteSize)
+      const noteRoot = await this.chain.notes.pastRoot(header.noteSize, tx)
+      if (!noteRoot.equals(header.noteCommitment)) {
         return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
       }
 
@@ -514,7 +507,6 @@ export enum VerificationResultReason {
   MAX_TRANSACTION_SIZE_EXCEEDED = 'Transaction size exceeds maximum',
   MINERS_FEE_EXPECTED = 'Miners fee expected',
   NOTE_COMMITMENT = 'Note_commitment',
-  NOTE_COMMITMENT_SIZE = 'Note commitment sizes do not match',
   NOTE_COMMITMENT_SIZE_TOO_LARGE = 'Note commitment tree is smaller than referenced by the spend',
   NULLIFIER_COMMITMENT = 'Nullifier_commitment',
   NULLIFIER_COMMITMENT_SIZE = 'Nullifier commitment sizes do not match',

@@ -14,10 +14,7 @@ export type SerializedBlockTemplate = {
   header: {
     sequence: number
     previousBlockHash: string
-    noteCommitment: {
-      commitment: string
-      size: number
-    }
+    noteCommitment: string
     nullifierCommitment: {
       commitment: string
       size: number
@@ -40,10 +37,7 @@ export class BlockTemplateSerde {
     const header = {
       sequence: block.header.sequence,
       previousBlockHash: block.header.previousBlockHash.toString('hex'),
-      noteCommitment: {
-        commitment: block.header.noteCommitment.commitment.toString('hex'),
-        size: block.header.noteCommitment.size,
-      },
+      noteCommitment: block.header.noteCommitment.toString('hex'),
       nullifierCommitment: {
         commitment: block.header.nullifierCommitment.commitment.toString('hex'),
         size: block.header.nullifierCommitment.size,
@@ -72,12 +66,7 @@ export class BlockTemplateSerde {
     const header = new BlockHeader(
       blockTemplate.header.sequence,
       Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
-      {
-        commitment: noteHasher.deserialize(
-          Buffer.from(blockTemplate.header.noteCommitment.commitment, 'hex'),
-        ),
-        size: blockTemplate.header.noteCommitment.size,
-      },
+      noteHasher.deserialize(Buffer.from(blockTemplate.header.noteCommitment, 'hex')),
       {
         commitment: NullifierSerdeInstance.deserialize(
           blockTemplate.header.nullifierCommitment.commitment,

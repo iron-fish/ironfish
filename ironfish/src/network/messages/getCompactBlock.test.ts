@@ -31,10 +31,7 @@ describe('GetCompactBlockResponse', () => {
       header: new BlockHeader(
         2,
         Buffer.alloc(32, 2),
-        {
-          commitment: Buffer.alloc(32, 1),
-          size: 1,
-        },
+        Buffer.alloc(32, 1),
         {
           commitment: Buffer.alloc(32, 2),
           size: 2,

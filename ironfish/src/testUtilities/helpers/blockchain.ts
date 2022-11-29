@@ -40,6 +40,7 @@ export async function makeBlockAfter(
     randomness,
     timestamp,
     graffiti,
+    after.noteSize,
     BigInt(1),
   )
 

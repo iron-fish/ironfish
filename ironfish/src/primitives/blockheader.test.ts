@@ -98,7 +98,7 @@ describe('BlockHeaderSerde', () => {
     const header1 = new BlockHeader(
       5,
       Buffer.alloc(32),
-      { commitment: Buffer.alloc(32, 'header'), size: 8 },
+      Buffer.alloc(32, 'header'),
       { commitment: Buffer.alloc(32), size: 3 },
       Buffer.alloc(32, 'transactionRoot'),
       new Target(17),
@@ -110,7 +110,7 @@ describe('BlockHeaderSerde', () => {
     const header2 = new BlockHeader(
       5,
       Buffer.alloc(32),
-      { commitment: Buffer.alloc(32, 'header'), size: 8 },
+      Buffer.alloc(32, 'header'),
       { commitment: Buffer.alloc(32), size: 3 },
       Buffer.alloc(32, 'transactionRoot'),
       new Target(17),
@@ -128,15 +128,9 @@ describe('BlockHeaderSerde', () => {
     expect(serde.equals(header1, header2)).toBe(true)
 
     // note commitment
-    header2.noteCommitment.commitment = Buffer.alloc(32, 'not  header')
+    header2.noteCommitment = Buffer.alloc(32, 'not  header')
     expect(serde.equals(header1, header2)).toBe(false)
-    header2.noteCommitment.commitment = header1.noteCommitment.commitment
-    expect(serde.equals(header1, header2)).toBe(true)
-
-    // note size
-    header2.noteCommitment.size = 7
-    expect(serde.equals(header1, header2)).toBe(false)
-    header2.noteCommitment.size = header1.noteCommitment.size
+    header2.noteCommitment = header1.noteCommitment
     expect(serde.equals(header1, header2)).toBe(true)
 
     // nullifier commitment
@@ -180,7 +174,7 @@ describe('BlockHeaderSerde', () => {
     const header = new BlockHeader(
       5,
       Buffer.alloc(32),
-      { commitment: Buffer.alloc(32), size: 8 },
+      Buffer.alloc(32),
       { commitment: Buffer.alloc(32), size: 3 },
       Buffer.alloc(32, 'transactionRoot'),
       new Target(17),
@@ -198,7 +192,7 @@ describe('BlockHeaderSerde', () => {
     const header1 = new BlockHeader(
       5,
       Buffer.alloc(32),
-      { commitment: Buffer.alloc(32), size: 0 },
+      Buffer.alloc(32),
       { commitment: Buffer.alloc(32), size: 0 },
       Buffer.alloc(32, 'transactionRoot'),
       new Target(0),
@@ -226,7 +220,7 @@ describe('BlockHeaderSerde', () => {
     const header1 = new BlockHeader(
       5,
       Buffer.alloc(32),
-      { commitment: Buffer.alloc(32), size: 0 },
+      Buffer.alloc(32),
       { commitment: Buffer.alloc(32), size: 0 },
       Buffer.alloc(32, 'transactionRoot'),
       new Target(1),

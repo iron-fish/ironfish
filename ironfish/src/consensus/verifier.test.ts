@@ -321,18 +321,6 @@ describe('Verifier', () => {
       })
     })
 
-    it("is invalid when the note commitments aren't the same size", async () => {
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      block.header.noteCommitment.size = 1000
-
-      expect(
-        await nodeTest.verifier.verifyBlockAdd(block, nodeTest.chain.genesis),
-      ).toMatchObject({
-        valid: false,
-        reason: VerificationResultReason.NOTE_COMMITMENT_SIZE,
-      })
-    })
-
     it("is invalid when the nullifier commitments aren't the same size", async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       block.header.nullifierCommitment.size = 1000
@@ -384,20 +372,6 @@ describe('Verifier', () => {
       )
     })
 
-    it("is false if there aren't enough notes in the tree", async () => {
-      await nodeTest.chain.notes.truncate((await nodeTest.chain.notes.size()) - 1)
-
-      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(genesisBlock)
-
-      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
-        {
-          valid: false,
-          reason: VerificationResultReason.NOTE_COMMITMENT_SIZE,
-        },
-      )
-    })
-
     it("is false if there aren't enough nullifiers in the tree", async () => {
       await nodeTest.chain.nullifiers.truncate((await nodeTest.chain.nullifiers.size()) - 1)
 
@@ -413,8 +387,8 @@ describe('Verifier', () => {
     })
 
     it('is false if the note hash is incorrect', async () => {
-      nodeTest.chain.genesis.noteCommitment.commitment = Buffer.alloc(
-        nodeTest.chain.genesis.noteCommitment.commitment.length,
+      nodeTest.chain.genesis.noteCommitment = Buffer.alloc(
+        nodeTest.chain.genesis.noteCommitment.length,
         'NOOO',
       )
 

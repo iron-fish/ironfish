@@ -596,6 +596,13 @@ export class Blockchain {
     const work = block.header.target.toDifficulty()
     block.header.work = (prev ? prev.work : BigInt(0)) + work
 
+    let prevNoteSize = 0
+    if (prev) {
+      Assert.isNotNull(prev.noteSize)
+      prevNoteSize = prev.noteSize
+    }
+    block.header.noteSize = prevNoteSize + block.counts().notes
+
     const isFork = !this.isEmpty && !isBlockHeavier(block.header, this.head)
 
     if (isFork) {
@@ -934,11 +941,13 @@ export class Blockchain {
       } else {
         const heaviestHead = this.head
         if (
-          originalNoteSize !== heaviestHead.noteCommitment.size ||
+          originalNoteSize !== heaviestHead.noteSize ||
           originalNullifierSize !== heaviestHead.nullifierCommitment.size
         ) {
           throw new Error(
-            `Heaviest head has ${heaviestHead.noteCommitment.size} notes and ${heaviestHead.nullifierCommitment.size} nullifiers but tree has ${originalNoteSize} and ${originalNullifierSize} nullifiers`,
+            `Heaviest head has ${String(heaviestHead.noteSize)} notes and ${
+              heaviestHead.nullifierCommitment.size
+            } nullifiers but tree has ${originalNoteSize} and ${originalNullifierSize} nullifiers`,
           )
         }
         previousBlockHash = heaviestHead.hash
@@ -964,10 +973,9 @@ export class Blockchain {
       await this.notes.addBatch(blockNotes, tx)
       await this.nullifiers.addBatch(blockNullifiers, tx)
 
-      const noteCommitment = {
-        commitment: await this.notes.rootHash(tx),
-        size: await this.notes.size(tx),
-      }
+      const noteCommitment = await this.notes.rootHash(tx)
+      const noteSize = await this.notes.size(tx)
+
       const nullifierCommitment = {
         commitment: await this.nullifiers.rootHash(tx),
         size: await this.nullifiers.size(tx),
@@ -985,6 +993,7 @@ export class Blockchain {
         BigInt(0),
         timestamp,
         graffiti,
+        noteSize,
       )
 
       const block = new Block(header, transactions)
@@ -1192,7 +1201,8 @@ export class Blockchain {
       return
     }
 
-    let noteIndex = header.noteCommitment.size
+    Assert.isNotNull(header.noteSize)
+    let noteIndex = header.noteSize
 
     // Transactions should be handled in reverse order because
     // header.noteCommitment is the size of the tree after the
@@ -1234,7 +1244,11 @@ export class Blockchain {
 
     // If the tree sizes don't match the previous block, we can't verify if the tree
     // sizes on this block are correct
-    const prevNotesSize = prev?.noteCommitment.size || 0
+    let prevNotesSize = 0
+    if (prev) {
+      Assert.isNotNull(prev.noteSize)
+      prevNotesSize = prev.noteSize
+    }
     const prevNullifierSize = prev?.nullifierCommitment.size || 0
     Assert.isEqual(
       prevNotesSize,
@@ -1271,8 +1285,10 @@ export class Blockchain {
     await this.hashToNextHash.del(prev.hash, tx)
     await this.sequenceToHash.del(block.header.sequence, tx)
 
+    Assert.isNotNull(prev.noteSize)
+
     await Promise.all([
-      this.notes.truncate(prev.noteCommitment.size, tx),
+      this.notes.truncate(prev.noteSize, tx),
       this.nullifiers.truncate(prev.nullifierCommitment.size, tx),
     ])
 

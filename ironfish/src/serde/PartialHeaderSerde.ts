@@ -10,15 +10,12 @@ import { BigIntUtils } from '../utils'
 
 export default class PartialBlockHeaderSerde {
   static serialize(header: PartialBlockHeader): Buffer {
-    const bw = bufio.write(224)
+    const bw = bufio.write(216)
     // TODO: change sequence to u32. expiration_sequence is u32 on transactions, and we're not
     // likely to overflow for a long time.
     bw.writeU64(header.sequence)
     bw.writeHash(header.previousBlockHash)
-    bw.writeHash(header.noteCommitment.commitment)
-    // TODO: change commitment size to u32. tree_size on spend proofs is
-    // a u32, and our merkle trees have depth of 32.
-    bw.writeU64(header.noteCommitment.size)
+    bw.writeHash(header.noteCommitment)
     bw.writeHash(header.nullifierCommitment.commitment)
     // TODO: change commitment size to u32. tree_size on spend proofs is
     // a u32, and our merkle trees have depth of 32.
@@ -36,7 +33,6 @@ export default class PartialBlockHeaderSerde {
     const sequence = br.readU64()
     const previousBlockHash = br.readHash()
     const noteCommitment = br.readHash()
-    const noteCommitmentSize = br.readU64()
     const nullifierCommitment = br.readHash()
     const nullifierCommitmentSize = br.readU64()
     const transactionCommitment = br.readHash()
@@ -50,10 +46,7 @@ export default class PartialBlockHeaderSerde {
       target: new Target(target),
       timestamp: new Date(timestamp),
       graffiti: graffiti,
-      noteCommitment: {
-        commitment: noteCommitment,
-        size: noteCommitmentSize,
-      },
+      noteCommitment: noteCommitment,
       nullifierCommitment: {
         commitment: nullifierCommitment,
         size: nullifierCommitmentSize,
@@ -70,10 +63,7 @@ export default class PartialBlockHeaderSerde {
 export type PartialBlockHeader = {
   sequence: number
   previousBlockHash: Buffer
-  noteCommitment: {
-    commitment: NoteEncryptedHash
-    size: number
-  }
+  noteCommitment: NoteEncryptedHash
   nullifierCommitment: {
     commitment: NullifierHash
     size: number
