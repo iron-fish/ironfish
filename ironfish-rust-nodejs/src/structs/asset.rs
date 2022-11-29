@@ -16,7 +16,7 @@ pub const NATIVE_ASSET_LENGTH: u32 = ASSET_LENGTH as u32;
 
 #[napi(js_name = "Asset")]
 pub struct NativeAsset {
-    asset: Asset,
+    pub(crate) asset: Asset,
 }
 
 #[napi]
