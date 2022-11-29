@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Note, Transaction } from '@ironfish/rust-nodejs'
+import { Asset, ASSET_LENGTH, Note, Transaction } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../../merkletree'
 import { NoteHasher } from '../../merkletree/hasher'
@@ -28,6 +28,8 @@ export class CreateTransactionRequest extends WorkerMessage {
     }[]
   }[]
   readonly receives: { publicAddress: string; amount: bigint; memo: string }[]
+  readonly mints: { asset: Asset; value: bigint }[]
+  readonly burns: { asset: Asset; value: bigint }[]
 
   constructor(
     spendKey: string,
@@ -40,6 +42,8 @@ export class CreateTransactionRequest extends WorkerMessage {
       authPath: { side: Side; hashOfSibling: Buffer }[]
     }[],
     receives: { publicAddress: string; amount: bigint; memo: string }[],
+    mints: { asset: Asset; value: bigint }[],
+    burns: { asset: Asset; value: bigint }[],
     jobId?: number,
   ) {
     super(WorkerMessageType.CreateTransaction, jobId)
@@ -48,6 +52,8 @@ export class CreateTransactionRequest extends WorkerMessage {
     this.expirationSequence = expirationSequence
     this.spends = spends
     this.receives = receives
+    this.mints = mints
+    this.burns = burns
   }
 
   serialize(): Buffer {
@@ -81,6 +87,18 @@ export class CreateTransactionRequest extends WorkerMessage {
       bw.writeVarString(receive.publicAddress)
       bw.writeVarBytes(BigIntUtils.toBytesBE(receive.amount))
       bw.writeVarString(receive.memo, 'utf8')
+    }
+
+    bw.writeU64(this.mints.length)
+    for (const mint of this.mints) {
+      bw.writeBytes(mint.asset.serialize())
+      bw.writeVarBytes(BigIntUtils.toBytesBE(mint.value))
+    }
+
+    bw.writeU64(this.burns.length)
+    for (const burn of this.burns) {
+      bw.writeBytes(burn.asset.serialize())
+      bw.writeVarBytes(BigIntUtils.toBytesBE(burn.value))
     }
 
     return bw.render()
@@ -119,12 +137,30 @@ export class CreateTransactionRequest extends WorkerMessage {
       receives.push({ publicAddress, amount, memo })
     }
 
+    const mintsLength = reader.readU64()
+    const mints = []
+    for (let i = 0; i < mintsLength; i++) {
+      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
+      const value = BigIntUtils.fromBytes(reader.readVarBytes())
+      mints.push({ asset, value })
+    }
+
+    const burnsLength = reader.readU64()
+    const burns = []
+    for (let i = 0; i < burnsLength; i++) {
+      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
+      const value = BigIntUtils.fromBytes(reader.readVarBytes())
+      burns.push({ asset, value })
+    }
+
     return new CreateTransactionRequest(
       spendKey,
       transactionFee,
       expirationSequence,
       spends,
       receives,
+      mints,
+      burns,
       jobId,
     )
   }
@@ -154,6 +190,16 @@ export class CreateTransactionRequest extends WorkerMessage {
         bufio.sizeVarString(receive.memo, 'utf8')
     }
 
+    let mintsSize = 0
+    for (const mint of this.mints) {
+      mintsSize += ASSET_LENGTH + bufio.sizeVarBytes(BigIntUtils.toBytesBE(mint.value))
+    }
+
+    let burnsSize = 0
+    for (const burn of this.burns) {
+      burnsSize += ASSET_LENGTH + bufio.sizeVarBytes(BigIntUtils.toBytesBE(burn.value))
+    }
+
     return (
       bufio.sizeVarString(this.spendKey) +
       bufio.sizeVarBytes(BigIntUtils.toBytesBE(this.transactionFee)) +
@@ -161,7 +207,11 @@ export class CreateTransactionRequest extends WorkerMessage {
       8 + // spends length
       spendsSize +
       8 + // receives length
-      receivesSize
+      receivesSize +
+      8 + // mints length
+      mintsSize +
+      8 + // burns length
+      burnsSize
     )
   }
 }
@@ -208,6 +258,8 @@ export class CreateTransactionTask extends WorkerTask {
     spendKey,
     spends,
     receives,
+    mints,
+    burns,
     expirationSequence,
   }: CreateTransactionRequest): CreateTransactionResponse {
     const transaction = new Transaction(spendKey)
@@ -224,6 +276,14 @@ export class CreateTransactionTask extends WorkerTask {
     for (const { publicAddress, amount, memo } of receives) {
       const note = new Note(publicAddress, amount, memo)
       transaction.receive(note)
+    }
+
+    for (const { asset, value } of mints) {
+      transaction.mint(asset, value)
+    }
+
+    for (const { asset, value } of burns) {
+      transaction.burn(asset, value)
     }
 
     const serializedTransactionPosted = transaction.post(undefined, transactionFee)

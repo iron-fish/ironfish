@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_rust::assets::asset::{Asset, ASSET_LENGTH};
+use ironfish_rust::{
+    assets::asset::{Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, NATIVE_ASSET},
+    SaplingKey,
+};
 use napi::{
     bindgen_prelude::{Buffer, Result},
     JsBuffer,
@@ -11,8 +14,8 @@ use napi_derive::napi;
 
 use crate::to_napi_err;
 
-#[napi(js_name = "ASSET_LENGTH")]
-pub const NATIVE_ASSET_LENGTH: u32 = ASSET_LENGTH as u32;
+#[napi]
+pub const ASSET_LENGTH: u32 = SERIALIZED_ASSET_LENGTH as u32;
 
 #[napi(js_name = "Asset")]
 pub struct NativeAsset {
@@ -22,11 +25,23 @@ pub struct NativeAsset {
 #[napi]
 impl NativeAsset {
     #[napi(constructor)]
-    pub fn new(js_bytes: JsBuffer) -> Result<NativeAsset> {
-        let bytes = js_bytes.into_value()?;
-        let asset = Asset::read(bytes.as_ref()).map_err(to_napi_err)?;
+    pub fn new(owner_private_key: String, name: String, metadata: String) -> Result<NativeAsset> {
+        let sapling_key = SaplingKey::from_hex(&owner_private_key).map_err(to_napi_err)?;
+        let owner = sapling_key.asset_public_key();
 
-        Ok(NativeAsset { asset })
+        Ok(NativeAsset {
+            asset: Asset::new(owner, &name, &metadata).map_err(to_napi_err)?,
+        })
+    }
+
+    #[napi]
+    pub fn native_identifier() -> Buffer {
+        Buffer::from(&NATIVE_ASSET[..])
+    }
+
+    #[napi]
+    pub fn identifier(&self) -> Buffer {
+        Buffer::from(&self.asset.identifier()[..])
     }
 
     #[napi]
@@ -35,5 +50,13 @@ impl NativeAsset {
         self.asset.write(&mut vec).map_err(to_napi_err)?;
 
         Ok(Buffer::from(vec))
+    }
+
+    #[napi(factory)]
+    pub fn deserialize(js_bytes: JsBuffer) -> Result<Self> {
+        let bytes = js_bytes.into_value()?;
+        let asset = Asset::read(bytes.as_ref()).map_err(to_napi_err)?;
+
+        Ok(NativeAsset { asset })
     }
 }

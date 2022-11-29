@@ -81,7 +81,7 @@ export class Transaction {
       // proof
       reader.seek(192)
 
-      const asset = new Asset(reader.readBytes(ASSET_LENGTH))
+      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
       const value = reader.readU8()
 
       // value commitment
@@ -95,7 +95,7 @@ export class Transaction {
     })
 
     this._burns = Array.from({ length: _burnsLength }, () => {
-      const asset = new Asset(reader.readBytes(ASSET_LENGTH))
+      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
       const value = reader.readU8()
 
       // value commitment
