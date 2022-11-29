@@ -1244,7 +1244,11 @@ export class Blockchain {
 
     // If the tree sizes don't match the previous block, we can't verify if the tree
     // sizes on this block are correct
-    const prevNotesSize = prev?.noteSize || 0
+    let prevNotesSize = 0
+    if (prev) {
+      Assert.isNotNull(prev.noteSize)
+      prevNotesSize = prev.noteSize
+    }
     const prevNullifierSize = prev?.nullifierCommitment.size || 0
     Assert.isEqual(
       prevNotesSize,
