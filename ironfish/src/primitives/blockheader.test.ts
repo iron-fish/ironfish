@@ -2,9 +2,94 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { blake3 } from '@napi-rs/blake-hash'
+import { v4 as uuid } from 'uuid'
 import { GraffitiUtils } from '../utils'
-import { BlockHeader, BlockHeaderSerde, isBlockHeavier, isBlockLater } from './blockheader'
+import {
+  BlockHeader,
+  BlockHeaderSerde,
+  isBlockHeavier,
+  isBlockLater,
+  NULL_NODE,
+  TRANSACTION_ROOT_PERSONALIZATION,
+  transactionMerkleRoot,
+} from './blockheader'
 import { Target } from './target'
+
+const level = (l: number) => Buffer.concat([TRANSACTION_ROOT_PERSONALIZATION, Buffer.from([l])])
+
+describe('transactionMerkleRoot', () => {
+  it('calculates merkle root with 0 transactions', () => {
+    const root = transactionMerkleRoot([])
+
+    expect(root.equals(blake3(TRANSACTION_ROOT_PERSONALIZATION))).toBe(true)
+  })
+
+  it('calculates merkle root with 1 transaction', () => {
+    const hashes = [...new Array(1)].map((_) => blake3(uuid()))
+    const root = transactionMerkleRoot(hashes)
+
+    const expectedRoot = blake3(Buffer.concat([level(0), hashes[0], NULL_NODE]))
+    expect(root.equals(expectedRoot)).toBe(true)
+  })
+
+  it('calculates merkle root with 2 transactions', () => {
+    const hashes = [...new Array(2)].map((_) => blake3(uuid()))
+    const root = transactionMerkleRoot(hashes)
+
+    const expectedRoot = blake3(Buffer.concat([level(0), hashes[0], hashes[1]]))
+    expect(root.equals(expectedRoot)).toBe(true)
+  })
+
+  it('calculates merkle root with 3 transactions', () => {
+    const hashes = [...new Array(3)].map((_) => blake3(uuid()))
+    const root = transactionMerkleRoot(hashes)
+
+    const left = blake3(Buffer.concat([level(0), hashes[0], hashes[1]]))
+    const right = blake3(Buffer.concat([level(0), hashes[2], NULL_NODE]))
+
+    const expectedRoot = blake3(Buffer.concat([level(1), left, right]))
+    expect(root.equals(expectedRoot)).toBe(true)
+  })
+
+  it('calculates merkle root with 4 transactions', () => {
+    const hashes = [...new Array(3)].map((_) => blake3(uuid()))
+    const root = transactionMerkleRoot(hashes)
+
+    const left = blake3(Buffer.concat([level(0), hashes[0], hashes[1]]))
+    const right = blake3(Buffer.concat([level(0), hashes[2], hashes[3]]))
+
+    const expectedRoot = blake3(Buffer.concat([level(1), left, right]))
+    expect(root.equals(expectedRoot)).toBe(true)
+  })
+
+  it('calculates merkle root with 11 transactions', () => {
+    const hashes = [...new Array(11)].map((_) => blake3(uuid()))
+    const root = transactionMerkleRoot(hashes)
+
+    const l1 = blake3(Buffer.concat([level(0), hashes[0], hashes[1]]))
+    const r1 = blake3(Buffer.concat([level(0), hashes[2], hashes[3]]))
+    const l1r1 = blake3(Buffer.concat([level(1), l1, r1]))
+
+    const l2 = blake3(Buffer.concat([level(0), hashes[4], hashes[5]]))
+    const r2 = blake3(Buffer.concat([level(0), hashes[6], hashes[7]]))
+    const l2r2 = blake3(Buffer.concat([level(1), l2, r2]))
+
+    const l3 = blake3(Buffer.concat([level(0), hashes[8], hashes[9]]))
+    const r3 = blake3(Buffer.concat([level(0), hashes[10], NULL_NODE]))
+    const l3r3 = blake3(Buffer.concat([level(1), l3, r3]))
+
+    const l4 = blake3(Buffer.concat([level(0), NULL_NODE, NULL_NODE]))
+    const r4 = blake3(Buffer.concat([level(0), NULL_NODE, NULL_NODE]))
+    const l4r4 = blake3(Buffer.concat([level(1), l4, r4]))
+
+    const l1r1l2r2 = blake3(Buffer.concat([level(2), l1r1, l2r2]))
+    const l3r3l4r4 = blake3(Buffer.concat([level(2), l3r3, l4r4]))
+
+    const expectedRoot = blake3(Buffer.concat([level(3), l1r1l2r2, l3r3l4r4]))
+    expect(root.equals(expectedRoot)).toBe(true)
+  })
+})
 
 describe('BlockHeaderSerde', () => {
   const serde = BlockHeaderSerde
@@ -15,6 +100,7 @@ describe('BlockHeaderSerde', () => {
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32, 'header'), size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
+      Buffer.alloc(32, 'transactionRoot'),
       new Target(17),
       BigInt(25),
       new Date(1598467858637),
@@ -26,6 +112,7 @@ describe('BlockHeaderSerde', () => {
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32, 'header'), size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
+      Buffer.alloc(32, 'transactionRoot'),
       new Target(17),
       BigInt(25),
       new Date(1598467858637),
@@ -95,6 +182,7 @@ describe('BlockHeaderSerde', () => {
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32), size: 8 },
       { commitment: Buffer.alloc(32), size: 3 },
+      Buffer.alloc(32, 'transactionRoot'),
       new Target(17),
       BigInt(25),
       new Date(1598467858637),
@@ -112,6 +200,7 @@ describe('BlockHeaderSerde', () => {
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32), size: 0 },
       { commitment: Buffer.alloc(32), size: 0 },
+      Buffer.alloc(32, 'transactionRoot'),
       new Target(0),
       BigInt(0),
       new Date(0),
@@ -139,6 +228,7 @@ describe('BlockHeaderSerde', () => {
       Buffer.alloc(32),
       { commitment: Buffer.alloc(32), size: 0 },
       { commitment: Buffer.alloc(32), size: 0 },
+      Buffer.alloc(32, 'transactionRoot'),
       new Target(1),
       BigInt(0),
       new Date(0),

@@ -22,6 +22,7 @@ export type SerializedBlockTemplate = {
       commitment: string
       size: number
     }
+    transactionCommitment: string
     target: string
     randomness: string
     timestamp: number
@@ -47,6 +48,7 @@ export class BlockTemplateSerde {
         commitment: block.header.nullifierCommitment.commitment.toString('hex'),
         size: block.header.nullifierCommitment.size,
       },
+      transactionCommitment: block.header.transactionCommitment.toString('hex'),
       target: BigIntUtils.toBytesBE(block.header.target.asBigInt(), 32).toString('hex'),
       randomness: BigIntUtils.toBytesBE(block.header.randomness, 8).toString('hex'),
       timestamp: block.header.timestamp.getTime(),
@@ -82,6 +84,7 @@ export class BlockTemplateSerde {
         ),
         size: blockTemplate.header.nullifierCommitment.size,
       },
+      Buffer.from(blockTemplate.header.transactionCommitment, 'hex'),
       new Target(Buffer.from(blockTemplate.header.target, 'hex')),
       BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.randomness, 'hex')),
       new Date(blockTemplate.header.timestamp),

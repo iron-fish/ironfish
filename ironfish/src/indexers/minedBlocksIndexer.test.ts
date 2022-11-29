@@ -143,7 +143,13 @@ describe('MinedBlockIndexer', () => {
 
       await node.minedBlocksIndexer.updateHead()
 
-      const minedBlocks = []
+      const minedBlocks: {
+        main: boolean
+        sequence: number
+        account: string
+        minersFee: number
+        hash: string
+      }[] = []
 
       for await (const block of node.minedBlocksIndexer.getMinedBlocks({})) {
         minedBlocks.push(block)
@@ -192,7 +198,13 @@ describe('MinedBlockIndexer', () => {
       await expect(nodeA.chain).toAddBlock(blockB2)
       await nodeA.minedBlocksIndexer.updateHead()
 
-      const minedBlocks = []
+      const minedBlocks: {
+        main: boolean
+        sequence: number
+        account: string
+        minersFee: number
+        hash: string
+      }[] = []
 
       for await (const block of nodeA.minedBlocksIndexer.getMinedBlocks({ scanForks: true })) {
         minedBlocks.push(block)
@@ -228,7 +240,13 @@ describe('MinedBlockIndexer', () => {
 
       await node.minedBlocksIndexer.removeMinedBlocks(accountB.name)
 
-      const minedBlocks = []
+      const minedBlocks: {
+        main: boolean
+        sequence: number
+        account: string
+        minersFee: number
+        hash: string
+      }[] = []
 
       for await (const block of node.minedBlocksIndexer.getMinedBlocks({})) {
         minedBlocks.push(block)

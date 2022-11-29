@@ -11,7 +11,7 @@ import {
 } from '../network/utils/serializers'
 import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
-import { BlockHeader } from '../primitives/blockheader'
+import { BlockHeader, transactionCommitment } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
@@ -57,6 +57,11 @@ export class Verifier {
     const blockHeaderValid = this.verifyBlockHeader(block.header, options)
     if (!blockHeaderValid.valid) {
       return blockHeaderValid
+    }
+
+    const expectedTransactionCommitment = transactionCommitment(block.transactions)
+    if (!expectedTransactionCommitment.equals(block.header.transactionCommitment)) {
+      return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_COMMITMENT }
     }
 
     // Verify the transactions
@@ -503,6 +508,7 @@ export enum VerificationResultReason {
   INVALID_TARGET = 'Invalid target',
   INVALID_TRANSACTION_FEE = 'Transaction fee is incorrect',
   INVALID_TRANSACTION_PROOF = 'Invalid transaction proof',
+  INVALID_TRANSACTION_COMMITMENT = 'Transaction commitment does not match transactions',
   INVALID_PARENT = 'Invalid_parent',
   MAX_BLOCK_SIZE_EXCEEDED = 'Block size exceeds maximum',
   MAX_TRANSACTION_SIZE_EXCEEDED = 'Transaction size exceeds maximum',

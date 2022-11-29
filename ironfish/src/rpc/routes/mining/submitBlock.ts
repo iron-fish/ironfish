@@ -39,6 +39,7 @@ const serializedBlockTemplateSchema: yup.ObjectSchema<SubmitBlockRequest> = yup
           })
           .required()
           .defined(),
+        transactionCommitment: yup.string().required(),
         target: yup.string().required(),
         randomness: yup.string().required(),
         timestamp: yup.number().required(),
