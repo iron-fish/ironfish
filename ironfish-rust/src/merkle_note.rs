@@ -199,10 +199,8 @@ impl MerkleNote {
             &self.ephemeral_public_key,
         );
 
-        let note_encryption_keys = aead::decrypt::<ENCRYPTED_SHARED_KEY_SIZE>(
-            &encryption_key,
-            &self.note_encryption_keys,
-        )?;
+        let note_encryption_keys: [u8; ENCRYPTED_SHARED_KEY_SIZE] =
+            aead::decrypt(&encryption_key, &self.note_encryption_keys)?;
 
         let transmission_key = PublicAddress::load_transmission_key(&note_encryption_keys[..32])?;
         let secret_key = read_scalar(&note_encryption_keys[32..])?;
