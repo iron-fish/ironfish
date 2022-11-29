@@ -446,7 +446,7 @@ describe('FeeEstimator', () => {
       const feeRate = getEstimateFeeRate(
         block,
         transaction,
-        node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
+        node.chain.consensus.parameters.maxBlockSizeBytes,
       )
 
       const size =

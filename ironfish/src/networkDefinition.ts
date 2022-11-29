@@ -34,10 +34,10 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
                 size: yup.number().integer().defined(),
               })
               .defined(),
+            transactionCommitment: yup.mixed<Buffer>().defined(),
             target: yup.string().defined(),
             randomness: yup.string().defined(),
             timestamp: yup.number().integer().defined(),
-            minersFee: yup.string().defined(),
             work: yup.string().optional(),
             graffiti: yup.string().defined(),
           })

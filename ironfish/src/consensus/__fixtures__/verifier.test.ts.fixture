@@ -1066,5 +1066,75 @@
         }
       ]
     }
+  ],
+  "Verifier Block accepts a block with size more than maxBlockSizeBytes before V2 consensus upgrade": [
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "0775B68802966BC1B6FB1A19D39397E090D8DCADB26564617193510C7EA98BC5",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:VQEeKpXaMWNHzir8TeO6oySyXgFRPPQy+8LDs7kKNRI="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "75B6424460A60EF177035E4265EAD201B0197A1D07989619E67C07575B53995B",
+          "size": 1
+        },
+        "transactionCommitment": {
+          "type": "Buffer",
+          "data": "base64:lh/HSY2BZkQvdADtbe/xliWZ1J/Xp8yQRqKgOR+f5bA="
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": "0",
+        "timestamp": 1669758553588,
+        "work": "0",
+        "hash": "BC93E3FE2585B88109A641111CDF03E5625CC1F3D240CE56AA088840D444963E",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAAC1r9H6V2gOtZDW8tQoW68QpMYvFs7Zt4Dz6ezSlhT7inXGnBev+XkUGJdJfCkqHBu3FNH+4yBwBzXgc2+NjQXBh1mEIYhJ63Oauiz338Ere12nSTfONxWeJI3nVajsMukXAqgv7BKHZeRQ8bQg4bRFFBpp8U4mGXCSPy8mdWjSFY6H5IGEicAC5RV1YbeQVt+TQaG11q999KVmlLAf2ErpRxvTo4vFV0kXbzncjRQYHeh0W+r4c3WrB9YjrGBKyDlucOBkgq2AX0yP4Ex1Si1nRBp+vZi7/f948skyo0tdLFjTw1j2541lDIki4FgBcdCdmd2jEx9CqP8kQxMuY0lY9AdNGr1sgnvRyxANuWIfTvtCSqRcTDPjogF1bOfZ4UeAEw53HJcuwaF3c0mXSgPLaFiLrYiATwzvQ0wLzMMP48BRlcs66bK9YmOQ1NzgpB1GA5vjJS3Uq14bZBKnAJhlYCV5Y8ae9kCLI3Cb9KEExBUg/EdyYuRneS5NI8hi+uid9YIfYy56LABY9Q7C0wSOaWGkpiiMmeRCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMJh8CDCiRvKPXGcMfL8dtqCSAPk1H264LzQnGLbt5pqIVEWORUpJU6kk0BMB3UwfUuon4/6mUNdEo6HDeNwS5Ak="
+        }
+      ]
+    }
+  ],
+  "Verifier Block rejects a block with size more than maxBlockSizeBytes after V2 consensus upgrade": [
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "0775B68802966BC1B6FB1A19D39397E090D8DCADB26564617193510C7EA98BC5",
+        "noteCommitment": {
+          "commitment": {
+            "type": "Buffer",
+            "data": "base64:f/BK18zzYdgWVnwQTqRs9bNycse/jQPwhhUV7VTZekg="
+          },
+          "size": 4
+        },
+        "nullifierCommitment": {
+          "commitment": "75B6424460A60EF177035E4265EAD201B0197A1D07989619E67C07575B53995B",
+          "size": 1
+        },
+        "transactionCommitment": {
+          "type": "Buffer",
+          "data": "base64:4m2ps56EuKOsHxGxHJcrYkEe7PAsU5ToOAkkTJB7gq8="
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": "0",
+        "timestamp": 1669758554130,
+        "work": "0",
+        "hash": "2303C725279376AAB40B63620D20D502B34B040BBC1CA57E6DB1FA46B63EDC28",
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACXviVWmCpT9iAfY9jOI4tz6jiCKvqwTwQHB+6BtJBNf0Wjd8GGW6rSpILYatESJU6Qt/IU0RVD1MHAmTSHXcgRmmiAK6efmh2xjLVmzPLsBUFfEfRFaJFgVhQWZsqB1hQQm87LD+wnkwHcug0U54FuFZKrDvbnsvXKYGfcCooLo4OwREsjRteNMWFkxnLfE+aWIbtkaw91EH4/xm1+w3WqZZhWFda5tCBeW0z2o8UQJ9cQ1XiE8KglwpBBvhC8y0hTwtHspwy32teRowFVn2YZJTS2z//xyBrjIkT8KES/DyePmgxLiApa1/gZ+sA8VswUOEsJgapvAIMe3tM9Se0yO4d9KlQKaDLRhlNm7d7LGNEEH/KH7XdjDVnMOnEA8xyBbZmza8uZTV/JJEf29+S3iXwmJTkJErKgXwGTJrAmkHgBuB5HsbdyCqtOmH2kbmyuQShjJRwFbacnvllIGDFceSadFuW8vGOsmeY1jehnfZMBndkx7LbpilBHaHXNgNgWvw8+1XrAM0SrQvtIeH0GTOGSkcvyOxBCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGTGNGrvm+NQmG7UoIRm2NOytAPXvsevFIcPy6zo1QJoCulneIJZrRqJgs8Alka3j+vSBVgkQh0u9f4anRy2pAk="
+        }
+      ]
+    }
   ]
 }
