@@ -146,6 +146,16 @@ export interface IDatabase {
   * @returns resolves with the serialized value if found, or undefined if not found.
   */
   get(key: Readonly<Buffer>): Promise<Buffer | undefined>
+
+  /**
+   * Put a value into the store with the given key.
+
+  * @param key - The key to insert
+  * @param value - The value to insert
+  *
+  * @returns A promise that resolves when the operation has been executed.
+  */
+  put(key: Readonly<Buffer>, value: Buffer): Promise<void>
 }
 
 export abstract class Database implements IDatabase {
@@ -177,6 +187,8 @@ export abstract class Database implements IDatabase {
   ): Promise<void>
 
   abstract get(key: Readonly<Buffer>): Promise<Buffer | undefined>
+
+  abstract put(key: Readonly<Buffer>, value: Buffer): Promise<void>
 
   protected abstract _createStore<Schema extends DatabaseSchema>(
     options: IDatabaseStoreOptions<Schema>,
