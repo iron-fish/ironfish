@@ -150,8 +150,8 @@ mod test {
     use bellman::{gadgets::test::*, Circuit};
     use ff::Field;
     use group::{Curve, Group};
+    use rand::rngs::StdRng;
     use rand::{RngCore, SeedableRng};
-    use rand_xorshift::XorShiftRng;
     use zcash_primitives::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
     use zcash_primitives::sapling::Note;
     use zcash_primitives::sapling::{ProofGenerationKey, Rseed};
@@ -163,12 +163,10 @@ mod test {
 
     #[test]
     fn test_output_circuit_with_bls12_381() {
-        let mut rng = XorShiftRng::from_seed([
-            0x58, 0x62, 0xbe, 0x3d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
+        // Seed a fixed rng for determinism in the test
+        let mut rng = StdRng::seed_from_u64(0);
 
-        for _ in 0..100 {
+        for _ in 0..50 {
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: jubjub::Fr::random(&mut rng),

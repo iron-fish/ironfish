@@ -331,8 +331,7 @@ mod test {
     use blake2s_simd::Params as Blake2sParams;
     use ff::{Field, PrimeField, PrimeFieldBits};
     use group::{Curve, Group, GroupEncoding};
-    use rand::{RngCore, SeedableRng};
-    use rand_xorshift::XorShiftRng;
+    use rand::{rngs::StdRng, RngCore, SeedableRng};
     use zcash_primitives::{
         constants::VALUE_COMMITMENT_VALUE_GENERATOR,
         sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed},
@@ -348,11 +347,9 @@ mod test {
     };
 
     #[test]
-    fn test_input_circuit_with_bls12_381() {
-        let mut rng = XorShiftRng::from_seed([
-            0x58, 0x62, 0xbe, 0x3d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
+    fn test_spend_circuit_with_bls12_381() {
+        // Seed a fixed rng for determinism in the test
+        let mut rng = StdRng::seed_from_u64(0);
 
         let tree_depth = 32;
 
@@ -497,11 +494,9 @@ mod test {
     }
 
     #[test]
-    fn test_input_circuit_with_bls12_381_external_test_vectors() {
-        let mut rng = XorShiftRng::from_seed([
-            0x59, 0x62, 0xbe, 0x3d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
-            0xbc, 0xe5,
-        ]);
+    fn test_spend_circuit_with_bls12_381_external_test_vectors() {
+        // Seed a fixed rng for determinism in the test
+        let mut rng = StdRng::seed_from_u64(0);
 
         let tree_depth = 32;
 
