@@ -67,6 +67,12 @@ impl NativeNote {
         self.note.memo().to_string()
     }
 
+    /// Asset identifier associated with this note
+    #[napi]
+    pub fn asset_identifier(&self) -> Buffer {
+        Buffer::from(&self.note.asset_identifier()[..])
+    }
+
     /// Compute the nullifier for this note, given the private key of its owner.
     ///
     /// The nullifier is a series of bytes that is published by the note owner
