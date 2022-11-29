@@ -20,14 +20,6 @@ import { LevelupTransaction } from './transaction'
 
 const ENABLE_TRANSACTIONS = true
 
-interface INotFoundError {
-  type: 'NotFoundError'
-}
-
-function isNotFoundError(error: unknown): error is INotFoundError {
-  return (error as INotFoundError)?.type === 'NotFoundError'
-}
-
 export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<Schema> {
   db: LevelupDatabase
 
@@ -60,21 +52,13 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
       return transaction.get(this, key)
     }
 
-    try {
-      const data = (await this.db.levelup.get(encodedKey)) as unknown
-      if (data === undefined) {
-        return undefined
-      }
-      if (!(data instanceof Buffer)) {
-        return undefined
-      }
-      return this.valueEncoding.deserialize(data)
-    } catch (error: unknown) {
-      if (isNotFoundError(error)) {
-        return undefined
-      }
-      throw error
+    const data = await this.db.get(encodedKey)
+
+    if (data === undefined) {
+      return undefined
     }
+
+    return this.valueEncoding.deserialize(data)
   }
 
   async *getAllIter(
