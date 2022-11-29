@@ -13,14 +13,14 @@ export class Note {
 
   private readonly _value: bigint
   private readonly _memo: Buffer
+  private readonly _asset_identifier: Buffer
 
   constructor(noteSerialized: Buffer) {
     this.noteSerialized = noteSerialized
 
     const reader = bufio.read(this.noteSerialized, true)
 
-    // skip asset generator
-    reader.seek(32)
+    this._asset_identifier = reader.readBytes(32, true)
 
     // skip owner public address
     reader.seek(32)
@@ -62,9 +62,7 @@ export class Note {
   }
 
   assetIdentifier(): Buffer {
-    const identifier = this.takeReference().assetIdentifier()
-    this.returnReference()
-    return identifier
+    return this._asset_identifier
   }
 
   nullifier(ownerPrivateKey: string, position: bigint): Buffer {
