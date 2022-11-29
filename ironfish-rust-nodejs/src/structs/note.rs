@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_rust::note::{SCALAR_SIZE, MEMO_SIZE, GENERATOR_SIZE, AMOUNT_VALUE_SIZE};
+use ironfish_rust::note::{AMOUNT_VALUE_SIZE, GENERATOR_SIZE, MEMO_SIZE, SCALAR_SIZE};
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
