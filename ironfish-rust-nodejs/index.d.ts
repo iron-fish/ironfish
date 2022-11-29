@@ -114,6 +114,10 @@ export class Transaction {
   receive(note: Note): void
   /** Spend the note owned by spender_hex_key at the given witness location. */
   spend(note: Note, witness: object): void
+  /** Mint a new asset with a given value as part of this transaction. */
+  mint(asset: Asset, value: bigint): void
+  /** Burn some supply of a given asset and value as part of this transaction. */
+  burn(asset: Asset, value: bigint): void
   /**
    * Special case for posting a miners fee transaction. Miner fee transactions
    * are unique in that they generate currency. They do not have any spends
