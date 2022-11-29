@@ -204,6 +204,10 @@ export class LevelupDatabase extends Database {
     }
   }
 
+  async put(key: Readonly<Buffer>, value: Buffer): Promise<void> {
+    await this.levelup.put(key, value)
+  }
+
   async getVersion(): Promise<number> {
     let current = await this.metaStore.get('version')
 
