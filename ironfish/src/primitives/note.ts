@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Note as NativeNote } from '@ironfish/rust-nodejs'
+import { Note as NativeNote, RANDOMNESS_LENGTH, PUBLIC_ADDRESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { BufferUtils } from '../utils/buffer'
 
@@ -21,16 +21,16 @@ export class Note {
     const reader = bufio.read(this.noteSerialized, true)
 
     // skip owner public address
-    reader.seek(32)
+    reader.seek(PUBLIC_ADDRESS_LENGTH)
 
     this._asset_identifier = reader.readBytes(32, true)
 
     this._value = BigInt(reader.readU64())
 
     // skip randomness
-    reader.seek(32)
+    reader.seek(RANDOMNESS_LENGTH)
 
-    this._memo = reader.readBytes(32, true)
+    this._memo = reader.readBytes(MEMO_LENGTH, true)
   }
 
   serialize(): Buffer {

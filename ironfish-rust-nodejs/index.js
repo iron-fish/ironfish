@@ -236,7 +236,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_LENGTH, Asset, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, Transaction, verifyTransactions, generateKey, generateNewPublicAddress, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
+const { KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, Transaction, verifyTransactions, generateKey, generateNewPublicAddress, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
 
 module.exports.KEY_LENGTH = KEY_LENGTH
 module.exports.NONCE_LENGTH = NONCE_LENGTH
@@ -247,8 +247,16 @@ module.exports.unboxMessage = unboxMessage
 module.exports.RollingFilter = RollingFilter
 module.exports.ASSET_LENGTH = ASSET_LENGTH
 module.exports.Asset = Asset
+module.exports.NOTE_ENCRYPTION_KEY_LENGTH = NOTE_ENCRYPTION_KEY_LENGTH
+module.exports.ENCRYPTED_NOTE_PLAINTEXT_LENGTH = ENCRYPTED_NOTE_PLAINTEXT_LENGTH
+module.exports.MAC_LENGTH = MAC_LENGTH
 module.exports.ENCRYPTED_NOTE_LENGTH = ENCRYPTED_NOTE_LENGTH
 module.exports.NoteEncrypted = NoteEncrypted
+module.exports.PUBLIC_ADDRESS_LENGTH = PUBLIC_ADDRESS_LENGTH
+module.exports.RANDOMNESS_LENGTH = RANDOMNESS_LENGTH
+module.exports.MEMO_LENGTH = MEMO_LENGTH
+module.exports.GENERATOR_LENGTH = GENERATOR_LENGTH
+module.exports.AMOUNT_VALUE_LENGTH = AMOUNT_VALUE_LENGTH
 module.exports.DECRYPTED_NOTE_LENGTH = DECRYPTED_NOTE_LENGTH
 module.exports.Note = Note
 module.exports.TransactionPosted = TransactionPosted

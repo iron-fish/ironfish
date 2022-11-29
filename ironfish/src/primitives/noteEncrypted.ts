@@ -4,13 +4,16 @@
 
 import {
   ENCRYPTED_NOTE_LENGTH,
+  MAC_LENGTH,
+  NOTE_ENCRYPTION_KEY_LENGTH,
+  ENCRYPTED_NOTE_PLAINTEXT_LENGTH,
   NoteEncrypted as NativeNoteEncrypted,
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Serde } from '../serde'
 import { Note } from './note'
 
-const PROOF_LENGTH = 192
+export const PROOF_LENGTH = 192
 export const NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE = PROOF_LENGTH + ENCRYPTED_NOTE_LENGTH
 
 export type NoteEncryptedHash = Buffer
@@ -39,16 +42,14 @@ export class NoteEncrypted {
     // ephemeral public key
     reader.seek(32)
     // encrypted note
-    reader.seek(72)
+    reader.seek(ENCRYPTED_NOTE_PLAINTEXT_LENGTH)
     // aead MAC
-    reader.seek(16)
+    reader.seek(MAC_LENGTH)
     // note encryption keys
-    reader.seek(64)
-    // aead MAC
-    reader.seek(16)
+    reader.seek(NOTE_ENCRYPTION_KEY_LENGTH)
 
     // total serialized size: 192 (proof from transaction)
-    // + 32 + 32 + 32 + 72 + 16 + 64 + 16 = 456 bytes
+    // + 32 + 32 + 32 + 104 + 16 + 64 + 16 = 488 bytes
   }
 
   serialize(): Buffer {
