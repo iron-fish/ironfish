@@ -63,10 +63,8 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, IronfishError> {
 
 pub(crate) mod aead {
     use crate::errors::IronfishError;
-    use crypto::{
-        aead::{AeadDecryptor, AeadEncryptor},
-        chacha20poly1305::ChaCha20Poly1305,
-    };
+    use chacha20poly1305::aead::{AeadInPlace, NewAead};
+    use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
 
     pub const MAC_SIZE: usize = 16;
 
@@ -75,57 +73,76 @@ pub(crate) mod aead {
     ///
     /// This is just a facade around the ChaCha20Poly1305 struct. It ignores
     /// nonce and aad and automatically stores the mac tag.
-    pub(crate) fn encrypt(key: &[u8], plaintext: &[u8], encrypted_output: &mut [u8]) {
-        assert_eq!(encrypted_output.len(), plaintext.len() + MAC_SIZE);
-        let mut encryptor = ChaCha20Poly1305::new(key, &[0; 8], &[0; 8]);
-        let mut tag = [0; MAC_SIZE];
-        encryptor.encrypt(
-            plaintext,
-            &mut encrypted_output[..plaintext.len()],
-            &mut tag,
-        );
-        encrypted_output[plaintext.len()..].clone_from_slice(&tag);
+    /// This is just a facade around the ChaCha20Poly1305 struct. The nonce and
+    /// associated data are zeroed.
+    pub(crate) fn encrypt<const SIZE: usize>(
+        key: &[u8; 32],
+        plaintext: &[u8],
+    ) -> Result<[u8; SIZE], IronfishError> {
+        let mut encrypted_output = [0u8; SIZE];
+        encrypted_output[..plaintext.len()].copy_from_slice(plaintext);
+
+        let encryptor = ChaCha20Poly1305::new(Key::from_slice(key));
+
+        let tag = encryptor
+            .encrypt_in_place_detached(
+                &Nonce::default(),
+                &[],
+                &mut encrypted_output[..plaintext.len()],
+            )
+            .map_err(|_| IronfishError::InvalidSigningKey)?;
+        encrypted_output[plaintext.len()..].copy_from_slice(&tag);
+
+        Ok(encrypted_output)
     }
 
     /// Decrypt the encrypted text using the given key and ciphertext, also checking
     /// that the mac tag is correct.
     ///
     /// Returns Ok(()) if the mac matches the decrypted text, Err(()) if not
-    pub(crate) fn decrypt(
-        key: &[u8],
-        ciphertext: &[u8],
-        plaintext_output: &mut [u8],
-    ) -> Result<(), IronfishError> {
-        assert!(plaintext_output.len() == ciphertext.len() - MAC_SIZE);
-        let mut decryptor = ChaCha20Poly1305::new(key, &[0; 8], &[0; 8]);
-        let success = decryptor.decrypt(
-            &ciphertext[..ciphertext.len() - MAC_SIZE],
-            plaintext_output,
-            &ciphertext[ciphertext.len() - MAC_SIZE..],
-        );
 
-        if success {
-            Ok(())
-        } else {
-            Err(IronfishError::InvalidDecryptionKey)
-        }
+    pub(crate) fn decrypt<const SIZE: usize>(
+        key: &[u8; 32],
+        ciphertext: &[u8],
+    ) -> Result<[u8; SIZE], IronfishError> {
+        let decryptor = ChaCha20Poly1305::new(Key::from_slice(key));
+
+        let mut plaintext = [0u8; SIZE];
+        plaintext.copy_from_slice(&ciphertext[..SIZE]);
+
+        decryptor
+            .decrypt_in_place_detached(
+                &Nonce::default(),
+                &[],
+                &mut plaintext,
+                ciphertext[SIZE..].into(),
+            )
+            .map_err(|_| IronfishError::InvalidDecryptionKey)?;
+
+        Ok(plaintext)
     }
 
     #[cfg(test)]
     mod test {
+        use rand::Rng;
+
+        use crate::{note::ENCRYPTED_NOTE_SIZE, serializing::aead};
+
         use super::{decrypt, encrypt};
 
         #[test]
         fn test_aead_facade() {
-            let key = b"I'm so secret!!!";
-            let plaintext = b"hello world";
-            let mut encrypted_text = [0; 27];
-            encrypt(&key[..], &plaintext[..], &mut encrypted_text[..]);
+            let key = b"an example very very secret key.";
+            const SIZE: usize = ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE;
+            let mut plaintext = [0u8; ENCRYPTED_NOTE_SIZE];
+            // fill with random bytes to emulate expected plaintext
+            rand::thread_rng().fill(&mut plaintext[..]);
+            let encrypted_text: [u8; SIZE] =
+                encrypt(key, &plaintext[..]).expect("Should successfully encrypt plaintext");
 
-            let mut decrypted_plaintext = [0; 11];
-            decrypt(&key[..], &encrypted_text[..], &mut decrypted_plaintext[..])
-                .expect("Should successfully decrypt with MAC verification");
-            assert_eq!(&decrypted_plaintext, plaintext);
+            let decrypted_plaintext: [u8; ENCRYPTED_NOTE_SIZE] =
+                decrypt(key, &encrypted_text[..]).expect("Should successfully decrypt plaintext");
+            assert_eq!(decrypted_plaintext, plaintext);
         }
     }
 }

@@ -247,8 +247,7 @@ impl<'a> Note {
         index += MEMO_SIZE;
 
         bytes_to_encrypt[index..].copy_from_slice(&self.asset_generator.to_bytes());
-        let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
-        aead::encrypt(shared_secret, &bytes_to_encrypt, &mut encrypted_bytes);
+        let encrypted_bytes = aead::encrypt(shared_secret, &bytes_to_encrypt).unwrap();
 
         encrypted_bytes
     }
@@ -320,8 +319,7 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<(jubjub::Fr, jubjub::SubgroupPoint, u64, Memo), IronfishError> {
-        let mut plaintext_bytes = [0; ENCRYPTED_NOTE_SIZE];
-        aead::decrypt(shared_secret, encrypted_bytes, &mut plaintext_bytes)?;
+        let plaintext_bytes = aead::decrypt::<ENCRYPTED_NOTE_SIZE>(shared_secret, encrypted_bytes)?;
 
         let mut reader = plaintext_bytes[..].as_ref();
 
