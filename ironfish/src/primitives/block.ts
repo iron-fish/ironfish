@@ -116,7 +116,7 @@ export type SerializedCounts = { notes: number; nullifiers: number }
 
 export class BlockSerde {
   static equals(block1: Block, block2: Block): boolean {
-    if (!BlockHeaderSerde.equals(block1.header, block2.header)) {
+    if (!block1.header.equals(block2.header)) {
       return false
     }
 
