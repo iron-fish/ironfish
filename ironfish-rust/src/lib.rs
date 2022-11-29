@@ -4,8 +4,6 @@
 use bellman::groth16;
 use bls12_381::Bls12;
 
-mod serializing;
-
 pub mod assets;
 pub mod errors;
 pub mod keys;
@@ -16,6 +14,7 @@ pub mod nacl;
 pub mod note;
 pub mod rolling_filter;
 pub mod sapling_bls12;
+pub mod serializing;
 pub mod transaction;
 pub mod util;
 pub mod witness;
