@@ -7,7 +7,10 @@ use std::convert::TryInto;
 
 use ironfish_rust::transaction::batch_verify_transactions;
 use ironfish_rust::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
-use napi::{bindgen_prelude::*, JsBuffer};
+use napi::{
+    bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
+    JsBuffer,
+};
 use napi_derive::napi;
 
 use crate::to_napi_err;

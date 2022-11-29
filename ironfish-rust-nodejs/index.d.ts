@@ -18,6 +18,7 @@ export interface BoxedMessage {
 }
 export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
 export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
+export const ASSET_LENGTH: number
 export const ENCRYPTED_NOTE_LENGTH: number
 export const DECRYPTED_NOTE_LENGTH: number
 export interface NativeSpendDescription {
@@ -47,6 +48,11 @@ export class RollingFilter {
   constructor(items: number, rate: number)
   add(value: Buffer): void
   test(value: Buffer): boolean
+}
+export type NativeAsset = Asset
+export class Asset {
+  constructor(jsBytes: Buffer)
+  serialize(): Buffer
 }
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
