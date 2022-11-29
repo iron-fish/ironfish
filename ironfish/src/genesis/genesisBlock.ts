@@ -8,11 +8,8 @@ export const genesisBlockData = `
     "sequence": 1,
     "previousBlockHash": "0000000000000000000000000000000000000000000000000000000000000000",
     "noteCommitment": {
-      "commitment": {
-        "type": "Buffer",
-        "data": "base64:76AeW/Y/OReid2EQ5DQGuBLEja7YRmo0cPob+89ARxE="
-      },
-      "size": 3
+      "type": "Buffer",
+      "data": "base64:76AeW/Y/OReid2EQ5DQGuBLEja7YRmo0cPob+89ARxE="
     },
     "nullifierCommitment": {
       "commitment": "75B6424460A60EF177035E4265EAD201B0197A1D07989619E67C07575B53995B",
