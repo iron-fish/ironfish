@@ -22,6 +22,7 @@ use crate::{
     assets::asset::{asset_generator_point, Asset},
     errors::IronfishError,
     sapling_bls12::SAPLING,
+    serializing::read_point,
     SaplingKey,
 };
 
@@ -253,18 +254,9 @@ impl MintDescription {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
         let asset = Asset::read(&mut reader)?;
-
         let value = reader.read_u64::<LittleEndian>()?;
-
-        let value_commitment = {
-            let mut bytes = [0; 32];
-            reader.read_exact(&mut bytes)?;
-
-            Option::from(ExtendedPoint::from_bytes(&bytes)).ok_or(IronfishError::InvalidData)?
-        };
-
+        let value_commitment = read_point(&mut reader)?;
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
-
         let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
 
         Ok(MintDescription {

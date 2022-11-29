@@ -39,7 +39,7 @@ impl MerkleNoteHash {
     }
 
     pub fn write<W: io::Write>(&self, writer: &mut W) -> Result<(), IronfishError> {
-        writer.write_all(self.0.to_repr().as_ref())?;
+        writer.write_all(&self.0.to_bytes())?;
 
         Ok(())
     }

@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{assets::asset::AssetIdentifier, errors::IronfishError, util::str_to_array};
+use crate::{
+    assets::asset::AssetIdentifier, errors::IronfishError, serializing::read_point,
+    util::str_to_array,
+};
 
 use super::{
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
-    serializing::{aead, read_scalar, scalar_to_bytes},
+    serializing::{aead, read_scalar},
 };
 use blake2s_simd::Params as Blake2sParams;
 use bls12_381::Scalar;
@@ -116,13 +119,7 @@ impl<'a> Note {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let owner = PublicAddress::read(&mut reader)?;
 
-        let asset_generator = {
-            let mut bytes = [0; 32];
-            reader.read_exact(&mut bytes)?;
-
-            Option::from(jubjub::SubgroupPoint::from_bytes(&bytes))
-                .ok_or(IronfishError::InvalidData)?
-        };
+        let asset_generator = read_point(&mut reader)?;
 
         let value = reader.read_u64::<LittleEndian>()?;
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
@@ -148,7 +145,7 @@ impl<'a> Note {
         self.owner.write(&mut writer)?;
         writer.write_all(&self.asset_generator.to_bytes())?;
         writer.write_u64::<LittleEndian>(self.value)?;
-        writer.write_all(self.randomness.to_repr().as_ref())?;
+        writer.write_all(&self.randomness.to_bytes())?;
         writer.write_all(&self.memo.0)?;
 
         Ok(())
@@ -294,7 +291,7 @@ impl<'a> Note {
     /// in the note, including the randomness and converts them to a byte
     /// format. This hash is what gets used for the leaf nodes in a Merkle Tree.
     pub fn commitment(&self) -> [u8; 32] {
-        scalar_to_bytes(&self.commitment_point())
+        self.commitment_point().to_bytes()
     }
 
     /// Compute the commitment of this note. This is essentially a hash of all

@@ -11,7 +11,7 @@ use ironfish_zkp::ValueCommitment;
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
-use crate::{assets::asset::Asset, errors::IronfishError};
+use crate::{assets::asset::Asset, errors::IronfishError, serializing::read_point};
 
 /// Parameters used to build a burn description
 pub struct BurnBuilder {
@@ -111,13 +111,7 @@ impl BurnDescription {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let asset = Asset::read(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
-
-        let value_commitment = {
-            let mut bytes = [0; 32];
-            reader.read_exact(&mut bytes)?;
-
-            Option::from(ExtendedPoint::from_bytes(&bytes)).ok_or(IronfishError::InvalidData)?
-        };
+        let value_commitment = read_point(&mut reader)?;
 
         Ok(BurnDescription {
             asset,
@@ -129,6 +123,7 @@ impl BurnDescription {
     /// Stow the bytes of this [`BurnDescription`] in the given writer.
     pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
         self.serialize_signature_fields(writer)?;
+
         Ok(())
     }
 }
