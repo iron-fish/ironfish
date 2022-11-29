@@ -243,8 +243,8 @@ impl<'a> Note {
         );
         index += AMOUNT_VALUE_SIZE;
 
-        bytes_to_encrypt[index..(index + GENERATOR_SIZE)].copy_from_slice(&self.memo.0[..]);
-        index += GENERATOR_SIZE;
+        bytes_to_encrypt[index..(index + MEMO_SIZE)].copy_from_slice(&self.memo.0[..]);
+        index += MEMO_SIZE;
 
         bytes_to_encrypt[index..].copy_from_slice(&self.asset_generator.to_bytes());
         let mut encrypted_bytes = [0; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE];
