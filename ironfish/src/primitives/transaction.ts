@@ -10,6 +10,7 @@ import {
 } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
+import { BurnDescription } from './burnDescription'
 import { MintDescription } from './mintDescription'
 import { NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
@@ -26,6 +27,7 @@ export class Transaction {
   private readonly _spends: Spend[] = []
   private readonly _notes: NoteEncrypted[]
   private readonly _mints: MintDescription[]
+  private readonly _burns: BurnDescription[]
   private readonly _signature: Buffer
   private _hash?: TransactionHash
   private _unsignedHash?: TransactionHash
@@ -90,6 +92,16 @@ export class Transaction {
       reader.seek(64)
 
       return new MintDescription(asset, value)
+    })
+
+    this._burns = Array.from({ length: _burnsLength }, () => {
+      const asset = new Asset(reader.readBytes(ASSET_LENGTH))
+      const value = reader.readU8()
+
+      // value commitment
+      reader.seek(32)
+
+      return new BurnDescription(asset, value)
     })
 
     this._signature = reader.readBytes(64, true)
