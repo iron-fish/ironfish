@@ -189,7 +189,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     }
 
     const [encodedKey, encodedValue] = this.encode(key, value)
-    await this.db.levelup.put(encodedKey, encodedValue)
+    await this.db.put(encodedKey, encodedValue)
   }
 
   async add(
@@ -212,7 +212,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     }
 
     const [encodedKey, encodedValue] = this.encode(key, value)
-    await this.db.levelup.put(encodedKey, encodedValue)
+    await this.db.put(encodedKey, encodedValue)
   }
 
   async del(key: SchemaKey<Schema>, transaction?: IDatabaseTransaction): Promise<void> {
