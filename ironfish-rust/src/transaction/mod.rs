@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use outputs::OutputBuilder;
-use spending::{SpendBuilder, UnsignedSpendDescription};
+use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
@@ -39,7 +39,7 @@ use self::{
 pub mod burns;
 pub mod mints;
 pub mod outputs;
-pub mod spending;
+pub mod spends;
 
 #[cfg(test)]
 mod tests;

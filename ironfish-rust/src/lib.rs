@@ -24,7 +24,7 @@ pub use {
     merkle_note_hash::MerkleNoteHash,
     note::Note,
     transaction::{
-        outputs::OutputDescription, spending::SpendDescription, ProposedTransaction, Transaction,
+        outputs::OutputDescription, spends::SpendDescription, ProposedTransaction, Transaction,
     },
 };
 
