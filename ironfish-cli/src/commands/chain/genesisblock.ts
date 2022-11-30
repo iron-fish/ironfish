@@ -36,6 +36,11 @@ export default class GenesisBlockCommand extends IronfishCommand {
       default: 'Genesis Block',
       description: 'The memo of the block',
     }),
+    genesisSupplyInIron: Flags.string({
+      char: 'g',
+      required: true,
+      description: 'The amount of coins in the genesis block',
+    }),
   }
 
   async start(): Promise<void> {
@@ -78,7 +83,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
       allocations: [
         {
           publicAddress: account.publicAddress,
-          amount: CurrencyUtils.decodeIron(node.chain.consensus.parameters.genesisSupplyInIron),
+          amount: CurrencyUtils.decodeIron(flags.genesisSupplyInIron),
         },
       ],
     }
