@@ -6,13 +6,14 @@ import {
   Asset,
   ASSET_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
+  PROOF_LENGTH,
   TransactionPosted,
 } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
 import { BurnDescription } from './burnDescription'
 import { MintDescription } from './mintDescription'
-import { NoteEncrypted, PROOF_LENGTH } from './noteEncrypted'
+import { NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
 
 export type TransactionHash = Buffer

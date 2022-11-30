@@ -5,15 +5,14 @@
 import {
   ENCRYPTED_NOTE_LENGTH,
   ENCRYPTED_NOTE_PLAINTEXT_LENGTH,
-  MAC_LENGTH,
   NOTE_ENCRYPTION_KEY_LENGTH,
   NoteEncrypted as NativeNoteEncrypted,
+  PROOF_LENGTH,
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Serde } from '../serde'
 import { Note } from './note'
 
-export const PROOF_LENGTH = 192
 export const NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE = PROOF_LENGTH + ENCRYPTED_NOTE_LENGTH
 
 export type NoteEncryptedHash = Buffer
@@ -43,8 +42,7 @@ export class NoteEncrypted {
     reader.seek(32)
     // encrypted note
     reader.seek(ENCRYPTED_NOTE_PLAINTEXT_LENGTH)
-    // aead MAC
-    reader.seek(MAC_LENGTH)
+
     // note encryption keys
     reader.seek(NOTE_ENCRYPTION_KEY_LENGTH)
 

@@ -34,6 +34,8 @@ pub struct OutputBuilder {
     is_miners_fee: bool,
 }
 
+pub const PROOF_SIZE: u32 = 192;
+
 impl OutputBuilder {
     /// Create a new [`OutputBuilder`] attempting to create a note.
     pub(crate) fn new(note: Note) -> Self {

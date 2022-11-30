@@ -18,9 +18,10 @@ export interface BoxedMessage {
 }
 export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
 export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
+export const ASSET_LENGTH: number
 export const NOTE_ENCRYPTION_KEY_LENGTH: number
-export const ENCRYPTED_NOTE_PLAINTEXT_LENGTH: number
 export const MAC_LENGTH: number
+export const ENCRYPTED_NOTE_PLAINTEXT_LENGTH: number
 export const ENCRYPTED_NOTE_LENGTH: number
 export const PUBLIC_ADDRESS_LENGTH: number
 export const RANDOMNESS_LENGTH: number
@@ -33,6 +34,7 @@ export interface NativeSpendDescription {
   rootHash: Buffer
   nullifier: Buffer
 }
+export const PROOF_LENGTH: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
 export interface Key {
   spending_key: string

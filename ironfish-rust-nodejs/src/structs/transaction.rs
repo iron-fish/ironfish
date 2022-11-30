@@ -19,11 +19,15 @@ use super::note::NativeNote;
 use super::spend_proof::NativeSpendDescription;
 use super::witness::JsWitness;
 use super::{NativeAsset, ENCRYPTED_NOTE_LENGTH};
+use ironfish_rust::transaction::outputs::PROOF_SIZE;
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {
     transaction: Transaction,
 }
+
+#[napi]
+pub const PROOF_LENGTH: u32 = PROOF_SIZE;
 
 #[napi]
 impl NativeTransactionPosted {
