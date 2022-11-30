@@ -10,6 +10,7 @@ import {
   getBlockWithMinersFeeSize,
   getTransactionSize,
 } from '../network/utils/serializers'
+import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHeader, transactionCommitment } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
@@ -265,24 +266,14 @@ export class Verifier {
       const notesSize = await this.chain.notes.size(tx)
 
       for (const spend of transaction.spends()) {
+        const reason = await this.verifySpend(spend, notesSize, tx)
+
+        if (reason) {
+          return { valid: false, reason }
+        }
+
         if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
-        }
-
-        if (spend.size > notesSize) {
-          return {
-            valid: false,
-            reason: VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE,
-          }
-        }
-
-        try {
-          const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
-          if (!spend.commitment.equals(realSpendRoot)) {
-            return { valid: false, reason: VerificationResultReason.INVALID_SPEND }
-          }
-        } catch {
-          return { valid: false, reason: VerificationResultReason.ERROR }
         }
       }
 
@@ -364,33 +355,14 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
-      const processedSpends = new BufferSet()
-
       const previousNotesSize = block.header.noteSize
       Assert.isNotNull(previousNotesSize)
 
       for (const spend of block.spends()) {
-        if (processedSpends.has(spend.nullifier)) {
-          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+        const verificationError = await this.verifySpend(spend, previousNotesSize, tx)
+        if (verificationError) {
+          return { valid: false, reason: verificationError }
         }
-
-        if (spend.size > previousNotesSize) {
-          return {
-            valid: false,
-            reason: VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE,
-          }
-        }
-
-        try {
-          const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
-          if (!spend.commitment.equals(realSpendRoot)) {
-            return { valid: false, reason: VerificationResultReason.INVALID_SPEND }
-          }
-        } catch {
-          return { valid: false, reason: VerificationResultReason.ERROR }
-        }
-
-        processedSpends.add(spend.nullifier)
       }
 
       return { valid: true }
@@ -419,6 +391,33 @@ export class Verifier {
     }
 
     return { valid: true }
+  }
+
+  /**
+   * Verify that the root of the notes tree is the one that is actually associated with the
+   * spend's spend root.
+   *
+   * @param spend the spend to be verified
+   * @param notesSize the size of the notes tree
+   * @param tx optional transaction context within which to check the spends.
+   */
+  async verifySpend(
+    spend: Spend,
+    notesSize: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResultReason | undefined> {
+    if (spend.size > notesSize) {
+      return VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE
+    }
+
+    try {
+      const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
+      if (!spend.commitment.equals(realSpendRoot)) {
+        return VerificationResultReason.INVALID_SPEND
+      }
+    } catch {
+      return VerificationResultReason.ERROR
+    }
   }
 
   /**
