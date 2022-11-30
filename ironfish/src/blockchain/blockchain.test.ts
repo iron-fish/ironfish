@@ -785,6 +785,9 @@ describe('Blockchain', () => {
     const blockA5 = await useMinerBlockFixture(nodeA.chain, 5)
     await expect(nodeA.chain).toAddBlock(blockA5)
 
+    // create one more block to add at the end
+    const blockA6 = await useMinerBlockFixture(nodeA.chain, 6)
+
     const accountA = await useAccountFixture(nodeB.wallet, 'accountA')
     const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
 
@@ -848,6 +851,10 @@ describe('Blockchain', () => {
         reason: VerificationResultReason.DOUBLE_SPEND,
       })
     }
+
+    // The chain should re-org back to the valid chain once it sees the next block
+    await expect(nodeA.chain).toAddBlock(blockA6)
+    expect(nodeA.chain.head.hash.equals(blockA6.header.hash)).toBe(true)
   })
 
   it('does not remove nullifiers from double spends during reorg', async () => {
