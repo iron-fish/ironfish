@@ -1,48 +1,48 @@
 {
   "Accounts produces unique transaction hashes": [
     {
-      "id": "4cdc9260-180d-4ab9-95b6-28b5e5fe016c",
+      "id": "f49db221-1c91-492d-a88f-568c22d61703",
       "name": "test",
-      "spendingKey": "5b2f4b0d6342ea52d18c364dfe6313d36a628354ccd44fd1743940adeb763f2f",
-      "incomingViewKey": "7a91ffb68e761b470dd8f658a91e6dd2d64da0122377e89f47d4c56bed3d8c02",
-      "outgoingViewKey": "e958ab8af5efc1c3bbb0977c78ce4fa8d39c546fd3ea65771c57afc8b19615f2",
-      "publicAddress": "a1b2831719dafcf7323cbfb89f4e5f8a1a2205b546249e9106cc9141b2c3a26d"
+      "spendingKey": "eeca9099e4cb444b1f0a505d84d73345e0416d65f7d89e9423139955e3ab58a6",
+      "incomingViewKey": "021fbe4d2a065c50f1b0ee54871ba4865181d60a4af91f7a793458acc2e17502",
+      "outgoingViewKey": "4321a5b31488b3d66bf056431d53e4df4e3a3fbc8a41110e4d312513776b3d47",
+      "publicAddress": "aa9dfd8e3149443d9715873477adc20988529a439ad967ed3f333c89c55a6b31"
     }
   ],
   "Accounts check if a transaction is a miners fee": [
     {
-      "id": "c4e52996-d632-443e-b5d3-0fc3b39d12be",
+      "id": "e2ecb14c-c01b-4e2f-98d2-1c7269cb3ea9",
       "name": "test",
-      "spendingKey": "ff9baa07bf668c1ebfb41bf1d1f9dec843919392d853cf1bcbf0e05958fc649e",
-      "incomingViewKey": "499e9732581ed41a8ea953675d42cdab2a66eb2b28e6825ff97395d6737c7107",
-      "outgoingViewKey": "c5e7f35cb0d22258ec3d967d239f4d63a78a0248d3eb39fa7f4edf4ff3d2ae9d",
-      "publicAddress": "73c878a3d13b2168e56ba08dfe582c6514c048bdf100774afc54aa48384a7cc0"
+      "spendingKey": "1575d1880a2ff9dd20a73d6b85c1019485a52c8ce1f83658514001cf58ac22c3",
+      "incomingViewKey": "d27f0be0cc4357259005368358ac5b9389960207755d4cbcf5016e57379e4907",
+      "outgoingViewKey": "fb5288c19a53c19c701753964cb07cb178c1d54d028a0d3fd629ef9b83d5dcd9",
+      "publicAddress": "a4c6b75bc3bfef1ecbec1865ff1d4aabc37bc987f1fe4dd5e28fe87b173f0d58"
     }
   ],
   "Accounts throw error if account is not fully synced when creating transaction": [
     {
-      "id": "f4c4bc9a-2129-4bdd-a913-37a3cf6fe24d",
+      "id": "19506f04-57c2-48dc-92c3-cc299814f149",
       "name": "testA",
-      "spendingKey": "4f6879ef335700608362580b8507a3ab84397dcfd5e99bce3ec80813f288f0b8",
-      "incomingViewKey": "c4225a895b481a096d398e9739a7edc741f790e5019b594a4ea905f7c6289b03",
-      "outgoingViewKey": "96791d1abac35fa981785e92690e8d7e76aaa0f2867bb4fc2d916ab72aa92629",
-      "publicAddress": "ec381d496c9497d35b5c546853f4abf8b082415531c9ba43d0775d44193c0f72"
+      "spendingKey": "732cd6aaab5a68bcf47b245fb5f6f3987ab692073475584ac9f0653ede1ca688",
+      "incomingViewKey": "b7f3b70976e87b4e80f0e792c46e5b3f17704b7c0304ecaeed0991ab64f92101",
+      "outgoingViewKey": "34f2a4d9ca3e32513d34544baa93e2eaca17cccf6035db3f8bb634a16749bd7d",
+      "publicAddress": "d7875763a3af1105f5b1f54ef6066ee2b02760fff224f02bd568088d072b0f93"
     },
     {
-      "id": "6e8a7013-fde7-4bfb-9dde-b6ce8f5a5e82",
+      "id": "a64ffbf7-33a6-4751-b8c7-f86164308f8f",
       "name": "testB",
-      "spendingKey": "08393c6ec88ed1e83b3afd9bc984dac5731fbced596615495b5bcc391ef42f76",
-      "incomingViewKey": "293e864d484e5c43381018aca58733652ff48e1696fd3ea03b58d07033035602",
-      "outgoingViewKey": "9a6f6863e12b95c526b65bd75f68436adadc56e7dc7800e92ddc74be2c378e12",
-      "publicAddress": "4b7f4517aaafd300c2e0e08e54c9b10f449fe8637896fe23359aef13e46e90d1"
+      "spendingKey": "abe5ef55835af10ab48c3c8d5ed9e2fe6939fcd9d6ef89a519e2edcb50451eaa",
+      "incomingViewKey": "76a8bb31adfcbcf5873b4233971a2504aadd325d3c0fe6bc6b6ddffb994c8103",
+      "outgoingViewKey": "fa57f55409ef3a344662e7645ba0a97f7da7613b78ab40c64c94c8f09f04c78f",
+      "publicAddress": "fc586bc4379b50de6b77afff2bf59af2b9ce692e37e78ea08bdf53cf5759b7ef"
     },
     {
       "header": {
         "sequence": 2,
-        "previousBlockHash": "8D1BD5F202977220287C355C494FAB7F90EFC608CC3FC3D94E83C559B8D84ED2",
+        "previousBlockHash": "68E35D3C423477BC57F0E580653AE5326BADFA46845693B873896E2DBAD15A11",
         "noteCommitment": {
           "type": "Buffer",
-          "data": "base64:nn3/vs6N0zckhoaQflmtQApdW1yzH1oanIOTi4luGTc="
+          "data": "base64:8s4vO6ba5oDpik5FEjEVdBl2TU4wmbrKnoe9iMX1i1Q="
         },
         "nullifierCommitment": {
           "commitment": "75B6424460A60EF177035E4265EAD201B0197A1D07989619E67C07575B53995B",
@@ -50,11 +50,11 @@
         },
         "transactionCommitment": {
           "type": "Buffer",
-          "data": "base64:wZ1KDjVI6fnhxqTptpyhLFsK85aHcc48bKB48HjYA84="
+          "data": "base64:HLQdJj2eAp3siGpLiv3jGY5qrPnYvtI6SRxhoL6Gpu8="
         },
         "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
         "randomness": "0",
-        "timestamp": 1669755169666,
+        "timestamp": 1669841647935,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
         "work": "0"
@@ -62,35 +62,35 @@
       "transactions": [
         {
           "type": "Buffer",
-          "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACDvgXEY1XwW1n+CBQz0qcoRLAQOIf3Lv2XQTRsE2aICI08brnkCzJL3PRkfryoHnyzfEIrVZ5jXcb5LYU2laUL0io56cti7al7iEi7gk8ciFcaHMNCpK1cYTG98SMOlnUN3hLL9rLHLZo4YkZIIC2JclGEBlR2ZnWOjXmLQn0Ky9qbkoct578wxwAgGwwsWLyuw1nNWSK8SDbMiiUYYPQ90i/UlaBI+yYqF1Oy1oZ3hud3NoMHsJu7QZczJtQ5/159jL5euZu95+/b7ysFW7+1+E41gskcrVHUlqXv3MTNqoSDiUplj5glUGY5um7OZtobUTZ4Se8mtu29jsKaPSsCCbjVd15w+H+YySHMqdn7ocAMzPiEhc2zo581XHAjSNjRXQGxFnxcq92obgo98huQj8dW/z1COhpLh81+nFgHuHY3f101C4PA+hXvQb9zSLe74Ri6MF1K7SCusCzrO0zESgNI2wLDrOzwe2Y38NlVGoEBgb31sQ1rQI/Qt1YL2OlYNG/de/uqBxEfvg7ppaXFxr6+ol48XWpCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMOc8tIptypL80v21NxtlfY6Yb2mJc1vaQOhMthSggloJHDIqRFYXt2ZseAbJ/Ezfq4AxIZbz8uptldaIU6WYCwM="
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACu82IhK2TBD7guJPj8nvGXWk9pLoasfrTgOdKCRUZ0ms/qVE6VbsRk/SwdiGBWnru5gCmvx7Ku9GVevLQn4RtycpPkL5m/RlXKl0rdANrT2fFBRS4sqoaKVArM3Oj/ao0NZZrFeRfLbODgqg97sroB3ZzSY9fpdUXJ1EzAytDe5Ozj729n41/dq0QHCi2fWpmICsnFG1jfs0rtXqTHatpy+0m7gIil+4AO/hYr4NRbfNQKip5ptibf/4Hlrci9wkCKq4maTgtxCNbfPt1ei7XdzQdlzc5pH5D+bDBA6zgb6MHtyEpwVmK+Yjdl6RB9HqOi57FYOfYdRRyw5ZoCiJ0drZWMqxBbwlTdDeBQRO69yCTiLNfwJpNSo+9nucao2DQxZCI2UeqIAnR4rHcK9dZ6Lhbq7xNB1Ghlu8J9CPdFjw0xnx6CdmWv/CoBgy3x+D5r1hIgIpltGNryQXZuKqZtND8mutKhfTbAyurRGLk+TD+ztNXEYLNMwHcJGNkV3cbDwvn5qVEY2Q0VdkfPkRuHt9MCXfbMN5VCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMJyEQP8eJYjwdzxbpwkZVubj+5us8ccWWeHgha3EnsyOvxcP4Oy1774wwxMZzMgN2eJaeKRqFg9fBLzihC1f8ww="
         }
       ]
     }
   ],
   "Accounts check if a transaction is not a miners fee": [
     {
-      "id": "e564bccb-530f-4310-8a29-1a6df535b165",
+      "id": "743f7c9d-8d34-4f8e-85fd-ec74bbd4f45b",
       "name": "testA",
-      "spendingKey": "e3685130931056a425a2d5bf503010a6591f4d9a8805f90e7384691b81b9eaab",
-      "incomingViewKey": "cf4091889e97352c9b42dced00c64881a3f8add29ee450d79c3ff9eb0c6b9f02",
-      "outgoingViewKey": "9808ef2764a5312ff4a7e146659cf4171bc5a1855e7648ff15365a30649502b0",
-      "publicAddress": "1e6850e585dead8bc48a83a15e46a48d9aebd3cd8bee3fb26181cfee39bd6356"
+      "spendingKey": "761774ccd39a7206c7003c83a842c1c737fb64739a073fd9f8d65544006f5bba",
+      "incomingViewKey": "9379f09e6975c040e6f34b2f386aae03c332e4a59d36768784dc30c7fb47de04",
+      "outgoingViewKey": "a7d6aa80ea640d7d2605f293e321271586a34ab5cb4162bc844ced22c80479d1",
+      "publicAddress": "7278525e68a9457f0ba1ed30f44620fb06a3f03fd075a4861ab487fb9cbd26b3"
     },
     {
-      "id": "9bd41dfa-72bf-4288-9111-8fb70ffc5426",
+      "id": "19673514-275d-41ee-8365-370235b6d2aa",
       "name": "testB",
-      "spendingKey": "0e1773ac28d2bca4fc4413699e0930480fcd2ba2c89c37cbb77d0d7294de9b77",
-      "incomingViewKey": "05a1a17094ef47ddbf749b9b17f58f51d03a56e93cc43aff3cc9a244869bea00",
-      "outgoingViewKey": "eeb4db5cb208055df328a6801e3d5bcf785c6c173aa41e52d6b5de99220b7622",
-      "publicAddress": "825b146da039077ff719bd986189d8df8c430a06481f0d33587087cb6616b43c"
+      "spendingKey": "9adaa2388fb4675c91dc18865c4e78b071c8fb5819d423a66264557995c13f93",
+      "incomingViewKey": "84aed9c4d0fa48e6b730498be7128756f0b65234aa5831eb4fc61f3123e0bb03",
+      "outgoingViewKey": "daec0e29387d40a0d3d555dd0991b50b1962b7b881be504d23784e45f210fb34",
+      "publicAddress": "507c494a202f1830ba1474989dca483b49b93db1d6797cc6e42523c8f7ed34d3"
     },
     {
       "header": {
         "sequence": 2,
-        "previousBlockHash": "8D1BD5F202977220287C355C494FAB7F90EFC608CC3FC3D94E83C559B8D84ED2",
+        "previousBlockHash": "68E35D3C423477BC57F0E580653AE5326BADFA46845693B873896E2DBAD15A11",
         "noteCommitment": {
           "type": "Buffer",
-          "data": "base64:WEWr10EhCkTeUMOjlXOpitA18cxvt8CdDtNKrjXGhU8="
+          "data": "base64:O4U4L08Ei8nOcVfnau1xDfko/Y6NDRtQNKiSi8CxER0="
         },
         "nullifierCommitment": {
           "commitment": "75B6424460A60EF177035E4265EAD201B0197A1D07989619E67C07575B53995B",
@@ -98,11 +98,11 @@
         },
         "transactionCommitment": {
           "type": "Buffer",
-          "data": "base64:TqnBWMhyhY81kB15sw1iDgfeLGfel8+VZ2YDNYk2WFs="
+          "data": "base64:eZZESeQRLbnIWJUpMClOmEXVPfcCweiWu1hNOWScjfU="
         },
         "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
         "randomness": "0",
-        "timestamp": 1669755171928,
+        "timestamp": 1669841650689,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
         "work": "0"
@@ -110,7 +110,7 @@
       "transactions": [
         {
           "type": "Buffer",
-          "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAAC02X//tZ2DU/A9xkVHMNtCSeP3ymSZYHYO8jQhbN5FqJUi6hKmFtKNlVw5Zh4+GOyAvYF1Q75VK9Vm1sav2k/4EDB8iSB1zIlhG3r1lzmREHE6y0R8fRX7EwH9amV2qfYBOsPF38A2lb6g3He3O9XXZp/pdxzJxyXln/HCFvckyCLhH8X9aDNqBMNhYEorduW34NFKyYOKSeBWAOpsqKA0m2DXxbVG4rpJr7QTSnbfHYnq2SGkyarEnULBtPCm65NNEuPmTFjF0a3oUnhleIC9ySw4/SBJmrunPYl3A4+xqATb2savGD/WQSU1321WJBqqg4WebW1Qn8sb2h0gxPgC8p5VQJl+2cMzUJLt6mzmztr1ziB0vvP7G9yKmhXXSuj4FADtX6LCDS6r3Iesj7Zb6V3AqDbJxwIQf9UIaumpz9+xcsVBiNqxPhVpHXhDoz4RXtoLs1yJHp9PNq44u4bBUrrs02oX85FGgORUBeTGaLg9YDO32xMzTHSoIQIWEKw1ECXPnDZg9p+z+9WkY4u8MVQ2AcGn30dCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCkeHhJ+9mwyDB948XlN7AlkhKviFJmDH3YbahaFMA3s7rMDYRccRVgZqyBphvaF67bV2LLWSXid2g+FrrG8nA0="
+          "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACDQcvlqMr5WysnW+TIgwhGrddadM7UC2FdjbWnT5f9yoR3TCTwxqOrGFtVQvF0O+avuyjQLXG0aDPcXg6YzzLb7il9085gaOJr8ZPJlXLQApeS6lxwtXHqMBrJh3MQOPQUJ7c0AATQ0g1wB8clsNRZrhscnTnlwoxI+pYvn4mwZS2lPry7v+rnPxI+pv/AMEWWIrHJdFFQ+b51nGF/TEWz+6Yt6a93CMbkubPe+6YrqV8yhx96ULoUommNX8jQPaXSGgHQoQv7CkEe0j5k6Ah8xspYYEfz2HAI2yWYfmYIBt5h2rWMkSeonUS0Ob/T/opOjGwpHG438OkX6wKGZTZHEmlsoly+4YEB2icpGpUoJh1EcWPHFHSQRXp5aUObPZq4dDN9lDVprM6wWhdYMWyJ0jIvzw+cbogme1frzi/1gEb+dXHl3xbHXBqe861cneqHRPZT3PUXtXLnRDf1Ei5GVUAgZcUPHHEv0VzFYoqEwMoNw2ymt7IfgVum0x0crWeIQXCIPtx/XZCU6ZjBx7bk++OvUqw6FZVCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMF35iX8jNd/Um+H44lddfLoEkiJm4V7F260TLl7+hcFF+IsApdh9QGXCud8jUZgexnILTDfCdLf3Wnd1UoML4wk="
         }
       ]
     }
