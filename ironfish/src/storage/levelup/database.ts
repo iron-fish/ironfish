@@ -27,6 +27,7 @@ import {
   DatabaseIsOpenError,
   DatabaseVersionError,
 } from '../database/errors'
+import { DatabaseIterOptions } from '../database/types'
 import { LevelupBatch } from './batch'
 import { LevelupStore } from './store'
 import { LevelupTransaction } from './transaction'
@@ -206,6 +207,20 @@ export class LevelupDatabase extends Database {
 
   async put(key: Readonly<Buffer>, value: Buffer): Promise<void> {
     await this.levelup.put(key, value)
+  }
+
+  async *getAllIter(options?: DatabaseIterOptions): AsyncGenerator<[Buffer, Buffer]> {
+    const stream = this.levelup.createReadStream(options)
+
+    // The return type for createReadStream is wrong
+    const iter = stream as unknown as AsyncIterable<{
+      key: Buffer
+      value: Buffer
+    }>
+
+    for await (const { key, value } of iter) {
+      yield [key, value]
+    }
   }
 
   async getVersion(): Promise<number> {

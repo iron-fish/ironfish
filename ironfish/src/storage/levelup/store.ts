@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { LevelupDatabase } from './database'
+import { BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
+import { Assert } from '../../assert'
 import { AsyncUtils } from '../../utils/async'
 import {
   DatabaseKeyRange,
@@ -32,6 +34,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
 
     // Hash the prefix key to ensure identical length and avoid collisions
     const prefixHash = new MurmurHash3(this.name, 1).result()
+
     this.prefixBuffer = Buffer.alloc(4)
     this.prefixBuffer.writeUInt32BE(prefixHash)
 
@@ -61,58 +64,53 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     return this.valueEncoding.deserialize(data)
   }
 
+  /* Get an [[`AsyncGenerator`]] that yields all of the key/value pairs in the IDatastore */
   async *getAllIter(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
   ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]> {
-    const seen = new Set<string>()
-
-    if (ENABLE_TRANSACTIONS && transaction instanceof LevelupTransaction) {
-      await transaction.acquireLock()
-
-      for (const [key, value] of transaction.cache.entries()) {
-        const keyBuffer = BUFFER_TO_STRING_ENCODING.deserialize(key)
-
-        const isFromStore = keyBuffer
-          .slice(0, this.prefixBuffer.byteLength)
-          .equals(this.prefixBuffer)
-
-        if (isFromStore) {
-          if (keyRange) {
-            const keyPostPrefix = keyBuffer.slice(this.prefixBuffer.byteLength)
-
-            const inKeyRange =
-              keyPostPrefix.compare(keyRange.gte) >= 1 && keyPostPrefix.compare(keyRange.lt) < 0
-
-            if (!inKeyRange) {
-              continue
-            }
-          }
-
-          if (value !== undefined) {
-            yield [this.decodeKey(keyBuffer), value as SchemaValue<Schema>]
-          }
-
-          seen.add(key)
-        }
-      }
-    }
-
     if (keyRange) {
       keyRange = {
         gte: Buffer.concat([this.prefixBuffer, keyRange.gte]),
         lt: Buffer.concat([this.prefixBuffer, keyRange.lt]),
       }
+    } else {
+      keyRange = this.allKeysRange
     }
 
-    const stream = this.db.levelup.createReadStream(keyRange ?? this.allKeysRange)
+    const seen = new BufferSet()
 
-    for await (const pair of stream) {
-      const { key, value } = pair as unknown as { key: Buffer; value: Buffer }
+    if (ENABLE_TRANSACTIONS && transaction) {
+      Assert.isInstanceOf(transaction, LevelupTransaction)
+      await transaction.acquireLock()
 
-      if (!seen.has(BUFFER_TO_STRING_ENCODING.serialize(key))) {
-        yield [this.decodeKey(key), this.valueEncoding.deserialize(value)]
+      for (const [keyString, value] of transaction.cache.entries()) {
+        const key = BUFFER_TO_STRING_ENCODING.deserialize(keyString)
+
+        if (!StorageUtils.hasPrefix(key, this.prefixBuffer)) {
+          continue
+        }
+
+        if (!StorageUtils.isInRange(key, keyRange)) {
+          continue
+        }
+
+        seen.add(key)
+
+        if (value === undefined) {
+          continue
+        }
+
+        yield [this.decodeKey(key), value as SchemaValue<Schema>]
       }
+    }
+
+    for await (const [key, value] of this.db.getAllIter(keyRange)) {
+      if (seen.has(key)) {
+        continue
+      }
+
+      yield [this.decodeKey(key), this.valueEncoding.deserialize(value)]
     }
   }
 
@@ -180,6 +178,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
   ): Promise<void>
   async put(a: unknown, b: unknown, c?: unknown): Promise<void> {
     const { key, value, transaction } = parsePut<Schema>(a, b, c)
+
     if (key === undefined) {
       throw new Error('No key defined')
     }

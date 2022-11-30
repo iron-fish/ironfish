@@ -4,7 +4,7 @@
 
 import { Assert } from '../../assert'
 import { BufferUtils } from '../../utils'
-import { DatabaseKeyRange } from './types'
+import { DatabaseIterOptions, DatabaseKeyRange } from './types'
 
 /**
  * In non relational KV stores, to emulate 'startswith' you often need
@@ -44,4 +44,31 @@ export function getPrefixesKeyRange(
   return { gte, lt }
 }
 
-export const StorageUtils = { getPrefixKeyRange, getPrefixesKeyRange }
+/**
+ * Return true if the buffer matches the key ranges in DatabaseIterOptions
+ */
+function isInRange(buffer: Buffer, range: DatabaseIterOptions): boolean {
+  if (range.gt && range.gt.compare(buffer) >= 0) {
+    return false
+  }
+
+  if (range.gte && range.gte.compare(buffer) > 0) {
+    return false
+  }
+
+  if (range.lt && range.lt.compare(buffer) <= 0) {
+    return false
+  }
+
+  if (range.lte && range.lte.compare(buffer) < 0) {
+    return false
+  }
+
+  return true
+}
+
+function hasPrefix(buffer: Buffer, prefix: Buffer): boolean {
+  return buffer.slice(0, prefix.byteLength).equals(prefix)
+}
+
+export const StorageUtils = { getPrefixKeyRange, getPrefixesKeyRange, hasPrefix, isInRange }

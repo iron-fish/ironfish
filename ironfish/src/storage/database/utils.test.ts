@@ -27,5 +27,41 @@ describe('StorageUtils', () => {
       expect(range.lt[0]).toBe(2)
       expect(range.lt[1]).toBe(5)
     })
+
+    it('should check buffer range', () => {
+      const b = (v: number) => Buffer.alloc(1, v)
+
+      // 0 <= 1 <= 2
+      expect(
+        StorageUtils.isInRange(b(1), {
+          gte: b(0),
+          lte: b(2),
+        }),
+      ).toBe(true)
+
+      // 0 < 1 < 2
+      expect(
+        StorageUtils.isInRange(b(1), {
+          gt: b(0),
+          lt: b(2),
+        }),
+      ).toBe(true)
+
+      // 0 < 0 < 2
+      expect(
+        StorageUtils.isInRange(b(0), {
+          gt: b(0),
+          lt: b(2),
+        }),
+      ).toBe(false)
+
+      // 0 < 2 < 2
+      expect(
+        StorageUtils.isInRange(b(2), {
+          gt: b(0),
+          lt: b(2),
+        }),
+      ).toBe(false)
+    })
   })
 })

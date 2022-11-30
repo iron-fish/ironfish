@@ -6,6 +6,7 @@ import { BatchOperation, IDatabaseBatch } from './batch'
 import { IDatabaseStore, IDatabaseStoreOptions } from './store'
 import { IDatabaseTransaction } from './transaction'
 import {
+  DatabaseIterOptions,
   DatabaseKeyRange,
   DatabaseOptions,
   DatabaseSchema,
@@ -156,6 +157,9 @@ export interface IDatabase {
   * @returns A promise that resolves when the operation has been executed.
   */
   put(key: Readonly<Buffer>, value: Buffer): Promise<void>
+
+  /* Get an [[`AsyncGenerator`]] that yields all of the key/value pairs in the IDatabase */
+  getAllIter(options?: DatabaseIterOptions): AsyncGenerator<[Buffer, Buffer]>
 }
 
 export abstract class Database implements IDatabase {
@@ -189,6 +193,8 @@ export abstract class Database implements IDatabase {
   abstract get(key: Readonly<Buffer>): Promise<Buffer | undefined>
 
   abstract put(key: Readonly<Buffer>, value: Buffer): Promise<void>
+
+  abstract getAllIter(options?: DatabaseIterOptions): AsyncGenerator<[Buffer, Buffer]>
 
   protected abstract _createStore<Schema extends DatabaseSchema>(
     options: IDatabaseStoreOptions<Schema>,
