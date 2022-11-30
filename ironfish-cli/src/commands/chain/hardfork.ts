@@ -67,9 +67,10 @@ export default class RepairHardFork extends IronfishCommand {
     Assert.isNotNull(header)
     const block = await node.chain.getBlock(header)
     Assert.isNotNull(block)
+    Assert.isNotNull(header.nullifierSize)
 
     const spendCount = Array.from(block.spends()).length
-    let nullifierTreeIndex = header.nullifierCommitment.size - spendCount
+    let nullifierTreeIndex = header.nullifierSize - spendCount
     let nullifierRepaired = 0
 
     const processBatch = async (blocks: Block[]): Promise<void> => {

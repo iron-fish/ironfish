@@ -15,10 +15,6 @@ export type SerializedBlockTemplate = {
     sequence: number
     previousBlockHash: string
     noteCommitment: string
-    nullifierCommitment: {
-      commitment: string
-      size: number
-    }
     transactionCommitment: string
     target: string
     randomness: string
@@ -38,10 +34,6 @@ export class BlockTemplateSerde {
       sequence: block.header.sequence,
       previousBlockHash: block.header.previousBlockHash.toString('hex'),
       noteCommitment: block.header.noteCommitment.toString('hex'),
-      nullifierCommitment: {
-        commitment: block.header.nullifierCommitment.commitment.toString('hex'),
-        size: block.header.nullifierCommitment.size,
-      },
       transactionCommitment: block.header.transactionCommitment.toString('hex'),
       target: BigIntUtils.toBytesBE(block.header.target.asBigInt(), 32).toString('hex'),
       randomness: BigIntUtils.toBytesBE(block.header.randomness, 8).toString('hex'),
@@ -67,12 +59,6 @@ export class BlockTemplateSerde {
       blockTemplate.header.sequence,
       Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
       noteHasher.deserialize(Buffer.from(blockTemplate.header.noteCommitment, 'hex')),
-      {
-        commitment: NullifierSerdeInstance.deserialize(
-          blockTemplate.header.nullifierCommitment.commitment,
-        ),
-        size: blockTemplate.header.nullifierCommitment.size,
-      },
       Buffer.from(blockTemplate.header.transactionCommitment, 'hex'),
       new Target(Buffer.from(blockTemplate.header.target, 'hex')),
       BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.randomness, 'hex')),

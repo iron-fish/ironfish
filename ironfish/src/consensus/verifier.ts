@@ -326,12 +326,6 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.PREV_HASH_NULL }
     }
 
-    const { nullifiers } = block.counts()
-
-    if (block.header.nullifierCommitment.size !== prev.nullifierCommitment.size + nullifiers) {
-      return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
-    }
-
     let verification = this.verifyBlockHeaderContextual(block.header, prev)
     if (!verification.valid) {
       return verification
@@ -421,12 +415,11 @@ export class Verifier {
   }
 
   /**
-   * Determine whether our trees match the commitment in the provided block.
+   * Determine whether the notes tree matches the commitment in the provided block.
    *
    * Matching means that the root hash of the tree when the tree is the size
-   * specified in the commitment is the same as the commitment,
-   * for both notes and nullifiers trees. Also verifies the spends, which have
-   * commitments as well.
+   * specified in the commitment is the same as the commitment. Also verifies the spends,
+   * which have commitments as well.
    */
   async verifyConnectedBlock(
     block: Block,
@@ -434,22 +427,11 @@ export class Verifier {
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const header = block.header
-      const nullifierSize = header.nullifierCommitment.size
-      const actualNullifierSize = await this.chain.nullifiers.size(tx)
-
-      if (nullifierSize > actualNullifierSize) {
-        return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
-      }
 
       Assert.isNotNull(header.noteSize)
       const noteRoot = await this.chain.notes.pastRoot(header.noteSize, tx)
       if (!noteRoot.equals(header.noteCommitment)) {
         return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
-      }
-
-      const pastNullifierRoot = await this.chain.nullifiers.pastRoot(nullifierSize, tx)
-      if (!pastNullifierRoot.equals(header.nullifierCommitment.commitment)) {
-        return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT }
       }
 
       const spendVerification = await this.verifyConnectedSpends(block, tx)
@@ -482,8 +464,6 @@ export enum VerificationResultReason {
   MINERS_FEE_EXPECTED = 'Miners fee expected',
   NOTE_COMMITMENT = 'Note_commitment',
   NOTE_COMMITMENT_SIZE_TOO_LARGE = 'Note commitment tree is smaller than referenced by the spend',
-  NULLIFIER_COMMITMENT = 'Nullifier_commitment',
-  NULLIFIER_COMMITMENT_SIZE = 'Nullifier commitment sizes do not match',
   ORPHAN = 'Block is an orphan',
   PREV_HASH_NULL = 'Previous block hash is null',
   PREV_HASH_MISMATCH = 'Previous block hash does not match expected hash',

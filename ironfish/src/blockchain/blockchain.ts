@@ -597,11 +597,16 @@ export class Blockchain {
     block.header.work = (prev ? prev.work : BigInt(0)) + work
 
     let prevNoteSize = 0
+    let prevNullifierSize = 0
     if (prev) {
       Assert.isNotNull(prev.noteSize)
+      Assert.isNotNull(prev.nullifierSize)
       prevNoteSize = prev.noteSize
+      prevNullifierSize = prev.nullifierSize
     }
-    block.header.noteSize = prevNoteSize + block.counts().notes
+    const { notes, nullifiers } = block.counts()
+    block.header.noteSize = prevNoteSize + notes
+    block.header.nullifierSize = prevNullifierSize + nullifiers
 
     const isFork = !this.isEmpty && !isBlockHeavier(block.header, this.head)
 
@@ -926,9 +931,6 @@ export class Blockchain {
     return await this.db.transaction(async (tx) => {
       const startTime = BenchUtils.start()
 
-      const originalNoteSize = await this.notes.size(tx)
-      const originalNullifierSize = await this.nullifiers.size(tx)
-
       let previousBlockHash
       let previousSequence
       let target
@@ -940,16 +942,17 @@ export class Blockchain {
         target = Target.maxTarget()
       } else {
         const heaviestHead = this.head
-        if (
-          originalNoteSize !== heaviestHead.noteSize ||
-          originalNullifierSize !== heaviestHead.nullifierCommitment.size
-        ) {
-          throw new Error(
-            `Heaviest head has ${String(heaviestHead.noteSize)} notes and ${
-              heaviestHead.nullifierCommitment.size
-            } nullifiers but tree has ${originalNoteSize} and ${originalNullifierSize} nullifiers`,
-          )
-        }
+
+        // Sanity check that we are building on top of correct size note and nullifier tree, may not be needed
+        const originalNoteSize = await this.notes.size(tx)
+        const originalNullifierSize = await this.nullifiers.size(tx)
+        Assert.isEqual(originalNoteSize, heaviestHead.noteSize, 'newBlock note size mismatch')
+        Assert.isEqual(
+          originalNullifierSize,
+          heaviestHead.nullifierSize,
+          'newBlock nullifier size mismatch',
+        )
+
         previousBlockHash = heaviestHead.hash
         previousSequence = heaviestHead.sequence
         const previousHeader = await this.getHeader(heaviestHead.previousBlockHash, tx)
@@ -975,11 +978,7 @@ export class Blockchain {
 
       const noteCommitment = await this.notes.rootHash(tx)
       const noteSize = await this.notes.size(tx)
-
-      const nullifierCommitment = {
-        commitment: await this.nullifiers.rootHash(tx),
-        size: await this.nullifiers.size(tx),
-      }
+      const nullifierSize = await this.nullifiers.size(tx)
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
@@ -987,13 +986,14 @@ export class Blockchain {
         previousSequence + 1,
         previousBlockHash,
         noteCommitment,
-        nullifierCommitment,
         transactionCommitment(transactions),
         target,
         BigInt(0),
         timestamp,
         graffiti,
         noteSize,
+        BigInt(0),
+        nullifierSize,
       )
 
       const block = new Block(header, transactions)
@@ -1245,11 +1245,14 @@ export class Blockchain {
     // If the tree sizes don't match the previous block, we can't verify if the tree
     // sizes on this block are correct
     let prevNotesSize = 0
+    let prevNullifierSize = 0
     if (prev) {
       Assert.isNotNull(prev.noteSize)
+      Assert.isNotNull(prev.nullifierSize)
       prevNotesSize = prev.noteSize
+      prevNullifierSize = prev.nullifierSize
     }
-    const prevNullifierSize = prev?.nullifierCommitment.size || 0
+
     Assert.isEqual(
       prevNotesSize,
       await this.notes.size(tx),
@@ -1286,10 +1289,11 @@ export class Blockchain {
     await this.sequenceToHash.del(block.header.sequence, tx)
 
     Assert.isNotNull(prev.noteSize)
+    Assert.isNotNull(prev.nullifierSize)
 
     await Promise.all([
       this.notes.truncate(prev.noteSize, tx),
-      this.nullifiers.truncate(prev.nullifierCommitment.size, tx),
+      this.nullifiers.truncate(prev.nullifierSize, tx),
     ])
 
     await this.meta.put('head', prev.hash, tx)

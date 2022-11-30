@@ -43,10 +43,6 @@ describe('GetBlocksResponse', () => {
             2,
             Buffer.alloc(32, 2),
             Buffer.alloc(32, 4),
-            {
-              commitment: Buffer.alloc(32, 6),
-              size: 2,
-            },
             transactionCommitment([transactionA, transactionB]),
             new Target(12),
             BigInt(1),
@@ -60,10 +56,6 @@ describe('GetBlocksResponse', () => {
             2,
             Buffer.alloc(32, 1),
             Buffer.alloc(32, 5),
-            {
-              commitment: Buffer.alloc(32, 7),
-              size: 2,
-            },
             transactionCommitment([transactionA, transactionB]),
             new Target(13),
             BigInt(1),
