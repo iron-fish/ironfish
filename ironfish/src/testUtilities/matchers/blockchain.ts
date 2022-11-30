@@ -50,10 +50,27 @@ async function toAddBlock(self: Blockchain, other: Block): Promise<jest.CustomMa
   return makeResult(true, `Expected to not add block at ${String(other.header.sequence)}`)
 }
 
+async function toAddDoubleSpendBlock(
+  self: Blockchain,
+  other: Block,
+): Promise<jest.CustomMatcherResult> {
+  // Mock nullifiers to allow creation of a double spend chain
+  const containsMock = jest.spyOn(self.nullifiers, 'contains').mockResolvedValue(false)
+  const result = await self.addBlock(other)
+  containsMock.mockRestore()
+
+  if (!result.isAdded) {
+    return makeResult(false, `Could not add block: ${String(result.reason)}`)
+  }
+
+  return makeResult(true, `Expected to not add block at ${String(other.header.sequence)}`)
+}
+
 expect.extend({
   toEqualHash: toEqualHash,
   toEqualNullifier: toEqualNullifier,
   toAddBlock: toAddBlock,
+  toAddDoubleSpendBlock: toAddDoubleSpendBlock,
 })
 
 declare global {
@@ -62,6 +79,7 @@ declare global {
       toEqualNullifier(other: Nullifier): R
       toEqualHash(other: BlockHash | null | undefined): R
       toAddBlock(block: Block): Promise<R>
+      toAddDoubleSpendBlock(block: Block): Promise<R>
     }
   }
 }

@@ -419,21 +419,5 @@ describe('Verifier', () => {
         },
       )
     })
-
-    it('returns any error from verifyConnectedSpends()', async () => {
-      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(genesisBlock)
-
-      jest
-        .spyOn(nodeTest.verifier, 'verifySpend')
-        .mockResolvedValue(VerificationResultReason.ERROR)
-
-      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
-        {
-          valid: false,
-          reason: VerificationResultReason.ERROR,
-        },
-      )
-    })
   })
 })

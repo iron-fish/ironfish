@@ -72,14 +72,6 @@ export class ConsensusParameters {
   MAX_BLOCK_SIZE_BYTES = 2000000
 
   /**
-   * Before upgrade V1 we had double spends. At this block we do a double spend
-   * check to disallow it.
-   *
-   * TODO: remove this sequence check before mainnet
-   */
-  V1_DOUBLE_SPEND = 0
-
-  /**
    * Before upgrade V2 we didn't enforce max block size.
    * At this block we check that the block size doesn't exceed MAX_BLOCK_SIZE_BYTES.
    *
@@ -100,7 +92,6 @@ export class ConsensusParameters {
 export class TestnetParameters extends ConsensusParameters {
   constructor() {
     super()
-    this.V1_DOUBLE_SPEND = 204000
     this.V2_MAX_BLOCK_SIZE = 255000
     this.V3_DISABLE_MINING_REWARD = 279900
   }

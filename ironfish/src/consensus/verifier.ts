@@ -264,13 +264,26 @@ export class Verifier {
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const notesSize = await this.chain.notes.size(tx)
-      const nullifierSize = await this.chain.nullifiers.size(tx)
 
       for (const spend of transaction.spends()) {
-        const reason = await this.verifySpend(spend, notesSize, nullifierSize, tx)
+        if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
+          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+        }
 
-        if (reason) {
-          return { valid: false, reason }
+        if (spend.size > notesSize) {
+          return {
+            valid: false,
+            reason: VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE,
+          }
+        }
+
+        try {
+          const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
+          if (!spend.commitment.equals(realSpendRoot)) {
+            return { valid: false, reason: VerificationResultReason.INVALID_SPEND }
+          }
+        } catch {
+          return { valid: false, reason: VerificationResultReason.ERROR }
         }
       }
 
@@ -352,26 +365,30 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
-      const { nullifiers: nullifiersCount } = block.counts()
       const processedSpends = new BufferSet()
 
       const previousNotesSize = block.header.noteSize
       Assert.isNotNull(previousNotesSize)
-      const previousNullifierSize = block.header.nullifierCommitment.size - nullifiersCount
 
       for (const spend of block.spends()) {
         if (processedSpends.has(spend.nullifier)) {
           return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
 
-        const verificationError = await this.verifySpend(
-          spend,
-          previousNotesSize,
-          previousNullifierSize,
-          tx,
-        )
-        if (verificationError) {
-          return { valid: false, reason: verificationError }
+        if (spend.size > previousNotesSize) {
+          return {
+            valid: false,
+            reason: VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE,
+          }
+        }
+
+        try {
+          const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
+          if (!spend.commitment.equals(realSpendRoot)) {
+            return { valid: false, reason: VerificationResultReason.INVALID_SPEND }
+          }
+        } catch {
+          return { valid: false, reason: VerificationResultReason.ERROR }
         }
 
         processedSpends.add(spend.nullifier)
@@ -382,68 +399,27 @@ export class Verifier {
   }
 
   /**
-   * Verify the block before connecting it to the main chain
+   * Verify the block does not contain any double spends before connecting it
    */
   async verifyBlockConnect(
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    if (
-      this.chain.consensus.isActive(this.chain.consensus.V1_DOUBLE_SPEND, block.header.sequence)
-    ) {
-      // Loop over all spends in the block and check that the nullifier has not previously been spent
-      const seen = new BufferSet()
-      const size = await this.chain.nullifiers.size(tx)
+    const seen = new BufferSet()
 
-      for (const spend of block.spends()) {
-        if (seen.has(spend.nullifier)) {
-          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
-        }
-
-        if (await this.chain.nullifiers.contained(spend.nullifier, size, tx)) {
-          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
-        }
-
-        seen.add(spend.nullifier)
+    for (const spend of block.spends()) {
+      if (seen.has(spend.nullifier)) {
+        return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
       }
+
+      if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
+        return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+      }
+
+      seen.add(spend.nullifier)
     }
 
     return { valid: true }
-  }
-
-  /**
-   * Verify that the given spend was not in the nullifiers tree when it was the given size,
-   * and that the root of the notes tree is the one that is actually associated with the
-   * spend's spend root.
-   *
-   * @param spend the spend to be verified
-   * @param notesSize the size of the notes tree
-   * @param nullifierSize the size of the nullifiers tree at which the spend must not exist
-   * @param tx optional transaction context within which to check the spends.
-   * TODO as its expensive, this would be a good place for a cache/map of verified Spends
-   */
-  async verifySpend(
-    spend: Spend,
-    notesSize: number,
-    nullifierSize: number,
-    tx?: IDatabaseTransaction,
-  ): Promise<VerificationResultReason | undefined> {
-    if (await this.chain.nullifiers.contained(spend.nullifier, nullifierSize, tx)) {
-      return VerificationResultReason.DOUBLE_SPEND
-    }
-
-    if (spend.size > notesSize) {
-      return VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE
-    }
-
-    try {
-      const realSpendRoot = await this.chain.notes.pastRoot(spend.size, tx)
-      if (!spend.commitment.equals(realSpendRoot)) {
-        return VerificationResultReason.INVALID_SPEND
-      }
-    } catch {
-      return VerificationResultReason.ERROR
-    }
   }
 
   /**

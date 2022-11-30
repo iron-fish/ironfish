@@ -739,16 +739,7 @@ describe('Blockchain', () => {
   })
 
   it('rejects double spend transactions', async () => {
-    /**
-     * This test tests that our double spend code is working properly. We had a
-     * bug that allowed double spends, but fixed the bug at roughly 200k blocks
-     * in. So we need to test that blocks are allowed in before the block
-     * activation of the fix.
-     */
     const { node, chain } = await nodeTest.createSetup()
-
-    // Set this up so we can reject block with a double spend starting at sequence 5
-    node.chain.consensus.V1_DOUBLE_SPEND = 5
 
     const accountA = await useAccountFixture(node.wallet, 'accountA')
     const accountB = await useAccountFixture(node.wallet, 'accountB')
@@ -759,64 +750,31 @@ describe('Blockchain', () => {
     // Now create the double spend
     await node.wallet.updateHead()
     const tx = await useTxFixture(node.wallet, accountA, accountB)
-    const doubleSpend = tx.getSpend(0)
 
-    const treeSize = await node.chain.nullifiers.size()
-
-    // The nullifier is not found in the tree
-    await expect(node.chain.nullifiers.contains(doubleSpend.nullifier)).resolves.toBe(false)
-    await expect(
-      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize),
-    ).resolves.toBe(false)
-
-    // Let's spend the transaaction for the first time
+    // Spend the transaaction for the first time
     const block3 = await useMinerBlockFixture(node.chain, 3, undefined, undefined, [tx])
     await expect(node.chain).toAddBlock(block3)
 
-    // The nullifier is not found at the old tree size, but is found at the new tree size
-    await expect(node.chain.nullifiers.contains(doubleSpend.nullifier)).resolves.toBe(true)
-    await expect(
-      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize),
-    ).resolves.toBe(false)
-    await expect(
-      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize + tx.spendsLength()),
-    ).resolves.toBe(true)
-
-    // Let's spend the transaction a second time
+    // Spend the transaction a second time
     const block4 = await useMinerBlockFixture(node.chain, 4, undefined, undefined, [tx])
-    await expect(node.chain).toAddBlock(block4)
-
-    // We've now added a double spend, we can see that because of a bug in the
-    // MerkleTree implementation the nullifier is no longer found at the tree
-    // size before this block, but moved to the tree size at block3
-    await expect(node.chain.nullifiers.contains(doubleSpend.nullifier)).resolves.toBe(true)
-    await expect(
-      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize + tx.spendsLength()),
-    ).resolves.toBe(false)
-    await expect(
-      node.chain.nullifiers.contained(
-        doubleSpend.nullifier,
-        treeSize + tx.spendsLength() + tx.spendsLength(),
-      ),
-    ).resolves.toBe(true)
-
-    // Now we set our fix to activate at sequence 5 so this block will not let
-    // us add the transaction a third time
-    const block5 = await useMinerBlockFixture(node.chain, 5, undefined, undefined, [tx])
-    await expect(node.chain.addBlock(block5)).resolves.toMatchObject({
+    await expect(node.chain.addBlock(block4)).resolves.toMatchObject({
       isAdded: false,
       reason: VerificationResultReason.DOUBLE_SPEND,
     })
   })
 
   it('rejects double spend during reorg', async () => {
-    // G -> A2 -> A3
-    //   -> B2 -> B3* -> A4
+    /**
+     * We do check double spends when connecting forks because we don't rebuild the nullifier
+     * set unless we're adding to the head. If we re-org to a fork that contains a double spend
+     * though, we should catch that
+     *
+     * G -> A2 -> A3 -> A4 -> A5
+     *   -> B2 -> B3* -> B4* -> B5 -> B6
+     */
+
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()
-
-    nodeA.chain.consensus.V1_DOUBLE_SPEND = 0
-    nodeB.chain.consensus.V1_DOUBLE_SPEND = 5
 
     const blockA2 = await useMinerBlockFixture(nodeA.chain, 2)
     await expect(nodeA.chain).toAddBlock(blockA2)
@@ -824,7 +782,7 @@ describe('Blockchain', () => {
     await expect(nodeA.chain).toAddBlock(blockA3)
     const blockA4 = await useMinerBlockFixture(nodeA.chain, 4)
     await expect(nodeA.chain).toAddBlock(blockA4)
-    const blockA5 = await useMinerBlockFixture(nodeA.chain, 4)
+    const blockA5 = await useMinerBlockFixture(nodeA.chain, 5)
     await expect(nodeA.chain).toAddBlock(blockA5)
 
     const accountA = await useAccountFixture(nodeB.wallet, 'accountA')
@@ -842,7 +800,8 @@ describe('Blockchain', () => {
     await expect(nodeB.chain).toAddBlock(blockB3)
 
     const blockB4 = await useMinerBlockFixture(nodeB.chain, 4, undefined, undefined, [tx])
-    await expect(nodeB.chain).toAddBlock(blockB4)
+
+    await expect(nodeB.chain).toAddDoubleSpendBlock(blockB4)
 
     const blockB5 = await useMinerBlockFixture(nodeB.chain, 5)
     await expect(nodeB.chain).toAddBlock(blockB5)
@@ -870,12 +829,14 @@ describe('Blockchain', () => {
     const addedB6 = await nodeA.chain.addBlock(blockB6)
 
     if (!addedB5.isAdded) {
+      expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
       expect(addedB5).toMatchObject({
         isAdded: false,
         isFork: null,
         reason: VerificationResultReason.DOUBLE_SPEND,
       })
     } else {
+      expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
       expect(addedB5).toMatchObject({
         isAdded: true,
         isFork: true,
@@ -900,10 +861,6 @@ describe('Blockchain', () => {
     // G -> B2 -> B3* -> B4  -> B5
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()
-
-    // nodeA will reject double spends after block 5, nodeB will always reject them
-    nodeA.chain.consensus.V1_DOUBLE_SPEND = 5
-    nodeB.chain.consensus.V1_DOUBLE_SPEND = 0
 
     const accountA = await useAccountFixture(nodeB.wallet, 'accountA')
     const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
@@ -935,7 +892,7 @@ describe('Blockchain', () => {
     // nodeA chain
     // G -> B2 -> B3* -> A4*
     const blockA4 = await useMinerBlockFixture(nodeA.chain, 4, undefined, undefined, [tx])
-    await expect(nodeA.chain).toAddBlock(blockA4)
+    await expect(nodeA.chain).toAddDoubleSpendBlock(blockA4)
 
     // continue the main chain
     // nodeA chain
