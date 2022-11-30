@@ -1,12 +1,12 @@
 {
   "CreateTransactionRequest serializes the object into a buffer and deserializes to the original object": [
     {
-      "id": "5e691f09-2484-409a-9469-86d913472734",
+      "id": "58b1c9ad-805d-4f20-8fe9-a6b67c430f7e",
       "name": "test",
-      "spendingKey": "758ee0f08c084a12290ac8f7e81f5b36a21641f1b8f82b947a9f853f049f2506",
-      "incomingViewKey": "7ff9617e8ab43eb5f6993a439dd8b7903f229e168d445b3a844d2d573d84e400",
-      "outgoingViewKey": "8f3463c0a2fce4df9ad1065be3ccdfd1f031bde2481a7298d56070d63737f9b6",
-      "publicAddress": "7bee0005f72240b3ae8c16164fe6f114838236e08e5ede2fd2f512e319a7d001"
+      "spendingKey": "1acd4270c2e44bd4b7ac5403b3d7dcedd4f394755ffec7476e53030f07f28dba",
+      "incomingViewKey": "fcb6266aa28352e20329dc8327a6827fe0be4337ae3b953e3c1b51666df40a06",
+      "outgoingViewKey": "9c191125627e1f7cd0dffad4cde6df1e949f38cb78f744928510cf9a1b94ab34",
+      "publicAddress": "26f2e923e14bbd5aaa9ef68cbc5380f510a49f21b7eec5c762ffdd964f757d54"
     }
   ]
 }
