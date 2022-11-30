@@ -92,11 +92,8 @@ impl SpendBuilder {
     pub(crate) fn build(
         &self,
         spender_key: &SaplingKey,
+        public_key_randomness: &jubjub::Fr,
     ) -> Result<UnsignedSpendDescription, IronfishError> {
-        // Used to add randomness to signature generation without leaking the
-        // key. Referred to as `ar` in the literature.
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
-
         let value_commitment_point = self.value_commitment_point();
 
         let circuit = Spend {
@@ -106,8 +103,9 @@ impl SpendBuilder {
             auth_path: self.auth_path.clone(),
             commitment_randomness: Some(self.note.randomness),
             anchor: Some(self.root_hash),
-            ar: Some(public_key_randomness),
+            ar: Some(*public_key_randomness),
             asset_generator: Some(self.note.asset_generator().into()),
+            sender_address: Some(self.note.sender.transmission_key),
         };
 
         // Proof that the spend was valid and successful for the provided owner
@@ -119,7 +117,7 @@ impl SpendBuilder {
         // during signature verification. Referred to as `rk` in the literature
         // Calculated from the authorizing key and the public_key_randomness.
         let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+            .randomize(*public_key_randomness, SPENDING_KEY_GENERATOR);
 
         // Bytes to be placed into the nullifier set to verify whether this note
         // has been previously spent.
@@ -143,7 +141,7 @@ impl SpendBuilder {
         description.verify_proof()?;
 
         Ok(UnsignedSpendDescription {
-            public_key_randomness,
+            public_key_randomness: *public_key_randomness,
             description,
         })
     }
@@ -400,6 +398,7 @@ mod test {
     use super::{SpendBuilder, SpendDescription};
     use crate::assets::asset::NATIVE_ASSET_GENERATOR;
     use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
+    use ff::Field;
     use group::Curve;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
@@ -411,6 +410,7 @@ mod test {
         let sender_key = SaplingKey::generate_key();
 
         let note_randomness = random();
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
 
         let note = Note::new(
             public_address,
@@ -427,7 +427,9 @@ mod test {
         let mut sig_hash = [0u8; 32];
         thread_rng().fill(&mut sig_hash[..]);
 
-        let unsigned_proof = spend.build(&key).expect("should be able to build proof");
+        let unsigned_proof = spend
+            .build(&key, &public_key_randomness)
+            .expect("should be able to build proof");
         let proof = unsigned_proof
             .sign(&key, &sig_hash)
             .expect("should be able to sign proof");

@@ -192,7 +192,7 @@ fn test_miners_fee() {
         NATIVE_ASSET_GENERATOR,
         spender_key.public_address(),
     );
-    let mut transaction = ProposedTransaction::new(receiver_key);
+    let mut transaction = ProposedTransaction::new(spender_key);
     transaction.add_output(out_note);
     let posted_transaction = transaction
         .post_miners_fee()

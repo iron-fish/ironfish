@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ff::Field;
 use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
@@ -22,7 +23,7 @@ use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use jubjub::{ExtendedPoint, SubgroupPoint};
-use rand::rngs::OsRng;
+use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
     constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
@@ -92,7 +93,12 @@ pub struct ProposedTransaction {
     /// The key used to sign the transaction and any descriptions that need
     /// signed.
     spender_key: SaplingKey,
-    //
+
+    // randomness used for the transaction to calculate the randomized ak, which
+    // allows us to verify the sender address is valid and stored in the notes
+    // Used to add randomness to signature generation without leaking the
+    // key. Referred to as `ar` in the literature.
+    public_key_randomness: jubjub::Fr,
     // NOTE: If adding fields here, you may need to add fields to
     // signature hash method, and also to Transaction.
 }
@@ -108,10 +114,12 @@ impl ProposedTransaction {
             value_balances: ValueBalances::new(),
             expiration_sequence: 0,
             spender_key,
+            public_key_randomness: jubjub::Fr::random(thread_rng()),
         }
     }
 
     // return the sender of the transaction
+    // TODO(joe): change this to use value stored on transaction
     pub fn sender(&mut self) -> PublicAddress {
         self.spends[0].note.owner()
     }
@@ -238,17 +246,17 @@ impl ProposedTransaction {
         // Build descriptions
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
-            unsigned_spends.push(spend.build(&self.spender_key)?);
+            unsigned_spends.push(spend.build(&self.spender_key, &self.public_key_randomness)?);
         }
 
         let mut output_descriptions = Vec::with_capacity(self.outputs.len());
         for output in &self.outputs {
-            output_descriptions.push(output.build(&self.spender_key)?);
+            output_descriptions.push(output.build(&self.spender_key, &self.public_key_randomness)?);
         }
 
         let mut unsigned_mints = Vec::with_capacity(self.mints.len());
         for mint in &self.mints {
-            unsigned_mints.push(mint.build(&self.spender_key)?);
+            unsigned_mints.push(mint.build(&self.spender_key, &self.public_key_randomness)?);
         }
 
         let mut burn_descriptions = Vec::with_capacity(self.burns.len());

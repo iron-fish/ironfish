@@ -73,8 +73,8 @@ pub fn commitment_full_point_new(
     assert_eq!(
         note_contents.len(),
         32 + // asset generator
-        32 + // pk_d
         8 + // value
+        32 + // pk_d
         32 // sender address
     );
 
