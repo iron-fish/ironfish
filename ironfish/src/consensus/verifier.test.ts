@@ -216,24 +216,6 @@ describe('Verifier', () => {
       expect(Array.from(block.spends())).toHaveLength(1)
     })
 
-    it('is invalid with DOUBLE_SPEND as the reason', async () => {
-      const { chain } = nodeTest
-      const { block } = await useBlockWithTx(nodeTest.node)
-
-      const spends = Array.from(block.spends())
-      jest.spyOn(block, 'spends').mockImplementationOnce(function* () {
-        for (const spend of spends) {
-          yield spend
-          yield spend
-        }
-      })
-
-      expect(await chain.verifier.verifyConnectedSpends(block)).toEqual({
-        valid: false,
-        reason: VerificationResultReason.DOUBLE_SPEND,
-      })
-    })
-
     it('is invalid with ERROR as the reason', async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
 
@@ -416,22 +398,6 @@ describe('Verifier', () => {
         {
           valid: false,
           reason: VerificationResultReason.NULLIFIER_COMMITMENT,
-        },
-      )
-    })
-
-    it('returns any error from verifyConnectedSpends()', async () => {
-      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(genesisBlock)
-
-      jest
-        .spyOn(nodeTest.verifier, 'verifySpend')
-        .mockResolvedValue(VerificationResultReason.ERROR)
-
-      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
-        {
-          valid: false,
-          reason: VerificationResultReason.ERROR,
         },
       )
     })
