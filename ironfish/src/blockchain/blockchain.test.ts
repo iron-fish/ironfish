@@ -765,7 +765,7 @@ describe('Blockchain', () => {
 
   it('rejects double spend during reorg', async () => {
     /**
-     * We do check double spends when connecting forks because we don't rebuild the nullifier
+     * We don't check double spends when connecting forks because we don't rebuild the nullifier
      * set unless we're adding to the head. If we re-org to a fork that contains a double spend
      * though, we should catch that
      *
