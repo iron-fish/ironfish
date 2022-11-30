@@ -5,13 +5,13 @@
 import bufio from 'bufio'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 
-const MINEABLE_BLOCK_HEADER_SIZE = 224
+const MINEABLE_BLOCK_HEADER_SIZE = 220
 export const MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET = MINEABLE_BLOCK_HEADER_SIZE - 32
 
 export function mineableHeaderString(header: SerializedBlockTemplate['header']): Buffer {
   const bw = bufio.write(MINEABLE_BLOCK_HEADER_SIZE)
   bw.writeBytes(Buffer.from(header.randomness, 'hex'))
-  bw.writeU64(header.sequence)
+  bw.writeU32(header.sequence)
   bw.writeHash(header.previousBlockHash)
   bw.writeHash(header.noteCommitment)
   bw.writeHash(header.nullifierCommitment.commitment)
@@ -27,7 +27,7 @@ export function mineableHeaderString(header: SerializedBlockTemplate['header']):
 export function minedPartialHeader(data: Buffer): SerializedBlockTemplate['header'] {
   const br = bufio.read(data)
   const randomness = br.readBytes(8)
-  const sequence = br.readU64()
+  const sequence = br.readU32()
   const previousBlockHash = br.readHash()
   const noteCommitment = br.readHash()
   const nullifierCommitment = br.readHash()
