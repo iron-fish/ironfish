@@ -6,7 +6,7 @@ import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { Blockchain } from './blockchain'
 import { TestnetConsensus } from './consensus'
-import { DEV, TESTING, TESTNET_PHASE_2 } from './defaultNetworkDefinitions'
+import { DEV, MAINNET, TESTNET_PHASE_2 } from './defaultNetworkDefinitions'
 import {
   Config,
   ConfigOptions,
@@ -239,9 +239,9 @@ export class IronfishNode {
     if (config.get('customNetwork') !== '') {
       networkDefinitionJSON = await files.readFile(files.resolve(config.get('customNetwork')))
     } else if (config.get('networkId') === 0) {
-      networkDefinitionJSON = TESTING
-    } else if (config.get('networkId') === 1) {
       networkDefinitionJSON = DEV
+    } else if (config.get('networkId') === 1) {
+      networkDefinitionJSON = MAINNET
     } else if (config.get('networkId') === 2) {
       networkDefinitionJSON = TESTNET_PHASE_2
     }
