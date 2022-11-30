@@ -70,10 +70,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     keyRange?: DatabaseKeyRange,
   ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]> {
     if (keyRange) {
-      keyRange = {
-        gte: Buffer.concat([this.prefixBuffer, keyRange.gte]),
-        lt: Buffer.concat([this.prefixBuffer, keyRange.lt]),
-      }
+      keyRange = StorageUtils.addPrefixToRange(keyRange, this.prefixBuffer)
     } else {
       keyRange = this.allKeysRange
     }
@@ -162,10 +159,9 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     }
 
     if (keyRange) {
-      keyRange = {
-        gte: Buffer.concat([this.prefixBuffer, keyRange.gte]),
-        lt: Buffer.concat([this.prefixBuffer, keyRange.lt]),
-      }
+      keyRange = StorageUtils.addPrefixToRange(keyRange, this.prefixBuffer)
+    } else {
+      keyRange = this.allKeysRange
     }
 
     await this.db.levelup.clear(keyRange ?? this.allKeysRange)

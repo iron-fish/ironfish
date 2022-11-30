@@ -4,16 +4,11 @@
 
 import { IJsonSerializable } from '../../serde'
 
-export interface DatabaseIterOptions {
+export interface DatabaseKeyRange {
   gt?: Buffer
   gte?: Buffer
   lt?: Buffer
   lte?: Buffer
-}
-
-export interface DatabaseKeyRange {
-  gte: Buffer
-  lt: Buffer
 }
 
 export type DatabaseKey =

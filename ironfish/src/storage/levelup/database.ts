@@ -27,7 +27,7 @@ import {
   DatabaseIsOpenError,
   DatabaseVersionError,
 } from '../database/errors'
-import { DatabaseIterOptions } from '../database/types'
+import { DatabaseKeyRange } from '../database/types'
 import { LevelupBatch } from './batch'
 import { LevelupStore } from './store'
 import { LevelupTransaction } from './transaction'
@@ -126,9 +126,13 @@ export class LevelupDatabase extends Database {
   compact(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       if (this.db instanceof LevelDOWN) {
-        this.db.compactRange(DATABASE_ALL_KEY_RANGE.gte, DATABASE_ALL_KEY_RANGE.lt, (err) =>
-          err ? reject(err) : resolve(),
-        )
+        const start = DATABASE_ALL_KEY_RANGE.gte
+        const end = DATABASE_ALL_KEY_RANGE.lt
+
+        Assert.isNotUndefined(start)
+        Assert.isNotUndefined(end)
+
+        this.db.compactRange(start, end, (err) => (err ? reject(err) : resolve()))
       } else {
         resolve()
       }
@@ -209,8 +213,8 @@ export class LevelupDatabase extends Database {
     await this.levelup.put(key, value)
   }
 
-  async *getAllIter(options?: DatabaseIterOptions): AsyncGenerator<[Buffer, Buffer]> {
-    const stream = this.levelup.createReadStream(options)
+  async *getAllIter(range?: DatabaseKeyRange): AsyncGenerator<[Buffer, Buffer]> {
+    const stream = this.levelup.createReadStream(range)
 
     // The return type for createReadStream is wrong
     const iter = stream as unknown as AsyncIterable<{
