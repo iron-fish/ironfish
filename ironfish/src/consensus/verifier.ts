@@ -10,7 +10,6 @@ import {
   getBlockWithMinersFeeSize,
   getTransactionSize,
 } from '../network/utils/serializers'
-import { Spend } from '../primitives'
 import { Block } from '../primitives/block'
 import { BlockHeader, transactionCommitment } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
