@@ -527,7 +527,9 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACMXtvxA1nBN5J5G8D4waxn4jrILso4a3jOYH8McHnX1QCyMok1DcW34uoG9m/jaBysVp7cN9zGPg2UbjP1WWb0V9gw5fv7Q5PwbhTf0uLn+wZI2SWudRl1K5VutwTcPZoWjD/R5K8h97Ywx3bxwT3dEhHGhtaEwIdnfHPt6owYZi9oIjKWXRJWr9qLFItDc8ixkSrNCvfJ8+zRMqSgEA8Lg6eoQcLmu3GPCrzkP278M9nF/cfXqeN66qbNWACbiAMtJVv8W8XROtV6E4sVUPpNptmRCc79L6qHm3R0bqoHpVA548SZGYL3EzUp0TDHb5f52IzDFSUTcc0FjNNAOK5doh/oA9eedHD1TmQKh4pKA4C3cvTFKJzh+NxZ7Tqsq4DbqMHJY6wCiz2/8i9QOXJjfVTTouatzQ1odWb48ln2gwVOoGWANdZ9hkA5ALyIh5ZctniX2OIPXS1aYSBPMVV3A8+x5he+CzNn4sHAz12nNG/7Od/AHoCdIepxcLh+ZR9nRCYkBY3ypAeXWOXIkHbQfaOiTvDkeaJCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMP7zGzpxy0OeR4+Al7RsieQI2D0CdBiYZ9vDugNZdM6P/yNkW4uCfX53bB0IlsKqacQ+2ZDKacf6jxZemYv+wwY="
         }
       ]
-    },
+    }
+  ],
+  "Blockchain should add block to fork with tx expiration": [
     {
       "header": {
         "sequence": 3,
@@ -691,14 +693,14 @@
           "data": "base64:U9JRkecFVHiKYWO6lX0yBsNRY49RVZS6a5wXLMPyTTk="
         },
         "nullifierCommitment": {
-          "commitment": "75B6424460A60EF177035E4265EAD201B0197A1D07989619E67C07575B53995B",
-          "size": 1
+          "commitment": "40843C99BD91AC3AA4B590796AD246B5255DBF32A0F94F1786AF3F300A7112C1",
+          "size": 2
         },
         "transactionCommitment": {
           "type": "Buffer",
           "data": "base64:CwwwiH53QxF03A4fPW27jjoMa+ptBC89Ya1na43br7U="
         },
-        "target": "880842937844725196442695540779332307793253899902937591585455087694081134",
+        "target": "881271989446208257911980828427057262643615932976441214377264856368067535",
         "randomness": "0",
         "timestamp": 1669842861232,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -749,7 +751,9 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACNp9FI4dcPiewbz8BfnNx9dpmaooFP7+e3ped9jdkQiqpvHpwGSwWY+Zu5jlfgKHaN+c9hjealZkFRH4dIL/GMj9BBjfZAmR098CC2DJDpF1oxaUp7ZWIXrVF4vzj8BRUEHkUEHr7mXUPRa2Vi/iuRuqMYmf4jBdtVIPAKsWHq5/CAJ8QXgTAl1MGfTx63S/+Z74uQ0MhVsrt+jR/mi5jxblrBPQnk5QMrDzo+2An+Xo4FfE4j+4fbJfQ0vzRFH09mRpDZJy2qof6bpq3PEF+16XkOx6tVIUl1muAhPeWmWRzKcOUgzUS6IeyeGepBgL4ONnzWTu27LSdejKYUvEsXjfxLN3RBETEz4zAqEsXjrMZLkiqqM01JR4DzlFyAe5THYkqOMFsznpmczAMqRCLzeOCeR+Tr933es4y/LeW/JhUla9maBBcb0dpnjeGpmUa5Ih6kOWoyTMqS5VWCwu2E6TQbyAD8aB7KibBPf65WOo6q+lY/Nj7pLv0XNX0cI/Ep5xQmly+86VM72usVBMZVRkUQs8R1IcRCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMIhmG5DyozYnYV/+6fB0E2jw0jxndNKfkjvfJi+9zwHu0zyKTa4fZyg13+6qzdXcRIYCM1Vbw4q1yv/BsjQgVwU="
         }
       ]
-    },
+    }
+  ],
+  "Blockchain should remember invalid blocks": [
     {
       "header": {
         "sequence": 5,
@@ -785,7 +789,7 @@
       ]
     }
   ],
-  "Blockchain should add block to fork with tx expiration": [
+  "Blockchain reject block with null previous hash": [
     {
       "header": {
         "sequence": 2,
@@ -815,7 +819,9 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACDUENCijDcyDRP7wAhV9F2yFtcxSxCfUb49OiScN6p7VFIZaOzss6tqJYFV9nutXuJDYjSyOdTQSM3ZCyPRG2oksxOWuSbcD9dWTqjmnVxEstyWH8QWhOuL2pFYoqT8jQEqxWvcjYEv3qmVBu8aYxa8/6obeJmzS6VWKBC3q32f2S/WglgaIBUDDrGlH78Klipy73QmSa8HshG+NVqbH/KvxaDSRowpz5SHas7T6XGBMZFk+7qYT4y6A40E94efmcDXlVWpcQktW3E8YTKItt3848GeFfLKsuvfc+JSbOxcouQ+lKjeTyjNcWlBh9qL+hVmFePJC4a/qUhM+wqA9Eo+WvIHumiWYTihIt+bN8fjleoeKUmivCeG3M63dogujv9ccV8RGHSIztNf0IZlhvclDZ1Au7Tr88GTlpnS5hnjH4j6BbQfhAwZvNV20kC17emB9NO/qLHjP+kzwnDPh+0mDdGvWMoBR+ABk2YhDgN/Q/3lep9/hV+fpeY/gNsyYYXqWAn0ZUCToQvh9KSD7MF6iafwX0Dm7RCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMElsEHZL3PFOXR+De2mxjy1bPBZhnRMP8SOx9MZKpCghOsjyBGBnDcpT4CaZATeJx9JGW0sgciXgs3dZd1HUfww="
         }
       ]
-    },
+    }
+  ],
+  "Blockchain reject block with hash not matching previous hash": [
     {
       "header": {
         "sequence": 3,
@@ -832,7 +838,7 @@
           "type": "Buffer",
           "data": "base64:vohtxT5kqcz0FWitTD4+rmjm5uCya4SK0dWvxWQ9tzE="
         },
-        "target": "880842937844725196442695540779332307793253899902937591585455087694081134",
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
         "randomness": "0",
         "timestamp": 1669842863989,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -845,6 +851,24 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAAC2zafU+H3asIjfiaqHDqdLJIW+7hCipQn2uLf6y2onsljrmjf+w9QxfEjYms/Oss2GOOlwLFBMJyUKq/EYI2aqITMLufqkBObdkuNgdpW0FbEkZ8GT4BlQGauLEZw/GrQL2JpmMZI81GE9bmIWyGlNnR2hG3rVQUeGUYJddPfTb09O2k2B0IOHS3QmDu2AjrWGpz+qTE4Ma0AIAeLj2gUdzp/56k+pU8+CKhyhcibNh3pbsvyk7pR3iASroPJ+LkGRvYVRNT0moxLdD9OiFkPP1cPMY/6ZoDw2As0BMaVpbsSGJjecboFxKld+88P3Wp+KV7hxLlz/uUdEUgdgBTJlVtn19AhMiYi3YdXMFKmxI/vsR5cUQpM1JWZndTKztOvB3JX21x433X2xuJy+c4kcDEElQe+VZK2tWiCEIRlDqrVKzjeVSg2P624OSzP38qESUB4XJDE/OHDRcVuPWq+jmQ5SaTTqgaCvJtOO3BMCCf2LcGEUkDJN8W9HzA6UvfFghWl/g8B1e+O3wBkr32RTg7r2oU/92wpCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMA+X80lj7tZY1JT+xmx1vOtwrVoR+pdXxrdcBZejece0UijT1uUSylGAjjkEI0bpl+tRpOuuiLLZq/MPMW7f7ws="
         }
       ]
+    }
+  ],
+  "Blockchain rejects double spend transactions": [
+    {
+      "id": "509aa7d8-d3b8-4631-a7fd-62cb280e3ff2",
+      "name": "accountA",
+      "spendingKey": "914fc1781a022b068bfe559f324a6b20a618f28a2fb66c9a082c0d8ba2b0c9f9",
+      "incomingViewKey": "30278f2eb95e39fe35ef84a2d0471b28505d6106a8603a8a4a212a46421a2807",
+      "outgoingViewKey": "32ce3947b73ccc1a72fbdea78ffdbd9cf0bacd661abcf61f1e54019f56159aff",
+      "publicAddress": "5017590b073e5913f0c5b28d3b754a2b605fe946980dc404f849d24f6f9c6b3d"
+    },
+    {
+      "id": "42cf5c35-e2ce-46a6-a521-366a49044686",
+      "name": "accountB",
+      "spendingKey": "36e9698ed308658cccc234ddb708481721d8ae55c5fc6a63ef87a3e0869390ab",
+      "incomingViewKey": "182ddab71ce143a950a494dc789a55c8d2f20837ec33392bfcd8dea7aab2b801",
+      "outgoingViewKey": "3daadd20b60264f7d83a2d3601f14afa768da6273cfd07adbc4df0f25aa6c94b",
+      "publicAddress": "33a916596a9d4b84814eddc064dfbe1be701f390ce6ff1ccd9611209aefc7a2f"
     },
     {
       "header": {
@@ -862,7 +886,7 @@
           "type": "Buffer",
           "data": "base64:XDIchrJ5JjQae7hqIK2ci8/+j4KzJ8oohugVWfIWpew="
         },
-        "target": "878277375889837647326843029495509009809390053592540685978895509768758568",
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
         "randomness": "0",
         "timestamp": 1669842864219,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -947,9 +971,7 @@
           "data": "base64:AQAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAQAAACIFuPYvNCUJPedRearOKrVZgJORnSL0k6tO1bK00bgTU9qHjnE6aykVkKRM2C1daWTNjCvVnVm+I7cbe4vg2f77Oi/IQD3uwz1oOj9EF6auG/xeR5Kmh5VCq0nfUFMKncVfL//jMzwbmDMdGX3CN8FA5Dh0kPMoMnI71hgwXwNkwm9A4tCvcibrdnhWC8wd2628XJJd44bI7bbthMKuAdTh6bUgZeVT868YgGjZNhEdxjtt7I6r8nwzUCrTWsSXAOT1ox7ygmvJGdeJ2JeTS6Z5zFD5txkTYQqXS3gztBrPgC14jYhPHrarAExA8iBhnh5GOGe0Iotsf2uP1lBJHWhRVb6hQV4g1PghB2Gls2Od3izbKizHSdleMNL1ZnVOmkEAAAAT1+TOxgGfCCOR5380hgJpmQUDfobc6xcNYepMVXqV5Lb/7fE41nsQiW/fwS++/jr6F2hzazEie8Xuf/6zGA3wUUIGQfGg/YWG7usMtlwkiSmhYJ2o6mwivqOpsknX8wHjqivloTXQt6SDPKAW4dpeYWt/N9gcTjbhVg9Cparn2AQfwwr/MpyOjNftbMx39GGi326RGGbEgQn8XnyKwtsNo2Y0PQm/sdb2IaIT0DjsccBU9RDR29lp7icLgzhk9z+DVRokylEnR0V9U6Tzouzqk3YfL69Y1Lo4dxXIEAYhni09VOemf9wd7HxJfa4li3TqlNmbdlHD3F0gG+2sAAVd2Csn2hjViu6JHQbfKZw1zXMKbV3jMOhCU0pOrunY9v+BR2ps8EAPfaEpjRyYS8bV9z6Yi5wfr96in1BeS7Z3T1wIMFptxDuo9F5KWNMDBHvDrSJ2+fuy8i/pIn9gBmyJ0nUj5KN86gzyHkOjiDyRPXQXa1sLjPdriDyRtsUBpgkWLVob5X/yrkboumyqvvYmXpTFhDY8UxJ1+SEC3/VVHZpdGF62m/dhxEguiuWENgQe7rx9Yu+cnoPdtLoziHDvLCtdiLbJiF/DWiIZLWNZ6mO9EIImfo7FvR+shBGneK5S20PNHBd3WDHgggxJge39kvUFCx74M6N1lBsORzQ/QOOP7u/zSiT4SN3i//dDjY8rfHhLoVbYkaP2TjoZ2X5WQc0/eTjYkhHpOa5zvcjKrIb35EjU5NICKrP4dG4nWJ+miFlD/t2z7SXbgaehs8aYW1Gc14G6GNUB5X90Iqur/jZdk5gryYweko52N0r5LPhNArmCNalFTK5ITGvSntbG8TcBvRBMrO/WDnshIH1B84C1JxRnx29Z59r43k78J541SiizyDTMxMCkSm182bWe9Bkv0/XQY9AJ8ZiyFRcAb3D/wD9zZKimXrX51h7zBii5/88rY4m+XSP1Gb7CDR20GUn0Y3ihPhBUxb/amr9JjEWNEaYpjq7I0SaDQkXIJ/zQ2uzA37P3Dn3N53JtxDeTfFQr7EjjCwlHpntwJKpkh3bDjMgoBZ3Ek41mJ+Lqq2C1HHU4fDudUrY7Vq74WexyIcXT3qYGtclGOCx8lrhlJJxYAgM1VQ19ftd1cSoeqMCDn6Loob/I8sH4neiCAZlMHaRYjXwaBHI0rFLtQteZGX1KZjtdZHJ9jwxATfV/yqmwRpbme50mE6fM+G5rv5i+56sk8yzIxailPDResGT90r6uf/Jh2zAvEOmqGduey8t2BRs0cf5YMWEKhpRjvqgdqmahrwWqsdgqVbmZAJvahp0kYCikbjbUarKuKt1jOhXhdBeIKNjSIg9hob2vQyu1MMZNOsUhlOd798AJPZnzco3P3iBp3TiXQXGb+gEtgpPHIrtuKSR/GkqLOtxPREWCCLDYk+lcw7HdZ4aU+0tw37lANdQpIfN3K0JtSbmOhtwIUvZ9aygQfKqlPe3UxxaAn83LL/IhqAcID0Xf6KNKQc="
         }
       ]
-    }
-  ],
-  "Blockchain should remember invalid blocks": [
+    },
     {
       "header": {
         "sequence": 2,
@@ -966,7 +988,7 @@
           "type": "Buffer",
           "data": "base64:qc3+JyGtZDDabZmQ9/hP27Pu044d2wXkrKrvE6PnZ3M="
         },
-        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "target": "878277375889837647326843029495509009809390053592540685978895509768758568",
         "randomness": "0",
         "timestamp": 1669842866523,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -979,9 +1001,7 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACQlu2nzxHtvXEZgcL+HT3KrLCXaFv+5at/zxTJThMt9ixQkrZFNacnKU8LVyqFBziz1p0bUMqQNhFiMZnrH44Sb8uSpEJyaI1Ag7sTAR1EOfzjEDMKGvARrD2XmSCjXZYN5ghtAeNe+bjdKd4Ege9WPIqRYZvlau7F3Vj3rt9eHVaF2w86cnNNXZgySW9Q0zqvoyNAMm9fwHP+RpOUZMEiwQDuWj4HG3rNOMpWjUUHsGG1V6rMOjLQWEboCL7wUOksityAdOCNcWq4RRCgs+mKMVCRz4TB3IF2/M2tV5U/TV88XhHIuanlG2Gg6gRHloSpMXEDXFXxel/HsO3WQ8JKLFMK4l0ERaFqlBYkctdHpUNwf7Mgfhd+R8JzyRbfXFqsc9QcbWWNiIqWhg0mIiByJEATiUjnxHQqYyHpCYJ4Ekmh07SWZDkis7YMSbyIMJBashS+U/78slv0fYfhib9LOMeyakeSxOhJTyf0F/s/1DHch1i1l++hd1srCK9ZlaU9pxaB4e4Nyy+lyRP7ojlgKvjCHFI9G1NCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMLu6TeNVwUFRqiY4wV5k433ovpAscWnttasDgk/KlKmpK/Ki6KrlqX/LM6Fg9tf5l1Mn+r7JdL79DSk+QEs/7AI="
         }
       ]
-    }
-  ],
-  "Blockchain reject block with null previous hash": [
+    },
     {
       "header": {
         "sequence": 2,
@@ -998,7 +1018,7 @@
           "type": "Buffer",
           "data": "base64:FOfZfS2OXzTLr5XCgoGjnNxOO5navP3QaqIOPU6jucw="
         },
-        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "target": "875726715553274711274586950997458160797358911132930209640137826778142618",
         "randomness": "0",
         "timestamp": 1669842866843,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -1011,9 +1031,23 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACZVZQ27V9YBZ4497Uie02jiiF2xZnkGs8tU8vL7Zrx8kUY2RKUo61yo6wJbdRy1dOrKmlOnrVRKQ9tWH2gxYft1aCpPMRw60IDFjM9gdQhBbWTZAb2IeLIqKtQMlWqwBIBCdKNZqS5c/5dhWSVrs3DHMraQOJvfKfVShE2CwPvOkaO+8EgqEm4fG4lEorW5Ee1DYVf9nx3VRxEiNclTOe24XuF1vpg0v2vbJxjREpmMk4lHsw3LOTWLdiUDfZ8apRYZkrr/vQq5Qs26twlIDoi824l6M3PacDohxBxSPXNFnRMdRT7sBdWN7Igl0dKvOudIDfv2DwUdUW1hpTtcwlIsreIwMMDNlRAm8HUd9j+NaqEjoSmbtgKwvjvAUX200msvIeO/RPpYclcHooECfBhcxlm6HDfqFeWIrL/I8z5eRdpYyK0bNezNU30Li1S2xqS9ztY6lu6yqV21gHpusrBXK8A4+9vk/KfTMVrWb2Y6++wIM2v7BpGtevlWBkcXLl2M7vMbMcmYaD8N5jjdxa2TdhAL8lZkSdCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMNxzCgYjbVCyTXNBbn8n/rnv7arAsf4/9G0+3Dz2GTjr1xQaqanFuoacRG9WM8q0RKNcKt+guoNjCZSyETz8WgM="
         }
       ]
-    }
-  ],
-  "Blockchain reject block with hash not matching previous hash": [
+    },
+    {
+      "id": "5b0eb0c3-452a-44ac-ae26-945240083c8a",
+      "name": "accountA",
+      "spendingKey": "f7349337e48c86a7e194aac0357baad01718a5d3d9d4ab357c72ec36068d986a",
+      "incomingViewKey": "a44e638c982c6a7e2f0ba7e319139d00b765f20c3e150f7ce28fa6f73c188403",
+      "outgoingViewKey": "9d5a9806a201aa94986f20f98bb69a6ed19c97d6667f72c1abe670b0aaad98dd",
+      "publicAddress": "90c72741d84ca6068c4c236a2dcb86a064bf3eade4a2579a60b750b4fdff58e4"
+    },
+    {
+      "id": "4b84bbdb-f03e-4152-ae46-56702aa8e926",
+      "name": "accountB",
+      "spendingKey": "5ca41f6ff00bcd2be27fc52808ff3a8f7a151ab21765d4ba571e8b581f4580f0",
+      "incomingViewKey": "551300645a2b8b49e976d10d67723a2ce8e8d572707115a38bdd1d8098f13d07",
+      "outgoingViewKey": "17ab9721783d5634033f653c750018ad10f73beaa35d472f0f0ea60c0cbcd446",
+      "publicAddress": "d5136d07d7638a42f29c4520565d76ec9bdb3765efcc6196dc1cbb711f4e0770"
+    },
     {
       "header": {
         "sequence": 2,
@@ -1045,7 +1079,7 @@
       ]
     }
   ],
-  "Blockchain rejects double spend transactions": [
+  "Blockchain does not remove nullifiers from double spends during reorg": [
     {
       "id": "a447c72b-8e8d-4f14-8f5d-4510009aea2b",
       "name": "accountA",

@@ -789,7 +789,7 @@
       ]
     }
   ],
-  "MemPool acceptTransaction with an expired sequence returns false": [
+  "MemPool sizeBytes returns the size of memory usage for transactions and nullifiers": [
     {
       "id": "11c87145-dd86-468d-86e2-a712de366674",
       "name": "accountA",
@@ -871,7 +871,7 @@
       ]
     }
   ],
-  "MemPool acceptTransaction with an existing nullifier in a transaction in the mempool returns false": [
+  "MemPool exists with a missing hash returns false": [
     {
       "id": "5a1f9043-5011-4c9d-9346-e10e7bd77f92",
       "name": "accountA",
@@ -917,6 +917,16 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACGNuxhWqo1+w6JEdD7soL2nDWOSgnRErh/tRIVEdeY1i3+zOaKHLr00QUDqr6GR0O4CSUIJ44vQUs0e/IMpi50GfIlX/nAg3QR9lCSQnlhEBIfrftneo7CjEz09FjQ/PANSsDndIiy7tycevEO79xBiIavhvjwjkrRDwlMFwAsmLn29GCdamArlVKvYTfOfnWyryQyjXswpddJOS8JcTPdABBNTrfjd3dfU/tqhH+FjbfHjWnLBsyOw9w8QRQkN3iLgoG+3dQi1uWnIHZwqtfwDRvRehDfrexnAt7FRNQ/xCpCk0yYcFUUnmhNpP76UStbBl9APGp8b9+xwIVd9CcgRnEsRNLJ//te1rKE7mRNbzaO6Fh2rFDR2xVuxesipW2ulyEVfStZRPyIRPMuQchQHIwS1PSOzCy1b1xswiSLR//26GS9+POGNt5SBJ6SmjsPEfEQwRe8p4y1174/vvh+kpW0PGbiUNleHZwDtbnIPopUzvd2W01mhgBNsLOtumEQY4CpqTS7D9KDPKEhdr7e50u6YZyGauhCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMG+q/WRE2LCEZdKx81QMLTH73Kwiv1sTfRrh71IAc2VJhVr/H69ImgL85+fOiW7x+H8OcVX2sHcsM0y6Kjszkgs="
         }
       ]
+    }
+  ],
+  "MemPool exists with a valid hash returns true": [
+    {
+      "id": "ebde1512-ebd9-4bb1-a062-3f5afee8f4b1",
+      "name": "accountA",
+      "spendingKey": "954a711ed56fbe3872a30a8a16f3ba765f3b9064aedd24d78e18378a7a59e5a3",
+      "incomingViewKey": "07118701a4eff92380b3e3baed3acb1cbee823a360d87feed35b812e57a73d02",
+      "outgoingViewKey": "b4425b725b3442aed394642ba4a4c53e0131d6b806f755449d792083253c892b",
+      "publicAddress": "703d4f3bb69badb2cfad79c78f36ab49fd9007b2d953bc4f3f4156d0d27463b8"
     },
     {
       "header": {
@@ -987,7 +997,7 @@
       ]
     }
   ],
-  "MemPool acceptTransaction with an existing nullifier in a transaction in the mempool returns true with a higher fee": [
+  "MemPool orderedTransactions returns transactions from the node mempool sorted by fee rate": [
     {
       "id": "47d2f502-09da-452c-b693-14298fddc745",
       "name": "accountA",
@@ -1033,6 +1043,16 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAAClwRo1qwDNbMk6KnlJdRfuX0J5PmfUaIT1gtSi9PLWsoXKQpOBwDOzUB2XFwJhaaSKkKuB2+uq4ZgqpdvA47N89UPVBvbnWCkkLKTaZ1NzmKtgqVxg3jCfiDvll5C2CvwJVtNvJHzeMW5edNC2QdF8yXRCUU0yVlMoABYOy0KNB8K7mOV4L09sr2NBjupVbey5hGojzUXKOe2I0sBJSk6LkIel1ma4jMDrqMTeYEveO7ls+I2cq17E4mrYtxyiYE3CNIWL24uOTXQ6b6xYHjGjLI09WtCvaKfvNX5E020l7+Tkg9LkG43Rwf8YzcpdG3GsGXeyBVfRYsplUee5opVwhI6KVhuu2K9YWtonJxDOsIzmWonaSoL1CAfibo1YRDVT77M+1OJ27hB8FD2L4cToGCfaUAlYtpj1A+cEyalhJk7B0HLgNdCuJGT62XyXNLpTPjRaK9nHl8ERABMwN6Ke92m/KB9Wmp2rHfXl2QG2klYwud0aJ/g1JEuSlYXhS0h7sbacHL9/VZ8CkRqWR2xhtIHvvZClATZCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMBIsWDlh7aiSEDo2wWxP9m1IuX0Z1qc/TL+JWsOn/ZTb4XjTjYVH/1B2PZExmkZNbarkFqq7wFACyfey6mOUZgo="
         }
       ]
+    }
+  ],
+  "MemPool orderedTransactions does not return transactions that have been removed from the mempool": [
+    {
+      "id": "2de874fc-415f-42f4-8cad-adfb6ff81888",
+      "name": "accountA",
+      "spendingKey": "d3b754cd03420aabddf77234e84b4022aa5b8a6f26cd3f8bc05d6bf9a6811bc0",
+      "incomingViewKey": "8cc9ac7fe25a58855276b5041e6d9076784acba4479f3ac8a41de93295dcb606",
+      "outgoingViewKey": "f3f8055beffead9a8d67ddbc49ae3c1b8e9cc1ebf1bca56e65247b362bab7309",
+      "publicAddress": "6e1ca2b678c2ba74d8f75df2fb177f2be443f0416cf9e4d4d637607db3cb16d8"
     },
     {
       "header": {
@@ -1103,7 +1123,7 @@
       ]
     }
   ],
-  "MemPool acceptTransaction with a new hash returns true": [
+  "MemPool acceptTransaction with an existing hash in the mempool returns false": [
     {
       "id": "a399057d-a36d-4262-8178-1dfb659190d1",
       "name": "accountA",
@@ -1149,6 +1169,24 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACuto7/qyArvqD1s+31wCWHlKVLQ9PG97LwCqSjIpLQsyRwinDaApIP1SMJhWWg4iK2HFFGeyEBnuDVW+mJUXeOu3AzMl+uGC+B9XJXbeA4FbHnM12mc2k1bGswXNo4nKMXHm1Aw4UDE2FeaOZdfqEUHcbSGTZesMyleSbbU7X0ruHm0ceFZaSoS6xmtA4JMuKV29eGLMR9Uir1qNnVyJ0hTZTGQvRVaDADSdhMkLU7V0kx6V1PtHOKm7XoaYbtawiyvLnoBOB+3WIDXHOcGgDn6SvGenHKN40x4J7Hz9acD4/lOOq8mUTHI69MCOdmB42c1Y1gijPTZb+/irTYxrlr0hDctsufK3gA6D1m61DtEwqVexBAeISgSkgAeQbTs5gpWvwj/UDMeGA3ZScNp1IQn4HV2usz+FU6DsCxo+yK4gjTscp4gUYxa6pOYgW0I82ih3aB1zTulynHfU2V1pu/TTBh0D4LzZ890AJ4zdKwW1zZokWRUHk/ItRG5IZp5knLmq418U842/gCx4JY/bjpI9syrg82RB9CZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMI3YmnNldQY7pyZ4KjV2Er95CK3NL9uH33I8CEaNCmOB1wLtryQDKXJjc96ppF1GLl+w/MlOGErDveeum4CVAgk="
         }
       ]
+    }
+  ],
+  "MemPool acceptTransaction with an expired sequence returns false": [
+    {
+      "id": "8e8499db-d60b-4a8f-a969-c430eb7f4428",
+      "name": "accountA",
+      "spendingKey": "e18591a011bf94239bd2058d77810bf25f1297957b9579fcdac8003853157a9c",
+      "incomingViewKey": "7c2cd1852588fa08627863ddebf6ea375c1a2d6f41dd988d211a19108ab67200",
+      "outgoingViewKey": "d429af9f25cd0fad8205fb6004fdce11963788ee74cebe3910ae7f1b98467a69",
+      "publicAddress": "2044ab093a0ae0dd397257d24a3cae77d7671df5177a7e194e6f16475f4abb52"
+    },
+    {
+      "id": "6ac76cfc-b716-4365-90a3-b36f4c1c9b1f",
+      "name": "accountB",
+      "spendingKey": "d80637595e558938964c5b9516bee19a2d17155cf66e5b5728dbe663bdfbbee2",
+      "incomingViewKey": "ae66db4366f09b97d3350255c8573d600822368c94c9f7ea6252ecdc0b3c2502",
+      "outgoingViewKey": "8aacc01234c763effea4c44744c434c6d346258f65efd9ff43e621453ff80e1c",
+      "publicAddress": "4644449d9677962203d17f7486bd954b3c78e2c69733c0fb74ddd1d06bfe13b1"
     },
     {
       "header": {
@@ -1166,7 +1204,7 @@
           "type": "Buffer",
           "data": "base64:3o2pschUhkTiNtuoRzZfUK3mei2ioj+M9HuteDiGILc="
         },
-        "target": "881271989446208257911980828427057262643615932976441214377264856368067535",
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
         "randomness": "0",
         "timestamp": 1669841568293,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -1185,7 +1223,7 @@
       ]
     }
   ],
-  "MemPool acceptTransaction with a new hash sets the transaction hash in the mempool map and priority queue": [
+  "MemPool acceptTransaction with an existing nullifier in a transaction in the mempool returns false": [
     {
       "id": "9eac6d16-7b6e-4c10-b809-ba02912014fb",
       "name": "accountA",
@@ -1231,6 +1269,24 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACRRQ6pypNH+obWUhN2397u7BMxZqYp755kcdba5mfX4pmYwYEYt2+rtN17lfOeisuN5OeSvGG8k9b8WnCG8nI+rZgFZjz7TEJGyiU+coEUXaGDGCn/S+Jj37Dw0Jztu/IGko8wWPAtBmkp7fCbjJSdyD8pbg8pHv+V8VR9lsTcfo2t8cs9miEJ57yAIDS/u/GOwe15LAIqWHfCswxDrho6k06ad6ZQAVfANUt2Fc9whNmlCMGBAi0zA1HQji+AeQh/GronG3evTHdQJby0IssZ2Z+ISJaFAFn7wm2XPYNvQJmzdQ84ivTDV/Yv4BwXF21mTlIaey9tTCqxuboV03JAjmVNHMKTIb+L3O5WywjA/Lay29zoPMbyyqlzfOjO59hKjC98WxC2GzNk5q6teI3TSPoY87o4gjSLLzoVjVCJ/OvkNuLmjkqnysgvHXIsfqal8KZaowGK/TaPoBvqq7Xi5RjCvIEMQmkkLFL6DJorigl+spaPN3Z+1pUin+9VjFgenrA42bRif70JNOZHsWrBBVfFIQeRdDpCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMOsKI30CQ7aCBE1k1LiSBTrmhAk1COHDxArNpHgAO1zUfW0e4ZyPHWlkSNlW+6uFl9CzZCT3P6qx5dkZ5WhjggQ="
         }
       ]
+    }
+  ],
+  "MemPool acceptTransaction with an existing nullifier in a transaction in the mempool returns true with a higher fee": [
+    {
+      "id": "29e29478-04b2-4062-8878-ccf2e1a219e8",
+      "name": "accountA",
+      "spendingKey": "ed39c9ad323e0f3470f23f91e4fc02c310ba3cc3ab9e717516c1636a547d3783",
+      "incomingViewKey": "d3c65e9911a23a136a6fb738211cf463cd22d59e5ae03294552da7477abf4700",
+      "outgoingViewKey": "f81249ff2123f2f8366e391b0573697f12c5f5d71c0c03141c3c76042fa0775e",
+      "publicAddress": "f39a2629671dab9c9191d7a5f601d7782eb690dd7972761db845691a7090ece8"
+    },
+    {
+      "id": "2aa0b73e-767d-4c4f-98b4-ff0b48de2919",
+      "name": "accountB",
+      "spendingKey": "d0029a315f6bd33aab847cdba5bb92c52b4a71234d875cd1474f62f77345b9d9",
+      "incomingViewKey": "5f9aafb53b73eb9b551d8549cb346159e170e5e37389c7dd3149b17b07e69b05",
+      "outgoingViewKey": "99b8caa748d42801eff8c09020183b2dada2de9cefb187c6349675d7db5b8c09",
+      "publicAddress": "b82e7f29096d2be60fea981525aa7158c0d2e0b38fae15c2b526e5b330653ca8"
     },
     {
       "header": {
@@ -1248,7 +1304,7 @@
           "type": "Buffer",
           "data": "base64:0cM22TEsrRMGTq65af9qksdLmoAQ5PgnQTmw55Sm6pU="
         },
-        "target": "880842937844725196442695540779332307793253899902937591585455087694081134",
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
         "randomness": "0",
         "timestamp": 1669841574361,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -1267,7 +1323,7 @@
       ]
     }
   ],
-  "MemPool when a block is connected with a transaction in the mempool removes the block transactions and expired transactions from the mempool": [
+  "MemPool acceptTransaction with a new hash returns true": [
     {
       "id": "ba3ed52b-92d1-4e0d-a33b-4732fa806116",
       "name": "accountA",
@@ -1313,6 +1369,16 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACFMtQZJZzGlQ+gccfUqwEJmpR/tLHKRyNcQUU7wAwSOtKdKB04stavZuklsqQErvSls9BnAR4ltm7WS+dN0WQfIwsz0aI6x8EzCOKzoqnv8NcB0NxgvX+5OsVRChKeOdEAK4D+RmOxLJA4DKMD2w+yhcFp30r4dulidifzUNjlgHKKRSkhvRPndh0P7qQXoqStKqrG5APHYM/MwvNxJOD1vqco05ELzcWvVtnG2BzmEvHuWlNp1Ts06bhs3WrB7/8SceZTGTAtw16p3UcMsH7I9b/LYJyRkiScAYovKhtCFsYmUDL6SgF8n1I4UzKLjaLyA0p+c9cAKdtajedhuSlyI+E3eB01jStVFXkdbqz9lz2SpbmVlVg2b2rMyqcVASbIp6+HOn32zspw08/8C/qMFNxAcAyXYQkpbpfXba9jXbCjDFTkw9ZbtGNMAzWuKd7BKjieheBPZbj9mqU+eZ5qywK/lMKork1mbKLh9XEo0wkhHaDX7ht3+VkpELP0EcBb9MGcHX5XdvAZ8GLmBqaZnkanupfbYWxCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMOQTnX7lQxwugQp3HyfSHFa6NoU2qfafxH6V2lDCoUYNT81KHDeuwX7sUdvPNgPwB+edVhepKH7iJFSv04149QA="
         }
       ]
+    }
+  ],
+  "MemPool acceptTransaction with a new hash sets the transaction hash in the mempool map and priority queue": [
+    {
+      "id": "3087ef6c-0e91-46de-8827-2cc4c217c07e",
+      "name": "accountA",
+      "spendingKey": "caac7cc7bfad1fe1ed427c266bc9537e86835b1d347242e5ffd97d5f01073ac1",
+      "incomingViewKey": "54edd7006fbe1164fb7ad50786a6ffc45e15669fdf3491a6dfe73e592f144107",
+      "outgoingViewKey": "9fa53678bee1f8357848807a1b8daedcdaff41ff26a8c0f66607c6c3c1b399ba",
+      "publicAddress": "4cd494f0cf729060ec2abf542d9b448e513b116b867d74ed144be6ae6a574d15"
     },
     {
       "header": {
@@ -1377,6 +1443,24 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAAChcwALkioIf9pp/GR0pggj+CylsOmatIuMvqQbONitGVVV/Tvkg21W4g2Iw+VH/0WRKCPy0qVYFc9wC22rSKF6KMMufB9xzzkyjTIhc9jEoEFyR2cSiYwujPCpTTlZyNMTpAj23OqOv3viTy4p7eHDDhC4KLsT21LCwP8faFUxOY0OC3VKyzL8KuZ1iPTT1SuQHNxsouzWJtTr6sgwP5HwvDxJmLiAEPuuPWlVGcqz2DiToIEQbOHdnFa1bj6GkMKUkJFUhH8Ku/VnkBlNm5vqrlCQHHJHgYUGEFyROj4uGFCq9kty3yWDEtFyF/JjW4qddzEOKKbxkLRmMXVMfTlydgFN+B80L2G2XCzeInLfKV3OMkzUTB7zlB9YcM1R3O7qL1BOV6na8qP6Etu9WlZoruANf4WDcxTlsfT1kFDntDX36B/J67v7zwJ/2OefOE75zjieodBomtGL7GhBZptecPKgh/0wcBb7rJMNBVuOwyOWOboK33M4wXXz03nT4+BInTr5vqJStgSxh3oeQIvu9G5QaI50retCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMI6eKU7AlBAo6qwzNZkF1qsPy4ADOihAFJbVN6LcDUgeinJZGok9GAbtZ7LCEkmtTBPGA9nQdj4ApFQRdqodhQA="
         }
       ]
+    }
+  ],
+  "MemPool when a block is connected with a transaction in the mempool removes the block transactions and expired transactions from the mempool": [
+    {
+      "id": "1733af53-cbdd-43d3-b57c-9fdde80ee8cf",
+      "name": "accountA",
+      "spendingKey": "ef07a5f6ffbe190b95f3d93ed06c171e6fc01e7dbd6de8409d99261a37444647",
+      "incomingViewKey": "bb0d1cc087584ea9379732660ff11d020f93a0bdf2b18d1271b8a7ec4dd8c005",
+      "outgoingViewKey": "a6b73f00cf6217eb7604176c6a755642671c9d4c50d71ea4303e557383a9abec",
+      "publicAddress": "16808912033aa494b46a35331ae531dcf6ab9361a2d9c318a38b099bbc969842"
+    },
+    {
+      "id": "25383e67-939d-48e1-bcde-076fb7e7ce9f",
+      "name": "accountB",
+      "spendingKey": "4ca92002cdcd191765717e7aa3e33f1a57a70a63133effab30bf1fb1a8ff68d3",
+      "incomingViewKey": "bbe57d069be5406df08ac03f48693b01d26208e17bded9a582304febb45e5c06",
+      "outgoingViewKey": "0e1bf6ae6f26832cace8d0c48942292845d254a895a4a61c14b7b0aa699a8d58",
+      "publicAddress": "8705982c7d029ca598732d849a75c0d0d7bd7be9e938b9e1cce31447add038dd"
     },
     {
       "header": {

@@ -431,6 +431,24 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACIiMtpw8yVe/zCyQbJbT9DcENO3yJ6w7Luh9dVTv/FtzMfSjiJI+wCg7mAMO6c/tKPty0iyucJGDMmMg22XI8jTKkCSmZ5DWFRNHsit6yTlDaNrHKhkY2Jh0CMDF0kIOwOxtE05jy4XzCoXNXEwDR7rP8WUIW5V5dafZTr3nDwvD7humD6GHl33N8+gDro81ukDIYtubM79KO2ancGIZeqs3b4D0/2yN7TV5m+dw6DgzbGq4+OgShrENSD22mRqm1blYqx77cM9rhskBl3U2SBY388e5T9cW4UlqmwFUtVOvJ1EbSlYdUDvKx1q31/zb4Eiu0XaMdnWKf0Qwm2xgkxBBiekiBvfnV/3+sUUcMQc2ETrwcTx7fs62qhCEsiTkhFEjXa8jNObIUqRwXPI5DvfH58Cy8NBlAmeK1WVCxgDFA4OJ4dd/Gb9ZFyS4re8fP5e7yrSM2hDOyRly1r0gNOHhDc412XdJIuZdpFKb+nHu7N/phjeT7a4bdplFoIongFgnHbCODK59VARNzcnuUnF/YeM+UXK4lCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMH+Jo8eRr5IuK92ogCKNV/vdhxtIS8/jANq3WvWF/bMRW9S6ktgXx182EnWNNbosOOaWZDswhZYU/Xs0gEubOgo="
         }
       ]
+    }
+  ],
+  "FeeEstimator onConnectBlock should remove old transactions from the cache when its maximum size is reached": [
+    {
+      "id": "c411c93e-8d98-4dc4-abb4-39aba2f68d49",
+      "name": "account1",
+      "spendingKey": "7135e07500b0db1ab1419df94f8a7026380cfaa46363a81d579131d3a00f961e",
+      "incomingViewKey": "399316736fbd1352c21614f524eb4acf6eee8ee0c437bb37b1be272c4eb78705",
+      "outgoingViewKey": "888d89be72c985884ddf6f7642cc764bd9d4420bfc0ba498e0b9cf0df4cfd3d1",
+      "publicAddress": "8e04c26fe98fdc27b5e197fa1831d1a284728dd58d381c676b84f8fd22ba4e71"
+    },
+    {
+      "id": "18cabed8-4683-451c-8f68-fdafd17c4b8a",
+      "name": "account2",
+      "spendingKey": "1fdb5349185a09af2e68fea5345bc30db2c3c5ff4f382fa3524db0c01b42177c",
+      "incomingViewKey": "3392c8bd1fc70d69f927a21d8547bfe3824226a2c04db9c1e8887b5faa504406",
+      "outgoingViewKey": "38f2506f47989de4957a2099713322abc30073a39fd4385746fa99df0ccbdf0d",
+      "publicAddress": "6204a173c835a7379dc3dff0b5a8ec2316ba9936a9353c0ce3a3bc1608380263"
     },
     {
       "header": {
@@ -467,7 +485,7 @@
       ]
     }
   ],
-  "FeeEstimator onConnectBlock should remove old transactions from the cache when its maximum size is reached": [
+  "FeeEstimator onConnectBlock should keep old transactions in the cache if its maximum size has not been reached": [
     {
       "id": "86376b0d-e186-4088-a1be-15df19063c8a",
       "name": "account1",
@@ -513,6 +531,16 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAAC5tZLaet0LyIr4VEF6rKLSWPfkVFlDQUHX6VanhLlHUICqy15jAnFfwcHmyuXcBwa2LNp6FmNNhJRkUq323Kjf7uHu5txTOLYishyjpq3gIsrokUju/3FxVEVnJZiKosEKFrUB0tt1VzAa63YKfCl0PRxSnrclBDptW9bFm0z45UdItechHay14xrlZd9Q4SOk+73+oPhl1YBSFeF45AgpnzMt4N5z1gzlH0GdswzgqLieu5aie1DyskK2K2SKh23qnFnHQgMmaUGrcEtLhteJoItTSu9w6YZpoptAxoFflau0M/NJ0tN3SH75lBiIzvj1xMYLGz1y1ItxVxMXgEQFKugVJAMe7/b9eLQsQUyu+ix+rutWFc5BnuYUFTorQkaXyAqbhB2MVziZ3xNFgUUQMslBEjH1V5hr3vH3EGBQGmMJcT/pXWQ/3fMmSbjkCU60qhcx39PPkewDTmO+LZWq8ZyjnIX4NCSgDZbt1fTc9MkViGJmj5IQTos3nhm+QYwvEpzRDK6epvK6L/2iCHHfPKdJYUfFQ25CZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwML5IZ4PQr/+tJqp5aTzH2iiGrkwbjhz53hmEPsz1he2vdAHv0Mo1p0FL+yklXnYD8zJ9QrHUKGQBdaFzyLADHgA="
         }
       ]
+    }
+  ],
+  "FeeEstimator onConnectBlock should add only add a limited number of transactions from each block": [
+    {
+      "id": "bb03fd91-10e4-4d57-8de9-b10d71f60e4a",
+      "name": "account1",
+      "spendingKey": "027971ef4cbc0addd11b79a4d73df3584d560d93975d7ac1b9ed33f18f80986e",
+      "incomingViewKey": "a8b1c9a1c14750f9717b0f173b70940f7106ae06d178ffd5a8ead7f698392b04",
+      "outgoingViewKey": "a1d009f44441357f82089708901a91f63e1856e880b963ec80657b7967e34645",
+      "publicAddress": "f9461c12891f69babfc4c970aef45481de7f7bd6679cb616f5f5743abf6e17f1"
     },
     {
       "header": {
@@ -577,6 +605,16 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACIB8zXA8iosVoOdtZx+/1wPlTdVpG65zZZdIvSgeeH4bsltrCpXKcNgHzCP2FIGICImCvUJruSDJClMlngZe/LsyH8FLQiwwPat1JLudAqqlrySdTUKdtxg+pGgJFMJNkJJQwcHKhXZV1qUKIOMnYYdAsF9SOQCZ8YpseArNNmeWbZiLCdHPBs4+LxPQmN96uVNWwvbcYu8WepciRwbdG9sGdGSiWJzOY89zEWzX6HvsAodC2eq8T3lHf9V237gx7xERr6CqVIwVzCO4/M6YAwnYSI1cTG1it2UnxBArX4G9v/brtePi3UPZ/23RTUMPqw6dLtVyJfMyjd2KvkUTtvbQWw7S8wY+JcGEBm4y+tlG/k9olqNiIlhtVPurt2JViQTCeRzf/HZWxi36ooFOPyxfqq+XYb8x1nFODT8SxJ2aBUHdoVzDCU8NGwu+KivNNgQD1mivcPHTH/DPZX8lInVIEV3N5Cw+wnuOfVBTwGd/21T73101ZvvL4ulbUmZ7Ro6LzlvSucUnS/k/AJKzGdfwQpeFG56wBCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMHTubgnrdAFHbG36q2yy5DAL/CjlvkNHvQSIioIt698TT2EZ/Jk0P0CvOGP1MrVD66hd1y+QeIHkbdgQy9ZK/gA="
         }
       ]
+    }
+  ],
+  "FeeEstimator onDisconnectBlock should remove all transactions from a block from the end of the queue": [
+    {
+      "id": "5d6de5b2-95a6-4ef5-99e9-eeab6b2109fc",
+      "name": "test",
+      "spendingKey": "ba116cc279a7ac05123f30fc8f274a2bb507eeac6d4744fa7bbc8cd082599a4b",
+      "incomingViewKey": "59ce10fa942b2ccfcee4f62b9049a560f9a644a525e0cd73e6bd1de8cf1a4206",
+      "outgoingViewKey": "79521cbc571e9b6bbb86655b534c8516371063a476cc4bc5272ce770c9be63a7",
+      "publicAddress": "af3a0566e999ab51ae4b28ce17c729ee2cbf7691da33f0ae1ee701fb74bc819f"
     },
     {
       "header": {
@@ -613,7 +651,7 @@
       ]
     }
   ],
-  "FeeEstimator onConnectBlock should keep old transactions in the cache if its maximum size has not been reached": [
+  "FeeEstimator onDisconnectBlock should not remove transactions from the queue that did not come from the disconnected block": [
     {
       "id": "d740eca4-0d47-4b71-8967-4c88c6c9bef2",
       "name": "account1",
@@ -659,6 +697,24 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACZJY51RZ0gAgFhInIcqiwNS49qmy0h+1wIgKKx7JVpEpeNkL6paCJ94BwXLJrD6E6nzXzZL4Er+ikvutBBJB1tEBnx6MMnRJoe0CUgSImoKWhe17yxz1yiEaI97EKUO2UHBfJ7tT84VdGOzHvb0wwjoaMZmdP8i64c2XP2+9wH/aNefAej3BMnbEWj//DXOiqgdtsJThENuNrUGTO/pi6lj3nW8tnDPb/K9g3sVhuXsje/2Yw1jKNsMk4bBBKXArFh95ItUgdPvrsHHRFyyyp7DniGufdHnsOAHOvx2mdg8lA5g9xIHi9LquZLrURCtaWRsbJ7YW7caW45hch1cq8lLwMVbOv1bQDAEz5njCYGtbi6/NdIY3uaqJkZXlzwYdBbeTP5DcOW+/n6W0u86wn/AahG8TBnDyoLNpDTQR/c6hyeeXLl70Lpj8U5zX/2UpQz+mADQZgcH5Nk2WPvDuhAZO/umx1qXUOFe6A2cgeejHLvTFU5GHcL11A6ecoE8vQwm03NwQta4v3c4gQfwDuM5CyKAXeXIzRCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMGsx64LBp7wfNWOmIZ5D6jaKu5i80pqOIS2yG9ERIn5LlRD1SbQGnjMMZB3BzkPUOnbv1FWAZ0U3DdTllnXt5QE="
         }
       ]
+    }
+  ],
+  "FeeEstimator estimateFee should estimate fee for a pending transaction": [
+    {
+      "id": "1a4d4ab6-88eb-43e3-ad2a-fbf2da220e38",
+      "name": "account1",
+      "spendingKey": "0b8ebb481c81e196c53d4b0e283cae14920666bbf8f00ca4a281cde1b88d0848",
+      "incomingViewKey": "ac20f934fef3a1fe596e1fa0ab5d2d27ff96faa8a528349da888119013cf6f03",
+      "outgoingViewKey": "f47738151449636d4f0a05967272ef0e8b80b804264afd48ea6d4edc0622cc9d",
+      "publicAddress": "13d0e76540a96dfde8ed6ce97cca437dd2875754f58223f2bb5263172ca3e91c"
+    },
+    {
+      "id": "2c15b3d5-88c0-4eb8-87b7-d6c1748b9336",
+      "name": "account2",
+      "spendingKey": "86191ebc6ce7fdc0ca18d84379abb3f1abfb87cbb623c78aef73a79744ecc964",
+      "incomingViewKey": "4449a37cee56acb40860a9ba989d039bc3303dd6e4479f32caca2c5589689403",
+      "outgoingViewKey": "5a1c4f4f03f542e3413d859ef6728687e298d761559977c60748e7e2ecca9501",
+      "publicAddress": "6474e1770e048b42e171c0a4ce7a16d2ad531218e8f7f080f8be02abab7268c6"
     },
     {
       "header": {
