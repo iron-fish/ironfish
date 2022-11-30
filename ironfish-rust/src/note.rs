@@ -68,7 +68,7 @@ impl fmt::Display for Memo {
 ///
 /// When receiving funds, a new note needs to be created for the new owner
 /// to hold those funds.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Note {
     /// Asset generator the note is associated with
     pub(crate) asset_generator: jubjub::SubgroupPoint,
@@ -318,7 +318,8 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<(jubjub::Fr, jubjub::SubgroupPoint, u64, Memo), IronfishError> {
-        let plaintext_bytes = aead::decrypt::<ENCRYPTED_NOTE_SIZE>(shared_secret, encrypted_bytes)?;
+        let plaintext_bytes: [u8; ENCRYPTED_NOTE_SIZE] =
+            aead::decrypt(shared_secret, encrypted_bytes)?;
 
         let mut reader = plaintext_bytes[..].as_ref();
 
