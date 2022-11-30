@@ -53,6 +53,9 @@ pub struct Spend {
     /// The anchor; the root of the tree. If the note being
     /// spent is zero-value, this can be anything.
     pub anchor: Option<bls12_381::Scalar>,
+
+    // Origination address of the funds
+    pub sender_address: Option<PublicAddress>,
 }
 
 impl Circuit<bls12_381::Scalar> for Spend {

@@ -35,6 +35,9 @@ pub struct Output {
 
     /// The ephemeral secret key for DH with recipient
     pub esk: Option<jubjub::Fr>,
+
+    // Origination address of the funds
+    pub sender_address: Option<PublicAddress>,
 }
 
 impl Circuit<bls12_381::Scalar> for Output {
