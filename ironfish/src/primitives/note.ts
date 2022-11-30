@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
-  GENERATOR_LENGTH,
   MEMO_LENGTH,
   Note as NativeNote,
   PUBLIC_ADDRESS_LENGTH,
