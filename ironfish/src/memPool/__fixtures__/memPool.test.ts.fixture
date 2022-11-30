@@ -921,12 +921,12 @@
   ],
   "MemPool exists with a valid hash returns true": [
     {
-      "id": "ebde1512-ebd9-4bb1-a062-3f5afee8f4b1",
+      "id": "ded36c22-f230-44b3-9daf-6df2ddadc1f1",
       "name": "accountA",
-      "spendingKey": "954a711ed56fbe3872a30a8a16f3ba765f3b9064aedd24d78e18378a7a59e5a3",
-      "incomingViewKey": "07118701a4eff92380b3e3baed3acb1cbee823a360d87feed35b812e57a73d02",
-      "outgoingViewKey": "b4425b725b3442aed394642ba4a4c53e0131d6b806f755449d792083253c892b",
-      "publicAddress": "703d4f3bb69badb2cfad79c78f36ab49fd9007b2d953bc4f3f4156d0d27463b8"
+      "spendingKey": "cec1a243013390f07618ba5fe2435f28940f59a9cddd03d453f277d65c42430b",
+      "incomingViewKey": "44b63a2b79c48b06f3c098858a502608f8aa31c7e62474b2dfe4c4ed18489601",
+      "outgoingViewKey": "b6a2ec4b84bde39ca83d26ef7d6234d4494ed5fc91e240ac60a505f588f792f2",
+      "publicAddress": "eaacdc3614624e89816570bce0c95b33caf2cbfc654e5407bc5ff250671f18c1"
     },
     {
       "header": {
@@ -1047,12 +1047,12 @@
   ],
   "MemPool orderedTransactions does not return transactions that have been removed from the mempool": [
     {
-      "id": "2de874fc-415f-42f4-8cad-adfb6ff81888",
+      "id": "f8e198d2-4770-42f6-b7ea-34e2462c5199",
       "name": "accountA",
-      "spendingKey": "d3b754cd03420aabddf77234e84b4022aa5b8a6f26cd3f8bc05d6bf9a6811bc0",
-      "incomingViewKey": "8cc9ac7fe25a58855276b5041e6d9076784acba4479f3ac8a41de93295dcb606",
-      "outgoingViewKey": "f3f8055beffead9a8d67ddbc49ae3c1b8e9cc1ebf1bca56e65247b362bab7309",
-      "publicAddress": "6e1ca2b678c2ba74d8f75df2fb177f2be443f0416cf9e4d4d637607db3cb16d8"
+      "spendingKey": "186fe080fa46d113f52f8119a3b73ca3bd0b78b69c249b33d58c4d31f19b58ef",
+      "incomingViewKey": "d2c43cf7da297c9bb3f55d5c3c61d83ef4b033a1d50d71ca6d2f15dd8066f306",
+      "outgoingViewKey": "301371950c1c29126c9f5a6ea4317ab078fdfaa4ecf425c839817af3d09d5d16",
+      "publicAddress": "f69c9c0a956db471cc109c43521d8848dac082e23ba271aba58c6c3610ddac23"
     },
     {
       "header": {
@@ -1173,20 +1173,20 @@
   ],
   "MemPool acceptTransaction with an expired sequence returns false": [
     {
-      "id": "8e8499db-d60b-4a8f-a969-c430eb7f4428",
+      "id": "a44f951a-1ece-4f7d-bf16-1f1b47617713",
       "name": "accountA",
-      "spendingKey": "e18591a011bf94239bd2058d77810bf25f1297957b9579fcdac8003853157a9c",
-      "incomingViewKey": "7c2cd1852588fa08627863ddebf6ea375c1a2d6f41dd988d211a19108ab67200",
-      "outgoingViewKey": "d429af9f25cd0fad8205fb6004fdce11963788ee74cebe3910ae7f1b98467a69",
-      "publicAddress": "2044ab093a0ae0dd397257d24a3cae77d7671df5177a7e194e6f16475f4abb52"
+      "spendingKey": "8afd3b0d422fc6f56960e68373c6ec70b8b643e60444a71bd366618d729ec278",
+      "incomingViewKey": "1bebef283016e9a35762af8f433dc08a84207ab136eecc6d10c7df2925f56502",
+      "outgoingViewKey": "0c597b319e250845a248de76a97c4be71bc25f5623c0b9ec8d8a9c07ad68be33",
+      "publicAddress": "3a29f4bdde142f9956ba159c53dbe530d5f2f5eef06f64bed97d092848f7fb02"
     },
     {
-      "id": "6ac76cfc-b716-4365-90a3-b36f4c1c9b1f",
+      "id": "245dc4e5-5db4-4e71-ab5f-31febdbcfa5b",
       "name": "accountB",
-      "spendingKey": "d80637595e558938964c5b9516bee19a2d17155cf66e5b5728dbe663bdfbbee2",
-      "incomingViewKey": "ae66db4366f09b97d3350255c8573d600822368c94c9f7ea6252ecdc0b3c2502",
-      "outgoingViewKey": "8aacc01234c763effea4c44744c434c6d346258f65efd9ff43e621453ff80e1c",
-      "publicAddress": "4644449d9677962203d17f7486bd954b3c78e2c69733c0fb74ddd1d06bfe13b1"
+      "spendingKey": "029f402fe3c1b81589bbefb8a93a53c5392f7a489e809ff30def527e6826a7bf",
+      "incomingViewKey": "c2c2d182b476264bc8703db320c43855c2b6f18d9a58b9614ed4a8ae9122d307",
+      "outgoingViewKey": "39e5a771544d4fdff2df0b9c0c3f67c7d5489261f02e71050e7a7bd58ce71365",
+      "publicAddress": "afc740848a6de7bdace31f79bedb8d43dff7155de60c6b759cc889e6c9dd233c"
     },
     {
       "header": {
@@ -1273,20 +1273,20 @@
   ],
   "MemPool acceptTransaction with an existing nullifier in a transaction in the mempool returns true with a higher fee": [
     {
-      "id": "29e29478-04b2-4062-8878-ccf2e1a219e8",
+      "id": "65de44e1-4039-418c-abce-555b953384ef",
       "name": "accountA",
-      "spendingKey": "ed39c9ad323e0f3470f23f91e4fc02c310ba3cc3ab9e717516c1636a547d3783",
-      "incomingViewKey": "d3c65e9911a23a136a6fb738211cf463cd22d59e5ae03294552da7477abf4700",
-      "outgoingViewKey": "f81249ff2123f2f8366e391b0573697f12c5f5d71c0c03141c3c76042fa0775e",
-      "publicAddress": "f39a2629671dab9c9191d7a5f601d7782eb690dd7972761db845691a7090ece8"
+      "spendingKey": "4115a12756de16627f2f560b52f5b3a43508809274c013f52e4ff74f3cc1df84",
+      "incomingViewKey": "7b6ff0612ef4155e42884d36b0486791c7b4e82a51561a651c9822302e136c01",
+      "outgoingViewKey": "6008a9e2143b7452cfd9036ec58dd3365a53446851a07ef1e0f0668ade36935e",
+      "publicAddress": "c413e026799f192eff2e320f31f726908393dc5316a71bb4a432bf15dfa0eacf"
     },
     {
-      "id": "2aa0b73e-767d-4c4f-98b4-ff0b48de2919",
+      "id": "8a10ecb0-8f3f-46b8-af3c-3899349c3b54",
       "name": "accountB",
-      "spendingKey": "d0029a315f6bd33aab847cdba5bb92c52b4a71234d875cd1474f62f77345b9d9",
-      "incomingViewKey": "5f9aafb53b73eb9b551d8549cb346159e170e5e37389c7dd3149b17b07e69b05",
-      "outgoingViewKey": "99b8caa748d42801eff8c09020183b2dada2de9cefb187c6349675d7db5b8c09",
-      "publicAddress": "b82e7f29096d2be60fea981525aa7158c0d2e0b38fae15c2b526e5b330653ca8"
+      "spendingKey": "beaac0ebe654011b19692760abe4ff3419525d80497f11a2430df0504e8d3184",
+      "incomingViewKey": "cb9243ed445511ab7869891e6f82e6c3181fd22e203f4cd6d295c40f8cafe407",
+      "outgoingViewKey": "119c0ecf44de99bdc24ffb61b63c64a26f5066b402712fc6ad4c0f2c30f27e76",
+      "publicAddress": "63a67e7513dfd3f63511a84b1287f7fcdd89f411ef0436c28ec96dc34e44ecdc"
     },
     {
       "header": {
@@ -1373,12 +1373,12 @@
   ],
   "MemPool acceptTransaction with a new hash sets the transaction hash in the mempool map and priority queue": [
     {
-      "id": "3087ef6c-0e91-46de-8827-2cc4c217c07e",
+      "id": "12239b9f-6b93-4b82-b9bb-6672eeffd2e9",
       "name": "accountA",
-      "spendingKey": "caac7cc7bfad1fe1ed427c266bc9537e86835b1d347242e5ffd97d5f01073ac1",
-      "incomingViewKey": "54edd7006fbe1164fb7ad50786a6ffc45e15669fdf3491a6dfe73e592f144107",
-      "outgoingViewKey": "9fa53678bee1f8357848807a1b8daedcdaff41ff26a8c0f66607c6c3c1b399ba",
-      "publicAddress": "4cd494f0cf729060ec2abf542d9b448e513b116b867d74ed144be6ae6a574d15"
+      "spendingKey": "054f32a0d99c661f2e0998f1cd2882aab13147ab672747118de27ffa9c750bbd",
+      "incomingViewKey": "c13a782d3147af375e8a75d78c9ba6de70bcc21fbf00ff7b7bd1af90b9b9d305",
+      "outgoingViewKey": "4ba1821d3628c7963a3b5b38fd861cbadceb3234ee461c2713238acdae383435",
+      "publicAddress": "f71deab65c1972eefb76eecf60686802aae343a3a2cc0163b474fda0d5535457"
     },
     {
       "header": {
@@ -1447,20 +1447,20 @@
   ],
   "MemPool when a block is connected with a transaction in the mempool removes the block transactions and expired transactions from the mempool": [
     {
-      "id": "1733af53-cbdd-43d3-b57c-9fdde80ee8cf",
+      "id": "b8e1dd81-5e06-409c-8229-34ee86ee1eea",
       "name": "accountA",
-      "spendingKey": "ef07a5f6ffbe190b95f3d93ed06c171e6fc01e7dbd6de8409d99261a37444647",
-      "incomingViewKey": "bb0d1cc087584ea9379732660ff11d020f93a0bdf2b18d1271b8a7ec4dd8c005",
-      "outgoingViewKey": "a6b73f00cf6217eb7604176c6a755642671c9d4c50d71ea4303e557383a9abec",
-      "publicAddress": "16808912033aa494b46a35331ae531dcf6ab9361a2d9c318a38b099bbc969842"
+      "spendingKey": "f82a004dfc9f83158749aec065962f8e1fe9a81089ca2c936bc4c33ea6021073",
+      "incomingViewKey": "25e1de466b28937861c70ea3649b96c770e2b437bb73abe1292819c02fad6007",
+      "outgoingViewKey": "ab3aa94c5a44ca74ec316822924681f3cb58c62e75db0fc1b53a7db64a9cc887",
+      "publicAddress": "7e51db698fcaee13b76b9e05851b74af8092bc874740858b63287542969f8481"
     },
     {
-      "id": "25383e67-939d-48e1-bcde-076fb7e7ce9f",
+      "id": "3cddedcc-2443-425a-bc12-f9e3c7e88256",
       "name": "accountB",
-      "spendingKey": "4ca92002cdcd191765717e7aa3e33f1a57a70a63133effab30bf1fb1a8ff68d3",
-      "incomingViewKey": "bbe57d069be5406df08ac03f48693b01d26208e17bded9a582304febb45e5c06",
-      "outgoingViewKey": "0e1bf6ae6f26832cace8d0c48942292845d254a895a4a61c14b7b0aa699a8d58",
-      "publicAddress": "8705982c7d029ca598732d849a75c0d0d7bd7be9e938b9e1cce31447add038dd"
+      "spendingKey": "2bf6f6c4653d90ff0d3ce15342a31036644ab3f901cf4cd0a828675a5a7367ee",
+      "incomingViewKey": "58e6a50bc49a2044191d63884507bb9649f9689c6347349c15314d8a929b7907",
+      "outgoingViewKey": "633fecc4406918a099970cd13913a4fecb0c86f98cd5f5299a654a366f306ac3",
+      "publicAddress": "25a5e23cb854d4edfed29daf9b9f452f429c11b41862812e4db5a16ecf48f7d3"
     },
     {
       "header": {

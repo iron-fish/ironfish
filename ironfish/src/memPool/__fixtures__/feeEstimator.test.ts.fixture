@@ -435,20 +435,20 @@
   ],
   "FeeEstimator onConnectBlock should remove old transactions from the cache when its maximum size is reached": [
     {
-      "id": "c411c93e-8d98-4dc4-abb4-39aba2f68d49",
+      "id": "da04c6bd-3b21-4ccf-968b-afe6c0a880b7",
       "name": "account1",
-      "spendingKey": "7135e07500b0db1ab1419df94f8a7026380cfaa46363a81d579131d3a00f961e",
-      "incomingViewKey": "399316736fbd1352c21614f524eb4acf6eee8ee0c437bb37b1be272c4eb78705",
-      "outgoingViewKey": "888d89be72c985884ddf6f7642cc764bd9d4420bfc0ba498e0b9cf0df4cfd3d1",
-      "publicAddress": "8e04c26fe98fdc27b5e197fa1831d1a284728dd58d381c676b84f8fd22ba4e71"
+      "spendingKey": "363d8c38f1dd338321db1c84b38fe49572a1375711722764a3ba8cf983ae14d4",
+      "incomingViewKey": "af33ce5ec142cab83971c32f25007a5b92737cd9761baba9687ab501a5aa2804",
+      "outgoingViewKey": "5a01b5eb18e827d27054827d8c3b3b41e367c1253a6775ffb7ab7de9570c4f07",
+      "publicAddress": "2e9ffe29703a5ded5c575f979a3f7d558f789da840ae152894f78513bd324410"
     },
     {
-      "id": "18cabed8-4683-451c-8f68-fdafd17c4b8a",
+      "id": "cbe05eb0-03d1-4e35-b12d-a8fbb2c1a2a2",
       "name": "account2",
-      "spendingKey": "1fdb5349185a09af2e68fea5345bc30db2c3c5ff4f382fa3524db0c01b42177c",
-      "incomingViewKey": "3392c8bd1fc70d69f927a21d8547bfe3824226a2c04db9c1e8887b5faa504406",
-      "outgoingViewKey": "38f2506f47989de4957a2099713322abc30073a39fd4385746fa99df0ccbdf0d",
-      "publicAddress": "6204a173c835a7379dc3dff0b5a8ec2316ba9936a9353c0ce3a3bc1608380263"
+      "spendingKey": "b2ae785e627ef0fff769891299a7e16d18146645a2163072d93c04f83c451315",
+      "incomingViewKey": "24593a4e3dae784ad71321676cef4fb1ed747d462e17788dd1d62d9abcda6102",
+      "outgoingViewKey": "202e50688117208e67635a6062836b949b6c0bdbd7658478ef7920f5af5224af",
+      "publicAddress": "f08341f893bec78f139c4c4155906bbc825a5f048521bf12ee16c983684cf86e"
     },
     {
       "header": {
@@ -535,12 +535,12 @@
   ],
   "FeeEstimator onConnectBlock should add only add a limited number of transactions from each block": [
     {
-      "id": "bb03fd91-10e4-4d57-8de9-b10d71f60e4a",
+      "id": "25f700be-e4d1-4caa-b449-3941185fc855",
       "name": "account1",
-      "spendingKey": "027971ef4cbc0addd11b79a4d73df3584d560d93975d7ac1b9ed33f18f80986e",
-      "incomingViewKey": "a8b1c9a1c14750f9717b0f173b70940f7106ae06d178ffd5a8ead7f698392b04",
-      "outgoingViewKey": "a1d009f44441357f82089708901a91f63e1856e880b963ec80657b7967e34645",
-      "publicAddress": "f9461c12891f69babfc4c970aef45481de7f7bd6679cb616f5f5743abf6e17f1"
+      "spendingKey": "ca4c654fb6e9f8ff17977ff47e3bc0eff3f6a32cab34eb7fe32ddfd0a2cc6a8d",
+      "incomingViewKey": "2d3596dd55d2d9795b14d4662bf9106f0043888208ee507ebfb14b428a4ab305",
+      "outgoingViewKey": "14765cd2d84086e704bcad25b7fa48b3d26ad83c21a7482f72648c993e97b044",
+      "publicAddress": "d293872b6631163030a91aadaaf95df372dbfce1a527a6e2a6e750aa0f7b366b"
     },
     {
       "header": {
@@ -609,12 +609,12 @@
   ],
   "FeeEstimator onDisconnectBlock should remove all transactions from a block from the end of the queue": [
     {
-      "id": "5d6de5b2-95a6-4ef5-99e9-eeab6b2109fc",
+      "id": "21780ee0-11e1-4773-8d5d-a05cc4a986aa",
       "name": "test",
-      "spendingKey": "ba116cc279a7ac05123f30fc8f274a2bb507eeac6d4744fa7bbc8cd082599a4b",
-      "incomingViewKey": "59ce10fa942b2ccfcee4f62b9049a560f9a644a525e0cd73e6bd1de8cf1a4206",
-      "outgoingViewKey": "79521cbc571e9b6bbb86655b534c8516371063a476cc4bc5272ce770c9be63a7",
-      "publicAddress": "af3a0566e999ab51ae4b28ce17c729ee2cbf7691da33f0ae1ee701fb74bc819f"
+      "spendingKey": "5ae62adb421110f8e9c599390ca09a608a03c3eccde23ee8c32c3076fc056d92",
+      "incomingViewKey": "80064a0cb6de24072e7d90f856f03047719a5cbe918cd701edc46647da868f07",
+      "outgoingViewKey": "3bf00602b9914f5ed03bc64810b1d644b53bd188c12a113e7d219c9f0192e4a7",
+      "publicAddress": "b957e7441e42088ef62421b413d3846d6ee1530d8f17eba3876af56044262c3c"
     },
     {
       "header": {
@@ -701,20 +701,20 @@
   ],
   "FeeEstimator estimateFee should estimate fee for a pending transaction": [
     {
-      "id": "1a4d4ab6-88eb-43e3-ad2a-fbf2da220e38",
+      "id": "2c5c330f-77cb-4e1c-a1e3-ed44187db187",
       "name": "account1",
-      "spendingKey": "0b8ebb481c81e196c53d4b0e283cae14920666bbf8f00ca4a281cde1b88d0848",
-      "incomingViewKey": "ac20f934fef3a1fe596e1fa0ab5d2d27ff96faa8a528349da888119013cf6f03",
-      "outgoingViewKey": "f47738151449636d4f0a05967272ef0e8b80b804264afd48ea6d4edc0622cc9d",
-      "publicAddress": "13d0e76540a96dfde8ed6ce97cca437dd2875754f58223f2bb5263172ca3e91c"
+      "spendingKey": "c96fef44b0b59b7629b2d85d2d48031d8c76672d8ea918fec841007ba8930e0e",
+      "incomingViewKey": "aec42b8e5cae9c774f817939a9b1b892287085a00ede42f31bb3a6e0bbdd3b06",
+      "outgoingViewKey": "eb417dca2efb9b51a109cca73dfd99f865a99fc57dfc1fdfbd609cefcff0729c",
+      "publicAddress": "1cc99dc1e053422c7271028385adef9eb88627deb158790b4c2c26177d614cda"
     },
     {
-      "id": "2c15b3d5-88c0-4eb8-87b7-d6c1748b9336",
+      "id": "a25e47d6-83b0-4587-9bce-b83a854240d0",
       "name": "account2",
-      "spendingKey": "86191ebc6ce7fdc0ca18d84379abb3f1abfb87cbb623c78aef73a79744ecc964",
-      "incomingViewKey": "4449a37cee56acb40860a9ba989d039bc3303dd6e4479f32caca2c5589689403",
-      "outgoingViewKey": "5a1c4f4f03f542e3413d859ef6728687e298d761559977c60748e7e2ecca9501",
-      "publicAddress": "6474e1770e048b42e171c0a4ce7a16d2ad531218e8f7f080f8be02abab7268c6"
+      "spendingKey": "8098891096afc69f4e9699ee5ee9ea358fb8bddf4a9914d040af10b68220c729",
+      "incomingViewKey": "9cbb683f81ee8f9c70c052d8a1baf3c11bd1220e07ac7e6f161cfe06f457f002",
+      "outgoingViewKey": "856a07975d3bcb5fe7500dc30a2f08a79a2d436ca473ab02c7461a4a86134176",
+      "publicAddress": "60097c992ff7b1a27c44412bb8f91feb94df985409beb92e4b7b28f0b216b9b3"
     },
     {
       "header": {

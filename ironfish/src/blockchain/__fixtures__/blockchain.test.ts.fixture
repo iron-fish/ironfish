@@ -855,20 +855,20 @@
   ],
   "Blockchain rejects double spend transactions": [
     {
-      "id": "509aa7d8-d3b8-4631-a7fd-62cb280e3ff2",
+      "id": "c675cf59-1252-4302-88ed-90f376ffce49",
       "name": "accountA",
-      "spendingKey": "914fc1781a022b068bfe559f324a6b20a618f28a2fb66c9a082c0d8ba2b0c9f9",
-      "incomingViewKey": "30278f2eb95e39fe35ef84a2d0471b28505d6106a8603a8a4a212a46421a2807",
-      "outgoingViewKey": "32ce3947b73ccc1a72fbdea78ffdbd9cf0bacd661abcf61f1e54019f56159aff",
-      "publicAddress": "5017590b073e5913f0c5b28d3b754a2b605fe946980dc404f849d24f6f9c6b3d"
+      "spendingKey": "535da67c36749d7aac2025d097fd10b98717e6503a20708735dbcc310231e59f",
+      "incomingViewKey": "d14083321f4b5a635f06735c5b49cde86d077ee8ba309b6e7be241b090982b02",
+      "outgoingViewKey": "5e3337ab7a6389634fd881b258c8bfccea53df51cfefb4f6cd1ca1b916f99941",
+      "publicAddress": "a7655cda04fc7f3d7400444beb6ec279826750e2c0c5d0eb20db0a6538f52026"
     },
     {
-      "id": "42cf5c35-e2ce-46a6-a521-366a49044686",
+      "id": "fab83f5b-4956-4e06-87f0-df66a8fa2e3e",
       "name": "accountB",
-      "spendingKey": "36e9698ed308658cccc234ddb708481721d8ae55c5fc6a63ef87a3e0869390ab",
-      "incomingViewKey": "182ddab71ce143a950a494dc789a55c8d2f20837ec33392bfcd8dea7aab2b801",
-      "outgoingViewKey": "3daadd20b60264f7d83a2d3601f14afa768da6273cfd07adbc4df0f25aa6c94b",
-      "publicAddress": "33a916596a9d4b84814eddc064dfbe1be701f390ce6ff1ccd9611209aefc7a2f"
+      "spendingKey": "381a0dcda53948b395dd0a5e9aad6d079ee6c1d4d4dcc61733b076a9aa0b17b1",
+      "incomingViewKey": "c3b6aebe23e295333330b276bb4d31c4777415f6e5e9b314223d66dc8228ce04",
+      "outgoingViewKey": "2facc88bd9aa0b9bf22d43252b4dd08187bbf02c4d8ce405ebbf54d331ffa704",
+      "publicAddress": "ccc02714b3aef2c057702401c16204f55839e270e67b6793b62245b821dbc009"
     },
     {
       "header": {
@@ -1033,20 +1033,20 @@
       ]
     },
     {
-      "id": "5b0eb0c3-452a-44ac-ae26-945240083c8a",
+      "id": "851c7843-dc23-432f-ab88-1ffe10d850fb",
       "name": "accountA",
-      "spendingKey": "f7349337e48c86a7e194aac0357baad01718a5d3d9d4ab357c72ec36068d986a",
-      "incomingViewKey": "a44e638c982c6a7e2f0ba7e319139d00b765f20c3e150f7ce28fa6f73c188403",
-      "outgoingViewKey": "9d5a9806a201aa94986f20f98bb69a6ed19c97d6667f72c1abe670b0aaad98dd",
-      "publicAddress": "90c72741d84ca6068c4c236a2dcb86a064bf3eade4a2579a60b750b4fdff58e4"
+      "spendingKey": "031469be3b57f806deb6beec506f3014ecd3e821c251781ebe5dcd9d5605deb3",
+      "incomingViewKey": "2d7c5c5b582e054cd9dc7c3bdee405ae2e58992b7c1cefa84298c4da49726606",
+      "outgoingViewKey": "e3fc73db89901b4f9e6fea76a38637f783217e4c1abdec8a0911e10a8deea318",
+      "publicAddress": "3a46d623094d29399ee1ea528fb318db6144e8078fb17d9c98781edf8a491d5c"
     },
     {
-      "id": "4b84bbdb-f03e-4152-ae46-56702aa8e926",
+      "id": "817edda8-4bfa-41d9-8117-12b99a6d0868",
       "name": "accountB",
-      "spendingKey": "5ca41f6ff00bcd2be27fc52808ff3a8f7a151ab21765d4ba571e8b581f4580f0",
-      "incomingViewKey": "551300645a2b8b49e976d10d67723a2ce8e8d572707115a38bdd1d8098f13d07",
-      "outgoingViewKey": "17ab9721783d5634033f653c750018ad10f73beaa35d472f0f0ea60c0cbcd446",
-      "publicAddress": "d5136d07d7638a42f29c4520565d76ec9bdb3765efcc6196dc1cbb711f4e0770"
+      "spendingKey": "b936338ac16291cb41d498b215e4a16f06687962cfcb2d55b6b3aeb55f892653",
+      "incomingViewKey": "c8122392cbb6290c6392d38a1eae4799836aed30924646a11cd987bcf05d1b07",
+      "outgoingViewKey": "3be97b6bd4dcbec9955fc5ea8644c366f77daa808dece3db6931448d866be2e3",
+      "publicAddress": "fe431fb7e41ce414ef4d630b45dda0950369357c7192a9b023795853303c158e"
     },
     {
       "header": {
@@ -1077,6 +1077,10 @@
           "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAAC3WDloY8zP4/JnnF/Tm49qoL9DYpEQTpcoJ/G3zLzpVrM38aTDl14WpfVKY1BgB2Gio5NaC3Y1qxv0hiPwYwA6bl4DXHrUIrQnDiQvF/I2vX+j/PVtG4zmvG4cRKpvPN8K4ZbnJH+qCRxEOjZV5+bM6ZDmDgBGWakUvG6/lsLrW1Xn+OPScDUhldNktX+76saELIgt6S3ogUrEQVPeMU6RZrwtsSz0AFW+hZkMy/LEm8ul1jhfh4XhL5UGyo2OBEc/x005TMQvs/caWokaZe+rhUVKyAsme0Qajn9cBEMe6gxDF1YTecQqyTQIoS2XCM+w2irkGDLia9pji0DV+0Q3l74JUf5aEeGF8KdofpD1wQ2fJmv5wAAB+Wq695zdAkm+jBCIeEpAYtUq2vWGnAFfX8cTsSegsZK26R/9FqP7cT8sJklg4ZvERj7AFTN9+f+8swU1kA73F9aJKELwTg/6ZrDNQqLc7KhlcIjzMwQ5nolkNokm7KB0xW/4NRhl94PJQFQs7RCRPExxgayf9Y6+x8sjLYq98kJCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMEcvNT7GJTIQWqsjQD2h7IsLj8/vikEEhhTneown01IBeu6iCY+pcXZb+J+pRiHXyhocyc2MayCSh9IE4WVfFA4="
         }
       ]
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AQAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACO+b71RlVok09HnxTASwm900WxN2ZHpbqIwuIa7gjXSpX3HrmUaZZhm1Q/2nybw9SnRNJn4q4c+U6vzWunofrd8AGioRqcok64UknAoT3JNd0QTpFD/ydzCkxnLTgLCUcH0e7n9vweAhkZsFPYwtdlwM3afQ9JAPgoJVU3SjcxperSPR8ZZLvZsEnk1+OTI5CVBa45AP62cIXRrcQrSaQsXNxPDPokXhBGroDJsL5UIygR8Vs7BHXcjIgsCso8/F67TXnRQlwXg26dgTaXYTejobQm4lVhuhDPjJUnKuQkkTBneXI7jIwsHsBYBus+Fkl1Bpn1LH7emvYIXHUSwzOGBAQGJfR8QftwJYI+IF4/LCZ6lGCKSTkiAoa68AuIKVMEAAAAyhkFIi7YDQ8YCDui7Bd7k02qz4wu7oQJCSrRAoLrj8yDjaKUbDcIr27Toy16Qs94iSNaXxhPdEzNr/a2Ail4N6kHlTgDNHpfQiE8rt+st8zN6unrTprElrOvlOcF3/wGiIfOpQIIvrsZeYkQcXDPBJ1UmbgRjxe3lJ7vbw4o5di2uAAwv3Hl1yk+1Aqnp5jwj0MMG7aKmC5HtsigbIyhqb+PJza3aGJrnii60lgId0pEwJ80bqR7ox7fAkzvZ1FpB8CqZVfugRARuyvAFHXX6FBSivYlhg+/C0p9NXkwnfvMOWeS1NX2bIwSDMRYUgW/kE/TBm6TXnNlEuUq2vlqQZLiX83+Uwcs2KxCItYW8EedjTl58i3Ylk2Js3KxkrO4yJpAp5t+PDT/hchyr5+a9Mm4gtyJ2MkUERwP6BoeG8YU/c82mNxwkZC/hQ/V5FyAIVw5+xYGeXuUrReOkM87Y2kGrWO5ZUzi3BXpKEI2AKauZWwpWIcrwp22aoe6A51d/B8t42Za/dSgehB0e9gsyR8GHUJNQ6C2HnQlEFHuqJu1ewTXLx89td5A+lVnjn56ST1EfxBhzEWd6m5dj0Vqzsux0KgqU/QElUBp8UsuAuq7uk6RAl1VOGYwmpy136AxUaqbv/Y/DVr0wEnkcFL0NdiTANaMGoxHFGjsAAE+FzfryXv5L7Wv9LxpB28QlM0ABkEdudMtNTQ9pA3KqIUgfzWr0rU9MQU9e4CSxpCEC3GMjfsQ4nXl9d++VUdzO2lXG7h6r9JY8dWJzqYDkClA7iQnfSRAYu3rjVkC5VdVndb1fUfT5GntjBnxt/MzaKe6HIqBbkH1o/2BBrwC7vyMvSWsIoq6U3suE29F3qXyC0WO70h+tmQLjpGD8HU4FznOT/iF8+ZXrm0T1ovkUVJp5MPP3GhsZIZOCV93zMN6aeFneA0EMFl7HdjSzu6/IcHcB2tsMRYzZd+sehIuatANMFbkW0KjuytO321wg7DdiO3ZNywOIRWjy2YI0BbzTdXIbe2C04FGTDLLRpb7rX6CpYjKQ2iyNg+y/zR7Qm9paj8Ryoi+pbaR10dnuLi3xJ8UTYPc+noqTbja9iOc5VUcZM3CKDrYu8I+ndP3FMdsO61DPKAzqzlk2adYgEdg1AmjYYdo7ZIKs+fc1HJO7+y6TQV+o+/Ye7SNinkAsQ3yPqDT84MR+RU+Rgcv2Z6t3nOrWDjG5qW2q9F9Ip/akKqaCHE6N08v0zlr0UrydnLQ9lvo1zTqQ1jAUdvN4MSbwrW4hEhc6QIovxjWrSiajuK/jV3z13z+034UkTsnw/sR9P09B9Ol51s3WJNNV44gydPAY8/IJQzkRAdR5DWCIErZPnnMup/FhsFuIKCgpe9kssOql30AsPHuLPKrgdKk1vnuj4Q+Mm4nABaOMzB3PFCW14LbRgu+5lsWuoF6cYw64FlPIIb9ukvsOehtqfJnxeyi+J6Q/aMwFpaUTYHk7FTKQGl/l7PBGiw0GRZ/jfj8nwI="
     }
   ],
   "Blockchain does not remove nullifiers from double spends during reorg": [
