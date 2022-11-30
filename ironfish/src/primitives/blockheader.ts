@@ -4,11 +4,10 @@
 
 import { blake3 } from '@napi-rs/blake-hash'
 import { Assert } from '../assert'
-import { BlockHashSerdeInstance, GraffitiSerdeInstance, NullifierSerdeInstance } from '../serde'
+import { BlockHashSerdeInstance, GraffitiSerdeInstance } from '../serde'
 import PartialBlockHeaderSerde from '../serde/PartialHeaderSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
-import { NullifierHash } from './nullifier'
 import { Target } from './target'
 import { Transaction } from './transaction'
 

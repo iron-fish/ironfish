@@ -8,7 +8,6 @@ import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { BigIntUtils } from '../utils'
-import { NullifierSerdeInstance } from './serdeInstances'
 
 export type SerializedBlockTemplate = {
   header: {
