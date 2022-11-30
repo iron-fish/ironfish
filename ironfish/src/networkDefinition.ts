@@ -14,7 +14,7 @@ export type NetworkDefinition = {
 
 export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
   .object({
-    id: yup.number().integer().min(-1).defined(),
+    id: yup.number().integer().min(0).defined(),
     bootstrapNodes: yup.array().of(yup.string().defined()).defined(),
     genesis: yup
       .object({
