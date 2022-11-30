@@ -5,8 +5,11 @@
 import bufio from 'bufio'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 
+const MINEABLE_BLOCK_HEADER_SIZE = 224
+export const MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET = MINEABLE_BLOCK_HEADER_SIZE - 32
+
 export function mineableHeaderString(header: SerializedBlockTemplate['header']): Buffer {
-  const bw = bufio.write(240)
+  const bw = bufio.write(MINEABLE_BLOCK_HEADER_SIZE)
   bw.writeBytes(Buffer.from(header.randomness, 'hex'))
   bw.writeU64(header.sequence)
   bw.writeHash(header.previousBlockHash)
