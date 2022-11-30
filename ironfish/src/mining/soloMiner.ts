@@ -14,7 +14,7 @@ import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { PromiseUtils } from '../utils/promise'
 import { SetTimeoutToken } from '../utils/types'
-import { mineableHeaderString } from './utils'
+import { MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET, mineableHeaderString } from './utils'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
 
@@ -129,7 +129,7 @@ export class MiningSoloMiner {
     )
 
     const headerBytes = Buffer.concat([header])
-    headerBytes.set(this.graffiti, 176)
+    headerBytes.set(this.graffiti, MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET)
 
     this.waiting = false
     this.threadPool.newWork(headerBytes, this.target, miningRequestId)
