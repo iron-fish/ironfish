@@ -5,6 +5,7 @@ import type { LevelupDatabase } from './database'
 import { BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../../assert'
+import { BufferUtils } from '../../utils'
 import { AsyncUtils } from '../../utils/async'
 import {
   DatabaseKeyRange,
@@ -84,7 +85,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
       for (const [keyString, value] of transaction.cache.entries()) {
         const key = BUFFER_TO_STRING_ENCODING.deserialize(keyString)
 
-        if (!StorageUtils.hasPrefix(key, this.prefixBuffer)) {
+        if (!BufferUtils.startsWith(key, this.prefixBuffer)) {
           continue
         }
 

@@ -46,7 +46,6 @@ export function getPrefixesKeyRange(
 
 /**
  * Used to prepend a prefix to each key range condition
- *
  * Useful when you want to limit a range even further to a prefix
  */
 export function addPrefixToRange(range: DatabaseKeyRange, prefix: Buffer): DatabaseKeyRange {
@@ -94,14 +93,9 @@ function isInRange(buffer: Buffer, range: DatabaseKeyRange): boolean {
   return true
 }
 
-function hasPrefix(buffer: Buffer, prefix: Buffer): boolean {
-  return buffer.slice(0, prefix.byteLength).equals(prefix)
-}
-
 export const StorageUtils = {
   addPrefixToRange,
   getPrefixKeyRange,
   getPrefixesKeyRange,
-  hasPrefix,
   isInRange,
 }

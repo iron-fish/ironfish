@@ -29,9 +29,14 @@ function equalsNullable(a: Buffer | null | undefined, b: Buffer | null | undefin
   return a == null || b == null ? a === b : a.equals(b)
 }
 
+function startsWith(buffer: Buffer, search: Buffer): boolean {
+  return buffer.slice(0, search.byteLength).equals(search)
+}
+
 export const BufferUtils = {
   toHuman,
   equalsNullable,
   incrementLE,
   incrementBE,
+  startsWith,
 }
