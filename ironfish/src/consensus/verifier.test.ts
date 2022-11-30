@@ -216,24 +216,6 @@ describe('Verifier', () => {
       expect(Array.from(block.spends())).toHaveLength(1)
     })
 
-    it('is invalid with DOUBLE_SPEND as the reason', async () => {
-      const { chain } = nodeTest
-      const { block } = await useBlockWithTx(nodeTest.node)
-
-      const spends = Array.from(block.spends())
-      jest.spyOn(block, 'spends').mockImplementationOnce(function* () {
-        for (const spend of spends) {
-          yield spend
-          yield spend
-        }
-      })
-
-      expect(await chain.verifier.verifyConnectedSpends(block)).toEqual({
-        valid: false,
-        reason: VerificationResultReason.DOUBLE_SPEND,
-      })
-    })
-
     it('is invalid with ERROR as the reason', async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
 
