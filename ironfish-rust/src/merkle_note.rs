@@ -89,8 +89,8 @@ impl MerkleNote {
             &note.commitment_point(),
             public_key,
         );
-        let mut note_encryption_keys = [0; NOTE_ENCRYPTION_KEY_SIZE];
-        aead::encrypt(&encryption_key, &key_bytes, &mut note_encryption_keys);
+        let note_encryption_keys: [u8; NOTE_ENCRYPTION_KEY_SIZE] =
+            aead::encrypt(&encryption_key, &key_bytes).unwrap();
 
         Self::construct(
             note,
@@ -199,13 +199,8 @@ impl MerkleNote {
             &self.ephemeral_public_key,
         );
 
-        let mut note_encryption_keys = [0; ENCRYPTED_SHARED_KEY_SIZE];
-        aead::decrypt(
-            &encryption_key,
-            &self.note_encryption_keys,
-            &mut note_encryption_keys,
-        )?;
-
+        let note_encryption_keys: [u8; ENCRYPTED_SHARED_KEY_SIZE] =
+            aead::decrypt(&encryption_key, &self.note_encryption_keys)?;
         let transmission_key = PublicAddress::load_transmission_key(&note_encryption_keys[..32])?;
         let secret_key = read_scalar(&note_encryption_keys[32..])?;
         let shared_key = shared_secret(&secret_key, &transmission_key, &self.ephemeral_public_key);
@@ -367,10 +362,10 @@ mod test {
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
         merkle_note
             .decrypt_note_for_owner(receiver_key.incoming_view_key())
-            .expect("should be able to decrypt note");
+            .expect("should be able to decrypt note for owner");
         merkle_note
             .decrypt_note_for_spender(spender_key.outgoing_view_key())
-            .expect("should be able to decrypt note");
+            .expect("should be able to decrypt note for spender");
     }
 
     #[test]
@@ -389,10 +384,10 @@ mod test {
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
         merkle_note
             .decrypt_note_for_owner(spender_key.incoming_view_key())
-            .expect("should be able to decrypt note");
+            .expect("should be able to decrypt note for owner");
         merkle_note
             .decrypt_note_for_spender(spender_key.outgoing_view_key())
-            .expect("should be able to decrypt note");
+            .expect("should be able to decrypt note for spender");
 
         // should fail if note_commitment doesn't match
         let note_randomness: u64 = random();

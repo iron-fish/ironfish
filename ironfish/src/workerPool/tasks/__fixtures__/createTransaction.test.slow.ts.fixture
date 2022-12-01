@@ -1,26 +1,12 @@
 {
   "CreateTransactionRequest serializes the object into a buffer and deserializes to the original object": [
     {
-      "id": "dc43d5e0-c012-4160-8b31-bdc954bd2460",
+      "id": "58b1c9ad-805d-4f20-8fe9-a6b67c430f7e",
       "name": "test",
-      "spendingKey": "b9c88d8a2f92d3265b4734a0243443bba0b72aac54c425f25f849d472e1b35bc",
-      "incomingViewKey": "d387ed4e24a5ea2fc06314a3a146fecac7fddfec016cf647232825ba3754e001",
-      "outgoingViewKey": "a526cbd9f6aedf8b9ad80064f034536d5dc51cb17fc09706ed084fa1c3ddb23c",
-      "publicAddress": "0cd97a15911e2f5e85c4721ca7879aca6ed486ae3159a50a63ecd02333d508a1"
-    }
-  ],
-  "CreateTransactionTask execute creates the transaction": [
-    {
-      "id": "efa9fcd8-9cda-4906-ae09-9f936f38be25",
-      "name": "test",
-      "spendingKey": "13324ad30e9d9072a921327c2a774959b42fa6f4a374192319fccdbb06f07add",
-      "incomingViewKey": "6e716f3f1182577cc4843d3870bdd4c46d7cab1649cbc1e7ac35ef6bb8761806",
-      "outgoingViewKey": "4ec271c6324b4fef848fc07df4b7eab3ab6c74bf8516d3366b4ab8e22df63fe6",
-      "publicAddress": "4093e7d1db6329a199d83fccf0f9b74805d15c628900d1b5f36a61818cf8cbd3"
-    },
-    {
-      "type": "Buffer",
-      "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACVvP4YGydxiM/8/ZQ8yvPRLiCFJJtRyGtG3zAl22WJV7B/1jemOdHODauXzOsIr+6LcFoci/8Llo5/aQ1QkEpLQuwy02GbhJIYbsoo8PP1f7HekiG4/JSmBWBc9nC9FEUGq+xDwkjFkEd3aWrEbqqmOHHz292r2+zZS0Ljd41fZ+hwAYuimeXcBckPRaYj73uNSlA0B5gc5Q0YPgBFRx/nQPLcd+YyoigU/xLslmt5SpRtIGHjSC5RB3UeOv+8wJZRj2Un82E+3h7lDmfnoaRfFbNpu92phTDZtwNv1+DHCaZpXaeM7NoacLmiV8zPlCp2MuVliCHsEZ782BegRQNXnksFek21bQ8+JtM3cA6n11YTPnnOi4kRGfLuuO5nHV+chX5LCk47FV6EvjR94AZRebwcJEkmRxsb1XVD2KIExFN5XOeeqI6qQtknuyK2UMvZ3sQMM0RfP0k5sFxh8HNrFLzwY3ZJYMBGYN1Wgo/jvsLSZHIub2xWm2+YRxbLJUHQnjm0MLzVWEqS4CTvZgKpo826OGZAuj9CZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMAdupHxTTTM5lAbgYSaJTYiDjruHEUuyLjfFtx+fYcGZ0x8VEdPbU7d7fm+YoJaOWy+dtNZdwaRGZamIZVSIkQs="
+      "spendingKey": "1acd4270c2e44bd4b7ac5403b3d7dcedd4f394755ffec7476e53030f07f28dba",
+      "incomingViewKey": "fcb6266aa28352e20329dc8327a6827fe0be4337ae3b953e3c1b51666df40a06",
+      "outgoingViewKey": "9c191125627e1f7cd0dffad4cde6df1e949f38cb78f744928510cf9a1b94ab34",
+      "publicAddress": "26f2e923e14bbd5aaa9ef68cbc5380f510a49f21b7eec5c762ffdd964f757d54"
     }
   ]
 }
