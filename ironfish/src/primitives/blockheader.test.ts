@@ -97,7 +97,6 @@ describe('BlockHeader', () => {
       5,
       Buffer.alloc(32),
       Buffer.alloc(32, 'header'),
-      { commitment: Buffer.alloc(32), size: 3 },
       Buffer.alloc(32, 'transactionRoot'),
       new Target(17),
       BigInt(25),
@@ -109,7 +108,6 @@ describe('BlockHeader', () => {
       5,
       Buffer.alloc(32),
       Buffer.alloc(32, 'header'),
-      { commitment: Buffer.alloc(32), size: 3 },
       Buffer.alloc(32, 'transactionRoot'),
       new Target(17),
       BigInt(25),
@@ -135,18 +133,6 @@ describe('BlockHeader', () => {
     header2.noteSize = 7
     expect(header1.equals(header2)).toBe(false)
     header2.noteSize = header1.noteSize
-    expect(header1.equals(header2)).toBe(true)
-
-    // nullifier commitment
-    header2.nullifierCommitment.commitment = Buffer.alloc(32, 'not  header')
-    expect(header1.equals(header2)).toBe(false)
-    header2.nullifierCommitment.commitment = header1.nullifierCommitment.commitment
-    expect(header1.equals(header2)).toBe(true)
-
-    // nullifier size
-    header2.nullifierCommitment.size = 7
-    expect(header1.equals(header2)).toBe(false)
-    header2.nullifierCommitment.size = header1.nullifierCommitment.size
     expect(header1.equals(header2)).toBe(true)
 
     // target
@@ -183,7 +169,6 @@ describe('BlockHeaderSerde', () => {
       5,
       Buffer.alloc(32),
       Buffer.alloc(32),
-      { commitment: Buffer.alloc(32), size: 3 },
       Buffer.alloc(32, 'transactionRoot'),
       new Target(17),
       BigInt(25),
@@ -201,7 +186,6 @@ describe('BlockHeaderSerde', () => {
       5,
       Buffer.alloc(32),
       Buffer.alloc(32),
-      { commitment: Buffer.alloc(32), size: 0 },
       Buffer.alloc(32, 'transactionRoot'),
       new Target(0),
       BigInt(0),
@@ -229,7 +213,6 @@ describe('BlockHeaderSerde', () => {
       5,
       Buffer.alloc(32),
       Buffer.alloc(32),
-      { commitment: Buffer.alloc(32), size: 0 },
       Buffer.alloc(32, 'transactionRoot'),
       new Target(1),
       BigInt(0),

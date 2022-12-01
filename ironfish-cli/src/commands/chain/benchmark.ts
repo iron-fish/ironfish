@@ -144,9 +144,11 @@ export default class Benchmark extends IronfishCommand {
       throw new Error('/!\\ Note tree hashes were not consistent /!\\')
     }
 
-    const nodeNullifiersHash = await node.chain.nullifiers.pastRoot(
-      endingHeader.nullifierCommitment.size,
-    )
+    if (endingHeader.nullifierSize === null) {
+      return this.error(`Header should have a noteSize`)
+    }
+
+    const nodeNullifiersHash = await node.chain.nullifiers.pastRoot(endingHeader.nullifierSize)
     const tempNodeNullifiersHash = await tempNode.chain.nullifiers.rootHash()
     if (!nodeNullifiersHash.equals(tempNodeNullifiersHash)) {
       throw new Error('/!\\ Nullifier tree hashes were not consistent /!\\')

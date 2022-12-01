@@ -19,6 +19,10 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
       value.header.noteSize,
       'The note tree size should be set on the block header before saving it to the database.',
     )
+    Assert.isNotNull(
+      value.header.nullifierSize,
+      'The nullifier size should be set on the block header before saving it to the database.',
+    )
 
     const bw = bufio.write(this.getSize(value))
 
@@ -26,8 +30,6 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     bw.writeHash(value.header.previousBlockHash)
     bw.writeHash(value.header.noteCommitment)
     bw.writeU32(value.header.noteSize)
-    bw.writeHash(value.header.nullifierCommitment.commitment)
-    bw.writeU32(value.header.nullifierCommitment.size)
     bw.writeHash(value.header.transactionCommitment)
     bw.writeBytes(BigIntUtils.toBytesLE(value.header.target.asBigInt(), 32))
     bw.writeBytes(BigIntUtils.toBytesLE(value.header.randomness, 8))
@@ -35,6 +37,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
 
     bw.writeBytes(value.header.graffiti)
     bw.writeVarBytes(BigIntUtils.toBytesLE(value.header.work))
+    bw.writeU32(value.header.nullifierSize)
     bw.writeHash(value.header.hash)
 
     return bw.render()
@@ -47,24 +50,19 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const previousBlockHash = reader.readHash()
     const noteCommitment = reader.readHash()
     const noteSize = reader.readU32()
-    const nullifierCommitment = reader.readHash()
-    const nullifierCommitmentSize = reader.readU32()
     const transactionCommitment = reader.readHash()
     const target = new Target(BigIntUtils.fromBytesLE(reader.readBytes(32)))
     const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8))
     const timestamp = reader.readU64()
     const graffiti = reader.readBytes(32)
     const work = BigIntUtils.fromBytesLE(reader.readVarBytes())
+    const nullifierSize = reader.readU32()
     const hash = reader.readHash()
 
     const header = new BlockHeader(
       sequence,
       previousBlockHash,
       noteCommitment,
-      {
-        commitment: nullifierCommitment,
-        size: nullifierCommitmentSize,
-      },
       transactionCommitment,
       target,
       randomness,
@@ -72,6 +70,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
       graffiti,
       noteSize,
       work,
+      nullifierSize,
       hash,
     )
 
@@ -84,14 +83,13 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     size += 32 // previousBlockHash
     size += 32 // noteCommitment
     size += 4 // noteSize
-    size += 32 // nullifierCommitment.commitment
-    size += 4 // nullifierCommitment.size
     size += 32 // transactionCommitment
     size += 32 // target
     size += 8 // randomness
     size += 8 // timestamp
     size += 32 // graffiti
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(value.header.work))
+    size += 4 // nullifierSize
     size += 32 // hash
 
     return size
