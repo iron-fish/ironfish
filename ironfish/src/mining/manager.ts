@@ -77,7 +77,7 @@ export class MiningManager {
     for (const transaction of this.memPool.orderedTransactions()) {
       // Skip transactions that would cause the block to exceed the max size
       const transactionSize = getTransactionSize(transaction)
-      if (currBlockSize + transactionSize > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
+      if (currBlockSize + transactionSize > this.chain.consensus.parameters.maxBlockSizeBytes) {
         continue
       }
 

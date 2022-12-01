@@ -100,6 +100,17 @@ export default class Start extends IronfishCommand {
       allowNo: true,
       description: 'Run migrations when an upgrade is required',
     }),
+    networkId: Flags.integer({
+      char: 'i',
+      default: undefined,
+      description: 'Network ID of an official Iron Fish network to connect to',
+    }),
+    customNetwork: Flags.string({
+      char: 'c',
+      default: undefined,
+      description:
+        'Path to a JSON file containing the network definition of a custom network to connect to',
+    }),
   }
 
   node: IronfishNode | null = null
@@ -128,6 +139,8 @@ export default class Start extends IronfishCommand {
       workers,
       generateNewIdentity,
       upgrade,
+      networkId,
+      customNetwork,
     } = flags
 
     if (bootstrap !== undefined) {
@@ -171,6 +184,18 @@ export default class Start extends IronfishCommand {
     }
     if (upgrade !== undefined && upgrade !== this.sdk.config.get('databaseMigrate')) {
       this.sdk.config.setOverride('databaseMigrate', upgrade)
+    }
+
+    if (networkId !== undefined && customNetwork !== undefined) {
+      throw new Error(
+        'Cannot specify both the networkId and customNetwork flags at the same time',
+      )
+    }
+    if (networkId !== undefined && networkId !== this.sdk.config.get('networkId')) {
+      this.sdk.config.setOverride('networkId', networkId)
+    }
+    if (customNetwork !== undefined && customNetwork !== this.sdk.config.get('customNetwork')) {
+      this.sdk.config.setOverride('customNetwork', customNetwork)
     }
 
     if (!this.sdk.internal.get('telemetryNodeId')) {

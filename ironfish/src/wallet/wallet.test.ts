@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
-import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from '../consensus'
+import { VerificationResultReason } from '../consensus'
+import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import {
   createNodeTest,
   useAccountFixture,

@@ -51,10 +51,15 @@ export default class Forks extends IronfishCommand {
 
     const api = new WebApi({ host: apiHost, token: apiToken })
 
-    let connected = false
+    await this.sdk.client.connect()
 
-    const counter = new GossipForkCounter({ delayMs: flags.delay })
+    const targetBlockTimeInSeconds = (await this.sdk.client.getConsensusParameters()).content
+      .targetBlockTimeInSeconds
+
+    const counter = new GossipForkCounter(targetBlockTimeInSeconds, { delayMs: flags.delay })
     counter.start()
+
+    let connected = false
 
     setInterval(() => {
       void api.submitTelemetry({

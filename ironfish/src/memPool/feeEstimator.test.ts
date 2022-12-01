@@ -49,7 +49,7 @@ describe('FeeEstimator', () => {
       const feeRate = getEstimateFeeRate(
         block,
         transaction,
-        node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
+        node.chain.consensus.parameters.maxBlockSizeBytes,
       )
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(feeRate)
@@ -93,7 +93,7 @@ describe('FeeEstimator', () => {
       const feeRate = getEstimateFeeRate(
         block,
         transaction2,
-        node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
+        node.chain.consensus.parameters.maxBlockSizeBytes,
       )
 
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
@@ -174,7 +174,7 @@ describe('FeeEstimator', () => {
       const feeRate = getEstimateFeeRate(
         block,
         transaction,
-        node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
+        node.chain.consensus.parameters.maxBlockSizeBytes,
       )
 
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
@@ -253,7 +253,7 @@ describe('FeeEstimator', () => {
       const feeRate = getEstimateFeeRate(
         block,
         transaction2,
-        node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
+        node.chain.consensus.parameters.maxBlockSizeBytes,
       )
 
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
@@ -446,7 +446,7 @@ describe('FeeEstimator', () => {
       const feeRate = getEstimateFeeRate(
         block,
         transaction,
-        node.chain.consensus.MAX_BLOCK_SIZE_BYTES,
+        node.chain.consensus.parameters.maxBlockSizeBytes,
       )
 
       const size =

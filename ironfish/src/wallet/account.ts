@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
-import { GENESIS_BLOCK_SEQUENCE } from '../consensus/consensus'
 import { Transaction } from '../primitives'
+import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { Note } from '../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../storage'
 import { StorageUtils } from '../storage/database/utils'

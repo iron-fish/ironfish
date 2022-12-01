@@ -18,8 +18,6 @@ export default class ForksCommand extends IronfishCommand {
     await this.parse(ForksCommand)
     this.logger.pauseLogs()
 
-    let connected = false
-
     const screen = blessed.screen({ smartCSR: true })
     screen.focusNext()
 
@@ -45,8 +43,15 @@ export default class ForksCommand extends IronfishCommand {
       content: 'Press Q to quit',
     })
 
-    const counter = new GossipForkCounter()
+    await this.sdk.client.connect()
+
+    const targetBlockTimeInSeconds = (await this.sdk.client.getConsensusParameters()).content
+      .targetBlockTimeInSeconds
+
+    const counter = new GossipForkCounter(targetBlockTimeInSeconds)
     counter.start()
+
+    let connected = false
 
     setInterval(() => {
       status.clearBaseLine(0)

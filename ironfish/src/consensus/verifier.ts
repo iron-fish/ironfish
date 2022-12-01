@@ -11,13 +11,12 @@ import {
   getTransactionSize,
 } from '../network/utils/serializers'
 import { Spend } from '../primitives'
-import { Block } from '../primitives/block'
+import { Block, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BlockHeader, transactionCommitment } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { WorkerPool } from '../workerPool'
-import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
 export class Verifier {
   chain: Blockchain
@@ -49,7 +48,7 @@ export class Verifier {
         block.header.sequence,
       )
     ) {
-      if (getBlockSize(block) > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
+      if (getBlockSize(block) > this.chain.consensus.parameters.maxBlockSizeBytes) {
         return { valid: false, reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED }
       }
     }
@@ -156,7 +155,10 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.HASH_NOT_MEET_TARGET }
     }
 
-    if (blockHeader.timestamp.getTime() > Date.now() + ALLOWED_BLOCK_FUTURE_SECONDS * 1000) {
+    if (
+      blockHeader.timestamp.getTime() >
+      Date.now() + this.chain.consensus.parameters.allowedBlockFutureSeconds * 1000
+    ) {
       return { valid: false, reason: VerificationResultReason.TOO_FAR_IN_FUTURE }
     }
 
@@ -183,7 +185,8 @@ export class Verifier {
 
     if (
       current.timestamp.getTime() <
-      previousHeader.timestamp.getTime() - ALLOWED_BLOCK_FUTURE_SECONDS * 1000
+      previousHeader.timestamp.getTime() -
+        this.chain.consensus.parameters.allowedBlockFutureSeconds * 1000
     ) {
       return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
     }
@@ -250,7 +253,7 @@ export class Verifier {
   verifyCreatedTransaction(transaction: Transaction): VerificationResult {
     if (
       getTransactionSize(transaction) >
-      this.chain.consensus.MAX_BLOCK_SIZE_BYTES - getBlockWithMinersFeeSize()
+      this.chain.consensus.parameters.maxBlockSizeBytes - getBlockWithMinersFeeSize()
     ) {
       return { valid: false, reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED }
     }
@@ -311,6 +314,8 @@ export class Verifier {
       header.timestamp,
       previous.timestamp,
       previous.target,
+      this.chain.consensus.parameters.targetBlockTimeInSeconds,
+      this.chain.consensus.parameters.targetBucketTimeInSeconds,
     )
 
     return header.target.targetValue === expectedTarget.targetValue

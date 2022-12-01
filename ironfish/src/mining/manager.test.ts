@@ -49,7 +49,7 @@ describe('Mining manager', () => {
     expect(results).toHaveLength(0)
   })
 
-  it('should stop adding transactions before block size exceeds MAX_BLOCK_SIZE_BYTES', async () => {
+  it('should stop adding transactions before block size exceeds maxBlockSizeBytes', async () => {
     const { node, chain, wallet } = nodeTest
     const { miningManager } = node
 
@@ -69,14 +69,14 @@ describe('Mining manager', () => {
     )
 
     node.memPool.acceptTransaction(transaction)
-    chain.consensus.MAX_BLOCK_SIZE_BYTES = 0
+    chain.consensus.parameters.maxBlockSizeBytes = 0
 
     let results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1, 0))
       .blockTransactions
     expect(results).toHaveLength(0)
 
     // Expand max block size, should allow transaction to be added to block
-    chain.consensus.MAX_BLOCK_SIZE_BYTES = getTransactionSize(transaction)
+    chain.consensus.parameters.maxBlockSizeBytes = getTransactionSize(transaction)
 
     results = (await miningManager.getNewBlockTransactions(chain.head.sequence + 1, 0))
       .blockTransactions

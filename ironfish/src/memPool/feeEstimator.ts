@@ -196,7 +196,9 @@ export class FeeEstimator {
       this.queues[BLOCK_SIZE].reduce((a, b) => a + b.blockSize, 0) /
       this.queues[BLOCK_SIZE].length
     const blockSizeRatio = BigInt(
-      Math.round((averageBlockSize / this.wallet.chain.consensus.MAX_BLOCK_SIZE_BYTES) * 100),
+      Math.round(
+        (averageBlockSize / this.wallet.chain.consensus.parameters.maxBlockSizeBytes) * 100,
+      ),
     )
 
     let feeRate = fees[Math.round((queue.length - 1) / 2)]

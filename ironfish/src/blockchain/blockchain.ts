@@ -5,17 +5,10 @@
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
-import {
-  ConsensusParameters,
-  GENESIS_BLOCK_PREVIOUS,
-  GENESIS_BLOCK_SEQUENCE,
-  MAX_SYNCED_AGE_MS,
-  TARGET_BLOCK_TIME_IN_SECONDS,
-} from '../consensus'
+import { Consensus } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
 import { FileSystem } from '../fileSystems'
-import { genesisBlockData } from '../genesis'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
 import { NoteLeafEncoding, NullifierLeafEncoding } from '../merkletree/database/leaves'
@@ -24,7 +17,13 @@ import { NoteHasher } from '../merkletree/hasher'
 import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
-import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
+import {
+  Block,
+  BlockSerde,
+  GENESIS_BLOCK_PREVIOUS,
+  GENESIS_BLOCK_SEQUENCE,
+  SerializedBlock,
+} from '../primitives/block'
 import {
   BlockHash,
   BlockHeader,
@@ -41,7 +40,6 @@ import {
 import { Nullifier, NullifierHash, NullifierHasher } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
-import { IJSON } from '../serde'
 import {
   BUFFER_ENCODING,
   IDatabase,
@@ -82,7 +80,8 @@ export class Blockchain {
   metrics: MetricsMonitor
   location: string
   files: FileSystem
-  consensus: ConsensusParameters
+  consensus: Consensus
+  seedGenesisBlock: SerializedBlock
 
   synced = false
   opened = false
@@ -169,7 +168,8 @@ export class Blockchain {
     logAllBlockAdd?: boolean
     autoSeed?: boolean
     files: FileSystem
-    consensus: ConsensusParameters
+    consensus: Consensus
+    genesis: SerializedBlock
   }) {
     const logger = options.logger || createRootLogger()
 
@@ -186,6 +186,7 @@ export class Blockchain {
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
     this.consensus = options.consensus
+    this.seedGenesisBlock = options.genesis
 
     // Flat Fields
     this.meta = this.db.addStore({
@@ -263,7 +264,7 @@ export class Blockchain {
     const start = this.genesis.timestamp.valueOf()
     const current = this.head.timestamp.valueOf()
     const end = Date.now()
-    const offset = TARGET_BLOCK_TIME_IN_SECONDS * 4 * 1000
+    const offset = this.consensus.parameters.targetBlockTimeInSeconds * 4 * 1000
 
     const progress = (current - start) / (end - offset - start)
 
@@ -271,8 +272,7 @@ export class Blockchain {
   }
 
   private async seed() {
-    const serialized = IJSON.parse(genesisBlockData) as SerializedBlock
-    const genesis = BlockSerde.deserialize(serialized)
+    const genesis = BlockSerde.deserialize(this.seedGenesisBlock)
 
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
@@ -959,7 +959,13 @@ export class Blockchain {
         if (!previousHeader && previousSequence !== 1) {
           throw new Error('There is no previous block to calculate a target')
         }
-        target = Target.calculateTarget(timestamp, heaviestHead.timestamp, heaviestHead.target)
+        target = Target.calculateTarget(
+          timestamp,
+          heaviestHead.timestamp,
+          heaviestHead.target,
+          this.consensus.parameters.targetBlockTimeInSeconds,
+          this.consensus.parameters.targetBucketTimeInSeconds,
+        )
       }
 
       const blockNotes = []
@@ -1335,7 +1341,11 @@ export class Blockchain {
       return
     }
 
-    if (this.head.timestamp.valueOf() < Date.now() - MAX_SYNCED_AGE_MS) {
+    const maxSyncedAgeMs =
+      this.consensus.parameters.maxSyncedAgeBlocks *
+      this.consensus.parameters.targetBlockTimeInSeconds *
+      1000
+    if (this.head.timestamp.valueOf() < Date.now() - maxSyncedAgeMs) {
       return
     }
 

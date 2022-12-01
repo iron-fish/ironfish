@@ -13,7 +13,6 @@ export const DEFAULT_WALLET_NAME = 'default'
 export const DEFAULT_WEBSOCKET_PORT = 9033
 export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/telemetry'
-export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
@@ -245,6 +244,16 @@ export type ConfigOptions = {
   feeEstimatorPercentileLow: number
   feeEstimatorPercentileMedium: number
   feeEstimatorPercentileHigh: number
+
+  /**
+   * Network ID of an official Iron Fish network
+   */
+  networkId: number
+
+  /**
+   * Path to a JSON file containing the network definition of a custom network
+   */
+  customNetwork: string
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -308,6 +317,8 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     jsonLogs: yup.boolean(),
     explorerBlocksUrl: YupUtils.isUrl,
     explorerTransactionsUrl: YupUtils.isUrl,
+    networkId: yup.number().integer().min(0),
+    customNetwork: yup.string().trim(),
   })
   .defined()
 
@@ -338,9 +349,16 @@ export class Config extends KeyStore<ConfigOptions> {
     return this.files.join(this.storage.dataDir, 'temp')
   }
 
+  isBootstrapNodesSet(): boolean {
+    return (
+      this.keysLoaded.has('bootstrapNodes') ||
+      Object.prototype.hasOwnProperty.call(this.overrides, 'bootstrapNodes')
+    )
+  }
+
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
-      bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
+      bootstrapNodes: [],
       databaseName: DEFAULT_DATABASE_NAME,
       databaseMigrate: false,
       defaultTransactionExpirationSequenceDelta: 15,
@@ -400,6 +418,8 @@ export class Config extends KeyStore<ConfigOptions> {
       feeEstimatorPercentileLow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_LOW,
       feeEstimatorPercentileMedium: DEFAULT_FEE_ESTIMATOR_PERCENTILE_MEDIUM,
       feeEstimatorPercentileHigh: DEFAULT_FEE_ESTIMATOR_PERCENTILE_HIGH,
+      networkId: 2,
+      customNetwork: '',
     }
   }
 }
