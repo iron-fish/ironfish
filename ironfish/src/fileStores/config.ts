@@ -350,7 +350,10 @@ export class Config extends KeyStore<ConfigOptions> {
   }
 
   isBootstrapNodesSet(): boolean {
-    return this.keysLoaded.has('bootstrapNodes') || this.overrides.bootstrapNodes?.length !== 0
+    return (
+      this.keysLoaded.has('bootstrapNodes') ||
+      Object.prototype.hasOwnProperty.call(this.overrides, 'bootstrapNodes')
+    )
   }
 
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {

@@ -18,7 +18,7 @@ describe('Config', () => {
     const fileSystem = new NodeFileProvider()
     await fileSystem.init()
     const config = new Config(fileSystem, '')
-    config.setOverride('bootstrapNodes', [''])
+    config.setOverride('bootstrapNodes', [])
     expect(config.isBootstrapNodesSet()).toBe(true)
   })
 })
