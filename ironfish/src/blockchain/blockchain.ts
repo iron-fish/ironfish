@@ -54,10 +54,12 @@ import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
+import { AssetsValueEncoding } from './database/assets'
 import { HeaderEncoding } from './database/headers'
 import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
 import { TransactionsValueEncoding } from './database/transactions'
 import {
+  AssetsSchema,
   HashToNextSchema,
   HeadersSchema,
   MetaSchema,
@@ -113,6 +115,8 @@ export class Blockchain {
   sequenceToHash: IDatabaseStore<SequenceToHashSchema>
   // BlockHash -> BlockHash
   hashToNextHash: IDatabaseStore<HashToNextSchema>
+  // Asset Identifier -> Asset
+  assets: IDatabaseStore<AssetsSchema>
 
   // When ever the blockchain becomes synced
   onSynced = new Event<[]>()
@@ -226,6 +230,12 @@ export class Blockchain {
       name: 'bH',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
+    })
+
+    this.assets = this.db.addStore({
+      name: 'bA',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: new AssetsValueEncoding(),
     })
 
     this.notes = new MerkleTree({
