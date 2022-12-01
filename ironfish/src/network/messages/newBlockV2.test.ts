@@ -36,10 +36,6 @@ describe('NewBlockV2Message', () => {
         2,
         Buffer.alloc(32, 2),
         Buffer.alloc(32, 1),
-        {
-          commitment: Buffer.alloc(32, 2),
-          size: 2,
-        },
         transactionCommitment([transactionA, transactionB]),
         new Target(12),
         BigInt(1),

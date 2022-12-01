@@ -1,12 +1,26 @@
 {
   "CreateTransactionRequest serializes the object into a buffer and deserializes to the original object": [
     {
-      "id": "58b1c9ad-805d-4f20-8fe9-a6b67c430f7e",
+      "id": "c1afb79f-6c5c-40d0-9040-cf4752875a57",
       "name": "test",
-      "spendingKey": "1acd4270c2e44bd4b7ac5403b3d7dcedd4f394755ffec7476e53030f07f28dba",
-      "incomingViewKey": "fcb6266aa28352e20329dc8327a6827fe0be4337ae3b953e3c1b51666df40a06",
-      "outgoingViewKey": "9c191125627e1f7cd0dffad4cde6df1e949f38cb78f744928510cf9a1b94ab34",
-      "publicAddress": "26f2e923e14bbd5aaa9ef68cbc5380f510a49f21b7eec5c762ffdd964f757d54"
+      "spendingKey": "bb4272a5fb6c487b2f6fc3cf5cc3fd080ebe718443866bf6afb8cc7208a69299",
+      "incomingViewKey": "6ab6e8b38dd89ff48cd83f7b534bc47c0d23b17ff7740813749349c3b5513603",
+      "outgoingViewKey": "5e6906e51439f0f90f0bc10a641a3fd5e85abd2b1c4ece4d988c71a1a545f825",
+      "publicAddress": "9fee15ddf339377e9e5a8c1a2c66f03270bfffceeb65f80ff0a669441ec01295"
+    }
+  ],
+  "CreateTransactionTask execute creates the transaction": [
+    {
+      "id": "dc272405-0157-4fc7-8f82-9342a0056209",
+      "name": "test",
+      "spendingKey": "742ce9bb6e3433c3ab06e11822d1bab92025ae2e7a2b69d293bb9b3416628770",
+      "incomingViewKey": "5c07e7d5b79a4ff2d2f0946d85cd3cf5e6647113958521e99fbecb2449f39800",
+      "outgoingViewKey": "bc89eb6a123c43704264ee0de315a229a4657a2cffa469d0e58c9830aa90b828",
+      "publicAddress": "fcd2df619757cf503ff35d0636f06970123f8c39247c404171979f88fe9317a3"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbMqI/////wAAAACuRhodEcbX6JR/IVvnA84KOlFon8UhqIN5oCG9x2JX3Xky463KY2t8GvoyIwfanU21EemDIRGUSgs3H9g7/JuOiRwz6D/8c6FxJs05hClLDlUoZybbD8DQSskPUg0FnUIFv5SbrNNJcMdRg9F+hnl1yMemASlFw37kF6OLuus0hNj5LiYFzFajUt6Q8qk3Cx2rQpZl+lfohQI3qHAyd1ocz7C+E0ZhytfxVwyYJUZKW1XUMbuVI8KqRwaCs2fkoUcQ2Vv5go0z77Ud6h9FuhzJv/3jqdqYgB437uaIts8LO5LGSWb9648sXkAd9DdUuJz5bLVRAZXhyN7YBuAprW5pNbvAYkfXSQGnXXESIiJFYBXQutha8MZVN4foc9gu6tjOP0Yc3qZmXVitQzIy4R0KEihzqzlzXbrkm8jGdjp4NjnK0CjMNnDgxPa9LtWZXYpwkQd5nn1Z21JVkyFI9+2Xej8fkCgQ+a0x/Lsi7wFVy20BsEBs1mfSJ89Cumr26JvsHzYcb/Cx5oe+BtURGrg58q8O3Yg2+gFCZWFuc3RhbGsgbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMBhieqlsAqz0oHUulkwIUeXiOOrmU/JZ+djO0DizbtepsxHQQlBnZK4veuzPxdjiw7hauu0RKfRvWc6vcIp2Tw0="
     }
   ]
 }

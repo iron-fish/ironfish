@@ -238,21 +238,12 @@ describe('Verifier', () => {
 
     it('a block that spends a note in a previous block is invalid with INVALID_SPEND as the reason', async () => {
       const { chain } = nodeTest
-      const { block, previous } = await useBlockWithTx(nodeTest.node)
-
-      const nullifier = Buffer.alloc(32)
-
-      await chain.nullifiers.add(nullifier)
-      previous.header.nullifierCommitment.commitment = await chain.nullifiers.rootHash()
-      previous.header.nullifierCommitment.size = 2
-
-      await chain.nullifiers.add(nullifier)
-      block.header.nullifierCommitment.commitment = await chain.nullifiers.rootHash()
-      block.header.nullifierCommitment.size = 3
+      const { block } = await useBlockWithTx(nodeTest.node)
 
       jest.spyOn(block, 'spends').mockImplementationOnce(function* () {
-        yield { nullifier, commitment: Buffer.from('1-1'), size: 1 }
-        yield { nullifier, commitment: Buffer.from('1-1'), size: 1 }
+        for (const spend of block.spends()) {
+          yield { ...spend, size: 1 }
+        }
       })
 
       expect(await chain.verifier.verifyConnectedSpends(block)).toEqual({
@@ -303,18 +294,6 @@ describe('Verifier', () => {
       })
     })
 
-    it("is invalid when the nullifier commitments aren't the same size", async () => {
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      block.header.nullifierCommitment.size = 1000
-
-      expect(
-        await nodeTest.verifier.verifyBlockAdd(block, nodeTest.chain.genesis),
-      ).toMatchObject({
-        valid: false,
-        reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE,
-      })
-    })
-
     it('Is invalid when the timestamp is in past', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       block.header.timestamp = new Date(0)
@@ -354,20 +333,6 @@ describe('Verifier', () => {
       )
     })
 
-    it("is false if there aren't enough nullifiers in the tree", async () => {
-      await nodeTest.chain.nullifiers.truncate((await nodeTest.chain.nullifiers.size()) - 1)
-
-      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(genesisBlock)
-
-      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
-        {
-          valid: false,
-          reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE,
-        },
-      )
-    })
-
     it('is false if the note hash is incorrect', async () => {
       nodeTest.chain.genesis.noteCommitment = Buffer.alloc(
         nodeTest.chain.genesis.noteCommitment.length,
@@ -381,23 +346,6 @@ describe('Verifier', () => {
         {
           valid: false,
           reason: VerificationResultReason.NOTE_COMMITMENT,
-        },
-      )
-    })
-
-    it('is false for block that has incorrect nullifier hash', async () => {
-      nodeTest.chain.genesis.nullifierCommitment.commitment = Buffer.alloc(
-        nodeTest.chain.genesis.nullifierCommitment.commitment.length,
-        'NOOO',
-      )
-
-      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(genesisBlock)
-
-      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
-        {
-          valid: false,
-          reason: VerificationResultReason.NULLIFIER_COMMITMENT,
         },
       )
     })

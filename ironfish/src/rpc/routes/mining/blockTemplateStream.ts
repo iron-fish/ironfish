@@ -21,13 +21,6 @@ export const BlockTemplateStreamResponseSchema: yup.ObjectSchema<BlockTemplateSt
           sequence: yup.number().required(),
           previousBlockHash: yup.string().required(),
           noteCommitment: yup.string().required(),
-          nullifierCommitment: yup
-            .object({
-              commitment: yup.string().required(),
-              size: yup.number().required(),
-            })
-            .required()
-            .defined(),
           transactionCommitment: yup.string().required(),
           target: yup.string().required(),
           randomness: yup.string().required(),

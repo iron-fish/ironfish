@@ -40,7 +40,6 @@ export async function makeBlockAfter(
     sequence,
     after.hash,
     after.noteCommitment,
-    after.nullifierCommitment,
     transactionCommitment([]),
     target,
     randomness,
@@ -48,6 +47,7 @@ export async function makeBlockAfter(
     graffiti,
     after.noteSize,
     BigInt(1),
+    after.nullifierSize,
   )
 
   const block = new Block(header, [])
