@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { ConsensusParameters } from './consensus'
 import { SerializedBlock } from './primitives/block'
+import { SerializedBlockHeader } from './primitives/blockheader'
 
 export type NetworkDefinition = {
   id: number
@@ -33,7 +34,7 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
             target: yup.string().defined(),
             randomness: yup.string().defined(),
             timestamp: yup.number().integer().defined(),
-            noteSize: yup.mixed<number | null>(),
+            noteSize: yup.number().integer().nullable().defined(),
             work: yup.string().optional(),
             graffiti: yup.string().defined(),
           })
