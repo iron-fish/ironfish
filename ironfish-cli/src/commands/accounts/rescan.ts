@@ -31,6 +31,7 @@ export class RescanCommand extends IronfishCommand {
     }),
     from: Flags.integer({
       description: 'Sequence to start account rescan from',
+      hidden: true,
     }),
   }
 
@@ -43,7 +44,7 @@ export class RescanCommand extends IronfishCommand {
     }
 
     if (from && !reset) {
-      this.error('Use from feature with reset at the same time for now')
+      this.error('When passing --from, you must also pass --reset.')
     }
 
     const client = await this.sdk.connectRpc(local)
