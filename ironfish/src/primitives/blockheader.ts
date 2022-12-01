@@ -161,16 +161,16 @@ export class BlockHeader {
   public noteSize: number | null
 
   /**
-   * (For internal uses - excluded when sent over the network)
-   * The size of the nullifier tree/set after adding transactions from this block.
-   */
-  public nullifierSize: number | null
-
-  /**
    * (For internal uses — excluded when sent over the network)
    * Cumulative work from genesis to this block
    */
   public work: bigint
+
+  /**
+   * (For internal uses - excluded when sent over the network)
+   * The size of the nullifier tree/set after adding transactions from this block.
+   */
+  public nullifierSize: number | null
 
   public hash: Buffer
 
