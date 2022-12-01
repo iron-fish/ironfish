@@ -6,6 +6,7 @@ import {
   Asset,
   ASSET_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
+  PROOF_LENGTH,
   TransactionPosted,
 } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
@@ -49,7 +50,7 @@ export class Transaction {
 
     this._spends = Array.from({ length: _spendsLength }, () => {
       // proof
-      reader.seek(192)
+      reader.seek(PROOF_LENGTH)
       // value commitment
       reader.seek(32)
       // randomized public key
@@ -72,7 +73,7 @@ export class Transaction {
 
     this._notes = Array.from({ length: _notesLength }, () => {
       // proof
-      reader.seek(192)
+      reader.seek(PROOF_LENGTH)
 
       return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
     })

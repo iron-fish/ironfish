@@ -2,12 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ironfish_rust::note::{AMOUNT_VALUE_SIZE, GENERATOR_SIZE, MEMO_SIZE, SCALAR_SIZE};
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
 use ironfish_rust::{assets::asset::NATIVE_ASSET_GENERATOR, Note, SaplingKey};
 
+use ironfish_rust::keys::PUBLIC_ADDRESS_SIZE;
+
 use crate::to_napi_err;
+
+#[napi]
+pub const PUBLIC_ADDRESS_LENGTH: u32 = PUBLIC_ADDRESS_SIZE as u32;
+
+#[napi]
+pub const RANDOMNESS_LENGTH: u32 = SCALAR_SIZE as u32;
+
+#[napi]
+pub const MEMO_LENGTH: u32 = MEMO_SIZE as u32;
+
+#[napi]
+pub const GENERATOR_LENGTH: u32 = GENERATOR_SIZE as u32;
+
+#[napi]
+pub const AMOUNT_VALUE_LENGTH: u32 = AMOUNT_VALUE_SIZE as u32;
 
 #[napi]
 pub const DECRYPTED_NOTE_LENGTH: u32 = 136;

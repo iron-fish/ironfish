@@ -61,7 +61,7 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, IronfishError> {
     Ok(bytes)
 }
 
-pub(crate) mod aead {
+pub mod aead {
     use crate::errors::IronfishError;
     use chacha20poly1305::aead::{AeadInPlace, NewAead};
     use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
