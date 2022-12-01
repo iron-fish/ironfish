@@ -7,9 +7,10 @@ import { YupUtils } from '../utils'
 import { KeyStore } from './keyStore'
 
 export const DEFAULT_CONFIG_NAME = 'config.json'
-export const DEFAULT_DATABASE_NAME = 'default'
+export const DEFAULT_DATABASE_NAME = 'chain'
+export const DEFAULT_INDEX_DATABASE_NAME = 'mined'
 export const DEFAULT_DATA_DIR = '~/.ironfish'
-export const DEFAULT_WALLET_NAME = 'default'
+export const DEFAULT_WALLET_NAME = 'wallet'
 export const DEFAULT_WEBSOCKET_PORT = 9033
 export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/telemetry'
@@ -42,6 +43,7 @@ export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 export type ConfigOptions = {
   bootstrapNodes: string[]
   databaseName: string
+  indexDatabaseName: string
   databaseMigrate: boolean
   editor: string
   enableListenP2P: boolean
@@ -251,6 +253,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .object({
     bootstrapNodes: yup.array().of(yup.string().defined()),
     databaseName: yup.string(),
+    indexDatabaseName: yup.string(),
     databaseMigrate: yup.boolean(),
     editor: yup.string().trim(),
     enableListenP2P: yup.boolean(),
@@ -327,11 +330,11 @@ export class Config extends KeyStore<ConfigOptions> {
   }
 
   get accountDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'accounts', this.get('accountName'))
+    return this.files.join(this.storage.dataDir, 'databases', this.get('accountName'))
   }
 
   get indexDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'indexes', this.get('databaseName'))
+    return this.files.join(this.storage.dataDir, 'databases', this.get('indexDatabaseName'))
   }
 
   get tempDir(): string {
@@ -342,6 +345,7 @@ export class Config extends KeyStore<ConfigOptions> {
     return {
       bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
       databaseName: DEFAULT_DATABASE_NAME,
+      indexDatabaseName: DEFAULT_INDEX_DATABASE_NAME,
       databaseMigrate: false,
       defaultTransactionExpirationSequenceDelta: 15,
       editor: '',
