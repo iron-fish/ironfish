@@ -4,7 +4,6 @@
 import * as yup from 'yup'
 import { ConsensusParameters } from './consensus'
 import { SerializedBlock } from './primitives/block'
-import { SerializedBlockHeader } from './primitives/blockheader'
 
 export type NetworkDefinition = {
   id: number
