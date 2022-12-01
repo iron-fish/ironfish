@@ -41,6 +41,7 @@ export class Transaction {
 
     const reader = bufio.read(this.transactionPostedSerialized, true)
 
+    reader.readU32() // 4 Read transaction version, currently unused
     const _spendsLength = reader.readU64() // 8
     const _notesLength = reader.readU64() // 8
     const _mintsLength = reader.readU64() // 8
