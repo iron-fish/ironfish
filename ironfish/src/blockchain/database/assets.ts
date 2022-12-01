@@ -19,8 +19,8 @@ export class AssetsValueEncoding implements IDatabaseEncoding<AssetsValue> {
   serialize(value: AssetsValue): Buffer {
     const bw = bufio.write(this.getSize(value))
     bw.writeHash(value.createdTransactionHash)
-    bw.writeString(value.metadata, 'utf8')
-    bw.writeString(value.name, 'utf8')
+    bw.writeVarString(value.metadata, 'utf8')
+    bw.writeVarString(value.name, 'utf8')
     bw.writeU8(value.nonce)
     bw.writeBytes(Buffer.from(value.owner, 'hex'))
     bw.writeVarBytes(BigIntUtils.toBytesLE(value.supply))
@@ -30,8 +30,8 @@ export class AssetsValueEncoding implements IDatabaseEncoding<AssetsValue> {
   deserialize(buffer: Buffer): AssetsValue {
     const reader = bufio.read(buffer, true)
     const createdTransactionHash = reader.readHash()
-    const metadata = reader.readString(32, 'utf8')
-    const name = reader.readString(32, 'utf8')
+    const metadata = reader.readVarString('utf8')
+    const name = reader.readVarString('utf8')
     const nonce = reader.readU8()
     const owner = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
     const supply = BigIntUtils.fromBytesLE(reader.readVarBytes())
@@ -41,10 +41,10 @@ export class AssetsValueEncoding implements IDatabaseEncoding<AssetsValue> {
   getSize(value: AssetsValue): number {
     let size = 0
     size += 32 // createdTransactionHash
-    size += 76 // metadata
-    size += 32 // name
+    size += bufio.sizeVarString(value.metadata, 'utf8') // metadata
+    size += bufio.sizeVarString(value.name, 'utf8') // name
     size += 1 // nonce
-    size += 32 // owner
+    size += PUBLIC_ADDRESS_LENGTH // owner
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(value.supply)) // supply
     return size
   }
