@@ -23,18 +23,13 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
             sequence: yup.number().integer().defined(),
             previousBlockHash: yup.string().defined(),
             noteCommitment: yup.mixed<Buffer>().defined(),
-            nullifierCommitment: yup
-              .object({
-                commitment: yup.string().defined(),
-                size: yup.number().integer().defined(),
-              })
-              .defined(),
             transactionCommitment: yup.mixed<Buffer>().defined(),
             target: yup.string().defined(),
             randomness: yup.string().defined(),
             timestamp: yup.number().integer().defined(),
             noteSize: yup.number().integer().nullable().defined(),
             work: yup.string().optional(),
+            nullifierSize: yup.number().integer().nullable().defined(),
             graffiti: yup.string().defined(),
           })
           .defined(),

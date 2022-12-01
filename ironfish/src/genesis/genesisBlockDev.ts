@@ -11,10 +11,6 @@ export const genesisBlockData = `
       "type": "Buffer",
       "data": "base64:WeH/hWUL0/8EwRFHN+TMi1IZ6GfdHVI6Y5yd5Hl5GA0="
     },
-    "nullifierCommitment": {
-      "commitment": "DC2FDCEDE0F192423066FA23446F3EEF82B1B286A725AB0868F77FD0BC9F6F4C",
-      "size": 1
-    },
     "transactionCommitment": {
       "type": "Buffer",
       "data": "base64:ROrv7b3M5aMlgprobs2cxUtnowaaqUnUh8V6AuS2ZOE="
@@ -24,7 +20,8 @@ export const genesisBlockData = `
     "timestamp": 1669840997430,
     "graffiti": "67656E6573697300000000000000000000000000000000000000000000000000",
     "noteSize": 3,
-    "work": "0"
+    "work": "0",
+    "nullifierSize": 1
   },
   "transactions": [
     {
