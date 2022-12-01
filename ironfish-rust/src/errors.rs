@@ -31,6 +31,7 @@ pub enum IronfishError {
     InvalidPaymentAddress,
     InvalidPublicAddress,
     InvalidSigningKey,
+    InvalidTransactionVersion,
     InvalidViewingKey,
     InvalidWord,
     Io(io::Error),
@@ -38,7 +39,6 @@ pub enum IronfishError {
     RandomnessError,
     Utf8(string::FromUtf8Error),
     VerificationFailed,
-    InvalidTransactionVersion,
 }
 
 impl Error for IronfishError {}

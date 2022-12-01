@@ -35,6 +35,7 @@ export interface NativeSpendDescription {
   nullifier: Buffer
 }
 export const PROOF_LENGTH: number
+export const TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
 export interface Key {
   spending_key: string

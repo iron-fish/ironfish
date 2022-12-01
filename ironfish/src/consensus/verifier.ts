@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { TRANSACTION_VERSION } from '@ironfish/rust-nodejs'
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -210,6 +211,12 @@ export class Verifier {
     let verificationResult = this.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verificationResult.valid) {
       return verificationResult
+    }
+
+    // Currently we only support one transaction version. This is checked when
+    // we call workerPool.verify but doing it here as well for efficiency
+    if (transaction.version() !== TRANSACTION_VERSION) {
+      return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_VERSION }
     }
 
     try {
@@ -476,6 +483,7 @@ export enum VerificationResultReason {
   TOO_FAR_IN_FUTURE = 'Timestamp is in future',
   TRANSACTION_EXPIRED = 'Transaction expired',
   VERIFY_TRANSACTION = 'Verify_transaction',
+  INVALID_TRANSACTION_VERSION = 'Invalid transaction version',
 }
 
 /**

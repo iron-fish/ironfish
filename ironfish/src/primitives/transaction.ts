@@ -23,6 +23,7 @@ export type SerializedTransaction = Buffer
 export class Transaction {
   private readonly transactionPostedSerialized: Buffer
 
+  private readonly _version: number
   private readonly _fee: bigint
   private readonly _expirationSequence: number
   private readonly _spends: Spend[] = []
@@ -41,7 +42,7 @@ export class Transaction {
 
     const reader = bufio.read(this.transactionPostedSerialized, true)
 
-    reader.readU32() // 4 Read transaction version, currently unused
+    this._version = reader.readU8() // 1
     const _spendsLength = reader.readU64() // 8
     const _notesLength = reader.readU64() // 8
     const _mintsLength = reader.readU64() // 8
@@ -111,6 +112,14 @@ export class Transaction {
 
   serialize(): Buffer {
     return this.transactionPostedSerialized
+  }
+
+  /**
+   * The transaction serialization version. This can be incremented when
+   * changes need to be made to the transaction format
+   */
+  version(): number {
+    return this._version
   }
 
   /**
