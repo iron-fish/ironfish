@@ -17,8 +17,6 @@ import { IronfishCommand, SIGNALS } from '../command'
 import {
   ConfigFlag,
   ConfigFlagKey,
-  DatabaseFlag,
-  DatabaseFlagKey,
   DataDirFlag,
   DataDirFlagKey,
   RpcTcpHostFlag,
@@ -46,7 +44,6 @@ export default class Start extends IronfishCommand {
     [VerboseFlagKey]: VerboseFlag,
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
-    [DatabaseFlagKey]: DatabaseFlag,
     [RpcUseIpcFlagKey]: { ...RpcUseIpcFlag, allowNo: true },
     [RpcUseTcpFlagKey]: { ...RpcUseTcpFlag, allowNo: true },
     [RpcTcpTlsFlagKey]: RpcTcpTlsFlag,

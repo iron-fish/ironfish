@@ -7,10 +7,7 @@ import { YupUtils } from '../utils'
 import { KeyStore } from './keyStore'
 
 export const DEFAULT_CONFIG_NAME = 'config.json'
-export const DEFAULT_DATABASE_NAME = 'chain'
-export const DEFAULT_INDEX_DATABASE_NAME = 'mined'
 export const DEFAULT_DATA_DIR = '~/.ironfish'
-export const DEFAULT_WALLET_NAME = 'wallet'
 export const DEFAULT_WEBSOCKET_PORT = 9033
 export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/telemetry'
@@ -41,8 +38,6 @@ export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
-  databaseName: string
-  indexDatabaseName: string
   databaseMigrate: boolean
   editor: string
   enableListenP2P: boolean
@@ -123,7 +118,6 @@ export type ConfigOptions = {
    */
   targetPeers: number
   telemetryApi: string
-  accountName: string
 
   /**
    * When the option is true, then each invocation of start command will invoke generation of new identity.
@@ -261,8 +255,6 @@ export type ConfigOptions = {
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .object({
     bootstrapNodes: yup.array().of(yup.string().defined()),
-    databaseName: yup.string(),
-    indexDatabaseName: yup.string(),
     databaseMigrate: yup.boolean(),
     editor: yup.string().trim(),
     enableListenP2P: yup.boolean(),
@@ -297,7 +289,6 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     minPeers: YupUtils.isPositiveInteger,
     targetPeers: yup.number().integer().min(1),
     telemetryApi: yup.string(),
-    accountName: yup.string(),
     generateNewIdentity: yup.boolean(),
     defaultTransactionExpirationSequenceDelta: YupUtils.isPositiveInteger,
     blocksPerMessage: YupUtils.isPositiveInteger,
@@ -337,15 +328,15 @@ export class Config extends KeyStore<ConfigOptions> {
   }
 
   get chainDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'databases', this.get('databaseName'))
+    return this.files.join(this.storage.dataDir, 'databases', 'chain')
   }
 
   get accountDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'databases', this.get('accountName'))
+    return this.files.join(this.storage.dataDir, 'databases', 'wallet')
   }
 
   get indexDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'databases', this.get('indexDatabaseName'))
+    return this.files.join(this.storage.dataDir, 'databases', 'mined')
   }
 
   get tempDir(): string {
@@ -362,8 +353,6 @@ export class Config extends KeyStore<ConfigOptions> {
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
       bootstrapNodes: [],
-      databaseName: DEFAULT_DATABASE_NAME,
-      indexDatabaseName: DEFAULT_INDEX_DATABASE_NAME,
       databaseMigrate: false,
       defaultTransactionExpirationSequenceDelta: 15,
       editor: '',
@@ -397,7 +386,6 @@ export class Config extends KeyStore<ConfigOptions> {
       minPeers: 1,
       targetPeers: 50,
       telemetryApi: DEFAULT_TELEMETRY_API,
-      accountName: DEFAULT_WALLET_NAME,
       generateNewIdentity: false,
       blocksPerMessage: 5,
       minerBatchSize: DEFAULT_MINER_BATCH_SIZE,

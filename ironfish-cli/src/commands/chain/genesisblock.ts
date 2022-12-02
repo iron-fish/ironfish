@@ -58,9 +58,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
 
     if (!node.chain.isEmpty) {
       this.log(
-        `The database ${node.config.get(
-          'databaseName',
-        )} must be empty to create a genesis block.`,
+        `The database ${node.config.chainDatabasePath} must be empty to create a genesis block.`,
       )
       this.exit(0)
     }

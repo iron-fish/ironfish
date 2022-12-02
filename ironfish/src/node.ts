@@ -182,7 +182,6 @@ export class IronfishNode {
 
   static async init({
     pkg: pkg,
-    databaseName,
     dataDir,
     config,
     internal,
@@ -199,7 +198,6 @@ export class IronfishNode {
     config?: Config
     internal?: InternalStore
     autoSeed?: boolean
-    databaseName?: string
     logger?: Logger
     metrics?: MetricsMonitor
     files: FileSystem
@@ -222,10 +220,6 @@ export class IronfishNode {
 
     const hostsStore = new HostsStore(files, dataDir)
     await hostsStore.load()
-
-    if (databaseName) {
-      config.setOverride('databaseName', databaseName)
-    }
 
     let workers = config.get('nodeWorkers')
     if (workers === -1) {
