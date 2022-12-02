@@ -85,7 +85,7 @@ export class Transaction {
       reader.seek(192)
 
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
-      const value = reader.readU8()
+      const value = BigInt(reader.readU64())
 
       // value commitment
       reader.seek(32)
@@ -99,7 +99,7 @@ export class Transaction {
 
     this._burns = Array.from({ length: _burnsLength }, () => {
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
-      const value = reader.readU8()
+      const value = BigInt(reader.readU64())
 
       // value commitment
       reader.seek(32)
@@ -199,6 +199,14 @@ export class Transaction {
 
   getSpend(index: number): Spend {
     return this._spends[index]
+  }
+
+  mints(): Iterable<MintDescription> {
+    return this._mints.values()
+  }
+
+  burns(): Iterable<BurnDescription> {
+    return this._burns.values()
   }
 
   /**

@@ -18,6 +18,9 @@ export interface BoxedMessage {
 }
 export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
 export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
+export const ASSET_METADATA_LENGTH: number
+export const ASSET_NAME_LENGTH: number
+export const ASSET_OWNER_LENGTH: number
 export const ASSET_LENGTH: number
 export const NOTE_ENCRYPTION_KEY_LENGTH: number
 export const MAC_LENGTH: number
@@ -62,6 +65,10 @@ export class RollingFilter {
 export type NativeAsset = Asset
 export class Asset {
   constructor(ownerPrivateKey: string, name: string, metadata: string)
+  metadata(): Buffer
+  name(): Buffer
+  nonce(): number
+  owner(): Buffer
   static nativeIdentifier(): Buffer
   identifier(): Buffer
   serialize(): Buffer

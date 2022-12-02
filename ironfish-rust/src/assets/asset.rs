@@ -25,8 +25,8 @@ pub const NATIVE_ASSET: AssetIdentifier = [
 // Uses the original value commitment generator as the native asset generator
 pub const NATIVE_ASSET_GENERATOR: SubgroupPoint = VALUE_COMMITMENT_VALUE_GENERATOR;
 
-const NAME_LENGTH: usize = 32;
-const OWNER_LENGTH: usize = 32;
+pub const NAME_LENGTH: usize = 32;
+pub const OWNER_LENGTH: usize = 32;
 const ASSET_INFO_HASHED_LENGTH: usize = 32;
 pub const METADATA_LENGTH: usize = 76;
 pub const ASSET_LENGTH: usize = NAME_LENGTH + OWNER_LENGTH + METADATA_LENGTH + 1;
@@ -112,12 +112,16 @@ impl Asset {
         }
     }
 
+    pub fn metadata(&self) -> &[u8] {
+        &self.metadata
+    }
+
     pub fn name(&self) -> &[u8] {
         &self.name
     }
 
-    pub fn owner(&self) -> &AssetPublicKey {
-        &self.owner
+    pub fn owner(&self) -> [u8; OWNER_LENGTH] {
+        self.owner.to_bytes()
     }
 
     pub fn nonce(&self) -> &u8 {

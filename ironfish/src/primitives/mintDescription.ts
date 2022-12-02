@@ -5,9 +5,9 @@ import { Asset } from '@ironfish/rust-nodejs'
 
 export class MintDescription {
   readonly asset: Asset
-  readonly value: number
+  readonly value: bigint
 
-  constructor(asset: Asset, value: number) {
+  constructor(asset: Asset, value: bigint) {
     this.asset = asset
     this.value = value
   }

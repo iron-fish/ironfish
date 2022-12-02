@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset } from '@ironfish/rust-nodejs'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
@@ -1154,6 +1155,7 @@ export class Blockchain {
         await this.sequenceToHashes.put(header.sequence, { hashes }, tx)
       }
 
+      await this.removeAssetsFromBlock(hash, tx)
       await this.transactions.del(hash, tx)
       await this.headers.del(hash, tx)
 
@@ -1336,6 +1338,8 @@ export class Blockchain {
     const hashes = await this.sequenceToHashes.get(sequence, tx)
     await this.sequenceToHashes.put(sequence, { hashes: [...(hashes?.hashes || []), hash] }, tx)
 
+    await this.saveAssetsFromBlock(block, tx)
+
     if (!fork) {
       await this.saveConnect(block, prev, tx)
     }
@@ -1343,6 +1347,117 @@ export class Blockchain {
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
       this.latest = block.header
       await this.meta.put('latest', hash, tx)
+    }
+  }
+
+  private async saveAssetsFromBlock(block: Block, tx: IDatabaseTransaction): Promise<void> {
+    // Process mints and burns from each transaction in this block to update the
+    // assets store
+    for (const transaction of block.transactions) {
+      const deltaSupplyByIdentifier = this.buildAssetSupplyDeltaMappings(transaction)
+
+      // Apply net delta supply changes across asset identifiers
+      for (const [assetIdentifier, { asset, delta }] of deltaSupplyByIdentifier.entries()) {
+        const existingAsset = await this.assets.get(assetIdentifier, tx)
+
+        let createdTransactionHash = transaction.hash()
+        let existingSupply = BigInt(0)
+        if (existingAsset) {
+          createdTransactionHash = existingAsset.createdTransactionHash
+          existingSupply = existingAsset.supply
+        }
+
+        const supply = existingSupply + delta
+        if (delta < 0) {
+          // If we're burning an asset, ensure the asset exists and the new supply
+          // is non-negative
+          Assert.isNotUndefined(existingAsset)
+          Assert.isTrue(supply >= BigInt(0))
+        }
+
+        await this.assets.put(
+          assetIdentifier,
+          {
+            createdTransactionHash,
+            metadata: asset.metadata(),
+            name: asset.name(),
+            nonce: asset.nonce(),
+            owner: asset.owner(),
+            supply,
+          },
+          tx,
+        )
+      }
+    }
+  }
+
+  private buildAssetSupplyDeltaMappings(
+    transaction: Transaction,
+  ): BufferMap<{ asset: Asset; delta: bigint }> {
+    const deltaSupplyByIdentifier = new BufferMap<{
+      asset: Asset
+      delta: bigint
+    }>()
+
+    for (const mint of transaction.mints()) {
+      const asset = mint.asset
+      const assetIdentifier = asset.identifier()
+      const existingDelta = deltaSupplyByIdentifier.get(assetIdentifier)?.delta ?? BigInt(0)
+      deltaSupplyByIdentifier.set(assetIdentifier, { asset, delta: existingDelta + mint.value })
+    }
+
+    for (const burn of transaction.burns()) {
+      const asset = burn.asset
+      const assetIdentifier = asset.identifier()
+      const existingDelta = deltaSupplyByIdentifier.get(assetIdentifier)?.delta ?? BigInt(0)
+      deltaSupplyByIdentifier.set(assetIdentifier, { asset, delta: existingDelta - burn.value })
+    }
+
+    return deltaSupplyByIdentifier
+  }
+
+  private async removeAssetsFromBlock(
+    blockHash: Buffer,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    const record = await this.transactions.get(blockHash, tx)
+    Assert.isNotUndefined(record)
+
+    // Invert all the mints and burns that were applied from this block's transactions.
+    // Iterate in reverse order to ensure changes are undone opposite from how
+    // they were applied.
+    for (const transaction of record.transactions.reverse()) {
+      const deltaSupplyByIdentifier = this.buildAssetSupplyDeltaMappings(transaction)
+
+      for (const [assetIdentifier, { asset, delta }] of deltaSupplyByIdentifier.entries()) {
+        const existingAsset = await this.assets.get(assetIdentifier, tx)
+        Assert.isNotUndefined(existingAsset)
+        const createdTransactionHash = existingAsset.createdTransactionHash
+        // Invert the delta since we are removing these transactions
+        const supply = existingAsset.supply - delta
+        Assert.isTrue(supply >= BigInt(0))
+
+        if (transaction.hash().equals(createdTransactionHash)) {
+          // If we are reverting the transaction which matches the created at
+          // hash of the asset, delete the record from the store
+          Assert.isEqual(supply, BigInt(0))
+          await this.assets.del(assetIdentifier, tx)
+        } else {
+          // Otherwise update the record with the new supply
+          await this.assets.put(
+            assetIdentifier,
+            {
+              createdTransactionHash,
+              metadata: asset.metadata(),
+              name: asset.name(),
+              nonce: asset.nonce(),
+              owner: asset.owner(),
+              supply,
+            },
+            tx,
+          )
+        }
+      }
     }
   }
 
