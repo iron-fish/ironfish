@@ -28,13 +28,14 @@ pub const GENERATOR_LENGTH: u32 = GENERATOR_SIZE as u32;
 pub const AMOUNT_VALUE_LENGTH: u32 = AMOUNT_VALUE_SIZE as u32;
 
 #[napi]
-pub const DECRYPTED_NOTE_LENGTH: u32 = 136;
+pub const DECRYPTED_NOTE_LENGTH: u32 = 168;
 //  32 randomness
 //+ 32 memo
 //+ 32 public address
 //+ 32 asset generator
 //+ 8  value
-//= 136 bytes
+//+ 32 sender address
+//= 168 bytes
 
 #[napi(js_name = "Note")]
 pub struct NativeNote {
@@ -48,8 +49,19 @@ impl NativeNote {
         let value_u64 = value.get_u64().1;
 
         let owner_address = ironfish_rust::PublicAddress::from_hex(&owner).map_err(to_napi_err)?;
+
+        let sender_address_placeholder = ironfish_rust::PublicAddress::from_hex(
+            "8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563",
+        )
+        .map_err(to_napi_err)?;
         Ok(NativeNote {
-            note: Note::new(owner_address, value_u64, memo, NATIVE_ASSET_GENERATOR),
+            note: Note::new(
+                owner_address,
+                value_u64,
+                memo,
+                NATIVE_ASSET_GENERATOR,
+                sender_address_placeholder,
+            ),
         })
     }
 
