@@ -8,8 +8,6 @@ import { IronfishCommand } from '../command'
 import {
   ConfigFlag,
   ConfigFlagKey,
-  DatabaseFlag,
-  DatabaseFlagKey,
   DataDirFlag,
   DataDirFlagKey,
   VerboseFlag,
@@ -23,7 +21,6 @@ export default class Reset extends IronfishCommand {
     [VerboseFlagKey]: VerboseFlag,
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
-    [DatabaseFlagKey]: DatabaseFlag,
     confirm: Flags.boolean({
       default: false,
       description: 'Confirm without asking',

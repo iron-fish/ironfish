@@ -94,6 +94,7 @@ describe('PeerNetwork', () => {
         minPeers: 1,
         hostsStore: mockHostsStore(),
         telemetry: mockTelemetry(),
+        networkId: 1,
       })
 
       expect(peerNetwork.isReady).toBe(false)
@@ -135,6 +136,7 @@ describe('PeerNetwork', () => {
         maxPeers: 0,
         hostsStore: mockHostsStore(),
         telemetry: mockTelemetry(),
+        networkId: 1,
       })
 
       const rejectSpy = jest

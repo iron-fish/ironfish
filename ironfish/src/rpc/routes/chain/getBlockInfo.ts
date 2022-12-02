@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
 import { BlockHeader } from '../../../primitives'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BufferUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
@@ -130,7 +130,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
 
       transactions.push({
         signature: tx.transactionSignature().toString('hex'),
-        hash: tx.unsignedHash().toString('hex'),
+        hash: tx.hash().toString('hex'),
         fee: fee.toString(),
         spends: tx.spendsLength(),
         notes: tx.notesLength(),

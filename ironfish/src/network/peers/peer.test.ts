@@ -9,7 +9,7 @@ import { createRootLogger } from '../../logger'
 import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { mockIdentity } from '../testUtilities'
 import { ConnectionDirection, WebRtcConnection, WebSocketConnection } from './connections'
-import { Peer } from './peer'
+import { BAN_SCORE, Peer } from './peer'
 
 jest.useFakeTimers()
 
@@ -321,5 +321,35 @@ describe('Stays in CONNECTED when one connection disconnects', () => {
       identity: identity,
       connections: { webSocket: connection },
     })
+  })
+})
+
+describe('punish', () => {
+  it('Emits onBanned when punish is called with BAN_SCORE.MAX', () => {
+    const identity = mockIdentity('peer')
+    const peer = new Peer(null)
+    const connection = new WebSocketConnection(
+      new ws(''),
+      ConnectionDirection.Outbound,
+      createRootLogger(),
+    )
+    connection.setState({
+      type: 'CONNECTED',
+      identity,
+    })
+
+    peer.setWebSocketConnection(connection)
+
+    expect(peer.state).toEqual({
+      type: 'CONNECTED',
+      identity: identity,
+      connections: { webSocket: connection },
+    })
+
+    const onBannedHander = jest.fn()
+    peer.onBanned.on(onBannedHander)
+    peer.punish(BAN_SCORE.MAX, 'TESTING')
+
+    expect(onBannedHander).toBeCalled()
   })
 })

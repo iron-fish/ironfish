@@ -18,13 +18,24 @@ export interface BoxedMessage {
 }
 export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
 export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
+export const ASSET_LENGTH: number
+export const NOTE_ENCRYPTION_KEY_LENGTH: number
+export const MAC_LENGTH: number
+export const ENCRYPTED_NOTE_PLAINTEXT_LENGTH: number
 export const ENCRYPTED_NOTE_LENGTH: number
+export const PUBLIC_ADDRESS_LENGTH: number
+export const RANDOMNESS_LENGTH: number
+export const MEMO_LENGTH: number
+export const GENERATOR_LENGTH: number
+export const AMOUNT_VALUE_LENGTH: number
 export const DECRYPTED_NOTE_LENGTH: number
 export interface NativeSpendDescription {
   treeSize: number
   rootHash: Buffer
   nullifier: Buffer
 }
+export const PROOF_LENGTH: number
+export const TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
 export interface Key {
   spending_key: string
@@ -47,6 +58,14 @@ export class RollingFilter {
   constructor(items: number, rate: number)
   add(value: Buffer): void
   test(value: Buffer): boolean
+}
+export type NativeAsset = Asset
+export class Asset {
+  constructor(ownerPrivateKey: string, name: string, metadata: string)
+  static nativeIdentifier(): Buffer
+  identifier(): Buffer
+  serialize(): Buffer
+  static deserialize(jsBytes: Buffer): NativeAsset
 }
 export type NativeNoteEncrypted = NoteEncrypted
 export class NoteEncrypted {
@@ -78,6 +97,8 @@ export class Note {
    * the proof in any way.
    */
   memo(): string
+  /** Asset identifier associated with this note */
+  assetIdentifier(): Buffer
   /**
    * Compute the nullifier for this note, given the private key of its owner.
    *
@@ -108,6 +129,10 @@ export class Transaction {
   receive(note: Note): void
   /** Spend the note owned by spender_hex_key at the given witness location. */
   spend(note: Note, witness: object): void
+  /** Mint a new asset with a given value as part of this transaction. */
+  mint(asset: Asset, value: bigint): void
+  /** Burn some supply of a given asset and value as part of this transaction. */
+  burn(asset: Asset, value: bigint): void
   /**
    * Special case for posting a miners fee transaction. Miner fee transactions
    * are unique in that they generate currency. They do not have any spends

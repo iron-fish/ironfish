@@ -135,15 +135,20 @@ export default class Benchmark extends IronfishCommand {
     this.log('\n' + status)
 
     // Check that data is consistent
-    const nodeNotesHash = await node.chain.notes.pastRoot(endingHeader.noteCommitment.size)
+    if (endingHeader.noteSize === null) {
+      return this.error(`Header should have a noteSize`)
+    }
+    const nodeNotesHash = await node.chain.notes.pastRoot(endingHeader.noteSize)
     const tempNodeNotesHash = await tempNode.chain.notes.rootHash()
     if (!nodeNotesHash.equals(tempNodeNotesHash)) {
       throw new Error('/!\\ Note tree hashes were not consistent /!\\')
     }
 
-    const nodeNullifiersHash = await node.chain.nullifiers.pastRoot(
-      endingHeader.nullifierCommitment.size,
-    )
+    if (endingHeader.nullifierSize === null) {
+      return this.error(`Header should have a noteSize`)
+    }
+
+    const nodeNullifiersHash = await node.chain.nullifiers.pastRoot(endingHeader.nullifierSize)
     const tempNodeNullifiersHash = await tempNode.chain.nullifiers.rootHash()
     if (!nodeNullifiersHash.equals(tempNodeNullifiersHash)) {
       throw new Error('/!\\ Nullifier tree hashes were not consistent /!\\')

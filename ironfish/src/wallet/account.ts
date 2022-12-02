@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
-import { GENESIS_BLOCK_SEQUENCE } from '../consensus/consensus'
 import { Transaction } from '../primitives'
+import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { Note } from '../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../storage'
 import { StorageUtils } from '../storage/database/utils'
@@ -131,6 +131,10 @@ export class Account {
         }
       }
 
+      if (existingNote && existingNote.nullifier !== null && note.nullifier == null) {
+        await this.walletDb.deleteNullifier(this, existingNote.nullifier, tx)
+      }
+
       await this.walletDb.saveDecryptedNote(this, noteHash, note, tx)
 
       const transaction = await this.getTransaction(note.transactionHash, tx)
@@ -205,7 +209,12 @@ export class Account {
         }
 
         if (decryptedNote.nullifier !== null) {
-          await this.updateNullifierNoteHash(decryptedNote.nullifier, decryptedNote.hash, tx)
+          await this.walletDb.saveNullifierNoteHash(
+            this,
+            decryptedNote.nullifier,
+            decryptedNote.hash,
+            tx,
+          )
         }
 
         await this.updateDecryptedNote(
@@ -282,34 +291,11 @@ export class Account {
     return await this.walletDb.loadNoteHash(this, nullifier)
   }
 
-  private async updateNullifierNoteHash(
-    nullifier: Buffer,
-    noteHash: Buffer,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.walletDb.saveNullifierNoteHash(this, nullifier, noteHash, tx)
-  }
-
-  private async deleteNullifier(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<void> {
-    await this.walletDb.deleteNullifier(this, nullifier, tx)
-  }
-
   async getTransaction(
     hash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<Readonly<TransactionValue> | undefined> {
     return await this.walletDb.loadTransaction(this, hash, tx)
-  }
-
-  async getTransactionByUnsignedHash(
-    unsignedHash: Buffer,
-    tx?: IDatabaseTransaction,
-  ): Promise<Readonly<TransactionValue> | undefined> {
-    for await (const transactionValue of this.getTransactions(tx)) {
-      if (unsignedHash.equals(transactionValue.transaction.unsignedHash())) {
-        return transactionValue
-      }
-    }
   }
 
   getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
@@ -342,7 +328,7 @@ export class Account {
           await this.deleteDecryptedNote(noteHash, transactionHash, tx)
 
           if (decryptedNote.nullifier) {
-            await this.deleteNullifier(decryptedNote.nullifier, tx)
+            await this.walletDb.deleteNullifier(this, decryptedNote.nullifier, tx)
           }
         }
       }

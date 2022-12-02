@@ -92,52 +92,37 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
     }
 
-    // Check whether amount and fee are valid or not
-    if (!CurrencyUtils.isValidOre(transaction.fee)) {
-      throw new ValidationError(
-        `Invalid transaction fee, ${transaction.fee}`,
-        undefined,
-        ERROR_CODES.VALIDATION,
-      )
-    }
-    let sum = BigInt(transaction.fee)
-    transaction.receives.map((receive) => {
-      if (!CurrencyUtils.isValidOre(receive.amount)) {
-        throw new ValidationError(
-          `Invalid transaction amount, ${receive.amount}`,
-          undefined,
-          ERROR_CODES.VALIDATION,
-        )
+    const receives = transaction.receives.map((receive) => {
+      return {
+        publicAddress: receive.publicAddress,
+        amount: CurrencyUtils.decode(receive.amount),
+        memo: receive.memo,
       }
-      sum += BigInt(receive.amount)
     })
+
+    const fee = CurrencyUtils.decode(transaction.fee)
+    const sum = receives.reduce((m, c) => m + c.amount, fee)
+
+    if (fee < 1n) {
+      throw new ValidationError(`Invalid transaction fee, ${transaction.fee}`)
+    }
+
+    for (const receive of receives) {
+      if (receive.amount < 0) {
+        throw new ValidationError(`Invalid transaction amount, ${receive.amount}`)
+      }
+    }
 
     // Check that the node account is updated
     const balance = await node.wallet.getBalance(account)
 
-    if (balance.confirmed < sum && balance.unconfirmed < sum) {
-      throw new ValidationError(
-        `Your balance is too low. Add funds to your account first`,
-        undefined,
-        ERROR_CODES.INSUFFICIENT_BALANCE,
-      )
-    }
-
     if (balance.confirmed < sum) {
       throw new ValidationError(
-        `Please wait a few seconds for your balance to update and try again`,
+        'Your balance is too low. Add funds to your account first',
         undefined,
         ERROR_CODES.INSUFFICIENT_BALANCE,
       )
     }
-
-    const receives = transaction.receives.map((receive) => {
-      return {
-        publicAddress: receive.publicAddress,
-        amount: BigInt(receive.amount),
-        memo: receive.memo,
-      }
-    })
 
     try {
       const transactionPosted = await node.wallet.pay(
@@ -153,7 +138,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       request.end({
         receives: transaction.receives,
         fromAccountName: account.name,
-        hash: transactionPosted.unsignedHash().toString('hex'),
+        hash: transactionPosted.hash().toString('hex'),
       })
     } catch (e) {
       if (e instanceof NotEnoughFundsError) {

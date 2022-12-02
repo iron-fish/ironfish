@@ -58,7 +58,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       notesEncrypted: [],
     }
     block.transactions.map((transaction) => {
-      if (transaction.unsignedHash().toString('hex') === request.data.transactionHash) {
+      if (transaction.hash().toString('hex') === request.data.transactionHash) {
         const fee = transaction.fee().toString()
         const expirationSequence = transaction.expirationSequence()
         const notesCount = transaction.notesLength()

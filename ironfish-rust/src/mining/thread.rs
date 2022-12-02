@@ -132,7 +132,7 @@ fn process_commands(
                         println!("Search space exhausted, no longer mining this block.");
                         break;
                     }
-                    batch_start += default_batch_size;
+                    batch_start += batch_size + step_size as u64 - (batch_size % step_size as u64);
                 }
             }
             Command::Pause => {

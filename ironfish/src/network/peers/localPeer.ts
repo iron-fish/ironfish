@@ -24,6 +24,8 @@ export class LocalPeer {
   readonly version: number
   // constructor for either a Node WebSocket or a browser WebSocket
   readonly webSocket: IsomorphicWebSocketConstructor
+  // the unique ID number of the network
+  readonly networkId: number
 
   // optional port the local peer is listening on
   port: number | null
@@ -38,12 +40,14 @@ export class LocalPeer {
     version: number,
     chain: Blockchain,
     webSocket: IsomorphicWebSocketConstructor,
+    networkId: number,
   ) {
     this.privateIdentity = identity
     this.publicIdentity = privateIdentityToIdentity(identity)
     this.chain = chain
     this.agent = agent
     this.version = version
+    this.networkId = networkId
 
     this.webSocket = webSocket
     this.port = null

@@ -4,7 +4,7 @@
 
 import http from 'http'
 import WSWebSocket from 'ws'
-import { MAX_MESSAGE_SIZE } from '../consensus/consensus'
+import { MAX_MESSAGE_SIZE } from './version'
 
 export class WebSocketServer {
   // The server instance

@@ -2,15 +2,39 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ironfish_rust::note::{AMOUNT_VALUE_SIZE, GENERATOR_SIZE, MEMO_SIZE, SCALAR_SIZE};
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
-use ironfish_rust::{Note, SaplingKey};
+use ironfish_rust::{assets::asset::NATIVE_ASSET_GENERATOR, Note, SaplingKey};
+
+use ironfish_rust::keys::PUBLIC_ADDRESS_SIZE;
 
 use crate::to_napi_err;
 
 #[napi]
-pub const DECRYPTED_NOTE_LENGTH: u32 = 115;
+pub const PUBLIC_ADDRESS_LENGTH: u32 = PUBLIC_ADDRESS_SIZE as u32;
+
+#[napi]
+pub const RANDOMNESS_LENGTH: u32 = SCALAR_SIZE as u32;
+
+#[napi]
+pub const MEMO_LENGTH: u32 = MEMO_SIZE as u32;
+
+#[napi]
+pub const GENERATOR_LENGTH: u32 = GENERATOR_SIZE as u32;
+
+#[napi]
+pub const AMOUNT_VALUE_LENGTH: u32 = AMOUNT_VALUE_SIZE as u32;
+
+#[napi]
+pub const DECRYPTED_NOTE_LENGTH: u32 = 136;
+//  32 randomness
+//+ 32 memo
+//+ 32 public address
+//+ 32 asset generator
+//+ 8  value
+//= 136 bytes
 
 #[napi(js_name = "Note")]
 pub struct NativeNote {
@@ -25,7 +49,7 @@ impl NativeNote {
 
         let owner_address = ironfish_rust::PublicAddress::from_hex(&owner).map_err(to_napi_err)?;
         Ok(NativeNote {
-            note: Note::new(owner_address, value_u64, memo),
+            note: Note::new(owner_address, value_u64, memo, NATIVE_ASSET_GENERATOR),
         })
     }
 
@@ -59,6 +83,12 @@ impl NativeNote {
     #[napi]
     pub fn memo(&self) -> String {
         self.note.memo().to_string()
+    }
+
+    /// Asset identifier associated with this note
+    #[napi]
+    pub fn asset_identifier(&self) -> Buffer {
+        Buffer::from(&self.note.asset_identifier()[..])
     }
 
     /// Compute the nullifier for this note, given the private key of its owner.

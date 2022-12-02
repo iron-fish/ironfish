@@ -4,7 +4,6 @@
 import {
   BlockSerde,
   CurrencyUtils,
-  GENESIS_SUPPLY_IN_IRON,
   GenesisBlockInfo,
   IJSON,
   makeGenesisBlock,
@@ -37,6 +36,11 @@ export default class GenesisBlockCommand extends IronfishCommand {
       default: 'Genesis Block',
       description: 'The memo of the block',
     }),
+    genesisSupplyInIron: Flags.string({
+      char: 'g',
+      required: true,
+      description: 'The amount of coins in the genesis block',
+    }),
   }
 
   async start(): Promise<void> {
@@ -54,9 +58,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
 
     if (!node.chain.isEmpty) {
       this.log(
-        `The database ${node.config.get(
-          'databaseName',
-        )} must be empty to create a genesis block.`,
+        `The database ${node.config.chainDatabasePath} must be empty to create a genesis block.`,
       )
       this.exit(0)
     }
@@ -79,7 +81,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
       allocations: [
         {
           publicAddress: account.publicAddress,
-          amount: CurrencyUtils.decodeIron(GENESIS_SUPPLY_IN_IRON),
+          amount: CurrencyUtils.decodeIron(flags.genesisSupplyInIron),
         },
       ],
     }

@@ -5,18 +5,18 @@
 import bufio from 'bufio'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 
+const MINEABLE_BLOCK_HEADER_SIZE = 180
+export const MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET = MINEABLE_BLOCK_HEADER_SIZE - 32
+
 export function mineableHeaderString(header: SerializedBlockTemplate['header']): Buffer {
-  const bw = bufio.write(208)
+  const bw = bufio.write(MINEABLE_BLOCK_HEADER_SIZE)
   bw.writeBytes(Buffer.from(header.randomness, 'hex'))
-  bw.writeU64(header.sequence)
+  bw.writeU32(header.sequence)
   bw.writeHash(header.previousBlockHash)
-  bw.writeHash(header.noteCommitment.commitment)
-  bw.writeU64(header.noteCommitment.size)
-  bw.writeHash(header.nullifierCommitment.commitment)
-  bw.writeU64(header.nullifierCommitment.size)
+  bw.writeHash(header.noteCommitment)
+  bw.writeHash(Buffer.from(header.transactionCommitment, 'hex'))
   bw.writeHash(header.target)
   bw.writeU64(header.timestamp)
-  bw.writeBytes(Buffer.from(header.minersFee, 'hex'))
   bw.writeBytes(Buffer.from(header.graffiti, 'hex'))
   return bw.render()
 }
@@ -25,15 +25,12 @@ export function mineableHeaderString(header: SerializedBlockTemplate['header']):
 export function minedPartialHeader(data: Buffer): SerializedBlockTemplate['header'] {
   const br = bufio.read(data)
   const randomness = br.readBytes(8)
-  const sequence = br.readU64()
+  const sequence = br.readU32()
   const previousBlockHash = br.readHash()
   const noteCommitment = br.readHash()
-  const noteCommitmentSize = br.readU64()
-  const nullifierCommitment = br.readHash()
-  const nullifierCommitmentSize = br.readU64()
+  const transactionCommitment = br.readHash()
   const target = br.readBytes(32)
   const timestamp = br.readU64()
-  const minersFee = br.readBytes(8)
   const graffiti = br.readBytes(32)
 
   return {
@@ -42,15 +39,8 @@ export function minedPartialHeader(data: Buffer): SerializedBlockTemplate['heade
     previousBlockHash: previousBlockHash.toString('hex'),
     target: target.toString('hex'),
     timestamp: timestamp,
-    minersFee: minersFee.toString('hex'),
     graffiti: graffiti.toString('hex'),
-    noteCommitment: {
-      commitment: noteCommitment.toString('hex'),
-      size: noteCommitmentSize,
-    },
-    nullifierCommitment: {
-      commitment: nullifierCommitment.toString('hex'),
-      size: nullifierCommitmentSize,
-    },
+    noteCommitment: noteCommitment.toString('hex'),
+    transactionCommitment: transactionCommitment.toString('hex'),
   }
 }

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Block, BlockHeader, Target } from '../../primitives'
+import { transactionCommitment } from '../../primitives/blockheader'
 import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
 import { GetBlocksRequest, GetBlocksResponse } from './getBlocks'
 
@@ -41,18 +42,11 @@ describe('GetBlocksResponse', () => {
           new BlockHeader(
             2,
             Buffer.alloc(32, 2),
-            {
-              commitment: Buffer.alloc(32, 4),
-              size: 1,
-            },
-            {
-              commitment: Buffer.alloc(32, 6),
-              size: 2,
-            },
+            Buffer.alloc(32, 4),
+            transactionCommitment([transactionA, transactionB]),
             new Target(12),
             BigInt(1),
             new Date(200000),
-            BigInt(0),
             Buffer.alloc(32, 'graffiti1', 'utf8'),
           ),
           [transactionA, transactionB],
@@ -61,18 +55,11 @@ describe('GetBlocksResponse', () => {
           new BlockHeader(
             2,
             Buffer.alloc(32, 1),
-            {
-              commitment: Buffer.alloc(32, 5),
-              size: 1,
-            },
-            {
-              commitment: Buffer.alloc(32, 7),
-              size: 2,
-            },
+            Buffer.alloc(32, 5),
+            transactionCommitment([transactionA, transactionB]),
             new Target(13),
             BigInt(1),
             new Date(200000),
-            BigInt(-10),
             Buffer.alloc(32, 'graffiti2', 'utf8'),
           ),
           [transactionA, transactionB],

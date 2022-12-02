@@ -5,18 +5,10 @@
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
-import {
-  ConsensusParameters,
-  GENESIS_BLOCK_PREVIOUS,
-  GENESIS_BLOCK_SEQUENCE,
-  MAX_SYNCED_AGE_MS,
-  TARGET_BLOCK_TIME_IN_SECONDS,
-  TestnetParameters,
-} from '../consensus'
+import { Consensus } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
 import { FileSystem } from '../fileSystems'
-import { genesisBlockData } from '../genesis'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
 import { NoteLeafEncoding, NullifierLeafEncoding } from '../merkletree/database/leaves'
@@ -25,8 +17,20 @@ import { NoteHasher } from '../merkletree/hasher'
 import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
-import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
-import { BlockHash, BlockHeader, isBlockHeavier, isBlockLater } from '../primitives/blockheader'
+import {
+  Block,
+  BlockSerde,
+  GENESIS_BLOCK_PREVIOUS,
+  GENESIS_BLOCK_SEQUENCE,
+  SerializedBlock,
+} from '../primitives/block'
+import {
+  BlockHash,
+  BlockHeader,
+  isBlockHeavier,
+  isBlockLater,
+  transactionCommitment,
+} from '../primitives/blockheader'
 import {
   NoteEncrypted,
   NoteEncryptedHash,
@@ -36,7 +40,6 @@ import {
 import { Nullifier, NullifierHash, NullifierHasher } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
-import { IJSON } from '../serde'
 import {
   BUFFER_ENCODING,
   IDatabase,
@@ -63,6 +66,12 @@ import {
 
 export const VERSION_DATABASE_CHAIN = 10
 
+// TODO: Remove this during network reset
+const HARD_FORK_HASH = Buffer.from(
+  '00000000000006ce61057e714ede8471d15cc9d19f0ff58eee179cadf3ba1f31',
+  'hex',
+)
+
 export class Blockchain {
   db: IDatabase
   logger: Logger
@@ -71,7 +80,8 @@ export class Blockchain {
   metrics: MetricsMonitor
   location: string
   files: FileSystem
-  consensus: ConsensusParameters
+  consensus: Consensus
+  seedGenesisBlock: SerializedBlock
 
   synced = false
   opened = false
@@ -158,6 +168,8 @@ export class Blockchain {
     logAllBlockAdd?: boolean
     autoSeed?: boolean
     files: FileSystem
+    consensus: Consensus
+    genesis: SerializedBlock
   }) {
     const logger = options.logger || createRootLogger()
 
@@ -173,7 +185,8 @@ export class Blockchain {
     this.orphans = new LRU(100, null, BufferMap)
     this.logAllBlockAdd = options.logAllBlockAdd || false
     this.autoSeed = options.autoSeed ?? true
-    this.consensus = new TestnetParameters()
+    this.consensus = options.consensus
+    this.seedGenesisBlock = options.genesis
 
     // Flat Fields
     this.meta = this.db.addStore({
@@ -251,7 +264,7 @@ export class Blockchain {
     const start = this.genesis.timestamp.valueOf()
     const current = this.head.timestamp.valueOf()
     const end = Date.now()
-    const offset = TARGET_BLOCK_TIME_IN_SECONDS * 4 * 1000
+    const offset = this.consensus.parameters.targetBlockTimeInSeconds * 4 * 1000
 
     const progress = (current - start) / (end - offset - start)
 
@@ -259,8 +272,7 @@ export class Blockchain {
   }
 
   private async seed() {
-    const serialized = IJSON.parse(genesisBlockData) as SerializedBlock
-    const genesis = BlockSerde.deserialize(serialized)
+    const genesis = BlockSerde.deserialize(this.seedGenesisBlock)
 
     const result = await this.addBlock(genesis)
     Assert.isTrue(result.isAdded, `Could not seed genesis: ${result.reason || 'unknown'}`)
@@ -552,6 +564,11 @@ export class Blockchain {
   isInvalid(headerOrHash: BlockHeader | BlockHash): VerificationResultReason | null {
     const hash = Buffer.isBuffer(headerOrHash) ? headerOrHash : headerOrHash.hash
 
+    // TODO: Remove this during network reset
+    if (hash.equals(HARD_FORK_HASH)) {
+      return VerificationResultReason.DOUBLE_SPEND
+    }
+
     const invalid = this.invalid.get(hash)
     if (invalid) {
       return invalid
@@ -579,6 +596,18 @@ export class Blockchain {
     const work = block.header.target.toDifficulty()
     block.header.work = (prev ? prev.work : BigInt(0)) + work
 
+    let prevNoteSize = 0
+    let prevNullifierSize = 0
+    if (prev) {
+      Assert.isNotNull(prev.noteSize)
+      Assert.isNotNull(prev.nullifierSize)
+      prevNoteSize = prev.noteSize
+      prevNullifierSize = prev.nullifierSize
+    }
+    const { notes, nullifiers } = block.counts()
+    block.header.noteSize = prevNoteSize + notes
+    block.header.nullifierSize = prevNullifierSize + nullifiers
+
     const isFork = !this.isEmpty && !isBlockHeavier(block.header, this.head)
 
     if (isFork) {
@@ -605,7 +634,7 @@ export class Blockchain {
     return { isFork: isFork }
   }
 
-  private async disconnect(block: Block, tx: IDatabaseTransaction): Promise<void> {
+  async disconnect(block: Block, tx: IDatabaseTransaction): Promise<void> {
     Assert.isTrue(
       block.header.hash.equals(this.head.hash),
       `Cannot disconnect ${HashUtils.renderHash(
@@ -902,9 +931,6 @@ export class Blockchain {
     return await this.db.transaction(async (tx) => {
       const startTime = BenchUtils.start()
 
-      const originalNoteSize = await this.notes.size(tx)
-      const originalNullifierSize = await this.nullifiers.size(tx)
-
       let previousBlockHash
       let previousSequence
       let target
@@ -916,40 +942,49 @@ export class Blockchain {
         target = Target.maxTarget()
       } else {
         const heaviestHead = this.head
-        if (
-          originalNoteSize !== heaviestHead.noteCommitment.size ||
-          originalNullifierSize !== heaviestHead.nullifierCommitment.size
-        ) {
-          throw new Error(
-            `Heaviest head has ${heaviestHead.noteCommitment.size} notes and ${heaviestHead.nullifierCommitment.size} nullifiers but tree has ${originalNoteSize} and ${originalNullifierSize} nullifiers`,
-          )
-        }
+
+        // Sanity check that we are building on top of correct size note and nullifier tree, may not be needed
+        const originalNoteSize = await this.notes.size(tx)
+        const originalNullifierSize = await this.nullifiers.size(tx)
+        Assert.isEqual(originalNoteSize, heaviestHead.noteSize, 'newBlock note size mismatch')
+        Assert.isEqual(
+          originalNullifierSize,
+          heaviestHead.nullifierSize,
+          'newBlock nullifier size mismatch',
+        )
+
         previousBlockHash = heaviestHead.hash
         previousSequence = heaviestHead.sequence
         const previousHeader = await this.getHeader(heaviestHead.previousBlockHash, tx)
         if (!previousHeader && previousSequence !== 1) {
           throw new Error('There is no previous block to calculate a target')
         }
-        target = Target.calculateTarget(timestamp, heaviestHead.timestamp, heaviestHead.target)
+        target = Target.calculateTarget(
+          timestamp,
+          heaviestHead.timestamp,
+          heaviestHead.target,
+          this.consensus.parameters.targetBlockTimeInSeconds,
+          this.consensus.parameters.targetBucketTimeInSeconds,
+        )
       }
 
+      const blockNotes = []
+      const blockNullifiers = []
       for (const transaction of transactions) {
         for (const note of transaction.notes()) {
-          await this.notes.add(note, tx)
+          blockNotes.push(note)
         }
         for (const spend of transaction.spends()) {
-          await this.nullifiers.add(spend.nullifier, tx)
+          blockNullifiers.push(spend.nullifier)
         }
       }
 
-      const noteCommitment = {
-        commitment: await this.notes.rootHash(tx),
-        size: await this.notes.size(tx),
-      }
-      const nullifierCommitment = {
-        commitment: await this.nullifiers.rootHash(tx),
-        size: await this.nullifiers.size(tx),
-      }
+      await this.notes.addBatch(blockNotes, tx)
+      await this.nullifiers.addBatch(blockNullifiers, tx)
+
+      const noteCommitment = await this.notes.rootHash(tx)
+      const noteSize = await this.notes.size(tx)
+      const nullifierSize = await this.nullifiers.size(tx)
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
@@ -957,12 +992,14 @@ export class Blockchain {
         previousSequence + 1,
         previousBlockHash,
         noteCommitment,
-        nullifierCommitment,
+        transactionCommitment(transactions),
         target,
         BigInt(0),
         timestamp,
-        minersFee.fee(),
         graffiti,
+        noteSize,
+        BigInt(0),
+        nullifierSize,
       )
 
       const block = new Block(header, transactions)
@@ -1069,12 +1106,12 @@ export class Blockchain {
 
   async removeBlock(hash: Buffer): Promise<void> {
     await this.db.transaction(async (tx) => {
-      this.logger.info(`Deleting block ${hash.toString('hex')}`)
+      this.logger.debug(`Deleting block ${hash.toString('hex')}`)
 
       const exists = await this.hasBlock(hash, tx)
 
       if (!exists) {
-        this.logger.warn(`No block exists at ${hash.toString('hex')}`)
+        this.logger.debug(`No block exists at ${hash.toString('hex')}`)
         return
       }
 
@@ -1170,7 +1207,8 @@ export class Blockchain {
       return
     }
 
-    let noteIndex = header.noteCommitment.size
+    Assert.isNotNull(header.noteSize)
+    let noteIndex = header.noteSize
 
     // Transactions should be handled in reverse order because
     // header.noteCommitment is the size of the tree after the
@@ -1212,8 +1250,15 @@ export class Blockchain {
 
     // If the tree sizes don't match the previous block, we can't verify if the tree
     // sizes on this block are correct
-    const prevNotesSize = prev?.noteCommitment.size || 0
-    const prevNullifierSize = prev?.nullifierCommitment.size || 0
+    let prevNotesSize = 0
+    let prevNullifierSize = 0
+    if (prev) {
+      Assert.isNotNull(prev.noteSize)
+      Assert.isNotNull(prev.nullifierSize)
+      prevNotesSize = prev.noteSize
+      prevNullifierSize = prev.nullifierSize
+    }
+
     Assert.isEqual(
       prevNotesSize,
       await this.notes.size(tx),
@@ -1249,9 +1294,12 @@ export class Blockchain {
     await this.hashToNextHash.del(prev.hash, tx)
     await this.sequenceToHash.del(block.header.sequence, tx)
 
+    Assert.isNotNull(prev.noteSize)
+    Assert.isNotNull(prev.nullifierSize)
+
     await Promise.all([
-      this.notes.truncate(prev.noteCommitment.size, tx),
-      this.nullifiers.truncate(prev.nullifierCommitment.size, tx),
+      this.notes.truncate(prev.noteSize, tx),
+      this.nullifiers.truncate(prev.nullifierSize, tx),
     ])
 
     await this.meta.put('head', prev.hash, tx)
@@ -1293,7 +1341,11 @@ export class Blockchain {
       return
     }
 
-    if (this.head.timestamp.valueOf() < Date.now() - MAX_SYNCED_AGE_MS) {
+    const maxSyncedAgeMs =
+      this.consensus.parameters.maxSyncedAgeBlocks *
+      this.consensus.parameters.targetBlockTimeInSeconds *
+      1000
+    if (this.head.timestamp.valueOf() < Date.now() - maxSyncedAgeMs) {
       return
     }
 

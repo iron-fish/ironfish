@@ -10,6 +10,7 @@ import {
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
+import { ConsensusParameters, TestnetConsensus } from './consensus'
 import { MerkleTree } from './merkletree'
 import { NoteLeafEncoding } from './merkletree/database/leaves'
 import { NodeEncoding } from './merkletree/database/nodes'
@@ -58,6 +59,15 @@ async function makeStrategyTree({
 }
 
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T
+
+const consensusParameters: ConsensusParameters = {
+  allowedBlockFutureSeconds: 15,
+  genesisSupplyInIron: 42000000,
+  targetBlockTimeInSeconds: 60,
+  maxSyncedAgeBlocks: 60,
+  targetBucketTimeInSeconds: 10,
+  maxBlockSizeBytes: 2000000,
+}
 
 /**
  * Tests whether it's possible to create a miner reward and transfer those funds
@@ -153,7 +163,10 @@ describe('Demonstrate the Sapling API', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
       const workerPool = new WorkerPool()
-      const strategy = new Strategy(workerPool)
+      const strategy = new Strategy({
+        workerPool,
+        consensus: new TestnetConsensus(consensusParameters),
+      })
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       expect(minersFee['transactionPosted']).toBeNull()
@@ -163,7 +176,11 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Holds a posted transaction if a reference is taken', async () => {
       // Generate a miner's fee transaction
-      const strategy = new Strategy(new WorkerPool())
+      const strategy = new Strategy({
+        workerPool: new WorkerPool(),
+        consensus: new TestnetConsensus(consensusParameters),
+      })
+
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       await minersFee.withReference(async () => {
@@ -183,7 +200,10 @@ describe('Demonstrate the Sapling API', () => {
     it('Does not hold a note if no references are taken', async () => {
       // Generate a miner's fee transaction
       const key = generateKey()
-      const strategy = new Strategy(new WorkerPool())
+      const strategy = new Strategy({
+        workerPool: new WorkerPool(),
+        consensus: new TestnetConsensus(consensusParameters),
+      })
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, key.spending_key)
 
       expect(minersFee['transactionPosted']).toBeNull()

@@ -33,6 +33,12 @@ jobs:
         with:
           shared-key: base
 
+      - name: Check that cargo lockfile is up to date
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --locked
+
       # Build & Run test & Collect Code coverage
       - name: Run cargo-tarpaulin on ironfish-rust
         uses: actions-rs/tarpaulin@v0.1
@@ -62,7 +68,7 @@ jobs:
         name: "Clippy check on ironfish-rust"
         with:
           command: clippy
-          args: --manifest-path ironfish-rust/Cargo.toml -- -D warnings
+          args: --manifest-path ironfish-rust/Cargo.toml --all-targets -- -D warnings
 
   ironfish_rust_nodejs:
     name: ironfish-rust-nodejs
@@ -100,7 +106,7 @@ jobs:
         name: "Clippy check on ironfish-rust-nodejs"
         with:
           command: clippy
-          args: --manifest-path ironfish-rust-nodejs/Cargo.toml -- -D warnings
+          args: --manifest-path ironfish-rust-nodejs/Cargo.toml --all-targets -- -D warnings
 
   ironfish_zkp:
     name: ironfish-zkp
@@ -142,4 +148,4 @@ jobs:
         name: "Clippy check on ironfish-zkp"
         with:
           command: clippy
-          args: --manifest-path ironfish-zkp/Cargo.toml -- -D warnings
+          args: --manifest-path ironfish-zkp/Cargo.toml --all-targets -- -D warnings

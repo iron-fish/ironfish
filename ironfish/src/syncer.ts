@@ -4,13 +4,13 @@
 
 import { Assert } from './assert'
 import { Blockchain } from './blockchain'
-import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from './consensus'
+import { VerificationResultReason } from './consensus'
 import { createRootLogger, Logger } from './logger'
 import { Meter, MetricsMonitor } from './metrics'
 import { RollingAverage } from './metrics/rollingAverage'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
-import { Block } from './primitives/block'
+import { Block, GENESIS_BLOCK_SEQUENCE } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Telemetry } from './telemetry'
 import { ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
@@ -343,40 +343,53 @@ export class Syncer {
 
   private async getBlocks(
     peer: Peer,
+    sequence: number,
     start: Buffer,
     limit: number,
-  ): Promise<{ blocks: Block[]; time: number }> {
+  ): Promise<{ ok: true; blocks: Block[]; time: number } | { ok: false }> {
     this.logger.info(
-      `Requesting ${limit - 1} blocks starting at ${HashUtils.renderHash(start)} from ${
-        peer.displayName
-      }`,
+      `Requesting ${limit - 1} blocks starting at ${HashUtils.renderHash(
+        start,
+      )} (${sequence}) from ${peer.displayName}`,
     )
 
-    return this.peerNetwork.getBlocks(peer, start, limit).catch((e) => {
-      this.logger.warn(
-        `Error while syncing from ${peer.displayName}: ${ErrorUtils.renderError(e)}`,
-      )
+    return this.peerNetwork
+      .getBlocks(peer, start, limit)
+      .then((result): { ok: true; blocks: Block[]; time: number } => {
+        return { ok: true, blocks: result.blocks, time: result.time }
+      })
+      .catch((e) => {
+        this.logger.warn(
+          `Error while syncing from ${peer.displayName}: ${ErrorUtils.renderError(e)}`,
+        )
 
-      peer.close()
-      this.stopSync(peer)
-      return {
-        blocks: [],
-        time: 0,
-      }
-    })
+        return { ok: false }
+      })
   }
 
   async syncBlocks(peer: Peer, head: Buffer, sequence: number): Promise<void> {
     let currentHead = head
     let currentSequence = sequence
 
-    let blocksPromise = this.getBlocks(peer, head, this.blocksPerMessage + 1)
+    let blocksPromise = this.getBlocks(
+      peer,
+      currentSequence,
+      currentHead,
+      this.blocksPerMessage + 1,
+    )
 
     while (currentHead) {
+      const blocksResult = await blocksPromise
+      if (!blocksResult.ok) {
+        peer.close()
+        this.stopSync(peer)
+        return
+      }
+
       const {
         blocks: [headBlock, ...blocks],
         time,
-      } = await blocksPromise
+      } = blocksResult
 
       if (!headBlock) {
         peer.punish(BAN_SCORE.MAX, 'empty GetBlocks message')
@@ -391,13 +404,12 @@ export class Syncer {
       if (blocks.length >= this.blocksPerMessage) {
         const block = blocks.at(-1) || headBlock
 
-        this.logger.info(
-          `Requesting ${this.blocksPerMessage} blocks starting at ${HashUtils.renderHash(
-            head,
-          )} (${currentSequence}) from ${peer.displayName}`,
+        blocksPromise = this.getBlocks(
+          peer,
+          block.header.sequence,
+          block.header.hash,
+          this.blocksPerMessage + 1,
         )
-
-        blocksPromise = this.getBlocks(peer, block.header.hash, this.blocksPerMessage + 1)
       }
 
       for (const addBlock of blocks) {

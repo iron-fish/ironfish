@@ -127,12 +127,14 @@ export class Wallet {
         await this.syncTransaction(transaction, {})
       }
 
+      await this.walletDb.clearSequenceNoteHashes(header.sequence)
+
       await this.updateHeadHashes(header.previousBlockHash)
     })
   }
 
   async updateHead(): Promise<void> {
-    if (this.scan || this.updateHeadState) {
+    if (this.scan || this.updateHeadState || this.accounts.size === 0) {
       return
     }
 
@@ -403,6 +405,16 @@ export class Wallet {
     params: SyncTransactionParams,
     accounts?: Array<Account>,
   ): Promise<void> {
+    if (
+      !('blockHash' in params) &&
+      this.chain.verifier.isExpiredSequence(
+        transaction.expirationSequence(),
+        this.chainProcessor.sequence ?? 1,
+      )
+    ) {
+      return
+    }
+
     const initialNoteIndex = 'initialNoteIndex' in params ? params.initialNoteIndex : null
 
     const decryptedNotesByAccountId = await this.decryptNotes(
@@ -418,7 +430,7 @@ export class Wallet {
     }
   }
 
-  async scanTransactions(): Promise<void> {
+  async scanTransactions(fromHash?: Buffer): Promise<void> {
     if (!this.isOpen) {
       throw new Error('Cannot start a scan if accounts are not loaded')
     }
@@ -435,8 +447,7 @@ export class Wallet {
     // but setting this.scan is our lock so updating the head doesn't run again
     await this.updateHeadState?.wait()
 
-    let startHash = await this.getEarliestHeadHash()
-    let startHeader = startHash ? await this.chain.getHeader(startHash) : null
+    const startHash = await this.getEarliestHeadHash()
 
     const endHash = this.chainProcessor.hash || this.chain.head.hash
     const endHeader = await this.chain.getHeader(endHash)
@@ -460,14 +471,13 @@ export class Wallet {
       }
     }
 
-    if (!startHash) {
-      startHash = this.chain.genesis.hash
-      startHeader = await this.chain.getHeader(startHash)
-    }
+    // Priority: fromHeader > startHeader > genesisBlock
+    const beginHash = fromHash ? fromHash : startHash ? startHash : this.chain.genesis.hash
+    const beginHeader = await this.chain.getHeader(beginHash)
 
     Assert.isNotNull(
-      startHeader,
-      `scanTransactions: No header found for start hash ${startHash.toString('hex')}`,
+      beginHeader,
+      `scanTransactions: No header found for start hash ${beginHash.toString('hex')}`,
     )
 
     Assert.isNotNull(
@@ -475,7 +485,7 @@ export class Wallet {
       `scanTransactions: No header found for end hash ${endHash.toString('hex')}`,
     )
 
-    scan.sequence = startHeader.sequence
+    scan.sequence = beginHeader.sequence
     scan.endSequence = endHeader.sequence
 
     if (scan.isAborted) {
@@ -485,13 +495,13 @@ export class Wallet {
     }
 
     this.logger.info(
-      `Scan starting from earliest found account head hash: ${startHash.toString('hex')}`,
+      `Scan starting from earliest found account head hash: ${beginHash.toString('hex')}`,
     )
     this.logger.info(`Accounts to scan for: ${accounts.map((a) => a.displayName).join(', ')}`)
 
     // Go through every transaction in the chain and add notes that we can decrypt
     for await (const blockHeader of this.chain.iterateBlockHeaders(
-      startHash,
+      beginHash,
       endHash,
       undefined,
       false,

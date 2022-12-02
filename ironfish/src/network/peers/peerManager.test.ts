@@ -36,6 +36,7 @@ import {
   WebRtcConnection,
   WebSocketConnection,
 } from './connections'
+import { BAN_SCORE } from './peer'
 import { PeerManager } from './peerManager'
 
 jest.useFakeTimers()
@@ -215,6 +216,30 @@ describe('PeerManager', () => {
     expect(peer1.state.type).toEqual('DISCONNECTED')
     expect(peer2.state.type).toEqual('DISCONNECTED')
     expect(peer3.state.type).toEqual('DISCONNECTED')
+  })
+
+  describe('banning', () => {
+    it('Should add the peer identity to PeerManager.banned when banPeer is called', () => {
+      const localPeer = mockLocalPeer()
+      const peers = new PeerManager(localPeer, mockHostsStore())
+
+      const { peer } = getConnectedPeer(peers)
+
+      peers.banPeer(peer)
+
+      expect(peers.banned.has(peer.getIdentityOrThrow())).toBe(true)
+    })
+
+    it('Should add the peer identity to PeerManager.banned when punished with BAN_SCORE.MAX', () => {
+      const localPeer = mockLocalPeer()
+      const peers = new PeerManager(localPeer, mockHostsStore())
+
+      const { peer } = getConnectedPeer(peers)
+
+      peer.punish(BAN_SCORE.MAX, 'TESTING')
+
+      expect(peers.banned.has(peer.getIdentityOrThrow())).toBe(true)
+    })
   })
 
   describe('connect', () => {

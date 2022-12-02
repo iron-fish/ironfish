@@ -2,9 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { ENCRYPTED_NOTE_LENGTH, TransactionPosted } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  ASSET_LENGTH,
+  ENCRYPTED_NOTE_LENGTH,
+  PROOF_LENGTH,
+  TransactionPosted,
+} from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
+import { BurnDescription } from './burnDescription'
+import { MintDescription } from './mintDescription'
 import { NoteEncrypted } from './noteEncrypted'
 import { Spend } from './spend'
 
@@ -15,10 +23,13 @@ export type SerializedTransaction = Buffer
 export class Transaction {
   private readonly transactionPostedSerialized: Buffer
 
+  private readonly _version: number
   private readonly _fee: bigint
   private readonly _expirationSequence: number
   private readonly _spends: Spend[] = []
   private readonly _notes: NoteEncrypted[]
+  private readonly _mints: MintDescription[]
+  private readonly _burns: BurnDescription[]
   private readonly _signature: Buffer
   private _hash?: TransactionHash
   private _unsignedHash?: TransactionHash
@@ -31,14 +42,17 @@ export class Transaction {
 
     const reader = bufio.read(this.transactionPostedSerialized, true)
 
+    this._version = reader.readU8() // 1
     const _spendsLength = reader.readU64() // 8
     const _notesLength = reader.readU64() // 8
+    const _mintsLength = reader.readU64() // 8
+    const _burnsLength = reader.readU64() // 8
     this._fee = BigInt(reader.readI64()) // 8
     this._expirationSequence = reader.readU32() // 4
 
     this._spends = Array.from({ length: _spendsLength }, () => {
       // proof
-      reader.seek(192)
+      reader.seek(PROOF_LENGTH)
       // value commitment
       reader.seek(32)
       // randomized public key
@@ -61,9 +75,36 @@ export class Transaction {
 
     this._notes = Array.from({ length: _notesLength }, () => {
       // proof
-      reader.seek(192)
+      reader.seek(PROOF_LENGTH)
 
       return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
+    })
+
+    this._mints = Array.from({ length: _mintsLength }, () => {
+      // proof
+      reader.seek(192)
+
+      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
+      const value = reader.readU8()
+
+      // value commitment
+      reader.seek(32)
+      // randomized public key
+      reader.seek(32)
+      // authorizing signature
+      reader.seek(64)
+
+      return new MintDescription(asset, value)
+    })
+
+    this._burns = Array.from({ length: _burnsLength }, () => {
+      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
+      const value = reader.readU8()
+
+      // value commitment
+      reader.seek(32)
+
+      return new BurnDescription(asset, value)
     })
 
     this._signature = reader.readBytes(64, true)
@@ -71,6 +112,14 @@ export class Transaction {
 
   serialize(): Buffer {
     return this.transactionPostedSerialized
+  }
+
+  /**
+   * The transaction serialization version. This can be incremented when
+   * changes need to be made to the transaction format
+   */
+  version(): number {
+    return this._version
   }
 
   /**

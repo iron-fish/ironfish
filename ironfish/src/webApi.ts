@@ -15,22 +15,6 @@ type FaucetTransaction = {
   completed_at: string | null
 }
 
-export type ApiDepositUpload = {
-  type: 'connected' | 'disconnected' | 'fork'
-  block: {
-    hash: string
-    timestamp: number
-    sequence: number
-  }
-  transactions: {
-    hash: string
-    notes: {
-      memo: string
-      amount: number
-    }[]
-  }[]
-}
-
 export type MaspTransactionTypes = 'MASP_TRANSFER' | 'MASP_BURN' | 'MASP_MINT'
 
 export type ApiMaspUpload = {
@@ -122,13 +106,6 @@ export class WebApi {
     return response?.data.hash || null
   }
 
-  async uploadDeposits(deposits: ApiDepositUpload[]): Promise<void> {
-    this.requireToken()
-
-    const options = this.options({ 'Content-Type': 'application/json' })
-    await axios.post(`${this.host}/deposits`, { operations: deposits }, options)
-  }
-
   async uploadMaspTransactions(maspTransactions: ApiMaspUpload[]): Promise<void> {
     this.requireToken()
 
@@ -155,21 +132,6 @@ export class WebApi {
     const options = this.options({ 'Content-Type': 'application/json' })
 
     await axios.post(`${this.host}/blocks`, { blocks: serialized }, options)
-  }
-
-  async getDepositAddress(): Promise<string> {
-    const response = await axios.get<{ address: string }>(`${this.host}/deposits/address`)
-    return response.data.address
-  }
-
-  async getMinAndMaxDepositSize(): Promise<{ minDepositSize: number; maxDepositSize: number }> {
-    const response = await axios.get<{ min_deposit_size: number; max_deposit_size: number }>(
-      `${this.host}/deposits/min_and_max_deposit_size`,
-    )
-    return {
-      minDepositSize: response.data.min_deposit_size,
-      maxDepositSize: response.data.max_deposit_size,
-    }
   }
 
   async getFunds(data: { email?: string; public_key: string }): Promise<{

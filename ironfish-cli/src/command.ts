@@ -15,8 +15,6 @@ import { Command, Config } from '@oclif/core'
 import { CLIError, ExitError } from '@oclif/core/lib/errors'
 import {
   ConfigFlagKey,
-  DatabaseFlag,
-  DatabaseFlagKey,
   DataDirFlagKey,
   RpcAuthFlagKey,
   RpcTcpHostFlagKey,
@@ -37,7 +35,6 @@ export type SIGNALS = 'SIGTERM' | 'SIGINT' | 'SIGUSR2'
 
 export type FLAGS =
   | typeof DataDirFlagKey
-  | typeof DatabaseFlagKey
   | typeof ConfigFlagKey
   | typeof RpcUseIpcFlagKey
   | typeof RpcUseTcpFlagKey
@@ -110,11 +107,6 @@ export abstract class IronfishCommand extends Command {
 
     const configOverrides: Partial<ConfigOptions> = {}
     const internalOverrides: Partial<InternalOptions> = {}
-
-    const databaseNameFlag = getFlag(flags, DatabaseFlagKey)
-    if (typeof databaseNameFlag === 'string' && databaseNameFlag !== DatabaseFlag.default) {
-      configOverrides.databaseName = databaseNameFlag
-    }
 
     const rpcConnectIpcFlag = getFlag(flags, RpcUseIpcFlagKey)
     if (typeof rpcConnectIpcFlag === 'boolean' && rpcConnectIpcFlag !== RpcUseIpcFlag.default) {

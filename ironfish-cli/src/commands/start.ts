@@ -2,7 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair } from '@ironfish/rust-nodejs'
-import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from '@ironfish/sdk'
+import {
+  Assert,
+  Blockchain,
+  IronfishNode,
+  NodeUtils,
+  PrivateIdentity,
+  PromiseUtils,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import inspector from 'node:inspector'
 import { v4 as uuid } from 'uuid'
@@ -10,8 +17,6 @@ import { IronfishCommand, SIGNALS } from '../command'
 import {
   ConfigFlag,
   ConfigFlagKey,
-  DatabaseFlag,
-  DatabaseFlagKey,
   DataDirFlag,
   DataDirFlagKey,
   RpcTcpHostFlag,
@@ -39,7 +44,6 @@ export default class Start extends IronfishCommand {
     [VerboseFlagKey]: VerboseFlag,
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
-    [DatabaseFlagKey]: DatabaseFlag,
     [RpcUseIpcFlagKey]: { ...RpcUseIpcFlag, allowNo: true },
     [RpcUseTcpFlagKey]: { ...RpcUseTcpFlag, allowNo: true },
     [RpcTcpTlsFlagKey]: RpcTcpTlsFlag,
@@ -93,6 +97,17 @@ export default class Start extends IronfishCommand {
       allowNo: true,
       description: 'Run migrations when an upgrade is required',
     }),
+    networkId: Flags.integer({
+      char: 'i',
+      default: undefined,
+      description: 'Network ID of an official Iron Fish network to connect to',
+    }),
+    customNetwork: Flags.string({
+      char: 'c',
+      default: undefined,
+      description:
+        'Path to a JSON file containing the network definition of a custom network to connect to',
+    }),
   }
 
   node: IronfishNode | null = null
@@ -121,6 +136,8 @@ export default class Start extends IronfishCommand {
       workers,
       generateNewIdentity,
       upgrade,
+      networkId,
+      customNetwork,
     } = flags
 
     if (bootstrap !== undefined) {
@@ -166,6 +183,18 @@ export default class Start extends IronfishCommand {
       this.sdk.config.setOverride('databaseMigrate', upgrade)
     }
 
+    if (networkId !== undefined && customNetwork !== undefined) {
+      throw new Error(
+        'Cannot specify both the networkId and customNetwork flags at the same time',
+      )
+    }
+    if (networkId !== undefined && networkId !== this.sdk.config.get('networkId')) {
+      this.sdk.config.setOverride('networkId', networkId)
+    }
+    if (customNetwork !== undefined && customNetwork !== this.sdk.config.get('customNetwork')) {
+      this.sdk.config.setOverride('customNetwork', customNetwork)
+    }
+
     if (!this.sdk.internal.get('telemetryNodeId')) {
       this.sdk.internal.set('telemetryNodeId', uuid())
       await this.sdk.internal.save()
@@ -199,6 +228,8 @@ export default class Start extends IronfishCommand {
       return startDoneResolve()
     }
 
+    await this.checkCorruptBlock(node.chain)
+
     const headBlock = await node.chain.getBlock(node.chain.head)
     Assert.isNotNull(headBlock)
     const trees = await node.chain.verifier.verifyConnectedBlock(headBlock)
@@ -220,10 +251,6 @@ export default class Start extends IronfishCommand {
 
     if (node.internal.get('isFirstRun')) {
       await this.firstRun(node)
-    }
-
-    if (!node.wallet.getDefaultAccount()) {
-      await this.setDefaultAccount(node)
     }
 
     await node.start()
@@ -252,6 +279,10 @@ export default class Start extends IronfishCommand {
       this.log('')
       this.log('To help improve Iron Fish, opt in to collecting telemetry by running')
       this.log(` > ironfish config:set ${ENABLE_TELEMETRY_CONFIG_KEY} true`)
+    }
+
+    if (!node.wallet.getDefaultAccount()) {
+      await this.setDefaultAccount(node)
     }
 
     this.log('')
@@ -286,6 +317,22 @@ export default class Start extends IronfishCommand {
       networkIdentity.length > 31
     ) {
       return BoxKeyPair.fromHex(networkIdentity)
+    }
+  }
+
+  async checkCorruptBlock(chain: Blockchain): Promise<void> {
+    const corruptBlockHash = Buffer.from(
+      '00000000000006ce61057e714ede8471d15cc9d19f0ff58eee179cadf3ba1f31',
+      'hex',
+    )
+
+    const hash270446 = await chain.getHashAtSequence(270446)
+
+    if (hash270446?.equals(corruptBlockHash)) {
+      this.log(
+        'Your chain contains a corrupt block at sequence 270446 that contains a double spend.\nYou must run `chain:hardfork` before starting your node.',
+      )
+      this.exit(1)
     }
   }
 }

@@ -3,16 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { FileSystem } from '../fileSystems'
+import { YupUtils } from '../utils'
 import { KeyStore } from './keyStore'
 
 export const DEFAULT_CONFIG_NAME = 'config.json'
-export const DEFAULT_DATABASE_NAME = 'default'
 export const DEFAULT_DATA_DIR = '~/.ironfish'
-export const DEFAULT_WALLET_NAME = 'default'
 export const DEFAULT_WEBSOCKET_PORT = 9033
 export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
 export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/telemetry'
-export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
@@ -40,7 +38,6 @@ export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
-  databaseName: string
   databaseMigrate: boolean
   editor: string
   enableListenP2P: boolean
@@ -121,7 +118,6 @@ export type ConfigOptions = {
    */
   targetPeers: number
   telemetryApi: string
-  accountName: string
 
   /**
    * When the option is true, then each invocation of start command will invoke generation of new identity.
@@ -244,29 +240,23 @@ export type ConfigOptions = {
   feeEstimatorPercentileLow: number
   feeEstimatorPercentileMedium: number
   feeEstimatorPercentileHigh: number
+
+  /**
+   * Network ID of an official Iron Fish network
+   */
+  networkId: number
+
+  /**
+   * Path to a JSON file containing the network definition of a custom network
+   */
+  customNetwork: string
 }
-
-// Matches either an empty string, or a string that has no leading or trailing whitespace.
-const reNoWhitespaceBegEnd = /^[^\s]+(\s+[^\s]+)*$|^$/
-
-// config number value validators
-export const isWholeNumber = yup.number().integer().min(0)
-export const isPort = yup.number().integer().min(1).max(65535)
-export const isPercent = yup.number().min(0).max(100)
-
-// config string value validators
-export const noWhitespaceBegEnd = yup
-  .string()
-  .matches(reNoWhitespaceBegEnd, 'Path should not contain leading or trailing whitespace.')
-
-export const isUrl = yup.string().url('Invalid URL')
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .object({
     bootstrapNodes: yup.array().of(yup.string().defined()),
-    databaseName: yup.string(),
     databaseMigrate: yup.boolean(),
-    editor: noWhitespaceBegEnd,
+    editor: yup.string().trim(),
     enableListenP2P: yup.boolean(),
     enableLogFile: yup.boolean(),
     enableRpc: yup.boolean(),
@@ -277,7 +267,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     enableTelemetry: yup.boolean(),
     enableMetrics: yup.boolean(),
     getFundsApi: yup.string(),
-    ipcPath: noWhitespaceBegEnd,
+    ipcPath: yup.string().trim(),
     miningForce: yup.boolean(),
     logPeerMessages: yup.boolean(),
     // validated separately by logLevelParser
@@ -289,39 +279,40 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     nodeName: yup.string(),
     nodeWorkers: yup.number().integer().min(-1),
     nodeWorkersMax: yup.number().integer().min(-1),
-    p2pSimulateLatency: isWholeNumber,
-    peerPort: isPort,
-    rpcTcpHost: noWhitespaceBegEnd,
-    rpcTcpPort: isPort,
-    tlsKeyPath: noWhitespaceBegEnd,
-    tlsCertPath: noWhitespaceBegEnd,
-    maxPeers: isWholeNumber,
-    minPeers: isWholeNumber,
+    p2pSimulateLatency: YupUtils.isPositiveInteger,
+    peerPort: YupUtils.isPort,
+    rpcTcpHost: yup.string().trim(),
+    rpcTcpPort: YupUtils.isPort,
+    tlsKeyPath: yup.string().trim(),
+    tlsCertPath: yup.string().trim(),
+    maxPeers: YupUtils.isPositiveInteger,
+    minPeers: YupUtils.isPositiveInteger,
     targetPeers: yup.number().integer().min(1),
     telemetryApi: yup.string(),
-    accountName: yup.string(),
     generateNewIdentity: yup.boolean(),
-    defaultTransactionExpirationSequenceDelta: isWholeNumber,
-    blocksPerMessage: isWholeNumber,
-    minerBatchSize: isWholeNumber,
-    minimumBlockConfirmations: isWholeNumber,
+    defaultTransactionExpirationSequenceDelta: YupUtils.isPositiveInteger,
+    blocksPerMessage: YupUtils.isPositiveInteger,
+    minerBatchSize: YupUtils.isPositiveInteger,
+    minimumBlockConfirmations: YupUtils.isPositiveInteger,
     poolName: yup.string(),
     poolAccountName: yup.string(),
     poolBanning: yup.boolean(),
-    poolBalancePercentPayout: isPercent,
-    poolHost: noWhitespaceBegEnd,
-    poolPort: isPort,
+    poolBalancePercentPayout: YupUtils.isPercent,
+    poolHost: yup.string().trim(),
+    poolPort: YupUtils.isPort,
     poolDifficulty: yup.string(),
-    poolAttemptPayoutInterval: isWholeNumber,
-    poolSuccessfulPayoutInterval: isWholeNumber,
-    poolStatusNotificationInterval: isWholeNumber,
-    poolRecentShareCutoff: isWholeNumber,
+    poolAttemptPayoutInterval: YupUtils.isPositiveInteger,
+    poolSuccessfulPayoutInterval: YupUtils.isPositiveInteger,
+    poolStatusNotificationInterval: YupUtils.isPositiveInteger,
+    poolRecentShareCutoff: YupUtils.isPositiveInteger,
     poolDiscordWebhook: yup.string(),
-    poolMaxConnectionsPerIp: isWholeNumber,
+    poolMaxConnectionsPerIp: YupUtils.isPositiveInteger,
     poolLarkWebhook: yup.string(),
     jsonLogs: yup.boolean(),
-    explorerBlocksUrl: isUrl,
-    explorerTransactionsUrl: isUrl,
+    explorerBlocksUrl: YupUtils.isUrl,
+    explorerTransactionsUrl: YupUtils.isUrl,
+    networkId: yup.number().integer().min(0),
+    customNetwork: yup.string().trim(),
   })
   .defined()
 
@@ -337,25 +328,31 @@ export class Config extends KeyStore<ConfigOptions> {
   }
 
   get chainDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'databases', this.get('databaseName'))
+    return this.files.join(this.storage.dataDir, 'databases', 'chain')
   }
 
   get accountDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'accounts', this.get('accountName'))
+    return this.files.join(this.storage.dataDir, 'databases', 'wallet')
   }
 
   get indexDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'indexes', this.get('databaseName'))
+    return this.files.join(this.storage.dataDir, 'databases', 'mined')
   }
 
   get tempDir(): string {
     return this.files.join(this.storage.dataDir, 'temp')
   }
 
+  isBootstrapNodesSet(): boolean {
+    return (
+      this.keysLoaded.has('bootstrapNodes') ||
+      Object.prototype.hasOwnProperty.call(this.overrides, 'bootstrapNodes')
+    )
+  }
+
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
-      bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
-      databaseName: DEFAULT_DATABASE_NAME,
+      bootstrapNodes: [],
       databaseMigrate: false,
       defaultTransactionExpirationSequenceDelta: 15,
       editor: '',
@@ -389,7 +386,6 @@ export class Config extends KeyStore<ConfigOptions> {
       minPeers: 1,
       targetPeers: 50,
       telemetryApi: DEFAULT_TELEMETRY_API,
-      accountName: DEFAULT_WALLET_NAME,
       generateNewIdentity: false,
       blocksPerMessage: 5,
       minerBatchSize: DEFAULT_MINER_BATCH_SIZE,
@@ -414,6 +410,8 @@ export class Config extends KeyStore<ConfigOptions> {
       feeEstimatorPercentileLow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_LOW,
       feeEstimatorPercentileMedium: DEFAULT_FEE_ESTIMATOR_PERCENTILE_MEDIUM,
       feeEstimatorPercentileHigh: DEFAULT_FEE_ESTIMATOR_PERCENTILE_HIGH,
+      networkId: 2,
+      customNetwork: '',
     }
   }
 }

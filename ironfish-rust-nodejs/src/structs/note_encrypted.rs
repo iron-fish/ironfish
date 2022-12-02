@@ -9,12 +9,31 @@ use napi::bindgen_prelude::*;
 use napi::JsBuffer;
 use napi_derive::napi;
 
+use ironfish_rust::merkle_note::NOTE_ENCRYPTION_KEY_SIZE;
+use ironfish_rust::note::ENCRYPTED_NOTE_SIZE;
+use ironfish_rust::serializing::aead::MAC_SIZE;
 use ironfish_rust::MerkleNote;
 
 use crate::to_napi_err;
 
 #[napi]
-pub const ENCRYPTED_NOTE_LENGTH: u32 = 275;
+pub const NOTE_ENCRYPTION_KEY_LENGTH: u32 = NOTE_ENCRYPTION_KEY_SIZE as u32;
+
+#[napi]
+pub const MAC_LENGTH: u32 = MAC_SIZE as u32;
+
+#[napi]
+pub const ENCRYPTED_NOTE_PLAINTEXT_LENGTH: u32 = ENCRYPTED_NOTE_SIZE as u32 + MAC_LENGTH;
+
+#[napi]
+pub const ENCRYPTED_NOTE_LENGTH: u32 =
+    NOTE_ENCRYPTION_KEY_LENGTH + ENCRYPTED_NOTE_PLAINTEXT_LENGTH + 96;
+//  32 value commitment
+//+ 32 note commitment
+//+ 32 ephemeral public key
+//+ 120 encrypted note
+//+ 80 note encryption keys
+//= 296 bytes
 
 #[napi(js_name = "NoteEncrypted")]
 pub struct NativeNoteEncrypted {

@@ -15,12 +15,12 @@
 use super::PublicAddress;
 use crate::{
     errors::IronfishError,
-    serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes, read_scalar, scalar_to_bytes},
+    serializing::{bytes_to_hex, hex_to_bytes, read_scalar},
 };
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
+use group::GroupEncoding;
 use jubjub::SubgroupPoint;
-use rand::{thread_rng, Rng};
 
 use std::io;
 
@@ -44,7 +44,7 @@ impl IncomingViewKey {
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
-            Err(()) => Err(IronfishError::InvalidViewingKey),
+            Err(_) => Err(IronfishError::InvalidViewingKey),
             Ok(bytes) => {
                 if bytes.len() != 32 {
                     Err(IronfishError::InvalidViewingKey)
@@ -71,45 +71,20 @@ impl IncomingViewKey {
 
     /// Viewing key as hexadecimal, for readability.
     pub fn hex_key(&self) -> String {
-        bytes_to_hex(&scalar_to_bytes(&self.view_key))
+        bytes_to_hex(&self.view_key.to_bytes())
     }
 
     /// Even more readable
     pub fn words_key(&self, language_code: &str) -> Result<String, IronfishError> {
         let language = Language::from_language_code(language_code)
             .ok_or(IronfishError::InvalidLanguageEncoding)?;
-        let mnemonic = Mnemonic::from_entropy(&scalar_to_bytes(&self.view_key), language).unwrap();
+        let mnemonic = Mnemonic::from_entropy(&self.view_key.to_bytes(), language).unwrap();
         Ok(mnemonic.phrase().to_string())
     }
 
-    /// Generate a public address from the incoming viewing key, given a specific
-    /// 11 byte diversifier.
-    ///
-    /// This may fail, as not all diversifiers are created equal.
-    ///
-    /// Note: This may need to be public at some point. I'm hoping the client
-    /// API would never have to deal with diversifiers, but I'm not sure, yet.
-    pub fn public_address(&self, diversifier: &[u8; 11]) -> Result<PublicAddress, IronfishError> {
-        PublicAddress::from_view_key(self, diversifier)
-    }
-
-    /// Generate a public address from this key,
-    /// picking a diversifier that is guaranteed to work with it.
-    ///
-    /// This method always succeeds, retrying with a different diversifier if
-    /// one doesn't work.
-    pub fn generate_public_address(&self) -> PublicAddress {
-        let public_address;
-        loop {
-            let mut diversifier_candidate = [0u8; 11];
-            thread_rng().fill(&mut diversifier_candidate);
-
-            if let Ok(key) = self.public_address(&diversifier_candidate) {
-                public_address = key;
-                break;
-            }
-        }
-        public_address
+    /// Generate a public address from the incoming viewing key
+    pub fn public_address(&self) -> PublicAddress {
+        PublicAddress::from_view_key(self)
     }
 
     /// Calculate the shared secret key given the ephemeral public key that was
@@ -131,7 +106,7 @@ impl OutgoingViewKey {
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
-            Err(()) => Err(IronfishError::InvalidViewingKey),
+            Err(_) => Err(IronfishError::InvalidViewingKey),
             Ok(bytes) => {
                 if bytes.len() != 32 {
                     Err(IronfishError::InvalidViewingKey)
@@ -212,10 +187,8 @@ pub(crate) fn shared_secret(
     other_public_key: &SubgroupPoint,
     reference_public_key: &SubgroupPoint,
 ) -> [u8; 32] {
-    let shared_secret = point_to_bytes(&(other_public_key * secret_key))
-        .expect("should be able to convert point to bytes");
-    let reference_bytes =
-        point_to_bytes(reference_public_key).expect("should be able to convert point to bytes");
+    let shared_secret = (other_public_key * secret_key).to_bytes();
+    let reference_bytes = reference_public_key.to_bytes();
 
     let mut hasher = Blake2b::new()
         .hash_length(32)

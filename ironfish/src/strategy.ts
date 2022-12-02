@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { GENESIS_SUPPLY_IN_IRON, IRON_FISH_YEAR_IN_BLOCKS } from './consensus'
+import { Consensus } from './consensus'
 import { Transaction } from './primitives/transaction'
 import { MathUtils } from './utils'
 import { WorkerPool } from './workerPool'
@@ -12,12 +12,14 @@ import { WorkerPool } from './workerPool'
  */
 export class Strategy {
   readonly workerPool: WorkerPool
+  readonly consensus: Consensus
 
   private miningRewardCachedByYear: Map<number, number>
 
-  constructor(workerPool: WorkerPool) {
+  constructor(options: { workerPool: WorkerPool; consensus: Consensus }) {
     this.miningRewardCachedByYear = new Map<number, number>()
-    this.workerPool = workerPool
+    this.workerPool = options.workerPool
+    this.consensus = options.consensus
   }
 
   /**
@@ -26,9 +28,9 @@ export class Strategy {
    * See https://ironfish.network/docs/whitepaper/4_mining#include-the-miner-reward-based-on-coin-emission-schedule
    *
    * Annual coin issuance from mining goes down every year. Year is defined here by the
-   * number of blocks (IRON_FISH_YEAR_IN_BLOCKS)
+   * number of blocks
    *
-   * Given the genesis block supply (GENESIS_SUPPLY_IN_IRON) the formula to calculate
+   * Given the genesis block supply (genesisSupplyInIron) the formula to calculate
    * reward per block is:
    * (genesisSupply / 4) * e ^(-.05 * yearsAfterLaunch)
    * Where e is the natural number e (Euler's number), and -.05 is a decay function constant
@@ -37,17 +39,24 @@ export class Strategy {
    * @returns mining reward (in ORE) per block given the block sequence
    */
   miningReward(sequence: number): number {
-    const yearsAfterLaunch = Math.floor(Number(sequence) / IRON_FISH_YEAR_IN_BLOCKS)
+    if (this.consensus.isActive(this.consensus.V3_DISABLE_MINING_REWARD, sequence)) {
+      return 0
+    }
+
+    const ironFishYearInBlocks =
+      (365 * 24 * 60 * 60) / this.consensus.parameters.targetBlockTimeInSeconds
+    const yearsAfterLaunch = Math.floor(Number(sequence) / ironFishYearInBlocks)
 
     let reward = this.miningRewardCachedByYear.get(yearsAfterLaunch)
     if (reward) {
       return reward
     }
 
-    const annualReward = (GENESIS_SUPPLY_IN_IRON / 4) * Math.E ** (-0.05 * yearsAfterLaunch)
+    const annualReward =
+      (this.consensus.parameters.genesisSupplyInIron / 4) * Math.E ** (-0.05 * yearsAfterLaunch)
 
     reward = this.convertIronToOre(
-      MathUtils.roundBy(annualReward / IRON_FISH_YEAR_IN_BLOCKS, 0.125),
+      MathUtils.roundBy(annualReward / ironFishYearInBlocks, 0.125),
     )
 
     this.miningRewardCachedByYear.set(yearsAfterLaunch, reward)

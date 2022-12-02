@@ -109,7 +109,7 @@ describe('Transactions sendTransaction', () => {
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
       expect.objectContaining({
         message: expect.stringContaining(
-          'Please wait a few seconds for your balance to update and try again',
+          'Your balance is too low. Add funds to your account first',
         ),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
@@ -127,7 +127,7 @@ describe('Transactions sendTransaction', () => {
     await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrowError(
       expect.objectContaining({
         message: expect.stringContaining(
-          'Please wait a few seconds for your balance to update and try again',
+          'Your balance is too low. Add funds to your account first',
         ),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
@@ -176,7 +176,7 @@ describe('Transactions sendTransaction', () => {
     })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS)
-    expect(result.content.hash).toEqual(tx.unsignedHash().toString('hex'))
+    expect(result.content.hash).toEqual(tx.hash().toString('hex'))
   })
 
   it('calls the pay method on the node with multiple recipient', async () => {
@@ -196,7 +196,7 @@ describe('Transactions sendTransaction', () => {
     })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
-    expect(result.content.hash).toEqual(tx.unsignedHash().toString('hex'))
+    expect(result.content.hash).toEqual(tx.hash().toString('hex'))
   })
 
   it('lets you configure the expiration', async () => {

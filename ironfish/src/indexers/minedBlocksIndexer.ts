@@ -128,7 +128,7 @@ export class MinedBlocksIndexer {
               main: true,
               sequence: header.sequence,
               account: account.name,
-              minersFee: Number(header.minersFee),
+              minersFee: Number(block.minersFee.fee()),
             },
             tx,
           )

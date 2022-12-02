@@ -58,13 +58,12 @@ describe('IronfishSdk', () => {
         fileSystem: fileSystem,
       })
 
-      const node = await sdk.node({ databaseName: 'foo' })
+      const node = await sdk.node()
 
       expect(node).toBeInstanceOf(IronfishNode)
       expect(node.files).toBe(fileSystem)
       expect(node.config).toBe(sdk.config)
       expect(node.wallet).toBeInstanceOf(Wallet)
-      expect(node.config.get('databaseName')).toBe('foo')
     })
 
     it('should initialize an SDK with the default dataDir if none is passed in', async () => {
@@ -80,7 +79,7 @@ describe('IronfishSdk', () => {
       expect(sdk.config.dataDir).toBe(expectedDir)
       expect(sdk.config.storage.dataDir).toBe(expectedDir)
 
-      const node = await sdk.node({ databaseName: 'foo' })
+      const node = await sdk.node()
       expect(node.config).toBe(sdk.config)
     })
   })

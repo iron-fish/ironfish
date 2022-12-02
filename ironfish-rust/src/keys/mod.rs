@@ -4,15 +4,14 @@
 
 use crate::errors::IronfishError;
 
-use super::serializing::{
-    bytes_to_hex, hex_to_bytes, point_to_bytes, read_scalar, scalar_to_bytes,
-};
+use super::serializing::{bytes_to_hex, hex_to_bytes, read_scalar};
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use blake2s_simd::Params as Blake2s;
 use group::GroupEncoding;
 use ironfish_zkp::constants::{
-    CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
+    ASSET_KEY_GENERATOR, CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR,
+    SPENDING_KEY_GENERATOR,
 };
 use ironfish_zkp::{ProofGenerationKey, ViewingKey};
 use jubjub::SubgroupPoint;
@@ -29,6 +28,8 @@ pub use view_keys::*;
 mod test;
 
 const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Beanstalk Money ";
+
+pub(crate) type AssetPublicKey = SubgroupPoint;
 
 /// A single private key generates multiple other key parts that can
 /// be used to allow various forms of access to a commitment note:
@@ -51,6 +52,11 @@ pub struct SaplingKey {
     /// `nsk` in the literature. Derived from spending key using a seeded
     /// pseudorandom hash function. Used to construct nullifier_deriving_key
     pub(crate) proof_authorizing_key: jubjub::Fr,
+
+    /// Part of the expanded form of the spending key. Derived from spending key
+    /// using a seeded pseudorandom hash function. Used to construct
+    /// asset_public_key. This is not part of the official Sapling spec.
+    pub(crate) asset_authorization_key: jubjub::Fr,
 
     /// Part of the expanded form of the spending key, as well as being used
     /// directly in the full viewing key. Generally referred to as
@@ -89,11 +95,16 @@ impl SaplingKey {
 
         let proof_authorizing_key =
             jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 1));
+
         let mut outgoing_viewing_key = [0; 32];
         outgoing_viewing_key[0..32].clone_from_slice(&Self::convert_key(spending_key, 2)[0..32]);
         let outgoing_viewing_key = OutgoingViewKey {
             view_key: outgoing_viewing_key,
         };
+
+        let asset_authorization_key =
+            jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 100));
+
         let authorizing_key = SPENDING_KEY_GENERATOR * spend_authorizing_key;
         let nullifier_deriving_key = PROOF_GENERATION_KEY_GENERATOR * proof_authorizing_key;
         let incoming_viewing_key = IncomingViewKey {
@@ -104,6 +115,7 @@ impl SaplingKey {
             spending_key,
             spend_authorizing_key,
             proof_authorizing_key,
+            asset_authorization_key,
             outgoing_viewing_key,
             authorizing_key,
             nullifier_deriving_key,
@@ -121,7 +133,7 @@ impl SaplingKey {
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
-            Err(()) => Err(IronfishError::InvalidPaymentAddress),
+            Err(_) => Err(IronfishError::InvalidPaymentAddress),
             Ok(bytes) => {
                 if bytes.len() != 32 {
                     Err(IronfishError::InvalidPaymentAddress)
@@ -153,7 +165,6 @@ impl SaplingKey {
     /// Note that unlike `new`, this function always successfully returns a value.
     pub fn generate_key() -> Self {
         let spending_key: [u8; 32] = random();
-        // OsRng.fill_bytes(&mut spending_key);
         loop {
             if let Ok(key) = Self::new(spending_key) {
                 return key;
@@ -161,24 +172,9 @@ impl SaplingKey {
         }
     }
 
-    /// Generate a public address from the incoming viewing key, given a specific
-    /// 11 byte diversifier.
-    ///
-    /// This may fail, as not all diversifiers are created equal.
-    ///
-    /// Note: This may need to be public at some point. I'm hoping the client
-    /// API would never have to deal with diversifiers, but I'm not sure, yet.
-    pub fn public_address(&self, diversifier: &[u8; 11]) -> Result<PublicAddress, IronfishError> {
-        PublicAddress::from_key(self, diversifier)
-    }
-
-    /// Generate a public address from this key's incoming viewing key,
-    /// picking a diversifier that is guaranteed to work with it.
-    ///
-    /// This method always succeeds, retrying with a different diversifier if
-    /// one doesn't work
-    pub fn generate_public_address(&self) -> PublicAddress {
-        self.incoming_viewing_key.generate_public_address()
+    /// Generate a public address from the incoming viewing key
+    pub fn public_address(&self) -> PublicAddress {
+        PublicAddress::from_key(self)
     }
 
     // Write a bytes representation of this key to the provided stream
@@ -194,6 +190,18 @@ impl SaplingKey {
     /// Retrieve the private spending key
     pub fn spending_key(&self) -> [u8; 32] {
         self.spending_key
+    }
+
+    /// Retrieve the private asset authorization key used to derive the asset
+    /// public key
+    pub fn asset_authorization_key(&self) -> jubjub::Fr {
+        self.asset_authorization_key
+    }
+
+    /// Retrieve the asset public key associated with the asset authorization
+    /// key
+    pub fn asset_public_key(&self) -> AssetPublicKey {
+        ASSET_KEY_GENERATOR * self.asset_authorization_key
     }
 
     /// Private spending key as hexadecimal. This is slightly
@@ -232,32 +240,6 @@ impl SaplingKey {
             incoming: self.incoming_view_key().clone(),
             outgoing: self.outgoing_view_key().clone(),
         }
-    }
-
-    #[deprecated(note = "I'm not aware that this ever needs to be publicly visible")]
-    /// Retrieve the spend authorizing key
-    pub fn spend_authorizing_key(&self) -> [u8; 32] {
-        scalar_to_bytes(&self.spend_authorizing_key)
-    }
-
-    #[deprecated(note = "I'm not aware that this ever needs to be publicly visible")]
-    /// Retrieve the byte representation of the proof authorizing key
-    pub fn proof_authorizing_key(&self) -> [u8; 32] {
-        scalar_to_bytes(&self.proof_authorizing_key)
-    }
-
-    #[deprecated(note = "I'm not aware that this ever needs to be publicly visible")]
-    /// Retrieve the byte representation of the authorizing key
-    pub fn authorizing_key(&self) -> [u8; 32] {
-        point_to_bytes(&self.authorizing_key)
-            .expect("authorizing key should be convertible to bytes")
-    }
-
-    #[deprecated(note = "I'm not aware that this ever needs to be publicly visible")]
-    /// Retrieve the byte representation of the nullifier_deriving_key
-    pub fn nullifier_deriving_key(&self) -> [u8; 32] {
-        point_to_bytes(&self.nullifier_deriving_key)
-            .expect("nullifier deriving key should be convertible to bytes")
     }
 
     /// Adapter to convert this key to a viewing key for use in sapling

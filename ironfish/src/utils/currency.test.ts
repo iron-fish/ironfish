@@ -59,11 +59,4 @@ describe('CurrencyUtils', () => {
     expect(CurrencyUtils.renderOre(100000000n)).toEqual('100000000')
     expect(CurrencyUtils.renderOre(1n, true)).toEqual('$ORE 1')
   })
-
-  test('isValidIronAmount returns the right value', () => {
-    expect(CurrencyUtils.isValidIron('0.0000000000001')).toBe(false)
-    expect(CurrencyUtils.isValidIron('100000000000000000000000000')).toBe(false)
-    expect(CurrencyUtils.isValidIron('0.00000001')).toBe(true)
-    expect(CurrencyUtils.isValidIron('10.000001')).toBe(true)
-  })
 })

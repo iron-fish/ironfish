@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
-import { BlockSerde } from '../../../primitives/block'
+import { BlockSerde, GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
@@ -173,7 +172,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
 
       return {
         transaction_identifier: {
-          hash: BlockHashSerdeInstance.serialize(transaction.unsignedHash()),
+          hash: BlockHashSerdeInstance.serialize(transaction.hash()),
         },
         operations: [],
         metadata: {

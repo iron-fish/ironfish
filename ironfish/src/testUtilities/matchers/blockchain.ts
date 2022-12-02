@@ -4,7 +4,7 @@
 
 import diff from 'jest-diff'
 import { Blockchain } from '../../blockchain'
-import { Block, BlockSerde } from '../../primitives/block'
+import { Block } from '../../primitives/block'
 import { BlockHash } from '../../primitives/blockheader'
 import { Nullifier } from '../../primitives/nullifier'
 import { makeError, makeResult } from './utils'
@@ -40,18 +40,24 @@ function toEqualNullifier(self: Nullifier, other: Nullifier): jest.CustomMatcher
   return makeError(error, `Expected two serde elements to match, but they didn't`)
 }
 
-function toEqualBlock(self: Block, other: Block): jest.CustomMatcherResult {
-  let error: string | null = null
-
-  if (!BlockSerde.equals(self, other)) {
-    error = `Blocks do not match:\n\nDifference:\n\n${String(diff(self, other))}`
-  }
-
-  return makeError(error, `Expected two blocks to match, but they didn't`)
-}
-
 async function toAddBlock(self: Blockchain, other: Block): Promise<jest.CustomMatcherResult> {
   const result = await self.addBlock(other)
+
+  if (!result.isAdded) {
+    return makeResult(false, `Could not add block: ${String(result.reason)}`)
+  }
+
+  return makeResult(true, `Expected to not add block at ${String(other.header.sequence)}`)
+}
+
+async function toAddDoubleSpendBlock(
+  self: Blockchain,
+  other: Block,
+): Promise<jest.CustomMatcherResult> {
+  // Mock nullifiers to allow creation of a double spend chain
+  const containsMock = jest.spyOn(self.nullifiers, 'contains').mockResolvedValue(false)
+  const result = await self.addBlock(other)
+  containsMock.mockRestore()
 
   if (!result.isAdded) {
     return makeResult(false, `Could not add block: ${String(result.reason)}`)
@@ -63,8 +69,8 @@ async function toAddBlock(self: Blockchain, other: Block): Promise<jest.CustomMa
 expect.extend({
   toEqualHash: toEqualHash,
   toEqualNullifier: toEqualNullifier,
-  toEqualBlock: toEqualBlock,
   toAddBlock: toAddBlock,
+  toAddDoubleSpendBlock: toAddDoubleSpendBlock,
 })
 
 declare global {
@@ -72,8 +78,8 @@ declare global {
     interface Matchers<R> {
       toEqualNullifier(other: Nullifier): R
       toEqualHash(other: BlockHash | null | undefined): R
-      toEqualBlock(block: Block): Promise<R>
       toAddBlock(block: Block): Promise<R>
+      toAddDoubleSpendBlock(block: Block): Promise<R>
     }
   }
 }

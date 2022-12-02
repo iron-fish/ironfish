@@ -6,8 +6,14 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish_rust::transaction::batch_verify_transactions;
-use ironfish_rust::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
-use napi::{bindgen_prelude::*, JsBuffer};
+use ironfish_rust::{
+    MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
+    TRANSACTION_VERSION as TX_VERSION,
+};
+use napi::{
+    bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
+    JsBuffer,
+};
 use napi_derive::napi;
 
 use crate::to_napi_err;
@@ -15,12 +21,19 @@ use crate::to_napi_err;
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendDescription;
 use super::witness::JsWitness;
-use super::ENCRYPTED_NOTE_LENGTH;
+use super::{NativeAsset, ENCRYPTED_NOTE_LENGTH};
+use ironfish_rust::transaction::outputs::PROOF_SIZE;
 
 #[napi(js_name = "TransactionPosted")]
 pub struct NativeTransactionPosted {
     transaction: Transaction,
 }
+
+#[napi]
+pub const PROOF_LENGTH: u32 = PROOF_SIZE;
+
+#[napi]
+pub const TRANSACTION_VERSION: u8 = TX_VERSION;
 
 #[napi]
 impl NativeTransactionPosted {
@@ -168,6 +181,20 @@ impl NativeTransaction {
         };
 
         self.transaction.add_spend(note.note.clone(), &w);
+    }
+
+    /// Mint a new asset with a given value as part of this transaction.
+    #[napi]
+    pub fn mint(&mut self, asset: &NativeAsset, value: BigInt) {
+        let value_u64 = value.get_u64().1;
+        self.transaction.add_mint(asset.asset, value_u64)
+    }
+
+    /// Burn some supply of a given asset and value as part of this transaction.
+    #[napi]
+    pub fn burn(&mut self, asset: &NativeAsset, value: BigInt) {
+        let value_u64 = value.get_u64().1;
+        self.transaction.add_burn(asset.asset, value_u64)
     }
 
     /// Special case for posting a miners fee transaction. Miner fee transactions

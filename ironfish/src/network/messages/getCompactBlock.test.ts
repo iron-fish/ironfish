@@ -31,18 +31,11 @@ describe('GetCompactBlockResponse', () => {
       header: new BlockHeader(
         2,
         Buffer.alloc(32, 2),
-        {
-          commitment: Buffer.alloc(32, 1),
-          size: 1,
-        },
-        {
-          commitment: Buffer.alloc(32, 2),
-          size: 2,
-        },
+        Buffer.alloc(32, 1),
+        Buffer.alloc(32, 2),
         new Target(12),
         BigInt(1),
         new Date(200000),
-        BigInt(0),
         Buffer.alloc(32, 'graffiti1', 'utf8'),
       ),
       transactions: [

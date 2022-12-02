@@ -5,6 +5,14 @@ import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { Blockchain } from './blockchain'
+import { TestnetConsensus } from './consensus'
+import {
+  DEV,
+  isDefaultNetworkId,
+  MAINNET,
+  TESTING,
+  TESTNET_PHASE_2,
+} from './defaultNetworkDefinitions'
 import {
   Config,
   ConfigOptions,
@@ -22,9 +30,11 @@ import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
+import { NetworkDefinition, networkDefinitionSchema } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
 import { RpcServer } from './rpc/server'
+import { IJSON } from './serde'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
@@ -71,6 +81,7 @@ export class IronfishNode {
     privateIdentity,
     hostsStore,
     minedBlocksIndexer,
+    networkId,
   }: {
     pkg: Package
     files: FileSystem
@@ -87,6 +98,7 @@ export class IronfishNode {
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
     minedBlocksIndexer: MinedBlocksIndexer
+    networkId: number
   }) {
     this.files = files
     this.config = config
@@ -122,6 +134,7 @@ export class IronfishNode {
     })
 
     this.peerNetwork = new PeerNetwork({
+      networkId,
       identity: identity,
       agent: Platform.getAgent(pkg),
       port: config.get('peerPort'),
@@ -169,7 +182,6 @@ export class IronfishNode {
 
   static async init({
     pkg: pkg,
-    databaseName,
     dataDir,
     config,
     internal,
@@ -186,7 +198,6 @@ export class IronfishNode {
     config?: Config
     internal?: InternalStore
     autoSeed?: boolean
-    databaseName?: string
     logger?: Logger
     metrics?: MetricsMonitor
     files: FileSystem
@@ -210,10 +221,6 @@ export class IronfishNode {
     const hostsStore = new HostsStore(files, dataDir)
     await hostsStore.load()
 
-    if (databaseName) {
-      config.setOverride('databaseName', databaseName)
-    }
-
     let workers = config.get('nodeWorkers')
     if (workers === -1) {
       workers = os.cpus().length - 1
@@ -225,10 +232,38 @@ export class IronfishNode {
     }
     const workerPool = new WorkerPool({ metrics, numWorkers: workers })
 
-    strategyClass = strategyClass || Strategy
-    const strategy = new strategyClass(workerPool)
-
     metrics = metrics || new MetricsMonitor({ logger })
+
+    let networkDefinitionJSON = ''
+    // Try fetching custom network definition first, if it exists
+    if (config.get('customNetwork') !== '') {
+      networkDefinitionJSON = await files.readFile(files.resolve(config.get('customNetwork')))
+    } else if (config.get('networkId') === 0) {
+      networkDefinitionJSON = TESTING
+    } else if (config.get('networkId') === 1) {
+      networkDefinitionJSON = MAINNET
+    } else if (config.get('networkId') === 2) {
+      networkDefinitionJSON = TESTNET_PHASE_2
+    } else if (config.get('networkId') === 3) {
+      networkDefinitionJSON = DEV
+    }
+
+    const networkDefinition = await networkDefinitionSchema.validate(
+      IJSON.parse(networkDefinitionJSON) as NetworkDefinition,
+    )
+
+    if (config.get('customNetwork') !== '' && isDefaultNetworkId(networkDefinition.id)) {
+      throw Error('Cannot start custom network with a reserved network ID')
+    }
+
+    if (!config.isBootstrapNodesSet()) {
+      config.setOverride('bootstrapNodes', networkDefinition.bootstrapNodes)
+    }
+
+    const consensus = new TestnetConsensus(networkDefinition.consensus)
+
+    strategyClass = strategyClass || Strategy
+    const strategy = new strategyClass({ workerPool, consensus })
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,
@@ -238,6 +273,8 @@ export class IronfishNode {
       autoSeed,
       workerPool,
       files,
+      consensus,
+      genesis: networkDefinition.genesis,
     })
 
     const accountDB = new WalletDB({
@@ -289,6 +326,7 @@ export class IronfishNode {
       privateIdentity,
       hostsStore,
       minedBlocksIndexer,
+      networkId: networkDefinition.id,
     })
   }
 

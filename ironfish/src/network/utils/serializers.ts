@@ -3,13 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio, { sizeVarBytes, sizeVarint } from 'bufio'
 import { Assert } from '../../assert'
-import { Block, CompactBlock, CompactBlockTransaction } from '../../primitives/block'
+import {
+  Block,
+  CompactBlock,
+  CompactBlockTransaction,
+  GRAFFITI_SIZE,
+} from '../../primitives/block'
 import { BlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { Transaction } from '../../primitives/transaction'
 import { BigIntUtils } from '../../utils/bigint'
 
-export const MINERS_FEE_TRANSACTION_SIZE_BYTES = 562
+export const MINERS_FEE_TRANSACTION_SIZE_BYTES = 600
 
 const BLOCK_TRANSACTIONS_LENGTH_BYTES = 2
 
@@ -19,18 +24,13 @@ export function writeBlockHeader(
 ): bufio.StaticWriter | bufio.BufferWriter {
   bw.writeU32(header.sequence)
   bw.writeHash(header.previousBlockHash)
-  bw.writeHash(header.noteCommitment.commitment)
-  bw.writeU32(header.noteCommitment.size)
-  bw.writeHash(header.nullifierCommitment.commitment)
-  bw.writeU32(header.nullifierCommitment.size)
+  bw.writeHash(header.noteCommitment)
+  bw.writeHash(header.transactionCommitment)
   bw.writeBytes(BigIntUtils.toBytesLE(header.target.targetValue, 32))
   bw.writeBytes(BigIntUtils.toBytesLE(header.randomness, 8))
   bw.writeU64(header.timestamp.getTime())
 
-  Assert.isTrue(header.minersFee <= 0)
-  bw.writeBytes(BigIntUtils.toBytesLE(-header.minersFee, 8))
-
-  Assert.isTrue(header.graffiti.byteLength === 32)
+  Assert.isTrue(header.graffiti.byteLength === GRAFFITI_SIZE)
   bw.writeBytes(header.graffiti)
   return bw
 }
@@ -39,30 +39,20 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
   const sequence = reader.readU32()
   const previousBlockHash = reader.readHash()
   const noteCommitment = reader.readHash()
-  const noteCommitmentSize = reader.readU32()
-  const nullifierCommitment = reader.readHash()
-  const nullifierCommitmentSize = reader.readU32()
+  const transactionCommitment = reader.readHash()
   const target = BigIntUtils.fromBytesLE(reader.readBytes(32))
   const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8))
   const timestamp = reader.readU64()
-  const minersFee = -BigIntUtils.fromBytesLE(reader.readBytes(8))
-  const graffiti = reader.readBytes(32)
+  const graffiti = reader.readBytes(GRAFFITI_SIZE)
 
   return new BlockHeader(
     sequence,
     previousBlockHash,
-    {
-      commitment: noteCommitment,
-      size: noteCommitmentSize,
-    },
-    {
-      commitment: nullifierCommitment,
-      size: nullifierCommitmentSize,
-    },
+    noteCommitment,
+    transactionCommitment,
     new Target(target),
     randomness,
     new Date(timestamp),
-    minersFee,
     graffiti,
   )
 }
@@ -71,15 +61,12 @@ export function getBlockHeaderSize(): number {
   let size = 0
   size += 4 // sequence
   size += 32 // previousBlockHash
-  size += 32 // noteCommitment.commitment
-  size += 4 // noteCommitment.size
-  size += 32 // nullifierCommitment.commitment
-  size += 4 // nullifierCommitment.size
+  size += 32 // noteCommitment
+  size += 32 // transactionCommitment
   size += 32 // target
   size += 8 // randomness
   size += 8 // timestamp
-  size += 8 // minersFee
-  size += 32 // graffiti
+  size += GRAFFITI_SIZE // graffiti
   return size
 }
 

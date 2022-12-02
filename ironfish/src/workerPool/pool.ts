@@ -164,6 +164,8 @@ export class WorkerPool {
       expirationSequence,
       spendsWithSerializedNotes,
       receives,
+      [],
+      [],
     )
 
     const response = await this.execute(request).result()

@@ -112,7 +112,7 @@ const handleSingleTransaction = async (
 ): Promise<void> => {
   const hashBuffer = Buffer.from(hash, 'hex')
 
-  const transaction = await account.getTransactionByUnsignedHash(hashBuffer)
+  const transaction = await account.getTransaction(hashBuffer)
 
   if (transaction) {
     await streamTransaction(request, node, account, transaction)

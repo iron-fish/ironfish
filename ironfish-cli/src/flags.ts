@@ -4,7 +4,6 @@
 import {
   DEFAULT_CONFIG_NAME,
   DEFAULT_DATA_DIR,
-  DEFAULT_DATABASE_NAME,
   DEFAULT_USE_RPC_IPC,
   DEFAULT_USE_RPC_TCP,
   DEFAULT_USE_RPC_TLS,
@@ -17,7 +16,6 @@ export const VerboseFlagKey = 'verbose'
 export const ConfigFlagKey = 'config'
 export const ColorFlagKey = 'color'
 export const DataDirFlagKey = 'datadir'
-export const DatabaseFlagKey = 'database'
 export const RpcUseIpcFlagKey = 'rpc.ipc'
 export const RpcUseTcpFlagKey = 'rpc.tcp'
 export const RpcTcpHostFlagKey = 'rpc.tcp.host'
@@ -46,12 +44,6 @@ export const DataDirFlag = Flags.string({
   default: DEFAULT_DATA_DIR,
   description: 'The path to the data dir',
   env: 'IRONFISH_DATA_DIR',
-})
-
-export const DatabaseFlag = Flags.string({
-  char: 'd',
-  default: DEFAULT_DATABASE_NAME,
-  description: 'The name of the database to use',
 })
 
 export const RpcUseIpcFlag = Flags.boolean({
@@ -86,7 +78,6 @@ const localFlags: Record<string, CompletableOptionFlag> = {}
 localFlags[VerboseFlagKey] = VerboseFlag as unknown as CompletableOptionFlag
 localFlags[ConfigFlagKey] = ConfigFlag as unknown as CompletableOptionFlag
 localFlags[DataDirFlagKey] = DataDirFlag as unknown as CompletableOptionFlag
-localFlags[DatabaseFlagKey] = DatabaseFlag as unknown as CompletableOptionFlag
 
 /**
  * These flags should usually be used on any command that starts a node,

@@ -6,13 +6,13 @@ import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import nodeDataChannel from 'node-datachannel'
 import { Assert } from '../../../assert'
-import { MAX_MESSAGE_SIZE } from '../../../consensus'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { ErrorUtils } from '../../../utils'
 import { parseNetworkMessage } from '../../messageRegistry'
 import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
 import { NetworkMessageType } from '../../types'
+import { MAX_MESSAGE_SIZE } from '../../version'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
 
@@ -262,9 +262,9 @@ export class WebRtcConnection extends Connection {
     this.datachannel?.close()
 
     try {
-      this.peer.close()
+      this.peer.destroy()
     } catch (e) {
-      // peer.close() may throw "It seems peer-connection is closed" if the
+      // peer.destroy() may throw "It seems peer-connection is closed" if the
       // peer connection has been disposed already
     }
     this.datachannel = null

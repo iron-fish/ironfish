@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BlockHeader, Target } from '../../primitives'
 import { CompactBlock } from '../../primitives/block'
+import { transactionCommitment } from '../../primitives/blockheader'
 import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
 import { NewBlockV2Message } from './newBlockV2'
 
@@ -34,18 +35,11 @@ describe('NewBlockV2Message', () => {
       header: new BlockHeader(
         2,
         Buffer.alloc(32, 2),
-        {
-          commitment: Buffer.alloc(32, 1),
-          size: 1,
-        },
-        {
-          commitment: Buffer.alloc(32, 2),
-          size: 2,
-        },
+        Buffer.alloc(32, 1),
+        transactionCommitment([transactionA, transactionB]),
         new Target(12),
         BigInt(1),
         new Date(200000),
-        BigInt(0),
         Buffer.alloc(32, 'graffiti1', 'utf8'),
       ),
       transactions: [
