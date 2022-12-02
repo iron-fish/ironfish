@@ -22,7 +22,7 @@ describe('YupUtils', () => {
 
     it('isUrl', () => {
       expect(YupUtils.isUrl.isValidSync('192.168.1.0')).toBe(false)
-      expect(YupUtils.isUrl.isValidSync('https://ironfish.network/')).toBe(true)
+      expect(YupUtils.isUrl.isValidSync('https://ironfish.network')).toBe(true)
     })
 
     it('isPort', () => {
