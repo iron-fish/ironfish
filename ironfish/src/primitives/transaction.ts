@@ -7,6 +7,7 @@ import {
   ASSET_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
   PROOF_LENGTH,
+  PUBLIC_ADDRESS_LENGTH,
   TransactionPosted,
 } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
@@ -26,6 +27,7 @@ export class Transaction {
   private readonly _version: number
   private readonly _fee: bigint
   private readonly _expirationSequence: number
+  private readonly _senderAddress: string
   private readonly _spends: Spend[] = []
   private readonly _notes: NoteEncrypted[]
   private readonly _mints: MintDescription[]
@@ -107,6 +109,9 @@ export class Transaction {
       return new BurnDescription(asset, value)
     })
 
+    // sender address
+    this._senderAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
+
     this._signature = reader.readBytes(64, true)
   }
 
@@ -168,6 +173,10 @@ export class Transaction {
 
   getNote(index: number): NoteEncrypted {
     return this._notes[index]
+  }
+
+  senderAddress(): string {
+    return this._senderAddress
   }
 
   isMinersFee(): boolean {
