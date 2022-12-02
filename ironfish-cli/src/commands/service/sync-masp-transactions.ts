@@ -4,6 +4,7 @@
 import {
   ApiMaspUpload,
   Assert,
+  GENESIS_BLOCK_SEQUENCE,
   GetTransactionStreamResponse,
   MaspTransactionTypes,
   Meter,
@@ -90,15 +91,16 @@ export default class SyncMaspTransactions extends IronfishCommand {
 
     this.log(`Fetching head from ${api.host}`)
     const head = await api.headMaspTransactions()
-    this.log(`Starting from ${head || 'Genesis Block'}`)
 
-    let lastCountedSequence = 0
-
+    let lastCountedSequence: number
     if (head) {
-      this.log(`Starting from head ${head}`)
       const blockInfo = await client.getBlockInfo({ hash: head })
       lastCountedSequence = blockInfo.content.block.sequence
+    } else {
+      lastCountedSequence = GENESIS_BLOCK_SEQUENCE
     }
+
+    this.log(`Starting from block ${lastCountedSequence}: ${head || 'Genesis Block'}`)
 
     const response = this.sdk.client.getTransactionStream({
       incomingViewKey: viewKey,
