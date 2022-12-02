@@ -343,13 +343,6 @@ export class Config extends KeyStore<ConfigOptions> {
     return this.files.join(this.storage.dataDir, 'temp')
   }
 
-  isBootstrapNodesSet(): boolean {
-    return (
-      this.keysLoaded.has('bootstrapNodes') ||
-      Object.prototype.hasOwnProperty.call(this.overrides, 'bootstrapNodes')
-    )
-  }
-
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
       bootstrapNodes: [],

@@ -93,4 +93,24 @@ describe('KeyStore', () => {
     store.set('foo', ' trim me ')
     expect(store.get('foo')).toEqual('trim me')
   })
+
+  it('isSet should return false when default config used', async () => {
+    const dir = getUniqueTestDataDir()
+    const files = await new NodeFileProvider().init()
+
+    // Not set
+    let store = new KeyStore<{ foo: string }>(files, 'store', { foo: '' }, dir)
+    expect(store.isSet('foo')).toBe(false)
+
+    // Set in override
+    store.setOverride('foo', '')
+    expect(store.isSet('foo')).toBe(true)
+
+    // Now its set in the file itself
+    store.set('foo', 'set')
+    await store.save()
+    store = new KeyStore<{ foo: string }>(files, 'store', { foo: '' }, dir)
+    await store.load()
+    expect(store.isSet('foo')).toBe(true)
+  })
 })

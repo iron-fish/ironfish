@@ -256,7 +256,7 @@ export class IronfishNode {
       throw Error('Cannot start custom network with a reserved network ID')
     }
 
-    if (!config.isBootstrapNodesSet()) {
+    if (!config.isSet('bootstrapNodes')) {
       config.setOverride('bootstrapNodes', networkDefinition.bootstrapNodes)
     }
 
