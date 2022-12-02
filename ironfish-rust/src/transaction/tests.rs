@@ -237,7 +237,6 @@ fn test_transaction_created_with_version_1() {
     public_transaction
         .verify()
         .expect("version 1 transactions should be valid");
-
 }
 
 #[test]
@@ -266,5 +265,4 @@ fn test_transaction_version_is_checked() {
     public_transaction
         .verify()
         .expect_err("non version 1 transactions should not be valid");
-
 }

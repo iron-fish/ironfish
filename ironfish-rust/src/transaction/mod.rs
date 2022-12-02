@@ -302,9 +302,7 @@ impl ProposedTransaction {
             .to_state();
 
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
-        hasher
-            .write_u8(self.version)
-            .unwrap();
+        hasher.write_u8(self.version).unwrap();
         hasher
             .write_u32::<LittleEndian>(self.expiration_sequence)
             .unwrap();
@@ -574,9 +572,7 @@ impl Transaction {
             .personal(SIGNATURE_HASH_PERSONALIZATION)
             .to_state();
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
-        hasher
-            .write_u8(self.version)
-            .unwrap();
+        hasher.write_u8(self.version).unwrap();
         hasher
             .write_u32::<LittleEndian>(self.expiration_sequence)
             .unwrap();
