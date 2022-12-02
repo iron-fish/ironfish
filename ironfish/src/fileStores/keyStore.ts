@@ -112,6 +112,7 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
     const previousValue = this.config[key]
 
     Object.assign(this.loaded, { [key]: value })
+    this.keysLoaded.add(key)
 
     if (Object.prototype.hasOwnProperty.call(this.overrides, key)) {
       delete this.overrides[key]
