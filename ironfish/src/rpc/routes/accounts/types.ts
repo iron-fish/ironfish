@@ -25,7 +25,7 @@ export function serializeRpcAccountTransaction(
   transaction: TransactionValue,
 ): RpcAccountTransaction {
   return {
-    hash: transaction.transaction.unsignedHash().toString('hex'),
+    hash: transaction.transaction.hash().toString('hex'),
     isMinersFee: transaction.transaction.isMinersFee(),
     fee: transaction.transaction.fee().toString(),
     blockHash: transaction.blockHash?.toString('hex'),

@@ -138,7 +138,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       request.end({
         receives: transaction.receives,
         fromAccountName: account.name,
-        hash: transactionPosted.unsignedHash().toString('hex'),
+        hash: transactionPosted.hash().toString('hex'),
       })
     } catch (e) {
       if (e instanceof NotEnoughFundsError) {

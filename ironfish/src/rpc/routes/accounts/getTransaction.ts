@@ -71,7 +71,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
 
     const transactionHash = Buffer.from(request.data.hash, 'hex')
 
-    const transaction = await account.getTransactionByUnsignedHash(transactionHash)
+    const transaction = await account.getTransaction(transactionHash)
 
     if (!transaction) {
       return request.end({

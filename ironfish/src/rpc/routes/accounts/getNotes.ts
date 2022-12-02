@@ -49,7 +49,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
       request.stream({
         amount: note.value().toString(),
         memo: note.memo(),
-        transactionHash: transaction.transaction.unsignedHash().toString('hex'),
+        transactionHash: transaction.transaction.hash().toString('hex'),
         spent,
       })
     }
