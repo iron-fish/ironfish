@@ -352,7 +352,7 @@ export class Config extends KeyStore<ConfigOptions> {
       minimumBlockConfirmations: 2,
       minPeers: 1,
       targetPeers: 50,
-
+      telemetryApi: 'https://api.ironfish.network/telemetry',
       generateNewIdentity: false,
       blocksPerMessage: 5,
       minerBatchSize: 25000,
