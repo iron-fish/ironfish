@@ -317,6 +317,11 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .defined()
 
 export class Config extends KeyStore<ConfigOptions> {
+  readonly chainDatabasePath: string
+  readonly accountDatabasePath: string
+  readonly indexDatabasePath: string
+  readonly tempDir: string
+
   constructor(files: FileSystem, dataDir: string, configName?: string) {
     super(
       files,
@@ -325,22 +330,11 @@ export class Config extends KeyStore<ConfigOptions> {
       dataDir,
       ConfigOptionsSchema,
     )
-  }
 
-  get chainDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'databases', 'chain')
-  }
-
-  get accountDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'databases', 'wallet')
-  }
-
-  get indexDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'databases', 'mined')
-  }
-
-  get tempDir(): string {
-    return this.files.join(this.storage.dataDir, 'temp')
+    this.chainDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'chain')
+    this.accountDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'wallet')
+    this.indexDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'mined')
+    this.tempDir = this.files.join(this.storage.dataDir, 'temp')
   }
 
   isBootstrapNodesSet(): boolean {
