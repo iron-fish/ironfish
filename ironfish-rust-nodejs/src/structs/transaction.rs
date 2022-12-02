@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish_rust::transaction::batch_verify_transactions;
-use ironfish_rust::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction};
+use ironfish_rust::{MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction, TRANSACTION_VERSION as TX_VERSION };
 use napi::{
     bindgen_prelude::{i64n, BigInt, Buffer, Env, Object, Result, Undefined},
     JsBuffer,
@@ -28,6 +28,9 @@ pub struct NativeTransactionPosted {
 
 #[napi]
 pub const PROOF_LENGTH: u32 = PROOF_SIZE;
+
+#[napi]
+pub const TRANSACTION_VERSION: u8 = TX_VERSION;
 
 #[napi]
 impl NativeTransactionPosted {

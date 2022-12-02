@@ -208,3 +208,63 @@ fn test_transaction_signature() {
     Signature::read(&mut serialized_signature[..].as_ref())
         .expect("Can deserialize back into a valid Signature");
 }
+
+#[test]
+fn test_transaction_created_with_version_1() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let in_note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET_GENERATOR,
+    );
+    let witness = make_fake_witness(&in_note);
+
+    let mut transaction = ProposedTransaction::new(spender_key);
+    transaction.add_spend(in_note, &witness);
+    transaction.add_output(out_note);
+
+    assert_eq!(transaction.version, 1);
+
+    let public_transaction = transaction
+        .post(None, 1)
+        .expect("should be able to post transaction");
+
+    assert_eq!(public_transaction.version, 1);
+
+    public_transaction
+        .verify()
+        .expect("version 1 transactions should be valid");
+
+}
+
+#[test]
+fn test_transaction_version_is_checked() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let in_note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        40,
+        "",
+        NATIVE_ASSET_GENERATOR,
+    );
+    let witness = make_fake_witness(&in_note);
+
+    let mut transaction = ProposedTransaction::new(spender_key);
+    transaction.add_spend(in_note, &witness);
+    transaction.add_output(out_note);
+
+    transaction.version = 2;
+
+    let public_transaction = transaction
+        .post(None, 1)
+        .expect("should be able to post transaction");
+
+    public_transaction
+        .verify()
+        .expect_err("non version 1 transactions should not be valid");
+
+}

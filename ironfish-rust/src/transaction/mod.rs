@@ -47,6 +47,7 @@ mod value_balances;
 
 const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"Bnsighsh";
 const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
+pub const TRANSACTION_VERSION: u8 = 1;
 
 /// A collection of spend and output proofs that can be signed and verified.
 /// In general, all the spent values should add up to all the output values.
@@ -57,6 +58,10 @@ const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 /// The Transaction, below, contains the serializable version, without any
 /// secret keys or state not needed for verifying.
 pub struct ProposedTransaction {
+    /// The transaction serialization version. This can be incremented when
+    /// changes need to be made to the transaction format
+    version: u8,
+
     /// Builders for the proofs of the individual spends with all values required to calculate
     /// the signatures.
     spends: Vec<SpendBuilder>,
@@ -95,6 +100,7 @@ pub struct ProposedTransaction {
 impl ProposedTransaction {
     pub fn new(spender_key: SaplingKey) -> ProposedTransaction {
         ProposedTransaction {
+            version: TRANSACTION_VERSION,
             spends: vec![],
             outputs: vec![],
             mints: vec![],
@@ -267,6 +273,7 @@ impl ProposedTransaction {
         }
 
         Ok(Transaction {
+            version: self.version,
             expiration_sequence: self.expiration_sequence,
             fee: *self.value_balances.fee(),
             spends: spend_descriptions,
@@ -295,6 +302,9 @@ impl ProposedTransaction {
             .to_state();
 
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
+        hasher
+            .write_u8(self.version)
+            .unwrap();
         hasher
             .write_u32::<LittleEndian>(self.expiration_sequence)
             .unwrap();
@@ -398,6 +408,10 @@ impl ProposedTransaction {
 /// This is the serializable form of a transaction.
 #[derive(Clone)]
 pub struct Transaction {
+    /// The transaction serialization version. This can be incremented when
+    /// changes need to be made to the transaction format
+    version: u8,
+
     /// The balance of total spends - outputs, which is the amount that the miner gets to keep
     fee: i64,
 
@@ -428,6 +442,7 @@ impl Transaction {
     /// This is the main entry-point when reconstructing a serialized transaction
     /// for verifying.
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+        let version = reader.read_u8()?;
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_outputs = reader.read_u64::<LittleEndian>()?;
         let num_mints = reader.read_u64::<LittleEndian>()?;
@@ -458,6 +473,7 @@ impl Transaction {
         let binding_signature = Signature::read(&mut reader)?;
 
         Ok(Transaction {
+            version,
             fee,
             spends,
             outputs,
@@ -471,6 +487,7 @@ impl Transaction {
     /// Store the bytes of this transaction in the given writer. This is used
     /// to serialize transactions to file or network
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        writer.write_u8(self.version)?;
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
@@ -557,6 +574,9 @@ impl Transaction {
             .personal(SIGNATURE_HASH_PERSONALIZATION)
             .to_state();
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
+        hasher
+            .write_u8(self.version)
+            .unwrap();
         hasher
             .write_u32::<LittleEndian>(self.expiration_sequence)
             .unwrap();
@@ -659,6 +679,12 @@ pub fn batch_verify_transactions<'a>(
     let mut mint_verifier = Verifier::<Bls12>::new();
 
     for transaction in transactions {
+        // Currently only support version 1 transactions, the version
+        // field is here for future updates
+        if transaction.version != TRANSACTION_VERSION {
+            return Err(IronfishError::InvalidTransactionVersion);
+        }
+
         // Context to accumulate a signature of all the spends and outputs and
         // guarantee they are part of this transaction, unmodified.
         let mut binding_verification_key = ExtendedPoint::identity();
