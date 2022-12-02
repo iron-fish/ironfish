@@ -113,4 +113,15 @@ describe('KeyStore', () => {
     await store.load()
     expect(store.isSet('foo')).toBe(true)
   })
+
+  it('should save when put', async () => {
+    const dir = getUniqueTestDataDir()
+    const files = await new NodeFileProvider().init()
+
+    const store = new KeyStore<{ foo: string }>(files, 'store', { foo: 'default' }, dir)
+    expect(store.isSet('foo')).toBe(false)
+
+    store.set('foo', 'default')
+    expect(store.isSet('foo')).toBe(true)
+  })
 })
