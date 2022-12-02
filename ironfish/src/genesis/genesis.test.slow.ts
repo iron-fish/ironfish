@@ -66,18 +66,18 @@ describe('Create genesis block', () => {
     const account = await node.wallet.createAccount('test', true)
     const info = {
       timestamp: Date.now(),
-      memo: 'test',
       target: Target.maxTarget(),
       allocations: [
         {
           amount: amountNumber,
           publicAddress: account.publicAddress,
+          memo: 'test',
         },
       ],
     }
 
     // Build the genesis block itself
-    const { block } = await makeGenesisBlock(chain, info, account, node.logger)
+    const { block } = await makeGenesisBlock(chain, info, node.logger)
 
     // Check some parameters on it to make sure they match what's expected.
     expect(block.header.timestamp.valueOf()).toEqual(info.timestamp)

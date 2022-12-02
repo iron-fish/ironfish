@@ -1,15 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { MEMO_LENGTH } from '@ironfish/rust-nodejs'
 import {
   BlockSerde,
   CurrencyUtils,
+  GenesisBlockAllocation,
   GenesisBlockInfo,
   IJSON,
+  isValidPublicAddress,
   makeGenesisBlock,
   Target,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
+import fs from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -25,6 +29,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
       required: false,
       default: 'IronFishGenesisAccount',
       description: 'The name of the account to use for keys to assign the genesis block to',
+      exclusive: ['allocations'],
     }),
     difficulty: Flags.string({
       default: Target.minDifficulty().toString(),
@@ -35,6 +40,13 @@ export default class GenesisBlockCommand extends IronfishCommand {
       required: false,
       default: 'Genesis Block',
       description: 'The memo of the block',
+      exclusive: ['allocations'],
+    }),
+    allocations: Flags.string({
+      required: false,
+      description:
+        'A CSV file with the format address,amount,memo containing genesis block allocations',
+      exclusive: ['account', 'memo'],
     }),
     genesisSupplyInIron: Flags.string({
       char: 'g',
@@ -63,34 +75,117 @@ export default class GenesisBlockCommand extends IronfishCommand {
       this.exit(0)
     }
 
-    let account = null
-    if (flags.account !== null) {
-      account = node.wallet.getAccountByName(flags.account)
-    }
+    const expectedSupply = CurrencyUtils.decodeIron(flags.genesisSupplyInIron)
+    let allocations: GenesisBlockAllocation[]
+    if (flags.allocations) {
+      // If the allocations flag is set, read allocations from a CSV file
+      const csv = await fs.readFile(flags.allocations, 'utf-8')
+      const result = parseAllocationsFile(csv)
 
-    if (account === null) {
-      const name = `IronFishGenesisAccount` // Faucet depends on the name
-      account = await node.wallet.createAccount(name)
-      this.log(`Creating account ${account.name} to assign the genesis block to.`)
+      if (!result.ok) {
+        this.error(result.error)
+      }
+
+      const totalSupply: bigint = result.allocations.reduce((prev, cur) => {
+        return prev + cur.amountInOre
+      }, 0n)
+
+      if (totalSupply !== expectedSupply) {
+        this.error(
+          `Allocations file contains ${totalSupply} $IRON, but --genesisSupplyInIron expects ${flags.genesisSupplyInIron}} $IRON.`,
+        )
+      }
+
+      allocations = result.allocations
+    } else {
+      // If the allocations flag is not set, create a genesis block with supply belonging to --flags.account
+      let account = null
+      if (flags.account !== null) {
+        account = node.wallet.getAccountByName(flags.account)
+      }
+
+      if (account === null) {
+        const name = `IronFishGenesisAccount` // Faucet depends on the name
+        account = await node.wallet.createAccount(name)
+        this.log(`Creating account ${account.name} to assign the genesis block to.`)
+      }
+
+      allocations = [
+        {
+          publicAddress: account.publicAddress,
+          amountInOre: expectedSupply,
+          memo: flags.memo,
+        },
+      ]
     }
 
     const info: GenesisBlockInfo = {
       timestamp: Date.now(),
-      memo: flags.memo,
       target,
-      allocations: [
-        {
-          publicAddress: account.publicAddress,
-          amount: CurrencyUtils.decodeIron(flags.genesisSupplyInIron),
-        },
-      ],
+      allocations,
     }
 
     this.log('\nBuilding a genesis block...')
-    const { block } = await makeGenesisBlock(node.chain, info, account, this.logger)
+    const { block } = await makeGenesisBlock(node.chain, info, this.logger)
 
     this.log(`\nGenesis Block`)
     const serialized = BlockSerde.serialize(block)
     this.log(IJSON.stringify(serialized, '  '))
   }
+}
+
+const parseAllocationsFile = (
+  fileContent: string,
+): { ok: true; allocations: GenesisBlockAllocation[] } | { ok: false; error: string } => {
+  const allocations: GenesisBlockAllocation[] = []
+
+  let lineNum = 0
+  for (const line of fileContent.split(/[\r\n]+/)) {
+    lineNum++
+    if (line.trim().length === 0) {
+      continue
+    }
+
+    const [address, amount, memo, ...rest] = line.split(',').map((v) => v.trim())
+
+    if (rest.length > 0) {
+      return {
+        ok: false,
+        error: `Error on line ${lineNum}: (${line}) contains more than 3 values.`,
+      }
+    }
+
+    // Check address length
+    if (!isValidPublicAddress(address)) {
+      return {
+        ok: false,
+        error: `Error on line ${lineNum}: (${line}) has an invalid public address.`,
+      }
+    }
+
+    // Check amount is a bigint
+    const amountInOre = CurrencyUtils.decodeIron(amount)
+    if (amountInOre < 0) {
+      return {
+        ok: false,
+        error: `Error on line ${lineNum}: (${line}) contains a negative $IRON amount.`,
+      }
+    }
+
+    // Check memo length
+    if (Buffer.from(memo).byteLength > MEMO_LENGTH) {
+      return {
+        ok: false,
+        error: `Error on line ${lineNum}: (${line}) contains a memo with byte length > ${MEMO_LENGTH}.`,
+      }
+    }
+
+    allocations.push({
+      publicAddress: address,
+      amountInOre: amountInOre,
+      memo: memo,
+    })
+  }
+
+  return { ok: true, allocations }
 }
