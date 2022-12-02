@@ -149,4 +149,11 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
 
     return value.split(',').filter(Boolean) as TSchema[T]
   }
+
+  /**
+   * Returns true if the key is set, or false if its value is from the defaults
+   */
+  isSet<T extends keyof TSchema>(key: T): boolean {
+    return this.keysLoaded.has(key) || Object.prototype.hasOwnProperty.call(this.overrides, key)
+  }
 }
