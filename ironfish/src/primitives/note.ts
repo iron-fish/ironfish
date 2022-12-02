@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
+  ASSET_IDENTIFIER_LENGTH,
   MEMO_LENGTH,
   Note as NativeNote,
   PUBLIC_ADDRESS_LENGTH,
@@ -18,7 +19,8 @@ export class Note {
 
   private readonly _value: bigint
   private readonly _memo: Buffer
-  private readonly _asset_identifier: Buffer
+  private readonly _assetIdentifier: Buffer
+  private readonly _sender: string
 
   constructor(noteSerialized: Buffer) {
     this.noteSerialized = noteSerialized
@@ -28,7 +30,7 @@ export class Note {
     // skip owner public address
     reader.seek(PUBLIC_ADDRESS_LENGTH)
 
-    this._asset_identifier = reader.readBytes(32, true)
+    this._assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH, true)
 
     this._value = BigInt(reader.readU64())
 
@@ -36,6 +38,8 @@ export class Note {
     reader.seek(RANDOMNESS_LENGTH)
 
     this._memo = reader.readBytes(MEMO_LENGTH, true)
+
+    this._sender = reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
   }
 
   serialize(): Buffer {
@@ -62,12 +66,16 @@ export class Note {
     return this._value
   }
 
+  senderAddress(): string {
+    return this._sender
+  }
+
   memo(): string {
     return BufferUtils.toHuman(this._memo)
   }
 
   assetIdentifier(): Buffer {
-    return this._asset_identifier
+    return this._assetIdentifier
   }
 
   nullifier(ownerPrivateKey: string, position: bigint): Buffer {

@@ -88,13 +88,14 @@ describe('Demonstrate the Sapling API', () => {
     // Pay the cost of setting up Sapling and the DB outside of any test
     tree = await makeStrategyTree()
     spenderKey = generateKey()
+    receiverKey = generateKey()
   })
 
   describe('Can transact between two accounts', () => {
     it('Can create a miner reward', () => {
       const owner = generateKeyFromPrivateKey(spenderKey.spending_key).public_address
 
-      minerNote = new NativeNote(owner, BigInt(42), '', Asset.nativeIdentifier())
+      minerNote = new NativeNote(owner, BigInt(42), '', Asset.nativeIdentifier(), owner)
 
       const transaction = new NativeTransaction(spenderKey.spending_key)
       transaction.receive(minerNote)
@@ -102,6 +103,9 @@ describe('Demonstrate the Sapling API', () => {
       expect(minerTransaction).toBeTruthy()
       expect(minerTransaction.notesLength()).toEqual(1)
     })
+
+    it('Has miner owner address as the miner reward sender address', () =>
+      expect(minerNote.sender()).toBe(minerNote.owner()))
 
     it('Can verify the miner transaction', () => {
       const serializedTransaction = minerTransaction.serialize()
@@ -130,7 +134,6 @@ describe('Demonstrate the Sapling API', () => {
         throw new Error('Witness should not be null')
       }
       transaction.spend(minerNote, witness)
-
       // Add an output to the transaction
       receiverKey = generateKey()
       const outputNote = new NativeNote(
@@ -138,12 +141,16 @@ describe('Demonstrate the Sapling API', () => {
         BigInt(40),
         '',
         Asset.nativeIdentifier(),
+        minerNote.owner(),
       )
       transaction.receive(outputNote)
 
       publicTransaction = new NativeTransactionPosted(transaction.post(null, BigInt(0)))
       expect(publicTransaction).toBeTruthy()
     })
+
+    it('Has note spender as the transaction sender', () =>
+      expect(transaction.sender()).toBe(minerNote.sender()))
 
     it('Can verify the transaction', async () => {
       expect(publicTransaction.verify()).toBeTruthy()
@@ -280,17 +287,20 @@ describe('Demonstrate the Sapling API', () => {
       transaction.spend(note, witness)
       receiverNote.returnReference()
 
+      const receiverAddress = receiverKey.public_address
       const noteForSpender = new NativeNote(
         spenderKey.public_address,
         BigInt(10),
         '',
         Asset.nativeIdentifier(),
+        receiverAddress,
       )
       const receiverNoteToSelf = new NativeNote(
-        generateKeyFromPrivateKey(receiverKey.spending_key).public_address,
+        receiverAddress,
         BigInt(29),
         '',
         Asset.nativeIdentifier(),
+        receiverAddress,
       )
 
       transaction.receive(noteForSpender)

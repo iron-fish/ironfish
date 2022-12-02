@@ -58,6 +58,7 @@ export async function makeGenesisBlock(
     allocationSum,
     '',
     Asset.nativeIdentifier(),
+    genesisKey.public_address,
   )
 
   // Create a miner's fee transaction for the block.
@@ -73,6 +74,7 @@ export async function makeGenesisBlock(
     BigInt(0),
     '',
     Asset.nativeIdentifier(),
+    minersFeeKey.public_address,
   )
 
   const minersFeeTransaction = new NativeTransaction(minersFeeKey.spending_key)
@@ -137,6 +139,7 @@ export async function makeGenesisBlock(
       BigInt(alloc.amountInOre),
       alloc.memo,
       Asset.nativeIdentifier(),
+      genesisNote.owner(),
     )
     transaction.receive(note)
   }

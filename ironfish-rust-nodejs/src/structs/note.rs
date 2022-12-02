@@ -60,15 +60,12 @@ impl NativeNote {
         value: BigInt,
         memo: String,
         asset_identifier: JsBuffer,
+        sender: String,
     ) -> Result<Self> {
         let value_u64 = value.get_u64().1;
-
         let owner_address = ironfish_rust::PublicAddress::from_hex(&owner).map_err(to_napi_err)?;
-
-        let sender_address_placeholder = ironfish_rust::PublicAddress::from_hex(
-            "8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563",
-        )
-        .map_err(to_napi_err)?;
+        let sender_address =
+            ironfish_rust::PublicAddress::from_hex(&sender).map_err(to_napi_err)?;
 
         let buffer = asset_identifier.into_value()?;
         let asset_identifier_vec = buffer.as_ref();
@@ -82,7 +79,7 @@ impl NativeNote {
                 value_u64,
                 memo,
                 asset_generator,
-                sender_address_placeholder,
+                sender_address,
             ),
         })
     }
@@ -123,6 +120,18 @@ impl NativeNote {
     #[napi]
     pub fn asset_identifier(&self) -> Buffer {
         Buffer::from(&self.note.asset_identifier()[..])
+    }
+
+    /// Sender of the note
+    #[napi]
+    pub fn sender(&self) -> String {
+        self.note.sender().hex_public_address()
+    }
+
+    /// Owner of the note
+    #[napi]
+    pub fn owner(&self) -> String {
+        self.note.owner().hex_public_address()
     }
 
     /// Compute the nullifier for this note, given the private key of its owner.
