@@ -29,7 +29,6 @@ export default class GenesisBlockCommand extends IronfishCommand {
       required: false,
       default: 'IronFishGenesisAccount',
       description: 'The name of the account to use for keys to assign the genesis block to',
-      exclusive: ['allocations'],
     }),
     difficulty: Flags.string({
       default: Target.minDifficulty().toString(),
@@ -40,7 +39,6 @@ export default class GenesisBlockCommand extends IronfishCommand {
       required: false,
       default: 'Genesis Block',
       description: 'The memo of the block',
-      exclusive: ['allocations'],
     }),
     allocations: Flags.string({
       required: false,
@@ -92,7 +90,9 @@ export default class GenesisBlockCommand extends IronfishCommand {
 
       if (totalSupply !== expectedSupply) {
         this.error(
-          `Allocations file contains ${totalSupply} $IRON, but --genesisSupplyInIron expects ${flags.genesisSupplyInIron}} $IRON.`,
+          `Allocations file contains ${CurrencyUtils.encodeIron(
+            totalSupply,
+          )} $IRON, but --genesisSupplyInIron expects ${flags.genesisSupplyInIron} $IRON.`,
         )
       }
 
@@ -151,7 +151,7 @@ const parseAllocationsFile = (
     if (rest.length > 0) {
       return {
         ok: false,
-        error: `Error on line ${lineNum}: (${line}) contains more than 3 values.`,
+        error: `Line ${lineNum}: (${line}) contains more than 3 values.`,
       }
     }
 
@@ -159,7 +159,7 @@ const parseAllocationsFile = (
     if (!isValidPublicAddress(address)) {
       return {
         ok: false,
-        error: `Error on line ${lineNum}: (${line}) has an invalid public address.`,
+        error: `Line ${lineNum}: (${line}) has an invalid public address.`,
       }
     }
 
@@ -168,7 +168,7 @@ const parseAllocationsFile = (
     if (amountInOre < 0) {
       return {
         ok: false,
-        error: `Error on line ${lineNum}: (${line}) contains a negative $IRON amount.`,
+        error: `Line ${lineNum}: (${line}) contains a negative $IRON amount.`,
       }
     }
 
@@ -176,7 +176,7 @@ const parseAllocationsFile = (
     if (Buffer.from(memo).byteLength > MEMO_LENGTH) {
       return {
         ok: false,
-        error: `Error on line ${lineNum}: (${line}) contains a memo with byte length > ${MEMO_LENGTH}.`,
+        error: `Line ${lineNum}: (${line}) contains a memo with byte length > ${MEMO_LENGTH}.`,
       }
     }
 

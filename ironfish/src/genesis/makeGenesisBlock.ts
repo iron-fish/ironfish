@@ -13,6 +13,7 @@ import { Logger } from '../logger'
 import { Block } from '../primitives'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
+import { CurrencyUtils } from '../utils'
 import { GraffitiUtils } from '../utils/graffiti'
 
 export type GenesisBlockAllocation = {
@@ -43,6 +44,7 @@ export async function makeGenesisBlock(
   }
   // Sum the allocations to get the total number of coins
   const allocationSum = info.allocations.reduce((sum, cur) => sum + cur.amountInOre, 0n)
+  const allocationSumInIron = CurrencyUtils.encodeIron(allocationSum)
 
   // Track all of the transactions that will be added to the genesis block
   const transactionList = []
@@ -73,7 +75,7 @@ export async function makeGenesisBlock(
    * An initial transaction generating allocationSum coins from nothing.
    *
    */
-  logger.info(`Generating an initial transaction with ${allocationSum} coins...`)
+  logger.info(`Generating an initial transaction with ${allocationSumInIron} coins...`)
   const initialTransaction = new NativeTransaction(genesisKey.spending_key)
 
   logger.info('  Generating the output...')
@@ -111,14 +113,16 @@ export async function makeGenesisBlock(
    */
   logger.info('Generating a transaction for distributing allocations...')
   const transaction = new NativeTransaction(genesisKey.spending_key)
-  logger.info(`  Generating a spend for ${allocationSum} coins...`)
+  logger.info(`  Generating a spend for ${allocationSumInIron} coins...`)
   transaction.spend(genesisNote, witness)
 
   for (const alloc of info.allocations) {
     logger.info(
-      `  Generating an output for ${alloc.amount} coins for ${alloc.publicAddress}...`,
+      `  Generating an output for ${CurrencyUtils.encodeIron(alloc.amountInOre)} coins for ${
+        alloc.publicAddress
+      }...`,
     )
-    const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), alloc.memo)
+    const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amountInOre), alloc.memo)
     transaction.receive(note)
   }
 
