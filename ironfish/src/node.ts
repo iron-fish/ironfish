@@ -6,13 +6,7 @@ import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { Blockchain } from './blockchain'
 import { TestnetConsensus } from './consensus'
-import {
-  DEV,
-  isDefaultNetworkId,
-  MAINNET,
-  TESTING,
-  TESTNET_PHASE_2,
-} from './defaultNetworkDefinitions'
+import { DEV, isDefaultNetworkId, MAINNET, TESTING } from './defaultNetworkDefinitions'
 import {
   Config,
   ConfigOptions,
@@ -243,8 +237,6 @@ export class IronfishNode {
     } else if (config.get('networkId') === 1) {
       networkDefinitionJSON = MAINNET
     } else if (config.get('networkId') === 2) {
-      networkDefinitionJSON = TESTNET_PHASE_2
-    } else if (config.get('networkId') === 3) {
       networkDefinitionJSON = DEV
     }
 

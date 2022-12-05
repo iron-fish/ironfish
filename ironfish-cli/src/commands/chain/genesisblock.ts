@@ -36,9 +36,10 @@ export default class GenesisBlockCommand extends IronfishCommand {
       default: 'Genesis Block',
       description: 'The memo of the block',
     }),
-    genesisSupplyInIron: Flags.string({
+    genesisSupplyInIron: Flags.integer({
       char: 'g',
       required: true,
+      default: 42000000,
       description: 'The amount of coins in the genesis block',
     }),
   }
