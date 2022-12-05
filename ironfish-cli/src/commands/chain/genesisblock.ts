@@ -163,7 +163,7 @@ const parseAllocationsFile = (
       }
     }
 
-    // Check amount is a bigint
+    // Check amount is positive and decodes as $IRON
     const amountInOre = CurrencyUtils.decodeIron(amount)
     if (amountInOre < 0) {
       return {
