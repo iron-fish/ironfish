@@ -8,6 +8,7 @@ import { Assert } from '../assert'
 import { Consensus } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
+import { Config } from '../fileStores'
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
@@ -84,6 +85,7 @@ export class Blockchain {
   files: FileSystem
   consensus: Consensus
   seedGenesisBlock: SerializedBlock
+  config: Config
 
   synced = false
   opened = false
@@ -174,6 +176,7 @@ export class Blockchain {
     files: FileSystem
     consensus: Consensus
     genesis: SerializedBlock
+    config: Config
   }) {
     const logger = options.logger || createRootLogger()
 
@@ -191,6 +194,7 @@ export class Blockchain {
     this.autoSeed = options.autoSeed ?? true
     this.consensus = options.consensus
     this.seedGenesisBlock = options.genesis
+    this.config = options.config
 
     // Flat Fields
     this.meta = this.db.addStore({
@@ -1352,7 +1356,7 @@ export class Blockchain {
     }
 
     const maxSyncedAgeMs =
-      this.consensus.parameters.maxSyncedAgeBlocks *
+      this.config.get('maxSyncedAgeBlocks') *
       this.consensus.parameters.targetBlockTimeInSeconds *
       1000
     if (this.head.timestamp.valueOf() < Date.now() - maxSyncedAgeMs) {

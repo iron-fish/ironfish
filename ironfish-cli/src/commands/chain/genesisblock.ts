@@ -46,9 +46,10 @@ export default class GenesisBlockCommand extends IronfishCommand {
         'A CSV file with the format address,amountInIron,memo containing genesis block allocations',
       exclusive: ['account', 'memo'],
     }),
-    genesisSupplyInIron: Flags.string({
+    genesisSupplyInIron: Flags.integer({
       char: 'g',
       required: true,
+      default: 42000000,
       description: 'The amount of coins in the genesis block',
     }),
   }

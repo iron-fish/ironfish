@@ -22,9 +22,6 @@ describe('Route chain.getConsensusParameters', () => {
     expect(response.content.targetBlockTimeInSeconds).toEqual(
       routeTest.chain.consensus.parameters.targetBlockTimeInSeconds,
     )
-    expect(response.content.maxSyncedAgeBlocks).toEqual(
-      routeTest.chain.consensus.parameters.maxSyncedAgeBlocks,
-    )
     expect(response.content.targetBucketTimeInSeconds).toEqual(
       routeTest.chain.consensus.parameters.targetBucketTimeInSeconds,
     )

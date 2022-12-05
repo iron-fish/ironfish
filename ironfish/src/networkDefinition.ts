@@ -41,7 +41,6 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
         allowedBlockFutureSeconds: yup.number().integer().defined(),
         genesisSupplyInIron: yup.number().integer().defined(),
         targetBlockTimeInSeconds: yup.number().integer().defined(),
-        maxSyncedAgeBlocks: yup.number().integer().defined(),
         targetBucketTimeInSeconds: yup.number().integer().defined(),
         maxBlockSizeBytes: yup.number().integer().defined(),
       })
