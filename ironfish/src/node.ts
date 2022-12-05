@@ -275,6 +275,7 @@ export class IronfishNode {
       files,
       consensus,
       genesis: networkDefinition.genesis,
+      config,
     })
 
     const accountDB = new WalletDB({

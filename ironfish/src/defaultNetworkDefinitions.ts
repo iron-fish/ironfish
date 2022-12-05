@@ -48,7 +48,6 @@ export const TESTING = `{
       "allowedBlockFutureSeconds": 15,
       "genesisSupplyInIron": 42000000,
       "targetBlockTimeInSeconds": 60,
-      "maxSyncedAgeBlocks": 60,
       "targetBucketTimeInSeconds": 10,
       "maxBlockSizeBytes": 2000000
   }
@@ -63,7 +62,6 @@ export const MAINNET = `
         "allowedBlockFutureSeconds": 15,
         "genesisSupplyInIron": 42000000,
         "targetBlockTimeInSeconds": 60,
-        "maxSyncedAgeBlocks": 60,
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 2000000
     }
@@ -115,7 +113,6 @@ export const TESTNET_PHASE_2 = `
         "allowedBlockFutureSeconds": 15,
         "genesisSupplyInIron": 42000000,
         "targetBlockTimeInSeconds": 60,
-        "maxSyncedAgeBlocks": 60,
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 2000000
     }
@@ -165,7 +162,6 @@ export const DEV = `
         "allowedBlockFutureSeconds": 15,
         "genesisSupplyInIron": 42000000,
         "targetBlockTimeInSeconds": 60,
-        "maxSyncedAgeBlocks": 60,
         "targetBucketTimeInSeconds": 10,
         "maxBlockSizeBytes": 2000000
     }
