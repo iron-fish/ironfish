@@ -201,12 +201,12 @@ export class Transaction {
     return this._spends[index]
   }
 
-  mints(): Iterable<MintDescription> {
-    return this._mints.values()
+  mints(): Array<MintDescription> {
+    return this._mints
   }
 
-  burns(): Iterable<BurnDescription> {
-    return this._burns.values()
+  burns(): Array<BurnDescription> {
+    return this._burns
   }
 
   /**

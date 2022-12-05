@@ -2,19 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { chain } from 'lodash'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
+import { IronfishNode } from '../node'
+import { Block } from '../primitives'
 import {
   createNodeTest,
   useAccountFixture,
+  useBlockFixture,
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
   useTxFixture,
+  useTxMintsAndBurnsFixture,
   useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { AsyncUtils } from '../utils'
+import { Account } from '../wallet'
+import { Blockchain } from './blockchain'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
@@ -875,5 +883,229 @@ describe('Blockchain', () => {
     await expect(node.chain).toAddBlock(block2)
 
     await node.wallet.updateHead()
+  })
+
+  describe.only('asset updates', () => {
+    async function mintAsset(node: IronfishNode, account: Account, sequence: number, asset: Asset, value: bigint): Promise<Block> {
+        const transaction = await node.wallet.createTransaction(
+          account,
+          [],
+          [
+            { asset, value }
+          ],
+          [],
+          BigInt(0),
+          0,
+        )
+
+      return node.chain.newBlock(
+        [transaction],
+        await node.strategy.createMinersFee(transaction.fee(), sequence, generateKey().spending_key),
+      )
+    }
+
+    async function burnAsset(node: IronfishNode, account: Account, sequence: number, asset: Asset, value: bigint): Promise<Block> {
+      const transaction = await node.wallet.createTransaction(
+        account,
+        [],
+        [],
+        [
+          { asset, value }
+        ],
+        BigInt(0),
+        0,
+      )
+
+      return node.chain.newBlock(
+        [transaction],
+        await node.strategy.createMinersFee(BigInt(0), sequence, generateKey().spending_key),
+      )
+    }
+
+    describe('with a mint description', () => {
+      it('upserts an asset to the database', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const value = BigInt(10)
+
+        const block = await mintAsset(node, account, 2, asset, value)
+        await expect(node.chain).toAddBlock(block)
+
+        const transactions = block.transactions
+        expect(transactions).toHaveLength(2)
+        const mintTransaction = transactions[1]
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toEqual({
+          createdTransactionHash: mintTransaction.hash(),
+          metadata: asset.metadata(),
+          name: asset.name(),
+          nonce: asset.nonce(),
+          owner: asset.owner(),
+          supply: value,
+        })
+      })
+    })
+
+    describe.only('with a burn description', () => {
+      it('decrements the asset supply from the database', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+
+        const mintValue = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        await expect(node.chain).toAddBlock(blockA)
+        await wallet.updateHead()
+
+        const burnValue = BigInt(3)
+        const blockB = await burnAsset(node, account, 3, asset, burnValue)
+        await expect(node.chain).toAddBlock(blockB)
+
+        console.log(Array.from(blockB.transactions[1].notes()))
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toMatchObject({
+          supply: mintValue - burnValue,
+        })
+      })
+    })
+
+    describe('with a subsequent mint', () => {
+      it('should keep the same created transaction hash and increase the supply', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const firstMintValue = BigInt(10)
+
+        const blockA = await mintAsset(node, account, 2, asset, firstMintValue)
+        await expect(node.chain).toAddBlock(blockA)
+        await wallet.updateHead()
+
+        const secondMintValue = BigInt(2)
+        const blockB = await mintAsset(node, account, 3, asset, secondMintValue)
+        await expect(node.chain).toAddBlock(blockB)
+
+        const transactions = blockA.transactions
+        expect(transactions).toHaveLength(2)
+        const firstMintTransaction = transactions[1]
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toEqual({
+          createdTransactionHash: firstMintTransaction.hash(),
+          metadata: asset.metadata(),
+          name: asset.name(),
+          nonce: asset.nonce(),
+          owner: asset.owner(),
+          supply: firstMintValue + secondMintValue,
+        })
+      })
+    })
+
+    describe('when the first mint gets rolled back', () => {
+      it('should delete the asset', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const value = BigInt(10)
+
+        const block = await mintAsset(node, account, 2, asset, value)
+        await expect(node.chain).toAddBlock(block)
+
+        await node.chain.removeBlock(block.header.hash)
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toBeUndefined()
+      })
+    })
+
+    describe('when a subsequent mint gets rolled back', () => {
+      it('should decrement the supply', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const firstMintValue = BigInt(10)
+
+        const blockA = await mintAsset(node, account, 2, asset, firstMintValue)
+        await expect(node.chain).toAddBlock(blockA)
+        await wallet.updateHead()
+
+        const secondMintValue = BigInt(2)
+        const blockB = await mintAsset(node, account, 3, asset, secondMintValue)
+        await expect(node.chain).toAddBlock(blockB)
+
+        await node.chain.removeBlock(blockB.header.hash)
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toMatchObject({
+          supply: firstMintValue,
+        })
+      })
+    })
+
+    describe('when a burn gets rolled back', () => {
+      it('should increase the supply', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+
+        const mintValue = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        await expect(node.chain).toAddBlock(blockA)
+        await wallet.updateHead()
+
+        const burnValue = BigInt(3)
+        const blockB = await burnAsset(node, account, 3, asset, burnValue)
+        await expect(node.chain).toAddBlock(blockB)
+
+        await node.chain.removeBlock(blockB.header.hash)
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toMatchObject({
+          supply: mintValue,
+        })
+      })
+    })
+
+    describe('when burning too much value', () => {
+      it('throws an exception', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+
+        const mintValue = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        await expect(node.chain).toAddBlock(blockA)
+        await wallet.updateHead()
+
+        const burnValue = BigInt(3)
+        const blockB = await burnAsset(node, account, 3, asset, burnValue)
+        await expect(node.chain).toAddBlock(blockB)
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toMatchObject({
+          supply: mintValue - burnValue,
+        })
+      })
+    })
+
+    describe('when rolling back multiple mints and burns', () => {
+      it('adjusts the supply accordingly', () => {})
+    })
   })
 })

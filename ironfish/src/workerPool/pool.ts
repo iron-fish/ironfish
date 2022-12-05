@@ -34,6 +34,7 @@ import {
 } from './tasks/verifyTransactions'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 import { getWorkerPath, Worker } from './worker'
+import { Asset } from '@ironfish/rust-nodejs'
 
 /**
  * Manages the creation of worker threads and distribution of jobs to them.
@@ -141,7 +142,6 @@ export class WorkerPool {
 
   async createTransaction(
     spendKey: string,
-    transactionFee: bigint,
     spends: {
       note: Note
       treeSize: number
@@ -152,6 +152,9 @@ export class WorkerPool {
       }[]
     }[],
     receives: { publicAddress: string; amount: bigint; memo: string }[],
+    mints: { asset: Asset; value: bigint }[],
+    burns: { asset: Asset; value: bigint }[],
+    transactionFee: bigint,
     expirationSequence: number,
   ): Promise<Transaction> {
     const spendsWithSerializedNotes = spends.map((s) => ({
@@ -164,8 +167,8 @@ export class WorkerPool {
       expirationSequence,
       spendsWithSerializedNotes,
       receives,
-      [],
-      [],
+      mints,
+      burns,
     )
 
     const response = await this.execute(request).result()

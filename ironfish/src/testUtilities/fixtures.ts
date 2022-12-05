@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
 import { Assert } from '../assert'
@@ -237,6 +237,8 @@ export async function useTxFixture(
             memo: '',
           },
         ],
+        [],
+        [],
         fee ?? BigInt(0),
         expiration ?? 0,
       )
@@ -305,6 +307,41 @@ export async function useTxSpendsFixture(
   }
 }
 
+export async function useTxMintsAndBurnsFixture(
+  wallet: Wallet,
+  from: Account,
+  mints: {asset: Asset, value: bigint}[],
+  burns: {asset: Asset, value: bigint}[],
+  generate?: FixtureGenerate<Transaction>,
+  fee?: bigint,
+  expiration?: number,
+): Promise<Transaction> {
+  generate =
+    generate ||
+    (() => {
+      return wallet.createTransaction(
+        from,
+        [],
+        mints,
+        burns,
+        fee ?? BigInt(0),
+        expiration ?? 0,
+      )
+    })
+
+  return useFixture(generate, {
+    process: async (tx: Transaction): Promise<void> => {
+      await restoreTransactionFixtureToAccounts(tx, wallet)
+    },
+    serialize: (tx: Transaction): SerializedTransaction => {
+      return tx.serialize()
+    },
+    deserialize: (tx: SerializedTransaction): Transaction => {
+      return new Transaction(tx)
+    },
+  })
+}
+
 /**
  * Produces a block with a transaction that has 1 spend, and 3 notes
  * By default first produces a block with a mining fee to fund the
@@ -354,6 +391,8 @@ export async function useBlockWithTx(
           memo: '',
         },
       ],
+      [],
+      [],
       BigInt(options.fee ?? 1),
       options.expiration ?? 0,
     )
@@ -406,6 +445,8 @@ export async function useBlockWithTxs(
             memo: '',
           },
         ],
+        [],
+        [],
         BigInt(1),
         0,
       )

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -669,6 +669,8 @@ export class Wallet {
     const transaction = await this.createTransaction(
       sender,
       receives,
+      [],
+      [],
       transactionFee,
       expirationSequence,
     )
@@ -689,6 +691,8 @@ export class Wallet {
   async createTransaction(
     sender: Account,
     receives: { publicAddress: string; amount: bigint; memo: string }[],
+    mints: { asset: Asset; value: bigint }[],
+    burns: { asset: Asset; value: bigint }[],
     transactionFee: bigint,
     expirationSequence: number,
   ): Promise<Transaction> {
@@ -714,7 +718,6 @@ export class Wallet {
 
       return this.workerPool.createTransaction(
         sender.spendingKey,
-        transactionFee,
         notesToSpend.map((n) => ({
           note: n.note,
           treeSize: n.witness.treeSize(),
@@ -722,6 +725,9 @@ export class Wallet {
           rootHash: n.witness.rootHash,
         })),
         receives,
+        mints,
+        burns,
+        transactionFee,
         expirationSequence,
       )
     } finally {
