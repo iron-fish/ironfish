@@ -230,6 +230,11 @@ export type ConfigOptions = {
    * Path to a JSON file containing the network definition of a custom network
    */
   customNetwork: string
+
+  /**
+   * The oldest the tip should be before we consider the chain synced
+   */
+  maxSyncedAgeBlocks: number
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -293,6 +298,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     explorerTransactionsUrl: YupUtils.isUrl,
     networkId: yup.number().integer().min(0),
     customNetwork: yup.string().trim(),
+    maxSyncedAgeBlocks: yup.number().integer().min(0),
   })
   .defined()
 
@@ -379,6 +385,7 @@ export class Config extends KeyStore<ConfigOptions> {
       feeEstimatorPercentileHigh: 30,
       networkId: 2,
       customNetwork: '',
+      maxSyncedAgeBlocks: 60,
     }
   }
 }

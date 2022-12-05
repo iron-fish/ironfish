@@ -20,11 +20,6 @@ export type ConsensusParameters = {
   targetBlockTimeInSeconds: number
 
   /**
-   * The oldest the tip should be before we consider the chain synced
-   */
-  maxSyncedAgeBlocks: number
-
-  /**
    * The time range when difficulty and target not change
    */
   targetBucketTimeInSeconds: number

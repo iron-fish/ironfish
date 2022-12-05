@@ -9,7 +9,6 @@ interface ConsensusParameters {
   allowedBlockFuturesSeconds: number
   genesisSupplyInIron: number
   targetBlockTimeInSeconds: number
-  maxSyncedAgeBlocks: number
   targetBucketTimeInSeconds: number
   maxBlockSizeBytes: number
 }
@@ -26,7 +25,6 @@ export const GetConsensusParametersResponseSchema: yup.ObjectSchema<GetConsensus
       allowedBlockFuturesSeconds: yup.number().defined(),
       genesisSupplyInIron: yup.number().defined(),
       targetBlockTimeInSeconds: yup.number().defined(),
-      maxSyncedAgeBlocks: yup.number().defined(),
       targetBucketTimeInSeconds: yup.number().defined(),
       maxBlockSizeBytes: yup.number().defined(),
     })
@@ -44,7 +42,6 @@ router.register<typeof GetConsensusParametersRequestSchema, GetConsensusParamete
       allowedBlockFuturesSeconds: consensusParameters.allowedBlockFutureSeconds,
       genesisSupplyInIron: consensusParameters.genesisSupplyInIron,
       targetBlockTimeInSeconds: consensusParameters.targetBlockTimeInSeconds,
-      maxSyncedAgeBlocks: consensusParameters.maxSyncedAgeBlocks,
       targetBucketTimeInSeconds: consensusParameters.targetBucketTimeInSeconds,
       maxBlockSizeBytes: consensusParameters.maxBlockSizeBytes,
     })
