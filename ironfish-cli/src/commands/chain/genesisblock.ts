@@ -43,7 +43,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     allocations: Flags.string({
       required: false,
       description:
-        'A CSV file with the format address,amount,memo containing genesis block allocations',
+        'A CSV file with the format address,amountInIron,memo containing genesis block allocations',
       exclusive: ['account', 'memo'],
     }),
     genesisSupplyInIron: Flags.string({
@@ -146,7 +146,7 @@ const parseAllocationsFile = (
       continue
     }
 
-    const [address, amount, memo, ...rest] = line.split(',').map((v) => v.trim())
+    const [address, amountInIron, memo, ...rest] = line.split(',').map((v) => v.trim())
 
     if (rest.length > 0) {
       return {
@@ -164,7 +164,7 @@ const parseAllocationsFile = (
     }
 
     // Check amount is positive and decodes as $IRON
-    const amountInOre = CurrencyUtils.decodeIron(amount)
+    const amountInOre = CurrencyUtils.decodeIron(amountInIron)
     if (amountInOre < 0) {
       return {
         ok: false,
