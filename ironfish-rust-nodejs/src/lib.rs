@@ -45,7 +45,7 @@ pub fn generate_key() -> Key {
 }
 
 #[napi]
-pub fn generate_new_public_address(private_key: String) -> Result<Key> {
+pub fn generate_public_address(private_key: String) -> Result<Key> {
     let sapling_key = SaplingKey::from_hex(&private_key).map_err(to_napi_err)?;
 
     Ok(Key {
