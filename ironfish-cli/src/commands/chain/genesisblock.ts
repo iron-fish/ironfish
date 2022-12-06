@@ -12,7 +12,7 @@ import {
   makeGenesisBlock,
   Target,
 } from '@ironfish/sdk'
-import { Flags } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -51,6 +51,11 @@ export default class GenesisBlockCommand extends IronfishCommand {
       required: true,
       default: '42000000',
       description: 'The amount of coins in the genesis block',
+    }),
+    dryRun: Flags.boolean({
+      char: 'd',
+      default: false,
+      description: 'Display genesis block allocations without creating the genesis block',
     }),
   }
 
@@ -126,6 +131,53 @@ export default class GenesisBlockCommand extends IronfishCommand {
       allocations,
     }
 
+    // Log genesis block info
+    this.log(`Genesis block will be created with the following values:`)
+    this.log(`\nDifficulty: ${target.toDifficulty()}\n`)
+    this.log(`Allocations:`)
+    const columns: CliUx.Table.table.Columns<GenesisBlockAllocation> = {
+      identity: {
+        header: 'ADDRESS',
+        get: (row: GenesisBlockAllocation) => row.publicAddress,
+      },
+      amount: {
+        header: 'AMOUNT ($IRON)',
+        get: (row: GenesisBlockAllocation) => {
+          return CurrencyUtils.encodeIron(row.amountInOre)
+        },
+      },
+      memo: {
+        header: 'MEMO',
+        get: (row: GenesisBlockAllocation) => row.memo,
+      },
+    }
+
+    CliUx.ux.table(info.allocations, columns, {
+      printLine: (line) => this.log(line),
+    })
+
+    // Display duplicates if they exist
+    const duplicates = getDuplicates(allocations)
+    if (duplicates.length > 0) {
+      this.log(
+        `\n/!\\ Allocations contains the following duplicate addresses. This will not cause errors, but may be a mistake. /!\\`,
+      )
+      for (const duplicate of duplicates) {
+        this.log(duplicate)
+      }
+      this.log('\n')
+    }
+
+    // Exit if dry run, otherwise confirm
+    if (flags.dryRun) {
+      this.exit(0)
+    } else {
+      const result = await CliUx.ux.confirm('\nCreate the genesis block? (y)es / (n)o')
+      if (!result) {
+        this.exit(0)
+      }
+    }
+
     this.log('\nBuilding a genesis block...')
     const { block } = await makeGenesisBlock(node.chain, info, this.logger)
 
@@ -133,6 +185,21 @@ export default class GenesisBlockCommand extends IronfishCommand {
     const serialized = BlockSerde.serialize(block)
     this.log(IJSON.stringify(serialized, '  '))
   }
+}
+
+const getDuplicates = (allocations: readonly GenesisBlockAllocation[]): string[] => {
+  const duplicateSet = new Set<string>()
+  const nonDuplicateSet = new Set()
+
+  for (const alloc of allocations) {
+    if (nonDuplicateSet.has(alloc.publicAddress)) {
+      duplicateSet.add(alloc.publicAddress)
+    } else {
+      nonDuplicateSet.add(alloc.publicAddress)
+    }
+  }
+
+  return [...duplicateSet]
 }
 
 const parseAllocationsFile = (
