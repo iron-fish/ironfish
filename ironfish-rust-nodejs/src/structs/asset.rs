@@ -3,7 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ironfish_rust::{
-    assets::asset::{Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, NATIVE_ASSET, NAME_LENGTH, METADATA_LENGTH, OWNER_LENGTH},
+    assets::asset::{
+        Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, METADATA_LENGTH, NAME_LENGTH, NATIVE_ASSET,
+        OWNER_LENGTH,
+    },
     SaplingKey,
 };
 use napi::{
