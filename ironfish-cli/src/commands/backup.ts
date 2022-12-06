@@ -36,11 +36,6 @@ export default class Backup extends IronfishCommand {
       allowNo: true,
       description: 'Export the accounts',
     }),
-    mined: Flags.boolean({
-      default: false,
-      allowNo: true,
-      description: 'Export the mined block index',
-    }),
     accessKeyId: Flags.string({
       char: 'a',
       parse: (input: string) => Promise.resolve(input.trim()),
@@ -101,10 +96,6 @@ export default class Backup extends IronfishCommand {
 
     if (!flags.accounts) {
       excludes.push(path.basename(path.dirname(this.sdk.config.accountDatabasePath)))
-    }
-
-    if (!flags.mined) {
-      excludes.push(path.basename(path.dirname(this.sdk.config.indexDatabasePath)))
     }
 
     await TarUtils.zipDir(source, dest, excludes)
