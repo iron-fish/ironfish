@@ -27,7 +27,7 @@ pub use view_keys::*;
 #[cfg(test)]
 mod test;
 
-const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Beanstalk Money ";
+const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Iron Fish Money ";
 
 pub(crate) type AssetPublicKey = SubgroupPoint;
 
