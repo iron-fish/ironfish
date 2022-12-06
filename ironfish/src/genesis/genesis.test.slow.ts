@@ -7,7 +7,7 @@ import { Target } from '../primitives/target'
 import { IJSON } from '../serde'
 import { createNodeTest } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
-import { makeGenesisBlock } from './makeGenesisBlock'
+import { GenesisBlockInfo, makeGenesisBlock } from './makeGenesisBlock'
 
 describe('Read genesis block', () => {
   const nodeTest = createNodeTest()
@@ -64,20 +64,20 @@ describe('Create genesis block', () => {
 
     // Construct parameters for the genesis block
     const account = await node.wallet.createAccount('test', true)
-    const info = {
+    const info: GenesisBlockInfo = {
       timestamp: Date.now(),
-      memo: 'test',
       target: Target.maxTarget(),
       allocations: [
         {
-          amount: amountNumber,
+          amountInOre: amountNumber,
           publicAddress: account.publicAddress,
+          memo: 'test',
         },
       ],
     }
 
     // Build the genesis block itself
-    const { block } = await makeGenesisBlock(chain, info, account, node.logger)
+    const { block } = await makeGenesisBlock(chain, info, node.logger)
 
     // Check some parameters on it to make sure they match what's expected.
     expect(block.header.timestamp.valueOf()).toEqual(info.timestamp)
