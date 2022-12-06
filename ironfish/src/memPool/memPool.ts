@@ -83,6 +83,10 @@ export class MemPool {
     })
   }
 
+  async start(): Promise<void> {
+    await this.feeEstimator.init(this.chain)
+  }
+
   count(): number {
     return this.transactions.size
   }

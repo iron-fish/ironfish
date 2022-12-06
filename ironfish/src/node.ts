@@ -277,7 +277,7 @@ export class IronfishNode {
       files,
       config,
       internal,
-      wallet: wallet,
+      wallet,
       metrics,
       memPool,
       workerPool,
@@ -300,7 +300,6 @@ export class IronfishNode {
     try {
       await this.chain.open()
       await this.wallet.open()
-      await this.memPool.feeEstimator.init(this.chain)
     } catch (e) {
       await this.chain.close()
       await this.wallet.close()
@@ -335,6 +334,8 @@ export class IronfishNode {
     if (this.config.get('enableRpc')) {
       await this.rpc.start()
     }
+
+    await this.memPool.start()
 
     this.telemetry.submitNodeStarted()
   }
