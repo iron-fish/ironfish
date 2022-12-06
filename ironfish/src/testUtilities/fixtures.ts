@@ -6,11 +6,15 @@ import fs from 'fs'
 import path from 'path'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
+import { NoteWitness } from '../merkletree/witness'
 import { IronfishNode } from '../node'
 import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
+import { Note } from '../primitives/note'
+import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { Account, AccountValue, Wallet } from '../wallet'
+import { WorkerPool } from '../workerPool/pool'
 import { getCurrentTestPath } from './utils'
 
 const FIXTURE_FOLDER = '__fixtures__'
@@ -257,6 +261,44 @@ export async function useTxFixture(
   })
 }
 
+export async function useRawTxFixture(
+  chain: Blockchain,
+  pool: WorkerPool,
+  sender: Account,
+  notesToSpend: NoteEncrypted[],
+  receives: { publicAddress: string; amount: bigint; memo: string }[],
+  mints: { asset: Asset; value: bigint }[],
+  burns: { asset: Asset; value: bigint }[],
+): Promise<Transaction> {
+  const spends = await Promise.all(
+    notesToSpend.map(async (n) => {
+      const note = n.decryptNoteForOwner(sender.incomingViewKey)
+      Assert.isNotUndefined(note)
+      const treeIndex = await chain.notes.leavesIndex.get(n.merkleHash())
+      Assert.isNotUndefined(treeIndex)
+      const witness = await chain.notes.witness(treeIndex)
+      Assert.isNotNull(witness)
+
+      return {
+        note,
+        treeSize: witness.treeSize(),
+        authPath: witness.authenticationPath,
+        rootHash: witness.rootHash,
+      }
+    }),
+  )
+
+  return pool.createTransaction(
+    sender.spendingKey,
+    spends,
+    receives,
+    mints,
+    burns,
+    BigInt(0),
+    0,
+  )
+}
+
 export async function useMinersTxFixture(
   wallet: Wallet,
   to?: Account,
@@ -310,8 +352,8 @@ export async function useTxSpendsFixture(
 export async function useTxMintsAndBurnsFixture(
   wallet: Wallet,
   from: Account,
-  mints: {asset: Asset, value: bigint}[],
-  burns: {asset: Asset, value: bigint}[],
+  mints: { asset: Asset; value: bigint }[],
+  burns: { asset: Asset; value: bigint }[],
   generate?: FixtureGenerate<Transaction>,
   fee?: bigint,
   expiration?: number,
@@ -319,14 +361,7 @@ export async function useTxMintsAndBurnsFixture(
   generate =
     generate ||
     (() => {
-      return wallet.createTransaction(
-        from,
-        [],
-        mints,
-        burns,
-        fee ?? BigInt(0),
-        expiration ?? 0,
-      )
+      return wallet.createTransaction(from, [], mints, burns, fee ?? BigInt(0), expiration ?? 0)
     })
 
   return useFixture(generate, {

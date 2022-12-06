@@ -267,14 +267,14 @@ export class CreateTransactionTask extends WorkerTask {
       receives,
       mints,
       burns,
-      transactionFee
+      transactionFee,
     })
     const transaction = new Transaction(spendKey)
     transaction.setExpirationSequence(expirationSequence)
 
     for (const spend of spends) {
       const note = Note.deserialize(spend.note)
-      console.log(note.assetIdentifier())
+      console.log('spend note ident', note.assetIdentifier())
       transaction.spend(
         note,
         new Witness(spend.treeSize, spend.rootHash, spend.authPath, noteHasher),

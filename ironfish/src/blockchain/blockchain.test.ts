@@ -15,6 +15,7 @@ import {
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
+  useRawTxFixture,
   useTxFixture,
   useTxMintsAndBurnsFixture,
   useTxSpendsFixture,
@@ -900,7 +901,7 @@ describe('Blockchain', () => {
 
       return node.chain.newBlock(
         [transaction],
-        await node.strategy.createMinersFee(transaction.fee(), sequence, generateKey().spending_key),
+        await node.strategy.createMinersFee(transaction.fee(), sequence, account.spendingKey),
       )
     }
 
@@ -918,7 +919,7 @@ describe('Blockchain', () => {
 
       return node.chain.newBlock(
         [transaction],
-        await node.strategy.createMinersFee(BigInt(0), sequence, generateKey().spending_key),
+        await node.strategy.createMinersFee(transaction.fee(), sequence, account.spendingKey),
       )
     }
 
@@ -951,7 +952,7 @@ describe('Blockchain', () => {
     })
 
     describe.only('with a burn description', () => {
-      it('decrements the asset supply from the database', async () => {
+      it.skip('decrements the asset supply from the database', async () => {
         const { node } = await nodeTest.createSetup()
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
@@ -970,6 +971,38 @@ describe('Blockchain', () => {
         console.log(Array.from(blockB.transactions[1].notes()))
 
         const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toMatchObject({
+          supply: mintValue - burnValue,
+        })
+      })
+
+      it('foo', async () => {
+        // Setup
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        console.log("ASSET", asset.identifier())
+        console.log("NATIVE", Asset.nativeIdentifier())
+
+        // Mint so we have an existing asset
+        const mintValue = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        await expect(node.chain).toAddBlock(blockA)
+
+        // Burn some value, use previous mint output as spend
+        const burnValue = BigInt(3)
+        let prevNote = blockA.transactions[1].getNote(0)
+        let tx = await useRawTxFixture(node.chain, node.workerPool, account, [prevNote], [], [], [{asset, value: burnValue}])
+        let b = await node.chain.newBlock(
+          [tx],
+          await node.strategy.createMinersFee(BigInt(0), 3, account.spendingKey),
+        )
+        await expect(node.chain).toAddBlock(b)
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        console.log('ma', mintedAsset)
         expect(mintedAsset).toMatchObject({
           supply: mintValue - burnValue,
         })
