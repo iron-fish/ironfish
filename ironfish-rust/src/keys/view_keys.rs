@@ -24,7 +24,7 @@ use jubjub::SubgroupPoint;
 
 use std::io;
 
-const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Beanstalk shared";
+const DIFFIE_HELLMAN_PERSONALIZATION: &[u8; 16] = b"Iron Fish shared";
 
 /// Key that allows someone to view a transaction that you have received.
 ///
@@ -56,8 +56,6 @@ impl IncomingViewKey {
     }
 
     /// Load a key from a string of words to be decoded into bytes.
-    ///
-    /// See https://github.com/BeanstalkNetwork/word-encoding
     pub fn from_words(language_code: &str, value: String) -> Result<Self, IronfishError> {
         let language = Language::from_language_code(language_code)
             .ok_or(IronfishError::InvalidLanguageEncoding)?;
@@ -120,8 +118,6 @@ impl OutgoingViewKey {
     }
 
     /// Load a key from a string of words to be decoded into bytes.
-    ///
-    /// See https://github.com/BeanstalkNetwork/word-encoding
     pub fn from_words(language_code: &str, value: String) -> Result<Self, IronfishError> {
         let language = Language::from_language_code(language_code)
             .ok_or(IronfishError::InvalidLanguageEncoding)?;

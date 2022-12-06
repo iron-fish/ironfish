@@ -45,7 +45,7 @@ pub mod spends;
 mod tests;
 mod value_balances;
 
-const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"Bnsighsh";
+const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"IFsighsh";
 const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 pub const TRANSACTION_VERSION: u8 = 1;
 
