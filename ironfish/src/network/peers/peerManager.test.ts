@@ -73,6 +73,8 @@ describe('PeerManager', () => {
       sequence: 1,
       version: VERSION_PROTOCOL,
       work: BigInt(0),
+      networkId: 0,
+      genesisBlockHash: Buffer.alloc(32, 0),
     })
 
     // Identify peerOut
@@ -741,6 +743,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: 0,
+        genesisBlockHash: Buffer.alloc(32, 0),
       })
       peer.onMessage.emit(identify, connection)
 
@@ -774,6 +778,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL_MIN - 1,
         work: BigInt(0),
+        networkId: 0,
+        genesisBlockHash: Buffer.alloc(32, 0),
       })
       peer.onMessage.emit(identify, connection)
 
@@ -798,6 +804,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: 0,
+        genesisBlockHash: Buffer.alloc(32, 0),
       })
       peer.onMessage.emit(identify, connection)
       expect(closeSpy).toHaveBeenCalled()
@@ -822,6 +830,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: 0,
+        genesisBlockHash: Buffer.alloc(32, 0),
       })
       connection.onMessage.emit(identify)
 
@@ -854,6 +864,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: 0,
+        genesisBlockHash: Buffer.alloc(32, 0),
       })
       connection.onMessage.emit(identify)
 
@@ -892,6 +904,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: 0,
+        genesisBlockHash: Buffer.alloc(32, 0),
       })
       connection.onMessage.emit(identify)
 
@@ -944,6 +958,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: 0,
+        genesisBlockHash: Buffer.alloc(32, 0),
       })
       connection.onMessage.emit(id)
 

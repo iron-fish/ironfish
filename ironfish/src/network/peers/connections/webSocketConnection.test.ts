@@ -32,6 +32,8 @@ describe('WebSocketConnection', () => {
           sequence: 1,
           version: 0,
           work: BigInt(0),
+          networkId: 0,
+          genesisBlockHash: Buffer.alloc(32, 0),
         })
 
         expect(connection.send(message)).toBe(true)

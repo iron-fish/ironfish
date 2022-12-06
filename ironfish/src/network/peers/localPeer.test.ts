@@ -15,6 +15,8 @@ describe('LocalPeer', () => {
         sequence: Number(peer.chain.head.sequence),
         version: peer.version,
         work: peer.chain.head.work,
+        networkId: peer.networkId,
+        genesisBlockHash: peer.chain.genesis.hash,
       })
     })
   })

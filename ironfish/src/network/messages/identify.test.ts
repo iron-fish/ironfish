@@ -15,6 +15,8 @@ describe('IdentifyMessage', () => {
       sequence: 1,
       version: 1,
       work: BigInt('123'),
+      networkId: 0,
+      genesisBlockHash: Buffer.alloc(32, 0),
     })
 
     const buffer = message.serialize()
