@@ -234,14 +234,19 @@ export class Account {
           continue
         }
 
-        const spentNote = await this.getDecryptedNote(spentNoteHash)
+        const spentNote = await this.getDecryptedNote(spentNoteHash, tx)
 
         Assert.isNotUndefined(spentNote)
 
-        await this.walletDb.saveDecryptedNote(this, spentNoteHash, {
-          ...spentNote,
-          spent: true,
-        })
+        await this.walletDb.saveDecryptedNote(
+          this,
+          spentNoteHash,
+          {
+            ...spentNote,
+            spent: true,
+          },
+          tx,
+        )
 
         if (!spentNote.spent) {
           balanceDelta -= spentNote.note.value()
