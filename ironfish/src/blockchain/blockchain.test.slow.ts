@@ -93,6 +93,8 @@ describe('Blockchain', () => {
         const mintValue = BigInt(10)
         const blockA = await mintAsset(node, account, 2, asset, mintValue)
         await expect(node.chain).toAddBlock(blockA)
+        const transactions = blockA.transactions
+        const mintTransaction = transactions[1]
 
         // Burn some value, use previous mint output as spend
         const burnValue = BigInt(3)
@@ -102,6 +104,7 @@ describe('Blockchain', () => {
 
         const mintedAsset = await node.chain.assets.get(asset.identifier())
         expect(mintedAsset).toMatchObject({
+          createdTransactionHash: mintTransaction.hash(),
           supply: mintValue - burnValue,
         })
       })
@@ -114,27 +117,24 @@ describe('Blockchain', () => {
         const account = await useAccountFixture(wallet)
 
         const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-        const firstMintValue = BigInt(10)
 
-        const blockA = await mintAsset(node, account, 2, asset, firstMintValue)
+        const mintValueA = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValueA)
         await expect(node.chain).toAddBlock(blockA)
+        const mintTransactionA = blockA.transactions[1]
 
-        const secondMintValue = BigInt(2)
-        const blockB = await mintAsset(node, account, 3, asset, secondMintValue)
+        const mintValueB = BigInt(2)
+        const blockB = await mintAsset(node, account, 3, asset, mintValueB)
         await expect(node.chain).toAddBlock(blockB)
-
-        const transactions = blockA.transactions
-        expect(transactions).toHaveLength(2)
-        const firstMintTransaction = transactions[1]
 
         const mintedAsset = await node.chain.assets.get(asset.identifier())
         expect(mintedAsset).toEqual({
-          createdTransactionHash: firstMintTransaction.hash(),
+          createdTransactionHash: mintTransactionA.hash(),
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
           owner: asset.owner(),
-          supply: firstMintValue + secondMintValue,
+          supply: mintValueA + mintValueB,
         })
       })
     })
@@ -165,20 +165,20 @@ describe('Blockchain', () => {
         const account = await useAccountFixture(wallet)
 
         const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-        const firstMintValue = BigInt(10)
 
-        const blockA = await mintAsset(node, account, 2, asset, firstMintValue)
+        const mintValueA = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValueA)
         await expect(node.chain).toAddBlock(blockA)
 
-        const secondMintValue = BigInt(2)
-        const blockB = await mintAsset(node, account, 3, asset, secondMintValue)
+        const mintValueB = BigInt(2)
+        const blockB = await mintAsset(node, account, 3, asset, mintValueB)
         await expect(node.chain).toAddBlock(blockB)
 
         await node.chain.removeBlock(blockB.header.hash)
 
         const mintedAsset = await node.chain.assets.get(asset.identifier())
         expect(mintedAsset).toMatchObject({
-          supply: firstMintValue,
+          supply: mintValueA,
         })
       })
     })
@@ -206,6 +206,36 @@ describe('Blockchain', () => {
         expect(mintedAsset).toMatchObject({
           supply: mintValue,
         })
+      })
+    })
+
+    describe('when burning an asset not in the DB', () => {
+      it('throws an exception', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const assetIdentifier = asset.identifier()
+
+        const mintValue = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        await expect(node.chain).toAddBlock(blockA)
+
+        // Perform a hack where we manually delete the asset from the chain
+        // database. This is done so we can check that a burn will throw an
+        // exception if the DB does not have a corresponding asset. Without this
+        // hack, the posted transaction would raise an exception, which is a
+        // separate flow to test for. We should never hit this case; this is a
+        // sanity check.
+        await node.chain.assets.del(assetIdentifier)
+
+        const burnValue = BigInt(3)
+        const noteToBurn = blockA.transactions[1].getNote(0)
+        const blockB = await burnAsset(node, account, 3, asset, burnValue, noteToBurn)
+        await expect(node.chain.addBlock(blockB)).rejects.toThrowError(
+          'Cannot burn undefined asset from the database',
+        )
       })
     })
 
@@ -263,7 +293,7 @@ describe('Blockchain', () => {
         })
 
         // 2. Mint 8
-        const mintValueB = BigInt(10)
+        const mintValueB = BigInt(8)
         const blockB = await mintAsset(node, account, 3, asset, mintValueB)
         await expect(node.chain).toAddBlock(blockB)
         // Check aggregate mint value
@@ -331,7 +361,7 @@ describe('Blockchain', () => {
           createdTransactionHash: blockA.transactions[1].hash(),
           supply: mintValueA + mintValueB - burnValueD,
         })
-      }, 60000)
+      })
     })
   })
 })

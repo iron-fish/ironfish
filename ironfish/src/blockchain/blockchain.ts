@@ -1393,7 +1393,7 @@ export class Blockchain {
     for (const { asset, value } of transaction.burns()) {
       const assetIdentifier = asset.identifier()
       const existingAsset = await this.assets.get(assetIdentifier, tx)
-      Assert.isNotUndefined(existingAsset)
+      Assert.isNotUndefined(existingAsset, 'Cannot burn undefined asset from the database')
 
       const existingSupply = existingAsset.supply
       const supply = existingSupply - value
