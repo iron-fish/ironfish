@@ -400,7 +400,7 @@ export class Account {
   }
 
   async hasTransaction(hash: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
-    return (await this.getTransaction(hash, tx)) !== undefined
+    return this.walletDb.hasTransaction(this, hash, tx)
   }
 
   getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {

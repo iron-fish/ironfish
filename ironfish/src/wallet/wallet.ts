@@ -416,7 +416,12 @@ export class Wallet {
 
     for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
       const account = this.accounts.get(accountId)
-      Assert.isNotUndefined(account, `addPendingTransaction: No account found for ${accountId}`)
+
+      if (!account) {
+        this.logger.warn(`Account ${accountId} removed from wallet during note decryption`)
+        continue
+      }
+
       await account.addPendingTransaction(transaction, decryptedNotes, submittedSequence)
     }
   }
@@ -451,7 +456,11 @@ export class Wallet {
 
     for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
       const account = this.accounts.get(accountId)
-      Assert.isNotUndefined(account, `syncTransaction: No account found for ${accountId}`)
+
+      if (!account) {
+        this.logger.warn(`Account ${accountId} removed from wallet during note decryption`)
+        continue
+      }
       await account.syncTransaction(transaction, decryptedNotes, params)
     }
   }

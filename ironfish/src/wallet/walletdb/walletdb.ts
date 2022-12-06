@@ -321,6 +321,14 @@ export class WalletDB {
     return this.transactions.get([account.prefix, transactionHash], tx)
   }
 
+  async hasTransaction(
+    account: Account,
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    return this.transactions.has([account.prefix, transactionHash], tx)
+  }
+
   async setNoteHashSequence(
     account: Account,
     noteHash: Buffer,
