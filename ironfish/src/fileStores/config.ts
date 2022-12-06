@@ -235,6 +235,8 @@ export type ConfigOptions = {
    * The oldest the tip should be before we consider the chain synced
    */
   maxSyncedAgeBlocks: number
+
+  networkDefinitionPath: string
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -299,6 +301,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     networkId: yup.number().integer().min(0),
     customNetwork: yup.string().trim(),
     maxSyncedAgeBlocks: yup.number().integer().min(0),
+    networkDefinitionPath: yup.string().trim(),
   })
   .defined()
 
@@ -386,6 +389,7 @@ export class Config extends KeyStore<ConfigOptions> {
       networkId: 2,
       customNetwork: '',
       maxSyncedAgeBlocks: 60,
+      networkDefinitionPath: files.resolve(files.join(dataDir, 'network.json')),
     }
   }
 }

@@ -3,7 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ConsensusParameters } from './consensus'
+import {
+  DEV,
+  isDefaultNetworkId,
+  MAINNET,
+  TESTING,
+  TESTNET_PHASE_2,
+} from './defaultNetworkDefinitions'
+import { Config, InternalStore } from './fileStores'
+import { FileSystem } from './fileSystems'
 import { SerializedBlock } from './primitives/block'
+import { IJSON } from './serde'
 
 export type NetworkDefinition = {
   id: number
@@ -47,3 +57,61 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
       .defined(),
   })
   .defined()
+
+export async function getNetworkDefinition(
+  config: Config,
+  internal: InternalStore,
+  files: FileSystem,
+): Promise<NetworkDefinition> {
+  let networkDefinitionJSON = ''
+
+  // Try fetching custom network definition first, if it exists
+  if (config.isSet('customNetwork')) {
+    networkDefinitionJSON = await files.readFile(files.resolve(config.get('customNetwork')))
+  } else {
+    let networkId = internal.get('networkId')
+
+    if (
+      internal.isSet('networkId') &&
+      config.isSet('networkId') &&
+      networkId !== config.get('networkId')
+    ) {
+      throw Error('Network ID flag does not match network ID stored in datadir')
+    }
+
+    if (config.isSet('networkId')) {
+      networkId = config.get('networkId')
+    }
+
+    if (networkId === 0) {
+      networkDefinitionJSON = TESTING
+    } else if (networkId === 1) {
+      networkDefinitionJSON = MAINNET
+    } else if (networkId === 2) {
+      networkDefinitionJSON = DEV
+    } else {
+      networkDefinitionJSON = await files.readFile(config.get('networkDefinitionPath'))
+    }
+  }
+
+  const networkDefinition = await networkDefinitionSchema.validate(
+    IJSON.parse(networkDefinitionJSON) as NetworkDefinition,
+  )
+
+  if (internal.isSet('networkId') && networkDefinition.id !== internal.get('networkId')) {
+    throw Error('Network ID in network definition does not match network ID stored in datadir')
+  }
+
+  if (config.isSet('customNetwork')) {
+    if (isDefaultNetworkId(networkDefinition.id)) {
+      throw Error('Cannot start custom network with a reserved network ID')
+    }
+
+    // Copy custom network definition to data directory for future use
+    await files.writeFile(config.get('networkDefinitionPath'), networkDefinitionJSON)
+  }
+
+  internal.set('networkId', networkDefinition.id)
+
+  return networkDefinition
+}

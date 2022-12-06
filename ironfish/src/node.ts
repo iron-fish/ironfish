@@ -6,7 +6,6 @@ import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { Blockchain } from './blockchain'
 import { TestnetConsensus } from './consensus'
-import { DEV, isDefaultNetworkId, MAINNET, TESTING } from './defaultNetworkDefinitions'
 import {
   Config,
   ConfigOptions,
@@ -24,11 +23,10 @@ import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
-import { NetworkDefinition, networkDefinitionSchema } from './networkDefinition'
+import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
 import { RpcServer } from './rpc/server'
-import { IJSON } from './serde'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
@@ -228,25 +226,7 @@ export class IronfishNode {
 
     metrics = metrics || new MetricsMonitor({ logger })
 
-    let networkDefinitionJSON = ''
-    // Try fetching custom network definition first, if it exists
-    if (config.get('customNetwork') !== '') {
-      networkDefinitionJSON = await files.readFile(files.resolve(config.get('customNetwork')))
-    } else if (config.get('networkId') === 0) {
-      networkDefinitionJSON = TESTING
-    } else if (config.get('networkId') === 1) {
-      networkDefinitionJSON = MAINNET
-    } else if (config.get('networkId') === 2) {
-      networkDefinitionJSON = DEV
-    }
-
-    const networkDefinition = await networkDefinitionSchema.validate(
-      IJSON.parse(networkDefinitionJSON) as NetworkDefinition,
-    )
-
-    if (config.get('customNetwork') !== '' && isDefaultNetworkId(networkDefinition.id)) {
-      throw Error('Cannot start custom network with a reserved network ID')
-    }
+    const networkDefinition = await getNetworkDefinition(config, internal, files)
 
     if (!config.isSet('bootstrapNodes')) {
       config.setOverride('bootstrapNodes', networkDefinition.bootstrapNodes)
