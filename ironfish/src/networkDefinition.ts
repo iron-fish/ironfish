@@ -63,19 +63,17 @@ export async function getNetworkDefinition(
   if (config.isSet('customNetwork')) {
     networkDefinitionJSON = await files.readFile(files.resolve(config.get('customNetwork')))
   } else {
-    let networkId = internal.get('networkId')
-
     if (
       internal.isSet('networkId') &&
       config.isSet('networkId') &&
-      networkId !== config.get('networkId')
+      internal.get('networkId') !== config.get('networkId')
     ) {
       throw Error('Network ID flag does not match network ID stored in datadir')
     }
 
-    if (config.isSet('networkId')) {
-      networkId = config.get('networkId')
-    }
+    const networkId = config.isSet('networkId')
+      ? config.get('networkId')
+      : internal.get('networkId')
 
     if (networkId === 0) {
       networkDefinitionJSON = TESTING
