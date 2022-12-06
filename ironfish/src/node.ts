@@ -15,7 +15,6 @@ import {
   InternalStore,
 } from './fileStores'
 import { FileSystem } from './fileSystems'
-import { MinedBlocksIndexer } from './indexers/minedBlocksIndexer'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { FeeEstimator } from './memPool/feeEstimator'
@@ -53,7 +52,6 @@ export class IronfishNode {
   syncer: Syncer
   pkg: Package
   telemetry: Telemetry
-  minedBlocksIndexer: MinedBlocksIndexer
 
   started = false
   shutdownPromise: Promise<void> | null = null
@@ -74,7 +72,6 @@ export class IronfishNode {
     webSocket,
     privateIdentity,
     hostsStore,
-    minedBlocksIndexer,
     networkId,
   }: {
     pkg: Package
@@ -91,7 +88,6 @@ export class IronfishNode {
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
-    minedBlocksIndexer: MinedBlocksIndexer
     networkId: number
   }) {
     this.files = files
@@ -107,7 +103,6 @@ export class IronfishNode {
     this.rpc = new RpcServer(this)
     this.logger = logger
     this.pkg = pkg
-    this.minedBlocksIndexer = minedBlocksIndexer
 
     this.migrator = new Migrator({ node: this, logger })
 
@@ -295,14 +290,6 @@ export class IronfishNode {
 
     const memPool = new MemPool({ chain, feeEstimator, metrics, logger })
 
-    const minedBlocksIndexer = new MinedBlocksIndexer({
-      files,
-      location: config.indexDatabasePath,
-      wallet,
-      chain,
-      logger,
-    })
-
     return new IronfishNode({
       pkg,
       chain,
@@ -318,7 +305,6 @@ export class IronfishNode {
       webSocket,
       privateIdentity,
       hostsStore,
-      minedBlocksIndexer,
       networkId: networkDefinition.id,
     })
   }
@@ -334,12 +320,10 @@ export class IronfishNode {
     try {
       await this.chain.open()
       await this.wallet.open()
-      await this.minedBlocksIndexer.open()
       await this.memPool.feeEstimator.init(this.chain)
     } catch (e) {
       await this.chain.close()
       await this.wallet.close()
-      await this.minedBlocksIndexer.close()
       throw e
     }
   }
@@ -347,7 +331,6 @@ export class IronfishNode {
   async closeDB(): Promise<void> {
     await this.chain.close()
     await this.wallet.close()
-    await this.minedBlocksIndexer.close()
   }
 
   async start(): Promise<void> {
@@ -373,7 +356,6 @@ export class IronfishNode {
       await this.rpc.start()
     }
 
-    await this.minedBlocksIndexer.start()
     this.telemetry.submitNodeStarted()
   }
 
@@ -389,7 +371,6 @@ export class IronfishNode {
       this.rpc.stop(),
       this.telemetry.stop(),
       this.metrics.stop(),
-      this.minedBlocksIndexer.stop(),
     ])
 
     // Do after to avoid unhandled error from aborted jobs

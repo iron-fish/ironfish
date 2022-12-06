@@ -78,10 +78,6 @@ import {
   EstimateFeeRatesRequest,
   EstimateFeeRatesResponse,
 } from '../routes/fees/estimateFeeRates'
-import {
-  ExportMinedStreamRequest,
-  ExportMinedStreamResponse,
-} from '../routes/mining/exportMined'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
 import {
   GetPeerMessagesRequest,
@@ -354,15 +350,6 @@ export abstract class RpcClient {
       `${ApiNamespace.miner}/submitBlock`,
       params,
     ).waitForEnd()
-  }
-
-  exportMinedStream(
-    params: ExportMinedStreamRequest = undefined,
-  ): RpcResponse<void, ExportMinedStreamResponse> {
-    return this.request<void, ExportMinedStreamResponse>(
-      `${ApiNamespace.miner}/exportMinedStream`,
-      params,
-    )
   }
 
   async getFunds(params: GetFundsRequest): Promise<RpcResponseEnded<GetFundsResponse>> {
