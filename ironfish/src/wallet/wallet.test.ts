@@ -1,12 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
 import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import {
   createNodeTest,
   useAccountFixture,
+  useBlockFixture,
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
@@ -1023,5 +1025,53 @@ describe('Accounts', () => {
         pending: BigInt(1999999999), // change from transaction
       })
     })
+  })
+
+  describe('createSpendsForAsset', () => {
+    it('returns spendable notes for a provided asset identifier', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      // Get some coins for transaction fees
+      const blockA = await useMinerBlockFixture(node.chain, 2, account, node.wallet)
+      await expect(node.chain).toAddBlock(blockA)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const assetIdentifier = asset.identifier()
+      const mintValue = BigInt(10)
+      // Mint some coins
+      const blockB = await useBlockFixture(node.chain, async () => {
+        const transaction = await node.wallet.createTransaction(
+          account,
+          [],
+          [{ asset, value: mintValue }],
+          [],
+          BigInt(0),
+          0,
+        )
+
+        return node.chain.newBlock(
+          [transaction],
+          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
+        )
+      })
+      await expect(node.chain).toAddBlock(blockB)
+      await node.wallet.updateHead()
+
+      const outputNote = blockB.transactions[1].getNote(0)
+      const note = outputNote.decryptNoteForOwner(account.incomingViewKey)
+      Assert.isNotUndefined(note)
+
+      // Check what notes would be spent
+      const { amount, notes } = await node.wallet.createSpendsForAsset(
+        account,
+        assetIdentifier,
+        BigInt(2),
+      )
+      expect(amount).toEqual(mintValue)
+      expect(notes).toHaveLength(1)
+      expect(notes[0].note).toMatchObject(note)
+    }, 15000)
   })
 })
