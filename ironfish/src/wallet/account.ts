@@ -239,7 +239,7 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const spend of transaction.spends()) {
-      const noteHash = await this.getNoteHash(spend.nullifier)
+      const noteHash = await this.getNoteHash(spend.nullifier, tx)
 
       if (noteHash) {
         const decryptedNote = await this.getDecryptedNote(noteHash, tx)
@@ -287,8 +287,8 @@ export class Account {
     })
   }
 
-  async getNoteHash(nullifier: Buffer): Promise<Buffer | null> {
-    return await this.walletDb.loadNoteHash(this, nullifier)
+  async getNoteHash(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<Buffer | null> {
+    return await this.walletDb.loadNoteHash(this, nullifier, tx)
   }
 
   async getTransaction(
@@ -334,7 +334,7 @@ export class Account {
       }
 
       for (const spend of transaction.spends()) {
-        const noteHash = await this.getNoteHash(spend.nullifier)
+        const noteHash = await this.getNoteHash(spend.nullifier, tx)
 
         if (noteHash) {
           const decryptedNote = await this.getDecryptedNote(noteHash, tx)
