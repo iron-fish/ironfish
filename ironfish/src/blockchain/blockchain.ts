@@ -28,6 +28,7 @@ import {
 import {
   BlockHash,
   BlockHeader,
+  BlockHeaderSerde,
   isBlockHeavier,
   isBlockLater,
   transactionCommitment,
@@ -312,6 +313,15 @@ export class Blockchain {
     await this.db.upgrade(VERSION_DATABASE_CHAIN)
 
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+    if (genesisHeader) {
+      Assert.isTrue(
+        genesisHeader.hash.equals(
+          BlockHeaderSerde.deserialize(this.seedGenesisBlock.header).hash,
+        ),
+        'Genesis block in network definition does not match existing chain genesis block',
+      )
+    }
+
     if (!genesisHeader && this.autoSeed) {
       genesisHeader = await this.seed()
     }
