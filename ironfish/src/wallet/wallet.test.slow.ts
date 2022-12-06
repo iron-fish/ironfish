@@ -652,8 +652,8 @@ describe('Accounts', () => {
               memo: '',
             },
           ],
-        [],
-        [],
+          [],
+          [],
           BigInt(0),
           0,
         )
@@ -755,8 +755,8 @@ describe('Accounts', () => {
               memo: '',
             },
           ],
-        [],
-        [],
+          [],
+          [],
           BigInt(0),
           0,
         )

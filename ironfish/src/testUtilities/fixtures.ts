@@ -6,10 +6,8 @@ import fs from 'fs'
 import path from 'path'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { NoteWitness } from '../merkletree/witness'
 import { IronfishNode } from '../node'
 import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
-import { Note } from '../primitives/note'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
@@ -261,7 +259,7 @@ export async function useTxFixture(
   })
 }
 
-export async function useRawTxFixture(
+export async function useBlockWithRawTxFixture(
   chain: Blockchain,
   pool: WorkerPool,
   sender: Account,
@@ -269,7 +267,8 @@ export async function useRawTxFixture(
   receives: { publicAddress: string; amount: bigint; memo: string }[],
   mints: { asset: Asset; value: bigint }[],
   burns: { asset: Asset; value: bigint }[],
-): Promise<Transaction> {
+  sequence: number,
+): Promise<Block> {
   const spends = await Promise.all(
     notesToSpend.map(async (n) => {
       const note = n.decryptNoteForOwner(sender.incomingViewKey)
@@ -288,7 +287,7 @@ export async function useRawTxFixture(
     }),
   )
 
-  return pool.createTransaction(
+  const transaction = await pool.createTransaction(
     sender.spendingKey,
     spends,
     receives,
@@ -297,6 +296,14 @@ export async function useRawTxFixture(
     BigInt(0),
     0,
   )
+
+  const generate = async () =>
+    chain.newBlock(
+      [transaction],
+      await chain.strategy.createMinersFee(transaction.fee(), sequence, sender.spendingKey),
+    )
+
+  return useBlockFixture(chain, generate)
 }
 
 export async function useMinersTxFixture(
@@ -347,34 +354,6 @@ export async function useTxSpendsFixture(
     account: account,
     transaction: transaction,
   }
-}
-
-export async function useTxMintsAndBurnsFixture(
-  wallet: Wallet,
-  from: Account,
-  mints: { asset: Asset; value: bigint }[],
-  burns: { asset: Asset; value: bigint }[],
-  generate?: FixtureGenerate<Transaction>,
-  fee?: bigint,
-  expiration?: number,
-): Promise<Transaction> {
-  generate =
-    generate ||
-    (() => {
-      return wallet.createTransaction(from, [], mints, burns, fee ?? BigInt(0), expiration ?? 0)
-    })
-
-  return useFixture(generate, {
-    process: async (tx: Transaction): Promise<void> => {
-      await restoreTransactionFixtureToAccounts(tx, wallet)
-    },
-    serialize: (tx: Transaction): SerializedTransaction => {
-      return tx.serialize()
-    },
-    deserialize: (tx: SerializedTransaction): Transaction => {
-      return new Transaction(tx)
-    },
-  })
 }
 
 /**

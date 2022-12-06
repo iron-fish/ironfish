@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Side } from '../merkletree/merkletree'
+import { Asset } from '@ironfish/rust-nodejs'
 import _ from 'lodash'
 import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
@@ -34,7 +35,6 @@ import {
 } from './tasks/verifyTransactions'
 import { WorkerMessage, WorkerMessageType } from './tasks/workerMessage'
 import { getWorkerPath, Worker } from './worker'
-import { Asset } from '@ironfish/rust-nodejs'
 
 /**
  * Manages the creation of worker threads and distribution of jobs to them.
