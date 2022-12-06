@@ -236,7 +236,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, PROOF_LENGTH, TRANSACTION_VERSION, Transaction, verifyTransactions, generateKey, generatePublicAddress, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
+const { KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, PROOF_LENGTH, TRANSACTION_VERSION, Transaction, verifyTransactions, generateKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
 
 module.exports.KEY_LENGTH = KEY_LENGTH
 module.exports.NONCE_LENGTH = NONCE_LENGTH
@@ -265,7 +265,7 @@ module.exports.TRANSACTION_VERSION = TRANSACTION_VERSION
 module.exports.Transaction = Transaction
 module.exports.verifyTransactions = verifyTransactions
 module.exports.generateKey = generateKey
-module.exports.generatePublicAddress = generatePublicAddress
+module.exports.generateKeyFromPrivateKey = generateKeyFromPrivateKey
 module.exports.initializeSapling = initializeSapling
 module.exports.FoundBlockResult = FoundBlockResult
 module.exports.ThreadPoolHandler = ThreadPoolHandler

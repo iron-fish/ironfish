@@ -2,12 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
 
 export class AddressCommand extends IronfishCommand {
   static aliases = ['accounts:publickey']
   static description = `Display your account address
 
   The address for an account is the accounts public key, see more here: https://ironfish.network/docs/whitepaper/5_account`
+
+  static flags = {
+    ...RemoteFlags,
+  }
 
   static args = [
     {

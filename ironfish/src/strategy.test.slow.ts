@@ -4,7 +4,7 @@
 
 import {
   generateKey,
-  generatePublicAddress,
+  generateKeyFromPrivateKey,
   Key,
   Note as NativeNote,
   Transaction as NativeTransaction,
@@ -92,7 +92,7 @@ describe('Demonstrate the Sapling API', () => {
 
   describe('Can transact between two accounts', () => {
     it('Can create a miner reward', () => {
-      const owner = generatePublicAddress(spenderKey.spending_key).public_address
+      const owner = generateKeyFromPrivateKey(spenderKey.spending_key).public_address
 
       minerNote = new NativeNote(owner, BigInt(42), '')
 
@@ -275,7 +275,7 @@ describe('Demonstrate the Sapling API', () => {
 
       const noteForSpender = new NativeNote(spenderKey.public_address, BigInt(10), '')
       const receiverNoteToSelf = new NativeNote(
-        generatePublicAddress(receiverKey.spending_key).public_address,
+        generateKeyFromPrivateKey(receiverKey.spending_key).public_address,
         BigInt(29),
         '',
       )
