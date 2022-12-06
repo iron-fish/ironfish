@@ -269,39 +269,40 @@ export async function useBlockWithRawTxFixture(
   burns: { asset: Asset; value: bigint }[],
   sequence: number,
 ): Promise<Block> {
-  const spends = await Promise.all(
-    notesToSpend.map(async (n) => {
-      const note = n.decryptNoteForOwner(sender.incomingViewKey)
-      Assert.isNotUndefined(note)
-      const treeIndex = await chain.notes.leavesIndex.get(n.merkleHash())
-      Assert.isNotUndefined(treeIndex)
-      const witness = await chain.notes.witness(treeIndex)
-      Assert.isNotNull(witness)
+  const generate = async () => {
+    const spends = await Promise.all(
+      notesToSpend.map(async (n) => {
+        const note = n.decryptNoteForOwner(sender.incomingViewKey)
+        Assert.isNotUndefined(note)
+        const treeIndex = await chain.notes.leavesIndex.get(n.merkleHash())
+        Assert.isNotUndefined(treeIndex)
+        const witness = await chain.notes.witness(treeIndex)
+        Assert.isNotNull(witness)
 
-      return {
-        note,
-        treeSize: witness.treeSize(),
-        authPath: witness.authenticationPath,
-        rootHash: witness.rootHash,
-      }
-    }),
-  )
+        return {
+          note,
+          treeSize: witness.treeSize(),
+          authPath: witness.authenticationPath,
+          rootHash: witness.rootHash,
+        }
+      }),
+    )
 
-  const transaction = await pool.createTransaction(
-    sender.spendingKey,
-    spends,
-    receives,
-    mints,
-    burns,
-    BigInt(0),
-    0,
-  )
+    const transaction = await pool.createTransaction(
+      sender.spendingKey,
+      spends,
+      receives,
+      mints,
+      burns,
+      BigInt(0),
+      0,
+    )
 
-  const generate = async () =>
-    chain.newBlock(
+    return chain.newBlock(
       [transaction],
       await chain.strategy.createMinersFee(transaction.fee(), sequence, sender.spendingKey),
     )
+  }
 
   return useBlockFixture(chain, generate)
 }
