@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
+import { BufferMap } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -608,6 +609,7 @@ export class Wallet {
 
   private async *getUnspentNotes(
     account: Account,
+    assetIdentifier: Buffer,
     options?: {
       minimumBlockConfirmations?: number
     },
@@ -620,7 +622,7 @@ export class Wallet {
       return
     }
 
-    for await (const decryptedNote of account.getUnspentNotes()) {
+    for await (const decryptedNote of account.getUnspentNotes(assetIdentifier)) {
       if (minimumBlockConfirmations > 0) {
         const transaction = await account.getTransaction(decryptedNote.transactionHash)
 
@@ -705,16 +707,8 @@ export class Wallet {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
-      const amountNeeded =
-        receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
-
-      const { amount, notesToSpend } = await this.createSpends(sender, amountNeeded)
-
-      if (amount < amountNeeded) {
-        throw new NotEnoughFundsError(
-          `Insufficient funds: Needed ${amountNeeded.toString()} but have ${amount.toString()}`,
-        )
-      }
+      const amountsNeeded = this.buildAmountsNeeded(receives, burns, transactionFee)
+      const notesToSpend = await this.createSpends(sender, amountsNeeded)
 
       return this.workerPool.createTransaction(
         sender.spendingKey,
@@ -735,15 +729,51 @@ export class Wallet {
     }
   }
 
+  private buildAmountsNeeded(receives: { publicAddress: string; amount: bigint; memo: string }[], burns: { asset: Asset; value: bigint }[], fee: bigint): BufferMap<bigint> {
+    const amountsNeeded = new BufferMap<bigint>()
+
+    amountsNeeded.set(Asset.nativeIdentifier(), fee)
+    for (const { amount } of receives) {
+      // TODO: Add asset identifier
+      const assetIdentifier = Asset.nativeIdentifier()
+      const currentAmount = amountsNeeded.get(assetIdentifier) ?? BigInt(0)
+      amountsNeeded.set(Asset.nativeIdentifier(), amount + currentAmount)
+    }
+
+    for (const { asset, value } of burns) {
+      const assetIdentifier = asset.identifier()
+      const currentAmount = amountsNeeded.get(assetIdentifier) ?? BigInt(0)
+      amountsNeeded.set(assetIdentifier, value + currentAmount)
+    }
+
+    return amountsNeeded
+  }
+
   async createSpends(
     sender: Account,
-    amountNeeded: bigint,
-  ): Promise<{ amount: bigint; notesToSpend: Array<{ note: Note; witness: NoteWitness }> }> {
-    let amount = BigInt(0)
-
+    amountsNeeded: BufferMap<bigint>,
+  ): Promise<Array<{ note: Note; witness: NoteWitness }>> {
     const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
 
-    for await (const unspentNote of this.getUnspentNotes(sender)) {
+    for (const [assetIdentifier, amountNeeded] of amountsNeeded.entries()) {
+      const { amount, notes } = await this.createSpendsForAsset(sender, assetIdentifier, amountNeeded)
+      if (amount < amountNeeded) {
+        throw new NotEnoughFundsError(
+          `Insufficient funds: Needed ${amountNeeded.toString()} but have ${amount.toString()}`,
+        )
+      }
+
+      notesToSpend.push(...notes)
+    }
+
+    return notesToSpend
+  }
+
+  async createSpendsForAsset(sender: Account, assetIdentifier: Buffer, amountNeeded: bigint): Promise<{ amount: bigint; notes: Array<{ note: Note; witness: NoteWitness }> }> {
+    let amount = BigInt(0)
+    const notes: Array<{ note: Note; witness: NoteWitness }> = []
+
+    for await (const unspentNote of this.getUnspentNotes(sender, assetIdentifier)) {
       if (unspentNote.note.value() <= BigInt(0)) {
         continue
       }
@@ -770,7 +800,7 @@ export class Wallet {
       )
 
       // Otherwise, push the note into the list of notes to spend
-      notesToSpend.push({ note: unspentNote.note, witness: witness })
+      notes.push({ note: unspentNote.note, witness })
       amount += unspentNote.note.value()
 
       if (amount >= amountNeeded) {
@@ -778,10 +808,7 @@ export class Wallet {
       }
     }
 
-    return {
-      amount,
-      notesToSpend,
-    }
+    return { amount, notes }
   }
 
   /**

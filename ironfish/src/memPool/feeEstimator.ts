@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
@@ -239,9 +240,9 @@ export class FeeEstimator {
 
     const amountNeeded = receives.reduce((acc, receive) => acc + receive.amount, BigInt(0))
 
-    const { amount, notesToSpend } = await this.wallet.createSpends(sender, amountNeeded)
+    const { amount, notes } = await this.wallet.createSpendsForAsset(sender, Asset.nativeIdentifier(), amountNeeded)
 
-    size += notesToSpend.length * SPEND_SERIALIZED_SIZE_IN_BYTE
+    size += notes.length * SPEND_SERIALIZED_SIZE_IN_BYTE
 
     size += receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
 
