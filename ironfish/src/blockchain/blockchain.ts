@@ -1397,7 +1397,7 @@ export class Blockchain {
 
       const existingSupply = existingAsset.supply
       const supply = existingSupply - value
-      Assert.isTrue(supply >= BigInt(0))
+      Assert.isTrue(supply >= BigInt(0), 'Invalid burn value')
 
       await this.assets.put(
         assetIdentifier,

@@ -262,19 +262,11 @@ export class CreateTransactionTask extends WorkerTask {
     burns,
     expirationSequence,
   }: CreateTransactionRequest): CreateTransactionResponse {
-    console.log({
-      spends,
-      receives,
-      mints,
-      burns,
-      transactionFee,
-    })
     const transaction = new Transaction(spendKey)
     transaction.setExpirationSequence(expirationSequence)
 
     for (const spend of spends) {
       const note = Note.deserialize(spend.note)
-      console.log('spend note ident', note.assetIdentifier())
       transaction.spend(
         note,
         new Witness(spend.treeSize, spend.rootHash, spend.authPath, noteHasher),
@@ -291,7 +283,6 @@ export class CreateTransactionTask extends WorkerTask {
     }
 
     for (const { asset, value } of burns) {
-      console.log('burning', asset, value, asset.identifier())
       transaction.burn(asset, value)
     }
 
