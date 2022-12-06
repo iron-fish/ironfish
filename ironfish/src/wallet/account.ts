@@ -91,12 +91,8 @@ export class Account {
     }
   }
 
-  async *getUnspentNotes(assetIdentifier: Buffer): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+  async *getUnspentNotes(): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
     for await (const decryptedNote of this.getNotes()) {
-      if (!decryptedNote.note.assetIdentifier().equals(assetIdentifier)) {
-        continue
-      }
-
       if (decryptedNote.spent) {
         continue
       }

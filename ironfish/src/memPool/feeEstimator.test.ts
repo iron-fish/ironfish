@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { getBlockSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
@@ -435,7 +434,7 @@ describe('FeeEstimator', () => {
       await node.wallet.updateHead()
 
       // account1 should have only one note -- change from its transaction to account2
-      const account1Notes = await AsyncUtils.materialize(account1.getUnspentNotes(Asset.nativeIdentifier()))
+      const account1Notes = await AsyncUtils.materialize(account1.getUnspentNotes())
       expect(account1Notes.length).toEqual(1)
 
       const feeEstimator = new FeeEstimator({
