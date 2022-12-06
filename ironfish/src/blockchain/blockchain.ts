@@ -1242,8 +1242,6 @@ export class Blockchain {
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    // TODO: transaction goes here
-
     const { valid, reason } = await this.verifier.verifyBlockConnect(block, tx)
 
     if (!valid) {
@@ -1286,6 +1284,11 @@ export class Blockchain {
       [...block.spends()].map((s) => s.nullifier),
       tx,
     )
+
+    for (const transaction of block.transactions) {
+      await this.processMintsToAssetsStore(transaction, tx)
+      await this.processBurnsToAssetsStore(transaction, tx)
+    }
 
     const verify = await this.verifier.verifyConnectedBlock(block, tx)
 
@@ -1337,8 +1340,6 @@ export class Blockchain {
     const hashes = await this.sequenceToHashes.get(sequence, tx)
     await this.sequenceToHashes.put(sequence, { hashes: [...(hashes?.hashes || []), hash] }, tx)
 
-    await this.updateAssetsFromBlock(block, tx)
-
     if (!fork) {
       await this.saveConnect(block, prev, tx)
     }
@@ -1350,10 +1351,6 @@ export class Blockchain {
   }
 
   private async updateAssetsFromBlock(block: Block, tx: IDatabaseTransaction): Promise<void> {
-    for (const transaction of block.transactions) {
-      await this.processMintsToAssetsStore(transaction, tx)
-      await this.processBurnsToAssetsStore(transaction, tx)
-    }
   }
 
   private async processMintsToAssetsStore(

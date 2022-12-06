@@ -1233,5 +1233,11 @@ describe('Blockchain', () => {
         })
       })
     })
+
+    describe('when an asset is minted on a fork', () => {
+      it('undoes the mint when reorganizing the chain', async () => {
+
+      })
+    })
   })
 })
