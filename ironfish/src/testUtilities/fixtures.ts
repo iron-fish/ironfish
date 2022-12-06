@@ -168,7 +168,7 @@ export async function restoreTransactionFixtureToAccounts(
   transaction: Transaction,
   wallet: Wallet,
 ): Promise<void> {
-  await wallet.syncTransaction(transaction, { submittedSequence: 1 })
+  await wallet.addPendingTransaction(transaction, 1)
 }
 
 /**

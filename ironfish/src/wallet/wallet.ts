@@ -397,9 +397,32 @@ export class Wallet {
     return decryptedNotes
   }
 
+  async addPendingTransaction(
+    transaction: Transaction,
+    submittedSequence: number | null,
+  ): Promise<void> {
+    const accounts = []
+    for (const account of this.listAccounts()) {
+      if (!(await account.hasTransaction(transaction.hash()))) {
+        accounts.push(account)
+      }
+    }
+
+    if (accounts.length === 0) {
+      return
+    }
+
+    const decryptedNotesByAccountId = await this.decryptNotes(transaction, null, accounts)
+
+    for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
+      const account = this.accounts.get(accountId)
+      Assert.isNotUndefined(account, `addPendingTransaction: No account found for ${accountId}`)
+      await account.addPendingTransaction(transaction, decryptedNotes, submittedSequence)
+    }
+  }
+
   /**
    * Called:
-   *  - Called when transactions are added to the mem pool
    *  - Called for transactions on disconnected blocks
    *  - Called when transactions are added to a block on the genesis chain
    */
@@ -689,7 +712,7 @@ export class Wallet {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
-    await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
+    await this.addPendingTransaction(transaction, heaviestHead.sequence)
     memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
     this.onTransactionCreated.emit(transaction)
