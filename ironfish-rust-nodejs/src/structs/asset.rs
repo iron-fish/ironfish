@@ -48,12 +48,12 @@ impl NativeAsset {
 
     #[napi]
     pub fn metadata(&self) -> Buffer {
-        Buffer::from(&self.asset.metadata()[..])
+        Buffer::from(self.asset.metadata())
     }
 
     #[napi]
     pub fn name(&self) -> Buffer {
-        Buffer::from(&self.asset.name()[..])
+        Buffer::from(self.asset.name())
     }
 
     #[napi]
