@@ -3,13 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ConsensusParameters } from './consensus'
-import {
-  DEV,
-  isDefaultNetworkId,
-  MAINNET,
-  TESTING,
-  TESTNET_PHASE_2,
-} from './defaultNetworkDefinitions'
+import { DEV, isDefaultNetworkId, MAINNET, TESTING } from './defaultNetworkDefinitions'
 import { Config, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
 import { SerializedBlock } from './primitives/block'
