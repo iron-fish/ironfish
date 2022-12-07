@@ -174,7 +174,10 @@ fn test_transaction_simple() {
     assert_eq!(public_transaction.mints.len(), 0);
     assert_eq!(public_transaction.burns.len(), 0);
 
-    let received_note = public_transaction.outputs[1].merkle_note().decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key).unwrap();
+    let received_note = public_transaction.outputs[1]
+        .merkle_note()
+        .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
+        .unwrap();
     assert_eq!(received_note.sender, spender_key_clone.public_address());
 }
 
