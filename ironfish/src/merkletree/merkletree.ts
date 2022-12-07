@@ -40,7 +40,7 @@ export class MerkleTree<
   readonly defaultValue: H
 
   readonly counter: IDatabaseStore<CounterSchema>
-  readonly leaves: IDatabaseStore<LeavesSchema<E, H>>
+  readonly leaves: IDatabaseStore<LeavesSchema<H>>
   readonly leavesIndex: IDatabaseStore<LeavesIndexSchema<H>>
   readonly nodes: IDatabaseStore<NodesSchema<H>>
 
@@ -62,7 +62,7 @@ export class MerkleTree<
   }: {
     hasher: MerkleHasher<E, H, SE, SH>
     db: IDatabase
-    leafEncoding: IDatabaseEncoding<LeavesSchema<E, H>['value']>
+    leafEncoding: IDatabaseEncoding<LeavesSchema<H>['value']>
     leafIndexKeyEncoding: IDatabaseEncoding<LeavesIndexSchema<H>['key']>
     nodeEncoding: IDatabaseEncoding<NodesSchema<H>['value']>
     defaultValue: H
@@ -113,18 +113,10 @@ export class MerkleTree<
    * Get the leaf element at the given index. Throws an error if the
    * index is not in bounds.
    */
-  async get(position: LeafIndex, tx?: IDatabaseTransaction): Promise<E> {
-    return (await this.getLeaf(position, tx)).element
-  }
-
-  /**
-   * Get the leaf element at the given index. Throws an error if the
-   * index is not in bounds.
-   */
   async getLeaf(
     index: LeafIndex,
     tx?: IDatabaseTransaction,
-  ): Promise<SchemaValue<LeavesSchema<E, H>>> {
+  ): Promise<SchemaValue<LeavesSchema<H>>> {
     const leaf = await this.getLeafOrNull(index, tx)
     if (!leaf) {
       throw new Error(`No leaf found in tree ${this.name} at index ${index}`)
@@ -139,7 +131,7 @@ export class MerkleTree<
   async getLeafOrNull(
     index: LeafIndex,
     tx?: IDatabaseTransaction,
-  ): Promise<SchemaValue<LeavesSchema<E, H>> | null> {
+  ): Promise<SchemaValue<LeavesSchema<H>> | null> {
     return await this.db.withTransaction(tx, async (tx) => {
       const leaf = await this.leaves.get(index, tx)
       return leaf || null
@@ -195,22 +187,6 @@ export class MerkleTree<
     return count
   }
 
-  /** Iterate over all leaves in the tree. This happens asynchronously
-   * and behaviour is undefined if the tree changes while iterating.
-   */
-  async *getLeaves(tx?: IDatabaseTransaction): AsyncGenerator<E, void, unknown> {
-    const numLeaves = await this.size(tx)
-
-    for (let index = 0; index < numLeaves; index++) {
-      const leaf = await this.getLeafOrNull(index, tx)
-      if (leaf === null) {
-        return
-      }
-
-      yield leaf.element
-    }
-  }
-
   /**
    * Add the new leaf element into the tree, and update all hashes.
    */
@@ -260,7 +236,6 @@ export class MerkleTree<
         await this.addLeaf(
           leftLeafIndex,
           {
-            element: leftLeaf.element,
             merkleHash: leftLeaf.merkleHash,
             parentIndex: newParentIndex,
           },
@@ -362,7 +337,6 @@ export class MerkleTree<
       await this.addLeaf(
         indexOfNewLeaf,
         {
-          element,
           merkleHash,
           parentIndex: newParentIndex,
         },
@@ -384,14 +358,13 @@ export class MerkleTree<
   }
 
   private async addLeaf(
-    index: LeavesSchema<E, H>['key'],
-    value: LeavesSchema<E, H>['value'],
+    index: LeavesSchema<H>['key'],
+    value: LeavesSchema<H>['value'],
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.leaves.put(
       index,
       {
-        element: value.element,
         merkleHash: value.merkleHash,
         parentIndex: value.parentIndex,
       },
