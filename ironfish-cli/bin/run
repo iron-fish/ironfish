@@ -7,7 +7,7 @@ if (process.platform !== 'win32') {
   require('segfault-handler').registerHandler('segfault.log')
 }
 
-if(process.versions.node.split('.')[0] === '16') {
+if(process.versions.node.split('.')[0] !== '16') {
   console.log('Node version ' +  process.versions.node + ' is not compatible. Must have node v16.x installed. You can install using nvm: https://github.com/nvm-sh/nvm')
   process.exit(1)
 }
