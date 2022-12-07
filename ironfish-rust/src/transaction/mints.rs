@@ -11,11 +11,11 @@ use ff::Field;
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
+    primitives::ValueCommitment,
     proofs::MintAsset,
-    redjubjub::{self, PublicKey, Signature},
-    ValueCommitment,
+    redjubjub::{self, Signature},
 };
-use jubjub::{ExtendedPoint, Fr};
+use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
 use crate::{
@@ -62,8 +62,8 @@ impl MintBuilder {
     pub fn build(
         &self,
         spender_key: &SaplingKey,
-        public_key_randomness: &Fr,
-        randomized_public_key: &PublicKey,
+        public_key_randomness: &jubjub::Fr,
+        randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<UnsignedMintDescription, IronfishError> {
         let circuit = MintAsset {
             name: self.asset.name,
@@ -168,7 +168,10 @@ pub struct MintDescription {
 }
 
 impl MintDescription {
-    pub fn verify_proof(&self, randomized_public_key: &PublicKey) -> Result<(), IronfishError> {
+    pub fn verify_proof(
+        &self,
+        randomized_public_key: &redjubjub::PublicKey,
+    ) -> Result<(), IronfishError> {
         // Verify that the asset info hash maps to a valid generator point
         asset_generator_point(&self.asset.asset_info_hashed)?;
 
@@ -196,7 +199,7 @@ impl MintDescription {
     pub fn verify_signature(
         &self,
         signature_hash_value: &[u8; 32],
-        randomized_public_key: &PublicKey,
+        randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<(), IronfishError> {
         if randomized_public_key.0.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
@@ -216,7 +219,7 @@ impl MintDescription {
         Ok(())
     }
 
-    pub fn public_inputs(&self, randomized_public_key: &PublicKey) -> [Scalar; 6] {
+    pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 6] {
         let mut public_inputs = [Scalar::zero(); 6];
 
         let randomized_public_key_point = randomized_public_key.0.to_affine();

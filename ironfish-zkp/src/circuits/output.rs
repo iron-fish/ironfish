@@ -7,17 +7,14 @@ use jubjub::SubgroupPoint;
 
 use zcash_primitives::{constants::CRH_IVK_PERSONALIZATION, sapling::ProofGenerationKey};
 use zcash_proofs::{
-    circuit::{
-        ecc::{self},
-        pedersen_hash,
-    },
+    circuit::{ecc, pedersen_hash},
     constants::{
         NOTE_COMMITMENT_RANDOMNESS_GENERATOR, PROOF_GENERATION_KEY_GENERATOR,
         SPENDING_KEY_GENERATOR,
     },
 };
 
-use crate::{constants::proof::PUBLIC_KEY_GENERATOR, ValueCommitment};
+use crate::{constants::proof::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment};
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::boolean;
@@ -251,8 +248,10 @@ mod test {
     use zcash_primitives::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
     use zcash_primitives::sapling::ProofGenerationKey;
 
-    use crate::util::commitment_full_point;
-    use crate::{circuits::output::Output, constants::PUBLIC_KEY_GENERATOR, ValueCommitment};
+    use crate::{
+        circuits::output::Output, constants::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment,
+        util::commitment_full_point,
+    };
 
     #[test]
     fn test_output_circuit_with_bls12_381() {

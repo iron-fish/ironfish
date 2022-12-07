@@ -12,7 +12,7 @@ use zcash_proofs::{
 use crate::{
     circuits::util::{asset_info_preimage, expose_value_commitment},
     constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_IDENTIFIER_PERSONALIZATION},
-    ValueCommitment,
+    primitives::ValueCommitment,
 };
 
 pub struct MintAsset {
@@ -188,7 +188,7 @@ mod test {
 
     use crate::{
         constants::{ASSET_IDENTIFIER_PERSONALIZATION, PUBLIC_KEY_GENERATOR},
-        ValueCommitment,
+        primitives::ValueCommitment,
     };
 
     use super::MintAsset;

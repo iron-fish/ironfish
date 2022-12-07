@@ -18,7 +18,7 @@ use blake2b_simd::Params as Blake2b;
 use bls12_381::Scalar;
 use ff::PrimeField;
 use group::GroupEncoding;
-use ironfish_zkp::ValueCommitment;
+use ironfish_zkp::primitives::ValueCommitment;
 use jubjub::{ExtendedPoint, SubgroupPoint};
 
 use std::{convert::TryInto, io};
@@ -283,7 +283,7 @@ mod test {
 
     use bls12_381::Scalar;
     use ff::Field;
-    use ironfish_zkp::ValueCommitment;
+    use ironfish_zkp::primitives::ValueCommitment;
     use rand::prelude::*;
     use rand::thread_rng;
 

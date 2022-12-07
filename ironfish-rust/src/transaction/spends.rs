@@ -20,9 +20,10 @@ use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
+    primitives::ValueCommitment,
     proofs::Spend,
-    redjubjub::{self, PublicKey, Signature},
-    Nullifier, ValueCommitment,
+    redjubjub::{self, Signature},
+    Nullifier,
 };
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
@@ -93,7 +94,7 @@ impl SpendBuilder {
         &self,
         spender_key: &SaplingKey,
         public_key_randomness: &jubjub::Fr,
-        randomized_public_key: &PublicKey,
+        randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<UnsignedSpendDescription, IronfishError> {
         let value_commitment_point = self.value_commitment_point();
 
@@ -267,7 +268,7 @@ impl SpendDescription {
     pub fn verify_signature(
         &self,
         signature_hash_value: &[u8; 32],
-        randomized_public_key: &PublicKey,
+        randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<(), IronfishError> {
         if randomized_public_key.0.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
@@ -290,7 +291,10 @@ impl SpendDescription {
     /// Verify that the bellman proof confirms the randomized_public_key,
     /// commitment_value, nullifier, and anchor attached to this
     /// [`SpendDescription`].
-    pub fn verify_proof(&self, randomized_public_key: &PublicKey) -> Result<(), IronfishError> {
+    pub fn verify_proof(
+        &self,
+        randomized_public_key: &redjubjub::PublicKey,
+    ) -> Result<(), IronfishError> {
         self.verify_not_small_order()?;
 
         groth16::verify_proof(
@@ -313,7 +317,7 @@ impl SpendDescription {
     /// Converts the values to appropriate inputs for verifying the bellman
     /// proof.  Confirms the randomized_public_key, commitment_value, anchor
     /// (root hash), and nullifier attached to this [`SpendDescription`].
-    pub fn public_inputs(&self, randomized_public_key: &PublicKey) -> [Scalar; 7] {
+    pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 7] {
         let mut public_inputs = [Scalar::zero(); 7];
         let p = randomized_public_key.0.to_affine();
         public_inputs[0] = p.get_u();

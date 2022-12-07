@@ -14,7 +14,7 @@ use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use ff::Field;
 use group::Curve;
-use ironfish_zkp::{proofs::Output, redjubjub::PublicKey, ValueCommitment};
+use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, redjubjub};
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
@@ -80,7 +80,7 @@ impl OutputBuilder {
         &self,
         spender_key: &SaplingKey,
         public_key_randomness: &jubjub::Fr,
-        randomized_public_key: &PublicKey,
+        randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<OutputDescription, IronfishError> {
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
@@ -149,7 +149,10 @@ impl OutputDescription {
 
     /// Verify that the proof demonstrates knowledge that a note exists with
     /// the value_commitment, public_key, and note_commitment on this proof.
-    pub fn verify_proof(&self, randomized_public_key: &PublicKey) -> Result<(), IronfishError> {
+    pub fn verify_proof(
+        &self,
+        randomized_public_key: &redjubjub::PublicKey,
+    ) -> Result<(), IronfishError> {
         self.verify_not_small_order()?;
 
         groth16::verify_proof(
@@ -176,7 +179,7 @@ impl OutputDescription {
     /// Converts the values to appropriate inputs for verifying the bellman proof.
     /// Demonstrates knowledge of a note containing the sender's randomized public key,
     /// value_commitment, public_key, and note_commitment
-    pub fn public_inputs(&self, randomized_public_key: &PublicKey) -> [Scalar; 7] {
+    pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 7] {
         let mut public_inputs = [Scalar::zero(); 7];
         let p = randomized_public_key.0.to_affine();
         public_inputs[0] = p.get_u();
