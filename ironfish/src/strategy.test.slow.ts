@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 import {
   generateKey,
   generateKeyFromPrivateKey,
@@ -12,7 +11,7 @@ import {
 } from '@ironfish/rust-nodejs'
 import { ConsensusParameters, TestnetConsensus } from './consensus'
 import { MerkleTree } from './merkletree'
-import { NoteLeafEncoding } from './merkletree/database/leaves'
+import { LeafEncoding } from './merkletree/database/leaves'
 import { NodeEncoding } from './merkletree/database/nodes'
 import { NoteHasher } from './merkletree/hasher'
 import { Note } from './primitives/note'
@@ -43,7 +42,7 @@ async function makeStrategyTree({
   const tree = new MerkleTree({
     hasher: new NoteHasher(),
     leafIndexKeyEncoding: BUFFER_ENCODING,
-    leafEncoding: new NoteLeafEncoding(),
+    leafEncoding: new LeafEncoding(),
     nodeEncoding: new NodeEncoding(),
     db: database,
     name: name,
@@ -239,7 +238,9 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Decrypts and fails to decrypt notes', async () => {
       // Get the note we added in the previous example
-      const latestNote = await tree.get(receiverWitnessIndex)
+      const leaf = await tree.getLeaf(receiverWitnessIndex)
+      const latestNote = new NoteEncrypted(publicTransaction.getNote(0))
+      expect(leaf.merkleHash.equals(latestNote.merkleHash())).toBe(true)
 
       // We should be able to decrypt the note as owned by the receiver
       const decryptedNote = latestNote.decryptNoteForOwner(receiverKey.incoming_view_key)

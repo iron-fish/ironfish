@@ -40,14 +40,11 @@ describe('Merkle tree', function () {
     await tree2.add('B')
 
     expect(await tree1.size()).toBe(1)
-    expect(await tree1.get(0)).toBe('a')
     expect(await tree1.rootHash()).toBe(
       '<<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>|<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>-3>',
     )
 
     expect(await tree2.size()).toBe(2)
-    expect(await tree2.get(0)).toBe('A')
-    expect(await tree2.get(1)).toBe('B')
     expect(await tree2.rootHash()).toBe(
       '<<<<A|B-0>|<A|B-0>-1>|<<A|B-0>|<A|B-0>-1>-2>|<<<A|B-0>|<A|B-0>-1>|<<A|B-0>|<A|B-0>-1>-2>-3>',
     )
@@ -285,17 +282,6 @@ describe('Merkle tree', function () {
 
     await expect(tree).toMatchTree(await makeTree({ leaves: 'axy' }))
     await expect(tree.size()).resolves.toBe(3)
-  })
-
-  it('iterates over leaves', async () => {
-    const tree = await makeTree({ leaves: 'abcd' })
-
-    let leaves = ''
-    for await (const leaf of tree.getLeaves()) {
-      leaves += leaf
-    }
-
-    expect(leaves).toBe('abcd')
   })
 
   it('calculates past and current root hashes correctly', async () => {
@@ -646,18 +632,6 @@ describe('Merkle tree', function () {
       }
       expect(witness.rootHash).toEqual(rootHash)
     }
-  })
-
-  it("throws an error when getting a position that doesn't exist", async () => {
-    const tree = await makeTree()
-    await expect(() => tree.get(99)).rejects.toThrowError(
-      `No leaf found in tree ${tree.name} at index 99`,
-    )
-
-    await tree.add('1')
-    await expect(() => tree.get(99)).rejects.toThrowError(
-      `No leaf found in tree ${tree.name} at index 99`,
-    )
   })
 
   it('calculates correct depths', () => {
