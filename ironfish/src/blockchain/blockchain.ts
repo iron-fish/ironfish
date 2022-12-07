@@ -437,18 +437,13 @@ export class Blockchain {
     headerA: BlockHeader | Block,
     headerB: BlockHeader | Block,
     tx?: IDatabaseTransaction,
-  ): Promise<{
-    fork: BlockHeader
-    isLinear: boolean
-  }> {
+  ): Promise<BlockHeader> {
     if (headerA instanceof Block) {
       headerA = headerA.header
     }
     if (headerB instanceof Block) {
       headerB = headerB.header
     }
-
-    let linear = true
 
     let [base, fork] =
       headerA.sequence < headerB.sequence ? [headerA, headerB] : [headerB, headerA]
@@ -465,14 +460,12 @@ export class Blockchain {
         break
       }
 
-      linear = false
-
       const prev = await this.getPrevious(base, tx)
       Assert.isNotNull(prev)
       base = prev
     }
 
-    return { fork: base, isLinear: linear }
+    return base
   }
 
   /**
@@ -806,8 +799,7 @@ export class Blockchain {
     Assert.isNotNull(oldHead, 'No genesis block with fork')
 
     // Step 0: Find the fork between the two heads
-    const { fork } = await this.findFork(oldHead, newHead, tx)
-    Assert.isNotNull(fork, 'No fork found')
+    const fork = await this.findFork(oldHead, newHead, tx)
 
     // Step 2: Collect all the blocks from the old head to the fork
     const removeIter = this.iterateFrom(oldHead, fork, tx)
