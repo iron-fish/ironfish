@@ -272,6 +272,32 @@ export class WalletDB {
     }
   }
 
+  async addTransaction(
+    account: Account,
+    transactionHash: Buffer,
+    transactionValue: TransactionValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const expirationSequence = transactionValue.transaction.expirationSequence()
+
+    await this.db.withTransaction(tx, async (tx) => {
+      if (transactionValue.blockHash) {
+        await this.pendingTransactionHashes.del(
+          [account.prefix, [expirationSequence, transactionHash]],
+          tx,
+        )
+      } else {
+        await this.pendingTransactionHashes.put(
+          [account.prefix, [expirationSequence, transactionHash]],
+          null,
+          tx,
+        )
+      }
+
+      await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
+    })
+  }
+
   async saveTransaction(
     account: Account,
     transactionHash: Buffer,
@@ -434,6 +460,51 @@ export class WalletDB {
         await this.nullifierToNoteHash.put([account.prefix, key], value, tx)
       }
     })
+  }
+
+  async addDecryptedNote(
+    account: Account,
+    noteHash: Buffer,
+    note: Readonly<DecryptedNoteValue>,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      if (note.nullifier) {
+        await this.nullifierToNoteHash.put([account.prefix, note.nullifier], noteHash, tx)
+      }
+
+      await this.setNoteHashSequence(account, noteHash, note.sequence, tx)
+
+      await this.saveDecryptedNote(account, noteHash, note, tx)
+    })
+  }
+
+  async spendDecryptedNote(
+    account: Account,
+    noteHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<bigint> {
+    const noteToSpend = await this.loadDecryptedNote(account, noteHash, tx)
+
+    Assert.isNotUndefined(noteToSpend)
+
+    await this.saveDecryptedNote(
+      account,
+      noteHash,
+      {
+        ...noteToSpend,
+        spent: true,
+      },
+      tx,
+    )
+
+    // TODO: balance may already reflect notes spent in pending transactions
+    // this check will no longer be necessary if we only update balances for on-chain transactions
+    if (noteToSpend.spent) {
+      return 0n
+    }
+
+    return noteToSpend.note.value()
   }
 
   async saveDecryptedNote(
