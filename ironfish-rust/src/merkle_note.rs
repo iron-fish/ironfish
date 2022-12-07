@@ -282,10 +282,8 @@ mod test {
     use crate::{keys::SaplingKey, note::Note};
 
     use bls12_381::Scalar;
-    use ff::Field;
     use ironfish_zkp::primitives::ValueCommitment;
     use rand::prelude::*;
-    use rand::thread_rng;
 
     #[test]
     /// Test to confirm that creating a [`MerkleNote`] via new() doesn't use the
@@ -302,11 +300,7 @@ mod test {
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         let merkle_note =
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
@@ -332,11 +326,7 @@ mod test {
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         let merkle_note =
             MerkleNote::new_for_miners_fee(&note, &value_commitment, &diffie_hellman_keys);
@@ -360,11 +350,7 @@ mod test {
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         let merkle_note =
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
@@ -397,11 +383,7 @@ mod test {
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         let merkle_note =
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
@@ -426,11 +408,7 @@ mod test {
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         let mut merkle_note =
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);

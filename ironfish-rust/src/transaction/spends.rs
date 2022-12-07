@@ -16,7 +16,7 @@ use bellman::gadgets::multipack;
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::{Field, PrimeField};
+use ff::PrimeField;
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
@@ -61,11 +61,7 @@ impl SpendBuilder {
     /// contains the root-hash at the time the witness was created and the path
     /// to verify the location of that note in the tree.
     pub(crate) fn new(note: Note, witness: &dyn WitnessTrait) -> Self {
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         SpendBuilder {
             note,

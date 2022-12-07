@@ -1,3 +1,6 @@
+use ff::Field;
+use rand::thread_rng;
+
 use crate::constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR;
 
 /// This struct is inspired from ZCash's `ValueCommitment` in the Sapling protocol
@@ -5,13 +8,19 @@ use crate::constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR;
 #[derive(Clone)]
 pub struct ValueCommitment {
     pub value: u64,
-
     pub randomness: jubjub::Fr,
-
     pub asset_generator: jubjub::SubgroupPoint,
 }
 
 impl ValueCommitment {
+    pub fn new(value: u64, asset_generator: jubjub::SubgroupPoint) -> Self {
+        Self {
+            value,
+            randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator,
+        }
+    }
+
     pub fn commitment(&self) -> jubjub::SubgroupPoint {
         (self.asset_generator * jubjub::Fr::from(self.value))
             + (VALUE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)

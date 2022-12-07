@@ -7,7 +7,6 @@ use std::io;
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::Field;
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
@@ -39,15 +38,9 @@ pub struct MintBuilder {
 
 impl MintBuilder {
     pub fn new(asset: Asset, value: u64) -> Self {
-        let value_commitment = ValueCommitment {
-            value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: asset.generator(),
-        };
-
         Self {
             asset,
-            value_commitment,
+            value_commitment: ValueCommitment::new(value, asset.generator()),
         }
     }
 

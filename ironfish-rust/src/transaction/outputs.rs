@@ -12,7 +12,6 @@ use crate::{
 
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
-use ff::Field;
 use group::Curve;
 use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, redjubjub};
 use jubjub::ExtendedPoint;
@@ -42,11 +41,7 @@ pub const PROOF_SIZE: u32 = 192;
 impl OutputBuilder {
     /// Create a new [`OutputBuilder`] attempting to create a note.
     pub(crate) fn new(note: Note) -> Self {
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         Self {
             note,
