@@ -25,7 +25,16 @@ jobs:
           cache: 'yarn'
 
       - name: Install packages
-        run: yarn --non-interactive --frozen-lockfile --ignore-scripts
+        run: yarn --non-interactive --ignore-scripts
+
+      # Necessary since `--frozen-lockfile` does not work properly in yarn 1.x.
+      # https://github.com/yarnpkg/yarn/issues/5840
+      - name: Check for lockfile changes
+        run: |
+          if [[ $(git status | grep yarn.lock) ]]; then
+            echo "yarn.lock has outstanding updates, please check them in."
+            exit 1
+          fi
 
       - name: Lint
         run: yarn lint
