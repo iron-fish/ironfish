@@ -64,7 +64,7 @@ export class PriorityQueue<T> {
    * Look at the highest priority item in the queue without removing it
    */
   peek(): T | undefined {
-    return this._items.at(0)
+    return this._items[0]
   }
 
   /**
