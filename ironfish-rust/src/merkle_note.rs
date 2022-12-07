@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{errors::IronfishError, serializing::read_point};
+use crate::{errors::IronfishError, keys::EphemeralKeyPair, serializing::read_point};
 
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
@@ -75,9 +75,10 @@ impl MerkleNote {
         spender_key: &SaplingKey,
         note: &Note,
         value_commitment: &ValueCommitment,
-        diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
+        diffie_hellman_keys: &EphemeralKeyPair,
     ) -> MerkleNote {
-        let (secret_key, public_key) = diffie_hellman_keys;
+        let secret_key = diffie_hellman_keys.secret();
+        let public_key = diffie_hellman_keys.public();
 
         let mut key_bytes = [0; 64];
         key_bytes[..32].copy_from_slice(&note.owner.transmission_key.to_bytes());
@@ -105,7 +106,7 @@ impl MerkleNote {
     pub(crate) fn new_for_miners_fee(
         note: &Note,
         value_commitment: &ValueCommitment,
-        diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
+        diffie_hellman_keys: &EphemeralKeyPair,
     ) -> MerkleNote {
         let note_encryption_keys = *NOTE_ENCRYPTION_MINER_KEYS;
 
@@ -123,10 +124,11 @@ impl MerkleNote {
     fn construct(
         note: &Note,
         value_commitment: &ValueCommitment,
-        diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
+        diffie_hellman_keys: &EphemeralKeyPair,
         note_encryption_keys: [u8; NOTE_ENCRYPTION_KEY_SIZE],
     ) -> MerkleNote {
-        let (secret_key, public_key) = diffie_hellman_keys;
+        let secret_key = diffie_hellman_keys.secret();
+        let public_key = diffie_hellman_keys.public();
 
         let encrypted_note = note.encrypt(&shared_secret(
             secret_key,
@@ -275,6 +277,7 @@ mod test {
     use super::MerkleNote;
     use super::NOTE_ENCRYPTION_MINER_KEYS;
     use crate::assets::asset::NATIVE_ASSET_GENERATOR;
+    use crate::keys::EphemeralKeyPair;
     use crate::{keys::SaplingKey, note::Note};
 
     use bls12_381::Scalar;
@@ -296,7 +299,7 @@ mod test {
             NATIVE_ASSET_GENERATOR,
             spender_key.public_address(),
         );
-        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
+        let diffie_hellman_keys = EphemeralKeyPair::new();
 
         let value_commitment = ValueCommitment {
             value: note.value,
@@ -326,7 +329,7 @@ mod test {
             NATIVE_ASSET_GENERATOR,
             sender_key.public_address(),
         );
-        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
+        let diffie_hellman_keys = EphemeralKeyPair::new();
 
         let value_commitment = ValueCommitment {
             value: note.value,
@@ -354,7 +357,7 @@ mod test {
             NATIVE_ASSET_GENERATOR,
             spender_key.public_address(),
         );
-        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
+        let diffie_hellman_keys = EphemeralKeyPair::new();
 
         let value_commitment = ValueCommitment {
             value: note.value,
@@ -382,7 +385,7 @@ mod test {
             NATIVE_ASSET_GENERATOR,
             spender_key.public_address(),
         );
-        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
+        let diffie_hellman_keys = EphemeralKeyPair::new();
 
         let value_commitment = ValueCommitment {
             value: note.value,

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::keys::PUBLIC_ADDRESS_SIZE;
+use crate::keys::{ephemeral::EphemeralKeyPair, PUBLIC_ADDRESS_SIZE};
 
 use super::{shared_secret, PublicAddress, SaplingKey};
 use group::Curve;
@@ -24,15 +24,14 @@ fn test_key_generation_and_construction() {
 fn test_diffie_hellman_shared_key() {
     let key1: SaplingKey = SaplingKey::generate_key();
 
-    // second address has to use the same diversifier for the keys to be valid
     let address1 = key1.public_address();
-    let (secret_key, public_key) = address1.generate_diffie_hellman_keys();
-    let shared_secret1 = shared_secret(&secret_key, &address1.transmission_key, &public_key);
-    let shared_secret2 = shared_secret(
-        &key1.incoming_viewing_key.view_key,
-        &public_key,
-        &public_key,
-    );
+
+    let key_pair = EphemeralKeyPair::new();
+    let secret_key = key_pair.secret();
+    let public_key = key_pair.public();
+
+    let shared_secret1 = shared_secret(secret_key, &address1.transmission_key, public_key);
+    let shared_secret2 = shared_secret(&key1.incoming_viewing_key.view_key, public_key, public_key);
     assert_eq!(shared_secret1, shared_secret2);
 }
 

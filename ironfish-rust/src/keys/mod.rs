@@ -19,6 +19,8 @@ use rand::prelude::*;
 
 use std::io;
 
+mod ephemeral;
+pub use ephemeral::EphemeralKeyPair;
 mod public_address;
 pub use public_address::*;
 mod view_keys;
