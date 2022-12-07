@@ -1,16 +1,16 @@
 {
   "DecryptNotesTask execute posts the miners fee transaction": [
     {
-      "id": "d46d26b7-1a7d-48bf-a922-6ea573e1f748",
+      "id": "e95ca6be-ec8e-47eb-abbb-d2e3ca13cba9",
       "name": "test",
-      "spendingKey": "aa8bc6a1dba777c8ac7897aa2fb299f3dbc72a155c16c78bb5e42e7d2f2e2d0f",
-      "incomingViewKey": "8e73a7e117e9274c420edcb0b8a9d2349d59b0ba0058378254020a2862284904",
-      "outgoingViewKey": "57e98f8a811c62cbce9cd70ed7683dd335a0baffca60315973a3420c3e959653",
-      "publicAddress": "a2f64be4449f389517ab978f6a47a0cf5b5da02e06829aadcbb57c268e18aff2"
+      "spendingKey": "045555c9abce7747406986984dd87697806afd8e531e364137b262e3a6cf646b",
+      "incomingViewKey": "0b2252313172de406346e6595a930cfe36a9928f76b1e1181678b98ddf6b0c05",
+      "outgoingViewKey": "abcd9de8cf484b6c63c92028c4c545bdcdff323f7c6aa4712ea6a4415a1420fe",
+      "publicAddress": "aa4c42822c875edaeb76c8f6c0a6ae29ebaeeddcb68d19a1eb73b278235092b1"
     },
     {
       "type": "Buffer",
-      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAjBW+9vNQEvwuaFkGe/mWwuERlcHSKygtKRV01I36brgV7MaZwdteP3Ls/qmspELUskCfFN+C4HRSVot7wUZK4VY4RxXqaNjfcbQ2DFhaZJiV33C4mKMGSLfUE0by0d+nFwc9Slxx4FyXOad5zPfL9QZ8VlJ+x/BvvYlUIPuMLiUXmLCSjjAXx41U77DPxdKMq6TAS+YgwuEtPNXN22Em9FsmoWJhMaGIfoAmR49A7sgwKZK1J/XFzVS6XHN5E/E4Yp+oxza5k5CybB7+ekOnWQ6kwYAHqo85MQpoVdsYLC4WpPFQxfYbd7q7FSK/poGTuj8oxli8ABpmQH3TDCPOb+EEDOWwAvigu7dDHvlbQwI3pQ3dSswOcHMshBh8YVej0K+ILIQ7W1B7WR8GnVVbEG/RJoa7MGYf/7Pz/jekofpGoKjGWWLyGrmLnp3bQ052SkY6cTIkd2nfN+nLz2xGockuo8A5NOII+9jxpcMmIdqB7DEj/Ac0P+A/mT2wN/2n+kHigZecKitkt/d104pdnrjxoi1y66rzSXJvbiBGaXNoIG5vdGUgZW5jcnlwdGlvbiBtaW5lciBrZXkwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDBOHLsGfXqyYg2dKpPP3Ia8cyqmEqM/nHBeXvE4+8RFwscJgGXGrecUttVZLmHWJG8qGYotwW1nz2xa1D8F2TMB"
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAsIv4GrSRpazOJbLabt/OZr63DDkahvXePvb1B0hxQDJFEsalySrrJF5PdzqLXu8rsRpX3X/VawMF8Jgf3F0HeZY4wd/w27Tu5HB2aXzr4T+aFZ1MIqn7fg4Th1R9IlRUFJYJ+Pqdk6Bn574oeJzzLLwG/EbBD+rO2hvqXmPLo562HKJAR5NS/vqFiVMesTekjjmvYbt/2D2j3kmpYznGZp+19BOnBG5FcFskQV/cnlQMXu+OWBY9/yzqQygLF7IryeesNjHSqqR9wABjSSoNDCv9NyZj2zsRp+ATj35xpMdnioqWMrM/fv+WyBYmzewST1gIviLgJnN9Xn+mtfEJZsu1DFvulFc4LLWYtaoMBPaXcMiXqCF3AOk2M/P+FZ3KvhXW859dTYHmV1/lpa8RjiF9Zx4XwNxtNuCObXDg3o5dnB2ea/bwZ9jOnpTBTk725XxiNSvQLc8NncWJUhQT4s0tX0mt9c4n85G112DzGljWiSg8uuHZKF9FD0xQQ/WHig12gsTucqPiPeezJa4S9eP+2uGVOMG6Ru0kgshFhvdt8l+bojrGSEENff9FHbraZYD+obI1se1Jcm9uIEZpc2ggbm90ZSBlbmNyeXB0aW9uIG1pbmVyIGtleTAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMMlLA2PaJQuaCof2mVGRq856C6YxF3l8BISVLe0Q6xrGmeqEz0p+4wWKmdtUm+5Z9I18uvYzU6Z/C0nuRYkW8wQ="
     }
   ]
 }

@@ -155,9 +155,11 @@ export class MiningManager {
     this.node.logger.debug(
       `Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
     )
+
+    const txSize = getTransactionSize(minersFee)
     Assert.isEqual(
       MINERS_FEE_TRANSACTION_SIZE_BYTES,
-      getTransactionSize(minersFee),
+      txSize,
       "Incorrect miner's fee transaction size used during block creation",
     )
 

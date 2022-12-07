@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    assets::asset::AssetIdentifier, errors::IronfishError, serializing::read_point,
-    util::str_to_array,
+    assets::asset::AssetIdentifier, errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE,
+    serializing::read_point, util::str_to_array,
 };
 
 use super::{
@@ -24,12 +24,14 @@ use ironfish_zkp::{
 use jubjub::SubgroupPoint;
 use rand::thread_rng;
 use std::{fmt, io, io::Read};
-pub const ENCRYPTED_NOTE_SIZE: usize = SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SIZE + GENERATOR_SIZE;
+pub const ENCRYPTED_NOTE_SIZE: usize =
+    SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SIZE + GENERATOR_SIZE + PUBLIC_ADDRESS_SIZE;
 //   8  value
 // + 32 randomness
 // + 32 asset generator
 // + 32 memo
-// = 104
+// + 32 sender address
+// = 136
 pub const SCALAR_SIZE: usize = 32;
 pub const MEMO_SIZE: usize = 32;
 pub const AMOUNT_VALUE_SIZE: usize = 8;
@@ -73,8 +75,7 @@ pub struct Note {
     /// Asset generator the note is associated with
     pub(crate) asset_generator: jubjub::SubgroupPoint,
 
-    /// A public address for the owner of the note. One owner can have multiple public addresses,
-    /// each associated with a different diversifier.
+    /// A public address for the owner of the note.
     pub(crate) owner: PublicAddress,
 
     /// Value this note represents.
@@ -91,6 +92,9 @@ pub struct Note {
     /// Note: While this is encrypted with the output, it is not encoded into
     /// the proof in any way.
     pub(crate) memo: Memo,
+
+    /// A public address for the sender of the note.
+    pub(crate) sender: PublicAddress,
 }
 
 impl<'a> Note {
@@ -100,6 +104,7 @@ impl<'a> Note {
         value: u64,
         memo: impl Into<Memo>,
         asset_generator: SubgroupPoint,
+        sender: PublicAddress,
     ) -> Self {
         let randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
 
@@ -109,6 +114,7 @@ impl<'a> Note {
             value,
             randomness,
             memo: memo.into(),
+            sender,
         }
     }
 
@@ -127,12 +133,15 @@ impl<'a> Note {
         let mut memo = Memo::default();
         reader.read_exact(&mut memo.0)?;
 
+        let sender = PublicAddress::read(&mut reader)?;
+
         Ok(Self {
             owner,
             asset_generator,
             value,
             randomness,
             memo,
+            sender,
         })
     }
 
@@ -147,6 +156,7 @@ impl<'a> Note {
         writer.write_u64::<LittleEndian>(self.value)?;
         writer.write_all(&self.randomness.to_bytes())?;
         writer.write_all(&self.memo.0)?;
+        self.sender.write(&mut writer)?;
 
         Ok(())
     }
@@ -165,7 +175,7 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (randomness, asset_generator, value, memo) =
+        let (randomness, asset_generator, value, memo, sender) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let owner = owner_view_key.public_address();
 
@@ -175,6 +185,7 @@ impl<'a> Note {
             value,
             randomness,
             memo,
+            sender,
         })
     }
 
@@ -192,7 +203,7 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (randomness, asset_generator, value, memo) =
+        let (randomness, asset_generator, value, memo, sender) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
 
         let owner = PublicAddress { transmission_key };
@@ -203,6 +214,7 @@ impl<'a> Note {
             value,
             randomness,
             memo,
+            sender,
         })
     }
 
@@ -226,6 +238,10 @@ impl<'a> Note {
         self.asset_generator.to_bytes()
     }
 
+    pub fn sender(&self) -> PublicAddress {
+        self.sender
+    }
+
     /// Send encrypted form of the note, which is what gets publicly stored on
     /// the tree. Only someone with the incoming viewing key for the note can
     /// actually read the contents.
@@ -246,13 +262,18 @@ impl<'a> Note {
         bytes_to_encrypt[index..(index + MEMO_SIZE)].copy_from_slice(&self.memo.0[..]);
         index += MEMO_SIZE;
 
-        bytes_to_encrypt[index..].copy_from_slice(&self.asset_generator.to_bytes());
+        bytes_to_encrypt[index..(index + GENERATOR_SIZE)]
+            .copy_from_slice(&self.asset_generator.to_bytes());
+        index += GENERATOR_SIZE;
+
+        bytes_to_encrypt[index..].copy_from_slice(&self.sender.public_address());
 
         aead::encrypt(shared_secret, &bytes_to_encrypt).unwrap()
     }
 
     /// Computes the note commitment, returning the full point.
     fn commitment_full_point(&self) -> jubjub::SubgroupPoint {
+        // TODO: @yajun replace this with commitment_full_point_new() that takes sender address
         commitment_full_point(
             self.asset_generator,
             self.value,
@@ -317,7 +338,7 @@ impl<'a> Note {
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<(jubjub::Fr, jubjub::SubgroupPoint, u64, Memo), IronfishError> {
+    ) -> Result<(jubjub::Fr, jubjub::SubgroupPoint, u64, Memo, PublicAddress), IronfishError> {
         let plaintext_bytes: [u8; ENCRYPTED_NOTE_SIZE] =
             aead::decrypt(shared_secret, encrypted_bytes)?;
 
@@ -337,7 +358,8 @@ impl<'a> Note {
                 .ok_or(IronfishError::InvalidData)?
         };
 
-        Ok((randomness, asset_generator, value, memo))
+        let sender = PublicAddress::read(&mut reader)?;
+        Ok((randomness, asset_generator, value, memo, sender))
     }
 }
 
@@ -353,7 +375,15 @@ mod test {
     fn test_plaintext_serialization() {
         let owner_key: SaplingKey = SaplingKey::generate_key();
         let public_address = owner_key.public_address();
-        let note = Note::new(public_address, 42, "serialize me", NATIVE_ASSET_GENERATOR);
+        let sender_key: SaplingKey = SaplingKey::generate_key();
+        let sender_address = sender_key.public_address();
+        let note = Note::new(
+            public_address,
+            42,
+            "serialize me",
+            NATIVE_ASSET_GENERATOR,
+            sender_address,
+        );
         let mut serialized = Vec::new();
         note.write(&mut serialized)
             .expect("Should serialize cleanly");
@@ -363,6 +393,7 @@ mod test {
         assert_eq!(note2.value, 42);
         assert_eq!(note2.randomness, note.randomness);
         assert_eq!(note2.memo, note.memo);
+        assert_eq!(note2.sender.public_address(), note.sender.public_address());
 
         let mut serialized2 = Vec::new();
         note2
@@ -375,10 +406,18 @@ mod test {
     fn test_note_encryption() {
         let owner_key: SaplingKey = SaplingKey::generate_key();
         let public_address = owner_key.public_address();
+        let sender_key: SaplingKey = SaplingKey::generate_key();
+        let sender_address = sender_key.public_address();
         let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
         let public_shared_secret =
             shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
-        let note = Note::new(public_address, 42, "", NATIVE_ASSET_GENERATOR);
+        let note = Note::new(
+            public_address,
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+            sender_address,
+        );
         let encryption_result = note.encrypt(&public_shared_secret);
 
         let private_shared_secret = owner_key.incoming_view_key().shared_secret(&dh_public);
@@ -396,6 +435,10 @@ mod test {
         assert!(note.value == restored_note.value);
         assert!(note.randomness == restored_note.randomness);
         assert!(note.memo == restored_note.memo);
+        assert_eq!(
+            restored_note.sender.public_address(),
+            note.sender.public_address()
+        );
 
         let spender_decrypted = Note::from_spender_encrypted(
             note.owner.transmission_key,
@@ -410,6 +453,10 @@ mod test {
         assert!(note.value == spender_decrypted.value);
         assert!(note.randomness == spender_decrypted.randomness);
         assert!(note.memo == spender_decrypted.memo);
+        assert_eq!(
+            spender_decrypted.sender.public_address(),
+            note.sender.public_address()
+        );
     }
 
     #[test]

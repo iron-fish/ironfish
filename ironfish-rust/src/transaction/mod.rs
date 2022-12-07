@@ -177,6 +177,7 @@ impl ProposedTransaction {
                     change_amount as u64, // we checked it was positive
                     "",
                     SubgroupPoint::from_bytes(asset_identifier).unwrap(),
+                    self.spender_key.public_address(),
                 );
 
                 change_notes.push(change_note);

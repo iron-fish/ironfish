@@ -18,14 +18,22 @@ use ironfish_zkp::redjubjub::Signature;
 fn test_transaction() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
 
     // Native asset
-    let in_note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET_GENERATOR,
+        sender_key.public_address(),
+    );
     let out_note = Note::new(
         receiver_key.public_address(),
         40,
         "",
         NATIVE_ASSET_GENERATOR,
+        spender_key.public_address(),
     );
 
     let witness = make_fake_witness(&in_note);
@@ -40,7 +48,13 @@ fn test_transaction() {
         "A really cool coin",
     )
     .expect("should be able to create an asset");
-    let mint_out_note = Note::new(receiver_key.public_address(), 2, "", asset.generator());
+    let mint_out_note = Note::new(
+        receiver_key.public_address(),
+        2,
+        "",
+        asset.generator(),
+        spender_key.public_address(),
+    );
 
     let mut transaction = ProposedTransaction::new(spender_key);
 
@@ -121,12 +135,22 @@ fn test_transaction() {
 fn test_transaction_simple() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
-    let in_note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
+    let sender_key = SaplingKey::generate_key();
+    let spender_key_clone = spender_key.clone();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET_GENERATOR,
+        sender_key.public_address(),
+    );
     let out_note = Note::new(
         receiver_key.public_address(),
         40,
         "",
         NATIVE_ASSET_GENERATOR,
+        spender_key.public_address(),
     );
     let witness = make_fake_witness(&in_note);
 
@@ -149,16 +173,24 @@ fn test_transaction_simple() {
     assert_eq!(public_transaction.spends.len(), 1);
     assert_eq!(public_transaction.mints.len(), 0);
     assert_eq!(public_transaction.burns.len(), 0);
+
+    let received_note = public_transaction.outputs[1]
+        .merkle_note()
+        .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
+        .unwrap();
+    assert_eq!(received_note.sender, spender_key_clone.public_address());
 }
 
 #[test]
 fn test_miners_fee() {
+    let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
     let out_note = Note::new(
         receiver_key.public_address(),
         42,
         "",
         NATIVE_ASSET_GENERATOR,
+        spender_key.public_address(),
     );
     let mut transaction = ProposedTransaction::new(receiver_key);
     transaction.add_output(out_note);
@@ -183,10 +215,23 @@ fn test_transaction_signature() {
     let receiver_key = SaplingKey::generate_key();
     let spender_address = spender_key.public_address();
     let receiver_address = receiver_key.public_address();
+    let sender_key = SaplingKey::generate_key();
 
     let mut transaction = ProposedTransaction::new(spender_key);
-    let in_note = Note::new(spender_address, 42, "", NATIVE_ASSET_GENERATOR);
-    let out_note = Note::new(receiver_address, 41, "", NATIVE_ASSET_GENERATOR);
+    let in_note = Note::new(
+        spender_address,
+        42,
+        "",
+        NATIVE_ASSET_GENERATOR,
+        sender_key.public_address(),
+    );
+    let out_note = Note::new(
+        receiver_address,
+        41,
+        "",
+        NATIVE_ASSET_GENERATOR,
+        spender_address,
+    );
     let witness = make_fake_witness(&in_note);
 
     transaction.add_spend(in_note, &witness);
@@ -213,12 +258,22 @@ fn test_transaction_signature() {
 fn test_transaction_created_with_version_1() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
-    let in_note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
+    let sender_key = SaplingKey::generate_key();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET_GENERATOR,
+        sender_key.public_address(),
+    );
+
     let out_note = Note::new(
         receiver_key.public_address(),
         40,
         "",
         NATIVE_ASSET_GENERATOR,
+        spender_key.public_address(),
     );
     let witness = make_fake_witness(&in_note);
 
@@ -243,12 +298,22 @@ fn test_transaction_created_with_version_1() {
 fn test_transaction_version_is_checked() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
-    let in_note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
+    let sender_key = SaplingKey::generate_key();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET_GENERATOR,
+        sender_key.public_address(),
+    );
+
     let out_note = Note::new(
         receiver_key.public_address(),
         40,
         "",
         NATIVE_ASSET_GENERATOR,
+        spender_key.public_address(),
     );
     let witness = make_fake_witness(&in_note);
 

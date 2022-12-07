@@ -222,7 +222,15 @@ mod test {
     /// set will use the hard-coded note encryption keys
     fn test_output_miners_fee() {
         let spender_key = SaplingKey::generate_key();
-        let note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
+        let sender_key = SaplingKey::generate_key();
+
+        let note = Note::new(
+            spender_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+            sender_key.public_address(),
+        );
 
         let mut output = OutputBuilder::new(note);
         output.set_is_miners_fee();
@@ -240,7 +248,15 @@ mod test {
     #[test]
     fn test_output_not_miners_fee() {
         let spender_key = SaplingKey::generate_key();
-        let note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
+        let receiver_key = SaplingKey::generate_key();
+
+        let note = Note::new(
+            receiver_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+            spender_key.public_address(),
+        );
 
         let output = OutputBuilder::new(note);
 
@@ -257,7 +273,15 @@ mod test {
     #[test]
     fn test_output_round_trip() {
         let spender_key = SaplingKey::generate_key();
-        let note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
+        let receiver_key = SaplingKey::generate_key();
+
+        let note = Note::new(
+            receiver_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+            spender_key.public_address(),
+        );
 
         let output = OutputBuilder::new(note);
         let proof = output
