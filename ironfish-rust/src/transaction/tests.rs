@@ -136,6 +136,8 @@ fn test_transaction_simple() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
     let sender_key = SaplingKey::generate_key();
+    let spender_key_clone = spender_key.clone();
+
     let in_note = Note::new(
         spender_key.public_address(),
         42,
@@ -171,6 +173,9 @@ fn test_transaction_simple() {
     assert_eq!(public_transaction.spends.len(), 1);
     assert_eq!(public_transaction.mints.len(), 0);
     assert_eq!(public_transaction.burns.len(), 0);
+
+    let received_note = public_transaction.outputs[1].merkle_note().decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key).unwrap();
+    assert_eq!(received_note.sender, spender_key_clone.public_address());
 }
 
 #[test]

@@ -339,6 +339,7 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<(jubjub::Fr, jubjub::SubgroupPoint, u64, Memo, PublicAddress), IronfishError> {
+
         let plaintext_bytes: [u8; ENCRYPTED_NOTE_SIZE] =
             aead::decrypt(shared_secret, encrypted_bytes)?;
 
@@ -359,7 +360,6 @@ impl<'a> Note {
         };
 
         let sender = PublicAddress::read(&mut reader)?;
-
         Ok((randomness, asset_generator, value, memo, sender))
     }
 }
@@ -394,6 +394,7 @@ mod test {
         assert_eq!(note2.value, 42);
         assert_eq!(note2.randomness, note.randomness);
         assert_eq!(note2.memo, note.memo);
+        assert_eq!(note2.sender.public_address(), note.sender.public_address());
 
         let mut serialized2 = Vec::new();
         note2
@@ -435,6 +436,7 @@ mod test {
         assert!(note.value == restored_note.value);
         assert!(note.randomness == restored_note.randomness);
         assert!(note.memo == restored_note.memo);
+        assert_eq!(restored_note.sender.public_address(), note.sender.public_address());
 
         let spender_decrypted = Note::from_spender_encrypted(
             note.owner.transmission_key,
@@ -449,6 +451,7 @@ mod test {
         assert!(note.value == spender_decrypted.value);
         assert!(note.randomness == spender_decrypted.randomness);
         assert!(note.memo == spender_decrypted.memo);
+        assert_eq!(spender_decrypted.sender.public_address(), note.sender.public_address());
     }
 
     #[test]
