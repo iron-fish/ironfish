@@ -98,7 +98,7 @@ impl OutputBuilder {
                 &self.note,
                 &self.value_commitment,
                 &diffie_hellman_keys,
-            )
+            )?
         };
 
         let output_proof = OutputDescription { proof, merkle_note };
@@ -222,14 +222,13 @@ mod test {
     /// set will use the hard-coded note encryption keys
     fn test_output_miners_fee() {
         let spender_key = SaplingKey::generate_key();
-        let sender_key = SaplingKey::generate_key();
 
         let note = Note::new(
             spender_key.public_address(),
             42,
             "",
             NATIVE_ASSET_GENERATOR,
-            sender_key.public_address(),
+            None,
         );
 
         let mut output = OutputBuilder::new(note);
@@ -255,7 +254,7 @@ mod test {
             42,
             "",
             NATIVE_ASSET_GENERATOR,
-            spender_key.public_address(),
+            Some(spender_key.public_address()),
         );
 
         let output = OutputBuilder::new(note);
@@ -271,6 +270,26 @@ mod test {
     }
 
     #[test]
+    fn test_output_not_miners_fee_with_empty_sender() {
+        let spender_key = SaplingKey::generate_key();
+        let receiver_key = SaplingKey::generate_key();
+
+        let note = Note::new(
+            receiver_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+            None,
+        );
+
+        let output = OutputBuilder::new(note);
+
+        let proof = output.build(&spender_key);
+
+        assert!(proof.is_err());
+    }
+
+    #[test]
     fn test_output_round_trip() {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
@@ -280,7 +299,7 @@ mod test {
             42,
             "",
             NATIVE_ASSET_GENERATOR,
-            spender_key.public_address(),
+            Some(spender_key.public_address()),
         );
 
         let output = OutputBuilder::new(note);

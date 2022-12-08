@@ -76,12 +76,21 @@ impl MerkleNote {
         note: &Note,
         value_commitment: &ValueCommitment,
         diffie_hellman_keys: &(jubjub::Fr, SubgroupPoint),
-    ) -> MerkleNote {
+    ) -> Result<MerkleNote, IronfishError> {
         let (secret_key, public_key) = diffie_hellman_keys;
 
         let mut key_bytes = [0; 64];
         key_bytes[..32].copy_from_slice(&note.owner.transmission_key.to_bytes());
         key_bytes[32..].clone_from_slice(secret_key.to_repr().as_ref());
+
+        // check sender address
+        if note.sender().is_none() {
+            return Err(IronfishError::InvalidPublicAddress);
+        }
+
+        if note.sender().unwrap() != spender_key.public_address() {
+            return Err(IronfishError::InvalidPublicAddress);
+        }
 
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key.outgoing_view_key(),
@@ -92,12 +101,12 @@ impl MerkleNote {
         let note_encryption_keys: [u8; NOTE_ENCRYPTION_KEY_SIZE] =
             aead::encrypt(&encryption_key, &key_bytes).unwrap();
 
-        Self::construct(
+        Ok(Self::construct(
             note,
             value_commitment,
             diffie_hellman_keys,
             note_encryption_keys,
-        )
+        ))
     }
 
     /// Helper function to instantiate a MerkleNote with pre-set
@@ -294,7 +303,7 @@ mod test {
             42,
             "",
             NATIVE_ASSET_GENERATOR,
-            spender_key.public_address(),
+            Some(spender_key.public_address()),
         );
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
@@ -308,9 +317,36 @@ mod test {
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
 
         assert_ne!(
-            &merkle_note.note_encryption_keys,
+            &merkle_note.unwrap().note_encryption_keys,
             NOTE_ENCRYPTION_MINER_KEYS
         );
+    }
+
+    #[test]
+    /// Test to confirm that creating a [`MerkleNote`] via new() doesn't use the
+    /// hard-coded miners fee note encryption keys
+    fn test_new_not_miners_fee_key_with_empty_sender() {
+        let spender_key = SaplingKey::generate_key();
+        let receiver_key = SaplingKey::generate_key();
+        let note = Note::new(
+            receiver_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+            None,
+        );
+        let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
+
+        let value_commitment = ValueCommitment {
+            value: note.value,
+            randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator: note.asset_generator(),
+        };
+
+        let merkle_note =
+            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+
+        assert!(merkle_note.is_err());
     }
 
     #[test]
@@ -324,7 +360,7 @@ mod test {
             42,
             "",
             NATIVE_ASSET_GENERATOR,
-            sender_key.public_address(),
+            Some(sender_key.public_address()),
         );
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
@@ -337,6 +373,7 @@ mod test {
         let merkle_note =
             MerkleNote::new_for_miners_fee(&note, &value_commitment, &diffie_hellman_keys);
 
+        assert_eq!(note.sender.unwrap(), sender_key.public_address());
         assert_eq!(
             &merkle_note.note_encryption_keys,
             NOTE_ENCRYPTION_MINER_KEYS
@@ -352,7 +389,7 @@ mod test {
             42,
             "",
             NATIVE_ASSET_GENERATOR,
-            spender_key.public_address(),
+            Some(spender_key.public_address()),
         );
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
@@ -363,7 +400,7 @@ mod test {
         };
 
         let merkle_note =
-            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys).unwrap();
         merkle_note
             .decrypt_note_for_owner(receiver_key.incoming_view_key())
             .expect("should be able to decrypt note for owner");
@@ -380,7 +417,7 @@ mod test {
             42,
             "",
             NATIVE_ASSET_GENERATOR,
-            spender_key.public_address(),
+            Some(spender_key.public_address()),
         );
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
@@ -391,7 +428,7 @@ mod test {
         };
 
         let mut merkle_note =
-            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys).unwrap();
         merkle_note
             .decrypt_note_for_owner(spender_key.incoming_view_key())
             .expect("should be able to decrypt note for owner");

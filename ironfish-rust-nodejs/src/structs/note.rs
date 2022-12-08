@@ -65,7 +65,7 @@ impl NativeNote {
                 value_u64,
                 memo,
                 NATIVE_ASSET_GENERATOR,
-                sender_address_placeholder,
+                Some(sender_address_placeholder),
             ),
         })
     }

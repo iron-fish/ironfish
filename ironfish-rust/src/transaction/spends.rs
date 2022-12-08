@@ -408,7 +408,6 @@ mod test {
     fn test_spend_round_trip() {
         let key = SaplingKey::generate_key();
         let public_address = key.public_address();
-        let sender_key = SaplingKey::generate_key();
 
         let note_randomness = random();
 
@@ -417,7 +416,7 @@ mod test {
             note_randomness,
             "",
             NATIVE_ASSET_GENERATOR,
-            sender_key.public_address(),
+            None,
         );
         let witness = make_fake_witness(&note);
 

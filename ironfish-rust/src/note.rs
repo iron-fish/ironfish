@@ -94,7 +94,7 @@ pub struct Note {
     pub(crate) memo: Memo,
 
     /// A public address for the sender of the note.
-    pub(crate) sender: PublicAddress,
+    pub(crate) sender: Option<PublicAddress>,
 }
 
 impl<'a> Note {
@@ -104,7 +104,7 @@ impl<'a> Note {
         value: u64,
         memo: impl Into<Memo>,
         asset_generator: SubgroupPoint,
-        sender: PublicAddress,
+        sender: Option<PublicAddress>,
     ) -> Self {
         let randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
 
@@ -133,8 +133,18 @@ impl<'a> Note {
         let mut memo = Memo::default();
         reader.read_exact(&mut memo.0)?;
 
-        let sender = PublicAddress::read(&mut reader)?;
+        if let Ok(sender) = PublicAddress::read(&mut reader) {
+            return Ok(Self {
+                owner,
+                asset_generator,
+                value,
+                randomness,
+                memo,
+                sender: Some(sender),
+            });
+        }
 
+        let sender: Option<PublicAddress> = None;
         Ok(Self {
             owner,
             asset_generator,
@@ -156,7 +166,9 @@ impl<'a> Note {
         writer.write_u64::<LittleEndian>(self.value)?;
         writer.write_all(&self.randomness.to_bytes())?;
         writer.write_all(&self.memo.0)?;
-        self.sender.write(&mut writer)?;
+        if self.sender.is_some() {
+            self.sender.unwrap().write(&mut writer)?;
+        }
 
         Ok(())
     }
@@ -185,7 +197,7 @@ impl<'a> Note {
             value,
             randomness,
             memo,
-            sender,
+            sender: Some(sender),
         })
     }
 
@@ -214,7 +226,7 @@ impl<'a> Note {
             value,
             randomness,
             memo,
-            sender,
+            sender: Some(sender),
         })
     }
 
@@ -238,7 +250,7 @@ impl<'a> Note {
         self.asset_generator.to_bytes()
     }
 
-    pub fn sender(&self) -> PublicAddress {
+    pub fn sender(&self) -> Option<PublicAddress> {
         self.sender
     }
 
@@ -266,7 +278,9 @@ impl<'a> Note {
             .copy_from_slice(&self.asset_generator.to_bytes());
         index += GENERATOR_SIZE;
 
-        bytes_to_encrypt[index..].copy_from_slice(&self.sender.public_address());
+        if self.sender.is_some() {
+            bytes_to_encrypt[index..].copy_from_slice(&self.sender.unwrap().public_address());
+        }
 
         aead::encrypt(shared_secret, &bytes_to_encrypt).unwrap()
     }
@@ -382,7 +396,7 @@ mod test {
             42,
             "serialize me",
             NATIVE_ASSET_GENERATOR,
-            sender_address,
+            Some(sender_address),
         );
         let mut serialized = Vec::new();
         note.write(&mut serialized)
@@ -393,7 +407,10 @@ mod test {
         assert_eq!(note2.value, 42);
         assert_eq!(note2.randomness, note.randomness);
         assert_eq!(note2.memo, note.memo);
-        assert_eq!(note2.sender.public_address(), note.sender.public_address());
+        assert_eq!(
+            note2.sender.unwrap().public_address(),
+            note.sender.unwrap().public_address()
+        );
 
         let mut serialized2 = Vec::new();
         note2
@@ -416,7 +433,7 @@ mod test {
             42,
             "",
             NATIVE_ASSET_GENERATOR,
-            sender_address,
+            Some(sender_address),
         );
         let encryption_result = note.encrypt(&public_shared_secret);
 
@@ -436,8 +453,8 @@ mod test {
         assert!(note.randomness == restored_note.randomness);
         assert!(note.memo == restored_note.memo);
         assert_eq!(
-            restored_note.sender.public_address(),
-            note.sender.public_address()
+            restored_note.sender.unwrap().public_address(),
+            note.sender.unwrap().public_address()
         );
 
         let spender_decrypted = Note::from_spender_encrypted(
@@ -454,8 +471,8 @@ mod test {
         assert!(note.randomness == spender_decrypted.randomness);
         assert!(note.memo == spender_decrypted.memo);
         assert_eq!(
-            spender_decrypted.sender.public_address(),
-            note.sender.public_address()
+            spender_decrypted.sender.unwrap().public_address(),
+            note.sender.unwrap().public_address()
         );
     }
 

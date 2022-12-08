@@ -121,10 +121,12 @@ impl ProposedTransaction {
 
     /// Create a proof of a new note owned by the recipient in this
     /// transaction.
-    pub fn add_output(&mut self, note: Note) {
+    pub fn add_output(&mut self, mut note: Note) {
         self.value_balances
             .subtract(&note.asset_identifier(), note.value() as i64);
 
+        // set sender address from spender key
+        note.sender = Some(self.spender_key.public_address());
         self.outputs.push(OutputBuilder::new(note));
     }
 
@@ -177,7 +179,7 @@ impl ProposedTransaction {
                     change_amount as u64, // we checked it was positive
                     "",
                     SubgroupPoint::from_bytes(asset_identifier).unwrap(),
-                    self.spender_key.public_address(),
+                    Some(self.spender_key.public_address()),
                 );
 
                 change_notes.push(change_note);
