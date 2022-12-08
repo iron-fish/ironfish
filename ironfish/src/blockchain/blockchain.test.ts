@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
 import { IronfishNode } from '../node'
@@ -11,10 +11,12 @@ import { NoteEncrypted } from '../primitives/noteEncrypted'
 import {
   createNodeTest,
   useAccountFixture,
+  useBlockFixture,
   useBlockWithRawTxFixture,
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
+  useRawTxFixture,
   useTxFixture,
   useTxSpendsFixture,
 } from '../testUtilities'
@@ -1225,7 +1227,7 @@ describe('Blockchain', () => {
           createdTransactionHash: blockA.transactions[1].hash(),
           supply: mintValueA + mintValueB - burnValueD,
         })
-      })
+      }, 10000)
     })
 
     describe('when an asset is minted on a fork', () => {
@@ -1269,6 +1271,55 @@ describe('Blockchain', () => {
         expect(nodeA.chain.head.hash.equals(blockB2.header.hash)).toBe(true)
         record = await nodeA.chain.assets.get(assetIdentifier)
         expect(record).toBeUndefined()
+      })
+    })
+
+    describe('when spending and burning the same note in a block', () => {
+      it('throws an exception', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const minedBlock = await useMinerBlockFixture(node.chain, 2, account)
+        await expect(node.chain).toAddBlock(minedBlock)
+
+        // Mint so we have an existing asset
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const mintValue = BigInt(10)
+        const mintBlock = await mintAsset(node, account, 3, asset, mintValue)
+        await expect(node.chain).toAddBlock(mintBlock)
+        await node.wallet.updateHead()
+
+        // Build a block which uses the same note for burning and spending
+        const noteToBurn = mintBlock.transactions[1].getNote(0)
+        const doubleSpendBlock = await useBlockFixture(node.chain, async () => {
+          const burnTransaction = await useRawTxFixture(
+            node.chain,
+            node.workerPool,
+            account,
+            [noteToBurn],
+            [],
+            [],
+            [{asset, value: BigInt(2)}],
+          )
+          const spendTransaction = await useRawTxFixture(
+            node.chain,
+            node.workerPool,
+            account,
+            [noteToBurn],
+            [{ publicAddress: account.publicAddress, amount: BigInt(3), memo: ''}],
+            [],
+            [],
+          )
+          const fee = burnTransaction.fee() + spendTransaction.fee()
+
+          return node.chain.newBlock(
+            [burnTransaction, spendTransaction],
+            await node.strategy.createMinersFee(fee, 4, generateKey().spending_key),
+          )
+        })
+
+        await expect(node.chain).toAddBlock(doubleSpendBlock)
       })
     })
   })

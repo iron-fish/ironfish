@@ -270,34 +270,7 @@ export async function useBlockWithRawTxFixture(
   sequence: number,
 ): Promise<Block> {
   const generate = async () => {
-    const spends = await Promise.all(
-      notesToSpend.map(async (n) => {
-        const note = n.decryptNoteForOwner(sender.incomingViewKey)
-        Assert.isNotUndefined(note)
-        const treeIndex = await chain.notes.leavesIndex.get(n.merkleHash())
-        Assert.isNotUndefined(treeIndex)
-        const witness = await chain.notes.witness(treeIndex)
-        Assert.isNotNull(witness)
-
-        return {
-          note,
-          treeSize: witness.treeSize(),
-          authPath: witness.authenticationPath,
-          rootHash: witness.rootHash,
-        }
-      }),
-    )
-
-    const transaction = await pool.createTransaction(
-      sender.spendingKey,
-      spends,
-      receives,
-      mints,
-      burns,
-      BigInt(0),
-      0,
-    )
-
+    const transaction = await useRawTxFixture(chain, pool, sender, notesToSpend, receives, mints, burns)
     return chain.newBlock(
       [transaction],
       await chain.strategy.createMinersFee(transaction.fee(), sequence, sender.spendingKey),
@@ -305,6 +278,44 @@ export async function useBlockWithRawTxFixture(
   }
 
   return useBlockFixture(chain, generate)
+}
+
+export async function useRawTxFixture(
+  chain: Blockchain,
+  pool: WorkerPool,
+  sender: Account,
+  notesToSpend: NoteEncrypted[],
+  receives: { publicAddress: string; amount: bigint; memo: string }[],
+  mints: { asset: Asset; value: bigint }[],
+  burns: { asset: Asset; value: bigint }[],
+): Promise<Transaction> {
+  const spends = await Promise.all(
+    notesToSpend.map(async (n) => {
+      const note = n.decryptNoteForOwner(sender.incomingViewKey)
+      Assert.isNotUndefined(note)
+      const treeIndex = await chain.notes.leavesIndex.get(n.merkleHash())
+      Assert.isNotUndefined(treeIndex)
+      const witness = await chain.notes.witness(treeIndex)
+      Assert.isNotNull(witness)
+
+      return {
+        note,
+        treeSize: witness.treeSize(),
+        authPath: witness.authenticationPath,
+        rootHash: witness.rootHash,
+      }
+    }),
+  )
+
+  return pool.createTransaction(
+    sender.spendingKey,
+    spends,
+    receives,
+    mints,
+    burns,
+    BigInt(0),
+    0,
+  )
 }
 
 export async function useMinersTxFixture(
