@@ -47,10 +47,4 @@ describe('Miners reward', () => {
     const minersReward = strategy.miningReward(ironFishYearInBlocks + 1)
     expect(minersReward).toBe(19 * 10 ** 8)
   })
-
-  it('miner reward is 0 after V3 activation', () => {
-    strategy.consensus.V3_DISABLE_MINING_REWARD = 1000
-    expect(strategy.miningReward(999)).toBe(20 * 10 ** 8)
-    expect(strategy.miningReward(1005)).toBe(0)
-  })
 })
