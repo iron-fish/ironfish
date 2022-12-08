@@ -7,7 +7,6 @@ import { Credentials } from '@aws-sdk/types/dist-types/credentials'
 import { Assert, FileUtils, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fsAsync from 'fs/promises'
-import os from 'os'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { IronfishCommand } from '../command'
@@ -81,7 +80,10 @@ export default class Backup extends IronfishCommand {
     }
 
     const source = this.sdk.config.dataDir
-    const destDir = await fsAsync.mkdtemp(path.join(os.tmpdir(), `ironfish.backup`))
+
+    const destDir = this.sdk.config.tempDir
+    await fsAsync.mkdir(destDir, { recursive: true })
+
     const destName = `node.${id}.tar.gz`
     const dest = path.join(destDir, destName)
 
@@ -117,8 +119,8 @@ export default class Backup extends IronfishCommand {
     )
     CliUx.ux.action.stop(`done`)
 
-    CliUx.ux.action.start(`Removing backup dir ${destDir}`)
-    await fsAsync.rm(destDir, { recursive: true })
+    CliUx.ux.action.start(`Removing backup file ${dest}`)
+    await fsAsync.rm(dest)
     CliUx.ux.action.stop(`done`)
   }
 
