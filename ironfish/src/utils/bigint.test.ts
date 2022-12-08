@@ -1,7 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BigIntUtils } from './bigint'
+import bufio from 'bufio'
+import { BigIntUtils, readBigU128, readBigU256, writeBigU128, writeBigU256 } from './bigint'
+
+function littleEndianTest(value: BigInt, bits: number): Buffer {
+  const bitString = ('0'.repeat(bits) + value.toString(2)).slice(-bits)
+  const bytes = bitString.match(/[01]{8}/g) || []
+  const leBytes = bytes.map((binary) => parseInt(binary, 2)).reverse()
+
+  return Buffer.from(new Uint8Array(leBytes))
+}
 
 describe('BigIntUtils', () => {
   it('converts bigints to bytes and back', () => {
@@ -62,5 +71,37 @@ describe('BigIntUtils', () => {
 
     expect(withPrecision).toBeGreaterThan(withoutPrecision)
     expect(withPrecision).toBe(withPrecision2)
+  })
+
+  it('can convert a 128 bit bigint to a little-endian representation', () => {
+    const value = 2n ** 127n + 63542n
+
+    const bw = bufio.write(16)
+    writeBigU128(bw, value)
+    const serialized = bw.render()
+
+    expect(serialized).toEqual(littleEndianTest(value, 128))
+
+    const reader = bufio.read(serialized, true)
+
+    const deserialized = readBigU128(reader)
+
+    expect(deserialized).toEqual(value)
+  })
+
+  it('can convert a 256 bit bigint to a little-endian representation', () => {
+    const value = 2n ** 255n + 354532n
+
+    const bw = bufio.write(32)
+    writeBigU256(bw, value)
+    const serialized = bw.render()
+
+    expect(serialized).toEqual(littleEndianTest(value, 256))
+
+    const reader = bufio.read(serialized, true)
+
+    const deserialized = readBigU256(reader)
+
+    expect(deserialized).toEqual(value)
   })
 })
