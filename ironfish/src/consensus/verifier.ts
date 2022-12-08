@@ -450,13 +450,15 @@ export enum VerificationResultReason {
   ERROR = 'Error',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
   HASH_NOT_MEET_TARGET = 'Hash does not meet target',
+  INVALID_GENESIS_BLOCK = 'Genesis block does not match hash in Identify message',
   INVALID_MINERS_FEE = "Miner's fee is incorrect",
+  INVALID_PARENT = 'Invalid_parent',
   INVALID_SPEND = 'Invalid spend',
   INVALID_TARGET = 'Invalid target',
   INVALID_TRANSACTION_FEE = 'Transaction fee is incorrect',
   INVALID_TRANSACTION_PROOF = 'Invalid transaction proof',
   INVALID_TRANSACTION_COMMITMENT = 'Transaction commitment does not match transactions',
-  INVALID_PARENT = 'Invalid_parent',
+  INVALID_TRANSACTION_VERSION = 'Invalid transaction version',
   MAX_BLOCK_SIZE_EXCEEDED = 'Block size exceeds maximum',
   MAX_TRANSACTION_SIZE_EXCEEDED = 'Transaction size exceeds maximum',
   MINERS_FEE_EXPECTED = 'Miners fee expected',
@@ -469,7 +471,6 @@ export enum VerificationResultReason {
   TOO_FAR_IN_FUTURE = 'Timestamp is in future',
   TRANSACTION_EXPIRED = 'Transaction expired',
   VERIFY_TRANSACTION = 'Verify_transaction',
-  INVALID_TRANSACTION_VERSION = 'Invalid transaction version',
 }
 
 /**

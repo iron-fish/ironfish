@@ -456,6 +456,15 @@ export class Syncer {
     block: Block
     reason: VerificationResultReason | null
   }> {
+    if (
+      block.header.sequence === GENESIS_BLOCK_SEQUENCE &&
+      peer.genesisBlockHash &&
+      !block.header.hash.equals(peer.genesisBlockHash)
+    ) {
+      peer.punish(BAN_SCORE.MAX, VerificationResultReason.INVALID_GENESIS_BLOCK)
+      return { added: false, block, reason: VerificationResultReason.INVALID_GENESIS_BLOCK }
+    }
+
     const { isAdded, reason, score } = await this.chain.addBlock(block)
 
     this.speed.add(1)

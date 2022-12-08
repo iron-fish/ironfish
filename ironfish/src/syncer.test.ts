@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from './assert'
+import { VerificationResultReason } from './consensus'
 import { BAN_SCORE } from './network/peers/peer'
 import { getConnectedPeer } from './network/testUtilities'
 import { makeBlockAfter } from './testUtilities/helpers/blockchain'
@@ -211,5 +212,27 @@ describe('Syncer', () => {
     expect(getBlocksSpy).toHaveBeenCalledTimes(1)
     expect(peerPunished).toHaveBeenCalledTimes(1)
     expect(peerPunished).toHaveBeenCalledWith(BAN_SCORE.MAX, expect.anything())
+  })
+
+  it('should ban peers that send invalid genesis block', async () => {
+    const { chain, peerNetwork, syncer } = nodeTest
+
+    const { peer } = getConnectedPeer(peerNetwork.peerManager)
+    peer.genesisBlockHash = Buffer.alloc(32, 0)
+
+    const peerPunished = jest.spyOn(peer, 'punish')
+
+    syncer.loader = peer
+
+    const genesis = await chain.getBlock(chain.genesis)
+    Assert.isNotNull(genesis)
+
+    await syncer.addBlock(peer, genesis)
+
+    expect(peerPunished).toBeCalledTimes(1)
+    expect(peerPunished).toBeCalledWith(
+      BAN_SCORE.MAX,
+      VerificationResultReason.INVALID_GENESIS_BLOCK,
+    )
   })
 })

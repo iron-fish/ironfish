@@ -44,6 +44,8 @@ export const GetPeerResponseSchema: yup.ObjectSchema<GetPeerResponse> = yup
         connectionWebSocketError: yup.string().defined(),
         connectionWebRTC: yup.string<ConnectionState>().defined(),
         connectionWebRTCError: yup.string().defined(),
+        networkId: yup.number().nullable().defined(),
+        genesisBlockHash: yup.string().nullable().defined(),
       })
       .defined(),
   })
@@ -125,6 +127,8 @@ function getPeer(network: PeerNetwork, identity: string): PeerResponse | null {
         connectionWebSocketError: connectionWebSocketError,
         connectionWebRTC: connectionWebRTC,
         connectionWebRTCError: connectionWebRTCError,
+        networkId: peer.networkId,
+        genesisBlockHash: peer.genesisBlockHash?.toString('hex') || null,
       }
     }
   }

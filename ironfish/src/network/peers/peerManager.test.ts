@@ -73,8 +73,8 @@ describe('PeerManager', () => {
       sequence: 1,
       version: VERSION_PROTOCOL,
       work: BigInt(0),
-      networkId: 0,
-      genesisBlockHash: Buffer.alloc(32, 0),
+      networkId: localPeer.networkId,
+      genesisBlockHash: localPeer.chain.genesis.hash,
     })
 
     // Identify peerOut
@@ -743,8 +743,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
-        networkId: 0,
-        genesisBlockHash: Buffer.alloc(32, 0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       peer.onMessage.emit(identify, connection)
 
@@ -778,8 +778,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL_MIN - 1,
         work: BigInt(0),
-        networkId: 0,
-        genesisBlockHash: Buffer.alloc(32, 0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       peer.onMessage.emit(identify, connection)
 
@@ -804,8 +804,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
-        networkId: 0,
-        genesisBlockHash: Buffer.alloc(32, 0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       peer.onMessage.emit(identify, connection)
       expect(closeSpy).toHaveBeenCalled()
@@ -830,8 +830,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
-        networkId: 0,
-        genesisBlockHash: Buffer.alloc(32, 0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       connection.onMessage.emit(identify)
 
@@ -864,8 +864,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
-        networkId: 0,
-        genesisBlockHash: Buffer.alloc(32, 0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       connection.onMessage.emit(identify)
 
@@ -904,8 +904,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
-        networkId: 0,
-        genesisBlockHash: Buffer.alloc(32, 0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       connection.onMessage.emit(identify)
 
@@ -958,8 +958,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
-        networkId: 0,
-        genesisBlockHash: Buffer.alloc(32, 0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       connection.onMessage.emit(id)
 
@@ -979,6 +979,61 @@ describe('PeerManager', () => {
       expect(connection.state).toEqual({
         type: 'DISCONNECTED',
       })
+    })
+
+    it('Closes the connection when network ids do not match', () => {
+      const other = mockPrivateIdentity('other')
+      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+
+      const { peer, connection } = getWaitingForIdentityPeer(pm)
+
+      expect(pm.peers.length).toBe(1)
+      const closeSpy = jest.spyOn(connection, 'close')
+
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: privateIdentityToIdentity(other),
+        port: peer.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL_MIN,
+        work: BigInt(0),
+        networkId: localPeer.networkId + 1,
+        genesisBlockHash: localPeer.chain.genesis.hash,
+      })
+      peer.onMessage.emit(identify, connection)
+
+      expect(closeSpy).toBeCalled()
+      expect(pm.peers.length).toBe(0)
+      expect(pm.identifiedPeers.size).toBe(0)
+    })
+
+    it('Closes the connection when genesis block hashes do not match', () => {
+      const other = mockPrivateIdentity('other')
+      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+
+      const { peer, connection } = getWaitingForIdentityPeer(pm)
+
+      expect(pm.peers.length).toBe(1)
+      const closeSpy = jest.spyOn(connection, 'close')
+
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: privateIdentityToIdentity(other),
+        port: peer.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL_MIN,
+        work: BigInt(0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: Buffer.alloc(32, 1),
+      })
+      Assert.isFalse(identify.genesisBlockHash.equals(localPeer.chain.genesis.hash))
+      peer.onMessage.emit(identify, connection)
+
+      expect(closeSpy).toBeCalled()
+      expect(pm.peers.length).toBe(0)
+      expect(pm.identifiedPeers.size).toBe(0)
     })
   })
 
