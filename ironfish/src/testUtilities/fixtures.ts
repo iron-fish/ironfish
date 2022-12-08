@@ -29,7 +29,8 @@ export function shouldUpdateFixtures(): boolean {
 }
 
 export function disableFixtures(): void {
-  const testName = expect.getState().currentTestName.replace(/ /g, '_')
+  const currentTestName = expect.getState().currentTestName || ''
+  const testName = currentTestName.replace(/ /g, '_')
   const fixtureInfo = fixtureIds.get(testName) || { id: 0, disabled: false }
   fixtureIds.set(testName, fixtureInfo)
   fixtureInfo.disabled = true
@@ -45,7 +46,7 @@ export async function useFixture<TFixture, TSerialized = unknown>(
   } = {},
 ): Promise<TFixture> {
   const testPath = getCurrentTestPath()
-  const testName = expect.getState().currentTestName
+  const testName = expect.getState().currentTestName || ''
   const testDir = path.dirname(testPath)
   const testFile = path.basename(testPath)
 

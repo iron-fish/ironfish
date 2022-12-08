@@ -107,7 +107,7 @@ describe('TcpAdapter', () => {
 
     const response = client.request('foo/bar')
 
-    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toThrow(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 402,
       code: 'hello-error',
@@ -131,7 +131,7 @@ describe('TcpAdapter', () => {
 
     const response = client.request('foo/bar', body)
 
-    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toThrow(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 400,
       code: ERROR_CODES.VALIDATION,
@@ -171,7 +171,7 @@ describe('TcpAdapter', () => {
 
     const response = client.request('foo/bar', 'hello world')
 
-    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toThrow(RpcRequestError)
 
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 401,
@@ -195,7 +195,7 @@ describe('TcpAdapter', () => {
 
     const response = client.request('foo/bar', 'hello world')
 
-    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toThrow(RpcRequestError)
 
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 401,

@@ -37,7 +37,7 @@ describe('KeyStore', () => {
 
     store1.set('foo', 5)
     await store1.save()
-    await expect(store2.load()).rejects.toThrowError('foo must be a `string`')
+    await expect(store2.load()).rejects.toThrow('foo must be a `string`')
   })
 
   it('should use schema result in load', async () => {
@@ -73,7 +73,7 @@ describe('KeyStore', () => {
 
     const store = new KeyStore<{ foo: number }>(files, 'store', { foo: 0 }, dir, schema)
 
-    expect(() => store.set('foo', 'Hello world' as unknown as number)).toThrowError(
+    expect(() => store.set('foo', 'Hello world' as unknown as number)).toThrow(
       'this must be a `number` type',
     )
   })

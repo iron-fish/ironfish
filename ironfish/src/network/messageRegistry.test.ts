@@ -8,7 +8,7 @@ describe('messageRegistry', () => {
   describe('parseNetworkMessage', () => {
     describe('with a malformed header', () => {
       it('throws an error', () => {
-        expect(() => parseNetworkMessage(Buffer.from(''))).toThrowError()
+        expect(() => parseNetworkMessage(Buffer.from(''))).toThrow()
       })
     })
 
@@ -25,7 +25,7 @@ describe('messageRegistry', () => {
         })
         jest.spyOn(message, 'serialize').mockImplementationOnce(() => Buffer.from('adsf'))
 
-        expect(() => parseNetworkMessage(message.serializeWithMetadata())).toThrowError()
+        expect(() => parseNetworkMessage(message.serializeWithMetadata())).toThrow()
       })
     })
 

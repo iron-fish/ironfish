@@ -41,12 +41,12 @@ describe('SleepTask', () => {
       const callback = jest.fn()
       void taskPromise.then(callback)
 
-      expect(callback).not.toBeCalled()
+      expect(callback).not.toHaveBeenCalled()
 
       jest.advanceTimersByTime(1001)
       const response = await taskPromise
 
-      expect(callback).toBeCalled()
+      expect(callback).toHaveBeenCalled()
       expect(response.aborted).toBe(false)
       expect(response.jobId).toBe(request.jobId)
     })
@@ -72,14 +72,14 @@ describe('SleepTask', () => {
       const callback = jest.fn()
       void taskPromise.then(callback)
 
-      expect(callback).not.toBeCalled()
+      expect(callback).not.toHaveBeenCalled()
 
       job.abort()
 
       jest.advanceTimersByTime(1001)
       const response = await taskPromise
 
-      expect(callback).toBeCalled()
+      expect(callback).toHaveBeenCalled()
       expect(response.aborted).toBe(true)
       expect(response.jobId).toBe(request.jobId)
     })

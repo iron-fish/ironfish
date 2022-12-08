@@ -33,6 +33,6 @@ describe('GetBlockHashesResponse', () => {
     )
     const buffer = message.serialize()
     buffer.writeUInt16LE(2, 0)
-    expect(() => GetBlockHashesResponse.deserialize(buffer, rpcId)).toThrowError()
+    expect(() => GetBlockHashesResponse.deserialize(buffer, rpcId)).toThrow()
   })
 })
