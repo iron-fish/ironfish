@@ -30,7 +30,7 @@ import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteV
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 14
+export const VERSION_DATABASE_ACCOUNTS = 13
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,

@@ -174,7 +174,13 @@ export class Account {
       }
 
       const isRemovingTransaction = submittedSequence === null && blockHash === null
-      await this.bulkUpdateDecryptedNotes(transactionHash, decryptedNotes, tx)
+      await this.bulkUpdateDecryptedNotes(
+        transactionHash,
+        decryptedNotes,
+        blockHash,
+        sequence,
+        tx,
+      )
       await this.processTransactionSpends(transaction, isRemovingTransaction, tx)
     })
   }
@@ -200,6 +206,8 @@ export class Account {
   private async bulkUpdateDecryptedNotes(
     transactionHash: Buffer,
     decryptedNotes: Array<DecryptedNote>,
+    blockHash: Buffer | null,
+    sequence: number | null,
     tx?: IDatabaseTransaction,
   ) {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
@@ -226,8 +234,8 @@ export class Account {
             note: new Note(decryptedNote.serializedNote),
             spent: false,
             transactionHash,
-            blockHash: null,
-            sequence: null,
+            blockHash,
+            sequence,
           },
           tx,
         )
