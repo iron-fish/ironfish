@@ -1236,7 +1236,45 @@ describe('Blockchain', () => {
 
     describe('when an asset is minted on a fork', () => {
       it('undoes the mint when reorganizing the chain', async () => {
+        const { node: nodeA } = await nodeTest.createSetup()
+        const { node: nodeB } = await nodeTest.createSetup()
+        const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+        const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
 
+        const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+        const mintValue = BigInt(10)
+        const assetIdentifier = asset.identifier()
+
+        // G -> A1
+        //   -> B1 -> B2
+        const blockA1 = await mintAsset(nodeA, accountA, 2, asset, mintValue)
+        await nodeA.chain.addBlock(blockA1)
+
+        // Verify Node A has the asset
+        let record = await nodeA.chain.assets.get(assetIdentifier)
+        Assert.isNotUndefined(record)
+        expect(record).toMatchObject({
+          createdTransactionHash: blockA1.transactions[1].hash(),
+          supply: mintValue,
+        })
+
+        const blockB1 = await useMinerBlockFixture(nodeB.chain, 2, accountB)
+        await nodeB.chain.addBlock(blockB1)
+        const blockB2 = await useMinerBlockFixture(nodeB.chain, 3, accountB)
+        await nodeB.chain.addBlock(blockB2)
+
+        // Verify Node B does not have the asset
+        record = await nodeB.chain.assets.get(assetIdentifier)
+        expect(record).toBeUndefined()
+
+        // Reorganize the chain on Node A
+        await nodeA.chain.addBlock(blockB1)
+        await nodeA.chain.addBlock(blockB2)
+
+        // Verify Node A no longer has the asset from Block A1
+        expect(nodeA.chain.head.hash.equals(blockB2.header.hash)).toBe(true)
+        record = await nodeA.chain.assets.get(assetIdentifier)
+        expect(record).toBeUndefined()
       })
     })
   })

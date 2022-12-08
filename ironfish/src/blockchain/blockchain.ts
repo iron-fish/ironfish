@@ -1154,7 +1154,6 @@ export class Blockchain {
         await this.sequenceToHashes.put(header.sequence, { hashes }, tx)
       }
 
-      await this.undoAssetChangesFromBlock(hash, tx)
       await this.transactions.del(hash, tx)
       await this.headers.del(hash, tx)
 
@@ -1286,8 +1285,8 @@ export class Blockchain {
     )
 
     for (const transaction of block.transactions) {
-      await this.processMintsToAssetsStore(transaction, tx)
-      await this.processBurnsToAssetsStore(transaction, tx)
+      await this.saveConnectedMintsToAssetsStore(transaction, tx)
+      await this.saveConnectedBurnsToAssetsStore(transaction, tx)
     }
 
     const verify = await this.verifier.verifyConnectedBlock(block, tx)
@@ -1304,7 +1303,14 @@ export class Blockchain {
     prev: BlockHeader,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    // TODO: transaction goes here
+    // Invert all the mints and burns that were applied from this block's transactions.
+    // Iterate in reverse order to ensure changes are undone opposite from how
+    // they were applied.
+    for (const transaction of block.transactions.reverse()) {
+      await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
+      await this.deleteDisconnectedMintsFromAssetsStore(transaction, tx)
+    }
+
     await this.hashToNextHash.del(prev.hash, tx)
     await this.sequenceToHash.del(block.header.sequence, tx)
 
@@ -1350,10 +1356,7 @@ export class Blockchain {
     }
   }
 
-  private async updateAssetsFromBlock(block: Block, tx: IDatabaseTransaction): Promise<void> {
-  }
-
-  private async processMintsToAssetsStore(
+  private async saveConnectedMintsToAssetsStore(
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
@@ -1383,7 +1386,7 @@ export class Blockchain {
     }
   }
 
-  private async processBurnsToAssetsStore(
+  private async saveConnectedBurnsToAssetsStore(
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
@@ -1411,23 +1414,7 @@ export class Blockchain {
     }
   }
 
-  private async undoAssetChangesFromBlock(
-    blockHash: Buffer,
-    tx: IDatabaseTransaction,
-  ): Promise<void> {
-    const record = await this.transactions.get(blockHash, tx)
-    Assert.isNotUndefined(record)
-
-    // Invert all the mints and burns that were applied from this block's transactions.
-    // Iterate in reverse order to ensure changes are undone opposite from how
-    // they were applied.
-    for (const transaction of record.transactions.reverse()) {
-      await this.undoBurnsFromAssetsStore(transaction, tx)
-      await this.undoMintsFromAssetsStore(transaction, tx)
-    }
-  }
-
-  private async undoBurnsFromAssetsStore(
+  private async deleteDisconnectedBurnsFromAssetsStore(
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
@@ -1454,7 +1441,7 @@ export class Blockchain {
     }
   }
 
-  private async undoMintsFromAssetsStore(
+  private async deleteDisconnectedMintsFromAssetsStore(
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
