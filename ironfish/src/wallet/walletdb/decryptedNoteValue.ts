@@ -14,17 +14,22 @@ export interface DecryptedNoteValue {
   // These fields are populated once the note's transaction is on the main chain
   index: number | null
   nullifier: Buffer | null
+  blockHash: Buffer | null
+  sequence: number | null
 }
 
 export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNoteValue> {
   serialize(value: DecryptedNoteValue): Buffer {
-    const { accountId, nullifier, index, note, spent, transactionHash } = value
+    const { accountId, nullifier, index, note, spent, transactionHash, blockHash, sequence } =
+      value
     const bw = bufio.write(this.getSize(value))
 
     let flags = 0
     flags |= Number(!!index) << 0
     flags |= Number(!!nullifier) << 1
     flags |= Number(spent) << 2
+    flags |= Number(!!blockHash) << 3
+    flags |= Number(!!sequence) << 4
     bw.writeU8(flags)
 
     bw.writeVarString(accountId)
@@ -37,6 +42,12 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
     if (nullifier) {
       bw.writeHash(nullifier)
     }
+    if (blockHash) {
+      bw.writeHash(blockHash)
+    }
+    if (sequence) {
+      bw.writeU32(sequence)
+    }
 
     return bw.render()
   }
@@ -48,6 +59,8 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
     const hasIndex = flags & (1 << 0)
     const hasNullifier = flags & (1 << 1)
     const spent = Boolean(flags & (1 << 2))
+    const hasBlockHash = flags & (1 << 3)
+    const hasSequence = flags & (1 << 4)
 
     const accountId = reader.readVarString()
     const serializedNote = reader.readBytes(DECRYPTED_NOTE_LENGTH)
@@ -63,9 +76,28 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
       nullifier = reader.readHash()
     }
 
+    let blockHash = null
+    if (hasBlockHash) {
+      blockHash = reader.readHash()
+    }
+
+    let sequence = null
+    if (hasSequence) {
+      sequence = reader.readU32()
+    }
+
     const note = new Note(serializedNote)
 
-    return { accountId, index, nullifier, note, spent, transactionHash }
+    return {
+      accountId,
+      index,
+      nullifier,
+      note,
+      spent,
+      transactionHash,
+      blockHash,
+      sequence,
+    }
   }
 
   getSize(value: DecryptedNoteValue): number {
@@ -82,6 +114,14 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
 
     if (value.nullifier) {
       size += 32
+    }
+
+    if (value.blockHash) {
+      size += 32
+    }
+
+    if (value.sequence) {
+      size += 4
     }
 
     return size

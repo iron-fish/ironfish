@@ -226,6 +226,8 @@ export class Account {
             note: new Note(decryptedNote.serializedNote),
             spent: false,
             transactionHash,
+            blockHash: null,
+            sequence: null,
           },
           tx,
         )
