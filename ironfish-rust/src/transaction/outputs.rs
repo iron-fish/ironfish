@@ -10,8 +10,13 @@ use crate::{
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use ff::Field;
-use group::Curve;
-use ironfish_zkp::{proofs::Output, ValueCommitment};
+use group::{Curve, GroupEncoding};
+use ironfish_zkp::{
+    constants::SPENDING_KEY_GENERATOR,
+    proofs::Output,
+    redjubjub::{self, Signature},
+    ValueCommitment,
+};
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
@@ -101,11 +106,69 @@ impl OutputBuilder {
             )
         };
 
-        let output_proof = OutputDescription { proof, merkle_note };
+        // TODO: @yajun pass in public_key_randomness from Output builder in transaction.
+        // Currently generated here as placeholder
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        // The public key after randomization has been applied. This is used
+        // during signature verification. Referred to as `rk` in the literature
+        // Calculated from the authorizing key and the public_key_randomness.
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        let blank_signature = {
+            let buf = [0u8; 64];
+            Signature::read(&mut buf.as_ref())?
+        };
+
+        let output_proof = OutputDescription {
+            proof,
+            merkle_note,
+            randomized_public_key,
+            authorizing_signature: blank_signature,
+        };
 
         output_proof.verify_proof()?;
 
         Ok(output_proof)
+    }
+}
+
+pub struct UnsignedOutputDescription {
+    /// Used to add randomness to signature generation without leaking the
+    /// key. Referred to as `ar` in the literature.
+    public_key_randomness: jubjub::Fr,
+
+    /// Proof and public parameters for a user action to output tokens.
+    pub(crate) description: OutputDescription,
+}
+
+impl UnsignedOutputDescription {
+    pub fn sign(
+        mut self,
+        spender_key: &SaplingKey,
+        signature_hash: &[u8; 32],
+    ) -> Result<OutputDescription, IronfishError> {
+        let private_key = redjubjub::PrivateKey(spender_key.spend_authorizing_key);
+        let randomized_private_key = private_key.randomize(self.public_key_randomness);
+        let randomized_public_key =
+            redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
+
+        if randomized_public_key.0 != self.description.randomized_public_key.0 {
+            return Err(IronfishError::InvalidSigningKey);
+        }
+
+        let mut data_to_be_signed = [0; 64];
+        data_to_be_signed[..32]
+            .copy_from_slice(&self.description.randomized_public_key.0.to_bytes());
+        data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
+
+        self.description.authorizing_signature = randomized_private_key.sign(
+            &data_to_be_signed,
+            &mut thread_rng(),
+            SPENDING_KEY_GENERATOR,
+        );
+
+        Ok(self.description)
     }
 }
 
@@ -123,6 +186,20 @@ pub struct OutputDescription {
     /// Merkle note containing all the values verified by the proof. These values
     /// are shared on the blockchain and can be snapshotted into a Merkle Tree
     pub(crate) merkle_note: MerkleNote,
+
+    /// The public key after randomization has been applied. This is used
+    /// during signature verification to confirm that the owner of the incoming note
+    /// authorized the spend. Referred to as
+    /// `rk` in the literature Calculated from the authorizing key and
+    /// the public_key_randomness.
+    pub(crate) randomized_public_key: redjubjub::PublicKey,
+
+    /// Signature of the incoming note spender authorizing the spend. This is calculated
+    /// after the transaction is complete, as it depends on a binding signature
+    /// key that incorporates calculations from all the spends and outputs
+    /// in that transaction. It's optional because it is calculated after
+    /// construction.
+    pub(crate) authorizing_signature: redjubjub::Signature,
 }
 
 impl OutputDescription {
@@ -132,13 +209,23 @@ impl OutputDescription {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
         let merkle_note = MerkleNote::read(&mut reader)?;
+        let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
+        let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
 
-        Ok(OutputDescription { proof, merkle_note })
+        Ok(OutputDescription {
+            proof,
+            merkle_note,
+            randomized_public_key,
+            authorizing_signature,
+        })
     }
 
     /// Stow the bytes of this [`OutputDescription`] in the given writer.
-    pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
-        self.serialize_signature_fields(writer)
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+        self.serialize_signature_fields(&mut writer)?;
+        self.authorizing_signature.write(&mut writer)?;
+
+        Ok(())
     }
 
     /// Verify that the proof demonstrates knowledge that a note exists with
@@ -201,6 +288,7 @@ impl OutputDescription {
     ) -> Result<(), IronfishError> {
         self.proof.write(&mut writer)?;
         self.merkle_note.write(&mut writer)?;
+        self.randomized_public_key.write(&mut writer)?;
 
         Ok(())
     }
