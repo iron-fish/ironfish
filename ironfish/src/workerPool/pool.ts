@@ -3,11 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Side } from '../merkletree/merkletree'
-import { Asset } from '@ironfish/rust-nodejs'
 import _ from 'lodash'
 import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
+import { BurnDescription } from '../primitives/burnDescription'
+import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
@@ -152,8 +153,8 @@ export class WorkerPool {
       }[]
     }[],
     receives: { publicAddress: string; amount: bigint; memo: string }[],
-    mints: { asset: Asset; value: bigint }[],
-    burns: { asset: Asset; value: bigint }[],
+    mints: MintDescription[],
+    burns: BurnDescription[],
     transactionFee: bigint,
     expirationSequence: number,
   ): Promise<Transaction> {

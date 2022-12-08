@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { generateKey } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -12,6 +12,8 @@ import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { NoteWitness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
+import { BurnDescription } from '../primitives/burnDescription'
+import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
@@ -691,8 +693,8 @@ export class Wallet {
   async createTransaction(
     sender: Account,
     receives: { publicAddress: string; amount: bigint; memo: string }[],
-    mints: { asset: Asset; value: bigint }[],
-    burns: { asset: Asset; value: bigint }[],
+    mints: MintDescription[],
+    burns: BurnDescription[],
     transactionFee: bigint,
     expirationSequence: number,
   ): Promise<Transaction> {

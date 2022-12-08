@@ -94,7 +94,7 @@ export class Transaction {
       // authorizing signature
       reader.seek(64)
 
-      return new MintDescription(asset, value)
+      return { asset, value }
     })
 
     this._burns = Array.from({ length: _burnsLength }, () => {
@@ -104,7 +104,7 @@ export class Transaction {
       // value commitment
       reader.seek(32)
 
-      return new BurnDescription(asset, value)
+      return { asset, value }
     })
 
     this._signature = reader.readBytes(64, true)

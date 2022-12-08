@@ -92,7 +92,7 @@ export class NoteEncrypted {
 }
 export type NativeNote = Note
 export class Note {
-  constructor(owner: string, value: bigint, memo: string)
+  constructor(owner: string, value: bigint, memo: string, assetIdentifier?: Buffer | undefined | null)
   static deserialize(jsBytes: Buffer): NativeNote
   serialize(): Buffer
   /** Value this note represents. */

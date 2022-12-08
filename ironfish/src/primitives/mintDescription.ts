@@ -3,12 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 
-export class MintDescription {
-  readonly asset: Asset
-  readonly value: bigint
-
-  constructor(asset: Asset, value: bigint) {
-    this.asset = asset
-    this.value = value
-  }
+export interface MintDescription {
+  asset: Asset
+  value: bigint
 }

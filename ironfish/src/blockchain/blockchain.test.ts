@@ -1285,6 +1285,8 @@ describe('Blockchain', () => {
 
         // Mint so we have an existing asset
         const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const assetIdentifier = asset.identifier()
+
         const mintValue = BigInt(10)
         const mintBlock = await mintAsset(node, account, 3, asset, mintValue)
         await expect(node.chain).toAddBlock(mintBlock)
@@ -1300,14 +1302,21 @@ describe('Blockchain', () => {
             [noteToBurn],
             [],
             [],
-            [{asset, value: BigInt(2)}],
+            [{ asset, value: BigInt(2) }],
           )
           const spendTransaction = await useRawTxFixture(
             node.chain,
             node.workerPool,
             account,
             [noteToBurn],
-            [{ publicAddress: account.publicAddress, amount: BigInt(3), memo: ''}],
+            [
+              {
+                publicAddress: account.publicAddress,
+                amount: BigInt(3),
+                memo: '',
+                assetIdentifier,
+              },
+            ],
             [],
             [],
           )
@@ -1319,7 +1328,10 @@ describe('Blockchain', () => {
           )
         })
 
-        await expect(node.chain).toAddBlock(doubleSpendBlock)
+        expect(await node.chain.addBlock(doubleSpendBlock)).toMatchObject({
+          isAdded: false,
+          reason: VerificationResultReason.DOUBLE_SPEND,
+        })
       })
     })
   })

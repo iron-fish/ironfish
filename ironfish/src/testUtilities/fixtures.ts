@@ -1,13 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { generateKey } from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { IronfishNode } from '../node'
 import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
+import { BurnDescription } from '../primitives/burnDescription'
+import { MintDescription } from '../primitives/mintDescription'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
@@ -265,12 +267,20 @@ export async function useBlockWithRawTxFixture(
   sender: Account,
   notesToSpend: NoteEncrypted[],
   receives: { publicAddress: string; amount: bigint; memo: string }[],
-  mints: { asset: Asset; value: bigint }[],
-  burns: { asset: Asset; value: bigint }[],
+  mints: MintDescription[],
+  burns: BurnDescription[],
   sequence: number,
 ): Promise<Block> {
   const generate = async () => {
-    const transaction = await useRawTxFixture(chain, pool, sender, notesToSpend, receives, mints, burns)
+    const transaction = await useRawTxFixture(
+      chain,
+      pool,
+      sender,
+      notesToSpend,
+      receives,
+      mints,
+      burns,
+    )
     return chain.newBlock(
       [transaction],
       await chain.strategy.createMinersFee(transaction.fee(), sequence, sender.spendingKey),
@@ -285,9 +295,9 @@ export async function useRawTxFixture(
   pool: WorkerPool,
   sender: Account,
   notesToSpend: NoteEncrypted[],
-  receives: { publicAddress: string; amount: bigint; memo: string }[],
-  mints: { asset: Asset; value: bigint }[],
-  burns: { asset: Asset; value: bigint }[],
+  receives: { publicAddress: string; amount: bigint; memo: string; assetIdentifier?: Buffer }[],
+  mints: MintDescription[],
+  burns: BurnDescription[],
 ): Promise<Transaction> {
   const spends = await Promise.all(
     notesToSpend.map(async (n) => {

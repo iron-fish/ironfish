@@ -161,9 +161,18 @@ impl Asset {
     }
 }
 
-pub fn asset_generator_point(asset: &AssetIdentifier) -> Result<SubgroupPoint, IronfishError> {
-    group_hash(asset, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
-        .ok_or(IronfishError::InvalidAssetIdentifier)
+pub fn asset_generator_point(
+    asset_info_hashed: &[u8; ASSET_INFO_HASHED_LENGTH],
+) -> Result<SubgroupPoint, IronfishError> {
+    group_hash(
+        asset_info_hashed,
+        VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
+    )
+    .ok_or(IronfishError::InvalidAssetIdentifier)
+}
+
+pub fn asset_generator_from_identifier(asset_identifier: &AssetIdentifier) -> SubgroupPoint {
+    SubgroupPoint::from_bytes(asset_identifier).unwrap()
 }
 
 #[cfg(test)]
