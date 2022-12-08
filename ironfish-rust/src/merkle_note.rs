@@ -373,6 +373,44 @@ mod test {
         merkle_note
             .decrypt_note_for_spender(spender_key.outgoing_view_key())
             .expect("should be able to decrypt note for spender");
+
+        assert!(merkle_note
+            .decrypt_note_for_owner(spender_key.incoming_view_key())
+            .is_err());
+        assert!(merkle_note
+            .decrypt_note_for_spender(receiver_key.outgoing_view_key())
+            .is_err());
+    }
+
+    #[test]
+    fn test_view_key_encryption_with_other_key() {
+        let spender_key = SaplingKey::generate_key();
+        let receiver_key = SaplingKey::generate_key();
+        let third_party_key = SaplingKey::generate_key();
+        let note = Note::new(
+            receiver_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+            spender_key.public_address(),
+        );
+        let diffie_hellman_keys = EphemeralKeyPair::new();
+
+        let value_commitment = ValueCommitment {
+            value: note.value,
+            randomness: jubjub::Fr::random(thread_rng()),
+            asset_generator: note.asset_generator(),
+        };
+
+        let merkle_note =
+            MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
+
+        assert!(merkle_note
+            .decrypt_note_for_owner(third_party_key.incoming_view_key())
+            .is_err());
+        assert!(merkle_note
+            .decrypt_note_for_spender(third_party_key.outgoing_view_key())
+            .is_err());
     }
 
     #[test]
