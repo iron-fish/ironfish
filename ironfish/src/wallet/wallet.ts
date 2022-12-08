@@ -418,7 +418,6 @@ export class Wallet {
       const account = this.accounts.get(accountId)
 
       if (!account) {
-        this.logger.warn(`Account ${accountId} removed from wallet during note decryption`)
         continue
       }
 
@@ -458,7 +457,6 @@ export class Wallet {
       const account = this.accounts.get(accountId)
 
       if (!account) {
-        this.logger.warn(`Account ${accountId} removed from wallet during note decryption`)
         continue
       }
       await account.syncTransaction(transaction, decryptedNotes, params)
