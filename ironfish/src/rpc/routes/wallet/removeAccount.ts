@@ -22,7 +22,7 @@ export const RemoveAccountResponseSchema: yup.ObjectSchema<RemoveAccountResponse
   .defined()
 
 router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
-  `${ApiNamespace.account}/remove`,
+  `${ApiNamespace.wallet}/remove`,
   RemoveAccountRequestSchema,
   async (request, node): Promise<void> => {
     const name = request.data.name

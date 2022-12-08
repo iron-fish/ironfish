@@ -49,7 +49,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
     .defined()
 
 router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactionsResponse>(
-  `${ApiNamespace.account}/getAccountTransactions`,
+  `${ApiNamespace.wallet}/getAccountTransactions`,
   GetAccountTransactionsRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)

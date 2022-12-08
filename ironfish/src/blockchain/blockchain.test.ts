@@ -348,29 +348,23 @@ describe('Blockchain', () => {
     await expect(chain).toAddBlock(blockC4)
     await expect(chain).toAddBlock(blockD4)
 
-    const { fork: fork1, isLinear: isLinear1 } = await chain.findFork(blockA1, blockA1)
+    const fork1 = await chain.findFork(blockA1, blockA1)
     expect(fork1?.hash.equals(blockA1.header.hash)).toBe(true)
-    expect(isLinear1).toBe(true)
 
-    const { fork: fork2, isLinear: isLinear2 } = await chain.findFork(blockA1, blockA2)
+    const fork2 = await chain.findFork(blockA1, blockA2)
     expect(fork2?.hash.equals(blockA1.header.hash)).toBe(true)
-    expect(isLinear2).toBe(true)
 
-    const { fork: fork3, isLinear: isLinear3 } = await chain.findFork(blockA2, blockB2)
+    const fork3 = await chain.findFork(blockA2, blockB2)
     expect(fork3?.hash.equals(blockA1.header.hash)).toBe(true)
-    expect(isLinear3).toBe(false)
 
-    const { fork: fork4, isLinear: isLinear4 } = await chain.findFork(genesis, blockD4)
+    const fork4 = await chain.findFork(genesis, blockD4)
     expect(fork4?.hash.equals(genesis.hash)).toBe(true)
-    expect(isLinear4).toBe(true)
 
-    const { fork: fork5, isLinear: isLinear5 } = await chain.findFork(blockB3, blockD4)
+    const fork5 = await chain.findFork(blockB3, blockD4)
     expect(fork5?.hash.equals(blockB2.header.hash)).toBe(true)
-    expect(isLinear5).toBe(false)
 
-    const { fork: fork6, isLinear: isLinear6 } = await chain.findFork(blockC4, blockD4)
+    const fork6 = await chain.findFork(blockC4, blockD4)
     expect(fork6?.hash.equals(blockC3.header.hash)).toBe(true)
-    expect(isLinear6).toBe(false)
   })
 
   it('abort reorg after verify error', async () => {

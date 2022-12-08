@@ -35,8 +35,8 @@ pub const NOTE_ENCRYPTION_KEY_SIZE: usize = ENCRYPTED_SHARED_KEY_SIZE + aead::MA
 /// This does not leak information, since miner notes are identifiably
 /// stored separately on the header of blocks already.
 pub const NOTE_ENCRYPTION_MINER_KEYS: &[u8; NOTE_ENCRYPTION_KEY_SIZE] =
-    b"Beanstalk note encryption miner key000000000000000000000000000000000000000000000";
-const SHARED_KEY_PERSONALIZATION: &[u8; 16] = b"Beanstalk Keyenc";
+    b"Iron Fish note encryption miner key000000000000000000000000000000000000000000000";
+const SHARED_KEY_PERSONALIZATION: &[u8; 16] = b"Iron Fish Keyenc";
 
 #[derive(Clone)]
 pub struct MerkleNote {
@@ -294,6 +294,7 @@ mod test {
             42,
             "",
             NATIVE_ASSET_GENERATOR,
+            spender_key.public_address(),
         );
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
@@ -317,11 +318,13 @@ mod test {
     /// does use the hard-coded miners fee note encryption keys
     fn test_new_miners_fee_key() {
         let receiver_key = SaplingKey::generate_key();
+        let sender_key: SaplingKey = SaplingKey::generate_key();
         let note = Note::new(
             receiver_key.public_address(),
             42,
             "",
             NATIVE_ASSET_GENERATOR,
+            sender_key.public_address(),
         );
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
@@ -349,6 +352,7 @@ mod test {
             42,
             "",
             NATIVE_ASSET_GENERATOR,
+            spender_key.public_address(),
         );
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
@@ -371,7 +375,13 @@ mod test {
     #[test]
     fn test_output_invalid_commitment() {
         let spender_key = SaplingKey::generate_key();
-        let note = Note::new(spender_key.public_address(), 42, "", NATIVE_ASSET_GENERATOR);
+        let note = Note::new(
+            spender_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+            spender_key.public_address(),
+        );
         let diffie_hellman_keys = note.owner.generate_diffie_hellman_keys();
 
         let value_commitment = ValueCommitment {

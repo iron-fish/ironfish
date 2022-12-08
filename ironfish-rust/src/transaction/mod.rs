@@ -45,7 +45,7 @@ pub mod spends;
 mod tests;
 mod value_balances;
 
-const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"Bnsighsh";
+const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"IFsighsh";
 const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 pub const TRANSACTION_VERSION: u8 = 1;
 
@@ -177,6 +177,7 @@ impl ProposedTransaction {
                     change_amount as u64, // we checked it was positive
                     "",
                     SubgroupPoint::from_bytes(asset_identifier).unwrap(),
+                    self.spender_key.public_address(),
                 );
 
                 change_notes.push(change_note);

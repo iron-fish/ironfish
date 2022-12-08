@@ -23,7 +23,7 @@ export const GetAccountsResponseSchema: yup.ObjectSchema<GetAccountsResponse> = 
   .defined()
 
 router.register<typeof GetAccountsRequestSchema, GetAccountsResponse>(
-  `${ApiNamespace.account}/getAccounts`,
+  `${ApiNamespace.wallet}/getAccounts`,
   GetAccountsRequestSchema,
   (request, node): void => {
     let accounts: Account[] = []

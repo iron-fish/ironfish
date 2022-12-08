@@ -7,13 +7,6 @@ import { v4 as uuid } from 'uuid'
 import { Blockchain } from './blockchain'
 import { TestnetConsensus } from './consensus'
 import {
-  DEV,
-  isDefaultNetworkId,
-  MAINNET,
-  TESTING,
-  TESTNET_PHASE_2,
-} from './defaultNetworkDefinitions'
-import {
   Config,
   ConfigOptions,
   DEFAULT_DATA_DIR,
@@ -21,7 +14,6 @@ import {
   InternalStore,
 } from './fileStores'
 import { FileSystem } from './fileSystems'
-import { MinedBlocksIndexer } from './indexers/minedBlocksIndexer'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { FeeEstimator } from './memPool/feeEstimator'
@@ -30,11 +22,10 @@ import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
-import { NetworkDefinition, networkDefinitionSchema } from './networkDefinition'
+import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
 import { RpcServer } from './rpc/server'
-import { IJSON } from './serde'
 import { Strategy } from './strategy'
 import { Syncer } from './syncer'
 import { Telemetry } from './telemetry/telemetry'
@@ -59,7 +50,6 @@ export class IronfishNode {
   syncer: Syncer
   pkg: Package
   telemetry: Telemetry
-  minedBlocksIndexer: MinedBlocksIndexer
 
   started = false
   shutdownPromise: Promise<void> | null = null
@@ -80,7 +70,6 @@ export class IronfishNode {
     webSocket,
     privateIdentity,
     hostsStore,
-    minedBlocksIndexer,
     networkId,
   }: {
     pkg: Package
@@ -97,7 +86,6 @@ export class IronfishNode {
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
-    minedBlocksIndexer: MinedBlocksIndexer
     networkId: number
   }) {
     this.files = files
@@ -113,7 +101,6 @@ export class IronfishNode {
     this.rpc = new RpcServer(this)
     this.logger = logger
     this.pkg = pkg
-    this.minedBlocksIndexer = minedBlocksIndexer
 
     this.migrator = new Migrator({ node: this, logger })
 
@@ -234,27 +221,7 @@ export class IronfishNode {
 
     metrics = metrics || new MetricsMonitor({ logger })
 
-    let networkDefinitionJSON = ''
-    // Try fetching custom network definition first, if it exists
-    if (config.get('customNetwork') !== '') {
-      networkDefinitionJSON = await files.readFile(files.resolve(config.get('customNetwork')))
-    } else if (config.get('networkId') === 0) {
-      networkDefinitionJSON = TESTING
-    } else if (config.get('networkId') === 1) {
-      networkDefinitionJSON = MAINNET
-    } else if (config.get('networkId') === 2) {
-      networkDefinitionJSON = TESTNET_PHASE_2
-    } else if (config.get('networkId') === 3) {
-      networkDefinitionJSON = DEV
-    }
-
-    const networkDefinition = await networkDefinitionSchema.validate(
-      IJSON.parse(networkDefinitionJSON) as NetworkDefinition,
-    )
-
-    if (config.get('customNetwork') !== '' && isDefaultNetworkId(networkDefinition.id)) {
-      throw Error('Cannot start custom network with a reserved network ID')
-    }
+    const networkDefinition = await getNetworkDefinition(config, internal, files)
 
     if (!config.isSet('bootstrapNodes')) {
       config.setOverride('bootstrapNodes', networkDefinition.bootstrapNodes)
@@ -275,6 +242,7 @@ export class IronfishNode {
       files,
       consensus,
       genesis: networkDefinition.genesis,
+      config,
     })
 
     const accountDB = new WalletDB({
@@ -302,14 +270,6 @@ export class IronfishNode {
 
     const memPool = new MemPool({ chain, feeEstimator, metrics, logger })
 
-    const minedBlocksIndexer = new MinedBlocksIndexer({
-      files,
-      location: config.indexDatabasePath,
-      wallet,
-      chain,
-      logger,
-    })
-
     return new IronfishNode({
       pkg,
       chain,
@@ -317,7 +277,7 @@ export class IronfishNode {
       files,
       config,
       internal,
-      wallet: wallet,
+      wallet,
       metrics,
       memPool,
       workerPool,
@@ -325,7 +285,6 @@ export class IronfishNode {
       webSocket,
       privateIdentity,
       hostsStore,
-      minedBlocksIndexer,
       networkId: networkDefinition.id,
     })
   }
@@ -341,12 +300,9 @@ export class IronfishNode {
     try {
       await this.chain.open()
       await this.wallet.open()
-      await this.minedBlocksIndexer.open()
-      await this.memPool.feeEstimator.init(this.chain)
     } catch (e) {
       await this.chain.close()
       await this.wallet.close()
-      await this.minedBlocksIndexer.close()
       throw e
     }
   }
@@ -354,7 +310,6 @@ export class IronfishNode {
   async closeDB(): Promise<void> {
     await this.chain.close()
     await this.wallet.close()
-    await this.minedBlocksIndexer.close()
   }
 
   async start(): Promise<void> {
@@ -380,7 +335,8 @@ export class IronfishNode {
       await this.rpc.start()
     }
 
-    await this.minedBlocksIndexer.start()
+    await this.memPool.start()
+
     this.telemetry.submitNodeStarted()
   }
 
@@ -396,7 +352,6 @@ export class IronfishNode {
       this.rpc.stop(),
       this.telemetry.stop(),
       this.metrics.stop(),
-      this.minedBlocksIndexer.stop(),
     ])
 
     // Do after to avoid unhandled error from aborted jobs

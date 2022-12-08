@@ -4,7 +4,7 @@
 
 import {
   generateKey,
-  generateNewPublicAddress,
+  generateKeyFromPrivateKey,
   Key,
   Note as NativeNote,
   Transaction as NativeTransaction,
@@ -64,7 +64,6 @@ const consensusParameters: ConsensusParameters = {
   allowedBlockFutureSeconds: 15,
   genesisSupplyInIron: 42000000,
   targetBlockTimeInSeconds: 60,
-  maxSyncedAgeBlocks: 60,
   targetBucketTimeInSeconds: 10,
   maxBlockSizeBytes: 2000000,
 }
@@ -93,7 +92,7 @@ describe('Demonstrate the Sapling API', () => {
 
   describe('Can transact between two accounts', () => {
     it('Can create a miner reward', () => {
-      const owner = generateNewPublicAddress(spenderKey.spending_key).public_address
+      const owner = generateKeyFromPrivateKey(spenderKey.spending_key).public_address
 
       minerNote = new NativeNote(owner, BigInt(42), '')
 
@@ -276,7 +275,7 @@ describe('Demonstrate the Sapling API', () => {
 
       const noteForSpender = new NativeNote(spenderKey.public_address, BigInt(10), '')
       const receiverNoteToSelf = new NativeNote(
-        generateNewPublicAddress(receiverKey.spending_key).public_address,
+        generateKeyFromPrivateKey(receiverKey.spending_key).public_address,
         BigInt(29),
         '',
       )

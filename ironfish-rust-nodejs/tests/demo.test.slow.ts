@@ -6,7 +6,7 @@ import { DECRYPTED_NOTE_LENGTH } from '..'
 import {
   initializeSapling,
   generateKey,
-  generateNewPublicAddress,
+  generateKeyFromPrivateKey,
   Note,
   NoteEncrypted,
   Transaction,
@@ -29,7 +29,7 @@ describe('Demonstrate the Sapling API', () => {
 
   it('Should generate a new public address given a spending key', () => {
     const key = generateKey()
-    const newKey = generateNewPublicAddress(key.spending_key)
+    const newKey = generateKeyFromPrivateKey(key.spending_key)
 
     expect(key.incoming_view_key).toEqual(newKey.incoming_view_key)
     expect(key.outgoing_view_key).toEqual(newKey.outgoing_view_key)

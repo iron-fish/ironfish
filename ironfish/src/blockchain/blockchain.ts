@@ -8,6 +8,7 @@ import { Assert } from '../assert'
 import { Consensus } from '../consensus'
 import { VerificationResultReason, Verifier } from '../consensus/verifier'
 import { Event } from '../event'
+import { Config } from '../fileStores'
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
@@ -27,6 +28,7 @@ import {
 import {
   BlockHash,
   BlockHeader,
+  BlockHeaderSerde,
   isBlockHeavier,
   isBlockLater,
   transactionCommitment,
@@ -84,6 +86,7 @@ export class Blockchain {
   files: FileSystem
   consensus: Consensus
   seedGenesisBlock: SerializedBlock
+  config: Config
 
   synced = false
   opened = false
@@ -174,6 +177,7 @@ export class Blockchain {
     files: FileSystem
     consensus: Consensus
     genesis: SerializedBlock
+    config: Config
   }) {
     const logger = options.logger || createRootLogger()
 
@@ -191,6 +195,7 @@ export class Blockchain {
     this.autoSeed = options.autoSeed ?? true
     this.consensus = options.consensus
     this.seedGenesisBlock = options.genesis
+    this.config = options.config
 
     // Flat Fields
     this.meta = this.db.addStore({
@@ -308,6 +313,15 @@ export class Blockchain {
     await this.db.upgrade(VERSION_DATABASE_CHAIN)
 
     let genesisHeader = await this.getHeaderAtSequence(GENESIS_BLOCK_SEQUENCE)
+    if (genesisHeader) {
+      Assert.isTrue(
+        genesisHeader.hash.equals(
+          BlockHeaderSerde.deserialize(this.seedGenesisBlock.header).hash,
+        ),
+        'Genesis block in network definition does not match existing chain genesis block',
+      )
+    }
+
     if (!genesisHeader && this.autoSeed) {
       genesisHeader = await this.seed()
     }
@@ -423,18 +437,13 @@ export class Blockchain {
     headerA: BlockHeader | Block,
     headerB: BlockHeader | Block,
     tx?: IDatabaseTransaction,
-  ): Promise<{
-    fork: BlockHeader
-    isLinear: boolean
-  }> {
+  ): Promise<BlockHeader> {
     if (headerA instanceof Block) {
       headerA = headerA.header
     }
     if (headerB instanceof Block) {
       headerB = headerB.header
     }
-
-    let linear = true
 
     let [base, fork] =
       headerA.sequence < headerB.sequence ? [headerA, headerB] : [headerB, headerA]
@@ -451,14 +460,12 @@ export class Blockchain {
         break
       }
 
-      linear = false
-
       const prev = await this.getPrevious(base, tx)
       Assert.isNotNull(prev)
       base = prev
     }
 
-    return { fork: base, isLinear: linear }
+    return base
   }
 
   /**
@@ -792,8 +799,7 @@ export class Blockchain {
     Assert.isNotNull(oldHead, 'No genesis block with fork')
 
     // Step 0: Find the fork between the two heads
-    const { fork } = await this.findFork(oldHead, newHead, tx)
-    Assert.isNotNull(fork, 'No fork found')
+    const fork = await this.findFork(oldHead, newHead, tx)
 
     // Step 2: Collect all the blocks from the old head to the fork
     const removeIter = this.iterateFrom(oldHead, fork, tx)
@@ -1484,7 +1490,7 @@ export class Blockchain {
     }
 
     const maxSyncedAgeMs =
-      this.consensus.parameters.maxSyncedAgeBlocks *
+      this.config.get('maxSyncedAgeBlocks') *
       this.consensus.parameters.targetBlockTimeInSeconds *
       1000
     if (this.head.timestamp.valueOf() < Date.now() - maxSyncedAgeMs) {

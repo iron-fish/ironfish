@@ -43,7 +43,7 @@ export const ImportAccountResponseSchema: yup.ObjectSchema<ImportAccountResponse
   .defined()
 
 router.register<typeof ImportAccountRequestSchema, ImportAccountResponse>(
-  `${ApiNamespace.account}/importAccount`,
+  `${ApiNamespace.wallet}/importAccount`,
   ImportAccountRequestSchema,
   async (request, node): Promise<void> => {
     const account = await node.wallet.importAccount(request.data.account)

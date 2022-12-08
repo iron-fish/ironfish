@@ -73,7 +73,7 @@ export class ChainProcessor {
       `Chain processor head not found in chain: ${this.hash.toString('hex')}`,
     )
 
-    const { fork } = await this.chain.findFork(head, chainHead)
+    const fork = await this.chain.findFork(head, chainHead)
 
     // All cases can be handled by rewinding to the fork point
     // and then fast-forwarding to the destination. In cases where `head` and `chainHead`

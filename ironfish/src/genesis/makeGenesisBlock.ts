@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { Account } from '../wallet'
 import {
   generateKey,
   Note as NativeNote,
@@ -13,16 +12,19 @@ import { Logger } from '../logger'
 import { Block } from '../primitives'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
+import { CurrencyUtils } from '../utils'
 import { GraffitiUtils } from '../utils/graffiti'
 
-export type GenesisBlockInfo = {
+export type GenesisBlockAllocation = {
+  publicAddress: string
+  amountInOre: bigint
   memo: string
+}
+
+export type GenesisBlockInfo = {
   timestamp: number
   target: Target
-  allocations: {
-    publicAddress: string
-    amount: bigint
-  }[]
+  allocations: GenesisBlockAllocation[]
 }
 
 /**
@@ -33,7 +35,6 @@ export type GenesisBlockInfo = {
 export async function makeGenesisBlock(
   chain: Blockchain,
   info: GenesisBlockInfo,
-  account: Account,
   logger: Logger,
 ): Promise<{ block: Block }> {
   logger = logger.withTag('makeGenesisBlock')
@@ -41,7 +42,8 @@ export async function makeGenesisBlock(
     throw new Error('Database must be empty to create a genesis block.')
   }
   // Sum the allocations to get the total number of coins
-  const allocationSum = info.allocations.reduce((sum, cur) => sum + cur.amount, 0n)
+  const allocationSum = info.allocations.reduce((sum, cur) => sum + cur.amountInOre, 0n)
+  const allocationSumInIron = CurrencyUtils.encodeIron(allocationSum)
 
   // Track all of the transactions that will be added to the genesis block
   const transactionList = []
@@ -50,7 +52,7 @@ export async function makeGenesisBlock(
   // It should end up with 0 coins.
   const genesisKey = generateKey()
   // Create a genesis note granting the genesisKey allocationSum coins.
-  const genesisNote = new NativeNote(genesisKey.public_address, allocationSum, info.memo)
+  const genesisNote = new NativeNote(genesisKey.public_address, allocationSum, '')
 
   // Create a miner's fee transaction for the block.
   // Since the block itself generates coins and we don't want the miner account to gain
@@ -59,9 +61,10 @@ export async function makeGenesisBlock(
   // This transaction will cause block.verify to fail, but we skip block verification
   // throughout the code when the block header's previousBlockHash is GENESIS_BLOCK_PREVIOUS.
   logger.info(`Generating a miner's fee transaction for the block...`)
-  const note = new NativeNote(account.publicAddress, BigInt(0), '')
+  const minersFeeKey = generateKey()
+  const note = new NativeNote(minersFeeKey.public_address, BigInt(0), '')
 
-  const minersFeeTransaction = new NativeTransaction(account.spendingKey)
+  const minersFeeTransaction = new NativeTransaction(minersFeeKey.spending_key)
   minersFeeTransaction.receive(note)
   const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
 
@@ -71,7 +74,7 @@ export async function makeGenesisBlock(
    * An initial transaction generating allocationSum coins from nothing.
    *
    */
-  logger.info(`Generating an initial transaction with ${allocationSum} coins...`)
+  logger.info(`Generating an initial transaction with ${allocationSumInIron} coins...`)
   const initialTransaction = new NativeTransaction(genesisKey.spending_key)
 
   logger.info('  Generating the output...')
@@ -109,14 +112,16 @@ export async function makeGenesisBlock(
    */
   logger.info('Generating a transaction for distributing allocations...')
   const transaction = new NativeTransaction(genesisKey.spending_key)
-  logger.info(`  Generating a spend for ${allocationSum} coins...`)
+  logger.info(`  Generating a spend for ${allocationSumInIron} coins...`)
   transaction.spend(genesisNote, witness)
 
   for (const alloc of info.allocations) {
     logger.info(
-      `  Generating an output for ${alloc.amount} coins for ${alloc.publicAddress}...`,
+      `  Generating an output for ${CurrencyUtils.encodeIron(alloc.amountInOre)} coins for ${
+        alloc.publicAddress
+      }...`,
     )
-    const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amount), info.memo)
+    const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amountInOre), alloc.memo)
     transaction.receive(note)
   }
 

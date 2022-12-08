@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
+import { generateKey } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -1154,13 +1154,6 @@ export class Wallet {
     }
 
     return this.getAccount(this.defaultAccount)
-  }
-
-  async generateNewPublicAddress(account: Account): Promise<void> {
-    this.assertHasAccount(account)
-    const key = generateNewPublicAddress(account.spendingKey)
-    account.publicAddress = key.public_address
-    await this.walletDb.setAccount(account)
   }
 
   async getEarliestHeadHash(): Promise<Buffer | null> {

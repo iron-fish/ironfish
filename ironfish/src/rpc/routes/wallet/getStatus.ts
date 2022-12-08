@@ -39,7 +39,7 @@ export const GetAccountStatusResponseSchema: yup.ObjectSchema<GetAccountStatusRe
   .defined()
 
 router.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
-  `${ApiNamespace.account}/getAccountsStatus`,
+  `${ApiNamespace.wallet}/getAccountsStatus`,
   GetAccountStatusRequestSchema,
   async (request, node): Promise<void> => {
     const headHashes = new Map<string, Buffer | null>()

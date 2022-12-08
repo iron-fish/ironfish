@@ -118,7 +118,7 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      const existingNote = await this.getDecryptedNote(noteHash)
+      const existingNote = await this.getDecryptedNote(noteHash, tx)
 
       if (!existingNote || existingNote.spent !== note.spent) {
         const value = note.note.value()
@@ -239,10 +239,10 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const spend of transaction.spends()) {
-      const noteHash = await this.getNoteHash(spend.nullifier)
+      const noteHash = await this.getNoteHash(spend.nullifier, tx)
 
       if (noteHash) {
-        const decryptedNote = await this.getDecryptedNote(noteHash)
+        const decryptedNote = await this.getDecryptedNote(noteHash, tx)
         Assert.isNotUndefined(
           decryptedNote,
           'nullifierToNote mappings must have a corresponding decryptedNote',
@@ -266,7 +266,7 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      const existingNote = await this.getDecryptedNote(noteHash)
+      const existingNote = await this.getDecryptedNote(noteHash, tx)
 
       if (existingNote) {
         const note = existingNote.note
@@ -287,8 +287,8 @@ export class Account {
     })
   }
 
-  async getNoteHash(nullifier: Buffer): Promise<Buffer | null> {
-    return await this.walletDb.loadNoteHash(this, nullifier)
+  async getNoteHash(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<Buffer | null> {
+    return await this.walletDb.loadNoteHash(this, nullifier, tx)
   }
 
   async getTransaction(
@@ -322,7 +322,7 @@ export class Account {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       for (const note of transaction.notes()) {
         const noteHash = note.merkleHash()
-        const decryptedNote = await this.getDecryptedNote(noteHash)
+        const decryptedNote = await this.getDecryptedNote(noteHash, tx)
 
         if (decryptedNote) {
           await this.deleteDecryptedNote(noteHash, transactionHash, tx)
@@ -334,10 +334,10 @@ export class Account {
       }
 
       for (const spend of transaction.spends()) {
-        const noteHash = await this.getNoteHash(spend.nullifier)
+        const noteHash = await this.getNoteHash(spend.nullifier, tx)
 
         if (noteHash) {
-          const decryptedNote = await this.getDecryptedNote(noteHash)
+          const decryptedNote = await this.getDecryptedNote(noteHash, tx)
           Assert.isNotUndefined(
             decryptedNote,
             'nullifierToNote mappings must have a corresponding decryptedNote',
