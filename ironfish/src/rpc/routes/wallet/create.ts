@@ -28,7 +28,7 @@ export const CreateAccountResponseSchema: yup.ObjectSchema<CreateAccountResponse
   .defined()
 
 router.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
-  `${ApiNamespace.account}/create`,
+  `${ApiNamespace.wallet}/create`,
   CreateAccountRequestSchema,
   async (request, node): Promise<void> => {
     const name = request.data.name

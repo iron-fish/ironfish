@@ -8,13 +8,13 @@
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
-describe('Route account/status', () => {
+describe('Route wallet/status', () => {
   const routeTest = createRouteTest(true)
 
   it('should return account status information', async () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), true)
     const response = await routeTest.client
-      .request<any>('account/getAccountsStatus', {})
+      .request<any>('wallet/getAccountsStatus', {})
       .waitForEnd()
 
     expect(response.status).toBe(200)

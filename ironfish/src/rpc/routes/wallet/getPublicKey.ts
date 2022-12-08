@@ -22,7 +22,7 @@ export const GetPublicKeyResponseSchema: yup.ObjectSchema<GetPublicKeyResponse> 
   .defined()
 
 router.register<typeof GetPublicKeyRequestSchema, GetPublicKeyResponse>(
-  `${ApiNamespace.account}/getPublicKey`,
+  `${ApiNamespace.wallet}/getPublicKey`,
   GetPublicKeyRequestSchema,
   (request, node): void => {
     const account = getAccount(node, request.data.account)

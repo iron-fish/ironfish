@@ -25,7 +25,7 @@ export const RescanAccountResponseSchema: yup.ObjectSchema<RescanAccountResponse
   .defined()
 
 router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
-  `${ApiNamespace.account}/rescanAccount`,
+  `${ApiNamespace.wallet}/rescanAccount`,
   RescanAccountRequestSchema,
   async (request, node): Promise<void> => {
     let scan = node.wallet.scan
