@@ -33,7 +33,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     publicAddress: string
     amount: bigint
     memo: string
-    assetIdentifier?: Buffer
+    assetIdentifier: Buffer
   }[]
   readonly mints: MintDescription[]
   readonly burns: BurnDescription[]
@@ -52,7 +52,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       publicAddress: string
       amount: bigint
       memo: string
-      assetIdentifier?: Buffer
+      assetIdentifier: Buffer
     }[],
     mints: MintDescription[],
     burns: BurnDescription[],
@@ -99,11 +99,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       bw.writeVarString(receive.publicAddress)
       bw.writeVarBytes(BigIntUtils.toBytesBE(receive.amount))
       bw.writeVarString(receive.memo, 'utf8')
-      if (receive.assetIdentifier) {
-        bw.writeBytes(receive.assetIdentifier)
-      } else {
-        bw.writeBytes(Asset.nativeIdentifier())
-      }
+      bw.writeBytes(receive.assetIdentifier)
     }
 
     bw.writeU64(this.mints.length)

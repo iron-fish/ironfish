@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { CurrencyUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
@@ -97,6 +98,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
         publicAddress: receive.publicAddress,
         amount: CurrencyUtils.decode(receive.amount),
         memo: receive.memo,
+        assetIdentifier: Asset.nativeIdentifier(),
       }
     })
 

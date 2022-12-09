@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
 import { Assert } from '../assert'
@@ -239,6 +239,7 @@ export async function useTxFixture(
             publicAddress: to.publicAddress,
             amount: BigInt(1),
             memo: '',
+            assetIdentifier: Asset.nativeIdentifier(),
           },
         ],
         [],
@@ -266,7 +267,7 @@ export async function useBlockWithRawTxFixture(
   pool: WorkerPool,
   sender: Account,
   notesToSpend: NoteEncrypted[],
-  receives: { publicAddress: string; amount: bigint; memo: string }[],
+  receives: { publicAddress: string; amount: bigint; memo: string; assetIdentifier: Buffer }[],
   mints: MintDescription[],
   burns: BurnDescription[],
   sequence: number,
@@ -295,7 +296,7 @@ export async function useRawTxFixture(
   pool: WorkerPool,
   sender: Account,
   notesToSpend: NoteEncrypted[],
-  receives: { publicAddress: string; amount: bigint; memo: string; assetIdentifier?: Buffer }[],
+  receives: { publicAddress: string; amount: bigint; memo: string; assetIdentifier: Buffer }[],
   mints: MintDescription[],
   burns: BurnDescription[],
 ): Promise<Transaction> {
@@ -425,6 +426,7 @@ export async function useBlockWithTx(
           publicAddress: to.publicAddress,
           amount: BigInt(1),
           memo: '',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
       ],
       [],
@@ -479,6 +481,7 @@ export async function useBlockWithTxs(
             publicAddress: to.publicAddress,
             amount: BigInt(1),
             memo: '',
+            assetIdentifier: Asset.nativeIdentifier(),
           },
         ],
         [],

@@ -18,6 +18,7 @@ export interface BoxedMessage {
 }
 export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
 export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
+export const ASSET_IDENTIFIER_LENGTH: number
 export const ASSET_METADATA_LENGTH: number
 export const ASSET_NAME_LENGTH: number
 export const ASSET_OWNER_LENGTH: number
@@ -92,7 +93,7 @@ export class NoteEncrypted {
 }
 export type NativeNote = Note
 export class Note {
-  constructor(owner: string, value: bigint, memo: string, assetIdentifier?: Buffer | undefined | null)
+  constructor(owner: string, value: bigint, memo: string, assetIdentifier: Buffer)
   static deserialize(jsBytes: Buffer): NativeNote
   serialize(): Buffer
   /** Value this note represents. */

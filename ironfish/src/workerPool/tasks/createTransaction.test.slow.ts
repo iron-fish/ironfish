@@ -86,6 +86,7 @@ describe('CreateTransactionRequest', () => {
           publicAddress: '',
           amount: BigInt(5),
           memo: '👁️🏃🐟',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
       ],
       [
@@ -159,7 +160,14 @@ describe('CreateTransactionTask', () => {
             authPath,
           },
         ],
-        [{ publicAddress: account.publicAddress, amount: BigInt(1), memo: '' }],
+        [
+          {
+            publicAddress: account.publicAddress,
+            amount: BigInt(1),
+            memo: '',
+            assetIdentifier: Asset.nativeIdentifier(),
+          },
+        ],
         [
           {
             asset,

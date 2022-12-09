@@ -651,7 +651,12 @@ export class Wallet {
   async pay(
     memPool: MemPool,
     sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
     transactionFee: bigint,
     defaultTransactionExpirationSequenceDelta: number,
     expirationSequence?: number | null,
@@ -692,7 +697,12 @@ export class Wallet {
 
   async createTransaction(
     sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
     mints: MintDescription[],
     burns: BurnDescription[],
     transactionFee: bigint,

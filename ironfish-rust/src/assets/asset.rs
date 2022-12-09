@@ -30,6 +30,7 @@ pub const OWNER_LENGTH: usize = 32;
 const ASSET_INFO_HASHED_LENGTH: usize = 32;
 pub const METADATA_LENGTH: usize = 76;
 pub const ASSET_LENGTH: usize = NAME_LENGTH + OWNER_LENGTH + METADATA_LENGTH + 1;
+pub const IDENTIFIER_LENGTH: usize = ASSET_IDENTIFIER_LENGTH;
 
 pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
 

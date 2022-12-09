@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey, Note, Transaction, TransactionPosted } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, Note, Transaction, TransactionPosted } from '@ironfish/rust-nodejs'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { NoteLeafEncoding, NullifierLeafEncoding } from './leaves'
 
@@ -9,7 +9,7 @@ describe('NoteLeafEncoding', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
     const encoding = new NoteLeafEncoding()
     const key = generateKey()
-    const note = new Note(key.public_address, 10n, '')
+    const note = new Note(key.public_address, 10n, '', Asset.nativeIdentifier())
     const tx = new Transaction(key.spending_key)
     tx.receive(note)
     const buf = tx.post_miners_fee()

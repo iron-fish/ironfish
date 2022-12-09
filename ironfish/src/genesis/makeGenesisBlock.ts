@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
+  Asset,
   generateKey,
   Note as NativeNote,
   Transaction as NativeTransaction,
@@ -52,7 +53,12 @@ export async function makeGenesisBlock(
   // It should end up with 0 coins.
   const genesisKey = generateKey()
   // Create a genesis note granting the genesisKey allocationSum coins.
-  const genesisNote = new NativeNote(genesisKey.public_address, allocationSum, '')
+  const genesisNote = new NativeNote(
+    genesisKey.public_address,
+    allocationSum,
+    '',
+    Asset.nativeIdentifier(),
+  )
 
   // Create a miner's fee transaction for the block.
   // Since the block itself generates coins and we don't want the miner account to gain
@@ -62,7 +68,12 @@ export async function makeGenesisBlock(
   // throughout the code when the block header's previousBlockHash is GENESIS_BLOCK_PREVIOUS.
   logger.info(`Generating a miner's fee transaction for the block...`)
   const minersFeeKey = generateKey()
-  const note = new NativeNote(minersFeeKey.public_address, BigInt(0), '')
+  const note = new NativeNote(
+    minersFeeKey.public_address,
+    BigInt(0),
+    '',
+    Asset.nativeIdentifier(),
+  )
 
   const minersFeeTransaction = new NativeTransaction(minersFeeKey.spending_key)
   minersFeeTransaction.receive(note)
@@ -121,7 +132,12 @@ export async function makeGenesisBlock(
         alloc.publicAddress
       }...`,
     )
-    const note = new NativeNote(alloc.publicAddress, BigInt(alloc.amountInOre), alloc.memo)
+    const note = new NativeNote(
+      alloc.publicAddress,
+      BigInt(alloc.amountInOre),
+      alloc.memo,
+      Asset.nativeIdentifier(),
+    )
     transaction.receive(note)
   }
 

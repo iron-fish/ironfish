@@ -236,7 +236,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_OWNER_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, PROOF_LENGTH, TRANSACTION_VERSION, Transaction, verifyTransactions, generateKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
+const { KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_IDENTIFIER_LENGTH, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_OWNER_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, PROOF_LENGTH, TRANSACTION_VERSION, Transaction, verifyTransactions, generateKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
 
 module.exports.KEY_LENGTH = KEY_LENGTH
 module.exports.NONCE_LENGTH = NONCE_LENGTH
@@ -245,6 +245,7 @@ module.exports.randomBytes = randomBytes
 module.exports.boxMessage = boxMessage
 module.exports.unboxMessage = unboxMessage
 module.exports.RollingFilter = RollingFilter
+module.exports.ASSET_IDENTIFIER_LENGTH = ASSET_IDENTIFIER_LENGTH
 module.exports.ASSET_METADATA_LENGTH = ASSET_METADATA_LENGTH
 module.exports.ASSET_NAME_LENGTH = ASSET_NAME_LENGTH
 module.exports.ASSET_OWNER_LENGTH = ASSET_OWNER_LENGTH

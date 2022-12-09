@@ -152,7 +152,12 @@ export class WorkerPool {
         hashOfSibling: Buffer
       }[]
     }[],
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
     mints: MintDescription[],
     burns: BurnDescription[],
     transactionFee: bigint,

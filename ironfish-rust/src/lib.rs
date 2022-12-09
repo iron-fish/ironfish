@@ -19,7 +19,6 @@ pub mod transaction;
 pub mod util;
 pub mod witness;
 pub use {
-    ironfish_zkp::constants::ASSET_IDENTIFIER_LENGTH,
     keys::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKeys},
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,
