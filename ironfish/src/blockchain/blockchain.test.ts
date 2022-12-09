@@ -16,11 +16,11 @@ import {
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
-  useRawTxFixture,
   useTxFixture,
   useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
+import { buildRawTransaction } from '../testUtilities/helpers/transaction'
 import { AsyncUtils } from '../utils'
 import { Account } from '../wallet'
 
@@ -1275,7 +1275,7 @@ describe('Blockchain', () => {
         // Build a block which uses the same note for burning and spending
         const noteToBurn = mintBlock.transactions[1].getNote(0)
         const doubleSpendBlock = await useBlockFixture(node.chain, async () => {
-          const burnTransaction = await useRawTxFixture(
+          const burnTransaction = await buildRawTransaction(
             node.chain,
             node.workerPool,
             account,
@@ -1284,7 +1284,7 @@ describe('Blockchain', () => {
             [],
             [{ asset, value: BigInt(2) }],
           )
-          const spendTransaction = await useRawTxFixture(
+          const spendTransaction = await buildRawTransaction(
             node.chain,
             node.workerPool,
             account,
