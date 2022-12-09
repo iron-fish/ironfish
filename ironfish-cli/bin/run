@@ -8,7 +8,7 @@ if (process.platform !== 'win32') {
 }
 
 if(process.versions.node.split('.')[0] !== '16') {
-  console.log('NodeJS version ' +  process.versions.node + ' is not compatible. Must have node v16.x installed. You can install using nvm: https://github.com/nvm-sh/nvm')
+  console.log('NodeJS version ' +  process.versions.node + ' is not compatible. Must have node v16.x installed: https://nodejs.org/en/blog/release/v16.16.0')
   process.exit(1)
 }
 
