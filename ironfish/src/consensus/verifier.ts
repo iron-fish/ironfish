@@ -43,15 +43,8 @@ export class Verifier {
     block: Block,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
   ): Promise<VerificationResult> {
-    if (
-      this.chain.consensus.isActive(
-        this.chain.consensus.V2_MAX_BLOCK_SIZE,
-        block.header.sequence,
-      )
-    ) {
-      if (getBlockSize(block) > this.chain.consensus.parameters.maxBlockSizeBytes) {
-        return { valid: false, reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED }
-      }
+    if (getBlockSize(block) > this.chain.consensus.parameters.maxBlockSizeBytes) {
+      return { valid: false, reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED }
     }
 
     // Verify the block header

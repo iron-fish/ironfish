@@ -33,19 +33,6 @@ export type ConsensusParameters = {
 export class Consensus {
   readonly parameters: ConsensusParameters
 
-  /**
-   * Before upgrade V2 we didn't enforce max block size.
-   * At this block we check that the block size doesn't exceed maxBlockSizeBytes.
-   *
-   * TODO: remove this sequence check before mainnet
-   */
-  V2_MAX_BLOCK_SIZE = 0
-
-  /**
-   * All mined blocks give 0 mining reward
-   */
-  V3_DISABLE_MINING_REWARD = Number.MAX_SAFE_INTEGER
-
   constructor(parameters: ConsensusParameters) {
     this.parameters = parameters
   }
@@ -58,7 +45,5 @@ export class Consensus {
 export class TestnetConsensus extends Consensus {
   constructor(parameters: ConsensusParameters) {
     super(parameters)
-    this.V2_MAX_BLOCK_SIZE = 255000
-    this.V3_DISABLE_MINING_REWARD = 279900
   }
 }

@@ -19,8 +19,8 @@ on:
 name: Rust CI
 
 jobs:
-  ironfish_rust:
-    name: ironfish-rust
+  rust_lint:
+    name: Lint Rust
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -39,6 +39,41 @@ jobs:
           command: check
           args: --locked
 
+      # Note: ironfish-zkp is does not need this due to different licensing
+      - name: Check for license headers for ironfish-rust
+        run: ./ci/lintHeaders.sh ./ironfish-rust/src *.rs
+
+      - name: Check for license headers for ironfish-rust-nodejs
+        run: ./ci/lintHeaders.sh ./ironfish-rust/src *.rs
+
+      # fmt
+      - uses: actions-rs/cargo@v1
+        name: "`cargo fmt` check on ironfish-rust"
+        with:
+          command: fmt
+          args: --all -- --check
+
+      # clippy
+      - uses: actions-rs/cargo@v1
+        name: "Clippy check on ironfish-rust"
+        with:
+          command: clippy
+          args: --all-targets -- -D warnings
+
+  ironfish_rust:
+    name: Test ironfish-rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: base
+
       # Build & Run test & Collect Code coverage
       - name: Run cargo-tarpaulin on ironfish-rust
         uses: actions-rs/tarpaulin@v0.1
@@ -52,23 +87,6 @@ jobs:
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           flags: ironfish-rust
-
-      - name: Check for license headers
-        run: ./ci/lintHeaders.sh ./ironfish-rust/src *.rs
-
-      # fmt
-      - uses: actions-rs/cargo@v1
-        name: "`cargo fmt` check on ironfish-rust"
-        with:
-          command: fmt
-          args: --manifest-path ironfish-rust/Cargo.toml --all -- --check
-
-      # clippy
-      - uses: actions-rs/cargo@v1
-        name: "Clippy check on ironfish-rust"
-        with:
-          command: clippy
-          args: --manifest-path ironfish-rust/Cargo.toml --all-targets -- -D warnings
 
   ironfish_rust_nodejs:
     name: ironfish-rust-nodejs
@@ -84,32 +102,15 @@ jobs:
         with:
           shared-key: nodejs
 
-      # Check
-      - name: Run cargo check on ironfish-rust-nodejs
-        uses: actions-rs/cargo@v1
-        with:
-          command: "check"
-          args: --manifest-path ironfish-rust-nodejs/Cargo.toml
-
-      - name: Check for license headers
-        run: ./ci/lintHeaders.sh ./ironfish-rust-nodejs/src *.rs
-
-      # fmt
       - uses: actions-rs/cargo@v1
-        name: "`cargo fmt` check on ironfish-rust-nodejs"
+        name: "Build NAPI bindings for the cache"
         with:
-          command: fmt
-          args: --manifest-path ironfish-rust-nodejs/Cargo.toml --all -- --check
+          command: build
+          args: --release
 
-      # clippy
-      - uses: actions-rs/cargo@v1
-        name: "Clippy check on ironfish-rust-nodejs"
-        with:
-          command: clippy
-          args: --manifest-path ironfish-rust-nodejs/Cargo.toml --all-targets -- -D warnings
 
   ironfish_zkp:
-    name: ironfish-zkp
+    name: Test ironfish-zkp
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -135,17 +136,3 @@ jobs:
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           flags: ironfish-zkp
-
-      # fmt
-      - uses: actions-rs/cargo@v1
-        name: "`cargo fmt` check on ironfish-zkp"
-        with:
-          command: fmt
-          args: --manifest-path ironfish-zkp/Cargo.toml --all -- --check
-
-      # clippy
-      - uses: actions-rs/cargo@v1
-        name: "Clippy check on ironfish-zkp"
-        with:
-          command: clippy
-          args: --manifest-path ironfish-zkp/Cargo.toml --all-targets -- -D warnings

@@ -39,10 +39,6 @@ export class Strategy {
    * @returns mining reward (in ORE) per block given the block sequence
    */
   miningReward(sequence: number): number {
-    if (this.consensus.isActive(this.consensus.V3_DISABLE_MINING_REWARD, sequence)) {
-      return 0
-    }
-
     const ironFishYearInBlocks =
       (365 * 24 * 60 * 60) / this.consensus.parameters.targetBlockTimeInSeconds
     const yearsAfterLaunch = Math.floor(Number(sequence) / ironFishYearInBlocks)

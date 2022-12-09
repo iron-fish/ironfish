@@ -859,26 +859,6 @@ describe('Blockchain', () => {
     expect(nodeA.chain.head.hash.equals(blockA6.header.hash)).toBe(true)
   })
 
-  it('does not grant mining reward after V3_DISABLE_MINING_REWARD', async () => {
-    const { node } = await nodeTest.createSetup()
-    node.chain.consensus.V3_DISABLE_MINING_REWARD = 3
-    const account = await useAccountFixture(node.wallet)
-
-    const block1 = await useMinerBlockFixture(node.chain, 2, account)
-    expect(block1.minersFee.fee()).toEqual(-20n * 10n ** 8n)
-    expect(block1.minersFee.spendsLength()).toEqual(0)
-    expect(block1.minersFee.notesLength()).toEqual(1)
-    await expect(node.chain).toAddBlock(block1)
-
-    const block2 = await useMinerBlockFixture(node.chain, 3, account)
-    expect(block2.minersFee.fee()).toEqual(0n)
-    expect(block2.minersFee.spendsLength()).toEqual(0)
-    expect(block2.minersFee.notesLength()).toEqual(1)
-    await expect(node.chain).toAddBlock(block2)
-
-    await node.wallet.updateHead()
-  })
-
   describe('asset updates', () => {
     async function mintAsset(
       node: IronfishNode,
