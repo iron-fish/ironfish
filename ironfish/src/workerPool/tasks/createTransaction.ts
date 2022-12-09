@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset, ASSET_LENGTH, Note, Transaction } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  ASSET_IDENTIFIER_LENGTH,
+  ASSET_LENGTH,
+  Note,
+  Transaction,
+} from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../../merkletree'
 import { NoteHasher } from '../../merkletree/hasher'
@@ -147,7 +153,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       const publicAddress = reader.readVarString()
       const amount = BigIntUtils.fromBytes(reader.readVarBytes())
       const memo = reader.readVarString('utf8')
-      const assetIdentifier = reader.readBytes(32)
+      const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
       receives.push({ publicAddress, amount, memo, assetIdentifier })
     }
 
@@ -202,7 +208,7 @@ export class CreateTransactionRequest extends WorkerMessage {
         bufio.sizeVarString(receive.publicAddress) +
         bufio.sizeVarBytes(BigIntUtils.toBytesBE(receive.amount)) +
         bufio.sizeVarString(receive.memo, 'utf8') +
-        32
+        ASSET_IDENTIFIER_LENGTH
     }
 
     let mintsSize = 0
