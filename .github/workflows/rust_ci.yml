@@ -88,6 +88,27 @@ jobs:
           token: ${{secrets.CODECOV_TOKEN}}
           flags: ironfish-rust
 
+  ironfish_rust_nodejs:
+    name: ironfish-rust-nodejs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: nodejs
+
+      - uses: actions-rs/cargo@v1
+        name: "Build NAPI bindings for the cache"
+        with:
+          command: build
+          args: --release
+
+
   ironfish_zkp:
     name: Test ironfish-zkp
     runs-on: ubuntu-latest
