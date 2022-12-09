@@ -43,9 +43,9 @@ describe('Block', () => {
   })
 
   it('throws when deserializing invalid block', () => {
-    expect(() =>
-      BlockSerde.deserialize({ bad: 'data' } as unknown as SerializedBlock),
-    ).toThrow('Unable to deserialize')
+    expect(() => BlockSerde.deserialize({ bad: 'data' } as unknown as SerializedBlock)).toThrow(
+      'Unable to deserialize',
+    )
   })
 
   it('check block equality', async () => {

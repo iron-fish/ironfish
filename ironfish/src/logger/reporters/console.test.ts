@@ -128,7 +128,10 @@ describe('logPrefix', () => {
       tag: 'testtag',
     })
 
-    expect(spy).toHaveBeenCalledWith(`[${format(date, 'HH:mm:ss.SSS')}] [testtag] [info]`, 'testlog')
+    expect(spy).toHaveBeenCalledWith(
+      `[${format(date, 'HH:mm:ss.SSS')}] [testtag] [info]`,
+      'testlog',
+    )
     spy.mockRestore()
   })
 })

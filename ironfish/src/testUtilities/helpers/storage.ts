@@ -13,7 +13,8 @@ import { TEST_DATA_DIR } from '../utils'
 /** Generate a test database name from the given test if not provided*/
 export function makeDbName(): string {
   const id = (Math.random() * Number.MAX_SAFE_INTEGER).toFixed(0)
-  return expect.getState().currentTestName + '-' + id
+  const testName = expect.getState().currentTestName || ''
+  return testName + '-' + id
 }
 
 export function makeDb(name?: string): IDatabase {

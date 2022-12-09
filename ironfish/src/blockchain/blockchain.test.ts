@@ -297,23 +297,15 @@ describe('Blockchain', () => {
 
     // left-to-right
     let result = AsyncUtils.materialize(chain.iterateTo(blockA1.header, blockB2.header))
-    await expect(result).rejects.toThrow(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
     result = AsyncUtils.materialize(chain.iterateFrom(blockA1.header, blockB2.header))
-    await expect(result).rejects.toThrow(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
 
     // right-to-left
     result = AsyncUtils.materialize(chain.iterateTo(blockB2.header, blockA1.header))
-    await expect(result).rejects.toThrow(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
     result = AsyncUtils.materialize(chain.iterateFrom(blockB2.header, blockA1.header))
-    await expect(result).rejects.toThrow(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
   })
 
   it('findFork', async () => {
