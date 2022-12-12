@@ -7,7 +7,6 @@ import {
   ASSET_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
   PROOF_LENGTH,
-  PUBLIC_ADDRESS_LENGTH,
   TransactionPosted,
 } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
