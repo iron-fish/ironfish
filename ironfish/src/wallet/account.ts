@@ -221,6 +221,8 @@ export class Account {
             transactionHash: transaction.hash(),
             nullifier: null,
             index: null,
+            blockHash: null,
+            sequence: null,
           },
           tx,
         )
