@@ -108,5 +108,9 @@ describe('Accounts', () => {
       0,
     )
     expect(transaction.isMinersFee()).toBe(false)
+    // TODO(joe): replace with accountA.publicAddress
+    expect(transaction.sender()).toBe(
+      '8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563',
+    )
   }, 500000)
 })
