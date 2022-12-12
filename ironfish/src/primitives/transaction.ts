@@ -85,7 +85,7 @@ export class Transaction {
       reader.seek(192)
 
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
-      const value = BigInt(reader.readU64())
+      const value = reader.readBigU64()
 
       // value commitment
       reader.seek(32)
@@ -99,7 +99,7 @@ export class Transaction {
 
     this._burns = Array.from({ length: _burnsLength }, () => {
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
-      const value = BigInt(reader.readU64())
+      const value = reader.readBigU64()
 
       // value commitment
       reader.seek(32)
