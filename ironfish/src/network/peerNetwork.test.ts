@@ -618,11 +618,10 @@ describe('PeerNetwork', () => {
 
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+        const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
-        const spend = transaction.getSpend(0)
-        await node.chain.nullifiers.add(spend.nullifier)
+        await node.chain.nullifiers.connectBlock(block.transactions)
 
         const acceptTransaction = jest.spyOn(node.memPool, 'acceptTransaction')
         const syncTransaction = jest.spyOn(node.wallet, 'syncTransaction')
@@ -681,10 +680,15 @@ describe('PeerNetwork', () => {
 
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
+
+        const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+        await expect(chain).toAddBlock(block1)
+
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
-        await node.chain.notes.truncate(0)
-        await node.chain.nullifiers.truncate(0)
+        // Remove the two blocks so that chain has a smaller tree size than transaction
+        await chain.removeBlock(chain.head.hash)
+        await chain.removeBlock(chain.head.hash)
 
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
         const syncTransaction = jest.spyOn(node.wallet, 'syncTransaction')

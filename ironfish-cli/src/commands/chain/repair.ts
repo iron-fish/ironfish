@@ -153,14 +153,16 @@ export default class RepairChain extends IronfishCommand {
     let block = header ? await node.chain.getBlock(header) : null
     let prev = await node.chain.getHeaderAtSequence(TREE_START - 1)
     const noteSize = prev && prev.noteSize !== null ? prev.noteSize : 0
-    const nullifierSize = prev && prev.nullifierSize !== null ? prev.nullifierSize : 0
 
     CliUx.ux.action.start('Clearing notes MerkleTree')
     await node.chain.notes.truncate(noteSize)
     CliUx.ux.action.stop()
 
     CliUx.ux.action.start('Clearing nullifier MerkleTree')
-    await node.chain.nullifiers.truncate(nullifierSize)
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    await node.chain.nullifiers['nullifiers'].clear()
+
     CliUx.ux.action.stop()
 
     speed.reset()
