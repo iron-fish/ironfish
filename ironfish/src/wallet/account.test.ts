@@ -410,4 +410,143 @@ describe('Accounts', () => {
       expect(pendingHashEntry).toBeUndefined()
     })
   })
+
+  describe('disconnectTransaction', () => {
+    it('should revert decrypted notes to be marked as off chain', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      // transaction from A -> A, so all notes belong to A
+      for (const note of transaction.notes) {
+        const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
+
+        expect(decryptedNote).toBeDefined()
+
+        expect(decryptedNote?.nullifier).toBeDefined()
+
+        const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
+          accountA.prefix,
+          [3, note.merkleHash()],
+        ])
+
+        expect(sequenceIndex).toBeDefined()
+      }
+
+      // disconnect transaction
+      await accountA.disconnectTransaction(transaction)
+
+      for (const note of transaction.notes) {
+        const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
+
+        expect(decryptedNote).toBeDefined()
+
+        expect(decryptedNote?.nullifier).toBeNull()
+
+        const nonChainIndex = await accountA['walletDb'].nonChainNoteHashes.get([
+          accountA.prefix,
+          note.merkleHash(),
+        ])
+
+        expect(nonChainIndex).toBeDefined()
+
+        const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
+          accountA.prefix,
+          [3, note.merkleHash()],
+        ])
+
+        expect(sequenceIndex).toBeUndefined()
+      }
+    })
+
+    it('should not change notes from spends to unspent', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      for (const spend of transaction.spends) {
+        const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
+
+        Assert.isNotNull(spentNoteHash)
+
+        const spentNote = await accountA.getDecryptedNote(spentNoteHash)
+
+        Assert.isNotUndefined(spentNote)
+
+        expect(spentNote.spent).toBeTruthy()
+      }
+
+      // disconnect transaction
+      await accountA.disconnectTransaction(transaction)
+
+      for (const spend of transaction.spends) {
+        const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
+
+        Assert.isNotNull(spentNoteHash)
+
+        const spentNote = await accountA.getDecryptedNote(spentNoteHash)
+
+        Assert.isNotUndefined(spentNote)
+
+        // spends should still be marked as spent since transactions are pending
+        expect(spentNote.spent).toBeTruthy()
+      }
+    })
+
+    it('should restore transactions into pendingTransactionHashes', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      let pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
+        accountA.prefix,
+        [transaction.expirationSequence(), transaction.hash()],
+      ])
+
+      expect(pendingHashEntry).toBeUndefined()
+
+      // disconnect transaction
+      await accountA.disconnectTransaction(transaction)
+
+      pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
+        accountA.prefix,
+        [transaction.expirationSequence(), transaction.hash()],
+      ])
+
+      expect(pendingHashEntry).toBeDefined()
+    })
+  })
 })

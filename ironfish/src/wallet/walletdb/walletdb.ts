@@ -380,6 +380,18 @@ export class WalletDB {
     })
   }
 
+  async disconnectNoteHashSequence(
+    account: Account,
+    noteHash: Buffer,
+    sequence: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
+      await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
+    })
+  }
+
   async deleteNoteHashSequence(
     account: Account,
     noteHash: Buffer,
