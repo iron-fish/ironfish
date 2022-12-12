@@ -110,7 +110,9 @@ export class Transaction {
     })
 
     // sender address
-    this._senderAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
+    // TODO(joe): read from bytes rather than hardcoded value
+    // this._senderAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
+    this._senderAddress = '8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563'
 
     this._signature = reader.readBytes(64, true)
   }
