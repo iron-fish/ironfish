@@ -30,6 +30,8 @@ describe('DecryptedNoteValueEncoding', () => {
         spent: false,
         note,
         transactionHash: Buffer.alloc(32, 1),
+        blockHash: null,
+        sequence: null,
       }
       const buffer = encoder.serialize(value)
       const deserializedValue = encoder.deserialize(buffer)
@@ -53,6 +55,8 @@ describe('DecryptedNoteValueEncoding', () => {
         nullifier: Buffer.alloc(32, 1),
         note,
         transactionHash: Buffer.alloc(32, 1),
+        blockHash: Buffer.alloc(32, 1),
+        sequence: 1,
       }
       const buffer = encoder.serialize(value)
       const deserializedValue = encoder.deserialize(buffer)
