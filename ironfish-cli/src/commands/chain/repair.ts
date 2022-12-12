@@ -158,7 +158,7 @@ export default class RepairChain extends IronfishCommand {
     await node.chain.notes.truncate(noteSize)
     CliUx.ux.action.stop()
 
-    CliUx.ux.action.start('Clearing nullifier MerkleTree')
+    CliUx.ux.action.start('Clearing nullifier set')
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     await node.chain.nullifiers['nullifiers'].clear()
