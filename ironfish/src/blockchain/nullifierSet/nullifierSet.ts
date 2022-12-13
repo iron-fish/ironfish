@@ -32,7 +32,7 @@ export class NullifierSet {
   // Keep track of number of nullifiers in the set
   private readonly counter: IDatabaseStore<CounterEntry<'Size'>>
 
-  // Nullifier -> BlockHash, TransactionHash
+  // Nullifier -> TransactionHash, position
   private readonly nullifiers: IDatabaseStore<NullifiersSchema>
 
   constructor(options: { db: IDatabase; storeName: string }) {
@@ -44,7 +44,6 @@ export class NullifierSet {
       valueEncoding: U32_ENCODING,
     })
 
-    // Nullifier -> BlockHash, TransactionHash
     this.nullifiers = this.db.addStore({
       name: options.storeName,
       keyEncoding: BUFFER_ENCODING,
@@ -107,14 +106,14 @@ export class NullifierSet {
     })
   }
 
-  disconnectBlock(transactions: Transaction[], tx?: IDatabaseTransaction): Promise<void> {
+  disconnectBlock(block: Block, tx?: IDatabaseTransaction): Promise<void> {
     return this.db.withTransaction(tx, async (tx) => {
       let currentSize = await this.size(tx)
 
-      for (const transaction of transactions) {
+      for (const transaction of block.transactions) {
         for (const spend of [...transaction.spends()].reverse()) {
           // Sanity check that we are removing the correct block
-          // Not necesarrally needed but
+          // Not necessarily needed but will keep it here for confidence in the new nullifier set
           const current = await this.nullifiers.get(spend.nullifier, tx)
           Assert.isNotUndefined(current)
           Assert.isTrue(current.transactionHash.equals(transaction.hash()))

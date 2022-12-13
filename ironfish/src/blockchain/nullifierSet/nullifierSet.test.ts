@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Assert } from '../../assert'
 import {
   createNodeTest,
   useAccountFixture,
@@ -22,6 +23,8 @@ describe('NullifierSet', () => {
 
     const accountA = await useAccountFixture(node.wallet, 'accountA')
 
+    const block1 = await chain.getBlock(chain.genesis)
+
     const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
     await expect(node.chain).toAddBlock(block2)
 
@@ -37,9 +40,10 @@ describe('NullifierSet', () => {
 
     await node.wallet.updateHead()
 
-    await set.connectBlock(block2)
-    await set.connectBlock(block3)
-    await set.connectBlock(block4)
+    Assert.isNotNull(block1)
+    const block1Nullifiers = block1.transactions
+      .flatMap((t) => [...t.spends()])
+      .map((s) => s.nullifier)
 
     const block2Nullifiers = block2.transactions
       .flatMap((t) => [...t.spends()])
@@ -53,20 +57,82 @@ describe('NullifierSet', () => {
       .flatMap((t) => [...t.spends()])
       .map((s) => s.nullifier)
 
-    const allNullifiers = [...block2Nullifiers, ...block3Nullifiers, ...block4Nullifiers]
-    for (const nullifier of allNullifiers) {
+    expect(await set.size()).toBe(0)
+    await set.connectBlock(block1)
+    expect(await set.size()).toBe(block1Nullifiers.length)
+    await set.connectBlock(block2)
+    expect(await set.size()).toBe(block1Nullifiers.length + block2Nullifiers.length)
+    await set.connectBlock(block3)
+    expect(await set.size()).toBe(
+      block1Nullifiers.length + block2Nullifiers.length + block3Nullifiers.length,
+    )
+    await set.connectBlock(block4)
+    expect(await set.size()).toBe(
+      block1Nullifiers.length +
+        block2Nullifiers.length +
+        block3Nullifiers.length +
+        block4Nullifiers.length,
+    )
+
+    Assert.isNotNull(block1.header.nullifierSize)
+    Assert.isNotNull(block2.header.nullifierSize)
+    Assert.isNotNull(block3.header.nullifierSize)
+    Assert.isNotNull(block4.header.nullifierSize)
+
+    for (const nullifier of block4Nullifiers) {
+      expect(await set.contained(nullifier, block1.header.nullifierSize)).toBe(false)
+      expect(await set.contained(nullifier, block2.header.nullifierSize)).toBe(false)
+      expect(await set.contained(nullifier, block3.header.nullifierSize)).toBe(false)
+      expect(await set.contained(nullifier, block4.header.nullifierSize)).toBe(true)
       expect(await set.contains(nullifier)).toBe(true)
     }
 
+    for (const nullifier of block3Nullifiers) {
+      expect(await set.contained(nullifier, block1.header.nullifierSize)).toBe(false)
+      expect(await set.contained(nullifier, block2.header.nullifierSize)).toBe(false)
+      expect(await set.contained(nullifier, block4.header.nullifierSize)).toBe(true)
+      expect(await set.contained(nullifier, block3.header.nullifierSize)).toBe(true)
+      expect(await set.contains(nullifier)).toBe(true)
+    }
+
+    for (const nullifier of block2Nullifiers) {
+      expect(await set.contained(nullifier, block1.header.nullifierSize)).toBe(false)
+      expect(await set.contained(nullifier, block2.header.nullifierSize)).toBe(true)
+      expect(await set.contained(nullifier, block4.header.nullifierSize)).toBe(true)
+      expect(await set.contained(nullifier, block3.header.nullifierSize)).toBe(true)
+      expect(await set.contains(nullifier)).toBe(true)
+    }
+
+    for (const nullifier of block1Nullifiers) {
+      expect(await set.contained(nullifier, block1.header.nullifierSize)).toBe(true)
+      expect(await set.contained(nullifier, block2.header.nullifierSize)).toBe(true)
+      expect(await set.contained(nullifier, block4.header.nullifierSize)).toBe(true)
+      expect(await set.contained(nullifier, block3.header.nullifierSize)).toBe(true)
+      expect(await set.contains(nullifier)).toBe(true)
+    }
+
+    const allNullifiers = [
+      ...block1Nullifiers,
+      ...block2Nullifiers,
+      ...block3Nullifiers,
+      ...block4Nullifiers,
+    ]
+
     expect(await set.size()).toBe(allNullifiers.length)
 
-    await expect(set.disconnectBlock(block3.transactions)).rejects.toThrow()
+    await expect(set.disconnectBlock(block3)).rejects.toThrow()
     await expect(set.connectBlock(block3)).rejects.toThrow()
     await expect(set.connectBlock(block4)).rejects.toThrow()
 
-    await set.disconnectBlock(block4.transactions)
+    await set.disconnectBlock(block4)
 
-    expect(await set.size()).toBe(block2Nullifiers.length + block3Nullifiers.length)
+    expect(await set.size()).toBe(
+      block1Nullifiers.length + block2Nullifiers.length + block3Nullifiers.length,
+    )
+
+    for (const nullifier of [...block1Nullifiers]) {
+      expect(await set.contains(nullifier)).toBe(true)
+    }
 
     for (const nullifier of [...block2Nullifiers]) {
       expect(await set.contains(nullifier)).toBe(true)

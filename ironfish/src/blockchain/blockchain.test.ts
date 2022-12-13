@@ -408,7 +408,7 @@ describe('Blockchain', () => {
   })
 
   describe('MerkleTree + Nullifier Set', () => {
-    it('should add notes to trees and nullifiers to set', async () => {
+    it('should add notes to tree and nullifiers to set', async () => {
       /**
        * This test will check that notes are added linearly, and also the tree
        * is reorganized for a heavier fork when a heavier fork appears

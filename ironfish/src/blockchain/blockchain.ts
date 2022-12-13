@@ -1292,7 +1292,7 @@ export class Blockchain {
 
     await this.notes.truncate(prev.noteSize, tx)
 
-    await this.nullifiers.disconnectBlock(block.transactions, tx)
+    await this.nullifiers.disconnectBlock(block, tx)
 
     await this.meta.put('head', prev.hash, tx)
 
