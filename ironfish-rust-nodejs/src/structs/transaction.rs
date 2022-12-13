@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 use std::convert::TryInto;
 
+use ironfish_rust::assets::asset::AssetIdentifier;
 use ironfish_rust::transaction::batch_verify_transactions;
 use ironfish_rust::{
     MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
@@ -198,9 +199,16 @@ impl NativeTransaction {
 
     /// Burn some supply of a given asset and value as part of this transaction.
     #[napi]
-    pub fn burn(&mut self, asset: &NativeAsset, value: BigInt) {
+    pub fn burn(&mut self, asset_identifier_js_bytes: JsBuffer, value: BigInt) -> Result<()> {
+        let asset_identifier_bytes = asset_identifier_js_bytes.into_value()?;
+        let asset_identifier: AssetIdentifier = asset_identifier_bytes
+            .as_ref()
+            .try_into()
+            .map_err(to_napi_err)?;
         let value_u64 = value.get_u64().1;
-        self.transaction.add_burn(asset.asset, value_u64)
+        self.transaction.add_burn(asset_identifier, value_u64);
+
+        Ok(())
     }
 
     /// Special case for posting a miners fee transaction. Miner fee transactions

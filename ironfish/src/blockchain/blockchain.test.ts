@@ -895,7 +895,7 @@ describe('Blockchain', () => {
         [noteToBurn],
         [],
         [],
-        [{ asset, value }],
+        [{ assetIdentifier: asset.identifier(), value }],
         sequence,
       )
     }
@@ -1283,7 +1283,7 @@ describe('Blockchain', () => {
             [noteToBurn],
             [],
             [],
-            [{ asset, value: BigInt(2) }],
+            [{ assetIdentifier: asset.identifier(), value: BigInt(2) }],
           )
           const spendTransaction = await buildRawTransaction(
             node.chain,
