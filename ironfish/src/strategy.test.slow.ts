@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  Asset,
   generateKey,
   generateKeyFromPrivateKey,
   Key,
@@ -93,7 +94,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Can create a miner reward', () => {
       const owner = generateKeyFromPrivateKey(spenderKey.spending_key).public_address
 
-      minerNote = new NativeNote(owner, BigInt(42), '')
+      minerNote = new NativeNote(owner, BigInt(42), '', Asset.nativeIdentifier())
 
       const transaction = new NativeTransaction(spenderKey.spending_key)
       transaction.receive(minerNote)
@@ -132,7 +133,12 @@ describe('Demonstrate the Sapling API', () => {
 
       // Add an output to the transaction
       receiverKey = generateKey()
-      const outputNote = new NativeNote(receiverKey.public_address, BigInt(40), '')
+      const outputNote = new NativeNote(
+        receiverKey.public_address,
+        BigInt(40),
+        '',
+        Asset.nativeIdentifier(),
+      )
       transaction.receive(outputNote)
 
       publicTransaction = new NativeTransactionPosted(transaction.post(null, BigInt(0)))
@@ -274,11 +280,17 @@ describe('Demonstrate the Sapling API', () => {
       transaction.spend(note, witness)
       receiverNote.returnReference()
 
-      const noteForSpender = new NativeNote(spenderKey.public_address, BigInt(10), '')
+      const noteForSpender = new NativeNote(
+        spenderKey.public_address,
+        BigInt(10),
+        '',
+        Asset.nativeIdentifier(),
+      )
       const receiverNoteToSelf = new NativeNote(
         generateKeyFromPrivateKey(receiverKey.spending_key).public_address,
         BigInt(29),
         '',
+        Asset.nativeIdentifier(),
       )
 
       transaction.receive(noteForSpender)

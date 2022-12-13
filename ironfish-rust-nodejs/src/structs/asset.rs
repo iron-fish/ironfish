@@ -3,7 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ironfish_rust::{
-    assets::asset::{Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, NATIVE_ASSET},
+    assets::asset::{
+        Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, IDENTIFIER_LENGTH, METADATA_LENGTH,
+        NAME_LENGTH, NATIVE_ASSET, OWNER_LENGTH,
+    },
     SaplingKey,
 };
 use napi::{
@@ -13,6 +16,18 @@ use napi::{
 use napi_derive::napi;
 
 use crate::to_napi_err;
+
+#[napi]
+pub const ASSET_IDENTIFIER_LENGTH: u32 = IDENTIFIER_LENGTH as u32;
+
+#[napi]
+pub const ASSET_METADATA_LENGTH: u32 = METADATA_LENGTH as u32;
+
+#[napi]
+pub const ASSET_NAME_LENGTH: u32 = NAME_LENGTH as u32;
+
+#[napi]
+pub const ASSET_OWNER_LENGTH: u32 = OWNER_LENGTH as u32;
 
 #[napi]
 pub const ASSET_LENGTH: u32 = SERIALIZED_ASSET_LENGTH as u32;
@@ -32,6 +47,26 @@ impl NativeAsset {
         Ok(NativeAsset {
             asset: Asset::new(owner, &name, &metadata).map_err(to_napi_err)?,
         })
+    }
+
+    #[napi]
+    pub fn metadata(&self) -> Buffer {
+        Buffer::from(self.asset.metadata())
+    }
+
+    #[napi]
+    pub fn name(&self) -> Buffer {
+        Buffer::from(self.asset.name())
+    }
+
+    #[napi]
+    pub fn nonce(&self) -> u32 {
+        *self.asset.nonce() as u32
+    }
+
+    #[napi]
+    pub fn owner(&self) -> Buffer {
+        Buffer::from(&self.asset.owner()[..])
     }
 
     #[napi]

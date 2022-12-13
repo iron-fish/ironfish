@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
@@ -113,6 +113,7 @@ describe('Accounts', () => {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: '',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
       ],
       BigInt(0),
@@ -181,6 +182,7 @@ describe('Accounts', () => {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: '',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
       ],
       BigInt(0),
@@ -251,16 +253,19 @@ describe('Accounts', () => {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: 'recipient 1',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
         {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: 'recipient 2',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
         {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: 'recipient 3',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
       ],
       BigInt(0),
@@ -303,6 +308,7 @@ describe('Accounts', () => {
             publicAddress: generateKey().public_address,
             amount: BigInt(2),
             memo: '',
+            assetIdentifier: Asset.nativeIdentifier(),
           },
         ],
         BigInt(0),
@@ -358,6 +364,7 @@ describe('Accounts', () => {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: '',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
       ],
       BigInt(0),
@@ -444,6 +451,7 @@ describe('Accounts', () => {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: '',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
       ],
       BigInt(0),
@@ -514,8 +522,11 @@ describe('Accounts', () => {
             publicAddress: accountB.publicAddress,
             amount: BigInt(1),
             memo: '',
+            assetIdentifier: Asset.nativeIdentifier(),
           },
         ],
+        [],
+        [],
         BigInt(1),
         0,
       )
@@ -540,8 +551,11 @@ describe('Accounts', () => {
             publicAddress: accountC.publicAddress,
             amount: BigInt(1),
             memo: '',
+            assetIdentifier: Asset.nativeIdentifier(),
           },
         ],
+        [],
+        [],
         BigInt(1),
         0,
       ),
@@ -646,8 +660,11 @@ describe('Accounts', () => {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
               memo: '',
+              assetIdentifier: Asset.nativeIdentifier(),
             },
           ],
+          [],
+          [],
           BigInt(0),
           0,
         )
@@ -747,8 +764,11 @@ describe('Accounts', () => {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
               memo: '',
+              assetIdentifier: Asset.nativeIdentifier(),
             },
           ],
+          [],
+          [],
           BigInt(0),
           0,
         )

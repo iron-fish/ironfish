@@ -2,11 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ironfish_rust::note::{AMOUNT_VALUE_SIZE, GENERATOR_SIZE, MEMO_SIZE, SCALAR_SIZE};
+use ironfish_rust::{
+    assets::asset::{
+        asset_generator_from_identifier, IDENTIFIER_LENGTH as ASSET_IDENTIFIER_LENGTH,
+    },
+    note::{AMOUNT_VALUE_SIZE, GENERATOR_SIZE, MEMO_SIZE, SCALAR_SIZE},
+};
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
-use ironfish_rust::{assets::asset::NATIVE_ASSET_GENERATOR, Note, SaplingKey};
+use ironfish_rust::{Note, SaplingKey};
 
 use ironfish_rust::keys::PUBLIC_ADDRESS_SIZE;
 
@@ -50,7 +55,12 @@ pub struct NativeNote {
 #[napi]
 impl NativeNote {
     #[napi(constructor)]
-    pub fn new(owner: String, value: BigInt, memo: String) -> Result<Self> {
+    pub fn new(
+        owner: String,
+        value: BigInt,
+        memo: String,
+        asset_identifier: JsBuffer,
+    ) -> Result<Self> {
         let value_u64 = value.get_u64().1;
 
         let owner_address = ironfish_rust::PublicAddress::from_hex(&owner).map_err(to_napi_err)?;
@@ -59,12 +69,19 @@ impl NativeNote {
             "8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563",
         )
         .map_err(to_napi_err)?;
+
+        let buffer = asset_identifier.into_value()?;
+        let asset_identifier_vec = buffer.as_ref();
+        let mut asset_identifier_bytes = [0; ASSET_IDENTIFIER_LENGTH];
+        asset_identifier_bytes.clone_from_slice(&asset_identifier_vec[0..ASSET_IDENTIFIER_LENGTH]);
+        let asset_generator = asset_generator_from_identifier(&asset_identifier_bytes);
+
         Ok(NativeNote {
             note: Note::new(
                 owner_address,
                 value_u64,
                 memo,
-                NATIVE_ASSET_GENERATOR,
+                asset_generator,
                 sender_address_placeholder,
             ),
         })

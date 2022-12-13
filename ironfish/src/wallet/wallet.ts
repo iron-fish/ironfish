@@ -12,6 +12,8 @@ import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { NoteWitness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
+import { BurnDescription } from '../primitives/burnDescription'
+import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
@@ -649,7 +651,12 @@ export class Wallet {
   async pay(
     memPool: MemPool,
     sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
     transactionFee: bigint,
     defaultTransactionExpirationSequenceDelta: number,
     expirationSequence?: number | null,
@@ -669,6 +676,8 @@ export class Wallet {
     const transaction = await this.createTransaction(
       sender,
       receives,
+      [],
+      [],
       transactionFee,
       expirationSequence,
     )
@@ -688,7 +697,14 @@ export class Wallet {
 
   async createTransaction(
     sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
+    mints: MintDescription[],
+    burns: BurnDescription[],
     transactionFee: bigint,
     expirationSequence: number,
   ): Promise<Transaction> {
@@ -714,7 +730,6 @@ export class Wallet {
 
       return this.workerPool.createTransaction(
         sender.spendingKey,
-        transactionFee,
         notesToSpend.map((n) => ({
           note: n.note,
           treeSize: n.witness.treeSize(),
@@ -722,6 +737,9 @@ export class Wallet {
           rootHash: n.witness.rootHash,
         })),
         receives,
+        mints,
+        burns,
+        transactionFee,
         expirationSequence,
       )
     } finally {

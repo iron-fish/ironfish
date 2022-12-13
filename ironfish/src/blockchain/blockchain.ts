@@ -1247,8 +1247,6 @@ export class Blockchain {
     prev: BlockHeader | null,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    // TODO: transaction goes here
-
     const { valid, reason } = await this.verifier.verifyBlockConnect(block, tx)
 
     if (!valid) {
@@ -1292,6 +1290,11 @@ export class Blockchain {
       tx,
     )
 
+    for (const transaction of block.transactions) {
+      await this.saveConnectedMintsToAssetsStore(transaction, tx)
+      await this.saveConnectedBurnsToAssetsStore(transaction, tx)
+    }
+
     const verify = await this.verifier.verifyConnectedBlock(block, tx)
 
     if (!verify.valid) {
@@ -1306,7 +1309,14 @@ export class Blockchain {
     prev: BlockHeader,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    // TODO: transaction goes here
+    // Invert all the mints and burns that were applied from this block's transactions.
+    // Iterate in reverse order to ensure changes are undone opposite from how
+    // they were applied.
+    for (const transaction of block.transactions.reverse()) {
+      await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
+      await this.deleteDisconnectedMintsFromAssetsStore(transaction, tx)
+    }
+
     await this.hashToNextHash.del(prev.hash, tx)
     await this.sequenceToHash.del(block.header.sequence, tx)
 
@@ -1349,6 +1359,128 @@ export class Blockchain {
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
       this.latest = block.header
       await this.meta.put('latest', hash, tx)
+    }
+  }
+
+  private async saveConnectedMintsToAssetsStore(
+    transaction: Transaction,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { asset, value } of transaction.mints()) {
+      const assetIdentifier = asset.identifier()
+      const existingAsset = await this.assets.get(assetIdentifier, tx)
+
+      let createdTransactionHash = transaction.hash()
+      let supply = BigInt(0)
+      if (existingAsset) {
+        createdTransactionHash = existingAsset.createdTransactionHash
+        supply = existingAsset.supply
+      }
+
+      await this.assets.put(
+        assetIdentifier,
+        {
+          createdTransactionHash,
+          metadata: asset.metadata(),
+          name: asset.name(),
+          nonce: asset.nonce(),
+          owner: asset.owner(),
+          supply: supply + value,
+        },
+        tx,
+      )
+    }
+  }
+
+  private async saveConnectedBurnsToAssetsStore(
+    transaction: Transaction,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { asset, value } of transaction.burns()) {
+      const assetIdentifier = asset.identifier()
+      const existingAsset = await this.assets.get(assetIdentifier, tx)
+      Assert.isNotUndefined(existingAsset, 'Cannot burn undefined asset from the database')
+
+      const existingSupply = existingAsset.supply
+      const supply = existingSupply - value
+      Assert.isTrue(supply >= BigInt(0), 'Invalid burn value')
+
+      await this.assets.put(
+        assetIdentifier,
+        {
+          createdTransactionHash: existingAsset.createdTransactionHash,
+          metadata: asset.metadata(),
+          name: asset.name(),
+          nonce: asset.nonce(),
+          owner: asset.owner(),
+          supply,
+        },
+        tx,
+      )
+    }
+  }
+
+  private async deleteDisconnectedBurnsFromAssetsStore(
+    transaction: Transaction,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { asset, value } of transaction.burns().reverse()) {
+      const assetIdentifier = asset.identifier()
+      const existingAsset = await this.assets.get(assetIdentifier, tx)
+      Assert.isNotUndefined(existingAsset)
+
+      const existingSupply = existingAsset.supply
+      const supply = existingSupply + value
+
+      await this.assets.put(
+        assetIdentifier,
+        {
+          createdTransactionHash: existingAsset.createdTransactionHash,
+          metadata: asset.metadata(),
+          name: asset.name(),
+          nonce: asset.nonce(),
+          owner: asset.owner(),
+          supply,
+        },
+        tx,
+      )
+    }
+  }
+
+  private async deleteDisconnectedMintsFromAssetsStore(
+    transaction: Transaction,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { asset, value } of transaction.mints().reverse()) {
+      const assetIdentifier = asset.identifier()
+      const existingAsset = await this.assets.get(assetIdentifier, tx)
+      Assert.isNotUndefined(existingAsset)
+
+      const existingSupply = existingAsset.supply
+      const supply = existingSupply - value
+      Assert.isTrue(supply >= BigInt(0))
+
+      // If we are reverting the transaction which matches the created at
+      // hash of the asset, delete the record from the store
+      if (
+        transaction.hash().equals(existingAsset.createdTransactionHash) &&
+        supply === BigInt(0)
+      ) {
+        await this.assets.del(assetIdentifier, tx)
+      } else {
+        await this.assets.put(
+          assetIdentifier,
+          {
+            createdTransactionHash: existingAsset.createdTransactionHash,
+            metadata: asset.metadata(),
+            name: asset.name(),
+            nonce: asset.nonce(),
+            owner: asset.owner(),
+            supply,
+          },
+          tx,
+        )
+      }
     }
   }
 

@@ -7,6 +7,8 @@ import _ from 'lodash'
 import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
+import { BurnDescription } from '../primitives/burnDescription'
+import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
@@ -141,7 +143,6 @@ export class WorkerPool {
 
   async createTransaction(
     spendKey: string,
-    transactionFee: bigint,
     spends: {
       note: Note
       treeSize: number
@@ -151,7 +152,15 @@ export class WorkerPool {
         hashOfSibling: Buffer
       }[]
     }[],
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
+    mints: MintDescription[],
+    burns: BurnDescription[],
+    transactionFee: bigint,
     expirationSequence: number,
   ): Promise<Transaction> {
     const spendsWithSerializedNotes = spends.map((s) => ({
@@ -164,8 +173,8 @@ export class WorkerPool {
       expirationSequence,
       spendsWithSerializedNotes,
       receives,
-      [],
-      [],
+      mints,
+      burns,
     )
 
     const response = await this.execute(request).result()

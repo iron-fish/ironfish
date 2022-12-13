@@ -2,11 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset, ASSET_LENGTH, Note, Transaction } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  ASSET_IDENTIFIER_LENGTH,
+  ASSET_LENGTH,
+  Note,
+  Transaction,
+} from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../../merkletree'
 import { NoteHasher } from '../../merkletree/hasher'
 import { Side } from '../../merkletree/merkletree'
+import { BurnDescription } from '../../primitives/burnDescription'
+import { MintDescription } from '../../primitives/mintDescription'
 import { BigIntUtils } from '../../utils/bigint'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
@@ -27,9 +35,14 @@ export class CreateTransactionRequest extends WorkerMessage {
       hashOfSibling: Buffer
     }[]
   }[]
-  readonly receives: { publicAddress: string; amount: bigint; memo: string }[]
-  readonly mints: { asset: Asset; value: bigint }[]
-  readonly burns: { asset: Asset; value: bigint }[]
+  readonly receives: {
+    publicAddress: string
+    amount: bigint
+    memo: string
+    assetIdentifier: Buffer
+  }[]
+  readonly mints: MintDescription[]
+  readonly burns: BurnDescription[]
 
   constructor(
     spendKey: string,
@@ -41,9 +54,14 @@ export class CreateTransactionRequest extends WorkerMessage {
       rootHash: Buffer
       authPath: { side: Side; hashOfSibling: Buffer }[]
     }[],
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
-    mints: { asset: Asset; value: bigint }[],
-    burns: { asset: Asset; value: bigint }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
+    mints: MintDescription[],
+    burns: BurnDescription[],
     jobId?: number,
   ) {
     super(WorkerMessageType.CreateTransaction, jobId)
@@ -87,6 +105,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       bw.writeVarString(receive.publicAddress)
       bw.writeVarBytes(BigIntUtils.toBytesBE(receive.amount))
       bw.writeVarString(receive.memo, 'utf8')
+      bw.writeBytes(receive.assetIdentifier)
     }
 
     bw.writeU64(this.mints.length)
@@ -134,7 +153,8 @@ export class CreateTransactionRequest extends WorkerMessage {
       const publicAddress = reader.readVarString()
       const amount = BigIntUtils.fromBytes(reader.readVarBytes())
       const memo = reader.readVarString('utf8')
-      receives.push({ publicAddress, amount, memo })
+      const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
+      receives.push({ publicAddress, amount, memo, assetIdentifier })
     }
 
     const mintsLength = reader.readU64()
@@ -187,7 +207,8 @@ export class CreateTransactionRequest extends WorkerMessage {
       receivesSize +=
         bufio.sizeVarString(receive.publicAddress) +
         bufio.sizeVarBytes(BigIntUtils.toBytesBE(receive.amount)) +
-        bufio.sizeVarString(receive.memo, 'utf8')
+        bufio.sizeVarString(receive.memo, 'utf8') +
+        ASSET_IDENTIFIER_LENGTH
     }
 
     let mintsSize = 0
@@ -273,8 +294,8 @@ export class CreateTransactionTask extends WorkerTask {
       )
     }
 
-    for (const { publicAddress, amount, memo } of receives) {
-      const note = new Note(publicAddress, amount, memo)
+    for (const { publicAddress, amount, memo, assetIdentifier } of receives) {
+      const note = new Note(publicAddress, amount, memo, assetIdentifier)
       transaction.receive(note)
     }
 

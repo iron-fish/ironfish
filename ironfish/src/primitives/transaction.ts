@@ -86,7 +86,7 @@ export class Transaction {
       reader.seek(192)
 
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
-      const value = reader.readU8()
+      const value = reader.readBigU64()
 
       // value commitment
       reader.seek(32)
@@ -95,17 +95,17 @@ export class Transaction {
       // authorizing signature
       reader.seek(64)
 
-      return new MintDescription(asset, value)
+      return { asset, value }
     })
 
     this._burns = Array.from({ length: _burnsLength }, () => {
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
-      const value = reader.readU8()
+      const value = reader.readBigU64()
 
       // value commitment
       reader.seek(32)
 
-      return new BurnDescription(asset, value)
+      return { asset, value }
     })
 
     // sender address
@@ -209,6 +209,14 @@ export class Transaction {
 
   getSpend(index: number): Spend {
     return this._spends[index]
+  }
+
+  mints(): Array<MintDescription> {
+    return this._mints
+  }
+
+  burns(): Array<BurnDescription> {
+    return this._burns
   }
 
   /**
