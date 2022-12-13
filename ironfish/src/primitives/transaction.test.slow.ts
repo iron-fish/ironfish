@@ -76,7 +76,7 @@ describe('Accounts', () => {
       BigInt(1),
       0,
     )
-    await expect(response).rejects.toThrowError(Error)
+    await expect(response).rejects.toThrow(Error)
   })
 
   it('check if a transaction is not a miners fee', async () => {

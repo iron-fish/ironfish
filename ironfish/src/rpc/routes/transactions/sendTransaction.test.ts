@@ -49,13 +49,13 @@ describe('Transactions sendTransaction', () => {
         ...TEST_PARAMS,
         fromAccountName: 'AccountDoesNotExist',
       }),
-    ).rejects.toThrowError('No account found with name AccountDoesNotExist')
+    ).rejects.toThrow('No account found with name AccountDoesNotExist')
   })
 
   it('throws if not connected to network', async () => {
     routeTest.node.peerNetwork['_isReady'] = false
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
+    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       'Your node must be connected to the Iron Fish network to send a transaction',
     )
   })
@@ -64,7 +64,7 @@ describe('Transactions sendTransaction', () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = false
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
+    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       'Your node must be synced with the Iron Fish network to send a transaction. Please try again later',
     )
   })
@@ -73,7 +73,7 @@ describe('Transactions sendTransaction', () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
+    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
           'Your balance is too low. Add funds to your account first',
@@ -83,7 +83,7 @@ describe('Transactions sendTransaction', () => {
       }),
     )
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrowError(
+    await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
           'Your balance is too low. Add funds to your account first',
@@ -106,7 +106,7 @@ describe('Transactions sendTransaction', () => {
       unconfirmedCount: 0,
     })
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
+    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
           'Your balance is too low. Add funds to your account first',
@@ -124,7 +124,7 @@ describe('Transactions sendTransaction', () => {
       unconfirmedCount: 0,
     })
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrowError(
+    await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
           'Your balance is too low. Add funds to your account first',
@@ -150,7 +150,7 @@ describe('Transactions sendTransaction', () => {
       unconfirmedCount: 0,
     })
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrowError(
+    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining('Your balance changed while creating a transaction.'),
         status: 400,
@@ -218,7 +218,7 @@ describe('Transactions sendTransaction', () => {
 
     await routeTest.client.sendTransaction(TEST_PARAMS)
 
-    expect(paySpy).toBeCalledWith(
+    expect(paySpy).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       expect.anything(),
@@ -233,7 +233,7 @@ describe('Transactions sendTransaction', () => {
       expirationSequenceDelta: 12345,
     })
 
-    expect(paySpy).toBeCalledWith(
+    expect(paySpy).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       expect.anything(),

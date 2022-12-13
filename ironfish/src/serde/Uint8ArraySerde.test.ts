@@ -54,14 +54,12 @@ describe('Uint8ArraySerde', () => {
 
   it('throws an error when trying to deserialize an inappropriate value', () => {
     expect(() => new Uint8ArraySerde(32).deserialize('ABC')).toThrowErrorMatchingInlineSnapshot(
-      `"\\"ABC\\" is not a 64-character hex string"`,
+      `""ABC" is not a 64-character hex string"`,
     )
     expect(() =>
       // @ts-expect-error Argument of type '{ bad: string; }' is not assignable to parameter of type 'string'.
       new Uint8ArraySerde(32).deserialize({ bad: 'object' }),
-    ).toThrowErrorMatchingInlineSnapshot(
-      `"{\\"bad\\":\\"object\\"} is not a 64-character hex string"`,
-    )
+    ).toThrowErrorMatchingInlineSnapshot(`"{"bad":"object"} is not a 64-character hex string"`)
     expect(() =>
       new Uint8ArraySerde(32).deserialize(
         'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaag',

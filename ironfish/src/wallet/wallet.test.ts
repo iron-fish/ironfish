@@ -28,7 +28,7 @@ describe('Accounts', () => {
     node.wallet['chainProcessor'].hash = Buffer.from('0')
 
     await node.wallet.start()
-    expect(resetSpy).toBeCalledTimes(1)
+    expect(resetSpy).toHaveBeenCalledTimes(1)
   })
 
   it('should handle transaction created on fork', async () => {
@@ -500,7 +500,7 @@ describe('Accounts', () => {
 
       expect(node.wallet.accountExists(account.name)).toEqual(true)
 
-      await expect(node.wallet.importAccount(account)).rejects.toThrowError(
+      await expect(node.wallet.importAccount(account)).rejects.toThrow(
         'Account already exists with the name',
       )
     })
@@ -515,7 +515,7 @@ describe('Accounts', () => {
       const clone = { ...account }
       clone.name = 'Different name'
 
-      await expect(node.wallet.importAccount(clone)).rejects.toThrowError(
+      await expect(node.wallet.importAccount(clone)).rejects.toThrow(
         'Account already exists with provided spending key',
       )
     })

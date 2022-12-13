@@ -97,7 +97,7 @@ describe('Database', () => {
     }
 
     const storeA = db.addStore<TestSchema>(args)
-    expect(() => db.addStore<TestSchema>(args)).toThrowError('already exists')
+    expect(() => db.addStore<TestSchema>(args)).toThrow('already exists')
     const storeB = db.addStore<TestSchema>(args, false)
 
     await storeA.put('key', 'foo')
@@ -109,7 +109,7 @@ describe('Database', () => {
     expect(await db.metaStore.get('version')).toBe(undefined)
     expect(await db.getVersion()).toBe(0)
 
-    await expect(db.upgrade(1)).rejects.toThrowError(DatabaseVersionError)
+    await expect(db.upgrade(1)).rejects.toThrow(DatabaseVersionError)
 
     await db.putVersion(1)
     expect(await db.metaStore.get('version')).toBe(1)
@@ -425,7 +425,7 @@ describe('Database', () => {
           await bazStore.put(fooHash, 'hello', transaction)
           throw new Error('Aborted Transaction!')
         }),
-      ).rejects.toThrowError('Aborted')
+      ).rejects.toThrow('Aborted')
 
       expect(await fooStore.get('hello')).not.toBeDefined()
       expect(await barStore.get('hello')).not.toBeDefined()
@@ -525,7 +525,7 @@ describe('Database', () => {
           await db.metaStore.put('test', 1, transaction)
           throw new Error('test')
         }),
-      ).rejects.toThrowError('test')
+      ).rejects.toThrow('test')
 
       expect(await db.metaStore.get('test')).toBe(0)
     })

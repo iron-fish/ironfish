@@ -216,7 +216,7 @@ describe('Blockchain', () => {
     expect(chain.head.hash.equals(blockB5.header.hash)).toBe(true)
     expect(chain.latest.hash.equals(blockB5.header.hash)).toBe(true)
 
-    await expect(iter1.next()).rejects.toThrowError('progress: 3/5')
+    await expect(iter1.next()).rejects.toThrow('progress: 3/5')
   })
 
   it('should not iterate and jump chains and not throw error', async () => {
@@ -297,23 +297,15 @@ describe('Blockchain', () => {
 
     // left-to-right
     let result = AsyncUtils.materialize(chain.iterateTo(blockA1.header, blockB2.header))
-    await expect(result).rejects.toThrowError(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
     result = AsyncUtils.materialize(chain.iterateFrom(blockA1.header, blockB2.header))
-    await expect(result).rejects.toThrowError(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
 
     // right-to-left
     result = AsyncUtils.materialize(chain.iterateTo(blockB2.header, blockA1.header))
-    await expect(result).rejects.toThrowError(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
     result = AsyncUtils.materialize(chain.iterateFrom(blockB2.header, blockA1.header))
-    await expect(result).rejects.toThrowError(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
   })
 
   it('findFork', async () => {
@@ -548,7 +540,7 @@ describe('Blockchain', () => {
 
       await nodeTest.chain.notes.add(tx.getNote(0))
 
-      await expect(nodeTest.chain.addBlock(block)).rejects.toThrowError(
+      await expect(nodeTest.chain.addBlock(block)).rejects.toThrow(
         'Notes tree must match previous block header',
       )
     }, 30000)
@@ -559,7 +551,7 @@ describe('Blockchain', () => {
 
       await nodeTest.chain.nullifiers.add(transaction.getSpend(0).nullifier)
 
-      await expect(nodeTest.chain.addBlock(block)).rejects.toThrowError(
+      await expect(nodeTest.chain.addBlock(block)).rejects.toThrow(
         'Nullifier tree must match previous block header',
       )
     }, 30000)
@@ -573,7 +565,7 @@ describe('Blockchain', () => {
       reason: VerificationResultReason.INVALID_MINERS_FEE,
     })
 
-    await expect(nodeTest.chain.newBlock([], minersFee)).rejects.toThrowError(
+    await expect(nodeTest.chain.newBlock([], minersFee)).rejects.toThrow(
       `Miner's fee is incorrect`,
     )
   })

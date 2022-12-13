@@ -287,13 +287,13 @@ describe('Merkle tree', function () {
   it('calculates past and current root hashes correctly', async () => {
     const tree = await makeTree({ depth: 4 })
 
-    await expect(tree.rootHash()).rejects.toThrowError(
+    await expect(tree.rootHash()).rejects.toThrow(
       `Unable to get past size 0 for tree with 0 nodes`,
     )
-    await expect(tree.pastRoot(0)).rejects.toThrowError(
+    await expect(tree.pastRoot(0)).rejects.toThrow(
       `Unable to get past size 0 for tree with 0 nodes`,
     )
-    await expect(tree.pastRoot(1)).rejects.toThrowError(
+    await expect(tree.pastRoot(1)).rejects.toThrow(
       `Unable to get past size 1 for tree with 0 nodes`,
     )
 
@@ -304,7 +304,7 @@ describe('Merkle tree', function () {
     await expect(tree.pastRoot(1)).resolves.toBe(
       '<<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>|<<<a|a-0>|<a|a-0>-1>|<<a|a-0>|<a|a-0>-1>-2>-3>',
     )
-    await expect(tree.pastRoot(2)).rejects.toThrowError(
+    await expect(tree.pastRoot(2)).rejects.toThrow(
       `Unable to get past size 2 for tree with 1 nodes`,
     )
 
@@ -318,7 +318,7 @@ describe('Merkle tree', function () {
     await expect(tree.pastRoot(2)).resolves.toBe(
       '<<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>|<<<a|b-0>|<a|b-0>-1>|<<a|b-0>|<a|b-0>-1>-2>-3>',
     )
-    await expect(tree.pastRoot(3)).rejects.toThrowError(
+    await expect(tree.pastRoot(3)).rejects.toThrow(
       `Unable to get past size 3 for tree with 2 nodes`,
     )
 
@@ -335,7 +335,7 @@ describe('Merkle tree', function () {
     await expect(tree.pastRoot(3)).resolves.toBe(
       '<<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>|<<<a|b-0>|<c|c-0>-1>|<<a|b-0>|<c|c-0>-1>-2>-3>',
     )
-    await expect(tree.pastRoot(4)).rejects.toThrowError(
+    await expect(tree.pastRoot(4)).rejects.toThrow(
       `Unable to get past size 4 for tree with 3 nodes`,
     )
 
@@ -355,7 +355,7 @@ describe('Merkle tree', function () {
     await expect(tree.pastRoot(4)).resolves.toBe(
       '<<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>|<<<a|b-0>|<c|d-0>-1>|<<a|b-0>|<c|d-0>-1>-2>-3>',
     )
-    await expect(tree.pastRoot(5)).rejects.toThrowError(
+    await expect(tree.pastRoot(5)).rejects.toThrow(
       `Unable to get past size 5 for tree with 4 nodes`,
     )
 
@@ -414,7 +414,7 @@ describe('Merkle tree', function () {
     await expect(tree.pastRoot(16)).resolves.toBe(
       '<<<<a|b-0>|<c|d-0>-1>|<<0|1-0>|<2|3-0>-1>-2>|<<<4|5-0>|<6|7-0>-1>|<<8|9-0>|<10|11-0>-1>-2>-3>',
     )
-    await expect(tree.pastRoot(17)).rejects.toThrowError(
+    await expect(tree.pastRoot(17)).rejects.toThrow(
       `Unable to get past size 17 for tree with 16 nodes`,
     )
   })

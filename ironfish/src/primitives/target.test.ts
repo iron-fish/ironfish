@@ -21,7 +21,7 @@ describe('Target', () => {
   it('throws when constructed with too big an array', () => {
     const bytes = Buffer.alloc(33)
     bytes[0] = 1
-    expect(() => new Target(bytes)).toThrowError(`Target value exceeds max target`)
+    expect(() => new Target(bytes)).toThrow(`Target value exceeds max target`)
   })
 
   it('has the correct max value', () => {

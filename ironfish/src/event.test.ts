@@ -50,7 +50,7 @@ describe('Event', () => {
 
     event.emit()
     event.emit()
-    expect(mock).toBeCalledTimes(1)
+    expect(mock).toHaveBeenCalledTimes(1)
     expect(event.isEmpty).toBeTruthy()
   })
 })

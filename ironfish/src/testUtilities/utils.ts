@@ -10,10 +10,7 @@ export const TEST_DATA_DIR = path.join(process.cwd(), 'testdbs')
  * This is only usable in the jasmine runner
  */
 export function getCurrentTestPath(): string {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-  const jasmineAny = global.jasmine as any
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return jasmineAny.testPath as string
+  return expect.getState().testPath || ''
 }
 
 export function getUniqueTestDataDir(): string {
