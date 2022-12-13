@@ -126,8 +126,7 @@ export class Verifier {
    * verify the transactions in the block.
    *
    * Specifically, it verifies that:
-   *  *  miners fee contains only one output note and no spends
-   *  *  miners fee is a valid transaction
+   *  *  graffiti is the appropriate length
    *  *  the block hash meets the target hash on the block
    *  *  the timestamp is not in future by our local clock time
    */
