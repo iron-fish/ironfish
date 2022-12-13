@@ -4,6 +4,5 @@
 
 import { Migration010 } from './010-blockchain'
 import { Migration011 } from './011-accounts'
-import { Migration013 } from './013-wallet-2'
 
-export const MIGRATIONS = [Migration010, Migration011, Migration013]
+export const MIGRATIONS = [Migration010, Migration011]
