@@ -932,6 +932,9 @@ export class Blockchain {
       let target
       const timestamp = new Date(Date.now())
 
+      const originalNoteSize = await this.notes.size(tx)
+      const originalNullifierSize = await this.nullifiers.size(tx)
+
       if (!this.hasGenesisBlock) {
         previousBlockHash = GENESIS_BLOCK_PREVIOUS
         previousSequence = 0
@@ -940,8 +943,6 @@ export class Blockchain {
         const heaviestHead = this.head
 
         // Sanity check that we are building on top of correct size note and nullifier tree, may not be needed
-        const originalNoteSize = await this.notes.size(tx)
-        const originalNullifierSize = await this.nullifiers.size(tx)
         Assert.isEqual(originalNoteSize, heaviestHead.noteSize, 'newBlock note size mismatch')
         Assert.isEqual(
           originalNullifierSize,
@@ -965,18 +966,19 @@ export class Blockchain {
       }
 
       const blockNotes = []
+      let addedNullifiers = 0
       for (const transaction of transactions) {
         for (const note of transaction.notes()) {
           blockNotes.push(note)
         }
+
+        addedNullifiers += transaction.spendsLength()
       }
 
-      const originalNullifierSize = await this.nullifiers.size(tx)
       await this.notes.addBatch(blockNotes, tx)
 
       const noteCommitment = await this.notes.rootHash(tx)
       const noteSize = await this.notes.size(tx)
-      const addedNullifiers = transactions.reduce((count, t) => count + t.spendsLength(), 0)
       const nullifierSize = originalNullifierSize + addedNullifiers
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)

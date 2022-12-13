@@ -21,7 +21,7 @@ interface CounterEntry<T extends string> extends DatabaseSchema {
   value: number
 }
 
-interface NullifiersSchema extends DatabaseSchema {
+type NullifiersSchema extends DatabaseSchema = {
   key: Nullifier
   value: NullifierInfo
 }
