@@ -748,7 +748,7 @@ export class Wallet {
       memo: string
       assetIdentifier: Buffer
     }[],
-    burns: { asset: Asset; value: bigint }[],
+    burns: BurnDescription[],
     fee: bigint,
   ): BufferMap<bigint> {
     const amountsNeeded = new BufferMap<bigint>()
@@ -759,8 +759,7 @@ export class Wallet {
       amountsNeeded.set(assetIdentifier, amount + currentAmount)
     }
 
-    for (const { asset, value } of burns) {
-      const assetIdentifier = asset.identifier()
+    for (const { assetIdentifier, value } of burns) {
       const currentAmount = amountsNeeded.get(assetIdentifier) ?? BigInt(0)
       amountsNeeded.set(assetIdentifier, value + currentAmount)
     }

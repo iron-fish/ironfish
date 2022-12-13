@@ -1072,6 +1072,6 @@ describe('Accounts', () => {
       expect(amount).toEqual(mintValue)
       expect(notes).toHaveLength(1)
       expect(notes[0].note).toMatchObject(note)
-    }, 15000)
+    })
   })
 })
