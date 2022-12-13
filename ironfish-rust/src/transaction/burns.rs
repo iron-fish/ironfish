@@ -7,16 +7,20 @@ use std::io;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
 use group::GroupEncoding;
-use ironfish_zkp::ValueCommitment;
+use ironfish_zkp::{constants::ASSET_IDENTIFIER_LENGTH, ValueCommitment};
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
-use crate::{assets::asset::Asset, errors::IronfishError, serializing::read_point};
+use crate::{
+    assets::asset::{asset_generator_from_identifier, AssetIdentifier},
+    errors::IronfishError,
+    serializing::read_point,
+};
 
 /// Parameters used to build a burn description
 pub struct BurnBuilder {
-    /// Asset to be burned
-    pub asset: Asset,
+    /// Identifier of the Asset to be burned
+    pub asset_identifier: AssetIdentifier,
 
     /// Commitment to represent the value. Even though the value of the burn is
     /// public, we still need the commitment to balance the transaction
@@ -24,15 +28,17 @@ pub struct BurnBuilder {
 }
 
 impl BurnBuilder {
-    pub fn new(asset: Asset, value: u64) -> Self {
+    pub fn new(asset_identifier: AssetIdentifier, value: u64) -> Self {
+        let asset_generator = asset_generator_from_identifier(&asset_identifier);
+
         let value_commitment = ValueCommitment {
             value,
             randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: asset.generator(),
+            asset_generator,
         };
 
         Self {
-            asset,
+            asset_identifier,
             value_commitment,
         }
     }
@@ -47,7 +53,7 @@ impl BurnBuilder {
 
     pub fn build(&self) -> BurnDescription {
         BurnDescription {
-            asset: self.asset,
+            asset_identifier: self.asset_identifier,
             value: self.value_commitment.value,
             value_commitment: self.value_commitment_point(),
         }
@@ -58,8 +64,8 @@ impl BurnBuilder {
 /// asset on Iron Fish
 #[derive(Clone)]
 pub struct BurnDescription {
-    /// Asset which is being burned
-    pub asset: Asset,
+    /// Identifier for the Asset which is being burned
+    pub asset_identifier: AssetIdentifier,
 
     /// Amount of asset to burn
     pub value: u64,
@@ -70,20 +76,6 @@ pub struct BurnDescription {
 }
 
 impl BurnDescription {
-    pub fn new(asset: Asset, value: u64) -> Self {
-        let value_commitment = ValueCommitment {
-            value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: asset.generator(),
-        };
-
-        Self {
-            asset,
-            value,
-            value_commitment: value_commitment.commitment().into(),
-        }
-    }
-
     pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
         if self.value_commitment.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
@@ -101,7 +93,7 @@ impl BurnDescription {
         &self,
         mut writer: W,
     ) -> Result<(), IronfishError> {
-        self.asset.write(&mut writer)?;
+        writer.write_all(&self.asset_identifier)?;
         writer.write_u64::<LittleEndian>(self.value)?;
         writer.write_all(&self.value_commitment.to_bytes())?;
 
@@ -109,12 +101,16 @@ impl BurnDescription {
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        let asset = Asset::read(&mut reader)?;
+        let asset_identifier = {
+            let mut bytes = [0u8; ASSET_IDENTIFIER_LENGTH];
+            reader.read_exact(&mut bytes)?;
+            bytes
+        };
         let value = reader.read_u64::<LittleEndian>()?;
         let value_commitment = read_point(&mut reader)?;
 
         Ok(BurnDescription {
-            asset,
+            asset_identifier,
             value,
             value_commitment,
         })
@@ -144,7 +140,7 @@ mod test {
         let asset = Asset::new(owner, name, metadata).unwrap();
         let value = 5;
 
-        let builder = BurnBuilder::new(asset, value);
+        let builder = BurnBuilder::new(asset.identifier, value);
         let burn = builder.build();
 
         burn.verify_not_small_order()
@@ -161,7 +157,8 @@ mod test {
         let asset = Asset::new(owner, name, metadata).unwrap();
         let value = 5;
 
-        let burn = BurnDescription::new(asset, value);
+        let builder = BurnBuilder::new(asset.identifier, value);
+        let burn = builder.build();
 
         let mut serialized_description = vec![];
         burn.write(&mut serialized_description)
@@ -171,8 +168,8 @@ mod test {
             .expect("should be able to deserialize valid description");
 
         assert_eq!(
-            burn.asset.identifier(),
-            deserialized_description.asset.identifier()
+            burn.asset_identifier,
+            deserialized_description.asset_identifier
         );
         assert_eq!(burn.value, deserialized_description.value);
         assert_eq!(

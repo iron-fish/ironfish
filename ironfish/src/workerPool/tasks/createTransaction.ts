@@ -116,7 +116,7 @@ export class CreateTransactionRequest extends WorkerMessage {
 
     bw.writeU64(this.burns.length)
     for (const burn of this.burns) {
-      bw.writeBytes(burn.asset.serialize())
+      bw.writeBytes(burn.assetIdentifier)
       bw.writeVarBytes(BigIntUtils.toBytesBE(burn.value))
     }
 
@@ -168,9 +168,9 @@ export class CreateTransactionRequest extends WorkerMessage {
     const burnsLength = reader.readU64()
     const burns = []
     for (let i = 0; i < burnsLength; i++) {
-      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
+      const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
       const value = BigIntUtils.fromBytes(reader.readVarBytes())
-      burns.push({ asset, value })
+      burns.push({ assetIdentifier, value })
     }
 
     return new CreateTransactionRequest(
@@ -218,7 +218,8 @@ export class CreateTransactionRequest extends WorkerMessage {
 
     let burnsSize = 0
     for (const burn of this.burns) {
-      burnsSize += ASSET_LENGTH + bufio.sizeVarBytes(BigIntUtils.toBytesBE(burn.value))
+      burnsSize +=
+        ASSET_IDENTIFIER_LENGTH + bufio.sizeVarBytes(BigIntUtils.toBytesBE(burn.value))
     }
 
     return (
@@ -303,8 +304,8 @@ export class CreateTransactionTask extends WorkerTask {
       transaction.mint(asset, value)
     }
 
-    for (const { asset, value } of burns) {
-      transaction.burn(asset, value)
+    for (const { assetIdentifier, value } of burns) {
+      transaction.burn(assetIdentifier, value)
     }
 
     const serializedTransactionPosted = transaction.post(undefined, transactionFee)

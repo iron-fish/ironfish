@@ -1385,8 +1385,7 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { asset, value } of transaction.burns()) {
-      const assetIdentifier = asset.identifier()
+    for (const { assetIdentifier, value } of transaction.burns()) {
       const existingAsset = await this.assets.get(assetIdentifier, tx)
       Assert.isNotUndefined(existingAsset, 'Cannot burn undefined asset from the database')
 
@@ -1398,10 +1397,10 @@ export class Blockchain {
         assetIdentifier,
         {
           createdTransactionHash: existingAsset.createdTransactionHash,
-          metadata: asset.metadata(),
-          name: asset.name(),
-          nonce: asset.nonce(),
-          owner: asset.owner(),
+          metadata: existingAsset.metadata,
+          name: existingAsset.name,
+          nonce: existingAsset.nonce,
+          owner: existingAsset.owner,
           supply,
         },
         tx,
@@ -1413,8 +1412,7 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { asset, value } of transaction.burns().reverse()) {
-      const assetIdentifier = asset.identifier()
+    for (const { assetIdentifier, value } of transaction.burns().reverse()) {
       const existingAsset = await this.assets.get(assetIdentifier, tx)
       Assert.isNotUndefined(existingAsset)
 
@@ -1425,10 +1423,10 @@ export class Blockchain {
         assetIdentifier,
         {
           createdTransactionHash: existingAsset.createdTransactionHash,
-          metadata: asset.metadata(),
-          name: asset.name(),
-          nonce: asset.nonce(),
-          owner: asset.owner(),
+          metadata: existingAsset.metadata,
+          name: existingAsset.name,
+          nonce: existingAsset.nonce,
+          owner: existingAsset.owner,
           supply,
         },
         tx,
