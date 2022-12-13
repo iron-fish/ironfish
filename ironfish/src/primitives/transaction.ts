@@ -4,6 +4,7 @@
 
 import {
   Asset,
+  ASSET_IDENTIFIER_LENGTH,
   ASSET_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
   PROOF_LENGTH,
@@ -99,13 +100,13 @@ export class Transaction {
     })
 
     this._burns = Array.from({ length: _burnsLength }, () => {
-      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
+      const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
       const value = reader.readBigU64()
 
       // value commitment
       reader.seek(32)
 
-      return { asset, value }
+      return { assetIdentifier, value }
     })
 
     // sender address

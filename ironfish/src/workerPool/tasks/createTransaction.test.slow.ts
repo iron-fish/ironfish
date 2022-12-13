@@ -97,7 +97,7 @@ describe('CreateTransactionRequest', () => {
       ],
       [
         {
-          asset: burnAsset,
+          assetIdentifier: burnAsset.identifier(),
           value: BigInt(2),
         },
       ],
@@ -176,7 +176,7 @@ describe('CreateTransactionTask', () => {
         ],
         [
           {
-            asset,
+            assetIdentifier: asset.identifier(),
             value: burnValue,
           },
         ],

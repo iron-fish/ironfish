@@ -7,7 +7,7 @@ use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::{Asset, NATIVE_ASSET},
+    assets::asset::{Asset, AssetIdentifier, NATIVE_ASSET},
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,
@@ -139,11 +139,11 @@ impl ProposedTransaction {
         self.mints.push(MintBuilder::new(asset, value));
     }
 
-    pub fn add_burn(&mut self, asset: Asset, value: u64) {
+    pub fn add_burn(&mut self, asset_identifier: AssetIdentifier, value: u64) {
         self.value_balances
-            .subtract(asset.identifier(), value as i64);
+            .subtract(&asset_identifier, value as i64);
 
-        self.burns.push(BurnBuilder::new(asset, value));
+        self.burns.push(BurnBuilder::new(asset_identifier, value));
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
