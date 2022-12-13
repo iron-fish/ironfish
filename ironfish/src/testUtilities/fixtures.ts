@@ -453,9 +453,7 @@ export async function useBlockWithTxs(
         BigInt(1),
         0,
       )
-      await node.wallet.syncTransaction(transaction, {
-        submittedSequence: node.chain.head.sequence,
-      })
+      await node.wallet.addPendingTransaction(transaction, node.chain.head.sequence)
       transactions.push(transaction)
     }
 
