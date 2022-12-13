@@ -12,7 +12,7 @@ use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
 use crate::{
-    assets::asset::{asset_generator_from_identifier, Asset, AssetIdentifier},
+    assets::asset::{asset_generator_from_identifier, AssetIdentifier},
     errors::IronfishError,
     serializing::read_point,
 };
