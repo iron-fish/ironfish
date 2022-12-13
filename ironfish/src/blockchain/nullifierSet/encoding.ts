@@ -10,9 +10,9 @@ export type NullifierInfo = {
   // transaction the nullfier is a part of on the main chain
   transactionHash: TransactionHash
   // zero indexed position of the nullfiier on the main chain
-  // Use 32 bit because we use 32 bit for nullifier tree. This is
-  // somewhat small but if we end up having to increase nullifier tree size
-  // we can increase this size at the same time
+  // Use 32 bit because we use 32 bit for notes tree. This is
+  // somewhat small but if we end up having to increase note tree size
+  // we can increase this nullifier set size at the same time
   position: number
 }
 
