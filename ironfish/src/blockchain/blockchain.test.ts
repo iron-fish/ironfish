@@ -17,7 +17,6 @@ import {
   useMinerBlockFixture,
   useMinersTxFixture,
   useTxFixture,
-  useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { buildRawTransaction } from '../testUtilities/helpers/transaction'
@@ -544,17 +543,6 @@ describe('Blockchain', () => {
 
       await expect(nodeTest.chain.addBlock(block)).rejects.toThrow(
         'Notes tree must match previous block header',
-      )
-    }, 30000)
-
-    it('throws if the position is larger than the number of nullifiers', async () => {
-      const { transaction } = await useTxSpendsFixture(nodeTest.node)
-      const block = await useMinerBlockFixture(nodeTest.chain)
-
-      await nodeTest.chain.nullifiers.connectBlock([transaction])
-
-      await expect(nodeTest.chain.addBlock(block)).rejects.toThrow(
-        'Nullifier tree must match previous block header',
       )
     }, 30000)
   })

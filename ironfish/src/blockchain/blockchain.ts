@@ -1242,12 +1242,10 @@ export class Blockchain {
     // If the tree sizes don't match the previous block, we can't verify if the tree
     // sizes on this block are correct
     let prevNotesSize = 0
-    let prevNullifierSize = 0
     if (prev) {
       Assert.isNotNull(prev.noteSize)
       Assert.isNotNull(prev.nullifierSize)
       prevNotesSize = prev.noteSize
-      prevNullifierSize = prev.nullifierSize
     }
 
     Assert.isEqual(
@@ -1255,14 +1253,9 @@ export class Blockchain {
       await this.notes.size(tx),
       'Notes tree must match previous block header',
     )
-    Assert.isEqual(
-      prevNullifierSize,
-      await this.nullifiers.size(tx),
-      'Nullifier tree must match previous block header',
-    )
 
     await this.notes.addBatch(block.notes(), tx)
-    await this.nullifiers.connectBlock(block.transactions, tx)
+    await this.nullifiers.connectBlock(block, tx)
 
     for (const transaction of block.transactions) {
       await this.saveConnectedMintsToAssetsStore(transaction, tx)

@@ -621,7 +621,7 @@ describe('PeerNetwork', () => {
         const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
-        await node.chain.nullifiers.connectBlock(block.transactions)
+        await node.chain.nullifiers.connectBlock(block)
 
         const acceptTransaction = jest.spyOn(node.memPool, 'acceptTransaction')
         const syncTransaction = jest.spyOn(node.wallet, 'syncTransaction')

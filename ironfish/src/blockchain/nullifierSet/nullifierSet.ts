@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Assert } from '../../assert'
-import { Transaction } from '../../primitives'
+import { Block, Transaction } from '../../primitives'
 import { Nullifier } from '../../primitives/nullifier'
 import {
   BUFFER_ENCODING,
@@ -82,11 +82,11 @@ export class NullifierSet {
     })
   }
 
-  connectBlock(transactions: Transaction[], tx?: IDatabaseTransaction): Promise<void> {
+  connectBlock(block: Block, tx?: IDatabaseTransaction): Promise<void> {
     return this.db.withTransaction(tx, async (tx) => {
       let currentSize = await this.size(tx)
 
-      for (const transaction of transactions) {
+      for (const transaction of block.transactions) {
         for (const spend of transaction.spends()) {
           // Throws an error if a nullifier already exists
           // We should never allow overwriting a nullifier

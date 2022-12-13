@@ -35,9 +35,9 @@ describe('NullifierSet', () => {
     const { block: block4 } = await useBlockWithTx(node, accountA, accountA, false)
     await expect(node.chain).toAddBlock(block4)
 
-    await set.connectBlock(block2.transactions)
-    await set.connectBlock(block3.transactions)
-    await set.connectBlock(block4.transactions)
+    await set.connectBlock(block2)
+    await set.connectBlock(block3)
+    await set.connectBlock(block4)
 
     const block2Nullifiers = block2.transactions
       .flatMap((t) => [...t.spends()])
@@ -59,8 +59,8 @@ describe('NullifierSet', () => {
     expect(await set.size()).toBe(allNullifiers.length)
 
     await expect(set.disconnectBlock(block3.transactions)).rejects.toThrow()
-    await expect(set.connectBlock(block3.transactions)).rejects.toThrow()
-    await expect(set.connectBlock(block4.transactions)).rejects.toThrow()
+    await expect(set.connectBlock(block3)).rejects.toThrow()
+    await expect(set.connectBlock(block4)).rejects.toThrow()
 
     await set.disconnectBlock(block4.transactions)
 
