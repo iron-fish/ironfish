@@ -462,7 +462,6 @@ export class Wallet {
   /**
    * Called:
    *  - Called for transactions on disconnected blocks
-   *  - Called when transactions are added to a block on the genesis chain
    */
   async syncTransaction(
     transaction: Transaction,
