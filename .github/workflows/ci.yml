@@ -2,8 +2,6 @@ name: Node.js CI
 
 on:
   pull_request:
-    branches:
-      - '*'
   push:
     branches:
       - master
@@ -42,6 +40,9 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1, 2]
 
     steps:
       - name: Check out Git repository
@@ -63,7 +64,7 @@ jobs:
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Run tests
-        run: yarn test:coverage
+        run: yarn test:coverage --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: Upload coverage
         if: github.repository == 'iron-fish/ironfish'
