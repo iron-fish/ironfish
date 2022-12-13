@@ -119,7 +119,7 @@ impl Asset {
     }
 
     pub fn owner(&self) -> [u8; PUBLIC_ADDRESS_SIZE] {
-        self.owner.transmission_key.to_bytes()
+        self.owner.public_address()
     }
 
     pub fn nonce(&self) -> &u8 {
