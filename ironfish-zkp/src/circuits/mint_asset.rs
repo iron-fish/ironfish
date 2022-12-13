@@ -182,8 +182,8 @@ mod test {
     use jubjub::ExtendedPoint;
     use rand::{rngs::StdRng, SeedableRng};
     use zcash_primitives::{
-        constants::{SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
-        sapling::{pedersen_hash, redjubjub, ProofGenerationKey},
+        constants::VALUE_COMMITMENT_VALUE_GENERATOR,
+        sapling::{pedersen_hash, ProofGenerationKey},
     };
 
     use crate::{
