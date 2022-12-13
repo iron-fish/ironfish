@@ -2,14 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BoxKeyPair } from '@ironfish/rust-nodejs'
-import {
-  Assert,
-  Blockchain,
-  IronfishNode,
-  NodeUtils,
-  PrivateIdentity,
-  PromiseUtils,
-} from '@ironfish/sdk'
+import { Assert, IronfishNode, NodeUtils, PrivateIdentity, PromiseUtils } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import inspector from 'node:inspector'
 import { v4 as uuid } from 'uuid'
@@ -228,8 +221,6 @@ export default class Start extends IronfishCommand {
       return startDoneResolve()
     }
 
-    await this.checkCorruptBlock(node.chain)
-
     const headBlock = await node.chain.getBlock(node.chain.head)
     Assert.isNotNull(headBlock)
     const trees = await node.chain.verifier.verifyConnectedBlock(headBlock)
@@ -317,22 +308,6 @@ export default class Start extends IronfishCommand {
       networkIdentity.length > 31
     ) {
       return BoxKeyPair.fromHex(networkIdentity)
-    }
-  }
-
-  async checkCorruptBlock(chain: Blockchain): Promise<void> {
-    const corruptBlockHash = Buffer.from(
-      '00000000000006ce61057e714ede8471d15cc9d19f0ff58eee179cadf3ba1f31',
-      'hex',
-    )
-
-    const hash270446 = await chain.getHashAtSequence(270446)
-
-    if (hash270446?.equals(corruptBlockHash)) {
-      this.log(
-        'Your chain contains a corrupt block at sequence 270446 that contains a double spend.\nYou must run `chain:hardfork` before starting your node.',
-      )
-      this.exit(1)
     }
   }
 }
