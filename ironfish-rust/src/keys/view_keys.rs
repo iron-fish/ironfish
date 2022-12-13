@@ -154,28 +154,25 @@ pub struct ViewKeys {
 /// Derive a shared secret key from a secret key and the other person's public
 /// key.
 ///
-///
 /// The shared secret point is calculated by multiplying the public and private
 /// keys. This gets converted to bytes and hashed together with the reference
 /// public key to generate the final shared secret as used in encryption.
 
 /// A Diffie Hellman key exchange might look like this:
-///  *  alice generates her DH secret key as SaplingKeys::internal_viewing_key
-///  *  alice chooses a diversifier and publishes it and the transmission key
-///     generated from it as a PublicAddress
-///      *  The transmission key becomes her DH public_key
-///  *  Bob chooses some randomness as his secret key using the
-///     generate_diffie_hellman_keys method on alice's PublicAddress
-///  *  That method calculates bob's public key as (alice diversifier * bob secret key)
+///  *  Alice generates her DH secret key as SaplingKeys::internal_viewing_key
+///  *  Alice publishes her Public key
+///      *  This becomes her DH public_key
+///  *  Bob chooses some randomness as his secret key
+///  *  Bob's public key is calculated as (PUBLIC_KEY_GENERATOR * Bob secret key)
 ///      *  This public key becomes the reference public key for both sides
-///      *  bob sends public key to Alice
-///  *  bob calculates shared secret key as (alice public key * bob secret key)
-///      *  which is (alice transmission key * bob secret key)
-///      *  maths to (alice internal viewing key * diversifier * bob secret key)
-///  *  alice calculates shared secret key as (bob public key * alice internal viewing key)
-///      *  this maths to (alice diversifier * bob secret key * alice internal viewing key)
-///  *  both alice and bob hash the shared secret key with the reference public
-///     key (bob's public key) to get the final shared secret
+///      *  Bob sends public key to Alice
+///  *  Bob calculates shared secret key as (Alice public key * Bob secret key)
+///      *  which is (Alice public key * Bob secret key)
+///      *  which is equivalent to (Alice internal viewing key * PUBLIC_KEY_GENERATOR * Bob secret key)
+///  *  Alice calculates shared secret key as (Bob public key * Alice internal viewing key)
+///      *  which is equivalent to (Alice internal viewing key * PUBLIC_KEY_GENERATOR * Bob secret key)
+///  *  both Alice and Bob hash the shared secret key with the reference public
+///     key (Bob's public key) to get the final shared secret
 ///
 /// The resulting key can be used in any symmetric cipher
 pub(crate) fn shared_secret(

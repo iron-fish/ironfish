@@ -74,7 +74,7 @@ describe('Telemetry', () => {
           timestamp: new Date(),
         }
 
-        expect(() => telemetry.submit(metric)).toThrowError()
+        expect(() => telemetry.submit(metric)).toThrow()
       })
     })
 

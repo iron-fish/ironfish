@@ -12,10 +12,9 @@ interface CounterEntry<T extends string> extends DatabaseSchema {
 
 export type CounterSchema = CounterEntry<'Leaves'> | CounterEntry<'Nodes'>
 
-export interface LeavesSchema<E, H> extends DatabaseSchema {
+export interface LeavesSchema<H> extends DatabaseSchema {
   key: LeafIndex
   value: {
-    element: E
     merkleHash: H
     parentIndex: NodeIndex
   }

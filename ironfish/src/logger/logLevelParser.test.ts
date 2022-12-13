@@ -37,10 +37,10 @@ describe('parseLogLevelConfig', () => {
   })
 
   it('should throw when passed an invalid log level', () => {
-    expect(() => parseLogLevelConfig('test:qwer')).toThrowError()
+    expect(() => parseLogLevelConfig('test:qwer')).toThrow()
   })
 
   it('should throw when passed a config with too many colons', () => {
-    expect(() => parseLogLevelConfig('test::warn')).toThrowError()
+    expect(() => parseLogLevelConfig('test::warn')).toThrow()
   })
 })

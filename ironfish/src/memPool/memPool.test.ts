@@ -189,7 +189,7 @@ describe('MemPool', () => {
 
         expect(memPool.acceptTransaction(transaction)).toBe(false)
         expect(isExpiredSequenceSpy).toHaveBeenCalledTimes(1)
-        expect(isExpiredSequenceSpy).lastReturnedWith(true)
+        expect(isExpiredSequenceSpy).toHaveLastReturnedWith(true)
       })
     })
 

@@ -12,7 +12,7 @@ import { Config } from '../fileStores'
 import { FileSystem } from '../fileSystems'
 import { createRootLogger, Logger } from '../logger'
 import { MerkleTree } from '../merkletree'
-import { NoteLeafEncoding, NullifierLeafEncoding } from '../merkletree/database/leaves'
+import { LeafEncoding } from '../merkletree/database/leaves'
 import { NodeEncoding } from '../merkletree/database/nodes'
 import { NoteHasher } from '../merkletree/hasher'
 import { MetricsMonitor } from '../metrics'
@@ -247,7 +247,7 @@ export class Blockchain {
     this.notes = new MerkleTree({
       hasher: new NoteHasher(),
       leafIndexKeyEncoding: BUFFER_ENCODING,
-      leafEncoding: new NoteLeafEncoding(),
+      leafEncoding: new LeafEncoding(),
       nodeEncoding: new NodeEncoding(),
       db: this.db,
       name: 'n',
@@ -258,7 +258,7 @@ export class Blockchain {
     this.nullifiers = new MerkleTree({
       hasher: new NullifierHasher(),
       leafIndexKeyEncoding: BUFFER_ENCODING,
-      leafEncoding: new NullifierLeafEncoding(),
+      leafEncoding: new LeafEncoding(),
       nodeEncoding: new NodeEncoding(),
       db: this.db,
       name: 'u',

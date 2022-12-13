@@ -6,11 +6,9 @@ use crate::{
     errors::IronfishError,
     serializing::{bytes_to_hex, hex_to_bytes},
 };
-use ff::Field;
 use group::GroupEncoding;
 use ironfish_zkp::constants::PUBLIC_KEY_GENERATOR;
 use jubjub::SubgroupPoint;
-use rand::thread_rng;
 
 use std::{convert::TryInto, io};
 
@@ -106,22 +104,6 @@ impl PublicAddress {
         } else {
             Err(IronfishError::InvalidPaymentAddress)
         }
-    }
-
-    /// Calculate secret key and ephemeral public key for Diffie Hellman
-    /// Key exchange as used in note encryption.
-    ///
-    /// The returned values can be used according to the protocol described in
-    /// the module-level shared_secret function
-    ///
-    /// Returns a tuple of:
-    ///  *  the ephemeral secret key as a scalar FS
-    ///  *  the ephemeral public key as an edwards point
-    pub fn generate_diffie_hellman_keys(&self) -> (jubjub::Fr, SubgroupPoint) {
-        let secret_key: jubjub::Fr = jubjub::Fr::random(thread_rng());
-        let public_key = PUBLIC_KEY_GENERATOR * secret_key;
-
-        (secret_key, public_key)
     }
 }
 

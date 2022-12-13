@@ -109,7 +109,7 @@ describe('logPrefix', () => {
       tag: 'test',
     })
 
-    expect(spy).toBeCalledWith('testlog')
+    expect(spy).toHaveBeenCalledWith('testlog')
     spy.mockRestore()
   })
 
@@ -128,7 +128,10 @@ describe('logPrefix', () => {
       tag: 'testtag',
     })
 
-    expect(spy).toBeCalledWith(`[${format(date, 'HH:mm:ss.SSS')}] [testtag] [info]`, 'testlog')
+    expect(spy).toHaveBeenCalledWith(
+      `[${format(date, 'HH:mm:ss.SSS')}] [testtag] [info]`,
+      'testlog',
+    )
     spy.mockRestore()
   })
 })
@@ -151,6 +154,6 @@ describe('getConsoleLogger', () => {
   })
 
   it('should throw an error when passing an invalid logType', () => {
-    expect(() => getConsoleLogger('test' as unknown as logType)).toThrowError()
+    expect(() => getConsoleLogger('test' as unknown as logType)).toThrow()
   })
 })

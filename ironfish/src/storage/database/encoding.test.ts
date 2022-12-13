@@ -84,7 +84,7 @@ describe('Encoding', () => {
       const prefix = Buffer.alloc(10, 'a').toString('utf8')
       const key = [prefix, 'a'] as const
 
-      await expect(prefixStore.get(key)).rejects.toThrowError(PrefixSizeError)
+      await expect(prefixStore.get(key)).rejects.toThrow(PrefixSizeError)
     })
   })
 })

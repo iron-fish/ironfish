@@ -26,6 +26,7 @@ export class Transaction {
   private readonly _version: number
   private readonly _fee: bigint
   private readonly _expirationSequence: number
+  private readonly _sender: string
   private readonly _spends: Spend[] = []
   private readonly _notes: NoteEncrypted[]
   private readonly _mints: MintDescription[]
@@ -107,6 +108,11 @@ export class Transaction {
       return { asset, value }
     })
 
+    // sender address
+    // TODO(joe): read from bytes rather than hardcoded value
+    // this._senderAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
+    this._sender = '8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563'
+
     this._signature = reader.readBytes(64, true)
   }
 
@@ -168,6 +174,10 @@ export class Transaction {
 
   getNote(index: number): NoteEncrypted {
     return this._notes[index]
+  }
+
+  sender(): string {
+    return this._sender
   }
 
   isMinersFee(): boolean {

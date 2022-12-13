@@ -61,7 +61,7 @@ describe('PeerNetwork', () => {
 
       const stopSpy = jest.spyOn(peerNetwork.peerManager, 'stop')
       await peerNetwork.stop()
-      expect(stopSpy).toBeCalled()
+      expect(stopSpy).toHaveBeenCalled()
     })
   })
 
@@ -114,7 +114,7 @@ describe('PeerNetwork', () => {
       await peerNetwork.stop()
       expect(peerNetwork.isReady).toBe(false)
 
-      expect(readyChanged).toBeCalledTimes(2)
+      expect(readyChanged).toHaveBeenCalledTimes(2)
       expect(readyChanged).toHaveBeenNthCalledWith(1, true)
       expect(readyChanged).toHaveBeenNthCalledWith(2, false)
     })

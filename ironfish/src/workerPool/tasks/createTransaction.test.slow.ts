@@ -5,7 +5,7 @@
 import { Asset, TransactionPosted } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
-import { NoteLeafEncoding } from '../../merkletree/database/leaves'
+import { LeafEncoding } from '../../merkletree/database/leaves'
 import { NodeEncoding } from '../../merkletree/database/nodes'
 import { NoteHasher } from '../../merkletree/hasher'
 import { MerkleTree, Side } from '../../merkletree/merkletree'
@@ -40,7 +40,7 @@ async function makeStrategyTree({
   const tree = new MerkleTree({
     hasher: new NoteHasher(),
     leafIndexKeyEncoding: BUFFER_ENCODING,
-    leafEncoding: new NoteLeafEncoding(),
+    leafEncoding: new LeafEncoding(),
     nodeEncoding: new NodeEncoding(),
     db: database,
     name: name,

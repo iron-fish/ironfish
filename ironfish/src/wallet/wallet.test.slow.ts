@@ -315,7 +315,7 @@ describe('Accounts', () => {
         node.config.get('defaultTransactionExpirationSequenceDelta'),
         1,
       ),
-    ).rejects.toThrowError(Error)
+    ).rejects.toThrow(Error)
   })
 
   it('Expires transactions when calling expireTransactions', async () => {
