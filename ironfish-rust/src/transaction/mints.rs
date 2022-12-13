@@ -10,7 +10,7 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
-    constants::ASSET_KEY_GENERATOR,
+    constants::SPENDING_KEY_GENERATOR,
     proofs::MintAsset,
     redjubjub::{self, Signature},
     ValueCommitment,
@@ -69,15 +69,15 @@ impl MintBuilder {
             name: self.asset.name,
             metadata: self.asset.metadata,
             nonce: self.asset.nonce,
-            asset_authorization_key: Some(spender_key.asset_authorization_key()),
+            proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
             value_commitment: Some(self.value_commitment.clone()),
             public_key_randomness: Some(public_key_randomness),
         };
 
         let proof = groth16::create_random_proof(circuit, &SAPLING.mint_params, &mut thread_rng())?;
 
-        let randomized_public_key = redjubjub::PublicKey(spender_key.asset_public_key().into())
-            .randomize(public_key_randomness, ASSET_KEY_GENERATOR);
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let blank_signature = {
             let buf = [0u8; 64];
@@ -121,10 +121,10 @@ impl UnsignedMintDescription {
         spender_key: &SaplingKey,
         signature_hash: &[u8; 32],
     ) -> Result<MintDescription, IronfishError> {
-        let private_key = redjubjub::PrivateKey(spender_key.asset_authorization_key);
+        let private_key = redjubjub::PrivateKey(spender_key.spend_authorizing_key);
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
         let randomized_public_key =
-            redjubjub::PublicKey::from_private(&randomized_private_key, ASSET_KEY_GENERATOR);
+            redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
 
         if randomized_public_key.0 != self.description.randomized_public_key.0 {
             return Err(IronfishError::InvalidSigningKey);
@@ -135,8 +135,11 @@ impl UnsignedMintDescription {
             .copy_from_slice(&self.description.randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
 
-        self.description.authorizing_signature =
-            randomized_private_key.sign(&data_to_be_signed, &mut thread_rng(), ASSET_KEY_GENERATOR);
+        self.description.authorizing_signature = randomized_private_key.sign(
+            &data_to_be_signed,
+            &mut thread_rng(),
+            SPENDING_KEY_GENERATOR,
+        );
 
         Ok(self.description)
     }
@@ -206,7 +209,7 @@ impl MintDescription {
         if !self.randomized_public_key.verify(
             &data_to_be_signed,
             &self.authorizing_signature,
-            ASSET_KEY_GENERATOR,
+            SPENDING_KEY_GENERATOR,
         ) {
             return Err(IronfishError::VerificationFailed);
         }
@@ -217,18 +220,18 @@ impl MintDescription {
     pub fn public_inputs(&self) -> [Scalar; 6] {
         let mut public_inputs = [Scalar::zero(); 6];
 
+        let randomized_public_key_point = self.randomized_public_key.0.to_affine();
+        public_inputs[0] = randomized_public_key_point.get_u();
+        public_inputs[1] = randomized_public_key_point.get_v();
+
         let asset_info_hashed_bits = multipack::bytes_to_bits_le(&self.asset.asset_info_hashed);
         let asset_info_hashed_inputs = multipack::compute_multipacking(&asset_info_hashed_bits);
-        public_inputs[0] = asset_info_hashed_inputs[0];
-        public_inputs[1] = asset_info_hashed_inputs[1];
+        public_inputs[2] = asset_info_hashed_inputs[0];
+        public_inputs[3] = asset_info_hashed_inputs[1];
 
         let value_commitment_point = self.value_commitment.to_affine();
-        public_inputs[2] = value_commitment_point.get_u();
-        public_inputs[3] = value_commitment_point.get_v();
-
-        let randomized_public_key_point = self.randomized_public_key.0.to_affine();
-        public_inputs[4] = randomized_public_key_point.get_u();
-        public_inputs[5] = randomized_public_key_point.get_v();
+        public_inputs[4] = value_commitment_point.get_u();
+        public_inputs[5] = value_commitment_point.get_v();
 
         public_inputs
     }
@@ -291,7 +294,7 @@ mod test {
     /// generation key
     fn test_mint_builder() {
         let key = SaplingKey::generate_key();
-        let owner = key.asset_public_key();
+        let owner = key.public_address();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
@@ -324,7 +327,7 @@ mod test {
     #[test]
     fn test_mint_description_serialization() {
         let key = SaplingKey::generate_key();
-        let owner = key.asset_public_key();
+        let owner = key.public_address();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 

@@ -137,7 +137,7 @@ mod test {
     #[test]
     fn test_burn_builder() {
         let key = SaplingKey::generate_key();
-        let owner = key.asset_public_key();
+        let owner = key.public_address();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
@@ -154,7 +154,7 @@ mod test {
     #[test]
     fn test_burn_description_serialization() {
         let key = SaplingKey::generate_key();
-        let owner = key.asset_public_key();
+        let owner = key.public_address();
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 

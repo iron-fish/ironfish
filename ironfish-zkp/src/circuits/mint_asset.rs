@@ -1,12 +1,17 @@
 use bellman::{
-    gadgets::{boolean, multipack},
+    gadgets::{blake2s, boolean, multipack},
     Circuit,
 };
-use zcash_proofs::circuit::{ecc, pedersen_hash};
+use ff::PrimeField;
+use zcash_primitives::{constants::CRH_IVK_PERSONALIZATION, sapling::ProofGenerationKey};
+use zcash_proofs::{
+    circuit::{ecc, pedersen_hash},
+    constants::{PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR},
+};
 
 use crate::{
-    circuits::util::{asset_info_preimage, expose_randomized_public_key, expose_value_commitment},
-    constants::{proof::ASSET_KEY_GENERATOR, ASSET_IDENTIFIER_PERSONALIZATION},
+    circuits::util::{asset_info_preimage, expose_value_commitment},
+    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_IDENTIFIER_PERSONALIZATION},
     ValueCommitment,
 };
 
@@ -21,9 +26,8 @@ pub struct MintAsset {
     /// The random byte used to ensure we get a valid asset identifier
     pub nonce: u8,
 
-    /// Private keys associated with the public key used to create the
-    /// identifier
-    pub asset_authorization_key: Option<jubjub::Fr>,
+    /// Key required to construct proofs for a particular spending key
+    pub proof_generation_key: Option<ProofGenerationKey>,
 
     /// Randomized commitment to represent the value being minted in this proof
     /// needed to balance the transaction.
@@ -39,26 +43,96 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         self,
         cs: &mut CS,
     ) -> Result<(), bellman::SynthesisError> {
-        let asset_authorization_key_bits = boolean::field_into_boolean_vec_le(
-            cs.namespace(|| "booleanize asset authorization key"),
-            self.asset_authorization_key,
+        // Prover witnesses ak (ensures that it's on the curve)
+        let ak = ecc::EdwardsPoint::witness(
+            cs.namespace(|| "ak"),
+            self.proof_generation_key.as_ref().map(|k| k.ak.into()),
         )?;
 
-        let asset_public_key = ecc::fixed_base_multiplication(
-            cs.namespace(|| "computation of asset public key"),
-            &ASSET_KEY_GENERATOR,
-            &asset_authorization_key_bits,
+        // There are no sensible attacks on small order points
+        // of ak (that we're aware of!) but it's a cheap check,
+        // so we do it.
+        ak.assert_not_small_order(cs.namespace(|| "ak not small order"))?;
+
+        // Rerandomize ak and expose it as an input to the circuit
+        {
+            let ar = boolean::field_into_boolean_vec_le(
+                cs.namespace(|| "ar"),
+                self.public_key_randomness,
+            )?;
+
+            // Compute the randomness in the exponent
+            let ar = ecc::fixed_base_multiplication(
+                cs.namespace(|| "computation of randomization for the signing key"),
+                &SPENDING_KEY_GENERATOR,
+                &ar,
+            )?;
+
+            let rk = ak.add(cs.namespace(|| "computation of rk"), &ar)?;
+
+            rk.inputize(cs.namespace(|| "rk"))?;
+        }
+
+        // Compute nk = [nsk] ProofGenerationKey
+        let nk;
+        {
+            // Witness nsk as bits
+            let nsk = boolean::field_into_boolean_vec_le(
+                cs.namespace(|| "nsk"),
+                self.proof_generation_key.as_ref().map(|k| k.nsk),
+            )?;
+
+            // NB: We don't ensure that the bit representation of nsk
+            // is "in the field" (jubjub::Fr) because it's not used
+            // except to demonstrate the prover knows it. If they know
+            // a congruency then that's equivalent.
+
+            // Compute nk = [nsk] ProvingPublicKey
+            nk = ecc::fixed_base_multiplication(
+                cs.namespace(|| "computation of nk"),
+                &PROOF_GENERATION_KEY_GENERATOR,
+                &nsk,
+            )?;
+        }
+
+        // This is the "viewing key" preimage for CRH^ivk
+        let mut ivk_preimage = vec![];
+
+        // Place ak in the preimage for CRH^ivk
+        ivk_preimage.extend(ak.repr(cs.namespace(|| "representation of ak"))?);
+
+        // Extend ivk preimage with the representation of nk.
+        {
+            let repr_nk = nk.repr(cs.namespace(|| "representation of nk"))?;
+
+            ivk_preimage.extend(repr_nk.iter().cloned());
+        }
+
+        assert_eq!(ivk_preimage.len(), 512);
+
+        // Compute the incoming viewing key ivk
+        let mut ivk = blake2s::blake2s(
+            cs.namespace(|| "computation of ivk"),
+            &ivk_preimage,
+            CRH_IVK_PERSONALIZATION,
         )?;
 
-        asset_public_key
-            .assert_not_small_order(cs.namespace(|| "asset_public_key not small order"))?;
+        // drop_5 to ensure it's in the field
+        ivk.truncate(jubjub::Fr::CAPACITY as usize);
+
+        // Compute owner public address
+        let owner_public_address = ecc::fixed_base_multiplication(
+            cs.namespace(|| "compute pk_d"),
+            &PUBLIC_KEY_GENERATOR,
+            &ivk,
+        )?;
 
         // Create the Asset Info pre-image
         let asset_info_preimage = asset_info_preimage(
             &mut cs.namespace(|| "asset info preimage"),
             &self.name,
             &self.metadata,
-            &asset_public_key,
+            &owner_public_address,
             &self.nonce,
         )?;
 
@@ -91,13 +165,6 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
             self.value_commitment,
         )?;
 
-        // Witness and expose the randomized public key
-        expose_randomized_public_key(
-            cs.namespace(|| "randomized public key"),
-            self.public_key_randomness,
-            &asset_public_key,
-        )?;
-
         Ok(())
     }
 }
@@ -115,12 +182,12 @@ mod test {
     use jubjub::ExtendedPoint;
     use rand::{rngs::StdRng, SeedableRng};
     use zcash_primitives::{
-        constants::VALUE_COMMITMENT_VALUE_GENERATOR,
-        sapling::{pedersen_hash, redjubjub},
+        constants::{SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
+        sapling::{pedersen_hash, redjubjub, ProofGenerationKey},
     };
 
     use crate::{
-        constants::{ASSET_IDENTIFIER_PERSONALIZATION, ASSET_KEY_GENERATOR},
+        constants::{ASSET_IDENTIFIER_PERSONALIZATION, PUBLIC_KEY_GENERATOR},
         ValueCommitment,
     };
 
@@ -133,15 +200,19 @@ mod test {
 
         let mut cs = TestConstraintSystem::new();
 
-        let asset_auth_key = jubjub::Fr::random(&mut rng);
-        let asset_public_key = ASSET_KEY_GENERATOR * asset_auth_key;
+        let proof_generation_key = ProofGenerationKey {
+            ak: jubjub::SubgroupPoint::random(&mut rng),
+            nsk: jubjub::Fr::random(&mut rng),
+        };
+        let incoming_view_key = proof_generation_key.to_viewing_key();
+        let public_address = PUBLIC_KEY_GENERATOR * incoming_view_key.ivk().0;
 
         let name = [1u8; 32];
         let metadata = [2u8; 76];
         let nonce = 1u8;
 
         let mut asset_plaintext: Vec<u8> = vec![];
-        asset_plaintext.extend(&asset_public_key.to_bytes());
+        asset_plaintext.extend(&public_address.to_bytes());
         asset_plaintext.extend(name);
         asset_plaintext.extend(metadata);
         asset_plaintext.extend(slice::from_ref(&nonce));
@@ -165,17 +236,16 @@ mod test {
         let value_commitment_point = ExtendedPoint::from(value_commitment.commitment()).to_affine();
 
         let public_key_randomness = jubjub::Fr::random(&mut rng);
-        let randomized_public_key = redjubjub::PublicKey(asset_public_key.into())
-            .randomize(public_key_randomness, ASSET_KEY_GENERATOR);
-        let randomized_public_key_point = randomized_public_key.0.to_affine();
+        let randomized_public_key =
+            ExtendedPoint::from(incoming_view_key.rk(public_key_randomness)).to_affine();
 
         let public_inputs = vec![
+            randomized_public_key.get_u(),
+            randomized_public_key.get_v(),
             asset_info_hashed_inputs[0],
             asset_info_hashed_inputs[1],
             value_commitment_point.get_u(),
             value_commitment_point.get_v(),
-            randomized_public_key_point.get_u(),
-            randomized_public_key_point.get_v(),
         ];
 
         // Mint proof
@@ -183,7 +253,7 @@ mod test {
             name,
             metadata,
             nonce,
-            asset_authorization_key: Some(asset_auth_key),
+            proof_generation_key: Some(proof_generation_key),
             value_commitment: Some(value_commitment),
             public_key_randomness: Some(public_key_randomness),
         };
@@ -191,72 +261,9 @@ mod test {
 
         assert!(cs.is_satisfied());
         assert!(cs.verify(&public_inputs));
-        assert_eq!(cs.num_constraints(), 8265);
-    }
+        assert_eq!(cs.num_constraints(), 31576);
 
-    #[test]
-    fn test_mint_asset_circuit_bad_inputs() {
-        // Seed a fixed rng for determinism in the test
-        let mut rng = StdRng::seed_from_u64(1);
-
-        let mut cs = TestConstraintSystem::new();
-
-        let asset_auth_key = jubjub::Fr::random(&mut rng);
-        let asset_public_key = ASSET_KEY_GENERATOR * asset_auth_key;
-
-        let name = [1u8; 32];
-        let metadata = [2u8; 76];
-        let nonce = 1u8;
-
-        let mut asset_plaintext: Vec<u8> = vec![];
-        asset_plaintext.extend(&asset_public_key.to_bytes());
-        asset_plaintext.extend(name);
-        asset_plaintext.extend(metadata);
-        asset_plaintext.extend(slice::from_ref(&nonce));
-
-        let asset_plaintext_bits = multipack::bytes_to_bits_le(&asset_plaintext);
-
-        let asset_info_hashed_point =
-            pedersen_hash::pedersen_hash(ASSET_IDENTIFIER_PERSONALIZATION, asset_plaintext_bits);
-
-        let asset_info_hashed_bytes = asset_info_hashed_point.to_bytes();
-
-        let asset_info_hashed_bits = multipack::bytes_to_bits_le(&asset_info_hashed_bytes);
-        let asset_info_hashed_inputs = multipack::compute_multipacking(&asset_info_hashed_bits);
-
-        let value_commitment = ValueCommitment {
-            value: 5,
-            randomness: jubjub::Fr::random(&mut rng),
-            asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
-        };
-
-        let value_commitment_point = ExtendedPoint::from(value_commitment.commitment()).to_affine();
-
-        let public_key_randomness = jubjub::Fr::random(&mut rng);
-        let randomized_public_key = redjubjub::PublicKey(asset_public_key.into())
-            .randomize(public_key_randomness, ASSET_KEY_GENERATOR);
-        let randomized_public_key_point = randomized_public_key.0.to_affine();
-
-        let public_inputs = vec![
-            asset_info_hashed_inputs[0],
-            asset_info_hashed_inputs[1],
-            value_commitment_point.get_u(),
-            value_commitment_point.get_v(),
-            randomized_public_key_point.get_u(),
-            randomized_public_key_point.get_v(),
-        ];
-
-        // Mint proof
-        let circuit = MintAsset {
-            name,
-            metadata,
-            nonce,
-            asset_authorization_key: Some(asset_auth_key),
-            value_commitment: Some(value_commitment),
-            public_key_randomness: Some(public_key_randomness),
-        };
-        circuit.synthesize(&mut cs).unwrap();
-
+        // Test bad inputs
         let bad_asset_info_hashed = [1u8; 32];
         let bad_asset_info_hashed_bits = multipack::bytes_to_bits_le(&bad_asset_info_hashed);
         let bad_asset_info_hashed_inputs =

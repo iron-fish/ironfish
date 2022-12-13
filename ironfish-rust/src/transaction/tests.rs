@@ -43,7 +43,7 @@ fn test_transaction() {
     let burn_value = 2;
 
     let asset = Asset::new(
-        spender_key.asset_public_key(),
+        spender_key.public_address(),
         "Testcoin",
         "A really cool coin",
     )
