@@ -16,7 +16,7 @@ import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
-import { Transaction } from '../primitives'
+import { GENESIS_BLOCK_SEQUENCE, Transaction } from '../primitives'
 import { Block, CompactBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { TransactionHash } from '../primitives/transaction'
@@ -1194,6 +1194,11 @@ export class PeerNetwork {
 
   private async handleRequestedBlock(peer: Peer, block: Block) {
     if (!this.shouldProcessNewBlocks()) {
+      return
+    }
+
+    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+      peer.punish(BAN_SCORE.MAX, 'Peer gossiped its genesis block')
       return
     }
 

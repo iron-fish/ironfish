@@ -331,8 +331,18 @@ export class Syncer {
       lower = needle + 1
     }
 
-    Assert.isNotNull(ancestorHash)
     Assert.isNotNull(ancestorSequence)
+
+    if (ancestorSequence === GENESIS_BLOCK_SEQUENCE && ancestorHash === null) {
+      this.logger.warn(
+        `Peer ${peer.displayName} sent invalid genesis block hash in Identify message`,
+      )
+
+      peer.punish(BAN_SCORE.MAX, VerificationResultReason.INVALID_GENESIS_BLOCK)
+      this.abort(peer)
+    }
+
+    Assert.isNotNull(ancestorHash)
 
     return {
       ancestor: ancestorHash,
@@ -456,15 +466,6 @@ export class Syncer {
     block: Block
     reason: VerificationResultReason | null
   }> {
-    if (
-      block.header.sequence === GENESIS_BLOCK_SEQUENCE &&
-      peer.genesisBlockHash &&
-      !block.header.hash.equals(peer.genesisBlockHash)
-    ) {
-      peer.punish(BAN_SCORE.MAX, VerificationResultReason.INVALID_GENESIS_BLOCK)
-      return { added: false, block, reason: VerificationResultReason.INVALID_GENESIS_BLOCK }
-    }
-
     const { isAdded, reason, score } = await this.chain.addBlock(block)
 
     this.speed.add(1)
