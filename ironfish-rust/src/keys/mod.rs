@@ -10,8 +10,7 @@ use blake2b_simd::Params as Blake2b;
 use blake2s_simd::Params as Blake2s;
 use group::GroupEncoding;
 use ironfish_zkp::constants::{
-    ASSET_KEY_GENERATOR, CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR,
-    SPENDING_KEY_GENERATOR,
+    CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
 };
 use ironfish_zkp::{ProofGenerationKey, ViewingKey};
 use jubjub::SubgroupPoint;
@@ -30,8 +29,6 @@ pub use view_keys::*;
 mod test;
 
 const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Iron Fish Money ";
-
-pub(crate) type AssetPublicKey = SubgroupPoint;
 
 /// A single private key generates multiple other key parts that can
 /// be used to allow various forms of access to a commitment note:
@@ -54,11 +51,6 @@ pub struct SaplingKey {
     /// `nsk` in the literature. Derived from spending key using a seeded
     /// pseudorandom hash function. Used to construct nullifier_deriving_key
     pub(crate) proof_authorizing_key: jubjub::Fr,
-
-    /// Part of the expanded form of the spending key. Derived from spending key
-    /// using a seeded pseudorandom hash function. Used to construct
-    /// asset_public_key. This is not part of the official Sapling spec.
-    pub(crate) asset_authorization_key: jubjub::Fr,
 
     /// Part of the expanded form of the spending key, as well as being used
     /// directly in the full viewing key. Generally referred to as
@@ -103,10 +95,6 @@ impl SaplingKey {
         let outgoing_viewing_key = OutgoingViewKey {
             view_key: outgoing_viewing_key,
         };
-
-        let asset_authorization_key =
-            jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 100));
-
         let authorizing_key = SPENDING_KEY_GENERATOR * spend_authorizing_key;
         let nullifier_deriving_key = PROOF_GENERATION_KEY_GENERATOR * proof_authorizing_key;
         let incoming_viewing_key = IncomingViewKey {
@@ -117,7 +105,6 @@ impl SaplingKey {
             spending_key,
             spend_authorizing_key,
             proof_authorizing_key,
-            asset_authorization_key,
             outgoing_viewing_key,
             authorizing_key,
             nullifier_deriving_key,
@@ -192,18 +179,6 @@ impl SaplingKey {
     /// Retrieve the private spending key
     pub fn spending_key(&self) -> [u8; 32] {
         self.spending_key
-    }
-
-    /// Retrieve the private asset authorization key used to derive the asset
-    /// public key
-    pub fn asset_authorization_key(&self) -> jubjub::Fr {
-        self.asset_authorization_key
-    }
-
-    /// Retrieve the asset public key associated with the asset authorization
-    /// key
-    pub fn asset_public_key(&self) -> AssetPublicKey {
-        ASSET_KEY_GENERATOR * self.asset_authorization_key
     }
 
     /// Private spending key as hexadecimal. This is slightly

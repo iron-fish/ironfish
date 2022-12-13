@@ -78,7 +78,7 @@ fn main() {
                 name: [0u8; 32],
                 metadata: [0u8; 76],
                 nonce: 0,
-                asset_authorization_key: None,
+                proof_generation_key: None,
                 value_commitment: None,
                 public_key_randomness: None,
             },

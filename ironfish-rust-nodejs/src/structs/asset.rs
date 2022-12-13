@@ -5,8 +5,9 @@
 use ironfish_rust::{
     assets::asset::{
         Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, IDENTIFIER_LENGTH, METADATA_LENGTH,
-        NAME_LENGTH, NATIVE_ASSET, OWNER_LENGTH,
+        NAME_LENGTH, NATIVE_ASSET,
     },
+    keys::PUBLIC_ADDRESS_SIZE,
     SaplingKey,
 };
 use napi::{
@@ -27,7 +28,7 @@ pub const ASSET_METADATA_LENGTH: u32 = METADATA_LENGTH as u32;
 pub const ASSET_NAME_LENGTH: u32 = NAME_LENGTH as u32;
 
 #[napi]
-pub const ASSET_OWNER_LENGTH: u32 = OWNER_LENGTH as u32;
+pub const ASSET_OWNER_LENGTH: u32 = PUBLIC_ADDRESS_SIZE as u32;
 
 #[napi]
 pub const ASSET_LENGTH: u32 = SERIALIZED_ASSET_LENGTH as u32;
@@ -42,7 +43,7 @@ impl NativeAsset {
     #[napi(constructor)]
     pub fn new(owner_private_key: String, name: String, metadata: String) -> Result<NativeAsset> {
         let sapling_key = SaplingKey::from_hex(&owner_private_key).map_err(to_napi_err)?;
-        let owner = sapling_key.asset_public_key();
+        let owner = sapling_key.public_address();
 
         Ok(NativeAsset {
             asset: Asset::new(owner, &name, &metadata).map_err(to_napi_err)?,
