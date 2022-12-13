@@ -1290,7 +1290,7 @@ export class Blockchain {
     Assert.isNotNull(prev.noteSize)
     Assert.isNotNull(prev.nullifierSize)
 
-    await Promise.all([this.notes.truncate(prev.noteSize, tx)])
+    await this.notes.truncate(prev.noteSize, tx)
 
     await this.nullifiers.disconnectBlock(block.transactions, tx)
 
