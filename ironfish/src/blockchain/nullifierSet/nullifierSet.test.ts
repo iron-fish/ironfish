@@ -35,6 +35,8 @@ describe('NullifierSet', () => {
     const { block: block4 } = await useBlockWithTx(node, accountA, accountA, false)
     await expect(node.chain).toAddBlock(block4)
 
+    await node.wallet.updateHead()
+
     await set.connectBlock(block2)
     await set.connectBlock(block3)
     await set.connectBlock(block4)
