@@ -368,7 +368,7 @@ mod test {
     use super::{Memo, Note};
     use crate::{
         assets::asset::NATIVE_ASSET_GENERATOR,
-        keys::{shared_secret, SaplingKey},
+        keys::{shared_secret, EphemeralKeyPair, SaplingKey},
     };
 
     #[test]
@@ -408,9 +408,13 @@ mod test {
         let public_address = owner_key.public_address();
         let sender_key: SaplingKey = SaplingKey::generate_key();
         let sender_address = sender_key.public_address();
-        let (dh_secret, dh_public) = public_address.generate_diffie_hellman_keys();
+
+        let diffie_hellman_keys = EphemeralKeyPair::new();
+        let dh_secret = diffie_hellman_keys.secret();
+        let dh_public = diffie_hellman_keys.public();
+
         let public_shared_secret =
-            shared_secret(&dh_secret, &public_address.transmission_key, &dh_public);
+            shared_secret(dh_secret, &public_address.transmission_key, dh_public);
         let note = Note::new(
             public_address,
             42,
@@ -420,7 +424,7 @@ mod test {
         );
         let encryption_result = note.encrypt(&public_shared_secret);
 
-        let private_shared_secret = owner_key.incoming_view_key().shared_secret(&dh_public);
+        let private_shared_secret = owner_key.incoming_view_key().shared_secret(dh_public);
         assert_eq!(private_shared_secret, public_shared_secret);
 
         let restored_note = Note::from_owner_encrypted(

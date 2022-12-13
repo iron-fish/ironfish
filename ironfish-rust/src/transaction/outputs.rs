@@ -3,7 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    errors::IronfishError, keys::SaplingKey, merkle_note::MerkleNote, note::Note,
+    errors::IronfishError,
+    keys::{EphemeralKeyPair, SaplingKey},
+    merkle_note::MerkleNote,
+    note::Note,
     sapling_bls12::SAPLING,
 };
 
@@ -77,13 +80,13 @@ impl OutputBuilder {
         &self,
         spender_key: &SaplingKey,
     ) -> Result<OutputDescription, IronfishError> {
-        let diffie_hellman_keys = self.note.owner.generate_diffie_hellman_keys();
+        let diffie_hellman_keys = EphemeralKeyPair::new();
 
         let circuit = Output {
             value_commitment: Some(self.value_commitment.clone()),
             payment_address: Some(self.note.owner.transmission_key),
             commitment_randomness: Some(self.note.randomness),
-            esk: Some(diffie_hellman_keys.0),
+            esk: Some(*diffie_hellman_keys.secret()),
             asset_generator: Some(self.note.asset_generator().into()),
         };
 
