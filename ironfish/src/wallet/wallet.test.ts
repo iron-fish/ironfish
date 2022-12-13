@@ -1113,7 +1113,7 @@ describe('Accounts', () => {
       const tx = await useTxFixture(node.wallet, accountA, accountB)
 
       expect(decryptSpy).toHaveBeenCalledTimes(1)
-      expect(decryptSpy).lastCalledWith(tx, null, [accountA, accountB])
+      expect(decryptSpy).toHaveBeenLastCalledWith(tx, null, [accountA, accountB])
 
       await node.wallet.addPendingTransaction(tx, 2)
 
