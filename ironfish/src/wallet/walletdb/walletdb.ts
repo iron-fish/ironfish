@@ -479,34 +479,6 @@ export class WalletDB {
     })
   }
 
-  async spendDecryptedNote(
-    account: Account,
-    noteHash: Buffer,
-    tx?: IDatabaseTransaction,
-  ): Promise<bigint> {
-    const noteToSpend = await this.loadDecryptedNote(account, noteHash, tx)
-
-    Assert.isNotUndefined(noteToSpend)
-
-    await this.saveDecryptedNote(
-      account,
-      noteHash,
-      {
-        ...noteToSpend,
-        spent: true,
-      },
-      tx,
-    )
-
-    // TODO: balance may already reflect notes spent in pending transactions
-    // this check will no longer be necessary if we only update balances for on-chain transactions
-    if (noteToSpend.spent) {
-      return 0n
-    }
-
-    return noteToSpend.note.value()
-  }
-
   async saveDecryptedNote(
     account: Account,
     noteHash: Buffer,

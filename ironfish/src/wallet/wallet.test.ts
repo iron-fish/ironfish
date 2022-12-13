@@ -1149,7 +1149,7 @@ describe('Accounts', () => {
     })
   })
 
-  describe('addBlock', () => {
+  describe('connectBlock', () => {
     it('should add transactions to the walletDb with blockHash and sequence set', async () => {
       const { node } = await nodeTest.createSetup()
 
@@ -1163,7 +1163,7 @@ describe('Accounts', () => {
       const { block: blockA2, transaction } = await useBlockWithTx(node, accountA, accountB)
       await expect(node.chain).toAddBlock(blockA2)
 
-      await node.wallet.addBlock(blockA2.header, [accountA, accountB])
+      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
 
@@ -1185,7 +1185,7 @@ describe('Accounts', () => {
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB)
       await expect(node.chain).toAddBlock(blockA2)
 
-      await node.wallet.addBlock(blockA2.header, [accountA, accountB])
+      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
 
       const accountAHeadHash = await accountA.getHeadHash()
 
@@ -1208,7 +1208,7 @@ describe('Accounts', () => {
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
       await expect(node.chain).toAddBlock(blockA2)
 
-      await node.wallet.addBlock(blockA2.header, [accountA, accountB])
+      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
 
       const balanceAfter = await accountA.getUnconfirmedBalance()
       expect(balanceAfter).toEqual(1999999998n)

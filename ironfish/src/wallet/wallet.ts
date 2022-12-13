@@ -110,7 +110,7 @@ export class Wallet {
 
       const accounts = this.listAccounts().filter((account) => this.isAccountUpToDate(account))
 
-      await this.addBlock(header, accounts)
+      await this.connectBlock(header, accounts)
     })
 
     this.chainProcessor.onRemove.on(async (header) => {
@@ -387,13 +387,13 @@ export class Wallet {
     return decryptedNotes
   }
 
-  async addBlock(header: BlockHeader, accounts: Account[]): Promise<void> {
+  async connectBlock(blockHeader: BlockHeader, accounts: Account[]): Promise<void> {
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
         for await (const {
           transaction,
           initialNoteIndex,
-        } of this.chain.iterateBlockTransactions(header)) {
+        } of this.chain.iterateBlockTransactions(blockHeader)) {
           const decryptedNotesByAccountId = await this.decryptNotes(
             transaction,
             initialNoteIndex,
@@ -406,10 +406,10 @@ export class Wallet {
             continue
           }
 
-          await account.addBlockTransaction(header, transaction, decryptedNotes, tx)
+          await account.connectTransaction(blockHeader, transaction, decryptedNotes, tx)
         }
 
-        await this.updateHeadHash(account, header.hash, tx)
+        await this.updateHeadHash(account, blockHeader.hash, tx)
       })
     }
   }
@@ -553,7 +553,7 @@ export class Wallet {
       undefined,
       false,
     )) {
-      await this.addBlock(blockHeader, accounts)
+      await this.connectBlock(blockHeader, accounts)
 
       scan.signal(blockHeader.sequence)
 

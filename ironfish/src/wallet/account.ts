@@ -203,8 +203,8 @@ export class Account {
     })
   }
 
-  async addBlockTransaction(
-    header: BlockHeader,
+  async connectTransaction(
+    blockHeader: BlockHeader,
     transaction: Transaction,
     decryptedNotes: Array<DecryptedNote>,
     tx?: IDatabaseTransaction,
@@ -236,14 +236,15 @@ export class Account {
           {
             accountId: this.id,
             note,
+            // TODO: this isn't necessarily correct: we could spend a note, reorg, and then reorg back to the block
+            // the nullifier would be the same, so the child transaction would still be valid/pending
             spent: false,
             transactionHash: transaction.hash(),
-            nullifier: null,
-            index: null,
-            blockHash: null,
-            sequence: null,
+            nullifier: decryptedNote.nullifier,
+            index: decryptedNote.index,
+            blockHash: blockHeader.hash,
+            sequence: blockHeader.sequence,
           },
-          header.sequence,
           tx,
         )
 <<<<<<< HEAD
@@ -261,7 +262,7 @@ export class Account {
           continue
         }
 
-        balanceDelta -= await this.walletDb.spendDecryptedNote(this, spentNoteHash, tx)
+        balanceDelta -= await this.spendDecryptedNote(spentNoteHash, tx)
       }
 
       await this.walletDb.addTransaction(
@@ -269,8 +270,8 @@ export class Account {
         transaction.hash(),
         {
           transaction,
-          blockHash: header.hash,
-          sequence: header.sequence,
+          blockHash: blockHeader.hash,
+          sequence: blockHeader.sequence,
           submittedSequence: null,
         },
         tx,
@@ -330,7 +331,7 @@ export class Account {
           continue
         }
 
-        balanceDelta -= await this.walletDb.spendDecryptedNote(this, spentNoteHash, tx)
+        balanceDelta -= await this.spendDecryptedNote(spentNoteHash, tx)
       }
 
       await this.walletDb.addTransaction(
@@ -678,6 +679,30 @@ export class Account {
     }
 
     return notes
+  }
+
+  async spendDecryptedNote(noteHash: Buffer, tx?: IDatabaseTransaction): Promise<bigint> {
+    const noteToSpend = await this.getDecryptedNote(noteHash, tx)
+
+    Assert.isNotUndefined(noteToSpend)
+
+    await this.walletDb.saveDecryptedNote(
+      this,
+      noteHash,
+      {
+        ...noteToSpend,
+        spent: true,
+      },
+      tx,
+    )
+
+    // TODO: balance may already reflect notes spent in pending transactions
+    // this check will no longer be necessary if we only update balances for on-chain transactions
+    if (noteToSpend.spent) {
+      return 0n
+    }
+
+    return noteToSpend.note.value()
   }
 }
 
