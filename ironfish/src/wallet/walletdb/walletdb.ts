@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
@@ -55,7 +56,7 @@ export class WalletDB {
   }>
 
   balances: IDatabaseStore<{
-    key: Account['id']
+    key: [Account['prefix'], Buffer]
     value: bigint
   }>
 
@@ -131,7 +132,7 @@ export class WalletDB {
 
     this.balances = this.db.addStore({
       name: 'b',
-      keyEncoding: new StringEncoding(),
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new BigIntLEEncoding(),
     })
 
@@ -200,8 +201,11 @@ export class WalletDB {
     await this.db.withTransaction(tx, async (tx) => {
       await this.accounts.put(account.id, account.serialize(), tx)
 
-      const unconfirmedBalance = await this.balances.get(account.id, tx)
-      if (unconfirmedBalance === undefined) {
+      const nativeUnconfirmedBalance = await this.balances.get(
+        [account.prefix, Asset.nativeIdentifier()],
+        tx,
+      )
+      if (nativeUnconfirmedBalance === undefined) {
         await this.saveUnconfirmedBalance(account, BigInt(0), tx)
       }
     })
@@ -210,7 +214,7 @@ export class WalletDB {
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       await this.accounts.del(account.id, tx)
-      await this.balances.del(account.id, tx)
+      await this.balances.clear(tx, account.prefixRange)
       await this.accountIdsToCleanup.put(account.id, null, tx)
     })
   }
@@ -527,7 +531,12 @@ export class WalletDB {
   }
 
   async getUnconfirmedBalance(account: Account, tx?: IDatabaseTransaction): Promise<bigint> {
-    const unconfirmedBalance = await this.balances.get(account.id, tx)
+    // TODO(mgeist,rohanjadvani): This will be updated in a subsequent PR to
+    // include an asset as an argument
+    const unconfirmedBalance = await this.balances.get(
+      [account.prefix, Asset.nativeIdentifier()],
+      tx,
+    )
     Assert.isNotUndefined(unconfirmedBalance)
     return unconfirmedBalance
   }
@@ -537,7 +546,9 @@ export class WalletDB {
     balance: bigint,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.balances.put(account.id, balance, tx)
+    // TODO(mgeist,rohanjadvani): This will be updated in a subsequent PR to
+    // include an asset as an argument
+    await this.balances.put([account.prefix, Asset.nativeIdentifier()], balance, tx)
   }
 
   async *loadExpiredTransactions(
