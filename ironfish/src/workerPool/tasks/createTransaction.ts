@@ -295,7 +295,7 @@ export class CreateTransactionTask extends WorkerTask {
     }
 
     for (const { publicAddress, amount, memo, assetIdentifier } of receives) {
-      const note = new Note(publicAddress, amount, memo, assetIdentifier)
+      const note = new Note(publicAddress, amount, memo, assetIdentifier, transaction.sender())
       transaction.receive(note)
     }
 

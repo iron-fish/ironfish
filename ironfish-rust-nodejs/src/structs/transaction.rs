@@ -183,6 +183,12 @@ impl NativeTransaction {
         self.transaction.add_spend(note.note.clone(), &w);
     }
 
+    /// return the sender of the transaction
+    #[napi]
+    pub fn sender(&mut self) -> String {
+        self.transaction.sender().hex_public_address()
+    }
+
     /// Mint a new asset with a given value as part of this transaction.
     #[napi]
     pub fn mint(&mut self, asset: &NativeAsset, value: BigInt) {
