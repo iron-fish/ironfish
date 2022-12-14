@@ -29,8 +29,8 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
-import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
+import { NewCompactBlockMessage } from './messages/newCompactBlock'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
@@ -411,7 +411,7 @@ describe('PeerNetwork', () => {
 
           const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)
           await peerNetwork.peerManager.onMessage.emitAsync(
-            ...peerMessage(peers[0].peer, new NewBlockMessage(invalidBlock)),
+            ...peerMessage(peers[0].peer, new NewCompactBlockMessage(invalidBlock)),
           )
 
           // Peers should not be sent invalid block
@@ -446,15 +446,15 @@ describe('PeerNetwork', () => {
           )
         })
 
-        const sentNewBlock = peers.filter(({ sendSpy }) => {
+        const sentNewCompactBlock = peers.filter(({ sendSpy }) => {
           const hashCalls = sendSpy.mock.calls.filter(([message]) => {
-            return message instanceof NewBlockMessage
+            return message instanceof NewCompactBlockMessage
           })
           return hashCalls.length > 0
         })
 
         expect(sentHash.length).toBe(7)
-        expect(sentNewBlock.length).toBe(3)
+        expect(sentNewCompactBlock.length).toBe(3)
       })
     })
 
@@ -834,7 +834,7 @@ describe('PeerNetwork', () => {
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
 
-      const message = new NewBlockMessage(block.toCompactBlock())
+      const message = new NewCompactBlockMessage(block.toCompactBlock())
 
       jest.spyOn(node.syncer, 'addBlock')
 

@@ -38,8 +38,8 @@ import {
   IncomingPeerMessage,
   NetworkMessage,
 } from './messages/networkMessage'
-import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
+import { NewCompactBlockMessage } from './messages/newCompactBlock'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
 import {
@@ -378,7 +378,7 @@ export class PeerNetwork {
 
     const sqrtSize = Math.floor(Math.sqrt(peersToSendToArray.length))
 
-    const compactBlockMessage = new NewBlockMessage(block.toCompactBlock())
+    const compactBlockMessage = new NewCompactBlockMessage(block.toCompactBlock())
 
     // Send compact block to random subset of sqrt of peers
     for (const peer of peersToSendToArray.slice(0, sqrtSize)) {
@@ -606,7 +606,7 @@ export class PeerNetwork {
       await this.handleRpcMessage(peer, message)
     } else if (message instanceof NewBlockHashesMessage) {
       await this.handleNewBlockHashesMessage(peer, message)
-    } else if (message instanceof NewBlockMessage) {
+    } else if (message instanceof NewCompactBlockMessage) {
       await this.onNewCompactBlock(peer, message.compactBlock)
     } else if (message instanceof NewPooledTransactionHashes) {
       this.handleNewPooledTransactionHashes(peer, message)

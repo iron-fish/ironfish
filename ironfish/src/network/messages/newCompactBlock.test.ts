@@ -5,12 +5,15 @@ import { BlockHeader, Target } from '../../primitives'
 import { CompactBlock } from '../../primitives/block'
 import { transactionCommitment } from '../../primitives/blockheader'
 import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
-import { NewBlockMessage } from './newBlock'
+import { NewCompactBlockMessage } from './newCompactBlock'
 
 describe('NewBlockMessage', () => {
   const nodeTest = createNodeTest()
 
-  function expectNewBlockMessageToMatch(a: NewBlockMessage, b: NewBlockMessage): void {
+  function expectNewBlockMessageToMatch(
+    a: NewCompactBlockMessage,
+    b: NewCompactBlockMessage,
+  ): void {
     // Test transactions separately because Transaction is not a primitive type
     expect(a.compactBlock.transactions.length).toEqual(b.compactBlock.transactions.length)
     a.compactBlock.transactions.forEach((transactionA, transactionIndexA) => {
@@ -54,9 +57,9 @@ describe('NewBlockMessage', () => {
       ],
     }
 
-    const message = new NewBlockMessage(compactBlock)
+    const message = new NewCompactBlockMessage(compactBlock)
     const buffer = message.serialize()
-    const deserializedMessage = NewBlockMessage.deserialize(buffer)
+    const deserializedMessage = NewCompactBlockMessage.deserialize(buffer)
 
     expectNewBlockMessageToMatch(message, deserializedMessage)
   })

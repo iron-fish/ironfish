@@ -13,8 +13,8 @@ import {
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
 import { IdentifyMessage } from './messages/identify'
 import { NetworkMessage } from './messages/networkMessage'
-import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
+import { NewCompactBlockMessage } from './messages/newCompactBlock'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionMessage } from './messages/newTransaction'
 import { PeerListMessage } from './messages/peerList'
@@ -108,8 +108,8 @@ const parseGenericNetworkMessage = (type: NetworkMessageType, body: Buffer): Net
       return NewTransactionMessage.deserialize(body)
     case NetworkMessageType.NewBlockHashes:
       return NewBlockHashesMessage.deserialize(body)
-    case NetworkMessageType.NewBlock:
-      return NewBlockMessage.deserialize(body)
+    case NetworkMessageType.NewCompactBlock:
+      return NewCompactBlockMessage.deserialize(body)
     default:
       throw new Error(`Unknown network message type: ${type}`)
   }
