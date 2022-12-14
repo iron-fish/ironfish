@@ -21,7 +21,7 @@ use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
     proofs::Spend,
-    redjubjub::{self, Signature, PublicKey},
+    redjubjub::{self, PublicKey, Signature},
     Nullifier, ValueCommitment,
 };
 use jubjub::ExtendedPoint;
@@ -265,7 +265,11 @@ impl SpendDescription {
 
     /// Verify that the signature on this proof is signing the provided input
     /// with the randomized_public_key on this proof.
-    pub fn verify_signature(&self, signature_hash_value: &[u8; 32], randomized_public_key: &PublicKey) -> Result<(), IronfishError> {
+    pub fn verify_signature(
+        &self,
+        signature_hash_value: &[u8; 32],
+        randomized_public_key: &PublicKey,
+    ) -> Result<(), IronfishError> {
         if randomized_public_key.0.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
         }
@@ -408,11 +412,15 @@ mod test {
         let mut sig_hash = [0u8; 32];
         thread_rng().fill(&mut sig_hash[..]);
 
-        let unsigned_proof = spend.build(&key, &public_key_randomness).expect("should be able to build proof");
+        let unsigned_proof = spend
+            .build(&key, &public_key_randomness)
+            .expect("should be able to build proof");
         let proof = unsigned_proof
             .sign(&key, &sig_hash)
             .expect("should be able to sign proof");
-        proof.verify_proof(&randomized_public_key).expect("proof should check out");
+        proof
+            .verify_proof(&randomized_public_key)
+            .expect("proof should check out");
         proof
             .verify_signature(&sig_hash, &randomized_public_key)
             .expect("should be able to verify signature");
@@ -420,7 +428,9 @@ mod test {
         let mut other_hash = [0u8; 32];
         thread_rng().fill(&mut other_hash[..]);
         assert!(
-            proof.verify_signature(&other_hash, &randomized_public_key_clone).is_err(),
+            proof
+                .verify_signature(&other_hash, &randomized_public_key_clone)
+                .is_err(),
             "should error if not signing correct value"
         );
 
@@ -440,7 +450,7 @@ mod test {
             proof.value_commitment.to_affine(),
             read_back_proof.value_commitment.to_affine()
         );
-        
+
         assert_eq!(proof.root_hash, read_back_proof.root_hash);
         assert_eq!(proof.nullifier, read_back_proof.nullifier);
         let mut serialized_again = vec![];

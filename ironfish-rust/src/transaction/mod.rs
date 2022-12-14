@@ -26,11 +26,18 @@ use jubjub::{ExtendedPoint, SubgroupPoint};
 use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
-    constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR, SPENDING_KEY_GENERATOR},
-    redjubjub::{PrivateKey, PublicKey, Signature, self},
+    constants::{
+        SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+        VALUE_COMMITMENT_VALUE_GENERATOR,
+    },
+    redjubjub::{self, PrivateKey, PublicKey, Signature},
 };
 
-use std::{io::{self, Write}, iter, slice::Iter};
+use std::{
+    io::{self, Write},
+    iter,
+    slice::Iter,
+};
 
 use self::{
     burns::{BurnBuilder, BurnDescription},
@@ -290,7 +297,7 @@ impl ProposedTransaction {
         for mint in unsigned_mints.drain(0..) {
             mint_descriptions.push(mint.sign(&self.spender_key, &data_to_sign)?);
         }
-       
+
         Ok(Transaction {
             version: self.version,
             expiration_sequence: self.expiration_sequence,
@@ -300,7 +307,7 @@ impl ProposedTransaction {
             mints: mint_descriptions,
             burns: burn_descriptions,
             binding_signature,
-            randomized_public_key, 
+            randomized_public_key,
         })
     }
 
@@ -456,7 +463,7 @@ pub struct Transaction {
 
     /// Randomized public key of the sender of the Transaction
     /// currently this value is the same for all spends[].owner and outputs[].sender
-    /// This is used during verification of SpendDescriptions and OutputDescriptions, as 
+    /// This is used during verification of SpendDescriptions and OutputDescriptions, as
     /// well as signing of the SpendDescriptions. Referred to as
     /// `rk` in the literature Calculated from the authorizing key and
     /// the public_key_randomness.
@@ -498,7 +505,7 @@ impl Transaction {
         }
 
         let binding_signature = Signature::read(&mut reader)?;
-    
+
         Ok(Transaction {
             version,
             fee,
@@ -613,7 +620,9 @@ impl Transaction {
             .write_u32::<LittleEndian>(self.expiration_sequence)
             .unwrap();
         hasher.write_i64::<LittleEndian>(self.fee).unwrap();
-        hasher.write_all(&self.randomized_public_key.0.to_bytes()).unwrap();
+        hasher
+            .write_all(&self.randomized_public_key.0.to_bytes())
+            .unwrap();
 
         for spend in self.spends.iter() {
             spend.serialize_signature_fields(&mut hasher).unwrap();
@@ -732,7 +741,10 @@ pub fn batch_verify_transactions<'a>(
 
             binding_verification_key += spend.value_commitment;
 
-            spend.verify_signature(&hash_to_verify_signature, transaction.randomized_public_key())?;
+            spend.verify_signature(
+                &hash_to_verify_signature,
+                transaction.randomized_public_key(),
+            )?;
         }
 
         for output in transaction.outputs.iter() {
