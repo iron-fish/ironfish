@@ -78,7 +78,6 @@ describe('NullifierSet', () => {
       expect(await set.contains(nullifier)).toBe(true)
     }
 
-    await expect(set.disconnectBlock(block3)).rejects.toThrow()
     await expect(set.connectBlock(block3)).rejects.toThrow()
     await expect(set.connectBlock(block4)).rejects.toThrow()
 
