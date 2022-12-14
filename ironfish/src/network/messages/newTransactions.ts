@@ -7,11 +7,11 @@ import { NetworkMessageType } from '../types'
 import { getTransactionSize, readTransaction, writeTransaction } from '../utils/serializers'
 import { NetworkMessage } from './networkMessage'
 
-export class NewTransactionMessage extends NetworkMessage {
+export class NewTransactionsMessage extends NetworkMessage {
   readonly transactions: Transaction[]
 
   constructor(transactions: Transaction[]) {
-    super(NetworkMessageType.NewTransaction)
+    super(NetworkMessageType.NewTransactions)
     this.transactions = transactions
   }
 
@@ -25,7 +25,7 @@ export class NewTransactionMessage extends NetworkMessage {
     return bw.render()
   }
 
-  static deserialize(buffer: Buffer): NewTransactionMessage {
+  static deserialize(buffer: Buffer): NewTransactionsMessage {
     const reader = bufio.read(buffer, true)
 
     const length = reader.readVarint()
@@ -36,7 +36,7 @@ export class NewTransactionMessage extends NetworkMessage {
       transactions.push(transaction)
     }
 
-    return new NewTransactionMessage(transactions)
+    return new NewTransactionsMessage(transactions)
   }
 
   getSize(): number {

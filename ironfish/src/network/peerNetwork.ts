@@ -41,7 +41,7 @@ import {
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewCompactBlockMessage } from './messages/newCompactBlock'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionMessage } from './messages/newTransaction'
+import { NewTransactionsMessage } from './messages/newTransactions'
 import {
   PooledTransactionsRequest,
   PooledTransactionsResponse,
@@ -412,7 +412,7 @@ export class PeerNetwork {
 
     const sqrtSize = Math.floor(Math.sqrt(peersToSendToArray.length))
 
-    const fullTransactionMessage = new NewTransactionMessage([transaction])
+    const fullTransactionMessage = new NewTransactionsMessage([transaction])
     const hashMessage = new NewPooledTransactionHashes([hash])
 
     // Send full transaction to random subset of sqrt of peers
@@ -610,7 +610,7 @@ export class PeerNetwork {
       await this.onNewCompactBlock(peer, message.compactBlock)
     } else if (message instanceof NewPooledTransactionHashes) {
       this.handleNewPooledTransactionHashes(peer, message)
-    } else if (message instanceof NewTransactionMessage) {
+    } else if (message instanceof NewTransactionsMessage) {
       for (const transaction of message.transactions) {
         await this.onNewTransaction(peer, transaction)
       }

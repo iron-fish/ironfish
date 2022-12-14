@@ -19,7 +19,7 @@ export enum NetworkMessageType {
   PooledTransactionsRequest = 11,
   PooledTransactionsResponse = 12,
   NewPooledTransactionHashes = 13,
-  NewTransaction = 14,
+  NewTransactions = 14,
   NewBlockHashes = 15,
   NewCompactBlock = 16,
   GetBlockTransactionsRequest = 17,

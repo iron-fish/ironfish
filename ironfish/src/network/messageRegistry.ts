@@ -16,7 +16,7 @@ import { NetworkMessage } from './messages/networkMessage'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewCompactBlockMessage } from './messages/newCompactBlock'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionMessage } from './messages/newTransaction'
+import { NewTransactionsMessage } from './messages/newTransactions'
 import { PeerListMessage } from './messages/peerList'
 import { PeerListRequestMessage } from './messages/peerListRequest'
 import {
@@ -104,8 +104,8 @@ const parseGenericNetworkMessage = (type: NetworkMessageType, body: Buffer): Net
       return SignalRequestMessage.deserialize(body)
     case NetworkMessageType.NewPooledTransactionHashes:
       return NewPooledTransactionHashes.deserialize(body)
-    case NetworkMessageType.NewTransaction:
-      return NewTransactionMessage.deserialize(body)
+    case NetworkMessageType.NewTransactions:
+      return NewTransactionsMessage.deserialize(body)
     case NetworkMessageType.NewBlockHashes:
       return NewBlockHashesMessage.deserialize(body)
     case NetworkMessageType.NewCompactBlock:

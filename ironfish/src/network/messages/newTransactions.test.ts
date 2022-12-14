@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
-import { NewTransactionMessage } from './newTransaction'
+import { NewTransactionsMessage } from './newTransactions'
 
-describe('NewTransactionMessage', () => {
+describe('NewTransactionsMessage', () => {
   const nodeTest = createNodeTest()
 
-  function expectNewTransactionMessageToMatch(
-    a: NewTransactionMessage,
-    b: NewTransactionMessage,
+  function expectNewTransactionsMessageToMatch(
+    a: NewTransactionsMessage,
+    b: NewTransactionsMessage,
   ): void {
     // Test transactions separately because Transaction is not a primitive type
     expect(a.transactions.length).toEqual(b.transactions.length)
@@ -29,11 +29,11 @@ describe('NewTransactionMessage', () => {
 
     const transactions = [transactionA, transactionB]
 
-    const message = new NewTransactionMessage(transactions)
+    const message = new NewTransactionsMessage(transactions)
 
     const buffer = message.serialize()
-    const deserializedMessage = NewTransactionMessage.deserialize(buffer)
+    const deserializedMessage = NewTransactionsMessage.deserialize(buffer)
 
-    expectNewTransactionMessageToMatch(message, deserializedMessage)
+    expectNewTransactionsMessageToMatch(message, deserializedMessage)
   })
 })
