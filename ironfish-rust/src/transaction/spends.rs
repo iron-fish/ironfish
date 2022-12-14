@@ -160,8 +160,20 @@ impl UnsignedSpendDescription {
         let private_key = redjubjub::PrivateKey(spender_key.spend_authorizing_key);
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
 
-        let mut data_to_be_signed = [0; 32];
-        data_to_be_signed.copy_from_slice(&signature_hash[..]);
+        let randomized_public_key =
+            redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
+
+        let transaction_randomized_public_key =
+            redjubjub::PublicKey(spender_key.authorizing_key.into())
+                .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        if randomized_public_key.0 != transaction_randomized_public_key.0 {
+            return Err(IronfishError::InvalidSigningKey);
+        }
+
+        let mut data_to_be_signed = [0; 64];
+        data_to_be_signed[..32].copy_from_slice(&transaction_randomized_public_key.0.to_bytes());
+        data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
 
         self.description.authorizing_signature = randomized_private_key.sign(
             &data_to_be_signed,
@@ -406,8 +418,6 @@ mod test {
         let randomized_public_key = redjubjub::PublicKey(key.authorizing_key.into())
             .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
-        let randomized_public_key_clone = randomized_public_key.clone();
-
         // signature comes from transaction, normally
         let mut sig_hash = [0u8; 32];
         thread_rng().fill(&mut sig_hash[..]);
@@ -429,7 +439,7 @@ mod test {
         thread_rng().fill(&mut other_hash[..]);
         assert!(
             proof
-                .verify_signature(&other_hash, &randomized_public_key_clone)
+                .verify_signature(&other_hash, &randomized_public_key)
                 .is_err(),
             "should error if not signing correct value"
         );

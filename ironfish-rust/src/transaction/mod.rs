@@ -100,6 +100,10 @@ pub struct ProposedTransaction {
     /// The key used to sign the transaction and any descriptions that need
     /// signed.
     spender_key: SaplingKey,
+
+    // Used to add randomness to signature generation without leaking the
+    // key. Referred to as `ar` in the literature.
+    public_key_randomness: jubjub::Fr,
     //
     // NOTE: If adding fields here, you may need to add fields to
     // signature hash method, and also to Transaction.
@@ -116,6 +120,7 @@ impl ProposedTransaction {
             value_balances: ValueBalances::new(),
             expiration_sequence: 0,
             spender_key,
+            public_key_randomness: jubjub::Fr::random(thread_rng()),
         }
     }
 
@@ -245,20 +250,16 @@ impl ProposedTransaction {
 
         // Generate randomized public key
 
-        // Used to add randomness to signature generation without leaking the
-        // key. Referred to as `ar` in the literature.
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
-
         // The public key after randomization has been applied. This is used
         // during signature verification. Referred to as `rk` in the literature
         // Calculated from the authorizing key and the public_key_randomness.
         let randomized_public_key = redjubjub::PublicKey(self.spender_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+            .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
 
         // Build descriptions
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
-            unsigned_spends.push(spend.build(&self.spender_key, &public_key_randomness)?);
+            unsigned_spends.push(spend.build(&self.spender_key, &self.public_key_randomness)?);
         }
 
         let mut output_descriptions = Vec::with_capacity(self.outputs.len());
@@ -335,6 +336,13 @@ impl ProposedTransaction {
             .unwrap();
         hasher
             .write_i64::<LittleEndian>(*self.value_balances.fee())
+            .unwrap();
+
+        let randomized_public_key = redjubjub::PublicKey(self.spender_key.authorizing_key.into())
+            .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        hasher
+            .write_all(&randomized_public_key.0.to_bytes())
             .unwrap();
 
         for spend in spends {
