@@ -33,7 +33,6 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
             timestamp: yup.number().integer().defined(),
             noteSize: yup.number().integer().nullable().defined(),
             work: yup.string().optional(),
-            nullifierSize: yup.number().integer().nullable().defined(),
             graffiti: yup.string().defined(),
           })
           .defined(),

@@ -27,7 +27,6 @@ export const TESTING = `{
       "graffiti": "67656E6573697300000000000000000000000000000000000000000000000000",
       "noteSize": 3,
       "work": "0",
-      "nullifierSize": 1
     },
     "transactions": [
       {
@@ -89,7 +88,6 @@ export const DEV = `
         "graffiti": "67656E6573697300000000000000000000000000000000000000000000000000",
         "noteSize": 3,
         "work": "0",
-        "nullifierSize": 1
       },
       "transactions": [
         {

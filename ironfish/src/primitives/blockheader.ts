@@ -166,12 +166,6 @@ export class BlockHeader {
    */
   public work: bigint
 
-  /**
-   * (For internal uses - excluded when sent over the network)
-   * The size of the nullifier tree/set after adding transactions from this block.
-   */
-  public nullifierSize: number | null
-
   public hash: Buffer
 
   constructor(
@@ -185,7 +179,6 @@ export class BlockHeader {
     graffiti: Buffer,
     noteSize?: number | null,
     work = BigInt(0),
-    nullifierSize?: number | null,
     hash?: Buffer,
   ) {
     this.sequence = sequence
@@ -198,7 +191,6 @@ export class BlockHeader {
     this.graffiti = graffiti
     this.noteSize = noteSize ?? null
     this.work = work
-    this.nullifierSize = nullifierSize ?? null
     this.hash = hash || this.recomputeHash()
   }
 
@@ -252,7 +244,6 @@ export class BlockHeader {
     return (
       this.noteSize === other.noteSize &&
       this.work === other.work &&
-      this.nullifierSize === other.nullifierSize &&
       this.recomputeHash().equals(other.recomputeHash())
     )
   }
@@ -268,7 +259,6 @@ export type SerializedBlockHeader = {
   timestamp: number
   noteSize: number | null
   work?: string
-  nullifierSize: number | null
   graffiti: string
 }
 
@@ -285,7 +275,6 @@ export class BlockHeaderSerde {
       graffiti: GraffitiSerdeInstance.serialize(header.graffiti),
       noteSize: header.noteSize,
       work: header.work.toString(),
-      nullifierSize: header.nullifierSize,
     }
 
     return serialized
@@ -303,7 +292,6 @@ export class BlockHeaderSerde {
       Buffer.from(GraffitiSerdeInstance.deserialize(data.graffiti)),
       data.noteSize,
       data.work ? BigInt(data.work) : BigInt(0),
-      data.nullifierSize,
     )
   }
 }

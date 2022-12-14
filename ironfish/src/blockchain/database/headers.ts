@@ -19,10 +19,6 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
       value.header.noteSize,
       'The note tree size should be set on the block header before saving it to the database.',
     )
-    Assert.isNotNull(
-      value.header.nullifierSize,
-      'The nullifier size should be set on the block header before saving it to the database.',
-    )
 
     const bw = bufio.write(this.getSize(value))
 
@@ -37,7 +33,6 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
 
     bw.writeBytes(value.header.graffiti)
     bw.writeVarBytes(BigIntUtils.toBytesLE(value.header.work))
-    bw.writeU32(value.header.nullifierSize)
     bw.writeHash(value.header.hash)
 
     return bw.render()
@@ -56,7 +51,6 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const timestamp = reader.readU64()
     const graffiti = reader.readBytes(32)
     const work = BigIntUtils.fromBytesLE(reader.readVarBytes())
-    const nullifierSize = reader.readU32()
     const hash = reader.readHash()
 
     const header = new BlockHeader(
@@ -70,7 +64,6 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
       graffiti,
       noteSize,
       work,
-      nullifierSize,
       hash,
     )
 
@@ -89,7 +82,6 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     size += 8 // timestamp
     size += 32 // graffiti
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(value.header.work))
-    size += 4 // nullifierSize
     size += 32 // hash
 
     return size
