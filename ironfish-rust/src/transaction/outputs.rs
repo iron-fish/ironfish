@@ -229,6 +229,7 @@ impl OutputDescription {
     /// The signature is used by the transaction to calculate the signature
     /// hash. Having this data essentially binds the note to the transaction,
     /// proving that it is actually part of that transaction.
+    /// randomized_public_key is available in Transaction level, so not needed in descriptions
     pub(crate) fn serialize_signature_fields<W: io::Write>(
         &self,
         mut writer: W,
