@@ -314,6 +314,15 @@ export class Syncer {
       )
 
       if (!found) {
+        if (needle === GENESIS_BLOCK_SEQUENCE) {
+          this.logger.warn(
+            `Peer ${peer.displayName} sent a genesis block hash that doesn't match our genesis block hash`,
+          )
+
+          peer.punish(BAN_SCORE.MAX, VerificationResultReason.INVALID_GENESIS_BLOCK)
+          this.abort(peer)
+        }
+
         upper = needle - 1
         continue
       }
@@ -332,16 +341,6 @@ export class Syncer {
     }
 
     Assert.isNotNull(ancestorSequence)
-
-    if (ancestorSequence === GENESIS_BLOCK_SEQUENCE && ancestorHash === null) {
-      this.logger.warn(
-        `Peer ${peer.displayName} sent invalid genesis block hash in Identify message`,
-      )
-
-      peer.punish(BAN_SCORE.MAX, VerificationResultReason.INVALID_GENESIS_BLOCK)
-      this.abort(peer)
-    }
-
     Assert.isNotNull(ancestorHash)
 
     return {

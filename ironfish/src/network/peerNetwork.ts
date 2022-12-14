@@ -862,6 +862,13 @@ export class PeerNetwork {
 
     // verify the header
     const header = compactBlock.header
+    if (header.sequence === GENESIS_BLOCK_SEQUENCE) {
+      peer.punish(BAN_SCORE.MAX, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
+      this.chain.addInvalid(header.hash, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
+      this.blockFetcher.removeBlock(header.hash)
+      return
+    }
+
     const verifyHeaderResult = this.chain.verifier.verifyBlockHeader(header)
     if (!verifyHeaderResult.valid) {
       this.chain.addInvalid(
@@ -1197,11 +1204,6 @@ export class PeerNetwork {
       return
     }
 
-    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-      peer.punish(BAN_SCORE.MAX, 'Peer gossiped its genesis block')
-      return
-    }
-
     if (await this.alreadyHaveBlock(block.header)) {
       return
     }
@@ -1209,6 +1211,13 @@ export class PeerNetwork {
     peer.knownBlockHashes.set(block.header.hash, KnownBlockHashesValue.Received)
 
     // verify the block header
+    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+      peer.punish(BAN_SCORE.MAX, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
+      this.chain.addInvalid(block.header.hash, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
+      this.blockFetcher.removeBlock(block.header.hash)
+      return
+    }
+
     const verifyBlockHeaderResult = this.chain.verifier.verifyBlockHeader(block.header)
     if (!verifyBlockHeaderResult.valid) {
       this.chain.addInvalid(
