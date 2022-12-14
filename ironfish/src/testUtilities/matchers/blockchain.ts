@@ -54,10 +54,16 @@ async function toAddDoubleSpendBlock(
   self: Blockchain,
   other: Block,
 ): Promise<jest.CustomMatcherResult> {
-  // Mock nullifiers to allow creation of a double spend chain
+  // Mock nullifiers set to allow creation of a double spend chain
   const containsMock = jest.spyOn(self.nullifiers, 'contains').mockResolvedValue(false)
+  const addNullifierMock = jest
+    .spyOn(self.nullifiers['nullifiers'], 'add')
+    .mockImplementation((...args) => self.nullifiers['nullifiers'].put(...args))
+
   const result = await self.addBlock(other)
+
   containsMock.mockRestore()
+  addNullifierMock.mockRestore()
 
   if (!result.isAdded) {
     return makeResult(false, `Could not add block: ${String(result.reason)}`)

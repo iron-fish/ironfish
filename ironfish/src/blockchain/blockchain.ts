@@ -39,7 +39,6 @@ import {
   SerializedNoteEncrypted,
   SerializedNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
-import { Nullifier, NullifierHash, NullifierHasher } from '../primitives/nullifier'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import {
@@ -58,6 +57,7 @@ import { AssetsValueEncoding } from './database/assets'
 import { HeaderEncoding } from './database/headers'
 import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
 import { TransactionsValueEncoding } from './database/transactions'
+import { NullifierSet } from './nullifierSet/nullifierSet'
 import {
   AssetsSchema,
   HashToNextSchema,
@@ -90,7 +90,7 @@ export class Blockchain {
     SerializedNoteEncrypted,
     SerializedNoteEncryptedHash
   >
-  nullifiers: MerkleTree<Nullifier, NullifierHash, string, string>
+  nullifiers: NullifierSet
 
   addSpeed: RollingAverage
   invalid: LRU<BlockHash, VerificationResultReason>
@@ -249,16 +249,7 @@ export class Blockchain {
       defaultValue: Buffer.alloc(32),
     })
 
-    this.nullifiers = new MerkleTree({
-      hasher: new NullifierHasher(),
-      leafIndexKeyEncoding: BUFFER_ENCODING,
-      leafEncoding: new LeafEncoding(),
-      nodeEncoding: new NodeEncoding(),
-      db: this.db,
-      name: 'u',
-      depth: 32,
-      defaultValue: Buffer.alloc(32),
-    })
+    this.nullifiers = new NullifierSet({ db: this.db, name: 'u' })
   }
 
   get isEmpty(): boolean {
@@ -941,6 +932,9 @@ export class Blockchain {
       let target
       const timestamp = new Date(Date.now())
 
+      const originalNoteSize = await this.notes.size(tx)
+      const originalNullifierSize = await this.nullifiers.size(tx)
+
       if (!this.hasGenesisBlock) {
         previousBlockHash = GENESIS_BLOCK_PREVIOUS
         previousSequence = 0
@@ -949,8 +943,6 @@ export class Blockchain {
         const heaviestHead = this.head
 
         // Sanity check that we are building on top of correct size note and nullifier tree, may not be needed
-        const originalNoteSize = await this.notes.size(tx)
-        const originalNullifierSize = await this.nullifiers.size(tx)
         Assert.isEqual(originalNoteSize, heaviestHead.noteSize, 'newBlock note size mismatch')
         Assert.isEqual(
           originalNullifierSize,
@@ -974,22 +966,20 @@ export class Blockchain {
       }
 
       const blockNotes = []
-      const blockNullifiers = []
+      let addedNullifiers = 0
       for (const transaction of transactions) {
         for (const note of transaction.notes()) {
           blockNotes.push(note)
         }
-        for (const spend of transaction.spends()) {
-          blockNullifiers.push(spend.nullifier)
-        }
+
+        addedNullifiers += transaction.spendsLength()
       }
 
       await this.notes.addBatch(blockNotes, tx)
-      await this.nullifiers.addBatch(blockNullifiers, tx)
 
       const noteCommitment = await this.notes.rootHash(tx)
       const noteSize = await this.notes.size(tx)
-      const nullifierSize = await this.nullifiers.size(tx)
+      const nullifierSize = originalNullifierSize + addedNullifiers
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
@@ -1254,12 +1244,10 @@ export class Blockchain {
     // If the tree sizes don't match the previous block, we can't verify if the tree
     // sizes on this block are correct
     let prevNotesSize = 0
-    let prevNullifierSize = 0
     if (prev) {
       Assert.isNotNull(prev.noteSize)
       Assert.isNotNull(prev.nullifierSize)
       prevNotesSize = prev.noteSize
-      prevNullifierSize = prev.nullifierSize
     }
 
     Assert.isEqual(
@@ -1267,17 +1255,9 @@ export class Blockchain {
       await this.notes.size(tx),
       'Notes tree must match previous block header',
     )
-    Assert.isEqual(
-      prevNullifierSize,
-      await this.nullifiers.size(tx),
-      'Nullifier tree must match previous block header',
-    )
 
     await this.notes.addBatch(block.notes(), tx)
-    await this.nullifiers.addBatch(
-      [...block.spends()].map((s) => s.nullifier),
-      tx,
-    )
+    await this.nullifiers.connectBlock(block, tx)
 
     for (const transaction of block.transactions) {
       await this.saveConnectedMintsToAssetsStore(transaction, tx)
@@ -1314,7 +1294,7 @@ export class Blockchain {
 
     await Promise.all([
       this.notes.truncate(prev.noteSize, tx),
-      this.nullifiers.truncate(prev.nullifierSize, tx),
+      this.nullifiers.disconnectBlock(block, tx),
     ])
 
     await this.meta.put('head', prev.hash, tx)

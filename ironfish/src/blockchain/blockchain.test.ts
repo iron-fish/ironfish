@@ -8,7 +8,6 @@ import { VerificationResultReason } from '../consensus'
 import { IronfishNode } from '../node'
 import { Block } from '../primitives'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
-import { NullifierHasher } from '../primitives/nullifier'
 import {
   createNodeTest,
   useAccountFixture,
@@ -18,7 +17,6 @@ import {
   useMinerBlockFixture,
   useMinersTxFixture,
   useTxFixture,
-  useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { buildRawTransaction } from '../testUtilities/helpers/transaction'
@@ -409,11 +407,11 @@ describe('Blockchain', () => {
     expect(await node.chain.notes.size()).toBe(blockA3.header.noteSize)
   })
 
-  describe('MerkleTrees', () => {
-    it('should add notes and nullifiers to trees', async () => {
+  describe('MerkleTree + Nullifier Set', () => {
+    it('should add notes to tree and nullifiers to set', async () => {
       /**
-       * This test will check that notes are added linearly, and also the trees
-       * are reorganized for a heavier fork when a heavier fork appears
+       * This test will check that notes are added linearly, and also the tree
+       * is reorganized for a heavier fork when a heavier fork appears
        *
        * G -> A1 -> A2
        *   -> B1 -> B2 -> B3
@@ -486,13 +484,11 @@ describe('Blockchain', () => {
       expect(addedNoteA4.equals(txA2.getNote(1).merkleHash())).toBe(true)
 
       // Check nodeA has nullifiers from blockA2
-      const nullifierHasher = new NullifierHasher()
       expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
-      let addedNullifierA1 = (await nodeA.chain.nullifiers.getLeaf(countNullifierA + 0))
-        .merkleHash
-      expect(
-        addedNullifierA1.equals(nullifierHasher.merkleHash(txA2.getSpend(0).nullifier)),
-      ).toBe(true)
+
+      let addedNullifierA1 = await nodeA.chain.nullifiers.get(txA2.getSpend(0).nullifier)
+      expect(addedNullifierA1).toBeDefined()
+      expect(addedNullifierA1?.equals(txA2.hash())).toBe(true)
 
       // Check nodeB has notes from blockB1, blockB2, blockB3
       expect(await nodeB.chain.notes.size()).toBe(countNoteB + 5)
@@ -509,11 +505,9 @@ describe('Blockchain', () => {
 
       // Check nodeB has nullifiers from blockB3
       expect(await nodeB.chain.nullifiers.size()).toBe(countNullifierB + 1)
-      const addedNullifierB1 = (await nodeB.chain.nullifiers.getLeaf(countNullifierB + 0))
-        .merkleHash
-      expect(
-        addedNullifierB1.equals(nullifierHasher.merkleHash(txB3.getSpend(0).nullifier)),
-      ).toBe(true)
+      const addedNullifierB1 = await nodeB.chain.nullifiers.get(txB3.getSpend(0).nullifier)
+      expect(addedNullifierB1).toBeDefined()
+      expect(addedNullifierB1?.equals(txB3.hash())).toBe(true)
 
       // Now cause reorg on nodeA
       await nodeA.chain.addBlock(blockB1)
@@ -535,10 +529,9 @@ describe('Blockchain', () => {
 
       // Check nodeA's chain has removed blockA2 nullifiers and added blockB3
       expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
-      addedNullifierA1 = (await nodeA.chain.nullifiers.getLeaf(countNullifierA + 0)).merkleHash
-      expect(
-        addedNullifierA1.equals(nullifierHasher.merkleHash(txB3.getSpend(0).nullifier)),
-      ).toBe(true)
+      addedNullifierA1 = await nodeA.chain.nullifiers.get(txB3.getSpend(0).nullifier)
+      expect(addedNullifierA1).toBeDefined()
+      expect(addedNullifierA1?.equals(txB3.hash())).toBe(true)
     }, 300000)
 
     it(`throws if the notes tree size is greater than the previous block's note tree size`, async () => {
@@ -550,17 +543,6 @@ describe('Blockchain', () => {
 
       await expect(nodeTest.chain.addBlock(block)).rejects.toThrow(
         'Notes tree must match previous block header',
-      )
-    }, 30000)
-
-    it('throws if the position is larger than the number of nullifiers', async () => {
-      const { transaction } = await useTxSpendsFixture(nodeTest.node)
-      const block = await useMinerBlockFixture(nodeTest.chain)
-
-      await nodeTest.chain.nullifiers.add(transaction.getSpend(0).nullifier)
-
-      await expect(nodeTest.chain.addBlock(block)).rejects.toThrow(
-        'Nullifier tree must match previous block header',
       )
     }, 30000)
   })
