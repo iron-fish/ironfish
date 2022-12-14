@@ -85,15 +85,7 @@ describe('NullifierSet', () => {
 
     expect(await set.size()).toBe(allNullifiers.length - block4Nullifiers.length)
 
-    for (const nullifier of block1Nullifiers) {
-      expect(await set.contains(nullifier)).toBe(true)
-    }
-
-    for (const nullifier of block2Nullifiers) {
-      expect(await set.contains(nullifier)).toBe(true)
-    }
-
-    for (const nullifier of block3Nullifiers) {
+    for (const nullifier of [...block1Nullifiers, ...block2Nullifiers, ...block3Nullifiers]) {
       expect(await set.contains(nullifier)).toBe(true)
     }
 
