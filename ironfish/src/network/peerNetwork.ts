@@ -863,7 +863,6 @@ export class PeerNetwork {
     // verify the header
     const header = compactBlock.header
     if (header.sequence === GENESIS_BLOCK_SEQUENCE) {
-      peer.punish(BAN_SCORE.MAX, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
       this.chain.addInvalid(header.hash, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
       this.blockFetcher.removeBlock(header.hash)
       return
@@ -1212,7 +1211,6 @@ export class PeerNetwork {
 
     // verify the block header
     if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
-      peer.punish(BAN_SCORE.MAX, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
       this.chain.addInvalid(block.header.hash, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
       this.blockFetcher.removeBlock(block.header.hash)
       return
