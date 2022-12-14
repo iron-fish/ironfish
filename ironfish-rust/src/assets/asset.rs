@@ -57,7 +57,12 @@ pub struct Asset {
 impl Asset {
     /// Create a new AssetType from a public address, name, chain, and network
     pub fn new(owner: PublicAddress, name: &str, metadata: &str) -> Result<Asset, IronfishError> {
-        let name_bytes = str_to_array(name);
+        let trimmed_name = name.trim();
+        if trimmed_name.is_empty() {
+            return Err(IronfishError::InvalidData);
+        }
+
+        let name_bytes = str_to_array(trimmed_name);
         let metadata_bytes = str_to_array(metadata);
 
         let mut nonce = 0u8;
@@ -181,6 +186,22 @@ mod test {
     use crate::{util::str_to_array, PublicAddress, SaplingKey};
 
     use super::{Asset, NATIVE_ASSET};
+
+    #[test]
+    fn test_asset_name_must_be_set() {
+        let key = SaplingKey::generate_key();
+        let owner = key.public_address();
+        let metadata = "";
+
+        let bad_asset1 = Asset::new(owner, "", metadata);
+        assert!(bad_asset1.is_err());
+
+        let bad_asset2 = Asset::new(owner, "   ", metadata);
+        assert!(bad_asset2.is_err());
+
+        let good_asset = Asset::new(owner, "foo", metadata);
+        assert!(good_asset.is_ok());
+    }
 
     #[test]
     fn test_asset_new_with_nonce() {
