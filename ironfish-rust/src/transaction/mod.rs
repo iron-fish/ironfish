@@ -22,11 +22,11 @@ use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use jubjub::{ExtendedPoint, SubgroupPoint};
-use rand::rngs::OsRng;
+use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
     constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
-    redjubjub::{PrivateKey, PublicKey, Signature},
+    redjubjub::{PrivateKey, PublicKey, Signature, self},
 };
 
 use std::{io, iter, slice::Iter};
@@ -277,7 +277,7 @@ impl ProposedTransaction {
         for mint in unsigned_mints.drain(0..) {
             mint_descriptions.push(mint.sign(&self.spender_key, &data_to_sign)?);
         }
-
+        let randomized_public_key = output_descriptions.first().ok_or(IronfishError::InvalidTransaction)?.randomized_public_key.clone();
         Ok(Transaction {
             version: self.version,
             expiration_sequence: self.expiration_sequence,
@@ -287,6 +287,7 @@ impl ProposedTransaction {
             mints: mint_descriptions,
             burns: burn_descriptions,
             binding_signature,
+            randomized_public_key, 
         })
     }
 
@@ -439,6 +440,14 @@ pub struct Transaction {
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
     expiration_sequence: u32,
+
+    /// Randomized public key of the sender of the Transaction
+    /// currently this value is the same for all spends[].owner and outputs[].sender
+    /// This is used during verification of SpendDescriptions and OutputDescriptions, as 
+    /// well as signing of the SpendDescriptions. Referred to as
+    /// `rk` in the literature Calculated from the authorizing key and
+    /// the public_key_randomness.
+    randomized_public_key: redjubjub::PublicKey,
 }
 
 impl Transaction {
@@ -475,6 +484,7 @@ impl Transaction {
         }
 
         let binding_signature = Signature::read(&mut reader)?;
+        let randomized_public_key = outputs.first().ok_or(IronfishError::InvalidTransaction)?.randomized_public_key.clone();
 
         Ok(Transaction {
             version,
@@ -485,6 +495,7 @@ impl Transaction {
             burns,
             binding_signature,
             expiration_sequence,
+            randomized_public_key,
         })
     }
 
@@ -567,6 +578,11 @@ impl Transaction {
     /// Get the expiration sequence for this transaction
     pub fn expiration_sequence(&self) -> u32 {
         self.expiration_sequence
+    }
+
+    /// Get the expiration sequence for this transaction
+    pub fn randomized_public_key(&self) -> &redjubjub::PublicKey {
+        &self.randomized_public_key
     }
 
     /// Calculate a hash of the transaction data. This hash was signed by the

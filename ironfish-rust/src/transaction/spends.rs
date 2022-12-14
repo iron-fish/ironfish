@@ -133,7 +133,6 @@ impl SpendBuilder {
         let description = SpendDescription {
             proof,
             value_commitment: value_commitment_point,
-            randomized_public_key,
             root_hash: self.root_hash,
             tree_size: self.tree_size,
             nullifier,
@@ -169,14 +168,8 @@ impl UnsignedSpendDescription {
         let randomized_public_key =
             redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
 
-        if randomized_public_key.0 != self.description.randomized_public_key.0 {
-            return Err(IronfishError::InvalidSigningKey);
-        }
-
-        let mut data_to_be_signed = [0; 64];
-        data_to_be_signed[..32]
-            .copy_from_slice(&self.description.randomized_public_key.0.to_bytes());
-        data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
+        let mut data_to_be_signed = [0; 32];
+        data_to_be_signed.copy_from_slice(&signature_hash[..]);
 
         self.description.authorizing_signature = randomized_private_key.sign(
             &data_to_be_signed,
@@ -201,13 +194,6 @@ pub struct SpendDescription {
     /// random number. Randomized to help maintain zero knowledge.
     pub(crate) value_commitment: ExtendedPoint,
 
-    /// The public key after randomization has been applied. This is used
-    /// during signature verification to confirm that the owner of the note
-    /// authorized the spend. Referred to as
-    /// `rk` in the literature Calculated from the authorizing key and
-    /// the public_key_randomness.
-    pub(crate) randomized_public_key: redjubjub::PublicKey,
-
     /// The root hash of the merkle tree at the time the proof was calculated.
     /// Referred to as `anchor` in the literature.
     pub(crate) root_hash: Scalar,
@@ -231,11 +217,9 @@ pub struct SpendDescription {
 
 impl Clone for SpendDescription {
     fn clone(&self) -> SpendDescription {
-        let randomized_public_key = redjubjub::PublicKey(self.randomized_public_key.0);
         SpendDescription {
             proof: self.proof.clone(),
             value_commitment: self.value_commitment,
-            randomized_public_key,
             root_hash: self.root_hash,
             tree_size: self.tree_size,
             nullifier: self.nullifier,
@@ -251,7 +235,6 @@ impl SpendDescription {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
         let value_commitment = read_point(&mut reader)?;
-        let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
         let root_hash = read_scalar(&mut reader)?;
         let tree_size = reader.read_u32::<LittleEndian>()?;
         let mut nullifier = Nullifier([0; 32]);
@@ -261,7 +244,6 @@ impl SpendDescription {
         Ok(SpendDescription {
             proof,
             value_commitment,
-            randomized_public_key,
             root_hash,
             tree_size,
             nullifier,
@@ -366,7 +348,6 @@ impl SpendDescription {
             writer,
             &self.proof,
             &self.value_commitment,
-            &self.randomized_public_key,
             &self.root_hash,
             self.tree_size,
             &self.nullifier,
@@ -380,14 +361,12 @@ fn serialize_signature_fields<W: io::Write>(
     mut writer: W,
     proof: &groth16::Proof<Bls12>,
     value_commitment: &ExtendedPoint,
-    randomized_public_key: &redjubjub::PublicKey,
     root_hash: &Scalar,
     tree_size: u32,
     nullifier: &Nullifier,
 ) -> Result<(), IronfishError> {
     proof.write(&mut writer)?;
     writer.write_all(&value_commitment.to_bytes())?;
-    writer.write_all(&randomized_public_key.0.to_bytes())?;
     writer.write_all(root_hash.to_repr().as_ref())?;
     writer.write_u32::<LittleEndian>(tree_size)?;
     writer.write_all(&nullifier.0)?;
