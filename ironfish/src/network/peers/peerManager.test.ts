@@ -1003,7 +1003,7 @@ describe('PeerManager', () => {
       })
       peer.onMessage.emit(identify, connection)
 
-      expect(closeSpy).toBeCalled()
+      expect(closeSpy).toHaveBeenCalled()
       expect(pm.peers.length).toBe(0)
       expect(pm.identifiedPeers.size).toBe(0)
     })
@@ -1031,7 +1031,7 @@ describe('PeerManager', () => {
       Assert.isFalse(identify.genesisBlockHash.equals(localPeer.chain.genesis.hash))
       peer.onMessage.emit(identify, connection)
 
-      expect(closeSpy).toBeCalled()
+      expect(closeSpy).toHaveBeenCalled()
       expect(pm.peers.length).toBe(0)
       expect(pm.identifiedPeers.size).toBe(0)
     })
