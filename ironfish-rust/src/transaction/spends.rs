@@ -21,7 +21,7 @@ use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
     proofs::Spend,
-    redjubjub::{self, Signature},
+    redjubjub::{self, Signature, PublicKey},
     Nullifier, ValueCommitment,
 };
 use jubjub::ExtendedPoint;
@@ -92,11 +92,8 @@ impl SpendBuilder {
     pub(crate) fn build(
         &self,
         spender_key: &SaplingKey,
+        public_key_randomness: &jubjub::Fr,
     ) -> Result<UnsignedSpendDescription, IronfishError> {
-        // Used to add randomness to signature generation without leaking the
-        // key. Referred to as `ar` in the literature.
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
-
         let value_commitment_point = self.value_commitment_point();
 
         let circuit = Spend {
@@ -106,7 +103,7 @@ impl SpendBuilder {
             auth_path: self.auth_path.clone(),
             commitment_randomness: Some(self.note.randomness),
             anchor: Some(self.root_hash),
-            ar: Some(public_key_randomness),
+            ar: Some(*public_key_randomness),
             asset_generator: Some(self.note.asset_generator().into()),
         };
 
@@ -114,12 +111,6 @@ impl SpendBuilder {
         // and note.
         let proof =
             groth16::create_random_proof(circuit, &SAPLING.spend_params, &mut thread_rng())?;
-
-        // The public key after randomization has been applied. This is used
-        // during signature verification. Referred to as `rk` in the literature
-        // Calculated from the authorizing key and the public_key_randomness.
-        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         // Bytes to be placed into the nullifier set to verify whether this note
         // has been previously spent.
@@ -139,10 +130,13 @@ impl SpendBuilder {
             authorizing_signature: blank_signature,
         };
 
-        description.verify_proof()?;
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(*public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        description.verify_proof(&randomized_public_key)?;
 
         Ok(UnsignedSpendDescription {
-            public_key_randomness,
+            public_key_randomness: *public_key_randomness,
             description,
         })
     }
@@ -165,8 +159,6 @@ impl UnsignedSpendDescription {
     ) -> Result<SpendDescription, IronfishError> {
         let private_key = redjubjub::PrivateKey(spender_key.spend_authorizing_key);
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
-        let randomized_public_key =
-            redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
 
         let mut data_to_be_signed = [0; 32];
         data_to_be_signed.copy_from_slice(&signature_hash[..]);
@@ -273,15 +265,15 @@ impl SpendDescription {
 
     /// Verify that the signature on this proof is signing the provided input
     /// with the randomized_public_key on this proof.
-    pub fn verify_signature(&self, signature_hash_value: &[u8; 32]) -> Result<(), IronfishError> {
-        if self.randomized_public_key.0.is_small_order().into() {
+    pub fn verify_signature(&self, signature_hash_value: &[u8; 32], randomized_public_key: &PublicKey) -> Result<(), IronfishError> {
+        if randomized_public_key.0.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
         }
         let mut data_to_be_signed = [0; 64];
-        data_to_be_signed[..32].copy_from_slice(&self.randomized_public_key.0.to_bytes());
+        data_to_be_signed[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash_value[..]);
 
-        if !self.randomized_public_key.verify(
+        if !randomized_public_key.verify(
             &data_to_be_signed,
             &self.authorizing_signature,
             SPENDING_KEY_GENERATOR,
@@ -295,13 +287,13 @@ impl SpendDescription {
     /// Verify that the bellman proof confirms the randomized_public_key,
     /// commitment_value, nullifier, and anchor attached to this
     /// [`SpendDescription`].
-    pub fn verify_proof(&self) -> Result<(), IronfishError> {
+    pub fn verify_proof(&self, randomized_public_key: &PublicKey) -> Result<(), IronfishError> {
         self.verify_not_small_order()?;
 
         groth16::verify_proof(
             &SAPLING.spend_verifying_key,
             &self.proof,
-            &self.public_inputs()[..],
+            &self.public_inputs(randomized_public_key)[..],
         )?;
 
         Ok(())
@@ -318,9 +310,9 @@ impl SpendDescription {
     /// Converts the values to appropriate inputs for verifying the bellman
     /// proof.  Confirms the randomized_public_key, commitment_value, anchor
     /// (root hash), and nullifier attached to this [`SpendDescription`].
-    pub fn public_inputs(&self) -> [Scalar; 7] {
+    pub fn public_inputs(&self, randomized_public_key: &PublicKey) -> [Scalar; 7] {
         let mut public_inputs = [Scalar::zero(); 7];
-        let p = self.randomized_public_key.0.to_affine();
+        let p = randomized_public_key.0.to_affine();
         public_inputs[0] = p.get_u();
         public_inputs[1] = p.get_v();
 
@@ -376,10 +368,14 @@ fn serialize_signature_fields<W: io::Write>(
 
 #[cfg(test)]
 mod test {
+
     use super::{SpendBuilder, SpendDescription};
     use crate::assets::asset::NATIVE_ASSET_GENERATOR;
     use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
+    use ff::Field;
     use group::Curve;
+    use ironfish_zkp::constants::SPENDING_KEY_GENERATOR;
+    use ironfish_zkp::redjubjub;
     use rand::prelude::*;
     use rand::{thread_rng, Rng};
 
@@ -402,23 +398,29 @@ mod test {
 
         let spend = SpendBuilder::new(note, &witness);
 
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        let randomized_public_key_clone = randomized_public_key.clone();
+
         // signature comes from transaction, normally
         let mut sig_hash = [0u8; 32];
         thread_rng().fill(&mut sig_hash[..]);
 
-        let unsigned_proof = spend.build(&key).expect("should be able to build proof");
+        let unsigned_proof = spend.build(&key, &public_key_randomness).expect("should be able to build proof");
         let proof = unsigned_proof
             .sign(&key, &sig_hash)
             .expect("should be able to sign proof");
-        proof.verify_proof().expect("proof should check out");
+        proof.verify_proof(&randomized_public_key).expect("proof should check out");
         proof
-            .verify_signature(&sig_hash)
+            .verify_signature(&sig_hash, &randomized_public_key)
             .expect("should be able to verify signature");
 
         let mut other_hash = [0u8; 32];
         thread_rng().fill(&mut other_hash[..]);
         assert!(
-            proof.verify_signature(&other_hash).is_err(),
+            proof.verify_signature(&other_hash, &randomized_public_key_clone).is_err(),
             "should error if not signing correct value"
         );
 
@@ -438,10 +440,7 @@ mod test {
             proof.value_commitment.to_affine(),
             read_back_proof.value_commitment.to_affine()
         );
-        assert_eq!(
-            proof.randomized_public_key.0.to_affine(),
-            read_back_proof.randomized_public_key.0.to_affine()
-        );
+        
         assert_eq!(proof.root_hash, read_back_proof.root_hash);
         assert_eq!(proof.nullifier, read_back_proof.nullifier);
         let mut serialized_again = vec![];
