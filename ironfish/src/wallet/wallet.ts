@@ -780,9 +780,7 @@ export class Wallet {
         amountNeeded,
       )
       if (amount < amountNeeded) {
-        throw new NotEnoughFundsError(
-          `Insufficient funds: Needed ${amountNeeded.toString()} but have ${amount.toString()}`,
-        )
+        throw new NotEnoughFundsError(assetIdentifier, amount, amountNeeded)
       }
 
       notesToSpend.push(...notes)

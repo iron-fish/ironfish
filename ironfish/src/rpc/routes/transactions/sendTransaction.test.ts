@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset } from '@ironfish/rust-nodejs'
 import { useAccountFixture, useMinersTxFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { NotEnoughFundsError } from '../../../wallet/errors'
@@ -141,7 +142,11 @@ describe('Transactions sendTransaction', () => {
 
     await useAccountFixture(routeTest.node.wallet, 'account-throw-error')
 
-    jest.spyOn(routeTest.node.wallet, 'pay').mockRejectedValue(new NotEnoughFundsError())
+    jest
+      .spyOn(routeTest.node.wallet, 'pay')
+      .mockRejectedValue(
+        new NotEnoughFundsError(Asset.nativeIdentifier(), BigInt(0), BigInt(1)),
+      )
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
