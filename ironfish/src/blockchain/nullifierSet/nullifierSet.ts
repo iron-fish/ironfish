@@ -98,8 +98,8 @@ export class NullifierSet {
     await this.counter.put('Size', currentSize, tx)
   }
 
-  async clear(): Promise<void> {
-    await this.nullifiers.clear()
-    await this.counter.clear()
+  async clear(tx?: IDatabaseTransaction): Promise<void> {
+    await this.nullifiers.clear(tx)
+    await this.counter.clear(tx)
   }
 }

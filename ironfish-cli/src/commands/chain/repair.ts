@@ -159,7 +159,6 @@ export default class RepairChain extends IronfishCommand {
     CliUx.ux.action.stop()
 
     CliUx.ux.action.start('Clearing nullifier set')
-
     await node.chain.nullifiers.clear()
 
     CliUx.ux.action.stop()
