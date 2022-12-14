@@ -530,15 +530,25 @@ export class WalletDB {
     }
   }
 
-  async getUnconfirmedBalance(account: Account, tx?: IDatabaseTransaction): Promise<bigint> {
-    // TODO(mgeist,rohanjadvani): This will be updated in a subsequent PR to
-    // include an asset as an argument
-    const unconfirmedBalance = await this.balances.get(
-      [account.prefix, Asset.nativeIdentifier()],
+  async getUnconfirmedBalance(
+    account: Account,
+    assetIdentifier: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<bigint> {
+    const unconfirmedBalance = await this.balances.get([account.prefix, assetIdentifier], tx)
+    return unconfirmedBalance ?? BigInt(0)
+  }
+
+  async *getUnconfirmedBalances(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{ assetIdentifier: Buffer; balance: bigint }> {
+    for await (const [[_, assetIdentifier], balance] of this.balances.getAllIter(
       tx,
-    )
-    Assert.isNotUndefined(unconfirmedBalance)
-    return unconfirmedBalance
+      account.prefixRange,
+    )) {
+      yield { assetIdentifier, balance }
+    }
   }
 
   async saveUnconfirmedBalance(

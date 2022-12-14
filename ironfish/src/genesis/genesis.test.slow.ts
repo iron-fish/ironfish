@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { BlockSerde, SerializedBlock } from '../primitives/block'
 import { Target } from '../primitives/target'
 import { IJSON } from '../serde'
@@ -85,7 +85,9 @@ describe('Create genesis block', () => {
 
     // Balance should still be zero, since generating the block should clear out
     // any notes made in the process
-    await expect(node.wallet.getBalance(account)).resolves.toMatchObject({
+    await expect(
+      node.wallet.getBalance(account, Asset.nativeIdentifier()),
+    ).resolves.toMatchObject({
       confirmed: BigInt(0),
       pending: BigInt(0),
     })
@@ -97,7 +99,9 @@ describe('Create genesis block', () => {
     await node.wallet.updateHead()
 
     // Check that the balance is what's expected
-    await expect(node.wallet.getBalance(account)).resolves.toMatchObject({
+    await expect(
+      node.wallet.getBalance(account, Asset.nativeIdentifier()),
+    ).resolves.toMatchObject({
       confirmed: amountBigint,
       pending: amountBigint,
     })
@@ -133,7 +137,9 @@ describe('Create genesis block', () => {
     await newNode.wallet.updateHead()
     await newNode.wallet.scanTransactions()
 
-    await expect(newNode.wallet.getBalance(accountNewNode)).resolves.toMatchObject({
+    await expect(
+      newNode.wallet.getBalance(accountNewNode, Asset.nativeIdentifier()),
+    ).resolves.toMatchObject({
       confirmed: amountBigint,
       pending: amountBigint,
     })

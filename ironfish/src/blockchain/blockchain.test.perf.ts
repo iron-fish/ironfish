@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
+import { Asset } from '@ironfish/rust-nodejs'
 import _ from 'lodash'
 import { Assert } from '../assert'
 import { Block } from '../primitives'
@@ -56,8 +57,8 @@ describe('Blockchain', () => {
       blocksB.push(blockB)
     }
 
-    const balanceA = await nodeA.wallet.getBalance(accountA)
-    const balanceB = await nodeB.wallet.getBalance(accountB)
+    const balanceA = await nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier())
+    const balanceB = await nodeB.wallet.getBalance(accountB, Asset.nativeIdentifier())
 
     // You'll need to update this if the block reward changes
     expect(balanceA.confirmed).toEqual(BigInt(1999999901))

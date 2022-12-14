@@ -116,7 +116,8 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     // Check that the node account is updated
-    const balance = await node.wallet.getBalance(account)
+    // TODO(mgeist,rohanjadvani): Pass through asset identifier
+    const balance = await node.wallet.getBalance(account, Asset.nativeIdentifier())
 
     if (balance.confirmed < sum) {
       throw new ValidationError(
