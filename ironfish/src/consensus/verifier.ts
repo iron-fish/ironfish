@@ -216,8 +216,6 @@ export class Verifier {
     }
 
     const reason = await this.chain.db.withTransaction(null, async (tx) => {
-      const nullifierSize = await this.chain.nullifiers.size(tx)
-
       for (const spend of transaction.spends()) {
         // If the spend references a larger tree size, allow it, so it's possible to
         // store transactions made while the node is a few blocks behind
@@ -226,7 +224,7 @@ export class Verifier {
         // (and spends) can eventually become valid if the chain forks to them.
         // Calculating the notes rootHash is also expensive at the time of writing, so performance test
         // before verifying the rootHash on spends.
-        if (await this.chain.nullifiers.contained(spend.nullifier, nullifierSize, tx)) {
+        if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
           return VerificationResultReason.DOUBLE_SPEND
         }
       }

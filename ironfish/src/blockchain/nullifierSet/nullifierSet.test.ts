@@ -57,60 +57,6 @@ describe('NullifierSet', () => {
       .flatMap((t) => [...t.spends()])
       .map((s) => s.nullifier)
 
-    expect(await set.size()).toBe(0)
-    await set.connectBlock(block1)
-    expect(await set.size()).toBe(block1Nullifiers.length)
-    await set.connectBlock(block2)
-    expect(await set.size()).toBe(block1Nullifiers.length + block2Nullifiers.length)
-    await set.connectBlock(block3)
-    expect(await set.size()).toBe(
-      block1Nullifiers.length + block2Nullifiers.length + block3Nullifiers.length,
-    )
-    await set.connectBlock(block4)
-    expect(await set.size()).toBe(
-      block1Nullifiers.length +
-        block2Nullifiers.length +
-        block3Nullifiers.length +
-        block4Nullifiers.length,
-    )
-
-    Assert.isNotNull(block1.header.nullifierSize)
-    Assert.isNotNull(block2.header.nullifierSize)
-    Assert.isNotNull(block3.header.nullifierSize)
-    Assert.isNotNull(block4.header.nullifierSize)
-
-    for (const nullifier of block4Nullifiers) {
-      expect(await set.contained(nullifier, block1.header.nullifierSize)).toBe(false)
-      expect(await set.contained(nullifier, block2.header.nullifierSize)).toBe(false)
-      expect(await set.contained(nullifier, block3.header.nullifierSize)).toBe(false)
-      expect(await set.contained(nullifier, block4.header.nullifierSize)).toBe(true)
-      expect(await set.contains(nullifier)).toBe(true)
-    }
-
-    for (const nullifier of block3Nullifiers) {
-      expect(await set.contained(nullifier, block1.header.nullifierSize)).toBe(false)
-      expect(await set.contained(nullifier, block2.header.nullifierSize)).toBe(false)
-      expect(await set.contained(nullifier, block4.header.nullifierSize)).toBe(true)
-      expect(await set.contained(nullifier, block3.header.nullifierSize)).toBe(true)
-      expect(await set.contains(nullifier)).toBe(true)
-    }
-
-    for (const nullifier of block2Nullifiers) {
-      expect(await set.contained(nullifier, block1.header.nullifierSize)).toBe(false)
-      expect(await set.contained(nullifier, block2.header.nullifierSize)).toBe(true)
-      expect(await set.contained(nullifier, block4.header.nullifierSize)).toBe(true)
-      expect(await set.contained(nullifier, block3.header.nullifierSize)).toBe(true)
-      expect(await set.contains(nullifier)).toBe(true)
-    }
-
-    for (const nullifier of block1Nullifiers) {
-      expect(await set.contained(nullifier, block1.header.nullifierSize)).toBe(true)
-      expect(await set.contained(nullifier, block2.header.nullifierSize)).toBe(true)
-      expect(await set.contained(nullifier, block4.header.nullifierSize)).toBe(true)
-      expect(await set.contained(nullifier, block3.header.nullifierSize)).toBe(true)
-      expect(await set.contains(nullifier)).toBe(true)
-    }
-
     const allNullifiers = [
       ...block1Nullifiers,
       ...block2Nullifiers,
@@ -118,7 +64,19 @@ describe('NullifierSet', () => {
       ...block4Nullifiers,
     ]
 
+    expect(await set.size()).toBe(0)
+    await set.connectBlock(block1)
+    expect(await set.size()).toBe(block1Nullifiers.length)
+    await set.connectBlock(block2)
+    expect(await set.size()).toBe(block1Nullifiers.length + block2Nullifiers.length)
+    await set.connectBlock(block3)
+    expect(await set.size()).toBe(allNullifiers.length - block4Nullifiers.length)
+    await set.connectBlock(block4)
     expect(await set.size()).toBe(allNullifiers.length)
+
+    for (const nullifier of allNullifiers) {
+      expect(await set.contains(nullifier)).toBe(true)
+    }
 
     await expect(set.disconnectBlock(block3)).rejects.toThrow()
     await expect(set.connectBlock(block3)).rejects.toThrow()
@@ -126,9 +84,7 @@ describe('NullifierSet', () => {
 
     await set.disconnectBlock(block4)
 
-    expect(await set.size()).toBe(
-      block1Nullifiers.length + block2Nullifiers.length + block3Nullifiers.length,
-    )
+    expect(await set.size()).toBe(allNullifiers.length - block4Nullifiers.length)
 
     for (const nullifier of [...block1Nullifiers]) {
       expect(await set.contains(nullifier)).toBe(true)

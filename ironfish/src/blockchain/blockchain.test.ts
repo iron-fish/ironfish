@@ -488,7 +488,7 @@ describe('Blockchain', () => {
 
       let addedNullifierA1 = await nodeA.chain.nullifiers.get(txA2.getSpend(0).nullifier)
       expect(addedNullifierA1).toBeDefined()
-      expect(addedNullifierA1?.position).toBe(countNullifierA)
+      expect(addedNullifierA1?.equals(txA2.hash())).toBe(true)
 
       // Check nodeB has notes from blockB1, blockB2, blockB3
       expect(await nodeB.chain.notes.size()).toBe(countNoteB + 5)
@@ -507,7 +507,7 @@ describe('Blockchain', () => {
       expect(await nodeB.chain.nullifiers.size()).toBe(countNullifierB + 1)
       const addedNullifierB1 = await nodeB.chain.nullifiers.get(txB3.getSpend(0).nullifier)
       expect(addedNullifierB1).toBeDefined()
-      expect(addedNullifierB1?.position).toBe(countNullifierB)
+      expect(addedNullifierB1?.equals(txB3.hash())).toBe(true)
 
       // Now cause reorg on nodeA
       await nodeA.chain.addBlock(blockB1)
@@ -531,7 +531,7 @@ describe('Blockchain', () => {
       expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
       addedNullifierA1 = await nodeA.chain.nullifiers.get(txB3.getSpend(0).nullifier)
       expect(addedNullifierA1).toBeDefined()
-      expect(addedNullifierA1?.position).toBe(countNullifierA)
+      expect(addedNullifierA1?.equals(txB3.hash())).toBe(true)
     }, 300000)
 
     it(`throws if the notes tree size is greater than the previous block's note tree size`, async () => {
