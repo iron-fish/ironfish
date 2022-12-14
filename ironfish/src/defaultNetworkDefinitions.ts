@@ -26,7 +26,7 @@ export const TESTING = `{
       "timestamp": 1670369560299,
       "graffiti": "67656E6573697300000000000000000000000000000000000000000000000000",
       "noteSize": 3,
-      "work": "0",
+      "work": "0"
     },
     "transactions": [
       {
@@ -87,7 +87,7 @@ export const DEV = `
         "timestamp": 1670369560299,
         "graffiti": "67656E6573697300000000000000000000000000000000000000000000000000",
         "noteSize": 3,
-        "work": "0",
+        "work": "0"
       },
       "transactions": [
         {

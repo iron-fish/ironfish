@@ -25,8 +25,7 @@
         "timestamp": 1670369834745,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -52,8 +51,7 @@
         "timestamp": 1670369842774,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -93,8 +91,7 @@
         "timestamp": 1670369844177,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -120,8 +117,7 @@
         "timestamp": 1670369852649,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -151,8 +147,7 @@
         "timestamp": 1670369853751,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 8,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -178,8 +173,7 @@
         "timestamp": 1670369861758,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 11,
-        "work": "0",
-        "nullifierSize": 3
+        "work": "0"
       },
       "transactions": [
         {
@@ -219,8 +213,7 @@
         "timestamp": 1670369862878,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -246,8 +239,7 @@
         "timestamp": 1670369871600,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -277,8 +269,7 @@
         "timestamp": 1670369879079,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 10,
-        "work": "0",
-        "nullifierSize": 3
+        "work": "0"
       },
       "transactions": [
         {
@@ -318,8 +309,7 @@
         "timestamp": 1670369880186,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -345,8 +335,7 @@
         "timestamp": 1670369886721,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -386,8 +375,7 @@
         "timestamp": 1670369888077,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -413,8 +401,7 @@
         "timestamp": 1670369895519,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -462,8 +449,7 @@
         "timestamp": 1670369896631,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -489,8 +475,7 @@
         "timestamp": 1670369903161,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -520,8 +505,7 @@
         "timestamp": 1670369903866,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 5,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -547,8 +531,7 @@
         "timestamp": 1670369909774,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 8,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -596,8 +579,7 @@
         "timestamp": 1670369910531,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -623,8 +605,7 @@
         "timestamp": 1670369916871,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -654,8 +635,7 @@
         "timestamp": 1670369917604,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 5,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -681,8 +661,7 @@
         "timestamp": 1670369923145,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 8,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -730,8 +709,7 @@
         "timestamp": 1670369923807,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -757,8 +735,7 @@
         "timestamp": 1670369927752,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -788,8 +765,7 @@
         "timestamp": 1670369928314,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 5,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -815,8 +791,7 @@
         "timestamp": 1670369929019,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 6,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -842,8 +817,7 @@
         "timestamp": 1670369929549,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -869,8 +843,7 @@
         "timestamp": 1670369937745,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 14,
-        "work": "0",
-        "nullifierSize": 4
+        "work": "0"
       },
       "transactions": [
         {
@@ -918,8 +891,7 @@
         "timestamp": 1670369938230,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -945,8 +917,7 @@
         "timestamp": 1670369941473,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -994,8 +965,7 @@
         "timestamp": 1670369941837,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -1021,8 +991,7 @@
         "timestamp": 1670369945111,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -1052,8 +1021,7 @@
         "timestamp": 1670369945461,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 5,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -1079,8 +1047,7 @@
         "timestamp": 1670369948765,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 8,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -1128,8 +1095,7 @@
         "timestamp": 1670369949243,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -1155,8 +1121,7 @@
         "timestamp": 1670369952263,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
