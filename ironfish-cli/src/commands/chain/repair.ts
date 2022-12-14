@@ -160,8 +160,7 @@ export default class RepairChain extends IronfishCommand {
 
     CliUx.ux.action.start('Clearing nullifier set')
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-    await node.chain.nullifiers['nullifiers'].clear()
+    await node.chain.nullifiers.clear()
 
     CliUx.ux.action.stop()
 

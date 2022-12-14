@@ -29,10 +29,8 @@ interface NullifiersSchema extends DatabaseSchema {
 export class NullifierSet {
   readonly db: IDatabase
 
-  // Keep track of number of nullifiers in the set
   private readonly counter: IDatabaseStore<CounterEntry<'Size'>>
 
-  // Nullifier -> TransactionHash, position
   private readonly nullifiers: IDatabaseStore<NullifiersSchema>
 
   constructor(options: { db: IDatabase; storeName: string }) {
@@ -98,5 +96,10 @@ export class NullifierSet {
     }
 
     await this.counter.put('Size', currentSize, tx)
+  }
+
+  async clear(): Promise<void> {
+    await this.nullifiers.clear()
+    await this.counter.clear()
   }
 }
