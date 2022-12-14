@@ -33,17 +33,17 @@ export class NullifierSet {
 
   private readonly nullifiers: IDatabaseStore<NullifiersSchema>
 
-  constructor(options: { db: IDatabase; storeName: string }) {
+  constructor(options: { db: IDatabase; name: string }) {
     this.db = options.db
 
     this.counter = this.db.addStore({
-      name: `${options.storeName}c`,
+      name: `${options.name}c`,
       keyEncoding: new StringEncoding<'Size'>(),
       valueEncoding: U32_ENCODING,
     })
 
     this.nullifiers = this.db.addStore({
-      name: options.storeName,
+      name: options.name,
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: BUFFER_ENCODING,
     })

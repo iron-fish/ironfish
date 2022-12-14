@@ -249,7 +249,7 @@ export class Blockchain {
       defaultValue: Buffer.alloc(32),
     })
 
-    this.nullifiers = new NullifierSet({ db: this.db, storeName: 'nu' })
+    this.nullifiers = new NullifierSet({ db: this.db, name: 'u' })
   }
 
   get isEmpty(): boolean {
