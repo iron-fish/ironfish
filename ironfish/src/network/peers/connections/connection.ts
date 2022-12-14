@@ -84,9 +84,7 @@ export abstract class Connection {
   readonly onStateChanged: Event<[]> = new Event()
 
   /**
-   * Event fired when a new message comes in. The data is converted to a
-   * json obj and verifies that it has a type attribute before being passed
-   * in.
+   * Event fired when a new message comes in.
    */
   readonly onMessage: Event<[NetworkMessage]> = new Event()
 

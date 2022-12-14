@@ -197,9 +197,6 @@ export class WebRtcConnection extends Connection {
     }
   }
 
-  /**
-   * Encode the message to json and send it to the peer
-   */
   send = (message: NetworkMessage): boolean => {
     if (!this.datachannel) {
       return false
