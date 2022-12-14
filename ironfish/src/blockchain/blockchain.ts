@@ -1392,7 +1392,7 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { assetIdentifier, value } of transaction.burns.reverse()) {
+    for (const { assetIdentifier, value } of transaction.burns.slice().reverse()) {
       const existingAsset = await this.assets.get(assetIdentifier, tx)
       Assert.isNotUndefined(existingAsset)
 
