@@ -11,7 +11,6 @@ import { MetricsMonitor } from '../../../metrics'
 import { ErrorUtils } from '../../../utils'
 import { parseNetworkMessage } from '../../messageRegistry'
 import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
-import { NetworkMessageType } from '../../types'
 import { MAX_MESSAGE_SIZE } from '../../version'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
@@ -203,10 +202,6 @@ export class WebRtcConnection extends Connection {
    */
   send = (message: NetworkMessage): boolean => {
     if (!this.datachannel) {
-      return false
-    }
-
-    if (message.type === NetworkMessageType.NewBlock && this.datachannel.bufferedAmount() > 0) {
       return false
     }
 

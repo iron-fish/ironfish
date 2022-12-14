@@ -7,11 +7,7 @@ import colors from 'colors/safe'
 import { MetricsMonitor } from '../../../metrics'
 import { parseNetworkMessage } from '../../messageRegistry'
 import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
-import {
-  IsomorphicWebSocket,
-  IsomorphicWebSocketErrorEvent,
-  NetworkMessageType,
-} from '../../types'
+import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
 
@@ -121,10 +117,6 @@ export class WebSocketConnection extends Connection {
    * Encode the message to json and send it to the peer
    */
   send = (message: NetworkMessage): boolean => {
-    if (message.type === NetworkMessageType.NewBlock && this.socket.bufferedAmount > 0) {
-      return false
-    }
-
     if (this.shouldLogMessageType(message.type)) {
       this.logger.debug(
         `${colors.yellow('SEND')} ${this.displayName}: ${displayNetworkMessageType(

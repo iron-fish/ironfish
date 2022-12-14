@@ -38,10 +38,10 @@ import {
   IncomingPeerMessage,
   NetworkMessage,
 } from './messages/networkMessage'
+import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
-import { NewBlockV2Message } from './messages/newBlockV2'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionV2Message } from './messages/newTransactionV2'
+import { NewTransactionMessage } from './messages/newTransaction'
 import {
   PooledTransactionsRequest,
   PooledTransactionsResponse,
@@ -378,7 +378,7 @@ export class PeerNetwork {
 
     const sqrtSize = Math.floor(Math.sqrt(peersToSendToArray.length))
 
-    const compactBlockMessage = new NewBlockV2Message(block.toCompactBlock())
+    const compactBlockMessage = new NewBlockMessage(block.toCompactBlock())
 
     // Send compact block to random subset of sqrt of peers
     for (const peer of peersToSendToArray.slice(0, sqrtSize)) {
@@ -412,7 +412,7 @@ export class PeerNetwork {
 
     const sqrtSize = Math.floor(Math.sqrt(peersToSendToArray.length))
 
-    const fullTransactionMessage = new NewTransactionV2Message([transaction])
+    const fullTransactionMessage = new NewTransactionMessage([transaction])
     const hashMessage = new NewPooledTransactionHashes([hash])
 
     // Send full transaction to random subset of sqrt of peers
@@ -606,11 +606,11 @@ export class PeerNetwork {
       await this.handleRpcMessage(peer, message)
     } else if (message instanceof NewBlockHashesMessage) {
       await this.handleNewBlockHashesMessage(peer, message)
-    } else if (message instanceof NewBlockV2Message) {
+    } else if (message instanceof NewBlockMessage) {
       await this.onNewCompactBlock(peer, message.compactBlock)
     } else if (message instanceof NewPooledTransactionHashes) {
       this.handleNewPooledTransactionHashes(peer, message)
-    } else if (message instanceof NewTransactionV2Message) {
+    } else if (message instanceof NewTransactionMessage) {
       for (const transaction of message.transactions) {
         await this.onNewTransaction(peer, transaction)
       }

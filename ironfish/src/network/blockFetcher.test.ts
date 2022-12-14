@@ -17,8 +17,8 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
+import { NewBlockMessage } from './messages/newBlock'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
-import { NewBlockV2Message } from './messages/newBlockV2'
 import { Peer } from './peers/peer'
 import { getConnectedPeer, getConnectedPeersWithSpies, peerMessage } from './testUtilities'
 
@@ -77,7 +77,7 @@ describe('BlockFetcher', () => {
     await peerNetwork.stop()
   })
 
-  it('does not send a request for a block if received NewBlockV2Message from another peer within 500ms', async () => {
+  it('does not send a request for a block if received NewBlockMessage from another peer within 500ms', async () => {
     const { peerNetwork, chain } = nodeTest
 
     const block = await useMinerBlockFixture(chain)
@@ -94,7 +94,7 @@ describe('BlockFetcher', () => {
     // Another peer sends a compact block
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
 
-    const message = peerMessage(peer, new NewBlockV2Message(block.toCompactBlock()))
+    const message = peerMessage(peer, new NewBlockMessage(block.toCompactBlock()))
     await peerNetwork.peerManager.onMessage.emitAsync(...message)
 
     await expect(chain.hasBlock(block.header.hash)).resolves.toBe(true)
@@ -173,7 +173,7 @@ describe('BlockFetcher', () => {
 
     // Get compact block from peer and fill missing tx from mempool
     await peerNetwork.peerManager.onMessage.emitAsync(
-      ...peerMessage(peers[0].peer, new NewBlockV2Message(block.toCompactBlock())),
+      ...peerMessage(peers[0].peer, new NewBlockMessage(block.toCompactBlock())),
     )
 
     // We should have sent a transaction request to the peer who sent the compact block
@@ -283,7 +283,7 @@ describe('BlockFetcher', () => {
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
     for (const { peer } of peers) {
       await peerNetwork.peerManager.onMessage.emitAsync(
-        ...peerMessage(peer, new NewBlockV2Message(block.toCompactBlock())),
+        ...peerMessage(peer, new NewBlockMessage(block.toCompactBlock())),
       )
     }
 
@@ -395,7 +395,7 @@ describe('BlockFetcher', () => {
 
     // The first peer sends a orphaned compact block
     await peerNetwork.peerManager.onMessage.emitAsync(
-      ...peerMessage(peers[0].peer, new NewBlockV2Message(orphanBlock.toCompactBlock())),
+      ...peerMessage(peers[0].peer, new NewBlockMessage(orphanBlock.toCompactBlock())),
     )
 
     expect(chain.orphans.has(orphanBlock.header.hash)).toBe(true)
@@ -414,7 +414,7 @@ describe('BlockFetcher', () => {
 
     // The third peer sends the compact block as well, we should ignore it as an orphan
     await peerNetwork.peerManager.onMessage.emitAsync(
-      ...peerMessage(peers[2].peer, new NewBlockV2Message(orphanBlock.toCompactBlock())),
+      ...peerMessage(peers[2].peer, new NewBlockMessage(orphanBlock.toCompactBlock())),
     )
 
     expect(peers[2].sendSpy).not.toHaveBeenCalled()
@@ -442,7 +442,7 @@ describe('BlockFetcher', () => {
 
     // The first peer sends a orphaned compact block and it's added to orphans
     await peerNetwork.peerManager.onMessage.emitAsync(
-      ...peerMessage(peers[0].peer, new NewBlockV2Message(orphan.toCompactBlock())),
+      ...peerMessage(peers[0].peer, new NewBlockMessage(orphan.toCompactBlock())),
     )
 
     expect(chain.orphans.has(orphan.header.hash)).toBe(true)
@@ -460,7 +460,7 @@ describe('BlockFetcher', () => {
 
     // A second peer sends the same block, but it should now be added to the chain
     await peerNetwork.peerManager.onMessage.emitAsync(
-      ...peerMessage(peers[1].peer, new NewBlockV2Message(orphan.toCompactBlock())),
+      ...peerMessage(peers[1].peer, new NewBlockMessage(orphan.toCompactBlock())),
     )
 
     await expect(chain.hasBlock(orphan.header.hash)).resolves.toBe(true)
