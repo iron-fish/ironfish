@@ -327,25 +327,29 @@ export class WalletDB {
     sequence: number | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    if (sequence) {
-      await this.sequenceToNoteHash.put([account.prefix, [sequence, noteHash]], null, tx)
-      await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
-    } else {
-      await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
-    }
+    await this.db.withTransaction(tx, async (tx) => {
+      if (sequence) {
+        await this.sequenceToNoteHash.put([account.prefix, [sequence, noteHash]], null, tx)
+        await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
+      } else {
+        await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
+      }
+    })
   }
 
   async deleteNoteHashSequence(
     account: Account,
     noteHash: Buffer,
     sequence: number | null,
-    tx: IDatabaseTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
+    await this.db.withTransaction(tx, async (tx) => {
+      await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
 
-    if (sequence !== null) {
-      await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
-    }
+      if (sequence !== null) {
+        await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
+      }
+    })
   }
 
   /*
