@@ -1489,6 +1489,7 @@ export class Blockchain {
   }
 }
 
+//asdf
 export class VerifyError extends Error {
   name = this.constructor.name
   reason: VerificationResultReason
