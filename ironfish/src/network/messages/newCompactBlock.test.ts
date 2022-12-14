@@ -7,10 +7,10 @@ import { transactionCommitment } from '../../primitives/blockheader'
 import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
 import { NewCompactBlockMessage } from './newCompactBlock'
 
-describe('NewBlockMessage', () => {
+describe('NewCompactBlockMessage', () => {
   const nodeTest = createNodeTest()
 
-  function expectNewBlockMessageToMatch(
+  function expectNewCompactBlockMessageToMatch(
     a: NewCompactBlockMessage,
     b: NewCompactBlockMessage,
   ): void {
@@ -61,6 +61,6 @@ describe('NewBlockMessage', () => {
     const buffer = message.serialize()
     const deserializedMessage = NewCompactBlockMessage.deserialize(buffer)
 
-    expectNewBlockMessageToMatch(message, deserializedMessage)
+    expectNewCompactBlockMessageToMatch(message, deserializedMessage)
   })
 })
