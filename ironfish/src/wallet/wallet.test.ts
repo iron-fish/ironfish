@@ -247,9 +247,9 @@ describe('Accounts', () => {
     // Create a transaction that spends notes from the invalid transaction
     const forkSpendTx = await useTxFixture(nodeA.wallet, accountA, accountB)
 
-    expect(forkSpendTx.spendsLength()).toEqual(1)
+    expect(forkSpendTx.spends.length).toEqual(1)
 
-    const forkSpendNullifier = [...forkSpendTx.spends()][0].nullifier
+    const forkSpendNullifier = forkSpendTx.spends[0].nullifier
     const forkSpendNoteHash = await accountA.getNoteHash(forkSpendNullifier)
 
     // nullifier should be non-null
@@ -946,7 +946,7 @@ describe('Accounts', () => {
       await accountA.expireTransaction(tx)
 
       // none of the transaction's notes are in accountA's wallet
-      for (const note of tx.notes()) {
+      for (const note of tx.notes) {
         await expect(accountA.getDecryptedNote(note.merkleHash())).resolves.toBeUndefined()
       }
 
@@ -958,7 +958,7 @@ describe('Accounts', () => {
       await nodeA.wallet.syncTransaction(tx, {})
 
       // none of the expired transaction's notes should be in accountA's wallet
-      for (const note of tx.notes()) {
+      for (const note of tx.notes) {
         await expect(accountA.getDecryptedNote(note.merkleHash())).resolves.toBeUndefined()
       }
 
@@ -999,7 +999,7 @@ describe('Accounts', () => {
       await accountA.expireTransaction(tx)
 
       // none of the transaction's notes are in accountA's wallet
-      for (const note of tx.notes()) {
+      for (const note of tx.notes) {
         await expect(accountA.getDecryptedNote(note.merkleHash())).resolves.toBeUndefined()
       }
 

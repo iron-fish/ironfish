@@ -89,7 +89,7 @@ export class MiningManager {
         continue
       }
 
-      const isConflicted = await AsyncUtils.find(transaction.spends(), (spend) => {
+      const isConflicted = await AsyncUtils.find(transaction.spends, (spend) => {
         return nullifiers.has(spend.nullifier)
       })
       if (isConflicted) {
@@ -101,7 +101,7 @@ export class MiningManager {
         continue
       }
 
-      for (const spend of transaction.spends()) {
+      for (const spend of transaction.spends) {
         nullifiers.add(spend.nullifier)
       }
 

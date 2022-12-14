@@ -12,7 +12,7 @@ import { Account } from '../../wallet'
 import { WorkerPool } from '../../workerPool'
 
 export function isTransactionMine(transaction: Transaction, account: Account): boolean {
-  for (const note of transaction.notes()) {
+  for (const note of transaction.notes) {
     const receivedNote = note.decryptNoteForOwner(account.incomingViewKey)
     if (receivedNote) {
       return true
