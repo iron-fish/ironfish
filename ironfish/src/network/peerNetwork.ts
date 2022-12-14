@@ -16,7 +16,7 @@ import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
-import { Transaction } from '../primitives'
+import { GENESIS_BLOCK_SEQUENCE, Transaction } from '../primitives'
 import { Block, CompactBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { TransactionHash } from '../primitives/transaction'
@@ -862,6 +862,12 @@ export class PeerNetwork {
 
     // verify the header
     const header = compactBlock.header
+    if (header.sequence === GENESIS_BLOCK_SEQUENCE) {
+      this.chain.addInvalid(header.hash, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
+      this.blockFetcher.removeBlock(header.hash)
+      return
+    }
+
     const verifyHeaderResult = this.chain.verifier.verifyBlockHeader(header)
     if (!verifyHeaderResult.valid) {
       this.chain.addInvalid(
@@ -1204,6 +1210,12 @@ export class PeerNetwork {
     peer.knownBlockHashes.set(block.header.hash, KnownBlockHashesValue.Received)
 
     // verify the block header
+    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+      this.chain.addInvalid(block.header.hash, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
+      this.blockFetcher.removeBlock(block.header.hash)
+      return
+    }
+
     const verifyBlockHeaderResult = this.chain.verifier.verifyBlockHeader(block.header)
     if (!verifyBlockHeaderResult.valid) {
       this.chain.addInvalid(

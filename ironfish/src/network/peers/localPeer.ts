@@ -69,6 +69,8 @@ export class LocalPeer {
       sequence: Number(this.chain.head.sequence),
       version: this.version,
       work: this.chain.head.work,
+      networkId: this.networkId,
+      genesisBlockHash: this.chain.genesis.hash,
     })
   }
 
