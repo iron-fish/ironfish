@@ -1208,7 +1208,7 @@ export class Blockchain {
     // Transactions should be handled in reverse order because
     // header.noteCommitment is the size of the tree after the
     // last note in the block.
-    for (const transaction of block.transactions.reverse()) {
+    for (const transaction of block.transactions.slice().reverse()) {
       noteIndex -= transaction.notes.length
 
       yield {
@@ -1281,7 +1281,7 @@ export class Blockchain {
     // Invert all the mints and burns that were applied from this block's transactions.
     // Iterate in reverse order to ensure changes are undone opposite from how
     // they were applied.
-    for (const transaction of block.transactions.reverse()) {
+    for (const transaction of block.transactions.slice().reverse()) {
       await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
       await this.deleteDisconnectedMintsFromAssetsStore(transaction, tx)
     }
@@ -1418,7 +1418,7 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { asset, value } of transaction.mints.reverse()) {
+    for (const { asset, value } of transaction.mints.slice().reverse()) {
       const assetIdentifier = asset.identifier()
       const existingAsset = await this.assets.get(assetIdentifier, tx)
       Assert.isNotUndefined(existingAsset)
