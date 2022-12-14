@@ -1292,9 +1292,10 @@ export class Blockchain {
     Assert.isNotNull(prev.noteSize)
     Assert.isNotNull(prev.nullifierSize)
 
-    await this.notes.truncate(prev.noteSize, tx)
-
-    await this.nullifiers.disconnectBlock(block, tx)
+    await Promise.all([
+      this.notes.truncate(prev.noteSize, tx),
+      this.nullifiers.disconnectBlock(block, tx),
+    ])
 
     await this.meta.put('head', prev.hash, tx)
 
