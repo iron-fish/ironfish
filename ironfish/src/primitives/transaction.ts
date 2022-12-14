@@ -24,14 +24,15 @@ export type SerializedTransaction = Buffer
 export class Transaction {
   private readonly transactionPostedSerialized: Buffer
 
+  public readonly notes: NoteEncrypted[]
+  public readonly spends: Spend[]
+  public readonly mints: MintDescription[]
+  public readonly burns: BurnDescription[]
+
   private readonly _version: number
   private readonly _fee: bigint
   private readonly _expirationSequence: number
   private readonly _sender: string
-  private readonly _spends: Spend[] = []
-  private readonly _notes: NoteEncrypted[]
-  private readonly _mints: MintDescription[]
-  private readonly _burns: BurnDescription[]
   private readonly _signature: Buffer
   private _hash?: TransactionHash
   private _unsignedHash?: TransactionHash
@@ -52,7 +53,7 @@ export class Transaction {
     this._fee = BigInt(reader.readI64()) // 8
     this._expirationSequence = reader.readU32() // 4
 
-    this._spends = Array.from({ length: _spendsLength }, () => {
+    this.spends = Array.from({ length: _spendsLength }, () => {
       // proof
       reader.seek(PROOF_LENGTH)
       // value commitment
@@ -75,14 +76,14 @@ export class Transaction {
       }
     })
 
-    this._notes = Array.from({ length: _notesLength }, () => {
+    this.notes = Array.from({ length: _notesLength }, () => {
       // proof
       reader.seek(PROOF_LENGTH)
 
       return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
     })
 
-    this._mints = Array.from({ length: _mintsLength }, () => {
+    this.mints = Array.from({ length: _mintsLength }, () => {
       // proof
       reader.seek(192)
 
@@ -99,7 +100,7 @@ export class Transaction {
       return { asset, value }
     })
 
-    this._burns = Array.from({ length: _burnsLength }, () => {
+    this.burns = Array.from({ length: _burnsLength }, () => {
       const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
       const value = reader.readBigU64()
 
@@ -166,58 +167,20 @@ export class Transaction {
     return result
   }
 
-  /**
-   * The number of notes in the transaction.
-   */
-  notesLength(): number {
-    return this._notes.length
-  }
-
-  getNote(index: number): NoteEncrypted {
-    return this._notes[index]
-  }
-
   sender(): string {
     return this._sender
   }
 
   isMinersFee(): boolean {
-    return this._spends.length === 0 && this._notes.length === 1 && this._fee <= 0
+    return this.spends.length === 0 && this.notes.length === 1 && this._fee <= 0
   }
 
-  /**
-   * Iterate over all the notes created by this transaction.
-   */
-  notes(): Iterable<NoteEncrypted> {
-    return this._notes.values()
-  }
-
-  /**
-   * The number of spends in the transaction.
-   */
-  spendsLength(): number {
-    return this._spends.length
-  }
-
-  /**
-   * Iterate over all the spends in the transaction. A spend includes a nullifier,
-   * indicating that a note was spent, and a commitment committing to
-   * the root hash and tree size at the time the note was spent.
-   */
-  spends(): Iterable<Spend> {
-    return this._spends.values()
+  getNote(index: number): NoteEncrypted {
+    return this.notes[index]
   }
 
   getSpend(index: number): Spend {
-    return this._spends[index]
-  }
-
-  mints(): Array<MintDescription> {
-    return this._mints
-  }
-
-  burns(): Array<BurnDescription> {
-    return this._burns
+    return this.spends[index]
   }
 
   /**

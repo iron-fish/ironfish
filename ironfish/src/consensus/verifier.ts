@@ -74,7 +74,7 @@ export class Verifier {
 
       transactionBatch.push(tx)
 
-      runningNotesCount += tx.notesLength()
+      runningNotesCount += tx.notes.length
 
       if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
         verificationPromises.push(this.workerPool.verifyTransactions(transactionBatch))
@@ -216,7 +216,7 @@ export class Verifier {
     }
 
     const reason = await this.chain.db.withTransaction(null, async (tx) => {
-      for (const spend of transaction.spends()) {
+      for (const spend of transaction.spends) {
         // If the spend references a larger tree size, allow it, so it's possible to
         // store transactions made while the node is a few blocks behind
         // TODO: We're not calling verifySpend here because we're often creating spends with tree size
@@ -259,7 +259,7 @@ export class Verifier {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const notesSize = await this.chain.notes.size(tx)
 
-      for (const spend of transaction.spends()) {
+      for (const spend of transaction.spends) {
         const reason = await this.verifySpend(spend, notesSize, tx)
 
         if (reason) {

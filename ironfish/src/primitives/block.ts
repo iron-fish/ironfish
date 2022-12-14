@@ -42,8 +42,8 @@ export class Block {
     let nullifiers = 0
 
     for (const transaction of this.transactions) {
-      notes += transaction.notesLength()
-      nullifiers += transaction.spendsLength()
+      notes += transaction.notes.length
+      nullifiers += transaction.spends.length
     }
 
     return { notes, nullifiers }
@@ -60,7 +60,7 @@ export class Block {
     size: number
   }> {
     for (const transaction of this.transactions) {
-      for (const spend of transaction.spends()) {
+      for (const spend of transaction.spends) {
         yield spend
       }
     }
@@ -72,7 +72,7 @@ export class Block {
    */
   *notes(): Generator<NoteEncrypted> {
     for (const transaction of this.transactions) {
-      for (const note of transaction.notes()) {
+      for (const note of transaction.notes) {
         yield note
       }
     }

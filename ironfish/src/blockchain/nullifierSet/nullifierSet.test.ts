@@ -42,19 +42,19 @@ describe('NullifierSet', () => {
 
     Assert.isNotNull(block1)
     const block1Nullifiers = block1.transactions
-      .flatMap((t) => [...t.spends()])
+      .flatMap((t) => t.spends)
       .map((s) => s.nullifier)
 
     const block2Nullifiers = block2.transactions
-      .flatMap((t) => [...t.spends()])
+      .flatMap((t) => t.spends)
       .map((s) => s.nullifier)
 
     const block3Nullifiers = block3.transactions
-      .flatMap((t) => [...t.spends()])
+      .flatMap((t) => t.spends)
       .map((s) => s.nullifier)
 
     const block4Nullifiers = block4.transactions
-      .flatMap((t) => [...t.spends()])
+      .flatMap((t) => t.spends)
       .map((s) => s.nullifier)
 
     const allNullifiers = [

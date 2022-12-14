@@ -66,7 +66,7 @@ export class NullifierSet {
     let currentSize = await this.size(tx)
 
     for (const transaction of block.transactions) {
-      for (const spend of transaction.spends()) {
+      for (const spend of transaction.spends) {
         // Throws an error if a nullifier already exists
         // We should never allow overwriting a nullifier
         await this.nullifiers.add(spend.nullifier, transaction.hash(), tx)
@@ -82,7 +82,7 @@ export class NullifierSet {
     let currentSize = await this.size(tx)
 
     for (const transaction of block.transactions) {
-      for (const spend of [...transaction.spends()].reverse()) {
+      for (const spend of transaction.spends.slice().reverse()) {
         // Sanity check that we are removing the correct block
         // Not necessarily needed but will keep it here for confidence in the new nullifier set
         const current = await this.nullifiers.get(spend.nullifier, tx)

@@ -116,8 +116,8 @@ export default class Benchmark extends IronfishCommand {
 
       totalMs += BenchUtils.end(startTime)
       totalBlocks += 1
-      totalSpends += block.transactions.reduce((count, tx) => count + tx.spendsLength(), 0)
-      totalNotes += block.transactions.reduce((count, tx) => count + tx.notesLength(), 0)
+      totalSpends += block.transactions.reduce((count, tx) => count + tx.spends.length, 0)
+      totalNotes += block.transactions.reduce((count, tx) => count + tx.notes.length, 0)
       totalTransactions += block.transactions.length
       status = renderStatus(
         totalMs,

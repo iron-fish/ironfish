@@ -348,7 +348,7 @@ export class Wallet {
       let decryptNotesPayloads = []
       let currentNoteIndex = initialNoteIndex
 
-      for (const note of transaction.notes()) {
+      for (const note of transaction.notes) {
         decryptNotesPayloads.push({
           serializedNote: note.serialize(),
           incomingViewKey: account.incomingViewKey,

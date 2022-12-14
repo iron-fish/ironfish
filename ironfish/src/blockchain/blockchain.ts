@@ -968,11 +968,11 @@ export class Blockchain {
       const blockNotes = []
       let addedNullifiers = 0
       for (const transaction of transactions) {
-        for (const note of transaction.notes()) {
+        for (const note of transaction.notes) {
           blockNotes.push(note)
         }
 
-        addedNullifiers += transaction.spendsLength()
+        addedNullifiers += transaction.spends.length
       }
 
       await this.notes.addBatch(blockNotes, tx)
@@ -1209,7 +1209,7 @@ export class Blockchain {
     // header.noteCommitment is the size of the tree after the
     // last note in the block.
     for (const transaction of block.transactions.reverse()) {
-      noteIndex -= transaction.notesLength()
+      noteIndex -= transaction.notes.length
 
       yield {
         transaction,
@@ -1335,7 +1335,7 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { asset, value } of transaction.mints()) {
+    for (const { asset, value } of transaction.mints) {
       const assetIdentifier = asset.identifier()
       const existingAsset = await this.assets.get(assetIdentifier, tx)
 
@@ -1365,7 +1365,7 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { assetIdentifier, value } of transaction.burns()) {
+    for (const { assetIdentifier, value } of transaction.burns) {
       const existingAsset = await this.assets.get(assetIdentifier, tx)
       Assert.isNotUndefined(existingAsset, 'Cannot burn undefined asset from the database')
 
@@ -1392,7 +1392,7 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { assetIdentifier, value } of transaction.burns().reverse()) {
+    for (const { assetIdentifier, value } of transaction.burns.reverse()) {
       const existingAsset = await this.assets.get(assetIdentifier, tx)
       Assert.isNotUndefined(existingAsset)
 
@@ -1418,7 +1418,7 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { asset, value } of transaction.mints().reverse()) {
+    for (const { asset, value } of transaction.mints.reverse()) {
       const assetIdentifier = asset.identifier()
       const existingAsset = await this.assets.get(assetIdentifier, tx)
       Assert.isNotUndefined(existingAsset)
