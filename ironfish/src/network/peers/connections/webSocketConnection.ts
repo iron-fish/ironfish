@@ -113,9 +113,6 @@ export class WebSocketConnection extends Connection {
     }
   }
 
-  /**
-   * Encode the message to json and send it to the peer
-   */
   send = (message: NetworkMessage): boolean => {
     if (this.shouldLogMessageType(message.type)) {
       this.logger.debug(
