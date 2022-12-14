@@ -1,0 +1,38 @@
+{
+  "PostTransactionRequest serializes the object into a buffer and deserializes to the original object": [
+    {
+      "id": "808dda3c-ac8b-4ac3-8117-b7f5f5d3332d",
+      "name": "test",
+      "spendingKey": "cd6bf00b2b4c42278140a523eaa4746469b0f96183dac6393c9a6f89ea1c41d9",
+      "incomingViewKey": "9133409e9cf9da9e7a7ab80fd86e66ca0d332898a58bc0005135f9f1890c4300",
+      "outgoingViewKey": "b325675bcc00ea23ac2419e9c8e87511d7052b457e6991086405a1b268996d82",
+      "publicAddress": "f8c367c9e23e16ec0d6b97ce793946d10a823445557759ce7cfb1f456d3f8001"
+    },
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "D179D8B74987D6617267D46F4958554BA0DF02D7E5E6117DB02D6FF38FD0F6DA",
+        "noteCommitment": {
+          "type": "Buffer",
+          "data": "base64:ZCjKaaarasFNqdZyXlBICxp5FfzMrtp19yGPc7T5ClA="
+        },
+        "transactionCommitment": {
+          "type": "Buffer",
+          "data": "base64:ImXVtzM/apU8eZ/j3qIKR6zfOxMON7w73ftr/p3OnUg="
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": "0",
+        "timestamp": 1671326904795,
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+        "noteSize": 4,
+        "work": "0"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAtVCkTJ8NtbyQ3e+aepnYah8nQ4LbL6cvUi5wDv7WbOaEprxi24p9UydEVn/LFZ+xhboDIiAaqBv515hbuqgGLEvgEwCGJo2l/3YLqMk4N9uShKFGfCG0z9Yn+FoP7NvgrIzM5/gx/X8qtnriu56Aet9IEwTs8SwmFdtqNy1rT04AzbYmDdl1gwgy62ZHgVYQi3mz2oDCRA9vXkAhG4Ox2GG0Gcha49MEbJeSDwM4N1W3grk4fgyD5rrLdk+QCOvn2bCEHGdQDR1JcEQkf31eLg8ffAMBMIXAMzk2ly/s+fRTE/KxOprOTo4XBnzUPL89N7ijkEyNrKCau7kOw4CojkXNrWkOmcz/3ihWOYSYlUG+aQsZ9SewDa/a8G6VCDJz8qk0MSNTrHsNoQptfch1stJoXRMjgwtGCZ/dfJkrbOnoSJEU6Ke2CxTbHKD5c1gZTh6eNHaib/TcBmxeuG94UsvtB2klEdN9v6tizEA31SLR40oXHhYgE0uyMltFC4JuTEvsWba2hfn+87zNIUesEbdC3ow/IC7FrQjO2w9HsO8PuJqSxP1Jaequun28O3t9YrWMHid0R8fnq4jhXu9k+8u/x6q4gSUDKVPNYsZFlqajwx9QoOziX0lyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwwtqCcIOZwnkPbEo+lcrKh+iB0019zo3240jKCc+/LtDVuMS8jJT3VqOiyMVNN3VhtfA1d7W2/N0HTts8dd0WAQ=="
+        }
+      ]
+    }
+  ]
+}

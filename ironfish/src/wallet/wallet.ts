@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
@@ -11,11 +11,13 @@ import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
-import { NoteWitness } from '../merkletree/witness'
+import { NoteHasher } from '../merkletree/hasher'
+import { NoteWitness, Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
+import { RawTransaction } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
@@ -34,6 +36,8 @@ import { AccountValue } from './walletdb/accountValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
+
+const noteHasher = new NoteHasher()
 
 export enum TransactionStatus {
   CONFIRMED = 'confirmed',
@@ -707,7 +711,7 @@ export class Wallet {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
-    const transaction = await this.createTransaction(
+    const raw = await this.createTransaction(
       sender,
       receives,
       [],
@@ -715,6 +719,8 @@ export class Wallet {
       transactionFee,
       expirationSequence,
     )
+
+    const transaction = await this.postTransaction(raw)
 
     const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
@@ -741,7 +747,7 @@ export class Wallet {
     burns: BurnDescription[],
     transactionFee: bigint,
     expirationSequence: number,
-  ): Promise<Transaction> {
+  ): Promise<RawTransaction> {
     const unlock = await this.createTransactionMutex.lock()
 
     try {
@@ -751,49 +757,84 @@ export class Wallet {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
-      const amountsNeeded = this.buildAmountsNeeded(receives, burns, transactionFee)
-      const notesToSpend = await this.createSpends(sender, amountsNeeded)
+      const raw = new RawTransaction()
+      raw.spendingKey = sender.spendingKey
+      raw.expirationSequence = expirationSequence
+      raw.mints = mints
+      raw.burns = burns
 
-      return this.workerPool.createTransaction(
-        sender.spendingKey,
-        notesToSpend.map((n) => ({
-          note: n.note,
-          treeSize: n.witness.treeSize(),
-          authPath: n.witness.authenticationPath,
-          rootHash: n.witness.rootHash,
-        })),
-        receives,
-        mints,
-        burns,
-        transactionFee,
-        expirationSequence,
-      )
+      for (const receive of receives) {
+        const note = new NativeNote(
+          receive.publicAddress,
+          receive.amount,
+          receive.memo,
+          receive.assetIdentifier,
+          sender.spendingKey,
+        )
+
+        raw.receives.push({ note: new Note(note.serialize()) })
+      }
+
+      await this.fund(raw, {
+        fee: transactionFee,
+        account: sender,
+      })
+
+      return raw
     } finally {
       unlock()
     }
   }
 
+  async postTransaction(raw: RawTransaction): Promise<Transaction> {
+    return this.workerPool.postTransaction(raw)
+  }
+
+  async fund(
+    raw: RawTransaction,
+    options: {
+      fee: bigint
+      account: Account
+    },
+  ): Promise<void> {
+    const needed = this.buildAmountsNeeded(raw, {
+      fee: options.fee,
+    })
+
+    const spends = await this.createSpends(options.account, needed)
+
+    for (const spend of spends) {
+      const witness = new Witness(
+        spend.witness.treeSize(),
+        spend.witness.rootHash,
+        spend.witness.authenticationPath,
+        noteHasher,
+      )
+
+      raw.spends.push({
+        note: spend.note,
+        witness: witness,
+      })
+    }
+  }
+
   private buildAmountsNeeded(
-    receives: {
-      publicAddress: string
-      amount: bigint
-      memo: string
-      assetIdentifier: Buffer
-    }[],
-    burns: BurnDescription[],
-    fee: bigint,
+    raw: RawTransaction,
+    options: {
+      fee: bigint
+    },
   ): BufferMap<bigint> {
     const amountsNeeded = new BufferMap<bigint>()
+    amountsNeeded.set(Asset.nativeIdentifier(), options.fee)
 
-    amountsNeeded.set(Asset.nativeIdentifier(), fee)
-    for (const { amount, assetIdentifier } of receives) {
-      const currentAmount = amountsNeeded.get(assetIdentifier) ?? BigInt(0)
-      amountsNeeded.set(assetIdentifier, amount + currentAmount)
+    for (const receive of raw.receives) {
+      const currentAmount = amountsNeeded.get(receive.note.assetIdentifier()) ?? BigInt(0)
+      amountsNeeded.set(receive.note.assetIdentifier(), currentAmount + receive.note.value())
     }
 
-    for (const { assetIdentifier, value } of burns) {
-      const currentAmount = amountsNeeded.get(assetIdentifier) ?? BigInt(0)
-      amountsNeeded.set(assetIdentifier, value + currentAmount)
+    for (const burn of raw.burns) {
+      const currentAmount = amountsNeeded.get(burn.assetIdentifier) ?? BigInt(0)
+      amountsNeeded.set(burn.assetIdentifier, currentAmount + burn.value)
     }
 
     return amountsNeeded
@@ -811,6 +852,7 @@ export class Wallet {
         assetIdentifier,
         amountNeeded,
       )
+
       if (amount < amountNeeded) {
         throw new NotEnoughFundsError(assetIdentifier, amount, amountNeeded)
       }

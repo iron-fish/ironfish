@@ -571,7 +571,7 @@ describe('Accounts', () => {
 
     const block2 = await useBlockFixture(nodeA.chain, async () => {
       // Generate a transaction from account A to account B
-      const transaction = await nodeA.wallet.createTransaction(
+      const raw = await nodeA.wallet.createTransaction(
         accountA,
         [
           {
@@ -586,6 +586,8 @@ describe('Accounts', () => {
         BigInt(1),
         0,
       )
+
+      const transaction = await nodeA.wallet.postTransaction(raw)
 
       // Create block 2
       return nodeA.chain.newBlock(
@@ -719,7 +721,7 @@ describe('Accounts', () => {
       nodeA.chain,
       async () => {
         // Generate a transaction from account A to account B
-        const transaction = await nodeA.wallet.createTransaction(
+        const raw = await nodeA.wallet.createTransaction(
           accountA,
           [
             {
@@ -734,6 +736,8 @@ describe('Accounts', () => {
           BigInt(0),
           0,
         )
+
+        const transaction = await nodeA.wallet.postTransaction(raw)
 
         // Create block A2
         return nodeA.chain.newBlock(
@@ -833,7 +837,7 @@ describe('Accounts', () => {
       nodeB.chain,
       async () => {
         // Generate a transaction from account A to account B
-        const transaction = await nodeB.wallet.createTransaction(
+        const raw = await nodeB.wallet.createTransaction(
           accountANodeB,
           [
             {
@@ -848,6 +852,8 @@ describe('Accounts', () => {
           BigInt(0),
           0,
         )
+
+        const transaction = await nodeB.wallet.postTransaction(raw)
 
         // Create block A2
         return nodeA.chain.newBlock(

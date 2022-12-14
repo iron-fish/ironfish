@@ -10,6 +10,7 @@ import { Meter, MetricsMonitor } from '../metrics'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
+import { RawTransaction } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
 import { WorkerMessageStats } from './interfaces/workerMessageStats'
@@ -23,6 +24,7 @@ import {
   DecryptNotesRequest,
   DecryptNotesResponse,
 } from './tasks/decryptNotes'
+import { PostTransactionRequest, PostTransactionResponse } from './tasks/postTransaction'
 import { SleepRequest } from './tasks/sleep'
 import { SubmitTelemetryRequest } from './tasks/submitTelemetry'
 import {
@@ -184,6 +186,18 @@ export class WorkerPool {
     }
 
     return new Transaction(Buffer.from(response.serializedTransactionPosted))
+  }
+
+  async postTransaction(transaction: RawTransaction): Promise<Transaction> {
+    const request = new PostTransactionRequest(transaction)
+
+    const response = await this.execute(request).result()
+
+    if (!(response instanceof PostTransactionResponse)) {
+      throw new Error('Invalid response')
+    }
+
+    return response.transaction
   }
 
   async verify(

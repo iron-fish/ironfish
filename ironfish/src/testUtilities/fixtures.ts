@@ -11,6 +11,7 @@ import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
+import { RawTransaction, RawTransactionSerde } from '../primitives/rawTransaction'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { Account, AccountValue, Wallet } from '../wallet'
@@ -223,6 +224,54 @@ export async function useMinerBlockFixture(
   )
 }
 
+export async function useRawTxFixture(options: {
+  wallet: Wallet
+  from: Account
+  to?: Account
+  fee?: bigint
+  expiration?: number
+  assetIdentifier?: Buffer
+  receives?: {
+    publicAddress: string
+    amount: bigint
+    memo: string
+    assetIdentifier: Buffer
+  }[]
+  mints?: MintDescription[]
+  burns?: BurnDescription[]
+}): Promise<RawTransaction> {
+  const generate = async () => {
+    const receives = options.receives ?? []
+
+    if (options.to) {
+      receives.push({
+        publicAddress: options.to.publicAddress,
+        amount: BigInt(1),
+        memo: '',
+        assetIdentifier: options.assetIdentifier ?? Asset.nativeIdentifier(),
+      })
+    }
+
+    return await options.wallet.createTransaction(
+      options.from,
+      receives,
+      options.mints ?? [],
+      options.burns ?? [],
+      options.fee ?? 0n,
+      options.expiration ?? 0,
+    )
+  }
+
+  return useFixture<RawTransaction, Buffer>(generate, {
+    serialize: (raw: RawTransaction): Buffer => {
+      return RawTransactionSerde.serialize(raw)
+    },
+    deserialize: (data): RawTransaction => {
+      return RawTransactionSerde.deserialize(data)
+    },
+  })
+}
+
 export async function useTxFixture(
   wallet: Wallet,
   from: Account,
@@ -233,8 +282,8 @@ export async function useTxFixture(
 ): Promise<Transaction> {
   generate =
     generate ||
-    (() => {
-      return wallet.createTransaction(
+    (async () => {
+      const raw = await wallet.createTransaction(
         from,
         [
           {
@@ -249,6 +298,8 @@ export async function useTxFixture(
         fee ?? BigInt(0),
         expiration ?? 0,
       )
+
+      return await wallet.postTransaction(raw)
     })
 
   return useFixture(generate, {
@@ -383,7 +434,7 @@ export async function useBlockWithTx(
     Assert.isNotUndefined(from)
     Assert.isNotUndefined(to)
 
-    const transaction = await node.wallet.createTransaction(
+    const raw = await node.wallet.createTransaction(
       from,
       [
         {
@@ -398,6 +449,8 @@ export async function useBlockWithTx(
       BigInt(options.fee ?? 1),
       options.expiration ?? 0,
     )
+
+    const transaction = await node.wallet.postTransaction(raw)
 
     return node.chain.newBlock(
       [transaction],
@@ -438,7 +491,7 @@ export async function useBlockWithTxs(
     for (let i = 0; i < numTransactions; i++) {
       Assert.isNotUndefined(from)
 
-      const transaction = await node.wallet.createTransaction(
+      const raw = await node.wallet.createTransaction(
         from,
         [
           {
@@ -453,6 +506,9 @@ export async function useBlockWithTxs(
         BigInt(1),
         0,
       )
+
+      const transaction = await node.wallet.postTransaction(raw)
+
       await node.wallet.addPendingTransaction(transaction)
       transactions.push(transaction)
     }
