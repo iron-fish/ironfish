@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
+import { BufferMap } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
@@ -82,8 +83,7 @@ export class Account {
     await this.walletDb.clearSequenceToNoteHash(this, tx)
     await this.walletDb.clearNonChainNoteHashes(this, tx)
     await this.walletDb.clearPendingTransactionHashes(this, tx)
-
-    await this.saveUnconfirmedBalance(BigInt(0), tx)
+    await this.walletDb.clearBalance(this, tx)
   }
 
   async *getNotes(): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
@@ -130,14 +130,20 @@ export class Account {
       if (!existingNote || existingNote.spent !== note.spent) {
         const value = note.note.value()
         const currentUnconfirmedBalance = await this.walletDb.getUnconfirmedBalance(this, tx)
+        const assetIdentifier = note.note.assetIdentifier()
 
-        // TODO(mgeist,rohanjadvani): Replace with asset identifier
-        if (note.note.assetIdentifier().equals(Asset.nativeIdentifier())) {
-          if (note.spent) {
-            await this.saveUnconfirmedBalance(currentUnconfirmedBalance - value, tx)
-          } else {
-            await this.saveUnconfirmedBalance(currentUnconfirmedBalance + value, tx)
-          }
+        if (note.spent) {
+          await this.saveUnconfirmedBalance(
+            assetIdentifier,
+            currentUnconfirmedBalance - value,
+            tx,
+          )
+        } else {
+          await this.saveUnconfirmedBalance(
+            assetIdentifier,
+            currentUnconfirmedBalance + value,
+            tx,
+          )
         }
       }
 
@@ -206,7 +212,8 @@ export class Account {
         return
       }
 
-      let balanceDelta = 0n
+      const balanceDeltas = new BufferMap<bigint>()
+
       for (const decryptedNote of decryptedNotes) {
         if (decryptedNote.forSpender) {
           continue
@@ -231,7 +238,9 @@ export class Account {
           tx,
         )
 
-        balanceDelta += note.value()
+        const assetIdentifier = note.assetIdentifier()
+        const balanceDelta = balanceDeltas.get(assetIdentifier) ?? 0n
+        balanceDeltas.set(assetIdentifier, balanceDelta + note.value())
       }
 
       for (const spend of transaction.spends) {
@@ -255,7 +264,10 @@ export class Account {
         )
 
         if (!spentNote.spent) {
-          balanceDelta -= spentNote.note.value()
+          const note = spentNote.note
+          const assetIdentifier = note.assetIdentifier()
+          const balanceDelta = balanceDeltas.get(assetIdentifier) ?? 0n
+          balanceDeltas.set(assetIdentifier, balanceDelta - note.value())
         }
       }
 
@@ -278,8 +290,15 @@ export class Account {
         tx,
       )
 
-      const unconfirmedBalance = await this.getUnconfirmedBalance(tx)
-      await this.saveUnconfirmedBalance(unconfirmedBalance + balanceDelta, tx)
+      for (const [assetIdentifier, balanceDelta] of balanceDeltas) {
+        // TODO(mgeist,rohanjadvani): Add check for asset identifier
+        const unconfirmedBalance = await this.getUnconfirmedBalance(tx)
+        await this.saveUnconfirmedBalance(
+          assetIdentifier,
+          unconfirmedBalance + balanceDelta,
+          tx,
+        )
+      }
     })
   }
 
@@ -380,11 +399,20 @@ export class Account {
         const note = existingNote.note
         const value = note.value()
         const currentUnconfirmedBalance = await this.walletDb.getUnconfirmedBalance(this, tx)
+        const assetIdentifier = existingNote.note.assetIdentifier()
 
         if (existingNote.spent) {
-          await this.saveUnconfirmedBalance(currentUnconfirmedBalance + value, tx)
+          await this.saveUnconfirmedBalance(
+            assetIdentifier,
+            currentUnconfirmedBalance + value,
+            tx,
+          )
         } else {
-          await this.saveUnconfirmedBalance(currentUnconfirmedBalance - value, tx)
+          await this.saveUnconfirmedBalance(
+            assetIdentifier,
+            currentUnconfirmedBalance - value,
+            tx,
+          )
         }
 
         await this.walletDb.deleteDecryptedNote(this, noteHash, tx)
@@ -551,10 +579,11 @@ export class Account {
   }
 
   private async saveUnconfirmedBalance(
+    assetIdentifier: Buffer,
     balance: bigint,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.walletDb.saveUnconfirmedBalance(this, balance, tx)
+    await this.walletDb.saveUnconfirmedBalance(this, assetIdentifier, balance, tx)
   }
 
   async getHeadHash(tx?: IDatabaseTransaction): Promise<Buffer | null> {

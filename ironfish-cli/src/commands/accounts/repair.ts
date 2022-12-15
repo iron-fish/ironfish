@@ -10,6 +10,7 @@ import {
   Wallet,
   WalletDB,
 } from '@ironfish/sdk'
+import { BufferMap } from 'buffer-map'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -109,7 +110,7 @@ export default class Repair extends IronfishCommand {
     walletDb: WalletDB,
     chain: Blockchain,
   ): Promise<void> {
-    let unconfirmedBalance = 0n
+    const unconfirmedBalances = new BufferMap<bigint>()
 
     let noteUnspentMismatches = 0
 
@@ -156,15 +157,24 @@ export default class Repair extends IronfishCommand {
         }
 
         if (!isExpired) {
-          unconfirmedBalance += decryptedNoteValue.note.value()
+          const assetIdentifier = decryptedNoteValue.note.assetIdentifier()
+          const unconfirmedBalance = unconfirmedBalances.get(assetIdentifier) ?? BigInt(0)
+          unconfirmedBalances.set(
+            assetIdentifier,
+            unconfirmedBalance + decryptedNoteValue.note.value(),
+          )
         }
       }
     }
 
-    this.log(
-      `\tSaving new unconfirmed balance: ${CurrencyUtils.renderIron(unconfirmedBalance, true)}`,
-    )
-    await walletDb.saveUnconfirmedBalance(account, unconfirmedBalance)
+    for (const [assetIdentifier, unconfirmedBalance] of unconfirmedBalances.entries()) {
+      this.log(
+        `\tSaving new unconfirmed balance for ${assetIdentifier.toString(
+          'hex',
+        )}: ${CurrencyUtils.renderIron(unconfirmedBalance)}`,
+      )
+      await walletDb.saveUnconfirmedBalance(account, assetIdentifier, unconfirmedBalance)
+    }
 
     this.log(
       `\tRepaired ${noteUnspentMismatches} decrypted notes incorrectly marked as unspent`,
