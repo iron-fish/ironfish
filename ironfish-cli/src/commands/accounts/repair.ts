@@ -111,7 +111,6 @@ export default class Repair extends IronfishCommand {
     chain: Blockchain,
   ): Promise<void> {
     const unconfirmedBalances = new BufferMap<bigint>()
-    const unconfirmedBalance = 0n
 
     let noteUnspentMismatches = 0
 
@@ -168,11 +167,12 @@ export default class Repair extends IronfishCommand {
       }
     }
 
-    this.log(
-      `\tSaving new unconfirmed balance: ${CurrencyUtils.renderIron(unconfirmedBalance, true)}`,
-    )
-
     for (const [assetIdentifier, unconfirmedBalance] of unconfirmedBalances.entries()) {
+      this.log(
+        `\tSaving new unconfirmed balance for ${assetIdentifier.toString(
+          'hex',
+        )}: ${CurrencyUtils.renderIron(unconfirmedBalance)}`,
+      )
       await walletDb.saveUnconfirmedBalance(account, assetIdentifier, unconfirmedBalance)
     }
 
