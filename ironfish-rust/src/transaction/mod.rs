@@ -221,13 +221,6 @@ impl ProposedTransaction {
         self._partial_post()
     }
 
-    /// Super special case for generating an illegal transaction for the genesis block.
-    /// Don't bother using this anywhere else, it won't pass verification.
-    #[deprecated(note = "Use only in genesis block generation")]
-    pub fn post_genesis_transaction(&self) -> Result<Transaction, IronfishError> {
-        self._partial_post()
-    }
-
     /// Get the expiration sequence for this transaction
     pub fn expiration_sequence(&self) -> u32 {
         self.expiration_sequence
