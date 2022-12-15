@@ -102,29 +102,39 @@ export class Peer {
   name: string | null = null
 
   /**
-   * The peers protocol version
+   * The peer's protocol version
    */
   version: number | null = null
 
   /**
-   * The peers agent
+   * The peer's agent
    */
   agent: string | null = null
 
   /**
-   * The peers heaviest head hash
+   * The peer's heaviest head hash
    */
   head: Buffer | null = null
 
   /**
-   * The peers heaviest head cumulative work
+   * The peer's heaviest head cumulative work
    */
   work: bigint | null = null
 
   /**
-   * The peers heaviest head sequence
+   * The peer's heaviest head sequence
    */
   sequence: number | null = null
+
+  /**
+   * The peer's network ID
+   */
+  networkId: number | null = null
+
+  /**
+   * The peer's genesis block hash
+   */
+  genesisBlockHash: Buffer | null = null
 
   /**
    * The loggable name of the peer. For a more specific value,

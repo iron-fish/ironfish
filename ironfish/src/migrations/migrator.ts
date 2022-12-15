@@ -68,7 +68,7 @@ export class Migrator {
   async revert(options?: { dryRun?: boolean }): Promise<void> {
     const dryRun = options?.dryRun ?? false
 
-    const migrations = Array.from(this.migrations).reverse()
+    const migrations = this.migrations.slice().reverse()
 
     for (const migration of migrations) {
       const applied = await this.isApplied(migration)

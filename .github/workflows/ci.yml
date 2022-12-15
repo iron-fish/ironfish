@@ -50,8 +50,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
-          # Using 16.10 to fix https://github.com/facebook/jest/issues/11956
-          node-version: '16.10.0'
+          node-version: '16.13.0'
           cache: 'yarn'
 
       - name: Cache Rust
@@ -63,7 +62,7 @@ jobs:
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Run tests
-        run: yarn test:coverage
+        run: yarn test:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
 
       - name: Upload coverage
         if: github.repository == 'iron-fish/ironfish'
@@ -92,7 +91,7 @@ jobs:
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Run slow tests & coverage
-        run: yarn test:slow:coverage
+        run: yarn test:slow:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
 
       - name: Upload coverage
         if: github.repository == 'iron-fish/ironfish'

@@ -1055,6 +1055,8 @@ export class PeerManager {
     const agent = message.agent
     const port = message.port
     const name = message.name
+    const networkId = message.networkId
+    const genesisBlockHash = message.genesisBlockHash
 
     if (!isIdentity(identity)) {
       this.logger.debug(
@@ -1071,6 +1073,32 @@ export class PeerManager {
 
     if (version < VERSION_PROTOCOL_MIN) {
       const error = `Peer version ${version} is not compatible with our minimum: ${VERSION_PROTOCOL_MIN}`
+      this.logger.debug(`Disconnecting from ${identity} - ${error}`)
+
+      this.getConnectionRetry(
+        identity,
+        connection.type,
+        connection.direction,
+      )?.failedConnection()
+      peer.close(new Error(error))
+      return
+    }
+
+    if (networkId !== this.localPeer.networkId) {
+      const error = `Peer is on network ${networkId} while we are on network ${this.localPeer.networkId}`
+      this.logger.debug(`Disconnecting from ${identity} - ${error}`)
+
+      this.getConnectionRetry(
+        identity,
+        connection.type,
+        connection.direction,
+      )?.failedConnection()
+      peer.close(new Error(error))
+      return
+    }
+
+    if (!genesisBlockHash.equals(this.localPeer.chain.genesis.hash)) {
+      const error = 'Peer is using a different genesis block'
       this.logger.debug(`Disconnecting from ${identity} - ${error}`)
 
       this.getConnectionRetry(
@@ -1229,6 +1257,8 @@ export class PeerManager {
     peer.head = message.head
     peer.sequence = message.sequence
     peer.work = message.work
+    peer.networkId = message.networkId
+    peer.genesisBlockHash = message.genesisBlockHash
 
     // If we've told the peer to stay disconnected, repeat
     // the disconnection time before closing the connection

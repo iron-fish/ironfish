@@ -84,7 +84,7 @@ const streamTransaction = async (
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
   let creator = false
-  for (const spend of transaction.transaction.spends()) {
+  for (const spend of transaction.transaction.spends) {
     const noteHash = await account.getNoteHash(spend.nullifier)
 
     if (noteHash) {

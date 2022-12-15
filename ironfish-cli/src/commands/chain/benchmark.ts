@@ -116,8 +116,8 @@ export default class Benchmark extends IronfishCommand {
 
       totalMs += BenchUtils.end(startTime)
       totalBlocks += 1
-      totalSpends += block.transactions.reduce((count, tx) => count + tx.spendsLength(), 0)
-      totalNotes += block.transactions.reduce((count, tx) => count + tx.notesLength(), 0)
+      totalSpends += block.transactions.reduce((count, tx) => count + tx.spends.length, 0)
+      totalNotes += block.transactions.reduce((count, tx) => count + tx.notes.length, 0)
       totalTransactions += block.transactions.length
       status = renderStatus(
         totalMs,
@@ -142,15 +142,6 @@ export default class Benchmark extends IronfishCommand {
     const tempNodeNotesHash = await tempNode.chain.notes.rootHash()
     if (!nodeNotesHash.equals(tempNodeNotesHash)) {
       throw new Error('/!\\ Note tree hashes were not consistent /!\\')
-    }
-
-    if (endingHeader.nullifierSize === null) {
-      return this.error(`Header should have a noteSize`)
-    }
-
-    const tempNodeNullifiersSize = await tempNode.chain.nullifiers.size()
-    if (endingHeader.nullifierSize !== tempNodeNullifiersSize) {
-      throw new Error('/!\\ Nullifier set sizes were not consistent /!\\')
     }
 
     // Clean up the temporary node

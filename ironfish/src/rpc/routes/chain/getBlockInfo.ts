@@ -132,8 +132,8 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
         signature: tx.transactionSignature().toString('hex'),
         hash: tx.hash().toString('hex'),
         fee: fee.toString(),
-        spends: tx.spendsLength(),
-        notes: tx.notesLength(),
+        spends: tx.spends.length,
+        notes: tx.notes.length,
       })
     }
 

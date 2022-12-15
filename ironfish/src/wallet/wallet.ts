@@ -348,7 +348,7 @@ export class Wallet {
       let decryptNotesPayloads = []
       let currentNoteIndex = initialNoteIndex
 
-      for (const note of transaction.notes()) {
+      for (const note of transaction.notes) {
         decryptNotesPayloads.push({
           serializedNote: note.serialize(),
           incomingViewKey: account.incomingViewKey,
@@ -397,9 +397,33 @@ export class Wallet {
     return decryptedNotes
   }
 
+  async addPendingTransaction(transaction: Transaction): Promise<void> {
+    const accounts = []
+    for (const account of this.listAccounts()) {
+      if (!(await account.hasTransaction(transaction.hash()))) {
+        accounts.push(account)
+      }
+    }
+
+    if (accounts.length === 0) {
+      return
+    }
+
+    const decryptedNotesByAccountId = await this.decryptNotes(transaction, null, accounts)
+
+    for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
+      const account = this.accounts.get(accountId)
+
+      if (!account) {
+        continue
+      }
+
+      await account.addPendingTransaction(transaction, decryptedNotes, this.chain.head.sequence)
+    }
+  }
+
   /**
    * Called:
-   *  - Called when transactions are added to the mem pool
    *  - Called for transactions on disconnected blocks
    *  - Called when transactions are added to a block on the genesis chain
    */
@@ -428,7 +452,10 @@ export class Wallet {
 
     for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
       const account = this.accounts.get(accountId)
-      Assert.isNotUndefined(account, `syncTransaction: No account found for ${accountId}`)
+
+      if (!account) {
+        continue
+      }
       await account.syncTransaction(transaction, decryptedNotes, params)
     }
   }
@@ -690,7 +717,7 @@ export class Wallet {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
-    await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
+    await this.addPendingTransaction(transaction)
     memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
     this.onTransactionCreated.emit(transaction)

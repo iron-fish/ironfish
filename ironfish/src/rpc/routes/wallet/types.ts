@@ -30,8 +30,8 @@ export function serializeRpcAccountTransaction(
     fee: transaction.transaction.fee().toString(),
     blockHash: transaction.blockHash?.toString('hex'),
     blockSequence: transaction.sequence ?? undefined,
-    notesCount: transaction.transaction.notesLength(),
-    spendsCount: transaction.transaction.spendsLength(),
+    notesCount: transaction.transaction.notes.length,
+    spendsCount: transaction.transaction.spends.length,
     expirationSequence: transaction.transaction.expirationSequence(),
   }
 }

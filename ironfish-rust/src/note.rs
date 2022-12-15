@@ -18,7 +18,7 @@ use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
-    util::commitment_full_point,
+    util::commitment_full_point_new,
     Nullifier,
 };
 use jubjub::SubgroupPoint;
@@ -273,12 +273,12 @@ impl<'a> Note {
 
     /// Computes the note commitment, returning the full point.
     fn commitment_full_point(&self) -> jubjub::SubgroupPoint {
-        // TODO: @yajun replace this with commitment_full_point_new() that takes sender address
-        commitment_full_point(
+        commitment_full_point_new(
             self.asset_generator,
             self.value,
             self.owner.transmission_key,
             self.randomness,
+            self.sender.transmission_key,
         )
     }
 

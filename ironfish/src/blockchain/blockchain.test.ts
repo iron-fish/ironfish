@@ -462,15 +462,15 @@ describe('Blockchain', () => {
       const txA2 = blockA2.transactions[1]
       const txB3 = blockB3.transactions[1]
 
-      expect(minersFeeA1.notesLength()).toBe(1)
-      expect(minersFeeA2.notesLength()).toBe(1)
-      expect(minersFeeB1.notesLength()).toBe(1)
-      expect(minersFeeB2.notesLength()).toBe(1)
-      expect(minersFeeB3.notesLength()).toBe(1)
-      expect(txA2.notesLength()).toBe(2)
-      expect(txA2.spendsLength()).toBe(1)
-      expect(txB3.notesLength()).toBe(2)
-      expect(txB3.spendsLength()).toBe(1)
+      expect(minersFeeA1.notes.length).toBe(1)
+      expect(minersFeeA2.notes.length).toBe(1)
+      expect(minersFeeB1.notes.length).toBe(1)
+      expect(minersFeeB2.notes.length).toBe(1)
+      expect(minersFeeB3.notes.length).toBe(1)
+      expect(txA2.notes.length).toBe(2)
+      expect(txA2.spends.length).toBe(1)
+      expect(txB3.notes.length).toBe(2)
+      expect(txB3.spends.length).toBe(1)
 
       // Check nodeA has notes from blockA1, blockA2
       expect(await nodeA.chain.notes.size()).toBe(countNoteA + 4)

@@ -9,7 +9,7 @@ import { TransactionHash } from '../primitives/transaction'
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
 import { IncomingPeerMessage, NetworkMessage } from './messages/networkMessage'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionV2Message } from './messages/newTransactionV2'
+import { NewTransactionsMessage } from './messages/newTransactions'
 import {
   PooledTransactionsRequest,
   PooledTransactionsResponse,
@@ -67,7 +67,7 @@ describe('TransactionFetcher', () => {
     await peerNetwork.stop()
   })
 
-  it('does not send a request for a transaction if received NewTransactionV2Message from another peer within 500ms', async () => {
+  it('does not send a request for a transaction if received NewTransactionsMessage from another peer within 500ms', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
     chain.synced = true
@@ -87,7 +87,7 @@ describe('TransactionFetcher', () => {
     const peerIdentity = peer.getIdentityOrThrow()
     const message = {
       peerIdentity,
-      message: new NewTransactionV2Message([transaction]),
+      message: new NewTransactionsMessage([transaction]),
     }
 
     await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
@@ -229,7 +229,7 @@ describe('TransactionFetcher', () => {
     const peersWithoutTransaction = peers.slice(1)
 
     const isTransactionGossip = (m: NetworkMessage) => {
-      return m instanceof NewTransactionV2Message || m instanceof NewPooledTransactionHashes
+      return m instanceof NewTransactionsMessage || m instanceof NewPooledTransactionHashes
     }
 
     // We should still gossip the transaction to other peers who have not seen it yet

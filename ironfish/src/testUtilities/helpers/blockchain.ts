@@ -47,7 +47,6 @@ export async function makeBlockAfter(
     graffiti,
     after.noteSize,
     BigInt(1),
-    after.nullifierSize,
   )
 
   const block = new Block(header, [])

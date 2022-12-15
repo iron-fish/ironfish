@@ -206,7 +206,7 @@ export class WalletDB {
         tx,
       )
       if (nativeUnconfirmedBalance === undefined) {
-        await this.saveUnconfirmedBalance(account, BigInt(0), tx)
+        await this.saveUnconfirmedBalance(account, Asset.nativeIdentifier(), BigInt(0), tx)
       }
     })
   }
@@ -214,7 +214,7 @@ export class WalletDB {
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       await this.accounts.del(account.id, tx)
-      await this.balances.clear(tx, account.prefixRange)
+      await this.clearBalance(account, tx)
       await this.accountIdsToCleanup.put(account.id, null, tx)
     })
   }
@@ -321,31 +321,43 @@ export class WalletDB {
     return this.transactions.get([account.prefix, transactionHash], tx)
   }
 
+  async hasTransaction(
+    account: Account,
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    return this.transactions.has([account.prefix, transactionHash], tx)
+  }
+
   async setNoteHashSequence(
     account: Account,
     noteHash: Buffer,
     sequence: number | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    if (sequence) {
-      await this.sequenceToNoteHash.put([account.prefix, [sequence, noteHash]], null, tx)
-      await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
-    } else {
-      await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
-    }
+    await this.db.withTransaction(tx, async (tx) => {
+      if (sequence) {
+        await this.sequenceToNoteHash.put([account.prefix, [sequence, noteHash]], null, tx)
+        await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
+      } else {
+        await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
+      }
+    })
   }
 
   async deleteNoteHashSequence(
     account: Account,
     noteHash: Buffer,
     sequence: number | null,
-    tx: IDatabaseTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
+    await this.db.withTransaction(tx, async (tx) => {
+      await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
 
-    if (sequence !== null) {
-      await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
-    }
+      if (sequence !== null) {
+        await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
+      }
+    })
   }
 
   /*
@@ -553,12 +565,15 @@ export class WalletDB {
 
   async saveUnconfirmedBalance(
     account: Account,
+    assetIdentifier: Buffer,
     balance: bigint,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    // TODO(mgeist,rohanjadvani): This will be updated in a subsequent PR to
-    // include an asset as an argument
-    await this.balances.put([account.prefix, Asset.nativeIdentifier()], balance, tx)
+    await this.balances.put([account.prefix, assetIdentifier], balance, tx)
+  }
+
+  async clearBalance(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.balances.clear(tx, account.prefixRange)
   }
 
   async *loadExpiredTransactions(

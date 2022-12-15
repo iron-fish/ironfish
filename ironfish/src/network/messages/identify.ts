@@ -16,6 +16,8 @@ interface CreateIdentifyMessageOptions {
   sequence: number
   version: number
   work: bigint
+  networkId: number
+  genesisBlockHash: Buffer
 }
 
 export class IdentifyMessage extends NetworkMessage {
@@ -27,6 +29,8 @@ export class IdentifyMessage extends NetworkMessage {
   readonly sequence: number
   readonly version: number
   readonly work: bigint
+  readonly networkId: number
+  readonly genesisBlockHash: Buffer
 
   constructor({
     agent,
@@ -37,6 +41,8 @@ export class IdentifyMessage extends NetworkMessage {
     sequence,
     version,
     work,
+    networkId,
+    genesisBlockHash,
   }: CreateIdentifyMessageOptions) {
     super(NetworkMessageType.Identify)
     this.agent = agent
@@ -47,6 +53,8 @@ export class IdentifyMessage extends NetworkMessage {
     this.sequence = sequence
     this.version = version
     this.work = work
+    this.networkId = networkId
+    this.genesisBlockHash = genesisBlockHash
   }
 
   serialize(): Buffer {
@@ -59,6 +67,8 @@ export class IdentifyMessage extends NetworkMessage {
     bw.writeU32(this.sequence)
     bw.writeHash(this.head)
     bw.writeVarBytes(BigIntUtils.toBytesLE(this.work))
+    bw.writeU16(this.networkId)
+    bw.writeHash(this.genesisBlockHash)
     return bw.render()
   }
 
@@ -72,6 +82,8 @@ export class IdentifyMessage extends NetworkMessage {
     const sequence = reader.readU32()
     const head = reader.readHash()
     const work = BigIntUtils.fromBytesLE(reader.readVarBytes())
+    const networkId = reader.readU16()
+    const genesisBlockHash = reader.readHash()
     return new IdentifyMessage({
       agent,
       head,
@@ -81,6 +93,8 @@ export class IdentifyMessage extends NetworkMessage {
       sequence,
       version,
       work,
+      networkId,
+      genesisBlockHash,
     })
   }
 
@@ -94,6 +108,8 @@ export class IdentifyMessage extends NetworkMessage {
     size += 4 // sequence
     size += 32 // head
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(this.work))
+    size += 2 // network ID
+    size += 32 // genesis block hash
     return size
   }
 }

@@ -160,11 +160,11 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
     }
 
     const transactions = block.transactions.map((transaction) => {
-      const notes = [...transaction.notes()].map((note) => ({
+      const notes = transaction.notes.map((note) => ({
         commitment: Buffer.from(note.merkleHash()).toString('hex'),
       }))
 
-      const spends = [...transaction.spends()].map((spend) => ({
+      const spends = transaction.spends.map((spend) => ({
         nullifier: BlockHashSerdeInstance.serialize(spend.nullifier),
       }))
 

@@ -22,5 +22,5 @@ cd "$(dirname "$0")"
     yarn start chain:genesisblock -a IronFishGenesisAccount
 
     echo ""
-    echo "Copy the above block into genesisBlock.ts"
+    echo "Copy the above block into `DEV_GENESIS` in ironfish/src/defaultNetworkDefinitions.ts"
 )
