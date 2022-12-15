@@ -326,7 +326,7 @@ describe('Accounts', () => {
       expect(connectSpy).toHaveBeenCalled()
 
       // transaction from A -> A, so all notes belong to A
-      for (const note of transaction.notes()) {
+      for (const note of transaction.notes) {
         const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
 
         expect(decryptedNote).toBeDefined()
@@ -369,7 +369,7 @@ describe('Accounts', () => {
 
       expect(connectSpy).toHaveBeenCalled()
 
-      for (const spend of transaction.spends()) {
+      for (const spend of transaction.spends) {
         const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
 
         Assert.isNotNull(spentNoteHash)
