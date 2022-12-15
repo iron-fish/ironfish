@@ -4,7 +4,6 @@
 import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
-import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import {
   createNodeTest,
   useAccountFixture,
