@@ -114,10 +114,7 @@ impl OutputBuilder {
         let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
             .randomize(*public_key_randomness, SPENDING_KEY_GENERATOR);
 
-        let output_proof = OutputDescription {
-            proof,
-            merkle_note,
-        };
+        let output_proof = OutputDescription { proof, merkle_note };
 
         output_proof.verify_proof(&randomized_public_key)?;
 
@@ -149,10 +146,7 @@ impl OutputDescription {
         let proof = groth16::Proof::read(&mut reader)?;
         let merkle_note = MerkleNote::read(&mut reader)?;
 
-        Ok(OutputDescription {
-            proof,
-            merkle_note,
-        })
+        Ok(OutputDescription { proof, merkle_note })
     }
 
     /// Stow the bytes of this [`OutputDescription`] in the given writer.
@@ -316,7 +310,9 @@ mod test {
         let proof = output
             .build(&spender_key, &public_key_randomness)
             .expect("Should be able to build output proof");
-        proof.verify_proof(&randomized_public_key).expect("proof should check out");
+        proof
+            .verify_proof(&randomized_public_key)
+            .expect("proof should check out");
 
         // test serialization
         let mut serialized_proof = vec![];
