@@ -753,7 +753,7 @@ pub fn batch_verify_transactions<'a>(
         for output in transaction.outputs.iter() {
             output.verify_not_small_order()?;
 
-            let public_inputs = output.public_inputs();
+            let public_inputs = output.public_inputs(transaction.randomized_public_key());
             output_verifier.queue((&output.proof, &public_inputs[..]));
 
             binding_verification_key -= output.merkle_note.value_commitment;

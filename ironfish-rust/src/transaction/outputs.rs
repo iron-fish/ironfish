@@ -117,10 +117,9 @@ impl OutputBuilder {
         let output_proof = OutputDescription {
             proof,
             merkle_note,
-            randomized_public_key,
         };
 
-        output_proof.verify_proof()?;
+        output_proof.verify_proof(&randomized_public_key)?;
 
         Ok(output_proof)
     }
@@ -140,14 +139,6 @@ pub struct OutputDescription {
     /// Merkle note containing all the values verified by the proof. These values
     /// are shared on the blockchain and can be snapshotted into a Merkle Tree
     pub(crate) merkle_note: MerkleNote,
-
-    /// The public key of the sender after randomization has been applied. This is used
-    /// during signature verification (and circuit validationg) to confirm
-    /// that the creator of the transaction is the one who signed and is matching the
-    /// newly added sender_address field in the output note.
-    /// `rk` in the literature Calculated from the authorizing key and
-    /// the public_key_randomness.
-    pub(crate) randomized_public_key: redjubjub::PublicKey,
 }
 
 impl OutputDescription {
@@ -157,12 +148,10 @@ impl OutputDescription {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let proof = groth16::Proof::read(&mut reader)?;
         let merkle_note = MerkleNote::read(&mut reader)?;
-        let randomized_public_key = PublicKey::read(&mut reader)?;
 
         Ok(OutputDescription {
             proof,
             merkle_note,
-            randomized_public_key,
         })
     }
 
@@ -173,13 +162,13 @@ impl OutputDescription {
 
     /// Verify that the proof demonstrates knowledge that a note exists with
     /// the value_commitment, public_key, and note_commitment on this proof.
-    pub fn verify_proof(&self) -> Result<(), IronfishError> {
+    pub fn verify_proof(&self, randomized_public_key: &PublicKey) -> Result<(), IronfishError> {
         self.verify_not_small_order()?;
 
         groth16::verify_proof(
             &SAPLING.output_verifying_key,
             &self.proof,
-            &self.public_inputs()[..],
+            &self.public_inputs(randomized_public_key)[..],
         )?;
 
         Ok(())
@@ -200,9 +189,9 @@ impl OutputDescription {
     /// Converts the values to appropriate inputs for verifying the bellman proof.
     /// Demonstrates knowledge of a note containing the sender's randomized public key,
     /// value_commitment, public_key, and note_commitment
-    pub fn public_inputs(&self) -> [Scalar; 7] {
+    pub fn public_inputs(&self, randomized_public_key: &PublicKey) -> [Scalar; 7] {
         let mut public_inputs = [Scalar::zero(); 7];
-        let p = self.randomized_public_key.0.to_affine();
+        let p = randomized_public_key.0.to_affine();
         public_inputs[0] = p.get_u();
         public_inputs[1] = p.get_v();
 
@@ -236,7 +225,6 @@ impl OutputDescription {
     ) -> Result<(), IronfishError> {
         self.proof.write(&mut writer)?;
         self.merkle_note.write(&mut writer)?;
-        self.randomized_public_key.write(&mut writer)?;
 
         Ok(())
     }
@@ -251,6 +239,7 @@ mod test {
     };
     use ff::{Field, PrimeField};
     use group::Curve;
+    use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
     use jubjub::ExtendedPoint;
     use rand::thread_rng;
 
@@ -312,6 +301,8 @@ mod test {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
         let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let note = Note::new(
             receiver_key.public_address(),
@@ -325,7 +316,7 @@ mod test {
         let proof = output
             .build(&spender_key, &public_key_randomness)
             .expect("Should be able to build output proof");
-        proof.verify_proof().expect("proof should check out");
+        proof.verify_proof(&randomized_public_key).expect("proof should check out");
 
         // test serialization
         let mut serialized_proof = vec![];
