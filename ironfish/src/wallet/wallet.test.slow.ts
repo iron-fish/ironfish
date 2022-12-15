@@ -801,7 +801,7 @@ describe('Accounts', () => {
     })
   })
 
-  it('Undoes spends created by another node when rolling back a fork', async () => {
+  it('Keeps spends created by another node when rolling back a fork', async () => {
     // Create a block 1 that gives account A money
     // Create a block A2 with a transaction from account A to account B
     // Create a block B2 that gives neither account money
@@ -909,13 +909,13 @@ describe('Accounts', () => {
     await nodeA.chain.addBlock(blockB3)
     await nodeA.wallet.updateHead()
 
-    // A should have its original coins
-    // B should not have the coins any more
+    // B should not have confirmed coins yet because the transaction isn't on a block
+    // A should not have confirmed coins any more because the transaction is pending
     await expect(
       nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
     ).resolves.toMatchObject({
-      confirmed: BigInt(2000000000),
-      pending: BigInt(3999999998),
+      confirmed: BigInt(0),
+      pending: BigInt(1999999998),
     })
     await expect(
       nodeA.wallet.getBalance(accountBNodeA, Asset.nativeIdentifier()),

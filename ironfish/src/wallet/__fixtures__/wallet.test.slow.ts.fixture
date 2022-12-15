@@ -303,7 +303,7 @@
       ]
     }
   ],
-  "Accounts Undoes spends created by another node when rolling back a fork": [
+  "Accounts Keeps spends created by another node when rolling back a fork": [
     {
       "id": "6db36e74-f115-4445-b0c3-4bcc6f6fd1ec",
       "name": "testA",
