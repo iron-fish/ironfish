@@ -267,7 +267,7 @@ export class Account {
           const note = spentNote.note
           const assetIdentifier = note.assetIdentifier()
           const balanceDelta = balanceDeltas.get(assetIdentifier) ?? 0n
-          balanceDeltas.set(assetIdentifier, balanceDelta + note.value())
+          balanceDeltas.set(assetIdentifier, balanceDelta - note.value())
         }
       }
 
