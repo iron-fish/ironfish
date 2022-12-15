@@ -103,7 +103,9 @@ export class NullifierSet {
   }
 
   async clear(tx?: IDatabaseTransaction): Promise<void> {
-    await this.nullifiers.clear(tx)
-    await this.counter.clear(tx)
+    await this.db.withTransaction(tx, async (tx) => {
+      await this.nullifiers.clear(tx)
+      await this.counter.clear(tx)
+    })
   }
 }
