@@ -48,6 +48,7 @@ pub mod burns;
 pub mod mints;
 pub mod outputs;
 pub mod spends;
+mod utils;
 
 #[cfg(test)]
 mod tests;
@@ -758,7 +759,7 @@ pub fn batch_verify_transactions<'a>(
         let hash_to_verify_signature = transaction.transaction_signature_hash();
 
         for spend in transaction.spends.iter() {
-            spend.verify_not_small_order()?;
+            spend.partial_verify()?;
 
             let public_inputs = spend.public_inputs(transaction.randomized_public_key());
             spend_verifier.queue((&spend.proof, &public_inputs[..]));
@@ -772,7 +773,7 @@ pub fn batch_verify_transactions<'a>(
         }
 
         for output in transaction.outputs.iter() {
-            output.verify_not_small_order()?;
+            output.partial_verify()?;
 
             let public_inputs = output.public_inputs(transaction.randomized_public_key());
             output_verifier.queue((&output.proof, &public_inputs[..]));
@@ -781,7 +782,7 @@ pub fn batch_verify_transactions<'a>(
         }
 
         for mint in transaction.mints.iter() {
-            mint.verify_not_small_order()?;
+            mint.partial_verify()?;
 
             let public_inputs = mint.public_inputs(transaction.randomized_public_key());
             mint_verifier.queue((&mint.proof, &public_inputs[..]));
