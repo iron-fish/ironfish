@@ -260,7 +260,7 @@ export class Account {
           transaction,
           blockHash: blockHeader.hash,
           sequence: blockHeader.sequence,
-          submittedSequence: null,
+          submittedSequence: blockHeader.sequence,
         },
         tx,
       )
