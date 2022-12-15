@@ -1,16 +1,20 @@
 use ff::PrimeField;
+
+use bellman::{gadgets::blake2s, Circuit, ConstraintSystem, SynthesisError};
+
 use group::Curve;
-
-use bellman::{Circuit, ConstraintSystem, SynthesisError};
-
 use jubjub::SubgroupPoint;
 
+use zcash_primitives::{constants::CRH_IVK_PERSONALIZATION, sapling::ProofGenerationKey};
 use zcash_proofs::{
     circuit::{
         ecc::{self},
         pedersen_hash,
     },
-    constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
+    constants::{
+        NOTE_COMMITMENT_RANDOMNESS_GENERATOR, PROOF_GENERATION_KEY_GENERATOR,
+        SPENDING_KEY_GENERATOR,
+    },
 };
 
 use crate::{constants::proof::PUBLIC_KEY_GENERATOR, ValueCommitment};
@@ -35,6 +39,13 @@ pub struct Output {
 
     /// The ephemeral secret key for DH with recipient
     pub esk: Option<jubjub::Fr>,
+
+    /// Key required to construct proofs for spending notes
+    /// for a particular spending key
+    pub proof_generation_key: Option<ProofGenerationKey>,
+
+    /// Re-randomization of the public key
+    pub ar: Option<jubjub::Fr>,
 }
 
 impl Circuit<bls12_381::Scalar> for Output {
@@ -42,6 +53,88 @@ impl Circuit<bls12_381::Scalar> for Output {
         self,
         cs: &mut CS,
     ) -> Result<(), SynthesisError> {
+        // TODO: This code is nearly identical to Spend code, before merging consider abstracting if needed
+        // Prover witnesses ak (ensures that it's on the curve)
+        let ak = ecc::EdwardsPoint::witness(
+            cs.namespace(|| "ak"),
+            self.proof_generation_key.as_ref().map(|k| k.ak.into()),
+        )?;
+
+        // There are no sensible attacks on small order points
+        // of ak (that we're aware of!) but it's a cheap check,
+        // so we do it.
+        ak.assert_not_small_order(cs.namespace(|| "ak not small order"))?;
+
+        // Rerandomize ak and expose it as an input to the circuit
+        {
+            let ar = boolean::field_into_boolean_vec_le(cs.namespace(|| "ar"), self.ar)?;
+
+            // Compute the randomness in the exponent
+            let ar = ecc::fixed_base_multiplication(
+                cs.namespace(|| "computation of randomization for the signing key"),
+                &SPENDING_KEY_GENERATOR,
+                &ar,
+            )?;
+
+            let rk = ak.add(cs.namespace(|| "computation of rk"), &ar)?;
+
+            rk.inputize(cs.namespace(|| "rk"))?;
+        }
+
+        // Compute nk = [nsk] ProofGenerationKey
+        let nk;
+        {
+            // Witness nsk as bits
+            let nsk = boolean::field_into_boolean_vec_le(
+                cs.namespace(|| "nsk"),
+                self.proof_generation_key.as_ref().map(|k| k.nsk),
+            )?;
+
+            // NB: We don't ensure that the bit representation of nsk
+            // is "in the field" (jubjub::Fr) because it's not used
+            // except to demonstrate the prover knows it. If they know
+            // a congruency then that's equivalent.
+
+            // Compute nk = [nsk] ProvingPublicKey
+            nk = ecc::fixed_base_multiplication(
+                cs.namespace(|| "computation of nk"),
+                &PROOF_GENERATION_KEY_GENERATOR,
+                &nsk,
+            )?;
+        }
+
+        // This is the "viewing key" preimage for CRH^ivk
+        let mut ivk_preimage = vec![];
+
+        // Place ak in the preimage for CRH^ivk
+        ivk_preimage.extend(ak.repr(cs.namespace(|| "representation of ak"))?);
+
+        // Extend ivk and nf preimages with the representation of
+        // nk.
+        {
+            let repr_nk = nk.repr(cs.namespace(|| "representation of nk"))?;
+
+            ivk_preimage.extend(repr_nk.iter().cloned());
+        }
+
+        assert_eq!(ivk_preimage.len(), 512);
+
+        // Compute the incoming viewing key ivk
+        let mut ivk = blake2s::blake2s(
+            cs.namespace(|| "computation of ivk"),
+            &ivk_preimage,
+            CRH_IVK_PERSONALIZATION,
+        )?;
+
+        // drop_5 to ensure it's in the field
+        ivk.truncate(jubjub::Fr::CAPACITY as usize);
+
+        // Compute pk_d
+        let pk_d_sender = ecc::fixed_base_multiplication(
+            cs.namespace(|| "compute pk_d"),
+            &PUBLIC_KEY_GENERATOR,
+            &ivk,
+        )?;
         // Let's start to construct our note, which contains
         // value (big endian)
         let mut note_contents = vec![];
@@ -102,12 +195,15 @@ impl Circuit<bls12_381::Scalar> for Output {
             note_contents.extend(v_contents);
             note_contents.push(sign_bit);
         }
+        // Place pk_d in the note
+        note_contents.extend(pk_d_sender.repr(cs.namespace(|| "representation of pk_d sender"))?);
 
         assert_eq!(
             note_contents.len(),
             256 + // asset generator
             64 + // value
-            256 // pk_d
+            256 + // pk_d owner
+            256 // pk_d sender
         );
 
         // Compute the hash of the note contents
@@ -153,28 +249,29 @@ mod test {
     use rand::rngs::StdRng;
     use rand::{RngCore, SeedableRng};
     use zcash_primitives::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
-    use zcash_primitives::sapling::Note;
-    use zcash_primitives::sapling::{ProofGenerationKey, Rseed};
+    use zcash_primitives::sapling::ProofGenerationKey;
 
-    use crate::{
-        circuits::output::Output, constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point,
-        ValueCommitment,
-    };
+    use crate::util::commitment_full_point_new;
+    use crate::{circuits::output::Output, constants::PUBLIC_KEY_GENERATOR, ValueCommitment};
 
     #[test]
     fn test_output_circuit_with_bls12_381() {
         // Seed a fixed rng for determinism in the test
         let mut rng = StdRng::seed_from_u64(0);
 
-        for _ in 0..50 {
+        for _ in 0..5 {
+            let value_commitment_randomness = jubjub::Fr::random(&mut rng);
+            let note_commitment_randomness = jubjub::Fr::random(&mut rng);
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
-                randomness: jubjub::Fr::random(&mut rng),
+                randomness: value_commitment_randomness,
                 asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
             };
 
             let nsk = jubjub::Fr::random(&mut rng);
             let ak = jubjub::SubgroupPoint::random(&mut rng);
+            let esk = jubjub::Fr::random(&mut rng);
+            let ar = jubjub::Fr::random(&mut rng);
 
             let proof_generation_key = ProofGenerationKey { ak, nsk };
 
@@ -182,42 +279,37 @@ mod test {
 
             let payment_address = PUBLIC_KEY_GENERATOR * viewing_key.ivk().0;
 
-            let commitment_randomness = jubjub::Fr::random(&mut rng);
-            let esk = jubjub::Fr::random(&mut rng);
+            let sender_address = payment_address;
 
             {
+                let rk = jubjub::ExtendedPoint::from(viewing_key.rk(ar)).to_affine();
                 let mut cs = TestConstraintSystem::new();
 
                 let instance = Output {
                     value_commitment: Some(value_commitment.clone()),
                     payment_address: Some(payment_address),
-                    commitment_randomness: Some(commitment_randomness),
+                    commitment_randomness: Some(note_commitment_randomness),
                     esk: Some(esk),
                     asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
+                    proof_generation_key: Some(proof_generation_key.clone()),
+                    ar: Some(ar),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 5926);
+                assert_eq!(cs.num_constraints(), 32475);
                 assert_eq!(
                     cs.hash(),
-                    "fe17a277936c74ef5dc404f014871aa59a300b00f0528cd8db1d9d07a55dfbf1"
+                    "4c6343b8dbef01d5a35f20b706c247a61ad36605533192ba4ae70adf2e51aa07"
                 );
 
-                let note = Some(Note {
-                    value: value_commitment.value,
-                    rseed: Rseed::BeforeZip212(commitment_randomness),
-                    g_d: PUBLIC_KEY_GENERATOR,
-                    pk_d: payment_address,
-                })
-                .expect("should be valid");
-
-                let commitment = commitment_full_point(
+                let commitment = commitment_full_point_new(
                     value_commitment.asset_generator,
                     value_commitment.value,
                     payment_address,
-                    note.rcm(),
+                    note_commitment_randomness,
+                    sender_address,
                 );
                 let expected_cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
 
@@ -227,25 +319,27 @@ mod test {
                 let expected_epk =
                     jubjub::ExtendedPoint::from(PUBLIC_KEY_GENERATOR * esk).to_affine();
 
-                assert_eq!(cs.num_inputs(), 6);
+                assert_eq!(cs.num_inputs(), 8);
                 assert_eq!(cs.get_input(0, "ONE"), bls12_381::Scalar::one());
+                assert_eq!(cs.get_input(1, "rk/u/input variable"), rk.get_u());
+                assert_eq!(cs.get_input(2, "rk/v/input variable"), rk.get_v());
                 assert_eq!(
-                    cs.get_input(1, "value commitment/commitment point/u/input variable"),
+                    cs.get_input(3, "value commitment/commitment point/u/input variable"),
                     expected_value_commitment.get_u()
                 );
                 assert_eq!(
-                    cs.get_input(2, "value commitment/commitment point/v/input variable"),
+                    cs.get_input(4, "value commitment/commitment point/v/input variable"),
                     expected_value_commitment.get_v()
                 );
                 assert_eq!(
-                    cs.get_input(3, "epk/u/input variable"),
+                    cs.get_input(5, "epk/u/input variable"),
                     expected_epk.get_u()
                 );
                 assert_eq!(
-                    cs.get_input(4, "epk/v/input variable"),
+                    cs.get_input(6, "epk/v/input variable"),
                     expected_epk.get_v()
                 );
-                assert_eq!(cs.get_input(5, "commitment/input variable"), expected_cmu);
+                assert_eq!(cs.get_input(7, "commitment/input variable"), expected_cmu);
             }
         }
     }

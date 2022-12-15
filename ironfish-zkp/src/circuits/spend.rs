@@ -53,6 +53,9 @@ pub struct Spend {
     /// The anchor; the root of the tree. If the note being
     /// spent is zero-value, this can be anything.
     pub anchor: Option<bls12_381::Scalar>,
+
+    /// The sender address associated with the note
+    pub sender_address: Option<SubgroupPoint>,
 }
 
 impl Circuit<bls12_381::Scalar> for Spend {
@@ -182,11 +185,23 @@ impl Circuit<bls12_381::Scalar> for Spend {
         // Place pk_d in the note
         note_contents.extend(pk_d.repr(cs.namespace(|| "representation of pk_d"))?);
 
+        // add sender address to note contents so correct note commitment can be calculated
+        let sender_address = ecc::EdwardsPoint::witness(
+            cs.namespace(|| "sender_address"),
+            self.sender_address.map(jubjub::ExtendedPoint::from),
+        )?;
+
+        // Place sender_address (pk_d) in the note
+        note_contents.extend(
+            sender_address.repr(cs.namespace(|| "representation of sender_address (pk_d)"))?,
+        );
+
         assert_eq!(
             note_contents.len(),
             256 + // asset generator
             64 + // value
-            256 // pk_d
+            256 + // pk_d owner
+            256 // pk_d sender (this is added to match requirments for `Output` circuit)
         );
 
         // Compute the hash of the note contents
@@ -342,7 +357,7 @@ mod test {
     };
 
     use crate::{
-        circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point,
+        circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point_new,
         ValueCommitment,
     };
 
@@ -389,11 +404,12 @@ mod test {
                 };
 
                 let mut position = 0u64;
-                let commitment = commitment_full_point(
+                let commitment = commitment_full_point_new(
                     value_commitment.asset_generator,
                     value_commitment.value,
                     payment_address,
                     note.rcm(),
+                    payment_address,
                 );
                 let cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
 
@@ -461,15 +477,16 @@ mod test {
                     auth_path: auth_path.clone(),
                     anchor: Some(cur),
                     asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
+                    sender_address: Some(payment_address),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 96888);
+                assert_eq!(cs.num_constraints(), 98102);
                 assert_eq!(
                     cs.hash(),
-                    "e12f68469696e28c532522c803db66d7fcaa4b694c98df7ba1fbb5a897ffebfa"
+                    "dc28ce3c5b045ee6a7cbc69e48ac7fbc33037c669717fcad5fa039197263e920"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
@@ -564,20 +581,15 @@ mod test {
                     bls12_381::Scalar::from_str_vartime(expected_commitment_vs[i as usize])
                         .unwrap()
                 );
-                let note = Note {
-                    value: value_commitment.value,
-                    g_d: PUBLIC_KEY_GENERATOR,
-                    pk_d: payment_address,
-                    rseed: Rseed::BeforeZip212(commitment_randomness),
-                };
 
                 let mut position = 0u64;
 
-                let commitment = commitment_full_point(
+                let commitment = commitment_full_point_new(
                     value_commitment.asset_generator,
                     value_commitment.value,
                     payment_address,
-                    note.rcm(),
+                    commitment_randomness,
+                    payment_address,
                 );
                 let cmu = jubjub::ExtendedPoint::from(commitment).to_affine().get_u();
 
@@ -645,15 +657,16 @@ mod test {
                     auth_path: auth_path.clone(),
                     anchor: Some(cur),
                     asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
+                    sender_address: Some(payment_address),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 96888);
+                assert_eq!(cs.num_constraints(), 98102);
                 assert_eq!(
                     cs.hash(),
-                    "e12f68469696e28c532522c803db66d7fcaa4b694c98df7ba1fbb5a897ffebfa"
+                    "dc28ce3c5b045ee6a7cbc69e48ac7fbc33037c669717fcad5fa039197263e920"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);

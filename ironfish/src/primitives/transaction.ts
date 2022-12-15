@@ -80,7 +80,11 @@ export class Transaction {
       // proof
       reader.seek(PROOF_LENGTH)
 
-      return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
+      const note = new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
+      // TODO(joe): remove once rpk removed from proof and put on transaction
+      // randomized public key
+      reader.seek(32)
+      return note
     })
 
     this.mints = Array.from({ length: _mintsLength }, () => {
@@ -112,9 +116,8 @@ export class Transaction {
 
     // sender address
     // TODO(joe): read from bytes rather than hardcoded value
-    // this._senderAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
+    // this._sender = reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
     this._sender = '8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563'
-
     this._signature = reader.readBytes(64, true)
   }
 

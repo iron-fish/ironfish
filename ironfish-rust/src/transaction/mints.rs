@@ -15,7 +15,7 @@ use ironfish_zkp::{
     redjubjub::{self, Signature},
     ValueCommitment,
 };
-use jubjub::ExtendedPoint;
+use jubjub::{ExtendedPoint, Fr};
 use rand::thread_rng;
 
 use crate::{
@@ -62,22 +62,21 @@ impl MintBuilder {
     pub fn build(
         &self,
         spender_key: &SaplingKey,
+        public_key_randomness: &Fr,
     ) -> Result<UnsignedMintDescription, IronfishError> {
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
-
         let circuit = MintAsset {
             name: self.asset.name,
             metadata: self.asset.metadata,
             nonce: self.asset.nonce,
             proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
             value_commitment: Some(self.value_commitment.clone()),
-            public_key_randomness: Some(public_key_randomness),
+            public_key_randomness: Some(*public_key_randomness),
         };
 
         let proof = groth16::create_random_proof(circuit, &SAPLING.mint_params, &mut thread_rng())?;
 
         let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+            .randomize(*public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let blank_signature = {
             let buf = [0u8; 64];
@@ -96,7 +95,7 @@ impl MintBuilder {
         mint_description.verify_proof()?;
 
         Ok(UnsignedMintDescription {
-            public_key_randomness,
+            public_key_randomness: *public_key_randomness,
             description: mint_description,
         })
     }
@@ -283,6 +282,9 @@ impl MintDescription {
 
 #[cfg(test)]
 mod test {
+    use ff::Field;
+    use rand::thread_rng;
+
     use crate::{
         assets::asset::Asset,
         transaction::mints::{MintBuilder, MintDescription},
@@ -295,6 +297,7 @@ mod test {
     fn test_mint_builder() {
         let key = SaplingKey::generate_key();
         let owner = key.public_address();
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
@@ -304,7 +307,7 @@ mod test {
 
         let mint = MintBuilder::new(asset, value);
         let unsigned_mint = mint
-            .build(&key)
+            .build(&key, &public_key_randomness)
             .expect("should build valid mint description");
 
         // Signature comes from the transaction, normally
@@ -328,6 +331,7 @@ mod test {
     fn test_mint_description_serialization() {
         let key = SaplingKey::generate_key();
         let owner = key.public_address();
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
@@ -337,7 +341,7 @@ mod test {
 
         let mint = MintBuilder::new(asset, value);
         let unsigned_mint = mint
-            .build(&key)
+            .build(&key, &public_key_randomness)
             .expect("should build valid mint description");
 
         // Signature comes from the transaction, normally
