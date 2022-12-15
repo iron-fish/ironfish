@@ -247,13 +247,10 @@ export class Account {
           },
           tx,
         )
-<<<<<<< HEAD
 
         const assetIdentifier = note.assetIdentifier()
         const balanceDelta = balanceDeltas.get(assetIdentifier) ?? 0n
         balanceDeltas.set(assetIdentifier, balanceDelta + note.value())
-=======
->>>>>>> 61bb6a84 (adds separate methods for syncing transactions on a block)
       }
 
       for (const spend of transaction.spends) {
@@ -290,39 +287,32 @@ export class Account {
   ): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       let balanceDelta = 0n
+
       for (const decryptedNote of decryptedNotes) {
         if (decryptedNote.forSpender) {
           continue
         }
 
-        const note = new Note(decryptedNote.serializedNote)
+        const note = {
+          accountId: this.id,
+          note: new Note(decryptedNote.serializedNote),
+          spent: false,
+          transactionHash: transaction.hash(),
+          nullifier: null,
+          index: null,
+          blockHash: null,
+          sequence: null,
+        }
 
-        await this.walletDb.addDecryptedNote(
-          this,
-          decryptedNote.hash,
-          {
-            accountId: this.id,
-            note,
-            spent: false,
-            transactionHash: transaction.hash(),
-            nullifier: null,
-            index: null,
-            blockHash: null,
-            sequence: null,
-          },
-          tx,
-        )
-
-<<<<<<< HEAD
         if (!spentNote.spent) {
           const note = spentNote.note
           const assetIdentifier = note.assetIdentifier()
           const balanceDelta = balanceDeltas.get(assetIdentifier) ?? 0n
           balanceDeltas.set(assetIdentifier, balanceDelta - note.value())
         }
-=======
-        balanceDelta += note.value()
->>>>>>> 61bb6a84 (adds separate methods for syncing transactions on a block)
+
+        await this.walletDb.addDecryptedNote(this, decryptedNote.hash, note, tx)
+        balanceDelta += note.note.value()
       }
 
       for (const spend of transaction.spends) {
