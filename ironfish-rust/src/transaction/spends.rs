@@ -191,6 +191,7 @@ impl UnsignedSpendDescription {
 /// The publicly visible value of a spent note. These get serialized to prove
 /// that the owner once had access to these values. It also publishes the
 /// nullifier so that they can't pretend they still have access to them.
+#[derive(Clone)]
 pub struct SpendDescription {
     /// Proof that the spend was valid and successful for the provided owner
     /// and note.
@@ -227,21 +228,6 @@ pub struct SpendDescription {
     /// in that transaction. It's optional because it is calculated after
     /// construction.
     pub(crate) authorizing_signature: redjubjub::Signature,
-}
-
-impl Clone for SpendDescription {
-    fn clone(&self) -> SpendDescription {
-        let randomized_public_key = redjubjub::PublicKey(self.randomized_public_key.0);
-        SpendDescription {
-            proof: self.proof.clone(),
-            value_commitment: self.value_commitment,
-            randomized_public_key,
-            root_hash: self.root_hash,
-            tree_size: self.tree_size,
-            nullifier: self.nullifier,
-            authorizing_signature: self.authorizing_signature,
-        }
-    }
 }
 
 impl SpendDescription {
