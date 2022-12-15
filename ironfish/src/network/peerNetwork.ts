@@ -1380,7 +1380,7 @@ export class PeerNetwork {
 
       // Sync every transaction to the wallet, since senders and recipients may want to know
       // about pending transactions even if they're not accepted to the mempool.
-      await this.node.wallet.syncTransaction(transaction, {})
+      await this.node.wallet.addPendingTransaction(transaction)
     }
 
     this.transactionFetcher.removeTransaction(hash)

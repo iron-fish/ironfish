@@ -494,7 +494,7 @@ describe('PeerNetwork', () => {
 
         Object.defineProperty(workerPool, 'saturated', { get: () => true })
 
-        const syncTransaction = jest.spyOn(wallet, 'syncTransaction')
+        const addPendingTransaction = jest.spyOn(wallet, 'addPendingTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -509,7 +509,7 @@ describe('PeerNetwork', () => {
         }
 
         expect(memPool.exists(transaction.hash())).toBe(false)
-        expect(syncTransaction).not.toHaveBeenCalled()
+        expect(addPendingTransaction).not.toHaveBeenCalled()
       })
 
       it('does not accept or sync transactions when the node is syncing', async () => {
@@ -522,7 +522,7 @@ describe('PeerNetwork', () => {
 
         chain.synced = false
 
-        const syncTransaction = jest.spyOn(wallet, 'syncTransaction')
+        const addPendingTransaction = jest.spyOn(wallet, 'addPendingTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -537,7 +537,7 @@ describe('PeerNetwork', () => {
         }
 
         expect(memPool.exists(transaction.hash())).toBe(false)
-        expect(syncTransaction).not.toHaveBeenCalled()
+        expect(addPendingTransaction).not.toHaveBeenCalled()
       })
 
       it('verifies and syncs the same transaction once', async () => {
@@ -551,7 +551,7 @@ describe('PeerNetwork', () => {
 
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
-        const syncTransaction = jest.spyOn(node.wallet, 'syncTransaction')
+        const addPendingTransaction = jest.spyOn(node.wallet, 'addPendingTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -576,7 +576,7 @@ describe('PeerNetwork', () => {
 
         expect(memPool.exists(transaction.hash())).toBe(true)
 
-        expect(syncTransaction).toHaveBeenCalledTimes(1)
+        expect(addPendingTransaction).toHaveBeenCalledTimes(1)
 
         for (const { peer } of peers) {
           expect(peer.state.identity).not.toBeNull()
@@ -607,7 +607,7 @@ describe('PeerNetwork', () => {
 
         expect(memPool.exists(transaction.hash())).toBe(true)
 
-        expect(syncTransaction).toHaveBeenCalledTimes(1)
+        expect(addPendingTransaction).toHaveBeenCalledTimes(1)
       })
 
       it('does not sync or gossip double-spent transactions', async () => {
@@ -624,7 +624,7 @@ describe('PeerNetwork', () => {
         await node.chain.nullifiers.connectBlock(block)
 
         const acceptTransaction = jest.spyOn(node.memPool, 'acceptTransaction')
-        const syncTransaction = jest.spyOn(node.wallet, 'syncTransaction')
+        const addPendingTransaction = jest.spyOn(node.wallet, 'addPendingTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -650,7 +650,7 @@ describe('PeerNetwork', () => {
         expect(memPool.exists(transaction.hash())).toBe(false)
         expect(acceptTransaction).not.toHaveBeenCalled()
 
-        expect(syncTransaction).not.toHaveBeenCalled()
+        expect(addPendingTransaction).not.toHaveBeenCalled()
 
         // Peer that were not sent transaction should not be marked
         for (const { peer } of peersWithoutTransaction) {
@@ -691,7 +691,7 @@ describe('PeerNetwork', () => {
         await chain.removeBlock(chain.head.hash)
 
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
-        const syncTransaction = jest.spyOn(node.wallet, 'syncTransaction')
+        const addPendingTransaction = jest.spyOn(node.wallet, 'addPendingTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -709,7 +709,7 @@ describe('PeerNetwork', () => {
         })
 
         expect(memPool.exists(transaction.hash())).toBe(true)
-        expect(syncTransaction).toHaveBeenCalledTimes(1)
+        expect(addPendingTransaction).toHaveBeenCalledTimes(1)
         for (const { sendSpy } of peersWithoutTransaction) {
           const transactionMessages = sendSpy.mock.calls.filter(([message]) => {
             return (
@@ -739,7 +739,7 @@ describe('PeerNetwork', () => {
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
         const acceptTransaction = jest.spyOn(node.memPool, 'acceptTransaction')
-        const syncTransaction = jest.spyOn(node.wallet, 'syncTransaction')
+        const addPendingTransaction = jest.spyOn(node.wallet, 'addPendingTransaction')
 
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
@@ -765,7 +765,7 @@ describe('PeerNetwork', () => {
         expect(memPool.exists(transaction.hash())).toBe(false)
         expect(acceptTransaction).not.toHaveBeenCalled()
 
-        expect(syncTransaction).not.toHaveBeenCalled()
+        expect(addPendingTransaction).not.toHaveBeenCalled()
 
         // Peer that were not sent transaction should not be marked
         for (const { peer } of peersWithoutTransaction) {
