@@ -33,8 +33,7 @@
         "timestamp": 1670369834862,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -60,8 +59,7 @@
         "timestamp": 1670369843520,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -105,8 +103,7 @@
         "timestamp": 1670369845759,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -132,8 +129,7 @@
         "timestamp": 1670369853989,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -173,8 +169,7 @@
         "timestamp": 1670369854973,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -200,8 +195,7 @@
         "timestamp": 1670369863040,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {
@@ -241,8 +235,7 @@
         "timestamp": 1670369864250,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -268,8 +261,7 @@
         "timestamp": 1670369872455,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 7,
-        "work": "0",
-        "nullifierSize": 2
+        "work": "0"
       },
       "transactions": [
         {

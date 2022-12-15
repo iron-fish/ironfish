@@ -594,16 +594,12 @@ export class Blockchain {
     block.header.work = (prev ? prev.work : BigInt(0)) + work
 
     let prevNoteSize = 0
-    let prevNullifierSize = 0
     if (prev) {
       Assert.isNotNull(prev.noteSize)
-      Assert.isNotNull(prev.nullifierSize)
       prevNoteSize = prev.noteSize
-      prevNullifierSize = prev.nullifierSize
     }
-    const { notes, nullifiers } = block.counts()
-    block.header.noteSize = prevNoteSize + notes
-    block.header.nullifierSize = prevNullifierSize + nullifiers
+
+    block.header.noteSize = prevNoteSize + block.counts().notes
 
     const isFork = !this.isEmpty && !isBlockHeavier(block.header, this.head)
 
@@ -933,7 +929,6 @@ export class Blockchain {
       const timestamp = new Date(Date.now())
 
       const originalNoteSize = await this.notes.size(tx)
-      const originalNullifierSize = await this.nullifiers.size(tx)
 
       if (!this.hasGenesisBlock) {
         previousBlockHash = GENESIS_BLOCK_PREVIOUS
@@ -942,13 +937,8 @@ export class Blockchain {
       } else {
         const heaviestHead = this.head
 
-        // Sanity check that we are building on top of correct size note and nullifier tree, may not be needed
+        // Sanity check that we are building on top of correct size note tree, may not be needed
         Assert.isEqual(originalNoteSize, heaviestHead.noteSize, 'newBlock note size mismatch')
-        Assert.isEqual(
-          originalNullifierSize,
-          heaviestHead.nullifierSize,
-          'newBlock nullifier size mismatch',
-        )
 
         previousBlockHash = heaviestHead.hash
         previousSequence = heaviestHead.sequence
@@ -966,20 +956,16 @@ export class Blockchain {
       }
 
       const blockNotes = []
-      let addedNullifiers = 0
       for (const transaction of transactions) {
         for (const note of transaction.notes) {
           blockNotes.push(note)
         }
-
-        addedNullifiers += transaction.spends.length
       }
 
       await this.notes.addBatch(blockNotes, tx)
 
       const noteCommitment = await this.notes.rootHash(tx)
       const noteSize = await this.notes.size(tx)
-      const nullifierSize = originalNullifierSize + addedNullifiers
 
       graffiti = graffiti ? graffiti : Buffer.alloc(32)
 
@@ -994,7 +980,6 @@ export class Blockchain {
         graffiti,
         noteSize,
         BigInt(0),
-        nullifierSize,
       )
 
       const block = new Block(header, transactions)
@@ -1246,7 +1231,6 @@ export class Blockchain {
     let prevNotesSize = 0
     if (prev) {
       Assert.isNotNull(prev.noteSize)
-      Assert.isNotNull(prev.nullifierSize)
       prevNotesSize = prev.noteSize
     }
 
@@ -1290,7 +1274,6 @@ export class Blockchain {
     await this.sequenceToHash.del(block.header.sequence, tx)
 
     Assert.isNotNull(prev.noteSize)
-    Assert.isNotNull(prev.nullifierSize)
 
     await Promise.all([
       this.notes.truncate(prev.noteSize, tx),
