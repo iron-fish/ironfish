@@ -297,7 +297,6 @@ mod test {
     fn test_mint_builder() {
         let key = SaplingKey::generate_key();
         let owner = key.public_address();
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
@@ -345,7 +344,6 @@ mod test {
     fn test_mint_description_serialization() {
         let key = SaplingKey::generate_key();
         let owner = key.public_address();
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 

@@ -394,7 +394,6 @@ mod test {
         let sender_key = SaplingKey::generate_key();
 
         let note_randomness = random();
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
 
         let note = Note::new(
             public_address,
