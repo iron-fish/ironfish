@@ -234,7 +234,7 @@ export class Account {
         balanceDelta += note.value()
       }
 
-      for (const spend of transaction.spends()) {
+      for (const spend of transaction.spends) {
         const spentNoteHash = await this.getNoteHash(spend.nullifier)
         if (!spentNoteHash) {
           continue
