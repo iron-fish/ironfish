@@ -210,10 +210,6 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      if (await this.hasTransaction(transaction.hash(), tx)) {
-        return
-      }
-
       const balanceDeltas = new BufferMap<bigint>()
 
       for (const decryptedNote of decryptedNotes) {
@@ -241,31 +237,11 @@ export class Account {
           balanceDelta += note.note.value()
         }
 
-<<<<<<< HEAD
-        await this.walletDb.addDecryptedNote(
-          this,
-          decryptedNote.hash,
-          {
-            accountId: this.id,
-            note,
-            // TODO: this isn't necessarily correct: we could spend a note, reorg, and then reorg back to the block
-            // the nullifier would be the same, so the child transaction would still be valid/pending
-            spent: false,
-            transactionHash: transaction.hash(),
-            nullifier: decryptedNote.nullifier,
-            index: decryptedNote.index,
-            blockHash: blockHeader.hash,
-            sequence: blockHeader.sequence,
-          },
-          tx,
-        )
-
         const assetIdentifier = note.assetIdentifier()
         const balanceDelta = balanceDeltas.get(assetIdentifier) ?? 0n
         balanceDeltas.set(assetIdentifier, balanceDelta + note.value())
-=======
+
         await this.walletDb.addDecryptedNote(this, decryptedNote.hash, note, tx)
->>>>>>> 1f333d61 (uses same note construction layout in connectTransaction)
       }
 
       for (const spend of transaction.spends) {
@@ -301,6 +277,10 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
+      if (await this.hasTransaction(transaction.hash(), tx)) {
+        return
+      }
+
       let balanceDelta = 0n
 
       for (const decryptedNote of decryptedNotes) {
