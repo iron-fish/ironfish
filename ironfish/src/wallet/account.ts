@@ -202,13 +202,17 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
+      if (await this.hasTransaction(transaction.hash(), tx)) {
+        return
+      }
+
       let balanceDelta = 0n
       for (const decryptedNote of decryptedNotes) {
         if (decryptedNote.forSpender) {
           continue
         }
 
-        await this.walletDb.nonChainNoteHashes.put([this.prefix, decryptedNote.hash], null, tx)
+        await this.walletDb.setNoteHashSequence(this, decryptedNote.hash, null, tx)
 
         const note = new Note(decryptedNote.serializedNote)
         await this.walletDb.saveDecryptedNote(

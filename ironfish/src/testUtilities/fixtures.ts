@@ -168,7 +168,7 @@ export async function restoreTransactionFixtureToAccounts(
   transaction: Transaction,
   wallet: Wallet,
 ): Promise<void> {
-  await wallet.addPendingTransaction(transaction, 1)
+  await wallet.addPendingTransaction(transaction)
 }
 
 /**
@@ -453,7 +453,7 @@ export async function useBlockWithTxs(
         BigInt(1),
         0,
       )
-      await node.wallet.addPendingTransaction(transaction, node.chain.head.sequence)
+      await node.wallet.addPendingTransaction(transaction)
       transactions.push(transaction)
     }
 

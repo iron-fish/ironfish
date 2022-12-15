@@ -1115,7 +1115,7 @@ describe('Accounts', () => {
       expect(decryptSpy).toHaveBeenCalledTimes(1)
       expect(decryptSpy).toHaveBeenLastCalledWith(tx, null, [accountA, accountB])
 
-      await node.wallet.addPendingTransaction(tx, 2)
+      await node.wallet.addPendingTransaction(tx)
 
       // notes should not have been decrypted again
       expect(decryptSpy).toHaveBeenCalledTimes(1)

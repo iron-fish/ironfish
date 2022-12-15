@@ -397,10 +397,7 @@ export class Wallet {
     return decryptedNotes
   }
 
-  async addPendingTransaction(
-    transaction: Transaction,
-    submittedSequence: number | null,
-  ): Promise<void> {
+  async addPendingTransaction(transaction: Transaction): Promise<void> {
     const accounts = []
     for (const account of this.listAccounts()) {
       if (!(await account.hasTransaction(transaction.hash()))) {
@@ -421,7 +418,7 @@ export class Wallet {
         continue
       }
 
-      await account.addPendingTransaction(transaction, decryptedNotes, submittedSequence)
+      await account.addPendingTransaction(transaction, decryptedNotes, this.chain.head.sequence)
     }
   }
 
@@ -719,7 +716,7 @@ export class Wallet {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
-    await this.addPendingTransaction(transaction, heaviestHead.sequence)
+    await this.addPendingTransaction(transaction)
     memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
     this.onTransactionCreated.emit(transaction)
