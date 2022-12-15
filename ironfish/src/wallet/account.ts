@@ -259,9 +259,10 @@ export class Account {
         }
       }
 
-      await this.walletDb.pendingTransactionHashes.put(
-        [this.prefix, [transaction.expirationSequence(), transaction.hash()]],
-        null,
+      await this.walletDb.savePendingTransactionHash(
+        this,
+        transaction.expirationSequence(),
+        transaction.hash(),
         tx,
       )
 

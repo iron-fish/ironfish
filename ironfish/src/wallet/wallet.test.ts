@@ -92,7 +92,7 @@ describe('Accounts', () => {
 
     // Check that it was last broadcast at its added height
     let invalidTxEntry = await accountA.getTransaction(invalidTx.hash())
-    expect(invalidTxEntry?.submittedSequence).toEqual(GENESIS_BLOCK_SEQUENCE)
+    expect(invalidTxEntry?.submittedSequence).toEqual(blockA1.header.sequence)
 
     // Check that the TX is not rebroadcast but has it's sequence updated
     nodeA.wallet['rebroadcastAfter'] = 1
