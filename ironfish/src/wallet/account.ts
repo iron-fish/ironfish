@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
+import { BufferMap } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
 import { Transaction } from '../primitives'
@@ -211,7 +212,8 @@ export class Account {
         return
       }
 
-      let balanceDelta = 0n
+      const balanceDeltas = new BufferMap<bigint>()
+
       for (const decryptedNote of decryptedNotes) {
         if (decryptedNote.forSpender) {
           continue
@@ -236,7 +238,9 @@ export class Account {
           tx,
         )
 
-        balanceDelta += note.value()
+        const assetIdentifier = note.assetIdentifier()
+        const balanceDelta = balanceDeltas.get(assetIdentifier) ?? 0n
+        balanceDeltas.set(assetIdentifier, balanceDelta + note.value())
       }
 
       for (const spend of transaction.spends) {
@@ -260,7 +264,10 @@ export class Account {
         )
 
         if (!spentNote.spent) {
-          balanceDelta -= spentNote.note.value()
+          const note = spentNote.note
+          const assetIdentifier = note.assetIdentifier()
+          const balanceDelta = balanceDeltas.get(assetIdentifier) ?? 0n
+          balanceDeltas.set(assetIdentifier, balanceDelta + note.value())
         }
       }
 
@@ -283,8 +290,15 @@ export class Account {
         tx,
       )
 
-      const unconfirmedBalance = await this.getUnconfirmedBalance(tx)
-      await this.saveUnconfirmedBalance(unconfirmedBalance + balanceDelta, tx)
+      for (const [assetIdentifier, balanceDelta] of balanceDeltas) {
+        // TODO(mgeist,rohanjadvani): Add check for asset identifier
+        const unconfirmedBalance = await this.getUnconfirmedBalance(tx)
+        await this.saveUnconfirmedBalance(
+          assetIdentifier,
+          unconfirmedBalance + balanceDelta,
+          tx,
+        )
+      }
     })
   }
 
