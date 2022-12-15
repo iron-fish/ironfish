@@ -25,8 +25,7 @@
         "timestamp": 1670369958544,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -56,8 +55,7 @@
         "timestamp": 1670369961287,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 5,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
@@ -93,8 +91,7 @@
         "timestamp": 1670369962108,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {

@@ -42,7 +42,13 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
   }
 
   async has(key: SchemaKey<Schema>, transaction?: IDatabaseTransaction): Promise<boolean> {
-    return (await this.get(key, transaction)) !== undefined
+    const [encodedKey] = this.encode(key)
+
+    if (ENABLE_TRANSACTIONS && transaction instanceof LevelupTransaction) {
+      return transaction.has(this, key)
+    }
+
+    return (await this.db.get(encodedKey)) !== undefined
   }
 
   async get(

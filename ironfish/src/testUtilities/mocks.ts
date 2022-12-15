@@ -43,6 +43,7 @@ export function mockChain(): any {
     onConnectBlock: new Event<[block: Block, tx?: IDatabaseTransaction]>(),
     onDisconnectBlock: new Event<[block: Block, tx?: IDatabaseTransaction]>(),
     onForkBlock: new Event<[block: Block, tx?: IDatabaseTransaction]>(),
+    genesis: { hash: Buffer.alloc(32, 0), sequence: 1, work: BigInt(0) },
   }
 }
 

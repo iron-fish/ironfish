@@ -16,7 +16,7 @@ import { MetricsMonitor } from '../metrics'
 import { IronfishNode } from '../node'
 import { IronfishPKG } from '../package'
 import { Platform } from '../platform'
-import { Transaction } from '../primitives'
+import { GENESIS_BLOCK_SEQUENCE, Transaction } from '../primitives'
 import { Block, CompactBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { TransactionHash } from '../primitives/transaction'
@@ -39,9 +39,9 @@ import {
   NetworkMessage,
 } from './messages/networkMessage'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
-import { NewBlockV2Message } from './messages/newBlockV2'
+import { NewCompactBlockMessage } from './messages/newCompactBlock'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
-import { NewTransactionV2Message } from './messages/newTransactionV2'
+import { NewTransactionsMessage } from './messages/newTransactions'
 import {
   PooledTransactionsRequest,
   PooledTransactionsResponse,
@@ -378,7 +378,7 @@ export class PeerNetwork {
 
     const sqrtSize = Math.floor(Math.sqrt(peersToSendToArray.length))
 
-    const compactBlockMessage = new NewBlockV2Message(block.toCompactBlock())
+    const compactBlockMessage = new NewCompactBlockMessage(block.toCompactBlock())
 
     // Send compact block to random subset of sqrt of peers
     for (const peer of peersToSendToArray.slice(0, sqrtSize)) {
@@ -412,7 +412,7 @@ export class PeerNetwork {
 
     const sqrtSize = Math.floor(Math.sqrt(peersToSendToArray.length))
 
-    const fullTransactionMessage = new NewTransactionV2Message([transaction])
+    const fullTransactionMessage = new NewTransactionsMessage([transaction])
     const hashMessage = new NewPooledTransactionHashes([hash])
 
     // Send full transaction to random subset of sqrt of peers
@@ -606,11 +606,11 @@ export class PeerNetwork {
       await this.handleRpcMessage(peer, message)
     } else if (message instanceof NewBlockHashesMessage) {
       await this.handleNewBlockHashesMessage(peer, message)
-    } else if (message instanceof NewBlockV2Message) {
+    } else if (message instanceof NewCompactBlockMessage) {
       await this.onNewCompactBlock(peer, message.compactBlock)
     } else if (message instanceof NewPooledTransactionHashes) {
       this.handleNewPooledTransactionHashes(peer, message)
-    } else if (message instanceof NewTransactionV2Message) {
+    } else if (message instanceof NewTransactionsMessage) {
       for (const transaction of message.transactions) {
         await this.onNewTransaction(peer, transaction)
       }
@@ -862,6 +862,12 @@ export class PeerNetwork {
 
     // verify the header
     const header = compactBlock.header
+    if (header.sequence === GENESIS_BLOCK_SEQUENCE) {
+      this.chain.addInvalid(header.hash, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
+      this.blockFetcher.removeBlock(header.hash)
+      return
+    }
+
     const verifyHeaderResult = this.chain.verifier.verifyBlockHeader(header)
     if (!verifyHeaderResult.valid) {
       this.chain.addInvalid(
@@ -1204,6 +1210,12 @@ export class PeerNetwork {
     peer.knownBlockHashes.set(block.header.hash, KnownBlockHashesValue.Received)
 
     // verify the block header
+    if (block.header.sequence === GENESIS_BLOCK_SEQUENCE) {
+      this.chain.addInvalid(block.header.hash, VerificationResultReason.GOSSIPED_GENESIS_BLOCK)
+      this.blockFetcher.removeBlock(block.header.hash)
+      return
+    }
+
     const verifyBlockHeaderResult = this.chain.verifier.verifyBlockHeader(block.header)
     if (!verifyBlockHeaderResult.valid) {
       this.chain.addInvalid(
@@ -1368,7 +1380,7 @@ export class PeerNetwork {
 
       // Sync every transaction to the wallet, since senders and recipients may want to know
       // about pending transactions even if they're not accepted to the mempool.
-      await this.node.wallet.syncTransaction(transaction, {})
+      await this.node.wallet.addPendingTransaction(transaction)
     }
 
     this.transactionFetcher.removeTransaction(hash)

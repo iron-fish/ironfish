@@ -200,6 +200,94 @@ export class Account {
     })
   }
 
+  async addPendingTransaction(
+    transaction: Transaction,
+    decryptedNotes: Array<DecryptedNote>,
+    submittedSequence: number | null,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
+      if (await this.hasTransaction(transaction.hash(), tx)) {
+        return
+      }
+
+      let balanceDelta = 0n
+      for (const decryptedNote of decryptedNotes) {
+        if (decryptedNote.forSpender) {
+          continue
+        }
+
+        await this.walletDb.setNoteHashSequence(this, decryptedNote.hash, null, tx)
+
+        const note = new Note(decryptedNote.serializedNote)
+        await this.walletDb.saveDecryptedNote(
+          this,
+          decryptedNote.hash,
+          {
+            accountId: this.id,
+            note,
+            spent: false,
+            transactionHash: transaction.hash(),
+            nullifier: null,
+            index: null,
+            blockHash: null,
+            sequence: null,
+          },
+          tx,
+        )
+
+        balanceDelta += note.value()
+      }
+
+      for (const spend of transaction.spends) {
+        const spentNoteHash = await this.getNoteHash(spend.nullifier)
+        if (!spentNoteHash) {
+          continue
+        }
+
+        const spentNote = await this.getDecryptedNote(spentNoteHash, tx)
+
+        Assert.isNotUndefined(spentNote)
+
+        await this.walletDb.saveDecryptedNote(
+          this,
+          spentNoteHash,
+          {
+            ...spentNote,
+            spent: true,
+          },
+          tx,
+        )
+
+        if (!spentNote.spent) {
+          balanceDelta -= spentNote.note.value()
+        }
+      }
+
+      await this.walletDb.savePendingTransactionHash(
+        this,
+        transaction.expirationSequence(),
+        transaction.hash(),
+        tx,
+      )
+
+      await this.walletDb.saveTransaction(
+        this,
+        transaction.hash(),
+        {
+          transaction,
+          blockHash: null,
+          sequence: null,
+          submittedSequence,
+        },
+        tx,
+      )
+
+      const unconfirmedBalance = await this.getUnconfirmedBalance(tx)
+      await this.saveUnconfirmedBalance(unconfirmedBalance + balanceDelta, tx)
+    })
+  }
+
   async updateTransaction(
     hash: Buffer,
     transactionValue: TransactionValue,
@@ -263,7 +351,7 @@ export class Account {
     isRemovingTransaction: boolean,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    for (const spend of transaction.spends()) {
+    for (const spend of transaction.spends) {
       const noteHash = await this.getNoteHash(spend.nullifier, tx)
 
       if (noteHash) {
@@ -332,6 +420,10 @@ export class Account {
     return await this.walletDb.loadTransaction(this, hash, tx)
   }
 
+  async hasTransaction(hash: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
+    return this.walletDb.hasTransaction(this, hash, tx)
+  }
+
   getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
     return this.walletDb.loadTransactions(this, tx)
   }
@@ -354,7 +446,7 @@ export class Account {
     const transactionHash = transaction.hash()
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      for (const note of transaction.notes()) {
+      for (const note of transaction.notes) {
         const noteHash = note.merkleHash()
         const decryptedNote = await this.getDecryptedNote(noteHash, tx)
 
@@ -367,7 +459,7 @@ export class Account {
         }
       }
 
-      for (const spend of transaction.spends()) {
+      for (const spend of transaction.spends) {
         const noteHash = await this.getNoteHash(spend.nullifier, tx)
 
         if (noteHash) {
@@ -489,7 +581,7 @@ export class Account {
   ): Promise<Array<DecryptedNoteValue & { hash: Buffer }>> {
     const notes = []
 
-    for (const note of transaction.notes()) {
+    for (const note of transaction.notes) {
       const noteHash = note.merkleHash()
       const decryptedNote = await this.getDecryptedNote(noteHash)
 

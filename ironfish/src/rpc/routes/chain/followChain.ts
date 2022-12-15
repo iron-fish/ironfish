@@ -119,10 +119,10 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
             hash: BlockHashSerdeInstance.serialize(transaction.hash()),
             size: getTransactionSize(transaction),
             fee: Number(transaction.fee()),
-            notes: [...transaction.notes()].map((note) => ({
+            notes: transaction.notes.map((note) => ({
               commitment: note.merkleHash().toString('hex'),
             })),
-            spends: [...transaction.spends()].map((spend) => ({
+            spends: transaction.spends.map((spend) => ({
               nullifier: spend.nullifier.toString('hex'),
             })),
           }

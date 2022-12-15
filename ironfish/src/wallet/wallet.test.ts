@@ -4,7 +4,6 @@
 import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
-import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import {
   createNodeTest,
   useAccountFixture,
@@ -92,7 +91,7 @@ describe('Accounts', () => {
 
     // Check that it was last broadcast at its added height
     let invalidTxEntry = await accountA.getTransaction(invalidTx.hash())
-    expect(invalidTxEntry?.submittedSequence).toEqual(GENESIS_BLOCK_SEQUENCE)
+    expect(invalidTxEntry?.submittedSequence).toEqual(blockA1.header.sequence)
 
     // Check that the TX is not rebroadcast but has it's sequence updated
     nodeA.wallet['rebroadcastAfter'] = 1
@@ -247,9 +246,9 @@ describe('Accounts', () => {
     // Create a transaction that spends notes from the invalid transaction
     const forkSpendTx = await useTxFixture(nodeA.wallet, accountA, accountB)
 
-    expect(forkSpendTx.spendsLength()).toEqual(1)
+    expect(forkSpendTx.spends.length).toEqual(1)
 
-    const forkSpendNullifier = [...forkSpendTx.spends()][0].nullifier
+    const forkSpendNullifier = forkSpendTx.spends[0].nullifier
     const forkSpendNoteHash = await accountA.getNoteHash(forkSpendNullifier)
 
     // nullifier should be non-null
@@ -946,7 +945,7 @@ describe('Accounts', () => {
       await accountA.expireTransaction(tx)
 
       // none of the transaction's notes are in accountA's wallet
-      for (const note of tx.notes()) {
+      for (const note of tx.notes) {
         await expect(accountA.getDecryptedNote(note.merkleHash())).resolves.toBeUndefined()
       }
 
@@ -958,7 +957,7 @@ describe('Accounts', () => {
       await nodeA.wallet.syncTransaction(tx, {})
 
       // none of the expired transaction's notes should be in accountA's wallet
-      for (const note of tx.notes()) {
+      for (const note of tx.notes) {
         await expect(accountA.getDecryptedNote(note.merkleHash())).resolves.toBeUndefined()
       }
 
@@ -999,7 +998,7 @@ describe('Accounts', () => {
       await accountA.expireTransaction(tx)
 
       // none of the transaction's notes are in accountA's wallet
-      for (const note of tx.notes()) {
+      for (const note of tx.notes) {
         await expect(accountA.getDecryptedNote(note.merkleHash())).resolves.toBeUndefined()
       }
 
@@ -1072,6 +1071,53 @@ describe('Accounts', () => {
       expect(amount).toEqual(mintValue)
       expect(notes).toHaveLength(1)
       expect(notes[0].note).toMatchObject(note)
+    })
+  })
+
+  describe('addPendingTransaction', () => {
+    it('should add transactions to accounts involved in the transaction', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const addSpyA = jest.spyOn(accountA, 'addPendingTransaction')
+      const addSpyB = jest.spyOn(accountB, 'addPendingTransaction')
+
+      await useTxFixture(node.wallet, accountA, accountA)
+
+      // tx added to accountA
+      expect(addSpyA).toHaveBeenCalledTimes(1)
+
+      // tx not added to accountB
+      expect(addSpyB).toHaveBeenCalledTimes(0)
+    })
+
+    it('should not decrypt notes for accounts that have already seen the transaction', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const decryptSpy = jest.spyOn(node.wallet, 'decryptNotes')
+
+      const tx = await useTxFixture(node.wallet, accountA, accountB)
+
+      expect(decryptSpy).toHaveBeenCalledTimes(1)
+      expect(decryptSpy).toHaveBeenLastCalledWith(tx, null, [accountA, accountB])
+
+      await node.wallet.addPendingTransaction(tx)
+
+      // notes should not have been decrypted again
+      expect(decryptSpy).toHaveBeenCalledTimes(1)
     })
   })
 })

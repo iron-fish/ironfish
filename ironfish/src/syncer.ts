@@ -314,6 +314,15 @@ export class Syncer {
       )
 
       if (!found) {
+        if (needle === GENESIS_BLOCK_SEQUENCE) {
+          this.logger.warn(
+            `Peer ${peer.displayName} sent a genesis block hash that doesn't match our genesis block hash`,
+          )
+
+          peer.punish(BAN_SCORE.MAX, VerificationResultReason.INVALID_GENESIS_BLOCK)
+          this.abort(peer)
+        }
+
         upper = needle - 1
         continue
       }
@@ -331,8 +340,8 @@ export class Syncer {
       lower = needle + 1
     }
 
-    Assert.isNotNull(ancestorHash)
     Assert.isNotNull(ancestorSequence)
+    Assert.isNotNull(ancestorHash)
 
     return {
       ancestor: ancestorHash,

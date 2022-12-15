@@ -32,7 +32,7 @@ export class Note {
 
     this._assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH, true)
 
-    this._value = BigInt(reader.readU64())
+    this._value = reader.readBigU64()
 
     // skip randomness
     reader.seek(RANDOMNESS_LENGTH)

@@ -111,7 +111,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       for (const tx of block.transactions) {
         const notes = new Array<Note>()
 
-        for (const note of tx.notes()) {
+        for (const note of tx.notes) {
           const decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
 
           if (decryptedNote) {

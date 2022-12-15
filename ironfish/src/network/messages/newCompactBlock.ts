@@ -7,11 +7,11 @@ import { NetworkMessageType } from '../types'
 import { getCompactBlockSize, readCompactBlock, writeCompactBlock } from '../utils/serializers'
 import { NetworkMessage } from './networkMessage'
 
-export class NewBlockV2Message extends NetworkMessage {
+export class NewCompactBlockMessage extends NetworkMessage {
   readonly compactBlock: CompactBlock
 
   constructor(compactBlock: CompactBlock) {
-    super(NetworkMessageType.NewBlockV2)
+    super(NetworkMessageType.NewCompactBlock)
     this.compactBlock = compactBlock
   }
 
@@ -23,12 +23,12 @@ export class NewBlockV2Message extends NetworkMessage {
     return bw.render()
   }
 
-  static deserialize(buffer: Buffer): NewBlockV2Message {
+  static deserialize(buffer: Buffer): NewCompactBlockMessage {
     const reader = bufio.read(buffer, true)
 
     const compactBlock = readCompactBlock(reader)
 
-    return new NewBlockV2Message(compactBlock)
+    return new NewCompactBlockMessage(compactBlock)
   }
 
   getSize(): number {

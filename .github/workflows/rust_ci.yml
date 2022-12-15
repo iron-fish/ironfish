@@ -5,7 +5,7 @@ on:
       - "ironfish-rust-nodejs/**"
       - "ironfish-zkp/**"
       - "rust-toolchain"
-      - ".github/workflows/rust_ci.yml"
+      - ".github/workflows/rust*"
   push:
     branches:
       - master
@@ -14,7 +14,7 @@ on:
       - "ironfish-rust-nodejs/**"
       - "ironfish-zkp/**"
       - "rust-toolchain"
-      - ".github/workflows/rust_ci.yml"
+      - ".github/workflows/rust*"
 
 name: Rust CI
 
@@ -44,7 +44,7 @@ jobs:
         run: ./ci/lintHeaders.sh ./ironfish-rust/src *.rs
 
       - name: Check for license headers for ironfish-rust-nodejs
-        run: ./ci/lintHeaders.sh ./ironfish-rust/src *.rs
+        run: ./ci/lintHeaders.sh ./ironfish-rust-nodejs/src *.rs
 
       # fmt
       - uses: actions-rs/cargo@v1
@@ -87,27 +87,6 @@ jobs:
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           flags: ironfish-rust
-
-  ironfish_rust_nodejs:
-    name: ironfish-rust-nodejs
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache Rust
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: nodejs
-
-      - uses: actions-rs/cargo@v1
-        name: "Build NAPI bindings for the cache"
-        with:
-          command: build
-          args: --release
-
 
   ironfish_zkp:
     name: Test ironfish-zkp

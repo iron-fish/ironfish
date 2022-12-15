@@ -25,8 +25,7 @@
         "timestamp": 1670369970622,
         "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
         "noteSize": 4,
-        "work": "0",
-        "nullifierSize": 1
+        "work": "0"
       },
       "transactions": [
         {
