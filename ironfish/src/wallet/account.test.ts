@@ -205,15 +205,8 @@ describe('Accounts', () => {
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
       const mintedAssetBalance = BigInt(7)
 
-      // TODO(mgeist,rohanjadvani): Replace with account.saveUnconfirmedBalance
-      await node.wallet.walletDb.balances.put(
-        [account.prefix, Asset.nativeIdentifier()],
-        nativeBalance,
-      )
-      await node.wallet.walletDb.balances.put(
-        [account.prefix, asset.identifier()],
-        mintedAssetBalance,
-      )
+      await account.saveUnconfirmedBalance(Asset.nativeIdentifier(), nativeBalance)
+      await account.saveUnconfirmedBalance(asset.identifier(), mintedAssetBalance)
 
       const balances = await account.getUnconfirmedBalances()
       const expectedBalances = new BufferMap<bigint>([
