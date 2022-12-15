@@ -171,7 +171,7 @@ export class Transaction {
   }
 
   isMinersFee(): boolean {
-    return this._spends.length === 0 && this._notes.length === 1 && this._fee <= 0
+    return this._spends.length === 0 && this._notes.length >= 1 && this._fee <= 0
   }
 
   /**
