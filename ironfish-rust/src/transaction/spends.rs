@@ -11,7 +11,7 @@ use crate::{
     serializing::{read_point, read_scalar},
     witness::WitnessTrait,
 };
-
+use anyhow::{anyhow, Error};
 use bellman::gadgets::multipack;
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
@@ -93,7 +93,7 @@ impl SpendBuilder {
         &self,
         spender_key: &SaplingKey,
         public_key_randomness: &jubjub::Fr,
-    ) -> Result<UnsignedSpendDescription, IronfishError> {
+    ) -> Result<UnsignedSpendDescription, Error> {
         let value_commitment_point = self.value_commitment_point();
 
         let circuit = Spend {
@@ -161,14 +161,14 @@ impl UnsignedSpendDescription {
         mut self,
         spender_key: &SaplingKey,
         signature_hash: &[u8; 32],
-    ) -> Result<SpendDescription, IronfishError> {
+    ) -> Result<SpendDescription, Error> {
         let private_key = redjubjub::PrivateKey(spender_key.spend_authorizing_key);
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
         let randomized_public_key =
             redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
 
         if randomized_public_key.0 != self.description.randomized_public_key.0 {
-            return Err(IronfishError::InvalidSigningKey);
+            return Err(anyhow!(IronfishError::InvalidSigningKey));
         }
 
         let mut data_to_be_signed = [0; 64];
@@ -232,7 +232,7 @@ impl SpendDescription {
     /// Load a [`SpendDescription`] from a Read implementation (e.g: socket,
     /// file) This is the main entry-point when reconstructing a serialized
     /// transaction.
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, Error> {
         let proof = groth16::Proof::read(&mut reader)?;
         let value_commitment = read_point(&mut reader)?;
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
@@ -254,7 +254,7 @@ impl SpendDescription {
     }
 
     /// Stow the bytes of this [`SpendDescription`] in the given writer.
-    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), Error> {
         self.serialize_signature_fields(&mut writer)?;
         self.authorizing_signature.write(&mut writer)?;
 
@@ -275,9 +275,9 @@ impl SpendDescription {
 
     /// Verify that the signature on this proof is signing the provided input
     /// with the randomized_public_key on this proof.
-    pub fn verify_signature(&self, signature_hash_value: &[u8; 32]) -> Result<(), IronfishError> {
+    pub fn verify_signature(&self, signature_hash_value: &[u8; 32]) -> Result<(), Error> {
         if self.randomized_public_key.0.is_small_order().into() {
-            return Err(IronfishError::IsSmallOrder);
+            return Err(anyhow!(IronfishError::IsSmallOrder));
         }
         let mut data_to_be_signed = [0; 64];
         data_to_be_signed[..32].copy_from_slice(&self.randomized_public_key.0.to_bytes());
@@ -288,7 +288,7 @@ impl SpendDescription {
             &self.authorizing_signature,
             SPENDING_KEY_GENERATOR,
         ) {
-            return Err(IronfishError::VerificationFailed);
+            return Err(anyhow!(IronfishError::VerificationFailed));
         }
 
         Ok(())

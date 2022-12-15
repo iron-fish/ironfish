@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use anyhow::{anyhow, Error};
 use crate::errors::IronfishError;
 
 /// Helper functions to convert pairing parts to bytes
@@ -14,18 +15,18 @@ use group::GroupEncoding;
 
 use std::io;
 
-pub(crate) fn read_scalar<F: PrimeField, R: io::Read>(mut reader: R) -> Result<F, IronfishError> {
+pub(crate) fn read_scalar<F: PrimeField, R: io::Read>(mut reader: R) -> Result<F, Error> {
     let mut fr_repr = F::Repr::default();
     reader.read_exact(fr_repr.as_mut())?;
 
-    Option::from(F::from_repr(fr_repr)).ok_or(IronfishError::InvalidData)
+    Option::from(F::from_repr(fr_repr)).ok_or(anyhow!(IronfishError::InvalidData))
 }
 
-pub(crate) fn read_point<G: GroupEncoding, R: io::Read>(mut reader: R) -> Result<G, IronfishError> {
+pub(crate) fn read_point<G: GroupEncoding, R: io::Read>(mut reader: R) -> Result<G, Error> {
     let mut point_repr = G::Repr::default();
     reader.read_exact(point_repr.as_mut())?;
 
-    Option::from(G::from_bytes(&point_repr)).ok_or(IronfishError::InvalidData)
+    Option::from(G::from_bytes(&point_repr)).ok_or(anyhow!(IronfishError::InvalidData))
 }
 
 /// Output the bytes as a hexadecimal String
@@ -38,7 +39,7 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
 }
 
 /// Output the hexadecimal String as bytes
-pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, IronfishError> {
+pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, Error> {
     let mut bite_iterator = hex.as_bytes().iter().map(|b| match b {
         b'0'..=b'9' => Ok(b - b'0'),
         b'a'..=b'f' => Ok(b - b'a' + 10),
@@ -52,7 +53,7 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, IronfishError> {
         match (high, low) {
             (Some(Ok(h)), Some(Ok(l))) => bytes.push(h << 4 | l),
             (None, None) => break,
-            _ => return Err(IronfishError::InvalidData),
+            _ => return Err(anyhow!(IronfishError::InvalidData)),
         }
         high = bite_iterator.next();
         low = bite_iterator.next();
@@ -62,6 +63,7 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, IronfishError> {
 }
 
 pub mod aead {
+    use anyhow::Error;
     use crate::errors::IronfishError;
     use chacha20poly1305::aead::{AeadInPlace, NewAead};
     use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
@@ -76,7 +78,7 @@ pub mod aead {
     pub(crate) fn encrypt<const SIZE: usize>(
         key: &[u8; 32],
         plaintext: &[u8],
-    ) -> Result<[u8; SIZE], IronfishError> {
+    ) -> Result<[u8; SIZE], Error> {
         let mut encrypted_output = [0u8; SIZE];
         encrypted_output[..plaintext.len()].copy_from_slice(plaintext);
 
@@ -100,7 +102,7 @@ pub mod aead {
     pub(crate) fn decrypt<const SIZE: usize>(
         key: &[u8; 32],
         ciphertext: &[u8],
-    ) -> Result<[u8; SIZE], IronfishError> {
+    ) -> Result<[u8; SIZE], Error> {
         let decryptor = ChaCha20Poly1305::new(Key::from_slice(key));
 
         let mut plaintext = [0u8; SIZE];

@@ -9,7 +9,7 @@ use crate::{
     note::Note,
     sapling_bls12::SAPLING,
 };
-
+use anyhow::{anyhow, Error};
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use ff::Field;
@@ -85,7 +85,7 @@ impl OutputBuilder {
         &self,
         spender_key: &SaplingKey,
         public_key_randomness: &jubjub::Fr,
-    ) -> Result<OutputDescription, IronfishError> {
+    ) -> Result<OutputDescription, Error> {
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
         let circuit = Output {
@@ -154,7 +154,7 @@ impl OutputDescription {
     /// Load an [`OutputDescription`] from a Read implementation( e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized
     /// transaction.
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, Error> {
         let proof = groth16::Proof::read(&mut reader)?;
         let merkle_note = MerkleNote::read(&mut reader)?;
         let randomized_public_key = PublicKey::read(&mut reader)?;
@@ -167,13 +167,13 @@ impl OutputDescription {
     }
 
     /// Stow the bytes of this [`OutputDescription`] in the given writer.
-    pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
+    pub fn write<W: io::Write>(&self, writer: W) -> Result<(), Error> {
         self.serialize_signature_fields(writer)
     }
 
     /// Verify that the proof demonstrates knowledge that a note exists with
     /// the value_commitment, public_key, and note_commitment on this proof.
-    pub fn verify_proof(&self) -> Result<(), IronfishError> {
+    pub fn verify_proof(&self) -> Result<(), Error> {
         self.verify_not_small_order()?;
 
         groth16::verify_proof(
@@ -185,13 +185,13 @@ impl OutputDescription {
         Ok(())
     }
 
-    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
+    pub fn verify_not_small_order(&self) -> Result<(), Error> {
         if self.merkle_note.value_commitment.is_small_order().into()
             || ExtendedPoint::from(self.merkle_note.ephemeral_public_key)
                 .is_small_order()
                 .into()
         {
-            return Err(IronfishError::IsSmallOrder);
+            return Err(anyhow!(IronfishError::IsSmallOrder));
         }
 
         Ok(())
@@ -232,7 +232,7 @@ impl OutputDescription {
     pub(crate) fn serialize_signature_fields<W: io::Write>(
         &self,
         mut writer: W,
-    ) -> Result<(), IronfishError> {
+    ) -> Result<(), Error> {
         self.proof.write(&mut writer)?;
         self.merkle_note.write(&mut writer)?;
         self.randomized_public_key.write(&mut writer)?;

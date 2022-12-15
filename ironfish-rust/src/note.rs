@@ -11,6 +11,7 @@ use super::{
     keys::{IncomingViewKey, PublicAddress, SaplingKey},
     serializing::{aead, read_scalar},
 };
+use anyhow::{anyhow, Error};
 use blake2s_simd::Params as Blake2sParams;
 use bls12_381::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -122,7 +123,7 @@ impl<'a> Note {
     ///
     /// You probably don't want to use this unless you are transmitting
     /// across nodejs threads in memory.
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, Error> {
         let owner = PublicAddress::read(&mut reader)?;
 
         let asset_generator = read_point(&mut reader)?;
@@ -150,7 +151,7 @@ impl<'a> Note {
     /// This should generally never be used to serialize to disk or the network.
     /// It is primarily added as a device for transmitting the note across
     /// thread boundaries.
-    pub fn write<W: io::Write>(&self, mut writer: &mut W) -> Result<(), IronfishError> {
+    pub fn write<W: io::Write>(&self, mut writer: &mut W) -> Result<(), Error> {
         self.owner.write(&mut writer)?;
         writer.write_all(&self.asset_generator.to_bytes())?;
         writer.write_u64::<LittleEndian>(self.value)?;
@@ -174,7 +175,7 @@ impl<'a> Note {
         owner_view_key: &'a IncomingViewKey,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<Self, IronfishError> {
+    ) -> Result<Self, Error> {
         let (randomness, asset_generator, value, memo, sender) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let owner = owner_view_key.public_address();
@@ -202,7 +203,7 @@ impl<'a> Note {
         transmission_key: SubgroupPoint,
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<Self, IronfishError> {
+    ) -> Result<Self, Error> {
         let (randomness, asset_generator, value, memo, sender) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
 
@@ -327,18 +328,18 @@ impl<'a> Note {
     }
 
     /// Verify that the note's commitment matches the one passed in
-    pub(crate) fn verify_commitment(&self, commitment: Scalar) -> Result<(), IronfishError> {
+    pub(crate) fn verify_commitment(&self, commitment: Scalar) -> Result<(), Error> {
         if commitment == self.commitment_point() {
             Ok(())
         } else {
-            Err(IronfishError::InvalidCommitment)
+            Err(anyhow!(IronfishError::InvalidCommitment))
         }
     }
 
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<(jubjub::Fr, jubjub::SubgroupPoint, u64, Memo, PublicAddress), IronfishError> {
+    ) -> Result<(jubjub::Fr, jubjub::SubgroupPoint, u64, Memo, PublicAddress), Error> {
         let plaintext_bytes: [u8; ENCRYPTED_NOTE_SIZE] =
             aead::decrypt(shared_secret, encrypted_bytes)?;
 

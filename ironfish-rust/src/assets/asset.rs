@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array, PublicAddress};
+use anyhow::{anyhow, Error};
 use bellman::gadgets::multipack;
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
@@ -56,10 +57,10 @@ pub struct Asset {
 
 impl Asset {
     /// Create a new AssetType from a public address, name, chain, and network
-    pub fn new(owner: PublicAddress, name: &str, metadata: &str) -> Result<Asset, IronfishError> {
+    pub fn new(owner: PublicAddress, name: &str, metadata: &str) -> Result<Asset, Error> {
         let trimmed_name = name.trim();
         if trimmed_name.is_empty() {
-            return Err(IronfishError::InvalidData);
+            return Err(anyhow!(IronfishError::InvalidData));
         }
 
         let name_bytes = str_to_array(trimmed_name);
@@ -81,7 +82,7 @@ impl Asset {
         name: [u8; NAME_LENGTH],
         metadata: [u8; METADATA_LENGTH],
         nonce: u8,
-    ) -> Result<Asset, IronfishError> {
+    ) -> Result<Asset, Error> {
         let capacity = METADATA_LENGTH + NAME_LENGTH + PUBLIC_ADDRESS_SIZE + 1;
         let mut preimage = Vec::with_capacity(capacity);
         preimage.extend(owner.public_address());
@@ -90,7 +91,7 @@ impl Asset {
         preimage.extend(from_ref(&nonce));
 
         if preimage.len() != capacity {
-            return Err(IronfishError::InvalidData);
+            return Err(anyhow!(IronfishError::InvalidData));
         }
 
         let preimage_bits = multipack::bytes_to_bits_le(&preimage);
@@ -111,7 +112,7 @@ impl Asset {
                 identifier: generator_point.to_bytes(),
             })
         } else {
-            Err(IronfishError::InvalidAssetIdentifier)
+            Err(anyhow!(IronfishError::InvalidAssetIdentifier))
         }
     }
 
@@ -139,7 +140,7 @@ impl Asset {
         SubgroupPoint::from_bytes(&self.identifier).unwrap()
     }
 
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, Error> {
         let owner = PublicAddress::read(&mut reader)?;
 
         let mut name = [0; NAME_LENGTH];
@@ -154,7 +155,7 @@ impl Asset {
     }
 
     /// Stow the bytes of this [`MintDescription`] in the given writer.
-    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), Error> {
         self.owner.write(&mut writer)?;
         writer.write_all(&self.name)?;
         writer.write_all(&self.metadata)?;
@@ -166,12 +167,12 @@ impl Asset {
 
 pub fn asset_generator_point(
     asset_info_hashed: &[u8; ASSET_INFO_HASHED_LENGTH],
-) -> Result<SubgroupPoint, IronfishError> {
+) -> Result<SubgroupPoint, Error> {
     group_hash(
         asset_info_hashed,
         VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
     )
-    .ok_or(IronfishError::InvalidAssetIdentifier)
+    .ok_or(anyhow!(IronfishError::InvalidAssetIdentifier))
 }
 
 pub fn asset_generator_from_identifier(asset_identifier: &AssetIdentifier) -> SubgroupPoint {

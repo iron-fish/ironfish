@@ -5,6 +5,7 @@
 use crate::errors::IronfishError;
 
 use super::serializing::{bytes_to_hex, hex_to_bytes, read_scalar};
+use anyhow::{anyhow, Error};
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use blake2s_simd::Params as Blake2s;
@@ -79,12 +80,12 @@ pub struct SaplingKey {
 
 impl SaplingKey {
     /// Construct a new key from an array of bytes
-    pub fn new(spending_key: [u8; 32]) -> Result<Self, IronfishError> {
+    pub fn new(spending_key: [u8; 32]) -> Result<Self, Error> {
         let spend_authorizing_key =
             jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 0));
 
         if spend_authorizing_key == jubjub::Fr::zero() {
-            return Err(IronfishError::IllegalValue);
+            return Err(anyhow!(IronfishError::IllegalValue));
         }
 
         let proof_authorizing_key =
@@ -113,19 +114,19 @@ impl SaplingKey {
     }
 
     /// Load a new key from a Read implementation (e.g: socket, file)
-    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut spending_key = [0; 32];
         reader.read_exact(&mut spending_key)?;
         Self::new(spending_key)
     }
 
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
+    pub fn from_hex(value: &str) -> Result<Self, Error> {
         match hex_to_bytes(value) {
-            Err(_) => Err(IronfishError::InvalidPaymentAddress),
+            Err(_) => Err(anyhow!(IronfishError::InvalidPaymentAddress)),
             Ok(bytes) => {
                 if bytes.len() != 32 {
-                    Err(IronfishError::InvalidPaymentAddress)
+                    Err(anyhow!(IronfishError::InvalidPaymentAddress))
                 } else {
                     let mut byte_arr = [0; 32];
                     byte_arr.clone_from_slice(&bytes[0..32]);
@@ -136,7 +137,7 @@ impl SaplingKey {
     }
 
     /// Load a key from a string of words to be decoded into bytes.
-    pub fn from_words(language_code: &str, value: String) -> Result<Self, IronfishError> {
+    pub fn from_words(language_code: &str, value: String) -> Result<Self, Error> {
         let language = Language::from_language_code(language_code)
             .ok_or(IronfishError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_phrase(&value, language)
@@ -193,7 +194,7 @@ impl SaplingKey {
     /// a seed. This isn't strictly necessary for private key, but view keys
     /// will need a direct mapping. The private key could still be generated
     /// using bip-32 and bip-39 if desired.
-    pub fn words_spending_key(&self, language_code: &str) -> Result<String, IronfishError> {
+    pub fn words_spending_key(&self, language_code: &str) -> Result<String, Error> {
         let language = Language::from_language_code(language_code)
             .ok_or(IronfishError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_entropy(&self.spending_key, language).unwrap();
@@ -268,7 +269,7 @@ impl SaplingKey {
     fn hash_viewing_key(
         authorizing_key: &SubgroupPoint,
         nullifier_deriving_key: &SubgroupPoint,
-    ) -> Result<jubjub::Fr, IronfishError> {
+    ) -> Result<jubjub::Fr, Error> {
         let mut view_key_contents = [0; 64];
         view_key_contents[0..32].copy_from_slice(&authorizing_key.to_bytes());
         view_key_contents[32..64].copy_from_slice(&nullifier_deriving_key.to_bytes());
@@ -285,7 +286,7 @@ impl SaplingKey {
         // Drop the last five bits, so it can be interpreted as a scalar.
         hash_result[31] &= 0b0000_0111;
         if hash_result == [0; 32] {
-            return Err(IronfishError::InvalidViewingKey);
+            return Err(anyhow!(IronfishError::InvalidViewingKey));
         }
         let scalar = read_scalar(&hash_result[..])?;
         Ok(scalar)

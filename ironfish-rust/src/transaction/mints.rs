@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::io;
-
+use anyhow::{anyhow, Error};
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -63,7 +63,7 @@ impl MintBuilder {
         &self,
         spender_key: &SaplingKey,
         public_key_randomness: &Fr,
-    ) -> Result<UnsignedMintDescription, IronfishError> {
+    ) -> Result<UnsignedMintDescription, Error> {
         let circuit = MintAsset {
             name: self.asset.name,
             metadata: self.asset.metadata,
@@ -119,14 +119,14 @@ impl UnsignedMintDescription {
         mut self,
         spender_key: &SaplingKey,
         signature_hash: &[u8; 32],
-    ) -> Result<MintDescription, IronfishError> {
+    ) -> Result<MintDescription, Error> {
         let private_key = redjubjub::PrivateKey(spender_key.spend_authorizing_key);
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
         let randomized_public_key =
             redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
 
         if randomized_public_key.0 != self.description.randomized_public_key.0 {
-            return Err(IronfishError::InvalidSigningKey);
+            return Err(anyhow!(IronfishError::InvalidSigningKey));
         }
 
         let mut data_to_be_signed = [0; 64];
@@ -172,7 +172,7 @@ pub struct MintDescription {
 }
 
 impl MintDescription {
-    pub fn verify_proof(&self) -> Result<(), IronfishError> {
+    pub fn verify_proof(&self) -> Result<(), Error> {
         // Verify that the asset info hash maps to a valid generator point
         asset_generator_point(&self.asset.asset_info_hashed)?;
 
@@ -187,9 +187,9 @@ impl MintDescription {
         Ok(())
     }
 
-    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
+    pub fn verify_not_small_order(&self) -> Result<(), Error> {
         if self.value_commitment.is_small_order().into() {
-            return Err(IronfishError::IsSmallOrder);
+            return Err(anyhow!(IronfishError::IsSmallOrder));
         }
 
         Ok(())
@@ -243,7 +243,7 @@ impl MintDescription {
     pub(crate) fn serialize_signature_fields<W: io::Write>(
         &self,
         mut writer: W,
-    ) -> Result<(), IronfishError> {
+    ) -> Result<(), Error> {
         self.proof.write(&mut writer)?;
         self.asset.write(&mut writer)?;
         writer.write_u64::<LittleEndian>(self.value)?;
@@ -253,7 +253,7 @@ impl MintDescription {
         Ok(())
     }
 
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, Error> {
         let proof = groth16::Proof::read(&mut reader)?;
         let asset = Asset::read(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
@@ -272,7 +272,7 @@ impl MintDescription {
     }
 
     /// Stow the bytes of this [`MintDescription`] in the given writer.
-    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), Error> {
         self.serialize_signature_fields(&mut writer)?;
         self.authorizing_signature.write(&mut writer)?;
 

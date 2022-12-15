@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::io;
-
+use anyhow::{anyhow, Error};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
 use group::GroupEncoding;
@@ -76,9 +76,9 @@ pub struct BurnDescription {
 }
 
 impl BurnDescription {
-    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
+    pub fn verify_not_small_order(&self) -> Result<(), Error> {
         if self.value_commitment.is_small_order().into() {
-            return Err(IronfishError::IsSmallOrder);
+            return Err(anyhow!(IronfishError::IsSmallOrder));
         }
 
         Ok(())
@@ -92,7 +92,7 @@ impl BurnDescription {
     pub(crate) fn serialize_signature_fields<W: io::Write>(
         &self,
         mut writer: W,
-    ) -> Result<(), IronfishError> {
+    ) -> Result<(), Error> {
         writer.write_all(&self.asset_identifier)?;
         writer.write_u64::<LittleEndian>(self.value)?;
         writer.write_all(&self.value_commitment.to_bytes())?;
@@ -100,7 +100,7 @@ impl BurnDescription {
         Ok(())
     }
 
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, Error> {
         let asset_identifier = {
             let mut bytes = [0u8; ASSET_IDENTIFIER_LENGTH];
             reader.read_exact(&mut bytes)?;
@@ -117,7 +117,7 @@ impl BurnDescription {
     }
 
     /// Stow the bytes of this [`BurnDescription`] in the given writer.
-    pub fn write<W: io::Write>(&self, writer: W) -> Result<(), IronfishError> {
+    pub fn write<W: io::Write>(&self, writer: W) -> Result<(), Error> {
         self.serialize_signature_fields(writer)?;
 
         Ok(())

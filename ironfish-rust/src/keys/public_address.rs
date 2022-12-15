@@ -6,6 +6,7 @@ use crate::{
     errors::IronfishError,
     serializing::{bytes_to_hex, hex_to_bytes},
 };
+use anyhow::{anyhow, Error};
 use group::GroupEncoding;
 use ironfish_zkp::constants::PUBLIC_KEY_GENERATOR;
 use jubjub::SubgroupPoint;
@@ -28,14 +29,14 @@ pub struct PublicAddress {
 
 impl PublicAddress {
     /// Initialize a public address from its 32 byte representation.
-    pub fn new(address_bytes: &[u8; PUBLIC_ADDRESS_SIZE]) -> Result<PublicAddress, IronfishError> {
+    pub fn new(address_bytes: &[u8; PUBLIC_ADDRESS_SIZE]) -> Result<PublicAddress, Error> {
         let transmission_key = PublicAddress::load_transmission_key(&address_bytes[0..])?;
 
         Ok(PublicAddress { transmission_key })
     }
 
     /// Load a public address from a Read implementation (e.g: socket, file)
-    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let mut address_bytes = [0; PUBLIC_ADDRESS_SIZE];
         reader.read_exact(&mut address_bytes)?;
         Self::new(&address_bytes)
@@ -56,16 +57,16 @@ impl PublicAddress {
     /// Convert a String of hex values to a PublicAddress. The String must
     /// be 64 hexadecimal characters representing the 32 bytes of an address
     /// or it fails.
-    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
+    pub fn from_hex(value: &str) -> Result<Self, Error> {
         if value.len() != 2 * PUBLIC_ADDRESS_SIZE {
-            return Err(IronfishError::InvalidPublicAddress);
+            return Err(anyhow!(IronfishError::InvalidPublicAddress));
         }
 
         match hex_to_bytes(value) {
-            Err(_) => Err(IronfishError::InvalidPublicAddress),
+            Err(_) => Err(anyhow!(IronfishError::InvalidPublicAddress)),
             Ok(bytes) => {
                 if bytes.len() != PUBLIC_ADDRESS_SIZE {
-                    Err(IronfishError::InvalidPublicAddress)
+                    Err(anyhow!(IronfishError::InvalidPublicAddress))
                 } else {
                     let mut byte_arr = [0; PUBLIC_ADDRESS_SIZE];
                     byte_arr.clone_from_slice(&bytes[0..PUBLIC_ADDRESS_SIZE]);
@@ -86,7 +87,7 @@ impl PublicAddress {
     }
 
     /// Store the bytes of this public address in the given writer.
-    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), Error> {
         writer.write_all(&self.public_address())?;
 
         Ok(())
@@ -94,7 +95,7 @@ impl PublicAddress {
 
     pub(crate) fn load_transmission_key(
         transmission_key_bytes: &[u8],
-    ) -> Result<SubgroupPoint, IronfishError> {
+    ) -> Result<SubgroupPoint, Error> {
         assert!(transmission_key_bytes.len() == 32);
         let transmission_key_non_prime =
             SubgroupPoint::from_bytes(transmission_key_bytes.try_into().unwrap());
@@ -102,7 +103,7 @@ impl PublicAddress {
         if transmission_key_non_prime.is_some().into() {
             Ok(transmission_key_non_prime.unwrap())
         } else {
-            Err(IronfishError::InvalidPaymentAddress)
+            Err(anyhow!(IronfishError::InvalidPaymentAddress))
         }
     }
 }

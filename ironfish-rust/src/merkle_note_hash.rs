@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::errors::IronfishError;
+ use anyhow::Error;
 
 /// Implement a merkle note to store all the values that need to go into a merkle tree.
 /// A tree containing these values can serve as a snapshot of the entire chain.
@@ -32,13 +32,13 @@ impl MerkleNoteHash {
         MerkleNoteHash(fr)
     }
 
-    pub fn read<R: io::Read>(reader: R) -> Result<MerkleNoteHash, IronfishError> {
+    pub fn read<R: io::Read>(reader: R) -> Result<MerkleNoteHash, Error> {
         let res = read_scalar(reader)?;
 
         Ok(MerkleNoteHash(res))
     }
 
-    pub fn write<W: io::Write>(&self, writer: &mut W) -> Result<(), IronfishError> {
+    pub fn write<W: io::Write>(&self, writer: &mut W) -> Result<(), Error> {
         writer.write_all(&self.0.to_bytes())?;
 
         Ok(())

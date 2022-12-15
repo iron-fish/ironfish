@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ff::Field;
+use anyhow::{anyhow, Error};
 use outputs::OutputBuilder;
 use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
@@ -168,7 +169,7 @@ impl ProposedTransaction {
         &mut self,
         change_goes_to: Option<PublicAddress>,
         intended_transaction_fee: u64,
-    ) -> Result<Transaction, IronfishError> {
+    ) -> Result<Transaction, Error> {
         let mut change_notes = vec![];
 
         for (asset_identifier, value) in self.value_balances.iter() {
@@ -180,7 +181,7 @@ impl ProposedTransaction {
             };
 
             if change_amount < 0 {
-                return Err(IronfishError::InvalidBalance);
+                return Err(anyhow!(IronfishError::InvalidBalance));
             }
             if change_amount > 0 {
                 let change_address =
@@ -209,9 +210,9 @@ impl ProposedTransaction {
     /// or change and therefore have a negative transaction fee. In normal use,
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
-    pub fn post_miners_fee(&mut self) -> Result<Transaction, IronfishError> {
+    pub fn post_miners_fee(&mut self) -> Result<Transaction, Error> {
         if !self.spends.is_empty() || self.outputs.len() != 1 {
-            return Err(IronfishError::InvalidMinersFeeTransaction);
+            return Err(anyhow!(IronfishError::InvalidMinersFeeTransaction));
         }
         // Ensure the merkle note has an identifiable encryption key
         self.outputs
@@ -232,7 +233,7 @@ impl ProposedTransaction {
     }
 
     // Post transaction without much validation.
-    fn _partial_post(&self) -> Result<Transaction, IronfishError> {
+    fn _partial_post(&self) -> Result<Transaction, Error> {
         // Generate binding signature keys
         let bsig_keys = self.binding_signature_keys()?;
 
@@ -352,7 +353,7 @@ impl ProposedTransaction {
         private_key: &PrivateKey,
         public_key: &PublicKey,
         transaction_signature_hash: &[u8; 32],
-    ) -> Result<Signature, IronfishError> {
+    ) -> Result<Signature, Error> {
         let mut data_to_be_signed = [0u8; 64];
         data_to_be_signed[..32].copy_from_slice(&public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(transaction_signature_hash);
@@ -364,7 +365,7 @@ impl ProposedTransaction {
         ))
     }
 
-    fn binding_signature_keys(&self) -> Result<(PrivateKey, PublicKey), IronfishError> {
+    fn binding_signature_keys(&self) -> Result<(PrivateKey, PublicKey), Error> {
         // A "private key" manufactured from a bunch of randomness added for each
         // spend and output.
         let mut binding_signature_key = jubjub::Fr::zero();
@@ -446,7 +447,7 @@ impl Transaction {
     /// Load a Transaction from a Read implementation (e.g: socket, file)
     /// This is the main entry-point when reconstructing a serialized transaction
     /// for verifying.
-    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(mut reader: R) -> Result<Self, Error> {
         let version = reader.read_u8()?;
         let num_spends = reader.read_u64::<LittleEndian>()?;
         let num_outputs = reader.read_u64::<LittleEndian>()?;
@@ -491,7 +492,7 @@ impl Transaction {
 
     /// Store the bytes of this transaction in the given writer. This is used
     /// to serialize transactions to file or network
-    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
+    pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), Error> {
         writer.write_u8(self.version)?;
         writer.write_u64::<LittleEndian>(self.spends.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.outputs.len() as u64)?;
@@ -530,7 +531,7 @@ impl Transaction {
     ///  *  The entire transaction was signed with a binding signature
     ///     containing those proofs (and only those proofs)
     ///
-    pub fn verify(&self) -> Result<(), IronfishError> {
+    pub fn verify(&self) -> Result<(), Error> {
         batch_verify_transactions(iter::once(self))
     }
 
@@ -611,7 +612,7 @@ impl Transaction {
     fn verify_binding_signature(
         &self,
         binding_verification_key: &ExtendedPoint,
-    ) -> Result<(), IronfishError> {
+    ) -> Result<(), Error> {
         let value_balance_point = value_balance_to_point(self.fee)?;
 
         let public_key_point = binding_verification_key - value_balance_point;
@@ -626,7 +627,7 @@ impl Transaction {
             &self.binding_signature,
             VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
         ) {
-            return Err(IronfishError::VerificationFailed);
+            return Err(anyhow!(IronfishError::VerificationFailed));
         }
 
         Ok(())
@@ -635,13 +636,13 @@ impl Transaction {
 
 /// Convert the integer value to a point on the Jubjub curve, accounting for
 /// negative values
-fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
+fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, Error> {
     // Can only construct edwards point on positive numbers, so need to
     // add and possibly negate later
     let is_negative = value.is_negative();
     let abs = match value.checked_abs() {
         Some(a) => a as u64,
-        None => return Err(IronfishError::IllegalValue),
+        None => return Err(anyhow!(IronfishError::IllegalValue)),
     };
 
     let mut value_balance = VALUE_COMMITMENT_VALUE_GENERATOR * jubjub::Fr::from(abs);
@@ -662,13 +663,13 @@ fn check_value_consistency(
     public_key: &PublicKey,
     binding_verification_key: &ExtendedPoint,
     value: i64,
-) -> Result<(), IronfishError> {
+) -> Result<(), Error> {
     let value_balance_point = value_balance_to_point(value)?;
 
     let calculated_public_key = binding_verification_key - value_balance_point;
 
     if calculated_public_key != public_key.0 {
-        return Err(IronfishError::InvalidBalance);
+        return Err(anyhow!(IronfishError::InvalidBalance));
     }
 
     Ok(())
@@ -676,7 +677,7 @@ fn check_value_consistency(
 
 pub fn batch_verify_transactions<'a>(
     transactions: impl IntoIterator<Item = &'a Transaction>,
-) -> Result<(), IronfishError> {
+) -> Result<(), Error> {
     let mut spend_verifier = Verifier::<Bls12>::new();
     let mut output_verifier = Verifier::<Bls12>::new();
     let mut mint_verifier = Verifier::<Bls12>::new();
@@ -685,7 +686,7 @@ pub fn batch_verify_transactions<'a>(
         // Currently only support version 1 transactions, the version
         // field is here for future updates
         if transaction.version != TRANSACTION_VERSION {
-            return Err(IronfishError::InvalidTransactionVersion);
+            return Err(anyhow!(IronfishError::InvalidTransactionVersion));
         }
 
         // Context to accumulate a signature of all the spends and outputs and

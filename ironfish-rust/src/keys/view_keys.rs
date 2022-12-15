@@ -17,6 +17,7 @@ use crate::{
     errors::IronfishError,
     serializing::{bytes_to_hex, hex_to_bytes, read_scalar},
 };
+use anyhow::{anyhow, Error};
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use group::GroupEncoding;
@@ -36,18 +37,18 @@ pub struct IncomingViewKey {
 
 impl IncomingViewKey {
     /// load view key from a Read implementation
-    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
+    pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
         let view_key = read_scalar(reader)?;
         Ok(IncomingViewKey { view_key })
     }
 
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
+    pub fn from_hex(value: &str) -> Result<Self, Error> {
         match hex_to_bytes(value) {
-            Err(_) => Err(IronfishError::InvalidViewingKey),
+            Err(_) => Err(anyhow!(IronfishError::InvalidViewingKey)),
             Ok(bytes) => {
                 if bytes.len() != 32 {
-                    Err(IronfishError::InvalidViewingKey)
+                    Err(anyhow!(IronfishError::InvalidViewingKey))
                 } else {
                     Self::read(&mut bytes[..].as_ref())
                 }
@@ -56,7 +57,7 @@ impl IncomingViewKey {
     }
 
     /// Load a key from a string of words to be decoded into bytes.
-    pub fn from_words(language_code: &str, value: String) -> Result<Self, IronfishError> {
+    pub fn from_words(language_code: &str, value: String) -> Result<Self, Error> {
         let language = Language::from_language_code(language_code)
             .ok_or(IronfishError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_phrase(&value, language)
@@ -73,7 +74,7 @@ impl IncomingViewKey {
     }
 
     /// Even more readable
-    pub fn words_key(&self, language_code: &str) -> Result<String, IronfishError> {
+    pub fn words_key(&self, language_code: &str) -> Result<String, Error> {
         let language = Language::from_language_code(language_code)
             .ok_or(IronfishError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_entropy(&self.view_key.to_bytes(), language).unwrap();
@@ -102,12 +103,12 @@ pub struct OutgoingViewKey {
 
 impl OutgoingViewKey {
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
+    pub fn from_hex(value: &str) -> Result<Self, Error> {
         match hex_to_bytes(value) {
-            Err(_) => Err(IronfishError::InvalidViewingKey),
+            Err(_) => Err(anyhow!(IronfishError::InvalidViewingKey)),
             Ok(bytes) => {
                 if bytes.len() != 32 {
-                    Err(IronfishError::InvalidViewingKey)
+                    Err(anyhow!(IronfishError::InvalidViewingKey))
                 } else {
                     let mut view_key = [0; 32];
                     view_key.clone_from_slice(&bytes[0..32]);
@@ -118,7 +119,7 @@ impl OutgoingViewKey {
     }
 
     /// Load a key from a string of words to be decoded into bytes.
-    pub fn from_words(language_code: &str, value: String) -> Result<Self, IronfishError> {
+    pub fn from_words(language_code: &str, value: String) -> Result<Self, Error> {
         let language = Language::from_language_code(language_code)
             .ok_or(IronfishError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_phrase(&value, language)
@@ -135,7 +136,7 @@ impl OutgoingViewKey {
     }
 
     /// Even more readable
-    pub fn words_key(&self, language_code: &str) -> Result<String, IronfishError> {
+    pub fn words_key(&self, language_code: &str) -> Result<String, Error> {
         let language = Language::from_language_code(language_code)
             .ok_or(IronfishError::InvalidLanguageEncoding)?;
         let mnemonic = Mnemonic::from_entropy(&self.view_key, language).unwrap();

@@ -14,6 +14,7 @@ name = "ironfish_rust"
 path = "src/lib.rs"
 
 [dependencies]
+anyhow = "1.0.66"
 bellman = { version = "0.13.1" }
 blake2b_simd = "1.0.0"
 blake2s_simd = "1.0.0"
