@@ -63,43 +63,49 @@ export class NullifierSet {
   }
 
   async connectBlock(block: Block, tx?: IDatabaseTransaction): Promise<void> {
-    let currentSize = await this.size(tx)
+    await this.db.withTransaction(tx, async (tx) => {
+      let currentSize = await this.size(tx)
 
-    for (const transaction of block.transactions) {
-      for (const spend of transaction.spends) {
-        // Throws an error if a nullifier already exists
-        // We should never allow overwriting a nullifier
-        await this.nullifiers.add(spend.nullifier, transaction.hash(), tx)
+      for (const transaction of block.transactions) {
+        for (const spend of transaction.spends) {
+          // Throws an error if a nullifier already exists
+          // We should never allow overwriting a nullifier
+          await this.nullifiers.add(spend.nullifier, transaction.hash(), tx)
 
-        currentSize++
+          currentSize++
+        }
       }
-    }
 
-    await this.counter.put('Size', currentSize, tx)
+      await this.counter.put('Size', currentSize, tx)
+    })
   }
 
   async disconnectBlock(block: Block, tx?: IDatabaseTransaction): Promise<void> {
-    let currentSize = await this.size(tx)
+    await this.db.withTransaction(tx, async (tx) => {
+      let currentSize = await this.size(tx)
 
-    for (const transaction of block.transactions) {
-      for (const spend of transaction.spends.slice().reverse()) {
-        // Sanity check that we are removing the correct block
-        // Not necessarily needed but will keep it here for confidence in the new nullifier set
-        const current = await this.nullifiers.get(spend.nullifier, tx)
-        Assert.isNotUndefined(current)
-        Assert.isTrue(current.equals(transaction.hash()))
+      for (const transaction of block.transactions) {
+        for (const spend of transaction.spends.slice().reverse()) {
+          // Sanity check that we are removing the correct block
+          // Not necessarily needed but will keep it here for confidence in the new nullifier set
+          const current = await this.nullifiers.get(spend.nullifier, tx)
+          Assert.isNotUndefined(current)
+          Assert.isTrue(current.equals(transaction.hash()))
 
-        await this.nullifiers.del(spend.nullifier, tx)
+          await this.nullifiers.del(spend.nullifier, tx)
 
-        currentSize--
+          currentSize--
+        }
       }
-    }
 
-    await this.counter.put('Size', currentSize, tx)
+      await this.counter.put('Size', currentSize, tx)
+    })
   }
 
   async clear(tx?: IDatabaseTransaction): Promise<void> {
-    await this.nullifiers.clear(tx)
-    await this.counter.clear(tx)
+    await this.db.withTransaction(tx, async (tx) => {
+      await this.nullifiers.clear(tx)
+      await this.counter.clear(tx)
+    })
   }
 }
