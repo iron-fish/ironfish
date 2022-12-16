@@ -14,11 +14,7 @@ use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use ff::Field;
 use group::Curve;
-use ironfish_zkp::{
-    proofs::Output,
-    redjubjub::PublicKey,
-    ValueCommitment,
-};
+use ironfish_zkp::{proofs::Output, redjubjub::PublicKey, ValueCommitment};
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
