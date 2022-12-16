@@ -9,8 +9,6 @@ workspace = true
 [package.edition]
 workspace = true
 
-[env]
-RUST_BACKTRACE = "1"
 
 [lib]
 crate-type = ["cdylib"]
@@ -18,7 +16,7 @@ crate-type = ["cdylib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.66"
+anyhow = { version = "1.0.66", features = ["backtrace"] }
 base64 = "0.13.0"
 ironfish_rust = { path = "../ironfish-rust" }
 napi-derive = "2.9.0"
