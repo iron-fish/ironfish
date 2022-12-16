@@ -48,4 +48,13 @@ export class AsyncUtils {
 
     return undefined
   }
+
+  static async filter<T>(
+    array: Array<T>,
+    predicate: (item: T) => Promise<boolean>,
+  ): Promise<Array<T>> {
+    const include = await Promise.all(array.map(predicate))
+
+    return array.filter((_, index) => include[index])
+  }
 }

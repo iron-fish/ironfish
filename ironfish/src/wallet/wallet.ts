@@ -18,7 +18,13 @@ import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
-import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
+import {
+  AsyncUtils,
+  BufferUtils,
+  PromiseResolve,
+  PromiseUtils,
+  SetTimeoutToken,
+} from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
@@ -398,7 +404,8 @@ export class Wallet {
   }
 
   async addPendingTransaction(transaction: Transaction): Promise<void> {
-    const accounts = await this.filterAccountsAsync(
+    const accounts = await AsyncUtils.filter(
+      this.listAccounts(),
       async (account) => !(await account.hasTransaction(transaction.hash())),
     )
 
@@ -1125,16 +1132,6 @@ export class Wallet {
 
   listAccounts(): Account[] {
     return Array.from(this.accounts.values())
-  }
-
-  async filterAccountsAsync(
-    predicate: (account: Account) => Promise<boolean>,
-  ): Promise<Account[]> {
-    const accounts = this.listAccounts()
-
-    const includeAccount = await Promise.all(accounts.map(predicate))
-
-    return accounts.filter((_, index) => includeAccount[index])
   }
 
   accountExists(name: string): boolean {
