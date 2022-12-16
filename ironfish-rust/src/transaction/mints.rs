@@ -89,7 +89,7 @@ impl MintBuilder {
             authorizing_signature: blank_signature,
         };
 
-        mint_description.verify_proof(&randomized_public_key)?;
+        mint_description.verify_proof(randomized_public_key)?;
 
         Ok(UnsignedMintDescription {
             public_key_randomness: *public_key_randomness,

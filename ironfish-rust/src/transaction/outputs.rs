@@ -109,7 +109,7 @@ impl OutputBuilder {
 
         let output_proof = OutputDescription { proof, merkle_note };
 
-        output_proof.verify_proof(&randomized_public_key)?;
+        output_proof.verify_proof(randomized_public_key)?;
 
         Ok(output_proof)
     }

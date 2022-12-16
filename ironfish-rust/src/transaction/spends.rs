@@ -132,7 +132,7 @@ impl SpendBuilder {
             authorizing_signature: blank_signature,
         };
 
-        description.verify_proof(&randomized_public_key)?;
+        description.verify_proof(randomized_public_key)?;
 
         Ok(UnsignedSpendDescription {
             public_key_randomness: *public_key_randomness,
