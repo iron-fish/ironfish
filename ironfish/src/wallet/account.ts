@@ -192,7 +192,6 @@ export class Account {
         )
       }
 
-      const isRemovingTransaction = submittedSequence === null && blockHash === null
       await this.bulkUpdateDecryptedNotes(
         transactionHash,
         decryptedNotes,
@@ -200,7 +199,7 @@ export class Account {
         sequence,
         tx,
       )
-      await this.processTransactionSpends(transaction, isRemovingTransaction, tx)
+      await this.processTransactionSpends(transaction, tx)
     })
   }
 
@@ -364,7 +363,6 @@ export class Account {
 
   private async processTransactionSpends(
     transaction: Transaction,
-    isRemovingTransaction: boolean,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const spend of transaction.spends) {
@@ -381,7 +379,7 @@ export class Account {
           noteHash,
           {
             ...decryptedNote,
-            spent: !isRemovingTransaction,
+            spent: true,
           },
           tx,
         )
