@@ -83,9 +83,7 @@ export class Transaction {
       reader.seek(PROOF_LENGTH)
 
       // output note
-      const outputNote = new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
-
-      return outputNote
+      return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
     })
 
     this.mints = Array.from({ length: _mintsLength }, () => {

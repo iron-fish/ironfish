@@ -357,7 +357,7 @@ mod test {
     };
 
     use crate::{
-        circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point_new,
+        circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point,
         ValueCommitment,
     };
 
@@ -404,7 +404,7 @@ mod test {
                 };
 
                 let mut position = 0u64;
-                let commitment = commitment_full_point_new(
+                let commitment = commitment_full_point(
                     value_commitment.asset_generator,
                     value_commitment.value,
                     payment_address,
@@ -584,7 +584,7 @@ mod test {
 
                 let mut position = 0u64;
 
-                let commitment = commitment_full_point_new(
+                let commitment = commitment_full_point(
                     value_commitment.asset_generator,
                     value_commitment.value,
                     payment_address,
