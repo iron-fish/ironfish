@@ -1,0 +1,54 @@
+{
+  "Transactions sendTransaction throws if pay throws NotEnoughFundsError": [
+    {
+      "id": "a725ba24-5a0a-46e0-a19f-1ee3b164dcb9",
+      "name": "account-throw-error",
+      "spendingKey": "ad5a2602336b7c5419bcc0e41490e088fa2b542c5b7093502eb54b31396eb249",
+      "incomingViewKey": "97daf64c8606ba5d3e44c25b046b7efc9b248cb867b667e862b94a867c311705",
+      "outgoingViewKey": "e1e9be609b5e20494ffc9c040d5888a107b11a31889136d0e7ca8449db58236c",
+      "publicAddress": "dbf391c33de7d964e0684336bec4159b04affccd5658449169ee6d7ec13dd011"
+    }
+  ],
+  "Transactions sendTransaction calls the pay method on the node with single recipient": [
+    {
+      "id": "0de6721e-c779-4d8a-9565-0637ad57a4a6",
+      "name": "account",
+      "spendingKey": "2ef6ef49a06bff236bc58b3518754fab3d50132e27bc6f596cbe7f2836d1f156",
+      "incomingViewKey": "8d568e8bd439b74987073fd356fd698b418d6aedd8f2c38837593d0671fa3b06",
+      "outgoingViewKey": "504d798d16c4f7628d57ae7a41aaa43750f076bb997b720f0e908b6d54d79589",
+      "publicAddress": "b909ff1fc779f031b8f4bddee32b0e7f29a95c410729e3dddef316f28950fc1b"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAjbx5D/8Hyi1vQOFEreGnOkvfCq1oLpZ8RVHVPUyMQYSHXRW7BInppu++sAEpXD08hH9RdE6OgcIaoBhDMb5L/kCs2EPrG+sBQesfPXysGr6HkYYP48ZI7RKGK6Bi9o7IFLNJ8PuTWg2afjTtQLLqSiaQ+oe64rlrO61kj/lQs7sOJa1A5f0GF9jrUyLqurpUJv7tLO7N5Wz82azk2YyiHX0xH+P7ure/7X7Q/+hMzHaY9kXvnye5Z4xoXAWnzYgKSqo2Ep/NUXo6ycvS20KswiR+nsC94+sAQsmphbDtVoaWpxqPaRbdVuRGbSL56ceTAeHkkPZg9992ZBGgLf7xu9nHWVgmmiZNIbviMAwV7o0Yd56JcNWLHYPfYgD9xaQYCMjqKP8KpyKCJHw1Z8J63Ed4x6203z4eGprUHKXxE9drcz0M0NsqvgH5/v5pY85MZZoi5ZFkc3PK1ZCONfQwqfBW5T7w43Hi7OpCncmBZ1w/L+jbXb2Y50IucX/jj8HKeCu2kuolLAqguyKbNDnW/Cx4+y7sSEnbmlRPSyOVtvzOAl2IcFT6fb6ToocSI3/nzk3S1ndWCNMJ7UVMVnQFNbeZsVcp14371L6xAkt78q93iTWGRkChUUlyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw2bqdYhWPrEbhg9DRk1k8LvbpeTUluQy7eaW6M7vRANexUavq5OCfGCbiGEXTbdzzQGpXyEKDOlHLcZYvbc7sCg=="
+    }
+  ],
+  "Transactions sendTransaction calls the pay method on the node with multiple recipient": [
+    {
+      "id": "350b5c9c-7b6f-4467-9604-5709ae607d65",
+      "name": "account_multi-output",
+      "spendingKey": "1babb7eae5944e3c1768f1470b8ffb31710543f1eca5b687dad7bb88f41daa0e",
+      "incomingViewKey": "882d6f89d82af33a2fe6624f0d3da43f9e150b6809e1aae37796f8fadd933204",
+      "outgoingViewKey": "70db40672a2a93c9f3e34cc2ed471dbcbcbd8c4f85ef78a1598e3a6950181d22",
+      "publicAddress": "146bf62b72f97742aaab450111c88f3c462f2e694a4ee3d4643eb6d93abb0e5c"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAggiA+V7AK1jE6xy7nu2KhWx4YR04tUZgOgRw8+NvhomiG/XqyBxBQslao3lOvTorzQyWLcZ5w9d/KfmQie7Ogsyy0Gfn96NEliLI6v9bz1ePbEP2liZv/0GaGCaYZtVhjyqBEPDVm5xGOna61uxuGdpQkV849oSudFVOSwzTDFINlNIxyCrgSzQ4maVA3MrR7ObLTpTcs+FDFWdqwQd03qTe/q2u38SNIv8HK+7XtHaNizzJucyg1RL5EP6B5ecq0bkF2PIxhqOPMQ20LTZNsSjDVVRvozLf8+IaoOxdOr5+I8jgzIeacboBsxCatQssBTgYgyW3xPYUGcLv/VB/KW641SsI1rbr05I8LGpBtrugUAGXlG5Grd+w28/F1H8p4csC2Doy5yqeTGAusprjskpUrnvXbzLKpcUx6xwc/A5Yy25cnFBLzN2ZRohrrFvDItLjX4GwaBYgLJeoTGhgZ1k1DmFqSFR2lxOYofkLDW+QZRJMRV1ua3Ro95FU906W6xWuiaI0pi8jJZOurVvfbz8YecQuio/QvnW0hNJZAH1eH5ozFMBZEeX0sNttA/v5jnksqOmReGtMX/tIsV6ESEN2zDBjm2jcoFhmYjvybzI+C+pW4ydGPklyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwN/QJFAf9HZlQWbTmkYpQBzKSQKuY6Dedrvq9mVEp8VmGXSLL5C5bxL1hpRb+o31GOosEjRrjwfq0J0S5cPzrAw=="
+    }
+  ],
+  "Transactions sendTransaction lets you configure the expiration": [
+    {
+      "id": "4e090c1e-4bfe-426f-aced-5510162c1a2c",
+      "name": "expiration",
+      "spendingKey": "87409a0626dcb35cbca2372e1a6b2b011a36ab570e8b736cf953d97f120329e6",
+      "incomingViewKey": "c7463a03cfe295b4ecd342b3e121277904520e8464636ef2dde430d0aae91b03",
+      "outgoingViewKey": "baae6af76a8e5d51d30bcfb25cfc224564e5edc949b4679da84c986ccb8e943c",
+      "publicAddress": "486b08a3201d4316e22049cee3de3c2d1b3d45f1f146be5f08de39dbba793e27"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAQs9j2naQogRGqfMQicpLNy96ZH8PQTN0hiZAo9Rciru19fPALFhpePOdZOoKeXvL6DwH2+7DlSP40Yh2e3Ih5cs/mh6VnVvi8wngesl6inGXnL2FQQgYEjfP8OnIPtKFaumOfoZX4o5z4mZSJEzLWPPszm8b8MrymmKZtU5LVhIZYFioX6pbwggyxbX1Pft3zGAJvaOShxzolSq78+s7AZ+LeYipajq55NOw5gI5tu6IoDOJWXRH4xSZxdSAEUIFxfRYcZTcEqHF9lb+wtbUCVddaZzdVxkKT794LS4D5vefZBjfD46S7hbhCa5hClWsdJoVQ4EcTP4iYeX/g1mNpUx0vjl6JEfjJ+hAiBNQ7RGUJoOQpYpCzRoXp0MpgZI+BBHz8XCFUYNPwt9GrEH0//PDdzcws69etXEkD8iGq9XmsjiBWvfS9D1nfH7HbZiGRqXo7BFnJMPSQJ/kChb5fZrrKUFI42csunMrDY+fQk5ehT2YpfOFEIhUBueppot6jbmtRemFOyiCQ+tLvVLVtYjdgvmToNZ0siDBioSYUEmluUjy8L2XVA+Tihc84lmJ00TEWKgn3NZsoFMdEDlOopnir0NRNOhtNVIYWNdF2hygJaFIX4nLFElyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwVT1Be+X0UkyqUggTzcMuUF3V6mXl34EHLmLcnPM99zpu6Ray3II+U3B6+mtqpKjavSgkOKLu7yEoaV5WxDUaDg=="
+    }
+  ]
+}
