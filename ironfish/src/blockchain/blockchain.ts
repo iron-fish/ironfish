@@ -1333,6 +1333,7 @@ export class Blockchain {
         assetIdentifier,
         {
           createdTransactionHash,
+          identifier: assetIdentifier,
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
@@ -1360,6 +1361,7 @@ export class Blockchain {
         assetIdentifier,
         {
           createdTransactionHash: existingAsset.createdTransactionHash,
+          identifier: existingAsset.identifier,
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           nonce: existingAsset.nonce,
@@ -1386,6 +1388,7 @@ export class Blockchain {
         assetIdentifier,
         {
           createdTransactionHash: existingAsset.createdTransactionHash,
+          identifier: existingAsset.identifier,
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           nonce: existingAsset.nonce,
@@ -1422,6 +1425,7 @@ export class Blockchain {
           assetIdentifier,
           {
             createdTransactionHash: existingAsset.createdTransactionHash,
+            identifier: asset.identifier(),
             metadata: asset.metadata(),
             name: asset.name(),
             nonce: asset.nonce(),

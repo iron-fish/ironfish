@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { IDatabaseEncoding } from '../../storage/database/types'
 import {
+  ASSET_IDENTIFIER_LENGTH,
   ASSET_METADATA_LENGTH,
   ASSET_NAME_LENGTH,
   ASSET_OWNER_LENGTH,
@@ -13,6 +14,7 @@ import { BigIntUtils } from '../../utils'
 
 export interface AssetsValue {
   createdTransactionHash: Buffer
+  identifier: Buffer
   metadata: Buffer
   name: Buffer
   nonce: number
@@ -24,6 +26,7 @@ export class AssetsValueEncoding implements IDatabaseEncoding<AssetsValue> {
   serialize(value: AssetsValue): Buffer {
     const bw = bufio.write(this.getSize(value))
     bw.writeHash(value.createdTransactionHash)
+    bw.writeHash(value.identifier)
     bw.writeBytes(value.metadata)
     bw.writeBytes(value.name)
     bw.writeU8(value.nonce)
@@ -35,17 +38,19 @@ export class AssetsValueEncoding implements IDatabaseEncoding<AssetsValue> {
   deserialize(buffer: Buffer): AssetsValue {
     const reader = bufio.read(buffer, true)
     const createdTransactionHash = reader.readHash()
+    const identifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
     const metadata = reader.readBytes(ASSET_METADATA_LENGTH)
     const name = reader.readBytes(ASSET_NAME_LENGTH)
     const nonce = reader.readU8()
     const owner = reader.readBytes(ASSET_OWNER_LENGTH)
     const supply = BigIntUtils.fromBytesLE(reader.readVarBytes())
-    return { createdTransactionHash, metadata, name, nonce, owner, supply }
+    return { createdTransactionHash, identifier, metadata, name, nonce, owner, supply }
   }
 
   getSize(value: AssetsValue): number {
     let size = 0
     size += 32 // createdTransactionHash
+    size += ASSET_IDENTIFIER_LENGTH // identifier
     size += ASSET_METADATA_LENGTH // metadata
     size += ASSET_NAME_LENGTH // name
     size += 1 // nonce
