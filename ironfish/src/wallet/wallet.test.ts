@@ -1202,7 +1202,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(blockA1)
       await node.wallet.updateHead()
 
-      const balanceBefore = await accountA.getUnconfirmedBalance()
+      const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
       expect(balanceBefore).toEqual(2000000000n)
 
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
@@ -1210,7 +1210,7 @@ describe('Accounts', () => {
 
       await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
 
-      const balanceAfter = await accountA.getUnconfirmedBalance()
+      const balanceAfter = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
       expect(balanceAfter).toEqual(1999999998n)
     })
   })
