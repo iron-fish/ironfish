@@ -69,6 +69,20 @@ export class CurrencyUtils {
 
     return ore
   }
+
+  static renderBalance(amount: bigint | string, assetIdentifier?: string): string {
+    if (typeof amount === 'string') {
+      amount = this.decode(amount)
+    }
+
+    const balance = FixedNumberUtils.render(amount, 8)
+
+    if (assetIdentifier) {
+      return `${assetIdentifier} ${balance}`
+    }
+
+    return balance
+  }
 }
 
 export const ORE_TO_IRON = 100000000

@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { CurrencyUtils, GetBalanceResponse } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
@@ -27,6 +28,10 @@ export class BalanceCommand extends IronfishCommand {
       required: false,
       description: 'Minimum number of blocks confirmations for a note',
     }),
+    assetIdentifier: Flags.string({
+      required: false,
+      description: 'Asset identifier to check the balance for',
+    }),
   }
 
   static args = [
@@ -41,32 +46,51 @@ export class BalanceCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(BalanceCommand)
     const account = args.account as string | undefined
+    const assetIdentifier = flags.assetIdentifier ?? Asset.nativeIdentifier().toString('hex')
 
     const client = await this.sdk.connectRpc()
 
     const response = await client.getAccountBalance({
       account,
+      assetIdentifier,
       minimumBlockConfirmations: flags.confirmations,
     })
 
     if (flags.explain) {
-      this.explainBalance(response.content)
+      this.explainBalance(response.content, assetIdentifier)
       return
     }
 
     if (flags.all) {
       this.log(`Account: ${response.content.account}`)
-      this.log(`Balance:     ${CurrencyUtils.renderIron(response.content.confirmed, true)}`)
-      this.log(`Unconfirmed: ${CurrencyUtils.renderIron(response.content.unconfirmed, true)}`)
-      this.log(`Pending:     ${CurrencyUtils.renderIron(response.content.pending, true)}`)
+      this.log(
+        `Balance:     ${CurrencyUtils.renderBalance(
+          response.content.confirmed,
+          assetIdentifier,
+        )}`,
+      )
+      this.log(
+        `Unconfirmed: ${CurrencyUtils.renderBalance(
+          response.content.unconfirmed,
+          assetIdentifier,
+        )}`,
+      )
+      this.log(
+        `Pending:     ${CurrencyUtils.renderBalance(
+          response.content.pending,
+          assetIdentifier,
+        )}`,
+      )
       return
     }
 
     this.log(`Account: ${response.content.account}`)
-    this.log(`Balance: ${CurrencyUtils.renderIron(response.content.confirmed, true)}`)
+    this.log(
+      `Balance: ${CurrencyUtils.renderBalance(response.content.confirmed, assetIdentifier)}`,
+    )
   }
 
-  explainBalance(response: GetBalanceResponse): void {
+  explainBalance(response: GetBalanceResponse, assetIdentifier: string): void {
     const unconfirmed = CurrencyUtils.decode(response.unconfirmed)
     const pending = CurrencyUtils.decode(response.pending)
     const confirmed = CurrencyUtils.decode(response.confirmed)
@@ -78,24 +102,24 @@ export class BalanceCommand extends IronfishCommand {
     this.log('')
 
     this.log(`Your balance is made of notes on the chain that are safe to spend`)
-    this.log(`Balance: ${CurrencyUtils.renderIron(confirmed, true)}`)
+    this.log(`Balance: ${CurrencyUtils.renderBalance(confirmed, assetIdentifier)}`)
     this.log('')
 
     this.log(
-      `${response.unconfirmedCount} notes worth ${CurrencyUtils.renderIron(
+      `${response.unconfirmedCount} notes worth ${CurrencyUtils.renderBalance(
         unconfirmedDelta,
-        true,
+        assetIdentifier,
       )} are on the chain within ${response.minimumBlockConfirmations.toString()} blocks of the head`,
     )
-    this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true)}`)
+    this.log(`Unconfirmed: ${CurrencyUtils.renderBalance(unconfirmed, assetIdentifier)}`)
     this.log('')
 
     this.log(
-      `${response.pendingCount} notes worth ${CurrencyUtils.renderIron(
+      `${response.pendingCount} notes worth ${CurrencyUtils.renderBalance(
         pendingDelta,
-        true,
+        assetIdentifier,
       )} are waiting for miners to add them to the chain`,
     )
-    this.log(`Pending: ${CurrencyUtils.renderIron(pending, true)}`)
+    this.log(`Pending: ${CurrencyUtils.renderBalance(pending, assetIdentifier)}`)
   }
 }
