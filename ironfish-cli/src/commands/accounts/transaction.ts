@@ -73,6 +73,9 @@ export class TransactionCommand extends IronfishCommand {
         memo: {
           header: 'Memo',
         },
+        sender: {
+          header: 'Sender Address',
+        },
       })
     }
   }

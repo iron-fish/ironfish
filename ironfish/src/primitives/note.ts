@@ -66,7 +66,7 @@ export class Note {
     return this._value
   }
 
-  senderAddress(): string {
+  sender(): string {
     return this._sender
   }
 
