@@ -16,7 +16,7 @@ use napi::{
 };
 use napi_derive::napi;
 
-use crate::to_napi_err;
+use crate::anyhow_to_napi_err;
 
 #[napi]
 pub const ASSET_IDENTIFIER_LENGTH: u32 = IDENTIFIER_LENGTH as u32;
@@ -42,11 +42,11 @@ pub struct NativeAsset {
 impl NativeAsset {
     #[napi(constructor)]
     pub fn new(owner_private_key: String, name: String, metadata: String) -> Result<NativeAsset> {
-        let sapling_key = SaplingKey::from_hex(&owner_private_key).map_err(to_napi_err)?;
+        let sapling_key = SaplingKey::from_hex(&owner_private_key).map_err(anyhow_to_napi_err)?;
         let owner = sapling_key.public_address();
 
         Ok(NativeAsset {
-            asset: Asset::new(owner, &name, &metadata).map_err(to_napi_err)?,
+            asset: Asset::new(owner, &name, &metadata).map_err(anyhow_to_napi_err)?,
         })
     }
 
@@ -83,7 +83,7 @@ impl NativeAsset {
     #[napi]
     pub fn serialize(&self) -> Result<Buffer> {
         let mut vec: Vec<u8> = vec![];
-        self.asset.write(&mut vec).map_err(to_napi_err)?;
+        self.asset.write(&mut vec).map_err(anyhow_to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }
@@ -91,7 +91,7 @@ impl NativeAsset {
     #[napi(factory)]
     pub fn deserialize(js_bytes: JsBuffer) -> Result<Self> {
         let bytes = js_bytes.into_value()?;
-        let asset = Asset::read(bytes.as_ref()).map_err(to_napi_err)?;
+        let asset = Asset::read(bytes.as_ref()).map_err(anyhow_to_napi_err)?;
 
         Ok(NativeAsset { asset })
     }

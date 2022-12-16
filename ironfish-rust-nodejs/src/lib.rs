@@ -16,8 +16,15 @@ pub mod nacl;
 pub mod rolling_filter;
 pub mod structs;
 
-fn to_napi_err(err: impl Display) -> napi::Error {
+fn display_to_napi_err(err: impl Display) -> napi::Error {
     Error::from_reason(err.to_string())
+}
+
+fn str_to_napi_err(err_string: &str) -> napi::Error {
+    napi::Error::from_reason(err_string)
+}
+fn anyhow_to_napi_err(err: anyhow::Error) -> napi::Error {
+    napi::Error::from_reason(format!("{:?}", err))
 }
 
 #[napi(object)]
@@ -46,7 +53,7 @@ pub fn generate_key() -> Key {
 
 #[napi]
 pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
-    let sapling_key = SaplingKey::from_hex(&private_key).map_err(to_napi_err)?;
+    let sapling_key = SaplingKey::from_hex(&private_key).map_err(anyhow_to_napi_err)?;
 
     Ok(Key {
         spending_key: sapling_key.hex_spending_key(),
