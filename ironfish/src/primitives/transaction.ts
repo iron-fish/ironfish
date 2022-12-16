@@ -32,7 +32,6 @@ export class Transaction {
   private readonly _version: number
   private readonly _fee: bigint
   private readonly _expirationSequence: number
-  private readonly _sender: string
   private readonly _signature: Buffer
   private _hash?: TransactionHash
   private _unsignedHash?: TransactionHash
@@ -52,7 +51,8 @@ export class Transaction {
     const _burnsLength = reader.readU64() // 8
     this._fee = BigInt(reader.readI64()) // 8
     this._expirationSequence = reader.readU32() // 4
-    // randomized public key
+    // randomized public key of sender
+    // to read the value of rpk reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
     reader.seek(32)
 
     // spend description
@@ -113,10 +113,6 @@ export class Transaction {
       return { assetIdentifier, value }
     })
 
-    // sender address
-    // TODO(joe): read from bytes rather than hardcoded value
-    // this._sender = reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
-    this._sender = '8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563'
     this._signature = reader.readBytes(64, true)
   }
 
@@ -167,10 +163,6 @@ export class Transaction {
     })
 
     return result
-  }
-
-  sender(): string {
-    return this._sender
   }
 
   isMinersFee(): boolean {
