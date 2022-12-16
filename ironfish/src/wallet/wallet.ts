@@ -604,6 +604,7 @@ export class Wallet {
 
   async getBalance(
     account: Account,
+    assetIdentifier: Buffer,
     options?: { minimumBlockConfirmations?: number },
   ): Promise<{
     unconfirmedCount: number
@@ -632,7 +633,7 @@ export class Wallet {
         }
       }
 
-      return account.getBalance(headSequence, minimumBlockConfirmations, tx)
+      return account.getBalance(headSequence, assetIdentifier, minimumBlockConfirmations, tx)
     })
   }
 

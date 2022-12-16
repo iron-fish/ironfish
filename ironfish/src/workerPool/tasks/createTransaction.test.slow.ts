@@ -135,7 +135,7 @@ describe('CreateTransactionTask', () => {
       const fee = BigInt(1)
 
       const minerTransaction = await useMinersTxFixture(nodeTest.wallet, account)
-      const balance = await account.getUnconfirmedBalance()
+      const balance = await account.getUnconfirmedBalance(Asset.nativeIdentifier())
 
       const spendNote = minerTransaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(spendNote)

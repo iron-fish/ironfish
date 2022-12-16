@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
+import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import {
   createNodeTest,
@@ -113,7 +115,7 @@ describe('Accounts', () => {
       AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(1)
 
-    await expect(account.getBalance(1, 1)).resolves.toMatchObject({
+    await expect(account.getBalance(1, Asset.nativeIdentifier(), 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
       pending: BigInt(2000000000),
     })
@@ -126,7 +128,7 @@ describe('Accounts', () => {
       AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(0)
 
-    await expect(account.getBalance(1, 1)).resolves.toMatchObject({
+    await expect(account.getBalance(1, Asset.nativeIdentifier(), 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
       pending: BigInt(0),
     })
@@ -191,6 +193,31 @@ describe('Accounts', () => {
       )
 
       expect(pendingTransactions.length).toEqual(0)
+    })
+  })
+
+  describe('getUnconfirmedBalances', () => {
+    it('returns a mapping of asset identifiers to balances for an account', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'account')
+      const nativeBalance = BigInt(1)
+      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const mintedAssetBalance = BigInt(7)
+
+      await account.saveUnconfirmedBalance(Asset.nativeIdentifier(), nativeBalance)
+      await account.saveUnconfirmedBalance(asset.identifier(), mintedAssetBalance)
+
+      const balances = await account.getUnconfirmedBalances()
+      const expectedBalances = new BufferMap<bigint>([
+        [Asset.nativeIdentifier(), nativeBalance],
+        [asset.identifier(), mintedAssetBalance],
+      ])
+
+      expect(balances.size).toBe(expectedBalances.size)
+      for (const key of balances.toKeys()) {
+        expect(balances.get(key)).toEqual(expectedBalances.get(key))
+      }
     })
   })
 

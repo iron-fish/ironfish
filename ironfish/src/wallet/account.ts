@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
@@ -129,8 +128,12 @@ export class Account {
 
       if (!existingNote || existingNote.spent !== note.spent) {
         const value = note.note.value()
-        const currentUnconfirmedBalance = await this.walletDb.getUnconfirmedBalance(this, tx)
         const assetIdentifier = note.note.assetIdentifier()
+        const currentUnconfirmedBalance = await this.walletDb.getUnconfirmedBalance(
+          this,
+          assetIdentifier,
+          tx,
+        )
 
         if (note.spent) {
           await this.saveUnconfirmedBalance(
@@ -291,8 +294,7 @@ export class Account {
       )
 
       for (const [assetIdentifier, balanceDelta] of balanceDeltas) {
-        // TODO(mgeist,rohanjadvani): Add check for asset identifier
-        const unconfirmedBalance = await this.getUnconfirmedBalance(tx)
+        const unconfirmedBalance = await this.getUnconfirmedBalance(assetIdentifier, tx)
         await this.saveUnconfirmedBalance(
           assetIdentifier,
           unconfirmedBalance + balanceDelta,
@@ -398,8 +400,12 @@ export class Account {
       if (existingNote) {
         const note = existingNote.note
         const value = note.value()
-        const currentUnconfirmedBalance = await this.walletDb.getUnconfirmedBalance(this, tx)
-        const assetIdentifier = existingNote.note.assetIdentifier()
+        const assetIdentifier = note.assetIdentifier()
+        const currentUnconfirmedBalance = await this.walletDb.getUnconfirmedBalance(
+          this,
+          assetIdentifier,
+          tx,
+        )
 
         if (existingNote.spent) {
           await this.saveUnconfirmedBalance(
@@ -511,6 +517,7 @@ export class Account {
    */
   async getBalance(
     headSequence: number,
+    assetIdentifier: Buffer,
     minimumBlockConfirmations: number,
     tx?: IDatabaseTransaction,
   ): Promise<{
@@ -523,12 +530,11 @@ export class Account {
     let pendingCount = 0
     let unconfirmedCount = 0
 
-    const pending = await this.getUnconfirmedBalance(tx)
+    const pending = await this.getUnconfirmedBalance(assetIdentifier, tx)
 
     let unconfirmed = pending
     for await (const note of this.walletDb.loadNotesNotOnChain(this, tx)) {
-      // TODO(mgeist,rohanjadvani): Check asset identifier
-      if (!note.note.assetIdentifier().equals(Asset.nativeIdentifier())) {
+      if (!note.note.assetIdentifier().equals(assetIdentifier)) {
         continue
       }
 
@@ -553,8 +559,7 @@ export class Account {
         unconfirmedSequenceEnd,
         tx,
       )) {
-        // TODO(mgeist,rohanjadvani): Check asset identifier
-        if (!note.note.assetIdentifier().equals(Asset.nativeIdentifier())) {
+        if (!note.note.assetIdentifier().equals(assetIdentifier)) {
           continue
         }
 
@@ -574,11 +579,25 @@ export class Account {
     }
   }
 
-  async getUnconfirmedBalance(tx?: IDatabaseTransaction): Promise<bigint> {
-    return this.walletDb.getUnconfirmedBalance(this, tx)
+  async getUnconfirmedBalances(tx?: IDatabaseTransaction): Promise<BufferMap<bigint>> {
+    const unconfirmedBalances = new BufferMap<bigint>()
+    for await (const { assetIdentifier, balance } of this.walletDb.getUnconfirmedBalances(
+      this,
+      tx,
+    )) {
+      unconfirmedBalances.set(assetIdentifier, balance)
+    }
+    return unconfirmedBalances
   }
 
-  private async saveUnconfirmedBalance(
+  async getUnconfirmedBalance(
+    assetIdentifier: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<bigint> {
+    return this.walletDb.getUnconfirmedBalance(this, assetIdentifier, tx)
+  }
+
+  async saveUnconfirmedBalance(
     assetIdentifier: Buffer,
     balance: bigint,
     tx?: IDatabaseTransaction,
