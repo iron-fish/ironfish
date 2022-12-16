@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
@@ -226,7 +227,8 @@ ${CurrencyUtils.renderIron(amount, true)} plus a transaction fee of ${CurrencyUt
           {
             publicAddress: to,
             amount: CurrencyUtils.encode(amount),
-            memo: memo,
+            memo,
+            assetIdentifier: Asset.nativeIdentifier().toString('hex'),
           },
         ],
         fee: CurrencyUtils.encode(fee),
