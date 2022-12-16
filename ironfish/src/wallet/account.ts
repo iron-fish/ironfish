@@ -491,9 +491,8 @@ export class Account {
 
   /**
    * Gets the balance for an account
-   * confirmed: all notes on the chain
-   * unconfirmed: confirmed balance minus notes in unconfirmed range
-   * pending: all notes on the chain, and notes not on the chain yet
+   * unconfirmed: all notes on the chain
+   * confirmed: confirmed balance minus notes in unconfirmed range
    */
   async getBalance(
     headSequence: number,
@@ -504,8 +503,6 @@ export class Account {
     unconfirmed: bigint
     unconfirmedCount: number
     confirmed: bigint
-    pending: bigint
-    pendingCount: number
   }> {
     let unconfirmedCount = 0
 
@@ -541,8 +538,6 @@ export class Account {
       unconfirmed,
       unconfirmedCount,
       confirmed,
-      pending: 0n,
-      pendingCount: 0,
     }
   }
 
