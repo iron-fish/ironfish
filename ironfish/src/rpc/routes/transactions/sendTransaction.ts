@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
+import { BufferMap } from 'buffer-map'
 import * as yup from 'yup'
 import { CurrencyUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
@@ -14,6 +14,7 @@ export type SendTransactionRequest = {
     publicAddress: string
     amount: string
     memo: string
+    assetIdentifier: string
   }[]
   fee: string
   expirationSequence?: number | null
@@ -25,6 +26,7 @@ export type SendTransactionResponse = {
     publicAddress: string
     amount: string
     memo: string
+    assetIdentifier: string
   }[]
   fromAccountName: string
   hash: string
@@ -40,6 +42,7 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
             publicAddress: yup.string().defined(),
             amount: yup.string().defined(),
             memo: yup.string().defined(),
+            assetIdentifier: yup.string().defined(),
           })
           .defined(),
       )
@@ -59,6 +62,7 @@ export const SendTransactionResponseSchema: yup.ObjectSchema<SendTransactionResp
             publicAddress: yup.string().defined(),
             amount: yup.string().defined(),
             memo: yup.string().defined(),
+            assetIdentifier: yup.string().defined(),
           })
           .defined(),
       )
@@ -98,33 +102,41 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
         publicAddress: receive.publicAddress,
         amount: CurrencyUtils.decode(receive.amount),
         memo: receive.memo,
-        assetIdentifier: Asset.nativeIdentifier(),
+        assetIdentifier: Buffer.from(receive.assetIdentifier, 'hex'),
       }
     })
 
     const fee = CurrencyUtils.decode(transaction.fee)
-    const sum = receives.reduce((m, c) => m + c.amount, fee)
+
+    const totalByAssetIdentifier = new BufferMap<bigint>()
+    for (const { assetIdentifier, amount } of receives) {
+      if (amount < 0) {
+        throw new ValidationError(
+          `Invalid transaction amount ${amount} for asset '${assetIdentifier.toString('hex')}'`,
+        )
+      }
+
+      const sum = totalByAssetIdentifier.get(assetIdentifier) ?? BigInt(0)
+      totalByAssetIdentifier.set(assetIdentifier, sum + amount)
+    }
 
     if (fee < 1n) {
       throw new ValidationError(`Invalid transaction fee, ${transaction.fee}`)
     }
 
-    for (const receive of receives) {
-      if (receive.amount < 0) {
-        throw new ValidationError(`Invalid transaction amount, ${receive.amount}`)
-      }
-    }
-
     // Check that the node account is updated
-    // TODO(mgeist,rohanjadvani): Pass through asset identifier
-    const balance = await node.wallet.getBalance(account, Asset.nativeIdentifier())
+    for (const [assetIdentifier, sum] of totalByAssetIdentifier) {
+      const balance = await node.wallet.getBalance(account, assetIdentifier)
 
-    if (balance.confirmed < sum) {
-      throw new ValidationError(
-        'Your balance is too low. Add funds to your account first',
-        undefined,
-        ERROR_CODES.INSUFFICIENT_BALANCE,
-      )
+      if (balance.confirmed < sum) {
+        throw new ValidationError(
+          `Your balance is too low for asset '${assetIdentifier.toString(
+            'hex',
+          )}'. Add funds to your account first`,
+          undefined,
+          ERROR_CODES.INSUFFICIENT_BALANCE,
+        )
+      }
     }
 
     try {
