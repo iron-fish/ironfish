@@ -901,6 +901,7 @@ describe('Blockchain', () => {
         const mintedAsset = await node.chain.assets.get(asset.identifier())
         expect(mintedAsset).toEqual({
           createdTransactionHash: mintTransaction.hash(),
+          identifier: asset.identifier(),
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
@@ -959,6 +960,7 @@ describe('Blockchain', () => {
         const mintedAsset = await node.chain.assets.get(asset.identifier())
         expect(mintedAsset).toEqual({
           createdTransactionHash: mintTransactionA.hash(),
+          identifier: asset.identifier(),
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
