@@ -398,12 +398,9 @@ export class Wallet {
   }
 
   async addPendingTransaction(transaction: Transaction): Promise<void> {
-    const accounts = []
-    for (const account of this.listAccounts()) {
-      if (!(await account.hasTransaction(transaction.hash()))) {
-        accounts.push(account)
-      }
-    }
+    const accounts = await this.filterAccountsAsync(
+      async (account) => !(await account.hasTransaction(transaction.hash())),
+    )
 
     if (accounts.length === 0) {
       return
@@ -1128,6 +1125,16 @@ export class Wallet {
 
   listAccounts(): Account[] {
     return Array.from(this.accounts.values())
+  }
+
+  async filterAccountsAsync(
+    predicate: (account: Account) => Promise<boolean>,
+  ): Promise<Account[]> {
+    const accounts = this.listAccounts()
+
+    const includeAccount = await Promise.all(accounts.map(predicate))
+
+    return accounts.filter((_, index) => includeAccount[index])
   }
 
   accountExists(name: string): boolean {
