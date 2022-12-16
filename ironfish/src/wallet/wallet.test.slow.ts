@@ -314,7 +314,7 @@ describe('Accounts', () => {
     const addResult2 = await chain.addBlock(newBlock2)
     expect(addResult2.isAdded).toBeTruthy()
 
-    // Balance after adding the transaction that spends 2 should be 1999999998
+    // Balance after adding the transaction that spends 6 should be 1999999994
     await node.wallet.updateHead()
     await expect(
       node.wallet.getBalance(account, Asset.nativeIdentifier()),
@@ -507,21 +507,11 @@ describe('Accounts', () => {
     )
 
     // Transaction should be unconfirmed
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
-      confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
-    })
+    await expect(account.hasPendingTransaction(transaction.hash())).resolves.toBeTruthy()
 
     // Expiring transactions should not yet remove the transaction
     await node.wallet.expireTransactions()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
-      confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
-    })
+    await expect(account.hasPendingTransaction(transaction.hash())).resolves.toBeTruthy()
 
     await node.wallet.close()
     await node.wallet.open()
@@ -539,12 +529,7 @@ describe('Accounts', () => {
     // Expiring transactions should now remove the transaction
     await node.wallet.updateHead()
     await node.wallet.expireTransactions()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
-      confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
-    })
+    await expect(account.hasPendingTransaction(transaction.hash())).resolves.toBeFalsy()
   }, 600000)
 
   it('Counts notes correctly when a block has transactions not used by any account', async () => {
@@ -790,7 +775,7 @@ describe('Accounts', () => {
     await nodeA.wallet.updateHead()
 
     // B should not have confirmed coins yet because the transaction isn't on a block
-    // A should not have confirmed coins any more because the transaction is pending
+    // A should still have confirmed coins because the transaction isn't on a block
     await expect(
       nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
     ).resolves.toMatchObject({
@@ -903,7 +888,9 @@ describe('Accounts', () => {
       confirmed: BigInt(2),
       unconfirmed: BigInt(2),
     })
-    await expect(nodeB.wallet.getBalance(accountANodeB, Asset.nativeIdentifier())).resolves.toMatchObject({
+    await expect(
+      nodeB.wallet.getBalance(accountANodeB, Asset.nativeIdentifier()),
+    ).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
@@ -914,7 +901,7 @@ describe('Accounts', () => {
     await nodeA.wallet.updateHead()
 
     // B should not have confirmed coins yet because the transaction isn't on a block
-    // A should not have confirmed coins any more because the transaction is pending
+    // A should still have confirmed coins because the transaction isn't on a block
     await expect(
       nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
     ).resolves.toMatchObject({

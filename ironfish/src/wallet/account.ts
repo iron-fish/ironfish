@@ -424,6 +424,10 @@ export class Account {
     return this.walletDb.hasTransaction(this, hash, tx)
   }
 
+  async hasPendingTransaction(hash: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
+    return this.walletDb.hasPendingTransaction(this, hash, tx)
+  }
+
   getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
     return this.walletDb.loadTransactions(this, tx)
   }

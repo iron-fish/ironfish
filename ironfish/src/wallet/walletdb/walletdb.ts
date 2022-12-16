@@ -346,6 +346,24 @@ export class WalletDB {
     return this.transactions.has([account.prefix, transactionHash], tx)
   }
 
+  async hasPendingTransaction(
+    account: Account,
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    const transactionValue = await this.transactions.get([account.prefix, transactionHash], tx)
+
+    if (transactionValue === undefined) {
+      return false
+    }
+
+    const expirationSequence = transactionValue.transaction.expirationSequence()
+    return this.pendingTransactionHashes.has(
+      [account.prefix, [expirationSequence, transactionHash]],
+      tx,
+    )
+  }
+
   async setNoteHashSequence(
     account: Account,
     noteHash: Buffer,

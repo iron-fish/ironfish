@@ -63,12 +63,7 @@ describe('Accounts', () => {
     expect(broadcastSpy).toHaveBeenCalledTimes(0)
 
     await nodeA.wallet.updateHead()
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
-      confirmed: BigInt(2000000000),
-      unconfirmed: BigInt(2000000000),
-    })
+    await expect(accountA.hasPendingTransaction(invalidTx.hash())).resolves.toBeTruthy()
 
     await expect(nodeA.chain).toAddBlock(blockB1)
     await expect(nodeA.chain).toAddBlock(blockB2)
@@ -213,23 +208,11 @@ describe('Accounts', () => {
 
     // expire original transaction from fork
     await accountA.expireTransaction(forkTx)
-
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-    })
+    await expect(accountA.hasPendingTransaction(forkTx.hash())).resolves.toBeFalsy()
 
     // expire transaction that spends from fork
     await accountA.expireTransaction(forkSpendTx)
-
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-    })
+    await expect(accountA.hasPendingTransaction(forkSpendTx.hash())).resolves.toBeFalsy()
   })
 
   it('should update nullifiers for notes created on a fork', async () => {
@@ -939,13 +922,7 @@ describe('Accounts', () => {
 
       // Create a transaction that will expire
       const tx = await useTxFixture(nodeA.wallet, accountA, accountB, undefined, undefined, 3)
-
-      await expect(
-        nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-      ).resolves.toMatchObject({
-        confirmed: BigInt(2000000000),
-        unconfirmed: BigInt(2000000000),
-      })
+      await expect(accountA.hasPendingTransaction(tx.hash())).resolves.toBeTruthy()
 
       // Mine a new block at sequence 3, expiring transaction
       const blockA3 = await useMinerBlockFixture(nodeA.chain, 3, accountB, nodeA.wallet)
