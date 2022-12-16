@@ -12,7 +12,7 @@ use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
     proofs::MintAsset,
-    redjubjub::{self, Signature},
+    redjubjub::{self, PublicKey, Signature},
     ValueCommitment,
 };
 use jubjub::{ExtendedPoint, Fr};
@@ -63,6 +63,7 @@ impl MintBuilder {
         &self,
         spender_key: &SaplingKey,
         public_key_randomness: &Fr,
+        randomized_public_key: &PublicKey,
     ) -> Result<UnsignedMintDescription, IronfishError> {
         let circuit = MintAsset {
             name: self.asset.name,
@@ -75,9 +76,6 @@ impl MintBuilder {
 
         let proof = groth16::create_random_proof(circuit, &SAPLING.mint_params, &mut thread_rng())?;
 
-        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
-            .randomize(*public_key_randomness, SPENDING_KEY_GENERATOR);
-
         let blank_signature = {
             let buf = [0u8; 64];
             Signature::read(&mut buf.as_ref())?
@@ -88,11 +86,10 @@ impl MintBuilder {
             asset: self.asset,
             value: self.value_commitment.value,
             value_commitment: self.value_commitment_point(),
-            randomized_public_key,
             authorizing_signature: blank_signature,
         };
 
-        mint_description.verify_proof()?;
+        mint_description.verify_proof(randomized_public_key)?;
 
         Ok(UnsignedMintDescription {
             public_key_randomness: *public_key_randomness,
@@ -125,13 +122,16 @@ impl UnsignedMintDescription {
         let randomized_public_key =
             redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
 
-        if randomized_public_key.0 != self.description.randomized_public_key.0 {
+        let transaction_randomized_public_key =
+            redjubjub::PublicKey(spender_key.authorizing_key.into())
+                .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        if randomized_public_key.0 != transaction_randomized_public_key.0 {
             return Err(IronfishError::InvalidSigningKey);
         }
 
         let mut data_to_be_signed = [0; 64];
-        data_to_be_signed[..32]
-            .copy_from_slice(&self.description.randomized_public_key.0.to_bytes());
+        data_to_be_signed[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
 
         self.description.authorizing_signature = randomized_private_key.sign(
@@ -161,10 +161,6 @@ pub struct MintDescription {
     /// needed to balance the transaction.
     pub value_commitment: ExtendedPoint,
 
-    /// Used to add randomness to signature generation without leaking the
-    /// key. Referred to as `ar` in the literature.
-    pub randomized_public_key: redjubjub::PublicKey,
-
     /// Signature of the owner authorizing the mint action. This value is
     /// calculated after the transaction is signed since the value is dependent
     /// on the binding signature key
@@ -172,7 +168,7 @@ pub struct MintDescription {
 }
 
 impl MintDescription {
-    pub fn verify_proof(&self) -> Result<(), IronfishError> {
+    pub fn verify_proof(&self, randomized_public_key: &PublicKey) -> Result<(), IronfishError> {
         // Verify that the asset info hash maps to a valid generator point
         asset_generator_point(&self.asset.asset_info_hashed)?;
 
@@ -181,7 +177,7 @@ impl MintDescription {
         groth16::verify_proof(
             &SAPLING.mint_verifying_key,
             &self.proof,
-            &self.public_inputs()[..],
+            &self.public_inputs(randomized_public_key)[..],
         )?;
 
         Ok(())
@@ -197,15 +193,19 @@ impl MintDescription {
 
     /// Verify that the signature on this proof is signing the provided input
     /// with the randomized_public_key on this proof.
-    pub fn verify_signature(&self, signature_hash_value: &[u8; 32]) -> Result<(), IronfishError> {
-        if self.randomized_public_key.0.is_small_order().into() {
+    pub fn verify_signature(
+        &self,
+        signature_hash_value: &[u8; 32],
+        randomized_public_key: &PublicKey,
+    ) -> Result<(), IronfishError> {
+        if randomized_public_key.0.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
         }
         let mut data_to_be_signed = [0; 64];
-        data_to_be_signed[..32].copy_from_slice(&self.randomized_public_key.0.to_bytes());
+        data_to_be_signed[..32].copy_from_slice(&randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash_value[..]);
 
-        if !self.randomized_public_key.verify(
+        if !randomized_public_key.verify(
             &data_to_be_signed,
             &self.authorizing_signature,
             SPENDING_KEY_GENERATOR,
@@ -216,10 +216,10 @@ impl MintDescription {
         Ok(())
     }
 
-    pub fn public_inputs(&self) -> [Scalar; 6] {
+    pub fn public_inputs(&self, randomized_public_key: &PublicKey) -> [Scalar; 6] {
         let mut public_inputs = [Scalar::zero(); 6];
 
-        let randomized_public_key_point = self.randomized_public_key.0.to_affine();
+        let randomized_public_key_point = randomized_public_key.0.to_affine();
         public_inputs[0] = randomized_public_key_point.get_u();
         public_inputs[1] = randomized_public_key_point.get_v();
 
@@ -248,7 +248,6 @@ impl MintDescription {
         self.asset.write(&mut writer)?;
         writer.write_u64::<LittleEndian>(self.value)?;
         writer.write_all(&self.value_commitment.to_bytes())?;
-        writer.write_all(&self.randomized_public_key.0.to_bytes())?;
 
         Ok(())
     }
@@ -258,7 +257,6 @@ impl MintDescription {
         let asset = Asset::read(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
         let value_commitment = read_point(&mut reader)?;
-        let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
         let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
 
         Ok(MintDescription {
@@ -266,7 +264,6 @@ impl MintDescription {
             asset,
             value,
             value_commitment,
-            randomized_public_key,
             authorizing_signature,
         })
     }
@@ -283,6 +280,7 @@ impl MintDescription {
 #[cfg(test)]
 mod test {
     use ff::Field;
+    use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
     use rand::thread_rng;
 
     use crate::{
@@ -297,7 +295,6 @@ mod test {
     fn test_mint_builder() {
         let key = SaplingKey::generate_key();
         let owner = key.public_address();
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
@@ -305,9 +302,13 @@ mod test {
 
         let value = 5;
 
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+
         let mint = MintBuilder::new(asset, value);
         let unsigned_mint = mint
-            .build(&key, &public_key_randomness)
+            .build(&key, &public_key_randomness, &randomized_public_key)
             .expect("should build valid mint description");
 
         // Signature comes from the transaction, normally
@@ -317,21 +318,30 @@ mod test {
             .sign(&key, &sig_hash)
             .expect("should be able to sign proof");
 
-        description.verify_proof().expect("proof should check out");
+        description
+            .verify_proof(&randomized_public_key)
+            .expect("proof should check out");
 
         description
-            .verify_signature(&sig_hash)
+            .verify_signature(&sig_hash, &randomized_public_key)
             .expect("should be able to verify signature");
 
         let other_sig_hash = [1u8; 32];
-        assert!(description.verify_signature(&other_sig_hash).is_err());
+        assert!(description
+            .verify_signature(&other_sig_hash, &randomized_public_key)
+            .is_err());
+
+        let other_randomized_public_key = redjubjub::PublicKey(key.authorizing_key.into())
+            .randomize(jubjub::Fr::random(thread_rng()), SPENDING_KEY_GENERATOR);
+        assert!(description
+            .verify_signature(&sig_hash, &other_randomized_public_key)
+            .is_err());
     }
 
     #[test]
     fn test_mint_description_serialization() {
         let key = SaplingKey::generate_key();
         let owner = key.public_address();
-        let public_key_randomness = jubjub::Fr::random(thread_rng());
         let name = "name";
         let metadata = "{ 'token_identifier': '0x123' }";
 
@@ -339,9 +349,13 @@ mod test {
 
         let value = 5;
 
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+
         let mint = MintBuilder::new(asset, value);
         let unsigned_mint = mint
-            .build(&key, &public_key_randomness)
+            .build(&key, &public_key_randomness, &randomized_public_key)
             .expect("should build valid mint description");
 
         // Signature comes from the transaction, normally
@@ -351,7 +365,9 @@ mod test {
             .sign(&key, &sig_hash)
             .expect("should be able to sign proof");
 
-        description.verify_proof().expect("proof should check out");
+        description
+            .verify_proof(&randomized_public_key)
+            .expect("proof should check out");
 
         let mut serialized_description = vec![];
         description
@@ -374,10 +390,6 @@ mod test {
         assert_eq!(
             description.value_commitment,
             deserialized_description.value_commitment
-        );
-        assert_eq!(
-            description.randomized_public_key.0,
-            deserialized_description.randomized_public_key.0
         );
 
         // Signature

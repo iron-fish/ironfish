@@ -1,12 +1,12 @@
 {
   "AssetsValueEncoding serializes the value into a buffer and deserializes to the original value": [
     {
-      "id": "b8ee8fd3-20e9-443e-a173-5a70d0e717c6",
+      "id": "421ca4e9-3831-41b7-b425-b4412037efcc",
       "name": "test",
-      "spendingKey": "06db3ab921dbc8d1ee3a26ab940eda50e2f1c7a5896a184ec41d79d6ae034a2f",
-      "incomingViewKey": "9f3cd1a6b257e581fe6ef47aa584efcba247e487d99502481f51a7adaabe8701",
-      "outgoingViewKey": "1470d0c389b56291aa6197c7c31fc2e6c534b52073cf48fb7e92330019c992b3",
-      "publicAddress": "29b6d3383b31f486465b691fb6474d34684cc66deb4f70c5e8a2eb1d30a16553"
+      "spendingKey": "2dfe6f66b8fe8039420105edc9c198efd90c4ddecb02c64456b723e7e8f6a7d0",
+      "incomingViewKey": "1b59bfa5e6510dfdef8b48e5c61c2756c8f0b842965411731b789c812acb1002",
+      "outgoingViewKey": "2348424c1b4bdee6eaadad0750b08b493f698c027841827b8e26bd41b966361d",
+      "publicAddress": "dfccd0b979467104b8513a77535e153ee76fe5e89ab3214e9aacf72c318e8d64"
     }
   ]
 }

@@ -31,6 +31,7 @@ pub enum IronfishError {
     InvalidPaymentAddress,
     InvalidPublicAddress,
     InvalidSigningKey,
+    InvalidTransaction,
     InvalidTransactionVersion,
     InvalidViewingKey,
     InvalidWord,

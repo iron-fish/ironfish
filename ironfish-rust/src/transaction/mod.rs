@@ -26,11 +26,18 @@ use jubjub::{ExtendedPoint, SubgroupPoint};
 use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
-    constants::{VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
-    redjubjub::{PrivateKey, PublicKey, Signature},
+    constants::{
+        SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+        VALUE_COMMITMENT_VALUE_GENERATOR,
+    },
+    redjubjub::{self, PrivateKey, PublicKey, Signature},
 };
 
-use std::{io, iter, slice::Iter};
+use std::{
+    io::{self, Write},
+    iter,
+    slice::Iter,
+};
 
 use self::{
     burns::{BurnBuilder, BurnDescription},
@@ -236,20 +243,40 @@ impl ProposedTransaction {
         // Generate binding signature keys
         let bsig_keys = self.binding_signature_keys()?;
 
+        // Generate randomized public key
+
+        // The public key after randomization has been applied. This is used
+        // during signature verification. Referred to as `rk` in the literature
+        // Calculated from the authorizing key and the public_key_randomness.
+        let randomized_public_key = redjubjub::PublicKey(self.spender_key.authorizing_key.into())
+            .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
+
         // Build descriptions
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
-            unsigned_spends.push(spend.build(&self.spender_key, &self.public_key_randomness)?);
+            unsigned_spends.push(spend.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
         }
 
         let mut output_descriptions = Vec::with_capacity(self.outputs.len());
         for output in &self.outputs {
-            output_descriptions.push(output.build(&self.spender_key, &self.public_key_randomness)?);
+            output_descriptions.push(output.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
         }
 
         let mut unsigned_mints = Vec::with_capacity(self.mints.len());
         for mint in &self.mints {
-            unsigned_mints.push(mint.build(&self.spender_key, &self.public_key_randomness)?);
+            unsigned_mints.push(mint.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
         }
 
         let mut burn_descriptions = Vec::with_capacity(self.burns.len());
@@ -288,6 +315,7 @@ impl ProposedTransaction {
             mints: mint_descriptions,
             burns: burn_descriptions,
             binding_signature,
+            randomized_public_key,
         })
     }
 
@@ -315,6 +343,13 @@ impl ProposedTransaction {
             .unwrap();
         hasher
             .write_i64::<LittleEndian>(*self.value_balances.fee())
+            .unwrap();
+
+        let randomized_public_key = redjubjub::PublicKey(self.spender_key.authorizing_key.into())
+            .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        hasher
+            .write_all(&randomized_public_key.0.to_bytes())
             .unwrap();
 
         for spend in spends {
@@ -440,6 +475,14 @@ pub struct Transaction {
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
     expiration_sequence: u32,
+
+    /// Randomized public key of the sender of the Transaction
+    /// currently this value is the same for all spends[].owner and outputs[].sender
+    /// This is used during verification of SpendDescriptions and OutputDescriptions, as
+    /// well as signing of the SpendDescriptions. Referred to as
+    /// `rk` in the literature Calculated from the authorizing key and
+    /// the public_key_randomness.
+    randomized_public_key: redjubjub::PublicKey,
 }
 
 impl Transaction {
@@ -454,6 +497,7 @@ impl Transaction {
         let num_burns = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
         let expiration_sequence = reader.read_u32::<LittleEndian>()?;
+        let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
 
         let mut spends = Vec::with_capacity(num_spends as usize);
         for _ in 0..num_spends {
@@ -486,6 +530,7 @@ impl Transaction {
             burns,
             binding_signature,
             expiration_sequence,
+            randomized_public_key,
         })
     }
 
@@ -499,6 +544,7 @@ impl Transaction {
         writer.write_u64::<LittleEndian>(self.burns.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.fee)?;
         writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
+        writer.write_all(&self.randomized_public_key.0.to_bytes())?;
 
         for spend in self.spends.iter() {
             spend.write(&mut writer)?;
@@ -570,6 +616,11 @@ impl Transaction {
         self.expiration_sequence
     }
 
+    /// Get the expiration sequence for this transaction
+    pub fn randomized_public_key(&self) -> &redjubjub::PublicKey {
+        &self.randomized_public_key
+    }
+
     /// Calculate a hash of the transaction data. This hash was signed by the
     /// private keys when the transaction was constructed, and will now be
     /// reconstructed to verify the signature.
@@ -584,6 +635,9 @@ impl Transaction {
             .write_u32::<LittleEndian>(self.expiration_sequence)
             .unwrap();
         hasher.write_i64::<LittleEndian>(self.fee).unwrap();
+        hasher
+            .write_all(&self.randomized_public_key.0.to_bytes())
+            .unwrap();
 
         for spend in self.spends.iter() {
             spend.serialize_signature_fields(&mut hasher).unwrap();
@@ -697,18 +751,21 @@ pub fn batch_verify_transactions<'a>(
         for spend in transaction.spends.iter() {
             spend.verify_not_small_order()?;
 
-            let public_inputs = spend.public_inputs();
+            let public_inputs = spend.public_inputs(transaction.randomized_public_key());
             spend_verifier.queue((&spend.proof, &public_inputs[..]));
 
             binding_verification_key += spend.value_commitment;
 
-            spend.verify_signature(&hash_to_verify_signature)?;
+            spend.verify_signature(
+                &hash_to_verify_signature,
+                transaction.randomized_public_key(),
+            )?;
         }
 
         for output in transaction.outputs.iter() {
             output.verify_not_small_order()?;
 
-            let public_inputs = output.public_inputs();
+            let public_inputs = output.public_inputs(transaction.randomized_public_key());
             output_verifier.queue((&output.proof, &public_inputs[..]));
 
             binding_verification_key -= output.merkle_note.value_commitment;
@@ -717,12 +774,15 @@ pub fn batch_verify_transactions<'a>(
         for mint in transaction.mints.iter() {
             mint.verify_not_small_order()?;
 
-            let public_inputs = mint.public_inputs();
+            let public_inputs = mint.public_inputs(transaction.randomized_public_key());
             mint_verifier.queue((&mint.proof, &public_inputs[..]));
 
             binding_verification_key += mint.value_commitment;
 
-            mint.verify_signature(&hash_to_verify_signature)?;
+            mint.verify_signature(
+                &hash_to_verify_signature,
+                transaction.randomized_public_key(),
+            )?;
         }
 
         for burn in transaction.burns.iter() {
