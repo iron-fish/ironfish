@@ -63,7 +63,8 @@ impl NativeNote {
         sender: String,
     ) -> Result<Self> {
         let value_u64 = value.get_u64().1;
-        let owner_address = ironfish_rust::PublicAddress::from_hex(&owner).map_err(anyhow_to_napi_err)?;
+        let owner_address =
+            ironfish_rust::PublicAddress::from_hex(&owner).map_err(anyhow_to_napi_err)?;
         let sender_address =
             ironfish_rust::PublicAddress::from_hex(&sender).map_err(anyhow_to_napi_err)?;
 

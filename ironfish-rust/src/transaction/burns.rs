@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::io;
 use anyhow::{anyhow, Error};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::Field;
@@ -10,6 +9,7 @@ use group::GroupEncoding;
 use ironfish_zkp::{constants::ASSET_IDENTIFIER_LENGTH, ValueCommitment};
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
+use std::io;
 
 use crate::{
     assets::asset::{asset_generator_from_identifier, AssetIdentifier},

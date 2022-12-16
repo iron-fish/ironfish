@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::io;
 use anyhow::{anyhow, Error};
 use bellman::{gadgets::multipack, groth16};
 use bls12_381::{Bls12, Scalar};
@@ -17,6 +16,7 @@ use ironfish_zkp::{
 };
 use jubjub::{ExtendedPoint, Fr};
 use rand::thread_rng;
+use std::io;
 
 use crate::{
     assets::asset::{asset_generator_point, Asset},

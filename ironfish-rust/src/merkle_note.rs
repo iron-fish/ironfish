@@ -180,10 +180,7 @@ impl MerkleNote {
         MerkleNoteHash::new(self.note_commitment)
     }
 
-    pub fn decrypt_note_for_owner(
-        &self,
-        owner_view_key: &IncomingViewKey,
-    ) -> Result<Note, Error> {
+    pub fn decrypt_note_for_owner(&self, owner_view_key: &IncomingViewKey) -> Result<Note, Error> {
         let shared_secret = owner_view_key.shared_secret(&self.ephemeral_public_key);
         let note =
             Note::from_owner_encrypted(owner_view_key, &shared_secret, &self.encrypted_note)?;
@@ -191,10 +188,7 @@ impl MerkleNote {
         Ok(note)
     }
 
-    pub fn decrypt_note_for_spender(
-        &self,
-        spender_key: &OutgoingViewKey,
-    ) -> Result<Note, Error> {
+    pub fn decrypt_note_for_spender(&self, spender_key: &OutgoingViewKey) -> Result<Note, Error> {
         let encryption_key = calculate_key_for_encryption_keys(
             spender_key,
             &self.value_commitment,

@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use anyhow::{anyhow, Error};
 use crate::errors::IronfishError;
+use anyhow::{anyhow, Error};
 
 /// Helper functions to convert pairing parts to bytes
 ///
@@ -63,8 +63,8 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, Error> {
 }
 
 pub mod aead {
-    use anyhow::Error;
     use crate::errors::IronfishError;
+    use anyhow::Error;
     use chacha20poly1305::aead::{AeadInPlace, NewAead};
     use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
 

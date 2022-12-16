@@ -17,7 +17,7 @@ use napi::{
 };
 use napi_derive::napi;
 
-use crate::{anyhow_to_napi_err, str_to_napi_err, display_to_napi_err};
+use crate::{anyhow_to_napi_err, display_to_napi_err, str_to_napi_err};
 
 use super::note::NativeNote;
 use super::spend_proof::NativeSpendDescription;
@@ -50,7 +50,9 @@ impl NativeTransactionPosted {
     #[napi]
     pub fn serialize(&self) -> Result<Buffer> {
         let mut vec: Vec<u8> = vec![];
-        self.transaction.write(&mut vec).map_err(anyhow_to_napi_err)?;
+        self.transaction
+            .write(&mut vec)
+            .map_err(anyhow_to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }
@@ -83,7 +85,10 @@ impl NativeTransactionPosted {
 
         let proof = &self.transaction.outputs()[index_usize];
         let mut vec: Vec<u8> = Vec::with_capacity(ENCRYPTED_NOTE_LENGTH as usize);
-        proof.merkle_note().write(&mut vec).map_err(anyhow_to_napi_err)?;
+        proof
+            .merkle_note()
+            .write(&mut vec)
+            .map_err(anyhow_to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }
@@ -218,7 +223,10 @@ impl NativeTransaction {
     /// as the miners fee.
     #[napi(js_name = "post_miners_fee")]
     pub fn post_miners_fee(&mut self) -> Result<Buffer> {
-        let transaction = self.transaction.post_miners_fee().map_err(anyhow_to_napi_err)?;
+        let transaction = self
+            .transaction
+            .post_miners_fee()
+            .map_err(anyhow_to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];
         transaction.write(&mut vec).map_err(anyhow_to_napi_err)?;
@@ -254,7 +262,9 @@ impl NativeTransaction {
             .map_err(anyhow_to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];
-        posted_transaction.write(&mut vec).map_err(anyhow_to_napi_err)?;
+        posted_transaction
+            .write(&mut vec)
+            .map_err(anyhow_to_napi_err)?;
 
         Ok(Buffer::from(vec))
     }

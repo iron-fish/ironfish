@@ -83,7 +83,7 @@ export class Transaction {
       const note = new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
       // TODO(joe): remove once rpk removed from proof and put on transaction
       // randomized public key
-      reader.seek(32)
+      // reader.seek(32)
       return note
     })
 

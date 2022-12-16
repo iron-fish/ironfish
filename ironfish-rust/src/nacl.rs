@@ -9,8 +9,8 @@ use crypto_box::{
 };
 use rand::RngCore;
 
-use anyhow::{anyhow, Error};
 use crate::errors::IronfishError;
+use anyhow::{anyhow, Error};
 
 pub const KEY_LENGTH: usize = crypto_box::KEY_SIZE;
 pub const NONCE_LENGTH: usize = 24;

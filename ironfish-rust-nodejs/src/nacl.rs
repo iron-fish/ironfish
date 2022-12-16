@@ -9,7 +9,7 @@ use ironfish_rust::{
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
-use crate::{str_to_napi_err, anyhow_to_napi_err};
+use crate::{anyhow_to_napi_err, str_to_napi_err};
 
 #[napi]
 pub const KEY_LENGTH: u32 = nacl::KEY_LENGTH as u32;
@@ -38,8 +38,7 @@ impl BoxKeyPair {
 
     #[napi(factory)]
     pub fn from_hex(secret_hex: String) -> napi::Result<BoxKeyPair> {
-        let byte_vec =
-            hex_to_bytes(&secret_hex).map_err(anyhow_to_napi_err)?;
+        let byte_vec = hex_to_bytes(&secret_hex).map_err(anyhow_to_napi_err)?;
 
         let bytes: [u8; nacl::KEY_LENGTH] = byte_vec
             .try_into()
@@ -121,10 +120,11 @@ pub fn native_unbox_message(
         .try_into()
         .map_err(|_| str_to_napi_err("Unable to convert recipient secret key"))?;
 
-    let decoded_nonce = base64::decode(nonce).map_err(|_| str_to_napi_err("Unable to decode nonce"))?;
+    let decoded_nonce =
+        base64::decode(nonce).map_err(|_| str_to_napi_err("Unable to decode nonce"))?;
 
-    let decoded_ciphertext =
-        base64::decode(boxed_message).map_err(|_| str_to_napi_err("Unable to decode boxed_message"))?;
+    let decoded_ciphertext = base64::decode(boxed_message)
+        .map_err(|_| str_to_napi_err("Unable to decode boxed_message"))?;
 
     unbox_message(&decoded_ciphertext, &decoded_nonce, sender, recipient)
         .map_err(anyhow_to_napi_err)
