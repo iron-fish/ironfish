@@ -251,7 +251,7 @@ mod test {
     use zcash_primitives::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
     use zcash_primitives::sapling::ProofGenerationKey;
 
-    use crate::util::commitment_full_point_new;
+    use crate::util::commitment_full_point;
     use crate::{circuits::output::Output, constants::PUBLIC_KEY_GENERATOR, ValueCommitment};
 
     #[test]
@@ -304,7 +304,7 @@ mod test {
                     "4c6343b8dbef01d5a35f20b706c247a61ad36605533192ba4ae70adf2e51aa07"
                 );
 
-                let commitment = commitment_full_point_new(
+                let commitment = commitment_full_point(
                     value_commitment.asset_generator,
                     value_commitment.value,
                     payment_address,
