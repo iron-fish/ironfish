@@ -155,10 +155,6 @@ export class Account {
       }
 
       await this.walletDb.saveDecryptedNote(this, noteHash, note, tx)
-
-      const transaction = await this.getTransaction(note.transactionHash, tx)
-
-      await this.walletDb.setNoteHashSequence(this, noteHash, transaction?.sequence ?? null, tx)
     })
   }
 
@@ -236,7 +232,7 @@ export class Account {
           balanceDeltas.increment(note.note.assetIdentifier(), note.note.value())
         }
 
-        await this.walletDb.addDecryptedNote(this, decryptedNote.hash, note, tx)
+        await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
       }
 
       for (const spend of transaction.spends) {
@@ -259,7 +255,7 @@ export class Account {
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
       }
 
-      await this.walletDb.addTransaction(
+      await this.walletDb.saveTransaction(
         this,
         transaction.hash(),
         {
@@ -306,7 +302,7 @@ export class Account {
 
         balanceDeltas.increment(note.note.assetIdentifier(), note.note.value())
 
-        await this.walletDb.addDecryptedNote(this, decryptedNote.hash, note, tx)
+        await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
       }
 
       for (const spend of transaction.spends) {
@@ -329,7 +325,7 @@ export class Account {
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
       }
 
-      await this.walletDb.addTransaction(
+      await this.walletDb.saveTransaction(
         this,
         transaction.hash(),
         {
@@ -351,14 +347,6 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      const expirationSequence = transactionValue.transaction.expirationSequence()
-
-      if (transactionValue.blockHash) {
-        await this.walletDb.deletePendingTransactionHash(this, expirationSequence, hash, tx)
-      } else {
-        await this.walletDb.savePendingTransactionHash(this, expirationSequence, hash, tx)
-      }
-
       await this.walletDb.saveTransaction(this, hash, transactionValue, tx)
     })
   }

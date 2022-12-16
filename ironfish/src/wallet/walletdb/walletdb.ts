@@ -272,7 +272,7 @@ export class WalletDB {
     }
   }
 
-  async addTransaction(
+  async saveTransaction(
     account: Account,
     transactionHash: Buffer,
     transactionValue: TransactionValue,
@@ -296,15 +296,6 @@ export class WalletDB {
 
       await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
     })
-  }
-
-  async saveTransaction(
-    account: Account,
-    transactionHash: Buffer,
-    transactionValue: TransactionValue,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
   }
 
   async deleteTransaction(
@@ -462,7 +453,7 @@ export class WalletDB {
     })
   }
 
-  async addDecryptedNote(
+  async saveDecryptedNote(
     account: Account,
     noteHash: Buffer,
     note: Readonly<DecryptedNoteValue>,
@@ -475,17 +466,8 @@ export class WalletDB {
 
       await this.setNoteHashSequence(account, noteHash, note.sequence, tx)
 
-      await this.saveDecryptedNote(account, noteHash, note, tx)
+      await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
     })
-  }
-
-  async saveDecryptedNote(
-    account: Account,
-    noteHash: Buffer,
-    note: Readonly<DecryptedNoteValue>,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
   }
 
   async loadDecryptedNote(
