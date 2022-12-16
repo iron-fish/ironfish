@@ -93,6 +93,7 @@ impl SpendBuilder {
         &self,
         spender_key: &SaplingKey,
         public_key_randomness: &jubjub::Fr,
+        randomized_public_key: &PublicKey,
     ) -> Result<UnsignedSpendDescription, IronfishError> {
         let value_commitment_point = self.value_commitment_point();
 
@@ -112,12 +113,6 @@ impl SpendBuilder {
         // and note.
         let proof =
             groth16::create_random_proof(circuit, &SAPLING.spend_params, &mut thread_rng())?;
-
-        // The public key after randomization has been applied. This is used
-        // during signature verification. Referred to as `rk` in the literature
-        // Calculated from the authorizing key and the public_key_randomness.
-        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
-            .randomize(*public_key_randomness, SPENDING_KEY_GENERATOR);
 
         // Bytes to be placed into the nullifier set to verify whether this note
         // has been previously spent.
@@ -415,7 +410,7 @@ mod test {
         thread_rng().fill(&mut sig_hash[..]);
 
         let unsigned_proof = spend
-            .build(&key, &public_key_randomness)
+            .build(&key, &public_key_randomness, &randomized_public_key)
             .expect("should be able to build proof");
         let proof = unsigned_proof
             .sign(&key, &sig_hash)

@@ -63,6 +63,7 @@ impl MintBuilder {
         &self,
         spender_key: &SaplingKey,
         public_key_randomness: &Fr,
+        randomized_public_key: &PublicKey,
     ) -> Result<UnsignedMintDescription, IronfishError> {
         let circuit = MintAsset {
             name: self.asset.name,
@@ -74,9 +75,6 @@ impl MintBuilder {
         };
 
         let proof = groth16::create_random_proof(circuit, &SAPLING.mint_params, &mut thread_rng())?;
-
-        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
-            .randomize(*public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let blank_signature = {
             let buf = [0u8; 64];
@@ -310,7 +308,7 @@ mod test {
 
         let mint = MintBuilder::new(asset, value);
         let unsigned_mint = mint
-            .build(&key, &public_key_randomness)
+            .build(&key, &public_key_randomness, &randomized_public_key)
             .expect("should build valid mint description");
 
         // Signature comes from the transaction, normally
@@ -357,7 +355,7 @@ mod test {
 
         let mint = MintBuilder::new(asset, value);
         let unsigned_mint = mint
-            .build(&key, &public_key_randomness)
+            .build(&key, &public_key_randomness, &randomized_public_key)
             .expect("should build valid mint description");
 
         // Signature comes from the transaction, normally

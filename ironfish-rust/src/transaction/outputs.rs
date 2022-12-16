@@ -15,9 +15,8 @@ use bls12_381::{Bls12, Scalar};
 use ff::Field;
 use group::Curve;
 use ironfish_zkp::{
-    constants::SPENDING_KEY_GENERATOR,
     proofs::Output,
-    redjubjub::{self, PublicKey},
+    redjubjub::PublicKey,
     ValueCommitment,
 };
 use jubjub::ExtendedPoint;
@@ -85,6 +84,7 @@ impl OutputBuilder {
         &self,
         spender_key: &SaplingKey,
         public_key_randomness: &jubjub::Fr,
+        randomized_public_key: &PublicKey,
     ) -> Result<OutputDescription, IronfishError> {
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
@@ -110,9 +110,6 @@ impl OutputBuilder {
                 &diffie_hellman_keys,
             )
         };
-
-        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
-            .randomize(*public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let output_proof = OutputDescription { proof, merkle_note };
 
@@ -243,6 +240,8 @@ mod test {
     fn test_output_miners_fee() {
         let spender_key = SaplingKey::generate_key();
         let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let note = Note::new(
             spender_key.public_address(),
@@ -256,7 +255,7 @@ mod test {
         output.set_is_miners_fee();
 
         let proof = output
-            .build(&spender_key, &public_key_randomness)
+            .build(&spender_key, &public_key_randomness, &randomized_public_key)
             .expect("should be able to build output proof");
 
         assert_eq!(
@@ -270,6 +269,8 @@ mod test {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
         let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let note = Note::new(
             receiver_key.public_address(),
@@ -281,7 +282,7 @@ mod test {
 
         let output = OutputBuilder::new(note);
         let proof = output
-            .build(&spender_key, &public_key_randomness)
+            .build(&spender_key, &public_key_randomness, &randomized_public_key)
             .expect("should be able to build output proof");
 
         assert_ne!(
@@ -308,7 +309,7 @@ mod test {
 
         let output = OutputBuilder::new(note);
         let proof = output
-            .build(&spender_key, &public_key_randomness)
+            .build(&spender_key, &public_key_randomness, &randomized_public_key)
             .expect("Should be able to build output proof");
         proof
             .verify_proof(&randomized_public_key)

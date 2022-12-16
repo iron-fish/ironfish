@@ -52,13 +52,14 @@ export class Transaction {
     const _burnsLength = reader.readU64() // 8
     this._fee = BigInt(reader.readI64()) // 8
     this._expirationSequence = reader.readU32() // 4
+    // randomized public key
+    reader.seek(32)
 
+    // spend description
     this.spends = Array.from({ length: _spendsLength }, () => {
       // proof
       reader.seek(PROOF_LENGTH)
       // value commitment
-      reader.seek(32)
-      // randomized public key
       reader.seek(32)
 
       const rootHash = reader.readHash() // 32
@@ -76,15 +77,15 @@ export class Transaction {
       }
     })
 
+    // output description
     this.notes = Array.from({ length: _notesLength }, () => {
       // proof
       reader.seek(PROOF_LENGTH)
 
-      const note = new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
-      // TODO(joe): remove once rpk removed from proof and put on transaction
-      // randomized public key
-      reader.seek(32)
-      return note
+      // output note
+      const outputNote = new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
+
+      return outputNote
     })
 
     this.mints = Array.from({ length: _mintsLength }, () => {
@@ -95,8 +96,6 @@ export class Transaction {
       const value = reader.readBigU64()
 
       // value commitment
-      reader.seek(32)
-      // randomized public key
       reader.seek(32)
       // authorizing signature
       reader.seek(64)

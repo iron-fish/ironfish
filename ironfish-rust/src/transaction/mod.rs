@@ -254,17 +254,29 @@ impl ProposedTransaction {
         // Build descriptions
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
         for spend in &self.spends {
-            unsigned_spends.push(spend.build(&self.spender_key, &self.public_key_randomness)?);
+            unsigned_spends.push(spend.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
         }
 
         let mut output_descriptions = Vec::with_capacity(self.outputs.len());
         for output in &self.outputs {
-            output_descriptions.push(output.build(&self.spender_key, &self.public_key_randomness)?);
+            output_descriptions.push(output.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
         }
 
         let mut unsigned_mints = Vec::with_capacity(self.mints.len());
         for mint in &self.mints {
-            unsigned_mints.push(mint.build(&self.spender_key, &self.public_key_randomness)?);
+            unsigned_mints.push(mint.build(
+                &self.spender_key,
+                &self.public_key_randomness,
+                &randomized_public_key,
+            )?);
         }
 
         let mut burn_descriptions = Vec::with_capacity(self.burns.len());
