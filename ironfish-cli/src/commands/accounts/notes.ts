@@ -46,7 +46,7 @@ export class NotesCommand extends IronfishCommand {
             minWidth: 33,
           },
           sender: {
-            header: 'Sender Address',
+            header: 'Sender',
           },
           transactionHash: {
             header: 'From Transaction',
