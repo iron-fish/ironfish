@@ -107,7 +107,8 @@ export class Verifier {
 
     const [minersFeeTransaction, ...otherTransactions] = block.transactions
 
-    if (minersFeeTransaction && !minersFeeTransaction.isMinersFee()) {
+    // Require the miner's fee transaction
+    if (!minersFeeTransaction || !minersFeeTransaction.isMinersFee()) {
       return { valid: false, reason: VerificationResultReason.MINERS_FEE_EXPECTED }
     }
 

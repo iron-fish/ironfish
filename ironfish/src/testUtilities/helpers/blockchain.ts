@@ -3,8 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import '../matchers/blockchain'
+import {
+  Asset,
+  generateKey,
+  Note as NativeNote,
+  Transaction as NativeTransaction,
+} from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import { Blockchain } from '../../blockchain'
+import { Transaction } from '../../primitives'
 import { Block } from '../../primitives/block'
 import { BlockHeader, transactionCommitment } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
@@ -36,11 +43,25 @@ export async function makeBlockAfter(
   const randomness = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
   const graffiti = GraffitiUtils.fromString('fake block')
 
+  const key = generateKey()
+  const owner = key.public_address
+  const minerNote = new NativeNote(owner, BigInt(0), '', Asset.nativeId(), owner)
+  const transaction = new NativeTransaction(key.spending_key)
+  transaction.receive(minerNote)
+  const minerTransaction = new Transaction(transaction.post_miners_fee())
+
+  const noteCommitment = await chain.db.withTransaction(null, async (tx) => {
+    await chain.notes.addBatch(minerTransaction.notes, tx)
+    const commitment = await chain.notes.rootHash(tx)
+    await tx.abort()
+    return commitment
+  })
+
   const header = new BlockHeader(
     sequence,
     after.hash,
-    after.noteCommitment,
-    transactionCommitment([]),
+    noteCommitment,
+    transactionCommitment([minerTransaction]),
     target,
     randomness,
     timestamp,
@@ -49,7 +70,7 @@ export async function makeBlockAfter(
     BigInt(1),
   )
 
-  const block = new Block(header, [])
+  const block = new Block(header, [minerTransaction])
 
   Assert.isUndefined((await chain.verifier.verifyBlock(block)).reason)
   return block
