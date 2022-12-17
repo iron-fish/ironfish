@@ -387,13 +387,23 @@ export class Wallet {
     return decryptedNotes
   }
 
-  async connectBlock(blockHeader: BlockHeader, accounts: Account[]): Promise<void> {
+  async connectBlock(
+    blockHeader: BlockHeader,
+    accounts: Account[],
+    scan?: ScanState,
+  ): Promise<void> {
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
         for await (const {
           transaction,
           initialNoteIndex,
         } of this.chain.iterateBlockTransactions(blockHeader)) {
+          if (scan && scan.isAborted) {
+            scan.signalComplete()
+            this.scan = null
+            return
+          }
+
           const decryptedNotesByAccountId = await this.decryptNotes(
             transaction,
             initialNoteIndex,
@@ -407,6 +417,8 @@ export class Wallet {
           }
 
           await account.connectTransaction(blockHeader, transaction, decryptedNotes, tx)
+
+          scan?.signal(blockHeader.sequence)
         }
 
         await this.updateHeadHash(account, blockHeader.hash, tx)
@@ -553,9 +565,7 @@ export class Wallet {
       undefined,
       false,
     )) {
-      await this.connectBlock(blockHeader, accounts)
-
-      scan.signal(blockHeader.sequence)
+      await this.connectBlock(blockHeader, accounts, scan)
 
       const newRemainingAccounts = []
 
