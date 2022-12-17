@@ -18,7 +18,13 @@ import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
-import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
+import {
+  AsyncUtils,
+  BufferUtils,
+  PromiseResolve,
+  PromiseUtils,
+  SetTimeoutToken,
+} from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
@@ -398,12 +404,10 @@ export class Wallet {
   }
 
   async addPendingTransaction(transaction: Transaction): Promise<void> {
-    const accounts = []
-    for (const account of this.listAccounts()) {
-      if (!(await account.hasTransaction(transaction.hash()))) {
-        accounts.push(account)
-      }
-    }
+    const accounts = await AsyncUtils.filter(
+      this.listAccounts(),
+      async (account) => !(await account.hasTransaction(transaction.hash())),
+    )
 
     if (accounts.length === 0) {
       return
