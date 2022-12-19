@@ -217,7 +217,11 @@ impl ProposedTransaction {
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
     pub fn post_miners_fee(&mut self) -> Result<Transaction, IronfishError> {
-        if !self.spends.is_empty() || self.outputs.len() != 1 {
+        if !self.spends.is_empty()
+            || self.outputs.len() != 1
+            || !self.mints.is_empty()
+            || !self.burns.is_empty()
+        {
             return Err(IronfishError::InvalidMinersFeeTransaction);
         }
         // Ensure the merkle note has an identifiable encryption key

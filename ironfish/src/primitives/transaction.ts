@@ -164,7 +164,13 @@ export class Transaction {
   }
 
   isMinersFee(): boolean {
-    return this.spends.length === 0 && this.notes.length === 1 && this._fee <= 0
+    return (
+      this.spends.length === 0 &&
+      this.notes.length === 1 &&
+      this.mints.length === 0 &&
+      this.burns.length === 0 &&
+      this._fee <= 0
+    )
   }
 
   getNote(index: number): NoteEncrypted {
