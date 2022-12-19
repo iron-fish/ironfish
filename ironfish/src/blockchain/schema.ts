@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BlockHash } from '../primitives/blockheader'
+import { Transaction, TransactionHash } from '../primitives/transaction'
 import { DatabaseSchema } from '../storage'
 import { AssetsValue } from './database/assets'
 import { HeaderValue } from './database/headers'
 import { SequenceToHashesValue } from './database/sequenceToHashes'
-import { TransactionsValue } from './database/transactions'
 
 export interface MetaSchema extends DatabaseSchema {
   key: 'head' | 'latest'
@@ -20,8 +20,8 @@ export interface HeadersSchema extends DatabaseSchema {
 }
 
 export interface TransactionsSchema extends DatabaseSchema {
-  key: BlockHash
-  value: TransactionsValue
+  key: [BlockHash, [TransactionHash, number]]
+  value: Transaction
 }
 
 export interface SequenceToHashesSchema extends DatabaseSchema {

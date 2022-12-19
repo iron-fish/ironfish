@@ -16,6 +16,7 @@ import { CompactBlock } from '../primitives/block'
 import {
   useAccountFixture,
   useBlockWithTx,
+  useBlockWithTxs,
   useMinerBlockFixture,
   useMinersTxFixture,
 } from '../testUtilities'
@@ -178,21 +179,14 @@ describe('PeerNetwork', () => {
       const { peerNetwork, node } = nodeTest
 
       const account = await useAccountFixture(node.wallet, 'accountA')
-      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
-      const transaction1 = block.transactions[0]
-      const transaction2 = await useMinersTxFixture(node.wallet, account)
-      const transaction3 = await useMinersTxFixture(node.wallet, account)
+      const { block } = await useBlockWithTxs(node, 2, account)
 
       await expect(node.chain).toAddBlock(block)
 
-      await node.chain.transactions.put(block.header.hash, {
-        transactions: [transaction1, transaction2, transaction3],
-      })
-
       const compactBlock: CompactBlock = {
         header: block.header,
-        transactions: [{ index: 0, transaction: transaction1 }],
-        transactionHashes: [transaction2.hash(), transaction3.hash()],
+        transactions: [{ index: 0, transaction: block.transactions[0] }],
+        transactionHashes: block.transactions.slice(1).map((t) => t.hash()),
       }
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
@@ -261,16 +255,9 @@ describe('PeerNetwork', () => {
       const { peerNetwork, node } = nodeTest
 
       const account = await useAccountFixture(node.wallet, 'accountA')
-      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
-      const transaction1 = block.transactions[0]
-      const transaction2 = await useMinersTxFixture(node.wallet, account)
-      const transaction3 = await useMinersTxFixture(node.wallet, account)
+      const { block } = await useBlockWithTxs(node, 2, account)
 
       await expect(node.chain).toAddBlock(block)
-
-      await node.chain.transactions.put(block.header.hash, {
-        transactions: [transaction1, transaction2, transaction3],
-      })
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
       const peerIdentity = peer.getIdentityOrThrow()
@@ -281,7 +268,7 @@ describe('PeerNetwork', () => {
       const message = new GetBlockTransactionsRequest(block.header.hash, [0, 1], rpcId)
       const response = new GetBlockTransactionsResponse(
         block.header.hash,
-        [transaction1, transaction3],
+        [block.transactions[0], block.transactions[2]],
         rpcId,
       )
 

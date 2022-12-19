@@ -20,6 +20,18 @@ export class StringEncoding<TValues extends string = string>
   deserialize = (buffer: Buffer): TValues => buffer.toString('utf8') as TValues
 }
 
+export class U16Encoding implements IDatabaseEncoding<number> {
+  serialize(value: number): Buffer {
+    const buffer = Buffer.alloc(2)
+    buffer.writeUInt16LE(value)
+    return buffer
+  }
+
+  deserialize(buffer: Buffer): number {
+    return buffer.readUInt16LE()
+  }
+}
+
 export class U32Encoding implements IDatabaseEncoding<number> {
   serialize(value: number): Buffer {
     const buffer = Buffer.alloc(4)
@@ -178,4 +190,5 @@ export class BigIntLEEncoding implements IDatabaseEncoding<BigInt> {
 export const BUFFER_TO_STRING_ENCODING = new BufferToStringEncoding()
 export const BUFFER_ENCODING = new BufferEncoding()
 export const U32_ENCODING = new U32Encoding()
+export const U16_ENCODING = new U16Encoding()
 export const NULL_ENCODING = new NullEncoding()

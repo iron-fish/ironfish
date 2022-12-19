@@ -55,11 +55,13 @@ export function transactionCommitment(transactions: Transaction[]): Buffer {
   return transactionMerkleRoot(transactionHashes)
 }
 
+export const EMPTY_TRANSACTION_COMMITMENT = blake3(TRANSACTION_ROOT_PERSONALIZATION)
+
 // Implementation similar to ZCash AuthDataMerkleRoot
 // https://github.com/zcash/zcash/blob/14cce06163019ab0a16adb944d25f7db68c012c6/src/primitives/block.cpp#L54
 export function transactionMerkleRoot(hashes: Buffer[]): Buffer {
   if (hashes.length === 0) {
-    return blake3(TRANSACTION_ROOT_PERSONALIZATION)
+    return EMPTY_TRANSACTION_COMMITMENT
   }
 
   // Get the number of nodes needed for a perfectly balanced tree

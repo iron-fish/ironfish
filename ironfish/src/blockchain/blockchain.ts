@@ -29,6 +29,7 @@ import {
   BlockHash,
   BlockHeader,
   BlockHeaderSerde,
+  EMPTY_TRANSACTION_COMMITMENT,
   isBlockHeavier,
   isBlockLater,
   transactionCommitment,
@@ -46,9 +47,12 @@ import {
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
+  PrefixEncoding,
   StringEncoding,
+  U16_ENCODING,
   U32_ENCODING,
 } from '../storage'
+import { StorageUtils } from '../storage/database/utils'
 import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
@@ -56,7 +60,7 @@ import { WorkerPool } from '../workerPool'
 import { AssetsValueEncoding } from './database/assets'
 import { HeaderEncoding } from './database/headers'
 import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
-import { TransactionsValueEncoding } from './database/transactions'
+import { TransactionEncoding } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
 import {
   AssetsSchema,
@@ -103,7 +107,7 @@ export class Blockchain {
   meta: IDatabaseStore<MetaSchema>
   // BlockHash -> BlockHeader
   headers: IDatabaseStore<HeadersSchema>
-  // BlockHash -> BlockHeader
+  // BlockHash -> TransactionHash -> Transaction Position -> Transaction
   transactions: IDatabaseStore<TransactionsSchema>
   // Sequence -> BlockHash[]
   sequenceToHashes: IDatabaseStore<SequenceToHashesSchema>
@@ -205,11 +209,15 @@ export class Blockchain {
       valueEncoding: new HeaderEncoding(),
     })
 
-    // BlockHash -> Transaction[]
+    // BlockHash -> TransactionHash -> Transaction Position -> Transaction
     this.transactions = this.db.addStore({
       name: 'bt',
-      keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new TransactionsValueEncoding(),
+      keyEncoding: new PrefixEncoding(
+        BUFFER_ENCODING,
+        new PrefixEncoding(BUFFER_ENCODING, U16_ENCODING, 32),
+        32,
+      ),
+      valueEncoding: new TransactionEncoding(),
     })
 
     // number -> BlockHash[]
@@ -837,6 +845,44 @@ export class Blockchain {
     }
   }
 
+  async getBlockTransactions(
+    blockHash: BlockHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<Transaction[]> {
+    const transactions = await this.transactions.getAll(
+      tx,
+      StorageUtils.getPrefixKeyRange(blockHash),
+    )
+
+    return transactions
+      .map(([[, [, index]], transaction]) => {
+        return { index, transaction }
+      })
+      .sort(({ index: index1 }, { index: index2 }) => index1 - index2)
+      .map(({ transaction }) => transaction)
+  }
+
+  async deleteBlockTransactions(
+    blockHash: BlockHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const keys = await this.transactions.getAllKeys(
+      tx,
+      StorageUtils.getPrefixKeyRange(blockHash),
+    )
+
+    await Promise.all(keys.map((key) => this.transactions.del(key)))
+  }
+
+  async addBlockTransactions(block: Block, tx?: IDatabaseTransaction): Promise<void> {
+    const blockHash = block.header.hash
+    const databasePromises = block.transactions.map((transaction, index) => {
+      return this.transactions.add([blockHash, [transaction.hash(), index]], transaction, tx)
+    })
+
+    await Promise.all(databasePromises)
+  }
+
   /**
    * Get the block with the given hash, if it exists.
    */
@@ -850,20 +896,33 @@ export class Blockchain {
     return this.db.withTransaction(tx, async (tx) => {
       const [header, transactions] = await Promise.all([
         blockHeader || this.headers.get(blockHash, tx).then((result) => result?.header),
-        this.transactions.get(blockHash, tx),
+        this.getBlockTransactions(blockHash, tx),
       ])
 
-      if (!header && !transactions) {
+      if (!header && transactions.length === 0) {
         return null
       }
 
-      if (!header || !transactions) {
+      if (!header) {
         throw new Error(
-          `DB has inconsistent state header/transaction state for ${blockHash.toString('hex')}`,
+          `DB has inconsistent state. Missing header but have transactions for ${blockHash.toString(
+            'hex',
+          )}`,
         )
       }
 
-      return new Block(header, transactions.transactions)
+      if (
+        transactions.length === 0 &&
+        !header.transactionCommitment.equals(EMPTY_TRANSACTION_COMMITMENT)
+      ) {
+        throw new Error(
+          `DB has inconsistent state. Missing transactions but have header for ${blockHash.toString(
+            'hex',
+          )}`,
+        )
+      }
+
+      return new Block(header, transactions)
     })
   }
 
@@ -1124,7 +1183,7 @@ export class Blockchain {
         await this.sequenceToHashes.put(header.sequence, { hashes }, tx)
       }
 
-      await this.transactions.del(hash, tx)
+      await this.deleteBlockTransactions(hash, tx)
       await this.headers.del(hash, tx)
 
       // TODO: use a new heads table to recalculate this
@@ -1298,7 +1357,7 @@ export class Blockchain {
     await this.headers.put(hash, { header: block.header }, tx)
 
     // Update BlockHash -> Transaction
-    await this.transactions.add(hash, { transactions: block.transactions }, tx)
+    await this.addBlockTransactions(block, tx)
 
     // Update Sequence -> BlockHash[]
     const hashes = await this.sequenceToHashes.get(sequence, tx)
