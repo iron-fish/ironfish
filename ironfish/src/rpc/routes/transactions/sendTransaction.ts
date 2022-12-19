@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import * as yup from 'yup'
 import { CurrencyUtils } from '../../../utils'
@@ -107,8 +108,12 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     })
 
     const fee = CurrencyUtils.decode(transaction.fee)
+    if (fee < 1n) {
+      throw new ValidationError(`Invalid transaction fee, ${transaction.fee}`)
+    }
 
     const totalByAssetIdentifier = new BufferMap<bigint>()
+    totalByAssetIdentifier.set(Asset.nativeIdentifier(), fee)
     for (const { assetIdentifier, amount } of receives) {
       if (amount < 0) {
         throw new ValidationError(
@@ -118,10 +123,6 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
 
       const sum = totalByAssetIdentifier.get(assetIdentifier) ?? BigInt(0)
       totalByAssetIdentifier.set(assetIdentifier, sum + amount)
-    }
-
-    if (fee < 1n) {
-      throw new ValidationError(`Invalid transaction fee, ${transaction.fee}`)
     }
 
     // Check that the node account is updated
