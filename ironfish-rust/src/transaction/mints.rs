@@ -25,6 +25,8 @@ use crate::{
     SaplingKey,
 };
 
+use super::utils::verify_mint_proof;
+
 /// Parameters used to build a circuit that verifies an asset can be minted with
 /// a given key
 pub struct MintBuilder {
@@ -82,7 +84,10 @@ impl MintBuilder {
             authorizing_signature: blank_signature,
         };
 
-        mint_description.verify_proof(randomized_public_key)?;
+        verify_mint_proof(
+            &mint_description.proof,
+            &mint_description.public_inputs(randomized_public_key),
+        )?;
 
         Ok(UnsignedMintDescription {
             public_key_randomness: *public_key_randomness,
@@ -161,28 +166,29 @@ pub struct MintDescription {
 }
 
 impl MintDescription {
-    pub fn verify_proof(
-        &self,
-        randomized_public_key: &redjubjub::PublicKey,
-    ) -> Result<(), IronfishError> {
-        // Verify that the asset info hash maps to a valid generator point
-        asset_generator_point(&self.asset.asset_info_hashed)?;
-
+    /// A function to encapsulate any verification besides the proof itself.
+    /// This allows us to abstract away the details and make it easier to work
+    /// with. Note that this does not verify the proof, that happens in the
+    /// [`MintBuilder`] build function as the prover, and in
+    /// [`super::batch_verify_transactions`] as the verifier.
+    pub fn partial_verify(&self) -> Result<(), IronfishError> {
         self.verify_not_small_order()?;
-
-        groth16::verify_proof(
-            &SAPLING.mint_verifying_key,
-            &self.proof,
-            &self.public_inputs(randomized_public_key)[..],
-        )?;
+        self.verify_generator_point()?;
 
         Ok(())
     }
 
-    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
+    fn verify_not_small_order(&self) -> Result<(), IronfishError> {
         if self.value_commitment.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
         }
+
+        Ok(())
+    }
+
+    /// Verify that the asset info hash maps to a valid generator point
+    fn verify_generator_point(&self) -> Result<(), IronfishError> {
+        asset_generator_point(&self.asset.asset_info_hashed)?;
 
         Ok(())
     }
@@ -281,7 +287,10 @@ mod test {
 
     use crate::{
         assets::asset::Asset,
-        transaction::mints::{MintBuilder, MintDescription},
+        transaction::{
+            mints::{MintBuilder, MintDescription},
+            utils::verify_mint_proof,
+        },
         SaplingKey,
     };
 
@@ -314,9 +323,11 @@ mod test {
             .sign(&key, &sig_hash)
             .expect("should be able to sign proof");
 
-        description
-            .verify_proof(&randomized_public_key)
-            .expect("proof should check out");
+        verify_mint_proof(
+            &description.proof,
+            &description.public_inputs(&randomized_public_key),
+        )
+        .expect("proof should check out");
 
         description
             .verify_signature(&sig_hash, &randomized_public_key)
@@ -361,9 +372,11 @@ mod test {
             .sign(&key, &sig_hash)
             .expect("should be able to sign proof");
 
-        description
-            .verify_proof(&randomized_public_key)
-            .expect("proof should check out");
+        verify_mint_proof(
+            &description.proof,
+            &description.public_inputs(&randomized_public_key),
+        )
+        .expect("proof should check out");
 
         let mut serialized_description = vec![];
         description

@@ -19,6 +19,8 @@ use rand::thread_rng;
 
 use std::io;
 
+use super::utils::verify_output_proof;
+
 /// Parameters used when constructing proof that a new note exists. The owner
 /// of this note is the recipient of funds in a transaction. The note is signed
 /// with the owners public key so only they can read it.
@@ -104,7 +106,10 @@ impl OutputBuilder {
 
         let output_proof = OutputDescription { proof, merkle_note };
 
-        output_proof.verify_proof(randomized_public_key)?;
+        verify_output_proof(
+            &output_proof.proof,
+            &output_proof.public_inputs(randomized_public_key),
+        )?;
 
         Ok(output_proof)
     }
@@ -142,24 +147,18 @@ impl OutputDescription {
         self.serialize_signature_fields(writer)
     }
 
-    /// Verify that the proof demonstrates knowledge that a note exists with
-    /// the value_commitment, public_key, and note_commitment on this proof.
-    pub fn verify_proof(
-        &self,
-        randomized_public_key: &redjubjub::PublicKey,
-    ) -> Result<(), IronfishError> {
+    /// A function to encapsulate any verification besides the proof itself.
+    /// This allows us to abstract away the details and make it easier to work
+    /// with. Note that this does not verify the proof, that happens in the
+    /// [`OutputBuilder`] build function as the prover, and in
+    /// [`super::batch_verify_transactions`] as the verifier.
+    pub fn partial_verify(&self) -> Result<(), IronfishError> {
         self.verify_not_small_order()?;
-
-        groth16::verify_proof(
-            &SAPLING.output_verifying_key,
-            &self.proof,
-            &self.public_inputs(randomized_public_key)[..],
-        )?;
 
         Ok(())
     }
 
-    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
+    fn verify_not_small_order(&self) -> Result<(), IronfishError> {
         if self.merkle_note.value_commitment.is_small_order().into()
             || ExtendedPoint::from(self.merkle_note.ephemeral_public_key)
                 .is_small_order()
@@ -221,6 +220,7 @@ mod test {
     use crate::{
         assets::asset::NATIVE_ASSET_GENERATOR, keys::SaplingKey,
         merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note,
+        transaction::utils::verify_output_proof,
     };
     use ff::{Field, PrimeField};
     use group::Curve;
@@ -305,8 +305,7 @@ mod test {
         let proof = output
             .build(&spender_key, &public_key_randomness, &randomized_public_key)
             .expect("Should be able to build output proof");
-        proof
-            .verify_proof(&randomized_public_key)
+        verify_output_proof(&proof.proof, &proof.public_inputs(&randomized_public_key))
             .expect("proof should check out");
 
         // test serialization
