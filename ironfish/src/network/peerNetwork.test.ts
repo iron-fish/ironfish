@@ -18,7 +18,6 @@ import {
   useBlockWithTx,
   useBlockWithTxs,
   useMinerBlockFixture,
-  useMinersTxFixture,
 } from '../testUtilities'
 import { mockChain, mockNode, mockTelemetry } from '../testUtilities/mocks'
 import { createNodeTest } from '../testUtilities/nodeTest'
