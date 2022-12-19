@@ -8,7 +8,7 @@ import { Note } from './note'
 describe('Note', () => {
   const nodeTest = createNodeTest()
 
-  it('calculates merkle root with 0 transactions', async () => {
+  it('Creates a note', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
 
     const native = new NativeNote(
