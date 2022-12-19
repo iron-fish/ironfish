@@ -30,10 +30,11 @@ pub const NOTE_ENCRYPTION_KEY_SIZE: usize = ENCRYPTED_SHARED_KEY_SIZE + aead::MA
 /// read notes that they have themselves have spent.
 /// In the case of miner notes, the note is created out of thin air
 /// and there is no actual spender. We set the note encryption keys
-/// to a known value, so they can be identified in the trees.
+/// to a known value, but this isn't enforced in consensus, so any
+/// value is valid.
 ///
-/// This does not leak information, since miner notes are identifiably
-/// stored separately on the header of blocks already.
+/// This does not leak information, since miner notes are already known
+/// to be on the first transaction in a block.
 pub const NOTE_ENCRYPTION_MINER_KEYS: &[u8; NOTE_ENCRYPTION_KEY_SIZE] =
     b"Iron Fish note encryption miner key000000000000000000000000000000000000000000000";
 const SHARED_KEY_PERSONALIZATION: &[u8; 16] = b"Iron Fish Keyenc";
