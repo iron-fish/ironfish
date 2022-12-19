@@ -1,0 +1,12 @@
+{
+  "Note calculates merkle root with 0 transactions": [
+    {
+      "id": "d0e46775-bacf-4cae-9584-6ac522e67c07",
+      "name": "test",
+      "spendingKey": "2be2a5511768233e6792879833328b2270f3de557da27b8b1f689eadcc47b977",
+      "incomingViewKey": "e238999b0bc04850aec842e0659e0aaf3c317539adb5ca3c99ee9c6b9d8ab002",
+      "outgoingViewKey": "71ad247c5eda3fe276a54b1d95537fdfbb6af92b2f5c4b83ac13363693d3c172",
+      "publicAddress": "a72c7a14c0ebd723ebdd0cfc3daabd01fecd54c91a911fd79c6634a8cc5bee61"
+    }
+  ]
+}
