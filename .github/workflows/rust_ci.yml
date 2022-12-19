@@ -79,7 +79,7 @@ jobs:
         uses: actions-rs/tarpaulin@v0.1
         with:
           version: "0.22.0"
-          args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust/Cargo.toml --release -- --test-threads 1
+          args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust/Cargo.toml --release -- --test-threads 2
 
       # Upload code coverage to Codecov
       - name: Upload to codecov.io
