@@ -413,7 +413,7 @@ impl ProposedTransaction {
         let mut binding_signature_key = jubjub::Fr::zero();
 
         // A "public key" manufactured from a combination of the values of each
-        // transaction and the same randomneSpendParams, s as above
+        // description and the same randomness as above
         let mut binding_verification_key = ExtendedPoint::identity();
 
         for spend in &self.spends {
