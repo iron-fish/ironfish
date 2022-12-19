@@ -5,57 +5,31 @@
 use std::io;
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::Field;
-use group::GroupEncoding;
-use ironfish_zkp::{constants::ASSET_IDENTIFIER_LENGTH, ValueCommitment};
-use jubjub::ExtendedPoint;
-use rand::thread_rng;
+use ironfish_zkp::constants::ASSET_IDENTIFIER_LENGTH;
 
-use crate::{
-    assets::asset::{asset_generator_from_identifier, AssetIdentifier},
-    errors::IronfishError,
-    serializing::read_point,
-};
+use crate::{assets::asset::AssetIdentifier, errors::IronfishError};
 
 /// Parameters used to build a burn description
 pub struct BurnBuilder {
     /// Identifier of the Asset to be burned
     pub asset_identifier: AssetIdentifier,
 
-    /// Commitment to represent the value. Even though the value of the burn is
-    /// public, we still need the commitment to balance the transaction
-    pub value_commitment: ValueCommitment,
+    /// Amount of asset to burn
+    pub value: u64,
 }
 
 impl BurnBuilder {
     pub fn new(asset_identifier: AssetIdentifier, value: u64) -> Self {
-        let asset_generator = asset_generator_from_identifier(&asset_identifier);
-
-        let value_commitment = ValueCommitment {
-            value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator,
-        };
-
         Self {
             asset_identifier,
-            value_commitment,
+            value,
         }
-    }
-
-    /// Get the value_commitment from this proof as an Edwards Point.
-    ///
-    /// This integrates the value and randomness into a single point, using an
-    /// appropriate generator.
-    pub fn value_commitment_point(&self) -> ExtendedPoint {
-        ExtendedPoint::from(self.value_commitment.commitment())
     }
 
     pub fn build(&self) -> BurnDescription {
         BurnDescription {
             asset_identifier: self.asset_identifier,
-            value: self.value_commitment.value,
-            value_commitment: self.value_commitment_point(),
+            value: self.value,
         }
     }
 }
@@ -69,21 +43,9 @@ pub struct BurnDescription {
 
     /// Amount of asset to burn
     pub value: u64,
-
-    /// Randomized commitment to represent the value being burned in this proof
-    /// needed to balance the transaction.
-    pub value_commitment: ExtendedPoint,
 }
 
 impl BurnDescription {
-    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
-        if self.value_commitment.is_small_order().into() {
-            return Err(IronfishError::IsSmallOrder);
-        }
-
-        Ok(())
-    }
-
     /// Write the signature of this proof to the provided writer.
     ///
     /// The signature is used by the transaction to calculate the signature
@@ -95,7 +57,6 @@ impl BurnDescription {
     ) -> Result<(), IronfishError> {
         writer.write_all(&self.asset_identifier)?;
         writer.write_u64::<LittleEndian>(self.value)?;
-        writer.write_all(&self.value_commitment.to_bytes())?;
 
         Ok(())
     }
@@ -107,12 +68,10 @@ impl BurnDescription {
             bytes
         };
         let value = reader.read_u64::<LittleEndian>()?;
-        let value_commitment = read_point(&mut reader)?;
 
         Ok(BurnDescription {
             asset_identifier,
             value,
-            value_commitment,
         })
     }
 
@@ -141,10 +100,9 @@ mod test {
         let value = 5;
 
         let builder = BurnBuilder::new(asset.identifier, value);
-        let burn = builder.build();
 
-        burn.verify_not_small_order()
-            .expect("value commitment should not be small order");
+        assert_eq!(builder.value, value);
+        assert_eq!(builder.asset_identifier, asset.identifier);
     }
 
     #[test]
@@ -172,10 +130,6 @@ mod test {
             deserialized_description.asset_identifier
         );
         assert_eq!(burn.value, deserialized_description.value);
-        assert_eq!(
-            burn.value_commitment,
-            deserialized_description.value_commitment
-        );
 
         let mut reserialized_description = vec![];
         deserialized_description
