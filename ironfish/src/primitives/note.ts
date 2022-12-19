@@ -87,8 +87,4 @@ export class Note {
   equals(other: Note): boolean {
     return this.noteSerialized.equals(other.noteSerialized)
   }
-
-  static fromNative(note: NativeNote): Note {
-    return new Note(note.serialize())
-  }
 }

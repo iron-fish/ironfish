@@ -19,14 +19,14 @@ describe('RawTransaction', () => {
       const account = await useAccountFixture(nodeTest.wallet)
       const asset = new Asset(account.spendingKey, 'asset', 'metadata')
 
-      const note = Note.fromNative(
+      const note = new Note(
         new NativeNote(
           generateKey().public_address,
           5n,
           'memo',
           asset.identifier(),
           account.publicAddress,
-        ),
+        ).serialize(),
       )
 
       const witness = new Witness(
