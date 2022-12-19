@@ -31,7 +31,7 @@ impl ValueCommitment {
 mod test {
     use ff::Field;
     use group::{Group, GroupEncoding};
-    use rand::{rngs::StdRng, SeedableRng};
+    use rand::{rngs::StdRng, thread_rng, SeedableRng};
 
     use crate::primitives::ValueCommitment;
 
@@ -55,6 +55,17 @@ mod test {
                 21, 161, 234, 105, 158, 75, 142, 162, 25, 155, 101, 231, 117, 38
             ]
         );
+    }
+
+    #[test]
+    fn test_value_commitment_new() {
+        let generator = jubjub::SubgroupPoint::random(thread_rng());
+        let value = 5;
+
+        let value_commitment = ValueCommitment::new(value, generator);
+
+        assert_eq!(value_commitment.value, value);
+        assert_eq!(value_commitment.asset_generator, generator);
     }
 
     #[test]
