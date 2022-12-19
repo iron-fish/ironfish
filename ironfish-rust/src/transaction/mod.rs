@@ -8,7 +8,10 @@ use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::{asset_generator_from_identifier, Asset, AssetIdentifier, NATIVE_ASSET},
+    assets::asset::{
+        asset_generator_from_identifier, Asset, AssetIdentifier, NATIVE_ASSET,
+        NATIVE_ASSET_GENERATOR,
+    },
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,
@@ -26,10 +29,7 @@ use jubjub::{ExtendedPoint, SubgroupPoint};
 use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
-    constants::{
-        SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-        VALUE_COMMITMENT_VALUE_GENERATOR,
-    },
+    constants::{SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR},
     redjubjub::{self, PrivateKey, PublicKey, Signature},
 };
 
@@ -694,7 +694,7 @@ impl Transaction {
 
 /// Convert the integer value to a point on the Jubjub curve, accounting for
 /// negative values
-fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
+fn fee_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
     // Can only construct edwards point on positive numbers, so need to
     // add and possibly negate later
     let is_negative = value.is_negative();
@@ -703,7 +703,7 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
         None => return Err(IronfishError::IllegalValue),
     };
 
-    let mut value_balance = VALUE_COMMITMENT_VALUE_GENERATOR * jubjub::Fr::from(abs);
+    let mut value_balance = NATIVE_ASSET_GENERATOR * jubjub::Fr::from(abs);
 
     if is_negative {
         value_balance = -value_balance;
@@ -718,19 +718,19 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
 /// for fees and change happens elsewhere.
 fn calculate_value_balance(
     binding_verification_key: &ExtendedPoint,
-    value: i64,
+    fee: i64,
     burns: &[BurnDescription],
 ) -> Result<ExtendedPoint, IronfishError> {
-    let value_balance_point = value_balance_to_point(value)?;
+    let fee_point = fee_to_point(fee)?;
 
-    let mut public_key = binding_verification_key - value_balance_point;
+    let mut value_balance_point = binding_verification_key - fee_point;
 
     for burn in burns {
         let burn_generator = asset_generator_from_identifier(&burn.asset_identifier);
-        public_key -= burn_generator * jubjub::Fr::from(burn.value);
+        value_balance_point -= burn_generator * jubjub::Fr::from(burn.value);
     }
 
-    Ok(public_key)
+    Ok(value_balance_point)
 }
 
 pub fn batch_verify_transactions<'a>(
