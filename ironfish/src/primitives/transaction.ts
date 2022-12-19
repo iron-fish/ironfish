@@ -105,9 +105,6 @@ export class Transaction {
       const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
       const value = reader.readBigU64()
 
-      // value commitment
-      reader.seek(32)
-
       return { assetIdentifier, value }
     })
 
