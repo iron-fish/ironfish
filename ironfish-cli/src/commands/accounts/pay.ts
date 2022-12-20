@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
 import { CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
@@ -83,7 +82,7 @@ export class Pay extends IronfishCommand {
       amount = CurrencyUtils.decodeIron(flags.amount)
     }
 
-    const assetIdentifier = flags.assetIdentifier ?? Asset.nativeIdentifier().toString('hex')
+    const assetIdentifier = flags.assetIdentifier
 
     if (amount === null) {
       const response = await client.getAccountBalance({ account: from, assetIdentifier })
