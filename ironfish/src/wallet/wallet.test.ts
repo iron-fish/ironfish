@@ -1058,8 +1058,12 @@ describe('Accounts', () => {
       })
       await expect(node.chain).toAddBlock(blockB)
       await node.wallet.updateHead()
+      await expect(node.wallet.getBalance(account, asset.identifier())).resolves.toMatchObject({
+        confirmed: mintValue,
+      })
 
-      const outputNote = blockB.transactions[1].getNote(0)
+      expect(blockB.transactions[1].notes.length).toBe(2)
+      const outputNote = blockB.transactions[1].getNote(1)
       const note = outputNote.decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(note)
 
