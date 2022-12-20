@@ -147,7 +147,7 @@ const handleLimitedTransactions = async (
     }
   })
 
-  for await (const transaction of account.getSortedTransactions()) {
+  for await (const transaction of account.getOrderedTransactions()) {
     Assert.isNotNull(transaction)
     queue.add(transaction)
     // remove the earliest transaction when queue is full
@@ -172,7 +172,7 @@ const handleAllTransactions = async (
   account: Account,
   headSequence?: number | null,
 ): Promise<void> => {
-  for await (const transaction of account.getSortedTransactions()) {
+  for await (const transaction of account.getOrderedTransactions()) {
     if (request.closed) {
       break
     }

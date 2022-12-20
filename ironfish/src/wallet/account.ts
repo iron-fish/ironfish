@@ -364,8 +364,10 @@ export class Account {
     return this.walletDb.loadTransactions(this, tx)
   }
 
-  getSortedTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
-    return this.walletDb.loadSortedTransactions(this, tx)
+  getOrderedTransactions(
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Readonly<TransactionValue>> {
+    return this.walletDb.loadOrderedTransactions(this, tx)
   }
 
   getPendingTransactions(
