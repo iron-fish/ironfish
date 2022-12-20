@@ -34,13 +34,15 @@ export class BlockTemplateSerde {
       previousBlockHash: block.header.previousBlockHash.toString('hex'),
       noteCommitment: block.header.noteCommitment.toString('hex'),
       transactionCommitment: block.header.transactionCommitment.toString('hex'),
-      target: BigIntUtils.toBytesBE(block.header.target.asBigInt(), 32).toString('hex'),
-      randomness: BigIntUtils.toBytesBE(block.header.randomness, 8).toString('hex'),
+      target: BigIntUtils.writeBigU256BE(block.header.target.asBigInt()).toString('hex'),
+      randomness: BigIntUtils.writeBigU64BE(block.header.randomness).toString('hex'),
       timestamp: block.header.timestamp.getTime(),
       graffiti: block.header.graffiti.toString('hex'),
     }
     const previousBlockInfo = {
-      target: BigIntUtils.toBytesBE(previousBlock.header.target.asBigInt(), 32).toString('hex'),
+      target: BigIntUtils.writeBigU256BE(previousBlock.header.target.asBigInt()).toString(
+        'hex',
+      ),
       timestamp: previousBlock.header.timestamp.getTime(),
     }
 

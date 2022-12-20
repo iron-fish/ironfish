@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import bufio from 'bufio'
+
 /**
  * Accept two bigints and return the larger of the two,
  * in the case of equality, b is returned
@@ -115,6 +117,14 @@ function toBytesBE(value: bigint, size?: number): Buffer {
   return bytes
 }
 
+function writeBigU64BE(value: bigint): Buffer {
+  return bufio.write(8).writeBigU64BE(value).render()
+}
+
+function writeBigU256BE(value: bigint): Buffer {
+  return bufio.write(32).writeBigU256BE(value).render()
+}
+
 /**
  * Divides two BigInt types and returns a number. That has floating
  * point precision. Regular BigInt division will not have decimals
@@ -145,4 +155,6 @@ export const BigIntUtils = {
   min,
   divide,
   tryParse,
+  writeBigU64BE,
+  writeBigU256BE,
 }

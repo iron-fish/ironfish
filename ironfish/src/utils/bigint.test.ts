@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import bufio from 'bufio'
 import { BigIntUtils } from './bigint'
 
 describe('BigIntUtils', () => {
@@ -26,7 +27,7 @@ describe('BigIntUtils', () => {
   it('can convert to a little-endian representation', () => {
     const bigint = BigInt(258)
 
-    const bigintBuffer = BigIntUtils.toBytesLE(bigint, 2)
+    const bigintBuffer = BigIntUtils.toBytesLE(bigint)
 
     const buffer = Buffer.alloc(2)
     buffer.writeUInt16LE(Number(bigint))

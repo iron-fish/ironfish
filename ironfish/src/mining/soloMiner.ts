@@ -282,7 +282,7 @@ export class MiningSoloMiner {
       ),
     )
 
-    latestBlock.header.target = BigIntUtils.toBytesBE(newTarget.asBigInt(), 32).toString('hex')
+    latestBlock.header.target = BigIntUtils.writeBigU256BE(newTarget.asBigInt()).toString('hex')
     latestBlock.header.timestamp = newTime.getTime()
 
     this.startNewWork(latestBlock)

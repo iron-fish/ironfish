@@ -86,7 +86,7 @@ export class MiningPool {
 
     this.difficulty = BigInt(this.config.get('poolDifficulty'))
     const basePoolTarget = Target.fromDifficulty(this.difficulty).asBigInt()
-    this.target = BigIntUtils.toBytesBE(basePoolTarget, 32)
+    this.target = BigIntUtils.writeBigU256BE(basePoolTarget)
 
     this.connectTimeout = null
     this.connectWarned = false
@@ -373,7 +373,7 @@ export class MiningPool {
       return
     }
 
-    latestBlock.header.target = BigIntUtils.toBytesBE(newTarget.asBigInt(), 32).toString('hex')
+    latestBlock.header.target = BigIntUtils.writeBigU256BE(newTarget.asBigInt()).toString('hex')
     latestBlock.header.timestamp = newTime.getTime()
     this.distributeNewBlock(latestBlock)
 
