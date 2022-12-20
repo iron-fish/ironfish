@@ -229,6 +229,7 @@ export async function useRawTxFixture(options: {
   from: Account
   to?: Account
   fee?: bigint
+  amount?: bigint
   expiration?: number
   assetIdentifier?: Buffer
   receives?: {
@@ -246,7 +247,7 @@ export async function useRawTxFixture(options: {
     if (options.to) {
       receives.push({
         publicAddress: options.to.publicAddress,
-        amount: BigInt(1),
+        amount: options.amount ?? 1n,
         memo: '',
         assetIdentifier: options.assetIdentifier ?? Asset.nativeIdentifier(),
       })
