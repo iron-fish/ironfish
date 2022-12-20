@@ -117,7 +117,7 @@ describe('Accounts', () => {
 
     await expect(account.getBalance(1, Asset.nativeIdentifier(), 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      pending: BigInt(2000000000),
+      unconfirmed: BigInt(0),
     })
 
     await account.expireTransaction(tx)
@@ -130,7 +130,7 @@ describe('Accounts', () => {
 
     await expect(account.getBalance(1, Asset.nativeIdentifier(), 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
-      pending: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     // record of expired transaction is preserved

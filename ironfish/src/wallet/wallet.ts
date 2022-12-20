@@ -462,7 +462,6 @@ export class Wallet {
   /**
    * Called:
    *  - Called for transactions on disconnected blocks
-   *  - Called when transactions are added to a block on the genesis chain
    */
   async syncTransaction(
     transaction: Transaction,
@@ -618,8 +617,6 @@ export class Wallet {
     options?: { minimumBlockConfirmations?: number },
   ): Promise<{
     unconfirmedCount: number
-    pendingCount: number
-    pending: bigint
     unconfirmed: bigint
     confirmed: bigint
   }> {
@@ -637,9 +634,7 @@ export class Wallet {
         return {
           unconfirmed: BigInt(0),
           confirmed: BigInt(0),
-          pending: BigInt(0),
           unconfirmedCount: 0,
-          pendingCount: 0,
         }
       }
 

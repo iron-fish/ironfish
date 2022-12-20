@@ -15,8 +15,6 @@ export type GetBalanceRequest = {
 export type GetBalanceResponse = {
   account: string
   confirmed: string
-  pending: string
-  pendingCount: number
   unconfirmed: string
   unconfirmedCount: number
   minimumBlockConfirmations: number
@@ -34,8 +32,6 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
     account: yup.string().defined(),
     unconfirmed: yup.string().defined(),
     unconfirmedCount: yup.number().defined(),
-    pending: yup.string().defined(),
-    pendingCount: yup.number().defined(),
     confirmed: yup.string().defined(),
     minimumBlockConfirmations: yup.number().defined(),
   })
@@ -64,8 +60,6 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
     request.end({
       account: account.name,
       confirmed: balance.confirmed.toString(),
-      pending: balance.pending.toString(),
-      pendingCount: balance.pendingCount,
       unconfirmed: balance.unconfirmed.toString(),
       unconfirmedCount: balance.unconfirmedCount,
       minimumBlockConfirmations,
