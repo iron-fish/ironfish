@@ -15,13 +15,13 @@ jobs:
       matrix:
         targets:
           [
-            # 'x86_64-apple-darwin',
-            # 'x86_64-pc-windows-msvc',
-            # 'x86_64-unknown-linux-gnu',
-            # 'x86_64-unknown-linux-musl',
-            # 'aarch64-apple-darwin',
+            'x86_64-apple-darwin',
+            'x86_64-pc-windows-msvc',
+            'x86_64-unknown-linux-gnu',
+            'x86_64-unknown-linux-musl',
+            'aarch64-apple-darwin',
             'aarch64-unknown-linux-gnu',
-            # 'aarch64-unknown-linux-musl',
+            'aarch64-unknown-linux-musl',
           ]
     name: Build ${{ matrix.targets }}
     runs-on: ubuntu-latest
@@ -46,7 +46,9 @@ jobs:
         with:
           version: 0.10.0
 
-      - run: cargo install cargo-xwin
+      - name: Install cargo-xwin
+        if: ${{ matrix.targets == 'x86_64-pc-windows-msvc' }}
+        run: cargo install cargo-xwin
 
       - name: Install dependencies
         run: npm install --no-workspaces
@@ -70,28 +72,28 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          # - host: macos-11
-          #   target: x86_64-apple-darwin
+          - host: macos-latest
+            target: x86_64-apple-darwin
 
-          # - host: windows-latest
-          #   target: x86_64-pc-windows-msvc
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
 
-          # - host: ubuntu-latest
-          #   target: x86_64-unknown-linux-gnu
-          #   docker: node:16-slim
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            docker: node:16-slim
 
-          # - host: ubuntu-latest
-          #   target: x86_64-unknown-linux-musl
-          #   docker: node:16-alpine
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            docker: node:16-alpine
 
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs:aarch64-16
 
-          # - host: ubuntu-latest
-          #   target: aarch64-unknown-linux-musl
-          #   docker: arm64v8/node:16-alpine
-          #   platform: linux/arm64/v8
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            docker: arm64v8/node:16-alpine
+            platform: linux/arm64/v8
 
     name: Test bindings for ${{ matrix.settings.target }}
     runs-on: ${{ matrix.settings.host }}
@@ -109,7 +111,7 @@ jobs:
           node-version: '16.13.0'
 
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: bindings-${{ matrix.settings.target }}
           path: ./ironfish-rust-nodejs
