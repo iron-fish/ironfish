@@ -12,7 +12,6 @@ import {
 import { BlockHeader } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { Transaction } from '../../primitives/transaction'
-import { BigIntUtils } from '../../utils/bigint'
 
 export const MINERS_FEE_TRANSACTION_SIZE_BYTES = 664
 
