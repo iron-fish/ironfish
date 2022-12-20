@@ -34,7 +34,7 @@ export class PostTransactionResponse extends WorkerMessage {
   readonly transaction: Transaction
 
   constructor(transaction: Transaction, jobId: number) {
-    super(WorkerMessageType.CreateTransaction, jobId)
+    super(WorkerMessageType.PostTransaction, jobId)
     this.transaction = transaction
   }
 
