@@ -357,7 +357,7 @@ export class WalletDB {
       return false
     }
 
-    const expirationSequence = transactionValue.transaction.expirationSequence()
+    const expirationSequence = transactionValue.transaction.expiration()
     return this.pendingTransactionHashes.has(
       [account.prefix, [expirationSequence, transactionHash]],
       tx,
