@@ -46,6 +46,10 @@ jobs:
         with:
           version: 0.10.0
 
+      - name: Install llvm-tools-preview
+        if: ${{ matrix.targets == 'x86_64-pc-windows-msvc' }}
+        run: rustup component add llvm-tools-preview
+
       - name: Install cargo-xwin
         if: ${{ matrix.targets == 'x86_64-pc-windows-msvc' }}
         run: cargo install cargo-xwin
