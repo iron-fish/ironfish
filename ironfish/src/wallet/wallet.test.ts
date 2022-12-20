@@ -1058,8 +1058,12 @@ describe('Accounts', () => {
       })
       await expect(node.chain).toAddBlock(blockB)
       await node.wallet.updateHead()
+      await expect(node.wallet.getBalance(account, asset.identifier())).resolves.toMatchObject({
+        confirmed: mintValue,
+      })
 
-      const outputNote = blockB.transactions[1].getNote(0)
+      expect(blockB.transactions[1].notes.length).toBe(2)
+      const outputNote = blockB.transactions[1].getNote(1)
       const note = outputNote.decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(note)
 
@@ -1185,6 +1189,105 @@ describe('Accounts', () => {
 
       const balanceAfter = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
       expect(balanceAfter).toEqual(1999999998n)
+    })
+  })
+
+  describe('disconnectBlock', () => {
+    it('should update transactions in the walletDb with blockHash and sequence null', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const { block: blockA2, transaction } = await useBlockWithTx(node, accountA, accountB)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.updateHead()
+
+      let transactionValue = await accountA.getTransaction(transaction.hash())
+
+      expect(transactionValue).toBeDefined()
+      expect(transactionValue?.blockHash).toEqualHash(blockA2.header.hash)
+      expect(transactionValue?.sequence).toEqual(blockA2.header.sequence)
+
+      await node.chain.db.transaction(async (tx) => {
+        await node.chain.disconnect(blockA2, tx)
+      })
+
+      await node.wallet.updateHead()
+
+      transactionValue = await accountA.getTransaction(transaction.hash())
+
+      expect(transactionValue).toBeDefined()
+      expect(transactionValue?.blockHash).toBeNull()
+      expect(transactionValue?.sequence).toBeNull()
+    })
+
+    it('should update the account head hash to the previous block', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.updateHead()
+
+      let accountAHeadHash = await accountA.getHeadHash()
+
+      expect(accountAHeadHash).toEqualHash(blockA2.header.hash)
+
+      await node.chain.db.transaction(async (tx) => {
+        await node.chain.disconnect(blockA2, tx)
+      })
+
+      await node.wallet.updateHead()
+
+      accountAHeadHash = await accountA.getHeadHash()
+
+      expect(accountAHeadHash).toEqualHash(blockA2.header.previousBlockHash)
+    })
+
+    it('should update the account unconfirmed balance', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      expect(balanceBefore).toEqual(2000000000n)
+
+      const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.updateHead()
+
+      const balanceAfterConnect = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      expect(balanceAfterConnect).toEqual(1999999998n)
+
+      await node.chain.db.transaction(async (tx) => {
+        await node.chain.disconnect(blockA2, tx)
+      })
+
+      await node.wallet.updateHead()
+
+      const balanceAfterDisconnect = await accountA.getUnconfirmedBalance(
+        Asset.nativeIdentifier(),
+      )
+      expect(balanceAfterDisconnect).toEqual(2000000000n)
     })
   })
 })

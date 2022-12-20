@@ -297,6 +297,82 @@ export class Account {
     })
   }
 
+  async disconnectTransaction(
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const balanceDeltas = new AssetBalanceDeltas()
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
+      const transactionValue = await this.getTransaction(transaction.hash(), tx)
+      if (transactionValue === undefined) {
+        return
+      }
+
+      for (const note of transaction.notes) {
+        const noteHash = note.merkleHash()
+
+        const decryptedNoteValue = await this.getDecryptedNote(noteHash, tx)
+        if (decryptedNoteValue === undefined) {
+          continue
+        }
+
+        balanceDeltas.increment(
+          decryptedNoteValue.note.assetIdentifier(),
+          -decryptedNoteValue.note.value(),
+        )
+
+        const sequence = decryptedNoteValue.sequence
+        Assert.isNotNull(sequence)
+        await this.walletDb.disconnectNoteHashSequence(this, noteHash, sequence, tx)
+
+        Assert.isNotNull(decryptedNoteValue.nullifier)
+        await this.walletDb.deleteNullifier(this, decryptedNoteValue.nullifier, tx)
+
+        await this.walletDb.saveDecryptedNote(
+          this,
+          noteHash,
+          {
+            ...decryptedNoteValue,
+            nullifier: null,
+            index: null,
+            blockHash: null,
+            sequence: null,
+          },
+          tx,
+        )
+      }
+
+      for (const spend of transaction.spends) {
+        const spentNoteHash = await this.getNoteHash(spend.nullifier, tx)
+        if (!spentNoteHash) {
+          continue
+        }
+
+        const spentNote = await this.getDecryptedNote(spentNoteHash, tx)
+
+        Assert.isNotUndefined(spentNote)
+
+        balanceDeltas.increment(spentNote.note.assetIdentifier(), spentNote.note.value())
+      }
+
+      await this.walletDb.savePendingTransactionHash(
+        this,
+        transaction.expirationSequence(),
+        transaction.hash(),
+        tx,
+      )
+
+      await this.walletDb.saveTransaction(
+        this,
+        transaction.hash(),
+        { ...transactionValue, blockHash: null, sequence: null },
+        tx,
+      )
+
+      await this.updateUnconfirmedBalances(balanceDeltas, tx)
+    })
+  }
+
   async updateTransaction(
     hash: Buffer,
     transactionValue: TransactionValue,

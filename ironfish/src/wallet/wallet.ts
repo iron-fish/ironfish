@@ -126,13 +126,9 @@ export class Wallet {
     this.chainProcessor.onRemove.on(async (header) => {
       this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
 
-      for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
-        await this.syncTransaction(transaction, {})
-      }
+      const accounts = this.listAccounts().filter((account) => this.isAccountUpToDate(account))
 
-      await this.walletDb.clearSequenceNoteHashes(header.sequence)
-
-      await this.updateHeadHashes(header.previousBlockHash)
+      await this.disconnectBlock(header, accounts)
     })
   }
 
@@ -432,6 +428,18 @@ export class Wallet {
         }
 
         await this.updateHeadHash(account, blockHeader.hash, tx)
+      })
+    }
+  }
+
+  async disconnectBlock(header: BlockHeader, accounts: Account[]): Promise<void> {
+    for (const account of accounts) {
+      await this.walletDb.db.transaction(async (tx) => {
+        for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
+          await account.disconnectTransaction(transaction, tx)
+        }
+
+        await this.updateHeadHash(account, header.previousBlockHash, tx)
       })
     }
   }
