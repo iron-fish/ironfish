@@ -14,6 +14,7 @@ export type GetBalanceRequest = {
 
 export type GetBalanceResponse = {
   account: string
+  assetIdentifier: string
   confirmed: string
   unconfirmed: string
   unconfirmedCount: number
@@ -30,6 +31,7 @@ export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
 export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yup
   .object({
     account: yup.string().defined(),
+    assetIdentifier: yup.string().defined(),
     unconfirmed: yup.string().defined(),
     unconfirmedCount: yup.number().defined(),
     confirmed: yup.string().defined(),
@@ -59,6 +61,7 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
 
     request.end({
       account: account.name,
+      assetIdentifier: assetIdentifier.toString('hex'),
       confirmed: balance.confirmed.toString(),
       unconfirmed: balance.unconfirmed.toString(),
       unconfirmedCount: balance.unconfirmedCount,

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { formatFixed, parseFixed } from '@ethersproject/bignumber'
+import { isNativeIdentifier } from './asset'
 import { FixedNumberUtils } from './fixedNumber'
 
 export class CurrencyUtils {
@@ -51,7 +52,10 @@ export class CurrencyUtils {
     const iron = FixedNumberUtils.render(amount, 8)
 
     if (includeTicker) {
-      const ticker = assetIdentifier ?? '$IRON'
+      let ticker = '$IRON'
+      if (assetIdentifier && !isNativeIdentifier(assetIdentifier)) {
+        ticker = assetIdentifier
+      }
       return `${ticker} ${iron}`
     }
 
@@ -73,7 +77,10 @@ export class CurrencyUtils {
     const ore = amount.toString()
 
     if (includeTicker) {
-      const ticker = assetIdentifier ?? '$ORE'
+      let ticker = '$ORE'
+      if (assetIdentifier && !isNativeIdentifier(assetIdentifier)) {
+        ticker = assetIdentifier
+      }
       return `${ticker} ${ore}`
     }
 

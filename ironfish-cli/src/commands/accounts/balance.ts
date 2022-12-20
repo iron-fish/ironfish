@@ -45,15 +45,15 @@ export class BalanceCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(BalanceCommand)
     const account = args.account as string | undefined
-    const assetIdentifier = flags.assetIdentifier
 
     const client = await this.sdk.connectRpc()
 
     const response = await client.getAccountBalance({
       account,
-      assetIdentifier,
+      assetIdentifier: flags.assetIdentifier,
       minimumBlockConfirmations: flags.confirmations,
     })
+    const assetIdentifier = response.content.assetIdentifier
 
     if (flags.explain) {
       this.explainBalance(response.content, assetIdentifier)
@@ -85,7 +85,7 @@ export class BalanceCommand extends IronfishCommand {
     )
   }
 
-  explainBalance(response: GetBalanceResponse, assetIdentifier?: string): void {
+  explainBalance(response: GetBalanceResponse, assetIdentifier: string): void {
     const unconfirmed = CurrencyUtils.decode(response.unconfirmed)
     const confirmed = CurrencyUtils.decode(response.confirmed)
 
