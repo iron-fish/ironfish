@@ -60,6 +60,7 @@ import {
   UseAccountRequest,
   UseAccountResponse,
 } from '../routes'
+import { MintAssetRequest, MintAssetResponse } from '../routes/assets/mint'
 import {
   ExportChainStreamRequest,
   ExportChainStreamResponse,
@@ -325,6 +326,10 @@ export abstract class RpcClient {
 
   onGossipStream(params: OnGossipRequest = undefined): RpcResponse<void, OnGossipResponse> {
     return this.request<void, OnGossipResponse>(`${ApiNamespace.event}/onGossip`, params)
+  }
+
+  async mintAsset(params: MintAssetRequest): Promise<RpcResponseEnded<MintAssetResponse>> {
+    return this.request<MintAssetResponse>(`${ApiNamespace.asset}/mint`, params).waitForEnd()
   }
 
   async sendTransaction(
