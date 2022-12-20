@@ -355,6 +355,30 @@ describe('Accounts', () => {
       await wallet.scanTransactions()
       expect(wallet['chainProcessor']['hash']?.equals(block2.header.hash)).toBe(true)
     })
+
+    it('should not scan if all accounts are up to date', async () => {
+      const { chain, wallet } = nodeTest
+
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
+
+      const block1 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block1)
+
+      await wallet.updateHead()
+      expect(wallet['chainProcessor']['hash']?.equals(block1.header.hash)).toBe(true)
+
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(block1.header.hash)
+      await expect(accountB.getHeadHash()).resolves.toEqualHash(block1.header.hash)
+
+      const connectSpy = jest.spyOn(wallet, 'connectBlock')
+
+      expect(wallet.shouldRescan).toBe(false)
+
+      await wallet.scanTransactions()
+
+      expect(connectSpy).not.toHaveBeenCalled()
+    })
   })
 
   describe('getBalance', () => {

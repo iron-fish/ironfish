@@ -514,6 +514,11 @@ export class Wallet {
       return
     }
 
+    if (!this.shouldRescan) {
+      this.logger.info('Skipping Scan, all accounts up to date.')
+      return
+    }
+
     const scan = new ScanState()
     this.scan = scan
 

@@ -140,8 +140,8 @@ describe('Create genesis block', () => {
     await expect(
       newNode.wallet.getBalance(accountNewNode, Asset.nativeIdentifier()),
     ).resolves.toMatchObject({
-      confirmed: amountBigint * 2n,
-      unconfirmed: amountBigint * 2n,
+      confirmed: amountBigint,
+      unconfirmed: amountBigint,
     })
 
     // Ensure we can construct blocks after that block
