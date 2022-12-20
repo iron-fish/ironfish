@@ -15,8 +15,8 @@
     "build": "yarn clean && napi build --platform --release",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish --skip-gh-release",
-    "lint": "cargo fmt --all --check",
-    "lint:fix": "cargo fmt --all",
+    "lint": "cargo fmt --all --check && cargo clippy --all-targets -- -D warnings",
+    "lint:fix": "cargo fmt --all && cargo clippy --all-targets -- -D warnings --fix",
     "test:slow": "jest --testPathIgnorePatterns --testMatch \"**/*.test.slow.ts\"",
     "clean": "rimraf target"
   },
