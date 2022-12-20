@@ -62,7 +62,7 @@ export class BlockTemplateSerde {
       noteHasher.deserialize(Buffer.from(blockTemplate.header.noteCommitment, 'hex')),
       Buffer.from(blockTemplate.header.transactionCommitment, 'hex'),
       new Target(Buffer.from(blockTemplate.header.target, 'hex')),
-      BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.randomness, 'hex')),
+      BigIntUtils.fromBytesBE(Buffer.from(blockTemplate.header.randomness, 'hex')),
       new Date(blockTemplate.header.timestamp),
       Buffer.from(blockTemplate.header.graffiti, 'hex'),
     )

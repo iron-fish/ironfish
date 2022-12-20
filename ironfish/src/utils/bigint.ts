@@ -42,7 +42,7 @@ function min(a: bigint, b: bigint): bigint {
  *
  * Sorry.
  */
-function fromBytes(bytes: Buffer): bigint {
+function fromBytesBE(bytes: Buffer): bigint {
   if (bytes.length === 0) {
     return BigInt(0)
   }
@@ -61,7 +61,7 @@ function fromBytes(bytes: Buffer): bigint {
 }
 
 function fromBytesLE(bytes: Buffer): bigint {
-  return fromBytes(bytes.reverse())
+  return fromBytesBE(bytes.reverse())
 }
 
 /**
@@ -71,7 +71,7 @@ function fromBytesLE(bytes: Buffer): bigint {
  * incoming bigint is non-negative, and fix the places where we're calling
  * it with a negative number (at least one place is miners fee serialization)
  */
-function toBytes(value: bigint): Buffer {
+function toBytesBE(value: bigint): Buffer {
   let hex = value.toString(16)
   if (hex.length % 2) {
     hex = '0' + hex
@@ -96,25 +96,8 @@ function toBytes(value: bigint): Buffer {
  * incoming bigint is non-negative, and fix the places where we're calling
  * it with a negative number (at least one place is miners fee serialization)
  */
-function toBytesLE(value: bigint, size?: number): Buffer {
-  return toBytesBE(value, size).reverse()
-}
-
-/**
- * TODO: Handle negative numbers, or add an assertion that the
- * incoming bigint is non-negative, and fix the places where we're calling
- * it with a negative number (at least one place is miners fee serialization)
- */
-function toBytesBE(value: bigint, size?: number): Buffer {
-  const bytes = toBytes(value)
-
-  if (size) {
-    const result = Buffer.alloc(size)
-    result.set(bytes, size - bytes.length)
-    return result
-  }
-
-  return bytes
+function toBytesLE(value: bigint): Buffer {
+  return toBytesBE(value).reverse()
 }
 
 function writeBigU64BE(value: bigint): Buffer {
@@ -146,8 +129,7 @@ function tryParse(value: string): [bigint, null] | [null, Error] {
 }
 
 export const BigIntUtils = {
-  toBytes,
-  fromBytes,
+  fromBytesBE,
   fromBytesLE,
   toBytesBE,
   toBytesLE,

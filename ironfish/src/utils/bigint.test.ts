@@ -18,8 +18,8 @@ describe('BigIntUtils', () => {
     ]
 
     for (const candidate of bigints) {
-      const bytes = BigIntUtils.toBytes(candidate)
-      const back = BigIntUtils.fromBytes(bytes)
+      const bytes = BigIntUtils.toBytesBE(candidate)
+      const back = BigIntUtils.fromBytesBE(bytes)
       expect(back).toEqual(candidate)
     }
   })
@@ -39,7 +39,7 @@ describe('BigIntUtils', () => {
   })
 
   it('converts empty array to 0', () => {
-    expect(BigIntUtils.fromBytes(Buffer.from([]))).toEqual(BigInt(0))
+    expect(BigIntUtils.fromBytesBE(Buffer.from([]))).toEqual(BigInt(0))
   })
 
   it('divides bigint', () => {

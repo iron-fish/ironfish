@@ -126,7 +126,7 @@ export class CreateTransactionRequest extends WorkerMessage {
   static deserialize(jobId: number, buffer: Buffer): CreateTransactionRequest {
     const reader = bufio.read(buffer, true)
     const spendKey = reader.readVarString()
-    const transactionFee = BigIntUtils.fromBytes(reader.readVarBytes())
+    const transactionFee = BigIntUtils.fromBytesBE(reader.readVarBytes())
     const expiration = reader.readU64()
 
     const spendsLength = reader.readU64()
@@ -151,7 +151,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     const receives = []
     for (let i = 0; i < receivesLength; i++) {
       const publicAddress = reader.readVarString()
-      const amount = BigIntUtils.fromBytes(reader.readVarBytes())
+      const amount = BigIntUtils.fromBytesBE(reader.readVarBytes())
       const memo = reader.readVarString('utf8')
       const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
       receives.push({ publicAddress, amount, memo, assetIdentifier })
@@ -161,7 +161,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     const mints = []
     for (let i = 0; i < mintsLength; i++) {
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
-      const value = BigIntUtils.fromBytes(reader.readVarBytes())
+      const value = BigIntUtils.fromBytesBE(reader.readVarBytes())
       mints.push({ asset, value })
     }
 
@@ -169,7 +169,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     const burns = []
     for (let i = 0; i < burnsLength; i++) {
       const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
-      const value = BigIntUtils.fromBytes(reader.readVarBytes())
+      const value = BigIntUtils.fromBytesBE(reader.readVarBytes())
       burns.push({ assetIdentifier, value })
     }
 
