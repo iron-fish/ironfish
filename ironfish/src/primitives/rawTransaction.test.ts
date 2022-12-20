@@ -76,6 +76,7 @@ describe('RawTransaction', () => {
         fee: raw.fee,
       })
 
+      expect(RawTransactionSerde.serialize(deserialized).equals(serialized)).toBe(true)
       expect(deserialized.receives[0].note).toEqual(raw.receives[0].note)
       expect(deserialized.burns[0].assetIdentifier).toEqual(asset.identifier())
       expect(deserialized.burns[0].value).toEqual(5n)

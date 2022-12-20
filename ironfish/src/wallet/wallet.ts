@@ -745,7 +745,7 @@ export class Wallet {
     }[],
     mints: MintDescription[],
     burns: BurnDescription[],
-    transactionFee: bigint,
+    fee: bigint,
     expirationSequence: number,
   ): Promise<RawTransaction> {
     const unlock = await this.createTransactionMutex.lock()
@@ -762,6 +762,7 @@ export class Wallet {
       raw.expirationSequence = expirationSequence
       raw.mints = mints
       raw.burns = burns
+      raw.fee = fee
 
       for (const receive of receives) {
         const note = new NativeNote(
@@ -769,14 +770,14 @@ export class Wallet {
           receive.amount,
           receive.memo,
           receive.assetIdentifier,
-          sender.spendingKey,
+          sender.publicAddress,
         )
 
         raw.receives.push({ note: new Note(note.serialize()) })
       }
 
       await this.fund(raw, {
-        fee: transactionFee,
+        fee: fee,
         account: sender,
       })
 
