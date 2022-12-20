@@ -12,7 +12,12 @@ declare module 'bufio' {
     writeU32(value: number): StaticWriter
     writeU64(value: number): StaticWriter
     writeI64(value: number): StaticWriter
-    writeBigU64(value: bigint): BufferWriter
+    writeBigU64(value: bigint): StaticWriter
+    writeBigU64BE(value: bigint): StaticWriter
+    writeBigU128(value: bigint): StaticWriter
+    writeBigU128BE(value: bigint): StaticWriter
+    writeBigU256(value: bigint): StaticWriter
+    writeBigU256BE(value: bigint): StaticWriter
     writeVarint(value: number): StaticWriter
     writeString(value: string, enc?: BufferEncoding | null): StaticWriter
     writeVarString(value: string, enc?: BufferEncoding | null): StaticWriter
@@ -32,6 +37,11 @@ declare module 'bufio' {
     writeU32(value: number): BufferWriter
     writeU64(value: number): BufferWriter
     writeBigU64(value: bigint): BufferWriter
+    writeBigU64BE(value: bigint): BufferWriter
+    writeBigU128(value: bigint): BufferWriter
+    writeBigU128BE(value: bigint): BufferWriter
+    writeBigU256(value: bigint): BufferWriter
+    writeBigU256BE(value: bigint): BufferWriter
     writeI64(value: number): BufferWriter
     writeVarint(value: number): BufferWriter
     writeString(value: string, enc?: BufferEncoding | null): BufferWriter
@@ -53,6 +63,11 @@ declare module 'bufio' {
     readU64(): number
     readU64BE(): number
     readBigU64(): bigint
+    readBigU64BE(): bigint
+    readBigU128(): bigint
+    readBigU128BE(): bigint
+    readBigU256(): bigint
+    readBigU256BE(): bigint
     readI64(): number
     readFloat(): number
     readFloatBE(): number
