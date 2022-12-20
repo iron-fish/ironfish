@@ -117,9 +117,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     const totalByAssetIdentifier = new BufferMap<bigint>()
     for (const { assetIdentifier, amount } of receives) {
       if (amount < 0) {
-        throw new ValidationError(
-          `Invalid transaction amount ${amount} for asset '${assetIdentifier.toString('hex')}'`,
-        )
+        throw new ValidationError(`Invalid transaction amount ${amount}.`)
       }
 
       const sum = totalByAssetIdentifier.get(assetIdentifier) ?? BigInt(0)
@@ -136,9 +134,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
 
       if (balance.confirmed < sum) {
         throw new ValidationError(
-          `Your balance is too low for asset '${assetIdentifier.toString(
-            'hex',
-          )}'. Add funds to your account first`,
+          `Your balance is too low. Add funds to your account first`,
           undefined,
           ERROR_CODES.INSUFFICIENT_BALANCE,
         )
