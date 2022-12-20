@@ -15,7 +15,7 @@ export type SendTransactionRequest = {
     publicAddress: string
     amount: string
     memo: string
-    assetIdentifier: string
+    assetIdentifier?: string
   }[]
   fee: string
   expirationSequence?: number | null
@@ -27,7 +27,7 @@ export type SendTransactionResponse = {
     publicAddress: string
     amount: string
     memo: string
-    assetIdentifier: string
+    assetIdentifier?: string
   }[]
   fromAccountName: string
   hash: string
@@ -43,7 +43,7 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
             publicAddress: yup.string().defined(),
             amount: yup.string().defined(),
             memo: yup.string().defined(),
-            assetIdentifier: yup.string().defined(),
+            assetIdentifier: yup.string().optional(),
           })
           .defined(),
       )
@@ -63,7 +63,7 @@ export const SendTransactionResponseSchema: yup.ObjectSchema<SendTransactionResp
             publicAddress: yup.string().defined(),
             amount: yup.string().defined(),
             memo: yup.string().defined(),
-            assetIdentifier: yup.string().defined(),
+            assetIdentifier: yup.string().optional(),
           })
           .defined(),
       )
@@ -99,11 +99,16 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     const receives = transaction.receives.map((receive) => {
+      let assetIdentifier = Asset.nativeIdentifier()
+      if (receive.assetIdentifier) {
+        assetIdentifier = Buffer.from(receive.assetIdentifier, 'hex')
+      }
+
       return {
         publicAddress: receive.publicAddress,
         amount: CurrencyUtils.decode(receive.amount),
         memo: receive.memo,
-        assetIdentifier: Buffer.from(receive.assetIdentifier, 'hex'),
+        assetIdentifier,
       }
     })
 

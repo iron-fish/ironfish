@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
 import { CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
@@ -54,6 +53,10 @@ export class Pay extends IronfishCommand {
       description: 'The priority level for transaction fee estimation.',
       options: ['low', 'medium', 'high'],
     }),
+    assetIdentifier: Flags.string({
+      char: 'i',
+      description: 'The identifier for the asset to use when paying',
+    }),
   }
 
   async start(): Promise<void> {
@@ -79,13 +82,13 @@ export class Pay extends IronfishCommand {
       amount = CurrencyUtils.decodeIron(flags.amount)
     }
 
+    const assetIdentifier = flags.assetIdentifier
+
     if (amount === null) {
-      const response = await client.getAccountBalance({ account: from })
+      const response = await client.getAccountBalance({ account: from, assetIdentifier })
 
       const input = (await CliUx.ux.prompt(
-        `Enter the amount in $IRON (balance: ${CurrencyUtils.renderIron(
-          response.content.confirmed,
-        )})`,
+        `Enter the amount (balance: ${CurrencyUtils.renderIron(response.content.confirmed)})`,
         {
           required: true,
         },
@@ -228,7 +231,7 @@ ${CurrencyUtils.renderIron(amount, true)} plus a transaction fee of ${CurrencyUt
             publicAddress: to,
             amount: CurrencyUtils.encode(amount),
             memo,
-            assetIdentifier: Asset.nativeIdentifier().toString('hex'),
+            assetIdentifier,
           },
         ],
         fee: CurrencyUtils.encode(fee),
