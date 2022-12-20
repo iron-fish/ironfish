@@ -1,0 +1,12 @@
+{
+  "RawTransaction RawTransactionSerde serializes and deserializes a block": [
+    {
+      "id": "cc67aa95-2ab1-4807-bfb1-11cce4e20aa8",
+      "name": "test",
+      "spendingKey": "e3ede65034055e16301a0c49bef9d1a55a851e4243318c7f751d204364859d94",
+      "incomingViewKey": "1b0bd62149c3142aa81b125aec2ef66c848d8cbb8cd0e822c41dff1923c12601",
+      "outgoingViewKey": "96fd8d9afc2215f6360ce8220a82742b4f26f10c49a248659c9756e10790f712",
+      "publicAddress": "ca7ff12aa2c251c7192a22078d2dea60c0c6a8be6024fb7921af0684156f05a9"
+    }
+  ]
+}

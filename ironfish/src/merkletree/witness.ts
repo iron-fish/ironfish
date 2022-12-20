@@ -74,3 +74,35 @@ export type NoteWitness = Witness<
   SerializedNoteEncrypted,
   SerializedNoteEncryptedHash
 >
+
+export function IsNoteWitnessEqual(a: NoteWitness, b: NoteWitness): boolean {
+  if (a.treeSize() !== b.treeSize()) {
+    return false
+  }
+
+  if (!a.rootHash.equals(b.rootHash)) {
+    return false
+  }
+
+  const otherAuth = b.authPath()
+  const thisAuth = a.authPath()
+
+  if (thisAuth.length !== otherAuth.length) {
+    return false
+  }
+
+  for (let i = 0; i < thisAuth.length; i++) {
+    const thisNode = thisAuth[i]
+    const otherNode = otherAuth[i]
+
+    const equals =
+      thisNode.side() === otherNode.side() &&
+      thisNode.hashOfSibling().equals(otherNode.hashOfSibling())
+
+    if (!equals) {
+      return false
+    }
+  }
+
+  return true
+}

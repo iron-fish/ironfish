@@ -1069,7 +1069,7 @@ describe('Accounts', () => {
       const mintValue = BigInt(10)
       // Mint some coins
       const blockB = await useBlockFixture(node.chain, async () => {
-        const transaction = await node.wallet.createTransaction(
+        const raw = await node.wallet.createTransaction(
           account,
           [],
           [{ asset, value: mintValue }],
@@ -1077,6 +1077,8 @@ describe('Accounts', () => {
           BigInt(0),
           0,
         )
+
+        const transaction = await node.wallet.postTransaction(raw)
 
         return node.chain.newBlock(
           [transaction],

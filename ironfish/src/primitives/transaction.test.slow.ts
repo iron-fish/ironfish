@@ -99,7 +99,7 @@ describe('Accounts', () => {
     await nodeA.chain.addBlock(block1)
     await nodeA.wallet.updateHead()
 
-    const transaction = await nodeA.wallet.createTransaction(
+    const raw = await nodeA.wallet.createTransaction(
       accountA,
       [
         {
@@ -114,6 +114,9 @@ describe('Accounts', () => {
       BigInt(1),
       0,
     )
+
+    const transaction = await nodeA.wallet.postTransaction(raw)
+
     expect(transaction.isMinersFee()).toBe(false)
   })
 })
