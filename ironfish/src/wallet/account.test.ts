@@ -303,4 +303,111 @@ describe('Accounts', () => {
       expect(pendingHashEntry).toBeDefined()
     })
   })
+
+  describe('connectTransaction', () => {
+    it('should create decrypted notes marked as on chain', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const connectSpy = jest.spyOn(accountA, 'connectTransaction')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      expect(connectSpy).toHaveBeenCalled()
+
+      // transaction from A -> A, so all notes belong to A
+      for (const note of transaction.notes) {
+        const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
+
+        expect(decryptedNote).toBeDefined()
+
+        const nonChainIndex = await accountA['walletDb'].nonChainNoteHashes.get([
+          accountA.prefix,
+          note.merkleHash(),
+        ])
+
+        expect(nonChainIndex).toBeUndefined()
+
+        expect(decryptedNote?.nullifier).toBeDefined()
+
+        const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
+          accountA.prefix,
+          [3, note.merkleHash()],
+        ])
+
+        expect(sequenceIndex).toBeDefined()
+      }
+    })
+
+    it('should mark notes from spends as spent', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const connectSpy = jest.spyOn(accountA, 'connectTransaction')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      expect(connectSpy).toHaveBeenCalled()
+
+      for (const spend of transaction.spends) {
+        const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
+
+        Assert.isNotNull(spentNoteHash)
+
+        const spentNote = await accountA.getDecryptedNote(spentNoteHash)
+
+        Assert.isNotUndefined(spentNote)
+
+        expect(spentNote.spent).toBeTruthy()
+      }
+    })
+
+    it('should remove transactions from pendingTransactionHashes', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const connectSpy = jest.spyOn(accountA, 'connectTransaction')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      expect(connectSpy).toHaveBeenCalled()
+
+      const pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
+        accountA.prefix,
+        [transaction.expirationSequence(), transaction.hash()],
+      ])
+
+      expect(pendingHashEntry).toBeUndefined()
+    })
+  })
 })

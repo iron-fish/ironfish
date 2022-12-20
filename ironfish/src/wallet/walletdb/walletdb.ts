@@ -278,7 +278,24 @@ export class WalletDB {
     transactionValue: TransactionValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
+    const expirationSequence = transactionValue.transaction.expirationSequence()
+
+    await this.db.withTransaction(tx, async (tx) => {
+      if (transactionValue.blockHash) {
+        await this.pendingTransactionHashes.del(
+          [account.prefix, [expirationSequence, transactionHash]],
+          tx,
+        )
+      } else {
+        await this.pendingTransactionHashes.put(
+          [account.prefix, [expirationSequence, transactionHash]],
+          null,
+          tx,
+        )
+      }
+
+      await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
+    })
   }
 
   async deleteTransaction(
@@ -442,7 +459,15 @@ export class WalletDB {
     note: Readonly<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
+    await this.db.withTransaction(tx, async (tx) => {
+      if (note.nullifier) {
+        await this.nullifierToNoteHash.put([account.prefix, note.nullifier], noteHash, tx)
+      }
+
+      await this.setNoteHashSequence(account, noteHash, note.sequence, tx)
+
+      await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
+    })
   }
 
   async loadDecryptedNote(

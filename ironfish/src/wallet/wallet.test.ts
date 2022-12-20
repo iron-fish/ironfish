@@ -1150,4 +1150,70 @@ describe('Accounts', () => {
       expect(decryptSpy).toHaveBeenCalledTimes(1)
     })
   })
+
+  describe('connectBlock', () => {
+    it('should add transactions to the walletDb with blockHash and sequence set', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const { block: blockA2, transaction } = await useBlockWithTx(node, accountA, accountB)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+
+      expect(transactionValue).toBeDefined()
+      expect(transactionValue?.blockHash).toEqualHash(blockA2.header.hash)
+      expect(transactionValue?.sequence).toEqual(blockA2.header.sequence)
+    })
+
+    it('should update the account head hash', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
+
+      const accountAHeadHash = await accountA.getHeadHash()
+
+      expect(accountAHeadHash).toEqualHash(blockA2.header.hash)
+    })
+
+    it('should update the account unconfirmed balance', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      expect(balanceBefore).toEqual(2000000000n)
+
+      const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
+
+      const balanceAfter = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      expect(balanceAfter).toEqual(1999999998n)
+    })
+  })
 })
