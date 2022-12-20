@@ -483,7 +483,7 @@ export class Wallet {
     if (
       !('blockHash' in params) &&
       this.chain.verifier.isExpiredSequence(
-        transaction.expirationSequence(),
+        transaction.expiration(),
         this.chainProcessor.sequence ?? 1,
       )
     ) {
@@ -710,18 +710,17 @@ export class Wallet {
       assetIdentifier: Buffer
     }[],
     transactionFee: bigint,
-    defaultTransactionExpirationSequenceDelta: number,
-    expirationSequence?: number | null,
+    transactionExpirationDelta: number,
+    expiration?: number | null,
   ): Promise<Transaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
       throw new Error('You must have a genesis block to create a transaction')
     }
 
-    expirationSequence =
-      expirationSequence ?? heaviestHead.sequence + defaultTransactionExpirationSequenceDelta
+    expiration = expiration ?? heaviestHead.sequence + transactionExpirationDelta
 
-    if (this.chain.verifier.isExpiredSequence(expirationSequence, this.chain.head.sequence)) {
+    if (this.chain.verifier.isExpiredSequence(expiration, this.chain.head.sequence)) {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
@@ -731,7 +730,7 @@ export class Wallet {
       [],
       [],
       transactionFee,
-      expirationSequence,
+      expiration,
     )
 
     const transaction = await this.postTransaction(raw)
@@ -760,7 +759,7 @@ export class Wallet {
     mints: MintDescription[],
     burns: BurnDescription[],
     fee: bigint,
-    expirationSequence: number,
+    expiration: number,
   ): Promise<RawTransaction> {
     const unlock = await this.createTransactionMutex.lock()
 
@@ -773,7 +772,7 @@ export class Wallet {
 
       const raw = new RawTransaction()
       raw.spendingKey = sender.spendingKey
-      raw.expirationSequence = expirationSequence
+      raw.expiration = expiration
       raw.mints = mints
       raw.burns = burns
       raw.fee = fee
@@ -1116,7 +1115,7 @@ export class Wallet {
       return isConfirmed ? TransactionStatus.CONFIRMED : TransactionStatus.UNCONFIRMED
     } else {
       const isExpired = this.chain.verifier.isExpiredSequence(
-        transaction.transaction.expirationSequence(),
+        transaction.transaction.expiration(),
         headSequence,
       )
 

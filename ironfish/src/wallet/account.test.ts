@@ -297,7 +297,7 @@ describe('Accounts', () => {
 
       const pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
         accountA.prefix,
-        [transaction.expirationSequence(), transaction.hash()],
+        [transaction.expiration(), transaction.hash()],
       ])
 
       expect(pendingHashEntry).toBeDefined()
@@ -404,7 +404,7 @@ describe('Accounts', () => {
 
       const pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
         accountA.prefix,
-        [transaction.expirationSequence(), transaction.hash()],
+        [transaction.expiration(), transaction.hash()],
       ])
 
       expect(pendingHashEntry).toBeUndefined()
@@ -533,7 +533,7 @@ describe('Accounts', () => {
 
       let pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
         accountA.prefix,
-        [transaction.expirationSequence(), transaction.hash()],
+        [transaction.expiration(), transaction.hash()],
       ])
 
       expect(pendingHashEntry).toBeUndefined()
@@ -543,7 +543,7 @@ describe('Accounts', () => {
 
       pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
         accountA.prefix,
-        [transaction.expirationSequence(), transaction.hash()],
+        [transaction.expiration(), transaction.hash()],
       ])
 
       expect(pendingHashEntry).toBeDefined()

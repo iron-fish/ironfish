@@ -75,8 +75,8 @@ export class TransactionsCommand extends IronfishCommand {
             header: 'Spends',
             minWidth: 5,
           },
-          expirationSequence: {
-            header: 'Expiration Sequence',
+          expiration: {
+            header: 'Expiration',
           },
         },
         {

@@ -31,7 +31,7 @@ export class Transaction {
 
   private readonly _version: number
   private readonly _fee: bigint
-  private readonly _expirationSequence: number
+  private readonly _expiration: number
   private readonly _signature: Buffer
   private _hash?: TransactionHash
   private _unsignedHash?: TransactionHash
@@ -50,7 +50,7 @@ export class Transaction {
     const _mintsLength = reader.readU64() // 8
     const _burnsLength = reader.readU64() // 8
     this._fee = BigInt(reader.readI64()) // 8
-    this._expirationSequence = reader.readU32() // 4
+    this._expiration = reader.readU32() // 4
     // randomized public key of sender
     // to read the value of rpk reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
     reader.seek(32)
@@ -225,7 +225,11 @@ export class Transaction {
     return this.transactionPostedSerialized.equals(other.transactionPostedSerialized)
   }
 
-  expirationSequence(): number {
-    return this._expirationSequence
+  /**
+   * @returns The expiration as block sequence of the transaction.
+   * The transaction cannot be added to a block of equal or greater sequence
+   */
+  expiration(): number {
+    return this._expiration
   }
 }

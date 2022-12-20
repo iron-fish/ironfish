@@ -19,7 +19,7 @@ const noteHasher = new NoteHasher()
 
 export class RawTransaction {
   spendingKey = ''
-  expirationSequence: number | null = null
+  expiration: number | null = null
   fee = 0n
   mints: MintDescription[] = []
   burns: BurnDescription[] = []
@@ -56,8 +56,8 @@ export class RawTransaction {
       builder.burn(burn.assetIdentifier, burn.value)
     }
 
-    if (this.expirationSequence !== null) {
-      builder.setExpirationSequence(this.expirationSequence)
+    if (this.expiration !== null) {
+      builder.setExpirationSequence(this.expiration)
     }
 
     const serialized = builder.post(null, this.fee)
@@ -111,9 +111,9 @@ export class RawTransactionSerde {
       bw.writeBigU64(burn.value)
     }
 
-    bw.writeU8(Number(raw.expirationSequence != null))
-    if (raw.expirationSequence != null) {
-      bw.writeU64(raw.expirationSequence)
+    bw.writeU8(Number(raw.expiration != null))
+    if (raw.expiration != null) {
+      bw.writeU64(raw.expiration)
     }
 
     return bw.render()
@@ -167,7 +167,7 @@ export class RawTransactionSerde {
 
     const hasExpiration = reader.readU8()
     if (hasExpiration) {
-      raw.expirationSequence = reader.readU64()
+      raw.expiration = reader.readU64()
     }
 
     return raw
@@ -210,8 +210,8 @@ export class RawTransactionSerde {
     }
 
     size += 1 // has expiration sequence
-    if (raw.expirationSequence != null) {
-      size += 8 // raw.expirationSequence
+    if (raw.expiration != null) {
+      size += 8 // raw.expiration
     }
 
     return size

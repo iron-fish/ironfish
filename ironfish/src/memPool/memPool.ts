@@ -19,7 +19,7 @@ interface MempoolEntry {
 }
 
 interface ExpirationMempoolEntry {
-  expirationSequence: number
+  expiration: number
   hash: TransactionHash
 }
 
@@ -62,7 +62,7 @@ export class MemPool {
     )
 
     this.expirationQueue = new PriorityQueue<ExpirationMempoolEntry>(
-      (t1, t2) => t1.expirationSequence < t2.expirationSequence,
+      (t1, t2) => t1.expiration < t2.expiration,
       (t) => t.hash.toString('hex'),
     )
 
@@ -131,7 +131,7 @@ export class MemPool {
    */
   acceptTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash().toString('hex')
-    const sequence = transaction.expirationSequence()
+    const sequence = transaction.expiration()
     if (this.exists(transaction.hash())) {
       return false
     }
@@ -183,10 +183,7 @@ export class MemPool {
     let nextExpired = this.expirationQueue.peek()
     while (
       nextExpired &&
-      this.chain.verifier.isExpiredSequence(
-        nextExpired.expirationSequence,
-        this.chain.head.sequence,
-      )
+      this.chain.verifier.isExpiredSequence(nextExpired.expiration, this.chain.head.sequence)
     ) {
       const transaction = this.get(nextExpired.hash)
       if (!transaction) {
@@ -245,7 +242,7 @@ export class MemPool {
     }
 
     this.queue.add({ hash, feeRate: getFeeRate(transaction) })
-    this.expirationQueue.add({ expirationSequence: transaction.expirationSequence(), hash })
+    this.expirationQueue.add({ expiration: transaction.expiration(), hash })
     this.metrics.memPoolSize.value = this.count()
     return true
   }

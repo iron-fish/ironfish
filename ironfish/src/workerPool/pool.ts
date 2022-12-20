@@ -163,7 +163,7 @@ export class WorkerPool {
     mints: MintDescription[],
     burns: BurnDescription[],
     transactionFee: bigint,
-    expirationSequence: number,
+    expiration: number,
   ): Promise<Transaction> {
     const spendsWithSerializedNotes = spends.map((s) => ({
       ...s,
@@ -172,7 +172,7 @@ export class WorkerPool {
     const request: CreateTransactionRequest = new CreateTransactionRequest(
       spendKey,
       transactionFee,
-      expirationSequence,
+      expiration,
       spendsWithSerializedNotes,
       receives,
       mints,

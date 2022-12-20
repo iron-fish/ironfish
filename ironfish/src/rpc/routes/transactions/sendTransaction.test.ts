@@ -216,14 +216,14 @@ describe('Transactions sendTransaction', () => {
       expect.anything(),
       expect.anything(),
       expect.anything(),
-      routeTest.node.config.get('defaultTransactionExpirationSequenceDelta'),
+      routeTest.node.config.get('transactionExpirationDelta'),
       undefined,
     )
 
     await routeTest.client.sendTransaction({
       ...TEST_PARAMS,
-      expirationSequence: 1234,
-      expirationSequenceDelta: 12345,
+      expiration: 1234,
+      expirationDelta: 12345,
     })
 
     expect(paySpy).toHaveBeenCalledWith(

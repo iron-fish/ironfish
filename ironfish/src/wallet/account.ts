@@ -357,7 +357,7 @@ export class Account {
 
       await this.walletDb.savePendingTransactionHash(
         this,
-        transaction.expirationSequence(),
+        transaction.expiration(),
         transaction.hash(),
         tx,
       )
@@ -561,7 +561,7 @@ export class Account {
 
       await this.walletDb.deletePendingTransactionHash(
         this,
-        transaction.expirationSequence(),
+        transaction.expiration(),
         transactionHash,
         tx,
       )

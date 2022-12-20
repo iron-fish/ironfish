@@ -42,7 +42,7 @@ export class Pay extends IronfishCommand {
       default: false,
       description: 'Confirm without asking',
     }),
-    expirationSequence: Flags.integer({
+    expiration: Flags.integer({
       char: 'e',
       description:
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
@@ -61,7 +61,7 @@ export class Pay extends IronfishCommand {
     let fee = null
     let to = flags.to?.trim()
     let from = flags.account?.trim()
-    const expirationSequence = flags.expirationSequence
+    const expiration = flags.expiration
     const memo = flags.memo || ''
 
     const client = await this.sdk.connectRpc(false, true)
@@ -171,7 +171,7 @@ export class Pay extends IronfishCommand {
       this.error(`The minimum fee is ${CurrencyUtils.renderOre(1n, true)}`)
     }
 
-    if (expirationSequence !== undefined && expirationSequence < 0) {
+    if (expiration !== undefined && expiration < 0) {
       this.log('Expiration sequence must be non-negative')
       this.exit(1)
     }
@@ -230,7 +230,7 @@ ${CurrencyUtils.renderIron(amount, true)} plus a transaction fee of ${CurrencyUt
           },
         ],
         fee: CurrencyUtils.encode(fee),
-        expirationSequence,
+        expiration: expiration,
       })
 
       stopProgressBar()

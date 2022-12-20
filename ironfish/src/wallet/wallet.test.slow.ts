@@ -129,7 +129,7 @@ describe('Accounts', () => {
         },
       ],
       BigInt(0),
-      node.config.get('defaultTransactionExpirationSequenceDelta'),
+      node.config.get('transactionExpirationDelta'),
       0,
     )
 
@@ -206,11 +206,11 @@ describe('Accounts', () => {
         },
       ],
       BigInt(0),
-      node.config.get('defaultTransactionExpirationSequenceDelta'),
+      node.config.get('transactionExpirationDelta'),
     )
 
-    expect(transaction.expirationSequence()).toBe(
-      node.chain.head.sequence + node.config.get('defaultTransactionExpirationSequenceDelta'),
+    expect(transaction.expiration()).toBe(
+      node.chain.head.sequence + node.config.get('transactionExpirationDelta'),
     )
 
     // Create a block with a miner's fee
@@ -297,11 +297,11 @@ describe('Accounts', () => {
         },
       ],
       BigInt(0),
-      node.config.get('defaultTransactionExpirationSequenceDelta'),
+      node.config.get('transactionExpirationDelta'),
     )
 
-    expect(transaction.expirationSequence()).toBe(
-      node.chain.head.sequence + node.config.get('defaultTransactionExpirationSequenceDelta'),
+    expect(transaction.expiration()).toBe(
+      node.chain.head.sequence + node.config.get('transactionExpirationDelta'),
     )
 
     // Create a block with a miner's fee
@@ -342,7 +342,7 @@ describe('Accounts', () => {
           },
         ],
         BigInt(0),
-        node.config.get('defaultTransactionExpirationSequenceDelta'),
+        node.config.get('transactionExpirationDelta'),
         1,
       ),
     ).rejects.toThrow(Error)

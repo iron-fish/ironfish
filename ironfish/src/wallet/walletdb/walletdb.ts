@@ -278,17 +278,17 @@ export class WalletDB {
     transactionValue: TransactionValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    const expirationSequence = transactionValue.transaction.expirationSequence()
+    const expiration = transactionValue.transaction.expiration()
 
     await this.db.withTransaction(tx, async (tx) => {
       if (transactionValue.blockHash) {
         await this.pendingTransactionHashes.del(
-          [account.prefix, [expirationSequence, transactionHash]],
+          [account.prefix, [expiration, transactionHash]],
           tx,
         )
       } else {
         await this.pendingTransactionHashes.put(
-          [account.prefix, [expirationSequence, transactionHash]],
+          [account.prefix, [expiration, transactionHash]],
           null,
           tx,
         )
@@ -357,7 +357,7 @@ export class WalletDB {
       return false
     }
 
-    const expirationSequence = transactionValue.transaction.expirationSequence()
+    const expirationSequence = transactionValue.transaction.expiration()
     return this.pendingTransactionHashes.has(
       [account.prefix, [expirationSequence, transactionHash]],
       tx,
@@ -693,12 +693,12 @@ export class WalletDB {
 
   async savePendingTransactionHash(
     account: Account,
-    expirationSequence: number,
+    expiration: number,
     transactionHash: TransactionHash,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.pendingTransactionHashes.put(
-      [account.prefix, [expirationSequence, transactionHash]],
+      [account.prefix, [expiration, transactionHash]],
       null,
       tx,
     )
@@ -706,14 +706,11 @@ export class WalletDB {
 
   async deletePendingTransactionHash(
     account: Account,
-    expirationSequence: number,
+    expiration: number,
     transactionHash: TransactionHash,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.pendingTransactionHashes.del(
-      [account.prefix, [expirationSequence, transactionHash]],
-      tx,
-    )
+    await this.pendingTransactionHashes.del([account.prefix, [expiration, transactionHash]], tx)
   }
 
   async clearPendingTransactionHashes(
