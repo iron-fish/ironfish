@@ -84,7 +84,7 @@ describe('Demonstrate the Sapling API', () => {
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
 
     const transaction = new Transaction(key.spending_key)
-    transaction.setExpirationSequence(10)
+    transaction.setExpiration(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key)!)
     const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive', Asset.nativeIdentifier(), minersFeeNote.owner())
@@ -112,7 +112,7 @@ describe('Demonstrate the Sapling API', () => {
 
     const postedTransaction = new TransactionPosted(transaction.post(key.public_address, BigInt(5)))
 
-    expect(postedTransaction.expirationSequence()).toEqual(10)
+    expect(postedTransaction.expiration()).toEqual(10)
     expect(postedTransaction.fee()).toEqual(BigInt(5))
     expect(postedTransaction.notesLength()).toEqual(1)
     expect(postedTransaction.spendsLength()).toEqual(1)

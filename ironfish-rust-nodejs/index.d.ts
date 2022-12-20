@@ -126,7 +126,7 @@ export class TransactionPosted {
   fee(): bigint
   transactionSignature(): Buffer
   hash(): Buffer
-  expirationSequence(): number
+  expiration(): number
 }
 export type NativeTransaction = Transaction
 export class Transaction {
@@ -162,7 +162,7 @@ export class Transaction {
    * aka: self.value_balance - intended_transaction_fee - change = 0
    */
   post(changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
-  setExpirationSequence(expirationSequence: number): void
+  setExpiration(sequence: number): void
 }
 export class FoundBlockResult {
   randomness: string

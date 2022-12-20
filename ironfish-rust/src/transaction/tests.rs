@@ -121,8 +121,8 @@ fn test_transaction() {
         read_back_transaction.burns.len()
     );
     assert_eq!(
-        public_transaction.expiration_sequence,
-        read_back_transaction.expiration_sequence
+        public_transaction.expiration,
+        read_back_transaction.expiration
     );
     let mut serialized_again = vec![];
     read_back_transaction
@@ -238,7 +238,7 @@ fn test_transaction_signature() {
 
     transaction.add_output(out_note);
 
-    transaction.set_expiration_sequence(1337);
+    transaction.set_expiration(1337);
 
     let public_transaction = transaction
         .post(None, 0)

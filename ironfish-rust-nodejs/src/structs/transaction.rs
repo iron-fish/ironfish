@@ -147,8 +147,8 @@ impl NativeTransactionPosted {
     }
 
     #[napi]
-    pub fn expiration_sequence(&self) -> u32 {
-        self.transaction.expiration_sequence()
+    pub fn expiration(&self) -> u32 {
+        self.transaction.expiration()
     }
 }
 
@@ -260,9 +260,9 @@ impl NativeTransaction {
     }
 
     #[napi]
-    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) -> Undefined {
+    pub fn set_expiration(&mut self, sequence: u32) -> Undefined {
         self.transaction
-            .set_expiration_sequence(expiration_sequence);
+            .set_expiration(sequence);
     }
 }
 
