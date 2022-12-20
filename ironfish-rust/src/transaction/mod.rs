@@ -348,9 +348,7 @@ impl ProposedTransaction {
 
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
         hasher.write_u8(self.version).unwrap();
-        hasher
-            .write_u32::<LittleEndian>(self.expiration)
-            .unwrap();
+        hasher.write_u32::<LittleEndian>(self.expiration).unwrap();
         hasher
             .write_i64::<LittleEndian>(*self.value_balances.fee())
             .unwrap();
@@ -643,9 +641,7 @@ impl Transaction {
             .to_state();
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
         hasher.write_u8(self.version).unwrap();
-        hasher
-            .write_u32::<LittleEndian>(self.expiration)
-            .unwrap();
+        hasher.write_u32::<LittleEndian>(self.expiration).unwrap();
         hasher.write_i64::<LittleEndian>(self.fee).unwrap();
         hasher
             .write_all(&self.randomized_public_key.0.to_bytes())
