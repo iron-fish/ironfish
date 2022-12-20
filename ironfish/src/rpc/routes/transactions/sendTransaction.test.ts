@@ -80,9 +80,7 @@ describe('Transactions sendTransaction', () => {
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
-          `Your balance is too low for asset '${Asset.nativeIdentifier().toString(
-            'hex',
-          )}'. Add funds to your account first`,
+          `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
@@ -92,9 +90,7 @@ describe('Transactions sendTransaction', () => {
     await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
-          `Your balance is too low for asset '${Asset.nativeIdentifier().toString(
-            'hex',
-          )}'. Add funds to your account first`,
+          `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
@@ -117,9 +113,7 @@ describe('Transactions sendTransaction', () => {
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
-          `Your balance is too low for asset '${Asset.nativeIdentifier().toString(
-            'hex',
-          )}'. Add funds to your account first`,
+          `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
@@ -137,9 +131,7 @@ describe('Transactions sendTransaction', () => {
     await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
-          `Your balance is too low for asset '${Asset.nativeIdentifier().toString(
-            'hex',
-          )}'. Add funds to your account first`,
+          `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
