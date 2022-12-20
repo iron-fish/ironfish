@@ -22,7 +22,7 @@ export class BalanceCommand extends IronfishCommand {
     }),
     all: Flags.boolean({
       default: false,
-      description: 'Also show pending and unconfirmed balance',
+      description: 'Also show unconfirmed balance',
     }),
     confirmations: Flags.integer({
       required: false,
@@ -63,24 +63,8 @@ export class BalanceCommand extends IronfishCommand {
 
     if (flags.all) {
       this.log(`Account: ${response.content.account}`)
-      this.log(
-        `Balance:     ${CurrencyUtils.renderBalance(
-          response.content.confirmed,
-          assetIdentifier,
-        )}`,
-      )
-      this.log(
-        `Unconfirmed: ${CurrencyUtils.renderBalance(
-          response.content.unconfirmed,
-          assetIdentifier,
-        )}`,
-      )
-      this.log(
-        `Pending:     ${CurrencyUtils.renderBalance(
-          response.content.pending,
-          assetIdentifier,
-        )}`,
-      )
+      this.log(`Balance:     ${CurrencyUtils.renderIron(response.content.confirmed, true)}`)
+      this.log(`Unconfirmed: ${CurrencyUtils.renderIron(response.content.unconfirmed, true)}`)
       return
     }
 
@@ -92,10 +76,8 @@ export class BalanceCommand extends IronfishCommand {
 
   explainBalance(response: GetBalanceResponse, assetIdentifier: string): void {
     const unconfirmed = CurrencyUtils.decode(response.unconfirmed)
-    const pending = CurrencyUtils.decode(response.pending)
     const confirmed = CurrencyUtils.decode(response.confirmed)
 
-    const pendingDelta = pending - unconfirmed
     const unconfirmedDelta = unconfirmed - confirmed
 
     this.log(`Account: ${response.account}`)
@@ -111,15 +93,6 @@ export class BalanceCommand extends IronfishCommand {
         assetIdentifier,
       )} are on the chain within ${response.minimumBlockConfirmations.toString()} blocks of the head`,
     )
-    this.log(`Unconfirmed: ${CurrencyUtils.renderBalance(unconfirmed, assetIdentifier)}`)
-    this.log('')
-
-    this.log(
-      `${response.pendingCount} notes worth ${CurrencyUtils.renderBalance(
-        pendingDelta,
-        assetIdentifier,
-      )} are waiting for miners to add them to the chain`,
-    )
-    this.log(`Pending: ${CurrencyUtils.renderBalance(pending, assetIdentifier)}`)
+    this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true)}`)
   }
 }

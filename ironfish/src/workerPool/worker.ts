@@ -14,6 +14,7 @@ import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/cre
 import { DecryptNotesRequest, DecryptNotesResponse } from './tasks/decryptNotes'
 import { JobAbortedError, JobAbortedMessage } from './tasks/jobAbort'
 import { JobError, JobErrorMessage } from './tasks/jobError'
+import { PostTransactionRequest, PostTransactionResponse } from './tasks/postTransaction'
 import { SleepRequest, SleepResponse } from './tasks/sleep'
 import { SubmitTelemetryRequest, SubmitTelemetryResponse } from './tasks/submitTelemetry'
 import { VerifyTransactionRequest, VerifyTransactionResponse } from './tasks/verifyTransaction'
@@ -237,6 +238,8 @@ export class Worker {
         return CreateMinersFeeRequest.deserialize(jobId, request)
       case WorkerMessageType.CreateTransaction:
         return CreateTransactionRequest.deserialize(jobId, request)
+      case WorkerMessageType.PostTransaction:
+        return PostTransactionRequest.deserialize(jobId, request)
       case WorkerMessageType.DecryptNotes:
         return DecryptNotesRequest.deserialize(jobId, request)
       case WorkerMessageType.JobAborted:
@@ -264,6 +267,8 @@ export class Worker {
         return CreateMinersFeeResponse.deserialize(jobId, response)
       case WorkerMessageType.CreateTransaction:
         return CreateTransactionResponse.deserialize(jobId, response)
+      case WorkerMessageType.PostTransaction:
+        return PostTransactionResponse.deserialize(jobId, response)
       case WorkerMessageType.DecryptNotes:
         return DecryptNotesResponse.deserialize(jobId, response)
       case WorkerMessageType.JobAborted:

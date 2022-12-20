@@ -45,6 +45,9 @@ export class NotesCommand extends IronfishCommand {
             // Maximum memo length is 32 bytes
             minWidth: 33,
           },
+          sender: {
+            header: 'Sender',
+          },
           transactionHash: {
             header: 'From Transaction',
           },

@@ -278,7 +278,24 @@ export class WalletDB {
     transactionValue: TransactionValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
+    const expirationSequence = transactionValue.transaction.expirationSequence()
+
+    await this.db.withTransaction(tx, async (tx) => {
+      if (transactionValue.blockHash) {
+        await this.pendingTransactionHashes.del(
+          [account.prefix, [expirationSequence, transactionHash]],
+          tx,
+        )
+      } else {
+        await this.pendingTransactionHashes.put(
+          [account.prefix, [expirationSequence, transactionHash]],
+          null,
+          tx,
+        )
+      }
+
+      await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
+    })
   }
 
   async deleteTransaction(
@@ -329,6 +346,24 @@ export class WalletDB {
     return this.transactions.has([account.prefix, transactionHash], tx)
   }
 
+  async hasPendingTransaction(
+    account: Account,
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    const transactionValue = await this.transactions.get([account.prefix, transactionHash], tx)
+
+    if (transactionValue === undefined) {
+      return false
+    }
+
+    const expirationSequence = transactionValue.transaction.expirationSequence()
+    return this.pendingTransactionHashes.has(
+      [account.prefix, [expirationSequence, transactionHash]],
+      tx,
+    )
+  }
+
   async setNoteHashSequence(
     account: Account,
     noteHash: Buffer,
@@ -342,6 +377,18 @@ export class WalletDB {
       } else {
         await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
       }
+    })
+  }
+
+  async disconnectNoteHashSequence(
+    account: Account,
+    noteHash: Buffer,
+    sequence: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
+      await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
     })
   }
 
@@ -442,7 +489,15 @@ export class WalletDB {
     note: Readonly<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
+    await this.db.withTransaction(tx, async (tx) => {
+      if (note.nullifier) {
+        await this.nullifierToNoteHash.put([account.prefix, note.nullifier], noteHash, tx)
+      }
+
+      await this.setNoteHashSequence(account, noteHash, note.sequence, tx)
+
+      await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
+    })
   }
 
   async loadDecryptedNote(

@@ -10,7 +10,7 @@ use zcash_proofs::{
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
-use crate::ValueCommitment;
+use crate::primitives::ValueCommitment;
 
 #[allow(clippy::too_many_arguments)]
 pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(

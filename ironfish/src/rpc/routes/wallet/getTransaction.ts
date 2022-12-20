@@ -52,6 +52,7 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
                 .object({
                   owner: yup.boolean().defined(),
                   value: yup.string().defined(),
+                  sender: yup.string().defined(),
                   memo: yup.string().trim().defined(),
                   spent: yup.boolean(),
                 })
@@ -100,6 +101,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
         owner,
         memo: note.memo(),
         value: note.value().toString(),
+        sender: note.sender(),
         spent: spent,
       })
     }

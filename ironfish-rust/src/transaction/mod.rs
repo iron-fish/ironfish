@@ -8,7 +8,10 @@ use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::{Asset, AssetIdentifier, NATIVE_ASSET},
+    assets::asset::{
+        asset_generator_from_identifier, Asset, AssetIdentifier, NATIVE_ASSET,
+        NATIVE_ASSET_GENERATOR,
+    },
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,
@@ -26,10 +29,7 @@ use jubjub::{ExtendedPoint, SubgroupPoint};
 use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
-    constants::{
-        SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-        VALUE_COMMITMENT_VALUE_GENERATOR,
-    },
+    constants::{SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR},
     redjubjub::{self, PrivateKey, PublicKey, Signature},
 };
 
@@ -48,6 +48,7 @@ pub mod burns;
 pub mod mints;
 pub mod outputs;
 pub mod spends;
+mod utils;
 
 #[cfg(test)]
 mod tests;
@@ -217,7 +218,11 @@ impl ProposedTransaction {
     /// a miner would not accept such a transaction unless it was explicitly set
     /// as the miners fee.
     pub fn post_miners_fee(&mut self) -> Result<Transaction, IronfishError> {
-        if !self.spends.is_empty() || self.outputs.len() != 1 {
+        if !self.spends.is_empty()
+            || self.outputs.len() != 1
+            || !self.mints.is_empty()
+            || !self.burns.is_empty()
+        {
             return Err(IronfishError::InvalidMinersFeeTransaction);
         }
         // Ensure the merkle note has an identifiable encryption key
@@ -240,9 +245,6 @@ impl ProposedTransaction {
 
     // Post transaction without much validation.
     fn _partial_post(&self) -> Result<Transaction, IronfishError> {
-        // Generate binding signature keys
-        let bsig_keys = self.binding_signature_keys()?;
-
         // Generate randomized public key
 
         // The public key after randomization has been applied. This is used
@@ -284,6 +286,7 @@ impl ProposedTransaction {
             burn_descriptions.push(burn.build());
         }
 
+        // Create the transaction signature hash
         let data_to_sign = self.transaction_signature_hash(
             &unsigned_spends,
             &output_descriptions,
@@ -291,8 +294,15 @@ impl ProposedTransaction {
             &burn_descriptions,
         );
 
-        let binding_signature =
-            self.binding_signature(&bsig_keys.0, &bsig_keys.1, &data_to_sign)?;
+        // Create and verify binding signature keys
+        let (binding_signature_private_key, binding_signature_public_key) =
+            self.binding_signature_keys(&burn_descriptions)?;
+
+        let binding_signature = self.binding_signature(
+            &binding_signature_private_key,
+            &binding_signature_public_key,
+            &data_to_sign,
+        )?;
 
         // Sign spends now that we have the data needed to be signed
         let mut spend_descriptions = Vec::with_capacity(unsigned_spends.len());
@@ -399,13 +409,16 @@ impl ProposedTransaction {
         ))
     }
 
-    fn binding_signature_keys(&self) -> Result<(PrivateKey, PublicKey), IronfishError> {
+    fn binding_signature_keys(
+        &self,
+        burns: &[BurnDescription],
+    ) -> Result<(redjubjub::PrivateKey, redjubjub::PublicKey), IronfishError> {
         // A "private key" manufactured from a bunch of randomness added for each
         // spend and output.
         let mut binding_signature_key = jubjub::Fr::zero();
 
         // A "public key" manufactured from a combination of the values of each
-        // transaction and the same randomneSpendParams, s as above
+        // description and the same randomness as above
         let mut binding_verification_key = ExtendedPoint::identity();
 
         for spend in &self.spends {
@@ -423,20 +436,19 @@ impl ProposedTransaction {
             binding_verification_key += mint.value_commitment_point();
         }
 
-        for burn in &self.burns {
-            binding_signature_key -= burn.value_commitment.randomness;
-            binding_verification_key -= burn.value_commitment_point();
-        }
-
         let private_key = PrivateKey(binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 
-        check_value_consistency(
-            &public_key,
-            &binding_verification_key,
-            *self.value_balances.fee(),
-        )?;
+        let value_balance =
+            calculate_value_balance(&binding_verification_key, *self.value_balances.fee(), burns)?;
+
+        // Confirm that the public key derived from the binding signature key matches
+        // the final value balance point. The binding verification key is how verifiers
+        // check the consistency of the values in a transaction.
+        if value_balance != public_key.0 {
+            return Err(IronfishError::InvalidBalance);
+        }
 
         Ok((private_key, public_key))
     }
@@ -666,16 +678,14 @@ impl Transaction {
         &self,
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), IronfishError> {
-        let value_balance_point = value_balance_to_point(self.fee)?;
-
-        let public_key_point = binding_verification_key - value_balance_point;
-        let public_key = PublicKey(public_key_point);
+        let value_balance =
+            calculate_value_balance(binding_verification_key, self.fee, &self.burns)?;
 
         let mut data_to_verify_signature = [0; 64];
-        data_to_verify_signature[..32].copy_from_slice(&public_key.0.to_bytes());
+        data_to_verify_signature[..32].copy_from_slice(&value_balance.to_bytes());
         data_to_verify_signature[32..].copy_from_slice(&self.transaction_signature_hash());
 
-        if !public_key.verify(
+        if !redjubjub::PublicKey(value_balance).verify(
             &data_to_verify_signature,
             &self.binding_signature,
             VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
@@ -689,7 +699,7 @@ impl Transaction {
 
 /// Convert the integer value to a point on the Jubjub curve, accounting for
 /// negative values
-fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
+fn fee_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
     // Can only construct edwards point on positive numbers, so need to
     // add and possibly negate later
     let is_negative = value.is_negative();
@@ -698,7 +708,7 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
         None => return Err(IronfishError::IllegalValue),
     };
 
-    let mut value_balance = VALUE_COMMITMENT_VALUE_GENERATOR * jubjub::Fr::from(abs);
+    let mut value_balance = NATIVE_ASSET_GENERATOR * jubjub::Fr::from(abs);
 
     if is_negative {
         value_balance = -value_balance;
@@ -707,25 +717,25 @@ fn value_balance_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
     Ok(value_balance.into())
 }
 
-/// Confirm that balance of input and output values is consistent with
-/// those used in the proofs.
+/// Calculate balance of input and output values.
 ///
 /// Does not confirm that the transactions add up to zero. The calculation
 /// for fees and change happens elsewhere.
-fn check_value_consistency(
-    public_key: &PublicKey,
+fn calculate_value_balance(
     binding_verification_key: &ExtendedPoint,
-    value: i64,
-) -> Result<(), IronfishError> {
-    let value_balance_point = value_balance_to_point(value)?;
+    fee: i64,
+    burns: &[BurnDescription],
+) -> Result<ExtendedPoint, IronfishError> {
+    let fee_point = fee_to_point(fee)?;
 
-    let calculated_public_key = binding_verification_key - value_balance_point;
+    let mut value_balance_point = binding_verification_key - fee_point;
 
-    if calculated_public_key != public_key.0 {
-        return Err(IronfishError::InvalidBalance);
+    for burn in burns {
+        let burn_generator = asset_generator_from_identifier(&burn.asset_identifier);
+        value_balance_point -= burn_generator * jubjub::Fr::from(burn.value);
     }
 
-    Ok(())
+    Ok(value_balance_point)
 }
 
 pub fn batch_verify_transactions<'a>(
@@ -749,7 +759,7 @@ pub fn batch_verify_transactions<'a>(
         let hash_to_verify_signature = transaction.transaction_signature_hash();
 
         for spend in transaction.spends.iter() {
-            spend.verify_not_small_order()?;
+            spend.partial_verify()?;
 
             let public_inputs = spend.public_inputs(transaction.randomized_public_key());
             spend_verifier.queue((&spend.proof, &public_inputs[..]));
@@ -763,7 +773,7 @@ pub fn batch_verify_transactions<'a>(
         }
 
         for output in transaction.outputs.iter() {
-            output.verify_not_small_order()?;
+            output.partial_verify()?;
 
             let public_inputs = output.public_inputs(transaction.randomized_public_key());
             output_verifier.queue((&output.proof, &public_inputs[..]));
@@ -772,7 +782,7 @@ pub fn batch_verify_transactions<'a>(
         }
 
         for mint in transaction.mints.iter() {
-            mint.verify_not_small_order()?;
+            mint.partial_verify()?;
 
             let public_inputs = mint.public_inputs(transaction.randomized_public_key());
             mint_verifier.queue((&mint.proof, &public_inputs[..]));
@@ -783,12 +793,6 @@ pub fn batch_verify_transactions<'a>(
                 &hash_to_verify_signature,
                 transaction.randomized_public_key(),
             )?;
-        }
-
-        for burn in transaction.burns.iter() {
-            burn.verify_not_small_order()?;
-
-            binding_verification_key -= burn.value_commitment;
         }
 
         transaction.verify_binding_signature(&binding_verification_key)?;

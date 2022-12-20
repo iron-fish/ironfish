@@ -18,7 +18,7 @@ use blake2b_simd::Params as Blake2b;
 use bls12_381::Scalar;
 use ff::PrimeField;
 use group::GroupEncoding;
-use ironfish_zkp::ValueCommitment;
+use ironfish_zkp::primitives::ValueCommitment;
 use jubjub::{ExtendedPoint, SubgroupPoint};
 
 use std::{convert::TryInto, io};
@@ -30,10 +30,11 @@ pub const NOTE_ENCRYPTION_KEY_SIZE: usize = ENCRYPTED_SHARED_KEY_SIZE + aead::MA
 /// read notes that they have themselves have spent.
 /// In the case of miner notes, the note is created out of thin air
 /// and there is no actual spender. We set the note encryption keys
-/// to a known value, so they can be identified in the trees.
+/// to a known value, but this isn't enforced in consensus, so any
+/// value is valid.
 ///
-/// This does not leak information, since miner notes are identifiably
-/// stored separately on the header of blocks already.
+/// This does not leak information, since miner notes are already known
+/// to be on the first transaction in a block.
 pub const NOTE_ENCRYPTION_MINER_KEYS: &[u8; NOTE_ENCRYPTION_KEY_SIZE] =
     b"Iron Fish note encryption miner key000000000000000000000000000000000000000000000";
 const SHARED_KEY_PERSONALIZATION: &[u8; 16] = b"Iron Fish Keyenc";
@@ -281,10 +282,8 @@ mod test {
     use crate::{keys::SaplingKey, note::Note};
 
     use bls12_381::Scalar;
-    use ff::Field;
-    use ironfish_zkp::ValueCommitment;
+    use ironfish_zkp::primitives::ValueCommitment;
     use rand::prelude::*;
-    use rand::thread_rng;
 
     #[test]
     /// Test to confirm that creating a [`MerkleNote`] via new() doesn't use the
@@ -301,11 +300,7 @@ mod test {
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         let merkle_note =
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
@@ -331,11 +326,7 @@ mod test {
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         let merkle_note =
             MerkleNote::new_for_miners_fee(&note, &value_commitment, &diffie_hellman_keys);
@@ -359,11 +350,7 @@ mod test {
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         let merkle_note =
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
@@ -396,11 +383,7 @@ mod test {
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         let merkle_note =
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);
@@ -425,11 +408,7 @@ mod test {
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         let mut merkle_note =
             MerkleNote::new(&spender_key, &note, &value_commitment, &diffie_hellman_keys);

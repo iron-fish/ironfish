@@ -12,13 +12,14 @@ use crate::{
 
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
-use ff::Field;
 use group::Curve;
-use ironfish_zkp::{proofs::Output, redjubjub::PublicKey, ValueCommitment};
+use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, redjubjub};
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
 use std::io;
+
+use super::utils::verify_output_proof;
 
 /// Parameters used when constructing proof that a new note exists. The owner
 /// of this note is the recipient of funds in a transaction. The note is signed
@@ -42,11 +43,7 @@ pub const PROOF_SIZE: u32 = 192;
 impl OutputBuilder {
     /// Create a new [`OutputBuilder`] attempting to create a note.
     pub(crate) fn new(note: Note) -> Self {
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         Self {
             note,
@@ -80,7 +77,7 @@ impl OutputBuilder {
         &self,
         spender_key: &SaplingKey,
         public_key_randomness: &jubjub::Fr,
-        randomized_public_key: &PublicKey,
+        randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<OutputDescription, IronfishError> {
         let diffie_hellman_keys = EphemeralKeyPair::new();
 
@@ -109,7 +106,10 @@ impl OutputBuilder {
 
         let output_proof = OutputDescription { proof, merkle_note };
 
-        output_proof.verify_proof(randomized_public_key)?;
+        verify_output_proof(
+            &output_proof.proof,
+            &output_proof.public_inputs(randomized_public_key),
+        )?;
 
         Ok(output_proof)
     }
@@ -147,21 +147,18 @@ impl OutputDescription {
         self.serialize_signature_fields(writer)
     }
 
-    /// Verify that the proof demonstrates knowledge that a note exists with
-    /// the value_commitment, public_key, and note_commitment on this proof.
-    pub fn verify_proof(&self, randomized_public_key: &PublicKey) -> Result<(), IronfishError> {
+    /// A function to encapsulate any verification besides the proof itself.
+    /// This allows us to abstract away the details and make it easier to work
+    /// with. Note that this does not verify the proof, that happens in the
+    /// [`OutputBuilder`] build function as the prover, and in
+    /// [`super::batch_verify_transactions`] as the verifier.
+    pub fn partial_verify(&self) -> Result<(), IronfishError> {
         self.verify_not_small_order()?;
-
-        groth16::verify_proof(
-            &SAPLING.output_verifying_key,
-            &self.proof,
-            &self.public_inputs(randomized_public_key)[..],
-        )?;
 
         Ok(())
     }
 
-    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
+    fn verify_not_small_order(&self) -> Result<(), IronfishError> {
         if self.merkle_note.value_commitment.is_small_order().into()
             || ExtendedPoint::from(self.merkle_note.ephemeral_public_key)
                 .is_small_order()
@@ -176,7 +173,7 @@ impl OutputDescription {
     /// Converts the values to appropriate inputs for verifying the bellman proof.
     /// Demonstrates knowledge of a note containing the sender's randomized public key,
     /// value_commitment, public_key, and note_commitment
-    pub fn public_inputs(&self, randomized_public_key: &PublicKey) -> [Scalar; 7] {
+    pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 7] {
         let mut public_inputs = [Scalar::zero(); 7];
         let p = randomized_public_key.0.to_affine();
         public_inputs[0] = p.get_u();
@@ -223,6 +220,7 @@ mod test {
     use crate::{
         assets::asset::NATIVE_ASSET_GENERATOR, keys::SaplingKey,
         merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note,
+        transaction::utils::verify_output_proof,
     };
     use ff::{Field, PrimeField};
     use group::Curve;
@@ -307,8 +305,7 @@ mod test {
         let proof = output
             .build(&spender_key, &public_key_randomness, &randomized_public_key)
             .expect("Should be able to build output proof");
-        proof
-            .verify_proof(&randomized_public_key)
+        verify_output_proof(&proof.proof, &proof.public_inputs(&randomized_public_key))
             .expect("proof should check out");
 
         // test serialization

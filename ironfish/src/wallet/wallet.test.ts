@@ -55,7 +55,7 @@ describe('Accounts', () => {
       nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
     ).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
-      pending: BigInt(2000000000),
+      unconfirmed: BigInt(2000000000),
     })
 
     // This transaction will be invalid after the reorg
@@ -63,12 +63,7 @@ describe('Accounts', () => {
     expect(broadcastSpy).toHaveBeenCalledTimes(0)
 
     await nodeA.wallet.updateHead()
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
-      confirmed: BigInt(0),
-      pending: BigInt(1999999999),
-    })
+    await expect(accountA.hasPendingTransaction(invalidTx.hash())).resolves.toBeTruthy()
 
     await expect(nodeA.chain).toAddBlock(blockB1)
     await expect(nodeA.chain).toAddBlock(blockB2)
@@ -92,7 +87,7 @@ describe('Accounts', () => {
       nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
     ).resolves.toMatchObject({
       confirmed: BigInt(0),
-      pending: BigInt(3999999999),
+      unconfirmed: BigInt(0),
     })
 
     // Check that it was last broadcast at its added height
@@ -187,16 +182,15 @@ describe('Accounts', () => {
     await expect(nodeA.chain).toAddBlock(blockA2)
     await nodeA.wallet.updateHead()
 
-    // Create a transaction that spends notes from the invalid transaction
-    const forkSpendTx = await useTxFixture(nodeA.wallet, accountA, accountB)
-
     await expect(
       nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
     ).resolves.toMatchObject({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-      pending: BigInt(1999999997), // change from transactions
+      confirmed: BigInt(1999999998),
+      unconfirmed: BigInt(1999999998),
     })
+
+    // Create a transaction that spends notes from the invalid transaction
+    const forkSpendTx = await useTxFixture(nodeA.wallet, accountA, accountB)
 
     // re-org
     await expect(nodeA.chain).toAddBlock(blockB1)
@@ -210,30 +204,15 @@ describe('Accounts', () => {
     ).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
-      pending: BigInt(5999999995), // minersFee from blockA1 + change from transactions
     })
 
     // expire original transaction from fork
     await accountA.expireTransaction(forkTx)
-
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-      pending: BigInt(3999999997), // minersFee from blockA1 + change from invalid fork spend
-    })
+    await expect(accountA.hasPendingTransaction(forkTx.hash())).resolves.toBeFalsy()
 
     // expire transaction that spends from fork
     await accountA.expireTransaction(forkSpendTx)
-
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
-      confirmed: BigInt(0),
-      unconfirmed: BigInt(0),
-      pending: BigInt(2000000000), // minersFee from blockA1
-    })
+    await expect(accountA.hasPendingTransaction(forkSpendTx.hash())).resolves.toBeFalsy()
   })
 
   it('should update nullifiers for notes created on a fork', async () => {
@@ -426,11 +405,10 @@ describe('Accounts', () => {
 
       expect(await nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier())).toMatchObject({
         confirmed: BigInt(6000000000),
-        pending: BigInt(10000000000),
+        unconfirmed: BigInt(10000000000),
       })
       expect(await nodeB.wallet.getBalance(accountB, Asset.nativeIdentifier())).toMatchObject({
         confirmed: BigInt(0),
-        pending: BigInt(0),
       })
     })
   })
@@ -944,14 +922,7 @@ describe('Accounts', () => {
 
       // Create a transaction that will expire
       const tx = await useTxFixture(nodeA.wallet, accountA, accountB, undefined, undefined, 3)
-
-      await expect(
-        nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-      ).resolves.toMatchObject({
-        confirmed: BigInt(0),
-        unconfirmed: BigInt(0),
-        pending: BigInt(1999999999), // change from transaction
-      })
+      await expect(accountA.hasPendingTransaction(tx.hash())).resolves.toBeTruthy()
 
       // Mine a new block at sequence 3, expiring transaction
       const blockA3 = await useMinerBlockFixture(nodeA.chain, 3, accountB, nodeA.wallet)
@@ -970,7 +941,7 @@ describe('Accounts', () => {
       await expect(
         nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
       ).resolves.toMatchObject({
-        pending: BigInt(2000000000), // minersFee from blockA1
+        unconfirmed: BigInt(2000000000), // minersFee from blockA1
       })
 
       // re-sync expired transaction
@@ -985,7 +956,7 @@ describe('Accounts', () => {
       await expect(
         nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
       ).resolves.toMatchObject({
-        pending: BigInt(2000000000), // minersFee from blockA1
+        unconfirmed: BigInt(2000000000), // minersFee from blockA1
       })
     })
 
@@ -1007,9 +978,8 @@ describe('Accounts', () => {
       await expect(
         nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
       ).resolves.toMatchObject({
-        confirmed: BigInt(0),
-        unconfirmed: BigInt(0),
-        pending: BigInt(1999999999), // change from transaction
+        confirmed: BigInt(2000000000),
+        unconfirmed: BigInt(2000000000),
       })
 
       // Mine a new block at sequence 3, expiring transaction
@@ -1029,7 +999,8 @@ describe('Accounts', () => {
       await expect(
         nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
       ).resolves.toMatchObject({
-        pending: BigInt(2000000000), // minersFee from blockA1
+        confirmed: BigInt(2000000000),
+        unconfirmed: BigInt(2000000000), // minersFee from blockA1
       })
 
       // mine the transaction on a fork
@@ -1049,7 +1020,7 @@ describe('Accounts', () => {
       await expect(
         nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
       ).resolves.toMatchObject({
-        pending: BigInt(1999999999), // change from transaction
+        unconfirmed: BigInt(1999999999), // change from transaction
       })
     })
   })
@@ -1069,7 +1040,7 @@ describe('Accounts', () => {
       const mintValue = BigInt(10)
       // Mint some coins
       const blockB = await useBlockFixture(node.chain, async () => {
-        const transaction = await node.wallet.createTransaction(
+        const raw = await node.wallet.createTransaction(
           account,
           [],
           [{ asset, value: mintValue }],
@@ -1078,6 +1049,8 @@ describe('Accounts', () => {
           0,
         )
 
+        const transaction = await node.wallet.postTransaction(raw)
+
         return node.chain.newBlock(
           [transaction],
           await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
@@ -1085,8 +1058,12 @@ describe('Accounts', () => {
       })
       await expect(node.chain).toAddBlock(blockB)
       await node.wallet.updateHead()
+      await expect(node.wallet.getBalance(account, asset.identifier())).resolves.toMatchObject({
+        confirmed: mintValue,
+      })
 
-      const outputNote = blockB.transactions[1].getNote(0)
+      expect(blockB.transactions[1].notes.length).toBe(2)
+      const outputNote = blockB.transactions[1].getNote(1)
       const note = outputNote.decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(note)
 
@@ -1146,6 +1123,171 @@ describe('Accounts', () => {
 
       // notes should not have been decrypted again
       expect(decryptSpy).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('connectBlock', () => {
+    it('should add transactions to the walletDb with blockHash and sequence set', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const { block: blockA2, transaction } = await useBlockWithTx(node, accountA, accountB)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+
+      expect(transactionValue).toBeDefined()
+      expect(transactionValue?.blockHash).toEqualHash(blockA2.header.hash)
+      expect(transactionValue?.sequence).toEqual(blockA2.header.sequence)
+    })
+
+    it('should update the account head hash', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
+
+      const accountAHeadHash = await accountA.getHeadHash()
+
+      expect(accountAHeadHash).toEqualHash(blockA2.header.hash)
+    })
+
+    it('should update the account unconfirmed balance', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      expect(balanceBefore).toEqual(2000000000n)
+
+      const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
+
+      const balanceAfter = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      expect(balanceAfter).toEqual(1999999998n)
+    })
+  })
+
+  describe('disconnectBlock', () => {
+    it('should update transactions in the walletDb with blockHash and sequence null', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const { block: blockA2, transaction } = await useBlockWithTx(node, accountA, accountB)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.updateHead()
+
+      let transactionValue = await accountA.getTransaction(transaction.hash())
+
+      expect(transactionValue).toBeDefined()
+      expect(transactionValue?.blockHash).toEqualHash(blockA2.header.hash)
+      expect(transactionValue?.sequence).toEqual(blockA2.header.sequence)
+
+      await node.chain.db.transaction(async (tx) => {
+        await node.chain.disconnect(blockA2, tx)
+      })
+
+      await node.wallet.updateHead()
+
+      transactionValue = await accountA.getTransaction(transaction.hash())
+
+      expect(transactionValue).toBeDefined()
+      expect(transactionValue?.blockHash).toBeNull()
+      expect(transactionValue?.sequence).toBeNull()
+    })
+
+    it('should update the account head hash to the previous block', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.updateHead()
+
+      let accountAHeadHash = await accountA.getHeadHash()
+
+      expect(accountAHeadHash).toEqualHash(blockA2.header.hash)
+
+      await node.chain.db.transaction(async (tx) => {
+        await node.chain.disconnect(blockA2, tx)
+      })
+
+      await node.wallet.updateHead()
+
+      accountAHeadHash = await accountA.getHeadHash()
+
+      expect(accountAHeadHash).toEqualHash(blockA2.header.previousBlockHash)
+    })
+
+    it('should update the account unconfirmed balance', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      expect(balanceBefore).toEqual(2000000000n)
+
+      const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.updateHead()
+
+      const balanceAfterConnect = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      expect(balanceAfterConnect).toEqual(1999999998n)
+
+      await node.chain.db.transaction(async (tx) => {
+        await node.chain.disconnect(blockA2, tx)
+      })
+
+      await node.wallet.updateHead()
+
+      const balanceAfterDisconnect = await accountA.getUnconfirmedBalance(
+        Asset.nativeIdentifier(),
+      )
+      expect(balanceAfterDisconnect).toEqual(2000000000n)
     })
   })
 })

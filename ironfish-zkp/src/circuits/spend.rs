@@ -2,7 +2,7 @@ use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use ff::PrimeField;
 use jubjub::SubgroupPoint;
 
-use crate::{constants::proof::PUBLIC_KEY_GENERATOR, ValueCommitment};
+use crate::{constants::proof::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment};
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::blake2s;
@@ -357,8 +357,8 @@ mod test {
     };
 
     use crate::{
-        circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, util::commitment_full_point,
-        ValueCommitment,
+        circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment,
+        util::commitment_full_point,
     };
 
     #[test]

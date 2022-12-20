@@ -12,7 +12,7 @@ use zcash_proofs::{
 use crate::{
     circuits::util::{asset_info_preimage, expose_value_commitment},
     constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_IDENTIFIER_PERSONALIZATION},
-    ValueCommitment,
+    primitives::ValueCommitment,
 };
 
 pub struct MintAsset {
@@ -188,7 +188,7 @@ mod test {
 
     use crate::{
         constants::{ASSET_IDENTIFIER_PERSONALIZATION, PUBLIC_KEY_GENERATOR},
-        ValueCommitment,
+        primitives::ValueCommitment,
     };
 
     use super::MintAsset;
@@ -227,12 +227,7 @@ mod test {
         let asset_info_hashed_bits = multipack::bytes_to_bits_le(&asset_info_hashed_bytes);
         let asset_info_hashed_inputs = multipack::compute_multipacking(&asset_info_hashed_bits);
 
-        let value_commitment = ValueCommitment {
-            value: 5,
-            randomness: jubjub::Fr::random(&mut rng),
-            asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
-        };
-
+        let value_commitment = ValueCommitment::new(5, VALUE_COMMITMENT_VALUE_GENERATOR);
         let value_commitment_point = ExtendedPoint::from(value_commitment.commitment()).to_affine();
 
         let public_key_randomness = jubjub::Fr::random(&mut rng);

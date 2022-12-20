@@ -16,17 +16,20 @@ use bellman::gadgets::multipack;
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::{Field, PrimeField};
+use ff::PrimeField;
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
+    primitives::ValueCommitment,
     proofs::Spend,
-    redjubjub::{self, PublicKey, Signature},
-    Nullifier, ValueCommitment,
+    redjubjub::{self, Signature},
+    Nullifier,
 };
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 use std::io;
+
+use super::utils::verify_spend_proof;
 
 /// Parameters used when constructing proof that the spender owns a note with
 /// a given value.
@@ -60,11 +63,7 @@ impl SpendBuilder {
     /// contains the root-hash at the time the witness was created and the path
     /// to verify the location of that note in the tree.
     pub(crate) fn new(note: Note, witness: &dyn WitnessTrait) -> Self {
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-            asset_generator: note.asset_generator(),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         SpendBuilder {
             note,
@@ -93,7 +92,7 @@ impl SpendBuilder {
         &self,
         spender_key: &SaplingKey,
         public_key_randomness: &jubjub::Fr,
-        randomized_public_key: &PublicKey,
+        randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<UnsignedSpendDescription, IronfishError> {
         let value_commitment_point = self.value_commitment_point();
 
@@ -132,7 +131,10 @@ impl SpendBuilder {
             authorizing_signature: blank_signature,
         };
 
-        description.verify_proof(randomized_public_key)?;
+        verify_spend_proof(
+            &description.proof,
+            &description.public_inputs(randomized_public_key),
+        )?;
 
         Ok(UnsignedSpendDescription {
             public_key_randomness: *public_key_randomness,
@@ -267,7 +269,7 @@ impl SpendDescription {
     pub fn verify_signature(
         &self,
         signature_hash_value: &[u8; 32],
-        randomized_public_key: &PublicKey,
+        randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<(), IronfishError> {
         if randomized_public_key.0.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
@@ -287,22 +289,18 @@ impl SpendDescription {
         Ok(())
     }
 
-    /// Verify that the bellman proof confirms the randomized_public_key,
-    /// commitment_value, nullifier, and anchor attached to this
-    /// [`SpendDescription`].
-    pub fn verify_proof(&self, randomized_public_key: &PublicKey) -> Result<(), IronfishError> {
+    /// A function to encapsulate any verification besides the proof itself.
+    /// This allows us to abstract away the details and make it easier to work
+    /// with. Note that this does not verify the proof, that happens in the
+    /// [`SpendBuilder`] build function as the prover, and in
+    /// [`super::batch_verify_transactions`] as the verifier.
+    pub fn partial_verify(&self) -> Result<(), IronfishError> {
         self.verify_not_small_order()?;
-
-        groth16::verify_proof(
-            &SAPLING.spend_verifying_key,
-            &self.proof,
-            &self.public_inputs(randomized_public_key)[..],
-        )?;
 
         Ok(())
     }
 
-    pub fn verify_not_small_order(&self) -> Result<(), IronfishError> {
+    fn verify_not_small_order(&self) -> Result<(), IronfishError> {
         if self.value_commitment.is_small_order().into() {
             return Err(IronfishError::IsSmallOrder);
         }
@@ -313,7 +311,7 @@ impl SpendDescription {
     /// Converts the values to appropriate inputs for verifying the bellman
     /// proof.  Confirms the randomized_public_key, commitment_value, anchor
     /// (root hash), and nullifier attached to this [`SpendDescription`].
-    pub fn public_inputs(&self, randomized_public_key: &PublicKey) -> [Scalar; 7] {
+    pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 7] {
         let mut public_inputs = [Scalar::zero(); 7];
         let p = randomized_public_key.0.to_affine();
         public_inputs[0] = p.get_u();
@@ -374,6 +372,7 @@ mod test {
 
     use super::{SpendBuilder, SpendDescription};
     use crate::assets::asset::NATIVE_ASSET_GENERATOR;
+    use crate::transaction::utils::verify_spend_proof;
     use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
     use ff::Field;
     use group::Curve;
@@ -415,8 +414,7 @@ mod test {
         let proof = unsigned_proof
             .sign(&key, &sig_hash)
             .expect("should be able to sign proof");
-        proof
-            .verify_proof(&randomized_public_key)
+        verify_spend_proof(&proof.proof, &proof.public_inputs(&randomized_public_key))
             .expect("proof should check out");
         proof
             .verify_signature(&sig_hash, &randomized_public_key)
