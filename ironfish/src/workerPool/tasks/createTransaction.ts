@@ -285,7 +285,7 @@ export class CreateTransactionTask extends WorkerTask {
     expiration,
   }: CreateTransactionRequest): CreateTransactionResponse {
     const transaction = new Transaction(spendKey)
-    transaction.setExpirationSequence(expiration)
+    transaction.setExpiration(expiration)
 
     for (const spend of spends) {
       const note = Note.deserialize(spend.note)

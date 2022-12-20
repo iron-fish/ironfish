@@ -96,7 +96,7 @@ pub struct ProposedTransaction {
     /// This is the sequence in the chain the transaction will expire at and be
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
-    expiration_sequence: u32,
+    expiration: u32,
 
     /// The key used to sign the transaction and any descriptions that need
     /// signed.
@@ -120,7 +120,7 @@ impl ProposedTransaction {
             mints: vec![],
             burns: vec![],
             value_balances: ValueBalances::new(),
-            expiration_sequence: 0,
+            expiration: 0,
             spender_key,
             public_key_randomness: jubjub::Fr::random(thread_rng()),
         }
@@ -234,13 +234,13 @@ impl ProposedTransaction {
     }
 
     /// Get the expiration sequence for this transaction
-    pub fn expiration_sequence(&self) -> u32 {
-        self.expiration_sequence
+    pub fn expiration(&self) -> u32 {
+        self.expiration
     }
 
     /// Set the sequence to expire the transaction from the mempool.
-    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) {
-        self.expiration_sequence = expiration_sequence;
+    pub fn set_expiration(&mut self, sequence: u32) {
+        self.expiration = sequence;
     }
 
     // Post transaction without much validation.
@@ -318,7 +318,7 @@ impl ProposedTransaction {
 
         Ok(Transaction {
             version: self.version,
-            expiration_sequence: self.expiration_sequence,
+            expiration: self.expiration,
             fee: *self.value_balances.fee(),
             spends: spend_descriptions,
             outputs: output_descriptions,
@@ -348,9 +348,7 @@ impl ProposedTransaction {
 
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
         hasher.write_u8(self.version).unwrap();
-        hasher
-            .write_u32::<LittleEndian>(self.expiration_sequence)
-            .unwrap();
+        hasher.write_u32::<LittleEndian>(self.expiration).unwrap();
         hasher
             .write_i64::<LittleEndian>(*self.value_balances.fee())
             .unwrap();
@@ -486,7 +484,7 @@ pub struct Transaction {
     /// This is the sequence in the chain the transaction will expire at and be
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
-    expiration_sequence: u32,
+    expiration: u32,
 
     /// Randomized public key of the sender of the Transaction
     /// currently this value is the same for all spends[].owner and outputs[].sender
@@ -508,7 +506,7 @@ impl Transaction {
         let num_mints = reader.read_u64::<LittleEndian>()?;
         let num_burns = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
-        let expiration_sequence = reader.read_u32::<LittleEndian>()?;
+        let expiration = reader.read_u32::<LittleEndian>()?;
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
 
         let mut spends = Vec::with_capacity(num_spends as usize);
@@ -541,7 +539,7 @@ impl Transaction {
             mints,
             burns,
             binding_signature,
-            expiration_sequence,
+            expiration,
             randomized_public_key,
         })
     }
@@ -555,7 +553,7 @@ impl Transaction {
         writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.burns.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.fee)?;
-        writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
+        writer.write_u32::<LittleEndian>(self.expiration)?;
         writer.write_all(&self.randomized_public_key.0.to_bytes())?;
 
         for spend in self.spends.iter() {
@@ -624,8 +622,8 @@ impl Transaction {
     }
 
     /// Get the expiration sequence for this transaction
-    pub fn expiration_sequence(&self) -> u32 {
-        self.expiration_sequence
+    pub fn expiration(&self) -> u32 {
+        self.expiration
     }
 
     /// Get the expiration sequence for this transaction
@@ -643,9 +641,7 @@ impl Transaction {
             .to_state();
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
         hasher.write_u8(self.version).unwrap();
-        hasher
-            .write_u32::<LittleEndian>(self.expiration_sequence)
-            .unwrap();
+        hasher.write_u32::<LittleEndian>(self.expiration).unwrap();
         hasher.write_i64::<LittleEndian>(self.fee).unwrap();
         hasher
             .write_all(&self.randomized_public_key.0.to_bytes())

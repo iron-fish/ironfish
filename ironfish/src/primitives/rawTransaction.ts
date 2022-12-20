@@ -57,7 +57,7 @@ export class RawTransaction {
     }
 
     if (this.expiration !== null) {
-      builder.setExpirationSequence(this.expiration)
+      builder.setExpiration(this.expiration)
     }
 
     const serialized = builder.post(null, this.fee)
