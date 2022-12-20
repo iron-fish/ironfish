@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
 import { CurrencyUtils, GetBalanceResponse } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
@@ -46,7 +45,7 @@ export class BalanceCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags, args } = await this.parse(BalanceCommand)
     const account = args.account as string | undefined
-    const assetIdentifier = flags.assetIdentifier ?? Asset.nativeIdentifier().toString('hex')
+    const assetIdentifier = flags.assetIdentifier
 
     const client = await this.sdk.connectRpc()
 
@@ -63,18 +62,30 @@ export class BalanceCommand extends IronfishCommand {
 
     if (flags.all) {
       this.log(`Account: ${response.content.account}`)
-      this.log(`Balance:     ${CurrencyUtils.renderIron(response.content.confirmed, true)}`)
-      this.log(`Unconfirmed: ${CurrencyUtils.renderIron(response.content.unconfirmed, true)}`)
+      this.log(
+        `Balance:     ${CurrencyUtils.renderIron(
+          response.content.confirmed,
+          true,
+          assetIdentifier,
+        )}`,
+      )
+      this.log(
+        `Unconfirmed: ${CurrencyUtils.renderIron(
+          response.content.unconfirmed,
+          true,
+          assetIdentifier,
+        )}`,
+      )
       return
     }
 
     this.log(`Account: ${response.content.account}`)
     this.log(
-      `Balance: ${CurrencyUtils.renderBalance(response.content.confirmed, assetIdentifier)}`,
+      `Balance: ${CurrencyUtils.renderIron(response.content.confirmed, true, assetIdentifier)}`,
     )
   }
 
-  explainBalance(response: GetBalanceResponse, assetIdentifier: string): void {
+  explainBalance(response: GetBalanceResponse, assetIdentifier?: string): void {
     const unconfirmed = CurrencyUtils.decode(response.unconfirmed)
     const confirmed = CurrencyUtils.decode(response.confirmed)
 
@@ -84,15 +95,14 @@ export class BalanceCommand extends IronfishCommand {
     this.log('')
 
     this.log(`Your balance is made of notes on the chain that are safe to spend`)
-    this.log(`Balance: ${CurrencyUtils.renderBalance(confirmed, assetIdentifier)}`)
+    this.log(`Balance: ${CurrencyUtils.renderIron(confirmed)}`)
     this.log('')
 
     this.log(
-      `${response.unconfirmedCount} notes worth ${CurrencyUtils.renderBalance(
+      `${response.unconfirmedCount} notes worth ${CurrencyUtils.renderIron(
         unconfirmedDelta,
-        assetIdentifier,
       )} are on the chain within ${response.minimumBlockConfirmations.toString()} blocks of the head`,
     )
-    this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true)}`)
+    this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true, assetIdentifier)}`)
   }
 }
