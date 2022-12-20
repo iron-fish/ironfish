@@ -9,6 +9,8 @@ export interface DatabaseKeyRange {
   gte?: Buffer
   lt?: Buffer
   lte?: Buffer
+  ordered?: boolean
+  reverse?: boolean
 }
 
 export interface DatabaseIteratorOptions {

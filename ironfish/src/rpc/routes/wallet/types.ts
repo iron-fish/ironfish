@@ -14,6 +14,7 @@ export type RpcAccountTransaction = {
   mintsCount: number
   burnsCount: number
   expiration: number
+  timestamp: number
 }
 
 export type RpcAccountDecryptedNote = {
@@ -38,5 +39,6 @@ export function serializeRpcAccountTransaction(
     mintsCount: transaction.transaction.mints.length,
     burnsCount: transaction.transaction.burns.length,
     expiration: transaction.transaction.expiration(),
+    timestamp: transaction.timestamp.getTime(),
   }
 }

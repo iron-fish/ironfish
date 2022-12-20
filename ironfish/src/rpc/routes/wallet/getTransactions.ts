@@ -25,6 +25,7 @@ export type GetAccountTransactionsResponse = {
   mintsCount: number
   burnsCount: number
   expiration: number
+  timestamp: number
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -49,6 +50,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
       mintsCount: yup.number().defined(),
       burnsCount: yup.number().defined(),
       expiration: yup.number().defined(),
+      timestamp: yup.number().defined(),
     })
     .defined()
 
@@ -145,7 +147,7 @@ const handleLimitedTransactions = async (
     }
   })
 
-  for await (const transaction of account.getTransactions()) {
+  for await (const transaction of account.getSortedTransactions()) {
     Assert.isNotNull(transaction)
     queue.add(transaction)
     // remove the earliest transaction when queue is full
@@ -170,7 +172,7 @@ const handleAllTransactions = async (
   account: Account,
   headSequence?: number | null,
 ): Promise<void> => {
-  for await (const transaction of account.getTransactions()) {
+  for await (const transaction of account.getSortedTransactions()) {
     if (request.closed) {
       break
     }

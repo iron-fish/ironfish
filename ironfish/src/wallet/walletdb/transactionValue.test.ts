@@ -21,6 +21,7 @@ describe('TransactionValueEncoding', () => {
 
       const value: TransactionValue = {
         transaction,
+        timestamp: new Date(),
         blockHash: null,
         sequence: null,
         submittedSequence: null,
@@ -39,6 +40,7 @@ describe('TransactionValueEncoding', () => {
 
       const value: TransactionValue = {
         transaction,
+        timestamp: new Date(),
         blockHash: null,
         sequence: null,
         submittedSequence: 123,
@@ -57,6 +59,7 @@ describe('TransactionValueEncoding', () => {
 
       const value: TransactionValue = {
         transaction,
+        timestamp: new Date(),
         blockHash: Buffer.alloc(32, 1),
         sequence: 124,
         submittedSequence: null,
@@ -75,6 +78,7 @@ describe('TransactionValueEncoding', () => {
 
       const value: TransactionValue = {
         transaction,
+        timestamp: new Date(),
         blockHash: Buffer.alloc(32, 1),
         sequence: 124,
         submittedSequence: 123,

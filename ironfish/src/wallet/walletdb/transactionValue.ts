@@ -7,6 +7,7 @@ import { Transaction } from '../../primitives'
 
 export interface TransactionValue {
   transaction: Transaction
+  timestamp: Date
   // These fields are populated once the transaction is on the main chain
   blockHash: Buffer | null
   sequence: number | null
@@ -18,10 +19,11 @@ export interface TransactionValue {
 
 export class TransactionValueEncoding implements IDatabaseEncoding<TransactionValue> {
   serialize(value: TransactionValue): Buffer {
-    const { transaction, blockHash, sequence, submittedSequence } = value
+    const { transaction, blockHash, sequence, submittedSequence, timestamp } = value
 
     const bw = bufio.write(this.getSize(value))
     bw.writeVarBytes(transaction.serialize())
+    bw.writeU64(timestamp.valueOf())
 
     let flags = 0
     flags |= Number(!!blockHash) << 0
@@ -45,6 +47,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
   deserialize(buffer: Buffer): TransactionValue {
     const reader = bufio.read(buffer, true)
     const transaction = new Transaction(reader.readVarBytes())
+    const timestamp = new Date(reader.readU64())
 
     const flags = reader.readU8()
     const hasBlockHash = flags & (1 << 0)
@@ -66,11 +69,12 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
       sequence = reader.readU32()
     }
 
-    return { transaction, blockHash, submittedSequence, sequence }
+    return { transaction, blockHash, submittedSequence, sequence, timestamp }
   }
 
   getSize(value: TransactionValue): number {
     let size = bufio.sizeVarBytes(value.transaction.serialize())
+    size += 8
     size += 1
     if (value.blockHash) {
       size += 32
