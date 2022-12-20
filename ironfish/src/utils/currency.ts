@@ -73,7 +73,7 @@ export class CurrencyUtils {
     const ore = amount.toString()
 
     if (includeTicker) {
-      const ticker = assetIdentifier ?? '$IRON'
+      const ticker = assetIdentifier ?? '$ORE'
       return `${ticker} ${ore}`
     }
 
