@@ -95,7 +95,7 @@ export class BalanceCommand extends IronfishCommand {
     this.log('')
 
     this.log(`Your balance is made of notes on the chain that are safe to spend`)
-    this.log(`Balance: ${CurrencyUtils.renderIron(confirmed)}`)
+    this.log(`Balance: ${CurrencyUtils.renderIron(confirmed, true, assetIdentifier)}`)
     this.log('')
 
     this.log(
