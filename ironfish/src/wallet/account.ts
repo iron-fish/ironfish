@@ -11,6 +11,7 @@ import { DatabaseKeyRange, IDatabaseTransaction } from '../storage'
 import { StorageUtils } from '../storage/database/utils'
 import { DecryptedNote } from '../workerPool/tasks/decryptNotes'
 import { AccountValue } from './walletdb/accountValue'
+import { BalanceValue } from './walletdb/balanceValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
@@ -122,6 +123,8 @@ export class Account {
     decryptedNotes: Array<DecryptedNote>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
+    const blockHash = blockHeader.hash
+    const sequence = blockHeader.sequence
     const balanceDeltas = new AssetBalanceDeltas()
     let submittedSequence: number | null = null
     let timestamp = new Date()
@@ -147,8 +150,8 @@ export class Account {
           transactionHash: transaction.hash(),
           nullifier: decryptedNote.nullifier,
           index: decryptedNote.index,
-          blockHash: blockHeader.hash,
-          sequence: blockHeader.sequence,
+          blockHash,
+          sequence,
         }
 
         balanceDeltas.increment(note.note.assetIdentifier(), note.note.value())
@@ -177,15 +180,15 @@ export class Account {
         transaction.hash(),
         {
           transaction,
-          blockHash: blockHeader.hash,
-          sequence: blockHeader.sequence,
+          blockHash,
+          sequence,
           submittedSequence,
           timestamp,
         },
         tx,
       )
 
-      await this.updateUnconfirmedBalances(balanceDeltas, tx)
+      await this.updateUnconfirmedBalances(balanceDeltas, blockHash, sequence, tx)
     })
   }
 
@@ -249,6 +252,7 @@ export class Account {
   }
 
   async disconnectTransaction(
+    blockHeader: BlockHeader,
     transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -320,7 +324,12 @@ export class Account {
         tx,
       )
 
-      await this.updateUnconfirmedBalances(balanceDeltas, tx)
+      await this.updateUnconfirmedBalances(
+        balanceDeltas,
+        blockHeader.previousBlockHash,
+        blockHeader.sequence - 1,
+        tx,
+      )
     })
   }
 
@@ -447,7 +456,7 @@ export class Account {
   }> {
     let unconfirmedCount = 0
 
-    const unconfirmed = await this.getUnconfirmedBalance(assetIdentifier, tx)
+    const { balance: unconfirmed } = await this.getUnconfirmedBalance(assetIdentifier, tx)
 
     let confirmed = unconfirmed
     if (minimumBlockConfirmations > 0) {
@@ -482,8 +491,8 @@ export class Account {
     }
   }
 
-  async getUnconfirmedBalances(tx?: IDatabaseTransaction): Promise<BufferMap<bigint>> {
-    const unconfirmedBalances = new BufferMap<bigint>()
+  async getUnconfirmedBalances(tx?: IDatabaseTransaction): Promise<BufferMap<BalanceValue>> {
+    const unconfirmedBalances = new BufferMap<BalanceValue>()
     for await (const { assetIdentifier, balance } of this.walletDb.getUnconfirmedBalances(
       this,
       tx,
@@ -496,12 +505,14 @@ export class Account {
   async getUnconfirmedBalance(
     assetIdentifier: Buffer,
     tx?: IDatabaseTransaction,
-  ): Promise<bigint> {
+  ): Promise<BalanceValue> {
     return this.walletDb.getUnconfirmedBalance(this, assetIdentifier, tx)
   }
 
   async updateUnconfirmedBalances(
     balanceDeltas: BufferMap<bigint>,
+    blockHash: Buffer | null,
+    sequence: number | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const [assetIdentifier, balanceDelta] of balanceDeltas) {
@@ -510,7 +521,11 @@ export class Account {
       await this.walletDb.saveUnconfirmedBalance(
         this,
         assetIdentifier,
-        currentUnconfirmedBalance + balanceDelta,
+        {
+          balance: currentUnconfirmedBalance.balance + balanceDelta,
+          blockHash,
+          sequence,
+        },
         tx,
       )
     }
@@ -518,7 +533,7 @@ export class Account {
 
   async saveUnconfirmedBalance(
     assetIdentifier: Buffer,
-    balance: bigint,
+    balance: BalanceValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.saveUnconfirmedBalance(this, assetIdentifier, balance, tx)

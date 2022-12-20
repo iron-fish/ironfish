@@ -432,7 +432,7 @@ export class Wallet {
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
         for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
-          await account.disconnectTransaction(transaction, tx)
+          await account.disconnectTransaction(header, transaction, tx)
         }
 
         await this.updateHeadHash(account, header.previousBlockHash, tx)

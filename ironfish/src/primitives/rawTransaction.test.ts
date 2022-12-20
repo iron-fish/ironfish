@@ -32,7 +32,7 @@ describe('RawTransaction', () => {
     )
     await expect(nodeTest.chain).toAddBlock(block)
     await nodeTest.wallet.updateHead()
-    const balance = await account.getUnconfirmedBalance(Asset.nativeIdentifier())
+    const { balance } = await account.getUnconfirmedBalance(Asset.nativeIdentifier())
 
     const burn = {
       assetIdentifier: Asset.nativeIdentifier(),
