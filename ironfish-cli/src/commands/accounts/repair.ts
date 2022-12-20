@@ -81,16 +81,16 @@ export default class Repair extends IronfishCommand {
     let unexpiredTransactions = 0
 
     for await (const transactionValue of account.getTransactions()) {
-      const expirationSequence = transactionValue.transaction.expirationSequence()
+      const expiration = transactionValue.transaction.expiration()
       const transactionHash = transactionValue.transaction.hash()
 
       const isExpired =
         !transactionValue.sequence &&
-        chain.verifier.isExpiredSequence(expirationSequence, chain.head.sequence)
+        chain.verifier.isExpiredSequence(expiration, chain.head.sequence)
 
       const pendingTransactionHash = await walletDb.pendingTransactionHashes.get([
         account.prefix,
-        [expirationSequence, transactionHash],
+        [expiration, transactionHash],
       ])
 
       if (isExpired && !pendingTransactionHash) {
@@ -145,7 +145,7 @@ export default class Repair extends IronfishCommand {
         const isExpired =
           !transactionValue.sequence &&
           chain.verifier.isExpiredSequence(
-            transactionValue.transaction.expirationSequence(),
+            transactionValue.transaction.expiration(),
             chain.head.sequence,
           )
 

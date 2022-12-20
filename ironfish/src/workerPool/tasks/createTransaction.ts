@@ -25,7 +25,7 @@ const noteHasher = new NoteHasher()
 export class CreateTransactionRequest extends WorkerMessage {
   readonly spendKey: string
   readonly transactionFee: bigint
-  readonly expirationSequence: number
+  readonly expiration: number
   readonly spends: {
     note: Buffer
     treeSize: number
@@ -47,7 +47,7 @@ export class CreateTransactionRequest extends WorkerMessage {
   constructor(
     spendKey: string,
     transactionFee: bigint,
-    expirationSequence: number,
+    expiration: number,
     spends: {
       note: Buffer
       treeSize: number
@@ -67,7 +67,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     super(WorkerMessageType.CreateTransaction, jobId)
     this.spendKey = spendKey
     this.transactionFee = transactionFee
-    this.expirationSequence = expirationSequence
+    this.expiration = expiration
     this.spends = spends
     this.receives = receives
     this.mints = mints
@@ -78,7 +78,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     const bw = bufio.write(this.getSize())
     bw.writeVarString(this.spendKey)
     bw.writeVarBytes(BigIntUtils.toBytesBE(this.transactionFee))
-    bw.writeU64(this.expirationSequence)
+    bw.writeU64(this.expiration)
     bw.writeU64(this.spends.length)
 
     for (const spend of this.spends) {
@@ -127,7 +127,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     const reader = bufio.read(buffer, true)
     const spendKey = reader.readVarString()
     const transactionFee = BigIntUtils.fromBytes(reader.readVarBytes())
-    const expirationSequence = reader.readU64()
+    const expiration = reader.readU64()
 
     const spendsLength = reader.readU64()
     const spends = []
@@ -176,7 +176,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     return new CreateTransactionRequest(
       spendKey,
       transactionFee,
-      expirationSequence,
+      expiration,
       spends,
       receives,
       mints,
@@ -225,7 +225,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     return (
       bufio.sizeVarString(this.spendKey) +
       bufio.sizeVarBytes(BigIntUtils.toBytesBE(this.transactionFee)) +
-      8 + // expirationSequence
+      8 + // expiration
       8 + // spends length
       spendsSize +
       8 + // receives length
@@ -282,10 +282,10 @@ export class CreateTransactionTask extends WorkerTask {
     receives,
     mints,
     burns,
-    expirationSequence,
+    expiration,
   }: CreateTransactionRequest): CreateTransactionResponse {
     const transaction = new Transaction(spendKey)
-    transaction.setExpirationSequence(expirationSequence)
+    transaction.setExpirationSequence(expiration)
 
     for (const spend of spends) {
       const note = Note.deserialize(spend.note)

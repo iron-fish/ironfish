@@ -86,6 +86,6 @@ describe('PostTransactionTask', () => {
     const response = task.execute(request)
 
     expect(response.transaction.fee()).toEqual(5n)
-    expect(response.transaction.expirationSequence()).toEqual(9)
+    expect(response.transaction.expiration()).toEqual(9)
   })
 })

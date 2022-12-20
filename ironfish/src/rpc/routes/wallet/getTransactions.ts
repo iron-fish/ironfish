@@ -22,7 +22,7 @@ export type GetAccountTransactionsResponse = {
   fee: string
   notesCount: number
   spendsCount: number
-  expirationSequence: number
+  expiration: number
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -44,7 +44,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
       fee: yup.string().defined(),
       notesCount: yup.number().defined(),
       spendsCount: yup.number().defined(),
-      expirationSequence: yup.number().defined(),
+      expiration: yup.number().defined(),
     })
     .defined()
 
@@ -131,12 +131,12 @@ const handleLimitedTransactions = async (
       // both a and b are mined on chain, use sequence as sort key
       return a.sequence < b.sequence
     } else {
-      // at least one is in pending status, use expirationSequence as sort key
-      if (a.transaction.expirationSequence() && b.transaction.expirationSequence()) {
-        return a.transaction.expirationSequence() < b.transaction.expirationSequence()
+      // at least one is in pending status, use expiration as sort key
+      if (a.transaction.expiration() && b.transaction.expiration()) {
+        return a.transaction.expiration() < b.transaction.expiration()
       } else {
         // transactions without expiration are always latest
-        return b.transaction.expirationSequence() === 0
+        return b.transaction.expiration() === 0
       }
     }
   })

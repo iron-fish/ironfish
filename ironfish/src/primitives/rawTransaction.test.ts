@@ -58,7 +58,7 @@ describe('RawTransaction', () => {
     const posted = raw.post()
     expect(posted.takeReference().verify()).toBe(true)
     expect(posted.fee()).toEqual(5n)
-    expect(posted.expirationSequence()).toEqual(10)
+    expect(posted.expiration()).toEqual(10)
     expect(posted.notes.length).toEqual(3)
     expect(posted.spends.length).toEqual(1)
     expect(posted.mints.length).toEqual(1)
@@ -112,7 +112,7 @@ describe('RawTransaction', () => {
 
       const raw = new RawTransaction()
       raw.spendingKey = account.spendingKey
-      raw.expirationSequence = 60
+      raw.expiration = 60
       raw.fee = 1337n
 
       raw.mints = [
@@ -142,7 +142,7 @@ describe('RawTransaction', () => {
 
       expect(deserialized).toMatchObject({
         spendingKey: raw.spendingKey,
-        expirationSequence: raw.expirationSequence,
+        expiration: raw.expiration,
         fee: raw.fee,
       })
 
