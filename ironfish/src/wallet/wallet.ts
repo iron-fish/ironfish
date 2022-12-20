@@ -163,6 +163,10 @@ export class Wallet {
       return false
     }
 
+    if (this.chainProcessor.hash === null) {
+      return true
+    }
+
     for (const account of this.accounts.values()) {
       if (!this.isAccountUpToDate(account)) {
         return true
