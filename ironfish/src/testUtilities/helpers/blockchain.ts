@@ -6,7 +6,7 @@ import '../matchers/blockchain'
 import { Assert } from '../../assert'
 import { Blockchain } from '../../blockchain'
 import { Block } from '../../primitives/block'
-import { BlockHeader } from '../../primitives/blockheader'
+import { BlockHeader, transactionCommitment } from '../../primitives/blockheader'
 import { Target } from '../../primitives/target'
 import { GraffitiUtils } from '../../utils/graffiti'
 
@@ -26,7 +26,13 @@ export async function makeBlockAfter(
   }
 
   const timestamp = new Date()
-  const target = Target.calculateTarget(timestamp, after.timestamp, after.target)
+  const target = Target.calculateTarget(
+    timestamp,
+    after.timestamp,
+    after.target,
+    chain.consensus.parameters.targetBlockTimeInSeconds,
+    chain.consensus.parameters.targetBucketTimeInSeconds,
+  )
   const randomness = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
   const graffiti = GraffitiUtils.fromString('fake block')
 
@@ -34,12 +40,12 @@ export async function makeBlockAfter(
     sequence,
     after.hash,
     after.noteCommitment,
-    after.nullifierCommitment,
+    transactionCommitment([]),
     target,
     randomness,
     timestamp,
-    miningReward,
     graffiti,
+    after.noteSize,
     BigInt(1),
   )
 

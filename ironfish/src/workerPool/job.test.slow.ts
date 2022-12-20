@@ -24,6 +24,7 @@ describe('Worker Pool', () => {
 
   it('verify', async () => {
     const { workerPool } = nodeTest
+
     workerPool.start()
 
     expect(workerPool.workers.length).toBe(1)

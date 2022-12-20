@@ -4,13 +4,13 @@
 
 import { Assert } from './assert'
 import { Blockchain } from './blockchain'
-import { GENESIS_BLOCK_SEQUENCE, VerificationResultReason } from './consensus'
+import { VerificationResultReason } from './consensus'
 import { createRootLogger, Logger } from './logger'
 import { Meter, MetricsMonitor } from './metrics'
 import { RollingAverage } from './metrics/rollingAverage'
 import { Peer, PeerNetwork } from './network'
 import { BAN_SCORE, PeerState } from './network/peers/peer'
-import { Block } from './primitives/block'
+import { Block, GENESIS_BLOCK_SEQUENCE } from './primitives/block'
 import { BlockHeader } from './primitives/blockheader'
 import { Telemetry } from './telemetry'
 import { ErrorUtils, HashUtils, MathUtils, SetTimeoutToken } from './utils'
@@ -314,6 +314,15 @@ export class Syncer {
       )
 
       if (!found) {
+        if (needle === GENESIS_BLOCK_SEQUENCE) {
+          this.logger.warn(
+            `Peer ${peer.displayName} sent a genesis block hash that doesn't match our genesis block hash`,
+          )
+
+          peer.punish(BAN_SCORE.MAX, VerificationResultReason.INVALID_GENESIS_BLOCK)
+          this.abort(peer)
+        }
+
         upper = needle - 1
         continue
       }
@@ -331,8 +340,8 @@ export class Syncer {
       lower = needle + 1
     }
 
-    Assert.isNotNull(ancestorHash)
     Assert.isNotNull(ancestorSequence)
+    Assert.isNotNull(ancestorHash)
 
     return {
       ancestor: ancestorHash,

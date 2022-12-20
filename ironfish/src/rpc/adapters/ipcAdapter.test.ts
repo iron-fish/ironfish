@@ -112,7 +112,7 @@ describe('IpcAdapter', () => {
 
     const response = client.request('foo/bar')
 
-    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toThrow(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 402,
       code: 'hello-error',
@@ -133,7 +133,7 @@ describe('IpcAdapter', () => {
 
     const response = client.request('foo/bar', body)
 
-    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toThrow(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 400,
       code: ERROR_CODES.VALIDATION,

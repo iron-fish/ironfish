@@ -14,7 +14,7 @@ import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { PromiseUtils } from '../utils/promise'
 import { SetTimeoutToken } from '../utils/types'
-import { mineableHeaderString } from './utils'
+import { MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET, mineableHeaderString } from './utils'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
 
@@ -129,7 +129,7 @@ export class MiningSoloMiner {
     )
 
     const headerBytes = Buffer.concat([header])
-    headerBytes.set(this.graffiti, 176)
+    headerBytes.set(this.graffiti, MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET)
 
     this.waiting = false
     this.threadPool.newWork(headerBytes, this.target, miningRequestId)
@@ -148,6 +148,8 @@ export class MiningSoloMiner {
   }
 
   private async processNewBlocks() {
+    const consensusParameters = (await this.rpc.getConsensusParameters()).content
+
     for await (const payload of this.rpc.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
 
@@ -155,7 +157,10 @@ export class MiningSoloMiner {
       this.currentHeadDifficulty = currentHeadTarget.toDifficulty()
       this.currentHeadTimestamp = payload.previousBlockInfo.timestamp
 
-      this.restartCalculateTargetInterval()
+      this.restartCalculateTargetInterval(
+        consensusParameters.targetBlockTimeInSeconds,
+        consensusParameters.targetBucketTimeInSeconds,
+      )
       this.startNewWork(payload)
     }
   }
@@ -256,7 +261,10 @@ export class MiningSoloMiner {
     })
   }
 
-  private recalculateTarget() {
+  private recalculateTarget(
+    targetBlockTimeInSeconds: number,
+    targetBucketTimeInSeconds: number,
+  ) {
     Assert.isNotNull(this.currentHeadTimestamp)
     Assert.isNotNull(this.currentHeadDifficulty)
 
@@ -269,6 +277,8 @@ export class MiningSoloMiner {
         newTime,
         new Date(this.currentHeadTimestamp),
         this.currentHeadDifficulty,
+        targetBlockTimeInSeconds,
+        targetBucketTimeInSeconds,
       ),
     )
 
@@ -278,13 +288,16 @@ export class MiningSoloMiner {
     this.startNewWork(latestBlock)
   }
 
-  private restartCalculateTargetInterval() {
+  private restartCalculateTargetInterval(
+    targetBlockTimeInSeconds: number,
+    targetBucketTimeInSeconds: number,
+  ) {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
 
     this.recalculateTargetInterval = setInterval(() => {
-      this.recalculateTarget()
+      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds)
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 }

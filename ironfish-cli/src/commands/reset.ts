@@ -8,8 +8,6 @@ import { IronfishCommand } from '../command'
 import {
   ConfigFlag,
   ConfigFlagKey,
-  DatabaseFlag,
-  DatabaseFlagKey,
   DataDirFlag,
   DataDirFlagKey,
   VerboseFlag,
@@ -23,7 +21,6 @@ export default class Reset extends IronfishCommand {
     [VerboseFlagKey]: VerboseFlag,
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
-    [DatabaseFlagKey]: DatabaseFlag,
     confirm: Flags.boolean({
       default: false,
       description: 'Confirm without asking',
@@ -54,14 +51,12 @@ export default class Reset extends IronfishCommand {
       this.sdk.config.dataDir,
       HOST_FILE_NAME,
     )
-    const indexDatabasePath = this.sdk.config.indexDatabasePath
 
     const message =
       '\nYou are about to destroy your node databases. The following directories and files will be deleted:\n' +
       `\nAccounts: ${accountDatabasePath}` +
       `\nBlockchain: ${chainDatabasePath}` +
       `\nHosts: ${hostFilePath}` +
-      `\nIndexes: ${indexDatabasePath}` +
       `\n\nAre you sure? (Y)es / (N)o`
 
     confirmed = flags.confirm || (await CliUx.ux.confirm(message))
@@ -77,7 +72,6 @@ export default class Reset extends IronfishCommand {
       fsAsync.rm(accountDatabasePath, { recursive: true, force: true }),
       fsAsync.rm(chainDatabasePath, { recursive: true, force: true }),
       fsAsync.rm(hostFilePath, { recursive: true, force: true }),
-      fsAsync.rm(indexDatabasePath, { recursive: true, force: true }),
     ])
 
     CliUx.ux.action.stop('Databases deleted successfully')

@@ -2,19 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
+import { IronfishNode } from '../node'
+import { Block } from '../primitives'
+import { NoteEncrypted } from '../primitives/noteEncrypted'
 import {
   createNodeTest,
   useAccountFixture,
+  useBlockFixture,
+  useBlockWithRawTxFixture,
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
   useTxFixture,
-  useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
+import { buildRawTransaction } from '../testUtilities/helpers/transaction'
 import { AsyncUtils } from '../utils'
+import { Account } from '../wallet'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
@@ -215,7 +222,7 @@ describe('Blockchain', () => {
     expect(chain.head.hash.equals(blockB5.header.hash)).toBe(true)
     expect(chain.latest.hash.equals(blockB5.header.hash)).toBe(true)
 
-    await expect(iter1.next()).rejects.toThrowError('progress: 3/5')
+    await expect(iter1.next()).rejects.toThrow('progress: 3/5')
   })
 
   it('should not iterate and jump chains and not throw error', async () => {
@@ -296,23 +303,15 @@ describe('Blockchain', () => {
 
     // left-to-right
     let result = AsyncUtils.materialize(chain.iterateTo(blockA1.header, blockB2.header))
-    await expect(result).rejects.toThrowError(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
     result = AsyncUtils.materialize(chain.iterateFrom(blockA1.header, blockB2.header))
-    await expect(result).rejects.toThrowError(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
 
     // right-to-left
     result = AsyncUtils.materialize(chain.iterateTo(blockB2.header, blockA1.header))
-    await expect(result).rejects.toThrowError(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
     result = AsyncUtils.materialize(chain.iterateFrom(blockB2.header, blockA1.header))
-    await expect(result).rejects.toThrowError(
-      'Failed to iterate between blocks on diverging forks',
-    )
+    await expect(result).rejects.toThrow('Failed to iterate between blocks on diverging forks')
   })
 
   it('findFork', async () => {
@@ -342,29 +341,23 @@ describe('Blockchain', () => {
     await expect(chain).toAddBlock(blockC4)
     await expect(chain).toAddBlock(blockD4)
 
-    const { fork: fork1, isLinear: isLinear1 } = await chain.findFork(blockA1, blockA1)
+    const fork1 = await chain.findFork(blockA1, blockA1)
     expect(fork1?.hash.equals(blockA1.header.hash)).toBe(true)
-    expect(isLinear1).toBe(true)
 
-    const { fork: fork2, isLinear: isLinear2 } = await chain.findFork(blockA1, blockA2)
+    const fork2 = await chain.findFork(blockA1, blockA2)
     expect(fork2?.hash.equals(blockA1.header.hash)).toBe(true)
-    expect(isLinear2).toBe(true)
 
-    const { fork: fork3, isLinear: isLinear3 } = await chain.findFork(blockA2, blockB2)
+    const fork3 = await chain.findFork(blockA2, blockB2)
     expect(fork3?.hash.equals(blockA1.header.hash)).toBe(true)
-    expect(isLinear3).toBe(false)
 
-    const { fork: fork4, isLinear: isLinear4 } = await chain.findFork(genesis, blockD4)
+    const fork4 = await chain.findFork(genesis, blockD4)
     expect(fork4?.hash.equals(genesis.hash)).toBe(true)
-    expect(isLinear4).toBe(true)
 
-    const { fork: fork5, isLinear: isLinear5 } = await chain.findFork(blockB3, blockD4)
+    const fork5 = await chain.findFork(blockB3, blockD4)
     expect(fork5?.hash.equals(blockB2.header.hash)).toBe(true)
-    expect(isLinear5).toBe(false)
 
-    const { fork: fork6, isLinear: isLinear6 } = await chain.findFork(blockC4, blockD4)
+    const fork6 = await chain.findFork(blockC4, blockD4)
     expect(fork6?.hash.equals(blockC3.header.hash)).toBe(true)
-    expect(isLinear6).toBe(false)
   })
 
   it('abort reorg after verify error', async () => {
@@ -390,7 +383,7 @@ describe('Blockchain', () => {
     const genesis = nodeTest.chain.genesis
     expect(node.chain.head?.hash).toEqualBuffer(genesis.hash)
 
-    blockB3.header.noteCommitment.size -= 2
+    blockB3.header.noteCommitment = Buffer.alloc(32)
 
     await expect(node.chain).toAddBlock(blockA1)
     expect(node.chain.head?.hash).toEqualBuffer(blockA1.header.hash)
@@ -411,14 +404,14 @@ describe('Blockchain', () => {
 
     await expect(node.chain).toAddBlock(blockA3)
     expect(node.chain.head?.hash).toEqualBuffer(blockA3.header.hash)
-    expect(await node.chain.notes.size()).toBe(blockA3.header.noteCommitment.size)
+    expect(await node.chain.notes.size()).toBe(blockA3.header.noteSize)
   })
 
-  describe('MerkleTrees', () => {
-    it('should add notes and nullifiers to trees', async () => {
+  describe('MerkleTree + Nullifier Set', () => {
+    it('should add notes to tree and nullifiers to set', async () => {
       /**
-       * This test will check that notes are added linearly, and also the trees
-       * are reorganized for a heavier fork when a heavier fork appears
+       * This test will check that notes are added linearly, and also the tree
+       * is reorganized for a heavier fork when a heavier fork appears
        *
        * G -> A1 -> A2
        *   -> B1 -> B2 -> B3
@@ -469,50 +462,52 @@ describe('Blockchain', () => {
       const txA2 = blockA2.transactions[1]
       const txB3 = blockB3.transactions[1]
 
-      expect(minersFeeA1.notesLength()).toBe(1)
-      expect(minersFeeA2.notesLength()).toBe(1)
-      expect(minersFeeB1.notesLength()).toBe(1)
-      expect(minersFeeB2.notesLength()).toBe(1)
-      expect(minersFeeB3.notesLength()).toBe(1)
-      expect(txA2.notesLength()).toBe(2)
-      expect(txA2.spendsLength()).toBe(1)
-      expect(txB3.notesLength()).toBe(2)
-      expect(txB3.spendsLength()).toBe(1)
+      expect(minersFeeA1.notes.length).toBe(1)
+      expect(minersFeeA2.notes.length).toBe(1)
+      expect(minersFeeB1.notes.length).toBe(1)
+      expect(minersFeeB2.notes.length).toBe(1)
+      expect(minersFeeB3.notes.length).toBe(1)
+      expect(txA2.notes.length).toBe(2)
+      expect(txA2.spends.length).toBe(1)
+      expect(txB3.notes.length).toBe(2)
+      expect(txB3.spends.length).toBe(1)
 
       // Check nodeA has notes from blockA1, blockA2
       expect(await nodeA.chain.notes.size()).toBe(countNoteA + 4)
-      let addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).element
-      let addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).element
-      let addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).element
-      let addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).element
-      expect(addedNoteA1.serialize().equals(minersFeeA1.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA2.serialize().equals(minersFeeA2.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA3.serialize().equals(txA2.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA4.serialize().equals(txA2.getNote(1).serialize())).toBe(true)
+      let addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).merkleHash
+      let addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).merkleHash
+      let addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).merkleHash
+      let addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).merkleHash
+      expect(addedNoteA1.equals(minersFeeA1.getNote(0).merkleHash())).toBe(true)
+      expect(addedNoteA2.equals(minersFeeA2.getNote(0).merkleHash())).toBe(true)
+      expect(addedNoteA3.equals(txA2.getNote(0).merkleHash())).toBe(true)
+      expect(addedNoteA4.equals(txA2.getNote(1).merkleHash())).toBe(true)
 
       // Check nodeA has nullifiers from blockA2
       expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
-      let addedNullifierA1 = (await nodeA.chain.nullifiers.getLeaf(countNullifierA + 0)).element
-      expect(addedNullifierA1.equals(txA2.getSpend(0).nullifier)).toBe(true)
+
+      let addedNullifierA1 = await nodeA.chain.nullifiers.get(txA2.getSpend(0).nullifier)
+      expect(addedNullifierA1).toBeDefined()
+      expect(addedNullifierA1?.equals(txA2.hash())).toBe(true)
 
       // Check nodeB has notes from blockB1, blockB2, blockB3
       expect(await nodeB.chain.notes.size()).toBe(countNoteB + 5)
-      const addedNoteB1 = (await nodeB.chain.notes.getLeaf(countNoteB + 0)).element
-      const addedNoteB2 = (await nodeB.chain.notes.getLeaf(countNoteB + 1)).element
-      const addedNoteB3 = (await nodeB.chain.notes.getLeaf(countNoteB + 2)).element
-      const addedNoteB4 = (await nodeB.chain.notes.getLeaf(countNoteB + 3)).element
-      const addedNoteB5 = (await nodeB.chain.notes.getLeaf(countNoteB + 4)).element
-      expect(addedNoteB1.serialize().equals(minersFeeB1.getNote(0).serialize())).toBe(true)
-      expect(addedNoteB2.serialize().equals(minersFeeB2.getNote(0).serialize())).toBe(true)
-      expect(addedNoteB3.serialize().equals(minersFeeB3.getNote(0).serialize())).toBe(true)
-      expect(addedNoteB4.serialize().equals(txB3.getNote(0).serialize())).toBe(true)
-      expect(addedNoteB5.serialize().equals(txB3.getNote(1).serialize())).toBe(true)
+      const addedNoteB1 = (await nodeB.chain.notes.getLeaf(countNoteB + 0)).merkleHash
+      const addedNoteB2 = (await nodeB.chain.notes.getLeaf(countNoteB + 1)).merkleHash
+      const addedNoteB3 = (await nodeB.chain.notes.getLeaf(countNoteB + 2)).merkleHash
+      const addedNoteB4 = (await nodeB.chain.notes.getLeaf(countNoteB + 3)).merkleHash
+      const addedNoteB5 = (await nodeB.chain.notes.getLeaf(countNoteB + 4)).merkleHash
+      expect(addedNoteB1.equals(minersFeeB1.getNote(0).merkleHash())).toBe(true)
+      expect(addedNoteB2.equals(minersFeeB2.getNote(0).merkleHash())).toBe(true)
+      expect(addedNoteB3.equals(minersFeeB3.getNote(0).merkleHash())).toBe(true)
+      expect(addedNoteB4.equals(txB3.getNote(0).merkleHash())).toBe(true)
+      expect(addedNoteB5.equals(txB3.getNote(1).merkleHash())).toBe(true)
 
       // Check nodeB has nullifiers from blockB3
       expect(await nodeB.chain.nullifiers.size()).toBe(countNullifierB + 1)
-      const addedNullifierB1 = (await nodeB.chain.nullifiers.getLeaf(countNullifierB + 0))
-        .element
-      expect(addedNullifierB1.equals(txB3.getSpend(0).nullifier)).toBe(true)
+      const addedNullifierB1 = await nodeB.chain.nullifiers.get(txB3.getSpend(0).nullifier)
+      expect(addedNullifierB1).toBeDefined()
+      expect(addedNullifierB1?.equals(txB3.hash())).toBe(true)
 
       // Now cause reorg on nodeA
       await nodeA.chain.addBlock(blockB1)
@@ -521,21 +516,22 @@ describe('Blockchain', () => {
 
       // Check nodeA's chain has removed blockA1 notes and added blockB1, blockB2, blockB3
       expect(await nodeA.chain.notes.size()).toBe(countNoteA + 5)
-      addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).element
-      addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).element
-      addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).element
-      addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).element
-      const addedNoteA5 = (await nodeA.chain.notes.getLeaf(countNoteA + 4)).element
-      expect(addedNoteA1.serialize().equals(minersFeeB1.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA2.serialize().equals(minersFeeB2.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA3.serialize().equals(minersFeeB3.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA4.serialize().equals(txB3.getNote(0).serialize())).toBe(true)
-      expect(addedNoteA5.serialize().equals(txB3.getNote(1).serialize())).toBe(true)
+      addedNoteA1 = (await nodeA.chain.notes.getLeaf(countNoteA + 0)).merkleHash
+      addedNoteA2 = (await nodeA.chain.notes.getLeaf(countNoteA + 1)).merkleHash
+      addedNoteA3 = (await nodeA.chain.notes.getLeaf(countNoteA + 2)).merkleHash
+      addedNoteA4 = (await nodeA.chain.notes.getLeaf(countNoteA + 3)).merkleHash
+      const addedNoteA5 = (await nodeA.chain.notes.getLeaf(countNoteA + 4)).merkleHash
+      expect(addedNoteA1.equals(minersFeeB1.getNote(0).merkleHash())).toBe(true)
+      expect(addedNoteA2.equals(minersFeeB2.getNote(0).merkleHash())).toBe(true)
+      expect(addedNoteA3.equals(minersFeeB3.getNote(0).merkleHash())).toBe(true)
+      expect(addedNoteA4.equals(txB3.getNote(0).merkleHash())).toBe(true)
+      expect(addedNoteA5.equals(txB3.getNote(1).merkleHash())).toBe(true)
 
       // Check nodeA's chain has removed blockA2 nullifiers and added blockB3
       expect(await nodeA.chain.nullifiers.size()).toBe(countNullifierA + 1)
-      addedNullifierA1 = (await nodeA.chain.nullifiers.getLeaf(countNullifierA + 0)).element
-      expect(addedNullifierA1.equals(txB3.getSpend(0).nullifier)).toBe(true)
+      addedNullifierA1 = await nodeA.chain.nullifiers.get(txB3.getSpend(0).nullifier)
+      expect(addedNullifierA1).toBeDefined()
+      expect(addedNullifierA1?.equals(txB3.hash())).toBe(true)
     }, 300000)
 
     it(`throws if the notes tree size is greater than the previous block's note tree size`, async () => {
@@ -545,19 +541,8 @@ describe('Blockchain', () => {
 
       await nodeTest.chain.notes.add(tx.getNote(0))
 
-      await expect(nodeTest.chain.addBlock(block)).rejects.toThrowError(
+      await expect(nodeTest.chain.addBlock(block)).rejects.toThrow(
         'Notes tree must match previous block header',
-      )
-    }, 30000)
-
-    it('throws if the position is larger than the number of nullifiers', async () => {
-      const { transaction } = await useTxSpendsFixture(nodeTest.node)
-      const block = await useMinerBlockFixture(nodeTest.chain)
-
-      await nodeTest.chain.nullifiers.add(transaction.getSpend(0).nullifier)
-
-      await expect(nodeTest.chain.addBlock(block)).rejects.toThrowError(
-        'Nullifier tree must match previous block header',
       )
     }, 30000)
   })
@@ -570,7 +555,7 @@ describe('Blockchain', () => {
       reason: VerificationResultReason.INVALID_MINERS_FEE,
     })
 
-    await expect(nodeTest.chain.newBlock([], minersFee)).rejects.toThrowError(
+    await expect(nodeTest.chain.newBlock([], minersFee)).rejects.toThrow(
       `Miner's fee is incorrect`,
     )
   })
@@ -738,30 +723,8 @@ describe('Blockchain', () => {
     })
   })
 
-  it('reject added block with invalid miners fee', async () => {
-    const { node } = await nodeTest.createSetup()
-    const block = await useMinerBlockFixture(node.chain)
-
-    block.header.minersFee = BigInt(-1)
-
-    const result = await node.chain.verifier.verifyBlockAdd(block, node.chain.genesis)
-    expect(result).toMatchObject({
-      valid: false,
-      reason: VerificationResultReason.MINERS_FEE_MISMATCH,
-    })
-  })
-
   it('rejects double spend transactions', async () => {
-    /**
-     * This test tests that our double spend code is working properly. We had a
-     * bug that allowed double spends, but fixed the bug at roughly 200k blocks
-     * in. So we need to test that blocks are allowed in before the block
-     * activation of the fix.
-     */
     const { node, chain } = await nodeTest.createSetup()
-
-    // Set this up so we can reject block with a double spend starting at sequence 5
-    node.chain.consensus.V1_DOUBLE_SPEND = 5
 
     const accountA = await useAccountFixture(node.wallet, 'accountA')
     const accountB = await useAccountFixture(node.wallet, 'accountB')
@@ -772,64 +735,31 @@ describe('Blockchain', () => {
     // Now create the double spend
     await node.wallet.updateHead()
     const tx = await useTxFixture(node.wallet, accountA, accountB)
-    const doubleSpend = tx.getSpend(0)
 
-    const treeSize = await node.chain.nullifiers.size()
-
-    // The nullifier is not found in the tree
-    await expect(node.chain.nullifiers.contains(doubleSpend.nullifier)).resolves.toBe(false)
-    await expect(
-      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize),
-    ).resolves.toBe(false)
-
-    // Let's spend the transaaction for the first time
+    // Spend the transaaction for the first time
     const block3 = await useMinerBlockFixture(node.chain, 3, undefined, undefined, [tx])
     await expect(node.chain).toAddBlock(block3)
 
-    // The nullifier is not found at the old tree size, but is found at the new tree size
-    await expect(node.chain.nullifiers.contains(doubleSpend.nullifier)).resolves.toBe(true)
-    await expect(
-      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize),
-    ).resolves.toBe(false)
-    await expect(
-      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize + tx.spendsLength()),
-    ).resolves.toBe(true)
-
-    // Let's spend the transaction a second time
+    // Spend the transaction a second time
     const block4 = await useMinerBlockFixture(node.chain, 4, undefined, undefined, [tx])
-    await expect(node.chain).toAddBlock(block4)
-
-    // We've now added a double spend, we can see that because of a bug in the
-    // MerkleTree implementation the nullifier is no longer found at the tree
-    // size before this block, but moved to the tree size at block3
-    await expect(node.chain.nullifiers.contains(doubleSpend.nullifier)).resolves.toBe(true)
-    await expect(
-      node.chain.nullifiers.contained(doubleSpend.nullifier, treeSize + tx.spendsLength()),
-    ).resolves.toBe(false)
-    await expect(
-      node.chain.nullifiers.contained(
-        doubleSpend.nullifier,
-        treeSize + tx.spendsLength() + tx.spendsLength(),
-      ),
-    ).resolves.toBe(true)
-
-    // Now we set our fix to activate at sequence 5 so this block will not let
-    // us add the transaction a third time
-    const block5 = await useMinerBlockFixture(node.chain, 5, undefined, undefined, [tx])
-    await expect(node.chain.addBlock(block5)).resolves.toMatchObject({
+    await expect(node.chain.addBlock(block4)).resolves.toMatchObject({
       isAdded: false,
       reason: VerificationResultReason.DOUBLE_SPEND,
     })
   })
 
   it('rejects double spend during reorg', async () => {
-    // G -> A2 -> A3
-    //   -> B2 -> B3* -> A4
+    /**
+     * We don't check double spends when connecting forks because we don't rebuild the nullifier
+     * set unless we're adding to the head. If we re-org to a fork that contains a double spend
+     * though, we should catch that
+     *
+     * G -> A2 -> A3 -> A4 -> A5
+     *   -> B2 -> B3* -> B4* -> B5 -> B6
+     */
+
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()
-
-    nodeA.chain.consensus.V1_DOUBLE_SPEND = 0
-    nodeB.chain.consensus.V1_DOUBLE_SPEND = 5
 
     const blockA2 = await useMinerBlockFixture(nodeA.chain, 2)
     await expect(nodeA.chain).toAddBlock(blockA2)
@@ -837,8 +767,11 @@ describe('Blockchain', () => {
     await expect(nodeA.chain).toAddBlock(blockA3)
     const blockA4 = await useMinerBlockFixture(nodeA.chain, 4)
     await expect(nodeA.chain).toAddBlock(blockA4)
-    const blockA5 = await useMinerBlockFixture(nodeA.chain, 4)
+    const blockA5 = await useMinerBlockFixture(nodeA.chain, 5)
     await expect(nodeA.chain).toAddBlock(blockA5)
+
+    // create one more block to add at the end
+    const blockA6 = await useMinerBlockFixture(nodeA.chain, 6)
 
     const accountA = await useAccountFixture(nodeB.wallet, 'accountA')
     const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
@@ -855,7 +788,8 @@ describe('Blockchain', () => {
     await expect(nodeB.chain).toAddBlock(blockB3)
 
     const blockB4 = await useMinerBlockFixture(nodeB.chain, 4, undefined, undefined, [tx])
-    await expect(nodeB.chain).toAddBlock(blockB4)
+
+    await expect(nodeB.chain).toAddDoubleSpendBlock(blockB4)
 
     const blockB5 = await useMinerBlockFixture(nodeB.chain, 5)
     await expect(nodeB.chain).toAddBlock(blockB5)
@@ -883,12 +817,14 @@ describe('Blockchain', () => {
     const addedB6 = await nodeA.chain.addBlock(blockB6)
 
     if (!addedB5.isAdded) {
+      expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
       expect(addedB5).toMatchObject({
         isAdded: false,
         isFork: null,
         reason: VerificationResultReason.DOUBLE_SPEND,
       })
     } else {
+      expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
       expect(addedB5).toMatchObject({
         isAdded: true,
         isFork: true,
@@ -900,126 +836,468 @@ describe('Blockchain', () => {
         reason: VerificationResultReason.DOUBLE_SPEND,
       })
     }
+
+    // The chain should re-org back to the valid chain once it sees the next block
+    await expect(nodeA.chain).toAddBlock(blockA6)
+    expect(nodeA.chain.head.hash.equals(blockA6.header.hash)).toBe(true)
   })
 
-  it('does not remove nullifiers from double spends during reorg', async () => {
-    // chain diagram for test duration, double spend transaction represented as '*'
-    //
-    // nodeA chain
-    // G -> B2 -> B3* -> A4*
-    //                -> B4  -> B5 -> B6*
-    //
-    // nodeB chain
-    // G -> B2 -> B3* -> B4  -> B5
-    const { node: nodeA } = await nodeTest.createSetup()
-    const { node: nodeB } = await nodeTest.createSetup()
-
-    // nodeA will reject double spends after block 5, nodeB will always reject them
-    nodeA.chain.consensus.V1_DOUBLE_SPEND = 5
-    nodeB.chain.consensus.V1_DOUBLE_SPEND = 0
-
-    const accountA = await useAccountFixture(nodeB.wallet, 'accountA')
-    const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
-
-    // create the chain
-    // nodeA chain
-    // G -> B2
-    //
-    // nodeB chain
-    // G -> B2
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, 2, accountA)
-    await expect(nodeB.chain).toAddBlock(blockB2)
-    await expect(nodeA.chain).toAddBlock(blockB2)
-
-    // create the double spend tx
-    // nodeA chain
-    // G -> B2 -> B3*
-    //
-    // nodeB chain
-    // G -> B2 -> B3*
-    await nodeB.wallet.updateHead()
-    const tx = await useTxFixture(nodeB.wallet, accountA, accountB)
-
-    const blockB3 = await useMinerBlockFixture(nodeB.chain, 3, undefined, undefined, [tx])
-    await expect(nodeB.chain).toAddBlock(blockB3)
-    await expect(nodeA.chain).toAddBlock(blockB3)
-
-    // create a fork with a double spend
-    // nodeA chain
-    // G -> B2 -> B3* -> A4*
-    const blockA4 = await useMinerBlockFixture(nodeA.chain, 4, undefined, undefined, [tx])
-    await expect(nodeA.chain).toAddBlock(blockA4)
-
-    // continue the main chain
-    // nodeA chain
-    // G -> B2 -> B3* -> A4*
-    //
-    // nodeB chain
-    // G -> B2 -> B3* -> B4  -> B5
-    const blockB4 = await useMinerBlockFixture(nodeB.chain, 4)
-    await expect(nodeB.chain).toAddBlock(blockB4)
-
-    const blockB5 = await useMinerBlockFixture(nodeB.chain, 5)
-    await expect(nodeB.chain).toAddBlock(blockB5)
-
-    // now start adding the main chain until we reorg to it
-    // nodeA chain
-    // G -> B2 -> B3* -> B4  -> B5
-    //                -> A4*
-    //
-    // nodeB chain
-    // G -> B2 -> B3* -> B4  -> B5
-    await expect(nodeA.chain).toAddBlock(blockB4)
-    await expect(nodeA.chain).toAddBlock(blockB5)
-
-    // chain B should contain the nullifiers from the double spend transaction
-    for (const spend of tx.spends()) {
-      await expect(nodeB.chain.nullifiers.contains(spend.nullifier)).resolves.toBe(true)
+  describe('asset updates', () => {
+    async function mintAsset(
+      node: IronfishNode,
+      account: Account,
+      sequence: number,
+      asset: Asset,
+      value: bigint,
+    ): Promise<Block> {
+      return useBlockWithRawTxFixture(
+        node.chain,
+        node.workerPool,
+        account,
+        [],
+        [],
+        [{ asset, value }],
+        [],
+        sequence,
+      )
     }
 
-    // chain A's nullifiers store is corrupt, and is missing the nullifiers
-    for (const spend of tx.spends()) {
-      await expect(nodeA.chain.nullifiers.contains(spend.nullifier)).resolves.toBe(false)
+    async function burnAsset(
+      node: IronfishNode,
+      account: Account,
+      sequence: number,
+      asset: Asset,
+      value: bigint,
+      noteToBurn: NoteEncrypted,
+    ): Promise<Block> {
+      return useBlockWithRawTxFixture(
+        node.chain,
+        node.workerPool,
+        account,
+        [noteToBurn],
+        [],
+        [],
+        [{ assetIdentifier: asset.identifier(), value }],
+        sequence,
+      )
     }
 
-    // create another block with a double spend
-    const blockA6 = await useMinerBlockFixture(nodeB.chain, 6, undefined, undefined, [tx])
+    describe('with a mint description', () => {
+      it('upserts an asset to the database', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
 
-    // chain B should not add it
-    await expect(nodeB.chain.addBlock(blockA6)).resolves.toMatchObject({
-      isAdded: false,
-      isFork: null,
-      reason: VerificationResultReason.DOUBLE_SPEND,
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const value = BigInt(10)
+
+        const block = await mintAsset(node, account, 2, asset, value)
+        await expect(node.chain).toAddBlock(block)
+
+        const transactions = block.transactions
+        expect(transactions).toHaveLength(2)
+        const mintTransaction = transactions[1]
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toEqual({
+          createdTransactionHash: mintTransaction.hash(),
+          identifier: asset.identifier(),
+          metadata: asset.metadata(),
+          name: asset.name(),
+          nonce: asset.nonce(),
+          owner: asset.owner(),
+          supply: value,
+        })
+      })
     })
 
-    // chain A should not add it, since it is past its V1_DOUBLE_SPEND conensus change sequence (5)
-    // but it does because its nullifiers store is corrupt
-    // nodeA chain
-    // G -> B2 -> B3* -> B4  -> B5 -> B6*
-    //                -> A4*
-    await expect(nodeA.chain.addBlock(blockA6)).resolves.toMatchObject({
-      isAdded: true,
-      isFork: false,
+    describe('with a burn description', () => {
+      it('decrements the asset supply from the database', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+
+        // Mint so we have an existing asset
+        const mintValue = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        await expect(node.chain).toAddBlock(blockA)
+        const transactions = blockA.transactions
+        const mintTransaction = transactions[1]
+
+        // Burn some value, use previous mint output as spend
+        const burnValue = BigInt(3)
+        const noteToBurn = blockA.transactions[1].getNote(0)
+        const blockB = await burnAsset(node, account, 3, asset, burnValue, noteToBurn)
+        await expect(node.chain).toAddBlock(blockB)
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toMatchObject({
+          createdTransactionHash: mintTransaction.hash(),
+          supply: mintValue - burnValue,
+        })
+      })
     })
-  })
 
-  it('does not grant mining reward after V3_DISABLE_MINING_REWARD', async () => {
-    const { node } = await nodeTest.createSetup()
-    node.chain.consensus.V3_DISABLE_MINING_REWARD = 3
-    const account = await useAccountFixture(node.wallet)
+    describe('with a subsequent mint', () => {
+      it('should keep the same created transaction hash and increase the supply', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
 
-    const block1 = await useMinerBlockFixture(node.chain, 2, account)
-    expect(block1.minersFee.fee()).toEqual(-20n * 10n ** 8n)
-    expect(block1.minersFee.spendsLength()).toEqual(0)
-    expect(block1.minersFee.notesLength()).toEqual(1)
-    await expect(node.chain).toAddBlock(block1)
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
 
-    const block2 = await useMinerBlockFixture(node.chain, 3, account)
-    expect(block2.minersFee.fee()).toEqual(0n)
-    expect(block2.minersFee.spendsLength()).toEqual(0)
-    expect(block2.minersFee.notesLength()).toEqual(1)
-    await expect(node.chain).toAddBlock(block2)
+        const mintValueA = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValueA)
+        await expect(node.chain).toAddBlock(blockA)
+        const mintTransactionA = blockA.transactions[1]
 
-    await node.wallet.updateHead()
+        const mintValueB = BigInt(2)
+        const blockB = await mintAsset(node, account, 3, asset, mintValueB)
+        await expect(node.chain).toAddBlock(blockB)
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toEqual({
+          createdTransactionHash: mintTransactionA.hash(),
+          identifier: asset.identifier(),
+          metadata: asset.metadata(),
+          name: asset.name(),
+          nonce: asset.nonce(),
+          owner: asset.owner(),
+          supply: mintValueA + mintValueB,
+        })
+      })
+    })
+
+    describe('when the first mint gets rolled back', () => {
+      it('should delete the asset', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const value = BigInt(10)
+
+        const block = await mintAsset(node, account, 2, asset, value)
+        await expect(node.chain).toAddBlock(block)
+
+        await node.chain.removeBlock(block.header.hash)
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toBeUndefined()
+      })
+    })
+
+    describe('when a subsequent mint gets rolled back', () => {
+      it('should decrement the supply', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+
+        const mintValueA = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValueA)
+        await expect(node.chain).toAddBlock(blockA)
+
+        const mintValueB = BigInt(2)
+        const blockB = await mintAsset(node, account, 3, asset, mintValueB)
+        await expect(node.chain).toAddBlock(blockB)
+
+        await node.chain.removeBlock(blockB.header.hash)
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toMatchObject({
+          supply: mintValueA,
+        })
+      })
+    })
+
+    describe('when a burn gets rolled back', () => {
+      it('should increase the supply', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+
+        const mintValue = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        await expect(node.chain).toAddBlock(blockA)
+
+        const burnValue = BigInt(3)
+        const noteToBurn = blockA.transactions[1].getNote(0)
+        const blockB = await burnAsset(node, account, 3, asset, burnValue, noteToBurn)
+        await expect(node.chain).toAddBlock(blockB)
+
+        await node.chain.removeBlock(blockB.header.hash)
+
+        const mintedAsset = await node.chain.assets.get(asset.identifier())
+        expect(mintedAsset).toMatchObject({
+          supply: mintValue,
+        })
+      })
+    })
+
+    describe('when burning an asset not in the DB', () => {
+      it('throws an exception', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const assetIdentifier = asset.identifier()
+
+        const mintValue = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        await expect(node.chain).toAddBlock(blockA)
+
+        // Perform a hack where we manually delete the asset from the chain
+        // database. This is done so we can check that a burn will throw an
+        // exception if the DB does not have a corresponding asset. Without this
+        // hack, the posted transaction would raise an exception, which is a
+        // separate flow to test for. We should never hit this case; this is a
+        // sanity check.
+        await node.chain.assets.del(assetIdentifier)
+
+        const burnValue = BigInt(3)
+        const noteToBurn = blockA.transactions[1].getNote(0)
+        const blockB = await burnAsset(node, account, 3, asset, burnValue, noteToBurn)
+        await expect(node.chain.addBlock(blockB)).rejects.toThrow(
+          'Cannot burn undefined asset from the database',
+        )
+      })
+    })
+
+    describe('when burning too much value', () => {
+      it('throws an exception', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const assetIdentifier = asset.identifier()
+
+        const mintValue = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        await expect(node.chain).toAddBlock(blockA)
+
+        const record = await node.chain.assets.get(assetIdentifier)
+        Assert.isNotUndefined(record)
+        // Perform a hack where we adjust the supply in the DB to be lower than
+        // what was previously minted. This is done to check what happens if a
+        // burn is processed but the DB does not have enough supply for a given
+        // burn. Without this, the posted transaction would raise an invalid
+        // balance exception, which is a separate flow to test for.
+        await node.chain.assets.put(assetIdentifier, {
+          ...record,
+          supply: BigInt(1),
+        })
+
+        const burnValue = BigInt(3)
+        const noteToBurn = blockA.transactions[1].getNote(0)
+        const blockB = await burnAsset(node, account, 3, asset, burnValue, noteToBurn)
+        await expect(node.chain.addBlock(blockB)).rejects.toThrow('Invalid burn value')
+      })
+    })
+
+    describe('when rolling back multiple mints and burns', () => {
+      it('adjusts the supply accordingly', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const assetIdentifier = asset.identifier()
+
+        // 1. Mint 10
+        const mintValueA = BigInt(10)
+        const blockA = await mintAsset(node, account, 2, asset, mintValueA)
+        await expect(node.chain).toAddBlock(blockA)
+        // Check first mint value
+        let record = await node.chain.assets.get(assetIdentifier)
+        Assert.isNotUndefined(record)
+        expect(record).toMatchObject({
+          createdTransactionHash: blockA.transactions[1].hash(),
+          supply: mintValueA,
+        })
+
+        // 2. Mint 8
+        const mintValueB = BigInt(8)
+        const blockB = await mintAsset(node, account, 3, asset, mintValueB)
+        await expect(node.chain).toAddBlock(blockB)
+        // Check aggregate mint value
+        record = await node.chain.assets.get(assetIdentifier)
+        Assert.isNotUndefined(record)
+        expect(record).toMatchObject({
+          createdTransactionHash: blockA.transactions[1].hash(),
+          supply: mintValueA + mintValueB,
+        })
+
+        // 3. Burn 5
+        const burnValueC = BigInt(5)
+        const noteToBurnC = blockB.transactions[1].getNote(0)
+        const blockC = await burnAsset(node, account, 4, asset, burnValueC, noteToBurnC)
+        await expect(node.chain).toAddBlock(blockC)
+        // Check value after burn
+        record = await node.chain.assets.get(assetIdentifier)
+        Assert.isNotUndefined(record)
+        expect(record).toMatchObject({
+          createdTransactionHash: blockA.transactions[1].hash(),
+          supply: mintValueA + mintValueB - burnValueC,
+        })
+
+        // 4. Roll back the burn from Block C (Step 3 above)
+        await node.chain.removeBlock(blockC.header.hash)
+        // Check value after burn roll back
+        record = await node.chain.assets.get(assetIdentifier)
+        Assert.isNotUndefined(record)
+        expect(record).toMatchObject({
+          createdTransactionHash: blockA.transactions[1].hash(),
+          supply: mintValueA + mintValueB,
+        })
+
+        // 5. Burn some more
+        const burnValueD = BigInt(7)
+        const noteToBurnD = blockB.transactions[1].getNote(0)
+        const blockD = await burnAsset(node, account, 4, asset, burnValueD, noteToBurnD)
+        await expect(node.chain).toAddBlock(blockD)
+        // Check aggregate mint value
+        record = await node.chain.assets.get(assetIdentifier)
+        Assert.isNotUndefined(record)
+        expect(record).toMatchObject({
+          createdTransactionHash: blockA.transactions[1].hash(),
+          supply: mintValueA + mintValueB - burnValueD,
+        })
+
+        // 6. Mint some more
+        const mintValueE = BigInt(10)
+        const blockE = await mintAsset(node, account, 5, asset, mintValueE)
+        await expect(node.chain).toAddBlock(blockE)
+        // Check aggregate mint value
+        record = await node.chain.assets.get(assetIdentifier)
+        Assert.isNotUndefined(record)
+        expect(record).toMatchObject({
+          createdTransactionHash: blockA.transactions[1].hash(),
+          supply: mintValueA + mintValueB - burnValueD + mintValueE,
+        })
+
+        // 7. Roll back the mint from Block E (Step 6 above)
+        await node.chain.removeBlock(blockE.header.hash)
+        // Check value after burn roll back
+        record = await node.chain.assets.get(assetIdentifier)
+        Assert.isNotUndefined(record)
+        expect(record).toMatchObject({
+          createdTransactionHash: blockA.transactions[1].hash(),
+          supply: mintValueA + mintValueB - burnValueD,
+        })
+      }, 10000)
+    })
+
+    describe('when an asset is minted on a fork', () => {
+      it('undoes the mint when reorganizing the chain', async () => {
+        const { node: nodeA } = await nodeTest.createSetup()
+        const { node: nodeB } = await nodeTest.createSetup()
+        const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+        const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
+
+        const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+        const mintValue = BigInt(10)
+        const assetIdentifier = asset.identifier()
+
+        // G -> A1
+        //   -> B1 -> B2
+        const blockA1 = await mintAsset(nodeA, accountA, 2, asset, mintValue)
+        await nodeA.chain.addBlock(blockA1)
+
+        // Verify Node A has the asset
+        let record = await nodeA.chain.assets.get(assetIdentifier)
+        Assert.isNotUndefined(record)
+        expect(record).toMatchObject({
+          createdTransactionHash: blockA1.transactions[1].hash(),
+          supply: mintValue,
+        })
+
+        const blockB1 = await useMinerBlockFixture(nodeB.chain, 2, accountB)
+        await nodeB.chain.addBlock(blockB1)
+        const blockB2 = await useMinerBlockFixture(nodeB.chain, 3, accountB)
+        await nodeB.chain.addBlock(blockB2)
+
+        // Verify Node B does not have the asset
+        record = await nodeB.chain.assets.get(assetIdentifier)
+        expect(record).toBeUndefined()
+
+        // Reorganize the chain on Node A
+        await nodeA.chain.addBlock(blockB1)
+        await nodeA.chain.addBlock(blockB2)
+
+        // Verify Node A no longer has the asset from Block A1
+        expect(nodeA.chain.head.hash.equals(blockB2.header.hash)).toBe(true)
+        record = await nodeA.chain.assets.get(assetIdentifier)
+        expect(record).toBeUndefined()
+      })
+    })
+
+    describe('when spending and burning the same note in a block', () => {
+      it('throws an exception', async () => {
+        const { node } = await nodeTest.createSetup()
+        const wallet = node.wallet
+        const account = await useAccountFixture(wallet)
+
+        const minedBlock = await useMinerBlockFixture(node.chain, 2, account)
+        await expect(node.chain).toAddBlock(minedBlock)
+
+        // Mint so we have an existing asset
+        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const assetIdentifier = asset.identifier()
+
+        const mintValue = BigInt(10)
+        const mintBlock = await mintAsset(node, account, 3, asset, mintValue)
+        await expect(node.chain).toAddBlock(mintBlock)
+        await node.wallet.updateHead()
+
+        // Build a block which uses the same note for burning and spending
+        const noteToBurn = mintBlock.transactions[1].getNote(0)
+        const doubleSpendBlock = await useBlockFixture(node.chain, async () => {
+          const burnTransaction = await buildRawTransaction(
+            node.chain,
+            node.workerPool,
+            account,
+            [noteToBurn],
+            [],
+            [],
+            [{ assetIdentifier: asset.identifier(), value: BigInt(2) }],
+          )
+          const spendTransaction = await buildRawTransaction(
+            node.chain,
+            node.workerPool,
+            account,
+            [noteToBurn],
+            [
+              {
+                publicAddress: account.publicAddress,
+                amount: BigInt(3),
+                memo: '',
+                assetIdentifier,
+              },
+            ],
+            [],
+            [],
+          )
+          const fee = burnTransaction.fee() + spendTransaction.fee()
+
+          return node.chain.newBlock(
+            [burnTransaction, spendTransaction],
+            await node.strategy.createMinersFee(fee, 4, generateKey().spending_key),
+          )
+        })
+
+        expect(await node.chain.addBlock(doubleSpendBlock)).toMatchObject({
+          isAdded: false,
+          reason: VerificationResultReason.DOUBLE_SPEND,
+        })
+      })
+    })
   })
 })

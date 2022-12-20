@@ -432,12 +432,12 @@ export class Telemetry {
         {
           name: 'notes',
           type: 'integer',
-          value: transaction.notesLength(),
+          value: transaction.notes.length,
         },
         {
           name: 'spends',
           type: 'integer',
-          value: transaction.spendsLength(),
+          value: transaction.spends.length,
         },
       ],
     })

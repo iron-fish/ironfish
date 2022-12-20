@@ -8,24 +8,16 @@ import { NoteEncryptedHashSerde } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { BigIntUtils } from '../utils'
-import { NullifierSerdeInstance } from './serdeInstances'
 
 export type SerializedBlockTemplate = {
   header: {
     sequence: number
     previousBlockHash: string
-    noteCommitment: {
-      commitment: string
-      size: number
-    }
-    nullifierCommitment: {
-      commitment: string
-      size: number
-    }
+    noteCommitment: string
+    transactionCommitment: string
     target: string
     randomness: string
     timestamp: number
-    minersFee: string
     graffiti: string
   }
   transactions: string[]
@@ -40,18 +32,11 @@ export class BlockTemplateSerde {
     const header = {
       sequence: block.header.sequence,
       previousBlockHash: block.header.previousBlockHash.toString('hex'),
-      noteCommitment: {
-        commitment: block.header.noteCommitment.commitment.toString('hex'),
-        size: block.header.noteCommitment.size,
-      },
-      nullifierCommitment: {
-        commitment: block.header.nullifierCommitment.commitment.toString('hex'),
-        size: block.header.nullifierCommitment.size,
-      },
+      noteCommitment: block.header.noteCommitment.toString('hex'),
+      transactionCommitment: block.header.transactionCommitment.toString('hex'),
       target: BigIntUtils.toBytesBE(block.header.target.asBigInt(), 32).toString('hex'),
       randomness: BigIntUtils.toBytesBE(block.header.randomness, 8).toString('hex'),
       timestamp: block.header.timestamp.getTime(),
-      minersFee: BigIntUtils.toBytesBE(block.header.minersFee, 8).toString('hex'),
       graffiti: block.header.graffiti.toString('hex'),
     }
     const previousBlockInfo = {
@@ -72,22 +57,11 @@ export class BlockTemplateSerde {
     const header = new BlockHeader(
       blockTemplate.header.sequence,
       Buffer.from(blockTemplate.header.previousBlockHash, 'hex'),
-      {
-        commitment: noteHasher.deserialize(
-          Buffer.from(blockTemplate.header.noteCommitment.commitment, 'hex'),
-        ),
-        size: blockTemplate.header.noteCommitment.size,
-      },
-      {
-        commitment: NullifierSerdeInstance.deserialize(
-          blockTemplate.header.nullifierCommitment.commitment,
-        ),
-        size: blockTemplate.header.nullifierCommitment.size,
-      },
+      noteHasher.deserialize(Buffer.from(blockTemplate.header.noteCommitment, 'hex')),
+      Buffer.from(blockTemplate.header.transactionCommitment, 'hex'),
       new Target(Buffer.from(blockTemplate.header.target, 'hex')),
       BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.randomness, 'hex')),
       new Date(blockTemplate.header.timestamp),
-      BigInt(-1) * BigIntUtils.fromBytes(Buffer.from(blockTemplate.header.minersFee, 'hex')),
       Buffer.from(blockTemplate.header.graffiti, 'hex'),
     )
 

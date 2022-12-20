@@ -162,7 +162,7 @@ describe('Handles WebRTC message send failure', () => {
     const result = peer.send(message)
     expect(result).toBe(wsConnection)
     expect(peer.state.type).toEqual('CONNECTED')
-    expect(wsSendSpy).toBeCalledWith(message)
+    expect(wsSendSpy).toHaveBeenCalledWith(message)
   })
 })
 
@@ -350,6 +350,6 @@ describe('punish', () => {
     peer.onBanned.on(onBannedHander)
     peer.punish(BAN_SCORE.MAX, 'TESTING')
 
-    expect(onBannedHander).toBeCalled()
+    expect(onBannedHander).toHaveBeenCalled()
   })
 })

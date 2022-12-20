@@ -21,7 +21,7 @@ export class BalanceCommand extends IronfishCommand {
     }),
     all: Flags.boolean({
       default: false,
-      description: 'Also show pending and unconfirmed balance',
+      description: 'Also show unconfirmed balance',
     }),
     confirmations: Flags.integer({
       required: false,
@@ -58,7 +58,6 @@ export class BalanceCommand extends IronfishCommand {
       this.log(`Account: ${response.content.account}`)
       this.log(`Balance:     ${CurrencyUtils.renderIron(response.content.confirmed, true)}`)
       this.log(`Unconfirmed: ${CurrencyUtils.renderIron(response.content.unconfirmed, true)}`)
-      this.log(`Pending:     ${CurrencyUtils.renderIron(response.content.pending, true)}`)
       return
     }
 
@@ -68,10 +67,8 @@ export class BalanceCommand extends IronfishCommand {
 
   explainBalance(response: GetBalanceResponse): void {
     const unconfirmed = CurrencyUtils.decode(response.unconfirmed)
-    const pending = CurrencyUtils.decode(response.pending)
     const confirmed = CurrencyUtils.decode(response.confirmed)
 
-    const pendingDelta = pending - unconfirmed
     const unconfirmedDelta = unconfirmed - confirmed
 
     this.log(`Account: ${response.account}`)
@@ -88,14 +85,5 @@ export class BalanceCommand extends IronfishCommand {
       )} are on the chain within ${response.minimumBlockConfirmations.toString()} blocks of the head`,
     )
     this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true)}`)
-    this.log('')
-
-    this.log(
-      `${response.pendingCount} notes worth ${CurrencyUtils.renderIron(
-        pendingDelta,
-        true,
-      )} are waiting for miners to add them to the chain`,
-    )
-    this.log(`Pending: ${CurrencyUtils.renderIron(pending, true)}`)
   }
 }

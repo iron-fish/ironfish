@@ -317,9 +317,14 @@ export class MiningPool {
   }
 
   private async processNewBlocks() {
+    const consensusParameters = (await this.rpc.getConsensusParameters()).content
+
     for await (const payload of this.rpc.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
-      this.restartCalculateTargetInterval()
+      this.restartCalculateTargetInterval(
+        consensusParameters.targetBlockTimeInSeconds,
+        consensusParameters.targetBucketTimeInSeconds,
+      )
 
       const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
       this.currentHeadDifficulty = currentHeadTarget.toDifficulty()
@@ -329,7 +334,10 @@ export class MiningPool {
     }
   }
 
-  private recalculateTarget() {
+  private recalculateTarget(
+    targetBlockTimeInSeconds: number,
+    targetBucketTimeInSeconds: number,
+  ) {
     this.logger.debug('recalculating target')
 
     Assert.isNotNull(this.currentHeadTimestamp)
@@ -343,11 +351,14 @@ export class MiningPool {
     Assert.isNotNull(latestBlock)
 
     const newTime = new Date()
+
     const newTarget = Target.fromDifficulty(
       Target.calculateDifficulty(
         newTime,
         new Date(this.currentHeadTimestamp),
         this.currentHeadDifficulty,
+        targetBlockTimeInSeconds,
+        targetBucketTimeInSeconds,
       ),
     )
 
@@ -380,13 +391,16 @@ export class MiningPool {
     this.stratum.newWork(miningRequestId, newBlock)
   }
 
-  private restartCalculateTargetInterval() {
+  private restartCalculateTargetInterval(
+    targetBlockTimeInSeconds: number,
+    targetBucketTimeInSeconds: number,
+  ) {
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
 
     this.recalculateTargetInterval = setInterval(() => {
-      this.recalculateTarget()
+      this.recalculateTarget(targetBlockTimeInSeconds, targetBucketTimeInSeconds)
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 

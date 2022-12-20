@@ -6,13 +6,12 @@ import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import nodeDataChannel from 'node-datachannel'
 import { Assert } from '../../../assert'
-import { MAX_MESSAGE_SIZE } from '../../../consensus'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { ErrorUtils } from '../../../utils'
 import { parseNetworkMessage } from '../../messageRegistry'
 import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
-import { NetworkMessageType } from '../../types'
+import { MAX_MESSAGE_SIZE } from '../../version'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
 
@@ -198,15 +197,8 @@ export class WebRtcConnection extends Connection {
     }
   }
 
-  /**
-   * Encode the message to json and send it to the peer
-   */
   send = (message: NetworkMessage): boolean => {
     if (!this.datachannel) {
-      return false
-    }
-
-    if (message.type === NetworkMessageType.NewBlock && this.datachannel.bufferedAmount() > 0) {
       return false
     }
 

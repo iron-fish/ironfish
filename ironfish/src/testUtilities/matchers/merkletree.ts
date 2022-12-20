@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import diff from 'jest-diff'
+import { diff } from 'jest-diff'
 import { MerkleTree, Witness, WitnessSide } from '../../merkletree'
 import { NodeValue } from '../../merkletree/schema'
 import { makeError } from './utils'
@@ -40,9 +40,7 @@ expect.extend({
 
       const leaf = await tree.getLeaf(i)
 
-      if (leaf.element !== characters[i]) {
-        error = `expected element ${i} to be ${characters[i]}, but it is ${leaf.element}`
-      } else if (leaf.merkleHash !== characters[i]) {
+      if (leaf.merkleHash !== characters[i]) {
         error = `expected element ${i} to have hash ${characters[i]}, but it is ${leaf.merkleHash}`
       } else if (leaf.parentIndex !== parents[i]) {
         error = `expected element ${i} to have parent ${parents[i]}, but it is ${leaf.parentIndex}`

@@ -27,9 +27,18 @@ import {
   DatabaseIsOpenError,
   DatabaseVersionError,
 } from '../database/errors'
+import { DatabaseKeyRange } from '../database/types'
 import { LevelupBatch } from './batch'
 import { LevelupStore } from './store'
 import { LevelupTransaction } from './transaction'
+
+interface INotFoundError {
+  type: 'NotFoundError'
+}
+
+function isNotFoundError(error: unknown): error is INotFoundError {
+  return (error as INotFoundError)?.type === 'NotFoundError'
+}
 
 type MetaSchema = {
   key: string
@@ -117,9 +126,13 @@ export class LevelupDatabase extends Database {
   compact(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       if (this.db instanceof LevelDOWN) {
-        this.db.compactRange(DATABASE_ALL_KEY_RANGE.gte, DATABASE_ALL_KEY_RANGE.lt, (err) =>
-          err ? reject(err) : resolve(),
-        )
+        const start = DATABASE_ALL_KEY_RANGE.gte
+        const end = DATABASE_ALL_KEY_RANGE.lt
+
+        Assert.isNotUndefined(start)
+        Assert.isNotUndefined(end)
+
+        this.db.compactRange(start, end, (err) => (err ? reject(err) : resolve()))
       } else {
         resolve()
       }
@@ -176,6 +189,42 @@ export class LevelupDatabase extends Database {
     }
 
     return batch.commit()
+  }
+
+  async get(key: Readonly<Buffer>): Promise<Buffer | undefined> {
+    try {
+      const data = (await this.levelup.get(key)) as unknown
+
+      if (!(data instanceof Buffer)) {
+        return undefined
+      }
+
+      return data
+    } catch (error: unknown) {
+      if (isNotFoundError(error)) {
+        return undefined
+      }
+
+      throw error
+    }
+  }
+
+  async put(key: Readonly<Buffer>, value: Buffer): Promise<void> {
+    await this.levelup.put(key, value)
+  }
+
+  async *getAllIter(range?: DatabaseKeyRange): AsyncGenerator<[Buffer, Buffer]> {
+    const stream = this.levelup.createReadStream(range)
+
+    // The return type for createReadStream is wrong
+    const iter = stream as unknown as AsyncIterable<{
+      key: Buffer
+      value: Buffer
+    }>
+
+    for await (const { key, value } of iter) {
+      yield [key, value]
+    }
   }
 
   async getVersion(): Promise<number> {

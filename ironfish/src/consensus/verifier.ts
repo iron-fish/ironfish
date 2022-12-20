@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { TRANSACTION_VERSION } from '@ironfish/rust-nodejs'
 import { BufferSet } from 'buffer-map'
+import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import {
   getBlockSize,
@@ -10,13 +12,12 @@ import {
   getTransactionSize,
 } from '../network/utils/serializers'
 import { Spend } from '../primitives'
-import { Block } from '../primitives/block'
-import { BlockHeader } from '../primitives/blockheader'
+import { Block, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
+import { BlockHeader, transactionCommitment } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { WorkerPool } from '../workerPool'
-import { ALLOWED_BLOCK_FUTURE_SECONDS, GENESIS_BLOCK_SEQUENCE } from './consensus'
 
 export class Verifier {
   chain: Blockchain
@@ -42,21 +43,19 @@ export class Verifier {
     block: Block,
     options: { verifyTarget?: boolean } = { verifyTarget: true },
   ): Promise<VerificationResult> {
-    if (
-      this.chain.consensus.isActive(
-        this.chain.consensus.V2_MAX_BLOCK_SIZE,
-        block.header.sequence,
-      )
-    ) {
-      if (getBlockSize(block) > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
-        return { valid: false, reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED }
-      }
+    if (getBlockSize(block) > this.chain.consensus.parameters.maxBlockSizeBytes) {
+      return { valid: false, reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED }
     }
 
     // Verify the block header
     const blockHeaderValid = this.verifyBlockHeader(block.header, options)
     if (!blockHeaderValid.valid) {
       return blockHeaderValid
+    }
+
+    const expectedTransactionCommitment = transactionCommitment(block.transactions)
+    if (!expectedTransactionCommitment.equals(block.header.transactionCommitment)) {
+      return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_COMMITMENT }
     }
 
     // Verify the transactions
@@ -75,7 +74,7 @@ export class Verifier {
 
       transactionBatch.push(tx)
 
-      runningNotesCount += tx.notesLength()
+      runningNotesCount += tx.notes.length
 
       if (runningNotesCount >= notesLimit || idx === block.transactions.length - 1) {
         verificationPromises.push(this.workerPool.verifyTransactions(transactionBatch))
@@ -92,39 +91,28 @@ export class Verifier {
       return invalidResult
     }
 
-    // Sum the totalTransactionFees and minersFee
-    let totalTransactionFees = BigInt(0)
-    let minersFee = BigInt(0)
-
     const transactionFees = await Promise.all(block.transactions.map((t) => t.fee()))
 
-    for (let i = 0; i < transactionFees.length; i++) {
-      const fee = transactionFees[i]
+    // Miner's fee should be only the first transaction
+    const minersFee = transactionFees.length > 0 ? transactionFees[0] : BigInt(0)
 
-      // Miner's fee should be only the first transaction
-      if (i === 0 && fee > 0) {
-        return { valid: false, reason: VerificationResultReason.MINERS_FEE_EXPECTED }
-      }
+    if (minersFee > 0) {
+      return { valid: false, reason: VerificationResultReason.MINERS_FEE_EXPECTED }
+    }
 
-      if (i !== 0 && fee < 0) {
+    // Sum the total transaction fees
+    let totalTransactionFees = BigInt(0)
+    for (const fee of transactionFees.slice(1)) {
+      if (fee < 0) {
         return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_FEE }
       }
 
-      if (fee > 0) {
-        totalTransactionFees += fee
-      }
-      if (fee < 0) {
-        minersFee += fee
-      }
-    }
-
-    // minersFee should match the block header
-    if (block.header.minersFee !== minersFee) {
-      return { valid: false, reason: VerificationResultReason.MINERS_FEE_MISMATCH }
+      totalTransactionFees += fee
     }
 
     // minersFee should be (negative) miningReward + totalTransactionFees
     const miningReward = this.chain.strategy.miningReward(block.header.sequence)
+
     if (minersFee !== BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
@@ -138,8 +126,7 @@ export class Verifier {
    * verify the transactions in the block.
    *
    * Specifically, it verifies that:
-   *  *  miners fee contains only one output note and no spends
-   *  *  miners fee is a valid transaction
+   *  *  graffiti is the appropriate length
    *  *  the block hash meets the target hash on the block
    *  *  the timestamp is not in future by our local clock time
    */
@@ -155,7 +142,10 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.HASH_NOT_MEET_TARGET }
     }
 
-    if (blockHeader.timestamp.getTime() > Date.now() + ALLOWED_BLOCK_FUTURE_SECONDS * 1000) {
+    if (
+      blockHeader.timestamp.getTime() >
+      Date.now() + this.chain.consensus.parameters.allowedBlockFutureSeconds * 1000
+    ) {
       return { valid: false, reason: VerificationResultReason.TOO_FAR_IN_FUTURE }
     }
 
@@ -182,7 +172,8 @@ export class Verifier {
 
     if (
       current.timestamp.getTime() <
-      previousHeader.timestamp.getTime() - ALLOWED_BLOCK_FUTURE_SECONDS * 1000
+      previousHeader.timestamp.getTime() -
+        this.chain.consensus.parameters.allowedBlockFutureSeconds * 1000
     ) {
       return { valid: false, reason: VerificationResultReason.BLOCK_TOO_OLD }
     }
@@ -208,6 +199,12 @@ export class Verifier {
       return verificationResult
     }
 
+    // Currently we only support one transaction version. This is checked when
+    // we call workerPool.verify but doing it here as well for efficiency
+    if (transaction.version() !== TRANSACTION_VERSION) {
+      return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_VERSION }
+    }
+
     try {
       verificationResult = await this.workerPool.verify(transaction)
     } catch {
@@ -219,9 +216,7 @@ export class Verifier {
     }
 
     const reason = await this.chain.db.withTransaction(null, async (tx) => {
-      const nullifierSize = await this.chain.nullifiers.size(tx)
-
-      for (const spend of transaction.spends()) {
+      for (const spend of transaction.spends) {
         // If the spend references a larger tree size, allow it, so it's possible to
         // store transactions made while the node is a few blocks behind
         // TODO: We're not calling verifySpend here because we're often creating spends with tree size
@@ -229,7 +224,7 @@ export class Verifier {
         // (and spends) can eventually become valid if the chain forks to them.
         // Calculating the notes rootHash is also expensive at the time of writing, so performance test
         // before verifying the rootHash on spends.
-        if (await this.chain.nullifiers.contained(spend.nullifier, nullifierSize, tx)) {
+        if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
           return VerificationResultReason.DOUBLE_SPEND
         }
       }
@@ -249,7 +244,7 @@ export class Verifier {
   verifyCreatedTransaction(transaction: Transaction): VerificationResult {
     if (
       getTransactionSize(transaction) >
-      this.chain.consensus.MAX_BLOCK_SIZE_BYTES - getBlockWithMinersFeeSize()
+      this.chain.consensus.parameters.maxBlockSizeBytes - getBlockWithMinersFeeSize()
     ) {
       return { valid: false, reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED }
     }
@@ -263,13 +258,16 @@ export class Verifier {
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const notesSize = await this.chain.notes.size(tx)
-      const nullifierSize = await this.chain.nullifiers.size(tx)
 
-      for (const spend of transaction.spends()) {
-        const reason = await this.verifySpend(spend, notesSize, nullifierSize, tx)
+      for (const spend of transaction.spends) {
+        const reason = await this.verifySpend(spend, notesSize, tx)
 
         if (reason) {
           return { valid: false, reason }
+        }
+
+        if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
+          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
         }
       }
 
@@ -307,6 +305,8 @@ export class Verifier {
       header.timestamp,
       previous.timestamp,
       previous.target,
+      this.chain.consensus.parameters.targetBlockTimeInSeconds,
+      this.chain.consensus.parameters.targetBucketTimeInSeconds,
     )
 
     return header.target.targetValue === expectedTarget.targetValue
@@ -320,16 +320,6 @@ export class Verifier {
 
     if (!prev) {
       return { valid: false, reason: VerificationResultReason.PREV_HASH_NULL }
-    }
-
-    const { notes, nullifiers } = block.counts()
-
-    if (block.header.noteCommitment.size !== prev.noteCommitment.size + notes) {
-      return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
-    }
-
-    if (block.header.nullifierCommitment.size !== prev.nullifierCommitment.size + nullifiers) {
-      return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
     }
 
     let verification = this.verifyBlockHeaderContextual(block.header, prev)
@@ -355,28 +345,14 @@ export class Verifier {
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
-      const { nullifiers: nullifiersCount } = block.counts()
-      const processedSpends = new BufferSet()
-
-      const previousNotesSize = block.header.noteCommitment.size
-      const previousNullifierSize = block.header.nullifierCommitment.size - nullifiersCount
+      const previousNotesSize = block.header.noteSize
+      Assert.isNotNull(previousNotesSize)
 
       for (const spend of block.spends()) {
-        if (processedSpends.has(spend.nullifier)) {
-          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
-        }
-
-        const verificationError = await this.verifySpend(
-          spend,
-          previousNotesSize,
-          previousNullifierSize,
-          tx,
-        )
+        const verificationError = await this.verifySpend(spend, previousNotesSize, tx)
         if (verificationError) {
           return { valid: false, reason: verificationError }
         }
-
-        processedSpends.add(spend.nullifier)
       }
 
       return { valid: true }
@@ -384,56 +360,42 @@ export class Verifier {
   }
 
   /**
-   * Verify the block before connecting it to the main chain
+   * Verify the block does not contain any double spends before connecting it
    */
   async verifyBlockConnect(
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    if (
-      this.chain.consensus.isActive(this.chain.consensus.V1_DOUBLE_SPEND, block.header.sequence)
-    ) {
-      // Loop over all spends in the block and check that the nullifier has not previously been spent
-      const seen = new BufferSet()
-      const size = await this.chain.nullifiers.size(tx)
+    const seen = new BufferSet()
 
-      for (const spend of block.spends()) {
-        if (seen.has(spend.nullifier)) {
-          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
-        }
-
-        if (await this.chain.nullifiers.contained(spend.nullifier, size, tx)) {
-          return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
-        }
-
-        seen.add(spend.nullifier)
+    for (const spend of block.spends()) {
+      if (seen.has(spend.nullifier)) {
+        return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
       }
+
+      if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
+        return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+      }
+
+      seen.add(spend.nullifier)
     }
 
     return { valid: true }
   }
 
   /**
-   * Verify that the given spend was not in the nullifiers tree when it was the given size,
-   * and that the root of the notes tree is the one that is actually associated with the
+   * Verify that the root of the notes tree is the one that is actually associated with the
    * spend's spend root.
    *
    * @param spend the spend to be verified
    * @param notesSize the size of the notes tree
-   * @param nullifierSize the size of the nullifiers tree at which the spend must not exist
    * @param tx optional transaction context within which to check the spends.
-   * TODO as its expensive, this would be a good place for a cache/map of verified Spends
    */
   async verifySpend(
     spend: Spend,
     notesSize: number,
-    nullifierSize: number,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResultReason | undefined> {
-    if (await this.chain.nullifiers.contained(spend.nullifier, nullifierSize, tx)) {
-      return VerificationResultReason.DOUBLE_SPEND
-    }
-
     if (spend.size > notesSize) {
       return VerificationResultReason.NOTE_COMMITMENT_SIZE_TOO_LARGE
     }
@@ -449,12 +411,11 @@ export class Verifier {
   }
 
   /**
-   * Determine whether our trees match the commitment in the provided block.
+   * Determine whether the notes tree matches the commitment in the provided block.
    *
    * Matching means that the root hash of the tree when the tree is the size
-   * specified in the commitment is the same as the commitment,
-   * for both notes and nullifiers trees. Also verifies the spends, which have
-   * commitments as well.
+   * specified in the commitment is the same as the commitment. Also verifies the spends,
+   * which have commitments as well.
    */
   async verifyConnectedBlock(
     block: Block,
@@ -462,27 +423,11 @@ export class Verifier {
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
       const header = block.header
-      const noteSize = header.noteCommitment.size
-      const nullifierSize = header.nullifierCommitment.size
-      const actualNoteSize = await this.chain.notes.size(tx)
-      const actualNullifierSize = await this.chain.nullifiers.size(tx)
 
-      if (noteSize > actualNoteSize) {
-        return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT_SIZE }
-      }
-
-      if (nullifierSize > actualNullifierSize) {
-        return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE }
-      }
-
-      const pastNoteRoot = await this.chain.notes.pastRoot(noteSize, tx)
-      if (!pastNoteRoot.equals(header.noteCommitment.commitment)) {
+      Assert.isNotNull(header.noteSize)
+      const noteRoot = await this.chain.notes.pastRoot(header.noteSize, tx)
+      if (!noteRoot.equals(header.noteCommitment)) {
         return { valid: false, reason: VerificationResultReason.NOTE_COMMITMENT }
-      }
-
-      const pastNullifierRoot = await this.chain.nullifiers.pastRoot(nullifierSize, tx)
-      if (!pastNullifierRoot.equals(header.nullifierCommitment.commitment)) {
-        return { valid: false, reason: VerificationResultReason.NULLIFIER_COMMITMENT }
       }
 
       const spendVerification = await this.verifyConnectedSpends(block, tx)
@@ -502,22 +447,22 @@ export enum VerificationResultReason {
   DUPLICATE = 'Duplicate',
   ERROR = 'Error',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
+  GOSSIPED_GENESIS_BLOCK = 'Peer gossiped its genesis block',
   HASH_NOT_MEET_TARGET = 'Hash does not meet target',
+  INVALID_GENESIS_BLOCK = 'Peer is using a different genesis block',
   INVALID_MINERS_FEE = "Miner's fee is incorrect",
+  INVALID_PARENT = 'Invalid_parent',
   INVALID_SPEND = 'Invalid spend',
   INVALID_TARGET = 'Invalid target',
   INVALID_TRANSACTION_FEE = 'Transaction fee is incorrect',
   INVALID_TRANSACTION_PROOF = 'Invalid transaction proof',
-  INVALID_PARENT = 'Invalid_parent',
+  INVALID_TRANSACTION_COMMITMENT = 'Transaction commitment does not match transactions',
+  INVALID_TRANSACTION_VERSION = 'Invalid transaction version',
   MAX_BLOCK_SIZE_EXCEEDED = 'Block size exceeds maximum',
   MAX_TRANSACTION_SIZE_EXCEEDED = 'Transaction size exceeds maximum',
   MINERS_FEE_EXPECTED = 'Miners fee expected',
-  MINERS_FEE_MISMATCH = 'Miners fee does not match block header',
   NOTE_COMMITMENT = 'Note_commitment',
-  NOTE_COMMITMENT_SIZE = 'Note commitment sizes do not match',
   NOTE_COMMITMENT_SIZE_TOO_LARGE = 'Note commitment tree is smaller than referenced by the spend',
-  NULLIFIER_COMMITMENT = 'Nullifier_commitment',
-  NULLIFIER_COMMITMENT_SIZE = 'Nullifier commitment sizes do not match',
   ORPHAN = 'Block is an orphan',
   PREV_HASH_NULL = 'Previous block hash is null',
   PREV_HASH_MISMATCH = 'Previous block hash does not match expected hash',

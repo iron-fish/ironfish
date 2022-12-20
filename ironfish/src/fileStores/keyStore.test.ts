@@ -37,7 +37,7 @@ describe('KeyStore', () => {
 
     store1.set('foo', 5)
     await store1.save()
-    await expect(store2.load()).rejects.toThrowError('foo must be a `string`')
+    await expect(store2.load()).rejects.toThrow('foo must be a `string`')
   })
 
   it('should use schema result in load', async () => {
@@ -73,7 +73,7 @@ describe('KeyStore', () => {
 
     const store = new KeyStore<{ foo: number }>(files, 'store', { foo: 0 }, dir, schema)
 
-    expect(() => store.set('foo', 'Hello world' as unknown as number)).toThrowError(
+    expect(() => store.set('foo', 'Hello world' as unknown as number)).toThrow(
       'this must be a `number` type',
     )
   })
@@ -92,5 +92,41 @@ describe('KeyStore', () => {
 
     store.set('foo', ' trim me ')
     expect(store.get('foo')).toEqual('trim me')
+  })
+
+  it('isSet should return false when default config used', async () => {
+    const dir = getUniqueTestDataDir()
+    const files = await new NodeFileProvider().init()
+
+    // Not set
+    let store = new KeyStore<{ foo: string }>(files, 'store', { foo: '' }, dir)
+    expect(store.isSet('foo')).toBe(false)
+
+    // Set in override
+    store.setOverride('foo', '')
+    expect(store.isSet('foo')).toBe(true)
+
+    // Now its set in the file itself
+    store.set('foo', 'set')
+    await store.save()
+    store = new KeyStore<{ foo: string }>(files, 'store', { foo: '' }, dir)
+    await store.load()
+    expect(store.isSet('foo')).toBe(true)
+  })
+
+  it('should save when put matches default', async () => {
+    const dir = getUniqueTestDataDir()
+    const files = await new NodeFileProvider().init()
+
+    let store = new KeyStore<{ foo: string }>(files, 'store', { foo: 'default' }, dir)
+    expect(store.isSet('foo')).toBe(false)
+
+    store.set('foo', 'default')
+    expect(store.isSet('foo')).toBe(true)
+
+    await store.save()
+    store = new KeyStore<{ foo: string }>(files, 'store', { foo: '' }, dir)
+    await store.load()
+    expect(store.get('foo')).toEqual('default')
   })
 })

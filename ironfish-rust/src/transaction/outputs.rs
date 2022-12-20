@@ -3,20 +3,23 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    errors::IronfishError, keys::SaplingKey, merkle_note::MerkleNote, note::Note,
+    errors::IronfishError,
+    keys::{EphemeralKeyPair, SaplingKey},
+    merkle_note::MerkleNote,
+    note::Note,
     sapling_bls12::SAPLING,
 };
 
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
-use ff::Field;
 use group::Curve;
-use ironfish_zkp::proofs::Output;
-use ironfish_zkp::ValueCommitment;
+use ironfish_zkp::{primitives::ValueCommitment, proofs::Output, redjubjub};
 use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
 use std::io;
+
+use super::utils::verify_output_proof;
 
 /// Parameters used when constructing proof that a new note exists. The owner
 /// of this note is the recipient of funds in a transaction. The note is signed
@@ -35,13 +38,12 @@ pub struct OutputBuilder {
     is_miners_fee: bool,
 }
 
+pub const PROOF_SIZE: u32 = 192;
+
 impl OutputBuilder {
     /// Create a new [`OutputBuilder`] attempting to create a note.
     pub(crate) fn new(note: Note) -> Self {
-        let value_commitment = ValueCommitment {
-            value: note.value,
-            randomness: jubjub::Fr::random(thread_rng()),
-        };
+        let value_commitment = ValueCommitment::new(note.value, note.asset_generator());
 
         Self {
             note,
@@ -74,19 +76,23 @@ impl OutputBuilder {
     pub(crate) fn build(
         &self,
         spender_key: &SaplingKey,
+        public_key_randomness: &jubjub::Fr,
+        randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<OutputDescription, IronfishError> {
-        let diffie_hellman_keys = self.note.owner.generate_diffie_hellman_keys();
+        let diffie_hellman_keys = EphemeralKeyPair::new();
 
         let circuit = Output {
             value_commitment: Some(self.value_commitment.clone()),
-            payment_address: Some(self.note.owner.sapling_payment_address()),
+            payment_address: Some(self.note.owner.transmission_key),
             commitment_randomness: Some(self.note.randomness),
-            esk: Some(diffie_hellman_keys.0),
+            esk: Some(*diffie_hellman_keys.secret()),
+            asset_generator: Some(self.note.asset_generator().into()),
+            proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
+            ar: Some(*public_key_randomness),
         };
 
         let proof =
             groth16::create_random_proof(circuit, &SAPLING.output_params, &mut thread_rng())?;
-
         let merkle_note = if self.is_miners_fee {
             MerkleNote::new_for_miners_fee(&self.note, &self.value_commitment, &diffie_hellman_keys)
         } else {
@@ -100,7 +106,10 @@ impl OutputBuilder {
 
         let output_proof = OutputDescription { proof, merkle_note };
 
-        output_proof.verify_proof()?;
+        verify_output_proof(
+            &output_proof.proof,
+            &output_proof.public_inputs(randomized_public_key),
+        )?;
 
         Ok(output_proof)
     }
@@ -138,21 +147,18 @@ impl OutputDescription {
         self.serialize_signature_fields(writer)
     }
 
-    /// Verify that the proof demonstrates knowledge that a note exists with
-    /// the value_commitment, public_key, and note_commitment on this proof.
-    pub fn verify_proof(&self) -> Result<(), IronfishError> {
-        self.verify_value_commitment()?;
-
-        groth16::verify_proof(
-            &SAPLING.output_verifying_key,
-            &self.proof,
-            &self.public_inputs()[..],
-        )?;
+    /// A function to encapsulate any verification besides the proof itself.
+    /// This allows us to abstract away the details and make it easier to work
+    /// with. Note that this does not verify the proof, that happens in the
+    /// [`OutputBuilder`] build function as the prover, and in
+    /// [`super::batch_verify_transactions`] as the verifier.
+    pub fn partial_verify(&self) -> Result<(), IronfishError> {
+        self.verify_not_small_order()?;
 
         Ok(())
     }
 
-    pub fn verify_value_commitment(&self) -> Result<(), IronfishError> {
+    fn verify_not_small_order(&self) -> Result<(), IronfishError> {
         if self.merkle_note.value_commitment.is_small_order().into()
             || ExtendedPoint::from(self.merkle_note.ephemeral_public_key)
                 .is_small_order()
@@ -165,19 +171,23 @@ impl OutputDescription {
     }
 
     /// Converts the values to appropriate inputs for verifying the bellman proof.
-    /// Demonstrates knowledge of a note containing the value_commitment, public_key
-    /// and note_commitment
-    pub fn public_inputs(&self) -> [Scalar; 5] {
-        let mut public_inputs = [Scalar::zero(); 5];
-        let p = self.merkle_note.value_commitment.to_affine();
+    /// Demonstrates knowledge of a note containing the sender's randomized public key,
+    /// value_commitment, public_key, and note_commitment
+    pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 7] {
+        let mut public_inputs = [Scalar::zero(); 7];
+        let p = randomized_public_key.0.to_affine();
         public_inputs[0] = p.get_u();
         public_inputs[1] = p.get_v();
 
-        let p = ExtendedPoint::from(self.merkle_note.ephemeral_public_key).to_affine();
+        let p = self.merkle_note.value_commitment.to_affine();
         public_inputs[2] = p.get_u();
         public_inputs[3] = p.get_v();
 
-        public_inputs[4] = self.merkle_note.note_commitment;
+        let p = ExtendedPoint::from(self.merkle_note.ephemeral_public_key).to_affine();
+        public_inputs[4] = p.get_u();
+        public_inputs[5] = p.get_v();
+
+        public_inputs[6] = self.merkle_note.note_commitment;
 
         public_inputs
     }
@@ -192,6 +202,7 @@ impl OutputDescription {
     /// The signature is used by the transaction to calculate the signature
     /// hash. Having this data essentially binds the note to the transaction,
     /// proving that it is actually part of that transaction.
+    /// randomized_public_key is available in Transaction level, so not needed in descriptions
     pub(crate) fn serialize_signature_fields<W: io::Write>(
         &self,
         mut writer: W,
@@ -206,40 +217,66 @@ impl OutputDescription {
 #[cfg(test)]
 mod test {
     use super::{OutputBuilder, OutputDescription};
-    use crate::{keys::SaplingKey, merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note};
-    use ff::PrimeField;
+    use crate::{
+        assets::asset::NATIVE_ASSET_GENERATOR, keys::SaplingKey,
+        merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note,
+        transaction::utils::verify_output_proof,
+    };
+    use ff::{Field, PrimeField};
     use group::Curve;
+    use ironfish_zkp::{constants::SPENDING_KEY_GENERATOR, redjubjub};
     use jubjub::ExtendedPoint;
+    use rand::thread_rng;
 
     #[test]
     /// Test to confirm that creating an output with the `is_miners_fee` flag
     /// set will use the hard-coded note encryption keys
     fn test_output_miners_fee() {
         let spender_key = SaplingKey::generate_key();
-        let note = Note::new(spender_key.generate_public_address(), 42, "");
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        let note = Note::new(
+            spender_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+            spender_key.public_address(),
+        );
 
         let mut output = OutputBuilder::new(note);
         output.set_is_miners_fee();
 
         let proof = output
-            .build(&spender_key)
+            .build(&spender_key, &public_key_randomness, &randomized_public_key)
             .expect("should be able to build output proof");
 
         assert_eq!(
             &proof.merkle_note.note_encryption_keys,
-            NOTE_ENCRYPTION_MINER_KEYS
+            NOTE_ENCRYPTION_MINER_KEYS,
         );
     }
 
     #[test]
     fn test_output_not_miners_fee() {
         let spender_key = SaplingKey::generate_key();
-        let note = Note::new(spender_key.generate_public_address(), 42, "");
+        let receiver_key = SaplingKey::generate_key();
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        let note = Note::new(
+            receiver_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+            spender_key.public_address(),
+        );
 
         let output = OutputBuilder::new(note);
-
         let proof = output
-            .build(&spender_key)
+            .build(&spender_key, &public_key_randomness, &randomized_public_key)
             .expect("should be able to build output proof");
 
         assert_ne!(
@@ -251,13 +288,25 @@ mod test {
     #[test]
     fn test_output_round_trip() {
         let spender_key = SaplingKey::generate_key();
-        let note = Note::new(spender_key.generate_public_address(), 42, "");
+        let receiver_key = SaplingKey::generate_key();
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        let note = Note::new(
+            receiver_key.public_address(),
+            42,
+            "",
+            NATIVE_ASSET_GENERATOR,
+            spender_key.public_address(),
+        );
 
         let output = OutputBuilder::new(note);
         let proof = output
-            .build(&spender_key)
+            .build(&spender_key, &public_key_randomness, &randomized_public_key)
             .expect("Should be able to build output proof");
-        proof.verify_proof().expect("proof should check out");
+        verify_output_proof(&proof.proof, &proof.public_inputs(&randomized_public_key))
+            .expect("proof should check out");
 
         // test serialization
         let mut serialized_proof = vec![];

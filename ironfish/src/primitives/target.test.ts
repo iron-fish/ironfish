@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { TARGET_BLOCK_TIME_IN_SECONDS, TARGET_BUCKET_TIME_IN_SECONDS } from '../consensus'
 import { Target } from './target'
+
+const TARGET_BLOCK_TIME_IN_SECONDS = 60
+const TARGET_BUCKET_TIME_IN_SECONDS = 10
 
 describe('Target', () => {
   it('constructs targets', () => {
@@ -19,7 +21,7 @@ describe('Target', () => {
   it('throws when constructed with too big an array', () => {
     const bytes = Buffer.alloc(33)
     bytes[0] = 1
-    expect(() => new Target(bytes)).toThrowError(`Target value exceeds max target`)
+    expect(() => new Target(bytes)).toThrow(`Target value exceeds max target`)
   })
 
   it('has the correct max value', () => {
@@ -88,8 +90,20 @@ describe('Calculate target', () => {
 
       const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(bucketFromParent)
 
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
-      const newTarget = Target.calculateTarget(time, now, target)
+      const newDifficulty = Target.calculateDifficulty(
+        time,
+        now,
+        difficulty,
+        TARGET_BLOCK_TIME_IN_SECONDS,
+        TARGET_BUCKET_TIME_IN_SECONDS,
+      )
+      const newTarget = Target.calculateTarget(
+        time,
+        now,
+        target,
+        TARGET_BLOCK_TIME_IN_SECONDS,
+        TARGET_BUCKET_TIME_IN_SECONDS,
+      )
 
       expect(newDifficulty).toBeGreaterThan(difficulty)
       expect(BigInt(difficulty) + diffInDifficulty).toEqual(newDifficulty)
@@ -106,8 +120,20 @@ describe('Calculate target', () => {
       const difficulty = BigInt(231072)
       const target = Target.fromDifficulty(difficulty)
 
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
-      const newTarget = Target.calculateTarget(time, now, target)
+      const newDifficulty = Target.calculateDifficulty(
+        time,
+        now,
+        difficulty,
+        TARGET_BLOCK_TIME_IN_SECONDS,
+        TARGET_BUCKET_TIME_IN_SECONDS,
+      )
+      const newTarget = Target.calculateTarget(
+        time,
+        now,
+        target,
+        TARGET_BLOCK_TIME_IN_SECONDS,
+        TARGET_BUCKET_TIME_IN_SECONDS,
+      )
 
       const diffInDifficulty = BigInt(newDifficulty) - difficulty
 
@@ -138,9 +164,20 @@ describe('Calculate target', () => {
 
       const diffInDifficulty = (difficulty / BigInt(2048)) * BigInt(bucketFromParent)
 
-      const newDifficulty = Target.calculateDifficulty(time, now, difficulty)
-      const newTarget = Target.calculateTarget(time, now, target)
-
+      const newDifficulty = Target.calculateDifficulty(
+        time,
+        now,
+        difficulty,
+        TARGET_BLOCK_TIME_IN_SECONDS,
+        TARGET_BUCKET_TIME_IN_SECONDS,
+      )
+      const newTarget = Target.calculateTarget(
+        time,
+        now,
+        target,
+        TARGET_BLOCK_TIME_IN_SECONDS,
+        TARGET_BUCKET_TIME_IN_SECONDS,
+      )
       expect(newDifficulty).toBeLessThan(difficulty)
       expect(BigInt(newDifficulty) + diffInDifficulty).toEqual(difficulty)
 
@@ -157,6 +194,8 @@ describe('Calculate target', () => {
       new Date(now.getTime() + 1065 * 1000),
       now,
       previousBlockTarget,
+      TARGET_BLOCK_TIME_IN_SECONDS,
+      TARGET_BUCKET_TIME_IN_SECONDS,
     )
 
     // check that we don't change difficulty by more than 99 buckets (steps)
@@ -164,7 +203,13 @@ describe('Calculate target', () => {
     for (let i = 1065; i < 1070; i++) {
       const time = new Date(now.getTime() + i * 1000)
 
-      const newTarget = Target.calculateTarget(time, now, previousBlockTarget)
+      const newTarget = Target.calculateTarget(
+        time,
+        now,
+        previousBlockTarget,
+        TARGET_BLOCK_TIME_IN_SECONDS,
+        TARGET_BUCKET_TIME_IN_SECONDS,
+      )
 
       expect(newTarget).toEqual(maximallyDifferentTarget)
     }

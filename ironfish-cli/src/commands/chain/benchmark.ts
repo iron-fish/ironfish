@@ -116,8 +116,8 @@ export default class Benchmark extends IronfishCommand {
 
       totalMs += BenchUtils.end(startTime)
       totalBlocks += 1
-      totalSpends += block.transactions.reduce((count, tx) => count + tx.spendsLength(), 0)
-      totalNotes += block.transactions.reduce((count, tx) => count + tx.notesLength(), 0)
+      totalSpends += block.transactions.reduce((count, tx) => count + tx.spends.length, 0)
+      totalNotes += block.transactions.reduce((count, tx) => count + tx.notes.length, 0)
       totalTransactions += block.transactions.length
       status = renderStatus(
         totalMs,
@@ -135,18 +135,13 @@ export default class Benchmark extends IronfishCommand {
     this.log('\n' + status)
 
     // Check that data is consistent
-    const nodeNotesHash = await node.chain.notes.pastRoot(endingHeader.noteCommitment.size)
+    if (endingHeader.noteSize === null) {
+      return this.error(`Header should have a noteSize`)
+    }
+    const nodeNotesHash = await node.chain.notes.pastRoot(endingHeader.noteSize)
     const tempNodeNotesHash = await tempNode.chain.notes.rootHash()
     if (!nodeNotesHash.equals(tempNodeNotesHash)) {
       throw new Error('/!\\ Note tree hashes were not consistent /!\\')
-    }
-
-    const nodeNullifiersHash = await node.chain.nullifiers.pastRoot(
-      endingHeader.nullifierCommitment.size,
-    )
-    const tempNodeNullifiersHash = await tempNode.chain.nullifiers.rootHash()
-    if (!nodeNullifiersHash.equals(tempNodeNullifiersHash)) {
-      throw new Error('/!\\ Nullifier tree hashes were not consistent /!\\')
     }
 
     // Clean up the temporary node

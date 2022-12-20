@@ -13,7 +13,7 @@ import { DatabaseKeyRange } from './types'
  * you would query "gte('App') && lte('App' + 'ff')" Which would return
  * 'Apple' and 'Application'
  */
-export function getPrefixKeyRange(prefix: Buffer): DatabaseKeyRange {
+export function getPrefixKeyRange(prefix: Buffer): { gte: Buffer; lt: Buffer } {
   const gte = Buffer.alloc(prefix.byteLength)
   const lt = Buffer.alloc(prefix.byteLength)
 
@@ -29,7 +29,7 @@ export function getPrefixKeyRange(prefix: Buffer): DatabaseKeyRange {
 export function getPrefixesKeyRange(
   start: Readonly<Buffer>,
   end: Readonly<Buffer>,
-): DatabaseKeyRange {
+): { gte: Buffer; lt: Buffer } {
   Assert.isEqual(start.byteLength, end.byteLength, `Start and end must have equal byte length`)
 
   const gte = Buffer.alloc(start.byteLength)
@@ -44,4 +44,64 @@ export function getPrefixesKeyRange(
   return { gte, lt }
 }
 
-export const StorageUtils = { getPrefixKeyRange, getPrefixesKeyRange }
+/**
+ * Used to prepend a prefix to each key range condition
+ *
+ * Useful when you want to limit a range even further to a prefix
+ */
+export function addPrefixToRange(range: DatabaseKeyRange, prefix: Buffer): DatabaseKeyRange {
+  const prefixed: DatabaseKeyRange = {}
+
+  if (range.gt) {
+    prefixed.gt = Buffer.concat([prefix, range.gt])
+  }
+
+  if (range.gte) {
+    prefixed.gte = Buffer.concat([prefix, range.gte])
+  }
+
+  if (range.lt) {
+    prefixed.lt = Buffer.concat([prefix, range.lt])
+  }
+
+  if (range.lte) {
+    prefixed.lte = Buffer.concat([prefix, range.lte])
+  }
+
+  return prefixed
+}
+
+/**
+ * Return true if the buffer matches the key ranges
+ */
+function isInRange(buffer: Buffer, range: DatabaseKeyRange): boolean {
+  if (range.gt && range.gt.compare(buffer) >= 0) {
+    return false
+  }
+
+  if (range.gte && range.gte.compare(buffer) > 0) {
+    return false
+  }
+
+  if (range.lt && range.lt.compare(buffer) <= 0) {
+    return false
+  }
+
+  if (range.lte && range.lte.compare(buffer) < 0) {
+    return false
+  }
+
+  return true
+}
+
+function hasPrefix(buffer: Buffer, prefix: Buffer): boolean {
+  return buffer.slice(0, prefix.byteLength).equals(prefix)
+}
+
+export const StorageUtils = {
+  addPrefixToRange,
+  getPrefixKeyRange,
+  getPrefixesKeyRange,
+  hasPrefix,
+  isInRange,
+}

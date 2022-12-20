@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import '../../../testUtilities/matchers'
-import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'

@@ -1,16 +1,22 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import fs from 'fs'
 import path from 'path'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { IronfishNode } from '../node'
 import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
+import { BurnDescription } from '../primitives/burnDescription'
+import { MintDescription } from '../primitives/mintDescription'
+import { NoteEncrypted } from '../primitives/noteEncrypted'
+import { RawTransaction, RawTransactionSerde } from '../primitives/rawTransaction'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { Account, AccountValue, Wallet } from '../wallet'
+import { WorkerPool } from '../workerPool/pool'
+import { buildRawTransaction } from './helpers/transaction'
 import { getCurrentTestPath } from './utils'
 
 const FIXTURE_FOLDER = '__fixtures__'
@@ -29,7 +35,8 @@ export function shouldUpdateFixtures(): boolean {
 }
 
 export function disableFixtures(): void {
-  const testName = expect.getState().currentTestName.replace(/ /g, '_')
+  const currentTestName = expect.getState().currentTestName || ''
+  const testName = currentTestName.replace(/ /g, '_')
   const fixtureInfo = fixtureIds.get(testName) || { id: 0, disabled: false }
   fixtureIds.set(testName, fixtureInfo)
   fixtureInfo.disabled = true
@@ -45,7 +52,7 @@ export async function useFixture<TFixture, TSerialized = unknown>(
   } = {},
 ): Promise<TFixture> {
   const testPath = getCurrentTestPath()
-  const testName = expect.getState().currentTestName
+  const testName = expect.getState().currentTestName || ''
   const testDir = path.dirname(testPath)
   const testFile = path.basename(testPath)
 
@@ -162,7 +169,7 @@ export async function restoreTransactionFixtureToAccounts(
   transaction: Transaction,
   wallet: Wallet,
 ): Promise<void> {
-  await wallet.syncTransaction(transaction, { submittedSequence: 1 })
+  await wallet.addPendingTransaction(transaction)
 }
 
 /**
@@ -217,6 +224,55 @@ export async function useMinerBlockFixture(
   )
 }
 
+export async function useRawTxFixture(options: {
+  wallet: Wallet
+  from: Account
+  to?: Account
+  fee?: bigint
+  amount?: bigint
+  expiration?: number
+  assetIdentifier?: Buffer
+  receives?: {
+    publicAddress: string
+    amount: bigint
+    memo: string
+    assetIdentifier: Buffer
+  }[]
+  mints?: MintDescription[]
+  burns?: BurnDescription[]
+}): Promise<RawTransaction> {
+  const generate = async () => {
+    const receives = options.receives ?? []
+
+    if (options.to) {
+      receives.push({
+        publicAddress: options.to.publicAddress,
+        amount: options.amount ?? 1n,
+        memo: '',
+        assetIdentifier: options.assetIdentifier ?? Asset.nativeIdentifier(),
+      })
+    }
+
+    return await options.wallet.createTransaction(
+      options.from,
+      receives,
+      options.mints ?? [],
+      options.burns ?? [],
+      options.fee ?? 0n,
+      options.expiration ?? 0,
+    )
+  }
+
+  return useFixture<RawTransaction, Buffer>(generate, {
+    serialize: (raw: RawTransaction): Buffer => {
+      return RawTransactionSerde.serialize(raw)
+    },
+    deserialize: (data): RawTransaction => {
+      return RawTransactionSerde.deserialize(data)
+    },
+  })
+}
+
 export async function useTxFixture(
   wallet: Wallet,
   from: Account,
@@ -227,19 +283,24 @@ export async function useTxFixture(
 ): Promise<Transaction> {
   generate =
     generate ||
-    (() => {
-      return wallet.createTransaction(
+    (async () => {
+      const raw = await wallet.createTransaction(
         from,
         [
           {
             publicAddress: to.publicAddress,
             amount: BigInt(1),
             memo: '',
+            assetIdentifier: Asset.nativeIdentifier(),
           },
         ],
+        [],
+        [],
         fee ?? BigInt(0),
         expiration ?? 0,
       )
+
+      return await wallet.postTransaction(raw)
     })
 
   return useFixture(generate, {
@@ -253,6 +314,35 @@ export async function useTxFixture(
       return new Transaction(tx)
     },
   })
+}
+
+export async function useBlockWithRawTxFixture(
+  chain: Blockchain,
+  pool: WorkerPool,
+  sender: Account,
+  notesToSpend: NoteEncrypted[],
+  receives: { publicAddress: string; amount: bigint; memo: string; assetIdentifier: Buffer }[],
+  mints: MintDescription[],
+  burns: BurnDescription[],
+  sequence: number,
+): Promise<Block> {
+  const generate = async () => {
+    const transaction = await buildRawTransaction(
+      chain,
+      pool,
+      sender,
+      notesToSpend,
+      receives,
+      mints,
+      burns,
+    )
+    return chain.newBlock(
+      [transaction],
+      await chain.strategy.createMinersFee(transaction.fee(), sequence, sender.spendingKey),
+    )
+  }
+
+  return useBlockFixture(chain, generate)
 }
 
 export async function useMinersTxFixture(
@@ -345,18 +435,23 @@ export async function useBlockWithTx(
     Assert.isNotUndefined(from)
     Assert.isNotUndefined(to)
 
-    const transaction = await node.wallet.createTransaction(
+    const raw = await node.wallet.createTransaction(
       from,
       [
         {
           publicAddress: to.publicAddress,
           amount: BigInt(1),
           memo: '',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
       ],
+      [],
+      [],
       BigInt(options.fee ?? 1),
       options.expiration ?? 0,
     )
+
+    const transaction = await node.wallet.postTransaction(raw)
 
     return node.chain.newBlock(
       [transaction],
@@ -397,21 +492,25 @@ export async function useBlockWithTxs(
     for (let i = 0; i < numTransactions; i++) {
       Assert.isNotUndefined(from)
 
-      const transaction = await node.wallet.createTransaction(
+      const raw = await node.wallet.createTransaction(
         from,
         [
           {
             publicAddress: to.publicAddress,
             amount: BigInt(1),
             memo: '',
+            assetIdentifier: Asset.nativeIdentifier(),
           },
         ],
+        [],
+        [],
         BigInt(1),
         0,
       )
-      await node.wallet.syncTransaction(transaction, {
-        submittedSequence: node.chain.head.sequence,
-      })
+
+      const transaction = await node.wallet.postTransaction(raw)
+
+      await node.wallet.addPendingTransaction(transaction)
       transactions.push(transaction)
     }
 

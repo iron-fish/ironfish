@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
@@ -30,7 +31,7 @@ import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteV
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 13
+export const VERSION_DATABASE_ACCOUNTS = 11
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -55,7 +56,7 @@ export class WalletDB {
   }>
 
   balances: IDatabaseStore<{
-    key: Account['id']
+    key: [Account['prefix'], Buffer]
     value: bigint
   }>
 
@@ -131,7 +132,7 @@ export class WalletDB {
 
     this.balances = this.db.addStore({
       name: 'b',
-      keyEncoding: new StringEncoding(),
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new BigIntLEEncoding(),
     })
 
@@ -200,9 +201,12 @@ export class WalletDB {
     await this.db.withTransaction(tx, async (tx) => {
       await this.accounts.put(account.id, account.serialize(), tx)
 
-      const unconfirmedBalance = await this.balances.get(account.id, tx)
-      if (unconfirmedBalance === undefined) {
-        await this.saveUnconfirmedBalance(account, BigInt(0), tx)
+      const nativeUnconfirmedBalance = await this.balances.get(
+        [account.prefix, Asset.nativeIdentifier()],
+        tx,
+      )
+      if (nativeUnconfirmedBalance === undefined) {
+        await this.saveUnconfirmedBalance(account, Asset.nativeIdentifier(), BigInt(0), tx)
       }
     })
   }
@@ -210,7 +214,7 @@ export class WalletDB {
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
       await this.accounts.del(account.id, tx)
-      await this.balances.del(account.id, tx)
+      await this.clearBalance(account, tx)
       await this.accountIdsToCleanup.put(account.id, null, tx)
     })
   }
@@ -274,7 +278,24 @@ export class WalletDB {
     transactionValue: TransactionValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
+    const expirationSequence = transactionValue.transaction.expirationSequence()
+
+    await this.db.withTransaction(tx, async (tx) => {
+      if (transactionValue.blockHash) {
+        await this.pendingTransactionHashes.del(
+          [account.prefix, [expirationSequence, transactionHash]],
+          tx,
+        )
+      } else {
+        await this.pendingTransactionHashes.put(
+          [account.prefix, [expirationSequence, transactionHash]],
+          null,
+          tx,
+        )
+      }
+
+      await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
+    })
   }
 
   async deleteTransaction(
@@ -317,31 +338,73 @@ export class WalletDB {
     return this.transactions.get([account.prefix, transactionHash], tx)
   }
 
+  async hasTransaction(
+    account: Account,
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    return this.transactions.has([account.prefix, transactionHash], tx)
+  }
+
+  async hasPendingTransaction(
+    account: Account,
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<boolean> {
+    const transactionValue = await this.transactions.get([account.prefix, transactionHash], tx)
+
+    if (transactionValue === undefined) {
+      return false
+    }
+
+    const expirationSequence = transactionValue.transaction.expirationSequence()
+    return this.pendingTransactionHashes.has(
+      [account.prefix, [expirationSequence, transactionHash]],
+      tx,
+    )
+  }
+
   async setNoteHashSequence(
     account: Account,
     noteHash: Buffer,
     sequence: number | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    if (sequence) {
-      await this.sequenceToNoteHash.put([account.prefix, [sequence, noteHash]], null, tx)
-      await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
-    } else {
+    await this.db.withTransaction(tx, async (tx) => {
+      if (sequence) {
+        await this.sequenceToNoteHash.put([account.prefix, [sequence, noteHash]], null, tx)
+        await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
+      } else {
+        await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
+      }
+    })
+  }
+
+  async disconnectNoteHashSequence(
+    account: Account,
+    noteHash: Buffer,
+    sequence: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.db.withTransaction(tx, async (tx) => {
+      await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
       await this.nonChainNoteHashes.put([account.prefix, noteHash], null, tx)
-    }
+    })
   }
 
   async deleteNoteHashSequence(
     account: Account,
     noteHash: Buffer,
     sequence: number | null,
-    tx: IDatabaseTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
+    await this.db.withTransaction(tx, async (tx) => {
+      await this.nonChainNoteHashes.del([account.prefix, noteHash], tx)
 
-    if (sequence !== null) {
-      await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
-    }
+      if (sequence !== null) {
+        await this.sequenceToNoteHash.del([account.prefix, [sequence, noteHash]], tx)
+      }
+    })
   }
 
   /*
@@ -426,7 +489,15 @@ export class WalletDB {
     note: Readonly<DecryptedNoteValue>,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
+    await this.db.withTransaction(tx, async (tx) => {
+      if (note.nullifier) {
+        await this.nullifierToNoteHash.put([account.prefix, note.nullifier], noteHash, tx)
+      }
+
+      await this.setNoteHashSequence(account, noteHash, note.sequence, tx)
+
+      await this.decryptedNotes.put([account.prefix, noteHash], note, tx)
+    })
   }
 
   async loadDecryptedNote(
@@ -526,18 +597,38 @@ export class WalletDB {
     }
   }
 
-  async getUnconfirmedBalance(account: Account, tx?: IDatabaseTransaction): Promise<bigint> {
-    const unconfirmedBalance = await this.balances.get(account.id, tx)
-    Assert.isNotUndefined(unconfirmedBalance)
-    return unconfirmedBalance
+  async getUnconfirmedBalance(
+    account: Account,
+    assetIdentifier: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<bigint> {
+    const unconfirmedBalance = await this.balances.get([account.prefix, assetIdentifier], tx)
+    return unconfirmedBalance ?? BigInt(0)
+  }
+
+  async *getUnconfirmedBalances(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{ assetIdentifier: Buffer; balance: bigint }> {
+    for await (const [[_, assetIdentifier], balance] of this.balances.getAllIter(
+      tx,
+      account.prefixRange,
+    )) {
+      yield { assetIdentifier, balance }
+    }
   }
 
   async saveUnconfirmedBalance(
     account: Account,
+    assetIdentifier: Buffer,
     balance: bigint,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.balances.put(account.id, balance, tx)
+    await this.balances.put([account.prefix, assetIdentifier], balance, tx)
+  }
+
+  async clearBalance(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.balances.clear(tx, account.prefixRange)
   }
 
   async *loadExpiredTransactions(

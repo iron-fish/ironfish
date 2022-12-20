@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../testUtilities'
 
@@ -71,12 +72,15 @@ describe('Accounts', () => {
           publicAddress: accountB.publicAddress,
           amount: BigInt(1),
           memo: '',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
       ],
+      [],
+      [],
       BigInt(1),
       0,
     )
-    await expect(response).rejects.toThrowError(Error)
+    await expect(response).rejects.toThrow(Error)
   })
 
   it('check if a transaction is not a miners fee', async () => {
@@ -95,18 +99,24 @@ describe('Accounts', () => {
     await nodeA.chain.addBlock(block1)
     await nodeA.wallet.updateHead()
 
-    const transaction = await nodeA.wallet.createTransaction(
+    const raw = await nodeA.wallet.createTransaction(
       accountA,
       [
         {
           publicAddress: accountB.publicAddress,
           amount: BigInt(1),
           memo: '',
+          assetIdentifier: Asset.nativeIdentifier(),
         },
       ],
+      [],
+      [],
       BigInt(1),
       0,
     )
+
+    const transaction = await nodeA.wallet.postTransaction(raw)
+
     expect(transaction.isMinersFee()).toBe(false)
-  }, 500000)
+  })
 })

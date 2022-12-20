@@ -15,20 +15,21 @@ export type HeaderValue = {
 
 export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
   serialize(value: HeaderValue): Buffer {
+    Assert.isNotNull(
+      value.header.noteSize,
+      'The note tree size should be set on the block header before saving it to the database.',
+    )
+
     const bw = bufio.write(this.getSize(value))
 
     bw.writeU32(value.header.sequence)
     bw.writeHash(value.header.previousBlockHash)
-    bw.writeHash(value.header.noteCommitment.commitment)
-    bw.writeU32(value.header.noteCommitment.size)
-    bw.writeHash(value.header.nullifierCommitment.commitment)
-    bw.writeU32(value.header.nullifierCommitment.size)
-    bw.writeBytes(BigIntUtils.toBytesLE(value.header.target.asBigInt(), 32))
-    bw.writeBytes(BigIntUtils.toBytesLE(value.header.randomness, 8))
+    bw.writeHash(value.header.noteCommitment)
+    bw.writeU32(value.header.noteSize)
+    bw.writeHash(value.header.transactionCommitment)
+    bw.writeBigU256(value.header.target.asBigInt())
+    bw.writeBigU64(value.header.randomness)
     bw.writeU64(value.header.timestamp.getTime())
-
-    Assert.isTrue(value.header.minersFee <= 0)
-    bw.writeBytes(BigIntUtils.toBytesLE(-value.header.minersFee, 8))
 
     bw.writeBytes(value.header.graffiti)
     bw.writeVarBytes(BigIntUtils.toBytesLE(value.header.work))
@@ -43,13 +44,11 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const sequence = reader.readU32()
     const previousBlockHash = reader.readHash()
     const noteCommitment = reader.readHash()
-    const noteCommitmentSize = reader.readU32()
-    const nullifierCommitment = reader.readHash()
-    const nullifierCommitmentSize = reader.readU32()
-    const target = new Target(BigIntUtils.fromBytesLE(reader.readBytes(32)))
-    const randomness = BigIntUtils.fromBytesLE(reader.readBytes(8))
+    const noteSize = reader.readU32()
+    const transactionCommitment = reader.readHash()
+    const target = new Target(reader.readBigU256())
+    const randomness = reader.readBigU64()
     const timestamp = reader.readU64()
-    const minersFee = -BigIntUtils.fromBytesLE(reader.readBytes(8))
     const graffiti = reader.readBytes(32)
     const work = BigIntUtils.fromBytesLE(reader.readVarBytes())
     const hash = reader.readHash()
@@ -57,19 +56,13 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const header = new BlockHeader(
       sequence,
       previousBlockHash,
-      {
-        commitment: noteCommitment,
-        size: noteCommitmentSize,
-      },
-      {
-        commitment: nullifierCommitment,
-        size: nullifierCommitmentSize,
-      },
+      noteCommitment,
+      transactionCommitment,
       target,
       randomness,
       new Date(timestamp),
-      minersFee,
       graffiti,
+      noteSize,
       work,
       hash,
     )
@@ -81,14 +74,12 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     let size = 0
     size += 4 // sequence
     size += 32 // previousBlockHash
-    size += 32 // noteCommitment.commitment
-    size += 4 // noteCommitment.size
-    size += 32 // nullifierCommitment.commitment
-    size += 4 // nullifierCommitment.size
+    size += 32 // noteCommitment
+    size += 4 // noteSize
+    size += 32 // transactionCommitment
     size += 32 // target
     size += 8 // randomness
     size += 8 // timestamp
-    size += 8 // minersFee
     size += 32 // graffiti
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(value.header.work))
     size += 32 // hash

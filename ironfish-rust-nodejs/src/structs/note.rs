@@ -2,15 +2,50 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use ironfish_rust::{
+    assets::asset::{
+        asset_generator_from_identifier, IDENTIFIER_LENGTH as ASSET_IDENTIFIER_LENGTH,
+    },
+    note::{AMOUNT_VALUE_SIZE, GENERATOR_SIZE, MEMO_SIZE, SCALAR_SIZE},
+};
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
 use ironfish_rust::{Note, SaplingKey};
 
+use ironfish_rust::keys::PUBLIC_ADDRESS_SIZE;
+
 use crate::to_napi_err;
 
 #[napi]
-pub const DECRYPTED_NOTE_LENGTH: u32 = 115;
+pub const PUBLIC_ADDRESS_LENGTH: u32 = PUBLIC_ADDRESS_SIZE as u32;
+
+#[napi]
+pub const RANDOMNESS_LENGTH: u32 = SCALAR_SIZE as u32;
+
+#[napi]
+pub const MEMO_LENGTH: u32 = MEMO_SIZE as u32;
+
+#[napi]
+pub const GENERATOR_LENGTH: u32 = GENERATOR_SIZE as u32;
+
+#[napi]
+pub const AMOUNT_VALUE_LENGTH: u32 = AMOUNT_VALUE_SIZE as u32;
+
+#[napi]
+pub const DECRYPTED_NOTE_LENGTH: u32 = RANDOMNESS_LENGTH
+    + MEMO_LENGTH
+    + GENERATOR_LENGTH
+    + PUBLIC_ADDRESS_LENGTH
+    + AMOUNT_VALUE_LENGTH
+    + PUBLIC_ADDRESS_LENGTH;
+//  32 randomness
+//+ 32 memo
+//+ 32 public address
+//+ 32 asset generator
+//+ 8  value
+//+ 32 sender address
+//= 168 bytes
 
 #[napi(js_name = "Note")]
 pub struct NativeNote {
@@ -20,12 +55,32 @@ pub struct NativeNote {
 #[napi]
 impl NativeNote {
     #[napi(constructor)]
-    pub fn new(owner: String, value: BigInt, memo: String) -> Result<Self> {
+    pub fn new(
+        owner: String,
+        value: BigInt,
+        memo: String,
+        asset_identifier: JsBuffer,
+        sender: String,
+    ) -> Result<Self> {
         let value_u64 = value.get_u64().1;
-
         let owner_address = ironfish_rust::PublicAddress::from_hex(&owner).map_err(to_napi_err)?;
+        let sender_address =
+            ironfish_rust::PublicAddress::from_hex(&sender).map_err(to_napi_err)?;
+
+        let buffer = asset_identifier.into_value()?;
+        let asset_identifier_vec = buffer.as_ref();
+        let mut asset_identifier_bytes = [0; ASSET_IDENTIFIER_LENGTH];
+        asset_identifier_bytes.clone_from_slice(&asset_identifier_vec[0..ASSET_IDENTIFIER_LENGTH]);
+        let asset_generator = asset_generator_from_identifier(&asset_identifier_bytes);
+
         Ok(NativeNote {
-            note: Note::new(owner_address, value_u64, memo),
+            note: Note::new(
+                owner_address,
+                value_u64,
+                memo,
+                asset_generator,
+                sender_address,
+            ),
         })
     }
 
@@ -59,6 +114,24 @@ impl NativeNote {
     #[napi]
     pub fn memo(&self) -> String {
         self.note.memo().to_string()
+    }
+
+    /// Asset identifier associated with this note
+    #[napi]
+    pub fn asset_identifier(&self) -> Buffer {
+        Buffer::from(&self.note.asset_identifier()[..])
+    }
+
+    /// Sender of the note
+    #[napi]
+    pub fn sender(&self) -> String {
+        self.note.sender().hex_public_address()
+    }
+
+    /// Owner of the note
+    #[napi]
+    pub fn owner(&self) -> String {
+        self.note.owner().hex_public_address()
     }
 
     /// Compute the nullifier for this note, given the private key of its owner.

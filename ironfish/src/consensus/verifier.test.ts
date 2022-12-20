@@ -8,6 +8,7 @@ import '../testUtilities/matchers/blockchain'
 import { Assert } from '../assert'
 import { getBlockSize, getBlockWithMinersFeeSize } from '../network/utils/serializers'
 import { BlockHeader, Transaction } from '../primitives'
+import { transactionCommitment } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
@@ -50,7 +51,7 @@ describe('Verifier', () => {
 
     it('returns false on transactions larger than max size', async () => {
       const { transaction } = await useTxSpendsFixture(nodeTest.node)
-      nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockWithMinersFeeSize()
+      nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize()
 
       const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
 
@@ -90,19 +91,10 @@ describe('Verifier', () => {
       })
     })
 
-    it('rejects a block with incorrect transaction fee', async () => {
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      block.header.minersFee = BigInt(-1)
-
-      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
-        reason: VerificationResultReason.MINERS_FEE_MISMATCH,
-        valid: false,
-      })
-    })
-
     it("rejects a block with standard (non-miner's) transaction fee as first transaction", async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       block.transactions = [block.transactions[1], block.transactions[0]]
+      block.header.transactionCommitment = transactionCommitment(block.transactions)
       expect(block.transactions[0].fee()).toBeGreaterThan(0)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
@@ -114,6 +106,7 @@ describe('Verifier', () => {
     it('rejects a block with miners fee as second transaction', async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       block.transactions[1] = block.transactions[0]
+      block.header.transactionCommitment = transactionCommitment(block.transactions)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_TRANSACTION_FEE,
@@ -124,6 +117,7 @@ describe('Verifier', () => {
     it('rejects block with incorrect fee sum', async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
       block.transactions[2] = block.transactions[1]
+      block.header.transactionCommitment = transactionCommitment(block.transactions)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_MINERS_FEE,
@@ -131,18 +125,9 @@ describe('Verifier', () => {
       })
     })
 
-    it('accepts a block with size more than MAX_BLOCK_SIZE_BYTES before V2 consensus upgrade', async () => {
+    it('rejects a block with size more than maxBlockSizeBytes', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
-      nodeTest.chain.consensus.V2_MAX_BLOCK_SIZE = block.header.sequence + 1
-      nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockSize(block) - 1
-
-      expect((await nodeTest.verifier.verifyBlock(block)).valid).toBe(true)
-    })
-
-    it('rejects a block with size more than MAX_BLOCK_SIZE_BYTES after V2 consensus upgrade', async () => {
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      nodeTest.chain.consensus.V2_MAX_BLOCK_SIZE = block.header.sequence
-      nodeTest.chain.consensus.MAX_BLOCK_SIZE_BYTES = getBlockSize(block) - 1
+      nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockSize(block) - 1
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         valid: false,
@@ -222,24 +207,6 @@ describe('Verifier', () => {
       expect(Array.from(block.spends())).toHaveLength(1)
     })
 
-    it('is invalid with DOUBLE_SPEND as the reason', async () => {
-      const { chain } = nodeTest
-      const { block } = await useBlockWithTx(nodeTest.node)
-
-      const spends = Array.from(block.spends())
-      jest.spyOn(block, 'spends').mockImplementationOnce(function* () {
-        for (const spend of spends) {
-          yield spend
-          yield spend
-        }
-      })
-
-      expect(await chain.verifier.verifyConnectedSpends(block)).toEqual({
-        valid: false,
-        reason: VerificationResultReason.DOUBLE_SPEND,
-      })
-    })
-
     it('is invalid with ERROR as the reason', async () => {
       const { block } = await useBlockWithTx(nodeTest.node)
 
@@ -262,21 +229,12 @@ describe('Verifier', () => {
 
     it('a block that spends a note in a previous block is invalid with INVALID_SPEND as the reason', async () => {
       const { chain } = nodeTest
-      const { block, previous } = await useBlockWithTx(nodeTest.node)
-
-      const nullifier = Buffer.alloc(32)
-
-      await chain.nullifiers.add(nullifier)
-      previous.header.nullifierCommitment.commitment = await chain.nullifiers.rootHash()
-      previous.header.nullifierCommitment.size = 2
-
-      await chain.nullifiers.add(nullifier)
-      block.header.nullifierCommitment.commitment = await chain.nullifiers.rootHash()
-      block.header.nullifierCommitment.size = 3
+      const { block } = await useBlockWithTx(nodeTest.node)
 
       jest.spyOn(block, 'spends').mockImplementationOnce(function* () {
-        yield { nullifier, commitment: Buffer.from('1-1'), size: 1 }
-        yield { nullifier, commitment: Buffer.from('1-1'), size: 1 }
+        for (const spend of block.spends()) {
+          yield { ...spend, size: 1 }
+        }
       })
 
       expect(await chain.verifier.verifyConnectedSpends(block)).toEqual({
@@ -327,30 +285,6 @@ describe('Verifier', () => {
       })
     })
 
-    it("is invalid when the note commitments aren't the same size", async () => {
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      block.header.noteCommitment.size = 1000
-
-      expect(
-        await nodeTest.verifier.verifyBlockAdd(block, nodeTest.chain.genesis),
-      ).toMatchObject({
-        valid: false,
-        reason: VerificationResultReason.NOTE_COMMITMENT_SIZE,
-      })
-    })
-
-    it("is invalid when the nullifier commitments aren't the same size", async () => {
-      const block = await useMinerBlockFixture(nodeTest.chain)
-      block.header.nullifierCommitment.size = 1000
-
-      expect(
-        await nodeTest.verifier.verifyBlockAdd(block, nodeTest.chain.genesis),
-      ).toMatchObject({
-        valid: false,
-        reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE,
-      })
-    })
-
     it('Is invalid when the timestamp is in past', async () => {
       const block = await useMinerBlockFixture(nodeTest.chain)
       block.header.timestamp = new Date(0)
@@ -390,37 +324,9 @@ describe('Verifier', () => {
       )
     })
 
-    it("is false if there aren't enough notes in the tree", async () => {
-      await nodeTest.chain.notes.truncate((await nodeTest.chain.notes.size()) - 1)
-
-      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(genesisBlock)
-
-      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
-        {
-          valid: false,
-          reason: VerificationResultReason.NOTE_COMMITMENT_SIZE,
-        },
-      )
-    })
-
-    it("is false if there aren't enough nullifiers in the tree", async () => {
-      await nodeTest.chain.nullifiers.truncate((await nodeTest.chain.nullifiers.size()) - 1)
-
-      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(genesisBlock)
-
-      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
-        {
-          valid: false,
-          reason: VerificationResultReason.NULLIFIER_COMMITMENT_SIZE,
-        },
-      )
-    })
-
     it('is false if the note hash is incorrect', async () => {
-      nodeTest.chain.genesis.noteCommitment.commitment = Buffer.alloc(
-        nodeTest.chain.genesis.noteCommitment.commitment.length,
+      nodeTest.chain.genesis.noteCommitment = Buffer.alloc(
+        nodeTest.chain.genesis.noteCommitment.length,
         'NOOO',
       )
 
@@ -431,39 +337,6 @@ describe('Verifier', () => {
         {
           valid: false,
           reason: VerificationResultReason.NOTE_COMMITMENT,
-        },
-      )
-    })
-
-    it('is false for block that has incorrect nullifier hash', async () => {
-      nodeTest.chain.genesis.nullifierCommitment.commitment = Buffer.alloc(
-        nodeTest.chain.genesis.nullifierCommitment.commitment.length,
-        'NOOO',
-      )
-
-      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(genesisBlock)
-
-      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
-        {
-          valid: false,
-          reason: VerificationResultReason.NULLIFIER_COMMITMENT,
-        },
-      )
-    })
-
-    it('returns any error from verifyConnectedSpends()', async () => {
-      const genesisBlock = await nodeTest.chain.getBlock(nodeTest.chain.genesis)
-      Assert.isNotNull(genesisBlock)
-
-      jest
-        .spyOn(nodeTest.verifier, 'verifySpend')
-        .mockResolvedValue(VerificationResultReason.ERROR)
-
-      await expect(nodeTest.verifier.verifyConnectedBlock(genesisBlock)).resolves.toMatchObject(
-        {
-          valid: false,
-          reason: VerificationResultReason.ERROR,
         },
       )
     })

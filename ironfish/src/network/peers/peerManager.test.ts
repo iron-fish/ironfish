@@ -4,7 +4,6 @@
 
 jest.mock('ws')
 
-import { mocked } from 'ts-jest/utils'
 import ws from 'ws'
 import { Assert } from '../../assert'
 import { canInitiateWebRTC, privateIdentityToIdentity } from '../identity'
@@ -74,6 +73,8 @@ describe('PeerManager', () => {
       sequence: 1,
       version: VERSION_PROTOCOL,
       work: BigInt(0),
+      networkId: localPeer.networkId,
+      genesisBlockHash: localPeer.chain.genesis.hash,
     })
 
     // Identify peerOut
@@ -286,8 +287,8 @@ describe('PeerManager', () => {
         },
       })
 
-      expect(sendSpy).toBeCalledTimes(1)
-      expect(sendSpy).toBeCalledWith(
+      expect(sendSpy).toHaveBeenCalledTimes(1)
+      expect(sendSpy).toHaveBeenCalledWith(
         new SignalMessage({
           sourceIdentity: privateIdentityToIdentity(webRtcLocalIdentity()),
           destinationIdentity: webRtcCanInitiateIdentity(),
@@ -410,7 +411,7 @@ describe('PeerManager', () => {
       expect(pm.identifiedPeers.size).toBe(1)
       expect(pm.peers).toHaveLength(1)
 
-      const sendSpy = mocked(connection.send)
+      const sendSpy = jest.mocked(connection.send)
 
       await peer.state.connections.webRtc.onSignal.emitAsync({
         type: 'candidate',
@@ -421,7 +422,7 @@ describe('PeerManager', () => {
         },
       })
 
-      expect(sendSpy).toBeCalledWith(
+      expect(sendSpy).toHaveBeenCalledWith(
         new SignalMessage({
           sourceIdentity: 'bGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGw=',
           destinationIdentity: 'a2tra2tra2tra2tra2tra2tra2tra2tra2tra2tra2s=',
@@ -477,7 +478,7 @@ describe('PeerManager', () => {
           },
         },
       })
-      expect(brokerPeerSendMock).toBeCalledWith(
+      expect(brokerPeerSendMock).toHaveBeenCalledWith(
         new SignalRequestMessage({
           sourceIdentity: peers.localPeer.publicIdentity,
           destinationIdentity: targetPeer.getIdentityOrThrow(),
@@ -604,7 +605,7 @@ describe('PeerManager', () => {
         type: 'CONNECTED',
         identity: peerIdentity,
       })
-      expect(closeSpy).toBeCalledTimes(1)
+      expect(closeSpy).toHaveBeenCalledTimes(1)
 
       expect(pm.peers.length).toBe(2)
       expect(pm.identifiedPeers.size).toBe(2)
@@ -714,14 +715,14 @@ describe('PeerManager', () => {
     const { peer: waiting } = getWaitingForIdentityPeer(pm)
     const { peer: connected } = getConnectedPeer(pm, 'peer')
 
-    expect(onConnectedPeersChangedMock).toBeCalledTimes(1)
+    expect(onConnectedPeersChangedMock).toHaveBeenCalledTimes(1)
 
     // Disconnect all of the peers
     connecting.close()
     waiting.close()
     connected.close()
 
-    expect(onConnectedPeersChangedMock).toBeCalledTimes(2)
+    expect(onConnectedPeersChangedMock).toHaveBeenCalledTimes(2)
   })
 
   describe('Message: Identity', () => {
@@ -742,6 +743,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       peer.onMessage.emit(identify, connection)
 
@@ -775,10 +778,12 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL_MIN - 1,
         work: BigInt(0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       peer.onMessage.emit(identify, connection)
 
-      expect(closeSpy).toBeCalled()
+      expect(closeSpy).toHaveBeenCalled()
       expect(pm.peers.length).toBe(0)
       expect(pm.identifiedPeers.size).toBe(0)
     })
@@ -799,9 +804,11 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       peer.onMessage.emit(identify, connection)
-      expect(closeSpy).toBeCalled()
+      expect(closeSpy).toHaveBeenCalled()
       expect(pm.peers.length).toBe(0)
       expect(pm.identifiedPeers.size).toBe(0)
     })
@@ -823,6 +830,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       connection.onMessage.emit(identify)
 
@@ -855,6 +864,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       connection.onMessage.emit(identify)
 
@@ -893,6 +904,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       connection.onMessage.emit(identify)
 
@@ -945,6 +958,8 @@ describe('PeerManager', () => {
         sequence: 1,
         version: VERSION_PROTOCOL,
         work: BigInt(0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: localPeer.chain.genesis.hash,
       })
       connection.onMessage.emit(id)
 
@@ -959,11 +974,66 @@ describe('PeerManager', () => {
         reason: DisconnectingReason.Congested,
         disconnectUntil: localRequestedDisconnectUntil,
       })
-      expect(sendSpy).toBeCalledWith(response)
+      expect(sendSpy).toHaveBeenCalledWith(response)
 
       expect(connection.state).toEqual({
         type: 'DISCONNECTED',
       })
+    })
+
+    it('Closes the connection when network ids do not match', () => {
+      const other = mockPrivateIdentity('other')
+      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+
+      const { peer, connection } = getWaitingForIdentityPeer(pm)
+
+      expect(pm.peers.length).toBe(1)
+      const closeSpy = jest.spyOn(connection, 'close')
+
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: privateIdentityToIdentity(other),
+        port: peer.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL_MIN,
+        work: BigInt(0),
+        networkId: localPeer.networkId + 1,
+        genesisBlockHash: localPeer.chain.genesis.hash,
+      })
+      peer.onMessage.emit(identify, connection)
+
+      expect(closeSpy).toHaveBeenCalled()
+      expect(pm.peers.length).toBe(0)
+      expect(pm.identifiedPeers.size).toBe(0)
+    })
+
+    it('Closes the connection when genesis block hashes do not match', () => {
+      const other = mockPrivateIdentity('other')
+      const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
+
+      const { peer, connection } = getWaitingForIdentityPeer(pm)
+
+      expect(pm.peers.length).toBe(1)
+      const closeSpy = jest.spyOn(connection, 'close')
+
+      const identify = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: privateIdentityToIdentity(other),
+        port: peer.port,
+        sequence: 1,
+        version: VERSION_PROTOCOL_MIN,
+        work: BigInt(0),
+        networkId: localPeer.networkId,
+        genesisBlockHash: Buffer.alloc(32, 1),
+      })
+      Assert.isFalse(identify.genesisBlockHash.equals(localPeer.chain.genesis.hash))
+      peer.onMessage.emit(identify, connection)
+
+      expect(closeSpy).toHaveBeenCalled()
+      expect(pm.peers.length).toBe(0)
+      expect(pm.identifiedPeers.size).toBe(0)
     })
   })
 
@@ -991,7 +1061,7 @@ describe('PeerManager', () => {
 
       const sendSpy = jest.spyOn(destinationPeer, 'send')
       sourcePeer.onMessage.emit(signal, sourcePeerConnection)
-      expect(sendSpy).toBeCalledWith(signal)
+      expect(sendSpy).toHaveBeenCalledWith(signal)
     })
 
     it('Drops SignalRequest message originating from an different peer than sourceIdentity', () => {
@@ -1010,8 +1080,8 @@ describe('PeerManager', () => {
       const sendSpy2 = jest.spyOn(peer2, 'send')
 
       peer3.onMessage.emit(signal, peer3Connection)
-      expect(sendSpy1).not.toBeCalled()
-      expect(sendSpy2).not.toBeCalled()
+      expect(sendSpy1).not.toHaveBeenCalled()
+      expect(sendSpy2).not.toHaveBeenCalled()
     })
 
     it('reject SignalRequest when source peer should initiate', () => {
@@ -1035,7 +1105,7 @@ describe('PeerManager', () => {
       })
 
       peer.onMessage.emit(message, connection)
-      expect(initWebRtcConnectionMock).toBeCalledTimes(0)
+      expect(initWebRtcConnectionMock).toHaveBeenCalledTimes(0)
     })
 
     it('Initiates webRTC connection when request intended for local peer', () => {
@@ -1059,8 +1129,8 @@ describe('PeerManager', () => {
       })
 
       peer.onMessage.emit(message, connection)
-      expect(initWebRtcConnectionMock).toBeCalledTimes(1)
-      expect(initWebRtcConnectionMock).toBeCalledWith(peer, true)
+      expect(initWebRtcConnectionMock).toHaveBeenCalledTimes(1)
+      expect(initWebRtcConnectionMock).toHaveBeenCalledWith(peer, true)
       expect(pm['getBrokeringPeer'](peer)).toEqual(peer)
     })
 
@@ -1091,7 +1161,7 @@ describe('PeerManager', () => {
         destinationIdentity: webRtcCanInitiateIdentity(),
       })
 
-      expect(sendSpy).toBeCalledWith(reply)
+      expect(sendSpy).toHaveBeenCalledWith(reply)
     })
 
     it('Does not send a disconnect message if we are at max peers but we have an existing connection to the peer', () => {
@@ -1115,7 +1185,7 @@ describe('PeerManager', () => {
 
       peer1.onMessage.emit(message, peer1Connection)
 
-      expect(sendSpy).not.toBeCalled()
+      expect(sendSpy).not.toHaveBeenCalled()
     })
   })
 
@@ -1137,7 +1207,7 @@ describe('PeerManager', () => {
 
       const sendSpy = jest.spyOn(peer2, 'send')
       peer1.onMessage.emit(signal, peer1Connection)
-      expect(sendSpy).toBeCalledWith(signal)
+      expect(sendSpy).toHaveBeenCalledWith(signal)
     })
 
     it('Drops signaling messages originating from an different peer than sourceIdentity', () => {
@@ -1160,8 +1230,8 @@ describe('PeerManager', () => {
       const sendSpy1 = jest.spyOn(peer1, 'send')
       const sendSpy2 = jest.spyOn(peer2, 'send')
       peer3.onMessage.emit(signal, peer3Connection)
-      expect(sendSpy1).not.toBeCalled()
-      expect(sendSpy2).not.toBeCalled()
+      expect(sendSpy1).not.toHaveBeenCalled()
+      expect(sendSpy2).not.toHaveBeenCalled()
     })
 
     it('Sends a disconnect message if we are at max peers', () => {
@@ -1193,7 +1263,7 @@ describe('PeerManager', () => {
         destinationIdentity: webRtcCannotInitiateIdentity(),
       })
 
-      expect(sendSpy).toBeCalledWith(reply)
+      expect(sendSpy).toHaveBeenCalledWith(reply)
     })
 
     it('Does not send a disconnect message if we are at max peers but we have an existing connection to the peer', () => {
@@ -1219,7 +1289,7 @@ describe('PeerManager', () => {
 
       peer1.onMessage.emit(message, peer1Connection)
 
-      expect(sendSpy).not.toBeCalled()
+      expect(sendSpy).not.toHaveBeenCalled()
     })
 
     it('Decrypts signaling data intended for local peer', async () => {
@@ -1255,8 +1325,8 @@ describe('PeerManager', () => {
       })
       await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
-      expect(signalSpy).toBeCalledTimes(1)
-      expect(signalSpy).toBeCalledWith({
+      expect(signalSpy).toHaveBeenCalledTimes(1)
+      expect(signalSpy).toHaveBeenCalledWith({
         type: 'candidate',
         candidate: {
           candidate: '',
@@ -1290,8 +1360,8 @@ describe('PeerManager', () => {
       })
       await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
-      expect(signalSpy).not.toBeCalled()
-      expect(closeSpy).toBeCalled()
+      expect(signalSpy).not.toHaveBeenCalled()
+      expect(closeSpy).toHaveBeenCalled()
     })
 
     it('Disconnects if decoding signaling data fails', async () => {
@@ -1319,8 +1389,8 @@ describe('PeerManager', () => {
       })
       await brokeringPeer.onMessage.emitAsync(signal, brokeringConnection)
 
-      expect(signalSpy).not.toBeCalled()
-      expect(closeSpy).toBeCalled()
+      expect(signalSpy).not.toHaveBeenCalled()
+      expect(closeSpy).toHaveBeenCalled()
     })
   })
 
@@ -1345,7 +1415,7 @@ describe('PeerManager', () => {
 
       const sendSpy = jest.spyOn(peer, 'send')
       peer.onMessage.emit(peerListRequest, connection)
-      expect(sendSpy).toBeCalledTimes(1)
+      expect(sendSpy).toHaveBeenCalledTimes(1)
       expect(sendSpy).toHaveBeenCalledWith(peerList)
     })
   })
@@ -1422,8 +1492,8 @@ describe('PeerManager', () => {
       const sendSpy1 = jest.spyOn(peer1, 'send')
       const sendSpy2 = jest.spyOn(peer2, 'send')
       peer3.onMessage.emit(signal, peer3Connection)
-      expect(sendSpy1).not.toBeCalled()
-      expect(sendSpy2).not.toBeCalled()
+      expect(sendSpy1).not.toHaveBeenCalled()
+      expect(sendSpy2).not.toHaveBeenCalled()
     })
 
     it('Should set peerRequestedDisconnectUntil on CONNECTED Peer when sender is not sourceIdentity', () => {

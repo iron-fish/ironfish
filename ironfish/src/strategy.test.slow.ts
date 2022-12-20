@@ -1,18 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
 import {
+  Asset,
   generateKey,
-  generateNewPublicAddress,
+  generateKeyFromPrivateKey,
   Key,
   Note as NativeNote,
   Transaction as NativeTransaction,
   TransactionPosted as NativeTransactionPosted,
 } from '@ironfish/rust-nodejs'
-import { TestnetParameters } from './consensus/consensus'
+import { ConsensusParameters, TestnetConsensus } from './consensus'
 import { MerkleTree } from './merkletree'
-import { NoteLeafEncoding } from './merkletree/database/leaves'
+import { LeafEncoding } from './merkletree/database/leaves'
 import { NodeEncoding } from './merkletree/database/nodes'
 import { NoteHasher } from './merkletree/hasher'
 import { Note } from './primitives/note'
@@ -43,7 +43,7 @@ async function makeStrategyTree({
   const tree = new MerkleTree({
     hasher: new NoteHasher(),
     leafIndexKeyEncoding: BUFFER_ENCODING,
-    leafEncoding: new NoteLeafEncoding(),
+    leafEncoding: new LeafEncoding(),
     nodeEncoding: new NodeEncoding(),
     db: database,
     name: name,
@@ -59,6 +59,14 @@ async function makeStrategyTree({
 }
 
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T
+
+const consensusParameters: ConsensusParameters = {
+  allowedBlockFutureSeconds: 15,
+  genesisSupplyInIron: 42000000,
+  targetBlockTimeInSeconds: 60,
+  targetBucketTimeInSeconds: 10,
+  maxBlockSizeBytes: 2000000,
+}
 
 /**
  * Tests whether it's possible to create a miner reward and transfer those funds
@@ -80,13 +88,14 @@ describe('Demonstrate the Sapling API', () => {
     // Pay the cost of setting up Sapling and the DB outside of any test
     tree = await makeStrategyTree()
     spenderKey = generateKey()
+    receiverKey = generateKey()
   })
 
   describe('Can transact between two accounts', () => {
     it('Can create a miner reward', () => {
-      const owner = generateNewPublicAddress(spenderKey.spending_key).public_address
+      const owner = generateKeyFromPrivateKey(spenderKey.spending_key).public_address
 
-      minerNote = new NativeNote(owner, BigInt(42), '')
+      minerNote = new NativeNote(owner, BigInt(42), '', Asset.nativeIdentifier(), owner)
 
       const transaction = new NativeTransaction(spenderKey.spending_key)
       transaction.receive(minerNote)
@@ -94,6 +103,9 @@ describe('Demonstrate the Sapling API', () => {
       expect(minerTransaction).toBeTruthy()
       expect(minerTransaction.notesLength()).toEqual(1)
     })
+
+    it('Has miner owner address as the miner reward sender address', () =>
+      expect(minerNote.sender()).toBe(minerNote.owner()))
 
     it('Can verify the miner transaction', () => {
       const serializedTransaction = minerTransaction.serialize()
@@ -122,15 +134,23 @@ describe('Demonstrate the Sapling API', () => {
         throw new Error('Witness should not be null')
       }
       transaction.spend(minerNote, witness)
-
       // Add an output to the transaction
       receiverKey = generateKey()
-      const outputNote = new NativeNote(receiverKey.public_address, BigInt(40), '')
+      const outputNote = new NativeNote(
+        receiverKey.public_address,
+        BigInt(40),
+        '',
+        Asset.nativeIdentifier(),
+        minerNote.owner(),
+      )
       transaction.receive(outputNote)
 
       publicTransaction = new NativeTransactionPosted(transaction.post(null, BigInt(0)))
       expect(publicTransaction).toBeTruthy()
     })
+
+    it('Has note spender as the transaction sender', () =>
+      expect(transaction.sender()).toBe(minerNote.sender()))
 
     it('Can verify the transaction', async () => {
       expect(publicTransaction.verify()).toBeTruthy()
@@ -154,7 +174,10 @@ describe('Demonstrate the Sapling API', () => {
     it('Does not hold a posted transaction if no references are taken', async () => {
       // Generate a miner's fee transaction
       const workerPool = new WorkerPool()
-      const strategy = new Strategy({ workerPool, consensus: new TestnetParameters() })
+      const strategy = new Strategy({
+        workerPool,
+        consensus: new TestnetConsensus(consensusParameters),
+      })
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
 
       expect(minersFee['transactionPosted']).toBeNull()
@@ -166,7 +189,7 @@ describe('Demonstrate the Sapling API', () => {
       // Generate a miner's fee transaction
       const strategy = new Strategy({
         workerPool: new WorkerPool(),
-        consensus: new TestnetParameters(),
+        consensus: new TestnetConsensus(consensusParameters),
       })
 
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
@@ -174,7 +197,7 @@ describe('Demonstrate the Sapling API', () => {
       await minersFee.withReference(async () => {
         expect(minersFee['transactionPosted']).not.toBeNull()
 
-        expect(minersFee.notesLength()).toEqual(1)
+        expect(minersFee.notes.length).toEqual(1)
         expect(minersFee['transactionPosted']).not.toBeNull()
 
         // Reference returning happens on the promise jobs queue, so use an await
@@ -190,18 +213,14 @@ describe('Demonstrate the Sapling API', () => {
       const key = generateKey()
       const strategy = new Strategy({
         workerPool: new WorkerPool(),
-        consensus: new TestnetParameters(),
+        consensus: new TestnetConsensus(consensusParameters),
       })
       const minersFee = await strategy.createMinersFee(BigInt(0), 0, key.spending_key)
 
       expect(minersFee['transactionPosted']).toBeNull()
-      const noteIterator = minersFee.notes()
-      expect(minersFee['transactionPosted']).toBeNull()
 
-      let note: NoteEncrypted | null = null
-      for (const n of noteIterator) {
-        note = n
-      }
+      const note: NoteEncrypted | null = minersFee.notes[0] ?? null
+
       if (note === null) {
         throw new Error('Must have at least one note')
       }
@@ -228,7 +247,9 @@ describe('Demonstrate the Sapling API', () => {
 
     it('Decrypts and fails to decrypt notes', async () => {
       // Get the note we added in the previous example
-      const latestNote = await tree.get(receiverWitnessIndex)
+      const leaf = await tree.getLeaf(receiverWitnessIndex)
+      const latestNote = new NoteEncrypted(publicTransaction.getNote(0))
+      expect(leaf.merkleHash.equals(latestNote.merkleHash())).toBe(true)
 
       // We should be able to decrypt the note as owned by the receiver
       const decryptedNote = latestNote.decryptNoteForOwner(receiverKey.incoming_view_key)
@@ -262,11 +283,20 @@ describe('Demonstrate the Sapling API', () => {
       transaction.spend(note, witness)
       receiverNote.returnReference()
 
-      const noteForSpender = new NativeNote(spenderKey.public_address, BigInt(10), '')
+      const receiverAddress = receiverKey.public_address
+      const noteForSpender = new NativeNote(
+        spenderKey.public_address,
+        BigInt(10),
+        '',
+        Asset.nativeIdentifier(),
+        receiverAddress,
+      )
       const receiverNoteToSelf = new NativeNote(
-        generateNewPublicAddress(receiverKey.spending_key).public_address,
+        receiverAddress,
         BigInt(29),
         '',
+        Asset.nativeIdentifier(),
+        receiverAddress,
       )
 
       transaction.receive(noteForSpender)

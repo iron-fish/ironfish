@@ -4,35 +4,22 @@
 
 use crate::{
     errors::IronfishError,
-    serializing::{bytes_to_hex, hex_to_bytes, point_to_bytes},
+    serializing::{bytes_to_hex, hex_to_bytes},
 };
-use ff::Field;
 use group::GroupEncoding;
-use ironfish_zkp::{Diversifier, PaymentAddress};
+use ironfish_zkp::constants::PUBLIC_KEY_GENERATOR;
 use jubjub::SubgroupPoint;
-use rand::thread_rng;
 
 use std::{convert::TryInto, io};
 
 use super::{IncomingViewKey, SaplingKey};
+pub const PUBLIC_ADDRESS_SIZE: usize = 32;
 
-/// The address to which funds can be sent, stored as a diversifier and public
-/// transmission key. Combining a diversifier with an incoming_viewing_key allows
-/// the creation of multiple public addresses without revealing the viewing key.
-/// This allows the user to have multiple "accounts", or to even have different
-/// payment addresses per transaction.
+/// The address to which funds can be sent, stored as a public
+/// transmission key. Using the incoming_viewing_key allows
+/// the creation of a unqiue public addresses without revealing the viewing key.
 #[derive(Clone, Copy)]
 pub struct PublicAddress {
-    /// Diversifier is a struct of 11 bytes. The array is hashed and interpreted
-    /// as an edwards point, but we have to store the diversifier independently
-    /// because the pre-hashed bytes cannot be extracted from the point.
-    pub(crate) diversifier: Diversifier,
-
-    /// The same diversifier, but represented as a point on the jubjub curve.
-    /// Often referred to as
-    /// `g_d` in the literature.
-    pub(crate) diversifier_point: SubgroupPoint,
-
     /// The transmission key is the result of combining the diversifier with the
     /// incoming viewing key (a non-reversible operation). Together, the two
     /// form a public address to which payments can be sent.
@@ -40,84 +27,57 @@ pub struct PublicAddress {
 }
 
 impl PublicAddress {
-    /// Initialize a public address from its 43 byte representation.
-    pub fn new(address_bytes: &[u8; 43]) -> Result<PublicAddress, IronfishError> {
-        let (diversifier, diversifier_point) =
-            PublicAddress::load_diversifier(&address_bytes[..11])?;
-        let transmission_key = PublicAddress::load_transmission_key(&address_bytes[11..])?;
+    /// Initialize a public address from its 32 byte representation.
+    pub fn new(address_bytes: &[u8; PUBLIC_ADDRESS_SIZE]) -> Result<PublicAddress, IronfishError> {
+        let transmission_key = PublicAddress::load_transmission_key(&address_bytes[0..])?;
 
-        Ok(PublicAddress {
-            diversifier,
-            diversifier_point,
-            transmission_key,
-        })
+        Ok(PublicAddress { transmission_key })
     }
 
     /// Load a public address from a Read implementation (e.g: socket, file)
     pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
-        let mut address_bytes = [0; 43];
+        let mut address_bytes = [0; PUBLIC_ADDRESS_SIZE];
         reader.read_exact(&mut address_bytes)?;
         Self::new(&address_bytes)
     }
 
-    /// Initialize a public address from a sapling key and the bytes
-    /// representing a diversifier. Typically constructed from
+    /// Initialize a public address from a sapling key. Typically constructed from
     /// SaplingKey::public_address()
-    pub fn from_key(
-        sapling_key: &SaplingKey,
-        diversifier: &[u8; 11],
-    ) -> Result<PublicAddress, IronfishError> {
-        Self::from_view_key(sapling_key.incoming_view_key(), diversifier)
+    pub fn from_key(sapling_key: &SaplingKey) -> PublicAddress {
+        Self::from_view_key(sapling_key.incoming_view_key())
     }
 
-    pub fn from_view_key(
-        view_key: &IncomingViewKey,
-        diversifier: &[u8; 11],
-    ) -> Result<PublicAddress, IronfishError> {
-        let diversifier = Diversifier(*diversifier);
-        if let Some(key_part) = diversifier.g_d() {
-            Ok(PublicAddress {
-                diversifier,
-                diversifier_point: key_part,
-                transmission_key: key_part * view_key.view_key,
-            })
-        } else {
-            Err(IronfishError::InvalidDiversificationPoint)
+    pub fn from_view_key(view_key: &IncomingViewKey) -> PublicAddress {
+        PublicAddress {
+            transmission_key: PUBLIC_KEY_GENERATOR * view_key.view_key,
         }
     }
 
     /// Convert a String of hex values to a PublicAddress. The String must
-    /// be 86 hexadecimal characters representing the 43 bytes of an address
+    /// be 64 hexadecimal characters representing the 32 bytes of an address
     /// or it fails.
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
-        if value.len() != 86 {
+        if value.len() != 2 * PUBLIC_ADDRESS_SIZE {
             return Err(IronfishError::InvalidPublicAddress);
         }
 
         match hex_to_bytes(value) {
-            Err(()) => Err(IronfishError::InvalidPublicAddress),
+            Err(_) => Err(IronfishError::InvalidPublicAddress),
             Ok(bytes) => {
-                if bytes.len() != 43 {
+                if bytes.len() != PUBLIC_ADDRESS_SIZE {
                     Err(IronfishError::InvalidPublicAddress)
                 } else {
-                    let mut byte_arr = [0; 43];
-                    byte_arr.clone_from_slice(&bytes[0..43]);
+                    let mut byte_arr = [0; PUBLIC_ADDRESS_SIZE];
+                    byte_arr.clone_from_slice(&bytes[0..PUBLIC_ADDRESS_SIZE]);
                     Self::new(&byte_arr)
                 }
             }
         }
     }
 
-    /// Retrieve the public address in byte form. It is comprised of the
-    /// 11 byte diversifier followed by the 32 byte transmission key.
-    pub fn public_address(&self) -> [u8; 43] {
-        let mut result = [0; 43];
-        result[..11].copy_from_slice(&self.diversifier.0);
-        result[11..].copy_from_slice(
-            &point_to_bytes(&self.transmission_key)
-                .expect("transmission key should be convertible to bytes"),
-        );
-        result
+    /// Retrieve the public address in byte form.
+    pub fn public_address(&self) -> [u8; PUBLIC_ADDRESS_SIZE] {
+        self.transmission_key.to_bytes()
     }
 
     /// Retrieve the public address in hex form.
@@ -132,18 +92,6 @@ impl PublicAddress {
         Ok(())
     }
 
-    pub(crate) fn load_diversifier(
-        diversifier_slice: &[u8],
-    ) -> Result<(Diversifier, SubgroupPoint), IronfishError> {
-        let mut diversifier_bytes = [0; 11];
-        diversifier_bytes.clone_from_slice(diversifier_slice);
-        let diversifier = Diversifier(diversifier_bytes);
-        let diversifier_point = diversifier
-            .g_d()
-            .ok_or(IronfishError::InvalidDiversificationPoint)?;
-        Ok((diversifier, diversifier_point))
-    }
-
     pub(crate) fn load_transmission_key(
         transmission_key_bytes: &[u8],
     ) -> Result<SubgroupPoint, IronfishError> {
@@ -156,31 +104,6 @@ impl PublicAddress {
         } else {
             Err(IronfishError::InvalidPaymentAddress)
         }
-    }
-
-    /// Calculate secret key and ephemeral public key for Diffie Hellman
-    /// Key exchange as used in note encryption.
-    ///
-    /// The returned values can be used according to the protocol described in
-    /// the module-level shared_secret function
-    ///
-    /// Returns a tuple of:
-    ///  *  the ephemeral secret key as a scalar FS
-    ///  *  the ephemeral public key as an edwards point
-    pub fn generate_diffie_hellman_keys(&self) -> (jubjub::Fr, SubgroupPoint) {
-        let secret_key: jubjub::Fr = jubjub::Fr::random(thread_rng());
-        let public_key = self.diversifier_point * secret_key;
-
-        (secret_key, public_key)
-    }
-
-    /// Convert this key to a payment address for use in the zcash_primitives
-    /// crate. This is essentially just an adapter from one struct name to
-    /// another because `pk_d` is not a name I want to expose in a public
-    /// interface.
-    pub(crate) fn sapling_payment_address(&self) -> PaymentAddress {
-        PaymentAddress::from_parts(self.diversifier, self.transmission_key)
-            .expect("Converting PaymentAddress types shouldn't fail")
     }
 }
 
@@ -198,16 +121,23 @@ impl std::cmp::PartialEq for PublicAddress {
 
 #[cfg(test)]
 mod test {
-    use crate::PublicAddress;
+    use crate::{keys::PUBLIC_ADDRESS_SIZE, PublicAddress, SaplingKey};
 
     #[test]
     fn public_address_validation() {
-        let bad_address = "559cc1b263b4093d24f226b81c618d922fc002a5d6e82eae22df82641558bfd63011519750cba37a00eab5";
-        let good_address = "559cc1b263b4093d24f226b81c618d922fc002a5d6e82eae22df82641558bfd63011519750cba37a00eab8";
+        let bad_address = "8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c562";
+        let good_address = "8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563";
 
         let bad_result = PublicAddress::from_hex(bad_address);
         assert!(bad_result.is_err());
 
         PublicAddress::from_hex(good_address).expect("returns a valid public address");
+    }
+
+    #[test]
+    fn public_address_generation() {
+        let sapling_key = SaplingKey::generate_key();
+        let public_address = sapling_key.public_address();
+        assert_eq!(public_address.public_address().len(), PUBLIC_ADDRESS_SIZE);
     }
 }

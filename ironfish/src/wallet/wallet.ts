@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey, generateNewPublicAddress } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
+import { BufferMap } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -10,12 +11,23 @@ import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
-import { NoteWitness } from '../merkletree/witness'
+import { NoteHasher } from '../merkletree/hasher'
+import { NoteWitness, Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
+import { BlockHeader } from '../primitives/blockheader'
+import { BurnDescription } from '../primitives/burnDescription'
+import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
+import { RawTransaction } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
-import { BufferUtils, PromiseResolve, PromiseUtils, SetTimeoutToken } from '../utils'
+import {
+  AsyncUtils,
+  BufferUtils,
+  PromiseResolve,
+  PromiseUtils,
+  SetTimeoutToken,
+} from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
@@ -25,6 +37,8 @@ import { AccountValue } from './walletdb/accountValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
+
+const noteHasher = new NoteHasher()
 
 export enum TransactionStatus {
   CONFIRMED = 'confirmed',
@@ -104,32 +118,17 @@ export class Wallet {
     this.chainProcessor.onAdd.on(async (header) => {
       this.logger.debug(`AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`)
 
-      for await (const {
-        transaction,
-        blockHash,
-        sequence,
-        initialNoteIndex,
-      } of this.chain.iterateBlockTransactions(header)) {
-        await this.syncTransaction(transaction, {
-          blockHash,
-          initialNoteIndex,
-          sequence,
-        })
-      }
+      const accounts = this.listAccounts().filter((account) => this.isAccountUpToDate(account))
 
-      await this.updateHeadHashes(header.hash)
+      await this.connectBlock(header, accounts)
     })
 
     this.chainProcessor.onRemove.on(async (header) => {
       this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
 
-      for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
-        await this.syncTransaction(transaction, {})
-      }
+      const accounts = this.listAccounts().filter((account) => this.isAccountUpToDate(account))
 
-      await this.walletDb.clearSequenceNoteHashes(header.sequence)
-
-      await this.updateHeadHashes(header.previousBlockHash)
+      await this.disconnectBlock(header, accounts)
     })
   }
 
@@ -162,6 +161,10 @@ export class Wallet {
   get shouldRescan(): boolean {
     if (this.scan) {
       return false
+    }
+
+    if (this.chainProcessor.hash === null) {
+      return true
     }
 
     for (const account of this.accounts.values()) {
@@ -345,7 +348,7 @@ export class Wallet {
       let decryptNotesPayloads = []
       let currentNoteIndex = initialNoteIndex
 
-      for (const note of transaction.notes()) {
+      for (const note of transaction.notes) {
         decryptNotesPayloads.push({
           serializedNote: note.serialize(),
           incomingViewKey: account.incomingViewKey,
@@ -394,11 +397,83 @@ export class Wallet {
     return decryptedNotes
   }
 
+  async connectBlock(
+    blockHeader: BlockHeader,
+    accounts: Account[],
+    scan?: ScanState,
+  ): Promise<void> {
+    for (const account of accounts) {
+      await this.walletDb.db.transaction(async (tx) => {
+        for await (const {
+          transaction,
+          initialNoteIndex,
+        } of this.chain.iterateBlockTransactions(blockHeader)) {
+          if (scan && scan.isAborted) {
+            scan.signalComplete()
+            this.scan = null
+            return
+          }
+
+          const decryptedNotesByAccountId = await this.decryptNotes(
+            transaction,
+            initialNoteIndex,
+            [account],
+          )
+
+          const decryptedNotes = decryptedNotesByAccountId.get(account.id)
+
+          if (!decryptedNotes) {
+            continue
+          }
+
+          await account.connectTransaction(blockHeader, transaction, decryptedNotes, tx)
+
+          scan?.signal(blockHeader.sequence)
+        }
+
+        await this.updateHeadHash(account, blockHeader.hash, tx)
+      })
+    }
+  }
+
+  async disconnectBlock(header: BlockHeader, accounts: Account[]): Promise<void> {
+    for (const account of accounts) {
+      await this.walletDb.db.transaction(async (tx) => {
+        for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
+          await account.disconnectTransaction(transaction, tx)
+        }
+
+        await this.updateHeadHash(account, header.previousBlockHash, tx)
+      })
+    }
+  }
+
+  async addPendingTransaction(transaction: Transaction): Promise<void> {
+    const accounts = await AsyncUtils.filter(
+      this.listAccounts(),
+      async (account) => !(await account.hasTransaction(transaction.hash())),
+    )
+
+    if (accounts.length === 0) {
+      return
+    }
+
+    const decryptedNotesByAccountId = await this.decryptNotes(transaction, null, accounts)
+
+    for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
+      const account = this.accounts.get(accountId)
+
+      if (!account) {
+        continue
+      }
+
+      await account.addPendingTransaction(transaction, decryptedNotes, this.chain.head.sequence)
+    }
+  }
+
   /**
    * Called:
-   *  - Called when transactions are added to the mem pool
    *  - Called for transactions on disconnected blocks
-   *  - Called when transactions are added to a block on the genesis chain
    */
   async syncTransaction(
     transaction: Transaction,
@@ -425,18 +500,26 @@ export class Wallet {
 
     for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
       const account = this.accounts.get(accountId)
-      Assert.isNotUndefined(account, `syncTransaction: No account found for ${accountId}`)
+
+      if (!account) {
+        continue
+      }
       await account.syncTransaction(transaction, decryptedNotes, params)
     }
   }
 
-  async scanTransactions(): Promise<void> {
+  async scanTransactions(fromHash?: Buffer): Promise<void> {
     if (!this.isOpen) {
       throw new Error('Cannot start a scan if accounts are not loaded')
     }
 
     if (this.scan) {
       this.logger.info('Skipping Scan, already scanning.')
+      return
+    }
+
+    if (!this.shouldRescan) {
+      this.logger.info('Skipping Scan, all accounts up to date.')
       return
     }
 
@@ -447,8 +530,7 @@ export class Wallet {
     // but setting this.scan is our lock so updating the head doesn't run again
     await this.updateHeadState?.wait()
 
-    let startHash = await this.getEarliestHeadHash()
-    let startHeader = startHash ? await this.chain.getHeader(startHash) : null
+    const startHash = await this.getEarliestHeadHash()
 
     const endHash = this.chainProcessor.hash || this.chain.head.hash
     const endHeader = await this.chain.getHeader(endHash)
@@ -472,14 +554,13 @@ export class Wallet {
       }
     }
 
-    if (!startHash) {
-      startHash = this.chain.genesis.hash
-      startHeader = await this.chain.getHeader(startHash)
-    }
+    // Priority: fromHeader > startHeader > genesisBlock
+    const beginHash = fromHash ? fromHash : startHash ? startHash : this.chain.genesis.hash
+    const beginHeader = await this.chain.getHeader(beginHash)
 
     Assert.isNotNull(
-      startHeader,
-      `scanTransactions: No header found for start hash ${startHash.toString('hex')}`,
+      beginHeader,
+      `scanTransactions: No header found for start hash ${beginHash.toString('hex')}`,
     )
 
     Assert.isNotNull(
@@ -487,7 +568,7 @@ export class Wallet {
       `scanTransactions: No header found for end hash ${endHash.toString('hex')}`,
     )
 
-    scan.sequence = startHeader.sequence
+    scan.sequence = beginHeader.sequence
     scan.endSequence = endHeader.sequence
 
     if (scan.isAborted) {
@@ -497,45 +578,18 @@ export class Wallet {
     }
 
     this.logger.info(
-      `Scan starting from earliest found account head hash: ${startHash.toString('hex')}`,
+      `Scan starting from earliest found account head hash: ${beginHash.toString('hex')}`,
     )
     this.logger.info(`Accounts to scan for: ${accounts.map((a) => a.displayName).join(', ')}`)
 
     // Go through every transaction in the chain and add notes that we can decrypt
     for await (const blockHeader of this.chain.iterateBlockHeaders(
-      startHash,
+      beginHash,
       endHash,
       undefined,
       false,
     )) {
-      for await (const {
-        blockHash,
-        transaction,
-        initialNoteIndex,
-        sequence,
-      } of this.chain.iterateBlockTransactions(blockHeader)) {
-        if (scan.isAborted) {
-          scan.signalComplete()
-          this.scan = null
-          return
-        }
-
-        await this.syncTransaction(
-          transaction,
-          {
-            blockHash,
-            initialNoteIndex,
-            sequence,
-          },
-          accounts,
-        )
-
-        scan.signal(sequence)
-      }
-
-      for (const account of accounts) {
-        await this.updateHeadHash(account, blockHeader.hash)
-      }
+      await this.connectBlock(blockHeader, accounts, scan)
 
       const newRemainingAccounts = []
 
@@ -576,11 +630,10 @@ export class Wallet {
 
   async getBalance(
     account: Account,
+    assetIdentifier: Buffer,
     options?: { minimumBlockConfirmations?: number },
   ): Promise<{
     unconfirmedCount: number
-    pendingCount: number
-    pending: bigint
     unconfirmed: bigint
     confirmed: bigint
   }> {
@@ -598,18 +651,17 @@ export class Wallet {
         return {
           unconfirmed: BigInt(0),
           confirmed: BigInt(0),
-          pending: BigInt(0),
           unconfirmedCount: 0,
-          pendingCount: 0,
         }
       }
 
-      return account.getBalance(headSequence, minimumBlockConfirmations, tx)
+      return account.getBalance(headSequence, assetIdentifier, minimumBlockConfirmations, tx)
     })
   }
 
   private async *getUnspentNotes(
     account: Account,
+    assetIdentifier: Buffer,
     options?: {
       minimumBlockConfirmations?: number
     },
@@ -622,7 +674,7 @@ export class Wallet {
       return
     }
 
-    for await (const decryptedNote of account.getUnspentNotes()) {
+    for await (const decryptedNote of account.getUnspentNotes(assetIdentifier)) {
       if (minimumBlockConfirmations > 0) {
         const transaction = await account.getTransaction(decryptedNote.transactionHash)
 
@@ -651,7 +703,12 @@ export class Wallet {
   async pay(
     memPool: MemPool,
     sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
     transactionFee: bigint,
     defaultTransactionExpirationSequenceDelta: number,
     expirationSequence?: number | null,
@@ -668,19 +725,23 @@ export class Wallet {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
-    const transaction = await this.createTransaction(
+    const raw = await this.createTransaction(
       sender,
       receives,
+      [],
+      [],
       transactionFee,
       expirationSequence,
     )
+
+    const transaction = await this.postTransaction(raw)
 
     const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
-    await this.syncTransaction(transaction, { submittedSequence: heaviestHead.sequence })
+    await this.addPendingTransaction(transaction)
     memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
     this.onTransactionCreated.emit(transaction)
@@ -690,10 +751,17 @@ export class Wallet {
 
   async createTransaction(
     sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
-    transactionFee: bigint,
+    receives: {
+      publicAddress: string
+      amount: bigint
+      memo: string
+      assetIdentifier: Buffer
+    }[],
+    mints: MintDescription[],
+    burns: BurnDescription[],
+    fee: bigint,
     expirationSequence: number,
-  ): Promise<Transaction> {
+  ): Promise<RawTransaction> {
     const unlock = await this.createTransactionMutex.lock()
 
     try {
@@ -703,43 +771,122 @@ export class Wallet {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
-      const amountNeeded =
-        receives.reduce((acc, receive) => acc + receive.amount, BigInt(0)) + transactionFee
+      const raw = new RawTransaction()
+      raw.spendingKey = sender.spendingKey
+      raw.expirationSequence = expirationSequence
+      raw.mints = mints
+      raw.burns = burns
+      raw.fee = fee
 
-      const { amount, notesToSpend } = await this.createSpends(sender, amountNeeded)
-
-      if (amount < amountNeeded) {
-        throw new NotEnoughFundsError(
-          `Insufficient funds: Needed ${amountNeeded.toString()} but have ${amount.toString()}`,
+      for (const receive of receives) {
+        const note = new NativeNote(
+          receive.publicAddress,
+          receive.amount,
+          receive.memo,
+          receive.assetIdentifier,
+          sender.publicAddress,
         )
+
+        raw.receives.push({ note: new Note(note.serialize()) })
       }
 
-      return this.workerPool.createTransaction(
-        sender.spendingKey,
-        transactionFee,
-        notesToSpend.map((n) => ({
-          note: n.note,
-          treeSize: n.witness.treeSize(),
-          authPath: n.witness.authenticationPath,
-          rootHash: n.witness.rootHash,
-        })),
-        receives,
-        expirationSequence,
-      )
+      await this.fund(raw, {
+        fee: fee,
+        account: sender,
+      })
+
+      return raw
     } finally {
       unlock()
     }
   }
 
-  async createSpends(
-    sender: Account,
-    amountNeeded: bigint,
-  ): Promise<{ amount: bigint; notesToSpend: Array<{ note: Note; witness: NoteWitness }> }> {
-    let amount = BigInt(0)
+  async postTransaction(raw: RawTransaction): Promise<Transaction> {
+    return this.workerPool.postTransaction(raw)
+  }
 
+  async fund(
+    raw: RawTransaction,
+    options: {
+      fee: bigint
+      account: Account
+    },
+  ): Promise<void> {
+    const needed = this.buildAmountsNeeded(raw, {
+      fee: options.fee,
+    })
+
+    const spends = await this.createSpends(options.account, needed)
+
+    for (const spend of spends) {
+      const witness = new Witness(
+        spend.witness.treeSize(),
+        spend.witness.rootHash,
+        spend.witness.authenticationPath,
+        noteHasher,
+      )
+
+      raw.spends.push({
+        note: spend.note,
+        witness: witness,
+      })
+    }
+  }
+
+  private buildAmountsNeeded(
+    raw: RawTransaction,
+    options: {
+      fee: bigint
+    },
+  ): BufferMap<bigint> {
+    const amountsNeeded = new BufferMap<bigint>()
+    amountsNeeded.set(Asset.nativeIdentifier(), options.fee)
+
+    for (const receive of raw.receives) {
+      const currentAmount = amountsNeeded.get(receive.note.assetIdentifier()) ?? BigInt(0)
+      amountsNeeded.set(receive.note.assetIdentifier(), currentAmount + receive.note.value())
+    }
+
+    for (const burn of raw.burns) {
+      const currentAmount = amountsNeeded.get(burn.assetIdentifier) ?? BigInt(0)
+      amountsNeeded.set(burn.assetIdentifier, currentAmount + burn.value)
+    }
+
+    return amountsNeeded
+  }
+
+  private async createSpends(
+    sender: Account,
+    amountsNeeded: BufferMap<bigint>,
+  ): Promise<Array<{ note: Note; witness: NoteWitness }>> {
     const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
 
-    for await (const unspentNote of this.getUnspentNotes(sender)) {
+    for (const [assetIdentifier, amountNeeded] of amountsNeeded.entries()) {
+      const { amount, notes } = await this.createSpendsForAsset(
+        sender,
+        assetIdentifier,
+        amountNeeded,
+      )
+
+      if (amount < amountNeeded) {
+        throw new NotEnoughFundsError(assetIdentifier, amount, amountNeeded)
+      }
+
+      notesToSpend.push(...notes)
+    }
+
+    return notesToSpend
+  }
+
+  async createSpendsForAsset(
+    sender: Account,
+    assetIdentifier: Buffer,
+    amountNeeded: bigint,
+  ): Promise<{ amount: bigint; notes: Array<{ note: Note; witness: NoteWitness }> }> {
+    let amount = BigInt(0)
+    const notes: Array<{ note: Note; witness: NoteWitness }> = []
+
+    for await (const unspentNote of this.getUnspentNotes(sender, assetIdentifier)) {
       if (unspentNote.note.value() <= BigInt(0)) {
         continue
       }
@@ -766,7 +913,7 @@ export class Wallet {
       )
 
       // Otherwise, push the note into the list of notes to spend
-      notesToSpend.push({ note: unspentNote.note, witness: witness })
+      notes.push({ note: unspentNote.note, witness })
       amount += unspentNote.note.value()
 
       if (amount >= amountNeeded) {
@@ -774,10 +921,7 @@ export class Wallet {
       }
     }
 
-    return {
-      amount,
-      notesToSpend,
-    }
+    return { amount, notes }
   }
 
   /**
@@ -1150,13 +1294,6 @@ export class Wallet {
     }
 
     return this.getAccount(this.defaultAccount)
-  }
-
-  async generateNewPublicAddress(account: Account): Promise<void> {
-    this.assertHasAccount(account)
-    const key = generateNewPublicAddress(account.spendingKey)
-    account.publicAddress = key.public_address
-    await this.walletDb.setAccount(account)
   }
 
   async getEarliestHeadHash(): Promise<Buffer | null> {

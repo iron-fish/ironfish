@@ -112,6 +112,7 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
     const previousValue = this.config[key]
 
     Object.assign(this.loaded, { [key]: value })
+    this.keysLoaded.add(key)
 
     if (Object.prototype.hasOwnProperty.call(this.overrides, key)) {
       delete this.overrides[key]
@@ -148,5 +149,12 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
     }
 
     return value.split(',').filter(Boolean) as TSchema[T]
+  }
+
+  /**
+   * Returns true if the key is set, or false if its value is from the defaults
+   */
+  isSet<T extends keyof TSchema>(key: T): boolean {
+    return this.keysLoaded.has(key) || Object.prototype.hasOwnProperty.call(this.overrides, key)
   }
 }

@@ -83,6 +83,10 @@ export class MemPool {
     })
   }
 
+  async start(): Promise<void> {
+    await this.feeEstimator.init(this.chain)
+  }
+
   count(): number {
     return this.transactions.size
   }
@@ -142,7 +146,7 @@ export class MemPool {
       return false
     }
 
-    for (const spend of transaction.spends()) {
+    for (const spend of transaction.spends) {
       if (this.nullifiers.has(spend.nullifier)) {
         const existingTransactionHash = this.nullifiers.get(spend.nullifier)
         Assert.isNotUndefined(existingTransactionHash)
@@ -234,7 +238,7 @@ export class MemPool {
 
     this.transactionsBytes += getTransactionSize(transaction)
 
-    for (const spend of transaction.spends()) {
+    for (const spend of transaction.spends) {
       if (!this.nullifiers.has(spend.nullifier)) {
         this.nullifiers.set(spend.nullifier, hash)
       }
@@ -256,7 +260,7 @@ export class MemPool {
 
     this.transactionsBytes -= getTransactionSize(transaction)
 
-    for (const spend of transaction.spends()) {
+    for (const spend of transaction.spends) {
       this.nullifiers.delete(spend.nullifier)
     }
 

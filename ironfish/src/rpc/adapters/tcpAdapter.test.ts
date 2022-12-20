@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-/* eslint-disable jest/no-try-expect */
 /* eslint-disable jest/no-conditional-expect */
 import Mitm from 'mitm'
 import net from 'net'
@@ -107,7 +106,7 @@ describe('TcpAdapter', () => {
 
     const response = client.request('foo/bar')
 
-    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toThrow(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 402,
       code: 'hello-error',
@@ -131,7 +130,7 @@ describe('TcpAdapter', () => {
 
     const response = client.request('foo/bar', body)
 
-    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toThrow(RpcRequestError)
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 400,
       code: ERROR_CODES.VALIDATION,
@@ -171,7 +170,7 @@ describe('TcpAdapter', () => {
 
     const response = client.request('foo/bar', 'hello world')
 
-    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toThrow(RpcRequestError)
 
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 401,
@@ -195,7 +194,7 @@ describe('TcpAdapter', () => {
 
     const response = client.request('foo/bar', 'hello world')
 
-    await expect(response.waitForEnd()).rejects.toThrowError(RpcRequestError)
+    await expect(response.waitForEnd()).rejects.toThrow(RpcRequestError)
 
     await expect(response.waitForEnd()).rejects.toMatchObject({
       status: 401,

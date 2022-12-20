@@ -53,6 +53,7 @@ export class TransactionCommand extends IronfishCommand {
     }
     this.log(`Spends Count: ${response.content.transaction.spendsCount}`)
     this.log(`Notes Count: ${response.content.transaction.notesCount}`)
+    this.log(`Sender: ${response.content.transaction.notes[0].sender}`)
 
     if (response.content.transaction.notes.length > 0) {
       this.log(`---Notes---\n`)

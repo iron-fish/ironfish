@@ -4,7 +4,7 @@
 
 declare module 'buffer-map' {
   export class BufferMap<T> implements Map<Buffer, T>, Iterable<[Buffer, T]> {
-    constructor(iterable: Iterable<T> | null | undefined = null)
+    constructor(iterable: Iterable<[Buffer, T]> | null | undefined = null)
 
     readonly size: number
 

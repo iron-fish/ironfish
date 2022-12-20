@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DEFAULT_EXPLORER_BLOCKS_URL } from '../fileStores/config'
 import { YupUtils } from './yup'
 
 describe('YupUtils', () => {
@@ -23,7 +22,7 @@ describe('YupUtils', () => {
 
     it('isUrl', () => {
       expect(YupUtils.isUrl.isValidSync('192.168.1.0')).toBe(false)
-      expect(YupUtils.isUrl.isValidSync(DEFAULT_EXPLORER_BLOCKS_URL)).toBe(true)
+      expect(YupUtils.isUrl.isValidSync('https://ironfish.network')).toBe(true)
     })
 
     it('isPort', () => {

@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { BlockSerde, SerializedBlock } from '../primitives/block'
 import { Target } from '../primitives/target'
 import { IJSON } from '../serde'
 import { createNodeTest } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
-import { makeGenesisBlock } from './makeGenesisBlock'
+import { GenesisBlockInfo, makeGenesisBlock } from './makeGenesisBlock'
 
 describe('Read genesis block', () => {
   const nodeTest = createNodeTest()
@@ -64,20 +64,20 @@ describe('Create genesis block', () => {
 
     // Construct parameters for the genesis block
     const account = await node.wallet.createAccount('test', true)
-    const info = {
+    const info: GenesisBlockInfo = {
       timestamp: Date.now(),
-      memo: 'test',
       target: Target.maxTarget(),
       allocations: [
         {
-          amount: amountNumber,
+          amountInOre: amountNumber,
           publicAddress: account.publicAddress,
+          memo: 'test',
         },
       ],
     }
 
     // Build the genesis block itself
-    const { block } = await makeGenesisBlock(chain, info, account, node.logger)
+    const { block } = await makeGenesisBlock(chain, info, node.logger)
 
     // Check some parameters on it to make sure they match what's expected.
     expect(block.header.timestamp.valueOf()).toEqual(info.timestamp)
@@ -85,9 +85,11 @@ describe('Create genesis block', () => {
 
     // Balance should still be zero, since generating the block should clear out
     // any notes made in the process
-    await expect(node.wallet.getBalance(account)).resolves.toMatchObject({
+    await expect(
+      node.wallet.getBalance(account, Asset.nativeIdentifier()),
+    ).resolves.toMatchObject({
       confirmed: BigInt(0),
-      pending: BigInt(0),
+      unconfirmed: BigInt(0),
     })
 
     // Add the block to the chain
@@ -97,9 +99,11 @@ describe('Create genesis block', () => {
     await node.wallet.updateHead()
 
     // Check that the balance is what's expected
-    await expect(node.wallet.getBalance(account)).resolves.toMatchObject({
+    await expect(
+      node.wallet.getBalance(account, Asset.nativeIdentifier()),
+    ).resolves.toMatchObject({
       confirmed: amountBigint,
-      pending: amountBigint,
+      unconfirmed: amountBigint,
     })
 
     // Ensure we can construct blocks after that block
@@ -133,9 +137,11 @@ describe('Create genesis block', () => {
     await newNode.wallet.updateHead()
     await newNode.wallet.scanTransactions()
 
-    await expect(newNode.wallet.getBalance(accountNewNode)).resolves.toMatchObject({
+    await expect(
+      newNode.wallet.getBalance(accountNewNode, Asset.nativeIdentifier()),
+    ).resolves.toMatchObject({
       confirmed: amountBigint,
-      pending: amountBigint,
+      unconfirmed: amountBigint,
     })
 
     // Ensure we can construct blocks after that block

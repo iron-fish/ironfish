@@ -27,7 +27,7 @@ describe('Mining manager', () => {
 
     await miningManager.createNewBlockTemplate(block)
 
-    expect(spy).toBeCalledTimes(1)
+    expect(spy).toHaveBeenCalledTimes(1)
     const [newBlock, currentBlock] = spy.mock.calls[0]
     expect(newBlock.header.previousBlockHash.equals(chain.head.hash)).toBe(true)
     expect(newBlock.transactions).toHaveLength(1)
@@ -56,7 +56,7 @@ describe('Mining manager', () => {
 
     await miningManager.createNewBlockTemplate(previous)
 
-    expect(spy).toBeCalledTimes(1)
+    expect(spy).toHaveBeenCalledTimes(1)
     const [newBlock, currentBlock] = spy.mock.calls[0]
     expect(newBlock.header.previousBlockHash.equals(chain.head.hash)).toBe(true)
     expect(newBlock.transactions).toHaveLength(2)
@@ -204,7 +204,8 @@ describe('Mining manager', () => {
       const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
 
       const validBlock = BlockTemplateSerde.deserialize(blockTemplateA1)
-      // This value is what the code generates from the fixture block
+      // These values are what the code generates from the fixture block
+      validBlock.header.noteSize = blockA1.header.noteSize
       validBlock.header.work = expect.any(BigInt)
 
       // This populates the _hash field on all transactions so that
@@ -215,7 +216,7 @@ describe('Mining manager', () => {
       }
 
       await miningManager.submitBlockTemplate(blockTemplateA1)
-      expect(onNewBlockSpy).toBeCalledWith(validBlock)
+      expect(onNewBlockSpy).toHaveBeenCalledWith(validBlock)
     })
   })
 })

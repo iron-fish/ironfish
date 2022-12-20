@@ -7,41 +7,17 @@ import { YupUtils } from '../utils'
 import { KeyStore } from './keyStore'
 
 export const DEFAULT_CONFIG_NAME = 'config.json'
-export const DEFAULT_DATABASE_NAME = 'default'
 export const DEFAULT_DATA_DIR = '~/.ironfish'
-export const DEFAULT_WALLET_NAME = 'default'
 export const DEFAULT_WEBSOCKET_PORT = 9033
-export const DEFAULT_GET_FUNDS_API = 'https://api.ironfish.network/faucet_transactions'
-export const DEFAULT_TELEMETRY_API = 'https://api.ironfish.network/telemetry'
-export const DEFAULT_BOOTSTRAP_NODE = 'test.bn1.ironfish.network'
 export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_USE_RPC_TLS = true
-export const DEFAULT_MINER_BATCH_SIZE = 25000
-export const DEFAULT_EXPLORER_BLOCKS_URL = 'https://explorer.ironfish.network/blocks/'
-export const DEFAULT_EXPLORER_TRANSACTIONS_URL =
-  'https://explorer.ironfish.network/transaction/'
-export const DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY = 10
-export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_LOW = 10
-export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_MEDIUM = 20
-export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_HIGH = 30
-
-// Pool defaults
-export const DEFAULT_POOL_NAME = 'Iron Fish Pool'
-export const DEFAULT_POOL_ACCOUNT_NAME = 'default'
-export const DEFAULT_POOL_BALANCE_PERCENT_PAYOUT = 10
 export const DEFAULT_POOL_HOST = '0.0.0.0'
 export const DEFAULT_POOL_PORT = 9034
-export const DEFAULT_POOL_DIFFICULTY = '15000000000'
-export const DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
-export const DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
-export const DEFAULT_POOL_STATUS_NOTIFICATION_INTERVAL = 30 * 60 // 30 minutes
-export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
-  databaseName: string
   databaseMigrate: boolean
   editor: string
   enableListenP2P: boolean
@@ -122,7 +98,6 @@ export type ConfigOptions = {
    */
   targetPeers: number
   telemetryApi: string
-  accountName: string
 
   /**
    * When the option is true, then each invocation of start command will invoke generation of new identity.
@@ -245,12 +220,28 @@ export type ConfigOptions = {
   feeEstimatorPercentileLow: number
   feeEstimatorPercentileMedium: number
   feeEstimatorPercentileHigh: number
+
+  /**
+   * Network ID of an official Iron Fish network
+   */
+  networkId: number
+
+  /**
+   * Path to a JSON file containing the network definition of a custom network
+   */
+  customNetwork: string
+
+  /**
+   * The oldest the tip should be before we consider the chain synced
+   */
+  maxSyncedAgeBlocks: number
+
+  networkDefinitionPath: string
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
   .object({
     bootstrapNodes: yup.array().of(yup.string().defined()),
-    databaseName: yup.string(),
     databaseMigrate: yup.boolean(),
     editor: yup.string().trim(),
     enableListenP2P: yup.boolean(),
@@ -285,7 +276,6 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     minPeers: YupUtils.isPositiveInteger,
     targetPeers: yup.number().integer().min(1),
     telemetryApi: yup.string(),
-    accountName: yup.string(),
     generateNewIdentity: yup.boolean(),
     defaultTransactionExpirationSequenceDelta: YupUtils.isPositiveInteger,
     blocksPerMessage: YupUtils.isPositiveInteger,
@@ -308,10 +298,18 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     jsonLogs: yup.boolean(),
     explorerBlocksUrl: YupUtils.isUrl,
     explorerTransactionsUrl: YupUtils.isUrl,
+    networkId: yup.number().integer().min(0),
+    customNetwork: yup.string().trim(),
+    maxSyncedAgeBlocks: yup.number().integer().min(0),
+    networkDefinitionPath: yup.string().trim(),
   })
   .defined()
 
 export class Config extends KeyStore<ConfigOptions> {
+  readonly chainDatabasePath: string
+  readonly accountDatabasePath: string
+  readonly tempDir: string
+
   constructor(files: FileSystem, dataDir: string, configName?: string) {
     super(
       files,
@@ -320,28 +318,15 @@ export class Config extends KeyStore<ConfigOptions> {
       dataDir,
       ConfigOptionsSchema,
     )
-  }
 
-  get chainDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'databases', this.get('databaseName'))
-  }
-
-  get accountDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'accounts', this.get('accountName'))
-  }
-
-  get indexDatabasePath(): string {
-    return this.files.join(this.storage.dataDir, 'indexes', this.get('databaseName'))
-  }
-
-  get tempDir(): string {
-    return this.files.join(this.storage.dataDir, 'temp')
+    this.chainDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'chain')
+    this.accountDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'wallet')
+    this.tempDir = this.files.join(this.storage.dataDir, 'temp')
   }
 
   static GetDefaults(files: FileSystem, dataDir: string): ConfigOptions {
     return {
-      bootstrapNodes: [DEFAULT_BOOTSTRAP_NODE],
-      databaseName: DEFAULT_DATABASE_NAME,
+      bootstrapNodes: [],
       databaseMigrate: false,
       defaultTransactionExpirationSequenceDelta: 15,
       editor: '',
@@ -354,7 +339,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
-      getFundsApi: DEFAULT_GET_FUNDS_API,
+      getFundsApi: 'https://api.ironfish.network/faucet_transactions',
       ipcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
       logLevel: '*:info',
       logPeerMessages: false,
@@ -374,32 +359,35 @@ export class Config extends KeyStore<ConfigOptions> {
       minimumBlockConfirmations: 2,
       minPeers: 1,
       targetPeers: 50,
-      telemetryApi: DEFAULT_TELEMETRY_API,
-      accountName: DEFAULT_WALLET_NAME,
+      telemetryApi: 'https://api.ironfish.network/telemetry',
       generateNewIdentity: false,
       blocksPerMessage: 5,
-      minerBatchSize: DEFAULT_MINER_BATCH_SIZE,
-      poolName: DEFAULT_POOL_NAME,
-      poolAccountName: DEFAULT_POOL_ACCOUNT_NAME,
+      minerBatchSize: 25000,
+      poolName: 'Iron Fish Pool',
+      poolAccountName: 'default',
       poolBanning: true,
-      poolBalancePercentPayout: DEFAULT_POOL_BALANCE_PERCENT_PAYOUT,
+      poolBalancePercentPayout: 10,
       poolHost: DEFAULT_POOL_HOST,
       poolPort: DEFAULT_POOL_PORT,
-      poolDifficulty: DEFAULT_POOL_DIFFICULTY,
-      poolAttemptPayoutInterval: DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL,
-      poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,
-      poolStatusNotificationInterval: DEFAULT_POOL_STATUS_NOTIFICATION_INTERVAL,
-      poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
+      poolDifficulty: '15000000000',
+      poolAttemptPayoutInterval: 15 * 60, // 15 minutes
+      poolSuccessfulPayoutInterval: 2 * 60 * 60, // 2 hours
+      poolStatusNotificationInterval: 30 * 60, // 30 minutes
+      poolRecentShareCutoff: 2 * 60 * 60, // 2 hours
       poolDiscordWebhook: '',
       poolMaxConnectionsPerIp: 0,
       poolLarkWebhook: '',
       jsonLogs: false,
-      explorerBlocksUrl: DEFAULT_EXPLORER_BLOCKS_URL,
-      explorerTransactionsUrl: DEFAULT_EXPLORER_TRANSACTIONS_URL,
-      feeEstimatorMaxBlockHistory: DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY,
-      feeEstimatorPercentileLow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_LOW,
-      feeEstimatorPercentileMedium: DEFAULT_FEE_ESTIMATOR_PERCENTILE_MEDIUM,
-      feeEstimatorPercentileHigh: DEFAULT_FEE_ESTIMATOR_PERCENTILE_HIGH,
+      explorerBlocksUrl: 'https://explorer.ironfish.network/blocks/',
+      explorerTransactionsUrl: 'https://explorer.ironfish.network/transaction/',
+      feeEstimatorMaxBlockHistory: 10,
+      feeEstimatorPercentileLow: 10,
+      feeEstimatorPercentileMedium: 20,
+      feeEstimatorPercentileHigh: 30,
+      networkId: 2,
+      customNetwork: '',
+      maxSyncedAgeBlocks: 60,
+      networkDefinitionPath: files.resolve(files.join(dataDir, 'network.json')),
     }
   }
 }

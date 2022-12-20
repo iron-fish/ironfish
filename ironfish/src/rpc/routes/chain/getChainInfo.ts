@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { GENESIS_BLOCK_SEQUENCE } from '../../../consensus'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { ApiNamespace, router } from '../router'
 

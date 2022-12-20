@@ -39,13 +39,13 @@ describe('Block', () => {
     expect(serialized).toMatchObject({ header: { timestamp: expect.any(Number) } })
 
     const deserialized = BlockSerde.deserialize(serialized)
-    expect(BlockSerde.equals(deserialized, block)).toBe(true)
+    expect(block.equals(deserialized)).toBe(true)
   })
 
   it('throws when deserializing invalid block', () => {
-    expect(() =>
-      BlockSerde.deserialize({ bad: 'data' } as unknown as SerializedBlock),
-    ).toThrowError('Unable to deserialize')
+    expect(() => BlockSerde.deserialize({ bad: 'data' } as unknown as SerializedBlock)).toThrow(
+      'Unable to deserialize',
+    )
   })
 
   it('check block equality', async () => {
@@ -91,7 +91,7 @@ describe('Block', () => {
     nodeTest.strategy.disableMiningReward()
     const block = await makeBlockAfter(nodeTest.chain, nodeTest.chain.genesis)
 
-    expect(() => block.minersFee).toThrowError('Block has no miners fee')
+    expect(() => block.minersFee).toThrow('Block has no miners fee')
   })
 
   it(`serializes transactions and miner's fee in compact block`, async () => {

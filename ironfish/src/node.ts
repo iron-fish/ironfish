@@ -5,7 +5,7 @@ import { BoxKeyPair } from '@ironfish/rust-nodejs'
 import os from 'os'
 import { v4 as uuid } from 'uuid'
 import { Blockchain } from './blockchain'
-import { TestnetParameters } from './consensus'
+import { TestnetConsensus } from './consensus'
 import {
   Config,
   ConfigOptions,
@@ -14,7 +14,6 @@ import {
   InternalStore,
 } from './fileStores'
 import { FileSystem } from './fileSystems'
-import { MinedBlocksIndexer } from './indexers/minedBlocksIndexer'
 import { createRootLogger, Logger } from './logger'
 import { MemPool } from './memPool'
 import { FeeEstimator } from './memPool/feeEstimator'
@@ -23,6 +22,7 @@ import { Migrator } from './migrations'
 import { MiningManager } from './mining'
 import { PeerNetwork, PrivateIdentity, privateIdentityToIdentity } from './network'
 import { IsomorphicWebSocketConstructor } from './network/types'
+import { getNetworkDefinition } from './networkDefinition'
 import { Package } from './package'
 import { Platform } from './platform'
 import { RpcServer } from './rpc/server'
@@ -50,7 +50,6 @@ export class IronfishNode {
   syncer: Syncer
   pkg: Package
   telemetry: Telemetry
-  minedBlocksIndexer: MinedBlocksIndexer
 
   started = false
   shutdownPromise: Promise<void> | null = null
@@ -71,7 +70,7 @@ export class IronfishNode {
     webSocket,
     privateIdentity,
     hostsStore,
-    minedBlocksIndexer,
+    networkId,
   }: {
     pkg: Package
     files: FileSystem
@@ -87,7 +86,7 @@ export class IronfishNode {
     webSocket: IsomorphicWebSocketConstructor
     privateIdentity?: PrivateIdentity
     hostsStore: HostsStore
-    minedBlocksIndexer: MinedBlocksIndexer
+    networkId: number
   }) {
     this.files = files
     this.config = config
@@ -102,7 +101,6 @@ export class IronfishNode {
     this.rpc = new RpcServer(this)
     this.logger = logger
     this.pkg = pkg
-    this.minedBlocksIndexer = minedBlocksIndexer
 
     this.migrator = new Migrator({ node: this, logger })
 
@@ -123,6 +121,7 @@ export class IronfishNode {
     })
 
     this.peerNetwork = new PeerNetwork({
+      networkId,
       identity: identity,
       agent: Platform.getAgent(pkg),
       port: config.get('peerPort'),
@@ -170,7 +169,6 @@ export class IronfishNode {
 
   static async init({
     pkg: pkg,
-    databaseName,
     dataDir,
     config,
     internal,
@@ -187,7 +185,6 @@ export class IronfishNode {
     config?: Config
     internal?: InternalStore
     autoSeed?: boolean
-    databaseName?: string
     logger?: Logger
     metrics?: MetricsMonitor
     files: FileSystem
@@ -211,10 +208,6 @@ export class IronfishNode {
     const hostsStore = new HostsStore(files, dataDir)
     await hostsStore.load()
 
-    if (databaseName) {
-      config.setOverride('databaseName', databaseName)
-    }
-
     let workers = config.get('nodeWorkers')
     if (workers === -1) {
       workers = os.cpus().length - 1
@@ -226,12 +219,18 @@ export class IronfishNode {
     }
     const workerPool = new WorkerPool({ metrics, numWorkers: workers })
 
-    const consensus = new TestnetParameters()
+    metrics = metrics || new MetricsMonitor({ logger })
+
+    const networkDefinition = await getNetworkDefinition(config, internal, files)
+
+    if (!config.isSet('bootstrapNodes')) {
+      config.setOverride('bootstrapNodes', networkDefinition.bootstrapNodes)
+    }
+
+    const consensus = new TestnetConsensus(networkDefinition.consensus)
 
     strategyClass = strategyClass || Strategy
     const strategy = new strategyClass({ workerPool, consensus })
-
-    metrics = metrics || new MetricsMonitor({ logger })
 
     const chain = new Blockchain({
       location: config.chainDatabasePath,
@@ -242,6 +241,8 @@ export class IronfishNode {
       workerPool,
       files,
       consensus,
+      genesis: networkDefinition.genesis,
+      config,
     })
 
     const accountDB = new WalletDB({
@@ -269,14 +270,6 @@ export class IronfishNode {
 
     const memPool = new MemPool({ chain, feeEstimator, metrics, logger })
 
-    const minedBlocksIndexer = new MinedBlocksIndexer({
-      files,
-      location: config.indexDatabasePath,
-      wallet,
-      chain,
-      logger,
-    })
-
     return new IronfishNode({
       pkg,
       chain,
@@ -284,7 +277,7 @@ export class IronfishNode {
       files,
       config,
       internal,
-      wallet: wallet,
+      wallet,
       metrics,
       memPool,
       workerPool,
@@ -292,7 +285,7 @@ export class IronfishNode {
       webSocket,
       privateIdentity,
       hostsStore,
-      minedBlocksIndexer,
+      networkId: networkDefinition.id,
     })
   }
 
@@ -307,12 +300,9 @@ export class IronfishNode {
     try {
       await this.chain.open()
       await this.wallet.open()
-      await this.minedBlocksIndexer.open()
-      await this.memPool.feeEstimator.init(this.chain)
     } catch (e) {
       await this.chain.close()
       await this.wallet.close()
-      await this.minedBlocksIndexer.close()
       throw e
     }
   }
@@ -320,7 +310,6 @@ export class IronfishNode {
   async closeDB(): Promise<void> {
     await this.chain.close()
     await this.wallet.close()
-    await this.minedBlocksIndexer.close()
   }
 
   async start(): Promise<void> {
@@ -346,7 +335,8 @@ export class IronfishNode {
       await this.rpc.start()
     }
 
-    await this.minedBlocksIndexer.start()
+    await this.memPool.start()
+
     this.telemetry.submitNodeStarted()
   }
 
@@ -362,7 +352,6 @@ export class IronfishNode {
       this.rpc.stop(),
       this.telemetry.stop(),
       this.metrics.stop(),
-      this.minedBlocksIndexer.stop(),
     ])
 
     // Do after to avoid unhandled error from aborted jobs

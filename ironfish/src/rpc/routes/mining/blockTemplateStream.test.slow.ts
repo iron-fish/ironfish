@@ -33,7 +33,7 @@ describe('Block template stream', () => {
 
     response.end()
 
-    expect(createNewBlockTemplateSpy).toBeCalledTimes(1)
+    expect(createNewBlockTemplateSpy).toHaveBeenCalledTimes(1)
   })
 
   it('does not crash on expired transactions if the chain head changes rapidly', async () => {
@@ -46,18 +46,23 @@ describe('Block template stream', () => {
     // Create another node
     const nodeTest = createNodeTest()
     await nodeTest.setup()
-    await nodeTest.wallet.importAccount(account)
+    const importedAccount = await nodeTest.wallet.importAccount(account)
     await nodeTest.wallet.setDefaultAccount(account.name)
 
     // Generate a block
-    const block2 = await useMinerBlockFixture(nodeTest.chain, 2, account, nodeTest.node.wallet)
+    const block2 = await useMinerBlockFixture(
+      nodeTest.chain,
+      2,
+      importedAccount,
+      nodeTest.node.wallet,
+    )
 
     // Generate a transaction on that block with an expiry at sequence 3
     await expect(nodeTest.chain).toAddBlock(block2)
     await nodeTest.wallet.updateHead()
     const tx = await useTxFixture(
       nodeTest.node.wallet,
-      account,
+      importedAccount,
       account,
       undefined,
       undefined,
@@ -100,6 +105,6 @@ describe('Block template stream', () => {
     await expect(response.waitForRoute()).resolves.toEqual(expect.anything())
 
     // newBlock should have thrown an error, but the response should not have crashed
-    await expect(newBlockSpy.mock.results[2].value).rejects.toThrowError('Transaction expired')
+    await expect(newBlockSpy.mock.results[2].value).rejects.toThrow('Transaction expired')
   })
 })

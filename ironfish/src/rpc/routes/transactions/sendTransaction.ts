@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { CurrencyUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
@@ -97,6 +98,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
         publicAddress: receive.publicAddress,
         amount: CurrencyUtils.decode(receive.amount),
         memo: receive.memo,
+        assetIdentifier: Asset.nativeIdentifier(),
       }
     })
 
@@ -114,7 +116,8 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     // Check that the node account is updated
-    const balance = await node.wallet.getBalance(account)
+    // TODO(mgeist,rohanjadvani): Pass through asset identifier
+    const balance = await node.wallet.getBalance(account, Asset.nativeIdentifier())
 
     if (balance.confirmed < sum) {
       throw new ValidationError(
@@ -138,7 +141,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       request.end({
         receives: transaction.receives,
         fromAccountName: account.name,
-        hash: transactionPosted.unsignedHash().toString('hex'),
+        hash: transactionPosted.hash().toString('hex'),
       })
     } catch (e) {
       if (e instanceof NotEnoughFundsError) {

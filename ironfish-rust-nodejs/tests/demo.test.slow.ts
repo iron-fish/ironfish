@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset, DECRYPTED_NOTE_LENGTH } from '..'
 import {
   initializeSapling,
   generateKey,
-  generateNewPublicAddress,
+  generateKeyFromPrivateKey,
   Note,
   NoteEncrypted,
   Transaction,
@@ -28,7 +29,7 @@ describe('Demonstrate the Sapling API', () => {
 
   it('Should generate a new public address given a spending key', () => {
     const key = generateKey()
-    const newKey = generateNewPublicAddress(key.spending_key)
+    const newKey = generateKeyFromPrivateKey(key.spending_key)
 
     expect(key.incoming_view_key).toEqual(newKey.incoming_view_key)
     expect(key.outgoing_view_key).toEqual(newKey.outgoing_view_key)
@@ -40,7 +41,7 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
 
     const transaction = new Transaction(key.spending_key)
-    const note = new Note(key.public_address, BigInt(20), 'test')
+    const note = new Note(key.public_address, BigInt(20), 'test', Asset.nativeIdentifier(), key.public_address)
     transaction.receive(note)
 
     const serializedPostedTransaction = transaction.post_miners_fee()
@@ -59,7 +60,7 @@ describe('Demonstrate the Sapling API', () => {
 
     const decryptedNoteBuffer = encryptedNote.decryptNoteForOwner(key.incoming_view_key)
     expect(decryptedNoteBuffer).toBeInstanceOf(Buffer)
-    expect(decryptedNoteBuffer!.byteLength).toBe(115)
+    expect(decryptedNoteBuffer!.byteLength).toBe(DECRYPTED_NOTE_LENGTH)
 
     const decryptedSpenderNote = encryptedNote.decryptNoteForSpender(key.outgoing_view_key)
     expect(decryptedSpenderNote).toBe(null)
@@ -77,7 +78,7 @@ describe('Demonstrate the Sapling API', () => {
     const recipientKey = generateKey()
 
     const minersFeeTransaction = new Transaction(key.spending_key)
-    const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner')
+    const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner', Asset.nativeIdentifier(), key.public_address)
     minersFeeTransaction.receive(minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
@@ -86,7 +87,7 @@ describe('Demonstrate the Sapling API', () => {
     transaction.setExpirationSequence(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key)!)
-    const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive')
+    const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive', Asset.nativeIdentifier(), minersFeeNote.owner())
 
     let currentHash = encryptedNote.merkleHash()
     let authPath = Array.from({ length: 32 }, (_, depth) => {

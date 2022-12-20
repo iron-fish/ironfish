@@ -77,7 +77,7 @@ export class MiningManager {
     for (const transaction of this.memPool.orderedTransactions()) {
       // Skip transactions that would cause the block to exceed the max size
       const transactionSize = getTransactionSize(transaction)
-      if (currBlockSize + transactionSize > this.chain.consensus.MAX_BLOCK_SIZE_BYTES) {
+      if (currBlockSize + transactionSize > this.chain.consensus.parameters.maxBlockSizeBytes) {
         continue
       }
 
@@ -89,7 +89,7 @@ export class MiningManager {
         continue
       }
 
-      const isConflicted = await AsyncUtils.find(transaction.spends(), (spend) => {
+      const isConflicted = await AsyncUtils.find(transaction.spends, (spend) => {
         return nullifiers.has(spend.nullifier)
       })
       if (isConflicted) {
@@ -101,7 +101,7 @@ export class MiningManager {
         continue
       }
 
-      for (const spend of transaction.spends()) {
+      for (const spend of transaction.spends) {
         nullifiers.add(spend.nullifier)
       }
 
@@ -155,9 +155,11 @@ export class MiningManager {
     this.node.logger.debug(
       `Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
     )
+
+    const txSize = getTransactionSize(minersFee)
     Assert.isEqual(
       MINERS_FEE_TRANSACTION_SIZE_BYTES,
-      getTransactionSize(minersFee),
+      txSize,
       "Incorrect miner's fee transaction size used during block creation",
     )
 

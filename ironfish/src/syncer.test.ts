@@ -179,7 +179,7 @@ describe('Syncer', () => {
     syncer.loader = peer
     await syncer.syncBlocks(peer, genesis.header.hash, genesis.header.sequence)
 
-    expect(getBlocksSpy).toBeCalledTimes(4)
+    expect(getBlocksSpy).toHaveBeenCalledTimes(4)
     expect(getBlocksSpy).toHaveBeenNthCalledWith(1, peer, genesis.header.hash, 2)
     expect(getBlocksSpy).toHaveBeenNthCalledWith(2, peer, blockA1.header.hash, 2)
     expect(getBlocksSpy).toHaveBeenNthCalledWith(3, peer, blockA2.header.hash, 2)
@@ -208,8 +208,8 @@ describe('Syncer', () => {
 
     await syncer.syncBlocks(peer, chain.genesis.hash, chain.genesis.sequence)
 
-    expect(getBlocksSpy).toBeCalledTimes(1)
-    expect(peerPunished).toBeCalledTimes(1)
-    expect(peerPunished).toBeCalledWith(BAN_SCORE.MAX, expect.anything())
+    expect(getBlocksSpy).toHaveBeenCalledTimes(1)
+    expect(peerPunished).toHaveBeenCalledTimes(1)
+    expect(peerPunished).toHaveBeenCalledWith(BAN_SCORE.MAX, expect.anything())
   })
 })
