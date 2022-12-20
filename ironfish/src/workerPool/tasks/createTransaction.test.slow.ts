@@ -135,7 +135,6 @@ describe('CreateTransactionTask', () => {
       const fee = BigInt(1)
 
       const minerTransaction = await useMinersTxFixture(nodeTest.wallet, account)
-      const balance = await account.getUnconfirmedBalance(Asset.nativeIdentifier())
 
       const spendNote = minerTransaction.getNote(0).decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(spendNote)
@@ -205,7 +204,7 @@ describe('CreateTransactionTask', () => {
 
       const nativeAssetValue = outputValuesByAssetIdentifier.get(Asset.nativeIdentifier())
       Assert.isNotUndefined(nativeAssetValue)
-      expect(nativeAssetValue).toEqual(balance - fee)
+      expect(nativeAssetValue).toEqual(2000000000n - fee)
 
       const mintedAssetValue = outputValuesByAssetIdentifier.get(asset.identifier())
       Assert.isNotUndefined(mintedAssetValue)
