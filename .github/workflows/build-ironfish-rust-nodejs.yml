@@ -36,7 +36,7 @@ jobs:
             target: aarch64-unknown-linux-musl
 
     name: Build ${{ matrix.settings.target }}
-    runs-on: ${{ matrix.settings.host}}
+    runs-on: ${{ matrix.settings.host }}
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v3
@@ -51,10 +51,10 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          target: ${{ matrix.targets }}
+          target: ${{ matrix.settings.target }}
 
       - name: Install ziglang
-        uses: goto-bus-stop/setup-zig@v1
+        uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.10.0
 
@@ -63,13 +63,13 @@ jobs:
         working-directory: ./ironfish-rust-nodejs
 
       - name: Build
-        run: yarn build --zig --target ${{ matrix.targets }}
+        run: yarn build --zig --target ${{ matrix.settings.target }}
         working-directory: ./ironfish-rust-nodejs
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: bindings-${{ matrix.targets }}
+          name: bindings-${{ matrix.settings.target }}
           path: ironfish-rust-nodejs/*.node
           if-no-files-found: error
 
