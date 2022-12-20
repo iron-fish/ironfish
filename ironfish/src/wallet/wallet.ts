@@ -664,8 +664,7 @@ export class Wallet {
       throw new Error('You must have a genesis block to create a transaction')
     }
 
-    expiration =
-      expiration ?? heaviestHead.sequence + transactionExpirationDelta
+    expiration = expiration ?? heaviestHead.sequence + transactionExpirationDelta
 
     if (this.chain.verifier.isExpiredSequence(expiration, this.chain.head.sequence)) {
       throw new Error('Invalid expiration sequence for transaction')
