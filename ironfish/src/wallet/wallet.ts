@@ -163,6 +163,10 @@ export class Wallet {
       return false
     }
 
+    if (this.chainProcessor.hash === null) {
+      return true
+    }
+
     for (const account of this.accounts.values()) {
       if (!this.isAccountUpToDate(account)) {
         return true
@@ -511,6 +515,11 @@ export class Wallet {
 
     if (this.scan) {
       this.logger.info('Skipping Scan, already scanning.')
+      return
+    }
+
+    if (!this.shouldRescan) {
+      this.logger.info('Skipping Scan, all accounts up to date.')
       return
     }
 
