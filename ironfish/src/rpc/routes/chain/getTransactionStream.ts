@@ -160,7 +160,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           if (decryptedNote) {
             const assetValue = await validatedAssetValue(decryptedNote.assetIdentifier())
             notes.push({
-              value: decryptedNote.value().toString(),
+              value: CurrencyUtils.encode(decryptedNote.value()),
               memo: decryptedNote.memo(),
               assetId: decryptedNote.assetIdentifier.toString(),
               assetName: assetValue.name.toString(),
@@ -171,7 +171,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
         for (const burn of tx.burns) {
           const assetValue = await validatedAssetValue(burn.assetIdentifier)
           burns.push({
-            value: burn.value.toString(),
+            value: CurrencyUtils.encode(burn.value),
             assetId: burn.assetIdentifier.toString('hex'),
             assetName: assetValue.name.toString(),
           })
@@ -179,13 +179,13 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
 
         for (const mint of tx.mints) {
           mints.push({
-            value: mint.value.toString(),
+            value: CurrencyUtils.encode(mint.value),
             assetId: mint.asset.identifier().toString('hex'),
             assetName: mint.asset.name().toString(),
           })
         }
 
-        if (notes.length) {
+        if (notes.length || burns.length || mints.length) {
           transactions.push({
             hash: tx.hash().toString('hex'),
             isMinersFee: tx.isMinersFee(),
@@ -211,11 +211,11 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       })
     }
 
-    const validatedAssetValue = async (identifier: Buffer): Promise<AssetsValue> => {
-      const assetValue = await node.chain.assets.get(identifier)
+    const validatedAssetValue = async (assetIdentifier: Buffer): Promise<AssetsValue> => {
+      const assetValue = await node.chain.assets.get(assetIdentifier)
       if (!assetValue) {
         throw new ValidationError(
-          `Asset detected in chain is not in assetDB. Asset Identifier: ${identifier.toString()}`,
+          `Asset detected in chain is not in assetDB. Asset Identifier: ${assetIdentifier.toString()}`,
         )
       }
       return assetValue
