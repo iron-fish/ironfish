@@ -18,7 +18,7 @@ import {
   SchemaKey,
   SchemaValue,
 } from '../database'
-import { BUFFER_TO_STRING_ENCODING } from '../database/encoding'
+import { BufferToStringEncoding } from '../database/encoding'
 import { StorageUtils } from '../database/utils'
 import { LevelupTransaction } from './transaction'
 
@@ -95,7 +95,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
       await transaction.acquireLock()
 
       for (const [keyString, value] of transaction.cache.entries()) {
-        const key = BUFFER_TO_STRING_ENCODING.deserialize(keyString)
+        const key = BufferToStringEncoding.deserialize(keyString)
 
         if (!StorageUtils.hasPrefix(key, this.prefixBuffer)) {
           continue
