@@ -8,11 +8,8 @@ import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
 import { IsNoteWitnessEqual } from '../merkletree/witness'
-import {
-  useAccountFixture,
-  useMinerBlockFixture,
-  useRawTxFixture,
-} from '../testUtilities/fixtures'
+import { useAccountFixture, useMinerBlockFixture } from '../testUtilities/fixtures'
+import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { Note } from './note'
 import { RawTransaction, RawTransactionSerde } from './rawTransaction'
@@ -44,7 +41,7 @@ describe('RawTransaction', () => {
       value: 1n,
     }
 
-    const raw = await useRawTxFixture({
+    const raw = await createRawTransaction({
       wallet: nodeTest.wallet,
       from: account,
       to: account,
