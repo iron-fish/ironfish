@@ -1,16 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  Account,
-  Assert,
-  Blockchain,
-  CurrencyUtils,
-  NodeUtils,
-  Wallet,
-  WalletDB,
-} from '@ironfish/sdk'
-import { BufferMap } from 'buffer-map'
+import { Account, Assert, Blockchain, NodeUtils, Wallet, WalletDB } from '@ironfish/sdk'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
@@ -49,8 +40,8 @@ export default class Repair extends IronfishCommand {
     this.log('Repairing expired transactions')
     await this.repairTransactions(account, node.wallet.walletDb, node.chain)
 
-    this.log('Repairing balance')
-    await this.repairBalance(account, node.wallet.walletDb, node.chain)
+    this.log('Repairing notes')
+    await this.repairNotes(account, node.wallet.walletDb, node.chain)
 
     this.log('Repairing sequenceToNoteHash')
     await this.repairSequenceToNoteHash(account, node.wallet.walletDb)
@@ -105,13 +96,11 @@ export default class Repair extends IronfishCommand {
     )
   }
 
-  private async repairBalance(
+  private async repairNotes(
     account: Account,
     walletDb: WalletDB,
     chain: Blockchain,
   ): Promise<void> {
-    const unconfirmedBalances = new BufferMap<bigint>()
-
     let noteUnspentMismatches = 0
 
     for await (const decryptedNoteValue of account.getNotes()) {
@@ -142,38 +131,13 @@ export default class Repair extends IronfishCommand {
           spent: true,
         })
       } else if (!spent) {
-        const isExpired =
-          !transactionValue.sequence &&
-          chain.verifier.isExpiredSequence(
-            transactionValue.transaction.expiration(),
-            chain.head.sequence,
-          )
-
         if (decryptedNoteValue.spent) {
           await walletDb.saveDecryptedNote(account, decryptedNoteValue.hash, {
             ...decryptedNoteValue,
             spent: false,
           })
         }
-
-        if (!isExpired) {
-          const assetIdentifier = decryptedNoteValue.note.assetIdentifier()
-          const unconfirmedBalance = unconfirmedBalances.get(assetIdentifier) ?? BigInt(0)
-          unconfirmedBalances.set(
-            assetIdentifier,
-            unconfirmedBalance + decryptedNoteValue.note.value(),
-          )
-        }
       }
-    }
-
-    for (const [assetIdentifier, unconfirmedBalance] of unconfirmedBalances.entries()) {
-      this.log(
-        `\tSaving new unconfirmed balance for ${assetIdentifier.toString(
-          'hex',
-        )}: ${CurrencyUtils.renderIron(unconfirmedBalance)}`,
-      )
-      await walletDb.saveUnconfirmedBalance(account, assetIdentifier, unconfirmedBalance)
     }
 
     this.log(
