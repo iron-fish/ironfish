@@ -52,9 +52,11 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
 
       const asset = await node.chain.assets.get(note.assetIdentifier())
 
+      Assert.isNotUndefined(asset)
+
       request.stream({
         value: note.value().toString(),
-        assetIdentifier: asset?.name.toString('hex') || "$IRON",
+        assetIdentifier: asset.name.toString('hex') || "$IRON",
         memo: note.memo(),
         sender: note.sender(),
         transactionHash: transaction.transaction.hash().toString('hex'),
