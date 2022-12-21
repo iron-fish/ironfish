@@ -79,10 +79,10 @@ describe('Blockchain', () => {
     }> {
       forkLength = Math.min(Math.min(forkLength, blocksA.length), blocksB.length)
 
-      const samplesAll = []
-      const samplesAdd = []
-      const samplesFork = []
-      const samplesRewind = []
+      const samplesAll: number[] = []
+      const samplesAdd: number[] = []
+      const samplesFork: number[] = []
+      const samplesRewind: number[] = []
 
       for (let i = 0; i < testCount; i++) {
         console.log(`Running Test ${i}`)
@@ -152,13 +152,19 @@ describe('Blockchain', () => {
       )
     }
 
-    printResults(await runTest(5, 1))
-    printResults(await runTest(5, 3))
-    printResults(await runTest(5, 5))
-    printResults(await runTest(5, 10))
-    printResults(await runTest(5, 50))
-    printResults(await runTest(5, 100))
-  }, 600000)
+    const results: UnwrapPromise<ReturnType<typeof runTest>>[] = []
+
+    results.push(await runTest(5, 1))
+    results.push(await runTest(5, 3))
+    results.push(await runTest(5, 5))
+    results.push(await runTest(5, 10))
+    results.push(await runTest(5, 50))
+    results.push(await runTest(5, 100))
+
+    for (const result of results) {
+      printResults(result)
+    }
+  }, 60000000)
 })
 
 // Last results on Jason Spafford's Machine
