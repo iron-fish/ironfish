@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import bufio from 'bufio'
-import hexArray from 'hex-array'
 import { IJSON, IJsonSerializable, Serde } from '../../serde'
 import { BigIntUtils } from '../../utils'
 import { IDatabaseEncoding } from './types'
@@ -153,11 +152,11 @@ export class ArrayEncoding<T extends IJsonSerializable[]> extends JsonEncoding<T
 
 export default class BufferToStringEncoding implements Serde<Buffer, string> {
   serialize(element: Buffer): string {
-    return hexArray.toString(element)
+    return element.toString('hex')
   }
 
   deserialize(data: string): Buffer {
-    return Buffer.from(hexArray.fromString(data))
+    return Buffer.from(data, 'hex')
   }
 
   equals(): boolean {

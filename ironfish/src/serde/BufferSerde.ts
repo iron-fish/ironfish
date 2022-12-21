@@ -2,28 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Assert } from '../assert'
 import { Serde } from './Serde'
-import Uint8ArraySerde from './Uint8ArraySerde'
 
 /**
  * A buffer serializer and equality checker
  */
 export class BufferSerde implements Serde<Buffer, string> {
-  serde: Uint8ArraySerde
-
-  constructor(readonly size: number) {
-    this.serde = new Uint8ArraySerde(size)
-  }
+  constructor(readonly size: number) {}
 
   equals(element1: Buffer, element2: Buffer): boolean {
-    return this.serde.equals(element1, element2)
+    return element1.equals(element2)
   }
 
   serialize(element: Buffer): string {
-    return this.serde.serialize(element)
+    Assert.isEqual(
+      element.length,
+      this.size,
+      `Attempting to serialize array with ${element.length} bytes, expected ${this.size}`,
+    )
+    return element.toString('hex').toUpperCase()
   }
 
   deserialize(data: string): Buffer {
-    return Buffer.from(this.serde.deserialize(data))
+    Assert.isEqual(
+      data.length,
+      this.size * 2,
+      `${JSON.stringify(data)} is not a ${this.size * 2}-character hex string`,
+    )
+    return Buffer.from(data, 'hex')
   }
 }
