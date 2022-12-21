@@ -183,7 +183,11 @@ export class Pay extends IronfishCommand {
     if (!flags.confirm) {
       this.log(`
 You are about to send:
-${CurrencyUtils.renderIron(amount, true)} plus a transaction fee of ${CurrencyUtils.renderIron(
+${CurrencyUtils.renderIron(
+  amount,
+  true,
+  assetIdentifier,
+)} plus a transaction fee of ${CurrencyUtils.renderIron(
         fee,
         true,
       )} to ${to} from the account ${from}
@@ -243,7 +247,7 @@ ${CurrencyUtils.renderIron(amount, true)} plus a transaction fee of ${CurrencyUt
       const transaction = result.content
       const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
       this.log(`
-Sending ${CurrencyUtils.renderIron(amount, true)} to ${recipients} from ${
+Sending ${CurrencyUtils.renderIron(amount, true, assetIdentifier)} to ${recipients} from ${
         transaction.fromAccountName
       }
 Transaction Hash: ${transaction.hash}
