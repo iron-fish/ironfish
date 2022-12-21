@@ -15,6 +15,7 @@ const TEST_PARAMS = {
       publicAddress: 'test2',
       amount: BigInt(10).toString(),
       memo: '',
+      assetIdentifier: Asset.nativeIdentifier().toString('hex'),
     },
   ],
   fee: BigInt(1).toString(),
@@ -27,11 +28,13 @@ const TEST_PARAMS_MULTI = {
       publicAddress: 'test2',
       amount: BigInt(10).toString(),
       memo: '',
+      assetIdentifier: Asset.nativeIdentifier().toString('hex'),
     },
     {
       publicAddress: 'test3',
       amount: BigInt(10).toString(),
       memo: '',
+      assetIdentifier: Asset.nativeIdentifier().toString('hex'),
     },
   ],
   fee: BigInt(1).toString(),
@@ -77,7 +80,7 @@ describe('Transactions sendTransaction', () => {
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
-          'Your balance is too low. Add funds to your account first',
+          `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
@@ -87,7 +90,7 @@ describe('Transactions sendTransaction', () => {
     await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
-          'Your balance is too low. Add funds to your account first',
+          `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
@@ -108,7 +111,7 @@ describe('Transactions sendTransaction', () => {
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
-          'Your balance is too low. Add funds to your account first',
+          `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
@@ -124,7 +127,7 @@ describe('Transactions sendTransaction', () => {
     await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
-          'Your balance is too low. Add funds to your account first',
+          `Your balance is too low. Add funds to your account first`,
         ),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,

@@ -53,6 +53,10 @@ export class Pay extends IronfishCommand {
       description: 'The priority level for transaction fee estimation.',
       options: ['low', 'medium', 'high'],
     }),
+    assetIdentifier: Flags.string({
+      char: 'i',
+      description: 'The identifier for the asset to use when paying',
+    }),
   }
 
   async start(): Promise<void> {
@@ -78,13 +82,13 @@ export class Pay extends IronfishCommand {
       amount = CurrencyUtils.decodeIron(flags.amount)
     }
 
+    const assetIdentifier = flags.assetIdentifier
+
     if (amount === null) {
-      const response = await client.getAccountBalance({ account: from })
+      const response = await client.getAccountBalance({ account: from, assetIdentifier })
 
       const input = (await CliUx.ux.prompt(
-        `Enter the amount in $IRON (balance: ${CurrencyUtils.renderIron(
-          response.content.confirmed,
-        )})`,
+        `Enter the amount (balance: ${CurrencyUtils.renderIron(response.content.confirmed)})`,
         {
           required: true,
         },
@@ -226,7 +230,8 @@ ${CurrencyUtils.renderIron(amount, true)} plus a transaction fee of ${CurrencyUt
           {
             publicAddress: to,
             amount: CurrencyUtils.encode(amount),
-            memo: memo,
+            memo,
+            assetIdentifier,
           },
         ],
         fee: CurrencyUtils.encode(fee),
