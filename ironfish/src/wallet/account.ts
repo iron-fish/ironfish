@@ -182,8 +182,14 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     const balanceDeltas = new AssetBalanceDeltas()
+    let submittedSequence: number | null = null
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
+      const transactionValue = await this.getTransaction(transaction.hash(), tx)
+      if (transactionValue) {
+        submittedSequence = transactionValue.submittedSequence
+      }
+
       for (const decryptedNote of decryptedNotes) {
         if (decryptedNote.forSpender) {
           continue
@@ -230,7 +236,7 @@ export class Account {
           transaction,
           blockHash: blockHeader.hash,
           sequence: blockHeader.sequence,
-          submittedSequence: blockHeader.sequence,
+          submittedSequence,
         },
         tx,
       )
