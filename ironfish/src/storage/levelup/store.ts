@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { LevelupDatabase } from './database'
 import { BufferSet } from 'buffer-map'
+import FastPriorityQueue from 'fastpriorityqueue'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../../assert'
 import { AsyncUtils } from '../../utils/async'
@@ -75,7 +76,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
   async *getAllIter(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
-    iterationOptions?: DatabaseIteratorOptions,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]> {
     if (keyRange) {
       keyRange = StorageUtils.addPrefixToRange(keyRange, this.prefixBuffer)
@@ -84,6 +85,10 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     }
 
     const seen = new BufferSet()
+    const cacheElements = new FastPriorityQueue<{ key: Buffer; value: SchemaValue<Schema> }>(
+      ({ key: a }, { key: b }) =>
+        iteratorOptions?.reverse ? b.compare(a) < 0 : a.compare(b) < 0,
+    )
 
     if (ENABLE_TRANSACTIONS && transaction) {
       Assert.isInstanceOf(transaction, LevelupTransaction)
@@ -106,31 +111,57 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
           continue
         }
 
-        yield [this.decodeKey(key), value as SchemaValue<Schema>]
+        if (iteratorOptions?.ordered) {
+          cacheElements.add({ key: key, value: value as SchemaValue<Schema> })
+        } else {
+          yield [this.decodeKey(key), value as SchemaValue<Schema>]
+        }
       }
     }
 
-    for await (const [key, value] of this.db.getAllIter(keyRange, iterationOptions)) {
-      if (seen.has(key)) {
-        continue
+    let nextCacheElement = cacheElements.peek()
+
+    for await (const [key, value] of this.db.getAllIter(keyRange, iteratorOptions)) {
+      while (
+        nextCacheElement &&
+        (iteratorOptions?.reverse
+          ? key.compare(nextCacheElement.key) <= 0
+          : key.compare(nextCacheElement.key) >= 0)
+      ) {
+        const element = cacheElements.poll()
+        Assert.isNotUndefined(element)
+        yield [this.decodeKey(element.key), element.value]
+        nextCacheElement = cacheElements.peek()
       }
 
-      yield [this.decodeKey(key), this.valueEncoding.deserialize(value)]
+      if (seen.has(key)) {
+        continue
+      } else {
+        yield [this.decodeKey(key), this.valueEncoding.deserialize(value)]
+      }
+    }
+
+    while (!cacheElements.isEmpty()) {
+      const element = cacheElements.poll()
+      Assert.isNotUndefined(element)
+      yield [this.decodeKey(element.key), element.value]
     }
   }
 
   async getAll(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): Promise<Array<[SchemaKey<Schema>, SchemaValue<Schema>]>> {
-    return AsyncUtils.materialize(this.getAllIter(transaction, keyRange))
+    return AsyncUtils.materialize(this.getAllIter(transaction, keyRange, iteratorOptions))
   }
 
   async *getAllValuesIter(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): AsyncGenerator<SchemaValue<Schema>> {
-    for await (const [, value] of this.getAllIter(transaction, keyRange)) {
+    for await (const [, value] of this.getAllIter(transaction, keyRange, iteratorOptions)) {
       yield value
     }
   }
@@ -138,15 +169,17 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
   async getAllValues(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): Promise<Array<SchemaValue<Schema>>> {
-    return AsyncUtils.materialize(this.getAllValuesIter(transaction, keyRange))
+    return AsyncUtils.materialize(this.getAllValuesIter(transaction, keyRange, iteratorOptions))
   }
 
   async *getAllKeysIter(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): AsyncGenerator<SchemaKey<Schema>> {
-    for await (const [key] of this.getAllIter(transaction, keyRange)) {
+    for await (const [key] of this.getAllIter(transaction, keyRange, iteratorOptions)) {
       yield key
     }
   }
@@ -154,8 +187,9 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
   async getAllKeys(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): Promise<Array<SchemaKey<Schema>>> {
-    return AsyncUtils.materialize(this.getAllKeysIter(transaction, keyRange))
+    return AsyncUtils.materialize(this.getAllKeysIter(transaction, keyRange, iteratorOptions))
   }
 
   async clear(transaction?: IDatabaseTransaction, keyRange?: DatabaseKeyRange): Promise<void> {
