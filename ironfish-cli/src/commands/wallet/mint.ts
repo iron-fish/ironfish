@@ -10,7 +10,9 @@ import { ProgressBar } from '../../types'
 export class Mint extends IronfishCommand {
   static description = 'Mint tokens and increase supply for a given asset'
 
-  static examples = ['$ ironfish assets:mint -m "see more here" -n mycoin -a 1000 -f myaccount -o 1']
+  static examples = [
+    '$ ironfish wallet:mint -m "see more here" -n mycoin -a 1000 -f myaccount -o 1',
+  ]
 
   static flags = {
     ...RemoteFlags,
@@ -97,16 +99,16 @@ export class Mint extends IronfishCommand {
 
       const response = result.content
       this.log(`
-Minted asset ${name} from ${account}
-Asset Identifier: ${response.assetIdentifier}
-Value: ${amount}
-
-Transaction Hash: ${response.hash}
-Transaction fee: ${CurrencyUtils.renderIron(fee, true)}
-
-Find the transaction on https://explorer.ironfish.network/transaction/${
-        response.hash
-      } (it can take a few minutes before the transaction appears in the Explorer)`)
+ Minted asset ${name} from ${account}
+ Asset Identifier: ${response.assetIdentifier}
+ Value: ${amount}
+ 
+ Transaction Hash: ${response.hash}
+ Transaction fee: ${CurrencyUtils.renderIron(fee, true)}
+ 
+ Find the transaction on https://explorer.ironfish.network/transaction/${
+   response.hash
+ } (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while minting the asset.`)
