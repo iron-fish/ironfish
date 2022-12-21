@@ -5,6 +5,7 @@
 import { UnwrapPromise } from '../../utils/types'
 import { IDatabaseTransaction } from './transaction'
 import {
+  DatabaseIteratorOptions,
   DatabaseKeyRange,
   DatabaseSchema,
   IDatabaseEncoding,
@@ -51,35 +52,41 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
   getAll(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): Promise<Array<[SchemaKey<Schema>, SchemaValue<Schema>]>>
 
   /* Get an [[`AsyncGenerator`]] that yields all of the key/value pairs in the IDatastore */
   getAllIter(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]>
 
   /* Get an [[`AsyncGenerator`]] that yields all of the values in the IDatastore */
   getAllValuesIter(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): AsyncGenerator<SchemaValue<Schema>>
   /* Get all of the values in the IDatastore */
   getAllValues(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): Promise<Array<SchemaValue<Schema>>>
 
   /* Get an [[`AsyncGenerator`]] that yields all of the keys in the IDatastore */
   getAllKeysIter(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): AsyncGenerator<SchemaKey<Schema>>
 
   /* Get all of the keys in the IDatastore */
   getAllKeys(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): Promise<Array<SchemaKey<Schema>>>
 
   /**
@@ -183,11 +190,13 @@ export abstract class DatabaseStore<Schema extends DatabaseSchema>
   abstract getAllIter(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]>
 
   abstract getAll(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
   ): Promise<Array<[SchemaKey<Schema>, SchemaValue<Schema>]>>
 
   abstract getAllValuesIter(

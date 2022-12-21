@@ -746,6 +746,42 @@ describe('Database', () => {
       // No keys should exist
       expect(await keyStore.getAllKeys()).toHaveLength(0)
     })
+
+    it('should order entries by key if ordered option specified', async () => {
+      await db.open()
+
+      await db.metaStore.clear()
+      await db.metaStore.put('e', 1000)
+      await db.metaStore.put('a', 1001)
+      await db.metaStore.put('d', 1002)
+      await db.metaStore.put('b', 1003)
+
+      await db.transaction(async (tx) => {
+        await expect(
+          db.metaStore.getAllKeys(tx, undefined, { ordered: true }),
+        ).resolves.toMatchObject(['a', 'b', 'd', 'e'])
+        await expect(
+          db.metaStore.getAllValues(tx, undefined, { ordered: true }),
+        ).resolves.toMatchObject([1001, 1003, 1002, 1000])
+
+        await db.metaStore.put('a', 1004, tx)
+        await db.metaStore.put('c', 999, tx)
+
+        await expect(
+          db.metaStore.getAllKeys(tx, undefined, { ordered: true }),
+        ).resolves.toMatchObject(['a', 'b', 'c', 'd', 'e'])
+        await expect(
+          db.metaStore.getAllValues(tx, undefined, { ordered: true }),
+        ).resolves.toMatchObject([1004, 1003, 999, 1002, 1000])
+
+        await expect(
+          db.metaStore.getAllKeys(tx, undefined, { ordered: true, reverse: true }),
+        ).resolves.toMatchObject(['e', 'd', 'c', 'b', 'a'])
+        await expect(
+          db.metaStore.getAllValues(tx, undefined, { ordered: true, reverse: true }),
+        ).resolves.toMatchObject([1000, 1002, 999, 1003, 1004])
+      })
+    })
   })
 })
 

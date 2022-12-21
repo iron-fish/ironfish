@@ -14,6 +14,7 @@ export interface DatabaseKeyRange {
 export interface DatabaseIteratorOptions {
   reverse?: boolean
   limit?: number
+  ordered?: boolean
 }
 
 export type DatabaseKey =
