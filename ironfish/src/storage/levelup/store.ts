@@ -7,6 +7,7 @@ import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../../assert'
 import { AsyncUtils } from '../../utils/async'
 import {
+  DatabaseIteratorOptions,
   DatabaseKeyRange,
   DatabaseSchema,
   DatabaseStore,
@@ -74,6 +75,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
   async *getAllIter(
     transaction?: IDatabaseTransaction,
     keyRange?: DatabaseKeyRange,
+    iterationOptions?: DatabaseIteratorOptions,
   ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]> {
     if (keyRange) {
       keyRange = StorageUtils.addPrefixToRange(keyRange, this.prefixBuffer)
@@ -108,7 +110,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
       }
     }
 
-    for await (const [key, value] of this.db.getAllIter(keyRange)) {
+    for await (const [key, value] of this.db.getAllIter(keyRange, iterationOptions)) {
       if (seen.has(key)) {
         continue
       }
