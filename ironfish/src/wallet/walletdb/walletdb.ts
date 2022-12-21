@@ -780,7 +780,7 @@ export class WalletDB {
     }
   }
 
-  async *loadOrderedTransactions(
+  async *loadTransactionsByTime(
     account: Account,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<TransactionValue> {

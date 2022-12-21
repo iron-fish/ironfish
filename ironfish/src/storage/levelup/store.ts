@@ -78,16 +78,12 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     keyRange?: DatabaseKeyRange,
     iteratorOptions?: DatabaseIteratorOptions,
   ): AsyncGenerator<[SchemaKey<Schema>, SchemaValue<Schema>]> {
-    if (keyRange?.gt || keyRange?.gte || keyRange?.lt || keyRange?.lte) {
-      keyRange = {
-        ...keyRange,
-        ...StorageUtils.addPrefixToRange(keyRange, this.prefixBuffer),
-      }
+    if (keyRange) {
+      keyRange = StorageUtils.addPrefixToRange(keyRange, this.prefixBuffer)
     } else {
-      keyRange = keyRange ? { ...keyRange, ...this.allKeysRange } : this.allKeysRange
+      keyRange = this.allKeysRange
     }
 
-    const cacheElements = []
     const seen = new BufferSet()
     const cacheElements = new FastPriorityQueue<{ key: Buffer; value: SchemaValue<Schema> }>(
       ({ key: a }, { key: b }) =>
@@ -98,16 +94,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
       Assert.isInstanceOf(transaction, LevelupTransaction)
       await transaction.acquireLock()
 
-      let transactionCache
-      if (keyRange?.ordered) {
-        transactionCache = [...transaction.cache.entries()].sort(([a], [b]) =>
-          keyRange?.reverse ? b.localeCompare(a) : a.localeCompare(b),
-        )
-      } else {
-        transactionCache = transaction.cache.entries()
-      }
-
-      for (const [keyString, value] of transactionCache) {
+      for (const [keyString, value] of transaction.cache.entries()) {
         const key = BUFFER_TO_STRING_ENCODING.deserialize(keyString)
 
         if (!StorageUtils.hasPrefix(key, this.prefixBuffer)) {
@@ -124,20 +111,14 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
           continue
         }
 
-<<<<<<< HEAD
-        if (iteratorOptions?.ordered) {
-          cacheElements.add({ key: key, value: value as SchemaValue<Schema> })
-=======
         if (keyRange?.ordered) {
-          cacheElements.push({ key: key, value: value as SchemaValue<Schema> })
->>>>>>> 9420943d (Add support for ordered iteration in db and add timestamp index for transactions)
+          cacheElements.add({ key: key, value: value as SchemaValue<Schema> })
         } else {
           yield [this.decodeKey(key), value as SchemaValue<Schema>]
         }
       }
     }
 
-<<<<<<< HEAD
     let nextCacheElement = cacheElements.peek()
 
     for await (const [key, value] of this.db.getAllIter(keyRange, iteratorOptions)) {
@@ -154,41 +135,16 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
       }
 
       if (seen.has(key)) {
-=======
-    let currElement = 0
-
-    for await (const [key, value] of this.db.getAllIter(keyRange)) {
-      while (
-        currElement < cacheElements.length &&
-        (keyRange?.reverse
-          ? key.compare(cacheElements[currElement].key) < 0
-          : key.compare(cacheElements[currElement].key) > 0)
-      ) {
-        yield [this.decodeKey(cacheElements[currElement].key), cacheElements[currElement].value]
-        currElement++
-      }
-
-      if (currElement < cacheElements.length && key.equals(cacheElements[currElement].key)) {
-        yield [this.decodeKey(cacheElements[currElement].key), cacheElements[currElement].value]
-        currElement++
-      } else if (seen.has(key)) {
->>>>>>> 9420943d (Add support for ordered iteration in db and add timestamp index for transactions)
         continue
       } else {
         yield [this.decodeKey(key), this.valueEncoding.deserialize(value)]
       }
     }
 
-<<<<<<< HEAD
     while (!cacheElements.isEmpty()) {
       const element = cacheElements.poll()
       Assert.isNotUndefined(element)
       yield [this.decodeKey(element.key), element.value]
-=======
-    while (currElement < cacheElements.length) {
-      yield [this.decodeKey(cacheElements[currElement].key), cacheElements[currElement].value]
-      currElement++
->>>>>>> 9420943d (Add support for ordered iteration in db and add timestamp index for transactions)
     }
   }
 
