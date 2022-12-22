@@ -19,8 +19,6 @@ import {
   GetAccountTransactionResponse,
   GetAccountTransactionsRequest,
   GetAccountTransactionsResponse,
-  GetAssetInfoRequest,
-  GetAssetInfoResponse,
   GetBalanceRequest,
   GetBalanceResponse,
   GetBlockInfoRequest,
@@ -472,15 +470,6 @@ export abstract class RpcClient {
   ): Promise<RpcResponseEnded<GetConsensusParametersResponse>> {
     return this.request<GetConsensusParametersResponse>(
       `${ApiNamespace.chain}/getConsensusParameters`,
-      params,
-    ).waitForEnd()
-  }
-
-  async getAssetInfo(
-    params: GetAssetInfoRequest,
-  ): Promise<RpcResponseEnded<GetAssetInfoResponse>> {
-    return this.request<GetAssetInfoResponse>(
-      `${ApiNamespace.chain}/getAssetInfo`,
       params,
     ).waitForEnd()
   }

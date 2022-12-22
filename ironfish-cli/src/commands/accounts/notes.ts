@@ -40,8 +40,11 @@ export class NotesCommand extends IronfishCommand {
             header: 'Amount',
             get: (row) => CurrencyUtils.renderIron(row.value),
           },
+          assetName: {
+            header: 'Asset Name',
+          },
           assetIdentifier: {
-            header: 'Currency',
+            header: 'Asset Id',
           },
           memo: {
             header: 'Memo',

@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Blockchain } from '../blockchain'
+import { AssetsValue } from '../blockchain/database/assets'
 import { Block } from '../primitives'
-import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
+import { GENESIS_BLOCK_PREVIOUS, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { isTransactionMine } from '../testUtilities/helpers/transaction'
 import { Account } from '../wallet'
+import { Asset } from '@ironfish/rust-nodejs'
 
 export function getBlockRange(
   chain: Blockchain,
@@ -38,6 +40,23 @@ export function getBlockRange(
   stop = Math.max(Math.min(Math.max(stop, min), max), start)
 
   return { start, stop }
+}
+
+export const NATIVE_ASSET_VALUE = {
+  createdTransactionHash: GENESIS_BLOCK_PREVIOUS,
+  identifier: Asset.nativeIdentifier(),
+  metadata: Buffer.from("Native asset of Iron Fish blockchain", 'utf8'),
+  name: Buffer.from("$IRON", 'utf8'),
+  nonce: 0,
+  owner: Buffer.from("Iron Fish", 'utf8'),
+  supply: BigInt(0),
+}
+
+export async function getAssetById(assetIdentifier: Buffer, chain: Blockchain): Promise<AssetsValue|undefined> {
+  if (Asset.nativeIdentifier().equals(assetIdentifier)) {
+    return NATIVE_ASSET_VALUE
+  }
+  return await chain.assets.get(assetIdentifier)
 }
 
 export function isBlockMine(block: Block, account: Account): boolean {

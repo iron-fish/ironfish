@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { getAssetById } from '../../../utils/blockchain'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
@@ -11,6 +12,7 @@ export type GetAccountNotesStreamRequest = { account?: string }
 export type GetAccountNotesStreamResponse = {
   value: string
   assetIdentifier: string
+  assetName: string
   memo: string
   sender: string
   transactionHash: string
@@ -29,6 +31,7 @@ export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNot
     .object({
       value: yup.string().defined(),
       assetIdentifier: yup.string().defined(),
+      assetName: yup.string().defined(),
       memo: yup.string().trim().defined(),
       sender: yup.string().defined(),
       transactionHash: yup.string().defined(),
@@ -50,13 +53,12 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
       const transaction = await account.getTransaction(transactionHash)
       Assert.isNotUndefined(transaction)
 
-      const asset = await node.chain.assets.get(note.assetIdentifier())
-
-      Assert.isNotUndefined(asset)
+      const asset = await getAssetById(note.assetIdentifier(), node.chain)
 
       request.stream({
         value: note.value().toString(),
-        assetIdentifier: asset.name.toString('hex') || "$IRON",
+        assetIdentifier: note.assetIdentifier().toString('hex'),
+        assetName: asset?.name.toString('utf8') || "",
         memo: note.memo(),
         sender: note.sender(),
         transactionHash: transaction.transaction.hash().toString('hex'),
