@@ -746,7 +746,6 @@ describe('Database', () => {
       // No keys should exist
       expect(await keyStore.getAllKeys()).toHaveLength(0)
     })
-<<<<<<< HEAD
 
     it('should order entries by key if ordered option specified', async () => {
       await db.open()
@@ -758,29 +757,16 @@ describe('Database', () => {
       await db.metaStore.put('b', 1003)
 
       await db.transaction(async (tx) => {
-<<<<<<< HEAD
         await expect(
           db.metaStore.getAllKeys(tx, undefined, { ordered: true }),
         ).resolves.toMatchObject(['a', 'b', 'd', 'e'])
         await expect(
           db.metaStore.getAllValues(tx, undefined, { ordered: true }),
         ).resolves.toMatchObject([1001, 1003, 1002, 1000])
-=======
-        await expect(db.metaStore.getAllKeys(tx, { ordered: true })).resolves.toMatchObject([
-          'a',
-          'b',
-          'd',
-          'e',
-        ])
-        await expect(db.metaStore.getAllValues(tx, { ordered: true })).resolves.toMatchObject([
-          1001, 1003, 1002, 1000,
-        ])
->>>>>>> 9420943d (Add support for ordered iteration in db and add timestamp index for transactions)
 
         await db.metaStore.put('a', 1004, tx)
         await db.metaStore.put('c', 999, tx)
 
-<<<<<<< HEAD
         await expect(
           db.metaStore.getAllKeys(tx, undefined, { ordered: true }),
         ).resolves.toMatchObject(['a', 'b', 'c', 'd', 'e'])
@@ -793,29 +779,9 @@ describe('Database', () => {
         ).resolves.toMatchObject(['e', 'd', 'c', 'b', 'a'])
         await expect(
           db.metaStore.getAllValues(tx, undefined, { ordered: true, reverse: true }),
-=======
-        await expect(db.metaStore.getAllKeys(tx, { ordered: true })).resolves.toMatchObject([
-          'a',
-          'b',
-          'c',
-          'd',
-          'e',
-        ])
-        await expect(db.metaStore.getAllValues(tx, { ordered: true })).resolves.toMatchObject([
-          1004, 1003, 999, 1002, 1000,
-        ])
-
-        await expect(
-          db.metaStore.getAllKeys(tx, { ordered: true, reverse: true }),
-        ).resolves.toMatchObject(['e', 'd', 'c', 'b', 'a'])
-        await expect(
-          db.metaStore.getAllValues(tx, { ordered: true, reverse: true }),
->>>>>>> 9420943d (Add support for ordered iteration in db and add timestamp index for transactions)
         ).resolves.toMatchObject([1000, 1002, 999, 1003, 1004])
       })
     })
-=======
->>>>>>> 4d4b68ae (Change U64 encoding to BE so keys encoded with it are iterated in sorting order)
   })
 })
 
