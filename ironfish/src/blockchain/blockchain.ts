@@ -1467,7 +1467,9 @@ export class Blockchain {
     this.onSynced.emit()
   }
 
-  async getAssetById(assetIdentifier: Buffer): Promise<AssetsValue | undefined> {
+  async getAssetById(
+    assetIdentifier: Buffer,
+  ): Promise<AssetsValue | typeof NATIVE_ASSET_VALUE | undefined> {
     if (Asset.nativeIdentifier().equals(assetIdentifier)) {
       return NATIVE_ASSET_VALUE
     }

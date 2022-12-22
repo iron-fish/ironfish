@@ -9,7 +9,7 @@ export const NATIVE_ASSET_VALUE = {
   identifier: Asset.nativeIdentifier(),
   metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
   name: Buffer.from('$IRON', 'utf8'),
-  nonce: 0,
+  nonce: null,
   owner: Buffer.from('Iron Fish', 'utf8'),
-  supply: BigInt(0),
+  supply: null,
 }
