@@ -75,6 +75,14 @@ export class TransactionsCommand extends IronfishCommand {
             header: 'Spends',
             minWidth: 5,
           },
+          mintsCount: {
+            header: 'Mints',
+            minWidth: 5,
+          },
+          burnsCount: {
+            header: 'Burns',
+            minWidth: 5,
+          },
           expiration: {
             header: 'Expiration',
           },
