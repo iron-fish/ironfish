@@ -23,7 +23,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
 
     const bw = bufio.write(this.getSize(value))
     bw.writeVarBytes(transaction.serialize())
-    bw.writeU64(timestamp.valueOf())
+    bw.writeU64(timestamp.getTime())
 
     let flags = 0
     flags |= Number(!!blockHash) << 0

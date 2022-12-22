@@ -111,7 +111,11 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
           continue
         }
 
-        yield [this.decodeKey(key), value as SchemaValue<Schema>]
+        if (iteratorOptions?.ordered) {
+          cacheElements.add({ key: key, value: value as SchemaValue<Schema> })
+        } else {
+          yield [this.decodeKey(key), value as SchemaValue<Schema>]
+        }
       }
     }
 
@@ -271,7 +275,6 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
 
   decodeKey(key: Buffer): SchemaKey<Schema> {
     const keyWithoutPrefix = key.slice(this.prefixBuffer.byteLength)
-    console.log('keywithoutprefix', keyWithoutPrefix)
     return this.keyEncoding.deserialize(keyWithoutPrefix)
   }
 }

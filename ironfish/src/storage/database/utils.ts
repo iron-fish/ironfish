@@ -68,7 +68,7 @@ export function addPrefixToRange(range: DatabaseKeyRange, prefix: Buffer): Datab
     prefixed.lte = Buffer.concat([prefix, range.lte])
   }
 
-  return { ...range, ...prefixed }
+  return prefixed
 }
 
 /**
