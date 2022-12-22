@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset } from '@ironfish/rust-nodejs'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
@@ -18,6 +19,7 @@ import { NoteHasher } from '../merkletree/hasher'
 import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
+import { NATIVE_ASSET_VALUE } from '../primitives/asset'
 import {
   Block,
   BlockSerde,
@@ -53,7 +55,7 @@ import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { AssetsValueEncoding } from './database/assets'
+import { AssetsValue, AssetsValueEncoding } from './database/assets'
 import { HeaderEncoding } from './database/headers'
 import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
 import { TransactionsValueEncoding } from './database/transactions'
@@ -1463,6 +1465,13 @@ export class Blockchain {
 
     this.synced = true
     this.onSynced.emit()
+  }
+
+  async getAssetById(assetIdentifier: Buffer): Promise<AssetsValue | undefined> {
+    if (Asset.nativeIdentifier().equals(assetIdentifier)) {
+      return NATIVE_ASSET_VALUE
+    }
+    return await this.assets.get(assetIdentifier)
   }
 }
 

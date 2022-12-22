@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { getAssetById } from '../../../utils/blockchain'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
@@ -53,7 +52,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
       const transaction = await account.getTransaction(transactionHash)
       Assert.isNotUndefined(transaction)
 
-      const asset = await getAssetById(note.assetIdentifier(), node.chain)
+      const asset = await node.chain.getAssetById(note.assetIdentifier())
 
       request.stream({
         value: note.value().toString(),
