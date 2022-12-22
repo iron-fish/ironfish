@@ -58,7 +58,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
       request.stream({
         value: note.value().toString(),
         assetIdentifier: note.assetIdentifier().toString('hex'),
-        assetName: asset?.name.toString('utf8') || "",
+        assetName: asset?.name.toString('utf8') || '',
         memo: note.memo(),
         sender: note.sender(),
         transactionHash: transaction.transaction.hash().toString('hex'),
