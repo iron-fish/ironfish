@@ -1248,39 +1248,39 @@ describe('Blockchain', () => {
         await expect(node.chain).toAddBlock(mined)
         await node.wallet.updateHead()
 
-        // The note to double spend
-        const note = await account.getDecryptedNote(
-          mined.transactions[0].getNote(0).merkleHash(),
-        )
-
-        Assert.isNotUndefined(note)
-        Assert.isNotNull(note.index)
-        const witness = await node.chain.notes.witness(note.index)
-        Assert.isNotNull(witness)
-
-        const rawBurn = new RawTransaction()
-        rawBurn.spendingKey = account.spendingKey
-        rawBurn.spends = [{ note: note.note, witness }]
-        rawBurn.burns = [{ assetIdentifier: Asset.nativeIdentifier(), value: BigInt(2) }]
-
-        const rawSend = new RawTransaction()
-        rawSend.spendingKey = account.spendingKey
-        rawSend.spends = [{ note: note.note, witness }]
-        rawSend.receives = [
-          {
-            note: new Note(
-              new NativeNote(
-                account.publicAddress,
-                3n,
-                '',
-                Asset.nativeIdentifier(),
-                account.publicAddress,
-              ).serialize(),
-            ),
-          },
-        ]
-
         const doubleSpend = await useBlockFixture(node.chain, async () => {
+          // The note to double spend
+          const note = await account.getDecryptedNote(
+            mined.transactions[0].getNote(0).merkleHash(),
+          )
+
+          Assert.isNotUndefined(note)
+          Assert.isNotNull(note.index)
+          const witness = await node.chain.notes.witness(note.index)
+          Assert.isNotNull(witness)
+
+          const rawBurn = new RawTransaction()
+          rawBurn.spendingKey = account.spendingKey
+          rawBurn.spends = [{ note: note.note, witness }]
+          rawBurn.burns = [{ assetIdentifier: Asset.nativeIdentifier(), value: BigInt(2) }]
+
+          const rawSend = new RawTransaction()
+          rawSend.spendingKey = account.spendingKey
+          rawSend.spends = [{ note: note.note, witness }]
+          rawSend.receives = [
+            {
+              note: new Note(
+                new NativeNote(
+                  account.publicAddress,
+                  3n,
+                  '',
+                  Asset.nativeIdentifier(),
+                  account.publicAddress,
+                ).serialize(),
+              ),
+            },
+          ]
+
           const burnTransaction = await node.workerPool.postTransaction(rawBurn)
           const spendTransaction = await node.workerPool.postTransaction(rawSend)
           const fee = burnTransaction.fee() + spendTransaction.fee()
