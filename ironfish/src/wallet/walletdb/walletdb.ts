@@ -21,6 +21,7 @@ import {
   PrefixEncoding,
   StringEncoding,
   U32_ENCODING,
+  U64_ENCODING,
 } from '../../storage'
 import { StorageUtils } from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
@@ -93,6 +94,11 @@ export class WalletDB {
   accountIdsToCleanup: IDatabaseStore<{
     key: Account['id']
     value: null
+  }>
+
+  timestampToTransactionHash: IDatabaseStore<{
+    key: [Account['prefix'], number]
+    value: TransactionHash
   }>
 
   constructor({
@@ -184,6 +190,12 @@ export class WalletDB {
       name: 'A',
       keyEncoding: new StringEncoding(),
       valueEncoding: NULL_ENCODING,
+    })
+
+    this.timestampToTransactionHash = this.db.addStore({
+      name: 'T',
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), U64_ENCODING, 4),
+      valueEncoding: new BufferEncoding(),
     })
   }
 
@@ -295,6 +307,11 @@ export class WalletDB {
       }
 
       await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
+      await this.timestampToTransactionHash.put(
+        [account.prefix, transactionValue.timestamp.getTime()],
+        transactionHash,
+        tx,
+      )
     })
   }
 
@@ -303,11 +320,19 @@ export class WalletDB {
     transactionHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
+    const transaction = await this.loadTransaction(account, transactionHash, tx)
+    Assert.isNotUndefined(transaction)
+
+    await this.timestampToTransactionHash.del(
+      [account.prefix, transaction.timestamp.getTime()],
+      tx,
+    )
     await this.transactions.del([account.prefix, transactionHash], tx)
   }
 
   async clearTransactions(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.transactions.clear(tx, account.prefixRange)
+    await this.timestampToTransactionHash.clear(tx, account.prefixRange)
   }
 
   async clearSequenceToNoteHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
@@ -733,6 +758,7 @@ export class WalletDB {
       this.nullifierToNoteHash,
       this.pendingTransactionHashes,
       this.decryptedNotes,
+      this.timestampToTransactionHash,
     ]
 
     for (const [accountId] of await this.accountIdsToCleanup.getAll()) {
@@ -751,6 +777,22 @@ export class WalletDB {
       }
 
       await this.accountIdsToCleanup.del(accountId)
+    }
+  }
+
+  async *loadTransactionsByTime(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<TransactionValue> {
+    for await (const transactionHash of this.timestampToTransactionHash.getAllValuesIter(
+      tx,
+      account.prefixRange,
+      { ordered: true, reverse: true },
+    )) {
+      const transaction = await this.loadTransaction(account, transactionHash, tx)
+      Assert.isNotUndefined(transaction)
+
+      yield transaction
     }
   }
 }

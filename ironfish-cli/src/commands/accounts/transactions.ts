@@ -47,6 +47,10 @@ export class TransactionsCommand extends IronfishCommand {
       CliUx.ux.table(
         [transaction],
         {
+          timestamp: {
+            header: 'Timestamp',
+            get: (transaction) => new Date(transaction.timestamp).toLocaleString(),
+          },
           status: {
             header: 'Status',
             minWidth: 12,

@@ -1177,6 +1177,7 @@ export class Blockchain {
       sequence: number
       blockHash: Buffer
       previousBlockHash: Buffer
+      timestamp: Date
     },
     void,
     unknown
@@ -1202,6 +1203,7 @@ export class Blockchain {
         blockHash: header.hash,
         sequence: header.sequence,
         previousBlockHash: header.previousBlockHash,
+        timestamp: header.timestamp,
       }
     }
   }

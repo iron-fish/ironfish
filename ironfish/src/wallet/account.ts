@@ -124,11 +124,13 @@ export class Account {
   ): Promise<void> {
     const balanceDeltas = new AssetBalanceDeltas()
     let submittedSequence: number | null = null
+    let timestamp = new Date()
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       const transactionValue = await this.getTransaction(transaction.hash(), tx)
       if (transactionValue) {
         submittedSequence = transactionValue.submittedSequence
+        timestamp = transactionValue.timestamp
       }
 
       for (const decryptedNote of decryptedNotes) {
@@ -178,6 +180,7 @@ export class Account {
           blockHash: blockHeader.hash,
           sequence: blockHeader.sequence,
           submittedSequence,
+          timestamp,
         },
         tx,
       )
@@ -238,6 +241,7 @@ export class Account {
           blockHash: null,
           sequence: null,
           submittedSequence,
+          timestamp: new Date(),
         },
         tx,
       )
@@ -358,6 +362,10 @@ export class Account {
 
   getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
     return this.walletDb.loadTransactions(this, tx)
+  }
+
+  getTransactionsByTime(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
+    return this.walletDb.loadTransactionsByTime(this, tx)
   }
 
   getPendingTransactions(
