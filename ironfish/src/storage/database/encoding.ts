@@ -178,13 +178,13 @@ export class BigIntLEEncoding implements IDatabaseEncoding<BigInt> {
 export class U64Encoding implements IDatabaseEncoding<number> {
   serialize(value: number): Buffer {
     const buffer = bufio.write(8)
-    buffer.writeU64(value)
+    buffer.writeBigU64BE(BigInt(value))
     return buffer.render()
   }
 
   deserialize(buffer: Buffer): number {
     const reader = bufio.read(buffer, true)
-    return reader.readU64()
+    return Number(reader.readBigU64BE())
   }
 }
 

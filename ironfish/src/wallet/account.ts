@@ -365,7 +365,7 @@ export class Account {
   }
 
   getTransactionsByTime(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
-    return this.walletDb.loadTransactionsByTIme(this, tx)
+    return this.walletDb.loadTransactionsByTime(this, tx)
   }
 
   getPendingTransactions(

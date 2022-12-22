@@ -786,7 +786,6 @@ export class WalletDB {
   ): AsyncGenerator<TransactionValue> {
     for await (const transactionHash of this.timestampToTransactionHash.getAllValuesIter(tx, {
       ...account.prefixRange,
-      ordered: true,
       reverse: true,
     })) {
       const transaction = await this.loadTransaction(account, transactionHash, tx)

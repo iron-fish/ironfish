@@ -746,6 +746,7 @@ describe('Database', () => {
       // No keys should exist
       expect(await keyStore.getAllKeys()).toHaveLength(0)
     })
+<<<<<<< HEAD
 
     it('should order entries by key if ordered option specified', async () => {
       await db.open()
@@ -813,6 +814,8 @@ describe('Database', () => {
         ).resolves.toMatchObject([1000, 1002, 999, 1003, 1004])
       })
     })
+=======
+>>>>>>> 4d4b68ae (Change U64 encoding to BE so keys encoded with it are iterated in sorting order)
   })
 })
 
