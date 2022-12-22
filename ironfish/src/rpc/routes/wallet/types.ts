@@ -11,6 +11,8 @@ export type RpcAccountTransaction = {
   blockSequence?: number
   notesCount: number
   spendsCount: number
+  mintsCount: number
+  burnsCount: number
   expiration: number
 }
 
@@ -33,6 +35,8 @@ export function serializeRpcAccountTransaction(
     blockSequence: transaction.sequence ?? undefined,
     notesCount: transaction.transaction.notes.length,
     spendsCount: transaction.transaction.spends.length,
+    mintsCount: transaction.transaction.mints.length,
+    burnsCount: transaction.transaction.burns.length,
     expiration: transaction.transaction.expiration(),
   }
 }
