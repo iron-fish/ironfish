@@ -36,9 +36,9 @@ export class NotesCommand extends IronfishCommand {
       CliUx.ux.table(
         [note],
         {
-          amount: {
+          value: {
             header: 'Amount ($IRON)',
-            get: (row) => CurrencyUtils.renderIron(row.amount),
+            get: (row) => CurrencyUtils.renderIron(row.value),
           },
           memo: {
             header: 'Memo',

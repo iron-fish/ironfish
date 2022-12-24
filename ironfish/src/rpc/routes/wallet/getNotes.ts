@@ -9,7 +9,7 @@ import { getAccount } from './utils'
 export type GetAccountNotesStreamRequest = { account?: string }
 
 export type GetAccountNotesStreamResponse = {
-  amount: string
+  value: string
   memo: string
   sender: string
   transactionHash: string
@@ -26,7 +26,7 @@ export const GetAccountNotesStreamRequestSchema: yup.ObjectSchema<GetAccountNote
 export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNotesStreamResponse> =
   yup
     .object({
-      amount: yup.string().defined(),
+      value: yup.string().defined(),
       memo: yup.string().trim().defined(),
       sender: yup.string().defined(),
       transactionHash: yup.string().defined(),
@@ -49,7 +49,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
       Assert.isNotUndefined(transaction)
 
       request.stream({
-        amount: note.value().toString(),
+        value: note.value().toString(),
         memo: note.memo(),
         sender: note.sender(),
         transactionHash: transaction.transaction.hash().toString('hex'),
