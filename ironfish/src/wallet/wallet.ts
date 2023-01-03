@@ -702,7 +702,7 @@ export class Wallet {
     value: bigint,
     fee: bigint,
     transactionExpirationDelta: number,
-    expiration?: number | null,
+    expiration?: number,
   ): Promise<Transaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
