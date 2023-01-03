@@ -48,7 +48,7 @@ router.register<typeof GetAssetRequestSchema, GetAssetResponse>(
 
     if (identifier.byteLength !== ASSET_IDENTIFIER_LENGTH) {
       throw new ValidationError(
-        `Asset identifier is invalid length, expected ${ASSET_IDENTIFIER_LENGTH} but got ${request.data.identifier.length}`,
+        `Asset identifier is invalid length, expected ${ASSET_IDENTIFIER_LENGTH} but got ${identifier.byteLength}`,
       )
     }
 
