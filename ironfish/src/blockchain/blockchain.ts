@@ -1466,7 +1466,7 @@ export class Blockchain {
     this.onSynced.emit()
   }
 
-  async getAssetById(assetIdentifier: Buffer): Promise<AssetsValue | undefined> {
+  async getAssetById(assetIdentifier: Buffer): Promise<AssetsValue | null> {
     if (Asset.nativeIdentifier().equals(assetIdentifier)) {
       return {
         createdTransactionHash: GENESIS_BLOCK_PREVIOUS,
@@ -1479,7 +1479,8 @@ export class Blockchain {
       }
     }
 
-    return await this.assets.get(assetIdentifier)
+    const asset = await this.assets.get(assetIdentifier)
+    return asset || null
   }
 }
 
