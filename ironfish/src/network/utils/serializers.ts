@@ -25,7 +25,7 @@ export function writeBlockHeader(
   bw.writeHash(header.previousBlockHash)
   bw.writeHash(header.noteCommitment)
   bw.writeHash(header.transactionCommitment)
-  bw.writeBigU256(header.target.targetValue)
+  bw.writeBigU256BE(header.target.targetValue)
   bw.writeBigU64(header.randomness)
   bw.writeU64(header.timestamp.getTime())
 
@@ -39,7 +39,7 @@ export function readBlockHeader(reader: bufio.BufferReader): BlockHeader {
   const previousBlockHash = reader.readHash()
   const noteCommitment = reader.readHash()
   const transactionCommitment = reader.readHash()
-  const target = reader.readBigU256()
+  const target = reader.readBigU256BE()
   const randomness = reader.readBigU64()
   const timestamp = reader.readU64()
   const graffiti = reader.readBytes(GRAFFITI_SIZE)
