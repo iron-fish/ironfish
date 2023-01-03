@@ -964,14 +964,16 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const burnValue = BigInt(2)
-      const transaction = await node.wallet.burn(
-        node.memPool,
-        account,
-        asset.identifier(),
-        burnValue,
-        BigInt(0),
-        node.config.get('transactionExpirationDelta'),
-      )
+      const transaction = await useTxFixture(node.wallet, account, account, async () => {
+        return node.wallet.burn(
+          node.memPool,
+          account,
+          asset.identifier(),
+          burnValue,
+          BigInt(0),
+          node.config.get('transactionExpirationDelta'),
+        )
+      })
 
       expect(transaction.burns).toEqual([
         { assetIdentifier: asset.identifier(), value: burnValue },
