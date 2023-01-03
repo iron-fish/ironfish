@@ -933,6 +933,107 @@ describe('Accounts', () => {
     })
   })
 
+  describe('burn', () => {
+    it('returns a transaction with matching burn descriptions', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      const mined = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(mined)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const mintValue = BigInt(10)
+      const mintBlock = await useBlockFixture(node.chain, async () => {
+        const transaction = await node.wallet.mint(
+          node.memPool,
+          account,
+          'mint-asset',
+          'metadata',
+          mintValue,
+          BigInt(0),
+        )
+
+        return node.chain.newBlock(
+          [transaction],
+          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
+        )
+      })
+
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      const burnValue = BigInt(2)
+      const transaction = await node.wallet.burn(
+        node.memPool,
+        account,
+        asset.identifier(),
+        burnValue,
+        BigInt(0),
+        node.config.get('transactionExpirationDelta'),
+      )
+
+      expect(transaction.burns).toEqual([
+        { assetIdentifier: asset.identifier(), value: burnValue },
+      ])
+    })
+
+    it('subtracts balance for the asset from the wallet', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      const mined = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(mined)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const mintValue = BigInt(10)
+      const mintBlock = await useBlockFixture(node.chain, async () => {
+        const transaction = await node.wallet.mint(
+          node.memPool,
+          account,
+          'mint-asset',
+          'metadata',
+          mintValue,
+          BigInt(0),
+        )
+
+        return node.chain.newBlock(
+          [transaction],
+          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
+        )
+      })
+
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      const burnValue = BigInt(2)
+      const burnBlock = await useBlockFixture(node.chain, async () => {
+        const transaction = await node.wallet.burn(
+          node.memPool,
+          account,
+          asset.identifier(),
+          burnValue,
+          BigInt(0),
+          node.config.get('transactionExpirationDelta'),
+        )
+
+        return node.chain.newBlock(
+          [transaction],
+          await node.strategy.createMinersFee(transaction.fee(), 4, generateKey().spending_key),
+        )
+      })
+      await expect(node.chain).toAddBlock(burnBlock)
+      await node.wallet.updateHead()
+
+      expect(await node.wallet.getBalance(account, asset.identifier())).toEqual({
+        unconfirmed: BigInt(8),
+        unconfirmedCount: 0,
+        confirmed: BigInt(8),
+      })
+    })
+  })
+
   describe('createSpendsForAsset', () => {
     it('returns spendable notes for a provided asset identifier', async () => {
       const { node } = await nodeTest.createSetup()
