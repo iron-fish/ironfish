@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
-import { BufferMap } from 'buffer-map'
+import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -34,7 +34,7 @@ import { Account } from './account'
 import { NotEnoughFundsError } from './errors'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
-import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
+import { DecryptedNoteValue, DecryptedNoteValueAndHash } from './walletdb/decryptedNoteValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
@@ -737,6 +737,7 @@ export class Wallet {
     burns: BurnDescription[],
     fee: bigint,
     expiration: number,
+    funds?: DecryptedNoteValueAndHash[],
   ): Promise<RawTransaction> {
     const unlock = await this.createTransactionMutex.lock()
 
@@ -769,6 +770,7 @@ export class Wallet {
       await this.fund(raw, {
         fee: fee,
         account: sender,
+        funds,
       })
 
       return raw
@@ -786,13 +788,14 @@ export class Wallet {
     options: {
       fee: bigint
       account: Account
+      funds?: DecryptedNoteValueAndHash[]
     },
   ): Promise<void> {
     const needed = this.buildAmountsNeeded(raw, {
       fee: options.fee,
     })
 
-    const spends = await this.createSpends(options.account, needed)
+    const spends = await this.createSpends(options.account, needed, options.funds)
 
     for (const spend of spends) {
       const witness = new Witness(
@@ -834,14 +837,48 @@ export class Wallet {
   private async createSpends(
     sender: Account,
     amountsNeeded: BufferMap<bigint>,
+    funds: DecryptedNoteValueAndHash[] = [],
   ): Promise<Array<{ note: Note; witness: NoteWitness }>> {
     const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
+    const seenNotes = new BufferSet()
+
+    for (const note of funds) {
+      if (seenNotes.has(note.hash)) {
+        continue
+      }
+
+      const needed = amountsNeeded.get(note.note.assetIdentifier())
+
+      if (needed === undefined) {
+        throw new Error(
+          `Note with asset ${note.note.assetIdentifier().toString('hex')} was not needed`,
+        )
+      }
+
+      if (note.index === null) {
+        throw new Error(
+          `Cannot fund with note ${note.hash.toString('hex')} that is not on chain`,
+        )
+      }
+
+      const witness = await this.chain.notes.witness(note.index)
+
+      if (witness == null) {
+        throw new Error(`Could not generate witness for prefunded note`)
+      }
+
+      notesToSpend.push({ note: note.note, witness })
+      seenNotes.add(note.hash)
+
+      amountsNeeded.set(note.note.assetIdentifier(), needed - note.note.value())
+    }
 
     for (const [assetIdentifier, amountNeeded] of amountsNeeded.entries()) {
       const { amount, notes } = await this.createSpendsForAsset(
         sender,
         assetIdentifier,
         amountNeeded,
+        seenNotes,
       )
 
       if (amount < amountNeeded) {
@@ -858,11 +895,16 @@ export class Wallet {
     sender: Account,
     assetIdentifier: Buffer,
     amountNeeded: bigint,
+    skipNotes?: BufferSet,
   ): Promise<{ amount: bigint; notes: Array<{ note: Note; witness: NoteWitness }> }> {
     let amount = BigInt(0)
     const notes: Array<{ note: Note; witness: NoteWitness }> = []
 
     for await (const unspentNote of this.getUnspentNotes(sender, assetIdentifier)) {
+      if (skipNotes && skipNotes.has(unspentNote.hash)) {
+        continue
+      }
+
       if (unspentNote.note.value() <= BigInt(0)) {
         continue
       }

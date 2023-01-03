@@ -18,6 +18,8 @@ export interface DecryptedNoteValue {
   sequence: number | null
 }
 
+export type DecryptedNoteValueAndHash = DecryptedNoteValue & { hash: Buffer }
+
 export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNoteValue> {
   serialize(value: DecryptedNoteValue): Buffer {
     const { accountId, nullifier, index, note, spent, transactionHash, blockHash, sequence } =
