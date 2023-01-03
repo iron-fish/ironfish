@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
 import { IronfishNode } from '../node'
-import { Block } from '../primitives'
+import { Block, Note } from '../primitives'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
+import { RawTransaction } from '../primitives/rawTransaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -19,7 +20,6 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
-import { buildRawTransaction } from '../testUtilities/helpers/transaction'
 import { AsyncUtils } from '../utils'
 import { Account } from '../wallet'
 
@@ -1240,60 +1240,58 @@ describe('Blockchain', () => {
     })
 
     describe('when spending and burning the same note in a block', () => {
-      it('throws an exception', async () => {
+      it('fails validation as double spend', async () => {
         const { node } = await nodeTest.createSetup()
-        const wallet = node.wallet
-        const account = await useAccountFixture(wallet)
+        const account = await useAccountFixture(node.wallet)
 
-        const minedBlock = await useMinerBlockFixture(node.chain, 2, account)
-        await expect(node.chain).toAddBlock(minedBlock)
-
-        // Mint so we have an existing asset
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-        const assetIdentifier = asset.identifier()
-
-        const mintValue = BigInt(10)
-        const mintBlock = await mintAsset(node, account, 3, asset, mintValue)
-        await expect(node.chain).toAddBlock(mintBlock)
+        const mined = await useMinerBlockFixture(node.chain, 2, account)
+        await expect(node.chain).toAddBlock(mined)
         await node.wallet.updateHead()
 
-        // Build a block which uses the same note for burning and spending
-        const noteToBurn = mintBlock.transactions[1].getNote(0)
-        const doubleSpendBlock = await useBlockFixture(node.chain, async () => {
-          const burnTransaction = await buildRawTransaction(
-            node.chain,
-            node.workerPool,
-            account,
-            [noteToBurn],
-            [],
-            [],
-            [{ assetIdentifier: asset.identifier(), value: BigInt(2) }],
+        const doubleSpend = await useBlockFixture(node.chain, async () => {
+          // The note to double spend
+          const note = await account.getDecryptedNote(
+            mined.transactions[0].getNote(0).merkleHash(),
           )
-          const spendTransaction = await buildRawTransaction(
-            node.chain,
-            node.workerPool,
-            account,
-            [noteToBurn],
-            [
-              {
-                publicAddress: account.publicAddress,
-                amount: BigInt(3),
-                memo: '',
-                assetIdentifier,
-              },
-            ],
-            [],
-            [],
-          )
+
+          Assert.isNotUndefined(note)
+          Assert.isNotNull(note.index)
+          const witness = await node.chain.notes.witness(note.index)
+          Assert.isNotNull(witness)
+
+          const rawBurn = new RawTransaction()
+          rawBurn.spendingKey = account.spendingKey
+          rawBurn.spends = [{ note: note.note, witness }]
+          rawBurn.burns = [{ assetIdentifier: Asset.nativeIdentifier(), value: BigInt(2) }]
+
+          const rawSend = new RawTransaction()
+          rawSend.spendingKey = account.spendingKey
+          rawSend.spends = [{ note: note.note, witness }]
+          rawSend.receives = [
+            {
+              note: new Note(
+                new NativeNote(
+                  account.publicAddress,
+                  3n,
+                  '',
+                  Asset.nativeIdentifier(),
+                  account.publicAddress,
+                ).serialize(),
+              ),
+            },
+          ]
+
+          const burnTransaction = await node.workerPool.postTransaction(rawBurn)
+          const spendTransaction = await node.workerPool.postTransaction(rawSend)
           const fee = burnTransaction.fee() + spendTransaction.fee()
 
           return node.chain.newBlock(
             [burnTransaction, spendTransaction],
-            await node.strategy.createMinersFee(fee, 4, generateKey().spending_key),
+            await node.strategy.createMinersFee(fee, 3, generateKey().spending_key),
           )
         })
 
-        expect(await node.chain.addBlock(doubleSpendBlock)).toMatchObject({
+        expect(await node.chain.addBlock(doubleSpend)).toMatchObject({
           isAdded: false,
           reason: VerificationResultReason.DOUBLE_SPEND,
         })
