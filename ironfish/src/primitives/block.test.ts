@@ -90,6 +90,7 @@ describe('Block', () => {
   it('validate get minersFee when no miners fee', async () => {
     nodeTest.strategy.disableMiningReward()
     const block = await makeBlockAfter(nodeTest.chain, nodeTest.chain.genesis)
+    block.transactions = []
 
     expect(() => block.minersFee).toThrow('Block has no miners fee')
   })

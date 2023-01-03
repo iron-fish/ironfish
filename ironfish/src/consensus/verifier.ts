@@ -62,6 +62,13 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_COMMITMENT }
     }
 
+    const [minersFeeTransaction, ...otherTransactions] = block.transactions
+
+    // // Require the miner's fee transaction
+    if (!minersFeeTransaction || !minersFeeTransaction.isMinersFee()) {
+      return { valid: false, reason: VerificationResultReason.MINERS_FEE_EXPECTED }
+    }
+
     // Verify the transactions
     const notesLimit = 10
     const verificationPromises = []
@@ -103,13 +110,6 @@ export class Verifier {
     const invalidResult = verificationResults.find((f) => !f.valid)
     if (invalidResult !== undefined) {
       return invalidResult
-    }
-
-    const [minersFeeTransaction, ...otherTransactions] = block.transactions
-
-    // Require the miner's fee transaction
-    if (!minersFeeTransaction || !minersFeeTransaction.isMinersFee()) {
-      return { valid: false, reason: VerificationResultReason.MINERS_FEE_EXPECTED }
     }
 
     // Sum the total transaction fees
