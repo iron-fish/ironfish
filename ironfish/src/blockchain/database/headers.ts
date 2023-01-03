@@ -27,7 +27,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     bw.writeHash(value.header.noteCommitment)
     bw.writeU32(value.header.noteSize)
     bw.writeHash(value.header.transactionCommitment)
-    bw.writeBigU256(value.header.target.asBigInt())
+    bw.writeBigU256BE(value.header.target.asBigInt())
     bw.writeBigU64(value.header.randomness)
     bw.writeU64(value.header.timestamp.getTime())
 
@@ -46,7 +46,7 @@ export class HeaderEncoding implements IDatabaseEncoding<HeaderValue> {
     const noteCommitment = reader.readHash()
     const noteSize = reader.readU32()
     const transactionCommitment = reader.readHash()
-    const target = new Target(reader.readBigU256())
+    const target = new Target(reader.readBigU256BE())
     const randomness = reader.readBigU64()
     const timestamp = reader.readU64()
     const graffiti = reader.readBytes(32)

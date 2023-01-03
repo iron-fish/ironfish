@@ -21,7 +21,7 @@ export class CreateMinersFeeRequest extends WorkerMessage {
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    bw.writeVarBytes(BigIntUtils.toBytes(this.amount))
+    bw.writeVarBytes(BigIntUtils.toBytesBE(this.amount))
     bw.writeVarString(this.memo, 'utf8')
     bw.writeVarString(this.spendKey, 'utf8')
     return bw.render()
@@ -29,7 +29,7 @@ export class CreateMinersFeeRequest extends WorkerMessage {
 
   static deserialize(jobId: number, buffer: Buffer): CreateMinersFeeRequest {
     const reader = bufio.read(buffer, true)
-    const amount = BigIntUtils.fromBytes(reader.readVarBytes())
+    const amount = BigIntUtils.fromBytesBE(reader.readVarBytes())
     const memo = reader.readVarString('utf8')
     const spendKey = reader.readVarString('utf8')
     return new CreateMinersFeeRequest(amount, memo, spendKey, jobId)
@@ -37,7 +37,7 @@ export class CreateMinersFeeRequest extends WorkerMessage {
 
   getSize(): number {
     return (
-      bufio.sizeVarBytes(BigIntUtils.toBytes(this.amount)) +
+      bufio.sizeVarBytes(BigIntUtils.toBytesBE(this.amount)) +
       bufio.sizeVarString(this.memo, 'utf8') +
       bufio.sizeVarString(this.spendKey, 'utf8')
     )
