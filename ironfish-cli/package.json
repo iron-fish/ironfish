@@ -20,12 +20,12 @@
     "/oclif.manifest.json"
   ],
   "engines": {
-    "node": "16.x"
+    "node": "18.x"
   },
   "devDependencies": {
     "@oclif/test": "2.1.0",
     "@types/blessed": "0.1.17",
-    "@types/node": "16.11.1",
+    "@types/node": "18.11.16",
     "@types/tar": "6.1.1",
     "@types/ws": "7.4.5",
     "chai": "4.2.0",
