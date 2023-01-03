@@ -21,7 +21,6 @@ import {
   usePostTxFixture,
   useTxFixture,
 } from '../testUtilities'
-import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { AsyncUtils } from '../utils'
 import { Account } from '../wallet'
 
@@ -46,19 +45,23 @@ describe('Blockchain', () => {
   })
 
   it('add blocks with forks', async () => {
-    const { strategy, chain } = nodeTest
-    strategy.disableMiningReward()
+    const { chain } = nodeTest
 
     // G -> A1 -> A2
     //         -> B2 -> B3
 
-    const genesis = await chain.getBlock(chain.genesis)
-    Assert.isNotNull(genesis)
+    const { node: nodeA } = await nodeTest.createSetup()
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    await expect(nodeA.chain).toAddBlock(blockA2)
 
-    const blockA1 = await makeBlockAfter(chain, genesis)
-    const blockA2 = await makeBlockAfter(chain, blockA1)
-    const blockB2 = await makeBlockAfter(chain, blockA1)
-    const blockB3 = await makeBlockAfter(chain, blockB2)
+    const { node: nodeB } = await nodeTest.createSetup()
+    await expect(nodeB.chain).toAddBlock(blockA1)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    await expect(nodeB.chain).toAddBlock(blockB3)
 
     // Added in a specific order for the test below
     // so that Genesis, A1, A2, have the same graph,
@@ -69,58 +72,66 @@ describe('Blockchain', () => {
     await expect(chain).toAddBlock(blockB2)
     await expect(chain).toAddBlock(blockB3)
 
-    const headerGenesis = await chain.getHeader(genesis.header.hash)
     const headerA1 = await chain.getHeader(blockA1.header.hash)
     const headerA2 = await chain.getHeader(blockA2.header.hash)
     const headerB2 = await chain.getHeader(blockB2.header.hash)
     const headerB3 = await chain.getHeader(blockB3.header.hash)
 
-    Assert.isNotNull(headerGenesis)
     Assert.isNotNull(headerA1)
     Assert.isNotNull(headerA2)
     Assert.isNotNull(headerB2)
     Assert.isNotNull(headerB3)
 
-    expect(chain.genesis.hash.equals(genesis.header.hash)).toBe(true)
     expect(chain.head.hash.equals(headerB3.hash)).toBe(true)
     expect(chain.latest.hash.equals(headerB3.hash)).toBe(true)
 
     // getNext
-    expect((await chain.getNext(genesis.header))?.hash?.equals(headerA1.hash)).toBe(true)
+    expect((await chain.getNext(chain.genesis))?.hash?.equals(headerA1.hash)).toBe(true)
     expect((await chain.getNext(headerA1))?.hash?.equals(headerB2.hash)).toBe(true)
     expect(await chain.getNext(headerA2)).toBe(null)
     expect((await chain.getNext(headerB2))?.hash?.equals(headerB3.hash)).toBe(true)
     expect(await chain.getNext(headerB3)).toBe(null)
 
     // getPrevious
-    expect(await chain.getPrevious(genesis.header)).toBe(null)
-    expect((await chain.getPrevious(headerA1))?.hash?.equals(genesis.header.hash)).toBe(true)
+    expect(await chain.getPrevious(chain.genesis)).toBe(null)
+    expect((await chain.getPrevious(headerA1))?.hash?.equals(chain.genesis.hash)).toBe(true)
     expect((await chain.getPrevious(headerB2))?.hash?.equals(headerA1.hash)).toBe(true)
     expect((await chain.getPrevious(headerB3))?.hash?.equals(headerB2.hash)).toBe(true)
 
     // getAtSequence
-    expect((await chain.getHashAtSequence(1))?.equals(genesis.header.hash)).toBe(true)
+    expect((await chain.getHashAtSequence(1))?.equals(chain.genesis.hash)).toBe(true)
     expect((await chain.getHashAtSequence(2))?.equals(headerA1.hash)).toBe(true)
     expect((await chain.getHashAtSequence(3))?.equals(headerB2.hash)).toBe(true)
     expect((await chain.getHashAtSequence(4))?.equals(headerB3.hash)).toBe(true)
   })
 
   it('iterate', async () => {
-    const { strategy, chain } = nodeTest
-    strategy.disableMiningReward()
-
-    const genesis = chain.genesis
+    const { chain } = nodeTest
 
     // G -> A1 -> A2
     //         -> B2 -> B3
     //               -> C3 -> C4
 
-    const blockA1 = await makeBlockAfter(chain, genesis)
-    const blockA2 = await makeBlockAfter(chain, blockA1)
-    const blockB2 = await makeBlockAfter(chain, blockA1)
-    const blockB3 = await makeBlockAfter(chain, blockB2)
-    const blockC3 = await makeBlockAfter(chain, blockB2)
-    const blockC4 = await makeBlockAfter(chain, blockC3)
+    const { node: nodeA } = await nodeTest.createSetup()
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+
+    const { node: nodeB } = await nodeTest.createSetup()
+    await expect(nodeB.chain).toAddBlock(blockA1)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    await expect(nodeB.chain).toAddBlock(blockB3)
+
+    const { node: nodeC } = await nodeTest.createSetup()
+    await expect(nodeC.chain).toAddBlock(blockA1)
+    await expect(nodeC.chain).toAddBlock(blockB2)
+    const blockC3 = await useMinerBlockFixture(nodeC.chain, 4)
+    await expect(nodeC.chain).toAddBlock(blockC3)
+    const blockC4 = await useMinerBlockFixture(nodeC.chain, 5)
+    await expect(nodeC.chain).toAddBlock(blockC4)
 
     await expect(chain).toAddBlock(blockA1)
     await expect(chain).toAddBlock(blockB2)
@@ -133,22 +144,22 @@ describe('Blockchain', () => {
     expect(chain.latest.hash.equals(blockC4.header.hash)).toBe(true)
 
     // should be able to start at the tail
-    let blocks = await AsyncUtils.materialize(chain.iterateTo(genesis, blockC4.header))
+    let blocks = await AsyncUtils.materialize(chain.iterateTo(chain.genesis, blockC4.header))
     expect(blocks.length).toBe(5)
-    expect(blocks[0].hash.equals(genesis.hash)).toBe(true)
+    expect(blocks[0].hash.equals(chain.genesis.hash)).toBe(true)
     expect(blocks[1].hash.equals(blockA1.header.hash)).toBe(true)
     expect(blocks[2].hash.equals(blockB2.header.hash)).toBe(true)
     expect(blocks[3].hash.equals(blockC3.header.hash)).toBe(true)
     expect(blocks[4].hash.equals(blockC4.header.hash)).toBe(true)
 
     // should be able to start at the head
-    blocks = await AsyncUtils.materialize(chain.iterateFrom(blockC4.header, genesis))
+    blocks = await AsyncUtils.materialize(chain.iterateFrom(blockC4.header, chain.genesis))
     expect(blocks.length).toBe(5)
     expect(blocks[0].hash.equals(blockC4.header.hash)).toBe(true)
     expect(blocks[1].hash.equals(blockC3.header.hash)).toBe(true)
     expect(blocks[2].hash.equals(blockB2.header.hash)).toBe(true)
     expect(blocks[3].hash.equals(blockA1.header.hash)).toBe(true)
-    expect(blocks[4].hash.equals(genesis.hash)).toBe(true)
+    expect(blocks[4].hash.equals(chain.genesis.hash)).toBe(true)
 
     // should be able to start after the tail
     blocks = await AsyncUtils.materialize(chain.iterateTo(blockA1.header, blockC3.header))
@@ -164,19 +175,18 @@ describe('Blockchain', () => {
     expect(blocks[1].hash.equals(blockA1.header.hash)).toBe(true)
 
     // If we iterate the same block, it should be yielded once
-    blocks = await AsyncUtils.materialize(chain.iterateTo(genesis, genesis))
+    blocks = await AsyncUtils.materialize(chain.iterateTo(chain.genesis, chain.genesis))
     expect(blocks.length).toBe(1)
-    expect(blocks[0].hash.equals(genesis.hash)).toBe(true)
+    expect(blocks[0].hash.equals(chain.genesis.hash)).toBe(true)
 
     // If we iterate the same block, it should be yielded once
-    blocks = await AsyncUtils.materialize(chain.iterateFrom(genesis, genesis))
+    blocks = await AsyncUtils.materialize(chain.iterateFrom(chain.genesis, chain.genesis))
     expect(blocks.length).toBe(1)
-    expect(blocks[0].hash.equals(genesis.hash)).toBe(true)
+    expect(blocks[0].hash.equals(chain.genesis.hash)).toBe(true)
   })
 
   it('should not iterate and jump chains and throw error', async () => {
-    const { strategy, chain } = nodeTest
-    strategy.disableMiningReward()
+    const { chain } = nodeTest
 
     const genesis = chain.genesis
 
@@ -188,15 +198,26 @@ describe('Blockchain', () => {
     // G -> A1 -> A2 -> A3 -> A4
     //         -> B2 -> B3 -> B4 -> B5
 
-    const blockA1 = await makeBlockAfter(chain, genesis)
-    const blockA2 = await makeBlockAfter(chain, blockA1)
-    const blockA3 = await makeBlockAfter(chain, blockA2)
-    const blockA4 = await makeBlockAfter(chain, blockA3)
+    const { node: nodeA } = await nodeTest.createSetup()
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain, 4)
+    await expect(nodeA.chain).toAddBlock(blockA3)
+    const blockA4 = await useMinerBlockFixture(nodeA.chain, 5)
+    await expect(nodeA.chain).toAddBlock(blockA4)
 
-    const blockB2 = await makeBlockAfter(chain, blockA1)
-    const blockB3 = await makeBlockAfter(chain, blockB2)
-    const blockB4 = await makeBlockAfter(chain, blockB3)
-    const blockB5 = await makeBlockAfter(chain, blockB4)
+    const { node: nodeB } = await nodeTest.createSetup()
+    await expect(nodeB.chain).toAddBlock(blockA1)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    await expect(nodeB.chain).toAddBlock(blockB3)
+    const blockB4 = await useMinerBlockFixture(nodeB.chain, 5)
+    await expect(nodeB.chain).toAddBlock(blockB4)
+    const blockB5 = await useMinerBlockFixture(nodeB.chain, 6)
+    await expect(nodeB.chain).toAddBlock(blockB5)
 
     await expect(chain).toAddBlock(blockA1)
     await expect(chain).toAddBlock(blockA2)
@@ -228,10 +249,7 @@ describe('Blockchain', () => {
   })
 
   it('should not iterate and jump chains and not throw error', async () => {
-    const { strategy, chain } = nodeTest
-    strategy.disableMiningReward()
-
-    const genesis = chain.genesis
+    const { chain } = nodeTest
 
     // This test checks that when iterating a reorg is happening, we don't
     // suddenly jump chains while the table is being re-written when we don't
@@ -241,15 +259,26 @@ describe('Blockchain', () => {
     // G -> A1 -> A2 -> A3 -> A4
     //         -> B2 -> B3 -> B4 -> B5
 
-    const blockA1 = await makeBlockAfter(chain, genesis)
-    const blockA2 = await makeBlockAfter(chain, blockA1)
-    const blockA3 = await makeBlockAfter(chain, blockA2)
-    const blockA4 = await makeBlockAfter(chain, blockA3)
+    const { node: nodeA } = await nodeTest.createSetup()
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain, 4)
+    await expect(nodeA.chain).toAddBlock(blockA3)
+    const blockA4 = await useMinerBlockFixture(nodeA.chain, 5)
+    await expect(nodeA.chain).toAddBlock(blockA4)
 
-    const blockB2 = await makeBlockAfter(chain, blockA1)
-    const blockB3 = await makeBlockAfter(chain, blockB2)
-    const blockB4 = await makeBlockAfter(chain, blockB3)
-    const blockB5 = await makeBlockAfter(chain, blockB4)
+    const { node: nodeB } = await nodeTest.createSetup()
+    await expect(nodeB.chain).toAddBlock(blockA1)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    await expect(nodeB.chain).toAddBlock(blockB3)
+    const blockB4 = await useMinerBlockFixture(nodeB.chain, 5)
+    await expect(nodeB.chain).toAddBlock(blockB4)
+    const blockB5 = await useMinerBlockFixture(nodeB.chain, 5)
+    await expect(nodeB.chain).toAddBlock(blockB5)
 
     await expect(chain).toAddBlock(blockA1)
     await expect(chain).toAddBlock(blockA2)
@@ -259,13 +288,13 @@ describe('Blockchain', () => {
     expect(chain.head.hash.equals(blockA4.header.hash)).toBe(true)
     expect(chain.latest.hash.equals(blockA4.header.hash)).toBe(true)
 
-    const iter1 = chain.iterateTo(genesis, blockA4.header, undefined, false)
+    const iter1 = chain.iterateTo(chain.genesis, blockA4.header, undefined, false)
 
     const block1 = await iter1.next()
     const block2 = await iter1.next()
     const block3 = await iter1.next()
 
-    expect(block1).toMatchObject({ done: false, value: { hash: genesis.hash } })
+    expect(block1).toMatchObject({ done: false, value: { hash: chain.genesis.hash } })
     expect(block2).toMatchObject({ done: false, value: { hash: blockA1.header.hash } })
     expect(block3).toMatchObject({ done: false, value: { hash: blockA2.header.hash } })
 
@@ -282,18 +311,22 @@ describe('Blockchain', () => {
   })
 
   it('iterate errors', async () => {
-    const { strategy, chain } = nodeTest
-    strategy.disableMiningReward()
-
-    const genesis = chain.genesis
+    const { chain } = nodeTest
 
     // G -> A1 -> A2
     //   -> B1 -> B2
 
-    const blockA1 = await makeBlockAfter(chain, genesis)
-    const blockA2 = await makeBlockAfter(chain, blockA1)
-    const blockB1 = await makeBlockAfter(chain, genesis)
-    const blockB2 = await makeBlockAfter(chain, blockB1)
+    const { node: nodeA } = await nodeTest.createSetup()
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+
+    const { node: nodeB } = await nodeTest.createSetup()
+    const blockB1 = await useMinerBlockFixture(nodeB.chain, 2)
+    await expect(nodeB.chain).toAddBlock(blockB1)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    await expect(nodeB.chain).toAddBlock(blockB2)
 
     await expect(chain).toAddBlock(blockA1)
     await expect(chain).toAddBlock(blockA2)
@@ -317,23 +350,40 @@ describe('Blockchain', () => {
   })
 
   it('findFork', async () => {
-    const { strategy, chain } = nodeTest
-    strategy.disableMiningReward()
-
-    const genesis = chain.genesis
+    const { chain } = nodeTest
 
     // G -> A1 -> A2
     //         -> B2 -> B3
     //               -> C3 -> C4
     //                     -> D4
 
-    const blockA1 = await makeBlockAfter(chain, genesis)
-    const blockA2 = await makeBlockAfter(chain, blockA1)
-    const blockB2 = await makeBlockAfter(chain, blockA1)
-    const blockB3 = await makeBlockAfter(chain, blockB2)
-    const blockC3 = await makeBlockAfter(chain, blockB2)
-    const blockC4 = await makeBlockAfter(chain, blockC3)
-    const blockD4 = await makeBlockAfter(chain, blockC3)
+    const { node: nodeA } = await nodeTest.createSetup()
+    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+
+    const { node: nodeB } = await nodeTest.createSetup()
+    await expect(nodeB.chain).toAddBlock(blockA1)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    await expect(nodeB.chain).toAddBlock(blockB2)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    await expect(nodeB.chain).toAddBlock(blockB3)
+
+    const { node: nodeC } = await nodeTest.createSetup()
+    await expect(nodeC.chain).toAddBlock(blockA1)
+    await expect(nodeC.chain).toAddBlock(blockB2)
+    const blockC3 = await useMinerBlockFixture(nodeC.chain, 4)
+    await expect(nodeC.chain).toAddBlock(blockC3)
+    const blockC4 = await useMinerBlockFixture(nodeC.chain, 5)
+    await expect(nodeC.chain).toAddBlock(blockC4)
+
+    const { node: nodeD } = await nodeTest.createSetup()
+    await expect(nodeD.chain).toAddBlock(blockA1)
+    await expect(nodeD.chain).toAddBlock(blockB2)
+    await expect(nodeD.chain).toAddBlock(blockC3)
+    const blockD4 = await useMinerBlockFixture(nodeD.chain, 5)
+    await expect(nodeD.chain).toAddBlock(blockD4)
 
     await expect(chain).toAddBlock(blockA1)
     await expect(chain).toAddBlock(blockA2)
@@ -344,22 +394,22 @@ describe('Blockchain', () => {
     await expect(chain).toAddBlock(blockD4)
 
     const fork1 = await chain.findFork(blockA1, blockA1)
-    expect(fork1?.hash.equals(blockA1.header.hash)).toBe(true)
+    expect(fork1.hash.equals(blockA1.header.hash)).toBe(true)
 
     const fork2 = await chain.findFork(blockA1, blockA2)
-    expect(fork2?.hash.equals(blockA1.header.hash)).toBe(true)
+    expect(fork2.hash.equals(blockA1.header.hash)).toBe(true)
 
     const fork3 = await chain.findFork(blockA2, blockB2)
-    expect(fork3?.hash.equals(blockA1.header.hash)).toBe(true)
+    expect(fork3.hash.equals(blockA1.header.hash)).toBe(true)
 
-    const fork4 = await chain.findFork(genesis, blockD4)
-    expect(fork4?.hash.equals(genesis.hash)).toBe(true)
+    const fork4 = await chain.findFork(chain.genesis, blockD4)
+    expect(fork4.hash.equals(chain.genesis.hash)).toBe(true)
 
     const fork5 = await chain.findFork(blockB3, blockD4)
-    expect(fork5?.hash.equals(blockB2.header.hash)).toBe(true)
+    expect(fork5.hash.equals(blockB2.header.hash)).toBe(true)
 
     const fork6 = await chain.findFork(blockC4, blockD4)
-    expect(fork6?.hash.equals(blockC3.header.hash)).toBe(true)
+    expect(fork6.hash.equals(blockC3.header.hash)).toBe(true)
   })
 
   it('abort reorg after verify error', async () => {
