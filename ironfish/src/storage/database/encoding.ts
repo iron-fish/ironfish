@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import bufio from 'bufio'
-import hexArray from 'hex-array'
-import { IJSON, IJsonSerializable, Serde } from '../../serde'
+import { IJSON, IJsonSerializable } from '../../serde'
 import { BigIntUtils } from '../../utils'
 import { IDatabaseEncoding } from './types'
 
@@ -151,20 +150,6 @@ export class NullableStringEncoding implements IDatabaseEncoding<string | null> 
 
 export class ArrayEncoding<T extends IJsonSerializable[]> extends JsonEncoding<T> {}
 
-export default class BufferToStringEncoding implements Serde<Buffer, string> {
-  serialize(element: Buffer): string {
-    return hexArray.toString(element)
-  }
-
-  deserialize(data: string): Buffer {
-    return Buffer.from(hexArray.fromString(data))
-  }
-
-  equals(): boolean {
-    throw new Error('You should never use this')
-  }
-}
-
 export class BigIntLEEncoding implements IDatabaseEncoding<BigInt> {
   serialize(value: bigint): Buffer {
     return BigIntUtils.toBytesLE(value)
@@ -188,7 +173,16 @@ export class U64Encoding implements IDatabaseEncoding<number> {
   }
 }
 
-export const BUFFER_TO_STRING_ENCODING = new BufferToStringEncoding()
+export class BufferToStringEncoding {
+  static serialize(element: Buffer): string {
+    return element.toString('hex')
+  }
+
+  static deserialize(data: string): Buffer {
+    return Buffer.from(data, 'hex')
+  }
+}
+
 export const BUFFER_ENCODING = new BufferEncoding()
 export const U32_ENCODING = new U32Encoding()
 export const NULL_ENCODING = new NullEncoding()

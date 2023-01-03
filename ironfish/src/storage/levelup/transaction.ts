@@ -5,7 +5,7 @@ import type { LevelupDatabase } from './database'
 import type { LevelupStore } from './store'
 import { MutexUnlockFunction } from '../../mutex'
 import {
-  BUFFER_TO_STRING_ENCODING,
+  BufferToStringEncoding,
   DatabaseSchema,
   DuplicateKeyError,
   IDatabaseTransaction,
@@ -81,7 +81,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     this.assertCanRead()
 
     const [encodedKey] = store.encode(key)
-    const cacheKey = BUFFER_TO_STRING_ENCODING.serialize(encodedKey)
+    const cacheKey = BufferToStringEncoding.serialize(encodedKey)
 
     if (this.cacheDelete.has(cacheKey)) {
       return undefined
@@ -107,7 +107,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     this.assertCanWrite()
 
     const [encodedKey, encodedValue] = store.encode(key, value)
-    const cacheKey = BUFFER_TO_STRING_ENCODING.serialize(encodedKey)
+    const cacheKey = BufferToStringEncoding.serialize(encodedKey)
 
     this.batch.putEncoded(encodedKey, encodedValue)
     this.cache.set(cacheKey, value)
@@ -128,7 +128,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     }
 
     const [encodedKey, encodedValue] = store.encode(key, value)
-    const cacheKey = BUFFER_TO_STRING_ENCODING.serialize(encodedKey)
+    const cacheKey = BufferToStringEncoding.serialize(encodedKey)
     this.batch.putEncoded(encodedKey, encodedValue)
     this.cache.set(cacheKey, value)
     this.cacheDelete.delete(cacheKey)
@@ -143,7 +143,7 @@ export class LevelupTransaction implements IDatabaseTransaction {
     this.assertCanWrite()
 
     const [encodedKey] = store.encode(key)
-    const cacheKey = BUFFER_TO_STRING_ENCODING.serialize(encodedKey)
+    const cacheKey = BufferToStringEncoding.serialize(encodedKey)
     this.batch.delEncoded(encodedKey)
     this.cache.set(cacheKey, undefined)
     this.cacheDelete.add(cacheKey)
