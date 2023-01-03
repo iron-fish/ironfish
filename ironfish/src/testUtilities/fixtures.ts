@@ -11,12 +11,11 @@ import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
-import { RawTransaction, RawTransactionSerde } from '../primitives/rawTransaction'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { Account, AccountValue, Wallet } from '../wallet'
 import { WorkerPool } from '../workerPool/pool'
-import { buildRawTransaction } from './helpers/transaction'
+import { buildRawTransaction, createRawTransaction } from './helpers/transaction'
 import { getCurrentTestPath } from './utils'
 
 const FIXTURE_FOLDER = '__fixtures__'
@@ -224,7 +223,8 @@ export async function useMinerBlockFixture(
   )
 }
 
-export async function useRawTxFixture(options: {
+export async function usePostTxFixture(options: {
+  node: IronfishNode
   wallet: Wallet
   from: Account
   to?: Account
@@ -240,36 +240,10 @@ export async function useRawTxFixture(options: {
   }[]
   mints?: MintDescription[]
   burns?: BurnDescription[]
-}): Promise<RawTransaction> {
-  const generate = async () => {
-    const receives = options.receives ?? []
-
-    if (options.to) {
-      receives.push({
-        publicAddress: options.to.publicAddress,
-        amount: options.amount ?? 1n,
-        memo: '',
-        assetIdentifier: options.assetIdentifier ?? Asset.nativeIdentifier(),
-      })
-    }
-
-    return await options.wallet.createTransaction(
-      options.from,
-      receives,
-      options.mints ?? [],
-      options.burns ?? [],
-      options.fee ?? 0n,
-      options.expiration ?? 0,
-    )
-  }
-
-  return useFixture<RawTransaction, Buffer>(generate, {
-    serialize: (raw: RawTransaction): Buffer => {
-      return RawTransactionSerde.serialize(raw)
-    },
-    deserialize: (data): RawTransaction => {
-      return RawTransactionSerde.deserialize(data)
-    },
+}): Promise<Transaction> {
+  return useTxFixture(options.wallet, options.from, options.from, async () => {
+    const raw = await createRawTransaction(options)
+    return options.node.workerPool.postTransaction(raw)
   })
 }
 

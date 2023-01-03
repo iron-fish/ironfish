@@ -17,6 +17,7 @@ import {
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
+  usePostTxFixture,
   useTxFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
@@ -850,16 +851,14 @@ describe('Blockchain', () => {
       asset: Asset,
       value: bigint,
     ): Promise<Block> {
-      return useBlockWithRawTxFixture(
-        node.chain,
-        node.workerPool,
-        account,
-        [],
-        [],
-        [{ asset, value }],
-        [],
-        sequence,
-      )
+      const mint = await usePostTxFixture({
+        node: node,
+        wallet: node.wallet,
+        from: account,
+        mints: [{ asset, value }],
+      })
+
+      return await useMinerBlockFixture(node.chain, sequence, undefined, undefined, [mint])
     }
 
     async function burnAsset(
@@ -885,28 +884,30 @@ describe('Blockchain', () => {
     describe('with a mint description', () => {
       it('upserts an asset to the database', async () => {
         const { node } = await nodeTest.createSetup()
-        const wallet = node.wallet
-        const account = await useAccountFixture(wallet)
+        const account = await useAccountFixture(node.wallet)
 
         const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-        const value = BigInt(10)
 
-        const block = await mintAsset(node, account, 2, asset, value)
+        const mint = await usePostTxFixture({
+          node: node,
+          wallet: node.wallet,
+          from: account,
+          mints: [{ asset, value: 10n }],
+        })
+
+        const block = await useMinerBlockFixture(node.chain, 2, undefined, undefined, [mint])
         await expect(node.chain).toAddBlock(block)
 
-        const transactions = block.transactions
-        expect(transactions).toHaveLength(2)
-        const mintTransaction = transactions[1]
-
         const mintedAsset = await node.chain.assets.get(asset.identifier())
+
         expect(mintedAsset).toEqual({
-          createdTransactionHash: mintTransaction.hash(),
+          createdTransactionHash: mint.hash(),
           identifier: asset.identifier(),
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
           owner: asset.owner(),
-          supply: value,
+          supply: 10n,
         })
       })
     })
