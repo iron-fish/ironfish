@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert, BufferUtils } from '@ironfish/sdk'
 import { IronfishCommand } from '../../command'
-import { LocalFlags } from '../../flags'
+import { RemoteFlags } from '../../flags'
 
 export default class Asset extends IronfishCommand {
   static description = 'Get the asset info'
@@ -17,18 +18,23 @@ export default class Asset extends IronfishCommand {
   ]
 
   static flags = {
-    ...LocalFlags,
+    ...RemoteFlags,
   }
 
   async start(): Promise<void> {
     const { args } = await this.parse(Asset)
-    const assetIdentifier = args.identifier as string
-
-    this.log(`Getting the asset info...`)
+    Assert.isString(args.identifier)
+    const assetIdentifier = args.identifier
 
     const client = await this.sdk.connectRpc()
-    const data = await client.getAssetInfo({ assetIdentifier })
+    const data = await client.getAsset({ identifier: assetIdentifier })
 
-    this.log(JSON.stringify(data.content, undefined, '  '))
+    this.log(`Name: ${BufferUtils.toHuman(Buffer.from(data.content.name, 'hex'))}`)
+    this.log(`Metadata: ${BufferUtils.toHuman(Buffer.from(data.content.metadata, 'hex'))}`)
+    this.log(`Owner: ${data.content.owner}`)
+    this.log(`Supply: ${data.content.supply}`)
+    this.log(`Nonce: ${data.content.nonce}`)
+    this.log(`Identifier: ${data.content.identifier}`)
+    this.log(`Transaction Created: ${data.content.createdTransactionHash}`)
   }
 }
