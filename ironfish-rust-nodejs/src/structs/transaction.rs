@@ -234,7 +234,10 @@ impl NativeTransaction {
     /// post_miners_fee instead in user-facing code.
     #[napi(js_name = "_postMinersFeeUnchecked")]
     pub fn _post_miners_fee_unchecked(&mut self) -> Result<Buffer> {
-        let transaction = self.transaction.post_miners_fee_unchecked().map_err(to_napi_err)?;
+        let transaction = self
+            .transaction
+            .post_miners_fee_unchecked()
+            .map_err(to_napi_err)?;
 
         let mut vec: Vec<u8> = vec![];
         transaction.write(&mut vec).map_err(to_napi_err)?;
