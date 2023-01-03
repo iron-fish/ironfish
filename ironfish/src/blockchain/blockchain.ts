@@ -701,6 +701,11 @@ export class Blockchain {
 
     await tx.update()
     this.notes.pastRootTxCommitted(tx)
+
+    if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
+      this.latest = block.header
+    }
+
     await this.onForkBlock.emitAsync(block, tx)
 
     this.logger.warn(
@@ -756,6 +761,10 @@ export class Blockchain {
 
     await tx.update()
     this.notes.pastRootTxCommitted(tx)
+
+    if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
+      this.latest = block.header
+    }
 
     this.head = block.header
 
@@ -1311,7 +1320,6 @@ export class Blockchain {
     }
 
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
-      this.latest = block.header
       await this.meta.put('latest', hash, tx)
     }
   }
