@@ -19,7 +19,6 @@ import { NoteHasher } from '../merkletree/hasher'
 import { MetricsMonitor } from '../metrics'
 import { RollingAverage } from '../metrics/rollingAverage'
 import { BAN_SCORE } from '../network/peers/peer'
-import { NATIVE_ASSET_VALUE } from '../primitives/asset'
 import {
   Block,
   BlockSerde,
@@ -1467,12 +1466,19 @@ export class Blockchain {
     this.onSynced.emit()
   }
 
-  async getAssetById(
-    assetIdentifier: Buffer,
-  ): Promise<AssetsValue | typeof NATIVE_ASSET_VALUE | undefined> {
+  async getAssetById(assetIdentifier: Buffer): Promise<AssetsValue | undefined> {
     if (Asset.nativeIdentifier().equals(assetIdentifier)) {
-      return NATIVE_ASSET_VALUE
+      return {
+        createdTransactionHash: GENESIS_BLOCK_PREVIOUS,
+        identifier: Asset.nativeIdentifier(),
+        metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
+        name: Buffer.from('$IRON', 'utf8'),
+        owner: Buffer.from('Iron Fish', 'utf8'),
+        nonce: 0,
+        supply: 0n,
+      }
     }
+
     return await this.assets.get(assetIdentifier)
   }
 }
