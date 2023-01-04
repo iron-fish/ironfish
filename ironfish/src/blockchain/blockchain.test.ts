@@ -17,6 +17,7 @@ import {
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
+  useMintBlockFixture,
   usePostTxFixture,
   useTxFixture,
 } from '../testUtilities'
@@ -844,23 +845,6 @@ describe('Blockchain', () => {
   })
 
   describe('asset updates', () => {
-    async function mintAsset(
-      node: IronfishNode,
-      account: Account,
-      sequence: number,
-      asset: Asset,
-      value: bigint,
-    ): Promise<Block> {
-      const mint = await usePostTxFixture({
-        node: node,
-        wallet: node.wallet,
-        from: account,
-        mints: [{ asset, value }],
-      })
-
-      return await useMinerBlockFixture(node.chain, sequence, undefined, undefined, [mint])
-    }
-
     async function burnAsset(
       node: IronfishNode,
       account: Account,
@@ -922,7 +906,14 @@ describe('Blockchain', () => {
 
         // Mint so we have an existing asset
         const mintValue = BigInt(10)
-        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+
+        const blockA = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 2,
+          asset,
+          value: mintValue,
+        })
         await expect(node.chain).toAddBlock(blockA)
         const transactions = blockA.transactions
         const mintTransaction = transactions[1]
@@ -950,12 +941,24 @@ describe('Blockchain', () => {
         const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
 
         const mintValueA = BigInt(10)
-        const blockA = await mintAsset(node, account, 2, asset, mintValueA)
+        const blockA = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 2,
+          asset,
+          value: mintValueA,
+        })
         await expect(node.chain).toAddBlock(blockA)
         const mintTransactionA = blockA.transactions[1]
 
         const mintValueB = BigInt(2)
-        const blockB = await mintAsset(node, account, 3, asset, mintValueB)
+        const blockB = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 3,
+          asset,
+          value: mintValueB,
+        })
         await expect(node.chain).toAddBlock(blockB)
 
         const mintedAsset = await node.chain.assets.get(asset.identifier())
@@ -980,7 +983,13 @@ describe('Blockchain', () => {
         const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
         const value = BigInt(10)
 
-        const block = await mintAsset(node, account, 2, asset, value)
+        const block = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 2,
+          asset,
+          value,
+        })
         await expect(node.chain).toAddBlock(block)
 
         await node.chain.removeBlock(block.header.hash)
@@ -999,11 +1008,23 @@ describe('Blockchain', () => {
         const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
 
         const mintValueA = BigInt(10)
-        const blockA = await mintAsset(node, account, 2, asset, mintValueA)
+        const blockA = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 2,
+          asset,
+          value: mintValueA,
+        })
         await expect(node.chain).toAddBlock(blockA)
 
         const mintValueB = BigInt(2)
-        const blockB = await mintAsset(node, account, 3, asset, mintValueB)
+        const blockB = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 3,
+          asset,
+          value: mintValueB,
+        })
         await expect(node.chain).toAddBlock(blockB)
 
         await node.chain.removeBlock(blockB.header.hash)
@@ -1024,7 +1045,13 @@ describe('Blockchain', () => {
         const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
 
         const mintValue = BigInt(10)
-        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        const blockA = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 2,
+          asset,
+          value: mintValue,
+        })
         await expect(node.chain).toAddBlock(blockA)
 
         const burnValue = BigInt(3)
@@ -1051,7 +1078,13 @@ describe('Blockchain', () => {
         const assetIdentifier = asset.identifier()
 
         const mintValue = BigInt(10)
-        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        const blockA = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 2,
+          asset,
+          value: mintValue,
+        })
         await expect(node.chain).toAddBlock(blockA)
 
         // Perform a hack where we manually delete the asset from the chain
@@ -1081,7 +1114,13 @@ describe('Blockchain', () => {
         const assetIdentifier = asset.identifier()
 
         const mintValue = BigInt(10)
-        const blockA = await mintAsset(node, account, 2, asset, mintValue)
+        const blockA = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 2,
+          asset,
+          value: mintValue,
+        })
         await expect(node.chain).toAddBlock(blockA)
 
         const record = await node.chain.assets.get(assetIdentifier)
@@ -1114,7 +1153,13 @@ describe('Blockchain', () => {
 
         // 1. Mint 10
         const mintValueA = BigInt(10)
-        const blockA = await mintAsset(node, account, 2, asset, mintValueA)
+        const blockA = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 2,
+          asset,
+          value: mintValueA,
+        })
         await expect(node.chain).toAddBlock(blockA)
         // Check first mint value
         let record = await node.chain.assets.get(assetIdentifier)
@@ -1126,7 +1171,13 @@ describe('Blockchain', () => {
 
         // 2. Mint 8
         const mintValueB = BigInt(8)
-        const blockB = await mintAsset(node, account, 3, asset, mintValueB)
+        const blockB = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 2,
+          asset,
+          value: mintValueB,
+        })
         await expect(node.chain).toAddBlock(blockB)
         // Check aggregate mint value
         record = await node.chain.assets.get(assetIdentifier)
@@ -1174,7 +1225,13 @@ describe('Blockchain', () => {
 
         // 6. Mint some more
         const mintValueE = BigInt(10)
-        const blockE = await mintAsset(node, account, 5, asset, mintValueE)
+        const blockE = await useMintBlockFixture({
+          node,
+          account,
+          sequence: 5,
+          asset,
+          value: mintValueE,
+        })
         await expect(node.chain).toAddBlock(blockE)
         // Check aggregate mint value
         record = await node.chain.assets.get(assetIdentifier)
@@ -1209,7 +1266,13 @@ describe('Blockchain', () => {
 
         // G -> A1
         //   -> B1 -> B2
-        const blockA1 = await mintAsset(nodeA, accountA, 2, asset, mintValue)
+        const blockA1 = await useMintBlockFixture({
+          node: nodeA,
+          account: accountA,
+          sequence: 2,
+          asset,
+          value: mintValue,
+        })
         await nodeA.chain.addBlock(blockA1)
 
         // Verify Node A has the asset
