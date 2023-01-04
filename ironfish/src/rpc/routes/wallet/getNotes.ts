@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
@@ -55,7 +56,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
       const asset = await node.chain.getAssetById(note.assetIdentifier())
 
       request.stream({
-        value: note.value().toString(),
+        value: CurrencyUtils.encode(note.value()),
         assetIdentifier: note.assetIdentifier().toString('hex'),
         assetName: asset?.name.toString('utf8') || '',
         memo: note.memo(),

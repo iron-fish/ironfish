@@ -4,6 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import { useAccountFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { CurrencyUtils } from '../../../utils'
 
 describe('mint', () => {
   const routeTest = createRouteTest(true)
@@ -81,8 +82,9 @@ describe('mint', () => {
         fee: '1',
         metadata: asset.metadata().toString('hex'),
         name: asset.name().toString('hex'),
-        value: value.toString(),
+        value: CurrencyUtils.encode(value),
       })
+
       expect(response.content).toEqual({
         assetIdentifier: asset.identifier().toString('hex'),
         hash: mintTransaction.hash().toString('hex'),

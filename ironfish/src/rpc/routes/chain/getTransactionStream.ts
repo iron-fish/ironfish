@@ -6,6 +6,7 @@ import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
+import { CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
@@ -116,7 +117,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
 
           if (decryptedNote) {
             notes.push({
-              amount: decryptedNote.value().toString(),
+              amount: CurrencyUtils.encode(decryptedNote.value()),
               memo: decryptedNote.memo(),
             })
           }
