@@ -54,5 +54,41 @@
       "type": "Buffer",
       "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAA2PxjMsnJOdxyoXP7wCuVs4iNzl8xybD6BMrsaAryvjSIaGz0mFeMMpo1PQqu6dX6iRUpN4L+JeoottzSwQl5TpYlrJ68SZdOdginmU9yfiiT9jqkvfqgYQwziXfOqcAAZ0tx7DxAeNjGckXNY2tQARi+9Gk/RGoynt9VmtgJn/8EBiwtIKZq1kitRTtf9iBiR8hs31kl5Jamis0Y40lwrZsMCg458bdpJsX8wrZ0tz+Jvzd7fZVMRK+lyvCi8UdvUJUKvqRNIWz/5/B9JnQG9m52j27SJHMdbXewSTB8lz1OmOuZ5cjnbe8Y0znY0nfOz5RpuApXarR89aTL3jsiQr+IeO/82+aZ45bgc1NJG1Wa0Lg9yRA9Zl6mfvUVI5wd+jRtyFCYqfz0KayEG/4kThSe5xUMqvwhMpbSd8q71dFIjnoyiYDkwLoz9R9tiFRHCcAQFdyPhAoaIYWOGP387JWVdGg+7csjERlx73UbSBVAfPhQQ/hxJBTyHfjEcssOluY6QzgeW+ut6sS6/vgYrJzJzRDJJDOyUVCcd2FDN+s0G7afq2AZo7lH5TWpd73Mr2QGLNC5LHeVCAaVJyuiyUYd3r1ewALVVxXvAxk7lA4vsSiUtYK7Zklyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwJCdU+RdC/U3PnObIPWTeUTdzvnEICH6F5mI5r62pVzKYjndmzwtMsRGPMY93SEnxK6oFPfM9br51dbMRKLR9BQ=="
     }
+  ],
+  "TransactionValueEncoding with empty asset balance deltas serializes the object into a buffer and deserializes to the original object": [
+    {
+      "id": "377a8093-1e89-46f9-8117-2b36adf35aaf",
+      "name": "test",
+      "spendingKey": "b8064ef62085768208bab45257ae3c5d89ef757686ff9ded00e73ecbd05b2a8e",
+      "incomingViewKey": "a8405961b8f232b9ffe086bbe371f91edbe32396b586348cbc370681ab2bf007",
+      "outgoingViewKey": "2ae7d86a827d67c5f2a932af1d0980645939185d65b8068090dbcc7b8d3b74f6",
+      "publicAddress": "c3d8f3ca70b1cd44cbb5b43fa61b9fa3bb0f82e274e6532d23f8f9da7eda6937"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAY1bs09B0I+zOyItjRafyZ2gW6Mx9EIxfALwKY5yztcypJuMPE1p0Iw096CGbfLqgRk7mrPWFrK2rIPCIq2C3XhBjaq4w23qYtGaTuGt+O4OxFTpPncj6PAxRziF9VUh2pHy3uQ7Kt/XwFtwaQbLNSW7MKj9cNrrKpnCeX+oz8u4QgLckRLkTbTIHkp+0bGIh2/39QqgYv1HUrS0oF727eubGvmfhdX+PT2jZcXPtHrGQ0LipVKGSViWiMm6A+rESoKv55eJZidhD0UCQsCt34rGRLQCQLI/ZdIgqA6HTKBnyKH7VTQT79iZkXcyzXJwTs2RnkBHt+I492eMrvH5rbk+kBQUu3wKiK8efdQwbNp55LVQkV4Q0k9gUVdeIMJ8a/cv7mytkS37GisvyZacQtwjObvZKi1DNwOaLu2JL1939NboiA2pI9pI+mdq1tHcxRum8yQ0IGm4PM3HNa70QDQjJu5IqMzgbNe7VL5JfjhJKF2J+m7kFrS48XeXzSLIVWDT3oVDSnwKF9O/wlMXPcHzwuPc8fET3B5TFqtFWATw7iOyNTt8F3NChbf565yugzKvAhmghnJD2tygQDxIxaDTJwLYcV7ebhj/vYo6HKM8YTc50khdKrUlyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwifz/JcvXBq7pt1L5bARfVbwYyjBm3qyKoa4qlox5v9k0Bvc9jFNYJQuJFCwBuM1WnXLP44kdtAjC+VVeb1U1Bg=="
+    }
+  ],
+  "TransactionValueEncoding with multiple assets serializes the object into a buffer and deserializes to the original object": [
+    {
+      "id": "b2dfa553-f14b-439a-8b6b-9b2d2f95b3d3",
+      "name": "test",
+      "spendingKey": "0ed7a54f5174692dac8daf8b33593dc5a322be00d3b6484a6f5e0d0c7c4fd7fe",
+      "incomingViewKey": "daa9f9697507c3bfb8e76447f781cf44b5bcac0fa91d2b4b547efbd7761b4b00",
+      "outgoingViewKey": "4c77edb7cdae92424ee4ce60033d77346410288fb43e5f669653258aef997309",
+      "publicAddress": "b2f5f661b39c366c6fc3ab34cecef7398a349da2773e490bac0abe1c490eafe3"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAA9yg4HWbPJ2fA8IkCdg0tkOYpda9dJM8PZMHXOTTtGU+r6qyXZQYDMJ3sXprWhl0E579rkEy9YIzrh2mATdu4jaPs0nRRSP5k4crmQsYGKk6o7B1wTS2Ggl0OWRRR/2qiMf8qmM5fmPWAIb7jt4LULEUpu8OJgiG4LO2P8kOEP2cZKowtSHV5D6OcxXLURr6IkxTn2vBfBIEcJsxw0aINlOzlQ5ZpxKO91Sif7FjkAjysgsUUWocVv0cuOln7QekL94xllTdCdl7H69EbFnd6lfS6jwgRHGBwAqiQfQpOeX6ZaCE4BdvALm/T87b1ufdKQI19SP9p9dxZ61hDFzas7yQN5/cS2SbFB8C4LJjG1Q/lFpS09XiN6G/H4Yn+KC0iLd8VMdUWdKoeaHd7+mjGOcY2MYo8zGmU8VwlDT49gbDJqTgP7+gPPBaPg8BvZmyXYvaFqAVNzzCAxvCYAZBM3yoLAIttgDOZMT4jf5zG+xhfUbMVctsNAMxxkaC07h9CWP0WNyXzt2MnzfJXgOwMh3f+1IsrqH6D0HiwP86ICe3DfAOynkqTRweK49j5EU8huxFre3Tpn0E+TAWSqpEGrHC8qh7XKRlBoalBjHNazC0Q6eGkQcbRjElyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwS0/71dq7rAPvVvDJ+AX6iR3zXu1J50RYTAXxBQ541h0q3pFey8mnFpPIXcLK9C1tvvqRCLhzbM9Tf0JnCmVLAQ=="
+    },
+    {
+      "id": "c5fad861-1360-4519-8ff9-516d3e462829",
+      "name": "accountA",
+      "spendingKey": "61997cd8c92c3e7d69ef9598e3f27af53e0263c837dce646a75b02e386415ce6",
+      "incomingViewKey": "63adb6712398f2ea55fa63c8fe89dde2efa9c8536b4b80b3fd7c1733edcfd504",
+      "outgoingViewKey": "a6c2a21fb2c3258de10d4a64295bb02f41a4095349947e59643a0792c58974eb",
+      "publicAddress": "3211906ae1b270bb5e14fd24c5c093d0460bd9842543d0409904b2f1f20ec338"
+    }
   ]
 }

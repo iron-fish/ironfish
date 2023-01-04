@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { IDatabaseEncoding } from '../../storage/database/types'
+import { ASSET_IDENTIFIER_LENGTH } from '@ironfish/rust-nodejs'
+import { BufferMap } from 'buffer-map'
 import bufio from 'bufio'
 import { Transaction } from '../../primitives'
 
@@ -15,6 +17,7 @@ export interface TransactionValue {
   // rebroadcast. This can be null if we created it on another node, or the
   // transaction was created for us by another person.
   submittedSequence: number | null
+  assetBalanceDeltas: BufferMap<bigint>
 }
 
 export class TransactionValueEncoding implements IDatabaseEncoding<TransactionValue> {
@@ -39,6 +42,14 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
     }
     if (sequence) {
       bw.writeU32(sequence)
+    }
+
+    const assetCount = value.assetBalanceDeltas.size
+    bw.writeU32(assetCount)
+
+    for (const [assetIdentifier, balanceDelta] of value.assetBalanceDeltas.entries()) {
+      bw.writeHash(assetIdentifier)
+      bw.writeBigU64(balanceDelta)
     }
 
     return bw.render()
@@ -69,7 +80,23 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
       sequence = reader.readU32()
     }
 
-    return { transaction, blockHash, submittedSequence, sequence, timestamp }
+    const assetBalanceDeltas = new BufferMap<bigint>()
+    const assetCount = reader.readU32()
+
+    for (let i = 0; i < assetCount; i++) {
+      const assetIdentifier = reader.readHash()
+      const balanceDelta = reader.readBigU64()
+      assetBalanceDeltas.set(assetIdentifier, balanceDelta)
+    }
+
+    return {
+      transaction,
+      blockHash,
+      submittedSequence,
+      sequence,
+      timestamp,
+      assetBalanceDeltas,
+    }
   }
 
   getSize(value: TransactionValue): number {
@@ -85,6 +112,8 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
     if (value.sequence) {
       size += 4
     }
+    size += 4
+    size += value.assetBalanceDeltas.size * (ASSET_IDENTIFIER_LENGTH + 8)
     return size
   }
 }

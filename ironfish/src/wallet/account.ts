@@ -125,7 +125,7 @@ export class Account {
   ): Promise<void> {
     const blockHash = blockHeader.hash
     const sequence = blockHeader.sequence
-    const balanceDeltas = new AssetBalanceDeltas()
+    const assetBalanceDeltas = new AssetBalanceDeltas()
     let submittedSequence: number | null = null
     let timestamp = new Date()
 
@@ -154,7 +154,7 @@ export class Account {
           sequence,
         }
 
-        balanceDeltas.increment(note.note.assetIdentifier(), note.note.value())
+        assetBalanceDeltas.increment(note.note.assetIdentifier(), note.note.value())
 
         await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
       }
@@ -169,7 +169,7 @@ export class Account {
 
         Assert.isNotUndefined(note)
 
-        balanceDeltas.increment(note.note.assetIdentifier(), -note.note.value())
+        assetBalanceDeltas.increment(note.note.assetIdentifier(), -note.note.value())
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
@@ -184,11 +184,12 @@ export class Account {
           sequence,
           submittedSequence,
           timestamp,
+          assetBalanceDeltas: assetBalanceDeltas,
         },
         tx,
       )
 
-      await this.updateUnconfirmedBalances(balanceDeltas, blockHash, sequence, tx)
+      await this.updateUnconfirmedBalances(assetBalanceDeltas, blockHash, sequence, tx)
     })
   }
 
@@ -198,6 +199,8 @@ export class Account {
     submittedSequence: number | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
+    const assetBalanceDeltas = new AssetBalanceDeltas()
+
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (await this.hasTransaction(transaction.hash(), tx)) {
         return
@@ -219,6 +222,8 @@ export class Account {
           sequence: null,
         }
 
+        assetBalanceDeltas.increment(note.note.assetIdentifier(), note.note.value())
+
         await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
       }
 
@@ -231,6 +236,8 @@ export class Account {
         const note = await this.getDecryptedNote(spentNoteHash, tx)
 
         Assert.isNotUndefined(note)
+
+        assetBalanceDeltas.increment(note.note.assetIdentifier(), -note.note.value())
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
@@ -245,6 +252,7 @@ export class Account {
           sequence: null,
           submittedSequence,
           timestamp: new Date(),
+          assetBalanceDeltas,
         },
         tx,
       )
