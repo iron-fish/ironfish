@@ -47,7 +47,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
     const assetCount = value.assetBalanceDeltas.size
     bw.writeU32(assetCount)
 
-    for (const [assetIdentifier, balanceDelta] of value.assetBalanceDeltas.entries()) {
+    for (const [assetIdentifier, balanceDelta] of value.assetBalanceDeltas) {
       bw.writeHash(assetIdentifier)
       bw.writeBigU64(balanceDelta)
     }
