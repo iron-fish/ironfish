@@ -338,7 +338,7 @@ export abstract class RpcClient {
     params: SendTransactionRequest,
   ): Promise<RpcResponseEnded<SendTransactionResponse>> {
     return this.request<SendTransactionResponse>(
-      `${ApiNamespace.transaction}/sendTransaction`,
+      `${ApiNamespace.wallet}/sendTransaction`,
       params,
     ).waitForEnd()
   }
