@@ -64,6 +64,10 @@ import {
 } from '../routes'
 import { MintAssetRequest, MintAssetResponse } from '../routes/assets/mint'
 import {
+  EstimateFeeRatesRequest,
+  EstimateFeeRatesResponse,
+} from '../routes/chain/estimateFeeRates'
+import {
   ExportChainStreamRequest,
   ExportChainStreamResponse,
 } from '../routes/chain/exportChain'
@@ -72,10 +76,6 @@ import {
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
-import {
-  EstimateFeeRatesRequest,
-  EstimateFeeRatesResponse,
-} from '../routes/fees/estimateFeeRates'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
 import {
   GetPeerMessagesRequest,
@@ -370,7 +370,7 @@ export abstract class RpcClient {
     params?: EstimateFeeRatesRequest,
   ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> {
     return this.request<EstimateFeeRatesResponse>(
-      `${ApiNamespace.fees}/estimateFeeRates`,
+      `${ApiNamespace.chain}/estimateFeeRates`,
       params,
     ).waitForEnd()
   }
@@ -379,7 +379,7 @@ export abstract class RpcClient {
     params: EstimateFeeRequest,
   ): Promise<RpcResponseEnded<EstimateFeeResponse>> {
     return this.request<EstimateFeeResponse>(
-      `${ApiNamespace.fees}/estimateFee`,
+      `${ApiNamespace.chain}/estimateFee`,
       params,
     ).waitForEnd()
   }

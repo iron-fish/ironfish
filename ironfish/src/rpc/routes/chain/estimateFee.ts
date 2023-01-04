@@ -45,7 +45,7 @@ export const EstimateFeeResponseSchema: yup.ObjectSchema<EstimateFeeResponse> = 
   .defined()
 
 router.register<typeof EstimateFeeRequestSchema, EstimateFeeResponse>(
-  `${ApiNamespace.fees}/estimateFee`,
+  `${ApiNamespace.chain}/estimateFee`,
   EstimateFeeRequestSchema,
   async (request, node): Promise<void> => {
     const account = node.wallet.getAccountByName(request.data.fromAccountName)
