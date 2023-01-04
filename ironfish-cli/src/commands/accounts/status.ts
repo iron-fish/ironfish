@@ -6,7 +6,6 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class StatusCommand extends IronfishCommand {
-  static aliases = ['accounts:status']
   static description = `Get status of an account`
 
   static flags = {
