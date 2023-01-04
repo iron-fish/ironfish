@@ -135,14 +135,14 @@ describe('Transactions sendTransaction', () => {
     )
   })
 
-  it('throws if pay throws NotEnoughFundsError', async () => {
+  it('throws if send throws NotEnoughFundsError', async () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
     await useAccountFixture(routeTest.node.wallet, 'account-throw-error')
 
     jest
-      .spyOn(routeTest.node.wallet, 'pay')
+      .spyOn(routeTest.node.wallet, 'send')
       .mockRejectedValue(
         new NotEnoughFundsError(Asset.nativeIdentifier(), BigInt(0), BigInt(1)),
       )
@@ -161,14 +161,14 @@ describe('Transactions sendTransaction', () => {
     )
   })
 
-  it('calls the pay method on the node with single recipient', async () => {
+  it('calls the send method on the node with single recipient', async () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
     const account = await useAccountFixture(routeTest.node.wallet, 'account')
     const tx = await useMinersTxFixture(routeTest.node.wallet, account)
 
-    jest.spyOn(routeTest.node.wallet, 'pay').mockResolvedValue(tx)
+    jest.spyOn(routeTest.node.wallet, 'send').mockResolvedValue(tx)
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
@@ -179,14 +179,14 @@ describe('Transactions sendTransaction', () => {
     expect(result.content.hash).toEqual(tx.hash().toString('hex'))
   })
 
-  it('calls the pay method on the node with multiple recipient', async () => {
+  it('calls the send method on the node with multiple recipient', async () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
     const account = await useAccountFixture(routeTest.node.wallet, 'account_multi-output')
     const tx = await useMinersTxFixture(routeTest.node.wallet, account)
 
-    jest.spyOn(routeTest.node.wallet, 'pay').mockResolvedValue(tx)
+    jest.spyOn(routeTest.node.wallet, 'send').mockResolvedValue(tx)
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(21),
       confirmed: BigInt(21),
@@ -210,11 +210,11 @@ describe('Transactions sendTransaction', () => {
       unconfirmedCount: 0,
     })
 
-    const paySpy = jest.spyOn(routeTest.node.wallet, 'pay').mockResolvedValue(tx)
+    const sendSpy = jest.spyOn(routeTest.node.wallet, 'send').mockResolvedValue(tx)
 
     await routeTest.client.sendTransaction(TEST_PARAMS)
 
-    expect(paySpy).toHaveBeenCalledWith(
+    expect(sendSpy).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       expect.anything(),
@@ -229,7 +229,7 @@ describe('Transactions sendTransaction', () => {
       expirationDelta: 12345,
     })
 
-    expect(paySpy).toHaveBeenCalledWith(
+    expect(sendSpy).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       expect.anything(),
