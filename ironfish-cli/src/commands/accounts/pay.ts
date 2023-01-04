@@ -87,12 +87,12 @@ export class Pay extends IronfishCommand {
     if (amount === null) {
       const response = await client.getAccountBalance({ account: from, assetIdentifier })
 
-      const input = (await CliUx.ux.prompt(
+      const input = await CliUx.ux.prompt(
         `Enter the amount (balance: ${CurrencyUtils.renderIron(response.content.confirmed)})`,
         {
           required: true,
         },
-      )) as string
+      )
 
       amount = CurrencyUtils.decodeIron(input)
     }
@@ -116,9 +116,9 @@ export class Pay extends IronfishCommand {
     }
 
     if (!to) {
-      to = (await CliUx.ux.prompt('Enter the the public address of the recipient', {
+      to = await CliUx.ux.prompt('Enter the the public address of the recipient', {
         required: true,
-      })) as string
+      })
 
       if (!isValidPublicAddress(to)) {
         this.error(`A valid public address is required`)
@@ -158,7 +158,7 @@ export class Pay extends IronfishCommand {
         suggestedFee = ''
       }
 
-      const input = (await CliUx.ux.prompt(
+      const input = await CliUx.ux.prompt(
         `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(
           1n,
         )} recommended: ${suggestedFee})`,
@@ -166,7 +166,7 @@ export class Pay extends IronfishCommand {
           required: true,
           default: suggestedFee,
         },
-      )) as string
+      )
 
       fee = CurrencyUtils.decodeIron(input)
     }
