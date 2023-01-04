@@ -74,7 +74,7 @@ export const SendTransactionResponseSchema: yup.ObjectSchema<SendTransactionResp
   .defined()
 
 router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
-  `${ApiNamespace.transaction}/sendTransaction`,
+  `${ApiNamespace.wallet}/sendTransaction`,
   SendTransactionRequestSchema,
   async (request, node): Promise<void> => {
     const transaction = request.data

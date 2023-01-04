@@ -20,7 +20,6 @@ export enum ApiNamespace {
   miner = 'miner',
   node = 'node',
   peer = 'peer',
-  transaction = 'transaction',
   wallet = 'wallet',
   worker = 'worker',
   rpc = 'rpc',
