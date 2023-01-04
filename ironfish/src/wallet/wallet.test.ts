@@ -11,6 +11,7 @@ import {
   useBlockWithTx,
   useMinerBlockFixture,
   useMinersTxFixture,
+  useMintBlockFixture,
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
@@ -943,23 +944,8 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-      const mintValue = BigInt(10)
-      const mintBlock = await useBlockFixture(node.chain, async () => {
-        const transaction = await node.wallet.mint(
-          node.memPool,
-          account,
-          'mint-asset',
-          'metadata',
-          mintValue,
-          BigInt(0),
-        )
-
-        return node.chain.newBlock(
-          [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
-        )
-      })
-
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
       await expect(node.chain).toAddBlock(mintBlock)
       await node.wallet.updateHead()
 
@@ -989,23 +975,8 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-      const mintValue = BigInt(10)
-      const mintBlock = await useBlockFixture(node.chain, async () => {
-        const transaction = await node.wallet.mint(
-          node.memPool,
-          account,
-          'mint-asset',
-          'metadata',
-          mintValue,
-          BigInt(0),
-        )
-
-        return node.chain.newBlock(
-          [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
-        )
-      })
-
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
       await expect(node.chain).toAddBlock(mintBlock)
       await node.wallet.updateHead()
 
