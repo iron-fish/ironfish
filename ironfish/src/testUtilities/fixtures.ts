@@ -11,12 +11,11 @@ import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { NoteEncrypted } from '../primitives/noteEncrypted'
-import { RawTransaction, RawTransactionSerde } from '../primitives/rawTransaction'
 import { SerializedTransaction, Transaction } from '../primitives/transaction'
 import { IJSON } from '../serde'
 import { Account, AccountValue, Wallet } from '../wallet'
 import { WorkerPool } from '../workerPool/pool'
-import { buildRawTransaction } from './helpers/transaction'
+import { createRawTransaction } from './helpers/transaction'
 import { getCurrentTestPath } from './utils'
 
 const FIXTURE_FOLDER = '__fixtures__'
@@ -224,7 +223,31 @@ export async function useMinerBlockFixture(
   )
 }
 
-export async function useRawTxFixture(options: {
+export async function useMintBlockFixture(options: {
+  node: IronfishNode
+  account: Account
+  asset: Asset
+  value: bigint
+  sequence?: number
+}): Promise<Block> {
+  if (!options.sequence) {
+    options.sequence = options.node.chain.head.sequence
+  }
+
+  const mint = await usePostTxFixture({
+    node: options.node,
+    wallet: options.node.wallet,
+    from: options.account,
+    mints: [{ asset: options.asset, value: options.value }],
+  })
+
+  return useMinerBlockFixture(options.node.chain, options.sequence, undefined, undefined, [
+    mint,
+  ])
+}
+
+export async function usePostTxFixture(options: {
+  node: IronfishNode
   wallet: Wallet
   from: Account
   to?: Account
@@ -240,36 +263,10 @@ export async function useRawTxFixture(options: {
   }[]
   mints?: MintDescription[]
   burns?: BurnDescription[]
-}): Promise<RawTransaction> {
-  const generate = async () => {
-    const receives = options.receives ?? []
-
-    if (options.to) {
-      receives.push({
-        publicAddress: options.to.publicAddress,
-        amount: options.amount ?? 1n,
-        memo: '',
-        assetIdentifier: options.assetIdentifier ?? Asset.nativeIdentifier(),
-      })
-    }
-
-    return await options.wallet.createTransaction(
-      options.from,
-      receives,
-      options.mints ?? [],
-      options.burns ?? [],
-      options.fee ?? 0n,
-      options.expiration ?? 0,
-    )
-  }
-
-  return useFixture<RawTransaction, Buffer>(generate, {
-    serialize: (raw: RawTransaction): Buffer => {
-      return RawTransactionSerde.serialize(raw)
-    },
-    deserialize: (data): RawTransaction => {
-      return RawTransactionSerde.deserialize(data)
-    },
+}): Promise<Transaction> {
+  return useTxFixture(options.wallet, options.from, options.from, async () => {
+    const raw = await createRawTransaction(options)
+    return options.node.workerPool.postTransaction(raw)
   })
 }
 
@@ -327,15 +324,34 @@ export async function useBlockWithRawTxFixture(
   sequence: number,
 ): Promise<Block> {
   const generate = async () => {
-    const transaction = await buildRawTransaction(
-      chain,
-      pool,
-      sender,
-      notesToSpend,
+    const spends = await Promise.all(
+      notesToSpend.map(async (n) => {
+        const note = n.decryptNoteForOwner(sender.incomingViewKey)
+        Assert.isNotUndefined(note)
+        const treeIndex = await chain.notes.leavesIndex.get(n.merkleHash())
+        Assert.isNotUndefined(treeIndex)
+        const witness = await chain.notes.witness(treeIndex)
+        Assert.isNotNull(witness)
+
+        return {
+          note,
+          treeSize: witness.treeSize(),
+          authPath: witness.authenticationPath,
+          rootHash: witness.rootHash,
+        }
+      }),
+    )
+
+    const transaction = await pool.createTransaction(
+      sender.spendingKey,
+      spends,
       receives,
       mints,
       burns,
+      BigInt(0),
+      0,
     )
+
     return chain.newBlock(
       [transaction],
       await chain.strategy.createMinersFee(transaction.fee(), sequence, sender.spendingKey),

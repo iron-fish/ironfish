@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset } from '@ironfish/rust-nodejs'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
@@ -53,7 +54,7 @@ import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { AssetsValueEncoding } from './database/assets'
+import { AssetsValue, AssetsValueEncoding } from './database/assets'
 import { HeaderEncoding } from './database/headers'
 import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
 import { TransactionsValueEncoding } from './database/transactions'
@@ -701,6 +702,11 @@ export class Blockchain {
 
     await tx.update()
     this.notes.pastRootTxCommitted(tx)
+
+    if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
+      this.latest = block.header
+    }
+
     await this.onForkBlock.emitAsync(block, tx)
 
     this.logger.warn(
@@ -756,6 +762,10 @@ export class Blockchain {
 
     await tx.update()
     this.notes.pastRootTxCommitted(tx)
+
+    if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
+      this.latest = block.header
+    }
 
     this.head = block.header
 
@@ -1311,7 +1321,6 @@ export class Blockchain {
     }
 
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
-      this.latest = block.header
       await this.meta.put('latest', hash, tx)
     }
   }
@@ -1455,6 +1464,23 @@ export class Blockchain {
 
     this.synced = true
     this.onSynced.emit()
+  }
+
+  async getAssetById(assetIdentifier: Buffer): Promise<AssetsValue | null> {
+    if (Asset.nativeIdentifier().equals(assetIdentifier)) {
+      return {
+        createdTransactionHash: GENESIS_BLOCK_PREVIOUS,
+        identifier: Asset.nativeIdentifier(),
+        metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
+        name: Buffer.from('$IRON', 'utf8'),
+        owner: Buffer.from('Iron Fish', 'utf8'),
+        nonce: 0,
+        supply: 0n,
+      }
+    }
+
+    const asset = await this.assets.get(assetIdentifier)
+    return asset || null
   }
 }
 
