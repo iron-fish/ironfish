@@ -646,7 +646,7 @@ export class Wallet {
     }
   }
 
-  async pay(
+  async send(
     memPool: MemPool,
     sender: Account,
     receives: {

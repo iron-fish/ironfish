@@ -7,13 +7,13 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 
-export class Pay extends IronfishCommand {
+export class Send extends IronfishCommand {
   static description = `Send coins to another account`
 
   static examples = [
-    '$ ironfish accounts:pay -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',
-    '$ ironfish accounts:pay -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount',
-    '$ ironfish accounts:pay -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount -m my_message_for_the_transaction',
+    '$ ironfish accounts:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',
+    '$ ironfish accounts:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount',
+    '$ ironfish accounts:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount -m my_message_for_the_transaction',
   ]
 
   static flags = {
@@ -55,12 +55,12 @@ export class Pay extends IronfishCommand {
     }),
     assetIdentifier: Flags.string({
       char: 'i',
-      description: 'The identifier for the asset to use when paying',
+      description: 'The identifier for the asset to use when sending',
     }),
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(Pay)
+    const { flags } = await this.parse(Send)
     let amount = null
     let fee = null
     let to = flags.to?.trim()

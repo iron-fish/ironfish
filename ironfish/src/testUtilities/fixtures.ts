@@ -151,7 +151,7 @@ export async function useAccountFixture(
  * that get added onto a block don't get handled in the same
  * way as if we created them, which is a problem. that's why
  * the transaction fixture uses accounts.createTransaction()
- * and not accountst.pay(), so if its generated, and if its
+ * and not accountst.send(), so if its generated, and if its
  * cached, both have the same flow where we manually sync
  * them afterwards.
  */

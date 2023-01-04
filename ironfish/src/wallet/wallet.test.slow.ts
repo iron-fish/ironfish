@@ -76,7 +76,7 @@ describe('Accounts', () => {
     })
   })
 
-  it('Lowers the balance after using pay to spend a note', async () => {
+  it('Lowers the balance after using send to spend a note', async () => {
     // Initialize the database and chain
     const strategy = nodeTest.strategy
     const node = nodeTest.node
@@ -117,7 +117,7 @@ describe('Accounts', () => {
     })
 
     // Spend the balance
-    const transaction = await node.wallet.pay(
+    const transaction = await node.wallet.send(
       node.memPool,
       account,
       [
@@ -194,7 +194,7 @@ describe('Accounts', () => {
     })
 
     // Spend the balance
-    const transaction = await node.wallet.pay(
+    const transaction = await node.wallet.send(
       node.memPool,
       account,
       [
@@ -273,7 +273,7 @@ describe('Accounts', () => {
       unconfirmed: BigInt(2000000000),
     })
 
-    const transaction = await node.wallet.pay(
+    const transaction = await node.wallet.send(
       node.memPool,
       account,
       [
@@ -330,7 +330,7 @@ describe('Accounts', () => {
 
     // Spend the balance with an invalid expiration
     await expect(
-      node.wallet.pay(
+      node.wallet.send(
         node.memPool,
         account,
         [
@@ -392,7 +392,7 @@ describe('Accounts', () => {
     })
 
     // Spend the balance, setting expiry soon
-    const transaction = await node.wallet.pay(
+    const transaction = await node.wallet.send(
       node.memPool,
       account,
       [
@@ -491,7 +491,7 @@ describe('Accounts', () => {
     })
 
     // Spend the balance, setting expiry soon
-    const transaction = await node.wallet.pay(
+    const transaction = await node.wallet.send(
       node.memPool,
       account,
       [
