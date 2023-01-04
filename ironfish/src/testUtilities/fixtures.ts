@@ -246,6 +246,29 @@ export async function useMintBlockFixture(options: {
   ])
 }
 
+export async function useBurnBlockFixture(options: {
+  node: IronfishNode
+  account: Account
+  asset: Asset
+  value: bigint
+  sequence?: number
+}): Promise<Block> {
+  if (!options.sequence) {
+    options.sequence = options.node.chain.head.sequence
+  }
+
+  const burn = await usePostTxFixture({
+    node: options.node,
+    wallet: options.node.wallet,
+    from: options.account,
+    burns: [{ assetIdentifier: options.asset.identifier(), value: options.value }],
+  })
+
+  return useMinerBlockFixture(options.node.chain, options.sequence, undefined, undefined, [
+    burn,
+  ])
+}
+
 export async function usePostTxFixture(options: {
   node: IronfishNode
   wallet: Wallet

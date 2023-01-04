@@ -9,9 +9,11 @@ import {
   useAccountFixture,
   useBlockFixture,
   useBlockWithTx,
+  useBurnBlockFixture,
   useMinerBlockFixture,
   useMinersTxFixture,
   useMintBlockFixture,
+  usePostTxFixture,
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
@@ -950,15 +952,11 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const burnValue = BigInt(2)
-      const transaction = await useTxFixture(node.wallet, account, account, async () => {
-        return node.wallet.burn(
-          node.memPool,
-          account,
-          asset.identifier(),
-          burnValue,
-          BigInt(0),
-          node.config.get('transactionExpirationDelta'),
-        )
+      const transaction = await usePostTxFixture({
+        node: node,
+        wallet: node.wallet,
+        from: account,
+        burns: [{ assetIdentifier: asset.identifier(), value: burnValue }],
       })
 
       expect(transaction.burns).toEqual([
@@ -981,20 +979,12 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const burnValue = BigInt(2)
-      const burnBlock = await useBlockFixture(node.chain, async () => {
-        const transaction = await node.wallet.burn(
-          node.memPool,
-          account,
-          asset.identifier(),
-          burnValue,
-          BigInt(0),
-          node.config.get('transactionExpirationDelta'),
-        )
-
-        return node.chain.newBlock(
-          [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 4, generateKey().spending_key),
-        )
+      const burnBlock = await useBurnBlockFixture({
+        node,
+        account,
+        asset,
+        value: burnValue,
+        sequence: 4,
       })
       await expect(node.chain).toAddBlock(burnBlock)
       await node.wallet.updateHead()
