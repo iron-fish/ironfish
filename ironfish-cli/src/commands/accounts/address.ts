@@ -5,7 +5,6 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class AddressCommand extends IronfishCommand {
-  static aliases = ['accounts:publickey']
   static description = `Display your account address
 
   The address for an account is the accounts public key, see more here: https://ironfish.network/docs/whitepaper/5_account`

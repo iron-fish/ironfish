@@ -11,8 +11,6 @@ import { LocalFlags } from '../../flags'
 import { IronfishCliPKG } from '../../package'
 
 export default class Benchmark extends IronfishCommand {
-  static aliases = ['chain:benchmark']
-
   static description =
     'Test the performance of the chain by re-importing data from an existing chain'
 

@@ -12,7 +12,6 @@ type GetPeerResponsePeer = GetPeersResponse['peers'][0]
 const STATE_COLUMN_HEADER = 'STATE'
 
 export class ListCommand extends IronfishCommand {
-  static aliases = ['peers:list']
   static description = `List all connected peers`
 
   static flags = {

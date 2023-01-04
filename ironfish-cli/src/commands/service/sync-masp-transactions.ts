@@ -21,7 +21,6 @@ const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 1000 : RAW_MAX_UPLOAD
 const NEAR_SYNC_THRESHOLD = 5
 
 export default class SyncMaspTransactions extends IronfishCommand {
-  static aliases = ['service:syncMaspTransactions']
   static hidden = true
 
   static description = 'Upload MASP transactions to an HTTP API using IronfishApi'
