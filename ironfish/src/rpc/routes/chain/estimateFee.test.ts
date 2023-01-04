@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { useBlockWithTx } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { EstimateFeeRequest } from './estimateFee'
 
 describe('estimate Fee', () => {
   const routeTest = createRouteTest(true)

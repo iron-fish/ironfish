@@ -64,6 +64,10 @@ import {
 } from '../routes'
 import { MintAssetRequest, MintAssetResponse } from '../routes/assets/mint'
 import {
+  EstimateFeeRatesRequest,
+  EstimateFeeRatesResponse,
+} from '../routes/chain/estimateFeeRates'
+import {
   ExportChainStreamRequest,
   ExportChainStreamResponse,
 } from '../routes/chain/exportChain'
@@ -72,10 +76,6 @@ import {
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
-import {
-  EstimateFeeRatesRequest,
-  EstimateFeeRatesResponse,
-} from '../routes/chain/estimateFeeRates'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
 import {
   GetPeerMessagesRequest,
