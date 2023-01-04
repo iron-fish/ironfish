@@ -88,25 +88,25 @@ export class ImportCommand extends IronfishCommand {
   }
 
   async importTTY(): Promise<Omit<AccountValue, 'id'>> {
-    const accountName = (await CliUx.ux.prompt('Enter the account name', {
+    const accountName = await CliUx.ux.prompt('Enter the account name', {
       required: true,
-    })) as string
+    })
 
-    const spendingKey = (await CliUx.ux.prompt('Enter the account spending key', {
+    const spendingKey = await CliUx.ux.prompt('Enter the account spending key', {
       required: true,
-    })) as string
+    })
 
-    const incomingViewKey = (await CliUx.ux.prompt('Enter the account incoming view key', {
+    const incomingViewKey = await CliUx.ux.prompt('Enter the account incoming view key', {
       required: true,
-    })) as string
+    })
 
-    const outgoingViewKey = (await CliUx.ux.prompt('Enter the account outgoing view key', {
+    const outgoingViewKey = await CliUx.ux.prompt('Enter the account outgoing view key', {
       required: true,
-    })) as string
+    })
 
-    const publicAddress = (await CliUx.ux.prompt('Enter the account public address', {
+    const publicAddress = await CliUx.ux.prompt('Enter the account public address', {
       required: true,
-    })) as string
+    })
 
     return {
       name: accountName,

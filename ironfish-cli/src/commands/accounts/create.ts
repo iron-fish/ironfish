@@ -27,9 +27,9 @@ export class CreateCommand extends IronfishCommand {
     let name = args.account as string
 
     if (!name) {
-      name = (await CliUx.ux.prompt('Enter the name of the account', {
+      name = await CliUx.ux.prompt('Enter the name of the account', {
         required: true,
-      })) as string
+      })
     }
 
     const client = await this.sdk.connectRpc()

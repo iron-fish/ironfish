@@ -49,12 +49,12 @@ export default class Testnet extends IronfishCommand {
     let userArg = ((args.user as string | undefined) || '').trim()
 
     if (!userArg) {
-      userArg = (await CliUx.ux.prompt(
+      userArg = await CliUx.ux.prompt(
         'Enter the user graffiti or url to a testnet user like https://testnet.ironfish.network/users/1080\nUser Graffiti or URL',
         {
           required: true,
         },
-      )) as string
+      )
       this.log('')
     }
 

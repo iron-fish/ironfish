@@ -35,7 +35,7 @@ export class RemoveCommand extends IronfishCommand {
     const response = await client.removeAccount({ name, confirm })
 
     if (response.content.needsConfirm) {
-      const value = (await CliUx.ux.prompt(`Are you sure? Type ${name} to confirm`)) as string
+      const value = await CliUx.ux.prompt(`Are you sure? Type ${name} to confirm`)
 
       if (value !== name) {
         this.log(`Aborting: ${value} did not match ${name}`)

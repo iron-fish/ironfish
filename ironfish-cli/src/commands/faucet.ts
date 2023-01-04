@@ -41,9 +41,9 @@ export class FaucetCommand extends IronfishCommand {
 
     if (!email) {
       email =
-        ((await CliUx.ux.prompt('Enter your email to stay updated with Iron Fish', {
+        (await CliUx.ux.prompt('Enter your email to stay updated with Iron Fish', {
           required: false,
-        })) as string) || undefined
+        })) || undefined
     }
 
     // Create an account if one is not set
@@ -53,9 +53,9 @@ export class FaucetCommand extends IronfishCommand {
     if (!accountName) {
       this.log(`You don't have a default account set up yet. Let's create one first!`)
       accountName =
-        ((await CliUx.ux.prompt('Please enter the name of your new Iron Fish account', {
+        (await CliUx.ux.prompt('Please enter the name of your new Iron Fish account', {
           required: false,
-        })) as string) || 'default'
+        })) || 'default'
 
       await client.createAccount({ name: accountName, default: true })
     }

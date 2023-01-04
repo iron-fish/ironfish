@@ -59,7 +59,7 @@
     "@aws-sdk/client-s3": "3.127.0",
     "@ironfish/rust-nodejs": "0.1.18",
     "@ironfish/sdk": "0.0.32",
-    "@oclif/core": "1.16.1",
+    "@oclif/core": "1.23.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",
     "@types/tar": "6.1.1",
