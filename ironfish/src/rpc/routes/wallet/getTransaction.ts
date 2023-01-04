@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Note } from '../../../primitives/note'
+import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 import { RpcAccountDecryptedNote, serializeRpcAccountTransaction } from './types'
 import { getAccount } from './utils'
@@ -100,7 +101,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       serializedNotes.push({
         owner,
         memo: note.memo(),
-        value: note.value().toString(),
+        value: CurrencyUtils.encode(note.value()),
         sender: note.sender(),
         spent: spent,
       })
