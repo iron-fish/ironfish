@@ -16,18 +16,17 @@ describe('estimate Fee', () => {
     })
     await node.chain.addBlock(block)
     await node.wallet.updateHead()
-    const response = await routeTest.client
-      .request<EstimateFeeRequest>('fees/estimateFee', {
-        fromAccountName: 'existingAccount',
-        receives: [
-          {
-            publicAddress: 'test2',
-            amount: BigInt(10).toString(),
-            memo: '',
-          },
-        ],
-      })
-      .waitForEnd()
+
+    const response = await routeTest.client.estimateFee({
+      fromAccountName: 'existingAccount',
+      receives: [
+        {
+          publicAddress: 'test2',
+          amount: BigInt(10).toString(),
+          memo: '',
+        },
+      ],
+    })
 
     expect(response.content).toMatchObject({
       low: '1',

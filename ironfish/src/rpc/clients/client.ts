@@ -75,7 +75,7 @@ import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import {
   EstimateFeeRatesRequest,
   EstimateFeeRatesResponse,
-} from '../routes/fees/estimateFeeRates'
+} from '../routes/chain/estimateFeeRates'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
 import {
   GetPeerMessagesRequest,
@@ -370,7 +370,7 @@ export abstract class RpcClient {
     params?: EstimateFeeRatesRequest,
   ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> {
     return this.request<EstimateFeeRatesResponse>(
-      `${ApiNamespace.fees}/estimateFeeRates`,
+      `${ApiNamespace.chain}/estimateFeeRates`,
       params,
     ).waitForEnd()
   }
@@ -379,7 +379,7 @@ export abstract class RpcClient {
     params: EstimateFeeRequest,
   ): Promise<RpcResponseEnded<EstimateFeeResponse>> {
     return this.request<EstimateFeeResponse>(
-      `${ApiNamespace.fees}/estimateFee`,
+      `${ApiNamespace.chain}/estimateFee`,
       params,
     ).waitForEnd()
   }
