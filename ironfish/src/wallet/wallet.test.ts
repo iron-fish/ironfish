@@ -9,8 +9,11 @@ import {
   useAccountFixture,
   useBlockFixture,
   useBlockWithTx,
+  useBurnBlockFixture,
   useMinerBlockFixture,
   useMinersTxFixture,
+  useMintBlockFixture,
+  usePostTxFixture,
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
@@ -930,6 +933,67 @@ describe('Accounts', () => {
       await node.wallet.rebroadcastTransactions()
 
       expect(broadcastSpy).toHaveBeenCalledTimes(0)
+    })
+  })
+
+  describe('burn', () => {
+    it('returns a transaction with matching burn descriptions', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      const mined = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(mined)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      const burnValue = BigInt(2)
+      const transaction = await usePostTxFixture({
+        node: node,
+        wallet: node.wallet,
+        from: account,
+        burns: [{ assetIdentifier: asset.identifier(), value: burnValue }],
+      })
+
+      expect(transaction.burns).toEqual([
+        { assetIdentifier: asset.identifier(), value: burnValue },
+      ])
+    })
+
+    it('subtracts balance for the asset from the wallet', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      const mined = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(mined)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      const burnValue = BigInt(2)
+      const burnBlock = await useBurnBlockFixture({
+        node,
+        account,
+        asset,
+        value: burnValue,
+        sequence: 4,
+      })
+      await expect(node.chain).toAddBlock(burnBlock)
+      await node.wallet.updateHead()
+
+      expect(await node.wallet.getBalance(account, asset.identifier())).toEqual({
+        unconfirmed: BigInt(8),
+        unconfirmedCount: 0,
+        confirmed: BigInt(8),
+      })
     })
   })
 
