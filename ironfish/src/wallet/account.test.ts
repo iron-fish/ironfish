@@ -11,6 +11,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils/async'
+import { BalanceValue } from './walletdb/balanceValue'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -201,15 +202,23 @@ describe('Accounts', () => {
       const { node } = nodeTest
 
       const account = await useAccountFixture(node.wallet, 'account')
-      const nativeBalance = BigInt(1)
+      const nativeBalance = {
+        unconfirmed: BigInt(1),
+        blockHash: null,
+        sequence: null,
+      }
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-      const mintedAssetBalance = BigInt(7)
+      const mintedAssetBalance = {
+        unconfirmed: BigInt(7),
+        blockHash: null,
+        sequence: null,
+      }
 
       await account.saveUnconfirmedBalance(Asset.nativeIdentifier(), nativeBalance)
       await account.saveUnconfirmedBalance(asset.identifier(), mintedAssetBalance)
 
       const balances = await account.getUnconfirmedBalances()
-      const expectedBalances = new BufferMap<bigint>([
+      const expectedBalances = new BufferMap<BalanceValue>([
         [Asset.nativeIdentifier(), nativeBalance],
         [asset.identifier(), mintedAssetBalance],
       ])
@@ -445,7 +454,7 @@ describe('Accounts', () => {
       }
 
       // disconnect transaction
-      await accountA.disconnectTransaction(transaction)
+      await accountA.disconnectTransaction(block3.header, transaction)
 
       for (const note of transaction.notes) {
         const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
@@ -499,7 +508,7 @@ describe('Accounts', () => {
       }
 
       // disconnect transaction
-      await accountA.disconnectTransaction(transaction)
+      await accountA.disconnectTransaction(block3.header, transaction)
 
       for (const spend of transaction.spends) {
         const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
@@ -539,7 +548,7 @@ describe('Accounts', () => {
       expect(pendingHashEntry).toBeUndefined()
 
       // disconnect transaction
-      await accountA.disconnectTransaction(transaction)
+      await accountA.disconnectTransaction(block3.header, transaction)
 
       pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
         accountA.prefix,

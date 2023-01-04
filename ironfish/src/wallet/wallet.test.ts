@@ -1088,7 +1088,7 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
-      expect(balanceBefore).toEqual(2000000000n)
+      expect(balanceBefore.unconfirmed).toEqual(2000000000n)
 
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
       await expect(node.chain).toAddBlock(blockA2)
@@ -1096,7 +1096,7 @@ describe('Accounts', () => {
       await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
 
       const balanceAfter = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
-      expect(balanceAfter).toEqual(1999999998n)
+      expect(balanceAfter.unconfirmed).toEqual(1999999998n)
     })
   })
 
@@ -1176,7 +1176,7 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
-      expect(balanceBefore).toEqual(2000000000n)
+      expect(balanceBefore.unconfirmed).toEqual(2000000000n)
 
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
       await expect(node.chain).toAddBlock(blockA2)
@@ -1184,7 +1184,7 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const balanceAfterConnect = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
-      expect(balanceAfterConnect).toEqual(1999999998n)
+      expect(balanceAfterConnect.unconfirmed).toEqual(1999999998n)
 
       await node.chain.db.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)
@@ -1195,7 +1195,7 @@ describe('Accounts', () => {
       const balanceAfterDisconnect = await accountA.getUnconfirmedBalance(
         Asset.nativeIdentifier(),
       )
-      expect(balanceAfterDisconnect).toEqual(2000000000n)
+      expect(balanceAfterDisconnect.unconfirmed).toEqual(2000000000n)
     })
   })
 })

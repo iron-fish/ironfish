@@ -10,7 +10,6 @@ import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
 import { TransactionHash } from '../../primitives/transaction'
 import {
-  BigIntLEEncoding,
   BUFFER_ENCODING,
   BufferEncoding,
   IDatabase,
@@ -28,6 +27,7 @@ import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
+import { BalanceValue, BalanceValueEncoding } from './balanceValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
@@ -58,7 +58,7 @@ export class WalletDB {
 
   balances: IDatabaseStore<{
     key: [Account['prefix'], Buffer]
-    value: bigint
+    value: BalanceValue
   }>
 
   decryptedNotes: IDatabaseStore<{
@@ -139,7 +139,7 @@ export class WalletDB {
     this.balances = this.db.addStore({
       name: 'b',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
-      valueEncoding: new BigIntLEEncoding(),
+      valueEncoding: new BalanceValueEncoding(),
     })
 
     this.decryptedNotes = this.db.addStore({
@@ -218,7 +218,16 @@ export class WalletDB {
         tx,
       )
       if (nativeUnconfirmedBalance === undefined) {
-        await this.saveUnconfirmedBalance(account, Asset.nativeIdentifier(), BigInt(0), tx)
+        await this.saveUnconfirmedBalance(
+          account,
+          Asset.nativeIdentifier(),
+          {
+            unconfirmed: BigInt(0),
+            blockHash: null,
+            sequence: null,
+          },
+          tx,
+        )
       }
     })
   }
@@ -626,15 +635,22 @@ export class WalletDB {
     account: Account,
     assetIdentifier: Buffer,
     tx?: IDatabaseTransaction,
-  ): Promise<bigint> {
+  ): Promise<BalanceValue> {
     const unconfirmedBalance = await this.balances.get([account.prefix, assetIdentifier], tx)
-    return unconfirmedBalance ?? BigInt(0)
+
+    return (
+      unconfirmedBalance ?? {
+        unconfirmed: BigInt(0),
+        blockHash: null,
+        sequence: null,
+      }
+    )
   }
 
   async *getUnconfirmedBalances(
     account: Account,
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ assetIdentifier: Buffer; balance: bigint }> {
+  ): AsyncGenerator<{ assetIdentifier: Buffer; balance: BalanceValue }> {
     for await (const [[_, assetIdentifier], balance] of this.balances.getAllIter(
       tx,
       account.prefixRange,
@@ -646,7 +662,7 @@ export class WalletDB {
   async saveUnconfirmedBalance(
     account: Account,
     assetIdentifier: Buffer,
-    balance: bigint,
+    balance: BalanceValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.balances.put([account.prefix, assetIdentifier], balance, tx)
