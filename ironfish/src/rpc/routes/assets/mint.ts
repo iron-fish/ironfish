@@ -13,6 +13,8 @@ export interface MintAssetRequest {
   metadata: string
   name: string
   value: string
+  expiration?: number
+  expirationDelta?: number
 }
 
 export interface MintAssetResponse {
@@ -27,6 +29,8 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
     metadata: yup.string().required(),
     name: yup.string().required(),
     value: yup.string().required(),
+    expiration: yup.number().optional(),
+    expirationDelta: yup.number().optional(),
   })
   .defined()
 
@@ -63,6 +67,8 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       request.data.metadata,
       value,
       fee,
+      request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
+      request.data.expiration,
     )
     Assert.isEqual(transaction.mints.length, 1)
     const mint = transaction.mints[0]

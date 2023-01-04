@@ -701,14 +701,28 @@ export class Wallet {
     metadata: string,
     value: bigint,
     fee: bigint,
+    transactionExpirationDelta: number,
+    expiration?: number,
   ): Promise<Transaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
       throw new Error('You must have a genesis block to create a transaction')
     }
 
+    expiration = expiration ?? heaviestHead.sequence + transactionExpirationDelta
+    if (this.chain.verifier.isExpiredSequence(expiration, this.chain.head.sequence)) {
+      throw new Error('Invalid expiration sequence for transaction')
+    }
+
     const asset = new Asset(account.spendingKey, name, metadata)
-    const raw = await this.createTransaction(account, [], [{ asset, value }], [], fee, 0)
+    const raw = await this.createTransaction(
+      account,
+      [],
+      [{ asset, value }],
+      [],
+      fee,
+      expiration,
+    )
 
     const transaction = await this.postTransaction(raw)
 
