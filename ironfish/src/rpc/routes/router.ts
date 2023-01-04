@@ -11,7 +11,6 @@ import { RpcRequest } from '../request'
 import { RpcServer } from '../server'
 
 export enum ApiNamespace {
-  asset = 'asset',
   chain = 'chain',
   config = 'config',
   event = 'event',
