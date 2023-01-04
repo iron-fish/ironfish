@@ -41,8 +41,8 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
     if (!request.data.confirm) {
       const balances = await account.getUnconfirmedBalances()
 
-      for (const [_, { balance }] of balances) {
-        if (balance !== BigInt(0)) {
+      for (const [_, { unconfirmed }] of balances) {
+        if (unconfirmed !== BigInt(0)) {
           request.end({ needsConfirm: true })
           return
         }

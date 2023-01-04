@@ -9,7 +9,7 @@ describe('BalanceValueEncoding', () => {
   const nodeTest = createNodeTest()
 
   function expectBalanceValueToMatch(a: BalanceValue, b: BalanceValue): void {
-    expect(a.balance).toEqual(b.balance)
+    expect(a.unconfirmed).toEqual(b.unconfirmed)
     expect(BufferUtils.equalsNullable(a.blockHash, b.blockHash)).toBe(true)
     expect(a.sequence).toEqual(b.sequence)
   }
@@ -19,7 +19,7 @@ describe('BalanceValueEncoding', () => {
       const encoder = new BalanceValueEncoding()
 
       const balanceValue = {
-        balance: 0n,
+        unconfirmed: 0n,
         blockHash: null,
         sequence: null,
       }
@@ -38,7 +38,7 @@ describe('BalanceValueEncoding', () => {
       const encoder = new BalanceValueEncoding()
 
       const balanceValue = {
-        balance: 0n,
+        unconfirmed: 0n,
         blockHash: block.header.hash,
         sequence: block.header.sequence,
       }

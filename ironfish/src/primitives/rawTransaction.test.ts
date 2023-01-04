@@ -32,7 +32,7 @@ describe('RawTransaction', () => {
     )
     await expect(nodeTest.chain).toAddBlock(block)
     await nodeTest.wallet.updateHead()
-    const { balance } = await account.getUnconfirmedBalance(Asset.nativeIdentifier())
+    const { unconfirmed } = await account.getUnconfirmedBalance(Asset.nativeIdentifier())
 
     const burn = {
       assetIdentifier: Asset.nativeIdentifier(),
@@ -77,7 +77,7 @@ describe('RawTransaction', () => {
 
     const nativeValue = valuesByAsset.get(Asset.nativeIdentifier())
     Assert.isNotUndefined(nativeValue)
-    expect(nativeValue).toEqual(balance - raw.fee - mint.value - 1n)
+    expect(nativeValue).toEqual(unconfirmed - raw.fee - mint.value - 1n)
 
     const mintedValue = valuesByAsset.get(asset.identifier())
     Assert.isNotUndefined(mintedValue)

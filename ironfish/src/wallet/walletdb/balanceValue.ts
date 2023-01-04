@@ -5,7 +5,7 @@ import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 
 export interface BalanceValue {
-  balance: bigint
+  unconfirmed: bigint
   blockHash: Buffer | null
   sequence: number | null
 }
@@ -13,7 +13,7 @@ export interface BalanceValue {
 export class BalanceValueEncoding implements IDatabaseEncoding<BalanceValue> {
   serialize(value: BalanceValue): Buffer {
     const bw = bufio.write(this.getSize(value))
-    bw.writeBigU64(value.balance)
+    bw.writeBigU64(value.unconfirmed)
 
     let flags = 0
     flags |= Number(!!value.blockHash) << 0
@@ -50,7 +50,7 @@ export class BalanceValueEncoding implements IDatabaseEncoding<BalanceValue> {
     }
 
     return {
-      balance: value,
+      unconfirmed: value,
       blockHash,
       sequence,
     }

@@ -203,13 +203,13 @@ describe('Accounts', () => {
 
       const account = await useAccountFixture(node.wallet, 'account')
       const nativeBalance = {
-        balance: BigInt(1),
+        unconfirmed: BigInt(1),
         blockHash: null,
         sequence: null,
       }
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
       const mintedAssetBalance = {
-        balance: BigInt(7),
+        unconfirmed: BigInt(7),
         blockHash: null,
         sequence: null,
       }
