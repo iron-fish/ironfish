@@ -14,18 +14,18 @@ import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
 interface Note {
-  assetId: string
+  assetIdentifier: string
   assetName: string
   value: string
   memo: string
 }
 interface Mint {
-  assetId: string
+  assetIdentifier: string
   assetName: string
   value: string
 }
 interface Burn {
-  assetId: string
+  assetIdentifier: string
   assetName: string
   value: string
 }
@@ -41,7 +41,7 @@ interface Transaction {
 const NoteSchema = yup
   .object()
   .shape({
-    assetId: yup.string().required(),
+    assetIdentifier: yup.string().required(),
     assetName: yup.string().required(),
     value: yup.string().required(),
     memo: yup.string().required(),
@@ -51,7 +51,7 @@ const NoteSchema = yup
 const MintSchema = yup
   .object()
   .shape({
-    assetId: yup.string().required(),
+    assetIdentifier: yup.string().required(),
     assetName: yup.string().required(),
     value: yup.string().required(),
   })
@@ -60,7 +60,7 @@ const MintSchema = yup
 const BurnSchema = yup
   .object()
   .shape({
-    assetId: yup.string().required(),
+    assetIdentifier: yup.string().required(),
     assetName: yup.string().required(),
     value: yup.string().required(),
   })
@@ -162,8 +162,8 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
             notes.push({
               value: CurrencyUtils.encode(decryptedNote.value()),
               memo: decryptedNote.memo(),
-              assetId: decryptedNote.assetIdentifier.toString(),
-              assetName: assetValue.name.toString(),
+              assetIdentifier: decryptedNote.assetIdentifier().toString('hex'),
+              assetName: assetValue.name.toString('hex'),
             })
           }
         }
@@ -172,16 +172,16 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           const assetValue = await validatedAssetValue(burn.assetIdentifier)
           burns.push({
             value: CurrencyUtils.encode(burn.value),
-            assetId: burn.assetIdentifier.toString('hex'),
-            assetName: assetValue.name.toString(),
+            assetIdentifier: burn.assetIdentifier.toString('hex'),
+            assetName: assetValue.name.toString('hex'),
           })
         }
 
         for (const mint of tx.mints) {
           mints.push({
             value: CurrencyUtils.encode(mint.value),
-            assetId: mint.asset.identifier().toString('hex'),
-            assetName: mint.asset.name().toString(),
+            assetIdentifier: mint.asset.identifier().toString('hex'),
+            assetName: mint.asset.name().toString('hex'),
           })
         }
 
@@ -212,7 +212,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
     }
 
     const validatedAssetValue = async (assetIdentifier: Buffer): Promise<AssetsValue> => {
-      const assetValue = await node.chain.assets.get(assetIdentifier)
+      const assetValue = await node.chain.getAssetById(assetIdentifier)
       if (!assetValue) {
         throw new ValidationError(
           `Asset detected in chain is not in assetDB. Asset Identifier: ${assetIdentifier.toString()}`,
