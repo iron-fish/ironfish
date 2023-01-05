@@ -82,6 +82,7 @@ import {
   GetPeerMessagesResponse,
 } from '../routes/peers/getPeerMessages'
 import { GetRpcStatusRequest, GetRpcStatusResponse } from '../routes/rpc/getStatus'
+import { BurnAssetRequest, BurnAssetResponse } from '../routes/wallet/burnAsset'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
 import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/wallet/importAccount'
@@ -332,6 +333,13 @@ export abstract class RpcClient {
 
   async mintAsset(params: MintAssetRequest): Promise<RpcResponseEnded<MintAssetResponse>> {
     return this.request<MintAssetResponse>(`${ApiNamespace.asset}/mint`, params).waitForEnd()
+  }
+
+  async burnAsset(params: BurnAssetRequest): Promise<RpcResponseEnded<BurnAssetResponse>> {
+    return this.request<BurnAssetResponse>(
+      `${ApiNamespace.wallet}/burnAsset`,
+      params,
+    ).waitForEnd()
   }
 
   async sendTransaction(
