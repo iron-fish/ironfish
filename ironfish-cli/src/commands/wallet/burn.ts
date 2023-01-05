@@ -10,9 +10,7 @@ import { ProgressBar } from '../../types'
 export class Burn extends IronfishCommand {
   static description = 'Burn tokens and decrease supply for a given asset'
 
-  static examples = [
-    '$ ironfish wallet:burn -i "assetIdentifier" -a 1000 -f myaccount -o 1',
-  ]
+  static examples = ['$ ironfish wallet:burn -i "assetIdentifier" -a 1000 -f myaccount -o 1']
 
   static flags = {
     ...RemoteFlags,
