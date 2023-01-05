@@ -62,7 +62,6 @@ import {
   UseAccountRequest,
   UseAccountResponse,
 } from '../routes'
-import { MintAssetRequest, MintAssetResponse } from '../routes/assets/mint'
 import {
   EstimateFeeRatesRequest,
   EstimateFeeRatesResponse,
@@ -86,6 +85,7 @@ import { BurnAssetRequest, BurnAssetResponse } from '../routes/wallet/burnAsset'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
 import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/wallet/importAccount'
+import { MintAssetRequest, MintAssetResponse } from '../routes/wallet/mintAsset'
 import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/wallet/removeAccount'
 import { RescanAccountRequest, RescanAccountResponse } from '../routes/wallet/rescanAccount'
 
@@ -332,7 +332,10 @@ export abstract class RpcClient {
   }
 
   async mintAsset(params: MintAssetRequest): Promise<RpcResponseEnded<MintAssetResponse>> {
-    return this.request<MintAssetResponse>(`${ApiNamespace.asset}/mint`, params).waitForEnd()
+    return this.request<MintAssetResponse>(
+      `${ApiNamespace.wallet}/mintAsset`,
+      params,
+    ).waitForEnd()
   }
 
   async burnAsset(params: BurnAssetRequest): Promise<RpcResponseEnded<BurnAssetResponse>> {
