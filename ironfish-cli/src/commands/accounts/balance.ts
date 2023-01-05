@@ -63,26 +63,16 @@ export class BalanceCommand extends IronfishCommand {
     if (flags.all) {
       this.log(`Account: ${response.content.account}`)
       this.log(
-        `Balance:     ${CurrencyUtils.renderIron(
-          response.content.confirmed,
-          true,
-          assetId,
-        )}`,
+        `Balance:     ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`,
       )
       this.log(
-        `Unconfirmed: ${CurrencyUtils.renderIron(
-          response.content.unconfirmed,
-          true,
-          assetId,
-        )}`,
+        `Unconfirmed: ${CurrencyUtils.renderIron(response.content.unconfirmed, true, assetId)}`,
       )
       return
     }
 
     this.log(`Account: ${response.content.account}`)
-    this.log(
-      `Balance: ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`,
-    )
+    this.log(`Balance: ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`)
   }
 
   explainBalance(response: GetBalanceResponse, assetId: string): void {
