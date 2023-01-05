@@ -214,13 +214,13 @@ export class WalletDB {
       await this.accounts.put(account.id, account.serialize(), tx)
 
       const nativeUnconfirmedBalance = await this.balances.get(
-        [account.prefix, Asset.nativeIdentifier()],
+        [account.prefix, Asset.nativeId()],
         tx,
       )
       if (nativeUnconfirmedBalance === undefined) {
         await this.saveUnconfirmedBalance(
           account,
-          Asset.nativeIdentifier(),
+          Asset.nativeId(),
           {
             unconfirmed: BigInt(0),
             blockHash: null,
@@ -633,10 +633,10 @@ export class WalletDB {
 
   async getUnconfirmedBalance(
     account: Account,
-    assetIdentifier: Buffer,
+    assetId: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<BalanceValue> {
-    const unconfirmedBalance = await this.balances.get([account.prefix, assetIdentifier], tx)
+    const unconfirmedBalance = await this.balances.get([account.prefix, assetId], tx)
 
     return (
       unconfirmedBalance ?? {
@@ -650,22 +650,22 @@ export class WalletDB {
   async *getUnconfirmedBalances(
     account: Account,
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ assetIdentifier: Buffer; balance: BalanceValue }> {
-    for await (const [[_, assetIdentifier], balance] of this.balances.getAllIter(
+  ): AsyncGenerator<{ assetId: Buffer; balance: BalanceValue }> {
+    for await (const [[_, assetId], balance] of this.balances.getAllIter(
       tx,
       account.prefixRange,
     )) {
-      yield { assetIdentifier, balance }
+      yield { assetId, balance }
     }
   }
 
   async saveUnconfirmedBalance(
     account: Account,
-    assetIdentifier: Buffer,
+    assetId: Buffer,
     balance: BalanceValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.balances.put([account.prefix, assetIdentifier], balance, tx)
+    await this.balances.put([account.prefix, assetId], balance, tx)
   }
 
   async clearBalance(account: Account, tx?: IDatabaseTransaction): Promise<void> {

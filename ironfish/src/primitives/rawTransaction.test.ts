@@ -29,10 +29,10 @@ describe('RawTransaction', () => {
     )
     await expect(nodeTest.chain).toAddBlock(block)
     await nodeTest.wallet.updateHead()
-    const { unconfirmed } = await account.getUnconfirmedBalance(Asset.nativeIdentifier())
+    const { unconfirmed } = await account.getUnconfirmedBalance(Asset.nativeId())
 
     const burn = {
-      assetIdentifier: Asset.nativeIdentifier(),
+      assetId: Asset.nativeId(),
       value: 2n,
     }
 
@@ -67,16 +67,16 @@ describe('RawTransaction', () => {
       const decryptedNote = note.decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(decryptedNote)
 
-      const identifier = decryptedNote.assetIdentifier()
-      const value = valuesByAsset.get(identifier) || 0n
-      valuesByAsset.set(identifier, value + decryptedNote.value())
+      const id = decryptedNote.assetId()
+      const value = valuesByAsset.get(id) || 0n
+      valuesByAsset.set(id, value + decryptedNote.value())
     }
 
-    const nativeValue = valuesByAsset.get(Asset.nativeIdentifier())
+    const nativeValue = valuesByAsset.get(Asset.nativeId())
     Assert.isNotUndefined(nativeValue)
     expect(nativeValue).toEqual(unconfirmed - raw.fee - mint.value - 1n)
 
-    const mintedValue = valuesByAsset.get(asset.identifier())
+    const mintedValue = valuesByAsset.get(asset.id())
     Assert.isNotUndefined(mintedValue)
     expect(mintedValue).toEqual(1n)
   })
@@ -91,7 +91,7 @@ describe('RawTransaction', () => {
           generateKey().public_address,
           5n,
           'memo',
-          asset.identifier(),
+          asset.id(),
           account.publicAddress,
         ).serialize(),
       )
@@ -121,7 +121,7 @@ describe('RawTransaction', () => {
 
       raw.burns = [
         {
-          assetIdentifier: asset.identifier(),
+          assetId: asset.id(),
           value: 5n,
         },
       ]
@@ -145,7 +145,7 @@ describe('RawTransaction', () => {
 
       expect(RawTransactionSerde.serialize(deserialized).equals(serialized)).toBe(true)
       expect(deserialized.receives[0].note).toEqual(raw.receives[0].note)
-      expect(deserialized.burns[0].assetIdentifier).toEqual(asset.identifier())
+      expect(deserialized.burns[0].assetId).toEqual(asset.id())
       expect(deserialized.burns[0].value).toEqual(5n)
       expect(deserialized.mints[0].asset.serialize()).toEqual(asset.serialize())
       expect(deserialized.mints[0].value).toEqual(5n)

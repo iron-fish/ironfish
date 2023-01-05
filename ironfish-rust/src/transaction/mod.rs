@@ -9,8 +9,7 @@ use value_balances::ValueBalances;
 
 use crate::{
     assets::asset::{
-        asset_generator_from_identifier, Asset, AssetIdentifier, NATIVE_ASSET,
-        NATIVE_ASSET_GENERATOR,
+        asset_generator_from_id, Asset, AssetIdentifier, NATIVE_ASSET, NATIVE_ASSET_GENERATOR,
     },
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
@@ -135,7 +134,7 @@ impl ProposedTransaction {
     /// Spend the note owned by spender_key at the given witness location.
     pub fn add_spend(&mut self, note: Note, witness: &dyn WitnessTrait) {
         self.value_balances
-            .add(&note.asset_identifier(), note.value() as i64);
+            .add(&note.asset_id(), note.value() as i64);
 
         self.spends.push(SpendBuilder::new(note, witness));
     }
@@ -144,22 +143,21 @@ impl ProposedTransaction {
     /// transaction.
     pub fn add_output(&mut self, note: Note) {
         self.value_balances
-            .subtract(&note.asset_identifier(), note.value() as i64);
+            .subtract(&note.asset_id(), note.value() as i64);
 
         self.outputs.push(OutputBuilder::new(note));
     }
 
     pub fn add_mint(&mut self, asset: Asset, value: u64) {
-        self.value_balances.add(asset.identifier(), value as i64);
+        self.value_balances.add(asset.id(), value as i64);
 
         self.mints.push(MintBuilder::new(asset, value));
     }
 
-    pub fn add_burn(&mut self, asset_identifier: AssetIdentifier, value: u64) {
-        self.value_balances
-            .subtract(&asset_identifier, value as i64);
+    pub fn add_burn(&mut self, asset_id: AssetIdentifier, value: u64) {
+        self.value_balances.subtract(&asset_id, value as i64);
 
-        self.burns.push(BurnBuilder::new(asset_identifier, value));
+        self.burns.push(BurnBuilder::new(asset_id, value));
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
@@ -179,8 +177,8 @@ impl ProposedTransaction {
     ) -> Result<Transaction, IronfishError> {
         let mut change_notes = vec![];
 
-        for (asset_identifier, value) in self.value_balances.iter() {
-            let is_native_asset = asset_identifier == &NATIVE_ASSET;
+        for (asset_id, value) in self.value_balances.iter() {
+            let is_native_asset = asset_id == &NATIVE_ASSET;
 
             let change_amount = match is_native_asset {
                 true => *value - intended_transaction_fee as i64,
@@ -197,7 +195,7 @@ impl ProposedTransaction {
                     change_address,
                     change_amount as u64, // we checked it was positive
                     "",
-                    SubgroupPoint::from_bytes(asset_identifier).unwrap(),
+                    SubgroupPoint::from_bytes(asset_id).unwrap(),
                     self.spender_key.public_address(),
                 );
 
@@ -727,7 +725,7 @@ fn calculate_value_balance(
     let mut value_balance_point = binding_verification_key - fee_point;
 
     for burn in burns {
-        let burn_generator = asset_generator_from_identifier(&burn.asset_identifier);
+        let burn_generator = asset_generator_from_id(&burn.asset_id);
         value_balance_point -= burn_generator * jubjub::Fr::from(burn.value);
     }
 

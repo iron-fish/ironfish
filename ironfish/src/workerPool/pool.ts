@@ -158,7 +158,7 @@ export class WorkerPool {
       publicAddress: string
       amount: bigint
       memo: string
-      assetIdentifier: Buffer
+      assetId: Buffer
     }[],
     mints: MintDescription[],
     burns: BurnDescription[],

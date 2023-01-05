@@ -22,7 +22,7 @@ describe('TransactionValueEncoding', () => {
       const transaction = await useMinersTxFixture(nodeTest.wallet)
 
       const assetBalanceDeltas = new BufferMap<bigint>()
-      assetBalanceDeltas.set(Asset.nativeIdentifier(), -transaction.fee())
+      assetBalanceDeltas.set(Asset.nativeId(), -transaction.fee())
 
       const value: TransactionValue = {
         transaction,
@@ -45,7 +45,7 @@ describe('TransactionValueEncoding', () => {
       const transaction = await useMinersTxFixture(nodeTest.wallet)
 
       const assetBalanceDeltas = new BufferMap<bigint>()
-      assetBalanceDeltas.set(Asset.nativeIdentifier(), -transaction.fee())
+      assetBalanceDeltas.set(Asset.nativeId(), -transaction.fee())
 
       const value: TransactionValue = {
         transaction,
@@ -68,7 +68,7 @@ describe('TransactionValueEncoding', () => {
       const transaction = await useMinersTxFixture(nodeTest.wallet)
 
       const assetBalanceDeltas = new BufferMap<bigint>()
-      assetBalanceDeltas.set(Asset.nativeIdentifier(), -transaction.fee())
+      assetBalanceDeltas.set(Asset.nativeId(), -transaction.fee())
 
       const value: TransactionValue = {
         transaction,
@@ -117,8 +117,8 @@ describe('TransactionValueEncoding', () => {
       const accountA = await useAccountFixture(wallet, 'accountA')
       const testAsset = new Asset(accountA.spendingKey, 'test-asset', 'test-asset-metadata')
 
-      assetBalanceDeltas.set(Asset.nativeIdentifier(), -transaction.fee())
-      assetBalanceDeltas.set(testAsset.identifier(), 1n)
+      assetBalanceDeltas.set(Asset.nativeId(), -transaction.fee())
+      assetBalanceDeltas.set(testAsset.id(), 1n)
 
       const value: TransactionValue = {
         transaction,
@@ -142,7 +142,7 @@ describe('TransactionValueEncoding', () => {
       const transaction = await useMinersTxFixture(nodeTest.wallet)
 
       const assetBalanceDeltas = new BufferMap<bigint>()
-      assetBalanceDeltas.set(Asset.nativeIdentifier(), -transaction.fee())
+      assetBalanceDeltas.set(Asset.nativeId(), -transaction.fee())
 
       const value: TransactionValue = {
         transaction,

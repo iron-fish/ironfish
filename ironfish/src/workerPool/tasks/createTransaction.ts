@@ -2,13 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import {
-  Asset,
-  ASSET_IDENTIFIER_LENGTH,
-  ASSET_LENGTH,
-  Note,
-  Transaction,
-} from '@ironfish/rust-nodejs'
+import { Asset, ASSET_ID_LENGTH, ASSET_LENGTH, Note, Transaction } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../../merkletree'
 import { NoteHasher } from '../../merkletree/hasher'
@@ -39,7 +33,7 @@ export class CreateTransactionRequest extends WorkerMessage {
     publicAddress: string
     amount: bigint
     memo: string
-    assetIdentifier: Buffer
+    assetId: Buffer
   }[]
   readonly mints: MintDescription[]
   readonly burns: BurnDescription[]
@@ -58,7 +52,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       publicAddress: string
       amount: bigint
       memo: string
-      assetIdentifier: Buffer
+      assetId: Buffer
     }[],
     mints: MintDescription[],
     burns: BurnDescription[],
@@ -105,7 +99,7 @@ export class CreateTransactionRequest extends WorkerMessage {
       bw.writeVarString(receive.publicAddress)
       bw.writeVarBytes(BigIntUtils.toBytesBE(receive.amount))
       bw.writeVarString(receive.memo, 'utf8')
-      bw.writeBytes(receive.assetIdentifier)
+      bw.writeBytes(receive.assetId)
     }
 
     bw.writeU64(this.mints.length)
@@ -116,7 +110,7 @@ export class CreateTransactionRequest extends WorkerMessage {
 
     bw.writeU64(this.burns.length)
     for (const burn of this.burns) {
-      bw.writeBytes(burn.assetIdentifier)
+      bw.writeBytes(burn.assetId)
       bw.writeVarBytes(BigIntUtils.toBytesBE(burn.value))
     }
 
@@ -153,8 +147,8 @@ export class CreateTransactionRequest extends WorkerMessage {
       const publicAddress = reader.readVarString()
       const amount = BigIntUtils.fromBytesBE(reader.readVarBytes())
       const memo = reader.readVarString('utf8')
-      const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
-      receives.push({ publicAddress, amount, memo, assetIdentifier })
+      const assetId = reader.readBytes(ASSET_ID_LENGTH)
+      receives.push({ publicAddress, amount, memo, assetId })
     }
 
     const mintsLength = reader.readU64()
@@ -168,9 +162,9 @@ export class CreateTransactionRequest extends WorkerMessage {
     const burnsLength = reader.readU64()
     const burns = []
     for (let i = 0; i < burnsLength; i++) {
-      const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
+      const assetId = reader.readBytes(ASSET_ID_LENGTH)
       const value = BigIntUtils.fromBytesBE(reader.readVarBytes())
-      burns.push({ assetIdentifier, value })
+      burns.push({ assetId, value })
     }
 
     return new CreateTransactionRequest(
@@ -208,7 +202,7 @@ export class CreateTransactionRequest extends WorkerMessage {
         bufio.sizeVarString(receive.publicAddress) +
         bufio.sizeVarBytes(BigIntUtils.toBytesBE(receive.amount)) +
         bufio.sizeVarString(receive.memo, 'utf8') +
-        ASSET_IDENTIFIER_LENGTH
+        ASSET_ID_LENGTH
     }
 
     let mintsSize = 0
@@ -218,8 +212,7 @@ export class CreateTransactionRequest extends WorkerMessage {
 
     let burnsSize = 0
     for (const burn of this.burns) {
-      burnsSize +=
-        ASSET_IDENTIFIER_LENGTH + bufio.sizeVarBytes(BigIntUtils.toBytesBE(burn.value))
+      burnsSize += ASSET_ID_LENGTH + bufio.sizeVarBytes(BigIntUtils.toBytesBE(burn.value))
     }
 
     return (
@@ -295,8 +288,8 @@ export class CreateTransactionTask extends WorkerTask {
       )
     }
 
-    for (const { publicAddress, amount, memo, assetIdentifier } of receives) {
-      const note = new Note(publicAddress, amount, memo, assetIdentifier, transaction.sender())
+    for (const { publicAddress, amount, memo, assetId } of receives) {
+      const note = new Note(publicAddress, amount, memo, assetId, transaction.sender())
       transaction.receive(note)
     }
 
@@ -304,8 +297,8 @@ export class CreateTransactionTask extends WorkerTask {
       transaction.mint(asset, value)
     }
 
-    for (const { assetIdentifier, value } of burns) {
-      transaction.burn(assetIdentifier, value)
+    for (const { assetId, value } of burns) {
+      transaction.burn(assetId, value)
     }
 
     const serializedTransactionPosted = transaction.post(undefined, transactionFee)

@@ -5,30 +5,27 @@
 use std::io;
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ironfish_zkp::constants::ASSET_IDENTIFIER_LENGTH;
+use ironfish_zkp::constants::ASSET_ID_LENGTH;
 
 use crate::{assets::asset::AssetIdentifier, errors::IronfishError};
 
 /// Parameters used to build a burn description
 pub struct BurnBuilder {
     /// Identifier of the Asset to be burned
-    pub asset_identifier: AssetIdentifier,
+    pub asset_id: AssetIdentifier,
 
     /// Amount of asset to burn
     pub value: u64,
 }
 
 impl BurnBuilder {
-    pub fn new(asset_identifier: AssetIdentifier, value: u64) -> Self {
-        Self {
-            asset_identifier,
-            value,
-        }
+    pub fn new(asset_id: AssetIdentifier, value: u64) -> Self {
+        Self { asset_id, value }
     }
 
     pub fn build(&self) -> BurnDescription {
         BurnDescription {
-            asset_identifier: self.asset_identifier,
+            asset_id: self.asset_id,
             value: self.value,
         }
     }
@@ -39,7 +36,7 @@ impl BurnBuilder {
 #[derive(Clone)]
 pub struct BurnDescription {
     /// Identifier for the Asset which is being burned
-    pub asset_identifier: AssetIdentifier,
+    pub asset_id: AssetIdentifier,
 
     /// Amount of asset to burn
     pub value: u64,
@@ -55,24 +52,21 @@ impl BurnDescription {
         &self,
         mut writer: W,
     ) -> Result<(), IronfishError> {
-        writer.write_all(&self.asset_identifier)?;
+        writer.write_all(&self.asset_id)?;
         writer.write_u64::<LittleEndian>(self.value)?;
 
         Ok(())
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        let asset_identifier = {
-            let mut bytes = [0u8; ASSET_IDENTIFIER_LENGTH];
+        let asset_id = {
+            let mut bytes = [0u8; ASSET_ID_LENGTH];
             reader.read_exact(&mut bytes)?;
             bytes
         };
         let value = reader.read_u64::<LittleEndian>()?;
 
-        Ok(BurnDescription {
-            asset_identifier,
-            value,
-        })
+        Ok(BurnDescription { asset_id, value })
     }
 
     /// Stow the bytes of this [`BurnDescription`] in the given writer.
@@ -99,10 +93,10 @@ mod test {
         let asset = Asset::new(owner, name, metadata).unwrap();
         let value = 5;
 
-        let builder = BurnBuilder::new(asset.identifier, value);
+        let builder = BurnBuilder::new(asset.id, value);
 
         assert_eq!(builder.value, value);
-        assert_eq!(builder.asset_identifier, asset.identifier);
+        assert_eq!(builder.asset_id, asset.id);
     }
 
     #[test]
@@ -115,7 +109,7 @@ mod test {
         let asset = Asset::new(owner, name, metadata).unwrap();
         let value = 5;
 
-        let builder = BurnBuilder::new(asset.identifier, value);
+        let builder = BurnBuilder::new(asset.id, value);
         let burn = builder.build();
 
         let mut serialized_description = vec![];
@@ -125,10 +119,7 @@ mod test {
         let deserialized_description = BurnDescription::read(&serialized_description[..])
             .expect("should be able to deserialize valid description");
 
-        assert_eq!(
-            burn.asset_identifier,
-            deserialized_description.asset_identifier
-        );
+        assert_eq!(burn.asset_id, deserialized_description.asset_id);
         assert_eq!(burn.value, deserialized_description.value);
 
         let mut reserialized_description = vec![];

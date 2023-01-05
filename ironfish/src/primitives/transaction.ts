@@ -4,7 +4,7 @@
 
 import {
   Asset,
-  ASSET_IDENTIFIER_LENGTH,
+  ASSET_ID_LENGTH,
   ASSET_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
   PROOF_LENGTH,
@@ -102,10 +102,10 @@ export class Transaction {
     })
 
     this.burns = Array.from({ length: _burnsLength }, () => {
-      const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
+      const assetId = reader.readBytes(ASSET_ID_LENGTH)
       const value = reader.readBigU64()
 
-      return { assetIdentifier, value }
+      return { assetId, value }
     })
 
     this._signature = reader.readBytes(64, true)

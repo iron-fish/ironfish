@@ -40,11 +40,7 @@ export class CurrencyUtils {
   /*
    * Renders ore as iron for human-readable purposes
    */
-  static renderIron(
-    amount: bigint | string,
-    includeTicker = false,
-    assetIdentifier?: string,
-  ): string {
+  static renderIron(amount: bigint | string, includeTicker = false, assetId?: string): string {
     if (typeof amount === 'string') {
       amount = this.decode(amount)
     }
@@ -53,8 +49,8 @@ export class CurrencyUtils {
 
     if (includeTicker) {
       let ticker = '$IRON'
-      if (assetIdentifier && !isNativeIdentifier(assetIdentifier)) {
-        ticker = assetIdentifier
+      if (assetId && !isNativeIdentifier(assetId)) {
+        ticker = assetId
       }
       return `${ticker} ${iron}`
     }
@@ -65,11 +61,7 @@ export class CurrencyUtils {
   /*
    * Renders ore for human-readable purposes
    */
-  static renderOre(
-    amount: bigint | string,
-    includeTicker = false,
-    assetIdentifier?: string,
-  ): string {
+  static renderOre(amount: bigint | string, includeTicker = false, assetId?: string): string {
     if (typeof amount === 'string') {
       amount = this.decode(amount)
     }
@@ -78,8 +70,8 @@ export class CurrencyUtils {
 
     if (includeTicker) {
       let ticker = '$ORE'
-      if (assetIdentifier && !isNativeIdentifier(assetIdentifier)) {
-        ticker = assetIdentifier
+      if (assetId && !isNativeIdentifier(assetId)) {
+        ticker = assetId
       }
       return `${ticker} ${ore}`
     }

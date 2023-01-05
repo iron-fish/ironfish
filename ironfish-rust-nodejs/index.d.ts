@@ -12,7 +12,7 @@ export interface BoxedMessage {
 }
 export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
 export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
-export const ASSET_IDENTIFIER_LENGTH: number
+export const ASSET_ID_LENGTH: number
 export const ASSET_METADATA_LENGTH: number
 export const ASSET_NAME_LENGTH: number
 export const ASSET_OWNER_LENGTH: number
@@ -64,8 +64,8 @@ export class Asset {
   name(): Buffer
   nonce(): number
   owner(): Buffer
-  static nativeIdentifier(): Buffer
-  identifier(): Buffer
+  static nativeId(): Buffer
+  id(): Buffer
   serialize(): Buffer
   static deserialize(jsBytes: Buffer): NativeAsset
 }
@@ -87,7 +87,7 @@ export class NoteEncrypted {
 }
 export type NativeNote = Note
 export class Note {
-  constructor(owner: string, value: bigint, memo: string, assetIdentifier: Buffer, sender: string)
+  constructor(owner: string, value: bigint, memo: string, assetId: Buffer, sender: string)
   static deserialize(jsBytes: Buffer): NativeNote
   serialize(): Buffer
   /** Value this note represents. */
@@ -100,7 +100,7 @@ export class Note {
    */
   memo(): string
   /** Asset identifier associated with this note */
-  assetIdentifier(): Buffer
+  assetId(): Buffer
   /** Sender of the note */
   sender(): string
   /** Owner of the note */
@@ -140,7 +140,7 @@ export class Transaction {
   /** Mint a new asset with a given value as part of this transaction. */
   mint(asset: Asset, value: bigint): void
   /** Burn some supply of a given asset and value as part of this transaction. */
-  burn(assetIdentifierJsBytes: Buffer, value: bigint): void
+  burn(assetIdJsBytes: Buffer, value: bigint): void
   /**
    * Special case for posting a miners fee transaction. Miner fee transactions
    * are unique in that they generate currency. They do not have any spends

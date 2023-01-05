@@ -22,7 +22,7 @@ describe('burnAsset', () => {
       await expect(
         routeTest.client.burnAsset({
           account: 'fake-account',
-          assetIdentifier: '{ url: hello }',
+          assetId: '{ url: hello }',
           fee: '1',
           value: '1',
         }),
@@ -35,7 +35,7 @@ describe('burnAsset', () => {
       await expect(
         routeTest.client.burnAsset({
           account: 'account',
-          assetIdentifier: '{ url: hello }',
+          assetId: '{ url: hello }',
           fee: '0',
           value: '100',
         }),
@@ -48,7 +48,7 @@ describe('burnAsset', () => {
       await expect(
         routeTest.client.burnAsset({
           account: 'account',
-          assetIdentifier: '{ url: hello }',
+          assetId: '{ url: hello }',
           fee: '1',
           value: '-1',
         }),
@@ -63,7 +63,7 @@ describe('burnAsset', () => {
       const account = await useAccountFixture(wallet)
 
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-      const assetIdentifier = asset.identifier()
+      const assetId = asset.id()
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
       await expect(node.chain).toAddBlock(mintBlock)
@@ -74,19 +74,19 @@ describe('burnAsset', () => {
         node: node,
         wallet: node.wallet,
         from: account,
-        burns: [{ assetIdentifier: asset.identifier(), value: burnValue }],
+        burns: [{ assetId: asset.id(), value: burnValue }],
       })
       jest.spyOn(wallet, 'burn').mockResolvedValueOnce(burnTransaction)
 
       const response = await routeTest.client.burnAsset({
         account: account.name,
-        assetIdentifier: assetIdentifier.toString('hex'),
+        assetId: assetId.toString('hex'),
         fee: '1',
         value: CurrencyUtils.encode(value),
       })
 
       expect(response.content).toEqual({
-        assetIdentifier: asset.identifier().toString('hex'),
+        assetId: asset.id().toString('hex'),
         hash: burnTransaction.hash().toString('hex'),
       })
     })

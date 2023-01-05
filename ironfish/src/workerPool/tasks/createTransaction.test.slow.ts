@@ -86,7 +86,7 @@ describe('CreateTransactionRequest', () => {
           publicAddress: '',
           amount: BigInt(5),
           memo: '👁️🏃🐟',
-          assetIdentifier: Asset.nativeIdentifier(),
+          assetId: Asset.nativeId(),
         },
       ],
       [
@@ -97,7 +97,7 @@ describe('CreateTransactionRequest', () => {
       ],
       [
         {
-          assetIdentifier: burnAsset.identifier(),
+          assetId: burnAsset.id(),
           value: BigInt(2),
         },
       ],
@@ -164,7 +164,7 @@ describe('CreateTransactionTask', () => {
             publicAddress: account.publicAddress,
             amount: BigInt(1),
             memo: '',
-            assetIdentifier: Asset.nativeIdentifier(),
+            assetId: Asset.nativeId(),
           },
         ],
         [
@@ -175,7 +175,7 @@ describe('CreateTransactionTask', () => {
         ],
         [
           {
-            assetIdentifier: asset.identifier(),
+            assetId: asset.id(),
             value: burnValue,
           },
         ],
@@ -197,16 +197,16 @@ describe('CreateTransactionTask', () => {
         ).decryptNoteForOwner(account.incomingViewKey)
         Assert.isNotUndefined(decryptedNote)
 
-        const identifier = decryptedNote.assetIdentifier()
-        const value = outputValuesByAssetIdentifier.get(identifier) || BigInt(0)
-        outputValuesByAssetIdentifier.set(identifier, value + decryptedNote.value())
+        const id = decryptedNote.assetId()
+        const value = outputValuesByAssetIdentifier.get(id) || BigInt(0)
+        outputValuesByAssetIdentifier.set(id, value + decryptedNote.value())
       }
 
-      const nativeAssetValue = outputValuesByAssetIdentifier.get(Asset.nativeIdentifier())
+      const nativeAssetValue = outputValuesByAssetIdentifier.get(Asset.nativeId())
       Assert.isNotUndefined(nativeAssetValue)
       expect(nativeAssetValue).toEqual(2000000000n - fee)
 
-      const mintedAssetValue = outputValuesByAssetIdentifier.get(asset.identifier())
+      const mintedAssetValue = outputValuesByAssetIdentifier.get(asset.id())
       Assert.isNotUndefined(mintedAssetValue)
       expect(mintedAssetValue).toEqual(mintValue - burnValue)
     })

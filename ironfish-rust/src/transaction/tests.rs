@@ -75,7 +75,7 @@ fn test_transaction() {
     assert_eq!(transaction.outputs.len(), 2);
 
     // Burn 2 tokens, leaving 1 token left to be put into a change note
-    transaction.add_burn(asset.identifier, burn_value);
+    transaction.add_burn(asset.id, burn_value);
     assert_eq!(transaction.burns.len(), 1);
 
     let public_transaction = transaction

@@ -18,13 +18,13 @@ impl ValueBalances {
         ValueBalances { values: hash_map }
     }
 
-    pub fn add(&mut self, asset_identifier: &AssetIdentifier, value: i64) {
-        let current_value = self.values.entry(*asset_identifier).or_insert(0);
+    pub fn add(&mut self, asset_id: &AssetIdentifier, value: i64) {
+        let current_value = self.values.entry(*asset_id).or_insert(0);
         *current_value += value
     }
 
-    pub fn subtract(&mut self, asset_identifier: &AssetIdentifier, value: i64) {
-        let current_value = self.values.entry(*asset_identifier).or_insert(0);
+    pub fn subtract(&mut self, asset_id: &AssetIdentifier, value: i64) {
+        let current_value = self.values.entry(*asset_id).or_insert(0);
         *current_value -= value
     }
 

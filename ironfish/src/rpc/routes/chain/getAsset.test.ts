@@ -12,14 +12,14 @@ describe('Route chain.getAsset', () => {
   const routeTest = createRouteTest()
 
   it('responds with an asset', async () => {
-    const asset = await routeTest.node.chain.getAssetById(Asset.nativeIdentifier())
+    const asset = await routeTest.node.chain.getAssetById(Asset.nativeId())
     Assert.isNotNull(asset)
 
     const response = await routeTest.client.getAsset({
-      identifier: asset.identifier.toString('hex'),
+      id: asset.id.toString('hex'),
     })
 
-    expect(response.content.identifier).toEqual(asset.identifier.toString('hex'))
+    expect(response.content.id).toEqual(asset.id.toString('hex'))
     expect(response.content.metadata).toBe(asset.metadata.toString('hex'))
     expect(response.content.owner).toBe(asset.owner.toString('hex'))
     expect(response.content.nonce).toBe(asset.nonce)

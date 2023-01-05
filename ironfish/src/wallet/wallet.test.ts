@@ -54,9 +54,7 @@ describe('Accounts', () => {
 
     // Check nodeA balance
     await nodeA.wallet.updateHead()
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
@@ -86,9 +84,7 @@ describe('Accounts', () => {
     })
 
     await nodeA.wallet.updateHead()
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -147,7 +143,7 @@ describe('Accounts', () => {
       accountA['walletDb'].loadNotesNotOnChain(accountA),
     )
     // set minimumBlockConfirmations so that balance considers confirmations
-    const balanceA = await nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier(), {
+    const balanceA = await nodeA.wallet.getBalance(accountA, Asset.nativeId(), {
       minimumBlockConfirmations: 2,
     })
 
@@ -185,9 +181,7 @@ describe('Accounts', () => {
     await expect(nodeA.chain).toAddBlock(blockA2)
     await nodeA.wallet.updateHead()
 
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
     })
@@ -202,9 +196,7 @@ describe('Accounts', () => {
     expect(nodeA.chain.head.hash.equals(blockB3.header.hash)).toBe(true)
     await nodeA.wallet.updateHead()
 
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -430,11 +422,11 @@ describe('Accounts', () => {
       expect(nodeA.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
       expect(nodeB.chain.head.hash.equals(blockA5.header.hash)).toBe(true)
 
-      expect(await nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier())).toMatchObject({
+      expect(await nodeA.wallet.getBalance(accountA, Asset.nativeId())).toMatchObject({
         confirmed: BigInt(6000000000),
         unconfirmed: BigInt(10000000000),
       })
-      expect(await nodeB.wallet.getBalance(accountB, Asset.nativeIdentifier())).toMatchObject({
+      expect(await nodeB.wallet.getBalance(accountB, Asset.nativeId())).toMatchObject({
         confirmed: BigInt(0),
       })
     })
@@ -956,12 +948,10 @@ describe('Accounts', () => {
         node: node,
         wallet: node.wallet,
         from: account,
-        burns: [{ assetIdentifier: asset.identifier(), value: burnValue }],
+        burns: [{ assetId: asset.id(), value: burnValue }],
       })
 
-      expect(transaction.burns).toEqual([
-        { assetIdentifier: asset.identifier(), value: burnValue },
-      ])
+      expect(transaction.burns).toEqual([{ assetId: asset.id(), value: burnValue }])
     })
 
     it('subtracts balance for the asset from the wallet', async () => {
@@ -989,7 +979,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(burnBlock)
       await node.wallet.updateHead()
 
-      expect(await node.wallet.getBalance(account, asset.identifier())).toEqual({
+      expect(await node.wallet.getBalance(account, asset.id())).toEqual({
         unconfirmed: BigInt(8),
         unconfirmedCount: 0,
         confirmed: BigInt(8),
@@ -1008,7 +998,7 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-      const assetIdentifier = asset.identifier()
+      const assetId = asset.id()
       const mintValue = BigInt(10)
       // Mint some coins
       const blockB = await useBlockFixture(node.chain, async () => {
@@ -1030,7 +1020,7 @@ describe('Accounts', () => {
       })
       await expect(node.chain).toAddBlock(blockB)
       await node.wallet.updateHead()
-      await expect(node.wallet.getBalance(account, asset.identifier())).resolves.toMatchObject({
+      await expect(node.wallet.getBalance(account, asset.id())).resolves.toMatchObject({
         confirmed: mintValue,
       })
 
@@ -1042,7 +1032,7 @@ describe('Accounts', () => {
       // Check what notes would be spent
       const { amount, notes } = await node.wallet.createSpendsForAsset(
         account,
-        assetIdentifier,
+        assetId,
         BigInt(2),
       )
       expect(amount).toEqual(mintValue)
@@ -1151,7 +1141,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(blockA1)
       await node.wallet.updateHead()
 
-      const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceBefore.unconfirmed).toEqual(2000000000n)
 
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
@@ -1159,7 +1149,7 @@ describe('Accounts', () => {
 
       await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
 
-      const balanceAfter = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      const balanceAfter = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceAfter.unconfirmed).toEqual(1999999998n)
     })
   })
@@ -1239,7 +1229,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(blockA1)
       await node.wallet.updateHead()
 
-      const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      const balanceBefore = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceBefore.unconfirmed).toEqual(2000000000n)
 
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
@@ -1247,7 +1237,7 @@ describe('Accounts', () => {
 
       await node.wallet.updateHead()
 
-      const balanceAfterConnect = await accountA.getUnconfirmedBalance(Asset.nativeIdentifier())
+      const balanceAfterConnect = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceAfterConnect.unconfirmed).toEqual(1999999998n)
 
       await node.chain.db.transaction(async (tx) => {
@@ -1256,9 +1246,7 @@ describe('Accounts', () => {
 
       await node.wallet.updateHead()
 
-      const balanceAfterDisconnect = await accountA.getUnconfirmedBalance(
-        Asset.nativeIdentifier(),
-      )
+      const balanceAfterDisconnect = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceAfterDisconnect.unconfirmed).toEqual(2000000000n)
     })
   })

@@ -153,7 +153,7 @@ export class MiningPoolShares {
           publicAddress,
           amount: amt.toString(),
           memo: `${this.poolName} payout ${shareCutoff.toUTCString()}`,
-          assetIdentifier: Asset.nativeIdentifier().toString('hex'),
+          assetId: Asset.nativeId().toString('hex'),
         }
       },
     )

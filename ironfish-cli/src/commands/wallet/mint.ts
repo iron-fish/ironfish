@@ -100,7 +100,7 @@ export class Mint extends IronfishCommand {
       const response = result.content
       this.log(`
  Minted asset ${name} from ${account}
- Asset Identifier: ${response.assetIdentifier}
+ Asset Identifier: ${response.assetId}
  Value: ${amount}
  
  Transaction Hash: ${response.hash}

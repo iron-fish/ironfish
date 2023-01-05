@@ -436,7 +436,7 @@ describe('FeeEstimator', () => {
 
       // account1 should have only one note -- change from its transaction to account2
       const account1Notes = await AsyncUtils.materialize(
-        account1.getUnspentNotes(Asset.nativeIdentifier()),
+        account1.getUnspentNotes(Asset.nativeId()),
       )
       expect(account1Notes.length).toEqual(1)
 

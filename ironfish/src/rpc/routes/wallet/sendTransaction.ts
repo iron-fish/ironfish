@@ -15,7 +15,7 @@ export type SendTransactionRequest = {
     publicAddress: string
     amount: string
     memo: string
-    assetIdentifier?: string
+    assetId?: string
   }[]
   fee: string
   expiration?: number | null
@@ -27,7 +27,7 @@ export type SendTransactionResponse = {
     publicAddress: string
     amount: string
     memo: string
-    assetIdentifier?: string
+    assetId?: string
   }[]
   fromAccountName: string
   hash: string
@@ -43,7 +43,7 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
             publicAddress: yup.string().defined(),
             amount: yup.string().defined(),
             memo: yup.string().defined(),
-            assetIdentifier: yup.string().optional(),
+            assetId: yup.string().optional(),
           })
           .defined(),
       )
@@ -63,7 +63,7 @@ export const SendTransactionResponseSchema: yup.ObjectSchema<SendTransactionResp
             publicAddress: yup.string().defined(),
             amount: yup.string().defined(),
             memo: yup.string().defined(),
-            assetIdentifier: yup.string().optional(),
+            assetId: yup.string().optional(),
           })
           .defined(),
       )
@@ -99,16 +99,16 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     const receives = transaction.receives.map((receive) => {
-      let assetIdentifier = Asset.nativeIdentifier()
-      if (receive.assetIdentifier) {
-        assetIdentifier = Buffer.from(receive.assetIdentifier, 'hex')
+      let assetId = Asset.nativeId()
+      if (receive.assetId) {
+        assetId = Buffer.from(receive.assetId, 'hex')
       }
 
       return {
         publicAddress: receive.publicAddress,
         amount: CurrencyUtils.decode(receive.amount),
         memo: receive.memo,
-        assetIdentifier,
+        assetId,
       }
     })
 
@@ -118,19 +118,19 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     const totalByAssetIdentifier = new BufferMap<bigint>()
-    totalByAssetIdentifier.set(Asset.nativeIdentifier(), fee)
-    for (const { assetIdentifier, amount } of receives) {
+    totalByAssetIdentifier.set(Asset.nativeId(), fee)
+    for (const { assetId, amount } of receives) {
       if (amount < 0) {
         throw new ValidationError(`Invalid transaction amount ${amount}.`)
       }
 
-      const sum = totalByAssetIdentifier.get(assetIdentifier) ?? BigInt(0)
-      totalByAssetIdentifier.set(assetIdentifier, sum + amount)
+      const sum = totalByAssetIdentifier.get(assetId) ?? BigInt(0)
+      totalByAssetIdentifier.set(assetId, sum + amount)
     }
 
     // Check that the node account is updated
-    for (const [assetIdentifier, sum] of totalByAssetIdentifier) {
-      const balance = await node.wallet.getBalance(account, assetIdentifier)
+    for (const [assetId, sum] of totalByAssetIdentifier) {
+      const balance = await node.wallet.getBalance(account, assetId)
 
       if (balance.confirmed < sum) {
         throw new ValidationError(

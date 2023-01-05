@@ -43,7 +43,7 @@ export class NotesCommand extends IronfishCommand {
           assetName: {
             header: 'Asset Name',
           },
-          assetIdentifier: {
+          assetId: {
             header: 'Asset Id',
           },
           memo: {

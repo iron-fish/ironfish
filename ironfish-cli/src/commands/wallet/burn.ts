@@ -10,7 +10,7 @@ import { ProgressBar } from '../../types'
 export class Burn extends IronfishCommand {
   static description = 'Burn tokens and decrease supply for a given asset'
 
-  static examples = ['$ ironfish wallet:burn -i "assetIdentifier" -a 1000 -f myaccount -o 1']
+  static examples = ['$ ironfish wallet:burn -i "assetId" -a 1000 -f myaccount -o 1']
 
   static flags = {
     ...RemoteFlags,
@@ -29,7 +29,7 @@ export class Burn extends IronfishCommand {
       description: 'Amount of coins to burn',
       required: true,
     }),
-    assetIdentifier: Flags.string({
+    assetId: Flags.string({
       char: 'i',
       description: 'Identifier for the asset',
       required: true,
@@ -74,7 +74,7 @@ export class Burn extends IronfishCommand {
     try {
       const result = await client.burnAsset({
         account: flags.account,
-        assetIdentifier: flags.assetIdentifier,
+        assetId: flags.assetId,
         fee: flags.fee,
         value: flags.amount,
       })
@@ -83,7 +83,7 @@ export class Burn extends IronfishCommand {
 
       const response = result.content
       this.log(`
-   Burned asset ${response.assetIdentifier} from ${flags.account}
+   Burned asset ${response.assetId} from ${flags.account}
    Value: ${flags.amount}
    
    Transaction Hash: ${response.hash}

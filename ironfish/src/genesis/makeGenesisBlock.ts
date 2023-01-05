@@ -57,7 +57,7 @@ export async function makeGenesisBlock(
     genesisKey.public_address,
     allocationSum,
     '',
-    Asset.nativeIdentifier(),
+    Asset.nativeId(),
     genesisKey.public_address,
   )
 
@@ -73,7 +73,7 @@ export async function makeGenesisBlock(
     minersFeeKey.public_address,
     BigInt(0),
     '',
-    Asset.nativeIdentifier(),
+    Asset.nativeId(),
     minersFeeKey.public_address,
   )
 
@@ -138,7 +138,7 @@ export async function makeGenesisBlock(
       alloc.publicAddress,
       BigInt(alloc.amountInOre),
       alloc.memo,
-      Asset.nativeIdentifier(),
+      Asset.nativeId(),
       genesisNote.owner(),
     )
     transaction.receive(note)

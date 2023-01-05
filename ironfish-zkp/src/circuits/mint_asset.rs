@@ -11,7 +11,7 @@ use zcash_proofs::{
 
 use crate::{
     circuits::util::{asset_info_preimage, expose_value_commitment},
-    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_IDENTIFIER_PERSONALIZATION},
+    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_PERSONALIZATION},
     primitives::ValueCommitment,
 };
 
@@ -139,7 +139,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         // Computed identifier bits from the given asset info
         let asset_info_hashed_point = pedersen_hash::pedersen_hash(
             cs.namespace(|| "asset info hash"),
-            ASSET_IDENTIFIER_PERSONALIZATION,
+            ASSET_ID_PERSONALIZATION,
             &asset_info_preimage,
         )?;
 
@@ -187,7 +187,7 @@ mod test {
     };
 
     use crate::{
-        constants::{ASSET_IDENTIFIER_PERSONALIZATION, PUBLIC_KEY_GENERATOR},
+        constants::{ASSET_ID_PERSONALIZATION, PUBLIC_KEY_GENERATOR},
         primitives::ValueCommitment,
     };
 
@@ -220,7 +220,7 @@ mod test {
         let asset_plaintext_bits = multipack::bytes_to_bits_le(&asset_plaintext);
 
         let asset_info_hashed_point =
-            pedersen_hash::pedersen_hash(ASSET_IDENTIFIER_PERSONALIZATION, asset_plaintext_bits);
+            pedersen_hash::pedersen_hash(ASSET_ID_PERSONALIZATION, asset_plaintext_bits);
 
         let asset_info_hashed_bytes = asset_info_hashed_point.to_bytes();
 
