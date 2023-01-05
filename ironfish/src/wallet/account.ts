@@ -13,6 +13,7 @@ import { DecryptedNote } from '../workerPool/tasks/decryptNotes'
 import { AccountValue } from './walletdb/accountValue'
 import { BalanceValue } from './walletdb/balanceValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
+import { HeaderValue } from './walletdb/headerValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
@@ -82,7 +83,7 @@ export class Account {
     await this.walletDb.clearNonChainNoteHashes(this, tx)
     await this.walletDb.clearPendingTransactionHashes(this, tx)
     await this.walletDb.clearBalance(this, tx)
-    await this.updateHeadHash(null, tx)
+    await this.updateHeader(null, tx)
   }
 
   async *getNotes(): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
@@ -549,12 +550,12 @@ export class Account {
     await this.walletDb.saveUnconfirmedBalance(this, assetId, balance, tx)
   }
 
-  async getHeadHash(tx?: IDatabaseTransaction): Promise<Buffer | null> {
-    return this.walletDb.getHeadHash(this, tx)
+  async getHeader(tx?: IDatabaseTransaction): Promise<HeaderValue | null> {
+    return this.walletDb.getHeader(this, tx)
   }
 
-  async updateHeadHash(headHash: Buffer | null, tx?: IDatabaseTransaction): Promise<void> {
-    await this.walletDb.saveHeadHash(this, headHash, tx)
+  async updateHeader(header: HeaderValue | null, tx?: IDatabaseTransaction): Promise<void> {
+    await this.walletDb.saveHeader(this, header, tx)
   }
 
   async getTransactionNotes(

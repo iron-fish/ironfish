@@ -93,8 +93,8 @@ export default class Debug extends IronfishCommand {
     const output = new Map<string, string>()
 
     const headHashes = new Map<string, Buffer | null>()
-    for await (const { accountId, headHash } of node.wallet.walletDb.loadHeadHashes()) {
-      headHashes.set(accountId, headHash)
+    for await (const { accountId, header } of node.wallet.walletDb.loadHeaders()) {
+      headHashes.set(accountId, header?.hash ?? null)
     }
 
     for (const [accountId, headHash] of headHashes.entries()) {

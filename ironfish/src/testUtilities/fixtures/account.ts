@@ -20,7 +20,7 @@ export function useAccountFixture(
 
     deserialize: async (accountData: AccountValue): Promise<Account> => {
       const account = await wallet.importAccount(accountData)
-      await account.updateHeadHash(wallet.chainProcessor.hash)
+      await account.updateHeader(wallet.chainProcessor.hash)
       return account
     },
   })
