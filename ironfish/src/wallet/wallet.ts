@@ -57,8 +57,6 @@ export class Wallet {
   scan: ScanState | null = null
   updateHeadState: ScanState | null = null
 
-  protected readonly headHashes = new Map<string, Buffer | null>()
-
   protected readonly accounts = new Map<string, Account>()
   readonly walletDb: WalletDB
   readonly logger: Logger
@@ -110,7 +108,10 @@ export class Wallet {
     this.chainProcessor.onAdd.on(async (header) => {
       this.logger.debug(`AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`)
 
-      const accounts = this.listAccounts().filter((account) => this.isAccountUpToDate(account))
+      const accounts = await AsyncUtils.filter(
+        this.listAccounts(),
+        async (account) => await this.isAccountUpToDate(account),
+      )
 
       await this.connectBlock(header, accounts)
     })
@@ -118,7 +119,10 @@ export class Wallet {
     this.chainProcessor.onRemove.on(async (header) => {
       this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
 
-      const accounts = this.listAccounts().filter((account) => this.isAccountUpToDate(account))
+      const accounts = await AsyncUtils.filter(
+        this.listAccounts(),
+        async (account) => await this.isAccountUpToDate(account),
+      )
 
       await this.disconnectBlock(header, accounts)
     })
@@ -150,7 +154,7 @@ export class Wallet {
     }
   }
 
-  get shouldRescan(): boolean {
+  async shouldRescan(): Promise<boolean> {
     if (this.scan) {
       return false
     }
@@ -160,7 +164,7 @@ export class Wallet {
     }
 
     for (const account of this.accounts.values()) {
-      if (!this.isAccountUpToDate(account)) {
+      if (!(await this.isAccountUpToDate(account))) {
         return true
       }
     }
@@ -191,16 +195,11 @@ export class Wallet {
     const meta = await this.walletDb.loadAccountsMeta()
     this.defaultAccount = meta.defaultAccountId
 
-    for await (const { accountId, headHash } of this.walletDb.loadHeadHashes()) {
-      this.headHashes.set(accountId, headHash)
-    }
-
     this.chainProcessor.hash = await this.getLatestHeadHash()
   }
 
   private unload(): void {
     this.accounts.clear()
-    this.headHashes.clear()
 
     this.defaultAccount = null
     this.chainProcessor.hash = null
@@ -235,7 +234,7 @@ export class Wallet {
       }
     }
 
-    if (this.shouldRescan && !this.scan) {
+    if (!this.scan && (await this.shouldRescan())) {
       void this.scanTransactions()
     }
 
@@ -256,10 +255,6 @@ export class Wallet {
     this.eventLoopAbortController.abort()
 
     await this.eventLoopPromise
-
-    if (this.walletDb.db.isOpen) {
-      await this.updateHeadHashes(this.chainProcessor.hash)
-    }
   }
 
   async eventLoop(): Promise<void> {
@@ -285,35 +280,8 @@ export class Wallet {
     this.eventLoopResolve = null
   }
 
-  async updateHeadHashes(headHash: Buffer | null, tx?: IDatabaseTransaction): Promise<void> {
-    let accounts = this.listAccounts()
-
-    if (headHash) {
-      accounts = accounts.filter((a) => this.isAccountUpToDate(a))
-    }
-
-    await this.walletDb.db.withTransaction(tx, async (tx) => {
-      for (const account of accounts) {
-        await this.updateHeadHash(account, headHash, tx)
-      }
-    })
-  }
-
-  async updateHeadHash(
-    account: Account,
-    headHash: Buffer | null,
-    tx?: IDatabaseTransaction,
-  ): Promise<void> {
-    this.headHashes.set(account.id, headHash)
-
-    await this.walletDb.saveHeadHash(account, headHash, tx)
-  }
-
   async reset(): Promise<void> {
-    await this.walletDb.db.transaction(async (tx) => {
-      await this.resetAccounts(tx)
-      await this.updateHeadHashes(null, tx)
-    })
+    await this.resetAccounts()
 
     this.chainProcessor.hash = null
   }
@@ -330,7 +298,11 @@ export class Wallet {
     accounts?: Array<Account>,
   ): Promise<Map<string, Array<DecryptedNote>>> {
     const accountsToCheck =
-      accounts || this.listAccounts().filter((a) => this.isAccountUpToDate(a))
+      accounts ||
+      (await AsyncUtils.filter(
+        this.listAccounts(),
+        async (a) => await this.isAccountUpToDate(a),
+      ))
 
     const decryptedNotesByAccountId = new Map<string, Array<DecryptedNote>>()
 
@@ -423,7 +395,7 @@ export class Wallet {
           scan?.signal(blockHeader.sequence)
         }
 
-        await this.updateHeadHash(account, blockHeader.hash, tx)
+        await account.updateHeadHash(blockHeader.hash, tx)
       })
     }
   }
@@ -435,7 +407,7 @@ export class Wallet {
           await account.disconnectTransaction(header, transaction, tx)
         }
 
-        await this.updateHeadHash(account, header.previousBlockHash, tx)
+        await account.updateHeadHash(header.previousBlockHash, tx)
       })
     }
   }
@@ -473,7 +445,7 @@ export class Wallet {
       return
     }
 
-    if (!this.shouldRescan) {
+    if (!(await this.shouldRescan())) {
       this.logger.info('Skipping Scan, all accounts up to date.')
       return
     }
@@ -496,7 +468,7 @@ export class Wallet {
     let remainingAccounts: Array<Account> = []
 
     for (const account of this.accounts.values()) {
-      const headHash = this.headHashes.get(account.id)
+      const headHash = await account.getHeadHash()
       Assert.isNotUndefined(
         headHash,
         `scanTransactions: No head hash found for ${account.displayName}`,
@@ -504,7 +476,7 @@ export class Wallet {
 
       if (BufferUtils.equalsNullable(startHash, headHash)) {
         accounts.push(account)
-      } else if (!this.isAccountUpToDate(account)) {
+      } else if (!(await this.isAccountUpToDate(account))) {
         remainingAccounts.push(account)
       }
     }
@@ -549,7 +521,7 @@ export class Wallet {
       const newRemainingAccounts = []
 
       for (const remainingAccount of remainingAccounts) {
-        const headHash = this.headHashes.get(remainingAccount.id)
+        const headHash = await remainingAccount.getHeadHash()
         Assert.isNotUndefined(
           headHash,
           `scanTransactions: No head hash found for remaining account ${remainingAccount.displayName}`,
@@ -800,7 +772,7 @@ export class Wallet {
     try {
       this.assertHasAccount(sender)
 
-      if (!this.isAccountUpToDate(sender)) {
+      if (!(await this.isAccountUpToDate(sender))) {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
@@ -1166,7 +1138,7 @@ export class Wallet {
 
     await this.walletDb.db.transaction(async (tx) => {
       await this.walletDb.setAccount(account, tx)
-      await this.updateHeadHash(account, this.chainProcessor.hash, tx)
+      await account.updateHeadHash(this.chainProcessor.hash, tx)
     })
 
     this.accounts.set(account.id, account)
@@ -1179,7 +1151,7 @@ export class Wallet {
   }
 
   async skipRescan(account: Account): Promise<void> {
-    await this.updateHeadHash(account, this.chainProcessor.hash)
+    await account.updateHeadHash(this.chainProcessor.hash)
   }
 
   async importAccount(toImport: Omit<AccountValue, 'rescan' | 'id'>): Promise<Account> {
@@ -1201,7 +1173,7 @@ export class Wallet {
 
     await this.walletDb.db.transaction(async (tx) => {
       await this.walletDb.setAccount(account, tx)
-      await this.updateHeadHash(account, null, tx)
+      await account.updateHeadHash(null, tx)
     })
 
     this.accounts.set(account.id, account)
@@ -1322,7 +1294,7 @@ export class Wallet {
   async getEarliestHeadHash(): Promise<Buffer | null> {
     let earliestHeader = null
     for (const account of this.accounts.values()) {
-      const headHash = this.headHashes.get(account.id)
+      const headHash = await account.getHeadHash()
 
       if (!headHash) {
         return null
@@ -1337,7 +1309,7 @@ export class Wallet {
             'hex',
           )}. This account needs to be rescanned.`,
         )
-        await this.updateHeadHash(account, null)
+        await account.updateHeadHash(null)
         continue
       }
 
@@ -1353,7 +1325,7 @@ export class Wallet {
     let latestHeader = null
 
     for (const account of this.accounts.values()) {
-      const headHash = this.headHashes.get(account.id)
+      const headHash = await account.getHeadHash()
 
       if (!headHash) {
         continue
@@ -1367,7 +1339,7 @@ export class Wallet {
             'hex',
           )}. This account needs to be rescanned.`,
         )
-        await this.updateHeadHash(account, null)
+        await account.updateHeadHash(null)
         continue
       }
 
@@ -1379,8 +1351,8 @@ export class Wallet {
     return latestHeader ? latestHeader.hash : null
   }
 
-  isAccountUpToDate(account: Account): boolean {
-    const headHash = this.headHashes.get(account.id)
+  async isAccountUpToDate(account: Account): Promise<boolean> {
+    const headHash = await account.getHeadHash()
     Assert.isNotUndefined(
       headHash,
       `isAccountUpToDate: No head hash found for account ${account.displayName}`,

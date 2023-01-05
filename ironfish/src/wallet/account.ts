@@ -82,6 +82,7 @@ export class Account {
     await this.walletDb.clearNonChainNoteHashes(this, tx)
     await this.walletDb.clearPendingTransactionHashes(this, tx)
     await this.walletDb.clearBalance(this, tx)
+    await this.updateHeadHash(null, tx)
   }
 
   async *getNotes(): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
@@ -546,6 +547,10 @@ export class Account {
 
   async getHeadHash(tx?: IDatabaseTransaction): Promise<Buffer | null> {
     return this.walletDb.getHeadHash(this, tx)
+  }
+
+  async updateHeadHash(headHash: Buffer | null, tx?: IDatabaseTransaction): Promise<void> {
+    await this.walletDb.saveHeadHash(this, headHash, tx)
   }
 
   async getTransactionNotes(
