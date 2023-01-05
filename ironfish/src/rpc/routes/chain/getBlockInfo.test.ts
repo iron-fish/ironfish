@@ -1,9 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '../../../assert'
-import { useBlockWithTx } from '../../../testUtilities'
-import { makeBlockAfter } from '../../../testUtilities/helpers/blockchain'
+import { useBlockWithTx, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { ERROR_CODES } from '../../adapters'
 import { RpcRequestError } from '../../clients/errors'
@@ -14,21 +12,16 @@ describe('Route chain/getBlockInfo', () => {
 
   it('Processes hash and sequence inputs', async () => {
     // Create a 3 block chain
-    const { chain, strategy } = routeTest
+    const { chain } = routeTest
     await chain.open()
-    strategy.disableMiningReward()
 
-    const genesis = await chain.getBlock(chain.genesis)
-    Assert.isNotNull(genesis)
-
-    const blockA1 = await makeBlockAfter(chain, genesis)
+    const blockA1 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(blockA1)
-
-    const blockA2 = await makeBlockAfter(chain, blockA1)
+    const blockA2 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(blockA2)
 
     //Get hash of blocks
-    const hash0 = genesis.header.hash.toString('hex')
+    const hash0 = chain.genesis.hash.toString('hex')
     const hash1 = blockA1.header.hash.toString('hex')
     const hash2 = blockA2.header.hash.toString('hex')
 

@@ -15,16 +15,16 @@ describe('ChainProcessor', () => {
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    const blockA1 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA1)
-    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA2)
-    const blockA3 = await useMinerBlockFixture(nodeA.chain, 4)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA3)
 
-    const blockB1 = await useMinerBlockFixture(nodeB.chain, 2)
+    const blockB1 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB1)
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB2)
 
     const processor = new ChainProcessor({
@@ -90,11 +90,11 @@ describe('ChainProcessor', () => {
     expect(onEvent).toHaveBeenCalledTimes(0)
 
     // G -> A1 -> A2 -> A3
-    const blockA1 = await useMinerBlockFixture(chain, 2)
+    const blockA1 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(blockA1)
-    const blockA2 = await useMinerBlockFixture(chain, 3)
+    const blockA2 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(blockA2)
-    const blockA3 = await useMinerBlockFixture(chain, 4)
+    const blockA3 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(blockA3)
 
     await processor.update()
@@ -114,10 +114,9 @@ describe('ChainProcessor', () => {
   })
 
   it('cancels updates when abort signal is triggered', async () => {
-    const { strategy, chain } = nodeTest
-    strategy.disableMiningReward()
+    const { chain } = nodeTest
 
-    const blockA1 = await useMinerBlockFixture(chain, 2)
+    const blockA1 = await useMinerBlockFixture(chain)
 
     await expect(chain).toAddBlock(blockA1)
     expect(chain.head.hash).toEqual(blockA1.header.hash)

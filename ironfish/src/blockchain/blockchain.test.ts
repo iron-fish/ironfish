@@ -51,16 +51,16 @@ describe('Blockchain', () => {
     //         -> B2 -> B3
 
     const { node: nodeA } = await nodeTest.createSetup()
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    const blockA1 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA1)
-    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA2)
 
     const { node: nodeB } = await nodeTest.createSetup()
     await expect(nodeB.chain).toAddBlock(blockA1)
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB2)
-    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB3)
 
     // Added in a specific order for the test below
@@ -113,24 +113,24 @@ describe('Blockchain', () => {
     //               -> C3 -> C4
 
     const { node: nodeA } = await nodeTest.createSetup()
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    const blockA1 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA1)
-    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA2)
 
     const { node: nodeB } = await nodeTest.createSetup()
     await expect(nodeB.chain).toAddBlock(blockA1)
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB2)
-    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB3)
 
     const { node: nodeC } = await nodeTest.createSetup()
     await expect(nodeC.chain).toAddBlock(blockA1)
     await expect(nodeC.chain).toAddBlock(blockB2)
-    const blockC3 = await useMinerBlockFixture(nodeC.chain, 4)
+    const blockC3 = await useMinerBlockFixture(nodeC.chain)
     await expect(nodeC.chain).toAddBlock(blockC3)
-    const blockC4 = await useMinerBlockFixture(nodeC.chain, 5)
+    const blockC4 = await useMinerBlockFixture(nodeC.chain)
     await expect(nodeC.chain).toAddBlock(blockC4)
 
     await expect(chain).toAddBlock(blockA1)
@@ -199,24 +199,24 @@ describe('Blockchain', () => {
     //         -> B2 -> B3 -> B4 -> B5
 
     const { node: nodeA } = await nodeTest.createSetup()
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    const blockA1 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA1)
-    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA2)
-    const blockA3 = await useMinerBlockFixture(nodeA.chain, 4)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA3)
-    const blockA4 = await useMinerBlockFixture(nodeA.chain, 5)
+    const blockA4 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA4)
 
     const { node: nodeB } = await nodeTest.createSetup()
     await expect(nodeB.chain).toAddBlock(blockA1)
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB2)
-    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB3)
-    const blockB4 = await useMinerBlockFixture(nodeB.chain, 5)
+    const blockB4 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB4)
-    const blockB5 = await useMinerBlockFixture(nodeB.chain, 6)
+    const blockB5 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB5)
 
     await expect(chain).toAddBlock(blockA1)
@@ -260,24 +260,24 @@ describe('Blockchain', () => {
     //         -> B2 -> B3 -> B4 -> B5
 
     const { node: nodeA } = await nodeTest.createSetup()
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    const blockA1 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA1)
-    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA2)
-    const blockA3 = await useMinerBlockFixture(nodeA.chain, 4)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA3)
-    const blockA4 = await useMinerBlockFixture(nodeA.chain, 5)
+    const blockA4 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA4)
 
     const { node: nodeB } = await nodeTest.createSetup()
     await expect(nodeB.chain).toAddBlock(blockA1)
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB2)
-    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB3)
-    const blockB4 = await useMinerBlockFixture(nodeB.chain, 5)
+    const blockB4 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB4)
-    const blockB5 = await useMinerBlockFixture(nodeB.chain, 5)
+    const blockB5 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB5)
 
     await expect(chain).toAddBlock(blockA1)
@@ -317,15 +317,15 @@ describe('Blockchain', () => {
     //   -> B1 -> B2
 
     const { node: nodeA } = await nodeTest.createSetup()
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    const blockA1 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA1)
-    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA2)
 
     const { node: nodeB } = await nodeTest.createSetup()
-    const blockB1 = await useMinerBlockFixture(nodeB.chain, 2)
+    const blockB1 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB1)
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB2)
 
     await expect(chain).toAddBlock(blockA1)
@@ -358,31 +358,31 @@ describe('Blockchain', () => {
     //                     -> D4
 
     const { node: nodeA } = await nodeTest.createSetup()
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    const blockA1 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA1)
-    const blockA2 = await useMinerBlockFixture(nodeA.chain, 3)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA2)
 
     const { node: nodeB } = await nodeTest.createSetup()
     await expect(nodeB.chain).toAddBlock(blockA1)
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB2)
-    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB3)
 
     const { node: nodeC } = await nodeTest.createSetup()
     await expect(nodeC.chain).toAddBlock(blockA1)
     await expect(nodeC.chain).toAddBlock(blockB2)
-    const blockC3 = await useMinerBlockFixture(nodeC.chain, 4)
+    const blockC3 = await useMinerBlockFixture(nodeC.chain)
     await expect(nodeC.chain).toAddBlock(blockC3)
-    const blockC4 = await useMinerBlockFixture(nodeC.chain, 5)
+    const blockC4 = await useMinerBlockFixture(nodeC.chain)
     await expect(nodeC.chain).toAddBlock(blockC4)
 
     const { node: nodeD } = await nodeTest.createSetup()
     await expect(nodeD.chain).toAddBlock(blockA1)
     await expect(nodeD.chain).toAddBlock(blockB2)
     await expect(nodeD.chain).toAddBlock(blockC3)
-    const blockD4 = await useMinerBlockFixture(nodeD.chain, 5)
+    const blockD4 = await useMinerBlockFixture(nodeD.chain)
     await expect(nodeD.chain).toAddBlock(blockD4)
 
     await expect(chain).toAddBlock(blockA1)
@@ -416,18 +416,18 @@ describe('Blockchain', () => {
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const blockA1 = await useMinerBlockFixture(nodeA.chain, 2)
+    const blockA1 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA1)
-    const blockA2 = await useMinerBlockFixture(nodeA.chain, 2)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA2)
-    const blockA3 = await useMinerBlockFixture(nodeA.chain, 2)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA3)
 
-    const blockB1 = await useMinerBlockFixture(nodeB.chain, 2)
+    const blockB1 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB1)
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, 3)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB2)
-    const blockB3 = await useMinerBlockFixture(nodeB.chain, 4)
+    const blockB3 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB3)
 
     // Now run the actual test...
@@ -481,7 +481,7 @@ describe('Blockchain', () => {
       const countNullifierB = await nodeB.chain.nullifiers.size()
 
       // Create nodeA blocks
-      const blockA1 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
+      const blockA1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA)
       await expect(nodeA.chain).toAddBlock(blockA1)
       await nodeA.wallet.updateHead()
 
@@ -489,11 +489,11 @@ describe('Blockchain', () => {
       await expect(nodeA.chain).toAddBlock(blockA2)
 
       // Create nodeB blocks
-      const blockB1 = await useMinerBlockFixture(nodeB.chain, 2, accountB)
+      const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
       await expect(nodeB.chain).toAddBlock(blockB1)
       await nodeB.wallet.updateHead()
 
-      const blockB2 = await useMinerBlockFixture(nodeB.chain, 3, accountB)
+      const blockB2 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
       await expect(nodeB.chain).toAddBlock(blockB2)
       await nodeB.wallet.updateHead()
 
@@ -781,7 +781,7 @@ describe('Blockchain', () => {
     const accountA = await useAccountFixture(node.wallet, 'accountA')
     const accountB = await useAccountFixture(node.wallet, 'accountB')
 
-    const block2 = await useMinerBlockFixture(chain, 2, accountA)
+    const block2 = await useMinerBlockFixture(chain, undefined, accountA)
     await expect(chain).toAddBlock(block2)
 
     // Now create the double spend
@@ -789,11 +789,11 @@ describe('Blockchain', () => {
     const tx = await useTxFixture(node.wallet, accountA, accountB)
 
     // Spend the transaaction for the first time
-    const block3 = await useMinerBlockFixture(node.chain, 3, undefined, undefined, [tx])
+    const block3 = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [tx])
     await expect(node.chain).toAddBlock(block3)
 
     // Spend the transaction a second time
-    const block4 = await useMinerBlockFixture(node.chain, 4, undefined, undefined, [tx])
+    const block4 = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [tx])
     await expect(node.chain.addBlock(block4)).resolves.toMatchObject({
       isAdded: false,
       reason: VerificationResultReason.DOUBLE_SPEND,
@@ -813,40 +813,40 @@ describe('Blockchain', () => {
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()
 
-    const blockA2 = await useMinerBlockFixture(nodeA.chain, 2)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA2)
-    const blockA3 = await useMinerBlockFixture(nodeA.chain, 3)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA3)
-    const blockA4 = await useMinerBlockFixture(nodeA.chain, 4)
+    const blockA4 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA4)
-    const blockA5 = await useMinerBlockFixture(nodeA.chain, 5)
+    const blockA5 = await useMinerBlockFixture(nodeA.chain)
     await expect(nodeA.chain).toAddBlock(blockA5)
 
     // create one more block to add at the end
-    const blockA6 = await useMinerBlockFixture(nodeA.chain, 6)
+    const blockA6 = await useMinerBlockFixture(nodeA.chain)
 
     const accountA = await useAccountFixture(nodeB.wallet, 'accountA')
     const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
 
     // Now create the double spend chain
-    const blockB2 = await useMinerBlockFixture(nodeB.chain, 2, accountA)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain, undefined, accountA)
     await expect(nodeB.chain).toAddBlock(blockB2)
 
     // Now create the double spend tx
     await nodeB.wallet.updateHead()
     const tx = await useTxFixture(nodeB.wallet, accountA, accountB)
 
-    const blockB3 = await useMinerBlockFixture(nodeB.chain, 3, undefined, undefined, [tx])
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, undefined, undefined, undefined, [tx])
     await expect(nodeB.chain).toAddBlock(blockB3)
 
-    const blockB4 = await useMinerBlockFixture(nodeB.chain, 4, undefined, undefined, [tx])
+    const blockB4 = await useMinerBlockFixture(nodeB.chain, undefined, undefined, undefined, [tx])
 
     await expect(nodeB.chain).toAddDoubleSpendBlock(blockB4)
 
-    const blockB5 = await useMinerBlockFixture(nodeB.chain, 5)
+    const blockB5 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB5)
 
-    const blockB6 = await useMinerBlockFixture(nodeB.chain, 6)
+    const blockB6 = await useMinerBlockFixture(nodeB.chain)
     await expect(nodeB.chain).toAddBlock(blockB6)
 
     // Now start adding the double spend chain until we reorg to it
@@ -929,7 +929,7 @@ describe('Blockchain', () => {
           mints: [{ asset, value: 10n }],
         })
 
-        const block = await useMinerBlockFixture(node.chain, 2, undefined, undefined, [mint])
+        const block = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [mint])
         await expect(node.chain).toAddBlock(block)
 
         const mintedAsset = await node.chain.assets.get(asset.id())
@@ -1331,9 +1331,9 @@ describe('Blockchain', () => {
           supply: mintValue,
         })
 
-        const blockB1 = await useMinerBlockFixture(nodeB.chain, 2, accountB)
+        const blockB1 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
         await nodeB.chain.addBlock(blockB1)
-        const blockB2 = await useMinerBlockFixture(nodeB.chain, 3, accountB)
+        const blockB2 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
         await nodeB.chain.addBlock(blockB2)
 
         // Verify Node B does not have the asset
@@ -1356,7 +1356,7 @@ describe('Blockchain', () => {
         const { node } = await nodeTest.createSetup()
         const account = await useAccountFixture(node.wallet)
 
-        const mined = await useMinerBlockFixture(node.chain, 2, account)
+        const mined = await useMinerBlockFixture(node.chain, undefined, account)
         await expect(node.chain).toAddBlock(mined)
         await node.wallet.updateHead()
 
