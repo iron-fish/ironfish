@@ -8,9 +8,10 @@
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
-describe('Route wallet/status', () => {
+describe('Route wallet/postTransaction', () => {
   const routeTest = createRouteTest(true)
 
+  // TODO remove this when it's not needed for copying anymore
   it('should return account status information', async () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), true)
     const response = await routeTest.client
@@ -29,5 +30,18 @@ describe('Route wallet/status', () => {
         },
       ],
     })
+  })
+
+  // TODO a valid raw transaction
+  it('should return the posted transaction', async () => {
+  })
+  // TODO an invalid raw transaction that won't deserialize  
+  it('should return an error if the transaction won\'t deserialize', async () => {
+  })
+  // TODO a valid raw transaction but the key isn't managed by the wallet
+  it('should return an error if the key isn\'t managed by the wallet', async () => {
+  })
+  // TODO a valid raw transaction but the account has insufficient funds
+  it('should return an error if the account has insufficient funds', async () => {
   })
 })
