@@ -836,10 +836,14 @@ describe('Blockchain', () => {
     await nodeB.wallet.updateHead()
     const tx = await useTxFixture(nodeB.wallet, accountA, accountB)
 
-    const blockB3 = await useMinerBlockFixture(nodeB.chain, undefined, undefined, undefined, [tx])
+    const blockB3 = await useMinerBlockFixture(nodeB.chain, undefined, undefined, undefined, [
+      tx,
+    ])
     await expect(nodeB.chain).toAddBlock(blockB3)
 
-    const blockB4 = await useMinerBlockFixture(nodeB.chain, undefined, undefined, undefined, [tx])
+    const blockB4 = await useMinerBlockFixture(nodeB.chain, undefined, undefined, undefined, [
+      tx,
+    ])
 
     await expect(nodeB.chain).toAddDoubleSpendBlock(blockB4)
 
@@ -929,7 +933,9 @@ describe('Blockchain', () => {
           mints: [{ asset, value: 10n }],
         })
 
-        const block = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [mint])
+        const block = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [
+          mint,
+        ])
         await expect(node.chain).toAddBlock(block)
 
         const mintedAsset = await node.chain.assets.get(asset.id())
