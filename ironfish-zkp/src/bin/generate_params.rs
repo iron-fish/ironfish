@@ -82,7 +82,6 @@ fn main() {
                 metadata: [0u8; 76],
                 nonce: 0,
                 proof_generation_key: None,
-                value_commitment: None,
                 public_key_randomness: None,
             },
         );

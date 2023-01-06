@@ -10,9 +10,8 @@ use zcash_proofs::{
 };
 
 use crate::{
-    circuits::util::{asset_info_preimage, expose_value_commitment},
+    circuits::util::asset_info_preimage,
     constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_PERSONALIZATION},
-    primitives::ValueCommitment,
 };
 
 pub struct MintAsset {
@@ -28,10 +27,6 @@ pub struct MintAsset {
 
     /// Key required to construct proofs for a particular spending key
     pub proof_generation_key: Option<ProofGenerationKey>,
-
-    /// Randomized commitment to represent the value being minted in this proof
-    /// needed to balance the transaction.
-    pub value_commitment: Option<ValueCommitment>,
 
     /// Used to add randomness to signature generation without leaking the
     /// key. Referred to as `ar` in the literature.
@@ -151,20 +146,6 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 
         multipack::pack_into_inputs(cs.namespace(|| "pack asset info"), &asset_info_hashed_bits)?;
 
-        // Witness and expose the value commitment
-        let asset_generator = ecc::EdwardsPoint::witness(
-            cs.namespace(|| "asset_generator"),
-            self.value_commitment
-                .as_ref()
-                .map(|vc| vc.asset_generator.into()),
-        )?;
-
-        expose_value_commitment(
-            cs.namespace(|| "value commitment"),
-            asset_generator,
-            self.value_commitment,
-        )?;
-
         Ok(())
     }
 }
@@ -181,15 +162,9 @@ mod test {
     use group::{Curve, Group, GroupEncoding};
     use jubjub::ExtendedPoint;
     use rand::{rngs::StdRng, SeedableRng};
-    use zcash_primitives::{
-        constants::VALUE_COMMITMENT_VALUE_GENERATOR,
-        sapling::{pedersen_hash, ProofGenerationKey},
-    };
+    use zcash_primitives::sapling::{pedersen_hash, ProofGenerationKey};
 
-    use crate::{
-        constants::{ASSET_ID_PERSONALIZATION, PUBLIC_KEY_GENERATOR},
-        primitives::ValueCommitment,
-    };
+    use crate::constants::{ASSET_ID_PERSONALIZATION, PUBLIC_KEY_GENERATOR};
 
     use super::MintAsset;
 
@@ -227,9 +202,6 @@ mod test {
         let asset_info_hashed_bits = multipack::bytes_to_bits_le(&asset_info_hashed_bytes);
         let asset_info_hashed_inputs = multipack::compute_multipacking(&asset_info_hashed_bits);
 
-        let value_commitment = ValueCommitment::new(5, VALUE_COMMITMENT_VALUE_GENERATOR);
-        let value_commitment_point = ExtendedPoint::from(value_commitment.commitment()).to_affine();
-
         let public_key_randomness = jubjub::Fr::random(&mut rng);
         let randomized_public_key =
             ExtendedPoint::from(incoming_view_key.rk(public_key_randomness)).to_affine();
@@ -239,8 +211,6 @@ mod test {
             randomized_public_key.get_v(),
             asset_info_hashed_inputs[0],
             asset_info_hashed_inputs[1],
-            value_commitment_point.get_u(),
-            value_commitment_point.get_v(),
         ];
 
         // Mint proof
@@ -249,14 +219,13 @@ mod test {
             metadata,
             nonce,
             proof_generation_key: Some(proof_generation_key),
-            value_commitment: Some(value_commitment),
             public_key_randomness: Some(public_key_randomness),
         };
         circuit.synthesize(&mut cs).unwrap();
 
         assert!(cs.is_satisfied());
         assert!(cs.verify(&public_inputs));
-        assert_eq!(cs.num_constraints(), 31576);
+        assert_eq!(cs.num_constraints(), 29677);
 
         // Test bad inputs
         let bad_asset_info_hashed = [1u8; 32];
@@ -266,21 +235,14 @@ mod test {
 
         // Bad asset info hash
         let mut bad_inputs = public_inputs.clone();
-        bad_inputs[0] = bad_asset_info_hashed_inputs[0];
-
-        assert!(!cs.verify(&bad_inputs));
-
-        // Bad value commitment
-        let bad_value_commitment_point = ExtendedPoint::random(&mut rng).to_affine();
-        let mut bad_inputs = public_inputs.clone();
-        bad_inputs[2] = bad_value_commitment_point.get_u();
+        bad_inputs[2] = bad_asset_info_hashed_inputs[0];
 
         assert!(!cs.verify(&bad_inputs));
 
         // Bad randomized public key
         let bad_randomized_public_key_point = ExtendedPoint::random(&mut rng).to_affine();
         let mut bad_inputs = public_inputs.clone();
-        bad_inputs[4] = bad_randomized_public_key_point.get_u();
+        bad_inputs[0] = bad_randomized_public_key_point.get_u();
 
         assert!(!cs.verify(&bad_inputs));
 

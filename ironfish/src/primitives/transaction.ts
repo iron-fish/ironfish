@@ -93,8 +93,6 @@ export class Transaction {
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
       const value = reader.readBigU64()
 
-      // value commitment
-      reader.seek(32)
       // authorizing signature
       reader.seek(64)
 
