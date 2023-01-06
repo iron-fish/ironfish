@@ -920,7 +920,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(burnBlock)
       await node.wallet.updateHead()
 
-      expect(await node.wallet.getBalance(account, asset.id())).toEqual({
+      expect(await node.wallet.getBalance(account, asset.id())).toMatchObject({
         unconfirmed: BigInt(8),
         unconfirmedCount: 0,
         confirmed: BigInt(8),

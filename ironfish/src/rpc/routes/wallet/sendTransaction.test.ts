@@ -106,6 +106,8 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(11),
       confirmed: BigInt(0),
       unconfirmedCount: 0,
+      blockHash: null,
+      sequence: null,
     })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
@@ -122,6 +124,8 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(21),
       confirmed: BigInt(0),
       unconfirmedCount: 0,
+      blockHash: null,
+      sequence: null,
     })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrow(
@@ -148,6 +152,8 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
       unconfirmedCount: 0,
+      blockHash: null,
+      sequence: null,
     })
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
@@ -171,6 +177,8 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
       unconfirmedCount: 0,
+      blockHash: null,
+      sequence: null,
     })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS)
@@ -189,6 +197,8 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(21),
       confirmed: BigInt(21),
       unconfirmedCount: 0,
+      blockHash: null,
+      sequence: null,
     })
 
     const result = await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
@@ -206,6 +216,8 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(100000),
       confirmed: BigInt(100000),
       unconfirmedCount: 0,
+      blockHash: null,
+      sequence: null,
     })
 
     const sendSpy = jest.spyOn(routeTest.node.wallet, 'send').mockResolvedValue(tx)

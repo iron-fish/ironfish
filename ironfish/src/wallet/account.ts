@@ -462,10 +462,12 @@ export class Account {
     unconfirmed: bigint
     unconfirmedCount: number
     confirmed: bigint
+    blockHash: Buffer | null
+    sequence: number | null
   }> {
     let unconfirmedCount = 0
 
-    const { unconfirmed } = await this.getUnconfirmedBalance(assetId, tx)
+    const { unconfirmed, blockHash, sequence } = await this.getUnconfirmedBalance(assetId, tx)
 
     let confirmed = unconfirmed
     if (minimumBlockConfirmations > 0) {
@@ -497,6 +499,8 @@ export class Account {
       unconfirmed,
       unconfirmedCount,
       confirmed,
+      blockHash,
+      sequence,
     }
   }
 

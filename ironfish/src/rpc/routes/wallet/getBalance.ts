@@ -19,6 +19,8 @@ export type GetBalanceResponse = {
   unconfirmed: string
   unconfirmedCount: number
   minimumBlockConfirmations: number
+  blockHash: string | null
+  sequence: number | null
 }
 
 export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
@@ -36,6 +38,8 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
     unconfirmedCount: yup.number().defined(),
     confirmed: yup.string().defined(),
     minimumBlockConfirmations: yup.number().defined(),
+    blockHash: yup.string().nullable(true).defined(),
+    sequence: yup.number().nullable(true).defined(),
   })
   .defined()
 
@@ -66,6 +70,8 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
       unconfirmed: balance.unconfirmed.toString(),
       unconfirmedCount: balance.unconfirmedCount,
       minimumBlockConfirmations,
+      blockHash: balance.blockHash?.toString('hex') ?? null,
+      sequence: balance.sequence,
     })
   },
 )

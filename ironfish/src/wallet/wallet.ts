@@ -563,6 +563,8 @@ export class Wallet {
     unconfirmedCount: number
     unconfirmed: bigint
     confirmed: bigint
+    blockHash: Buffer | null
+    sequence: number | null
   }> {
     const minimumBlockConfirmations = Math.max(
       options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations'),
@@ -579,6 +581,8 @@ export class Wallet {
           unconfirmed: BigInt(0),
           confirmed: BigInt(0),
           unconfirmedCount: 0,
+          blockHash: null,
+          sequence: null,
         }
       }
 
