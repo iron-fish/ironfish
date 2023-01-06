@@ -157,21 +157,21 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           const decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
 
           if (decryptedNote) {
-            const assetValue = await node.chain.getAssetById(decryptedNote.assetIdentifier())
+            const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
             notes.push({
               value: CurrencyUtils.encode(decryptedNote.value()),
               memo: decryptedNote.memo(),
-              assetId: decryptedNote.assetIdentifier().toString('hex'),
+              assetId: decryptedNote.assetId().toString('hex'),
               assetName: assetValue?.name.toString('hex') || '',
             })
           }
         }
 
         for (const burn of tx.burns) {
-          const assetValue = await node.chain.getAssetById(burn.assetIdentifier)
+          const assetValue = await node.chain.getAssetById(burn.assetId)
           burns.push({
             value: CurrencyUtils.encode(burn.value),
-            assetId: burn.assetIdentifier.toString('hex'),
+            assetId: burn.assetId.toString('hex'),
             assetName: assetValue?.name.toString('hex') || '',
           })
         }
@@ -179,7 +179,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
         for (const mint of tx.mints) {
           mints.push({
             value: CurrencyUtils.encode(mint.value),
-            assetId: mint.asset.identifier().toString('hex'),
+            assetId: mint.asset.id().toString('hex'),
             assetName: mint.asset.name().toString('hex'),
           })
         }
