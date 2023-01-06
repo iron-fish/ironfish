@@ -80,22 +80,6 @@ checksum = "8a32fd6af2b5827bce66c29053ba0e7c42b9dcab01835835058558c10851a46b"
 
 [[package]]
 name = "bellman"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eae372472c7ea8f7c8fc6a62f7d5535db8302de7f1aafda2e13a97c4830d3bcf"
-dependencies = [
- "bit-vec",
- "byteorder",
- "crossbeam",
- "futures",
- "futures-cpupool",
- "num_cpus",
- "pairing 0.14.2",
- "rand 0.4.6",
-]
-
-[[package]]
-name = "bellman"
 version = "0.13.1"
 source = "git+https://github.com/iron-fish/bellman?rev=1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec#1cc52ca33e6db14233f1cbc0c9c5b7c822b229ec"
 dependencies = [
@@ -127,12 +111,6 @@ dependencies = [
  "unicode-normalization",
  "zeroize",
 ]
-
-[[package]]
-name = "bit-vec"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02b4ff8b16e6076c3e14220b39fbc1fabb6737522281a388998046859400895f"
 
 [[package]]
 name = "bitflags"
@@ -547,22 +525,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6d5a32815ae3f33302d95fdcb2ce17862f8c65363dcfd29360480ba1001fc9c"
 
 [[package]]
-name = "futures"
-version = "0.1.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a471a38ef8ed83cd6e40aa59c1ffe17db6855c18e3604d9c4ed8c08ebc28678"
-
-[[package]]
-name = "futures-cpupool"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab90cde24b3319636588d0c35fe03b1333857621051837ed769faefb4c2162e4"
-dependencies = [
- "futures",
- "num_cpus",
-]
-
-[[package]]
 name = "generic-array"
 version = "0.14.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -719,7 +681,7 @@ dependencies = [
 name = "ironfish_rust"
 version = "0.1.0"
 dependencies = [
- "bellman 0.13.1",
+ "bellman",
  "blake2b_simd",
  "blake2s_simd",
  "blake3",
@@ -742,7 +704,7 @@ dependencies = [
 name = "ironfish_zkp"
 version = "0.1.0"
 dependencies = [
- "bellman 0.13.1",
+ "bellman",
  "blake2s_simd",
  "bls12_381",
  "byteorder",
@@ -1054,10 +1016,12 @@ dependencies = [
 name = "phase2"
 version = "0.2.2"
 dependencies = [
- "bellman 0.1.0",
+ "bellman",
  "blake2-rfc",
+ "bls12_381",
  "byteorder",
  "crossbeam",
+ "ff",
  "num_cpus",
  "pairing 0.14.2",
  "rand 0.4.6",
@@ -1773,7 +1737,7 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98bf5f6af051dd929263f279b21b9c04c1f30116c70f3c190de2566677f245ef"
 dependencies = [
- "bellman 0.13.1",
+ "bellman",
  "blake2b_simd",
  "bls12_381",
  "byteorder",

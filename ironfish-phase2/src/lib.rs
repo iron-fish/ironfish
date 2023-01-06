@@ -221,29 +221,27 @@ use std::{
     fs::{
         File
     },
+    ops::{
+        Mul
+    },
     sync::{
         Arc
     }
 };
 
+use ff::PrimeField;
+
 use pairing::{
-    Engine,
-    PrimeField,
+    // PrimeField,
+    bls12_381::{
+        G1Uncompressed,
+        G2Uncompressed,
+    },
     Field,
     EncodedPoint,
     CurveAffine,
     CurveProjective,
     Wnaf,
-    bls12_381::{
-        Bls12,
-        Fr,
-        G1,
-        G2,
-        G1Affine,
-        G1Uncompressed,
-        G2Affine,
-        G2Uncompressed
-    }
 };
 
 use bellman::{
@@ -257,7 +255,13 @@ use bellman::{
         Parameters,
         VerifyingKey
     },
-    multicore::Worker
+    multicore::Worker,
+};
+
+use bls12_381::{
+    Bls12,
+    G1Affine,
+    G2Affine,
 };
 
 use rand::{
@@ -269,19 +273,19 @@ use rand::{
 
 /// This is our assembly structure that we'll use to synthesize the
 /// circuit into a QAP.
-struct KeypairAssembly<E: Engine> {
+struct KeypairAssembly<Scalar: PrimeField> {
     num_inputs: usize,
     num_aux: usize,
     num_constraints: usize,
-    at_inputs: Vec<Vec<(E::Fr, usize)>>,
-    bt_inputs: Vec<Vec<(E::Fr, usize)>>,
-    ct_inputs: Vec<Vec<(E::Fr, usize)>>,
-    at_aux: Vec<Vec<(E::Fr, usize)>>,
-    bt_aux: Vec<Vec<(E::Fr, usize)>>,
-    ct_aux: Vec<Vec<(E::Fr, usize)>>
+    at_inputs: Vec<Vec<(Scalar, usize)>>,
+    bt_inputs: Vec<Vec<(Scalar, usize)>>,
+    ct_inputs: Vec<Vec<(Scalar, usize)>>,
+    at_aux: Vec<Vec<(Scalar, usize)>>,
+    bt_aux: Vec<Vec<(Scalar, usize)>>,
+    ct_aux: Vec<Vec<(Scalar, usize)>>
 }
 
-impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
+impl<Scalar: PrimeField> ConstraintSystem<Scalar> for KeypairAssembly<Scalar> {
     type Root = Self;
 
     fn alloc<F, A, AR>(
@@ -289,7 +293,7 @@ impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
         _: A,
         _: F
     ) -> Result<Variable, SynthesisError>
-        where F: FnOnce() -> Result<E::Fr, SynthesisError>, A: FnOnce() -> AR, AR: Into<String>
+        where F: FnOnce() -> Result<Scalar, SynthesisError>, A: FnOnce() -> AR, AR: Into<String>
     {
         // There is no assignment, so we don't even invoke the
         // function for obtaining one.
@@ -309,7 +313,7 @@ impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
         _: A,
         _: F
     ) -> Result<Variable, SynthesisError>
-        where F: FnOnce() -> Result<E::Fr, SynthesisError>, A: FnOnce() -> AR, AR: Into<String>
+        where F: FnOnce() -> Result<Scalar, SynthesisError>, A: FnOnce() -> AR, AR: Into<String>
     {
         // There is no assignment, so we don't even invoke the
         // function for obtaining one.
@@ -332,14 +336,14 @@ impl<E: Engine> ConstraintSystem<E> for KeypairAssembly<E> {
         c: LC
     )
         where A: FnOnce() -> AR, AR: Into<String>,
-              LA: FnOnce(LinearCombination<E>) -> LinearCombination<E>,
-              LB: FnOnce(LinearCombination<E>) -> LinearCombination<E>,
-              LC: FnOnce(LinearCombination<E>) -> LinearCombination<E>
+              LA: FnOnce(LinearCombination<Scalar>) -> LinearCombination<Scalar>,
+              LB: FnOnce(LinearCombination<Scalar>) -> LinearCombination<Scalar>,
+              LC: FnOnce(LinearCombination<Scalar>) -> LinearCombination<Scalar>
     {
-        fn eval<E: Engine>(
-            l: LinearCombination<E>,
-            inputs: &mut [Vec<(E::Fr, usize)>],
-            aux: &mut [Vec<(E::Fr, usize)>],
+        fn eval<Scalar: PrimeField>(
+            l: LinearCombination<Scalar>,
+            inputs: &mut [Vec<(Scalar, usize)>],
+            aux: &mut [Vec<(Scalar, usize)>],
             this_constraint: usize
         )
         {
@@ -398,9 +402,9 @@ impl MPCParameters {
     pub fn new<C>(
         circuit: C,
     ) -> Result<MPCParameters, SynthesisError>
-        where C: Circuit<Bls12>
+        where C: Circuit<bls12_381::Scalar>
     {
-        let mut assembly = KeypairAssembly {
+        let mut assembly: KeypairAssembly<bls12_381::Scalar> = KeypairAssembly {
             num_inputs: 0,
             num_aux: 0,
             num_constraints: 0,
@@ -413,7 +417,7 @@ impl MPCParameters {
         };
 
         // Allocate the "one" input variable
-        assembly.alloc_input(|| "", || Ok(Fr::one()))?;
+        assembly.alloc_input(|| "", || Ok(bls12_381::Scalar::one()))?;
 
         // Synthesize the circuit.
         circuit.synthesize(&mut assembly)?;
@@ -527,9 +531,9 @@ impl MPCParameters {
             beta_coeffs_g1: Arc<Vec<G1Affine>>,
 
             // QAP polynomials
-            at: &[Vec<(Fr, usize)>],
-            bt: &[Vec<(Fr, usize)>],
-            ct: &[Vec<(Fr, usize)>],
+            at: &[Vec<(bls12_381::Scalar, usize)>],
+            bt: &[Vec<(bls12_381::Scalar, usize)>],
+            ct: &[Vec<(bls12_381::Scalar, usize)>],
 
             // Resulting evaluated QAP polynomials
             a_g1: &mut [G1],
@@ -565,7 +569,7 @@ impl MPCParameters {
                     let alpha_coeffs_g1 = alpha_coeffs_g1.clone();
                     let beta_coeffs_g1 = beta_coeffs_g1.clone();
 
-                    scope.spawn(move || {
+                    scope.spawn(move |_| {
                         for ((((((a_g1, b_g1), b_g2), ext), at), bt), ct) in
                             a_g1.iter_mut()
                             .zip(b_g1.iter_mut())
@@ -779,7 +783,7 @@ impl MPCParameters {
     /// contributors obtained when they ran
     /// `MPCParameters::contribute`, for ensuring that contributions
     /// exist in the final parameters.
-    pub fn verify<C: Circuit<Bls12>>(
+    pub fn verify<C: Circuit<bls12_381::Scalar>>(
         &self,
         circuit: C
     ) -> Result<Vec<[u8; 64]>, ()>
@@ -981,10 +985,10 @@ impl PublicKey {
         mut writer: W
     ) -> io::Result<()>
     {
-        writer.write_all(self.delta_after.into_uncompressed().as_ref())?;
-        writer.write_all(self.s.into_uncompressed().as_ref())?;
-        writer.write_all(self.s_delta.into_uncompressed().as_ref())?;
-        writer.write_all(self.r_delta.into_uncompressed().as_ref())?;
+        writer.write_all(self.delta_after.to_uncompressed().as_ref())?;
+        writer.write_all(self.s.to_uncompressed().as_ref())?;
+        writer.write_all(self.s_delta.to_uncompressed().as_ref())?;
+        writer.write_all(self.r_delta.to_uncompressed().as_ref())?;
         writer.write_all(&self.transcript)?;
 
         Ok(())
@@ -1113,8 +1117,8 @@ pub fn verify_contribution(
     }
 
     let pubkey = after.contributions.last().unwrap();
-    sink.write_all(pubkey.s.into_uncompressed().as_ref()).unwrap();
-    sink.write_all(pubkey.s_delta.into_uncompressed().as_ref()).unwrap();
+    sink.write_all(pubkey.s.to_uncompressed().as_ref()).unwrap();
+    sink.write_all(pubkey.s_delta.to_uncompressed().as_ref()).unwrap();
 
     let h = sink.into_hash();
 
