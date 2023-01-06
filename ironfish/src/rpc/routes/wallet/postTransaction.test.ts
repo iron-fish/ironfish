@@ -7,8 +7,8 @@
 
 import { v4 as uuid } from 'uuid'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { createRouteTest } from '../../../testUtilities/routeTest'
 import { createRawTransaction } from '../../../testUtilities/helpers/transaction'
+import { createRouteTest } from '../../../testUtilities/routeTest'
 import { PostTransactionResponse } from './postTransaction'
 
 describe('Route wallet/postTransaction', () => {
@@ -18,11 +18,9 @@ describe('Route wallet/postTransaction', () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), true)
     const options = {
       wallet: routeTest.node.wallet,
-      from: account
+      from: account,
     }
-    const rawTransaction = await createRawTransaction(
-      options
-    )
+    const rawTransaction = await createRawTransaction(options)
     const response = await routeTest.client
       .request<any>('wallet/postTransaction', {
         transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
@@ -33,7 +31,7 @@ describe('Route wallet/postTransaction', () => {
     expect(response.content.transaction).toBeDefined()
   })
 
-  it('should return an error if the transaction won\'t deserialize', async () => {
+  it("should return an error if the transaction won't deserialize", async () => {
     const response = routeTest.client
       .request<PostTransactionResponse>('wallet/postTransaction', {
         transaction: '0xdeadbeef',
