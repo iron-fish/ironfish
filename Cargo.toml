@@ -3,6 +3,7 @@
 members = [
     "ironfish-rust",
     "ironfish-rust-nodejs",
+    "ironfish-setup",
     "ironfish-zkp",
 ]
 

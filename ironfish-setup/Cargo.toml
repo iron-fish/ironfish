@@ -1,0 +1,48 @@
+[package]
+name = "sapling-mpc"
+version = "0.2.0"
+authors = ["Sean Bowe <ewillbefull@gmail.com>"]
+
+[[bin]]
+name = "new"
+required-features = ["verification"]
+
+[[bin]]
+name = "verify"
+required-features = ["verification"]
+
+[[bin]]
+name = "beacon"
+required-features = ["beacon"]
+
+[[bin]]
+name = "compute"
+
+[[bin]]
+name = "verify_transform"
+
+[[bin]]
+name = "split_params"
+
+[dependencies]
+phase2 = "0.2.1"
+pairing = "0.14"
+rand = "0.4"
+blake2-rfc = "0.2"
+
+[dependencies.ironfish_zkp]
+path = "../ironfish-zkp"
+optional = true
+
+[dependencies.byteorder]
+version = "1"
+optional = true
+
+[dependencies.hex-literal]
+version = "0.1"
+optional = true
+
+[features]
+verification = ["ironfish_zkp"]
+u128-support = ["pairing/u128-support"]
+beacon = ["byteorder"]
