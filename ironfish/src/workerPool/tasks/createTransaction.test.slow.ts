@@ -190,7 +190,7 @@ describe('CreateTransactionTask', () => {
       expect(transactionPosted.verify()).toBe(true)
       expect(transactionPosted.notesLength()).toBe(3)
 
-      const outputValuesByAssetIdentifier = new BufferMap<bigint>()
+      const outputValuesByAssetId = new BufferMap<bigint>()
       for (let i = 0; i < transactionPosted.notesLength(); i++) {
         const decryptedNote = new NoteEncrypted(
           transactionPosted.getNote(i),
@@ -198,15 +198,15 @@ describe('CreateTransactionTask', () => {
         Assert.isNotUndefined(decryptedNote)
 
         const id = decryptedNote.assetId()
-        const value = outputValuesByAssetIdentifier.get(id) || BigInt(0)
-        outputValuesByAssetIdentifier.set(id, value + decryptedNote.value())
+        const value = outputValuesByAssetId.get(id) || BigInt(0)
+        outputValuesByAssetId.set(id, value + decryptedNote.value())
       }
 
-      const nativeAssetValue = outputValuesByAssetIdentifier.get(Asset.nativeId())
+      const nativeAssetValue = outputValuesByAssetId.get(Asset.nativeId())
       Assert.isNotUndefined(nativeAssetValue)
       expect(nativeAssetValue).toEqual(2000000000n - fee)
 
-      const mintedAssetValue = outputValuesByAssetIdentifier.get(asset.id())
+      const mintedAssetValue = outputValuesByAssetId.get(asset.id())
       Assert.isNotUndefined(mintedAssetValue)
       expect(mintedAssetValue).toEqual(mintValue - burnValue)
     })
