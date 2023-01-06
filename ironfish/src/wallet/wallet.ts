@@ -352,8 +352,8 @@ export class Wallet {
   }
 
   async connectBlock(blockHeader: BlockHeader, scan?: ScanState): Promise<void> {
-    const accounts = this.listAccounts().filter((account) => {
-      const accountHeadHash = this.headHashes.get(account.id)
+    const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
+      const accountHeadHash = await account.getHeadHash()
 
       return (
         BufferUtils.equalsNullable(accountHeadHash, blockHeader.previousBlockHash) ||
@@ -396,8 +396,8 @@ export class Wallet {
   }
 
   async disconnectBlock(header: BlockHeader): Promise<void> {
-    const accounts = this.listAccounts().filter((account) =>
-      BufferUtils.equalsNullable(this.headHashes.get(account.id), header.hash),
+    const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) =>
+      BufferUtils.equalsNullable(await account.getHeadHash(), header.hash),
     )
 
     for (const account of accounts) {

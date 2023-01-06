@@ -1133,7 +1133,7 @@ describe('Accounts', () => {
 
       await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA2.header.hash)
 
-      const updateHeadSpy = jest.spyOn(node.wallet, 'updateHeadHash')
+      const updateHeadSpy = jest.spyOn(accountA, 'updateHeadHash')
 
       // Try to connect A2 again
       await node.wallet.connectBlock(blockA1.header)
@@ -1158,7 +1158,7 @@ describe('Accounts', () => {
 
       await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA1.header.hash)
 
-      const updateHeadSpy = jest.spyOn(node.wallet, 'updateHeadHash')
+      const updateHeadSpy = jest.spyOn(accountA, 'updateHeadHash')
 
       // Try to connect A3
       await node.wallet.connectBlock(blockA3.header)
@@ -1299,7 +1299,7 @@ describe('Accounts', () => {
 
       await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA1.header.hash)
 
-      const updateHeadSpy = jest.spyOn(node.wallet, 'updateHeadHash')
+      const updateHeadSpy = jest.spyOn(accountA, 'updateHeadHash')
 
       // Try to disconnect blockA2
       await node.wallet.disconnectBlock(blockA2.header)
