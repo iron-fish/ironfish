@@ -15,12 +15,7 @@ use ironfish_zkp::{
 };
 use rand::thread_rng;
 
-use crate::{
-    assets::asset::{asset_generator_point, Asset},
-    errors::IronfishError,
-    sapling_bls12::SAPLING,
-    SaplingKey,
-};
+use crate::{assets::asset::Asset, errors::IronfishError, sapling_bls12::SAPLING, SaplingKey};
 
 use super::utils::verify_mint_proof;
 
@@ -145,24 +140,6 @@ pub struct MintDescription {
 }
 
 impl MintDescription {
-    /// A function to encapsulate any verification besides the proof itself.
-    /// This allows us to abstract away the details and make it easier to work
-    /// with. Note that this does not verify the proof, that happens in the
-    /// [`MintBuilder`] build function as the prover, and in
-    /// [`super::batch_verify_transactions`] as the verifier.
-    pub fn partial_verify(&self) -> Result<(), IronfishError> {
-        self.verify_generator_point()?;
-
-        Ok(())
-    }
-
-    /// Verify that the asset info hash maps to a valid generator point
-    fn verify_generator_point(&self) -> Result<(), IronfishError> {
-        asset_generator_point(&self.asset.asset_info_hashed)?;
-
-        Ok(())
-    }
-
     /// Verify that the signature on this proof is signing the provided input
     /// with the randomized_public_key on this proof.
     pub fn verify_signature(
@@ -195,10 +172,10 @@ impl MintDescription {
         public_inputs[0] = randomized_public_key_point.get_u();
         public_inputs[1] = randomized_public_key_point.get_v();
 
-        let asset_info_hashed_bits = multipack::bytes_to_bits_le(&self.asset.asset_info_hashed);
-        let asset_info_hashed_inputs = multipack::compute_multipacking(&asset_info_hashed_bits);
-        public_inputs[2] = asset_info_hashed_inputs[0];
-        public_inputs[3] = asset_info_hashed_inputs[1];
+        let asset_id_bits = multipack::bytes_to_bits_le(self.asset.id());
+        let asset_id_inputs = multipack::compute_multipacking(&asset_id_bits);
+        public_inputs[2] = asset_id_inputs[0];
+        public_inputs[3] = asset_id_inputs[1];
 
         public_inputs
     }
