@@ -28,7 +28,7 @@ import { Account, calculateAccountPrefix } from '../account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
 import { BalanceValue, BalanceValueEncoding } from './balanceValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
-import { HeaderValue, NullableHeaderValueEncoding } from './headerValue'
+import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
@@ -51,9 +51,9 @@ export class WalletDB {
     value: MetaValue
   }>
 
-  headers: IDatabaseStore<{
+  heads: IDatabaseStore<{
     key: Account['id']
-    value: HeaderValue | null
+    value: HeadValue | null
   }>
 
   balances: IDatabaseStore<{
@@ -124,10 +124,10 @@ export class WalletDB {
       valueEncoding: new MetaValueEncoding(),
     })
 
-    this.headers = this.db.addStore({
+    this.heads = this.db.addStore({
       name: 'h',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new NullableHeaderValueEncoding(),
+      valueEncoding: new NullableHeadValueEncoding(),
     })
 
     this.accounts = this.db.addStore({
@@ -267,29 +267,29 @@ export class WalletDB {
     }
   }
 
-  async getHeader(account: Account, tx?: IDatabaseTransaction): Promise<HeaderValue | null> {
-    const header = await this.headers.get(account.id, tx)
-    Assert.isNotUndefined(header)
-    return header
+  async getHead(account: Account, tx?: IDatabaseTransaction): Promise<HeadValue | null> {
+    const head = await this.heads.get(account.id, tx)
+    Assert.isNotUndefined(head)
+    return head
   }
 
-  async saveHeader(
+  async saveHead(
     account: Account,
-    header: HeaderValue | null,
+    head: HeadValue | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.headers.put(account.id, header, tx)
+    await this.heads.put(account.id, head, tx)
   }
 
-  async removeHeader(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.headers.del(account.id, tx)
+  async removeHead(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.heads.del(account.id, tx)
   }
 
-  async *loadHeaders(
+  async *loadHeads(
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ accountId: string; header: HeaderValue | null }, void, unknown> {
-    for await (const [accountId, header] of this.headers.getAllIter(tx)) {
-      yield { accountId, header }
+  ): AsyncGenerator<{ accountId: string; head: HeadValue | null }, void, unknown> {
+    for await (const [accountId, head] of this.heads.getAllIter(tx)) {
+      yield { accountId, head }
     }
   }
 

@@ -4,13 +4,13 @@
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 
-export type HeaderValue = {
+export type HeadValue = {
   hash: Buffer
   sequence: number
 }
 
-export class NullableHeaderValueEncoding implements IDatabaseEncoding<HeaderValue | null> {
-  serialize(value: HeaderValue | null): Buffer {
+export class NullableHeadValueEncoding implements IDatabaseEncoding<HeadValue | null> {
+  serialize(value: HeadValue | null): Buffer {
     const bw = bufio.write(this.getSize(value))
 
     if (value) {
@@ -21,7 +21,7 @@ export class NullableHeaderValueEncoding implements IDatabaseEncoding<HeaderValu
     return bw.render()
   }
 
-  deserialize(buffer: Buffer): HeaderValue | null {
+  deserialize(buffer: Buffer): HeadValue | null {
     const reader = bufio.read(buffer, true)
 
     if (reader.left()) {
@@ -33,7 +33,7 @@ export class NullableHeaderValueEncoding implements IDatabaseEncoding<HeaderValu
     return null
   }
 
-  getSize(value: HeaderValue | null): number {
+  getSize(value: HeadValue | null): number {
     if (!value) {
       return 0
     }

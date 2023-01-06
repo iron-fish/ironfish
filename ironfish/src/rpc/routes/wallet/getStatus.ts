@@ -43,8 +43,8 @@ router.register<typeof GetAccountStatusRequestSchema, GetAccountStatusResponse>(
   GetAccountStatusRequestSchema,
   async (request, node): Promise<void> => {
     const headHashes = new Map<string, Buffer | null>()
-    for await (const { accountId, header } of node.wallet.walletDb.loadHeaders()) {
-      headHashes.set(accountId, header?.hash ?? null)
+    for await (const { accountId, head } of node.wallet.walletDb.loadHeads()) {
+      headHashes.set(accountId, head?.hash ?? null)
     }
     const accountsInfo: GetAccountStatusResponse['accounts'] = []
     for (const account of node.wallet.listAccounts()) {
