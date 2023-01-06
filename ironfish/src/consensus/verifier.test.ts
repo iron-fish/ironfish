@@ -361,7 +361,7 @@ describe('Verifier', () => {
 
     it('says the block with no spends is valid', async () => {
       const { chain } = nodeTest
-      const block = await useMinerBlockFixture(chain, 2)
+      const block = await useMinerBlockFixture(chain)
 
       Assert.isEqual(block.counts().nullifiers, 0)
 
