@@ -16,8 +16,10 @@ fn main() {
         payment_address: None,
         commitment_randomness: None,
         ar: None,
-        auth_path: vec![None; 32], // Tree depth is 32 for sapling
-        anchor: None
+        auth_path: vec![None; ironfish_zkp::constants::TREE_DEPTH],
+        anchor: None,
+        asset_generator: None,
+        sender_address: None,
     }).unwrap().write(&mut params).unwrap();
 
     // Sapling output circuit
@@ -25,7 +27,10 @@ fn main() {
         value_commitment: None,
         payment_address: None,
         commitment_randomness: None,
-        esk: None
+        esk: None,
+        asset_generator: None,
+        ar: None,
+        proof_generation_key: None,
     }).unwrap().write(&mut params).unwrap();
 
     // Sapling mint circuit

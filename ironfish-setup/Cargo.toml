@@ -25,7 +25,7 @@ name = "verify_transform"
 name = "split_params"
 
 [dependencies]
-phase2 = "0.2.1"
+phase2 = { path = "../ironfish-phase2" }
 pairing = "0.14"
 rand = "0.4"
 blake2-rfc = "0.2"

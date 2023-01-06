@@ -1,0 +1,21 @@
+[package]
+name = "phase2"
+version = "0.2.2"
+authors = ["Sean Bowe <ewillbefull@gmail.com>"]
+description = "Library for performing MPCs for creating zk-SNARK public parameters"
+documentation = "https://docs.rs/phase2"
+homepage = "https://github.com/ebfull/phase2"
+license = "MIT/Apache-2.0"
+repository = "https://github.com/ebfull/phase2"
+
+[dependencies]
+pairing = "0.14"
+rand = "0.4"
+bellman = "0.1"
+byteorder = "1"
+num_cpus = "1"
+crossbeam = "0.3"
+blake2-rfc = "0.2"
+
+[[example]]
+name = "mimc"
