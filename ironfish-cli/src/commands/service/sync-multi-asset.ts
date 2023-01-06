@@ -106,7 +106,6 @@ export default class SyncMultiAsset extends IronfishCommand {
       incomingViewKey: viewKey,
       head: head,
     })
-
     const speed = new Meter()
     speed.start()
 
@@ -158,7 +157,11 @@ export default class SyncMultiAsset extends IronfishCommand {
     while (true) {
       const headHash = (await api.headMaspTransactions()) || ''
 
-      const choices: MultiAssetTypes[] = ['MASP_MINT', 'MASP_BURN', 'MASP_TRANSFER']
+      const choices: MultiAssetTypes[] = [
+        'MULTI_ASSET_TRANSFER',
+        'MULTI_ASSET_BURN',
+        'MULTI_ASSET_TRANSFER',
+      ]
       const choice = choices[Math.floor(Math.random() * choices.length)]
       const connectedblockHash = uuid()
       await api.uploadMaspTransactions([
