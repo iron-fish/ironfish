@@ -126,7 +126,7 @@ export class Account {
     const blockHash = blockHeader.hash
     const sequence = blockHeader.sequence
     const assetBalanceDeltas = new AssetBalanceDeltas()
-    let submittedSequence: number | null = null
+    let submittedSequence = sequence
     let timestamp = new Date()
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
@@ -196,7 +196,7 @@ export class Account {
   async addPendingTransaction(
     transaction: Transaction,
     decryptedNotes: Array<DecryptedNote>,
-    submittedSequence: number | null,
+    submittedSequence: number,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     const assetBalanceDeltas = new AssetBalanceDeltas()

@@ -29,7 +29,7 @@ describe('TransactionValueEncoding', () => {
         timestamp: new Date(),
         blockHash: null,
         sequence: null,
-        submittedSequence: null,
+        submittedSequence: 123,
         assetBalanceDeltas,
       }
       const buffer = encoder.serialize(value)
@@ -75,7 +75,7 @@ describe('TransactionValueEncoding', () => {
         timestamp: new Date(),
         blockHash: Buffer.alloc(32, 1),
         sequence: 124,
-        submittedSequence: null,
+        submittedSequence: 123,
         assetBalanceDeltas,
       }
       const buffer = encoder.serialize(value)
@@ -95,7 +95,7 @@ describe('TransactionValueEncoding', () => {
         timestamp: new Date(),
         blockHash: Buffer.alloc(32, 1),
         sequence: 124,
-        submittedSequence: null,
+        submittedSequence: 123,
         assetBalanceDeltas: new BufferMap<bigint>(),
       }
       const buffer = encoder.serialize(value)
