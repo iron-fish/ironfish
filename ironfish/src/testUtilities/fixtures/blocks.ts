@@ -2,149 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKey } from '@ironfish/rust-nodejs'
-import fs from 'fs'
-import path from 'path'
-import { Assert } from '../assert'
-import { Blockchain } from '../blockchain'
-import { IronfishNode } from '../node'
-import { Block, BlockSerde, SerializedBlock } from '../primitives/block'
-import { BurnDescription } from '../primitives/burnDescription'
-import { MintDescription } from '../primitives/mintDescription'
-import { NoteEncrypted } from '../primitives/noteEncrypted'
-import { SerializedTransaction, Transaction } from '../primitives/transaction'
-import { IJSON } from '../serde'
-import { Account, AccountValue, Wallet } from '../wallet'
-import { WorkerPool } from '../workerPool/pool'
-import { createRawTransaction } from './helpers/transaction'
-import { getCurrentTestPath } from './utils'
-
-const FIXTURE_FOLDER = '__fixtures__'
-
-type FixtureGenerate<T> = () => Promise<T> | T
-type FixtureRestore<T> = (fixture: T) => Promise<void> | void
-type FitxureDeserialize<T, TSerialized> = (data: TSerialized) => Promise<T> | T
-type FixtureSerialize<T, TSerialized> = (fixture: T) => Promise<TSerialized> | TSerialized
-
-const fixtureIds = new Map<string, { id: number; disabled: boolean }>()
-const fixtureCache = new Map<string, Map<string, unknown[]>>()
-
-export function shouldUpdateFixtures(): boolean {
-  // Use the same parameters as jest snapshots for usability
-  return process.argv.indexOf('--updateSnapshot') !== -1 || process.argv.indexOf('-u') !== -1
-}
-
-export function disableFixtures(): void {
-  const currentTestName = expect.getState().currentTestName || ''
-  const testName = currentTestName.replace(/ /g, '_')
-  const fixtureInfo = fixtureIds.get(testName) || { id: 0, disabled: false }
-  fixtureIds.set(testName, fixtureInfo)
-  fixtureInfo.disabled = true
-}
-
-export async function useFixture<TFixture, TSerialized = unknown>(
-  generate: FixtureGenerate<TFixture>,
-  options: {
-    restore?: FixtureRestore<TFixture>
-    process?: FixtureRestore<TFixture>
-    deserialize?: FitxureDeserialize<TFixture, TSerialized>
-    serialize?: FixtureSerialize<TFixture, TSerialized>
-  } = {},
-): Promise<TFixture> {
-  const testPath = getCurrentTestPath()
-  const testName = expect.getState().currentTestName || ''
-  const testDir = path.dirname(testPath)
-  const testFile = path.basename(testPath)
-
-  const fixtureInfo = fixtureIds.get(testName) || { id: -1, disabled: false }
-  const fixtureId = (fixtureInfo.id += 1)
-  fixtureIds.set(testName, fixtureInfo)
-
-  const fixtureDir = path.join(testDir, FIXTURE_FOLDER)
-  const fixtureName = `${testFile}.fixture`
-  const fixturePath = path.join(fixtureDir, fixtureName)
-
-  const updateFixtures = shouldUpdateFixtures()
-
-  let fixtures = fixtureCache.get(testPath)
-
-  // Load serialized fixtures in if they are not loaded
-  if (!fixtures) {
-    fixtures = new Map<string, TSerialized[]>()
-
-    if (fs.existsSync(fixturePath)) {
-      const buffer = await fs.promises.readFile(fixturePath)
-      const data = IJSON.parse(buffer.toString('utf8')) as Record<string, TSerialized[]>
-
-      for (const test in data) {
-        fixtures.set(test, data[test])
-      }
-    }
-
-    fixtureCache.set(testPath, fixtures)
-  }
-
-  let fixture: TFixture | null = null
-
-  const serializedAll = fixtures.get(testName) || []
-  fixtures.set(testName, serializedAll)
-
-  if (!updateFixtures && !fixtureInfo.disabled && serializedAll[fixtureId]) {
-    // deserialize existing fixture
-    if (options.deserialize) {
-      const serialized = serializedAll[fixtureId] as TSerialized
-      fixture = await options.deserialize(serialized)
-    } else {
-      fixture = serializedAll[fixtureId] as TFixture
-    }
-
-    if (options.restore) {
-      await options.restore(fixture)
-    }
-  } else {
-    // generate the fixture
-    fixture = await generate()
-    const serialized = options.serialize ? await options?.serialize(fixture) : fixture
-    serializedAll[fixtureId] = serialized
-
-    if (!fs.existsSync(fixtureDir)) {
-      await fs.promises.mkdir(fixtureDir)
-    }
-
-    const result = Object.fromEntries(fixtures.entries())
-    const data = IJSON.stringify(result, '  ')
-    await fs.promises.writeFile(fixturePath, data)
-  }
-
-  if (options.process) {
-    await options.process(fixture)
-  }
-
-  return fixture
-}
-
-export async function useAccountFixture(
-  wallet: Wallet,
-  generate: FixtureGenerate<Account> | string = 'test',
-): Promise<Account> {
-  if (typeof generate === 'string') {
-    const name = generate
-    generate = () => wallet.createAccount(name)
-  }
-
-  return useFixture(generate, {
-    serialize: (account: Account): AccountValue => {
-      return account.serialize()
-    },
-
-    deserialize: async (accountData: AccountValue): Promise<Account> => {
-      const account = await wallet.importAccount(accountData)
-
-      await wallet.updateHeadHash(account, wallet.chainProcessor.hash)
-
-      return account
-    },
-  })
-}
+import { Assert } from '../../assert'
+import { Blockchain } from '../../blockchain'
+import { IronfishNode } from '../../node'
+import { Block, BlockSerde, SerializedBlock } from '../../primitives/block'
+import { BurnDescription } from '../../primitives/burnDescription'
+import { MintDescription } from '../../primitives/mintDescription'
+import { NoteEncrypted } from '../../primitives/noteEncrypted'
+import { Transaction } from '../../primitives/transaction'
+import { Account, Wallet } from '../../wallet'
+import { WorkerPool } from '../../workerPool/pool'
+import { useAccountFixture } from './account'
+import { FixtureGenerate, useFixture } from './fixture'
+import {
+  restoreTransactionFixtureToAccounts,
+  usePostTxFixture,
+  useTxFixture,
+} from './transactions'
 
 /*
  * We need the workaround because transactions related to us
@@ -162,13 +36,6 @@ export async function restoreBlockFixtureToAccounts(
   for (const transaction of block.transactions) {
     await restoreTransactionFixtureToAccounts(transaction, wallet)
   }
-}
-
-export async function restoreTransactionFixtureToAccounts(
-  transaction: Transaction,
-  wallet: Wallet,
-): Promise<void> {
-  await wallet.addPendingTransaction(transaction)
 }
 
 /**
@@ -269,73 +136,6 @@ export async function useBurnBlockFixture(options: {
   ])
 }
 
-export async function usePostTxFixture(options: {
-  node: IronfishNode
-  wallet: Wallet
-  from: Account
-  to?: Account
-  fee?: bigint
-  amount?: bigint
-  expiration?: number
-  assetId?: Buffer
-  receives?: {
-    publicAddress: string
-    amount: bigint
-    memo: string
-    assetId: Buffer
-  }[]
-  mints?: MintDescription[]
-  burns?: BurnDescription[]
-}): Promise<Transaction> {
-  return useTxFixture(options.wallet, options.from, options.from, async () => {
-    const raw = await createRawTransaction(options)
-    return options.node.workerPool.postTransaction(raw)
-  })
-}
-
-export async function useTxFixture(
-  wallet: Wallet,
-  from: Account,
-  to: Account,
-  generate?: FixtureGenerate<Transaction>,
-  fee?: bigint,
-  expiration?: number,
-): Promise<Transaction> {
-  generate =
-    generate ||
-    (async () => {
-      const raw = await wallet.createTransaction(
-        from,
-        [
-          {
-            publicAddress: to.publicAddress,
-            amount: BigInt(1),
-            memo: '',
-            assetId: Asset.nativeId(),
-          },
-        ],
-        [],
-        [],
-        fee ?? BigInt(0),
-        expiration ?? 0,
-      )
-
-      return await wallet.postTransaction(raw)
-    })
-
-  return useFixture(generate, {
-    process: async (tx: Transaction): Promise<void> => {
-      await restoreTransactionFixtureToAccounts(tx, wallet)
-    },
-    serialize: (tx: Transaction): SerializedTransaction => {
-      return tx.serialize()
-    },
-    deserialize: (tx: SerializedTransaction): Transaction => {
-      return new Transaction(tx)
-    },
-  })
-}
-
 export async function useBlockWithRawTxFixture(
   chain: Blockchain,
   pool: WorkerPool,
@@ -382,56 +182,6 @@ export async function useBlockWithRawTxFixture(
   }
 
   return useBlockFixture(chain, generate)
-}
-
-export async function useMinersTxFixture(
-  wallet: Wallet,
-  to?: Account,
-  sequence?: number,
-  amount = 0,
-): Promise<Transaction> {
-  if (!to) {
-    to = await useAccountFixture(wallet)
-  }
-
-  return useTxFixture(wallet, to, to, () => {
-    Assert.isNotUndefined(to)
-
-    return wallet.chain.strategy.createMinersFee(
-      BigInt(amount),
-      sequence || wallet.chain.head.sequence + 1,
-      to.spendingKey,
-    )
-  })
-}
-
-export async function useTxSpendsFixture(
-  node: IronfishNode,
-  options?: {
-    account?: Account
-    expiration?: number
-  },
-): Promise<{ account: Account; transaction: Transaction }> {
-  const account = options?.account ?? (await useAccountFixture(node.wallet))
-
-  const block = await useMinerBlockFixture(node.chain, 2, account, node.wallet)
-
-  await expect(node.chain).toAddBlock(block)
-  await node.wallet.updateHead()
-
-  const transaction = await useTxFixture(
-    node.wallet,
-    account,
-    account,
-    undefined,
-    undefined,
-    options?.expiration,
-  )
-
-  return {
-    account: account,
-    transaction: transaction,
-  }
 }
 
 /**
@@ -564,4 +314,33 @@ export async function useBlockWithTxs(
   })
 
   return { block, account: from, transactions: block.transactions.slice(1) }
+}
+
+export async function useTxSpendsFixture(
+  node: IronfishNode,
+  options?: {
+    account?: Account
+    expiration?: number
+  },
+): Promise<{ account: Account; transaction: Transaction }> {
+  const account = options?.account ?? (await useAccountFixture(node.wallet))
+
+  const block = await useMinerBlockFixture(node.chain, 2, account, node.wallet)
+
+  await expect(node.chain).toAddBlock(block)
+  await node.wallet.updateHead()
+
+  const transaction = await useTxFixture(
+    node.wallet,
+    account,
+    account,
+    undefined,
+    undefined,
+    options?.expiration,
+  )
+
+  return {
+    account: account,
+    transaction: transaction,
+  }
 }
