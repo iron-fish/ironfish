@@ -15,8 +15,12 @@ type FaucetTransaction = {
   completed_at: string | null
 }
 
-export const MaspTransactionTypes = ['MASP_TRANSFER', 'MASP_BURN', 'MASP_MINT']
-export type MultiAssetTypes = typeof MaspTransactionTypes[number]
+export const MultiAsssetTransactionTypes = [
+  'MULTI_ASSET_TRANSFER',
+  'MULTI_ASSET_BURN',
+  'MULTI_ASSET_MINT',
+]
+export type MultiAssetTypes = typeof MultiAsssetTransactionTypes[number]
 
 export type ApiMultiAssetUpload = {
   type: 'connected' | 'disconnected' | 'fork'
