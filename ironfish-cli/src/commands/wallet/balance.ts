@@ -74,8 +74,6 @@ export class BalanceCommand extends IronfishCommand {
     }
 
     this.log(`Account: ${response.content.account}`)
-    this.log(`Head Hash: ${response.content.blockHash || 'NULL'}`)
-    this.log(`Head Sequence: ${response.content.sequence || 'NULL'}`)
     this.log(`Balance: ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`)
   }
 
