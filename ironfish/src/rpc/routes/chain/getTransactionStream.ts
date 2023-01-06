@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { AssetsValue } from '../../../blockchain/database/assets'
 import { ChainProcessor } from '../../../chainProcessor'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
@@ -14,18 +13,18 @@ import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
 interface Note {
-  assetIdentifier: string
+  assetId: string
   assetName: string
   value: string
   memo: string
 }
 interface Mint {
-  assetIdentifier: string
+  assetId: string
   assetName: string
   value: string
 }
 interface Burn {
-  assetIdentifier: string
+  assetId: string
   assetName: string
   value: string
 }
@@ -41,7 +40,7 @@ interface Transaction {
 const NoteSchema = yup
   .object()
   .shape({
-    assetIdentifier: yup.string().required(),
+    assetId: yup.string().required(),
     assetName: yup.string().required(),
     value: yup.string().required(),
     memo: yup.string().required(),
@@ -51,7 +50,7 @@ const NoteSchema = yup
 const MintSchema = yup
   .object()
   .shape({
-    assetIdentifier: yup.string().required(),
+    assetId: yup.string().required(),
     assetName: yup.string().required(),
     value: yup.string().required(),
   })
@@ -60,7 +59,7 @@ const MintSchema = yup
 const BurnSchema = yup
   .object()
   .shape({
-    assetIdentifier: yup.string().required(),
+    assetId: yup.string().required(),
     assetName: yup.string().required(),
     value: yup.string().required(),
   })
@@ -158,29 +157,29 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           const decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
 
           if (decryptedNote) {
-            const assetValue = await validatedAssetValue(decryptedNote.assetIdentifier())
+            const assetValue = await node.chain.getAssetById(decryptedNote.assetIdentifier())
             notes.push({
               value: CurrencyUtils.encode(decryptedNote.value()),
               memo: decryptedNote.memo(),
-              assetIdentifier: decryptedNote.assetIdentifier().toString('hex'),
-              assetName: assetValue.name.toString('hex'),
+              assetId: decryptedNote.assetIdentifier().toString('hex'),
+              assetName: assetValue?.name.toString('hex') || '',
             })
           }
         }
 
         for (const burn of tx.burns) {
-          const assetValue = await validatedAssetValue(burn.assetIdentifier)
+          const assetValue = await node.chain.getAssetById(burn.assetIdentifier)
           burns.push({
             value: CurrencyUtils.encode(burn.value),
-            assetIdentifier: burn.assetIdentifier.toString('hex'),
-            assetName: assetValue.name.toString('hex'),
+            assetId: burn.assetIdentifier.toString('hex'),
+            assetName: assetValue?.name.toString('hex') || '',
           })
         }
 
         for (const mint of tx.mints) {
           mints.push({
             value: CurrencyUtils.encode(mint.value),
-            assetIdentifier: mint.asset.identifier().toString('hex'),
+            assetId: mint.asset.identifier().toString('hex'),
             assetName: mint.asset.name().toString('hex'),
           })
         }
@@ -209,16 +208,6 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           sequence: node.chain.head.sequence,
         },
       })
-    }
-
-    const validatedAssetValue = async (assetIdentifier: Buffer): Promise<AssetsValue> => {
-      const assetValue = await node.chain.getAssetById(assetIdentifier)
-      if (!assetValue) {
-        throw new ValidationError(
-          `Asset detected in chain is not in assetDB. Asset Identifier: ${assetIdentifier.toString()}`,
-        )
-      }
-      return assetValue
     }
 
     const onAdd = async (header: BlockHeader) => {
