@@ -108,23 +108,13 @@ export class Wallet {
     this.chainProcessor.onAdd.on(async (header) => {
       this.logger.debug(`AccountHead ADD: ${Number(header.sequence) - 1} => ${header.sequence}`)
 
-      const accounts = await AsyncUtils.filter(
-        this.listAccounts(),
-        async (account) => await this.isAccountUpToDate(account),
-      )
-
-      await this.connectBlock(header, accounts)
+      await this.connectBlock(header)
     })
 
     this.chainProcessor.onRemove.on(async (header) => {
       this.logger.debug(`AccountHead DEL: ${header.sequence} => ${Number(header.sequence) - 1}`)
 
-      const accounts = await AsyncUtils.filter(
-        this.listAccounts(),
-        async (account) => await this.isAccountUpToDate(account),
-      )
-
-      await this.disconnectBlock(header, accounts)
+      await this.disconnectBlock(header)
     })
   }
 
@@ -361,11 +351,16 @@ export class Wallet {
     return decryptedNotes
   }
 
-  async connectBlock(
-    blockHeader: BlockHeader,
-    accounts: Account[],
-    scan?: ScanState,
-  ): Promise<void> {
+  async connectBlock(blockHeader: BlockHeader, scan?: ScanState): Promise<void> {
+    const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
+      const accountHeadHash = await account.getHeadHash()
+
+      return (
+        BufferUtils.equalsNullable(accountHeadHash, blockHeader.previousBlockHash) ||
+        (accountHeadHash === null && blockHeader.sequence === 1)
+      )
+    })
+
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
         for await (const {
@@ -400,7 +395,11 @@ export class Wallet {
     }
   }
 
-  async disconnectBlock(header: BlockHeader, accounts: Account[]): Promise<void> {
+  async disconnectBlock(header: BlockHeader): Promise<void> {
+    const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) =>
+      BufferUtils.equalsNullable(await account.getHeadHash(), header.hash),
+    )
+
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
         for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
@@ -459,28 +458,6 @@ export class Wallet {
 
     const startHash = await this.getEarliestHeadHash()
 
-    const endHash = this.chainProcessor.hash || this.chain.head.hash
-    const endHeader = await this.chain.getHeader(endHash)
-
-    // Accounts that need to be updated at the current scan sequence
-    const accounts: Array<Account> = []
-    // Accounts that need to be updated at future scan sequences
-    let remainingAccounts: Array<Account> = []
-
-    for (const account of this.accounts.values()) {
-      const headHash = await account.getHeadHash()
-      Assert.isNotUndefined(
-        headHash,
-        `scanTransactions: No head hash found for ${account.displayName}`,
-      )
-
-      if (BufferUtils.equalsNullable(startHash, headHash)) {
-        accounts.push(account)
-      } else if (!(await this.isAccountUpToDate(account))) {
-        remainingAccounts.push(account)
-      }
-    }
-
     // Priority: fromHeader > startHeader > genesisBlock
     const beginHash = fromHash ? fromHash : startHash ? startHash : this.chain.genesis.hash
     const beginHeader = await this.chain.getHeader(beginHash)
@@ -489,6 +466,9 @@ export class Wallet {
       beginHeader,
       `scanTransactions: No header found for start hash ${beginHash.toString('hex')}`,
     )
+
+    const endHash = this.chainProcessor.hash || this.chain.head.hash
+    const endHeader = await this.chain.getHeader(endHash)
 
     Assert.isNotNull(
       endHeader,
@@ -507,7 +487,6 @@ export class Wallet {
     this.logger.info(
       `Scan starting from earliest found account head hash: ${beginHash.toString('hex')}`,
     )
-    this.logger.info(`Accounts to scan for: ${accounts.map((a) => a.displayName).join(', ')}`)
 
     // Go through every transaction in the chain and add notes that we can decrypt
     for await (const blockHeader of this.chain.iterateBlockHeaders(
@@ -516,26 +495,7 @@ export class Wallet {
       undefined,
       false,
     )) {
-      await this.connectBlock(blockHeader, accounts, scan)
-
-      const newRemainingAccounts = []
-
-      for (const remainingAccount of remainingAccounts) {
-        const headHash = await remainingAccount.getHeadHash()
-        Assert.isNotUndefined(
-          headHash,
-          `scanTransactions: No head hash found for remaining account ${remainingAccount.displayName}`,
-        )
-
-        if (BufferUtils.equalsNullable(headHash, blockHeader.hash)) {
-          accounts.push(remainingAccount)
-          this.logger.debug(`Adding ${remainingAccount.displayName} to scan`)
-        } else {
-          newRemainingAccounts.push(remainingAccount)
-        }
-      }
-
-      remainingAccounts = newRemainingAccounts
+      await this.connectBlock(blockHeader, scan)
     }
 
     if (this.chainProcessor.hash === null) {

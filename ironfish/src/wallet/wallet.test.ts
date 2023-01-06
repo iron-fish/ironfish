@@ -1043,7 +1043,7 @@ describe('Accounts', () => {
       const { block: blockA2, transaction } = await useBlockWithTx(node, accountA, accountB)
       await expect(node.chain).toAddBlock(blockA2)
 
-      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
+      await node.wallet.connectBlock(blockA2.header)
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
 
@@ -1065,7 +1065,7 @@ describe('Accounts', () => {
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB)
       await expect(node.chain).toAddBlock(blockA2)
 
-      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
+      await node.wallet.connectBlock(blockA2.header)
 
       const accountAHeadHash = await accountA.getHeadHash()
 
@@ -1088,10 +1088,83 @@ describe('Accounts', () => {
       const { block: blockA2 } = await useBlockWithTx(node, accountA, accountB, false)
       await expect(node.chain).toAddBlock(blockA2)
 
-      await node.wallet.connectBlock(blockA2.header, [accountA, accountB])
+      await node.wallet.connectBlock(blockA2.header)
 
       const balanceAfter = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceAfter.unconfirmed).toEqual(1999999998n)
+    })
+
+    it('should not connect blocks behind the account head', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.connectBlock(blockA2.header)
+
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA2.header.hash)
+
+      // Try to connect A1 again
+      await node.wallet.connectBlock(blockA1.header)
+
+      // accountA head hash should be unchanged
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA2.header.hash)
+    })
+
+    it('should not connect blocks equal to the account head', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.connectBlock(blockA2.header)
+
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA2.header.hash)
+
+      const updateHeadSpy = jest.spyOn(accountA, 'updateHeadHash')
+
+      // Try to connect A2 again
+      await node.wallet.connectBlock(blockA1.header)
+
+      expect(updateHeadSpy).not.toHaveBeenCalled()
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA2.header.hash)
+    })
+
+    it('should not connect blocks more than one block ahead of the account head', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
+      const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA3)
+
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA1.header.hash)
+
+      const updateHeadSpy = jest.spyOn(accountA, 'updateHeadHash')
+
+      // Try to connect A3
+      await node.wallet.connectBlock(blockA3.header)
+
+      expect(updateHeadSpy).not.toHaveBeenCalled()
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA1.header.hash)
     })
   })
 
@@ -1189,6 +1262,50 @@ describe('Accounts', () => {
 
       const balanceAfterDisconnect = await accountA.getUnconfirmedBalance(Asset.nativeId())
       expect(balanceAfterDisconnect.unconfirmed).toEqual(2000000000n)
+    })
+
+    it('should not disconnect blocks before the account head', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA2.header.hash)
+
+      // Try to disconnect blockA1
+      await node.wallet.disconnectBlock(blockA1.header)
+
+      // Verify accountA head hash unchanged
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA2.header.hash)
+    })
+
+    it('should not disconnect blocks ahead of the account head', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA1.header.hash)
+
+      const updateHeadSpy = jest.spyOn(accountA, 'updateHeadHash')
+
+      // Try to disconnect blockA2
+      await node.wallet.disconnectBlock(blockA2.header)
+
+      expect(updateHeadSpy).not.toHaveBeenCalled()
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA1.header.hash)
     })
   })
 })
