@@ -6,7 +6,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { v4 as uuid } from 'uuid'
+import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { createRawTransaction } from '../../../testUtilities/helpers/transaction'
 
 describe('Route wallet/postTransaction', () => {
   const routeTest = createRouteTest(true)
@@ -32,16 +34,33 @@ describe('Route wallet/postTransaction', () => {
     })
   })
 
-  // TODO a valid raw transaction
-  it('should return the posted transaction', async () => {
+  it('should accept a valid raw transaction', async () => {
+    const account = await routeTest.node.wallet.createAccount(uuid(), true)
+    const options = {
+      wallet: routeTest.node.wallet,
+      from: account
+    }
+    const rawTransaction = await createRawTransaction(
+      options
+    )
+    const response = await routeTest.client
+      .request<any>('wallet/postTransaction', {
+        transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
+      })
+      .waitForEnd()
+
+    expect(response.status).toBe(200)
+    expect(response.content.transaction).toBeDefined()
   })
-  // TODO an invalid raw transaction that won't deserialize  
   it('should return an error if the transaction won\'t deserialize', async () => {
-  })
-  // TODO a valid raw transaction but the key isn't managed by the wallet
-  it('should return an error if the key isn\'t managed by the wallet', async () => {
-  })
-  // TODO a valid raw transaction but the account has insufficient funds
-  it('should return an error if the account has insufficient funds', async () => {
+
+    const response = await routeTest.client
+      .request<any>('wallet/postTransaction', {
+        transaction: '0xdeadbeef',
+      })
+      .waitForEnd()
+
+    expect(response.status).toBe(400)
+    expect(response.content.transaction).toBeUndefined()
   })
 })
