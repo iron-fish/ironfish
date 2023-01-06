@@ -102,6 +102,15 @@ switch (platform) {
     }
     break
   case 'darwin':
+    localFileExisted = existsSync(join(__dirname, 'ironfish-rust-nodejs.darwin-universal.node'))
+    try {
+      if (localFileExisted) {
+        nativeBinding = require('./ironfish-rust-nodejs.darwin-universal.node')
+      } else {
+        nativeBinding = require('@ironfish/rust-nodejs-darwin-universal')
+      }
+      break
+    } catch {}
     switch (arch) {
       case 'x64':
         localFileExisted = existsSync(join(__dirname, 'ironfish-rust-nodejs.darwin-x64.node'))

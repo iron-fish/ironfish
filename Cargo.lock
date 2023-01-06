@@ -276,9 +276,12 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
 name = "convert_case"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb4a24b1aaf0fd0ce8b45161144d6f42cd91677fd5940fd431183eb023b3a2b8"
+checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+dependencies = [
+ "unicode-segmentation",
+]
 
 [[package]]
 name = "cpufeatures"
@@ -761,8 +764,9 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "2.9.0"
-source = "git+https://github.com/napi-rs/napi-rs?rev=26f6c926d30de744146fe54db6a6b399e142e63c#26f6c926d30de744146fe54db6a6b399e142e63c"
+version = "2.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "838b5b414a008e75b97edb3c3e6f189034af789a0608686299b149d3b0e66c39"
 dependencies = [
  "bitflags",
  "ctor",
@@ -779,9 +783,9 @@ checksum = "882a73d9ef23e8dc2ebbffb6a6ae2ef467c0f18ac10711e4cc59c5485d41df0e"
 
 [[package]]
 name = "napi-derive"
-version = "2.9.0"
+version = "2.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1be75210f300e9fbf386ccac1c8eaaed23410e2f7f7aa9295b78c436a172ef51"
+checksum = "af4e44e34e70aa61be9036ae652e27c20db5bca80e006be0f482419f6601352a"
 dependencies = [
  "convert_case",
  "napi-derive-backend",
@@ -792,8 +796,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-backend"
-version = "1.0.37"
-source = "git+https://github.com/napi-rs/napi-rs?rev=26f6c926d30de744146fe54db6a6b399e142e63c#26f6c926d30de744146fe54db6a6b399e142e63c"
+version = "1.0.40"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17925fff04b6fa636f8e4b4608cc1a4f1360b64ac8ecbfdb7da1be1dc74f6843"
 dependencies = [
  "convert_case",
  "once_cell",
@@ -806,7 +811,8 @@ dependencies = [
 [[package]]
 name = "napi-sys"
 version = "2.2.2"
-source = "git+https://github.com/napi-rs/napi-rs?rev=26f6c926d30de744146fe54db6a6b399e142e63c#26f6c926d30de744146fe54db6a6b399e142e63c"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "529671ebfae679f2ce9630b62dd53c72c56b3eb8b2c852e7e2fa91704ff93d67"
 dependencies = [
  "libloading",
 ]
@@ -859,9 +865,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.13.0"
+version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
+checksum = "6f61fba1741ea2b3d6a1e3178721804bb716a68a6aeba1149b5d52e3d464ea66"
 
 [[package]]
 name = "opaque-debug"
@@ -1380,6 +1386,12 @@ checksum = "854cbdc4f7bc6ae19c820d44abdc3277ac3e1b2b93db20a636825d9322fb60e6"
 dependencies = [
  "tinyvec",
 ]
+
+[[package]]
+name = "unicode-segmentation"
+version = "1.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fdbf052a0783de01e944a6ce7a8cb939e295b1e7be835a1112c3b9a7f047a5a"
 
 [[package]]
 name = "unicode-xid"
