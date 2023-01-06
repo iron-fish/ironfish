@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils, GetBalanceResponse } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
+import { resolve } from 'path'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -84,8 +85,12 @@ export class BalanceCommand extends IronfishCommand {
     const unconfirmedDelta = unconfirmed - confirmed
 
     this.log(`Account: ${response.account}`)
-    this.log(`Head Hash: ${response.blockHash || 'NULL'}`)
-    this.log(`Head Sequence: ${response.sequence || 'NULL'}`)
+
+    this.log(
+      `Your balance is calculated from transactions on the chain through block ${
+        response.blockHash ?? 'NULL'
+      } at sequence ${response.sequence ?? 'NULL'}`,
+    )
     this.log('')
 
     this.log(`Your balance is made of notes on the chain that are safe to spend`)
