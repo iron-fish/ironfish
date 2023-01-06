@@ -31,28 +31,25 @@ export class Mint extends IronfishCommand {
       description: 'Amount of coins to mint',
       required: true,
     }),
+    assetId: Flags.string({
+      char: 'i',
+      description: 'Identifier for the asset',
+      required: false,
+    }),
     metadata: Flags.string({
       char: 'm',
       description: 'Metadata for the asset',
-      required: true,
+      required: false,
     }),
     name: Flags.string({
       char: 'n',
       description: 'Name for the asset',
-      required: true,
+      required: false,
     }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Mint)
-    // TODO(mgeist,rohanjadvani):
-    // These fields will be required for now. They will be made optional when
-    // this CLI command is refactored to also accept an asset identifier
-    const account = flags.account
-    const fee = flags.fee
-    const metadata = flags.metadata
-    const name = flags.name
-    const amount = flags.amount
     const client = await this.sdk.connectRpc(false, true)
 
     const status = await client.getNodeStatus()
@@ -88,23 +85,24 @@ export class Mint extends IronfishCommand {
 
     try {
       const result = await client.mintAsset({
-        account,
-        fee,
-        metadata,
-        name,
-        value: amount,
+        account: flags.account,
+        assetId: flags.assetId,
+        fee: flags.fee,
+        metadata: flags.metadata,
+        name: flags.name,
+        value: flags.amount,
       })
 
       stopProgressBar()
 
       const response = result.content
       this.log(`
- Minted asset ${name} from ${account}
+ Minted asset ${flags.name} from ${flags.account}
  Asset Identifier: ${response.assetId}
- Value: ${amount}
+ Value: ${flags.amount}
  
  Transaction Hash: ${response.hash}
- Transaction fee: ${CurrencyUtils.renderIron(fee, true)}
+ Transaction fee: ${CurrencyUtils.renderIron(flags.fee, true)}
  
  Find the transaction on https://explorer.ironfish.network/transaction/${
    response.hash
