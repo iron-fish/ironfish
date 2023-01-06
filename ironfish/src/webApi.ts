@@ -27,8 +27,10 @@ export type ApiMaspUpload = {
   }
   transactions: {
     hash: string
-    type: MaspTransactionTypes
-    assetName: string
+    masps: {
+      type: MaspTransactionTypes
+      assetName: string
+    }[]
   }[]
 }
 

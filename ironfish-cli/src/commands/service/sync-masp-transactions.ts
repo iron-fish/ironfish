@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import {
   ApiMaspUpload,
   GENESIS_BLOCK_SEQUENCE,
@@ -171,8 +172,7 @@ export default class SyncMaspTransactions extends IronfishCommand {
           transactions: [
             {
               hash: uuid(),
-              type: choice,
-              assetName: 'jowparks',
+              masps: [{ type: choice, assetName: 'jowparks' }],
             },
           ],
         },
@@ -199,13 +199,34 @@ export default class SyncMaspTransactions extends IronfishCommand {
 }
 
 function serializeMasp(data: GetTransactionStreamResponse): ApiMaspUpload {
+  const txs = data.transactions
   return {
     ...data,
-    transactions: data.transactions.map((tx) => ({
-      ...tx,
-      hash: tx.hash,
-      type: 'MASP_TRANSFER',
-      assetName: 'STUBBED',
-    })),
+    transactions: txs.map((tx) => {
+      const masps = tx.mints
+        .map((mint) => ({
+          type: 'MASP_MINT' as MaspTransactionTypes,
+          assetName: mint.assetName,
+        }))
+        .concat(
+          tx.burns.map((burn) => ({
+            type: 'MASP_BURN' as MaspTransactionTypes,
+            assetName: burn.assetName,
+          })),
+        )
+        .concat(
+          tx.notes
+            .filter((note) => note.assetId !== Asset.nativeIdentifier().toString())
+            .map((transfer) => ({
+              type: 'MASP_BURN' as MaspTransactionTypes,
+              assetName: transfer.assetName,
+            })),
+        )
+      return {
+        ...tx,
+        hash: tx.hash,
+        masps: masps,
+      }
+    }),
   }
 }
