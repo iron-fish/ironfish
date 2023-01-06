@@ -1037,10 +1037,6 @@ export class Wallet {
           continue
         }
 
-        if (!submittedSequence) {
-          continue
-        }
-
         // TODO: This algorithm suffers a deanonymization attack where you can
         // watch to see what transactions node continuously send out, then you can
         // know those transactions are theres. This should be randomized and made

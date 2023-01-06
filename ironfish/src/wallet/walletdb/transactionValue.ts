@@ -16,7 +16,7 @@ export interface TransactionValue {
   // This is populated when we create a transaction to track when we should
   // rebroadcast. This can be null if we created it on another node, or the
   // transaction was created for us by another person.
-  submittedSequence: number | null
+  submittedSequence: number
   assetBalanceDeltas: BufferMap<bigint>
 }
 
@@ -30,19 +30,17 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
 
     let flags = 0
     flags |= Number(!!blockHash) << 0
-    flags |= Number(!!submittedSequence) << 1
-    flags |= Number(!!sequence) << 2
+    flags |= Number(!!sequence) << 1
     bw.writeU8(flags)
 
     if (blockHash) {
       bw.writeHash(blockHash)
     }
-    if (submittedSequence) {
-      bw.writeU32(submittedSequence)
-    }
     if (sequence) {
       bw.writeU32(sequence)
     }
+
+    bw.writeU32(submittedSequence)
 
     const assetCount = value.assetBalanceDeltas.size
     bw.writeU32(assetCount)
@@ -62,23 +60,19 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
 
     const flags = reader.readU8()
     const hasBlockHash = flags & (1 << 0)
-    const hasSubmittedSequence = flags & (1 << 1)
-    const hasSequence = flags & (1 << 2)
+    const hasSequence = flags & (1 << 1)
 
     let blockHash = null
     if (hasBlockHash) {
       blockHash = reader.readHash()
     }
 
-    let submittedSequence = null
-    if (hasSubmittedSequence) {
-      submittedSequence = reader.readU32()
-    }
-
     let sequence = null
     if (hasSequence) {
       sequence = reader.readU32()
     }
+
+    const submittedSequence = reader.readU32()
 
     const assetBalanceDeltas = new BufferMap<bigint>()
     const assetCount = reader.readU32()
@@ -106,12 +100,10 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
     if (value.blockHash) {
       size += 32
     }
-    if (value.submittedSequence) {
-      size += 4
-    }
     if (value.sequence) {
       size += 4
     }
+    size += 4
     size += 4
     size += value.assetBalanceDeltas.size * (ASSET_ID_LENGTH + 8)
     return size
