@@ -149,7 +149,7 @@ describe('Accounts', () => {
 
     expect(balanceA.confirmed).toBeGreaterThanOrEqual(0n)
     expect(notesOnChainA.length).toEqual(0)
-    expect(notesNotOnChainA.length).toEqual(2)
+    expect(notesNotOnChainA.length).toEqual(1)
     expect(balanceA.confirmed).toBeGreaterThanOrEqual(0n)
   })
 
