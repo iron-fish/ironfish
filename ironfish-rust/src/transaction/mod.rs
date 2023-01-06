@@ -132,32 +132,44 @@ impl ProposedTransaction {
     }
 
     /// Spend the note owned by spender_key at the given witness location.
-    pub fn add_spend(&mut self, note: Note, witness: &dyn WitnessTrait) {
+    pub fn add_spend(
+        &mut self,
+        note: Note,
+        witness: &dyn WitnessTrait,
+    ) -> Result<(), IronfishError> {
         self.value_balances
-            .add(&note.asset_id(), note.value() as i64);
+            .add(&note.asset_id(), note.value() as i64)?;
 
         self.spends.push(SpendBuilder::new(note, witness));
+
+        Ok(())
     }
 
     /// Create a proof of a new note owned by the recipient in this
     /// transaction.
-    pub fn add_output(&mut self, note: Note) {
+    pub fn add_output(&mut self, note: Note) -> Result<(), IronfishError> {
         self.value_balances
-            .subtract(&note.asset_id(), note.value() as i64);
+            .subtract(&note.asset_id(), note.value() as i64)?;
 
         self.outputs.push(OutputBuilder::new(note));
+
+        Ok(())
     }
 
-    pub fn add_mint(&mut self, asset: Asset, value: u64) {
-        self.value_balances.add(asset.id(), value as i64);
+    pub fn add_mint(&mut self, asset: Asset, value: u64) -> Result<(), IronfishError> {
+        self.value_balances.add(asset.id(), value as i64)?;
 
         self.mints.push(MintBuilder::new(asset, value));
+
+        Ok(())
     }
 
-    pub fn add_burn(&mut self, asset_id: AssetIdentifier, value: u64) {
-        self.value_balances.subtract(&asset_id, value as i64);
+    pub fn add_burn(&mut self, asset_id: AssetIdentifier, value: u64) -> Result<(), IronfishError> {
+        self.value_balances.subtract(&asset_id, value as i64)?;
 
         self.burns.push(BurnBuilder::new(asset_id, value));
+
+        Ok(())
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
@@ -204,7 +216,7 @@ impl ProposedTransaction {
         }
 
         for change_note in change_notes {
-            self.add_output(change_note);
+            self.add_output(change_note)?;
         }
 
         self._partial_post()

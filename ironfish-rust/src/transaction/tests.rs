@@ -59,23 +59,23 @@ fn test_transaction() {
     let mut transaction = ProposedTransaction::new(spender_key);
 
     // Spend
-    transaction.add_spend(in_note, &witness);
+    transaction.add_spend(in_note, &witness).unwrap();
     assert_eq!(transaction.spends.len(), 1);
 
     // Output
-    transaction.add_output(out_note);
+    transaction.add_output(out_note).unwrap();
     assert_eq!(transaction.outputs.len(), 1);
 
     // Mint 5 tokens
-    transaction.add_mint(asset, mint_value);
+    transaction.add_mint(asset, mint_value).unwrap();
     assert_eq!(transaction.mints.len(), 1);
 
     // Output 2 minted tokens to receiver
-    transaction.add_output(mint_out_note);
+    transaction.add_output(mint_out_note).unwrap();
     assert_eq!(transaction.outputs.len(), 2);
 
     // Burn 2 tokens, leaving 1 token left to be put into a change note
-    transaction.add_burn(asset.id, burn_value);
+    transaction.add_burn(asset.id, burn_value).unwrap();
     assert_eq!(transaction.burns.len(), 1);
 
     let public_transaction = transaction
@@ -155,9 +155,9 @@ fn test_transaction_simple() {
     let witness = make_fake_witness(&in_note);
 
     let mut transaction = ProposedTransaction::new(spender_key);
-    transaction.add_spend(in_note, &witness);
+    transaction.add_spend(in_note, &witness).unwrap();
     assert_eq!(transaction.spends.len(), 1);
-    transaction.add_output(out_note);
+    transaction.add_output(out_note).unwrap();
     assert_eq!(transaction.outputs.len(), 1);
 
     let public_transaction = transaction
@@ -193,7 +193,7 @@ fn test_miners_fee() {
         spender_key.public_address(),
     );
     let mut transaction = ProposedTransaction::new(spender_key);
-    transaction.add_output(out_note);
+    transaction.add_output(out_note).unwrap();
     let posted_transaction = transaction
         .post_miners_fee()
         .expect("it is a valid miner's fee");
@@ -234,9 +234,9 @@ fn test_transaction_signature() {
     );
     let witness = make_fake_witness(&in_note);
 
-    transaction.add_spend(in_note, &witness);
+    transaction.add_spend(in_note, &witness).unwrap();
 
-    transaction.add_output(out_note);
+    transaction.add_output(out_note).unwrap();
 
     transaction.set_expiration(1337);
 
@@ -278,8 +278,8 @@ fn test_transaction_created_with_version_1() {
     let witness = make_fake_witness(&in_note);
 
     let mut transaction = ProposedTransaction::new(spender_key);
-    transaction.add_spend(in_note, &witness);
-    transaction.add_output(out_note);
+    transaction.add_spend(in_note, &witness).unwrap();
+    transaction.add_output(out_note).unwrap();
 
     assert_eq!(transaction.version, 1);
 
@@ -318,8 +318,8 @@ fn test_transaction_version_is_checked() {
     let witness = make_fake_witness(&in_note);
 
     let mut transaction = ProposedTransaction::new(spender_key);
-    transaction.add_spend(in_note, &witness);
-    transaction.add_output(out_note);
+    transaction.add_spend(in_note, &witness).unwrap();
+    transaction.add_output(out_note).unwrap();
 
     transaction.version = 2;
 
