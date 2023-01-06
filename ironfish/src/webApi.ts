@@ -15,9 +15,10 @@ type FaucetTransaction = {
   completed_at: string | null
 }
 
-export type MaspTransactionTypes = 'MASP_TRANSFER' | 'MASP_BURN' | 'MASP_MINT'
+export const MaspTransactionTypes = ['MASP_TRANSFER', 'MASP_BURN', 'MASP_MINT']
+export type MultiAssetTypes = typeof MaspTransactionTypes[number]
 
-export type ApiMaspUpload = {
+export type ApiMultiAssetUpload = {
   type: 'connected' | 'disconnected' | 'fork'
   block: {
     hash: string
@@ -27,8 +28,8 @@ export type ApiMaspUpload = {
   }
   transactions: {
     hash: string
-    masps: {
-      type: MaspTransactionTypes
+    multiAssets: {
+      type: MultiAssetTypes
       assetName: string
     }[]
   }[]
@@ -80,7 +81,7 @@ export class WebApi {
   }
   async headMaspTransactions(): Promise<string | null> {
     const response = await axios
-      .get<{ block_hash: string }>(`${this.host}/masp/head`)
+      .get<{ block_hash: string }>(`${this.host}/multi_asset/head`)
       .catch((e) => {
         // The API returns 404 for no head
         if (IsAxiosError(e) && e.response?.status === 404) {
@@ -108,11 +109,11 @@ export class WebApi {
     return response?.data.hash || null
   }
 
-  async uploadMaspTransactions(maspTransactions: ApiMaspUpload[]): Promise<void> {
+  async uploadMaspTransactions(multiAssets: ApiMultiAssetUpload[]): Promise<void> {
     this.requireToken()
 
     const options = this.options({ 'Content-Type': 'application/json' })
-    await axios.post(`${this.host}/masp`, { operations: maspTransactions }, options)
+    await axios.post(`${this.host}/multi_asset`, { operations: multiAssets }, options)
   }
 
   async blocks(blocks: FollowChainStreamResponse[]): Promise<void> {

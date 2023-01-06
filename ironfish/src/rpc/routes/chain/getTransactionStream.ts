@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { AssetsValue } from '../../../blockchain/database/assets'
 import { ChainProcessor } from '../../../chainProcessor'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
