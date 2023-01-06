@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils, GetBalanceResponse } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
-import { resolve } from 'path'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
