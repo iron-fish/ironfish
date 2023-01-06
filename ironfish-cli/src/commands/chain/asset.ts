@@ -23,18 +23,18 @@ export default class Asset extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(Asset)
-    Assert.isString(args.identifier)
-    const assetIdentifier = args.identifier
+    Assert.isString(args.id)
+    const assetId = args.id
 
     const client = await this.sdk.connectRpc()
-    const data = await client.getAsset({ identifier: assetIdentifier })
+    const data = await client.getAsset({ id: assetId })
 
     this.log(`Name: ${BufferUtils.toHuman(Buffer.from(data.content.name, 'hex'))}`)
     this.log(`Metadata: ${BufferUtils.toHuman(Buffer.from(data.content.metadata, 'hex'))}`)
     this.log(`Owner: ${data.content.owner}`)
     this.log(`Supply: ${data.content.supply}`)
     this.log(`Nonce: ${data.content.nonce}`)
-    this.log(`Identifier: ${data.content.identifier}`)
+    this.log(`Identifier: ${data.content.id}`)
     this.log(`Transaction Created: ${data.content.createdTransactionHash}`)
   }
 }

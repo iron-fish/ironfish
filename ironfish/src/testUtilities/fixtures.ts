@@ -261,7 +261,7 @@ export async function useBurnBlockFixture(options: {
     node: options.node,
     wallet: options.node.wallet,
     from: options.account,
-    burns: [{ assetIdentifier: options.asset.identifier(), value: options.value }],
+    burns: [{ assetId: options.asset.id(), value: options.value }],
   })
 
   return useMinerBlockFixture(options.node.chain, options.sequence, undefined, undefined, [
@@ -277,12 +277,12 @@ export async function usePostTxFixture(options: {
   fee?: bigint
   amount?: bigint
   expiration?: number
-  assetIdentifier?: Buffer
+  assetId?: Buffer
   receives?: {
     publicAddress: string
     amount: bigint
     memo: string
-    assetIdentifier: Buffer
+    assetId: Buffer
   }[]
   mints?: MintDescription[]
   burns?: BurnDescription[]
@@ -311,7 +311,7 @@ export async function useTxFixture(
             publicAddress: to.publicAddress,
             amount: BigInt(1),
             memo: '',
-            assetIdentifier: Asset.nativeIdentifier(),
+            assetId: Asset.nativeId(),
           },
         ],
         [],
@@ -341,7 +341,7 @@ export async function useBlockWithRawTxFixture(
   pool: WorkerPool,
   sender: Account,
   notesToSpend: NoteEncrypted[],
-  receives: { publicAddress: string; amount: bigint; memo: string; assetIdentifier: Buffer }[],
+  receives: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[],
   mints: MintDescription[],
   burns: BurnDescription[],
   sequence: number,
@@ -481,7 +481,7 @@ export async function useBlockWithTx(
           publicAddress: to.publicAddress,
           amount: BigInt(1),
           memo: '',
-          assetIdentifier: Asset.nativeIdentifier(),
+          assetId: Asset.nativeId(),
         },
       ],
       [],
@@ -538,7 +538,7 @@ export async function useBlockWithTxs(
             publicAddress: to.publicAddress,
             amount: BigInt(1),
             memo: '',
-            assetIdentifier: Asset.nativeIdentifier(),
+            assetId: Asset.nativeId(),
           },
         ],
         [],

@@ -85,9 +85,7 @@ describe('Create genesis block', () => {
 
     // Balance should still be zero, since generating the block should clear out
     // any notes made in the process
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -99,9 +97,7 @@ describe('Create genesis block', () => {
     await node.wallet.updateHead()
 
     // Check that the balance is what's expected
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: amountBigint,
       unconfirmed: amountBigint,
     })
@@ -138,7 +134,7 @@ describe('Create genesis block', () => {
     await newNode.wallet.scanTransactions()
 
     await expect(
-      newNode.wallet.getBalance(accountNewNode, Asset.nativeIdentifier()),
+      newNode.wallet.getBalance(accountNewNode, Asset.nativeId()),
     ).resolves.toMatchObject({
       confirmed: amountBigint,
       unconfirmed: amountBigint,

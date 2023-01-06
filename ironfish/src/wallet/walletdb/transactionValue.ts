@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { IDatabaseEncoding } from '../../storage/database/types'
-import { ASSET_IDENTIFIER_LENGTH } from '@ironfish/rust-nodejs'
+import { ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import bufio from 'bufio'
 import { Transaction } from '../../primitives'
@@ -47,8 +47,8 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
     const assetCount = value.assetBalanceDeltas.size
     bw.writeU32(assetCount)
 
-    for (const [assetIdentifier, balanceDelta] of value.assetBalanceDeltas) {
-      bw.writeHash(assetIdentifier)
+    for (const [assetId, balanceDelta] of value.assetBalanceDeltas) {
+      bw.writeHash(assetId)
       bw.writeBigU64(balanceDelta)
     }
 
@@ -84,9 +84,9 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
     const assetCount = reader.readU32()
 
     for (let i = 0; i < assetCount; i++) {
-      const assetIdentifier = reader.readHash()
+      const assetId = reader.readHash()
       const balanceDelta = reader.readBigU64()
-      assetBalanceDeltas.set(assetIdentifier, balanceDelta)
+      assetBalanceDeltas.set(assetId, balanceDelta)
     }
 
     return {
@@ -113,7 +113,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
       size += 4
     }
     size += 4
-    size += value.assetBalanceDeltas.size * (ASSET_IDENTIFIER_LENGTH + 8)
+    size += value.assetBalanceDeltas.size * (ASSET_ID_LENGTH + 8)
     return size
   }
 }

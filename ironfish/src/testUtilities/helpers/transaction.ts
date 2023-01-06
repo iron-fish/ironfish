@@ -32,12 +32,12 @@ export async function createRawTransaction(options: {
   fee?: bigint
   amount?: bigint
   expiration?: number
-  assetIdentifier?: Buffer
+  assetId?: Buffer
   receives?: {
     publicAddress: string
     amount: bigint
     memo: string
-    assetIdentifier: Buffer
+    assetId: Buffer
   }[]
   mints?: MintDescription[]
   burns?: BurnDescription[]
@@ -49,7 +49,7 @@ export async function createRawTransaction(options: {
       publicAddress: options.to.publicAddress,
       amount: options.amount ?? 1n,
       memo: '',
-      assetIdentifier: options.assetIdentifier ?? Asset.nativeIdentifier(),
+      assetId: options.assetId ?? Asset.nativeId(),
     })
   }
 

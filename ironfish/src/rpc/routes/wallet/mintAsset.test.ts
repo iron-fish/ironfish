@@ -86,7 +86,7 @@ describe('mint', () => {
       })
 
       expect(response.content).toEqual({
-        assetIdentifier: asset.identifier().toString('hex'),
+        assetId: asset.id().toString('hex'),
         hash: mintTransaction.hash().toString('hex'),
       })
     })

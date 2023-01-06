@@ -10,7 +10,7 @@ import { ApiNamespace, router } from '../router'
 export type GetBlockRequest = { index?: number; hash?: string }
 
 interface Operation {
-  operation_identifier: { index: number; network_index: number }
+  operation_id: { index: number; network_index: number }
   type: string
 }
 interface Note {
@@ -20,7 +20,7 @@ interface Spend {
   nullifier: string
 }
 interface Transaction {
-  transaction_identifier: { hash: string }
+  transaction_id: { hash: string }
   operations: Array<Operation>
   metadata: {
     size: number
@@ -65,7 +65,7 @@ const OperationSchema = yup
   .object()
   .shape({
     type: yup.string().defined(),
-    operation_identifier: yup
+    operation_id: yup
       .object()
       .shape({
         index: yup.number().defined(),
@@ -78,7 +78,7 @@ const OperationSchema = yup
 const TransactionSchema = yup
   .object()
   .shape({
-    transaction_identifier: yup.object({ hash: yup.string().defined() }).defined(),
+    transaction_id: yup.object({ hash: yup.string().defined() }).defined(),
     operations: yup.array().of(OperationSchema).defined(),
     metadata: yup
       .object({
@@ -171,7 +171,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       const transactionBuffer = Buffer.from(JSON.stringify(transaction.serialize()))
 
       return {
-        transaction_identifier: {
+        transaction_id: {
           hash: BlockHashSerdeInstance.serialize(transaction.hash()),
         },
         operations: [],

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Transaction as NativeTransaction } from '@ironfish/rust-nodejs'
-import { Asset, ASSET_IDENTIFIER_LENGTH, ASSET_LENGTH } from '@ironfish/rust-nodejs'
+import { Asset, ASSET_ID_LENGTH, ASSET_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
@@ -53,7 +53,7 @@ export class RawTransaction {
     }
 
     for (const burn of this.burns) {
-      builder.burn(burn.assetIdentifier, burn.value)
+      builder.burn(burn.assetId, burn.value)
     }
 
     if (this.expiration !== null) {
@@ -107,7 +107,7 @@ export class RawTransactionSerde {
 
     bw.writeU64(raw.burns.length)
     for (const burn of raw.burns) {
-      bw.writeBytes(burn.assetIdentifier)
+      bw.writeBytes(burn.assetId)
       bw.writeBigU64(burn.value)
     }
 
@@ -160,9 +160,9 @@ export class RawTransactionSerde {
 
     const burnsLength = reader.readU64()
     for (let i = 0; i < burnsLength; i++) {
-      const assetIdentifier = reader.readBytes(ASSET_IDENTIFIER_LENGTH)
+      const assetId = reader.readBytes(ASSET_ID_LENGTH)
       const value = reader.readBigU64()
-      raw.burns.push({ assetIdentifier, value })
+      raw.burns.push({ assetId, value })
     }
 
     const hasExpiration = reader.readU8()
@@ -205,7 +205,7 @@ export class RawTransactionSerde {
 
     size += 8 // raw.burns.length
     for (const _ of raw.burns) {
-      size += ASSET_IDENTIFIER_LENGTH // burn.assetIdentifier
+      size += ASSET_ID_LENGTH // burn.assetId
       size += 8 // burn.value
     }
 

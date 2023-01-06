@@ -5,9 +5,9 @@
 export class NotEnoughFundsError extends Error {
   name = this.constructor.name
 
-  constructor(assetIdentifier: Buffer, amount: bigint, amountNeeded: bigint) {
+  constructor(assetId: Buffer, amount: bigint, amountNeeded: bigint) {
     super()
-    this.message = `Insufficient funds: Needed ${amountNeeded.toString()} but have ${amount.toString()} for asset '${assetIdentifier.toString(
+    this.message = `Insufficient funds: Needed ${amountNeeded.toString()} but have ${amount.toString()} for asset '${assetId.toString(
       'hex',
     )}'`
   }

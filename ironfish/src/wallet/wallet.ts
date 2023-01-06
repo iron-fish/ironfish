@@ -585,7 +585,7 @@ export class Wallet {
 
   async getBalance(
     account: Account,
-    assetIdentifier: Buffer,
+    assetId: Buffer,
     options?: { minimumBlockConfirmations?: number },
   ): Promise<{
     unconfirmedCount: number
@@ -610,13 +610,13 @@ export class Wallet {
         }
       }
 
-      return account.getBalance(headSequence, assetIdentifier, minimumBlockConfirmations, tx)
+      return account.getBalance(headSequence, assetId, minimumBlockConfirmations, tx)
     })
   }
 
   private async *getUnspentNotes(
     account: Account,
-    assetIdentifier: Buffer,
+    assetId: Buffer,
     options?: {
       minimumBlockConfirmations?: number
     },
@@ -629,7 +629,7 @@ export class Wallet {
       return
     }
 
-    for await (const decryptedNote of account.getUnspentNotes(assetIdentifier)) {
+    for await (const decryptedNote of account.getUnspentNotes(assetId)) {
       if (minimumBlockConfirmations > 0) {
         if (!decryptedNote.sequence) {
           continue
@@ -653,7 +653,7 @@ export class Wallet {
       publicAddress: string
       amount: bigint
       memo: string
-      assetIdentifier: Buffer
+      assetId: Buffer
     }[],
     transactionFee: bigint,
     transactionExpirationDelta: number,
@@ -742,7 +742,7 @@ export class Wallet {
   async burn(
     memPool: MemPool,
     account: Account,
-    assetIdentifier: Buffer,
+    assetId: Buffer,
     value: bigint,
     fee: bigint,
     transactionExpirationDelta: number,
@@ -762,7 +762,7 @@ export class Wallet {
       account,
       [],
       [],
-      [{ assetIdentifier, value }],
+      [{ assetId, value }],
       fee,
       expiration,
     )
@@ -788,7 +788,7 @@ export class Wallet {
       publicAddress: string
       amount: bigint
       memo: string
-      assetIdentifier: Buffer
+      assetId: Buffer
     }[],
     mints: MintDescription[],
     burns: BurnDescription[],
@@ -816,7 +816,7 @@ export class Wallet {
           receive.publicAddress,
           receive.amount,
           receive.memo,
-          receive.assetIdentifier,
+          receive.assetId,
           sender.publicAddress,
         )
 
@@ -873,16 +873,16 @@ export class Wallet {
     },
   ): BufferMap<bigint> {
     const amountsNeeded = new BufferMap<bigint>()
-    amountsNeeded.set(Asset.nativeIdentifier(), options.fee)
+    amountsNeeded.set(Asset.nativeId(), options.fee)
 
     for (const receive of raw.receives) {
-      const currentAmount = amountsNeeded.get(receive.note.assetIdentifier()) ?? BigInt(0)
-      amountsNeeded.set(receive.note.assetIdentifier(), currentAmount + receive.note.value())
+      const currentAmount = amountsNeeded.get(receive.note.assetId()) ?? BigInt(0)
+      amountsNeeded.set(receive.note.assetId(), currentAmount + receive.note.value())
     }
 
     for (const burn of raw.burns) {
-      const currentAmount = amountsNeeded.get(burn.assetIdentifier) ?? BigInt(0)
-      amountsNeeded.set(burn.assetIdentifier, currentAmount + burn.value)
+      const currentAmount = amountsNeeded.get(burn.assetId) ?? BigInt(0)
+      amountsNeeded.set(burn.assetId, currentAmount + burn.value)
     }
 
     return amountsNeeded
@@ -894,15 +894,11 @@ export class Wallet {
   ): Promise<Array<{ note: Note; witness: NoteWitness }>> {
     const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
 
-    for (const [assetIdentifier, amountNeeded] of amountsNeeded.entries()) {
-      const { amount, notes } = await this.createSpendsForAsset(
-        sender,
-        assetIdentifier,
-        amountNeeded,
-      )
+    for (const [assetId, amountNeeded] of amountsNeeded.entries()) {
+      const { amount, notes } = await this.createSpendsForAsset(sender, assetId, amountNeeded)
 
       if (amount < amountNeeded) {
-        throw new NotEnoughFundsError(assetIdentifier, amount, amountNeeded)
+        throw new NotEnoughFundsError(assetId, amount, amountNeeded)
       }
 
       notesToSpend.push(...notes)
@@ -913,13 +909,13 @@ export class Wallet {
 
   async createSpendsForAsset(
     sender: Account,
-    assetIdentifier: Buffer,
+    assetId: Buffer,
     amountNeeded: bigint,
   ): Promise<{ amount: bigint; notes: Array<{ note: Note; witness: NoteWitness }> }> {
     let amount = BigInt(0)
     const notes: Array<{ note: Note; witness: NoteWitness }> = []
 
-    for await (const unspentNote of this.getUnspentNotes(sender, assetIdentifier)) {
+    for await (const unspentNote of this.getUnspentNotes(sender, assetId)) {
       if (unspentNote.note.value() <= BigInt(0)) {
         continue
       }

@@ -4,8 +4,8 @@
 
 use ironfish_rust::{
     assets::asset::{
-        Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, IDENTIFIER_LENGTH, METADATA_LENGTH,
-        NAME_LENGTH, NATIVE_ASSET,
+        Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, ID_LENGTH, METADATA_LENGTH, NAME_LENGTH,
+        NATIVE_ASSET,
     },
     keys::PUBLIC_ADDRESS_SIZE,
     SaplingKey,
@@ -19,7 +19,7 @@ use napi_derive::napi;
 use crate::to_napi_err;
 
 #[napi]
-pub const ASSET_IDENTIFIER_LENGTH: u32 = IDENTIFIER_LENGTH as u32;
+pub const ASSET_ID_LENGTH: u32 = ID_LENGTH as u32;
 
 #[napi]
 pub const ASSET_METADATA_LENGTH: u32 = METADATA_LENGTH as u32;
@@ -71,13 +71,13 @@ impl NativeAsset {
     }
 
     #[napi]
-    pub fn native_identifier() -> Buffer {
+    pub fn native_id() -> Buffer {
         Buffer::from(&NATIVE_ASSET[..])
     }
 
     #[napi]
-    pub fn identifier(&self) -> Buffer {
-        Buffer::from(&self.asset.identifier()[..])
+    pub fn id(&self) -> Buffer {
+        Buffer::from(&self.asset.id()[..])
     }
 
     #[napi]

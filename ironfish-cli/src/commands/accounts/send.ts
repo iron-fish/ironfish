@@ -53,7 +53,7 @@ export class Send extends IronfishCommand {
       description: 'The priority level for transaction fee estimation.',
       options: ['low', 'medium', 'high'],
     }),
-    assetIdentifier: Flags.string({
+    assetId: Flags.string({
       char: 'i',
       description: 'The identifier for the asset to use when sending',
     }),
@@ -82,10 +82,10 @@ export class Send extends IronfishCommand {
       amount = CurrencyUtils.decodeIron(flags.amount)
     }
 
-    const assetIdentifier = flags.assetIdentifier
+    const assetId = flags.assetId
 
     if (amount === null) {
-      const response = await client.getAccountBalance({ account: from, assetIdentifier })
+      const response = await client.getAccountBalance({ account: from, assetId })
 
       const input = await CliUx.ux.prompt(
         `Enter the amount (balance: ${CurrencyUtils.renderIron(response.content.confirmed)})`,
@@ -186,7 +186,7 @@ You are about to send:
 ${CurrencyUtils.renderIron(
   amount,
   true,
-  assetIdentifier,
+  assetId,
 )} plus a transaction fee of ${CurrencyUtils.renderIron(
         fee,
         true,
@@ -235,7 +235,7 @@ ${CurrencyUtils.renderIron(
             publicAddress: to,
             amount: CurrencyUtils.encode(amount),
             memo,
-            assetIdentifier,
+            assetId,
           },
         ],
         fee: CurrencyUtils.encode(fee),
@@ -247,7 +247,7 @@ ${CurrencyUtils.renderIron(
       const transaction = result.content
       const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
       this.log(`
-Sending ${CurrencyUtils.renderIron(amount, true, assetIdentifier)} to ${recipients} from ${
+Sending ${CurrencyUtils.renderIron(amount, true, assetId)} to ${recipients} from ${
         transaction.fromAccountName
       }
 Transaction Hash: ${transaction.hash}

@@ -27,7 +27,7 @@ export class BalanceCommand extends IronfishCommand {
       required: false,
       description: 'Minimum number of blocks confirmations for a note',
     }),
-    assetIdentifier: Flags.string({
+    assetId: Flags.string({
       required: false,
       description: 'Asset identifier to check the balance for',
     }),
@@ -50,42 +50,32 @@ export class BalanceCommand extends IronfishCommand {
 
     const response = await client.getAccountBalance({
       account,
-      assetIdentifier: flags.assetIdentifier,
+      assetId: flags.assetId,
       minimumBlockConfirmations: flags.confirmations,
     })
-    const assetIdentifier = response.content.assetIdentifier
+    const assetId = response.content.assetId
 
     if (flags.explain) {
-      this.explainBalance(response.content, assetIdentifier)
+      this.explainBalance(response.content, assetId)
       return
     }
 
     if (flags.all) {
       this.log(`Account: ${response.content.account}`)
       this.log(
-        `Balance:     ${CurrencyUtils.renderIron(
-          response.content.confirmed,
-          true,
-          assetIdentifier,
-        )}`,
+        `Balance:     ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`,
       )
       this.log(
-        `Unconfirmed: ${CurrencyUtils.renderIron(
-          response.content.unconfirmed,
-          true,
-          assetIdentifier,
-        )}`,
+        `Unconfirmed: ${CurrencyUtils.renderIron(response.content.unconfirmed, true, assetId)}`,
       )
       return
     }
 
     this.log(`Account: ${response.content.account}`)
-    this.log(
-      `Balance: ${CurrencyUtils.renderIron(response.content.confirmed, true, assetIdentifier)}`,
-    )
+    this.log(`Balance: ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`)
   }
 
-  explainBalance(response: GetBalanceResponse, assetIdentifier: string): void {
+  explainBalance(response: GetBalanceResponse, assetId: string): void {
     const unconfirmed = CurrencyUtils.decode(response.unconfirmed)
     const confirmed = CurrencyUtils.decode(response.confirmed)
 
@@ -95,7 +85,7 @@ export class BalanceCommand extends IronfishCommand {
     this.log('')
 
     this.log(`Your balance is made of notes on the chain that are safe to spend`)
-    this.log(`Balance: ${CurrencyUtils.renderIron(confirmed, true, assetIdentifier)}`)
+    this.log(`Balance: ${CurrencyUtils.renderIron(confirmed, true, assetId)}`)
     this.log('')
 
     this.log(
@@ -103,6 +93,6 @@ export class BalanceCommand extends IronfishCommand {
         unconfirmedDelta,
       )} are on the chain within ${response.minimumBlockConfirmations.toString()} blocks of the head`,
     )
-    this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true, assetIdentifier)}`)
+    this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true, assetId)}`)
   }
 }

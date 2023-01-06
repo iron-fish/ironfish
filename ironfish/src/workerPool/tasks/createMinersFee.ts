@@ -82,7 +82,7 @@ export class CreateMinersFeeTask extends WorkerTask {
       minerPublicAddress,
       amount,
       memo,
-      Asset.nativeIdentifier(),
+      Asset.nativeId(),
       minerPublicAddress,
     )
 

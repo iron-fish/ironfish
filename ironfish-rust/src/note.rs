@@ -234,7 +234,7 @@ impl<'a> Note {
         self.asset_generator
     }
 
-    pub fn asset_identifier(&self) -> AssetIdentifier {
+    pub fn asset_id(&self) -> AssetIdentifier {
         self.asset_generator.to_bytes()
     }
 

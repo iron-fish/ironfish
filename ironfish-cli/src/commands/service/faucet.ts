@@ -177,7 +177,7 @@ export default class Faucet extends IronfishCommand {
         publicAddress: ft.public_key,
         amount: BigInt(FAUCET_AMOUNT).toString(),
         memo: `Faucet for ${ft.id}`,
-        assetIdentifier: Asset.nativeIdentifier().toString('hex'),
+        assetId: Asset.nativeId().toString('hex'),
       }
     })
 

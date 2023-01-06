@@ -15,7 +15,7 @@ const TEST_PARAMS = {
       publicAddress: 'test2',
       amount: BigInt(10).toString(),
       memo: '',
-      assetIdentifier: Asset.nativeIdentifier().toString('hex'),
+      assetId: Asset.nativeId().toString('hex'),
     },
   ],
   fee: BigInt(1).toString(),
@@ -28,13 +28,13 @@ const TEST_PARAMS_MULTI = {
       publicAddress: 'test2',
       amount: BigInt(10).toString(),
       memo: '',
-      assetIdentifier: Asset.nativeIdentifier().toString('hex'),
+      assetId: Asset.nativeId().toString('hex'),
     },
     {
       publicAddress: 'test3',
       amount: BigInt(10).toString(),
       memo: '',
-      assetIdentifier: Asset.nativeIdentifier().toString('hex'),
+      assetId: Asset.nativeId().toString('hex'),
     },
   ],
   fee: BigInt(1).toString(),
@@ -143,9 +143,7 @@ describe('Transactions sendTransaction', () => {
 
     jest
       .spyOn(routeTest.node.wallet, 'send')
-      .mockRejectedValue(
-        new NotEnoughFundsError(Asset.nativeIdentifier(), BigInt(0), BigInt(1)),
-      )
+      .mockRejectedValue(new NotEnoughFundsError(Asset.nativeId(), BigInt(0), BigInt(1)))
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),

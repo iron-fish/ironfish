@@ -21,12 +21,8 @@ impl ValueBalances {
         ValueBalances { values: hash_map }
     }
 
-    pub fn add(
-        &mut self,
-        asset_identifier: &AssetIdentifier,
-        value: i64,
-    ) -> Result<(), IronfishError> {
-        let current_value = self.values.entry(*asset_identifier).or_insert(0);
+    pub fn add(&mut self, asset_id: &AssetIdentifier, value: i64) -> Result<(), IronfishError> {
+        let current_value = self.values.entry(*asset_id).or_insert(0);
         let new_value = current_value
             .checked_add(value)
             .ok_or(IronfishError::InvalidBalance)?;
@@ -38,10 +34,10 @@ impl ValueBalances {
 
     pub fn subtract(
         &mut self,
-        asset_identifier: &AssetIdentifier,
+        asset_id: &AssetIdentifier,
         value: i64,
     ) -> Result<(), IronfishError> {
-        let current_value = self.values.entry(*asset_identifier).or_insert(0);
+        let current_value = self.values.entry(*asset_id).or_insert(0);
         let new_value = current_value
             .checked_sub(value)
             .ok_or(IronfishError::InvalidBalance)?;

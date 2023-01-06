@@ -10,10 +10,10 @@ use zcash_primitives::sapling::pedersen_hash;
 pub use zcash_proofs::circuit::sapling::TREE_DEPTH;
 
 /// Length in bytes of the asset identifier
-pub const ASSET_IDENTIFIER_LENGTH: usize = 32;
+pub const ASSET_ID_LENGTH: usize = 32;
 
 // Easier to alias this instead of forking pedersen hash just to extend the Personalization enum
-pub const ASSET_IDENTIFIER_PERSONALIZATION: pedersen_hash::Personalization =
+pub const ASSET_ID_PERSONALIZATION: pedersen_hash::Personalization =
     pedersen_hash::Personalization::MerkleTree(62);
 
 pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(

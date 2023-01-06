@@ -9,7 +9,7 @@ import { ApiNamespace, router } from '../router'
 
 export interface BurnAssetRequest {
   account: string
-  assetIdentifier: string
+  assetId: string
   fee: string
   value: string
   expiration?: number
@@ -17,14 +17,14 @@ export interface BurnAssetRequest {
 }
 
 export interface BurnAssetResponse {
-  assetIdentifier: string
+  assetId: string
   hash: string
 }
 
 export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetRequest> = yup
   .object({
     account: yup.string().required(),
-    assetIdentifier: yup.string().required(),
+    assetId: yup.string().required(),
     fee: yup.string().required(),
     value: yup.string().required(),
     expiration: yup.number().optional(),
@@ -34,7 +34,7 @@ export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetRequest> = yup
 
 export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> = yup
   .object({
-    assetIdentifier: yup.string().required(),
+    assetId: yup.string().required(),
     hash: yup.string().required(),
   })
   .defined()
@@ -61,7 +61,7 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     const transaction = await node.wallet.burn(
       node.memPool,
       account,
-      Buffer.from(request.data.assetIdentifier, 'hex'),
+      Buffer.from(request.data.assetId, 'hex'),
       value,
       fee,
       request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
@@ -71,7 +71,7 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     const burn = transaction.burns[0]
 
     request.end({
-      assetIdentifier: burn.assetIdentifier.toString('hex'),
+      assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),
     })
   },

@@ -116,7 +116,7 @@ describe('Accounts', () => {
       AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(1)
 
-    await expect(account.getBalance(1, Asset.nativeIdentifier(), 1)).resolves.toMatchObject({
+    await expect(account.getBalance(1, Asset.nativeId(), 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -129,7 +129,7 @@ describe('Accounts', () => {
       AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(0)
 
-    await expect(account.getBalance(1, Asset.nativeIdentifier(), 1)).resolves.toMatchObject({
+    await expect(account.getBalance(1, Asset.nativeId(), 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -214,13 +214,13 @@ describe('Accounts', () => {
         sequence: null,
       }
 
-      await account.saveUnconfirmedBalance(Asset.nativeIdentifier(), nativeBalance)
-      await account.saveUnconfirmedBalance(asset.identifier(), mintedAssetBalance)
+      await account.saveUnconfirmedBalance(Asset.nativeId(), nativeBalance)
+      await account.saveUnconfirmedBalance(asset.id(), mintedAssetBalance)
 
       const balances = await account.getUnconfirmedBalances()
       const expectedBalances = new BufferMap<BalanceValue>([
-        [Asset.nativeIdentifier(), nativeBalance],
-        [asset.identifier(), mintedAssetBalance],
+        [Asset.nativeId(), nativeBalance],
+        [asset.id(), mintedAssetBalance],
       ])
 
       expect(balances.size).toBe(expectedBalances.size)
