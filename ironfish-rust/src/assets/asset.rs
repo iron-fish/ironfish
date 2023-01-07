@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array, PublicAddress};
 use bellman::gadgets::multipack;
-use byteorder::{ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use ironfish_zkp::{
     constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR},
     pedersen_hash,
 };
 use jubjub::SubgroupPoint;
-use std::{io, slice::from_ref};
+use std::io;
 
 pub const NATIVE_ASSET: AssetIdentifier = [
     215, 200, 103, 6, 245, 129, 122, 167, 24, 205, 28, 250, 208, 50, 51, 188, 214, 74, 119, 137,
@@ -21,8 +20,8 @@ pub const NATIVE_ASSET: AssetIdentifier = [
 pub const NATIVE_ASSET_GENERATOR: SubgroupPoint = VALUE_COMMITMENT_VALUE_GENERATOR;
 
 pub const NAME_LENGTH: usize = 32;
-pub const METADATA_LENGTH: usize = 76;
-pub const ASSET_LENGTH: usize = NAME_LENGTH + PUBLIC_ADDRESS_SIZE + METADATA_LENGTH + 1;
+pub const METADATA_LENGTH: usize = 77;
+pub const ASSET_LENGTH: usize = NAME_LENGTH + PUBLIC_ADDRESS_SIZE + METADATA_LENGTH;
 pub const ID_LENGTH: usize = ASSET_ID_LENGTH;
 
 pub type AssetIdentifier = [u8; ASSET_ID_LENGTH];
@@ -40,9 +39,6 @@ pub struct Asset {
     /// The owner who created the asset. Has permissions to mint
     pub(crate) owner: PublicAddress,
 
-    /// The random byte used to ensure we get a valid asset identifier
-    pub(crate) nonce: u8,
-
     /// The byte representation of the generator point derived from a pedersen hash of the asset info
     pub(crate) id: AssetIdentifier,
 }
@@ -58,23 +54,19 @@ impl Asset {
         let name_bytes = str_to_array(trimmed_name);
         let metadata_bytes = str_to_array(metadata);
 
-        let nonce = 0u8;
-
-        Asset::new_with_raw_data(owner, name_bytes, metadata_bytes, nonce)
+        Asset::new_with_raw_data(owner, name_bytes, metadata_bytes)
     }
 
     fn new_with_raw_data(
         owner: PublicAddress,
         name: [u8; NAME_LENGTH],
         metadata: [u8; METADATA_LENGTH],
-        nonce: u8,
     ) -> Result<Asset, IronfishError> {
-        let capacity = METADATA_LENGTH + NAME_LENGTH + PUBLIC_ADDRESS_SIZE + 1;
+        let capacity = METADATA_LENGTH + NAME_LENGTH + PUBLIC_ADDRESS_SIZE;
         let mut preimage = Vec::with_capacity(capacity);
         preimage.extend(owner.public_address());
         preimage.extend(name);
         preimage.extend(metadata);
-        preimage.extend(from_ref(&nonce));
 
         if preimage.len() != capacity {
             return Err(IronfishError::InvalidData);
@@ -88,7 +80,6 @@ impl Asset {
             owner,
             name,
             metadata,
-            nonce,
             id: generator_point.to_bytes(),
         })
     }
@@ -103,10 +94,6 @@ impl Asset {
 
     pub fn owner(&self) -> [u8; PUBLIC_ADDRESS_SIZE] {
         self.owner.public_address()
-    }
-
-    pub fn nonce(&self) -> &u8 {
-        &self.nonce
     }
 
     pub fn id(&self) -> &AssetIdentifier {
@@ -126,9 +113,7 @@ impl Asset {
         let mut metadata = [0; METADATA_LENGTH];
         reader.read_exact(&mut metadata[..])?;
 
-        let nonce = reader.read_u8()?;
-
-        Asset::new_with_raw_data(owner, name, metadata, nonce)
+        Asset::new_with_raw_data(owner, name, metadata)
     }
 
     /// Stow the bytes of this struct in the given writer.
@@ -136,7 +121,6 @@ impl Asset {
         self.owner.write(&mut writer)?;
         writer.write_all(&self.name)?;
         writer.write_all(&self.metadata)?;
-        writer.write_u8(self.nonce)?;
 
         Ok(())
     }
@@ -174,7 +158,7 @@ mod test {
     }
 
     #[test]
-    fn test_asset_new_with_nonce() {
+    fn test_asset_new_with_raw_data() {
         let public_address = [
             81, 229, 109, 20, 111, 174, 52, 91, 120, 215, 34, 107, 174, 123, 78, 102, 189, 188,
             226, 7, 173, 7, 76, 135, 130, 203, 71, 131, 62, 219, 240, 68,
@@ -183,15 +167,12 @@ mod test {
 
         let name = str_to_array("name");
         let metadata = str_to_array("{ 'token_identifier': '0x123' }");
-        let nonce = 0;
 
-        let asset =
-            Asset::new_with_raw_data(owner, name, metadata, nonce).expect("can create an asset");
+        let asset = Asset::new_with_raw_data(owner, name, metadata).expect("can create an asset");
 
         assert_eq!(asset.owner, owner);
         assert_eq!(asset.name, name);
         assert_eq!(asset.metadata, metadata);
-        assert_eq!(asset.nonce, nonce);
     }
 
     #[test]
