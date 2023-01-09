@@ -62,7 +62,6 @@ export class Asset {
   constructor(ownerPrivateKey: string, name: string, metadata: string)
   metadata(): Buffer
   name(): Buffer
-  nonce(): number
   owner(): Buffer
   static nativeId(): Buffer
   id(): Buffer

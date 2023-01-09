@@ -33,7 +33,6 @@ export default class Asset extends IronfishCommand {
     this.log(`Metadata: ${BufferUtils.toHuman(Buffer.from(data.content.metadata, 'hex'))}`)
     this.log(`Owner: ${data.content.owner}`)
     this.log(`Supply: ${data.content.supply}`)
-    this.log(`Nonce: ${data.content.nonce}`)
     this.log(`Identifier: ${data.content.id}`)
     this.log(`Transaction Created: ${data.content.createdTransactionHash}`)
   }

@@ -79,8 +79,7 @@ fn main() {
             "sapling-mint",
             MintAsset {
                 name: [0u8; 32],
-                metadata: [0u8; 76],
-                nonce: 0,
+                metadata: [0u8; 77],
                 proof_generation_key: None,
                 public_key_randomness: None,
             },
