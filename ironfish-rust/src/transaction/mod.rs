@@ -138,7 +138,7 @@ impl ProposedTransaction {
         witness: &dyn WitnessTrait,
     ) -> Result<(), IronfishError> {
         self.value_balances
-            .add(&note.asset_id(), note.value() as i64)?;
+            .add(&note.asset_id(), note.value().try_into()?)?;
 
         self.spends.push(SpendBuilder::new(note, witness));
 
@@ -149,7 +149,7 @@ impl ProposedTransaction {
     /// transaction.
     pub fn add_output(&mut self, note: Note) -> Result<(), IronfishError> {
         self.value_balances
-            .subtract(&note.asset_id(), note.value() as i64)?;
+            .subtract(&note.asset_id(), note.value().try_into()?)?;
 
         self.outputs.push(OutputBuilder::new(note));
 
@@ -157,7 +157,7 @@ impl ProposedTransaction {
     }
 
     pub fn add_mint(&mut self, asset: Asset, value: u64) -> Result<(), IronfishError> {
-        self.value_balances.add(asset.id(), value as i64)?;
+        self.value_balances.add(asset.id(), value.try_into()?)?;
 
         self.mints.push(MintBuilder::new(asset, value));
 
@@ -165,7 +165,7 @@ impl ProposedTransaction {
     }
 
     pub fn add_burn(&mut self, asset_id: AssetIdentifier, value: u64) -> Result<(), IronfishError> {
-        self.value_balances.subtract(&asset_id, value as i64)?;
+        self.value_balances.subtract(&asset_id, value.try_into()?)?;
 
         self.burns.push(BurnBuilder::new(asset_id, value));
 
@@ -193,7 +193,7 @@ impl ProposedTransaction {
             let is_native_asset = asset_id == &NATIVE_ASSET;
 
             let change_amount = match is_native_asset {
-                true => *value - intended_transaction_fee as i64,
+                true => *value - i64::try_from(intended_transaction_fee)?,
                 false => *value,
             };
 
