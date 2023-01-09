@@ -454,6 +454,39 @@ export class Account {
     })
   }
 
+  async *getBalances(
+    headSequence: number,
+    minimumBlockConfirmations: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{
+    assetId: Buffer
+    unconfirmed: bigint
+    unconfirmedCount: number
+    confirmed: bigint
+    blockHash: Buffer | null
+    sequence: number | null
+  }> {
+    for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
+      const { unconfirmed, blockHash, sequence } = balance
+      const { confirmed, unconfirmedCount } =
+        await this.calculateUnconfirmedCountAndConfirmedBalance(
+          headSequence,
+          assetId,
+          minimumBlockConfirmations,
+          unconfirmed,
+          tx,
+        )
+      yield {
+        assetId,
+        unconfirmed,
+        unconfirmedCount,
+        confirmed,
+        blockHash,
+        sequence,
+      }
+    }
+  }
+
   /**
    * Gets the balance for an account
    * unconfirmed: all notes on the chain
@@ -471,9 +504,32 @@ export class Account {
     blockHash: Buffer | null
     sequence: number | null
   }> {
-    let unconfirmedCount = 0
-
     const { unconfirmed, blockHash, sequence } = await this.getUnconfirmedBalance(assetId, tx)
+    const { confirmed, unconfirmedCount } =
+      await this.calculateUnconfirmedCountAndConfirmedBalance(
+        headSequence,
+        assetId,
+        minimumBlockConfirmations,
+        unconfirmed,
+        tx,
+      )
+    return {
+      unconfirmed,
+      unconfirmedCount,
+      confirmed,
+      blockHash,
+      sequence,
+    }
+  }
+
+  private async calculateUnconfirmedCountAndConfirmedBalance(
+    headSequence: number,
+    assetId: Buffer,
+    minimumBlockConfirmations: number,
+    unconfirmed: bigint,
+    tx?: IDatabaseTransaction,
+  ): Promise<{ confirmed: bigint; unconfirmedCount: number }> {
+    let unconfirmedCount = 0
 
     let confirmed = unconfirmed
     if (minimumBlockConfirmations > 0) {
@@ -502,11 +558,8 @@ export class Account {
     }
 
     return {
-      unconfirmed,
-      unconfirmedCount,
       confirmed,
-      blockHash,
-      sequence,
+      unconfirmedCount,
     }
   }
 
