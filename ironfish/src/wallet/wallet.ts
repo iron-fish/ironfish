@@ -407,7 +407,7 @@ export class Wallet {
           await account.disconnectTransaction(header, transaction, tx)
 
           if (transaction.isMinersFee()) {
-            await account.removeTransaction(transaction, tx)
+            await account.deleteTransaction(transaction, tx)
           }
         }
 

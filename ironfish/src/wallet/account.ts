@@ -342,12 +342,13 @@ export class Account {
     })
   }
 
-  async removeTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
+  async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (!(await this.hasTransaction(transaction.hash(), tx))) {
         return
       }
 
+      // expiring transaction deletes output notes and sets spent notes to unspent
       await this.expireTransaction(transaction, tx)
       await this.walletDb.deleteTransaction(this, transaction.hash(), tx)
     })

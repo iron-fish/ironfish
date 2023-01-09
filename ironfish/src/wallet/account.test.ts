@@ -582,7 +582,7 @@ describe('Accounts', () => {
     })
   })
 
-  describe('removeTransaction', () => {
+  describe('deleteTransaction', () => {
     it('should delete transaction record from the database', async () => {
       const { node } = nodeTest
 
@@ -600,8 +600,8 @@ describe('Accounts', () => {
       // transaction is not marked as pending
       await expect(accountA.hasPendingTransaction(transaction.hash())).resolves.toEqual(false)
 
-      // remove the transaction
-      await accountA.removeTransaction(transaction)
+      // delete the transaction
+      await accountA.deleteTransaction(transaction)
 
       // record removed from accountA
       await expect(accountA.getTransaction(transaction.hash())).resolves.toBeUndefined()
@@ -638,8 +638,8 @@ describe('Accounts', () => {
       // but not nonChainNoteHashes
       await expect(accountHasNonChainNoteHash(accountA, noteHash)).resolves.toBe(false)
 
-      // remove the transaction
-      await accountA.removeTransaction(transaction)
+      // delete the transaction
+      await accountA.deleteTransaction(transaction)
 
       // accountA has no notes for the transaction
       notes = await accountA.getTransactionNotes(transaction)
