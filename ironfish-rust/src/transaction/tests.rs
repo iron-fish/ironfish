@@ -331,3 +331,35 @@ fn test_transaction_version_is_checked() {
         .verify()
         .expect_err("non version 1 transactions should not be valid");
 }
+
+#[test]
+fn test_transaction_value_overflows() {
+    let key = SaplingKey::generate_key();
+
+    let overflow_value = (i64::MAX as u64) + 1;
+
+    let asset = Asset::new(key.public_address(), "testcoin", "").unwrap();
+
+    let note = Note::new(
+        key.public_address(),
+        overflow_value,
+        "",
+        NATIVE_ASSET_GENERATOR,
+        key.public_address(),
+    );
+    let witness = make_fake_witness(&note);
+
+    let mut tx = ProposedTransaction::new(key);
+
+    // spend
+    assert!(tx.add_spend(note.clone(), &witness).is_err());
+
+    // output
+    assert!(tx.add_output(note).is_err());
+
+    // mint
+    assert!(tx.add_mint(asset, overflow_value).is_err());
+
+    // burn
+    assert!(tx.add_burn(asset.id, overflow_value).is_err());
+}
