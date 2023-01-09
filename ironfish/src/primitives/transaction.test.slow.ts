@@ -63,7 +63,7 @@ describe('Accounts', () => {
     Assert.isNotNull(headhash)
     // Modify the headhash
     headhash[0] = 0
-    await nodeA.wallet.updateHeadHash(accountA, headhash)
+    await accountA.updateHeadHash(headhash)
 
     const response = nodeA.wallet.createTransaction(
       accountA,

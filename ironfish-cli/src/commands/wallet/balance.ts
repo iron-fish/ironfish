@@ -62,6 +62,8 @@ export class BalanceCommand extends IronfishCommand {
 
     if (flags.all) {
       this.log(`Account: ${response.content.account}`)
+      this.log(`Head Hash: ${response.content.blockHash || 'NULL'}`)
+      this.log(`Head Sequence: ${response.content.sequence || 'NULL'}`)
       this.log(
         `Balance:     ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`,
       )
@@ -82,6 +84,12 @@ export class BalanceCommand extends IronfishCommand {
     const unconfirmedDelta = unconfirmed - confirmed
 
     this.log(`Account: ${response.account}`)
+
+    this.log(
+      `Your balance is calculated from transactions on the chain through block ${
+        response.blockHash ?? 'NULL'
+      } at sequence ${response.sequence ?? 'NULL'}`,
+    )
     this.log('')
 
     this.log(`Your balance is made of notes on the chain that are safe to spend`)

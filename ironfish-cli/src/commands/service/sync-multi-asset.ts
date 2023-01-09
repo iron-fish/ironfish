@@ -1,12 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import {
-  ApiMaspUpload,
+  ApiMultiAssetUpload,
   GENESIS_BLOCK_SEQUENCE,
   GetTransactionStreamResponse,
-  MaspTransactionTypes,
   Meter,
+  MultiAssetTypes,
   PromiseUtils,
   TimeUtils,
   WebApi,
@@ -20,10 +21,11 @@ const RAW_MAX_UPLOAD = Number(process.env.MAX_UPLOAD)
 const MAX_UPLOAD = isNaN(RAW_MAX_UPLOAD) ? 1000 : RAW_MAX_UPLOAD
 const NEAR_SYNC_THRESHOLD = 5
 
-export default class SyncMaspTransactions extends IronfishCommand {
+export default class SyncMultiAsset extends IronfishCommand {
+  static aliases = ['service:syncMultiAsset']
   static hidden = true
 
-  static description = 'Upload MASP transactions to an HTTP API using IronfishApi'
+  static description = 'Upload Multi Asset events to an HTTP API using IronfishApi'
 
   static flags = {
     ...RemoteFlags,
@@ -53,7 +55,7 @@ export default class SyncMaspTransactions extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(SyncMaspTransactions)
+    const { flags } = await this.parse(SyncMultiAsset)
 
     const apiHost = (flags.endpoint || process.env.IRONFISH_API_HOST || '').trim()
     const apiToken = (flags.token || process.env.IRONFISH_API_TOKEN || '').trim()
@@ -104,14 +106,13 @@ export default class SyncMaspTransactions extends IronfishCommand {
       incomingViewKey: viewKey,
       head: head,
     })
-
     const speed = new Meter()
     speed.start()
 
     const buffer = new Array<GetTransactionStreamResponse>()
 
     async function commit(): Promise<void> {
-      const serialized = buffer.map(serializeMasp)
+      const serialized = buffer.map(serializeMultiAssets)
       buffer.length = 0
       await api.uploadMaspTransactions(serialized)
     }
@@ -156,7 +157,11 @@ export default class SyncMaspTransactions extends IronfishCommand {
     while (true) {
       const headHash = (await api.headMaspTransactions()) || ''
 
-      const choices: MaspTransactionTypes[] = ['MASP_MINT', 'MASP_BURN', 'MASP_TRANSFER']
+      const choices: MultiAssetTypes[] = [
+        'MULTI_ASSET_TRANSFER',
+        'MULTI_ASSET_BURN',
+        'MULTI_ASSET_TRANSFER',
+      ]
       const choice = choices[Math.floor(Math.random() * choices.length)]
       const connectedblockHash = uuid()
       await api.uploadMaspTransactions([
@@ -171,8 +176,7 @@ export default class SyncMaspTransactions extends IronfishCommand {
           transactions: [
             {
               hash: uuid(),
-              type: choice,
-              assetName: 'jowparks',
+              multiAssets: [{ type: choice, assetName: 'jowparks' }],
             },
           ],
         },
@@ -198,14 +202,42 @@ export default class SyncMaspTransactions extends IronfishCommand {
   }
 }
 
-function serializeMasp(data: GetTransactionStreamResponse): ApiMaspUpload {
+function serializeMultiAssets(data: GetTransactionStreamResponse): ApiMultiAssetUpload {
+  const txs = []
+  // should not send transactions if block is disconnected
+  if (data.type !== 'connected') {
+    for (const tx of data.transactions) {
+      const multiAssets = []
+      for (const mint of tx.mints) {
+        multiAssets.push({
+          type: 'MULTI_ASSET_MINT' as MultiAssetTypes,
+          assetName: mint.assetName,
+        })
+      }
+      for (const burn of tx.burns) {
+        multiAssets.push({
+          type: 'MULTI_ASSET_BURN' as MultiAssetTypes,
+          assetName: burn.assetName,
+        })
+      }
+      for (const note of tx.notes) {
+        // standard notes should not be included
+        if (note.assetId !== Asset.nativeId().toString('hex')) {
+          multiAssets.push({
+            type: 'MULTI_ASSET_TRANSFER' as MultiAssetTypes,
+            assetName: note.assetName,
+          })
+        }
+      }
+
+      txs.push({
+        ...tx,
+        multiAssets: multiAssets,
+      })
+    }
+  }
   return {
     ...data,
-    transactions: data.transactions.map((tx) => ({
-      ...tx,
-      hash: tx.hash,
-      type: 'MASP_TRANSFER',
-      assetName: 'STUBBED',
-    })),
+    transactions: txs,
   }
 }
