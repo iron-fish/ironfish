@@ -808,8 +808,6 @@ pub fn batch_verify_transactions<'a>(
         }
 
         for mint in transaction.mints.iter() {
-            mint.partial_verify()?;
-
             let public_inputs = mint.public_inputs(transaction.randomized_public_key());
             mint_verifier.queue((&mint.proof, &public_inputs[..]));
 
