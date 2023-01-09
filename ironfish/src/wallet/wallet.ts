@@ -149,10 +149,6 @@ export class Wallet {
       return false
     }
 
-    if (this.chainProcessor.hash === null) {
-      return true
-    }
-
     for (const account of this.accounts.values()) {
       if (!(await this.isAccountUpToDate(account))) {
         return true
@@ -444,11 +440,6 @@ export class Wallet {
       return
     }
 
-    if (!(await this.shouldRescan())) {
-      this.logger.info('Skipping Scan, all accounts up to date.')
-      return
-    }
-
     const scan = new ScanState()
     this.scan = scan
 
@@ -478,7 +469,7 @@ export class Wallet {
     scan.sequence = beginHeader.sequence
     scan.endSequence = endHeader.sequence
 
-    if (scan.isAborted) {
+    if (scan.isAborted || beginHash.equals(endHash)) {
       scan.signalComplete()
       this.scan = null
       return
