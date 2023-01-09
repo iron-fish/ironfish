@@ -1250,7 +1250,7 @@ describe('Blockchain', () => {
           createdTransactionHash: blockA.transactions[1].hash(),
           supply: mintValueA + mintValueB - burnValueD,
         })
-      }, 10000)
+      })
     })
 
     describe('when an asset is minted on a fork', () => {
