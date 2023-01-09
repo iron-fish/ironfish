@@ -5,6 +5,7 @@
 use std::error::Error;
 use std::fmt;
 use std::io;
+use std::num;
 use std::string;
 
 /// Error type to handle all errors within the code and dependency-raised
@@ -38,6 +39,7 @@ pub enum IronfishError {
     Io(io::Error),
     IsSmallOrder,
     RandomnessError,
+    TryFromInt(num::TryFromIntError),
     Utf8(string::FromUtf8Error),
     VerificationFailed,
 }
@@ -77,5 +79,11 @@ impl From<bellman::VerificationError> for IronfishError {
 impl From<bellman::SynthesisError> for IronfishError {
     fn from(e: bellman::SynthesisError) -> IronfishError {
         IronfishError::BellmanSynthesis(e)
+    }
+}
+
+impl From<num::TryFromIntError> for IronfishError {
+    fn from(e: num::TryFromIntError) -> IronfishError {
+        IronfishError::TryFromInt(e)
     }
 }
