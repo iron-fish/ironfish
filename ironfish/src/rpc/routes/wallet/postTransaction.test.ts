@@ -18,22 +18,18 @@ describe('Route wallet/postTransaction', () => {
       from: account,
     }
     const rawTransaction = await createRawTransaction(options)
-    const response = await routeTest.client
-      .request<any>('wallet/postTransaction', {
+    const response = await routeTest.client.postTransaction( {
         transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
-      })
-      .waitForEnd()
+    })
 
     expect(response.status).toBe(200)
     expect(response.content.transaction).toBeDefined()
   })
 
   it("should return an error if the transaction won't deserialize", async () => {
-    const response = routeTest.client
-      .request<PostTransactionResponse>('wallet/postTransaction', {
-        transaction: '0xdeadbeef',
-      })
-      .waitForEnd()
+    const response = await routeTest.client.postTransaction( {
+      transaction: '0xdeadbeef',
+    })
 
     await expect(response).rejects.toMatchObject({
       status: 400,
