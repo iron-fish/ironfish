@@ -511,6 +511,47 @@ export class Wallet {
     this.scan = null
   }
 
+  async *getBalances(
+    account: Account,
+    minimumBlockConfirmations?: number,
+  ): AsyncGenerator<{
+    assetId: Buffer
+    unconfirmed: bigint
+    unconfirmedCount: number
+    confirmed: bigint
+    blockHash: Buffer | null
+    sequence: number | null
+  }> {
+    minimumBlockConfirmations = Math.max(
+      minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations'),
+      0,
+    )
+
+    this.assertHasAccount(account)
+    const headSequence = await this.getAccountHeadSequence(account)
+    if (!headSequence) {
+      return
+    }
+
+    for await (const {
+      assetId,
+      blockHash,
+      confirmed,
+      sequence,
+      unconfirmed,
+      unconfirmedCount,
+    } of account.getBalances(headSequence, minimumBlockConfirmations)) {
+      yield {
+        assetId,
+        blockHash,
+        confirmed,
+        sequence,
+        unconfirmed,
+        unconfirmedCount,
+      }
+    }
+  }
+
   async getBalance(
     account: Account,
     assetId: Buffer,

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
 import {
@@ -345,6 +346,54 @@ describe('Accounts', () => {
 
       expect(connectSpy).not.toHaveBeenCalled()
     })
+  })
+
+  describe('getBalances', () => {
+    it('returns balances for all unspent notes across assets for an account', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      const mined = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(mined)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(account.spendingKey, 'fakeasset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account,
+        asset,
+        value,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      const balances = new BufferMap<{
+        confirmed: bigint
+        unconfirmed: bigint
+        unconfirmedCount: number
+      }>()
+      for await (const {
+        assetId,
+        confirmed,
+        unconfirmed,
+        unconfirmedCount,
+      } of node.wallet.getBalances(account)) {
+        balances.set(assetId, { confirmed, unconfirmed, unconfirmedCount })
+      }
+
+      expect(balances.get(Asset.nativeId())).toEqual({
+        confirmed: BigInt(2000000000),
+        unconfirmed: BigInt(2000000000),
+        unconfirmedCount: 0,
+      })
+      expect(balances.get(asset.id())).toEqual({
+        confirmed: BigInt(10),
+        unconfirmed: BigInt(10),
+        unconfirmedCount: 0,
+      })
+    }, 100000)
   })
 
   describe('getBalance', () => {
