@@ -945,11 +945,13 @@ describe('Accounts', () => {
         await node.wallet.updateHead()
 
         const mintValueB = BigInt(10)
-        const transaction = await node.wallet.mint(node.memPool, account, {
-          assetId: asset.id(),
-          fee: BigInt(0),
-          transactionExpirationDelta: node.config.get('transactionExpirationDelta'),
-          value: mintValueB,
+        const transaction = await useTxFixture(node.wallet, account, account, () => {
+          return node.wallet.mint(node.memPool, account, {
+            assetId: asset.id(),
+            fee: BigInt(0),
+            transactionExpirationDelta: node.config.get('transactionExpirationDelta'),
+            value: mintValueB,
+          })
         })
 
         const mintBlock = await node.chain.newBlock(
