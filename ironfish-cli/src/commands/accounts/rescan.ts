@@ -44,7 +44,14 @@ export class RescanCommand extends IronfishCommand {
     CliUx.ux.action.start('Asking node to start scanning', undefined, {
       stdout: true,
     })
-
+    this.log('Getting existing transactions')
+    const transactionHashes = new Set<string>()
+    const transactions = client.getAccountTransactionsStream({
+      account: 'IronBank',
+    })
+    for await (const transaction of transactions.contentStream()) {
+      
+    this.log('Retrieved transactions for IronBank')
     const response = client.rescanAccountStream({ reset, follow })
 
     const speed = new Meter()
