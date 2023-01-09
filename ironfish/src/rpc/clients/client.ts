@@ -493,7 +493,12 @@ export abstract class RpcClient {
     return this.request<GetAssetResponse>(`${ApiNamespace.chain}/getAsset`, params).waitForEnd()
   }
 
-  async postTransaction(params: PostTransactionRequest): Promise<RpcResponseEnded<PostTransactionResponse>> {
-    return this.request<PostTransactionRequest>(`${ApiNamespace.wallet}/postTransaction`, params).waitForEnd()
+  async postTransaction(
+    params: PostTransactionRequest,
+  ): Promise<RpcResponseEnded<PostTransactionResponse>> {
+    return this.request<PostTransactionRequest>(
+      `${ApiNamespace.wallet}/postTransaction`,
+      params,
+    ).waitForEnd()
   }
 }

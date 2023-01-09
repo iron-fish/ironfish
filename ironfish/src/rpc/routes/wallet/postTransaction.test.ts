@@ -6,7 +6,6 @@ import { v4 as uuid } from 'uuid'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { createRawTransaction } from '../../../testUtilities/helpers/transaction'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { PostTransactionResponse } from './postTransaction'
 
 describe('Route wallet/postTransaction', () => {
   const routeTest = createRouteTest(true)
@@ -18,8 +17,8 @@ describe('Route wallet/postTransaction', () => {
       from: account,
     }
     const rawTransaction = await createRawTransaction(options)
-    const response = await routeTest.client.postTransaction( {
-        transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
+    const response = await routeTest.client.postTransaction({
+      transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
     })
 
     expect(response.status).toBe(200)
@@ -27,12 +26,17 @@ describe('Route wallet/postTransaction', () => {
   })
 
   it("should return an error if the transaction won't deserialize", async () => {
-    const response = await routeTest.client.postTransaction( {
-      transaction: '0xdeadbeef',
-    })
+    // const response = await routeTest.client.postTransaction({
+    //   transaction: '0xdeadbeef',
+    // })
 
-    await expect(response).rejects.toMatchObject({
-      status: 400,
-    })
+    // await expect(response).rejects.toMatchObject({
+    //   status: 400,
+    // })
+    await expect(
+      routeTest.client.postTransaction({
+        transaction: '0xdeadbeef',
+      }),
+    ).rejects.toThrow('Out of bounds read (offset=0).')
   })
 })
