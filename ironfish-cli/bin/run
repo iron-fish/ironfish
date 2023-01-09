@@ -8,7 +8,8 @@ if (process.platform !== 'win32') {
 }
 
 if(process.versions.node.split('.')[0] !== '18') {
-  console.log('NodeJS version ' +  process.versions.node + ' is not compatible. Must have node v18.x installed: https://nodejs.org/en/download/')
+  console.log('NodeJS version ' +  process.versions.node + ' is not compatible. Must have Node v18 installed: https://nodejs.org/en/download/')
+  console.log('After v18 is installed, MAKE SURE TO run `npm install -g ironfish` again to install ironfish with the correct Node version')
   process.exit(1)
 }
 
