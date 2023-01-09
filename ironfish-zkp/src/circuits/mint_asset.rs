@@ -20,10 +20,7 @@ pub struct MintAsset {
 
     /// Identifier field for bridged asset address, or if a native custom asset, random bytes.
     /// Metadata for the asset (ex. chain, network, token identifier)
-    pub metadata: [u8; 76],
-
-    /// The random byte used to ensure we get a valid asset identifier
-    pub nonce: u8,
+    pub metadata: [u8; 77],
 
     /// Key required to construct proofs for a particular spending key
     pub proof_generation_key: Option<ProofGenerationKey>,
@@ -128,7 +125,6 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
             &self.name,
             &self.metadata,
             &owner_public_address,
-            &self.nonce,
         )?;
 
         // Computed identifier bits from the given asset info
@@ -152,8 +148,6 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 
 #[cfg(test)]
 mod test {
-    use std::slice;
-
     use bellman::{
         gadgets::{multipack, test::TestConstraintSystem},
         Circuit,
@@ -183,14 +177,12 @@ mod test {
         let public_address = PUBLIC_KEY_GENERATOR * incoming_view_key.ivk().0;
 
         let name = [1u8; 32];
-        let metadata = [2u8; 76];
-        let nonce = 1u8;
+        let metadata = [2u8; 77];
 
         let mut asset_plaintext: Vec<u8> = vec![];
         asset_plaintext.extend(&public_address.to_bytes());
         asset_plaintext.extend(name);
         asset_plaintext.extend(metadata);
-        asset_plaintext.extend(slice::from_ref(&nonce));
 
         let asset_plaintext_bits = multipack::bytes_to_bits_le(&asset_plaintext);
 
@@ -217,7 +209,6 @@ mod test {
         let circuit = MintAsset {
             name,
             metadata,
-            nonce,
             proof_generation_key: Some(proof_generation_key),
             public_key_randomness: Some(public_key_randomness),
         };

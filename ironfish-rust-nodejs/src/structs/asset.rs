@@ -61,11 +61,6 @@ impl NativeAsset {
     }
 
     #[napi]
-    pub fn nonce(&self) -> u32 {
-        *self.asset.nonce() as u32
-    }
-
-    #[napi]
     pub fn owner(&self) -> Buffer {
         Buffer::from(&self.asset.owner()[..])
     }
