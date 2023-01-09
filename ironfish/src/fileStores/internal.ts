@@ -17,7 +17,7 @@ export const InternalOptionsDefaults: InternalOptions = {
   networkIdentity: '',
   telemetryNodeId: '',
   rpcAuthToken: '',
-  networkId: 2,
+  networkId: 0,
 }
 
 export class InternalStore extends KeyStore<InternalOptions> {
