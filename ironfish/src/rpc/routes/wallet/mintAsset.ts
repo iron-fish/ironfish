@@ -106,7 +106,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     request.end({
       assetId: mint.asset.id().toString('hex'),
       hash: transaction.hash().toString('hex'),
-      name: mint.asset.name().toString('utf-8'),
+      name: mint.asset.name().toString('utf8'),
       value: mint.value.toString(),
     })
   },
