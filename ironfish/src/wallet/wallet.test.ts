@@ -149,7 +149,7 @@ describe('Accounts', () => {
 
     expect(balanceA.confirmed).toBeGreaterThanOrEqual(0n)
     expect(notesOnChainA.length).toEqual(0)
-    expect(notesNotOnChainA.length).toEqual(2)
+    expect(notesNotOnChainA.length).toEqual(1)
     expect(balanceA.confirmed).toBeGreaterThanOrEqual(0n)
   })
 
@@ -1460,6 +1460,28 @@ describe('Accounts', () => {
 
       expect(updateHeadSpy).not.toHaveBeenCalled()
       await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA1.header.hash)
+    })
+
+    it('should remove minersFee transactions', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      const transaction = blockA1.transactions[0]
+
+      Assert.isTrue(transaction.isMinersFee())
+
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA1.header.hash)
+      await expect(accountA.hasTransaction(transaction.hash())).resolves.toEqual(true)
+
+      // disconnect blockA1
+      await node.wallet.disconnectBlock(blockA1.header)
+
+      await expect(accountA.hasTransaction(transaction.hash())).resolves.toEqual(false)
     })
   })
 })

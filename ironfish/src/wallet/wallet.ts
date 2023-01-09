@@ -401,6 +401,10 @@ export class Wallet {
       await this.walletDb.db.transaction(async (tx) => {
         for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
           await account.disconnectTransaction(header, transaction, tx)
+
+          if (transaction.isMinersFee()) {
+            await account.deleteTransaction(transaction, tx)
+          }
         }
 
         await account.updateHeadHash(header.previousBlockHash, tx)
