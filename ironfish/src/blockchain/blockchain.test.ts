@@ -889,7 +889,6 @@ describe('Blockchain', () => {
           id: asset.id(),
           metadata: asset.metadata(),
           name: asset.name(),
-          nonce: asset.nonce(),
           owner: asset.owner(),
           supply: 10n,
         })
@@ -967,7 +966,6 @@ describe('Blockchain', () => {
           id: asset.id(),
           metadata: asset.metadata(),
           name: asset.name(),
-          nonce: asset.nonce(),
           owner: asset.owner(),
           supply: mintValueA + mintValueB,
         })
@@ -1250,7 +1248,7 @@ describe('Blockchain', () => {
           createdTransactionHash: blockA.transactions[1].hash(),
           supply: mintValueA + mintValueB - burnValueD,
         })
-      }, 10000)
+      })
     })
 
     describe('when an asset is minted on a fork', () => {

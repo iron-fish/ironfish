@@ -342,20 +342,35 @@ export class Account {
     })
   }
 
+  async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
+      if (!(await this.hasTransaction(transaction.hash(), tx))) {
+        return
+      }
+
+      // expiring transaction deletes output notes and sets spent notes to unspent
+      await this.expireTransaction(transaction, tx)
+      await this.walletDb.deleteTransaction(this, transaction.hash(), tx)
+    })
+  }
+
   private async deleteDecryptedNote(
     noteHash: Buffer,
-    transactionHash: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      const existingNote = await this.getDecryptedNote(noteHash, tx)
+      const decryptedNote = await this.getDecryptedNote(noteHash, tx)
 
-      if (existingNote) {
-        await this.walletDb.deleteDecryptedNote(this, noteHash, tx)
+      if (!decryptedNote) {
+        return
       }
 
-      const record = await this.getTransaction(transactionHash, tx)
-      await this.walletDb.deleteNoteHashSequence(this, noteHash, record?.sequence ?? null, tx)
+      await this.walletDb.deleteDecryptedNote(this, noteHash, tx)
+      await this.walletDb.deleteNoteHashSequence(this, noteHash, decryptedNote.sequence, tx)
+
+      if (decryptedNote.nullifier) {
+        await this.walletDb.deleteNullifier(this, decryptedNote.nullifier, tx)
+      }
     })
   }
 
@@ -405,16 +420,7 @@ export class Account {
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       for (const note of transaction.notes) {
-        const noteHash = note.merkleHash()
-        const decryptedNote = await this.getDecryptedNote(noteHash, tx)
-
-        if (decryptedNote) {
-          await this.deleteDecryptedNote(noteHash, transactionHash, tx)
-
-          if (decryptedNote.nullifier) {
-            await this.walletDb.deleteNullifier(this, decryptedNote.nullifier, tx)
-          }
-        }
+        await this.deleteDecryptedNote(note.merkleHash(), tx)
       }
 
       for (const spend of transaction.spends) {

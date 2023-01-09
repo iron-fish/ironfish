@@ -138,7 +138,7 @@ impl ProposedTransaction {
         witness: &dyn WitnessTrait,
     ) -> Result<(), IronfishError> {
         self.value_balances
-            .add(&note.asset_id(), note.value() as i64)?;
+            .add(&note.asset_id(), note.value().try_into()?)?;
 
         self.spends.push(SpendBuilder::new(note, witness));
 
@@ -149,7 +149,7 @@ impl ProposedTransaction {
     /// transaction.
     pub fn add_output(&mut self, note: Note) -> Result<(), IronfishError> {
         self.value_balances
-            .subtract(&note.asset_id(), note.value() as i64)?;
+            .subtract(&note.asset_id(), note.value().try_into()?)?;
 
         self.outputs.push(OutputBuilder::new(note));
 
@@ -157,7 +157,7 @@ impl ProposedTransaction {
     }
 
     pub fn add_mint(&mut self, asset: Asset, value: u64) -> Result<(), IronfishError> {
-        self.value_balances.add(asset.id(), value as i64)?;
+        self.value_balances.add(asset.id(), value.try_into()?)?;
 
         self.mints.push(MintBuilder::new(asset, value));
 
@@ -165,7 +165,7 @@ impl ProposedTransaction {
     }
 
     pub fn add_burn(&mut self, asset_id: AssetIdentifier, value: u64) -> Result<(), IronfishError> {
-        self.value_balances.subtract(&asset_id, value as i64)?;
+        self.value_balances.subtract(&asset_id, value.try_into()?)?;
 
         self.burns.push(BurnBuilder::new(asset_id, value));
 
@@ -193,7 +193,7 @@ impl ProposedTransaction {
             let is_native_asset = asset_id == &NATIVE_ASSET;
 
             let change_amount = match is_native_asset {
-                true => *value - intended_transaction_fee as i64,
+                true => *value - i64::try_from(intended_transaction_fee)?,
                 false => *value,
             };
 
@@ -306,7 +306,7 @@ impl ProposedTransaction {
 
         // Create and verify binding signature keys
         let (binding_signature_private_key, binding_signature_public_key) =
-            self.binding_signature_keys(&burn_descriptions)?;
+            self.binding_signature_keys(&unsigned_mints, &burn_descriptions)?;
 
         let binding_signature = self.binding_signature(
             &binding_signature_private_key,
@@ -419,6 +419,7 @@ impl ProposedTransaction {
 
     fn binding_signature_keys(
         &self,
+        mints: &[UnsignedMintDescription],
         burns: &[BurnDescription],
     ) -> Result<(redjubjub::PrivateKey, redjubjub::PublicKey), IronfishError> {
         // A "private key" manufactured from a bunch of randomness added for each
@@ -439,17 +440,12 @@ impl ProposedTransaction {
             binding_verification_key -= output.value_commitment_point();
         }
 
-        for mint in &self.mints {
-            binding_signature_key += mint.value_commitment.randomness;
-            binding_verification_key += mint.value_commitment_point();
-        }
-
         let private_key = PrivateKey(binding_signature_key);
         let public_key =
             PublicKey::from_private(&private_key, VALUE_COMMITMENT_RANDOMNESS_GENERATOR);
 
         let value_balance =
-            calculate_value_balance(&binding_verification_key, *self.value_balances.fee(), burns)?;
+            self.calculate_value_balance(&binding_verification_key, mints, burns)?;
 
         // Confirm that the public key derived from the binding signature key matches
         // the final value balance point. The binding verification key is how verifiers
@@ -459,6 +455,24 @@ impl ProposedTransaction {
         }
 
         Ok((private_key, public_key))
+    }
+
+    /// Small wrapper around [`calculate_value_balance`] to handle [`UnsignedMintDescription`]
+    fn calculate_value_balance(
+        &self,
+        binding_verification_key: &ExtendedPoint,
+        mints: &[UnsignedMintDescription],
+        burns: &[BurnDescription],
+    ) -> Result<ExtendedPoint, IronfishError> {
+        let mints_descriptions: Vec<MintDescription> =
+            mints.iter().map(|m| m.description.clone()).collect();
+
+        calculate_value_balance(
+            binding_verification_key,
+            *self.value_balances.fee(),
+            &mints_descriptions,
+            burns,
+        )
     }
 }
 
@@ -685,7 +699,7 @@ impl Transaction {
         binding_verification_key: &ExtendedPoint,
     ) -> Result<(), IronfishError> {
         let value_balance =
-            calculate_value_balance(binding_verification_key, self.fee, &self.burns)?;
+            calculate_value_balance(binding_verification_key, self.fee, &self.mints, &self.burns)?;
 
         let mut data_to_verify_signature = [0; 64];
         data_to_verify_signature[..32].copy_from_slice(&value_balance.to_bytes());
@@ -730,11 +744,17 @@ fn fee_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
 fn calculate_value_balance(
     binding_verification_key: &ExtendedPoint,
     fee: i64,
+    mints: &[MintDescription],
     burns: &[BurnDescription],
 ) -> Result<ExtendedPoint, IronfishError> {
     let fee_point = fee_to_point(fee)?;
 
     let mut value_balance_point = binding_verification_key - fee_point;
+
+    for mint in mints {
+        let mint_generator = mint.asset.generator();
+        value_balance_point += mint_generator * jubjub::Fr::from(mint.value);
+    }
 
     for burn in burns {
         let burn_generator = asset_generator_from_id(&burn.asset_id);
@@ -788,12 +808,8 @@ pub fn batch_verify_transactions<'a>(
         }
 
         for mint in transaction.mints.iter() {
-            mint.partial_verify()?;
-
             let public_inputs = mint.public_inputs(transaction.randomized_public_key());
             mint_verifier.queue((&mint.proof, &public_inputs[..]));
-
-            binding_verification_key += mint.value_commitment;
 
             mint.verify_signature(
                 &hash_to_verify_signature,

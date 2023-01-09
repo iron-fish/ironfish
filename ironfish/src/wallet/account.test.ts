@@ -11,10 +11,33 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils/async'
+import { Account } from './account'
 import { BalanceValue } from './walletdb/balanceValue'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
+
+  async function accountHasSequenceToNoteHash(
+    account: Account,
+    sequence: number,
+    noteHash: Buffer,
+  ): Promise<boolean> {
+    const entry = await account['walletDb'].sequenceToNoteHash.get([
+      account.prefix,
+      [sequence, noteHash],
+    ])
+
+    return entry !== undefined
+  }
+
+  async function accountHasNonChainNoteHash(
+    account: Account,
+    noteHash: Buffer,
+  ): Promise<boolean> {
+    const entry = await account['walletDb'].nonChainNoteHashes.get([account.prefix, noteHash])
+
+    return entry !== undefined
+  }
 
   it('should store notes at sequence', async () => {
     const { node } = nodeTest
@@ -556,6 +579,81 @@ describe('Accounts', () => {
       ])
 
       expect(pendingHashEntry).toBeDefined()
+    })
+  })
+
+  describe('deleteTransaction', () => {
+    it('should delete transaction record from the database', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = block2.transactions[0]
+
+      // accountA has the transaction
+      await expect(accountA.getTransaction(transaction.hash())).resolves.toBeDefined()
+
+      // transaction is not marked as pending
+      await expect(accountA.hasPendingTransaction(transaction.hash())).resolves.toEqual(false)
+
+      // delete the transaction
+      await accountA.deleteTransaction(transaction)
+
+      // record removed from accountA
+      await expect(accountA.getTransaction(transaction.hash())).resolves.toBeUndefined()
+    })
+
+    it('should delete output note records from the database', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = block2.transactions[0]
+
+      // accountA has one note for the transaction
+      let notes = await accountA.getTransactionNotes(transaction)
+
+      expect(notes.length).toEqual(1)
+
+      const noteHash = notes[0].hash
+
+      // the note has a nullifier stored in nullifierToNoteHashes
+      const nullifier = notes[0].nullifier
+
+      Assert.isNotNull(nullifier)
+
+      await expect(accountA.getNoteHash(nullifier)).resolves.toEqual(noteHash)
+
+      // the note is stored in sequenceToNoteHash
+      await expect(accountHasSequenceToNoteHash(accountA, 2, noteHash)).resolves.toBe(true)
+
+      // but not nonChainNoteHashes
+      await expect(accountHasNonChainNoteHash(accountA, noteHash)).resolves.toBe(false)
+
+      // delete the transaction
+      await accountA.deleteTransaction(transaction)
+
+      // accountA has no notes for the transaction
+      notes = await accountA.getTransactionNotes(transaction)
+
+      expect(notes.length).toEqual(0)
+
+      // nullifierToNoteHash entry removed
+      await expect(accountA.getNoteHash(nullifier)).resolves.toBeNull()
+
+      // the note is not stored in sequenceToNoteHash or nonChainNoteHashes
+      await expect(accountHasSequenceToNoteHash(accountA, 2, noteHash)).resolves.toBe(false)
+
+      // but not nonChainNoteHashes
+      await expect(accountHasNonChainNoteHash(accountA, noteHash)).resolves.toBe(false)
     })
   })
 })

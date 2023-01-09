@@ -10,20 +10,12 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
-    primitives::ValueCommitment,
     proofs::MintAsset,
     redjubjub::{self, Signature},
 };
-use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
-use crate::{
-    assets::asset::{asset_generator_point, Asset},
-    errors::IronfishError,
-    sapling_bls12::SAPLING,
-    serializing::read_point,
-    SaplingKey,
-};
+use crate::{assets::asset::Asset, errors::IronfishError, sapling_bls12::SAPLING, SaplingKey};
 
 use super::utils::verify_mint_proof;
 
@@ -33,25 +25,13 @@ pub struct MintBuilder {
     /// Asset to be minted
     pub asset: Asset,
 
-    /// Commitment to represent the value. Even though the value of the mint is
-    /// public, we still need the commitment to balance the transaction
-    pub value_commitment: ValueCommitment,
+    /// Amount of asset to mint
+    pub value: u64,
 }
 
 impl MintBuilder {
     pub fn new(asset: Asset, value: u64) -> Self {
-        Self {
-            asset,
-            value_commitment: ValueCommitment::new(value, asset.generator()),
-        }
-    }
-
-    /// Get the value_commitment from this proof as an Edwards Point.
-    ///
-    /// This integrates the value and randomness into a single point, using an
-    /// appropriate generator.
-    pub fn value_commitment_point(&self) -> ExtendedPoint {
-        ExtendedPoint::from(self.value_commitment.commitment())
+        Self { asset, value }
     }
 
     pub fn build(
@@ -63,9 +43,7 @@ impl MintBuilder {
         let circuit = MintAsset {
             name: self.asset.name,
             metadata: self.asset.metadata,
-            nonce: self.asset.nonce,
             proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
-            value_commitment: Some(self.value_commitment.clone()),
             public_key_randomness: Some(*public_key_randomness),
         };
 
@@ -79,8 +57,7 @@ impl MintBuilder {
         let mint_description = MintDescription {
             proof,
             asset: self.asset,
-            value: self.value_commitment.value,
-            value_commitment: self.value_commitment_point(),
+            value: self.value,
             authorizing_signature: blank_signature,
         };
 
@@ -155,10 +132,6 @@ pub struct MintDescription {
     /// Amount of asset to mint
     pub value: u64,
 
-    /// Randomized commitment to represent the value being minted in this proof
-    /// needed to balance the transaction.
-    pub value_commitment: ExtendedPoint,
-
     /// Signature of the owner authorizing the mint action. This value is
     /// calculated after the transaction is signed since the value is dependent
     /// on the binding signature key
@@ -166,33 +139,6 @@ pub struct MintDescription {
 }
 
 impl MintDescription {
-    /// A function to encapsulate any verification besides the proof itself.
-    /// This allows us to abstract away the details and make it easier to work
-    /// with. Note that this does not verify the proof, that happens in the
-    /// [`MintBuilder`] build function as the prover, and in
-    /// [`super::batch_verify_transactions`] as the verifier.
-    pub fn partial_verify(&self) -> Result<(), IronfishError> {
-        self.verify_not_small_order()?;
-        self.verify_generator_point()?;
-
-        Ok(())
-    }
-
-    fn verify_not_small_order(&self) -> Result<(), IronfishError> {
-        if self.value_commitment.is_small_order().into() {
-            return Err(IronfishError::IsSmallOrder);
-        }
-
-        Ok(())
-    }
-
-    /// Verify that the asset info hash maps to a valid generator point
-    fn verify_generator_point(&self) -> Result<(), IronfishError> {
-        asset_generator_point(&self.asset.asset_info_hashed)?;
-
-        Ok(())
-    }
-
     /// Verify that the signature on this proof is signing the provided input
     /// with the randomized_public_key on this proof.
     pub fn verify_signature(
@@ -218,21 +164,17 @@ impl MintDescription {
         Ok(())
     }
 
-    pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 6] {
-        let mut public_inputs = [Scalar::zero(); 6];
+    pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 4] {
+        let mut public_inputs = [Scalar::zero(); 4];
 
         let randomized_public_key_point = randomized_public_key.0.to_affine();
         public_inputs[0] = randomized_public_key_point.get_u();
         public_inputs[1] = randomized_public_key_point.get_v();
 
-        let asset_info_hashed_bits = multipack::bytes_to_bits_le(&self.asset.asset_info_hashed);
-        let asset_info_hashed_inputs = multipack::compute_multipacking(&asset_info_hashed_bits);
-        public_inputs[2] = asset_info_hashed_inputs[0];
-        public_inputs[3] = asset_info_hashed_inputs[1];
-
-        let value_commitment_point = self.value_commitment.to_affine();
-        public_inputs[4] = value_commitment_point.get_u();
-        public_inputs[5] = value_commitment_point.get_v();
+        let asset_id_bits = multipack::bytes_to_bits_le(self.asset.id());
+        let asset_id_inputs = multipack::compute_multipacking(&asset_id_bits);
+        public_inputs[2] = asset_id_inputs[0];
+        public_inputs[3] = asset_id_inputs[1];
 
         public_inputs
     }
@@ -249,7 +191,6 @@ impl MintDescription {
         self.proof.write(&mut writer)?;
         self.asset.write(&mut writer)?;
         writer.write_u64::<LittleEndian>(self.value)?;
-        writer.write_all(&self.value_commitment.to_bytes())?;
 
         Ok(())
     }
@@ -258,14 +199,12 @@ impl MintDescription {
         let proof = groth16::Proof::read(&mut reader)?;
         let asset = Asset::read(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
-        let value_commitment = read_point(&mut reader)?;
         let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
 
         Ok(MintDescription {
             proof,
             asset,
             value,
-            value_commitment,
             authorizing_signature,
         })
     }
@@ -394,12 +333,6 @@ mod test {
         // Value
         assert_eq!(description.value, deserialized_description.value);
         assert_eq!(description.value, value);
-
-        // Value commitment
-        assert_eq!(
-            description.value_commitment,
-            deserialized_description.value_commitment
-        );
 
         // Signature
         // Instantiated with different data just to ensure this test actually does what we expect

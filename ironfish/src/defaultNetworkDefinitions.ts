@@ -40,9 +40,9 @@ const DEV_GENESIS = `{
   ]
 }`
 
-export const TESTING = `{
+export const TESTNET = `{
   "id": 0,
-  "bootstrapNodes": [],
+  "bootstrapNodes": ["test.bn1.ironfish.network"],
   "genesis": ${DEV_GENESIS},
   "consensus": {
       "allowedBlockFutureSeconds": 15,

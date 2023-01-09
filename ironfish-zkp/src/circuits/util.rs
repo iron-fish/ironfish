@@ -1,5 +1,3 @@
-use std::slice;
-
 use bellman::{
     gadgets::boolean::{self, AllocatedBit, Boolean},
     ConstraintSystem, SynthesisError,
@@ -16,9 +14,8 @@ use crate::primitives::ValueCommitment;
 pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
     cs: &mut CS,
     name: &[u8; 32],
-    metadata: &[u8; 76],
+    metadata: &[u8; 77],
     owner_public_key: &EdwardsPoint,
-    nonce: &u8,
 ) -> Result<Vec<boolean::Boolean>, SynthesisError> {
     let mut combined_preimage = vec![];
 
@@ -29,15 +26,8 @@ pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
     combined_preimage.extend(name_bits);
 
     let metadata_bits =
-        slice_into_boolean_vec_le(cs.namespace(|| "booleanize metadata"), Some(metadata), 76)?;
+        slice_into_boolean_vec_le(cs.namespace(|| "booleanize metadata"), Some(metadata), 77)?;
     combined_preimage.extend(metadata_bits);
-
-    let nonce_bits = slice_into_boolean_vec_le(
-        cs.namespace(|| "booleanize nonce"),
-        Some(slice::from_ref(nonce)),
-        1,
-    )?;
-    combined_preimage.extend(nonce_bits);
 
     Ok(combined_preimage)
 }
