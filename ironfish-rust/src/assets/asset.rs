@@ -62,7 +62,7 @@ impl Asset {
         name: [u8; NAME_LENGTH],
         metadata: [u8; METADATA_LENGTH],
     ) -> Result<Asset, IronfishError> {
-        let capacity = METADATA_LENGTH + NAME_LENGTH + PUBLIC_ADDRESS_SIZE;
+        let capacity = ASSET_LENGTH;
         let mut preimage = Vec::with_capacity(capacity);
         preimage.extend(owner.public_address());
         preimage.extend(name);
