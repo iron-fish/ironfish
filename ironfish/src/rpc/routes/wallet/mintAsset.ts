@@ -22,6 +22,8 @@ export interface MintAssetRequest {
 export interface MintAssetResponse {
   assetId: string
   hash: string
+  name: string
+  value: string
 }
 
 export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
@@ -41,6 +43,8 @@ export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> = yup
   .object({
     assetId: yup.string().required(),
     hash: yup.string().required(),
+    name: yup.string().required(),
+    value: yup.string().required(),
   })
   .defined()
 
@@ -102,6 +106,8 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     request.end({
       assetId: mint.asset.id().toString('hex'),
       hash: transaction.hash().toString('hex'),
+      name: mint.asset.name().toString('utf-8'),
+      value: mint.value.toString(),
     })
   },
 )

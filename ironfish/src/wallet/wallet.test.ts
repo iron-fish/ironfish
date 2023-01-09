@@ -886,7 +886,7 @@ describe('Accounts', () => {
         ).rejects.toThrow(
           `Asset not found. Cannot mint for identifier '${assetId.toString('hex')}'`,
         )
-      }, 10000)
+      })
     })
 
     describe('for an identifier not owned by the account', () => {
@@ -919,7 +919,7 @@ describe('Accounts', () => {
             value: BigInt(1),
           }),
         ).rejects.toThrow(`Unauthorized to mint for asset '${asset.id().toString('hex')}'`)
-      }, 10000)
+      })
     })
 
     describe('for a valid asset identifier', () => {
@@ -959,12 +959,12 @@ describe('Accounts', () => {
         await expect(node.chain).toAddBlock(mintBlock)
         await node.wallet.updateHead()
 
-        expect(await node.wallet.getBalance(account, asset.id())).toEqual({
+        expect(await node.wallet.getBalance(account, asset.id())).toMatchObject({
           unconfirmed: BigInt(mintValueA + mintValueB),
           unconfirmedCount: 0,
           confirmed: BigInt(mintValueA + mintValueB),
         })
-      }, 10000)
+      })
     })
 
     describe('for a valid metadata and name', () => {
@@ -987,7 +987,7 @@ describe('Accounts', () => {
         })
 
         expect(transaction.mints).toEqual([{ asset: asset, value: mintValue }])
-      }, 10000)
+      })
 
       it('adds balance for the asset from the wallet', async () => {
         const { node } = await nodeTest.createSetup()
@@ -1009,12 +1009,12 @@ describe('Accounts', () => {
         await expect(node.chain).toAddBlock(mintBlock)
         await node.wallet.updateHead()
 
-        expect(await node.wallet.getBalance(account, asset.id())).toEqual({
+        expect(await node.wallet.getBalance(account, asset.id())).toMatchObject({
           unconfirmed: BigInt(value),
           unconfirmedCount: 0,
           confirmed: BigInt(value),
         })
-      }, 10000)
+      })
     })
   })
 

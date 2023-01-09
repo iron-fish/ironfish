@@ -97,9 +97,9 @@ export class Mint extends IronfishCommand {
 
       const response = result.content
       this.log(`
- Minted asset ${flags.name} from ${flags.account}
+ Minted asset ${response.name} from ${flags.account}
  Asset Identifier: ${response.assetId}
- Value: ${flags.amount}
+ Value: ${response.value}
  
  Transaction Hash: ${response.hash}
  Transaction fee: ${CurrencyUtils.renderIron(flags.fee, true)}
