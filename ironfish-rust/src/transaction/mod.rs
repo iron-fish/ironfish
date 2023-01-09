@@ -9,8 +9,7 @@ use value_balances::ValueBalances;
 
 use crate::{
     assets::asset::{
-        asset_generator_from_identifier, Asset, AssetIdentifier, NATIVE_ASSET,
-        NATIVE_ASSET_GENERATOR,
+        asset_generator_from_id, Asset, AssetIdentifier, NATIVE_ASSET, NATIVE_ASSET_GENERATOR,
     },
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
@@ -96,7 +95,7 @@ pub struct ProposedTransaction {
     /// This is the sequence in the chain the transaction will expire at and be
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
-    expiration_sequence: u32,
+    expiration: u32,
 
     /// The key used to sign the transaction and any descriptions that need
     /// signed.
@@ -120,7 +119,7 @@ impl ProposedTransaction {
             mints: vec![],
             burns: vec![],
             value_balances: ValueBalances::new(),
-            expiration_sequence: 0,
+            expiration: 0,
             spender_key,
             public_key_randomness: jubjub::Fr::random(thread_rng()),
         }
@@ -133,33 +132,44 @@ impl ProposedTransaction {
     }
 
     /// Spend the note owned by spender_key at the given witness location.
-    pub fn add_spend(&mut self, note: Note, witness: &dyn WitnessTrait) {
+    pub fn add_spend(
+        &mut self,
+        note: Note,
+        witness: &dyn WitnessTrait,
+    ) -> Result<(), IronfishError> {
         self.value_balances
-            .add(&note.asset_identifier(), note.value() as i64);
+            .add(&note.asset_id(), note.value() as i64)?;
 
         self.spends.push(SpendBuilder::new(note, witness));
+
+        Ok(())
     }
 
     /// Create a proof of a new note owned by the recipient in this
     /// transaction.
-    pub fn add_output(&mut self, note: Note) {
+    pub fn add_output(&mut self, note: Note) -> Result<(), IronfishError> {
         self.value_balances
-            .subtract(&note.asset_identifier(), note.value() as i64);
+            .subtract(&note.asset_id(), note.value() as i64)?;
 
         self.outputs.push(OutputBuilder::new(note));
+
+        Ok(())
     }
 
-    pub fn add_mint(&mut self, asset: Asset, value: u64) {
-        self.value_balances.add(asset.identifier(), value as i64);
+    pub fn add_mint(&mut self, asset: Asset, value: u64) -> Result<(), IronfishError> {
+        self.value_balances.add(asset.id(), value as i64)?;
 
         self.mints.push(MintBuilder::new(asset, value));
+
+        Ok(())
     }
 
-    pub fn add_burn(&mut self, asset_identifier: AssetIdentifier, value: u64) {
-        self.value_balances
-            .subtract(&asset_identifier, value as i64);
+    pub fn add_burn(&mut self, asset_id: AssetIdentifier, value: u64) -> Result<(), IronfishError> {
+        self.value_balances.subtract(&asset_id, value as i64)?;
 
-        self.burns.push(BurnBuilder::new(asset_identifier, value));
+        self.burns.push(BurnBuilder::new(asset_id, value));
+
+        Ok(())
     }
 
     /// Post the transaction. This performs a bit of validation, and signs
@@ -179,8 +189,8 @@ impl ProposedTransaction {
     ) -> Result<Transaction, IronfishError> {
         let mut change_notes = vec![];
 
-        for (asset_identifier, value) in self.value_balances.iter() {
-            let is_native_asset = asset_identifier == &NATIVE_ASSET;
+        for (asset_id, value) in self.value_balances.iter() {
+            let is_native_asset = asset_id == &NATIVE_ASSET;
 
             let change_amount = match is_native_asset {
                 true => *value - intended_transaction_fee as i64,
@@ -197,7 +207,7 @@ impl ProposedTransaction {
                     change_address,
                     change_amount as u64, // we checked it was positive
                     "",
-                    SubgroupPoint::from_bytes(asset_identifier).unwrap(),
+                    SubgroupPoint::from_bytes(asset_id).unwrap(),
                     self.spender_key.public_address(),
                 );
 
@@ -206,7 +216,7 @@ impl ProposedTransaction {
         }
 
         for change_note in change_notes {
-            self.add_output(change_note);
+            self.add_output(change_note)?;
         }
 
         self._partial_post()
@@ -234,13 +244,13 @@ impl ProposedTransaction {
     }
 
     /// Get the expiration sequence for this transaction
-    pub fn expiration_sequence(&self) -> u32 {
-        self.expiration_sequence
+    pub fn expiration(&self) -> u32 {
+        self.expiration
     }
 
     /// Set the sequence to expire the transaction from the mempool.
-    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) {
-        self.expiration_sequence = expiration_sequence;
+    pub fn set_expiration(&mut self, sequence: u32) {
+        self.expiration = sequence;
     }
 
     // Post transaction without much validation.
@@ -318,7 +328,7 @@ impl ProposedTransaction {
 
         Ok(Transaction {
             version: self.version,
-            expiration_sequence: self.expiration_sequence,
+            expiration: self.expiration,
             fee: *self.value_balances.fee(),
             spends: spend_descriptions,
             outputs: output_descriptions,
@@ -348,9 +358,7 @@ impl ProposedTransaction {
 
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
         hasher.write_u8(self.version).unwrap();
-        hasher
-            .write_u32::<LittleEndian>(self.expiration_sequence)
-            .unwrap();
+        hasher.write_u32::<LittleEndian>(self.expiration).unwrap();
         hasher
             .write_i64::<LittleEndian>(*self.value_balances.fee())
             .unwrap();
@@ -486,7 +494,7 @@ pub struct Transaction {
     /// This is the sequence in the chain the transaction will expire at and be
     /// removed from the mempool. A value of 0 indicates the transaction will
     /// not expire.
-    expiration_sequence: u32,
+    expiration: u32,
 
     /// Randomized public key of the sender of the Transaction
     /// currently this value is the same for all spends[].owner and outputs[].sender
@@ -508,7 +516,7 @@ impl Transaction {
         let num_mints = reader.read_u64::<LittleEndian>()?;
         let num_burns = reader.read_u64::<LittleEndian>()?;
         let fee = reader.read_i64::<LittleEndian>()?;
-        let expiration_sequence = reader.read_u32::<LittleEndian>()?;
+        let expiration = reader.read_u32::<LittleEndian>()?;
         let randomized_public_key = redjubjub::PublicKey::read(&mut reader)?;
 
         let mut spends = Vec::with_capacity(num_spends as usize);
@@ -541,7 +549,7 @@ impl Transaction {
             mints,
             burns,
             binding_signature,
-            expiration_sequence,
+            expiration,
             randomized_public_key,
         })
     }
@@ -555,7 +563,7 @@ impl Transaction {
         writer.write_u64::<LittleEndian>(self.mints.len() as u64)?;
         writer.write_u64::<LittleEndian>(self.burns.len() as u64)?;
         writer.write_i64::<LittleEndian>(self.fee)?;
-        writer.write_u32::<LittleEndian>(self.expiration_sequence)?;
+        writer.write_u32::<LittleEndian>(self.expiration)?;
         writer.write_all(&self.randomized_public_key.0.to_bytes())?;
 
         for spend in self.spends.iter() {
@@ -624,8 +632,8 @@ impl Transaction {
     }
 
     /// Get the expiration sequence for this transaction
-    pub fn expiration_sequence(&self) -> u32 {
-        self.expiration_sequence
+    pub fn expiration(&self) -> u32 {
+        self.expiration
     }
 
     /// Get the expiration sequence for this transaction
@@ -643,9 +651,7 @@ impl Transaction {
             .to_state();
         hasher.update(TRANSACTION_SIGNATURE_VERSION);
         hasher.write_u8(self.version).unwrap();
-        hasher
-            .write_u32::<LittleEndian>(self.expiration_sequence)
-            .unwrap();
+        hasher.write_u32::<LittleEndian>(self.expiration).unwrap();
         hasher.write_i64::<LittleEndian>(self.fee).unwrap();
         hasher
             .write_all(&self.randomized_public_key.0.to_bytes())
@@ -731,7 +737,7 @@ fn calculate_value_balance(
     let mut value_balance_point = binding_verification_key - fee_point;
 
     for burn in burns {
-        let burn_generator = asset_generator_from_identifier(&burn.asset_identifier);
+        let burn_generator = asset_generator_from_id(&burn.asset_id);
         value_balance_point -= burn_generator * jubjub::Fr::from(burn.value);
     }
 

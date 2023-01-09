@@ -242,7 +242,7 @@ export class FeeEstimator {
 
     const { amount, notes } = await this.wallet.createSpendsForAsset(
       sender,
-      Asset.nativeIdentifier(),
+      Asset.nativeId(),
       amountNeeded,
     )
 

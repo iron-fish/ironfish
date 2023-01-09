@@ -10,7 +10,7 @@ export type GetTransactionRequest = { blockHash: string; transactionHash: string
 
 export type GetTransactionResponse = {
   fee: string
-  expirationSequence: number
+  expiration: number
   notesCount: number
   spendsCount: number
   signature: string
@@ -26,7 +26,7 @@ export const GetTransactionRequestSchema: yup.ObjectSchema<GetTransactionRequest
 export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionResponse> = yup
   .object({
     fee: yup.string().defined(),
-    expirationSequence: yup.number().defined(),
+    expiration: yup.number().defined(),
     notesCount: yup.number().defined(),
     spendsCount: yup.number().defined(),
     signature: yup.string().defined(),
@@ -51,7 +51,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     // Empty response used for case that transaction not found
     const rawTransaction: GetTransactionResponse = {
       fee: '0',
-      expirationSequence: 0,
+      expiration: 0,
       notesCount: 0,
       spendsCount: 0,
       signature: '',
@@ -60,7 +60,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     block.transactions.map((transaction) => {
       if (transaction.hash().toString('hex') === request.data.transactionHash) {
         const fee = transaction.fee().toString()
-        const expirationSequence = transaction.expirationSequence()
+        const expiration = transaction.expiration()
         const signature = transaction.transactionSignature()
         const notesEncrypted = []
 
@@ -69,7 +69,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
         }
 
         rawTransaction.fee = fee
-        rawTransaction.expirationSequence = expirationSequence
+        rawTransaction.expiration = expiration
         rawTransaction.notesCount = transaction.notes.length
         rawTransaction.spendsCount = transaction.spends.length
         rawTransaction.signature = signature.toString('hex')

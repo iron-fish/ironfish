@@ -7,8 +7,8 @@ use byteorder::{ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use ironfish_zkp::{
     constants::{
-        ASSET_IDENTIFIER_LENGTH, ASSET_IDENTIFIER_PERSONALIZATION,
-        VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR,
+        ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
+        VALUE_COMMITMENT_VALUE_GENERATOR,
     },
     group_hash, pedersen_hash,
 };
@@ -27,9 +27,9 @@ pub const NAME_LENGTH: usize = 32;
 const ASSET_INFO_HASHED_LENGTH: usize = 32;
 pub const METADATA_LENGTH: usize = 76;
 pub const ASSET_LENGTH: usize = NAME_LENGTH + PUBLIC_ADDRESS_SIZE + METADATA_LENGTH + 1;
-pub const IDENTIFIER_LENGTH: usize = ASSET_IDENTIFIER_LENGTH;
+pub const ID_LENGTH: usize = ASSET_ID_LENGTH;
 
-pub type AssetIdentifier = [u8; ASSET_IDENTIFIER_LENGTH];
+pub type AssetIdentifier = [u8; ASSET_ID_LENGTH];
 
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
@@ -51,7 +51,7 @@ pub struct Asset {
     pub(crate) asset_info_hashed: [u8; ASSET_INFO_HASHED_LENGTH],
 
     /// The byte representation of the generator point derived from the hashed asset info
-    pub(crate) identifier: AssetIdentifier,
+    pub(crate) id: AssetIdentifier,
 }
 
 impl Asset {
@@ -96,7 +96,7 @@ impl Asset {
         let preimage_bits = multipack::bytes_to_bits_le(&preimage);
 
         let asset_info_hashed_point =
-            pedersen_hash::pedersen_hash(ASSET_IDENTIFIER_PERSONALIZATION, preimage_bits);
+            pedersen_hash::pedersen_hash(ASSET_ID_PERSONALIZATION, preimage_bits);
 
         let asset_info_hashed = asset_info_hashed_point.to_bytes();
 
@@ -108,7 +108,7 @@ impl Asset {
                 metadata,
                 nonce,
                 asset_info_hashed,
-                identifier: generator_point.to_bytes(),
+                id: generator_point.to_bytes(),
             })
         } else {
             Err(IronfishError::InvalidAssetIdentifier)
@@ -131,12 +131,12 @@ impl Asset {
         &self.nonce
     }
 
-    pub fn identifier(&self) -> &AssetIdentifier {
-        &self.identifier
+    pub fn id(&self) -> &AssetIdentifier {
+        &self.id
     }
 
     pub fn generator(&self) -> SubgroupPoint {
-        SubgroupPoint::from_bytes(&self.identifier).unwrap()
+        SubgroupPoint::from_bytes(&self.id).unwrap()
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
@@ -174,8 +174,8 @@ pub fn asset_generator_point(
     .ok_or(IronfishError::InvalidAssetIdentifier)
 }
 
-pub fn asset_generator_from_identifier(asset_identifier: &AssetIdentifier) -> SubgroupPoint {
-    SubgroupPoint::from_bytes(asset_identifier).unwrap()
+pub fn asset_generator_from_id(asset_id: &AssetIdentifier) -> SubgroupPoint {
+    SubgroupPoint::from_bytes(asset_id).unwrap()
 }
 
 #[cfg(test)]

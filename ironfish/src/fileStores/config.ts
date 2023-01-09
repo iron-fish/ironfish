@@ -110,7 +110,7 @@ export type ConfigOptions = {
    * The default delta of block sequence for which to expire transactions from the
    * mempool.
    */
-  defaultTransactionExpirationSequenceDelta: number
+  transactionExpirationDelta: number
 
   /**
    * The default number of blocks to request per message when syncing.
@@ -277,7 +277,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     targetPeers: yup.number().integer().min(1),
     telemetryApi: yup.string(),
     generateNewIdentity: yup.boolean(),
-    defaultTransactionExpirationSequenceDelta: YupUtils.isPositiveInteger,
+    transactionExpirationDelta: YupUtils.isPositiveInteger,
     blocksPerMessage: YupUtils.isPositiveInteger,
     minerBatchSize: YupUtils.isPositiveInteger,
     minimumBlockConfirmations: YupUtils.isPositiveInteger,
@@ -328,7 +328,7 @@ export class Config extends KeyStore<ConfigOptions> {
     return {
       bootstrapNodes: [],
       databaseMigrate: false,
-      defaultTransactionExpirationSequenceDelta: 15,
+      transactionExpirationDelta: 15,
       editor: '',
       enableListenP2P: true,
       enableLogFile: false,

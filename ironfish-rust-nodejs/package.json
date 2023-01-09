@@ -1,6 +1,6 @@
 {
   "name": "@ironfish/rust-nodejs",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "description": "Node.js bindings for Rust code required by the Iron Fish SDK",
   "main": "index.js",
   "types": "index.d.ts",
@@ -30,10 +30,10 @@
     }
   },
   "engines": {
-    "node": ">= 16"
+    "node": ">= 18"
   },
   "devDependencies": {
-    "@napi-rs/cli": "2.13.3",
+    "@napi-rs/cli": "2.14.1",
     "@types/jest": "29.2.4",
     "jest": "29.3.1",
     "jest-jasmine2": "29.3.1",

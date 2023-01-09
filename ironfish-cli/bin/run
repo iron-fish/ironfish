@@ -7,8 +7,8 @@ if (process.platform !== 'win32') {
   require('segfault-handler').registerHandler('segfault.log')
 }
 
-if(process.versions.node.split('.')[0] !== '16') {
-  console.log('NodeJS version ' +  process.versions.node + ' is not compatible. Must have node v16.x installed: https://nodejs.org/en/blog/release/v16.16.0')
+if(process.versions.node.split('.')[0] !== '18') {
+  console.log('NodeJS version ' +  process.versions.node + ' is not compatible. Must have node v18.x installed: https://nodejs.org/en/download/')
   process.exit(1)
 }
 

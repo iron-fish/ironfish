@@ -17,8 +17,8 @@ describe('BigIntUtils', () => {
     ]
 
     for (const candidate of bigints) {
-      const bytes = BigIntUtils.toBytes(candidate)
-      const back = BigIntUtils.fromBytes(bytes)
+      const bytes = BigIntUtils.toBytesBE(candidate)
+      const back = BigIntUtils.fromBytesBE(bytes)
       expect(back).toEqual(candidate)
     }
   })
@@ -26,7 +26,7 @@ describe('BigIntUtils', () => {
   it('can convert to a little-endian representation', () => {
     const bigint = BigInt(258)
 
-    const bigintBuffer = BigIntUtils.toBytesLE(bigint, 2)
+    const bigintBuffer = BigIntUtils.toBytesLE(bigint)
 
     const buffer = Buffer.alloc(2)
     buffer.writeUInt16LE(Number(bigint))
@@ -38,7 +38,7 @@ describe('BigIntUtils', () => {
   })
 
   it('converts empty array to 0', () => {
-    expect(BigIntUtils.fromBytes(Buffer.from([]))).toEqual(BigInt(0))
+    expect(BigIntUtils.fromBytesBE(Buffer.from([]))).toEqual(BigInt(0))
   })
 
   it('divides bigint', () => {

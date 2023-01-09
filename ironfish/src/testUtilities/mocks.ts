@@ -25,7 +25,6 @@ export function mockEvent(): any {
 export function mockWallet(): any {
   return {
     onBroadcastTransaction: mockEvent(),
-    syncTransaction: jest.fn(),
   }
 }
 

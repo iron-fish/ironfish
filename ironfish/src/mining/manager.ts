@@ -82,7 +82,7 @@ export class MiningManager {
       }
 
       const isExpired = this.chain.verifier.isExpiredSequence(
-        transaction.expirationSequence(),
+        transaction.expiration(),
         sequence,
       )
       if (isExpired) {

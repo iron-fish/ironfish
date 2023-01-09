@@ -11,6 +11,12 @@ export interface DatabaseKeyRange {
   lte?: Buffer
 }
 
+export interface DatabaseIteratorOptions {
+  reverse?: boolean
+  limit?: number
+  ordered?: boolean
+}
+
 export type DatabaseKey =
   | bigint
   | number

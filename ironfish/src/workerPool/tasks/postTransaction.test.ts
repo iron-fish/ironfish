@@ -7,8 +7,8 @@ import {
   useAccountFixture,
   useMinerBlockFixture,
   useMinersTxFixture,
-  useRawTxFixture,
 } from '../../testUtilities'
+import { createRawTransaction } from '../../testUtilities/helpers/transaction'
 import {
   PostTransactionRequest,
   PostTransactionResponse,
@@ -30,7 +30,7 @@ describe('PostTransactionRequest', () => {
     await expect(nodeTest.chain).toAddBlock(block)
     await nodeTest.wallet.updateHead()
 
-    const raw = await useRawTxFixture({
+    const raw = await createRawTransaction({
       wallet: nodeTest.wallet,
       from: account,
       fee: 1n,
@@ -74,7 +74,7 @@ describe('PostTransactionTask', () => {
     await expect(nodeTest.chain).toAddBlock(block)
     await nodeTest.wallet.updateHead()
 
-    const raw = await useRawTxFixture({
+    const raw = await createRawTransaction({
       wallet: nodeTest.wallet,
       from: account,
       fee: 5n,
@@ -86,6 +86,6 @@ describe('PostTransactionTask', () => {
     const response = task.execute(request)
 
     expect(response.transaction.fee()).toEqual(5n)
-    expect(response.transaction.expirationSequence()).toEqual(9)
+    expect(response.transaction.expiration()).toEqual(9)
   })
 })

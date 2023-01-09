@@ -11,7 +11,8 @@ function isMusl() {
   // For Node 10
   if (!process.report || typeof process.report.getReport !== 'function') {
     try {
-      return readFileSync('/usr/bin/ldd', 'utf8').includes('musl')
+      const lddPath = require('child_process').execSync('which ldd').toString().trim();
+      return readFileSync(lddPath, 'utf8').includes('musl')
     } catch (e) {
       return true
     }
@@ -101,6 +102,15 @@ switch (platform) {
     }
     break
   case 'darwin':
+    localFileExisted = existsSync(join(__dirname, 'ironfish-rust-nodejs.darwin-universal.node'))
+    try {
+      if (localFileExisted) {
+        nativeBinding = require('./ironfish-rust-nodejs.darwin-universal.node')
+      } else {
+        nativeBinding = require('@ironfish/rust-nodejs-darwin-universal')
+      }
+      break
+    } catch {}
     switch (arch) {
       case 'x64':
         localFileExisted = existsSync(join(__dirname, 'ironfish-rust-nodejs.darwin-x64.node'))
@@ -236,7 +246,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_IDENTIFIER_LENGTH, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_OWNER_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, PROOF_LENGTH, TRANSACTION_VERSION, Transaction, verifyTransactions, generateKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
+const { KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_ID_LENGTH, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_OWNER_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, PROOF_LENGTH, TRANSACTION_VERSION, Transaction, verifyTransactions, generateKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
 
 module.exports.KEY_LENGTH = KEY_LENGTH
 module.exports.NONCE_LENGTH = NONCE_LENGTH
@@ -245,7 +255,7 @@ module.exports.randomBytes = randomBytes
 module.exports.boxMessage = boxMessage
 module.exports.unboxMessage = unboxMessage
 module.exports.RollingFilter = RollingFilter
-module.exports.ASSET_IDENTIFIER_LENGTH = ASSET_IDENTIFIER_LENGTH
+module.exports.ASSET_ID_LENGTH = ASSET_ID_LENGTH
 module.exports.ASSET_METADATA_LENGTH = ASSET_METADATA_LENGTH
 module.exports.ASSET_NAME_LENGTH = ASSET_NAME_LENGTH
 module.exports.ASSET_OWNER_LENGTH = ASSET_OWNER_LENGTH

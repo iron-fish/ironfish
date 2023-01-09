@@ -31,7 +31,9 @@ export class Target {
       this.targetValue = BigInt(0)
     } else {
       const candidate =
-        targetValue instanceof Buffer ? BigIntUtils.fromBytes(targetValue) : BigInt(targetValue)
+        targetValue instanceof Buffer
+          ? BigIntUtils.fromBytesBE(targetValue)
+          : BigInt(targetValue)
 
       if (candidate > MAX_256_BIT_NUM) {
         throw new Error('Target value exceeds max target')

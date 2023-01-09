@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset } from '@ironfish/rust-nodejs'
 import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
@@ -53,7 +54,7 @@ import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { AssetsValueEncoding } from './database/assets'
+import { AssetsValue, AssetsValueEncoding } from './database/assets'
 import { HeaderEncoding } from './database/headers'
 import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
 import { TransactionsValueEncoding } from './database/transactions'
@@ -701,6 +702,11 @@ export class Blockchain {
 
     await tx.update()
     this.notes.pastRootTxCommitted(tx)
+
+    if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
+      this.latest = block.header
+    }
+
     await this.onForkBlock.emitAsync(block, tx)
 
     this.logger.warn(
@@ -756,6 +762,10 @@ export class Blockchain {
 
     await tx.update()
     this.notes.pastRootTxCommitted(tx)
+
+    if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
+      this.latest = block.header
+    }
 
     this.head = block.header
 
@@ -1177,6 +1187,7 @@ export class Blockchain {
       sequence: number
       blockHash: Buffer
       previousBlockHash: Buffer
+      timestamp: Date
     },
     void,
     unknown
@@ -1202,6 +1213,7 @@ export class Blockchain {
         blockHash: header.hash,
         sequence: header.sequence,
         previousBlockHash: header.previousBlockHash,
+        timestamp: header.timestamp,
       }
     }
   }
@@ -1309,7 +1321,6 @@ export class Blockchain {
     }
 
     if (!this.hasGenesisBlock || isBlockLater(block.header, this.latest)) {
-      this.latest = block.header
       await this.meta.put('latest', hash, tx)
     }
   }
@@ -1319,8 +1330,8 @@ export class Blockchain {
     tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const { asset, value } of transaction.mints) {
-      const assetIdentifier = asset.identifier()
-      const existingAsset = await this.assets.get(assetIdentifier, tx)
+      const assetId = asset.id()
+      const existingAsset = await this.assets.get(assetId, tx)
 
       let createdTransactionHash = transaction.hash()
       let supply = BigInt(0)
@@ -1330,10 +1341,10 @@ export class Blockchain {
       }
 
       await this.assets.put(
-        assetIdentifier,
+        assetId,
         {
           createdTransactionHash,
-          identifier: assetIdentifier,
+          id: assetId,
           metadata: asset.metadata(),
           name: asset.name(),
           nonce: asset.nonce(),
@@ -1349,8 +1360,8 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { assetIdentifier, value } of transaction.burns) {
-      const existingAsset = await this.assets.get(assetIdentifier, tx)
+    for (const { assetId, value } of transaction.burns) {
+      const existingAsset = await this.assets.get(assetId, tx)
       Assert.isNotUndefined(existingAsset, 'Cannot burn undefined asset from the database')
 
       const existingSupply = existingAsset.supply
@@ -1358,10 +1369,10 @@ export class Blockchain {
       Assert.isTrue(supply >= BigInt(0), 'Invalid burn value')
 
       await this.assets.put(
-        assetIdentifier,
+        assetId,
         {
           createdTransactionHash: existingAsset.createdTransactionHash,
-          identifier: existingAsset.identifier,
+          id: existingAsset.id,
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           nonce: existingAsset.nonce,
@@ -1377,18 +1388,18 @@ export class Blockchain {
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
-    for (const { assetIdentifier, value } of transaction.burns.slice().reverse()) {
-      const existingAsset = await this.assets.get(assetIdentifier, tx)
+    for (const { assetId, value } of transaction.burns.slice().reverse()) {
+      const existingAsset = await this.assets.get(assetId, tx)
       Assert.isNotUndefined(existingAsset)
 
       const existingSupply = existingAsset.supply
       const supply = existingSupply + value
 
       await this.assets.put(
-        assetIdentifier,
+        assetId,
         {
           createdTransactionHash: existingAsset.createdTransactionHash,
-          identifier: existingAsset.identifier,
+          id: existingAsset.id,
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           nonce: existingAsset.nonce,
@@ -1405,8 +1416,8 @@ export class Blockchain {
     tx: IDatabaseTransaction,
   ): Promise<void> {
     for (const { asset, value } of transaction.mints.slice().reverse()) {
-      const assetIdentifier = asset.identifier()
-      const existingAsset = await this.assets.get(assetIdentifier, tx)
+      const assetId = asset.id()
+      const existingAsset = await this.assets.get(assetId, tx)
       Assert.isNotUndefined(existingAsset)
 
       const existingSupply = existingAsset.supply
@@ -1419,13 +1430,13 @@ export class Blockchain {
         transaction.hash().equals(existingAsset.createdTransactionHash) &&
         supply === BigInt(0)
       ) {
-        await this.assets.del(assetIdentifier, tx)
+        await this.assets.del(assetId, tx)
       } else {
         await this.assets.put(
-          assetIdentifier,
+          assetId,
           {
             createdTransactionHash: existingAsset.createdTransactionHash,
-            identifier: asset.identifier(),
+            id: asset.id(),
             metadata: asset.metadata(),
             name: asset.name(),
             nonce: asset.nonce(),
@@ -1453,6 +1464,23 @@ export class Blockchain {
 
     this.synced = true
     this.onSynced.emit()
+  }
+
+  async getAssetById(assetId: Buffer): Promise<AssetsValue | null> {
+    if (Asset.nativeId().equals(assetId)) {
+      return {
+        createdTransactionHash: GENESIS_BLOCK_PREVIOUS,
+        id: Asset.nativeId(),
+        metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
+        name: Buffer.from('$IRON', 'utf8'),
+        owner: Buffer.from('Iron Fish', 'utf8'),
+        nonce: 0,
+        supply: 0n,
+      }
+    }
+
+    const asset = await this.assets.get(assetId)
+    return asset || null
   }
 }
 

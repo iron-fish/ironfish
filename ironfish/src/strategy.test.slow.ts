@@ -95,7 +95,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Can create a miner reward', () => {
       const owner = generateKeyFromPrivateKey(spenderKey.spending_key).public_address
 
-      minerNote = new NativeNote(owner, BigInt(42), '', Asset.nativeIdentifier(), owner)
+      minerNote = new NativeNote(owner, BigInt(42), '', Asset.nativeId(), owner)
 
       const transaction = new NativeTransaction(spenderKey.spending_key)
       transaction.receive(minerNote)
@@ -140,7 +140,7 @@ describe('Demonstrate the Sapling API', () => {
         receiverKey.public_address,
         BigInt(40),
         '',
-        Asset.nativeIdentifier(),
+        Asset.nativeId(),
         minerNote.owner(),
       )
       transaction.receive(outputNote)
@@ -288,14 +288,14 @@ describe('Demonstrate the Sapling API', () => {
         spenderKey.public_address,
         BigInt(10),
         '',
-        Asset.nativeIdentifier(),
+        Asset.nativeId(),
         receiverAddress,
       )
       const receiverNoteToSelf = new NativeNote(
         receiverAddress,
         BigInt(29),
         '',
-        Asset.nativeIdentifier(),
+        Asset.nativeId(),
         receiverAddress,
       )
 

@@ -42,9 +42,7 @@ describe('Accounts', () => {
     await node.wallet.updateHead()
 
     // Initial balance should be 0
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -52,9 +50,7 @@ describe('Accounts', () => {
     await node.wallet.updateHead()
 
     // Balance after adding the genesis block should be 0
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -68,15 +64,13 @@ describe('Accounts', () => {
     await node.wallet.updateHead()
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
   })
 
-  it('Lowers the balance after using pay to spend a note', async () => {
+  it('Lowers the balance after using send to spend a note', async () => {
     // Initialize the database and chain
     const strategy = nodeTest.strategy
     const node = nodeTest.node
@@ -85,18 +79,14 @@ describe('Accounts', () => {
     const account = await node.wallet.createAccount('test', true)
 
     // Initial balance should be 0
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -109,15 +99,13 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
 
     // Spend the balance
-    const transaction = await node.wallet.pay(
+    const transaction = await node.wallet.send(
       node.memPool,
       account,
       [
@@ -125,11 +113,11 @@ describe('Accounts', () => {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: '',
-          assetIdentifier: Asset.nativeIdentifier(),
+          assetId: Asset.nativeId(),
         },
       ],
       BigInt(0),
-      node.config.get('defaultTransactionExpirationSequenceDelta'),
+      node.config.get('transactionExpirationDelta'),
       0,
     )
 
@@ -145,9 +133,7 @@ describe('Accounts', () => {
 
     // Balance after adding the transaction that spends 2 should be 1999999998
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
     })
@@ -162,18 +148,14 @@ describe('Accounts', () => {
     const account = await node.wallet.createAccount('test', true)
 
     // Initial balance should be 0
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -186,15 +168,13 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
 
     // Spend the balance
-    const transaction = await node.wallet.pay(
+    const transaction = await node.wallet.send(
       node.memPool,
       account,
       [
@@ -202,15 +182,15 @@ describe('Accounts', () => {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: '',
-          assetIdentifier: Asset.nativeIdentifier(),
+          assetId: Asset.nativeId(),
         },
       ],
       BigInt(0),
-      node.config.get('defaultTransactionExpirationSequenceDelta'),
+      node.config.get('transactionExpirationDelta'),
     )
 
-    expect(transaction.expirationSequence()).toBe(
-      node.chain.head.sequence + node.config.get('defaultTransactionExpirationSequenceDelta'),
+    expect(transaction.expiration()).toBe(
+      node.chain.head.sequence + node.config.get('transactionExpirationDelta'),
     )
 
     // Create a block with a miner's fee
@@ -225,9 +205,7 @@ describe('Accounts', () => {
 
     // Balance after adding the transaction that spends 2 should be 1999999998
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
     })
@@ -242,18 +220,14 @@ describe('Accounts', () => {
     const account = await node.wallet.createAccount('test', true)
 
     // Initial balance should be 0
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -266,14 +240,12 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
 
-    const transaction = await node.wallet.pay(
+    const transaction = await node.wallet.send(
       node.memPool,
       account,
       [
@@ -281,27 +253,27 @@ describe('Accounts', () => {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: 'recipient 1',
-          assetIdentifier: Asset.nativeIdentifier(),
+          assetId: Asset.nativeId(),
         },
         {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: 'recipient 2',
-          assetIdentifier: Asset.nativeIdentifier(),
+          assetId: Asset.nativeId(),
         },
         {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: 'recipient 3',
-          assetIdentifier: Asset.nativeIdentifier(),
+          assetId: Asset.nativeId(),
         },
       ],
       BigInt(0),
-      node.config.get('defaultTransactionExpirationSequenceDelta'),
+      node.config.get('transactionExpirationDelta'),
     )
 
-    expect(transaction.expirationSequence()).toBe(
-      node.chain.head.sequence + node.config.get('defaultTransactionExpirationSequenceDelta'),
+    expect(transaction.expiration()).toBe(
+      node.chain.head.sequence + node.config.get('transactionExpirationDelta'),
     )
 
     // Create a block with a miner's fee
@@ -316,9 +288,7 @@ describe('Accounts', () => {
 
     // Balance after adding the transaction that spends 6 should be 1999999994
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999994),
       unconfirmed: BigInt(1999999994),
     })
@@ -330,7 +300,7 @@ describe('Accounts', () => {
 
     // Spend the balance with an invalid expiration
     await expect(
-      node.wallet.pay(
+      node.wallet.send(
         node.memPool,
         account,
         [
@@ -338,11 +308,11 @@ describe('Accounts', () => {
             publicAddress: generateKey().public_address,
             amount: BigInt(2),
             memo: '',
-            assetIdentifier: Asset.nativeIdentifier(),
+            assetId: Asset.nativeId(),
           },
         ],
         BigInt(0),
-        node.config.get('defaultTransactionExpirationSequenceDelta'),
+        node.config.get('transactionExpirationDelta'),
         1,
       ),
     ).rejects.toThrow(Error)
@@ -360,18 +330,14 @@ describe('Accounts', () => {
     node.wallet['isStarted'] = true
 
     // Initial balance should be 0
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -384,15 +350,13 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
 
     // Spend the balance, setting expiry soon
-    const transaction = await node.wallet.pay(
+    const transaction = await node.wallet.send(
       node.memPool,
       account,
       [
@@ -400,7 +364,7 @@ describe('Accounts', () => {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: '',
-          assetIdentifier: Asset.nativeIdentifier(),
+          assetId: Asset.nativeId(),
         },
       ],
       BigInt(0),
@@ -408,18 +372,14 @@ describe('Accounts', () => {
     )
 
     // Transaction should be pending
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
 
     // Expiring transactions should not yet remove the transaction
     await node.wallet.expireTransactions()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
@@ -437,9 +397,7 @@ describe('Accounts', () => {
     // Expiring transactions should now remove the transaction
     await node.wallet.updateHead()
     await node.wallet.expireTransactions()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
@@ -460,18 +418,14 @@ describe('Accounts', () => {
     await node.wallet.createAccount('test2')
 
     // Initial balance should be 0
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
 
     // Balance after adding the genesis block should be 0
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -483,15 +437,13 @@ describe('Accounts', () => {
 
     // Account should now have a balance of 2000000000 after adding the miner's fee
     await node.wallet.updateHead()
-    await expect(
-      node.wallet.getBalance(account, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
 
     // Spend the balance, setting expiry soon
-    const transaction = await node.wallet.pay(
+    const transaction = await node.wallet.send(
       node.memPool,
       account,
       [
@@ -499,7 +451,7 @@ describe('Accounts', () => {
           publicAddress: generateKey().public_address,
           amount: BigInt(2),
           memo: '',
-          assetIdentifier: Asset.nativeIdentifier(),
+          assetId: Asset.nativeId(),
         },
       ],
       BigInt(0),
@@ -547,9 +499,7 @@ describe('Accounts', () => {
 
     // Initial balance should be 2000000000
     await nodeA.wallet.updateHead()
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
@@ -563,7 +513,7 @@ describe('Accounts', () => {
             publicAddress: accountB.publicAddress,
             amount: BigInt(1),
             memo: '',
-            assetIdentifier: Asset.nativeIdentifier(),
+            assetId: Asset.nativeId(),
           },
         ],
         [],
@@ -594,7 +544,7 @@ describe('Accounts', () => {
             publicAddress: accountC.publicAddress,
             amount: BigInt(1),
             memo: '',
-            assetIdentifier: Asset.nativeIdentifier(),
+            assetId: Asset.nativeId(),
           },
         ],
         [],
@@ -637,21 +587,17 @@ describe('Accounts', () => {
     // Update account head and check all balances
     await nodeA.wallet.updateHead()
     await nodeB.wallet.updateHead()
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
     await expect(
-      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeIdentifier()),
+      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeId()),
     ).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
-    await expect(
-      nodeB.wallet.getBalance(accountB, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeB.wallet.getBalance(accountB, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(4000000000),
       unconfirmed: BigInt(4000000000),
     })
@@ -663,14 +609,12 @@ describe('Accounts', () => {
     // Copy block B2 to nodeA
     await nodeA.chain.addBlock(blockB2)
     await nodeA.wallet.updateHead()
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
     await expect(
-      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeIdentifier()),
+      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeId()),
     ).resolves.toMatchObject({
       confirmed: BigInt(4000000000),
       unconfirmed: BigInt(4000000000),
@@ -713,7 +657,7 @@ describe('Accounts', () => {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
               memo: '',
-              assetIdentifier: Asset.nativeIdentifier(),
+              assetId: Asset.nativeId(),
             },
           ],
           [],
@@ -750,20 +694,18 @@ describe('Accounts', () => {
     await nodeA.wallet.updateHead()
     await nodeB.wallet.updateHead()
 
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
     })
     await expect(
-      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeIdentifier()),
+      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeId()),
     ).resolves.toMatchObject({
       confirmed: BigInt(2),
       unconfirmed: BigInt(2),
     })
     await expect(
-      nodeB.wallet.getBalance(accountANodeB, Asset.nativeIdentifier()),
+      nodeB.wallet.getBalance(accountANodeB, Asset.nativeId()),
     ).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -776,14 +718,12 @@ describe('Accounts', () => {
 
     // B should not have confirmed coins yet because the transaction isn't on a block
     // A should still have confirmed coins because the transaction isn't on a block
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
     await expect(
-      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeIdentifier()),
+      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeId()),
     ).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
@@ -829,7 +769,7 @@ describe('Accounts', () => {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
               memo: '',
-              assetIdentifier: Asset.nativeIdentifier(),
+              assetId: Asset.nativeId(),
             },
           ],
           [],
@@ -876,20 +816,18 @@ describe('Accounts', () => {
     await nodeA.wallet.updateHead()
     await nodeB.wallet.updateHead()
 
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(1999999998),
       unconfirmed: BigInt(1999999998),
     })
     await expect(
-      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeIdentifier()),
+      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeId()),
     ).resolves.toMatchObject({
       confirmed: BigInt(2),
       unconfirmed: BigInt(2),
     })
     await expect(
-      nodeB.wallet.getBalance(accountANodeB, Asset.nativeIdentifier()),
+      nodeB.wallet.getBalance(accountANodeB, Asset.nativeId()),
     ).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
@@ -902,14 +840,12 @@ describe('Accounts', () => {
 
     // B should not have confirmed coins yet because the transaction isn't on a block
     // A should still have confirmed coins because the transaction isn't on a block
-    await expect(
-      nodeA.wallet.getBalance(accountA, Asset.nativeIdentifier()),
-    ).resolves.toMatchObject({
+    await expect(nodeA.wallet.getBalance(accountA, Asset.nativeId())).resolves.toMatchObject({
       confirmed: BigInt(2000000000),
       unconfirmed: BigInt(2000000000),
     })
     await expect(
-      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeIdentifier()),
+      nodeA.wallet.getBalance(accountBNodeA, Asset.nativeId()),
     ).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),

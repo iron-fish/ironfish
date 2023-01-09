@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import bufio from 'bufio'
+
 /**
  * Accept two bigints and return the larger of the two,
  * in the case of equality, b is returned
@@ -40,7 +42,7 @@ function min(a: bigint, b: bigint): bigint {
  *
  * Sorry.
  */
-function fromBytes(bytes: Buffer): bigint {
+function fromBytesBE(bytes: Buffer): bigint {
   if (bytes.length === 0) {
     return BigInt(0)
   }
@@ -59,7 +61,7 @@ function fromBytes(bytes: Buffer): bigint {
 }
 
 function fromBytesLE(bytes: Buffer): bigint {
-  return fromBytes(bytes.reverse())
+  return fromBytesBE(bytes.reverse())
 }
 
 /**
@@ -69,7 +71,7 @@ function fromBytesLE(bytes: Buffer): bigint {
  * incoming bigint is non-negative, and fix the places where we're calling
  * it with a negative number (at least one place is miners fee serialization)
  */
-function toBytes(value: bigint): Buffer {
+function toBytesBE(value: bigint): Buffer {
   let hex = value.toString(16)
   if (hex.length % 2) {
     hex = '0' + hex
@@ -94,25 +96,16 @@ function toBytes(value: bigint): Buffer {
  * incoming bigint is non-negative, and fix the places where we're calling
  * it with a negative number (at least one place is miners fee serialization)
  */
-function toBytesLE(value: bigint, size?: number): Buffer {
-  return toBytesBE(value, size).reverse()
+function toBytesLE(value: bigint): Buffer {
+  return toBytesBE(value).reverse()
 }
 
-/**
- * TODO: Handle negative numbers, or add an assertion that the
- * incoming bigint is non-negative, and fix the places where we're calling
- * it with a negative number (at least one place is miners fee serialization)
- */
-function toBytesBE(value: bigint, size?: number): Buffer {
-  const bytes = toBytes(value)
+function writeBigU64BE(value: bigint): Buffer {
+  return bufio.write(8).writeBigU64BE(value).render()
+}
 
-  if (size) {
-    const result = Buffer.alloc(size)
-    result.set(bytes, size - bytes.length)
-    return result
-  }
-
-  return bytes
+function writeBigU256BE(value: bigint): Buffer {
+  return bufio.write(32).writeBigU256BE(value).render()
 }
 
 /**
@@ -136,8 +129,7 @@ function tryParse(value: string): [bigint, null] | [null, Error] {
 }
 
 export const BigIntUtils = {
-  toBytes,
-  fromBytes,
+  fromBytesBE,
   fromBytesLE,
   toBytesBE,
   toBytesLE,
@@ -145,4 +137,6 @@ export const BigIntUtils = {
   min,
   divide,
   tryParse,
+  writeBigU64BE,
+  writeBigU256BE,
 }

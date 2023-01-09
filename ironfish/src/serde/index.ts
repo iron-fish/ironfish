@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export { default as StringSerde } from './StringSerde'
-export { default as Uint8ArraySerde } from './Uint8ArraySerde'
 export * from './BlockTemplateSerde'
 export * from './BufferSerde'
 export * from './serdeInstances'

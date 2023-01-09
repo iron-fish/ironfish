@@ -63,7 +63,7 @@ describe('Accounts', () => {
     Assert.isNotNull(headhash)
     // Modify the headhash
     headhash[0] = 0
-    await nodeA.wallet.updateHeadHash(accountA, headhash)
+    await accountA.updateHeadHash(headhash)
 
     const response = nodeA.wallet.createTransaction(
       accountA,
@@ -72,7 +72,7 @@ describe('Accounts', () => {
           publicAddress: accountB.publicAddress,
           amount: BigInt(1),
           memo: '',
-          assetIdentifier: Asset.nativeIdentifier(),
+          assetId: Asset.nativeId(),
         },
       ],
       [],
@@ -106,7 +106,7 @@ describe('Accounts', () => {
           publicAddress: accountB.publicAddress,
           amount: BigInt(1),
           memo: '',
-          assetIdentifier: Asset.nativeIdentifier(),
+          assetId: Asset.nativeId(),
         },
       ],
       [],

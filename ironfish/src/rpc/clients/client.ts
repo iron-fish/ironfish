@@ -19,6 +19,8 @@ import {
   GetAccountTransactionResponse,
   GetAccountTransactionsRequest,
   GetAccountTransactionsResponse,
+  GetAssetRequest,
+  GetAssetResponse,
   GetBalanceRequest,
   GetBalanceResponse,
   GetBlockInfoRequest,
@@ -61,6 +63,10 @@ import {
   UseAccountResponse,
 } from '../routes'
 import {
+  EstimateFeeRatesRequest,
+  EstimateFeeRatesResponse,
+} from '../routes/chain/estimateFeeRates'
+import {
   ExportChainStreamRequest,
   ExportChainStreamResponse,
 } from '../routes/chain/exportChain'
@@ -69,19 +75,17 @@ import {
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
-import {
-  EstimateFeeRatesRequest,
-  EstimateFeeRatesResponse,
-} from '../routes/fees/estimateFeeRates'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
 import {
   GetPeerMessagesRequest,
   GetPeerMessagesResponse,
 } from '../routes/peers/getPeerMessages'
 import { GetRpcStatusRequest, GetRpcStatusResponse } from '../routes/rpc/getStatus'
+import { BurnAssetRequest, BurnAssetResponse } from '../routes/wallet/burnAsset'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
 import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/wallet/importAccount'
+import { MintAssetRequest, MintAssetResponse } from '../routes/wallet/mintAsset'
 import { RemoveAccountRequest, RemoveAccountResponse } from '../routes/wallet/removeAccount'
 import { RescanAccountRequest, RescanAccountResponse } from '../routes/wallet/rescanAccount'
 
@@ -327,11 +331,25 @@ export abstract class RpcClient {
     return this.request<void, OnGossipResponse>(`${ApiNamespace.event}/onGossip`, params)
   }
 
+  async mintAsset(params: MintAssetRequest): Promise<RpcResponseEnded<MintAssetResponse>> {
+    return this.request<MintAssetResponse>(
+      `${ApiNamespace.wallet}/mintAsset`,
+      params,
+    ).waitForEnd()
+  }
+
+  async burnAsset(params: BurnAssetRequest): Promise<RpcResponseEnded<BurnAssetResponse>> {
+    return this.request<BurnAssetResponse>(
+      `${ApiNamespace.wallet}/burnAsset`,
+      params,
+    ).waitForEnd()
+  }
+
   async sendTransaction(
     params: SendTransactionRequest,
   ): Promise<RpcResponseEnded<SendTransactionResponse>> {
     return this.request<SendTransactionResponse>(
-      `${ApiNamespace.transaction}/sendTransaction`,
+      `${ApiNamespace.wallet}/sendTransaction`,
       params,
     ).waitForEnd()
   }
@@ -363,7 +381,7 @@ export abstract class RpcClient {
     params?: EstimateFeeRatesRequest,
   ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> {
     return this.request<EstimateFeeRatesResponse>(
-      `${ApiNamespace.fees}/estimateFeeRates`,
+      `${ApiNamespace.chain}/estimateFeeRates`,
       params,
     ).waitForEnd()
   }
@@ -372,7 +390,7 @@ export abstract class RpcClient {
     params: EstimateFeeRequest,
   ): Promise<RpcResponseEnded<EstimateFeeResponse>> {
     return this.request<EstimateFeeResponse>(
-      `${ApiNamespace.fees}/estimateFee`,
+      `${ApiNamespace.chain}/estimateFee`,
       params,
     ).waitForEnd()
   }
@@ -467,5 +485,9 @@ export abstract class RpcClient {
       `${ApiNamespace.chain}/getConsensusParameters`,
       params,
     ).waitForEnd()
+  }
+
+  async getAsset(params: GetAssetRequest): Promise<RpcResponseEnded<GetAssetResponse>> {
+    return this.request<GetAssetResponse>(`${ApiNamespace.chain}/getAsset`, params).waitForEnd()
   }
 }

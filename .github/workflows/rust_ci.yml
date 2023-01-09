@@ -31,6 +31,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
+          save-if: false
           shared-key: base
 
       - name: Check that cargo lockfile is up to date
@@ -74,12 +75,13 @@ jobs:
         with:
           shared-key: base
 
-      # Build & Run test & Collect Code coverage
+      # Run tests to collect code coverage
       - name: Run cargo-tarpaulin on ironfish-rust
-        uses: actions-rs/tarpaulin@v0.1
-        with:
-          version: "0.22.0"
-          args: --avoid-cfg-tarpaulin --manifest-path ironfish-rust/Cargo.toml --release -- --test-threads 1
+        run: |
+          wget -O tarpaulin.tar.gz https://github.com/xd009642/tarpaulin/releases/download/0.22.0/cargo-tarpaulin-0.22.0-travis.tar.gz
+          tar -xzf tarpaulin.tar.gz
+          mv cargo-tarpaulin ~/.cargo/bin/
+          cargo tarpaulin -p ironfish_rust --release --out Xml --avoid-cfg-tarpaulin --skip-clean -- --test-threads 1
 
       # Upload code coverage to Codecov
       - name: Upload to codecov.io
@@ -102,12 +104,13 @@ jobs:
         with:
           shared-key: zkp
 
-      # Build & Run test & Collect Code coverage
+      # Run tests to collect code coverage
       - name: Run cargo-tarpaulin on ironfish-zkp
-        uses: actions-rs/tarpaulin@v0.1
-        with:
-          version: "0.22.0"
-          args: --avoid-cfg-tarpaulin --manifest-path ironfish-zkp/Cargo.toml --release -- --test-threads 1
+        run: |
+          wget -O tarpaulin.tar.gz https://github.com/xd009642/tarpaulin/releases/download/0.22.0/cargo-tarpaulin-0.22.0-travis.tar.gz
+          tar -xzf tarpaulin.tar.gz
+          mv cargo-tarpaulin ~/.cargo/bin/
+          cargo tarpaulin -p ironfish_zkp --release --out Xml --avoid-cfg-tarpaulin --skip-clean -- --test-threads 1
 
       # Upload code coverage to Codecov
       - name: Upload to codecov.io

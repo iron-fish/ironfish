@@ -65,7 +65,7 @@ export class Verifier {
     let transactionBatch = []
     let runningNotesCount = 0
     for (const [idx, tx] of block.transactions.entries()) {
-      if (this.isExpiredSequence(tx.expirationSequence(), block.header.sequence)) {
+      if (this.isExpiredSequence(tx.expiration(), block.header.sequence)) {
         return {
           valid: false,
           reason: VerificationResultReason.TRANSACTION_EXPIRED,
@@ -289,8 +289,8 @@ export class Verifier {
     return validity
   }
 
-  isExpiredSequence(expirationSequence: number, sequence: number): boolean {
-    return expirationSequence !== 0 && expirationSequence <= sequence
+  isExpiredSequence(expiration: number, sequence: number): boolean {
+    return expiration !== 0 && expiration <= sequence
   }
 
   /**

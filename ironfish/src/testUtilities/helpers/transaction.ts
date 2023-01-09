@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Assert } from '../../assert'
-import { Blockchain } from '../../blockchain'
+import { Asset } from '@ironfish/rust-nodejs'
 import { BurnDescription } from '../../primitives/burnDescription'
 import { MintDescription } from '../../primitives/mintDescription'
-import { NoteEncrypted } from '../../primitives/noteEncrypted'
+import { RawTransaction } from '../../primitives/rawTransaction'
 import { Transaction } from '../../primitives/transaction'
-import { Account } from '../../wallet'
-import { WorkerPool } from '../../workerPool'
+import { Account, Wallet } from '../../wallet'
 
 export function isTransactionMine(transaction: Transaction, account: Account): boolean {
   for (const note of transaction.notes) {
@@ -27,40 +25,40 @@ export function isTransactionMine(transaction: Transaction, account: Account): b
   return false
 }
 
-export async function buildRawTransaction(
-  chain: Blockchain,
-  pool: WorkerPool,
-  sender: Account,
-  notesToSpend: NoteEncrypted[],
-  receives: { publicAddress: string; amount: bigint; memo: string; assetIdentifier: Buffer }[],
-  mints: MintDescription[],
-  burns: BurnDescription[],
-): Promise<Transaction> {
-  const spends = await Promise.all(
-    notesToSpend.map(async (n) => {
-      const note = n.decryptNoteForOwner(sender.incomingViewKey)
-      Assert.isNotUndefined(note)
-      const treeIndex = await chain.notes.leavesIndex.get(n.merkleHash())
-      Assert.isNotUndefined(treeIndex)
-      const witness = await chain.notes.witness(treeIndex)
-      Assert.isNotNull(witness)
+export async function createRawTransaction(options: {
+  wallet: Wallet
+  from: Account
+  to?: Account
+  fee?: bigint
+  amount?: bigint
+  expiration?: number
+  assetId?: Buffer
+  receives?: {
+    publicAddress: string
+    amount: bigint
+    memo: string
+    assetId: Buffer
+  }[]
+  mints?: MintDescription[]
+  burns?: BurnDescription[]
+}): Promise<RawTransaction> {
+  const receives = options.receives ?? []
 
-      return {
-        note,
-        treeSize: witness.treeSize(),
-        authPath: witness.authenticationPath,
-        rootHash: witness.rootHash,
-      }
-    }),
-  )
+  if (options.to) {
+    receives.push({
+      publicAddress: options.to.publicAddress,
+      amount: options.amount ?? 1n,
+      memo: '',
+      assetId: options.assetId ?? Asset.nativeId(),
+    })
+  }
 
-  return pool.createTransaction(
-    sender.spendingKey,
-    spends,
+  return await options.wallet.createTransaction(
+    options.from,
     receives,
-    mints,
-    burns,
-    BigInt(0),
-    0,
+    options.mints ?? [],
+    options.burns ?? [],
+    options.fee ?? 0n,
+    options.expiration ?? 0,
   )
 }

@@ -15,7 +15,7 @@ describe('AssetsValueEncoding', () => {
 
     const value: AssetsValue = {
       createdTransactionHash: Buffer.alloc(32, 0),
-      identifier: asset.identifier(),
+      id: asset.id(),
       metadata: asset.metadata(),
       name: asset.name(),
       nonce: asset.nonce(),

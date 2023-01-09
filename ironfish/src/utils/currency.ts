@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { formatFixed, parseFixed } from '@ethersproject/bignumber'
+import { isNativeIdentifier } from './asset'
 import { FixedNumberUtils } from './fixedNumber'
 
 export class CurrencyUtils {
@@ -39,15 +40,19 @@ export class CurrencyUtils {
   /*
    * Renders ore as iron for human-readable purposes
    */
-  static renderIron(amount: bigint | string, ticker = false): string {
+  static renderIron(amount: bigint | string, includeTicker = false, assetId?: string): string {
     if (typeof amount === 'string') {
       amount = this.decode(amount)
     }
 
     const iron = FixedNumberUtils.render(amount, 8)
 
-    if (ticker) {
-      return `$IRON ${iron}`
+    if (includeTicker) {
+      let ticker = '$IRON'
+      if (assetId && !isNativeIdentifier(assetId)) {
+        ticker = assetId
+      }
+      return `${ticker} ${iron}`
     }
 
     return iron
@@ -56,15 +61,19 @@ export class CurrencyUtils {
   /*
    * Renders ore for human-readable purposes
    */
-  static renderOre(amount: bigint | string, ticker = false): string {
+  static renderOre(amount: bigint | string, includeTicker = false, assetId?: string): string {
     if (typeof amount === 'string') {
       amount = this.decode(amount)
     }
 
     const ore = amount.toString()
 
-    if (ticker) {
-      return `$ORE ${ore}`
+    if (includeTicker) {
+      let ticker = '$ORE'
+      if (assetId && !isNativeIdentifier(assetId)) {
+        ticker = assetId
+      }
+      return `${ticker} ${ore}`
     }
 
     return ore

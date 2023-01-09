@@ -6,27 +6,62 @@ import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
+import { CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
 interface Note {
-  amount: string
+  assetId: string
+  assetName: string
+  value: string
   memo: string
+}
+interface Mint {
+  assetId: string
+  assetName: string
+  value: string
+}
+interface Burn {
+  assetId: string
+  assetName: string
+  value: string
 }
 
 interface Transaction {
   hash: string
   isMinersFee: boolean
   notes: Note[]
+  mints: Mint[]
+  burns: Burn[]
 }
 
 const NoteSchema = yup
   .object()
   .shape({
-    amount: yup.string().required(),
+    assetId: yup.string().required(),
+    assetName: yup.string().required(),
+    value: yup.string().required(),
     memo: yup.string().required(),
+  })
+  .required()
+
+const MintSchema = yup
+  .object()
+  .shape({
+    assetId: yup.string().required(),
+    assetName: yup.string().required(),
+    value: yup.string().required(),
+  })
+  .required()
+
+const BurnSchema = yup
+  .object()
+  .shape({
+    assetId: yup.string().required(),
+    assetName: yup.string().required(),
+    value: yup.string().required(),
   })
   .required()
 
@@ -36,6 +71,8 @@ const TransactionSchema = yup
     hash: yup.string().required(),
     isMinersFee: yup.boolean().required(),
     notes: yup.array().of(NoteSchema).required(),
+    mints: yup.array().of(MintSchema).required(),
+    burns: yup.array().of(BurnSchema).required(),
   })
   .required()
 
@@ -105,28 +142,55 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
       head: head,
     })
 
-    const processBlock = (block: Block, type: 'connected' | 'disconnected' | 'fork'): void => {
+    const processBlock = async (
+      block: Block,
+      type: 'connected' | 'disconnected' | 'fork',
+    ): Promise<void> => {
       const transactions: Transaction[] = []
 
       for (const tx of block.transactions) {
         const notes = new Array<Note>()
+        const mints = new Array<Mint>()
+        const burns = new Array<Burn>()
 
         for (const note of tx.notes) {
           const decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
 
           if (decryptedNote) {
+            const assetValue = await node.chain.getAssetById(decryptedNote.assetId())
             notes.push({
-              amount: decryptedNote.value().toString(),
+              value: CurrencyUtils.encode(decryptedNote.value()),
               memo: decryptedNote.memo(),
+              assetId: decryptedNote.assetId().toString('hex'),
+              assetName: assetValue?.name.toString('hex') || '',
             })
           }
         }
 
-        if (notes.length) {
+        for (const burn of tx.burns) {
+          const assetValue = await node.chain.getAssetById(burn.assetId)
+          burns.push({
+            value: CurrencyUtils.encode(burn.value),
+            assetId: burn.assetId.toString('hex'),
+            assetName: assetValue?.name.toString('hex') || '',
+          })
+        }
+
+        for (const mint of tx.mints) {
+          mints.push({
+            value: CurrencyUtils.encode(mint.value),
+            assetId: mint.asset.id().toString('hex'),
+            assetName: mint.asset.name().toString('hex'),
+          })
+        }
+
+        if (notes.length || burns.length || mints.length) {
           transactions.push({
             hash: tx.hash().toString('hex'),
             isMinersFee: tx.isMinersFee(),
             notes: notes,
+            burns: burns,
+            mints: mints,
           })
         }
       }
@@ -149,17 +213,17 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
     const onAdd = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      processBlock(block, 'connected')
+      await processBlock(block, 'connected')
     }
 
     const onRemove = async (header: BlockHeader) => {
       const block = await node.chain.getBlock(header)
       Assert.isNotNull(block)
-      processBlock(block, 'disconnected')
+      await processBlock(block, 'disconnected')
     }
 
-    const onFork = (block: Block) => {
-      processBlock(block, 'fork')
+    const onFork = async (block: Block) => {
+      await processBlock(block, 'fork')
     }
 
     const abortController = new AbortController()

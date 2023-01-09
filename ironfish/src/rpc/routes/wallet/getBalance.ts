@@ -8,32 +8,38 @@ import { getAccount } from './utils'
 
 export type GetBalanceRequest = {
   account?: string
-  assetIdentifier?: string
+  assetId?: string
   minimumBlockConfirmations?: number
 }
 
 export type GetBalanceResponse = {
   account: string
+  assetId: string
   confirmed: string
   unconfirmed: string
   unconfirmedCount: number
   minimumBlockConfirmations: number
+  blockHash: string | null
+  sequence: number | null
 }
 
 export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
   .object({
     account: yup.string().strip(true),
-    assetIdentifier: yup.string().optional(),
+    assetId: yup.string().optional(),
   })
   .defined()
 
 export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yup
   .object({
     account: yup.string().defined(),
+    assetId: yup.string().defined(),
     unconfirmed: yup.string().defined(),
     unconfirmedCount: yup.number().defined(),
     confirmed: yup.string().defined(),
     minimumBlockConfirmations: yup.number().defined(),
+    blockHash: yup.string().nullable(true).defined(),
+    sequence: yup.number().nullable(true).defined(),
   })
   .defined()
 
@@ -48,21 +54,24 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
 
     const account = getAccount(node, request.data.account)
 
-    let assetIdentifier = Asset.nativeIdentifier()
-    if (request.data.assetIdentifier) {
-      assetIdentifier = Buffer.from(request.data.assetIdentifier, 'hex')
+    let assetId = Asset.nativeId()
+    if (request.data.assetId) {
+      assetId = Buffer.from(request.data.assetId, 'hex')
     }
 
-    const balance = await node.wallet.getBalance(account, assetIdentifier, {
+    const balance = await node.wallet.getBalance(account, assetId, {
       minimumBlockConfirmations,
     })
 
     request.end({
       account: account.name,
+      assetId: assetId.toString('hex'),
       confirmed: balance.confirmed.toString(),
       unconfirmed: balance.unconfirmed.toString(),
       unconfirmedCount: balance.unconfirmedCount,
       minimumBlockConfirmations,
+      blockHash: balance.blockHash?.toString('hex') ?? null,
+      sequence: balance.sequence,
     })
   },
 )

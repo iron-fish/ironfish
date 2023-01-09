@@ -220,7 +220,7 @@ export class BlockHeader {
     const partialHeader = this.serializePartial()
 
     const headerBytes = Buffer.alloc(partialHeader.byteLength + 8)
-    headerBytes.set(BigIntUtils.toBytesBE(this.randomness, 8))
+    headerBytes.set(BigIntUtils.writeBigU64BE(this.randomness))
     headerBytes.set(partialHeader, 8)
 
     const hash = hashBlockHeader(headerBytes)

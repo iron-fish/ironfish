@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { RpcSocketClient } from '../rpc/clients/socketClient'
@@ -152,6 +153,7 @@ export class MiningPoolShares {
           publicAddress,
           amount: amt.toString(),
           memo: `${this.poolName} payout ${shareCutoff.toUTCString()}`,
+          assetId: Asset.nativeId().toString('hex'),
         }
       },
     )

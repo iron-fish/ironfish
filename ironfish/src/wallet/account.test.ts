@@ -11,6 +11,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils/async'
+import { BalanceValue } from './walletdb/balanceValue'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -115,7 +116,7 @@ describe('Accounts', () => {
       AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(1)
 
-    await expect(account.getBalance(1, Asset.nativeIdentifier(), 1)).resolves.toMatchObject({
+    await expect(account.getBalance(1, Asset.nativeId(), 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -128,7 +129,7 @@ describe('Accounts', () => {
       AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(0)
 
-    await expect(account.getBalance(1, Asset.nativeIdentifier(), 1)).resolves.toMatchObject({
+    await expect(account.getBalance(1, Asset.nativeId(), 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -201,17 +202,25 @@ describe('Accounts', () => {
       const { node } = nodeTest
 
       const account = await useAccountFixture(node.wallet, 'account')
-      const nativeBalance = BigInt(1)
+      const nativeBalance = {
+        unconfirmed: BigInt(1),
+        blockHash: null,
+        sequence: null,
+      }
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-      const mintedAssetBalance = BigInt(7)
+      const mintedAssetBalance = {
+        unconfirmed: BigInt(7),
+        blockHash: null,
+        sequence: null,
+      }
 
-      await account.saveUnconfirmedBalance(Asset.nativeIdentifier(), nativeBalance)
-      await account.saveUnconfirmedBalance(asset.identifier(), mintedAssetBalance)
+      await account.saveUnconfirmedBalance(Asset.nativeId(), nativeBalance)
+      await account.saveUnconfirmedBalance(asset.id(), mintedAssetBalance)
 
       const balances = await account.getUnconfirmedBalances()
-      const expectedBalances = new BufferMap<bigint>([
-        [Asset.nativeIdentifier(), nativeBalance],
-        [asset.identifier(), mintedAssetBalance],
+      const expectedBalances = new BufferMap<BalanceValue>([
+        [Asset.nativeId(), nativeBalance],
+        [asset.id(), mintedAssetBalance],
       ])
 
       expect(balances.size).toBe(expectedBalances.size)
@@ -297,7 +306,7 @@ describe('Accounts', () => {
 
       const pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
         accountA.prefix,
-        [transaction.expirationSequence(), transaction.hash()],
+        [transaction.expiration(), transaction.hash()],
       ])
 
       expect(pendingHashEntry).toBeDefined()
@@ -404,7 +413,7 @@ describe('Accounts', () => {
 
       const pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
         accountA.prefix,
-        [transaction.expirationSequence(), transaction.hash()],
+        [transaction.expiration(), transaction.hash()],
       ])
 
       expect(pendingHashEntry).toBeUndefined()
@@ -445,7 +454,7 @@ describe('Accounts', () => {
       }
 
       // disconnect transaction
-      await accountA.disconnectTransaction(transaction)
+      await accountA.disconnectTransaction(block3.header, transaction)
 
       for (const note of transaction.notes) {
         const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
@@ -499,7 +508,7 @@ describe('Accounts', () => {
       }
 
       // disconnect transaction
-      await accountA.disconnectTransaction(transaction)
+      await accountA.disconnectTransaction(block3.header, transaction)
 
       for (const spend of transaction.spends) {
         const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
@@ -533,17 +542,17 @@ describe('Accounts', () => {
 
       let pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
         accountA.prefix,
-        [transaction.expirationSequence(), transaction.hash()],
+        [transaction.expiration(), transaction.hash()],
       ])
 
       expect(pendingHashEntry).toBeUndefined()
 
       // disconnect transaction
-      await accountA.disconnectTransaction(transaction)
+      await accountA.disconnectTransaction(block3.header, transaction)
 
       pendingHashEntry = await accountA['walletDb'].pendingTransactionHashes.get([
         accountA.prefix,
-        [transaction.expirationSequence(), transaction.hash()],
+        [transaction.expiration(), transaction.hash()],
       ])
 
       expect(pendingHashEntry).toBeDefined()

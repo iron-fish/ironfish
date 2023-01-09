@@ -147,8 +147,8 @@ impl NativeTransactionPosted {
     }
 
     #[napi]
-    pub fn expiration_sequence(&self) -> u32 {
-        self.transaction.expiration_sequence()
+    pub fn expiration(&self) -> u32 {
+        self.transaction.expiration()
     }
 }
 
@@ -169,19 +169,27 @@ impl NativeTransaction {
 
     /// Create a proof of a new note owned by the recipient in this transaction.
     #[napi]
-    pub fn receive(&mut self, note: &NativeNote) {
-        self.transaction.add_output(note.note.clone());
+    pub fn receive(&mut self, note: &NativeNote) -> Result<()> {
+        self.transaction
+            .add_output(note.note.clone())
+            .map_err(to_napi_err)?;
+
+        Ok(())
     }
 
     /// Spend the note owned by spender_hex_key at the given witness location.
     #[napi]
-    pub fn spend(&mut self, env: Env, note: &NativeNote, witness: Object) {
+    pub fn spend(&mut self, env: Env, note: &NativeNote, witness: Object) -> Result<()> {
         let w = JsWitness {
             cx: RefCell::new(env),
             obj: witness,
         };
 
-        self.transaction.add_spend(note.note.clone(), &w);
+        self.transaction
+            .add_spend(note.note.clone(), &w)
+            .map_err(to_napi_err)?;
+
+        Ok(())
     }
 
     /// return the sender of the transaction
@@ -192,21 +200,24 @@ impl NativeTransaction {
 
     /// Mint a new asset with a given value as part of this transaction.
     #[napi]
-    pub fn mint(&mut self, asset: &NativeAsset, value: BigInt) {
+    pub fn mint(&mut self, asset: &NativeAsset, value: BigInt) -> Result<()> {
         let value_u64 = value.get_u64().1;
-        self.transaction.add_mint(asset.asset, value_u64)
+        self.transaction
+            .add_mint(asset.asset, value_u64)
+            .map_err(to_napi_err)?;
+
+        Ok(())
     }
 
     /// Burn some supply of a given asset and value as part of this transaction.
     #[napi]
-    pub fn burn(&mut self, asset_identifier_js_bytes: JsBuffer, value: BigInt) -> Result<()> {
-        let asset_identifier_bytes = asset_identifier_js_bytes.into_value()?;
-        let asset_identifier: AssetIdentifier = asset_identifier_bytes
-            .as_ref()
-            .try_into()
-            .map_err(to_napi_err)?;
+    pub fn burn(&mut self, asset_id_js_bytes: JsBuffer, value: BigInt) -> Result<()> {
+        let asset_id_bytes = asset_id_js_bytes.into_value()?;
+        let asset_id: AssetIdentifier = asset_id_bytes.as_ref().try_into().map_err(to_napi_err)?;
         let value_u64 = value.get_u64().1;
-        self.transaction.add_burn(asset_identifier, value_u64);
+        self.transaction
+            .add_burn(asset_id, value_u64)
+            .map_err(to_napi_err)?;
 
         Ok(())
     }
@@ -260,9 +271,8 @@ impl NativeTransaction {
     }
 
     #[napi]
-    pub fn set_expiration_sequence(&mut self, expiration_sequence: u32) -> Undefined {
-        self.transaction
-            .set_expiration_sequence(expiration_sequence);
+    pub fn set_expiration(&mut self, sequence: u32) -> Undefined {
+        self.transaction.set_expiration(sequence);
     }
 }
 

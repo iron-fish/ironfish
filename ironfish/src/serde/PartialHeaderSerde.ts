@@ -5,7 +5,6 @@
 import bufio from 'bufio'
 import { NoteEncryptedHash } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
-import { BigIntUtils } from '../utils'
 
 export default class PartialBlockHeaderSerde {
   static serialize(header: PartialBlockHeader): Buffer {
@@ -14,8 +13,7 @@ export default class PartialBlockHeaderSerde {
     bw.writeHash(header.previousBlockHash)
     bw.writeHash(header.noteCommitment)
     bw.writeHash(header.transactionCommitment)
-    // TODO: Change to little-endian for consistency, since other non-bigint numbers are serialized as little-endian.
-    bw.writeBytes(BigIntUtils.toBytesBE(header.target.asBigInt(), 32))
+    bw.writeBigU256BE(header.target.asBigInt())
     bw.writeU64(header.timestamp.getTime())
     bw.writeBytes(header.graffiti)
     return bw.render()
