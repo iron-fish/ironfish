@@ -32,6 +32,7 @@ import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
 import { Account } from './account'
 import { NotEnoughFundsError } from './errors'
+import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
@@ -633,30 +634,47 @@ export class Wallet {
   async mint(
     memPool: MemPool,
     account: Account,
-    name: string,
-    metadata: string,
-    value: bigint,
-    fee: bigint,
-    transactionExpirationDelta: number,
-    expiration?: number,
+    options: MintAssetOptions,
   ): Promise<Transaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
       throw new Error('You must have a genesis block to create a transaction')
     }
 
-    expiration = expiration ?? heaviestHead.sequence + transactionExpirationDelta
+    const expiration =
+      options.expiration ?? heaviestHead.sequence + options.transactionExpirationDelta
     if (this.chain.verifier.isExpiredSequence(expiration, this.chain.head.sequence)) {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
-    const asset = new Asset(account.spendingKey, name, metadata)
+    let asset: Asset
+    if ('assetId' in options) {
+      const record = await this.chain.getAssetById(options.assetId)
+      if (!record) {
+        throw new Error(
+          `Asset not found. Cannot mint for identifier '${options.assetId.toString('hex')}'`,
+        )
+      }
+
+      asset = new Asset(
+        account.spendingKey,
+        record.name.toString('utf8'),
+        record.metadata.toString('utf8'),
+      )
+      // Verify the stored asset produces the same identfier before building a transaction
+      if (!options.assetId.equals(asset.id())) {
+        throw new Error(`Unauthorized to mint for asset '${options.assetId.toString('hex')}'`)
+      }
+    } else {
+      asset = new Asset(account.spendingKey, options.name, options.metadata)
+    }
+
     const raw = await this.createTransaction(
       account,
       [],
-      [{ asset, value }],
+      [{ asset, value: options.value }],
       [],
-      fee,
+      options.fee,
       expiration,
     )
 
