@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { AMOUNT_VALUE_LENGTH, Transaction as NativeTransaction, TRANSACTION_EXPIRATION_LENGTH, TRANSACTION_FEE_LENGTH } from '@ironfish/rust-nodejs'
+import {
+  AMOUNT_VALUE_LENGTH,
+  Transaction as NativeTransaction,
+  TRANSACTION_EXPIRATION_LENGTH,
+  TRANSACTION_FEE_LENGTH,
+} from '@ironfish/rust-nodejs'
 import { Asset, ASSET_ID_LENGTH, ASSET_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../merkletree'

@@ -59,7 +59,7 @@ pub const TRANSACTION_VERSION: u8 = 1;
 pub const TRANSACTION_SIGNATURE_SIZE: u32 = 64;
 pub const TRANSACTION_PUBLIC_KEY_SIZE: u32 = 32;
 pub const TRANSACTION_EXPIRATION_SIZE: u32 = 8;
-pub const TRANSACTION_FEE_SIZE: u32  = 8;
+pub const TRANSACTION_FEE_SIZE: u32 = 8;
 
 /// A collection of spend and output proofs that can be signed and verified.
 /// In general, all the spent values should add up to all the output values.

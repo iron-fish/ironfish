@@ -6,7 +6,10 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish_rust::assets::asset::AssetIdentifier;
-use ironfish_rust::transaction::{batch_verify_transactions, TRANSACTION_SIGNATURE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE};
+use ironfish_rust::transaction::{
+    batch_verify_transactions, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
+    TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
+};
 use ironfish_rust::{
     MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
     TRANSACTION_VERSION as TX_VERSION,
