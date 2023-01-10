@@ -231,14 +231,14 @@ use std::{
     }
 };
 
-use ff::PrimeField;
+use ff::{PrimeField, Field};
 
 use pairing::{
     PairingCurveAffine,
 };
 
 use group::{
-    Wnaf
+    Wnaf, Curve
 };
 
 use bellman::{
@@ -1209,7 +1209,7 @@ fn same_ratio<G1: PairingCurveAffine>(
 /// e(g, (as)*r1 + (bs)*r2 + (cs)*r3) = e(g^s, a*r1 + b*r2 + c*r3)
 ///
 /// ... with high probability.
-fn merge_pairs<G: PairingCurveAffine>(v1: &[G], v2: &[G]) -> (G, G)
+fn merge_pairs(v1: &[G1Affine], v2: &[G1Affine]) -> (G1Affine, G1Affine)
 {
     use std::sync::{Mutex};
     use rand::{thread_rng};
@@ -1218,8 +1218,8 @@ fn merge_pairs<G: PairingCurveAffine>(v1: &[G], v2: &[G]) -> (G, G)
 
     let chunk = (v1.len() / num_cpus::get()) + 1;
 
-    let s = Arc::new(Mutex::new(G::Projective::zero()));
-    let sx = Arc::new(Mutex::new(G::Projective::zero()));
+    let s = Arc::new(Mutex::new(G1Projective::identity()));
+    let sx = Arc::new(Mutex::new(G1Projective::identity()));
 
     crossbeam::scope(|scope| {
         for (v1, v2) in v1.chunks(chunk).zip(v2.chunks(chunk)) {
@@ -1232,14 +1232,14 @@ fn merge_pairs<G: PairingCurveAffine>(v1: &[G], v2: &[G]) -> (G, G)
                 let rng = &mut thread_rng();
 
                 let mut wnaf = Wnaf::new();
-                let mut local_s = G::Projective::zero();
-                let mut local_sx = G::Projective::zero();
+                let mut local_s = G1Projective::identity();
+                let mut local_sx = G1Projective::identity();
 
                 for (v1, v2) in v1.iter().zip(v2.iter()) {
-                    let rho = G::Scalar::rand(rng);
-                    let mut wnaf = wnaf.scalar(rho.into_repr());
-                    let v1 = wnaf.base(v1.into_projective());
-                    let v2 = wnaf.base(v2.into_projective());
+                    let rho = bls12_381::Scalar::random(rng);
+                    let mut wnaf = wnaf.scalar(&rho);
+                    let v1 = wnaf.base(G1Projective::from(v1));
+                    let v2 = wnaf.base(G1Projective::from(v2));
 
                     local_s.add_assign(&v1);
                     local_sx.add_assign(&v2);
@@ -1251,8 +1251,8 @@ fn merge_pairs<G: PairingCurveAffine>(v1: &[G], v2: &[G]) -> (G, G)
         }
     });
 
-    let s = s.lock().unwrap().into_affine();
-    let sx = sx.lock().unwrap().into_affine();
+    let s = s.lock().unwrap().to_affine();
+    let sx = sx.lock().unwrap().to_affine();
 
     (s, sx)
 }
