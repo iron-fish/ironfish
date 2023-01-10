@@ -844,7 +844,7 @@ impl MPCParameters {
         let mut sink = HashWriter::new(sink);
         sink.write_all(&initial_params.cs_hash[..]).unwrap();
 
-        let mut current_delta = G1Affine::one();
+        let mut current_delta = G1Affine::generator();
         let mut result = vec![];
 
         for pubkey in &self.contributions {
@@ -896,8 +896,8 @@ impl MPCParameters {
 
         // Current parameters should have consistent delta in G2
         if !same_ratio(
-            (G1Affine::one(), current_delta),
-            (G2Affine::one(), self.params.vk.delta_g2)
+            (G1Affine::generator(), current_delta),
+            (G2Affine::generator(), self.params.vk.delta_g2)
         ) {
             return Err(());
         }
@@ -905,14 +905,14 @@ impl MPCParameters {
         // H and L queries should be updated with delta^-1
         if !same_ratio(
             merge_pairs(&initial_params.params.h, &self.params.h),
-            (self.params.vk.delta_g2, G2Affine::one()) // reversed for inverse
+            (self.params.vk.delta_g2, G2Affine::generator()) // reversed for inverse
         ) {
             return Err(());
         }
 
         if !same_ratio(
             merge_pairs(&initial_params.params.l, &self.params.l),
-            (self.params.vk.delta_g2, G2Affine::one()) // reversed for inverse
+            (self.params.vk.delta_g2, G2Affine::generator()) // reversed for inverse
         ) {
             return Err(());
         }
@@ -1156,8 +1156,8 @@ pub fn verify_contribution(
 
     // Current parameters should have consistent delta in G2
     if !same_ratio(
-        (G1Affine::one(), pubkey.delta_after),
-        (G2Affine::one(), after.params.vk.delta_g2)
+        (G1Affine::generator(), pubkey.delta_after),
+        (G2Affine::generator(), after.params.vk.delta_g2)
     ) {
         return Err(());
     }
