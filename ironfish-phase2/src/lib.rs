@@ -237,7 +237,6 @@ use pairing::{
         G1Uncompressed,
         G2Uncompressed,
     },
-    Field,
     EncodedPoint,
     CurveAffine,
     CurveProjective,
@@ -455,29 +454,49 @@ impl MPCParameters {
         let f = &mut BufReader::with_capacity(1024 * 1024, f);
 
         let read_g1 = |reader: &mut BufReader<File>| -> io::Result<G1Affine> {
-            let mut repr = G1Uncompressed::empty();
-            reader.read_exact(repr.as_mut())?;
+            let mut byte_buffer: [u8; 96] = [0u8; 96];
+            reader.read_exact(byte_buffer.as_mut())?;
 
-            repr.into_affine_unchecked()
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
-            .and_then(|e| if e.is_zero() {
-                Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"))
+            let point = bls12_381::G1Affine::from_uncompressed(&byte_buffer);
+
+            let is_valid_point = point.is_some().unwrap_u8() == 1;
+
+            if is_valid_point {
+                let unwrapped_point = point.unwrap();
+                if unwrapped_point.is_identity().unwrap_u8() == 1 {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "point at infinity",
+                    ))
+                } else {
+                    return Ok(unwrapped_point)
+                }
             } else {
-                Ok(e)
-            })
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid point"))
+            }
         };
 
         let read_g2 = |reader: &mut BufReader<File>| -> io::Result<G2Affine> {
-            let mut repr = G2Uncompressed::empty();
-            reader.read_exact(repr.as_mut())?;
+            let mut byte_buffer: [u8; 192] = [0u8; 192];
+            reader.read_exact(byte_buffer.as_mut())?;
 
-            repr.into_affine_unchecked()
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
-            .and_then(|e| if e.is_zero() {
-                Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"))
+            let point = bls12_381::G2Affine::from_uncompressed(&byte_buffer);
+
+            let is_valid_point = point.is_some().unwrap_u8() == 1;
+
+            if is_valid_point {
+                let unwrapped_point = point.unwrap();
+                if unwrapped_point.is_identity().unwrap_u8() == 1 {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "point at infinity",
+                    ))
+                } else {
+                    return Ok(unwrapped_point)
+                }
             } else {
-                Ok(e)
-            })
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid point"))
+            }
         };
 
         let alpha = read_g1(f)?;
