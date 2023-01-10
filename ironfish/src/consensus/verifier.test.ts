@@ -104,7 +104,7 @@ describe('Verifier', () => {
       const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
 
       expect(result).toEqual({
-        reason: VerificationResultReason.INVALID_BURN,
+        reason: VerificationResultReason.NATIVE_BURN,
         valid: false,
       })
     })
@@ -231,7 +231,7 @@ describe('Verifier', () => {
       blockC.transactions[1].burns[0].assetId = Asset.nativeId()
 
       expect(await nodeTest.verifier.verifyBlock(blockC)).toMatchObject({
-        reason: VerificationResultReason.INVALID_BURN,
+        reason: VerificationResultReason.NATIVE_BURN,
         valid: false,
       })
     })

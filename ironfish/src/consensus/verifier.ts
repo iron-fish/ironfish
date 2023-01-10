@@ -476,7 +476,7 @@ export class Verifier {
   verifyBurns(burns: BurnDescription[]): VerificationResult {
     for (const burn of burns) {
       if (burn.assetId.equals(Asset.nativeId())) {
-        return { valid: false, reason: VerificationResultReason.INVALID_BURN }
+        return { valid: false, reason: VerificationResultReason.NATIVE_BURN }
       }
     }
 
@@ -494,7 +494,6 @@ export enum VerificationResultReason {
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
   HASH_NOT_MEET_TARGET = 'Hash does not meet target',
   INVALID_ASSET_NAME = 'Asset name is blank',
-  INVALID_BURN = 'Attempting to burn the native asset',
   INVALID_GENESIS_BLOCK = 'Peer is using a different genesis block',
   INVALID_MINERS_FEE = "Miner's fee is incorrect",
   INVALID_PARENT = 'Invalid_parent',
@@ -507,6 +506,7 @@ export enum VerificationResultReason {
   MAX_BLOCK_SIZE_EXCEEDED = 'Block size exceeds maximum',
   MAX_TRANSACTION_SIZE_EXCEEDED = 'Transaction size exceeds maximum',
   MINERS_FEE_EXPECTED = 'Miners fee expected',
+  NATIVE_BURN = 'Attempting to burn the native asset',
   NOTE_COMMITMENT = 'Note_commitment',
   NOTE_COMMITMENT_SIZE_TOO_LARGE = 'Note commitment tree is smaller than referenced by the spend',
   ORPHAN = 'Block is an orphan',
