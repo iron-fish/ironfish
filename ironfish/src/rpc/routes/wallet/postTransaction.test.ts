@@ -26,13 +26,6 @@ describe('Route wallet/postTransaction', () => {
   })
 
   it("should return an error if the transaction won't deserialize", async () => {
-    // const response = await routeTest.client.postTransaction({
-    //   transaction: '0xdeadbeef',
-    // })
-
-    // await expect(response).rejects.toMatchObject({
-    //   status: 400,
-    // })
     await expect(
       routeTest.client.postTransaction({
         transaction: '0xdeadbeef',
