@@ -85,6 +85,7 @@ import {
 import { GetRpcStatusRequest, GetRpcStatusResponse } from '../routes/rpc/getStatus'
 import { BurnAssetRequest, BurnAssetResponse } from '../routes/wallet/burnAsset'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
+import { GetBalancesRequest, GetBalancesResponse } from '../routes/wallet/getBalances'
 import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/wallet/importAccount'
 import { MintAssetRequest, MintAssetResponse } from '../routes/wallet/mintAsset'
@@ -168,6 +169,10 @@ export abstract class RpcClient {
       `${ApiNamespace.wallet}/remove`,
       params,
     ).waitForEnd()
+  }
+
+  getAccountBalances(params: GetBalancesRequest): RpcResponse<void, GetBalancesResponse> {
+    return this.request<void, GetBalancesResponse>(`${ApiNamespace.wallet}/getBalances`, params)
   }
 
   async getAccountBalance(
