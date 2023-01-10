@@ -49,9 +49,9 @@ describe('getBalances', () => {
 
       const getBalances = jest
         .spyOn(wallet, 'getBalances')
+        // eslint-disable-next-line @typescript-eslint/require-await
         .mockImplementationOnce(async function* () {
           for (const balance of mockBalances) {
-            // eslint-disable-next-line @typescript-eslint/require-await
             yield balance
           }
         })
