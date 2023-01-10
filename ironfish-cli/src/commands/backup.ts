@@ -97,7 +97,7 @@ export default class Backup extends IronfishCommand {
     }
 
     if (!flags.accounts) {
-      excludes.push(path.basename(path.dirname(this.sdk.config.accountDatabasePath)))
+      excludes.push(path.basename(path.dirname(this.sdk.config.walletDatabasePath)))
     }
 
     await TarUtils.zipDir(source, dest, excludes)
