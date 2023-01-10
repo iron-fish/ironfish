@@ -95,8 +95,8 @@ export class Account {
   async *getUnspentNotes(
     assetId: Buffer,
     options?: {
-      minimumBlockConfirmations?: number,
-    }
+      minimumBlockConfirmations?: number
+    },
   ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
     const head = await this.getHead()
     if (!head) {
