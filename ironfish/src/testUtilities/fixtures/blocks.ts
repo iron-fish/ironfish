@@ -4,6 +4,7 @@
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import { Blockchain } from '../../blockchain'
+import { Witness } from '../../merkletree/witness'
 import { IronfishNode } from '../../node'
 import { Block, BlockSerde, SerializedBlock } from '../../primitives/block'
 import { BurnDescription } from '../../primitives/burnDescription'
@@ -164,7 +165,7 @@ export async function useBlockWithRawTxFixture(
 
         return {
           note,
-          witness,
+          witness
         }
       }),
     )
@@ -176,7 +177,7 @@ export async function useBlockWithRawTxFixture(
     raw.burns = burns
     raw.fee = BigInt(0)
     raw.spends = spends
-
+    
     for (const receive of receives) {
       const note = new NativeNote(
         receive.publicAddress,

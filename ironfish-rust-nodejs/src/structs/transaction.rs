@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish_rust::assets::asset::AssetIdentifier;
-use ironfish_rust::transaction::batch_verify_transactions;
+use ironfish_rust::transaction::{batch_verify_transactions, TRANSACTION_SIGNATURE_SIZE, TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE};
 use ironfish_rust::{
     MerkleNoteHash, ProposedTransaction, PublicAddress, SaplingKey, Transaction,
     TRANSACTION_VERSION as TX_VERSION,
@@ -32,6 +32,18 @@ pub struct NativeTransactionPosted {
 
 #[napi]
 pub const PROOF_LENGTH: u32 = PROOF_SIZE;
+
+#[napi]
+pub const TRANSACTION_SIGNATURE_LENGTH: u32 = TRANSACTION_SIGNATURE_SIZE;
+
+#[napi]
+pub const TRANSACTION_PUBLIC_KEY_LENGTH: u32 = TRANSACTION_PUBLIC_KEY_SIZE;
+
+#[napi]
+pub const TRANSACTION_EXPIRATION_LENGTH: u32 = TRANSACTION_EXPIRATION_SIZE;
+
+#[napi]
+pub const TRANSACTION_FEE_LENGTH: u32 = TRANSACTION_FEE_SIZE;
 
 #[napi]
 pub const TRANSACTION_VERSION: u8 = TX_VERSION;
