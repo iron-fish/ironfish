@@ -48,6 +48,8 @@ import {
   GetTransactionStreamResponse,
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
+  PostTransactionRequest,
+  PostTransactionResponse,
   SendTransactionRequest,
   SendTransactionResponse,
   SetConfigRequest,
@@ -489,5 +491,14 @@ export abstract class RpcClient {
 
   async getAsset(params: GetAssetRequest): Promise<RpcResponseEnded<GetAssetResponse>> {
     return this.request<GetAssetResponse>(`${ApiNamespace.chain}/getAsset`, params).waitForEnd()
+  }
+
+  async postTransaction(
+    params: PostTransactionRequest,
+  ): Promise<RpcResponseEnded<PostTransactionResponse>> {
+    return this.request<PostTransactionRequest>(
+      `${ApiNamespace.wallet}/postTransaction`,
+      params,
+    ).waitForEnd()
   }
 }
