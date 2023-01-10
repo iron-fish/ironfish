@@ -849,8 +849,8 @@ impl MPCParameters {
 
         for pubkey in &self.contributions {
             let mut our_sink = sink.clone();
-            our_sink.write_all(pubkey.s.into_uncompressed().as_ref()).unwrap();
-            our_sink.write_all(pubkey.s_delta.into_uncompressed().as_ref()).unwrap();
+            our_sink.write_all(pubkey.s.to_uncompressed().as_ref()).unwrap();
+            our_sink.write_all(pubkey.s_delta.to_uncompressed().as_ref()).unwrap();
 
             pubkey.write(&mut sink).unwrap();
 

@@ -1044,7 +1044,7 @@ dependencies = [
  "ff 0.12.1",
  "group 0.12.1",
  "num_cpus",
- "pairing 0.23.0",
+ "pairing 0.22.0",
  "rand 0.8.5",
 ]
 
