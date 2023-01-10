@@ -5,6 +5,7 @@
 jest.mock('ws')
 
 import '../testUtilities/matchers/blockchain'
+import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { getBlockSize, getBlockWithMinersFeeSize } from '../network/utils/serializers'
 import { BlockHeader, Transaction } from '../primitives'
@@ -12,9 +13,13 @@ import { transactionCommitment } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
 import {
   createNodeTest,
+  useAccountFixture,
   useBlockWithTx,
+  useBurnBlockFixture,
   useMinerBlockFixture,
   useMinersTxFixture,
+  useMintBlockFixture,
+  usePostTxFixture,
   useTxSpendsFixture,
 } from '../testUtilities'
 import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
@@ -57,6 +62,49 @@ describe('Verifier', () => {
 
       expect(result).toEqual({
         reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED,
+        valid: false,
+      })
+    })
+
+    it('returns false on transactions containing invalid mints', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const asset = new Asset(account.spendingKey, 'testcoin', '')
+
+      const transaction = await usePostTxFixture({
+        node: nodeTest.node,
+        wallet: nodeTest.wallet,
+        from: account,
+        mints: [{ asset, value: BigInt(5) }],
+      })
+
+      jest.spyOn(transaction.mints[0].asset, 'name').mockReturnValue(Buffer.alloc(32, 0))
+
+      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+
+      expect(result).toEqual({
+        reason: VerificationResultReason.INVALID_ASSET_NAME,
+        valid: false,
+      })
+    })
+
+    it('returns false on transactions containing invalid burns', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet)
+
+      const blockA = await useMinerBlockFixture(nodeTest.chain, 2, account)
+      await expect(nodeTest.node.chain).toAddBlock(blockA)
+      await nodeTest.node.wallet.updateHead()
+
+      const transaction = await usePostTxFixture({
+        node: nodeTest.node,
+        wallet: nodeTest.wallet,
+        from: account,
+        burns: [{ assetId: Asset.nativeId(), value: BigInt(5) }],
+      })
+
+      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+
+      expect(result).toEqual({
+        reason: VerificationResultReason.NATIVE_BURN,
         valid: false,
       })
     })
@@ -132,6 +180,59 @@ describe('Verifier', () => {
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         valid: false,
         reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED,
+      })
+    })
+
+    it('rejects a block with an invalid mint', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const asset = new Asset(account.spendingKey, 'testcoin', '')
+
+      const block = await useMintBlockFixture({
+        node: nodeTest.node,
+        account,
+        asset,
+        value: BigInt(5),
+      })
+
+      jest
+        .spyOn(block.transactions[1].mints[0].asset, 'name')
+        .mockReturnValue(Buffer.alloc(32, 0))
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        reason: VerificationResultReason.INVALID_ASSET_NAME,
+        valid: false,
+      })
+    })
+
+    it('rejects a block with an invalid burn', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const asset = new Asset(account.spendingKey, 'testcoin', '')
+
+      const blockA = await useMinerBlockFixture(nodeTest.chain, 2, account)
+      await expect(nodeTest.node.chain).toAddBlock(blockA)
+      await nodeTest.node.wallet.updateHead()
+
+      const blockB = await useMintBlockFixture({
+        node: nodeTest.node,
+        account,
+        asset,
+        value: BigInt(5),
+      })
+      await expect(nodeTest.node.chain).toAddBlock(blockB)
+      await nodeTest.node.wallet.updateHead()
+
+      const blockC = await useBurnBlockFixture({
+        node: nodeTest.node,
+        account,
+        asset,
+        value: BigInt(5),
+      })
+
+      blockC.transactions[1].burns[0].assetId = Asset.nativeId()
+
+      expect(await nodeTest.verifier.verifyBlock(blockC)).toMatchObject({
+        reason: VerificationResultReason.NATIVE_BURN,
+        valid: false,
       })
     })
 

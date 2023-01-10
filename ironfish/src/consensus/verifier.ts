@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { TRANSACTION_VERSION } from '@ironfish/rust-nodejs'
+import { Asset, TRANSACTION_VERSION } from '@ironfish/rust-nodejs'
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -14,9 +14,12 @@ import {
 import { Spend } from '../primitives'
 import { Block, GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { BlockHeader, transactionCommitment } from '../primitives/blockheader'
+import { BurnDescription } from '../primitives/burnDescription'
+import { MintDescription } from '../primitives/mintDescription'
 import { Target } from '../primitives/target'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
+import { BufferUtils } from '../utils/buffer'
 import { WorkerPool } from '../workerPool'
 
 export class Verifier {
@@ -70,6 +73,16 @@ export class Verifier {
           valid: false,
           reason: VerificationResultReason.TRANSACTION_EXPIRED,
         }
+      }
+
+      const mintVerify = this.verifyMints(tx.mints)
+      if (!mintVerify.valid) {
+        return mintVerify
+      }
+
+      const burnVerify = this.verifyBurns(tx.burns)
+      if (!burnVerify.valid) {
+        return burnVerify
       }
 
       transactionBatch.push(tx)
@@ -247,6 +260,16 @@ export class Verifier {
       this.chain.consensus.parameters.maxBlockSizeBytes - getBlockWithMinersFeeSize()
     ) {
       return { valid: false, reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED }
+    }
+
+    const mintVerify = this.verifyMints(transaction.mints)
+    if (!mintVerify.valid) {
+      return mintVerify
+    }
+
+    const burnVerify = this.verifyBurns(transaction.burns)
+    if (!burnVerify.valid) {
+      return burnVerify
     }
 
     return { valid: true }
@@ -438,6 +461,27 @@ export class Verifier {
       return { valid: true }
     })
   }
+
+  verifyMints(mints: MintDescription[]): VerificationResult {
+    for (const mint of mints) {
+      const humanName = BufferUtils.toHuman(mint.asset.name())
+      if (humanName.length === 0) {
+        return { valid: false, reason: VerificationResultReason.INVALID_ASSET_NAME }
+      }
+    }
+
+    return { valid: true }
+  }
+
+  verifyBurns(burns: BurnDescription[]): VerificationResult {
+    for (const burn of burns) {
+      if (burn.assetId.equals(Asset.nativeId())) {
+        return { valid: false, reason: VerificationResultReason.NATIVE_BURN }
+      }
+    }
+
+    return { valid: true }
+  }
 }
 
 export enum VerificationResultReason {
@@ -446,26 +490,28 @@ export enum VerificationResultReason {
   DOUBLE_SPEND = 'Double spend',
   DUPLICATE = 'Duplicate',
   ERROR = 'Error',
-  GRAFFITI = 'Graffiti field is not 32 bytes in length',
   GOSSIPED_GENESIS_BLOCK = 'Peer gossiped its genesis block',
+  GRAFFITI = 'Graffiti field is not 32 bytes in length',
   HASH_NOT_MEET_TARGET = 'Hash does not meet target',
+  INVALID_ASSET_NAME = 'Asset name is blank',
   INVALID_GENESIS_BLOCK = 'Peer is using a different genesis block',
   INVALID_MINERS_FEE = "Miner's fee is incorrect",
   INVALID_PARENT = 'Invalid_parent',
   INVALID_SPEND = 'Invalid spend',
   INVALID_TARGET = 'Invalid target',
+  INVALID_TRANSACTION_COMMITMENT = 'Transaction commitment does not match transactions',
   INVALID_TRANSACTION_FEE = 'Transaction fee is incorrect',
   INVALID_TRANSACTION_PROOF = 'Invalid transaction proof',
-  INVALID_TRANSACTION_COMMITMENT = 'Transaction commitment does not match transactions',
   INVALID_TRANSACTION_VERSION = 'Invalid transaction version',
   MAX_BLOCK_SIZE_EXCEEDED = 'Block size exceeds maximum',
   MAX_TRANSACTION_SIZE_EXCEEDED = 'Transaction size exceeds maximum',
   MINERS_FEE_EXPECTED = 'Miners fee expected',
+  NATIVE_BURN = 'Attempting to burn the native asset',
   NOTE_COMMITMENT = 'Note_commitment',
   NOTE_COMMITMENT_SIZE_TOO_LARGE = 'Note commitment tree is smaller than referenced by the spend',
   ORPHAN = 'Block is an orphan',
-  PREV_HASH_NULL = 'Previous block hash is null',
   PREV_HASH_MISMATCH = 'Previous block hash does not match expected hash',
+  PREV_HASH_NULL = 'Previous block hash is null',
   SEQUENCE_OUT_OF_ORDER = 'Block sequence is out of order',
   TOO_FAR_IN_FUTURE = 'Timestamp is in future',
   TRANSACTION_EXPIRED = 'Transaction expired',
