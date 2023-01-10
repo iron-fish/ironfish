@@ -84,6 +84,10 @@ import {
 } from '../routes/peers/getPeerMessages'
 import { GetRpcStatusRequest, GetRpcStatusResponse } from '../routes/rpc/getStatus'
 import { BurnAssetRequest, BurnAssetResponse } from '../routes/wallet/burnAsset'
+import {
+  CreateRawTransactionRequest,
+  CreateRawTransactionResponse,
+} from '../routes/wallet/createRawTransaction'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
 import { GetBalancesRequest, GetBalancesResponse } from '../routes/wallet/getBalances'
 import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
@@ -362,6 +366,15 @@ export abstract class RpcClient {
   ): Promise<RpcResponseEnded<SendTransactionResponse>> {
     return this.request<SendTransactionResponse>(
       `${ApiNamespace.wallet}/sendTransaction`,
+      params,
+    ).waitForEnd()
+  }
+
+  async createRawTransaction(
+    params: CreateRawTransactionRequest,
+  ): Promise<RpcResponseEnded<CreateRawTransactionResponse>> {
+    return this.request<CreateRawTransactionResponse>(
+      `${ApiNamespace.wallet}/createRawTransaction`,
       params,
     ).waitForEnd()
   }
