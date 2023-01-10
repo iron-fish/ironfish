@@ -1555,7 +1555,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(blockA1)
       await node.wallet.updateHead()
 
-      await expect(accountA.getHeadHash()).resolves.toEqualHash(blockA1.header.hash)
+      await expect(accountA.getHead()).resolves.toEqualHash(blockA1.header.hash)
       await expect(accountA.hasTransaction(transaction.hash())).resolves.toEqual(true)
 
       // disconnect blockA1
