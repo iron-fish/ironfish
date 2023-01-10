@@ -456,7 +456,6 @@ export class Account {
   }
 
   async *getBalances(
-    headSequence: number,
     minimumBlockConfirmations: number,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<{
@@ -467,14 +466,19 @@ export class Account {
     blockHash: Buffer | null
     sequence: number | null
   }> {
+    const head = await this.getHead()
+    if (!head) {
+      return
+    }
+
     for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
       const { unconfirmed, blockHash, sequence } = balance
       const { confirmed, unconfirmedCount } =
         await this.calculateUnconfirmedCountAndConfirmedBalance(
-          headSequence,
+          head.sequence,
           assetId,
           minimumBlockConfirmations,
-          unconfirmed,
+          balance.unconfirmed,
           tx,
         )
       yield {
@@ -494,7 +498,6 @@ export class Account {
    * confirmed: confirmed balance minus notes in unconfirmed range
    */
   async getBalance(
-    headSequence: number,
     assetId: Buffer,
     minimumBlockConfirmations: number,
     tx?: IDatabaseTransaction,
@@ -505,10 +508,21 @@ export class Account {
     blockHash: Buffer | null
     sequence: number | null
   }> {
+    const head = await this.getHead()
+    if (!head) {
+      return {
+        unconfirmed: 0n,
+        confirmed: 0n,
+        unconfirmedCount: 0,
+        blockHash: null,
+        sequence: null,
+      }
+    }
+
     const { unconfirmed, blockHash, sequence } = await this.getUnconfirmedBalance(assetId, tx)
     const { confirmed, unconfirmedCount } =
       await this.calculateUnconfirmedCountAndConfirmedBalance(
-        headSequence,
+        head.sequence,
         assetId,
         minimumBlockConfirmations,
         unconfirmed,
