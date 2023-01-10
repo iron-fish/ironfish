@@ -94,7 +94,19 @@ export class Account {
 
   async *getUnspentNotes(
     assetId: Buffer,
+    options?: {
+      minimumBlockConfirmations?: number,
+    }
   ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+    const head = await this.getHead()
+    if (!head) {
+      return
+    }
+
+    const minimumBlockConfirmations = options?.minimumBlockConfirmations ?? 0
+
+    const maxConfirmedSequence = head.sequence - minimumBlockConfirmations
+
     for await (const decryptedNote of this.getNotes()) {
       if (!decryptedNote.note.assetId().equals(assetId)) {
         continue
@@ -104,7 +116,7 @@ export class Account {
         continue
       }
 
-      if (!decryptedNote.index) {
+      if (!decryptedNote.sequence || decryptedNote.sequence > maxConfirmedSequence) {
         continue
       }
 

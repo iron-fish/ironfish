@@ -589,24 +589,9 @@ export class Wallet {
     const minimumBlockConfirmations =
       options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations')
 
-    const headSequence = await this.getAccountHeadSequence(account)
-    if (!headSequence) {
-      return
-    }
-
-    for await (const decryptedNote of account.getUnspentNotes(assetId)) {
-      if (minimumBlockConfirmations > 0) {
-        if (!decryptedNote.sequence) {
-          continue
-        }
-
-        const confirmations = headSequence - decryptedNote.sequence
-
-        if (confirmations < minimumBlockConfirmations) {
-          continue
-        }
-      }
-
+    for await (const decryptedNote of account.getUnspentNotes(assetId, {
+      minimumBlockConfirmations,
+    })) {
       yield decryptedNote
     }
   }
