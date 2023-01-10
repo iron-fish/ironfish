@@ -1172,7 +1172,7 @@ export class Wallet {
     return this.getAccountByName(name) !== null
   }
 
-  async removeAccount(name: string): Promise<void> {
+  async removeAccount(name: string, wait?: boolean): Promise<void> {
     const account = this.getAccountByName(name)
     if (!account) {
       return
@@ -1186,13 +1186,16 @@ export class Wallet {
 
       await this.walletDb.removeAccount(account, tx)
       await this.walletDb.removeHead(account, tx)
+      if (wait) {
+        await this.cleanupDeletedAccounts(account.id)
+      }
     })
 
     this.accounts.delete(account.id)
     this.onAccountRemoved.emit(account)
   }
 
-  async cleanupDeletedAccounts(): Promise<void> {
+  async cleanupDeletedAccounts(accountId?: string): Promise<void> {
     if (!this.isStarted) {
       return
     }
@@ -1201,7 +1204,7 @@ export class Wallet {
       return
     }
 
-    await this.walletDb.cleanupDeletedAccounts(this.eventLoopAbortController.signal)
+    await this.walletDb.cleanupDeletedAccounts(this.eventLoopAbortController.signal, accountId)
   }
 
   get hasDefaultAccount(): boolean {

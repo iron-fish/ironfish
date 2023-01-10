@@ -23,16 +23,22 @@ export class RemoveCommand extends IronfishCommand {
     confirm: Flags.boolean({
       description: 'Suppress the confirmation prompt',
     }),
+    wait: Flags.boolean({
+      default: false,
+      allowNo: true,
+      description: 'Wait for account remove finishes',
+    }),
   }
 
   async start(): Promise<void> {
     const { args, flags } = await this.parse(RemoveCommand)
     const confirm = flags.confirm
+    const wait = flags.wait
     const name = args.account as string
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.removeAccount({ name, confirm })
+    const response = await client.removeAccount({ name, confirm, wait })
 
     if (response.content.needsConfirm) {
       const value = await CliUx.ux.prompt(`Are you sure? Type ${name} to confirm`)
@@ -42,7 +48,11 @@ export class RemoveCommand extends IronfishCommand {
         this.exit(1)
       }
 
-      await client.removeAccount({ name, confirm: true })
+      if (wait) {
+        this.log(`Waiting for account delete finished ...`)
+      }
+
+      await client.removeAccount({ name, confirm: true, wait })
     }
 
     this.log(`Account '${name}' successfully removed.`)

@@ -761,7 +761,10 @@ export class WalletDB {
     await this.pendingTransactionHashes.clear(tx, account.prefixRange)
   }
 
-  async cleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
+  async cleanupDeletedAccounts(
+    signal?: AbortSignal,
+    accountIdToDelete?: string,
+  ): Promise<void> {
     let recordsToCleanup = 1000
 
     const stores: IDatabaseStore<{
@@ -778,6 +781,9 @@ export class WalletDB {
     ]
 
     for (const [accountId] of await this.accountIdsToCleanup.getAll()) {
+      if (accountIdToDelete && accountIdToDelete !== accountId) {
+        continue
+      }
       const prefix = calculateAccountPrefix(accountId)
       const range = StorageUtils.getPrefixKeyRange(prefix)
 

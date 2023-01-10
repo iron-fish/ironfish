@@ -5,13 +5,14 @@ import * as yup from 'yup'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
-export type RemoveAccountRequest = { name: string; confirm?: boolean }
+export type RemoveAccountRequest = { name: string; confirm?: boolean; wait?: boolean }
 export type RemoveAccountResponse = { needsConfirm?: boolean }
 
 export const RemoveAccountRequestSchema: yup.ObjectSchema<RemoveAccountRequest> = yup
   .object({
     name: yup.string().defined(),
     confirm: yup.boolean().optional(),
+    wait: yup.boolean().optional(),
   })
   .defined()
 
@@ -49,7 +50,7 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
       }
     }
 
-    await node.wallet.removeAccount(account.name)
+    await node.wallet.removeAccount(account.name, request.data.wait)
     request.end({})
   },
 )
