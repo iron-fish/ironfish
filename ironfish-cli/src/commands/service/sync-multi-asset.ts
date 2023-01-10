@@ -205,7 +205,7 @@ export default class SyncMultiAsset extends IronfishCommand {
 function serializeMultiAssets(data: GetTransactionStreamResponse): ApiMultiAssetUpload {
   const txs = []
   // should not send transactions if block is disconnected
-  if (data.type !== 'connected') {
+  if (data.type === 'connected') {
     for (const tx of data.transactions) {
       const multiAssets = []
       for (const mint of tx.mints) {
