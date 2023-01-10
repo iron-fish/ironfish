@@ -28,21 +28,24 @@ export const GetBalancesRequestSchema: yup.ObjectSchema<GetBalancesRequest> = yu
   })
   .defined()
 
-const BalancesSchema = yup
-  .object()
-  .shape({
-    assetId: yup.string().defined(),
-    unconfirmed: yup.string().defined(),
-    unconfirmedCount: yup.number().defined(),
-    confirmed: yup.string().defined(),
-    blockHash: yup.string().nullable(true).defined(),
-    sequence: yup.number().nullable(true).defined(),
-  })
-  .defined()
-
 export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = yup
   .object({
-    balances: yup.array().of(BalancesSchema).defined(),
+    balances: yup
+      .array()
+      .of(
+        yup
+          .object()
+          .shape({
+            assetId: yup.string().defined(),
+            unconfirmed: yup.string().defined(),
+            unconfirmedCount: yup.number().defined(),
+            confirmed: yup.string().defined(),
+            blockHash: yup.string().nullable(true).defined(),
+            sequence: yup.number().nullable(true).defined(),
+          })
+          .defined(),
+      )
+      .defined(),
   })
   .defined()
 
@@ -65,7 +68,7 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
       unconfirmedCount,
     } of node.wallet.getBalances(account, request.data.minimumBlockConfirmations)) {
       if (request.closed) {
-        break
+        return
       }
 
       balances.push({
