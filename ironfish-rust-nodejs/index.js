@@ -246,7 +246,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_ID_LENGTH, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_OWNER_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, PROOF_LENGTH, TRANSACTION_VERSION, Transaction, verifyTransactions, generateKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
+const { KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_ID_LENGTH, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_OWNER_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, PROOF_LENGTH, TRANSACTION_SIGNATURE_LENGTH, TRANSACTION_PUBLIC_KEY_LENGTH, TRANSACTION_EXPIRATION_LENGTH, TRANSACTION_FEE_LENGTH, TRANSACTION_VERSION, Transaction, verifyTransactions, generateKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
 
 module.exports.KEY_LENGTH = KEY_LENGTH
 module.exports.NONCE_LENGTH = NONCE_LENGTH
@@ -275,6 +275,10 @@ module.exports.DECRYPTED_NOTE_LENGTH = DECRYPTED_NOTE_LENGTH
 module.exports.Note = Note
 module.exports.TransactionPosted = TransactionPosted
 module.exports.PROOF_LENGTH = PROOF_LENGTH
+module.exports.TRANSACTION_SIGNATURE_LENGTH = TRANSACTION_SIGNATURE_LENGTH
+module.exports.TRANSACTION_PUBLIC_KEY_LENGTH = TRANSACTION_PUBLIC_KEY_LENGTH
+module.exports.TRANSACTION_EXPIRATION_LENGTH = TRANSACTION_EXPIRATION_LENGTH
+module.exports.TRANSACTION_FEE_LENGTH = TRANSACTION_FEE_LENGTH
 module.exports.TRANSACTION_VERSION = TRANSACTION_VERSION
 module.exports.Transaction = Transaction
 module.exports.verifyTransactions = verifyTransactions

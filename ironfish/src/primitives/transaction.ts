@@ -8,7 +8,10 @@ import {
   ASSET_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
   PROOF_LENGTH,
+  PUBLIC_ADDRESS_LENGTH,
   TransactionPosted,
+  TRANSACTION_PUBLIC_KEY_LENGTH,
+  TRANSACTION_SIGNATURE_LENGTH,
 } from '@ironfish/rust-nodejs'
 import { blake3 } from '@napi-rs/blake-hash'
 import bufio from 'bufio'
@@ -53,7 +56,7 @@ export class Transaction {
     this._expiration = reader.readU32() // 4
     // randomized public key of sender
     // to read the value of rpk reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
-    reader.seek(32)
+    reader.seek(TRANSACTION_PUBLIC_KEY_LENGTH)
 
     // spend description
     this.spends = Array.from({ length: _spendsLength }, () => {
@@ -67,7 +70,7 @@ export class Transaction {
       const nullifier = reader.readHash() // 32
 
       // signature
-      reader.seek(64)
+      reader.seek(TRANSACTION_SIGNATURE_LENGTH)
 
       // total serialized size: 192 + 32 + 32 + 32 + 4 + 32 + 64 = 388 bytes
       return {
@@ -88,13 +91,13 @@ export class Transaction {
 
     this.mints = Array.from({ length: _mintsLength }, () => {
       // proof
-      reader.seek(192)
+      reader.seek(PROOF_LENGTH)
 
       const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
       const value = reader.readBigU64()
 
       // authorizing signature
-      reader.seek(64)
+      reader.seek(TRANSACTION_SIGNATURE_LENGTH)
 
       return { asset, value }
     })
@@ -106,7 +109,7 @@ export class Transaction {
       return { assetId, value }
     })
 
-    this._signature = reader.readBytes(64, true)
+    this._signature = reader.readBytes(TRANSACTION_SIGNATURE_LENGTH, true)
   }
 
   serialize(): Buffer {

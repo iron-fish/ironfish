@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Transaction as NativeTransaction } from '@ironfish/rust-nodejs'
+import { AMOUNT_VALUE_LENGTH, Transaction as NativeTransaction, TRANSACTION_EXPIRATION_LENGTH, TRANSACTION_FEE_LENGTH } from '@ironfish/rust-nodejs'
 import { Asset, ASSET_ID_LENGTH, ASSET_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../merkletree'
@@ -177,7 +177,7 @@ export class RawTransactionSerde {
     let size = 0
 
     size += bufio.sizeVarString(raw.spendingKey)
-    size += 8 // raw.fee
+    size += TRANSACTION_FEE_LENGTH // raw.fee
 
     size += 8 // raw.spends.length
     for (const spend of raw.spends) {
@@ -200,18 +200,18 @@ export class RawTransactionSerde {
     size += 8 // raw.mints.length
     for (const _ of raw.mints) {
       size += ASSET_LENGTH // mint.asset
-      size += 8 // mint.value
+      size += AMOUNT_VALUE_LENGTH // mint.value
     }
 
     size += 8 // raw.burns.length
     for (const _ of raw.burns) {
       size += ASSET_ID_LENGTH // burn.assetId
-      size += 8 // burn.value
+      size += AMOUNT_VALUE_LENGTH // burn.value
     }
 
     size += 1 // has expiration sequence
     if (raw.expiration != null) {
-      size += 8 // raw.expiration
+      size += TRANSACTION_EXPIRATION_LENGTH // raw.expiration
     }
 
     return size

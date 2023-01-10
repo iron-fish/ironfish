@@ -10,7 +10,6 @@ import { createRootLogger, Logger } from '../logger'
 import { WorkerHeader } from './interfaces/workerHeader'
 import { Job } from './job'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
-import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import { DecryptNotesRequest, DecryptNotesResponse } from './tasks/decryptNotes'
 import { JobAbortedError, JobAbortedMessage } from './tasks/jobAbort'
 import { JobError, JobErrorMessage } from './tasks/jobError'
@@ -236,8 +235,6 @@ export class Worker {
     switch (type) {
       case WorkerMessageType.CreateMinersFee:
         return CreateMinersFeeRequest.deserialize(jobId, request)
-      case WorkerMessageType.CreateTransaction:
-        return CreateTransactionRequest.deserialize(jobId, request)
       case WorkerMessageType.PostTransaction:
         return PostTransactionRequest.deserialize(jobId, request)
       case WorkerMessageType.DecryptNotes:
@@ -265,8 +262,6 @@ export class Worker {
     switch (type) {
       case WorkerMessageType.CreateMinersFee:
         return CreateMinersFeeResponse.deserialize(jobId, response)
-      case WorkerMessageType.CreateTransaction:
-        return CreateTransactionResponse.deserialize(jobId, response)
       case WorkerMessageType.PostTransaction:
         return PostTransactionResponse.deserialize(jobId, response)
       case WorkerMessageType.DecryptNotes:

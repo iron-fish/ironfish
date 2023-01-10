@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Job } from '../job'
 import { CreateMinersFeeTask } from './createMinersFee'
-import { CreateTransactionTask } from './createTransaction'
 import { DecryptNotesTask } from './decryptNotes'
 import { PostTransactionTask } from './postTransaction'
 import { SleepTask } from './sleep'
@@ -15,7 +14,6 @@ import { WorkerTask } from './workerTask'
 
 export const handlers: Record<WorkerMessageType, WorkerTask | undefined> = {
   [WorkerMessageType.CreateMinersFee]: CreateMinersFeeTask.getInstance(),
-  [WorkerMessageType.CreateTransaction]: CreateTransactionTask.getInstance(),
   [WorkerMessageType.PostTransaction]: PostTransactionTask.getInstance(),
   [WorkerMessageType.DecryptNotes]: DecryptNotesTask.getInstance(),
   [WorkerMessageType.JobAborted]: undefined,
