@@ -455,46 +455,26 @@ impl MPCParameters {
             let mut byte_buffer: [u8; 96] = [0u8; 96];
             reader.read_exact(byte_buffer.as_mut())?;
 
-            let point = bls12_381::G1Affine::from_uncompressed(&byte_buffer);
+            let point = bls12_381::G1Affine::from_uncompressed(&byte_buffer).unwrap_or_else(|| G1Affine::identity());
 
-            let is_valid_point = point.is_some().unwrap_u8() == 1;
-
-            if is_valid_point {
-                let unwrapped_point = point.unwrap();
-                if unwrapped_point.is_identity().unwrap_u8() == 1 {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "point at infinity",
-                    ))
-                } else {
-                    return Ok(unwrapped_point)
-                }
-            } else {
-                return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid point"))
+            if bool::from(point.is_identity()) {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"));
             }
+
+            Ok(point)
         };
 
         let read_g2 = |reader: &mut BufReader<File>| -> io::Result<G2Affine> {
             let mut byte_buffer: [u8; 192] = [0u8; 192];
             reader.read_exact(byte_buffer.as_mut())?;
 
-            let point = bls12_381::G2Affine::from_uncompressed(&byte_buffer);
+            let point = bls12_381::G2Affine::from_uncompressed(&byte_buffer).unwrap_or_else(|| G2Affine::identity());
 
-            let is_valid_point = point.is_some().unwrap_u8() == 1;
-
-            if is_valid_point {
-                let unwrapped_point = point.unwrap();
-                if unwrapped_point.is_identity().unwrap_u8() == 1 {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "point at infinity",
-                    ))
-                } else {
-                    return Ok(unwrapped_point)
-                }
-            } else {
-                return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid point"))
+            if bool::from(point.is_identity()) {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"));
             }
+
+            Ok(point)
         };
 
         let alpha = read_g1(f)?;
