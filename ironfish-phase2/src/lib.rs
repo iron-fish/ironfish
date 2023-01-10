@@ -222,7 +222,9 @@ use std::{
         File
     },
     ops::{
-        Mul
+        Mul,
+        AddAssign,
+        Add
     },
     sync::{
         Arc
@@ -260,7 +262,7 @@ use bellman::{
 use bls12_381::{
     Bls12,
     G1Affine,
-    G2Affine,
+    G2Affine, G1Projective, G2Projective,
 };
 
 use rand::{
@@ -536,11 +538,12 @@ impl MPCParameters {
             h.push(read_g1(f)?);
         }
 
-        let mut ic = vec![G1::zero(); assembly.num_inputs];
-        let mut l = vec![G1::zero(); assembly.num_aux];
-        let mut a_g1 = vec![G1::zero(); assembly.num_inputs + assembly.num_aux];
-        let mut b_g1 = vec![G1::zero(); assembly.num_inputs + assembly.num_aux];
-        let mut b_g2 = vec![G2::zero(); assembly.num_inputs + assembly.num_aux];
+        // TODO: Decide whether we should do computations on G1Projective of G1Affine (one is probably faster)
+        let mut ic = vec![G1Projective::identity(); assembly.num_inputs];
+        let mut l = vec![G1Projective::identity(); assembly.num_aux];
+        let mut a_g1 = vec![G1Projective::identity(); assembly.num_inputs + assembly.num_aux];
+        let mut b_g1 = vec![G1Projective::identity(); assembly.num_inputs + assembly.num_aux];
+        let mut b_g2 = vec![G2Projective::identity(); assembly.num_inputs + assembly.num_aux];
 
         fn eval(
             // Lagrange coefficients for tau
@@ -555,10 +558,10 @@ impl MPCParameters {
             ct: &[Vec<(bls12_381::Scalar, usize)>],
 
             // Resulting evaluated QAP polynomials
-            a_g1: &mut [G1],
-            b_g1: &mut [G1],
-            b_g2: &mut [G2],
-            ext: &mut [G1],
+            a_g1: &mut [G1Projective],
+            b_g1: &mut [G1Projective],
+            b_g2: &mut [G2Projective],
+            ext: &mut [G1Projective],
 
             // Worker
             worker: &Worker
@@ -613,12 +616,6 @@ impl MPCParameters {
                                 ext.add_assign(&coeffs_g1[lag].mul(coeff));
                             }
                         }
-
-                        // Batch normalize
-                        G1::batch_normalization(a_g1);
-                        G1::batch_normalization(b_g1);
-                        G2::batch_normalization(b_g2);
-                        G1::batch_normalization(ext);
                     });
                 }
             });
@@ -661,30 +658,45 @@ impl MPCParameters {
         // Don't allow any elements be unconstrained, so that
         // the L query is always fully dense.
         for e in l.iter() {
-            if e.is_zero() {
+            if e.is_identity().unwrap_u8() == 1 {
                 return Err(SynthesisError::UnconstrainedVariable);
             }
         }
+
+        let mut ic_affine = vec![G1Affine::identity(); assembly.num_inputs];
+        G1Projective::batch_normalize(&ic[..], &mut ic_affine[..]);
+
+        let mut l_affine = vec![G1Affine::identity(); assembly.num_aux];
+        G1Projective::batch_normalize(&l[..], &mut l_affine[..]);
+
+        let mut a_g1_affine = vec![G1Affine::identity(); assembly.num_inputs + assembly.num_aux];
+        G1Projective::batch_normalize(&a_g1[..], &mut a_g1_affine[..]);
+
+        let mut b_g1_affine = vec![G1Affine::identity(); assembly.num_inputs + assembly.num_aux];
+        G1Projective::batch_normalize(&b_g1[..], &mut b_g1_affine[..]);
+
+        let mut b_g2_affine = vec![G2Affine::identity(); assembly.num_inputs + assembly.num_aux];
+        G2Projective::batch_normalize(&b_g2[..], &mut b_g2_affine[..]);
 
         let vk = VerifyingKey {
             alpha_g1: alpha,
             beta_g1: beta_g1,
             beta_g2: beta_g2,
-            gamma_g2: G2Affine::one(),
-            delta_g1: G1Affine::one(),
-            delta_g2: G2Affine::one(),
-            ic: ic.into_iter().map(|e| e.into_affine()).collect()
+            gamma_g2: G2Affine::identity(),
+            delta_g1: G1Affine::identity(),
+            delta_g2: G2Affine::identity(),
+            ic: ic_affine
         };
 
         let params = Parameters {
             vk: vk,
             h: Arc::new(h),
-            l: Arc::new(l.into_iter().map(|e| e.into_affine()).collect()),
+            l: Arc::new(l_affine),
 
             // Filter points at infinity away from A/B queries
-            a: Arc::new(a_g1.into_iter().filter(|e| !e.is_zero()).map(|e| e.into_affine()).collect()),
-            b_g1: Arc::new(b_g1.into_iter().filter(|e| !e.is_zero()).map(|e| e.into_affine()).collect()),
-            b_g2: Arc::new(b_g2.into_iter().filter(|e| !e.is_zero()).map(|e| e.into_affine()).collect())
+            a: Arc::new(a_g1_affine.into_iter().filter(|e| !e.is_identity().unwrap_u8() == 1).collect()),
+            b_g1: Arc::new(b_g1_affine.into_iter().filter(|e| !e.is_identity().unwrap_u8() == 1).collect()),
+            b_g2: Arc::new(b_g2_affine.into_iter().filter(|e| !e.is_identity().unwrap_u8() == 1).collect())
         };
 
         let h = {
