@@ -5,6 +5,7 @@
 import { BufferSet } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
+import { isExpiredSequence } from '../consensus'
 import { Event } from '../event'
 import { MemPool } from '../memPool'
 import { MetricsMonitor } from '../metrics'
@@ -81,11 +82,7 @@ export class MiningManager {
         continue
       }
 
-      const isExpired = this.chain.verifier.isExpiredSequence(
-        transaction.expiration(),
-        sequence,
-      )
-      if (isExpired) {
+      if (isExpiredSequence(transaction.expiration(), sequence)) {
         continue
       }
 
