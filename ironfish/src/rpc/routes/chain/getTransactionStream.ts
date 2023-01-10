@@ -6,7 +6,7 @@ import { Assert } from '../../../assert'
 import { ChainProcessor } from '../../../chainProcessor'
 import { Block } from '../../../primitives/block'
 import { BlockHeader } from '../../../primitives/blockheader'
-import { CurrencyUtils } from '../../../utils'
+import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { PromiseUtils } from '../../../utils/promise'
 import { isValidIncomingViewKey } from '../../../wallet/validator'
 import { ValidationError } from '../../adapters/errors'
@@ -162,7 +162,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
               value: CurrencyUtils.encode(decryptedNote.value()),
               memo: decryptedNote.memo(),
               assetId: decryptedNote.assetId().toString('hex'),
-              assetName: assetValue?.name.toString('hex') || '',
+              assetName: assetValue ? BufferUtils.toHuman(assetValue.name) : '',
             })
           }
         }
@@ -172,7 +172,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           burns.push({
             value: CurrencyUtils.encode(burn.value),
             assetId: burn.assetId.toString('hex'),
-            assetName: assetValue?.name.toString('hex') || '',
+            assetName: assetValue ? BufferUtils.toHuman(assetValue.name) : '',
           })
         }
 
@@ -180,7 +180,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
           mints.push({
             value: CurrencyUtils.encode(mint.value),
             assetId: mint.asset.id().toString('hex'),
-            assetName: mint.asset.name().toString('hex'),
+            assetName: BufferUtils.toHuman(mint.asset.name()),
           })
         }
 
