@@ -6,6 +6,8 @@ on:
       - "ironfish-zkp/**"
       - "rust-toolchain"
       - ".github/workflows/rust*"
+      - ".cargo/**"
+      - "Cargo*"
   push:
     branches:
       - master
@@ -15,6 +17,8 @@ on:
       - "ironfish-zkp/**"
       - "rust-toolchain"
       - ".github/workflows/rust*"
+      - ".cargo/**"
+      - "Cargo*"
 
 name: Rust CI
 

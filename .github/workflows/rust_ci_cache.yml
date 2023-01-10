@@ -9,6 +9,8 @@ on:
       - "ironfish-zkp/**"
       - "rust-toolchain"
       - ".github/workflows/rust*"
+      - ".cargo/**"
+      - "Cargo*"
 
 name: Cache Rust build
 
