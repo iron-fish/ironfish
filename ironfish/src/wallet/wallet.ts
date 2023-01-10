@@ -539,22 +539,8 @@ export class Wallet {
       return
     }
 
-    for await (const {
-      assetId,
-      blockHash,
-      confirmed,
-      sequence,
-      unconfirmed,
-      unconfirmedCount,
-    } of account.getBalances(headSequence, minimumBlockConfirmations)) {
-      yield {
-        assetId,
-        blockHash,
-        confirmed,
-        sequence,
-        unconfirmed,
-        unconfirmedCount,
-      }
+    for await (const balance of account.getBalances(headSequence, minimumBlockConfirmations)) {
+      yield balance
     }
   }
 
