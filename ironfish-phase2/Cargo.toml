@@ -12,11 +12,12 @@ repository = "https://github.com/ebfull/phase2"
 workspace = true
 
 [dependencies]
-pairing = "0.14"
+pairing = "0.23"
 rand = "0.4"
 bellman = "0.13.1"
 bls12_381 = "0.7.0"
 ff = "0.12.0"
+group = "0.13.0"
 byteorder = "1"
 num_cpus = "1"
 crossbeam = "0.3"

@@ -26,7 +26,7 @@ name = "split_params"
 
 [dependencies]
 phase2 = { path = "../ironfish-phase2" }
-pairing = "0.14"
+pairing = "0.23"
 rand = "0.4"
 blake2-rfc = "0.2"
 
@@ -44,5 +44,4 @@ optional = true
 
 [features]
 verification = ["ironfish_zkp"]
-u128-support = ["pairing/u128-support"]
 beacon = ["byteorder"]

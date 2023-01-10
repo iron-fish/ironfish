@@ -234,15 +234,11 @@ use std::{
 use ff::PrimeField;
 
 use pairing::{
-    // PrimeField,
-    bls12_381::{
-        G1Uncompressed,
-        G2Uncompressed,
-    },
-    EncodedPoint,
-    CurveAffine,
-    CurveProjective,
-    Wnaf,
+    PairingCurveAffine,
+};
+
+use group::{
+    Wnaf
 };
 
 use bellman::{
@@ -740,7 +736,7 @@ impl MPCParameters {
         // Generate a keypair
         let (pubkey, privkey) = keypair(rng, self);
 
-        fn batch_exp<C: CurveAffine>(bases: &mut [C], coeff: C::Scalar) {
+        fn batch_exp<C: PairingCurveAffine>(bases: &mut [C], coeff: C::Scalar) {
             let coeff = coeff.into_repr();
 
             let mut projective = vec![C::Projective::zero(); bases.len()];
@@ -1029,34 +1025,34 @@ impl PublicKey {
         mut reader: R
     ) -> io::Result<PublicKey>
     {
-        let mut g1_repr = G1Uncompressed::empty();
-        let mut g2_repr = G2Uncompressed::empty();
+        let mut g1_repr: [u8; 96] = [0u8; 96];
+        let mut g2_repr: [u8; 192] = [0u8; 192];
 
         reader.read_exact(g1_repr.as_mut())?;
-        let delta_after = g1_repr.into_affine().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let delta_after = G1Affine::from_uncompressed(&g1_repr).unwrap_or_else(|| G1Affine::identity());
 
-        if delta_after.is_zero() {
+        if bool::from(delta_after.is_identity()) {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"));
         }
 
         reader.read_exact(g1_repr.as_mut())?;
-        let s = g1_repr.into_affine().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let s = G1Affine::from_uncompressed(&g1_repr).unwrap_or_else(|| G1Affine::identity());
 
-        if s.is_zero() {
+        if bool::from(s.is_identity()) {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"));
         }
 
         reader.read_exact(g1_repr.as_mut())?;
-        let s_delta = g1_repr.into_affine().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let s_delta = G1Affine::from_uncompressed(&g1_repr).unwrap_or_else(|| G1Affine::identity());
 
-        if s_delta.is_zero() {
+        if bool::from(s_delta.is_identity()) {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"));
         }
 
         reader.read_exact(g2_repr.as_mut())?;
-        let r_delta = g2_repr.into_affine().map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let r_delta = G2Affine::from_uncompressed(&g2_repr).unwrap_or_else(|| G2Affine::identity());
 
-        if r_delta.is_zero() {
+        if bool::from(r_delta.is_identity()) {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "point at infinity"));
         }
 
@@ -1212,7 +1208,7 @@ pub fn verify_contribution(
 }
 
 /// Checks if pairs have the same ratio.
-fn same_ratio<G1: CurveAffine>(
+fn same_ratio<G1: PairingCurveAffine>(
     g1: (G1, G1),
     g2: (G1::Pair, G1::Pair)
 ) -> bool
@@ -1233,7 +1229,7 @@ fn same_ratio<G1: CurveAffine>(
 /// e(g, (as)*r1 + (bs)*r2 + (cs)*r3) = e(g^s, a*r1 + b*r2 + c*r3)
 ///
 /// ... with high probability.
-fn merge_pairs<G: CurveAffine>(v1: &[G], v2: &[G]) -> (G, G)
+fn merge_pairs<G: PairingCurveAffine>(v1: &[G], v2: &[G]) -> (G, G)
 {
     use std::sync::{Mutex};
     use rand::{thread_rng};
