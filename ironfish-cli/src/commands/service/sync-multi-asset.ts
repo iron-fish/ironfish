@@ -4,6 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import {
   ApiMultiAssetUpload,
+  BufferUtils,
   GENESIS_BLOCK_SEQUENCE,
   GetTransactionStreamResponse,
   Meter,
@@ -211,13 +212,13 @@ function serializeMultiAssets(data: GetTransactionStreamResponse): ApiMultiAsset
       for (const mint of tx.mints) {
         multiAssets.push({
           type: 'MULTI_ASSET_MINT' as MultiAssetTypes,
-          assetName: mint.assetName,
+          assetName: BufferUtils.toHuman(Buffer.from(mint.assetName, 'hex')),
         })
       }
       for (const burn of tx.burns) {
         multiAssets.push({
           type: 'MULTI_ASSET_BURN' as MultiAssetTypes,
-          assetName: burn.assetName,
+          assetName: BufferUtils.toHuman(Buffer.from(burn.assetName, 'hex')),
         })
       }
       for (const note of tx.notes) {
@@ -225,7 +226,7 @@ function serializeMultiAssets(data: GetTransactionStreamResponse): ApiMultiAsset
         if (note.assetId !== Asset.nativeId().toString('hex')) {
           multiAssets.push({
             type: 'MULTI_ASSET_TRANSFER' as MultiAssetTypes,
-            assetName: note.assetName,
+            assetName: BufferUtils.toHuman(Buffer.from(note.assetName, 'hex')),
           })
         }
       }
