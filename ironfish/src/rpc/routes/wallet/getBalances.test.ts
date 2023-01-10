@@ -21,9 +21,7 @@ describe('getBalances', () => {
   describe('with a missing account', () => {
     it('throws a validation error', async () => {
       await expect(
-        routeTest.client
-          .request('wallet/getBalances', { account: 'fake-account' })
-          .waitForEnd(),
+        routeTest.client.getAccountBalances({ account: 'fake-account' }),
       ).rejects.toThrow(`No account found with name 'fake-account'`)
     })
   })
@@ -62,7 +60,7 @@ describe('getBalances', () => {
       await expect(node.chain).toAddBlock(burnBlock)
       await node.wallet.updateHead()
 
-      const response = routeTest.client.getAccountBalancesStream({
+      const response = await routeTest.client.getAccountBalances({
         account: account.name,
       })
 
@@ -71,16 +69,11 @@ describe('getBalances', () => {
         unconfirmed: bigint
         unconfirmedCount: number
       }>()
-      for await (const {
-        assetId,
-        confirmed,
-        unconfirmed,
-        unconfirmedCount,
-      } of response.contentStream()) {
-        balances.set(Buffer.from(assetId, 'hex'), {
-          confirmed: BigInt(confirmed),
-          unconfirmed: BigInt(unconfirmed),
-          unconfirmedCount,
+      for (const balance of response.content.balances) {
+        balances.set(Buffer.from(balance.assetId, 'hex'), {
+          confirmed: BigInt(balance.confirmed),
+          unconfirmed: BigInt(balance.unconfirmed),
+          unconfirmedCount: balance.unconfirmedCount,
         })
       }
 

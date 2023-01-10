@@ -11,12 +11,14 @@ export interface GetBalancesRequest {
 }
 
 export interface GetBalancesResponse {
-  assetId: string
-  confirmed: string
-  unconfirmed: string
-  unconfirmedCount: number
-  blockHash: string | null
-  sequence: number | null
+  balances: {
+    assetId: string
+    confirmed: string
+    unconfirmed: string
+    unconfirmedCount: number
+    blockHash: string | null
+    sequence: number | null
+  }[]
 }
 
 export const GetBalancesRequestSchema: yup.ObjectSchema<GetBalancesRequest> = yup
@@ -26,14 +28,21 @@ export const GetBalancesRequestSchema: yup.ObjectSchema<GetBalancesRequest> = yu
   })
   .defined()
 
-export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = yup
-  .object({
+const BalancesSchema = yup
+  .object()
+  .shape({
     assetId: yup.string().defined(),
     unconfirmed: yup.string().defined(),
     unconfirmedCount: yup.number().defined(),
     confirmed: yup.string().defined(),
     blockHash: yup.string().nullable(true).defined(),
     sequence: yup.number().nullable(true).defined(),
+  })
+  .defined()
+
+export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = yup
+  .object({
+    balances: yup.array().of(BalancesSchema).defined(),
   })
   .defined()
 
@@ -46,6 +55,7 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
       throw new ValidationError(`No account found with name '${request.data.account}'`)
     }
 
+    const balances = []
     for await (const {
       assetId,
       blockHash,
@@ -58,7 +68,7 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
         break
       }
 
-      request.stream({
+      balances.push({
         assetId: assetId.toString('hex'),
         blockHash: blockHash ? blockHash.toString('hex') : null,
         confirmed: confirmed.toString(),
@@ -68,6 +78,6 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
       })
     }
 
-    request.end()
+    request.end({ balances })
   },
 )
