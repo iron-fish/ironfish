@@ -511,8 +511,8 @@ export class Account {
     const head = await this.getHead()
     if (!head) {
       return {
-        unconfirmed: BigInt(0),
-        confirmed: BigInt(0),
+        unconfirmed: 0n,
+        confirmed: 0n,
         unconfirmedCount: 0,
         blockHash: null,
         sequence: null,
