@@ -534,12 +534,8 @@ export class Wallet {
     )
 
     this.assertHasAccount(account)
-    const headSequence = await this.getAccountHeadSequence(account)
-    if (!headSequence) {
-      return
-    }
 
-    for await (const balance of account.getBalances(headSequence, minimumBlockConfirmations)) {
+    for await (const balance of account.getBalances(minimumBlockConfirmations)) {
       yield balance
     }
   }
@@ -560,23 +556,9 @@ export class Wallet {
       0,
     )
 
-    return await this.walletDb.db.transaction(async (tx) => {
-      this.assertHasAccount(account)
+    this.assertHasAccount(account)
 
-      const headSequence = await this.getAccountHeadSequence(account, tx)
-
-      if (!headSequence) {
-        return {
-          unconfirmed: BigInt(0),
-          confirmed: BigInt(0),
-          unconfirmedCount: 0,
-          blockHash: null,
-          sequence: null,
-        }
-      }
-
-      return account.getBalance(headSequence, assetId, minimumBlockConfirmations, tx)
-    })
+    return account.getBalance(assetId, minimumBlockConfirmations)
   }
 
   private async *getUnspentNotes(

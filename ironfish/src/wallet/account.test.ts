@@ -139,7 +139,7 @@ describe('Accounts', () => {
       AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(1)
 
-    await expect(account.getBalance(1, Asset.nativeId(), 1)).resolves.toMatchObject({
+    await expect(account.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
@@ -152,7 +152,7 @@ describe('Accounts', () => {
       AsyncUtils.materialize(node.wallet.walletDb.loadNoteHashesNotOnChain(account)),
     ).resolves.toHaveLength(0)
 
-    await expect(account.getBalance(1, Asset.nativeId(), 1)).resolves.toMatchObject({
+    await expect(account.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
       confirmed: BigInt(0),
       unconfirmed: BigInt(0),
     })
