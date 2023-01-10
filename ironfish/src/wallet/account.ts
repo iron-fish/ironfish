@@ -116,7 +116,11 @@ export class Account {
         continue
       }
 
-      if (!decryptedNote.sequence || decryptedNote.sequence > maxConfirmedSequence) {
+      if (!decryptedNote.sequence) {
+        continue
+      }
+
+      if (decryptedNote.sequence > maxConfirmedSequence) {
         continue
       }
 
