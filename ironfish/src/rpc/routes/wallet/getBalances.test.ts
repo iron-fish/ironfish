@@ -62,7 +62,7 @@ describe('getBalances', () => {
       await expect(node.chain).toAddBlock(burnBlock)
       await node.wallet.updateHead()
 
-      const response = routeTest.client.getAccountBalances({
+      const response = routeTest.client.getAccountBalancesStream({
         account: account.name,
       })
 

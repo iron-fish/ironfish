@@ -171,7 +171,7 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  getAccountBalances(params: GetBalancesRequest): RpcResponse<void, GetBalancesResponse> {
+  getAccountBalancesStream(params: GetBalancesRequest): RpcResponse<void, GetBalancesResponse> {
     return this.request<void, GetBalancesResponse>(`${ApiNamespace.wallet}/getBalances`, params)
   }
 
