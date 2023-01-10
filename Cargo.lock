@@ -1042,10 +1042,10 @@ dependencies = [
  "byteorder",
  "crossbeam",
  "ff 0.12.1",
- "group 0.13.0",
+ "group 0.12.1",
  "num_cpus",
  "pairing 0.23.0",
- "rand 0.4.6",
+ "rand 0.8.5",
 ]
 
 [[package]]
