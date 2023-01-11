@@ -324,6 +324,7 @@ export class Wallet {
           outgoingViewKey: account.outgoingViewKey,
           spendingKey: account.spendingKey,
           currentNoteIndex,
+          decryptForSpender: false,
         })
 
         if (currentNoteIndex) {
