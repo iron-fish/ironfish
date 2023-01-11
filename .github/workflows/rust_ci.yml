@@ -31,6 +31,11 @@ jobs:
           save-if: false
           shared-key: base
 
+      - name: Install Cargo tools
+        run: |
+          rustup component add rustfmt
+          rustup component add clippy
+
       - name: Check that cargo lockfile is up to date
         run: |
           cargo check --locked
