@@ -7,7 +7,7 @@ import { getAccount } from './utils'
 
 export interface GetBalancesRequest {
   account?: string
-  minimumBlockConfirmations?: number
+  confirmations?: number
 }
 
 export interface GetBalancesResponse {
@@ -25,7 +25,7 @@ export interface GetBalancesResponse {
 export const GetBalancesRequestSchema: yup.ObjectSchema<GetBalancesRequest> = yup
   .object({
     account: yup.string().optional(),
-    minimumBlockConfirmations: yup.number().min(0).optional(),
+    confirmations: yup.number().min(0).optional(),
   })
   .defined()
 
@@ -65,7 +65,7 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
       sequence,
       unconfirmed,
       unconfirmedCount,
-    } of node.wallet.getBalances(account, request.data.minimumBlockConfirmations)) {
+    } of node.wallet.getBalances(account, request.data.confirmations)) {
       if (request.closed) {
         return
       }

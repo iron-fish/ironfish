@@ -42,7 +42,7 @@ export class BalancesCommand extends IronfishCommand {
     const account = args.account as string | undefined
     const response = await client.getAccountBalances({
       account,
-      minimumBlockConfirmations: flags.confirmations,
+      confirmations: flags.confirmations,
     })
     this.log(`Account: ${response.content.account}`)
 
