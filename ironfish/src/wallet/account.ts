@@ -490,7 +490,6 @@ export class Account {
     }
 
     for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
-      const { unconfirmed, blockHash, sequence } = balance
       const { confirmed, unconfirmedCount } =
         await this.calculateUnconfirmedCountAndConfirmedBalance(
           head.sequence,
@@ -499,13 +498,14 @@ export class Account {
           balance.unconfirmed,
           tx,
         )
+
       yield {
         assetId,
-        unconfirmed,
+        unconfirmed: balance.unconfirmed,
         unconfirmedCount,
         confirmed,
-        blockHash,
-        sequence,
+        blockHash: balance.blockHash,
+        sequence: balance.sequence,
       }
     }
   }
@@ -537,21 +537,23 @@ export class Account {
       }
     }
 
-    const { unconfirmed, blockHash, sequence } = await this.getUnconfirmedBalance(assetId, tx)
+    const balance = await this.getUnconfirmedBalance(assetId, tx)
+
     const { confirmed, unconfirmedCount } =
       await this.calculateUnconfirmedCountAndConfirmedBalance(
         head.sequence,
         assetId,
         minimumBlockConfirmations,
-        unconfirmed,
+        balance.unconfirmed,
         tx,
       )
+
     return {
-      unconfirmed,
+      unconfirmed: balance.unconfirmed,
       unconfirmedCount,
       confirmed,
-      blockHash,
-      sequence,
+      blockHash: balance.blockHash,
+      sequence: balance.sequence,
     }
   }
 
