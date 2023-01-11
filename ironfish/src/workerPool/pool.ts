@@ -2,14 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import type { Side } from '../merkletree/merkletree'
 import _ from 'lodash'
 import { VerificationResult, VerificationResultReason } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { Meter, MetricsMonitor } from '../metrics'
-import { BurnDescription } from '../primitives/burnDescription'
-import { MintDescription } from '../primitives/mintDescription'
-import { Note } from '../primitives/note'
 import { RawTransaction } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
 import { Metric } from '../telemetry/interfaces/metric'
@@ -17,7 +13,6 @@ import { WorkerMessageStats } from './interfaces/workerMessageStats'
 import { Job } from './job'
 import { RoundRobinQueue } from './roundRobinQueue'
 import { CreateMinersFeeRequest, CreateMinersFeeResponse } from './tasks/createMinersFee'
-import { CreateTransactionRequest, CreateTransactionResponse } from './tasks/createTransaction'
 import {
   DecryptedNote,
   DecryptNoteOptions,
@@ -57,7 +52,6 @@ export class WorkerPool {
 
   readonly stats = new Map<WorkerMessageType, WorkerMessageStats>([
     [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
-    [WorkerMessageType.CreateTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.DecryptNotes, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.JobAborted, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
@@ -137,51 +131,6 @@ export class WorkerPool {
     const response = await this.execute(request).result()
 
     if (!(response instanceof CreateMinersFeeResponse)) {
-      throw new Error('Invalid response')
-    }
-
-    return new Transaction(Buffer.from(response.serializedTransactionPosted))
-  }
-
-  async createTransaction(
-    spendKey: string,
-    spends: {
-      note: Note
-      treeSize: number
-      rootHash: Buffer
-      authPath: {
-        side: Side
-        hashOfSibling: Buffer
-      }[]
-    }[],
-    receives: {
-      publicAddress: string
-      amount: bigint
-      memo: string
-      assetId: Buffer
-    }[],
-    mints: MintDescription[],
-    burns: BurnDescription[],
-    transactionFee: bigint,
-    expiration: number,
-  ): Promise<Transaction> {
-    const spendsWithSerializedNotes = spends.map((s) => ({
-      ...s,
-      note: s.note.serialize(),
-    }))
-    const request: CreateTransactionRequest = new CreateTransactionRequest(
-      spendKey,
-      transactionFee,
-      expiration,
-      spendsWithSerializedNotes,
-      receives,
-      mints,
-      burns,
-    )
-
-    const response = await this.execute(request).result()
-
-    if (!(response instanceof CreateTransactionResponse)) {
       throw new Error('Invalid response')
     }
 

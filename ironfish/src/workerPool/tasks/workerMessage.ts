@@ -7,7 +7,6 @@ import { Serializable } from '../../common/serializable'
 
 export enum WorkerMessageType {
   CreateMinersFee = 0,
-  CreateTransaction = 1,
   DecryptNotes = 2,
   JobAborted = 3,
   JobError = 4,
