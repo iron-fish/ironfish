@@ -3,17 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import { createNodeTest, useAccountFixture } from '../../testUtilities'
-import { AssetsValue, AssetsValueEncoding } from './assetsValue'
+import { AssetValue, AssetValueEncoding } from './assetValue'
 
-describe('AssetsValueEncoding', () => {
+describe('AssetValueEncoding', () => {
   const nodeTest = createNodeTest()
 
   it('serializes the value into a buffer and deserializes to the original value', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
     const asset = new Asset(account.spendingKey, 'asset', 'metadata')
-    const encoder = new AssetsValueEncoding()
+    const encoder = new AssetValueEncoding()
 
-    const value: AssetsValue = {
+    const value: AssetValue = {
       createdTransactionHash: Buffer.alloc(32, 0),
       id: asset.id(),
       metadata: asset.metadata(),
