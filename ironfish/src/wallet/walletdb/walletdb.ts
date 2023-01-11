@@ -103,7 +103,7 @@ export class WalletDB {
   }>
 
   assets: IDatabaseStore<{
-    key: Buffer
+    key: [Account['prefix'], Buffer]
     value: AssetValue
   }>
 
@@ -206,7 +206,7 @@ export class WalletDB {
 
     this.assets = this.db.addStore({
       name: 'as',
-      keyEncoding: BUFFER_ENCODING,
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new AssetValueEncoding(),
     })
   }
