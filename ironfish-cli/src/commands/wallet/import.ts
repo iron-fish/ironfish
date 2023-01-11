@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { AccountValue, JSONUtils, PromiseUtils } from '@ironfish/sdk'
+import { AccountImport, JSONUtils, PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -33,7 +33,7 @@ export class ImportCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    let account: Omit<AccountValue, 'id'> | null = null
+    let account: AccountImport | null = null
     if (importPath) {
       account = await this.importFile(importPath)
     } else if (process.stdin.isTTY) {
@@ -62,13 +62,13 @@ export class ImportCommand extends IronfishCommand {
     }
   }
 
-  async importFile(path: string): Promise<AccountValue> {
+  async importFile(path: string): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    return JSONUtils.parse<AccountValue>(data)
+    return JSONUtils.parse<AccountImport>(data)
   }
 
-  async importPipe(): Promise<AccountValue> {
+  async importPipe(): Promise<AccountImport> {
     let data = ''
 
     const onData = (dataIn: string): void => {
@@ -84,10 +84,10 @@ export class ImportCommand extends IronfishCommand {
 
     process.stdin.off('data', onData)
 
-    return JSONUtils.parse<AccountValue>(data)
+    return JSONUtils.parse<AccountImport>(data)
   }
 
-  async importTTY(): Promise<Omit<AccountValue, 'id'>> {
+  async importTTY(): Promise<AccountImport> {
     const accountName = await CliUx.ux.prompt('Enter the account name', {
       required: true,
     })
@@ -96,24 +96,9 @@ export class ImportCommand extends IronfishCommand {
       required: true,
     })
 
-    const incomingViewKey = await CliUx.ux.prompt('Enter the account incoming view key', {
-      required: true,
-    })
-
-    const outgoingViewKey = await CliUx.ux.prompt('Enter the account outgoing view key', {
-      required: true,
-    })
-
-    const publicAddress = await CliUx.ux.prompt('Enter the account public address', {
-      required: true,
-    })
-
     return {
       name: accountName,
       spendingKey: spendingKey,
-      incomingViewKey: incomingViewKey,
-      outgoingViewKey: outgoingViewKey,
-      publicAddress: publicAddress,
     }
   }
 }
