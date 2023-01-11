@@ -12,7 +12,7 @@ import {
 import bufio from 'bufio'
 import { BigIntUtils } from '../../utils'
 
-export interface AssetsValue {
+export interface AssetValue {
   createdTransactionHash: Buffer
   id: Buffer
   metadata: Buffer
@@ -21,8 +21,8 @@ export interface AssetsValue {
   supply: bigint
 }
 
-export class AssetsValueEncoding implements IDatabaseEncoding<AssetsValue> {
-  serialize(value: AssetsValue): Buffer {
+export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
+  serialize(value: AssetValue): Buffer {
     const bw = bufio.write(this.getSize(value))
     bw.writeHash(value.createdTransactionHash)
     bw.writeHash(value.id)
@@ -33,7 +33,7 @@ export class AssetsValueEncoding implements IDatabaseEncoding<AssetsValue> {
     return bw.render()
   }
 
-  deserialize(buffer: Buffer): AssetsValue {
+  deserialize(buffer: Buffer): AssetValue {
     const reader = bufio.read(buffer, true)
     const createdTransactionHash = reader.readHash()
     const id = reader.readBytes(ASSET_ID_LENGTH)
@@ -44,7 +44,7 @@ export class AssetsValueEncoding implements IDatabaseEncoding<AssetsValue> {
     return { createdTransactionHash, id, metadata, name, owner, supply }
   }
 
-  getSize(value: AssetsValue): number {
+  getSize(value: AssetValue): number {
     let size = 0
     size += 32 // createdTransactionHash
     size += ASSET_ID_LENGTH // id
