@@ -4,6 +4,7 @@
 
 export * from './burnAsset'
 export * from './create'
+export * from './createRawTransaction'
 export * from './exportAccount'
 export * from './getAccounts'
 export * from './getBalance'
