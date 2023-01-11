@@ -9,7 +9,7 @@ import { getAccount } from './utils'
 export type GetBalanceRequest = {
   account?: string
   assetId?: string
-  minimumBlockConfirmations?: number
+  confirmations?: number
 }
 
 export type GetBalanceResponse = {
@@ -18,7 +18,7 @@ export type GetBalanceResponse = {
   confirmed: string
   unconfirmed: string
   unconfirmedCount: number
-  minimumBlockConfirmations: number
+  confirmations: number
   blockHash: string | null
   sequence: number | null
 }
@@ -27,7 +27,7 @@ export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
   .object({
     account: yup.string().strip(true),
     assetId: yup.string().optional(),
-    minimumBlockConfirmations: yup.number().min(0).optional(),
+    confirmations: yup.number().min(0).optional(),
   })
   .defined()
 
@@ -38,7 +38,7 @@ export const GetBalanceResponseSchema: yup.ObjectSchema<GetBalanceResponse> = yu
     unconfirmed: yup.string().defined(),
     unconfirmedCount: yup.number().defined(),
     confirmed: yup.string().defined(),
-    minimumBlockConfirmations: yup.number().defined(),
+    confirmations: yup.number().defined(),
     blockHash: yup.string().nullable(true).defined(),
     sequence: yup.number().nullable(true).defined(),
   })
@@ -48,10 +48,7 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
   `${ApiNamespace.wallet}/getBalance`,
   GetBalanceRequestSchema,
   async (request, node): Promise<void> => {
-    const minimumBlockConfirmations = Math.max(
-      request.data.minimumBlockConfirmations ?? node.config.get('minimumBlockConfirmations'),
-      0,
-    )
+    const confirmations = request.data.confirmations ?? node.config.get('confirmations')
 
     const account = getAccount(node, request.data.account)
 
@@ -61,7 +58,7 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
     }
 
     const balance = await node.wallet.getBalance(account, assetId, {
-      minimumBlockConfirmations,
+      confirmations,
     })
 
     request.end({
@@ -70,7 +67,7 @@ router.register<typeof GetBalanceRequestSchema, GetBalanceResponse>(
       confirmed: balance.confirmed.toString(),
       unconfirmed: balance.unconfirmed.toString(),
       unconfirmedCount: balance.unconfirmedCount,
-      minimumBlockConfirmations,
+      confirmations: confirmations,
       blockHash: balance.blockHash?.toString('hex') ?? null,
       sequence: balance.sequence,
     })

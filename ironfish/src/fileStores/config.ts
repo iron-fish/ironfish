@@ -126,7 +126,7 @@ export type ConfigOptions = {
    * The minimum number of block confirmations needed when computing account
    * balance.
    */
-  minimumBlockConfirmations: number
+  confirmations: number
 
   /**
    * The name that the pool will use in block graffiti and transaction memo.
@@ -280,7 +280,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     transactionExpirationDelta: YupUtils.isPositiveInteger,
     blocksPerMessage: YupUtils.isPositiveInteger,
     minerBatchSize: YupUtils.isPositiveInteger,
-    minimumBlockConfirmations: YupUtils.isPositiveInteger,
+    confirmations: YupUtils.isPositiveInteger,
     poolName: yup.string(),
     poolAccountName: yup.string(),
     poolBanning: yup.boolean(),
@@ -356,7 +356,7 @@ export class Config extends KeyStore<ConfigOptions> {
       tlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'node-key.pem')),
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
       maxPeers: 50,
-      minimumBlockConfirmations: 2,
+      confirmations: 2,
       minPeers: 1,
       targetPeers: 50,
       telemetryApi: 'https://api.ironfish.network/telemetry',

@@ -525,7 +525,7 @@ export class Wallet {
 
   async *getBalances(
     account: Account,
-    minimumBlockConfirmations?: number,
+    confirmations?: number,
   ): AsyncGenerator<{
     assetId: Buffer
     unconfirmed: bigint
@@ -534,12 +534,11 @@ export class Wallet {
     blockHash: Buffer | null
     sequence: number | null
   }> {
-    minimumBlockConfirmations =
-      minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations')
+    confirmations = confirmations ?? this.config.get('confirmations')
 
     this.assertHasAccount(account)
 
-    for await (const balance of account.getBalances(minimumBlockConfirmations)) {
+    for await (const balance of account.getBalances(confirmations)) {
       yield balance
     }
   }
@@ -547,7 +546,7 @@ export class Wallet {
   async getBalance(
     account: Account,
     assetId: Buffer,
-    options?: { minimumBlockConfirmations?: number },
+    options?: { confirmations?: number },
   ): Promise<{
     unconfirmedCount: number
     unconfirmed: bigint
@@ -555,26 +554,24 @@ export class Wallet {
     blockHash: Buffer | null
     sequence: number | null
   }> {
-    const minimumBlockConfirmations =
-      options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations')
+    const confirmations = options?.confirmations ?? this.config.get('confirmations')
 
     this.assertHasAccount(account)
 
-    return account.getBalance(assetId, minimumBlockConfirmations)
+    return account.getBalance(assetId, confirmations)
   }
 
   private async *getUnspentNotes(
     account: Account,
     assetId: Buffer,
     options?: {
-      minimumBlockConfirmations?: number
+      confirmations?: number
     },
   ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
-    const minimumBlockConfirmations =
-      options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations')
+    const confirmations = options?.confirmations ?? this.config.get('confirmations')
 
     for await (const decryptedNote of account.getUnspentNotes(assetId, {
-      minimumBlockConfirmations,
+      confirmations,
     })) {
       yield decryptedNote
     }
@@ -1070,12 +1067,11 @@ export class Wallet {
     transaction: TransactionValue,
     options?: {
       headSequence?: number | null
-      minimumBlockConfirmations?: number
+      confirmations?: number
     },
     tx?: IDatabaseTransaction,
   ): Promise<TransactionStatus> {
-    const minimumBlockConfirmations =
-      options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations')
+    const confirmations = options?.confirmations ?? this.config.get('confirmations')
 
     const headSequence =
       options?.headSequence ?? (await this.getAccountHeadSequence(account, tx))
@@ -1085,7 +1081,7 @@ export class Wallet {
     }
 
     if (transaction.sequence) {
-      const isConfirmed = headSequence - transaction.sequence >= minimumBlockConfirmations
+      const isConfirmed = headSequence - transaction.sequence >= confirmations
 
       return isConfirmed ? TransactionStatus.CONFIRMED : TransactionStatus.UNCONFIRMED
     } else {

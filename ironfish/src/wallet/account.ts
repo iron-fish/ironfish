@@ -97,7 +97,7 @@ export class Account {
   async *getUnspentNotes(
     assetId: Buffer,
     options?: {
-      minimumBlockConfirmations?: number
+      confirmations?: number
     },
   ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
     const head = await this.getHead()
@@ -105,9 +105,9 @@ export class Account {
       return
     }
 
-    const minimumBlockConfirmations = options?.minimumBlockConfirmations ?? 0
+    const confirmations = options?.confirmations ?? 0
 
-    const maxConfirmedSequence = head.sequence - minimumBlockConfirmations
+    const maxConfirmedSequence = head.sequence - confirmations
 
     for await (const decryptedNote of this.getNotes()) {
       if (!decryptedNote.note.assetId().equals(assetId)) {
@@ -474,7 +474,7 @@ export class Account {
   }
 
   async *getBalances(
-    minimumBlockConfirmations: number,
+    confirmations: number,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<{
     assetId: Buffer
@@ -494,7 +494,7 @@ export class Account {
         await this.calculateUnconfirmedCountAndConfirmedBalance(
           head.sequence,
           assetId,
-          minimumBlockConfirmations,
+          confirmations,
           balance.unconfirmed,
           tx,
         )
@@ -517,7 +517,7 @@ export class Account {
    */
   async getBalance(
     assetId: Buffer,
-    minimumBlockConfirmations: number,
+    confirmations: number,
     tx?: IDatabaseTransaction,
   ): Promise<{
     unconfirmed: bigint
@@ -543,7 +543,7 @@ export class Account {
       await this.calculateUnconfirmedCountAndConfirmedBalance(
         head.sequence,
         assetId,
-        minimumBlockConfirmations,
+        confirmations,
         balance.unconfirmed,
         tx,
       )
@@ -560,18 +560,18 @@ export class Account {
   private async calculateUnconfirmedCountAndConfirmedBalance(
     headSequence: number,
     assetId: Buffer,
-    minimumBlockConfirmations: number,
+    confirmations: number,
     unconfirmed: bigint,
     tx?: IDatabaseTransaction,
   ): Promise<{ confirmed: bigint; unconfirmedCount: number }> {
     let unconfirmedCount = 0
 
     let confirmed = unconfirmed
-    if (minimumBlockConfirmations > 0) {
+    if (confirmations > 0) {
       const unconfirmedSequenceEnd = headSequence
 
       const unconfirmedSequenceStart = Math.max(
-        unconfirmedSequenceEnd - minimumBlockConfirmations + 1,
+        unconfirmedSequenceEnd - confirmations + 1,
         GENESIS_BLOCK_SEQUENCE,
       )
 

@@ -143,9 +143,9 @@ describe('Accounts', () => {
     const notesNotOnChainA = await AsyncUtils.materialize(
       accountA['walletDb'].loadNotesNotOnChain(accountA),
     )
-    // set minimumBlockConfirmations so that balance considers confirmations
+    // set confirmations so that balance considers confirmations
     const balanceA = await nodeA.wallet.getBalance(accountA, Asset.nativeId(), {
-      minimumBlockConfirmations: 2,
+      confirmations: 2,
     })
 
     expect(balanceA.confirmed).toBeGreaterThanOrEqual(0n)
@@ -417,7 +417,7 @@ describe('Accounts', () => {
   describe('getBalance', () => {
     it('returns balances for unspent notes with minimum confirmations on the main chain', async () => {
       const { node: nodeA } = await nodeTest.createSetup({
-        config: { minimumBlockConfirmations: 2 },
+        config: { confirmations: 2 },
       })
       const { node: nodeB } = await nodeTest.createSetup()
       const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
