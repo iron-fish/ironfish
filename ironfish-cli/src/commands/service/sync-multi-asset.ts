@@ -91,7 +91,7 @@ export default class SyncMultiAsset extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     this.log(`Fetching head from ${api.host}`)
-    const head = await api.headMaspTransactions()
+    const head = await api.headMultiAsset()
 
     let lastCountedSequence: number
     if (head) {
@@ -115,7 +115,7 @@ export default class SyncMultiAsset extends IronfishCommand {
     async function commit(): Promise<void> {
       const serialized = buffer.map(serializeMultiAssets)
       buffer.length = 0
-      await api.uploadMaspTransactions(serialized)
+      await api.uploadMultiAsset(serialized)
     }
 
     for await (const content of response.contentStream()) {
@@ -156,7 +156,7 @@ export default class SyncMultiAsset extends IronfishCommand {
   async syncRandom(api: WebApi): Promise<void> {
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const headHash = (await api.headMaspTransactions()) || ''
+      const headHash = (await api.headMultiAsset()) || ''
 
       const choices: MultiAssetTypes[] = [
         'MULTI_ASSET_TRANSFER',
@@ -165,7 +165,7 @@ export default class SyncMultiAsset extends IronfishCommand {
       ]
       const choice = choices[Math.floor(Math.random() * choices.length)]
       const connectedblockHash = uuid()
-      await api.uploadMaspTransactions([
+      await api.uploadMultiAsset([
         {
           type: 'connected',
           block: {
@@ -185,7 +185,7 @@ export default class SyncMultiAsset extends IronfishCommand {
       await PromiseUtils.sleep(5000)
       if (Math.floor(Math.random() * 2) === 0) {
         // randomly disconnect blocks
-        await api.uploadMaspTransactions([
+        await api.uploadMultiAsset([
           {
             type: 'disconnected',
             block: {
