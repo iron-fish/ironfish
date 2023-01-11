@@ -4,7 +4,7 @@
 
 import { BlockHash } from '../primitives/blockheader'
 import { DatabaseSchema } from '../storage'
-import { AssetsValue } from './database/assets'
+import { AssetValue } from './database/assetValue'
 import { HeaderValue } from './database/headers'
 import { SequenceToHashesValue } from './database/sequenceToHashes'
 import { TransactionsValue } from './database/transactions'
@@ -41,7 +41,7 @@ export interface HashToNextSchema extends DatabaseSchema {
   value: BlockHash
 }
 
-export interface AssetsSchema extends DatabaseSchema {
+export interface AssetSchema extends DatabaseSchema {
   key: Buffer
-  value: AssetsValue
+  value: AssetValue
 }
