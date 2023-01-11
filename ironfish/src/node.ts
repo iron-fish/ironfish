@@ -245,7 +245,7 @@ export class IronfishNode {
       config,
     })
 
-    const accountDB = new WalletDB({
+    const walletDB = new WalletDB({
       location: config.walletDatabasePath,
       workerPool,
       files,
@@ -254,7 +254,7 @@ export class IronfishNode {
     const wallet = new Wallet({
       chain,
       config,
-      database: accountDB,
+      database: walletDB,
       workerPool,
     })
 

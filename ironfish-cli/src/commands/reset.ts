@@ -35,7 +35,7 @@ export default class Reset extends IronfishCommand {
     let confirmed = flags.confirm
 
     const warningMessage =
-      `\n/!\\ WARNING: This will permanently delete your accounts. You can back them up by loading the previous version of ironfish and running ironfish export. /!\\\n` +
+      `\n/!\\ WARNING: This will permanently delete your wallets. You can back them up by loading the previous version of ironfish and running ironfish export. /!\\\n` +
       '\nHave you read the warning? (Y)es / (N)o'
 
     confirmed = flags.confirm || (await CliUx.ux.confirm(warningMessage))
@@ -54,7 +54,7 @@ export default class Reset extends IronfishCommand {
 
     const message =
       '\nYou are about to destroy your node databases. The following directories and files will be deleted:\n' +
-      `\nAccounts: ${walletDatabasePath}` +
+      `\nWallet: ${walletDatabasePath}` +
       `\nBlockchain: ${chainDatabasePath}` +
       `\nHosts: ${hostFilePath}` +
       `\n\nAre you sure? (Y)es / (N)o`

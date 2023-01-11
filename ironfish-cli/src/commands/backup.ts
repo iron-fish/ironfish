@@ -28,12 +28,12 @@ export default class Backup extends IronfishCommand {
     chain: Flags.boolean({
       default: true,
       allowNo: true,
-      description: 'Export the chain DB',
+      description: 'Backup the chain DB',
     }),
-    accounts: Flags.boolean({
+    wallet: Flags.boolean({
       default: false,
       allowNo: true,
-      description: 'Export the accounts',
+      description: 'Backup the wallet',
     }),
     accessKeyId: Flags.string({
       char: 'a',
@@ -96,7 +96,7 @@ export default class Backup extends IronfishCommand {
       excludes.push(path.basename(path.dirname(this.sdk.config.chainDatabasePath)))
     }
 
-    if (!flags.accounts) {
+    if (!flags.wallet) {
       excludes.push(path.basename(path.dirname(this.sdk.config.walletDatabasePath)))
     }
 
