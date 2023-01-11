@@ -26,6 +26,7 @@ import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
+import { AssetValue, AssetValueEncoding } from './assetValue'
 import { BalanceValue, BalanceValueEncoding } from './balanceValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
@@ -99,6 +100,11 @@ export class WalletDB {
   timestampToTransactionHash: IDatabaseStore<{
     key: [Account['prefix'], number]
     value: TransactionHash
+  }>
+
+  assets: IDatabaseStore<{
+    key: [Account['prefix'], Buffer]
+    value: AssetValue
   }>
 
   constructor({
@@ -196,6 +202,12 @@ export class WalletDB {
       name: 'T',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), U64_ENCODING, 4),
       valueEncoding: new BufferEncoding(),
+    })
+
+    this.assets = this.db.addStore({
+      name: 'as',
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+      valueEncoding: new AssetValueEncoding(),
     })
   }
 
