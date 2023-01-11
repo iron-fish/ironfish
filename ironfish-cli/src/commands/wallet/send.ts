@@ -12,15 +12,15 @@ export class Send extends IronfishCommand {
 
   static examples = [
     '$ ironfish wallet:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',
-    '$ ironfish wallet:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otherwallet',
-    '$ ironfish wallet:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otherwallet -m my_message_for_the_transaction',
+    '$ ironfish wallet:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount',
+    '$ ironfish wallet:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount -m my_message_for_the_transaction',
   ]
 
   static flags = {
     ...RemoteFlags,
-    wallet: Flags.string({
+    account: Flags.string({
       char: 'f',
-      description: 'The wallet to send money from',
+      description: 'The account to send money from',
     }),
     amount: Flags.string({
       char: 'a',
@@ -64,7 +64,7 @@ export class Send extends IronfishCommand {
     let amount = null
     let fee = null
     let to = flags.to?.trim()
-    let from = flags.wallet?.trim()
+    let from = flags.account?.trim()
     const expiration = flags.expiration
     const memo = flags.memo || ''
 
@@ -107,8 +107,8 @@ export class Send extends IronfishCommand {
 
       if (!defaultAccount) {
         this.error(
-          `No wallet is currently active.
-           Use ironfish wallet:create <name> to first create a wallet`,
+          `No account is currently active.
+           Use ironfish wallet:create <name> to first create an account`,
         )
       }
 
