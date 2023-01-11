@@ -25,7 +25,7 @@ export interface GetBalancesResponse {
 export const GetBalancesRequestSchema: yup.ObjectSchema<GetBalancesRequest> = yup
   .object({
     account: yup.string().optional(),
-    minimumBlockConfirmations: yup.number().optional(),
+    minimumBlockConfirmations: yup.number().min(0).optional(),
   })
   .defined()
 

@@ -27,6 +27,7 @@ export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
   .object({
     account: yup.string().strip(true),
     assetId: yup.string().optional(),
+    minimumBlockConfirmations: yup.number().min(0).optional(),
   })
   .defined()
 
