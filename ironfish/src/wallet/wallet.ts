@@ -1,7 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  generateKey,
+  generateKeyFromPrivateKey,
+  Note as NativeNote,
+} from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
@@ -31,7 +36,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
-import { Account } from './account'
+import { Account, AccountImport } from './account'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import { validateAccount } from './validator'
@@ -1136,9 +1141,7 @@ export class Wallet {
     }
   }
 
-  async importAccount(toImport: Omit<AccountValue, 'rescan' | 'id'>): Promise<Account> {
-    validateAccount(toImport)
-
+  async importAccount(toImport: AccountImport): Promise<Account> {
     if (toImport.name && this.getAccountByName(toImport.name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
@@ -1147,9 +1150,20 @@ export class Wallet {
       throw new Error(`Account already exists with provided spending key`)
     }
 
-    const account = new Account({
+    const key = generateKeyFromPrivateKey(toImport.spendingKey)
+
+    const accountValue: AccountValue = {
       ...toImport,
       id: uuid(),
+      incomingViewKey: key.incoming_view_key,
+      outgoingViewKey: key.outgoing_view_key,
+      publicAddress: key.public_address,
+    }
+
+    validateAccount(accountValue)
+
+    const account = new Account({
+      ...accountValue,
       walletDb: this.walletDb,
     })
 
