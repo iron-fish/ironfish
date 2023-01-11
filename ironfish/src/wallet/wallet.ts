@@ -1073,8 +1073,7 @@ export class Wallet {
   ): Promise<TransactionStatus> {
     const confirmations = options?.confirmations ?? this.config.get('confirmations')
 
-    const headSequence =
-      options?.headSequence ?? (await this.getAccountHeadSequence(account, tx))
+    const headSequence = options?.headSequence ?? (await account.getHead(tx))?.sequence
 
     if (!headSequence) {
       return TransactionStatus.UNKNOWN
@@ -1254,20 +1253,6 @@ export class Wallet {
     return null
   }
 
-  async getAccountHeadSequence(
-    account: Account,
-    tx?: IDatabaseTransaction,
-  ): Promise<number | null> {
-    this.assertHasAccount(account)
-
-    const header = await account.getHead(tx)
-    if (!header) {
-      return null
-    }
-
-    return header.sequence
-  }
-
   getDefaultAccount(): Account | null {
     if (!this.defaultAccount) {
       return null
@@ -1277,48 +1262,48 @@ export class Wallet {
   }
 
   async getEarliestHeadHash(): Promise<Buffer | null> {
-    let earliestHeader = null
+    let earliestHead = null
     for (const account of this.accounts.values()) {
-      const header = await account.getHead()
+      const head = await account.getHead()
 
-      if (!header) {
+      if (!head) {
         return null
       }
 
-      if (!earliestHeader || earliestHeader.sequence > header.sequence) {
-        earliestHeader = header
+      if (!earliestHead || earliestHead.sequence > head.sequence) {
+        earliestHead = head
       }
     }
 
-    return earliestHeader ? earliestHeader.hash : null
+    return earliestHead ? earliestHead.hash : null
   }
 
   async getLatestHeadHash(): Promise<Buffer | null> {
-    let latestHeader = null
+    let latestHead = null
 
     for (const account of this.accounts.values()) {
-      const header = await account.getHead()
+      const head = await account.getHead()
 
-      if (!header) {
+      if (!head) {
         continue
       }
 
-      if (!latestHeader || latestHeader.sequence < header.sequence) {
-        latestHeader = header
+      if (!latestHead || latestHead.sequence < head.sequence) {
+        latestHead = head
       }
     }
 
-    return latestHeader ? latestHeader.hash : null
+    return latestHead ? latestHead.hash : null
   }
 
   async isAccountUpToDate(account: Account): Promise<boolean> {
-    const header = await account.getHead()
+    const head = await account.getHead()
     Assert.isNotUndefined(
-      header,
+      head,
       `isAccountUpToDate: No head hash found for account ${account.displayName}`,
     )
 
-    return BufferUtils.equalsNullable(header?.hash ?? null, this.chainProcessor.hash)
+    return BufferUtils.equalsNullable(head?.hash ?? null, this.chainProcessor.hash)
   }
 
   protected assertHasAccount(account: Account): void {
