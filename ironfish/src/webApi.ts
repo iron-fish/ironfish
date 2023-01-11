@@ -69,21 +69,7 @@ export class WebApi {
     this.getFundsEndpoint = options?.getFundsEndpoint || null
   }
 
-  async headDeposits(): Promise<string | null> {
-    const response = await axios
-      .get<{ block_hash: string }>(`${this.host}/deposits/head`)
-      .catch((e) => {
-        // The API returns 404 for no head
-        if (IsAxiosError(e) && e.response?.status === 404) {
-          return null
-        }
-
-        throw e
-      })
-
-    return response?.data.block_hash || null
-  }
-  async headMaspTransactions(): Promise<string | null> {
+  async headMultiAsset(): Promise<string | null> {
     const response = await axios
       .get<{ block_hash: string }>(`${this.host}/multi_asset/head`)
       .catch((e) => {
@@ -113,7 +99,7 @@ export class WebApi {
     return response?.data.hash || null
   }
 
-  async uploadMaspTransactions(multiAssets: ApiMultiAssetUpload[]): Promise<void> {
+  async uploadMultiAsset(multiAssets: ApiMultiAssetUpload[]): Promise<void> {
     this.requireToken()
 
     const options = this.options({ 'Content-Type': 'application/json' })
