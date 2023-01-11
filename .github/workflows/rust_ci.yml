@@ -28,9 +28,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          components: rustfmt, clippy
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -38,11 +35,13 @@ jobs:
           save-if: false
           shared-key: base
 
+      - name: Install Cargo tools
+        run: |
+          rustup component add rustfmt clippy
+
       - name: Check that cargo lockfile is up to date
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked
+        run: |
+          cargo check --locked
 
       # Note: ironfish-zkp is does not need this due to different licensing
       - name: Check for license headers for ironfish-rust
@@ -51,28 +50,19 @@ jobs:
       - name: Check for license headers for ironfish-rust-nodejs
         run: ./ci/lintHeaders.sh ./ironfish-rust-nodejs/src *.rs
 
-      # fmt
-      - uses: actions-rs/cargo@v1
-        name: "`cargo fmt` check on ironfish-rust"
-        with:
-          command: fmt
-          args: --all -- --check
+      - name: "`cargo fmt` check on ironfish-rust"
+        run: |
+          cargo fmt --all -- --check
 
-      # clippy
-      - uses: actions-rs/cargo@v1
-        name: "Clippy check on ironfish-rust"
-        with:
-          command: clippy
-          args: --all-targets -- -D warnings
+      - name: "Clippy check on ironfish-rust"
+        run: |
+          cargo clippy --all-targets -- -D warnings
 
   ironfish_rust:
     name: Test ironfish-rust
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          components: rustfmt, clippy
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -99,9 +89,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          components: rustfmt, clippy
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
