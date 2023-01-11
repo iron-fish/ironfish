@@ -16,7 +16,7 @@ describe('getBalances', () => {
     it('throws a validation error', async () => {
       await expect(
         routeTest.client.getAccountBalances({ account: 'fake-account' }),
-      ).rejects.toThrow(`No account found with name 'fake-account'`)
+      ).rejects.toThrow('No account with name fake-account')
     })
   })
 
