@@ -33,8 +33,7 @@ jobs:
 
       - name: Install Cargo tools
         run: |
-          rustup component add rustfmt
-          rustup component add clippy
+          rustup component add rustfmt clippy
 
       - name: Check that cargo lockfile is up to date
         run: |
