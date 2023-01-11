@@ -21,6 +21,7 @@ import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage'
 import { BufferUtils } from '../utils/buffer'
 import { WorkerPool } from '../workerPool'
+import { isExpiredSequence } from './utils'
 
 export class Verifier {
   chain: Blockchain
@@ -68,7 +69,7 @@ export class Verifier {
     let transactionBatch = []
     let runningNotesCount = 0
     for (const [idx, tx] of block.transactions.entries()) {
-      if (this.isExpiredSequence(tx.expiration(), block.header.sequence)) {
+      if (isExpiredSequence(tx.expiration(), block.header.sequence)) {
         return {
           valid: false,
           reason: VerificationResultReason.TRANSACTION_EXPIRED,
@@ -310,10 +311,6 @@ export class Verifier {
 
     validity = await this.workerPool.verify(transaction)
     return validity
-  }
-
-  isExpiredSequence(expiration: number, sequence: number): boolean {
-    return expiration !== 0 && expiration <= sequence
   }
 
   /**

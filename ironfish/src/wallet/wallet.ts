@@ -7,6 +7,7 @@ import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
+import { isExpiredSequence } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
@@ -598,7 +599,7 @@ export class Wallet {
 
     expiration = expiration ?? heaviestHead.sequence + transactionExpirationDelta
 
-    if (this.chain.verifier.isExpiredSequence(expiration, this.chain.head.sequence)) {
+    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
@@ -638,7 +639,7 @@ export class Wallet {
 
     const expiration =
       options.expiration ?? heaviestHead.sequence + options.transactionExpirationDelta
-    if (this.chain.verifier.isExpiredSequence(expiration, this.chain.head.sequence)) {
+    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
@@ -703,7 +704,7 @@ export class Wallet {
     }
 
     expiration = expiration ?? heaviestHead.sequence + transactionExpirationDelta
-    if (this.chain.verifier.isExpiredSequence(expiration, this.chain.head.sequence)) {
+    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
@@ -1087,10 +1088,7 @@ export class Wallet {
 
       return isConfirmed ? TransactionStatus.CONFIRMED : TransactionStatus.UNCONFIRMED
     } else {
-      const isExpired = this.chain.verifier.isExpiredSequence(
-        transaction.transaction.expiration(),
-        headSequence,
-      )
+      const isExpired = isExpiredSequence(transaction.transaction.expiration(), headSequence)
 
       return isExpired ? TransactionStatus.EXPIRED : TransactionStatus.PENDING
     }

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
+import * as ConsensusUtils from '../consensus/utils'
 import { getTransactionSize } from '../network/utils/serializers'
 import { Transaction } from '../primitives'
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
@@ -176,15 +177,17 @@ describe('MemPool', () => {
     describe('with an expired sequence', () => {
       const nodeTest = createNodeTest()
 
+      afterEach(() => jest.restoreAllMocks())
+
       it('returns false', async () => {
         const { node } = nodeTest
-        const { wallet, chain, memPool } = node
+        const { wallet, memPool } = node
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
         const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         const isExpiredSequenceSpy = jest
-          .spyOn(chain.verifier, 'isExpiredSequence')
+          .spyOn(ConsensusUtils, 'isExpiredSequence')
           .mockReturnValue(true)
 
         expect(memPool.acceptTransaction(transaction)).toBe(false)
