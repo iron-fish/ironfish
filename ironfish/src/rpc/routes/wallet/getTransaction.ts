@@ -102,7 +102,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       })
     }
 
-    const notesByAccount = await node.wallet.decryptNotes(transaction.transaction, null, [
+    const notesByAccount = await node.wallet.decryptNotes(transaction.transaction, null, true, [
       account,
     ])
     const notes = notesByAccount.get(account.id) ?? []
