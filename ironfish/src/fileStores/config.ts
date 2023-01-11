@@ -307,7 +307,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
 
 export class Config extends KeyStore<ConfigOptions> {
   readonly chainDatabasePath: string
-  readonly accountDatabasePath: string
+  readonly walletDatabasePath: string
   readonly tempDir: string
 
   constructor(files: FileSystem, dataDir: string, configName?: string) {
@@ -320,7 +320,7 @@ export class Config extends KeyStore<ConfigOptions> {
     )
 
     this.chainDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'chain')
-    this.accountDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'wallet')
+    this.walletDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'wallet')
     this.tempDir = this.files.join(this.storage.dataDir, 'temp')
   }
 

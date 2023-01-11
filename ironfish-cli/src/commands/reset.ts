@@ -35,7 +35,7 @@ export default class Reset extends IronfishCommand {
     let confirmed = flags.confirm
 
     const warningMessage =
-      `\n/!\\ WARNING: This will permanently delete your accounts. You can back them up by loading the previous version of ironfish and running ironfish export. /!\\\n` +
+      `\n/!\\ WARNING: This will permanently delete your wallets. You can back them up by loading the previous version of ironfish and running ironfish export. /!\\\n` +
       '\nHave you read the warning? (Y)es / (N)o'
 
     confirmed = flags.confirm || (await CliUx.ux.confirm(warningMessage))
@@ -45,7 +45,7 @@ export default class Reset extends IronfishCommand {
       this.exit(0)
     }
 
-    const accountDatabasePath = this.sdk.config.accountDatabasePath
+    const walletDatabasePath = this.sdk.config.walletDatabasePath
     const chainDatabasePath = this.sdk.config.chainDatabasePath
     const hostFilePath: string = this.sdk.config.files.join(
       this.sdk.config.dataDir,
@@ -54,7 +54,7 @@ export default class Reset extends IronfishCommand {
 
     const message =
       '\nYou are about to destroy your node databases. The following directories and files will be deleted:\n' +
-      `\nAccounts: ${accountDatabasePath}` +
+      `\nWallet: ${walletDatabasePath}` +
       `\nBlockchain: ${chainDatabasePath}` +
       `\nHosts: ${hostFilePath}` +
       `\n\nAre you sure? (Y)es / (N)o`
@@ -69,7 +69,7 @@ export default class Reset extends IronfishCommand {
     CliUx.ux.action.start('Deleting databases...')
 
     await Promise.all([
-      fsAsync.rm(accountDatabasePath, { recursive: true, force: true }),
+      fsAsync.rm(walletDatabasePath, { recursive: true, force: true }),
       fsAsync.rm(chainDatabasePath, { recursive: true, force: true }),
       fsAsync.rm(hostFilePath, { recursive: true, force: true }),
     ])
