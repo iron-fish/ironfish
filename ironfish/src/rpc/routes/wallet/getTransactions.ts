@@ -66,7 +66,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
       return
     }
 
-    const headSequence = await node.wallet.getAccountHeadSequence(account)
+    const headSequence = (await account.getHead())?.sequence ?? null
 
     if (request.data.limit) {
       await handleLimitedTransactions(request, node, account, request.data.limit, headSequence)
