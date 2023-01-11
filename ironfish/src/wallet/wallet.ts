@@ -534,10 +534,8 @@ export class Wallet {
     blockHash: Buffer | null
     sequence: number | null
   }> {
-    minimumBlockConfirmations = Math.max(
-      minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations'),
-      0,
-    )
+    minimumBlockConfirmations =
+      minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations')
 
     this.assertHasAccount(account)
 
@@ -557,10 +555,8 @@ export class Wallet {
     blockHash: Buffer | null
     sequence: number | null
   }> {
-    const minimumBlockConfirmations = Math.max(
-      options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations'),
-      0,
-    )
+    const minimumBlockConfirmations =
+      options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations')
 
     this.assertHasAccount(account)
 
