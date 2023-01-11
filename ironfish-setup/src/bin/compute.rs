@@ -23,7 +23,7 @@ fn main() {
     let mut sprout_joinsplit = phase2::MPCParameters::read(&mut current_params, false)
         .expect("couldn't deserialize Sprout JoinSplit params");
 
-    let rng = &mut rand::OsRng::new().expect("couldn't create RNG");
+    let rng = &mut rand::thread_rng();
 
     let h1 = sapling_spend.contribute(rng);
     let h2 = sapling_output.contribute(rng);

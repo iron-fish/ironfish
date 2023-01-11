@@ -2,7 +2,7 @@ extern crate phase2;
 extern crate pairing;
 extern crate rand;
 extern crate blake2_rfc;
-extern crate byteorder;
+extern crate rand_chacha;
 
 use std::convert::TryInto;
 use std::fs::File;
@@ -34,9 +34,8 @@ fn main() {
 
     // Create an RNG based on the outcome of the random beacon
     let rng = &mut {
-        use byteorder::{ReadBytesExt, BigEndian};
         use rand::{SeedableRng};
-        use rand::chacha::ChaChaRng;
+        use rand_chacha::ChaChaRng;
 
         // Place beacon value here (2^42 SHA256 hash of Bitcoin block hash #534861)
         let beacon_value: [u8; 32] = decode_hex("2bf41a959668e5b9b688e58d613b3dcc99ee159a880cf764ec67e6488d8b8af3").as_slice().try_into().unwrap();
@@ -47,14 +46,7 @@ fn main() {
         }
         println!("");
 
-        let mut digest = &beacon_value[..];
-
-        let mut seed = [0u32; 8];
-        for i in 0..8 {
-            seed[i] = digest.read_u32::<BigEndian>().expect("digest is large enough for this to work");
-        }
-
-        ChaChaRng::from_seed(&seed)
+        ChaChaRng::from_seed(beacon_value)
     };
 
     let h1 = sapling_spend.contribute(rng);

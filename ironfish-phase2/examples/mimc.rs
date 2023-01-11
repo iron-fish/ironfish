@@ -3,6 +3,7 @@ extern crate pairing;
 extern crate rand;
 extern crate phase2;
 
+use bls12_381::Bls12;
 // For randomness (during paramgen and proof generation)
 use rand::{thread_rng, Rng};
 
@@ -12,12 +13,6 @@ use std::time::{Duration, Instant};
 // Bring in some tools for using pairing-friendly curves
 use pairing::{
     Engine,
-    Field,
-};
-
-// We're going to use the BLS12-381 pairing-friendly elliptic curve.
-use pairing::bls12_381::{
-    Bls12
 };
 
 // We'll use these interfaces to construct our circuit.

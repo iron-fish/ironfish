@@ -1,5 +1,4 @@
 extern crate phase2;
-extern crate sapling_crypto;
 extern crate pairing;
 extern crate blake2_rfc;
 

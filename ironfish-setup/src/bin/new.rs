@@ -1,5 +1,4 @@
 extern crate phase2;
-extern crate ironfish_zkp;
 extern crate pairing;
 
 use std::fs::File;

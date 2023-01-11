@@ -202,6 +202,7 @@ extern crate byteorder;
 extern crate blake2_rfc;
 extern crate num_cpus;
 extern crate crossbeam;
+extern crate rand_chacha;
 
 use blake2_rfc::blake2b::Blake2b;
 
@@ -224,7 +225,6 @@ use std::{
     ops::{
         Mul,
         AddAssign,
-        Add
     },
     sync::{
         Arc
@@ -238,8 +238,10 @@ use pairing::{
 };
 
 use group::{
-    Wnaf, Curve
+    Wnaf, Curve, Group
 };
+
+use rand_chacha::ChaChaRng;
 
 use bellman::{
     Circuit,
@@ -262,10 +264,7 @@ use bls12_381::{
 };
 
 use rand::{
-    Rng,
-    Rand,
-    ChaChaRng,
-    SeedableRng
+    Rng, SeedableRng,
 };
 
 /// This is our assembly structure that we'll use to synthesize the
@@ -716,10 +715,8 @@ impl MPCParameters {
         // Generate a keypair
         let (pubkey, privkey) = keypair(rng, self);
 
-        fn batch_exp<C: PairingCurveAffine>(bases: &mut [C], coeff: C::Scalar) {
-            let coeff = coeff.into_repr();
-
-            let mut projective = vec![C::Projective::zero(); bases.len()];
+        fn batch_exp(bases: &mut [G1Affine], coeff: bls12_381::Scalar) {
+            let mut projective = vec![G1Projective::identity(); bases.len()];
             let cpus = num_cpus::get();
             let chunk_size = if bases.len() < cpus {
                 1
@@ -738,29 +735,30 @@ impl MPCParameters {
                         for (base, projective) in bases.iter_mut()
                                                        .zip(projective.iter_mut())
                         {
-                            *projective = wnaf.base(base.into_projective(), 1).scalar(coeff);
+                            *projective = wnaf.base(G1Projective::from(*base), 1).scalar(&coeff);
                         }
                     });
                 }
             });
 
-            // Perform batch normalization
-            crossbeam::scope(|scope| {
-                for projective in projective.chunks_mut(chunk_size)
-                {
-                    scope.spawn(move || {
-                        C::Projective::batch_normalization(projective);
-                    });
-                }
-            });
+            // // Perform batch normalization
+            // crossbeam::scope(|scope| {
+            //     for projective in projective.chunks_mut(chunk_size)
+            //     {
+            //         scope.spawn(move || {
+            //             C::Projective::batch_normalization(projective);
+            //         });
+            //     }
+            // });
 
+            //TODO: consider trying to chunk and thread conversion to affine here like above
             // Turn it all back into affine points
             for (projective, affine) in projective.iter().zip(bases.iter_mut()) {
-                *affine = projective.into_affine();
+                *affine = G1Affine::from(projective)
             }
         }
 
-        let delta_inv = privkey.delta.inverse().expect("nonzero");
+        let delta_inv = privkey.delta.invert().unwrap();
         let mut l = (&self.params.l[..]).to_vec();
         let mut h = (&self.params.h[..]).to_vec();
         batch_exp(&mut l, delta_inv);
@@ -768,8 +766,8 @@ impl MPCParameters {
         self.params.l = Arc::new(l);
         self.params.h = Arc::new(h);
 
-        self.params.vk.delta_g1 = self.params.vk.delta_g1.mul(privkey.delta).into_affine();
-        self.params.vk.delta_g2 = self.params.vk.delta_g2.mul(privkey.delta).into_affine();
+        self.params.vk.delta_g1 = self.params.vk.delta_g1.mul(privkey.delta).to_affine();
+        self.params.vk.delta_g2 = self.params.vk.delta_g2.mul(privkey.delta).to_affine();
 
         self.contributions.push(pubkey.clone());
 
@@ -861,7 +859,7 @@ impl MPCParameters {
                 return Err(());
             }
 
-            let r = hash_to_g2(h.as_ref()).into_affine();
+            let r = hash_to_g2(h.as_ref());
 
             // Check the signature of knowledge
             if !same_ratio((r, pubkey.r_delta), (pubkey.s, pubkey.s_delta)) {
@@ -1134,7 +1132,7 @@ pub fn verify_contribution(
         return Err(());
     }
 
-    let r = hash_to_g2(h.as_ref()).into_affine();
+    let r = hash_to_g2(h.as_ref());
 
     // Check the signature of knowledge
     if !same_ratio((r, pubkey.r_delta), (pubkey.s, pubkey.s_delta)) {
@@ -1236,7 +1234,8 @@ fn merge_pairs(v1: &[G1Affine], v2: &[G1Affine]) -> (G1Affine, G1Affine)
                 let mut local_sx = G1Projective::identity();
 
                 for (v1, v2) in v1.iter().zip(v2.iter()) {
-                    let rho = bls12_381::Scalar::random(rng);
+
+                    let rho = bls12_381::Scalar::random(&mut *rng);
                     let mut wnaf = wnaf.scalar(&rho);
                     let v1 = wnaf.base(G1Projective::from(v1));
                     let v2 = wnaf.base(G1Projective::from(v2));
@@ -1260,7 +1259,7 @@ fn merge_pairs(v1: &[G1Affine], v2: &[G1Affine]) -> (G1Affine, G1Affine)
 /// This needs to be destroyed by at least one participant
 /// for the final parameters to be secure.
 struct PrivateKey {
-    delta: Fr
+    delta: bls12_381::Scalar
 }
 
 /// Compute a keypair, given the current parameters. Keypairs
@@ -1272,11 +1271,11 @@ fn keypair<R: Rng>(
 ) -> (PublicKey, PrivateKey)
 {
     // Sample random delta
-    let delta: Fr = rng.gen();
+    let delta: bls12_381::Scalar =  bls12_381::Scalar::random(&mut *rng);
 
     // Compute delta s-pair in G1
-    let s = G1::rand(rng).into_affine();
-    let s_delta = s.mul(delta).into_affine();
+    let s: G1Affine = G1Affine::from(G1Projective::random(rng));
+    let s_delta = G1Affine::from(s.mul(delta));
 
     // H(cs_hash | <previous pubkeys> | s | s_delta)
     let h = {
@@ -1287,8 +1286,8 @@ fn keypair<R: Rng>(
         for pubkey in &current.contributions {
             pubkey.write(&mut sink).unwrap();
         }
-        sink.write_all(s.into_uncompressed().as_ref()).unwrap();
-        sink.write_all(s_delta.into_uncompressed().as_ref()).unwrap();
+        sink.write_all(s.to_uncompressed().as_ref()).unwrap();
+        sink.write_all(s_delta.to_uncompressed().as_ref()).unwrap();
 
         sink.into_hash()
     };
@@ -1299,12 +1298,12 @@ fn keypair<R: Rng>(
     transcript.copy_from_slice(h.as_ref());
 
     // Compute delta s-pair in G2
-    let r = hash_to_g2(h.as_ref()).into_affine();
-    let r_delta = r.mul(delta).into_affine();
+    let r = hash_to_g2(h.as_ref());
+    let r_delta = G2Affine::from(r.mul(delta));
 
     (
         PublicKey {
-            delta_after: current.params.vk.delta_g1.mul(delta).into_affine(),
+            delta_after: G1Affine::from(current.params.vk.delta_g1.mul(delta)),
             s: s,
             s_delta: s_delta,
             r_delta: r_delta,
@@ -1318,17 +1317,13 @@ fn keypair<R: Rng>(
 
 /// Hashes to G2 using the first 32 bytes of `digest`. Panics if `digest` is less
 /// than 32 bytes.
-fn hash_to_g2(mut digest: &[u8]) -> G2
+fn hash_to_g2(digest: &[u8]) -> G2Affine
 {
     assert!(digest.len() >= 32);
 
-    let mut seed = Vec::with_capacity(8);
+    let digest_32: [u8; 32] = digest[..32].try_into().unwrap();
 
-    for _ in 0..8 {
-        seed.push(digest.read_u32::<BigEndian>().expect("assertion above guarantees this to work"));
-    }
-
-    ChaChaRng::from_seed(&seed).gen()
+    G2Affine::from(G2Projective::random(ChaChaRng::from_seed(digest_32)))
 }
 
 /// Abstraction over a writer which hashes the data being written.
