@@ -69,6 +69,11 @@ export class WebApi {
     this.getFundsEndpoint = options?.getFundsEndpoint || null
   }
 
+  async getMultiAssetAddress(): Promise<string> {
+    const response = await axios.get<{ address: string }>(`${this.host}/deposit/address`)
+    return response.data.address
+  }
+
   async headMultiAsset(): Promise<string | null> {
     const response = await axios
       .get<{ block_hash: string }>(`${this.host}/multi_asset/head`)
