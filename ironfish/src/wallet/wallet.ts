@@ -1204,7 +1204,11 @@ export class Wallet {
       return
     }
 
-    await this.walletDb.cleanupDeletedAccounts(this.eventLoopAbortController.signal, accountId)
+    if (accountId) {
+      await this.walletDb.cleanupDeletedAccount(accountId, this.eventLoopAbortController.signal)
+    } else {
+      await this.walletDb.cleanupDeletedAccounts(this.eventLoopAbortController.signal)
+    }
   }
 
   get hasDefaultAccount(): boolean {

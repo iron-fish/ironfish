@@ -26,7 +26,7 @@ export class RemoveCommand extends IronfishCommand {
     wait: Flags.boolean({
       default: false,
       allowNo: true,
-      description: 'Wait for account remove finishes',
+      description: 'Wait for account removal to finish',
     }),
   }
 
@@ -49,7 +49,7 @@ export class RemoveCommand extends IronfishCommand {
       }
 
       if (wait) {
-        this.log(`Waiting for account delete finished ...`)
+        this.log(`Waiting for account deletion to finish . . .`)
       }
 
       await client.removeAccount({ name, confirm: true, wait })

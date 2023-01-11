@@ -761,10 +761,7 @@ export class WalletDB {
     await this.pendingTransactionHashes.clear(tx, account.prefixRange)
   }
 
-  async cleanupDeletedAccounts(
-    signal?: AbortSignal,
-    accountIdToDelete?: string,
-  ): Promise<void> {
+  async cleanupDeletedAccount(accountId: string, signal?: AbortSignal): Promise<void> {
     let recordsToCleanup = 1000
 
     const stores: IDatabaseStore<{
@@ -780,25 +777,26 @@ export class WalletDB {
       this.timestampToTransactionHash,
     ]
 
-    for (const [accountId] of await this.accountIdsToCleanup.getAll()) {
-      if (accountIdToDelete && accountIdToDelete !== accountId) {
-        continue
-      }
-      const prefix = calculateAccountPrefix(accountId)
-      const range = StorageUtils.getPrefixKeyRange(prefix)
+    const prefix = calculateAccountPrefix(accountId)
+    const range = StorageUtils.getPrefixKeyRange(prefix)
 
-      for (const store of stores) {
-        for await (const key of store.getAllKeysIter(undefined, range)) {
-          if (signal?.aborted === true || recordsToCleanup === 0) {
-            return
-          }
-
-          await store.del(key)
-          recordsToCleanup--
+    for (const store of stores) {
+      for await (const key of store.getAllKeysIter(undefined, range)) {
+        if (signal?.aborted === true || recordsToCleanup === 0) {
+          return
         }
-      }
 
-      await this.accountIdsToCleanup.del(accountId)
+        await store.del(key)
+        recordsToCleanup--
+      }
+    }
+
+    await this.accountIdsToCleanup.del(accountId)
+  }
+
+  async cleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
+    for (const [accountId] of await this.accountIdsToCleanup.getAll()) {
+      await this.cleanupDeletedAccount(accountId, signal)
     }
   }
 
