@@ -46,49 +46,47 @@ export class BalancesCommand extends IronfishCommand {
     })
     this.log(`Account: ${response.content.account}`)
 
-    let showHeader = true
-
-    for (const balance of response.content.balances) {
-      // TODO(rohanjadvani) We currently fetch the asset from the blockchain to
-      // populate the name when rendering balance. This can be refactored once
-      // the wallet persists assets.
-      const assetResponse = await client.getAsset({ id: balance.assetId })
-
-      let columns: CliUx.Table.table.Columns<Balance> = {
-        name: {
-          header: 'Asset Name',
-        },
-        assetId: {
-          header: 'Asset Id',
-        },
-        confirmed: {
-          header: 'Confirmed Balance',
-          get: (row) => CurrencyUtils.renderIron(row.confirmed),
-        },
-      }
-
-      if (flags.all) {
-        columns = {
-          ...columns,
-          unconfirmed: {
-            header: 'Unconfirmed Balance',
-            get: (row) => CurrencyUtils.renderIron(row.unconfirmed),
-          },
-          blockHash: {
-            header: 'Head Hash',
-            get: (row) => row.blockHash || 'NULL',
-          },
-          sequence: {
-            header: 'Head Sequence',
-            get: (row) => row.sequence || 'NULL',
-          },
-        }
-      }
-
-      const name = BufferUtils.toHuman(Buffer.from(assetResponse.content.name, 'hex'))
-      CliUx.ux.table([{ ...balance, name }], columns, { 'no-header': !showHeader })
-
-      showHeader = false
+    let columns: CliUx.Table.table.Columns<Balance> = {
+      name: {
+        header: 'Asset Name',
+      },
+      assetId: {
+        header: 'Asset Id',
+      },
+      confirmed: {
+        header: 'Confirmed Balance',
+        get: (row) => CurrencyUtils.renderIron(row.confirmed),
+      },
     }
+
+    if (flags.all) {
+      columns = {
+        ...columns,
+        unconfirmed: {
+          header: 'Unconfirmed Balance',
+          get: (row) => CurrencyUtils.renderIron(row.unconfirmed),
+        },
+        blockHash: {
+          header: 'Head Hash',
+          get: (row) => row.blockHash || 'NULL',
+        },
+        sequence: {
+          header: 'Head Sequence',
+          get: (row) => row.sequence || 'NULL',
+        },
+      }
+    }
+
+    const balancesWithNames = []
+    // TODO(rohanjadvani) We currently fetch the asset from the blockchain to
+    // populate the name when rendering balance. This can be refactored once
+    // the wallet persists assets.
+    for (const balance of response.content.balances) {
+      const assetResponse = await client.getAsset({ id: balance.assetId })
+      const name = BufferUtils.toHuman(Buffer.from(assetResponse.content.name, 'hex'))
+      balancesWithNames.push({ ...balance, name })
+    }
+
+    CliUx.ux.table(balancesWithNames, columns)
   }
 }
