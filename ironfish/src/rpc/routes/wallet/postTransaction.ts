@@ -13,13 +13,13 @@ export type PostTransactionResponse = {
 
 export const PostTransactionRequestSchema: yup.ObjectSchema<PostTransactionRequest> = yup
   .object({
-    transaction: yup.string().required(),
+    transaction: yup.string().defined(),
   })
   .defined()
 
 export const PostTransactionResponseSchema: yup.ObjectSchema<PostTransactionResponse> = yup
   .object({
-    transaction: yup.string().required(),
+    transaction: yup.string().defined(),
   })
   .defined()
 
