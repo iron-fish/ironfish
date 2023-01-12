@@ -1204,7 +1204,7 @@ export class Blockchain {
     // last note in the block.
     for (const transaction of block.transactions.slice().reverse()) {
       noteIndex -= transaction.notes.length
-      transactions.push({
+      transactions.unshift({
         transaction,
         initialNoteIndex: noteIndex,
         blockHash: header.hash,
