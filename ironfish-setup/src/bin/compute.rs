@@ -30,8 +30,8 @@ fn main() {
     let h3 = sapling_mint.contribute(rng);
 
     sapling_spend.write(&mut new_params).expect("couldn't write new Sapling Spend params");
-    sapling_output.write(&mut new_params).expect("couldn't write new Sapling Spend params");
-    sapling_mint.write(&mut new_params).expect("couldn't write new Sapling Spend params");
+    sapling_output.write(&mut new_params).expect("couldn't write new Sapling Output params");
+    sapling_mint.write(&mut new_params).expect("couldn't write new Sapling Mint params");
 
     let mut h = Blake2b::new(64);
     h.update(&h1);
