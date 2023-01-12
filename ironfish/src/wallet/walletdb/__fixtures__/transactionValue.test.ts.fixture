@@ -90,5 +90,19 @@
       "outgoingViewKey": "a6c2a21fb2c3258de10d4a64295bb02f41a4095349947e59643a0792c58974eb",
       "publicAddress": "3211906ae1b270bb5e14fd24c5c093d0460bd9842543d0409904b2f1f20ec338"
     }
+  ],
+  "TransactionValueEncoding with negative balance delta serializes the object into a buffer and deserializes to the original object": [
+    {
+      "id": "ee67735b-e469-462d-80dc-9ffdb861532c",
+      "name": "test",
+      "spendingKey": "a84798c1725da860dbe9bff93c883b58575a869377ae97e4d3e82b7175b10cc8",
+      "incomingViewKey": "016f422b886ad6b328773b64a0f0cefcb7e17b008724c284b5c4af5f3c1f2003",
+      "outgoingViewKey": "8bd19637e534954d395e69cda14e3bf3bab56d35db01b394bafe2b20bef7ce99",
+      "publicAddress": "a16247aba5f6722aba220af99020afc7fb4e4aaf2931a2ea6cdca4e68b6c1872"
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAA5poaMVMNOXODazKrvE32RbzBg/F4ynfWjwn+x7oygj2DCk3RzcbMyXzJUHNu/H3S1TAh328wMV3n8oiiSWbBnytftGkN3yyFGX3VEHpzobmpwZtz2xlerD1FoUSoyIy//sWMl9vWPcxD6LmpZPOLLkU3ath8xPTdj4PcDan1YC4IKWeS0AwH2a4AzkYCnC4urt3mRdJTdMCFARgoD0Qw2Lg3jRlEzqnFKkYvPZBCEG6gUynT17TbhW36oSWytwRxNtqoXJdIzJbujwMGJH5GPI5FXLOe8G+2Vd5QIMTe3UJfMEvz8sHOCSpRoSKoaqZo53EEDfGU/wLoLPgqR7rfzq5E+xrHui7b6bgi7Jy8ttYBZ9sHzGr6g1gox4FvJ6sQ2blwsDS7z7D0ohjQY3Zqan9LWePBtZyT2v2TzRdK5Gp/cy2YSM9C0v9bAb9a/TiZkXjV/B1PgxXx34rA1E2808NZ+V3gp5FILFRhSghlsnToewSsMvnAfVzRiStTvfjoBtpFe2Sn+dqyFKIgAqRjnZqm8nX0Shu8/nsF8gChBpwb7NRhF6NC8k9FDOsKgo0h2QQGpdWNmlUJX5trIPUx/j2qTHnvwqd/s94ekzSrc4AtVRuh65YP3Ulyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwE57O4ksq7ZFLihuWS2BFejrCD4njEY+bjiPkjk0gWxBsFuLBhsKpGY6hdQCSKpUkHjWDUHX11viZeuxMz2k2Bw=="
+    }
   ]
 }
