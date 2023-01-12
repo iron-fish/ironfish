@@ -657,9 +657,9 @@ impl MPCParameters {
             alpha_g1: alpha,
             beta_g1: beta_g1,
             beta_g2: beta_g2,
-            gamma_g2: G2Affine::identity(),
-            delta_g1: G1Affine::identity(),
-            delta_g2: G2Affine::identity(),
+            gamma_g2: G2Affine::generator(),
+            delta_g1: G1Affine::generator(),
+            delta_g2: G2Affine::generator(),
             ic: ic_affine
         };
 
