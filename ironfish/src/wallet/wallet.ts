@@ -365,10 +365,10 @@ export class Wallet {
       }
     })
 
-    const transactions = await this.chain.iterateBlockTransactions(blockHeader)
-
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
+        const transactions = await this.chain.iterateBlockTransactions(blockHeader)
+
         for (const { transaction, initialNoteIndex } of transactions) {
           if (scan && scan.isAborted) {
             scan.signalComplete()
@@ -405,11 +405,11 @@ export class Wallet {
       return BufferUtils.equalsNullable(accountHead?.hash ?? null, header.hash)
     })
 
-    const transactions = await this.chain.iterateBlockTransactions(header)
-
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
-        for await (const { transaction } of transactions) {
+        const transactions = await this.chain.iterateBlockTransactions(header)
+
+        for (const { transaction } of transactions) {
           await account.disconnectTransaction(header, transaction, tx)
 
           if (transaction.isMinersFee()) {
