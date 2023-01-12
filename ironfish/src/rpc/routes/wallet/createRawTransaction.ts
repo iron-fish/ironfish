@@ -28,7 +28,6 @@ export type CreateRawTransactionRequest = {
   }[]
   fee: string
   expiration?: number | null
-  expirationDelta?: number | null
 }
 
 export type CreateRawTransactionResponse = {
@@ -73,7 +72,6 @@ export const CreateRawTransactionRequestSchema: yup.ObjectSchema<CreateRawTransa
         .optional(),
       fee: yup.string().defined(),
       expiration: yup.number().nullable().optional(),
-      expirationDelta: yup.number().nullable().optional(),
     })
     .defined()
 
