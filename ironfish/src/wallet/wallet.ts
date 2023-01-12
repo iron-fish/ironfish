@@ -409,7 +409,7 @@ export class Wallet {
       await this.walletDb.db.transaction(async (tx) => {
         const transactions = await this.chain.getBlockTransactions(header)
 
-        for (const { transaction } of transactions) {
+        for (const { transaction } of transactions.slice().reverse()) {
           await account.disconnectTransaction(header, transaction, tx)
 
           if (transaction.isMinersFee()) {
