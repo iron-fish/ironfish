@@ -682,46 +682,11 @@ impl MPCParameters {
         let (pubkey, privkey) = keypair(rng, self);
 
         fn batch_exp(bases: &mut [G1Affine], coeff: bls12_381::Scalar) {
-            let mut projective = vec![G1Projective::identity(); bases.len()];
-            let cpus = num_cpus::get();
-            let chunk_size = if bases.len() < cpus {
-                1
-            } else {
-                bases.len() / cpus
-            };
+            bases.par_iter_mut().for_each(|base| {
+                let mut wnaf = Wnaf::new();
 
-            // Perform wNAF over multiple cores, placing results into `projective`.
-            crossbeam::scope(|scope| {
-                for (bases, projective) in bases.chunks_mut(chunk_size)
-                                                       .zip(projective.chunks_mut(chunk_size))
-                {
-                    scope.spawn(move || {
-                        let mut wnaf = Wnaf::new();
-
-                        for (base, projective) in bases.iter_mut()
-                                                       .zip(projective.iter_mut())
-                        {
-                            *projective = wnaf.base(G1Projective::from(*base), 1).scalar(&coeff);
-                        }
-                    });
-                }
+                *base = G1Affine::from(wnaf.base(G1Projective::from(*base), 1).scalar(&coeff));
             });
-
-            // // Perform batch normalization
-            // crossbeam::scope(|scope| {
-            //     for projective in projective.chunks_mut(chunk_size)
-            //     {
-            //         scope.spawn(move || {
-            //             C::Projective::batch_normalization(projective);
-            //         });
-            //     }
-            // });
-
-            //TODO: consider trying to chunk and thread conversion to affine here like above
-            // Turn it all back into affine points
-            for (projective, affine) in projective.iter().zip(bases.iter_mut()) {
-                *affine = G1Affine::from(projective)
-            }
         }
 
         let delta_inv = privkey.delta.invert().unwrap();
