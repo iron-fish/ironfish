@@ -9,7 +9,7 @@ import { KeyStore } from './keyStore'
 export const DEFAULT_CONFIG_NAME = 'config.json'
 export const DEFAULT_DATA_DIR = '~/.ironfish'
 export const DEFAULT_WEBSOCKET_PORT = 9033
-export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
+export const DEFAULT_DISCORD_INVITE = 'https://discord.ironfish.network'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_USE_RPC_TLS = true
