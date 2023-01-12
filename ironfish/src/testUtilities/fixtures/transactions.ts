@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
+import { MemPool } from '../../memPool'
 import { IronfishNode } from '../../node'
 import { BurnDescription } from '../../primitives/burnDescription'
 import { MintDescription } from '../../primitives/mintDescription'
@@ -37,7 +38,7 @@ export async function usePostTxFixture(options: {
   mints?: MintDescription[]
   burns?: BurnDescription[]
 }): Promise<Transaction> {
-  return useTxFixture(options.wallet, options.from, options.from, async () => {
+  return useTxFixture(options.wallet, options.from, options.from, options.node.memPool, async () => {
     const raw = await createRawTransaction(options)
     return options.node.workerPool.postTransaction(raw)
   })
@@ -47,6 +48,7 @@ export async function useTxFixture(
   wallet: Wallet,
   from: Account,
   to: Account,
+  memPool: MemPool,
   generate?: FixtureGenerate<Transaction>,
   fee?: bigint,
   expiration?: number,
@@ -70,7 +72,7 @@ export async function useTxFixture(
         expiration ?? 0,
       )
 
-      return await wallet.postTransaction(raw)
+      return await wallet.postTransaction(raw, memPool)
     })
 
   return useFixture(generate, {
@@ -88,6 +90,7 @@ export async function useTxFixture(
 
 export async function useMinersTxFixture(
   wallet: Wallet,
+  memPool: MemPool,
   to?: Account,
   sequence?: number,
   amount = 0,
@@ -96,7 +99,7 @@ export async function useMinersTxFixture(
     to = await useAccountFixture(wallet)
   }
 
-  return useTxFixture(wallet, to, to, () => {
+  return useTxFixture(wallet, to, to, memPool, () => {
     Assert.isNotUndefined(to)
 
     return wallet.chain.strategy.createMinersFee(

@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
+import { CurrencyUtils, isValidPublicAddress, Transaction, RawTransactionSerde } from '@ironfish/sdk'
+//import { RawTransactionSerde } from '@ironfish/sdk/src/primitives/rawTransaction'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -99,6 +100,10 @@ export class Send extends IronfishCommand {
 
     if (flags.fee) {
       fee = CurrencyUtils.decodeIron(flags.fee)
+
+      if (fee < 1n) {
+        this.error(`The minimum fee is ${CurrencyUtils.renderOre(1n, true)}`)
+      }
     }
 
     if (!from) {
@@ -130,65 +135,38 @@ export class Send extends IronfishCommand {
       this.exit(1)
     }
 
-    if (fee == null) {
-      let suggestedFee = ''
-      try {
-        const response = await client.estimateFee({
-          fromAccountName: from,
-          receives: [
-            {
-              publicAddress: to,
-              amount: CurrencyUtils.encode(amount),
-              memo: memo,
-            },
-          ],
-        })
-
-        switch (flags.priority) {
-          case 'low':
-            suggestedFee = CurrencyUtils.renderIron(response.content.low)
-            break
-          case 'high':
-            suggestedFee = CurrencyUtils.renderIron(response.content.high)
-            break
-          default:
-            suggestedFee = CurrencyUtils.renderIron(response.content.medium)
-        }
-      } catch {
-        suggestedFee = ''
-      }
-
-      const input = await CliUx.ux.prompt(
-        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(
-          1n,
-        )} recommended: ${suggestedFee})`,
-        {
-          required: true,
-          default: suggestedFee,
-        },
-      )
-
-      fee = CurrencyUtils.decodeIron(input)
-    }
-
-    if (fee < 1n) {
-      this.error(`The minimum fee is ${CurrencyUtils.renderOre(1n, true)}`)
-    }
-
     if (expiration !== undefined && expiration < 0) {
       this.log('Expiration sequence must be non-negative')
       this.exit(1)
     }
 
+    const createResponse = await client.createTransaction({
+      fromAccountName: from,
+      receives: [
+        {
+          publicAddress: to,
+          amount: CurrencyUtils.encode(amount),
+          memo,
+          assetId,
+        },
+      ],
+      fee: flags.fee,
+      feePriorityLevel: flags.priority,
+      expiration: expiration,
+    })
+
+    const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
+    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
     if (!flags.confirm) {
       this.log(`
 You are about to send:
 ${CurrencyUtils.renderIron(
-  amount,
+  rawTransaction.spends[0].note.value(),
   true,
   assetId,
 )} plus a transaction fee of ${CurrencyUtils.renderIron(
-        fee,
+        rawTransaction.fee,
         true,
       )} to ${to} from the account ${from}
 
@@ -228,30 +206,21 @@ ${CurrencyUtils.renderIron(
     }
 
     try {
-      const result = await client.sendTransaction({
-        fromAccountName: from,
-        receives: [
-          {
-            publicAddress: to,
-            amount: CurrencyUtils.encode(amount),
-            memo,
-            assetId,
-          },
-        ],
-        fee: CurrencyUtils.encode(fee),
-        expiration: expiration,
+      const result = await client.postTransaction({
+        transaction: createResponse.content.transaction
       })
 
       stopProgressBar()
 
-      const transaction = result.content
-      const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
+      const transactionBytes = Buffer.from(result.content.transaction, 'hex')
+      const transaction = new Transaction(transactionBytes)
+
       this.log(`
-Sending ${CurrencyUtils.renderIron(amount, true, assetId)} to ${recipients} from ${
-        transaction.fromAccountName
+Sending ${CurrencyUtils.renderIron(amount, true, assetId)} to ${to} from ${
+        from
       }
 Transaction Hash: ${transaction.hash}
-Transaction fee: ${CurrencyUtils.renderIron(fee, true)}
+Transaction fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}
 
 Find the transaction on https://explorer.ironfish.network/transaction/${
         transaction.hash

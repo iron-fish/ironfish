@@ -61,7 +61,7 @@ describe('Accounts', () => {
     })
 
     // This transaction will be invalid after the reorg
-    const invalidTx = await useTxFixture(nodeA.wallet, accountA, accountB)
+    const invalidTx = await useTxFixture(nodeA.wallet, accountA, accountB, nodeA.memPool)
     expect(broadcastSpy).toHaveBeenCalledTimes(0)
 
     await nodeA.wallet.updateHead()
@@ -188,7 +188,7 @@ describe('Accounts', () => {
     })
 
     // Create a transaction that spends notes from the invalid transaction
-    const forkSpendTx = await useTxFixture(nodeA.wallet, accountA, accountB)
+    const forkSpendTx = await useTxFixture(nodeA.wallet, accountA, accountB, nodeA.memPool)
 
     // re-org
     await expect(nodeA.chain).toAddBlock(blockB1)
@@ -560,6 +560,7 @@ describe('Accounts', () => {
         node.wallet,
         accountA,
         accountB,
+        node.memPool,
         undefined,
         undefined,
         node.chain.head.sequence + 1,
@@ -606,7 +607,7 @@ describe('Accounts', () => {
 
       await node.wallet.updateHead()
 
-      const tx = await useTxFixture(node.wallet, accountA, accountB, undefined, undefined, 3)
+      const tx = await useTxFixture(node.wallet, accountA, accountB, node.memPool, undefined, undefined, 3)
 
       const block3 = await useMinerBlockFixture(node.chain, 3, accountA, node.wallet)
       await node.chain.addBlock(block3)
@@ -686,7 +687,7 @@ describe('Accounts', () => {
       node.wallet['isStarted'] = true
 
       const account = await useAccountFixture(node.wallet)
-      const tx = await useMinersTxFixture(node.wallet, account)
+      const tx = await useMinersTxFixture(node.wallet, node.memPool, account)
       await node.wallet.addPendingTransaction(tx)
 
       await expect(
@@ -781,7 +782,7 @@ describe('Accounts', () => {
 
       await node.wallet.updateHead()
 
-      const transaction = await useTxFixture(node.wallet, accountA, accountB)
+      const transaction = await useTxFixture(node.wallet, accountA, accountB, node.memPool)
 
       const transactionValue = await accountA.getTransaction(transaction.hash())
       Assert.isNotUndefined(transactionValue)
@@ -845,6 +846,7 @@ describe('Accounts', () => {
         node.wallet,
         accountA,
         accountB,
+        node.memPool,
         undefined,
         undefined,
         0,
@@ -910,6 +912,7 @@ describe('Accounts', () => {
         node.wallet,
         accountA,
         accountA,
+        node.memPool,
         undefined,
         undefined,
         3,
@@ -1012,7 +1015,7 @@ describe('Accounts', () => {
         await node.wallet.updateHead()
 
         const mintValueB = BigInt(10)
-        const transaction = await useTxFixture(node.wallet, account, account, () => {
+        const transaction = await useTxFixture(node.wallet, account, account, node.memPool, () => {
           return node.wallet.mint(node.memPool, account, {
             assetId: asset.id(),
             fee: BigInt(0),
@@ -1170,7 +1173,7 @@ describe('Accounts', () => {
           0,
         )
 
-        const transaction = await node.wallet.postTransaction(raw)
+        const transaction = await node.wallet.postTransaction(raw, node.memPool)
 
         return node.chain.newBlock(
           [transaction],
@@ -1217,7 +1220,7 @@ describe('Accounts', () => {
       const addSpyA = jest.spyOn(accountA, 'addPendingTransaction')
       const addSpyB = jest.spyOn(accountB, 'addPendingTransaction')
 
-      await useTxFixture(node.wallet, accountA, accountA)
+      await useTxFixture(node.wallet, accountA, accountA, node.memPool)
 
       // tx added to accountA
       expect(addSpyA).toHaveBeenCalledTimes(1)
@@ -1238,7 +1241,7 @@ describe('Accounts', () => {
 
       const decryptSpy = jest.spyOn(node.wallet, 'decryptNotes')
 
-      const tx = await useTxFixture(node.wallet, accountA, accountB)
+      const tx = await useTxFixture(node.wallet, accountA, accountB, node.memPool)
 
       expect(decryptSpy).toHaveBeenCalledTimes(1)
       expect(decryptSpy).toHaveBeenLastCalledWith(tx, null, [accountA, accountB])
