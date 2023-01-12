@@ -20,18 +20,18 @@ fn main() {
     let mut sapling_output = phase2::MPCParameters::read(&mut current_params, false)
         .expect("couldn't deserialize Sapling Output params");
 
-    let mut sprout_joinsplit = phase2::MPCParameters::read(&mut current_params, false)
-        .expect("couldn't deserialize Sprout JoinSplit params");
+    let mut sapling_mint = phase2::MPCParameters::read(&mut current_params, false)
+        .expect("couldn't deserialize Sapling Mint params");
 
     let rng = &mut rand::thread_rng();
 
     let h1 = sapling_spend.contribute(rng);
     let h2 = sapling_output.contribute(rng);
-    let h3 = sprout_joinsplit.contribute(rng);
+    let h3 = sapling_mint.contribute(rng);
 
     sapling_spend.write(&mut new_params).expect("couldn't write new Sapling Spend params");
     sapling_output.write(&mut new_params).expect("couldn't write new Sapling Spend params");
-    sprout_joinsplit.write(&mut new_params).expect("couldn't write new Sapling Spend params");
+    sapling_mint.write(&mut new_params).expect("couldn't write new Sapling Spend params");
 
     let mut h = Blake2b::new(64);
     h.update(&h1);

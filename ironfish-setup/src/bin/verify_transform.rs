@@ -19,8 +19,8 @@ fn main() {
     let sapling_output = phase2::MPCParameters::read(&mut params, false)
         .expect("couldn't deserialize Sapling Output params");
 
-    let sprout_joinsplit = phase2::MPCParameters::read(&mut params, false)
-        .expect("couldn't deserialize Sprout JoinSplit params");
+    let sapling_mint = phase2::MPCParameters::read(&mut params, false)
+        .expect("couldn't deserialize Sapling Mint params");
 
     let new_sapling_spend = phase2::MPCParameters::read(&mut new_params, true)
         .expect("couldn't deserialize Sapling Spend new_params");
@@ -28,8 +28,8 @@ fn main() {
     let new_sapling_output = phase2::MPCParameters::read(&mut new_params, true)
         .expect("couldn't deserialize Sapling Output new_params");
 
-    let new_sprout_joinsplit = phase2::MPCParameters::read(&mut new_params, true)
-        .expect("couldn't deserialize Sprout JoinSplit new_params");
+    let new_sapling_mint = phase2::MPCParameters::read(&mut new_params, true)
+        .expect("couldn't deserialize Sapling Mint new_params");
 
     let h1 = match phase2::verify_contribution(&sapling_spend, &new_sapling_spend) {
         Ok(hash) => hash,
@@ -41,7 +41,7 @@ fn main() {
         Err(_) => panic!("invalid transformation!")
     };
 
-    let h3 = match phase2::verify_contribution(&sprout_joinsplit, &new_sprout_joinsplit) {
+    let h3 = match phase2::verify_contribution(&sapling_mint, &new_sapling_mint) {
         Ok(hash) => hash,
         Err(_) => panic!("invalid transformation!")
     };
