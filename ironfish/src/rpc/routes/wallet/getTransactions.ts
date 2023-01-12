@@ -29,6 +29,7 @@ export type GetAccountTransactionsResponse = {
   burnsCount: number
   expiration: number
   timestamp: number
+  assetBalanceDeltas: string
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -55,6 +56,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
       burnsCount: yup.number().defined(),
       expiration: yup.number().defined(),
       timestamp: yup.number().defined(),
+      assetBalanceDeltas: yup.string().defined(),
     })
     .defined()
 
