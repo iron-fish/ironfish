@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::{cmp, num::Wrapping};
+use std::num::Wrapping;
 
 use rand::{thread_rng, RngCore};
 use xxhash_rust::xxh3::xxh3_64_with_seed;
@@ -20,7 +20,7 @@ impl RollingFilter {
     pub fn new(n_elements: u32, fp_rate: f64) -> Self {
         let log_rate = fp_rate.ln();
 
-        let hash_func_count = cmp::max(1, cmp::min((log_rate / 0.5_f64.ln()).round() as i32, 50));
+        let hash_func_count = ((log_rate / 0.5_f64.ln()).round() as i32).clamp(1, 50);
 
         let entries_per_generation = (n_elements + 1) / 2;
 
