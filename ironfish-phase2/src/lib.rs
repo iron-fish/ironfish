@@ -204,6 +204,8 @@ extern crate num_cpus;
 extern crate crossbeam;
 extern crate rand_chacha;
 
+use rayon::prelude::*;
+
 use blake2_rfc::blake2b::Blake2b;
 
 use byteorder::{
@@ -253,8 +255,7 @@ use bellman::{
     groth16::{
         Parameters,
         VerifyingKey
-    },
-    multicore::Worker,
+    }
 };
 
 use bls12_381::{
@@ -500,14 +501,6 @@ impl MPCParameters {
             beta_coeffs_g1.push(read_g1(f)?);
         }
 
-        // These are `Arc` so that later it'll be easier
-        // to use multiexp during QAP evaluation (which
-        // requires a futures-based API)
-        let coeffs_g1 = Arc::new(coeffs_g1);
-        let coeffs_g2 = Arc::new(coeffs_g2);
-        let alpha_coeffs_g1 = Arc::new(alpha_coeffs_g1);
-        let beta_coeffs_g1 = Arc::new(beta_coeffs_g1);
-
         let mut h = Vec::with_capacity(m - 1);
         for _ in 0..(m - 1) {
             h.push(read_g1(f)?);
@@ -522,10 +515,10 @@ impl MPCParameters {
 
         fn eval(
             // Lagrange coefficients for tau
-            coeffs_g1: Arc<Vec<G1Affine>>,
-            coeffs_g2: Arc<Vec<G2Affine>>,
-            alpha_coeffs_g1: Arc<Vec<G1Affine>>,
-            beta_coeffs_g1: Arc<Vec<G1Affine>>,
+            coeffs_g1: &Vec<G1Affine>,
+            coeffs_g2: &Vec<G2Affine>,
+            alpha_coeffs_g1: &Vec<G1Affine>,
+            beta_coeffs_g1: &Vec<G1Affine>,
 
             // QAP polynomials
             at: &[Vec<(bls12_381::Scalar, usize)>],
@@ -537,9 +530,6 @@ impl MPCParameters {
             b_g1: &mut [G1Projective],
             b_g2: &mut [G2Projective],
             ext: &mut [G1Projective],
-
-            // Worker
-            worker: &Worker
         )
         {
             // Sanity check
@@ -550,60 +540,39 @@ impl MPCParameters {
             assert_eq!(a_g1.len(), b_g2.len());
             assert_eq!(a_g1.len(), ext.len());
 
-            // Evaluate polynomials in multiple threads
-            worker.scope(a_g1.len(), |scope, chunk| {
-                for ((((((a_g1, b_g1), b_g2), ext), at), bt), ct) in
-                    a_g1.chunks_mut(chunk)
-                    .zip(b_g1.chunks_mut(chunk))
-                    .zip(b_g2.chunks_mut(chunk))
-                    .zip(ext.chunks_mut(chunk))
-                    .zip(at.chunks(chunk))
-                    .zip(bt.chunks(chunk))
-                    .zip(ct.chunks(chunk))
-                {
-                    let coeffs_g1 = coeffs_g1.clone();
-                    let coeffs_g2 = coeffs_g2.clone();
-                    let alpha_coeffs_g1 = alpha_coeffs_g1.clone();
-                    let beta_coeffs_g1 = beta_coeffs_g1.clone();
+            (at, a_g1).into_par_iter().for_each(|(at, a_g1)| {
+                let ag1_coeffs = at.par_iter().map(|&(coeff, lag)| coeffs_g1[lag].mul(coeff));
+                let agc_result: G1Projective = ag1_coeffs.sum();
+                a_g1.add_assign(&agc_result);
+            });
 
-                    scope.spawn(move |_| {
-                        for ((((((a_g1, b_g1), b_g2), ext), at), bt), ct) in
-                            a_g1.iter_mut()
-                            .zip(b_g1.iter_mut())
-                            .zip(b_g2.iter_mut())
-                            .zip(ext.iter_mut())
-                            .zip(at.iter())
-                            .zip(bt.iter())
-                            .zip(ct.iter())
-                        {
-                            for &(coeff, lag) in at {
-                                a_g1.add_assign(&coeffs_g1[lag].mul(coeff));
-                                ext.add_assign(&beta_coeffs_g1[lag].mul(coeff));
-                            }
+            (bt, b_g1, b_g2).into_par_iter().for_each(|(bt, b_g1, b_g2)| {
+                // b_g1
+                let bg1_coeffs = bt.par_iter().map(|&(coeff, lag)| coeffs_g1[lag].mul(coeff));
+                let bg1_result: G1Projective = bg1_coeffs.sum();
+                b_g1.add_assign(&bg1_result);
 
-                            for &(coeff, lag) in bt {
-                                b_g1.add_assign(&coeffs_g1[lag].mul(coeff));
-                                b_g2.add_assign(&coeffs_g2[lag].mul(coeff));
-                                ext.add_assign(&alpha_coeffs_g1[lag].mul(coeff));
-                            }
+                // b_g2
+                let bg2_coeffs = bt.par_iter().map(|&(coeff, lag)| coeffs_g2[lag].mul(coeff));
+                let bg2_result: G2Projective = bg2_coeffs.sum();
+                b_g2.add_assign(&bg2_result);
+            });
 
-                            for &(coeff, lag) in ct {
-                                ext.add_assign(&coeffs_g1[lag].mul(coeff));
-                            }
-                        }
-                    });
-                }
+            (at, bt, ct, ext).into_par_iter().for_each(|(at, bt, ct, ext)| {
+                let ext_at = at.par_iter().map(|&(coeff, lag)| beta_coeffs_g1[lag].mul(coeff));
+                let ext_bt = bt.par_iter().map(|&(coeff, lag)| alpha_coeffs_g1[lag].mul(coeff));
+                let ext_ct = ct.par_iter().map(|&(coeff, lag)| coeffs_g1[lag].mul(coeff));
+                let ext_chained: G1Projective = ext_at.chain(ext_bt).chain(ext_ct).sum();
+                ext.add_assign(ext_chained);
             });
         }
 
-        let worker = Worker::new();
-
         // Evaluate for inputs.
         eval(
-            coeffs_g1.clone(),
-            coeffs_g2.clone(),
-            alpha_coeffs_g1.clone(),
-            beta_coeffs_g1.clone(),
+            &coeffs_g1,
+            &coeffs_g2,
+            &alpha_coeffs_g1,
+            &beta_coeffs_g1,
             &assembly.at_inputs,
             &assembly.bt_inputs,
             &assembly.ct_inputs,
@@ -611,15 +580,14 @@ impl MPCParameters {
             &mut b_g1[0..assembly.num_inputs],
             &mut b_g2[0..assembly.num_inputs],
             &mut ic,
-            &worker
         );
 
         // Evaluate for auxillary variables.
         eval(
-            coeffs_g1.clone(),
-            coeffs_g2.clone(),
-            alpha_coeffs_g1.clone(),
-            beta_coeffs_g1.clone(),
+            &coeffs_g1,
+            &coeffs_g2,
+            &alpha_coeffs_g1,
+            &beta_coeffs_g1,
             &assembly.at_aux,
             &assembly.bt_aux,
             &assembly.ct_aux,
@@ -627,7 +595,6 @@ impl MPCParameters {
             &mut b_g1[assembly.num_inputs..],
             &mut b_g2[assembly.num_inputs..],
             &mut l,
-            &worker
         );
 
         // Don't allow any elements be unconstrained, so that
