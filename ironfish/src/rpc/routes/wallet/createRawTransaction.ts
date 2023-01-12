@@ -5,17 +5,62 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 
 export type CreateRawTransactionRequest = { 
-  options: string  // TODO change fields to match the request
+  fromAccountName: string
+  receives: {
+    publicAddress: string
+    amount: string
+    memo: string
+    assetId?: string
+  }[]
+  mints?: {
+    assetId: string
+    value: string
+  }[]
+  burns?: {
+    assetId: string
+    value: string
+  }[]
+  fee: string
+  expiration?: number | null
+  expirationDelta?: number | null
 }
 
 export type CreateRawTransactionResponse = {
   transaction: string
 }
 
-// TODO fixme
 export const CreateRawTransactionRequestSchema: yup.ObjectSchema<CreateRawTransactionRequest> = yup
   .object({
-    options: yup.string().defined(),
+    fromAccountName: yup.string().defined(),
+    receives: yup
+      .array(
+        yup
+          .object({
+            publicAddress: yup.string().defined(),
+            amount: yup.string().defined(),
+            memo: yup.string().defined(),
+            assetId: yup.string().optional(),
+          })
+          .defined(),
+      )
+      .defined(),
+    mints: yup
+      .array(
+        yup.object({
+          assetId: yup.string().defined(),
+          value: yup.string().defined(),
+        }).defined(),
+      ).optional(),
+    burns: yup
+      .array(
+        yup.object({
+          assetId: yup.string().defined(),
+          value: yup.string().defined(),
+        }).defined(),
+      ).optional(),
+    fee: yup.string().defined(),
+    expiration: yup.number().nullable().optional(),
+    expirationDelta: yup.number().nullable().optional(),
   })
   .defined()
 
@@ -29,27 +74,6 @@ router.register<typeof CreateRawTransactionRequestSchema, CreateRawTransactionRe
   `${ApiNamespace.wallet}/createRawTransaction`,
   CreateRawTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    // const rawTransactionBytes = Buffer.from(request.data.transaction, 'hex')
-    // const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-    // const postedTransaction = await node.wallet.postTransaction(rawTransaction)
-    // const postedTransactionBytes = postedTransaction.serialize()
-
-    // request.end({ transaction: postedTransactionBytes.toString('hex') })
-    // wallet.createTransaction takes:
-    // sender: Account, // this'll be a stringified public key
-    // receives: {
-    //   publicAddress: string 
-    //   amount: string // becomes bigint
-    //   memo: string
-    //   assetId: string  
-    // }[],
-    // mints: MintDescription[], // value will be string -> bigint, asset will be string ID. see burnAsset and mintAsset
-    // burns: BurnDescription[],
-    // fee: string, // becomes bigint
-    // expiration: number,
-
-    // maybe start with a version that just supplies [] and [] for mints and burns
-    // and then add the ability to specify them later
     // const transaction = await node.wallet.createTransaction(request.options.sender, request.options.receives, request.options.fee, request.options.expiration)
     // const transactionBytes = transaction.serialize()
     // request.end({ transaction: transactionBytes.toString('hex') })
