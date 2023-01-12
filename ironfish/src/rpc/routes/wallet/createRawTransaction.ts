@@ -1,8 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
+import { CurrencyUtils } from '../../../utils'
+import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { ApiNamespace, router } from '../router'
+import { ValidationError } from '../../adapters/errors'
 
 export type CreateRawTransactionRequest = {
   fromAccountName: string
@@ -82,8 +86,47 @@ router.register<typeof CreateRawTransactionRequestSchema, CreateRawTransactionRe
   `${ApiNamespace.wallet}/createRawTransaction`,
   CreateRawTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    // const transaction = await node.wallet.createTransaction(request.options.sender, request.options.receives, request.options.fee, request.options.expiration)
-    // const transactionBytes = transaction.serialize()
-    // request.end({ transaction: transactionBytes.toString('hex') })
+
+    const options = request.data
+
+    const account = node.wallet.getAccountByName(options.fromAccountName)
+    if (!account) {
+      throw new ValidationError(`No account found with name ${options.fromAccountName}`)
+    }
+
+    const receives = options.receives.map((receive) => {
+      let assetId = Asset.nativeId()
+      if (receive.assetId) {
+        assetId = Buffer.from(receive.assetId, 'hex')
+      }
+
+      return {
+        publicAddress: receive.publicAddress,
+        amount: CurrencyUtils.decode(receive.amount),
+        memo: receive.memo,
+        assetId,
+      }
+    })
+
+    // TODO MINTS
+    const mints = []
+    const burns = []
+    // TODO BURNS
+
+    const fee = CurrencyUtils.decode(options.fee)
+    if (fee < 1n) {
+      throw new ValidationError(`Invalid transaction fee, ${options.fee}`)
+    }
+
+    const transaction = await node.wallet.createTransaction(
+      account,
+      receives,
+      mints,
+      burns,
+      fee,
+      options.expiration, // TODO this is incorrect way of passing expiration
+    )
+    const transactionBytes = RawTransactionSerde.serialize(transaction)
+    request.end({ transaction: transactionBytes.toString('hex') })
   },
 )
