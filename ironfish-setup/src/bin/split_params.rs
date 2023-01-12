@@ -18,8 +18,8 @@ fn main() {
     let sapling_output = phase2::MPCParameters::read(&mut current_params, false)
         .expect("couldn't deserialize Sapling Output params");
 
-    let sprout_joinsplit = phase2::MPCParameters::read(&mut current_params, false)
-        .expect("couldn't deserialize Sprout JoinSplit params");
+    let sapling_mint = phase2::MPCParameters::read(&mut current_params, false)
+        .expect("couldn't deserialize Sapling Mint params");
 
     {
         let f = File::create("sapling-spend.params").expect("couldn't create `./sapling-spend.params`");
@@ -36,9 +36,9 @@ fn main() {
     }
 
     {
-        let f = File::create("sprout-groth16.params").expect("couldn't create `./sapling-groth16.params`");
+        let f = File::create("sapling-mint.params").expect("couldn't create `./sapling-mint.params`");
         let mut f = BufWriter::with_capacity(1024*1024, f);
-        sprout_joinsplit.write(&mut f)
-            .expect("couldn't write new Sprout JoinSplit params");
+        sapling_mint.write(&mut f)
+            .expect("couldn't write new Sapling Mint params");
     }
 }
