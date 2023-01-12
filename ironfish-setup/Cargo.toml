@@ -3,6 +3,9 @@ name = "sapling-mpc"
 version = "0.2.0"
 authors = ["Sean Bowe <ewillbefull@gmail.com>"]
 
+[package.edition]
+workspace = true
+
 [[bin]]
 name = "new"
 required-features = ["verification"]
