@@ -1,13 +1,12 @@
 extern crate phase2;
 extern crate pairing;
 extern crate rand;
-extern crate blake2_rfc;
 extern crate rand_chacha;
 
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::{BufWriter, BufReader};
-use blake2_rfc::blake2b::Blake2b;
+use blake2::{Blake2b512, Digest};
 
 fn decode_hex(s: &str) -> Vec<u8> {
     (0..s.len())
@@ -57,7 +56,7 @@ fn main() {
     sapling_output.write(&mut new_params).expect("couldn't write new Sapling Output params");
     sapling_mint.write(&mut new_params).expect("couldn't write new Sapling Mint params");
 
-    let mut h = Blake2b::new(64);
+    let mut h = Blake2b512::new();
     h.update(&h1);
     h.update(&h2);
     h.update(&h3);
@@ -67,7 +66,7 @@ fn main() {
               Your contribution has been written to `./new_params`\n\n\
               The contribution you made is bound to the following hash:\n");
 
-    for line in h.as_ref().chunks(16) {
+    for line in h.chunks(16) {
         print!("\t");
         for section in line.chunks(4) {
             for b in section {

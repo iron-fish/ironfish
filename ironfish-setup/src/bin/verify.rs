@@ -1,10 +1,9 @@
 extern crate phase2;
 extern crate pairing;
-extern crate blake2_rfc;
 
 use std::fs::File;
 use std::io::BufReader;
-use blake2_rfc::blake2b::Blake2b;
+use blake2::{Blake2b512, Digest};
 
 fn main() {
     let params = File::open("params").unwrap();
@@ -52,7 +51,7 @@ fn main() {
         .zip(sapling_output_contributions.into_iter())
         .zip(sapling_mint_contributions)
     {
-        let mut h = Blake2b::new(64);
+        let mut h = Blake2b512::new();
         h.update(&a);
         h.update(&b);
         h.update(&c);

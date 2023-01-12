@@ -199,14 +199,13 @@ extern crate pairing;
 extern crate bellman;
 extern crate rand;
 extern crate byteorder;
-extern crate blake2_rfc;
 extern crate num_cpus;
 extern crate crossbeam;
 extern crate rand_chacha;
 
 use rayon::prelude::*;
 
-use blake2_rfc::blake2b::Blake2b;
+use blake2::{Blake2b512, Digest};
 
 use byteorder::{
     BigEndian,
@@ -1296,7 +1295,7 @@ fn hash_to_g2(digest: &[u8]) -> G2Affine
 /// Abstraction over a writer which hashes the data being written.
 struct HashWriter<W: Write> {
     writer: W,
-    hasher: Blake2b
+    hasher: Blake2b512
 }
 
 impl Clone for HashWriter<io::Sink> {
@@ -1313,7 +1312,7 @@ impl<W: Write> HashWriter<W> {
     pub fn new(writer: W) -> Self {
         HashWriter {
             writer: writer,
-            hasher: Blake2b::new(64)
+            hasher: Blake2b512::new()
         }
     }
 

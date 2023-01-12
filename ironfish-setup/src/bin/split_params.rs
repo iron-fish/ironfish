@@ -3,7 +3,6 @@
 extern crate phase2;
 extern crate pairing;
 extern crate rand;
-extern crate blake2_rfc;
 
 use std::fs::File;
 use std::io::{BufWriter, BufReader};

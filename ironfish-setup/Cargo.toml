@@ -32,7 +32,7 @@ phase2 = { path = "../ironfish-phase2" }
 pairing = "0.23"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
-blake2-rfc = "0.2"
+blake2 = "0.10.6"
 
 [dependencies.ironfish_zkp]
 path = "../ironfish-zkp"

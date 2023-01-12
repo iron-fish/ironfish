@@ -23,7 +23,7 @@ group = "0.12.0"
 byteorder = "1"
 num_cpus = "1"
 crossbeam = "0.3"
-blake2-rfc = "0.2"
+blake2 = "0.10.6"
 
 [[example]]
 name = "mimc"
