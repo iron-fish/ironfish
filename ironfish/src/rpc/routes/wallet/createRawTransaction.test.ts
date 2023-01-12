@@ -25,7 +25,7 @@ describe('Route wallet/createRawTransaction', () => {
     expect(response.content.transaction).toBeDefined()
   })
 
-  it("should return an error if ????", async () => {
+  it('should return an error if ????', async () => {
     //TODO what are good negative cases?
   })
 })
