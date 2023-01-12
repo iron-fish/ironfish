@@ -1177,7 +1177,7 @@ export class Blockchain {
     }
   }
 
-  async iterateBlockTransactions(
+  async getBlockTransactions(
     header: BlockHeader,
     tx?: IDatabaseTransaction,
   ): Promise<
@@ -1204,8 +1204,7 @@ export class Blockchain {
     // last note in the block.
     for (const transaction of block.transactions.slice().reverse()) {
       noteIndex -= transaction.notes.length
-      // Maintain original order of transactions from block
-      transactions.unshift({
+      transactions.push({
         transaction,
         initialNoteIndex: noteIndex,
         blockHash: header.hash,

@@ -367,7 +367,7 @@ export class Wallet {
 
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
-        const transactions = await this.chain.iterateBlockTransactions(blockHeader)
+        const transactions = await this.chain.getBlockTransactions(blockHeader)
 
         for (const { transaction, initialNoteIndex } of transactions) {
           if (scan && scan.isAborted) {
@@ -407,7 +407,7 @@ export class Wallet {
 
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
-        const transactions = await this.chain.iterateBlockTransactions(header)
+        const transactions = await this.chain.getBlockTransactions(header)
 
         for (const { transaction } of transactions) {
           await account.disconnectTransaction(header, transaction, tx)
