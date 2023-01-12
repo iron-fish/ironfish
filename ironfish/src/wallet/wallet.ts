@@ -1,12 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  generateKey,
+  generateKeyFromPrivateKey,
+  Note as NativeNote,
+} from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { ChainProcessor } from '../chainProcessor'
+import { isExpiredSequence } from '../consensus'
 import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
@@ -30,7 +36,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
-import { Account } from './account'
+import { Account, AccountImport } from './account'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import { validateAccount } from './validator'
@@ -350,12 +356,13 @@ export class Wallet {
 
   async connectBlock(blockHeader: BlockHeader, scan?: ScanState): Promise<void> {
     const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
-      const accountHeadHash = await account.getHeadHash()
+      const accountHead = await account.getHead()
 
-      return (
-        BufferUtils.equalsNullable(accountHeadHash, blockHeader.previousBlockHash) ||
-        (accountHeadHash === null && blockHeader.sequence === 1)
-      )
+      if (!accountHead) {
+        return blockHeader.sequence === 1
+      } else {
+        return BufferUtils.equalsNullable(accountHead.hash, blockHeader.previousBlockHash)
+      }
     })
 
     for (const account of accounts) {
@@ -387,15 +394,17 @@ export class Wallet {
           scan?.signal(blockHeader.sequence)
         }
 
-        await account.updateHeadHash(blockHeader.hash, tx)
+        await account.updateHead({ hash: blockHeader.hash, sequence: blockHeader.sequence }, tx)
       })
     }
   }
 
   async disconnectBlock(header: BlockHeader): Promise<void> {
-    const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) =>
-      BufferUtils.equalsNullable(await account.getHeadHash(), header.hash),
-    )
+    const accounts = await AsyncUtils.filter(this.listAccounts(), async (account) => {
+      const accountHead = await account.getHead()
+
+      return BufferUtils.equalsNullable(accountHead?.hash ?? null, header.hash)
+    })
 
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
@@ -407,7 +416,10 @@ export class Wallet {
           }
         }
 
-        await account.updateHeadHash(header.previousBlockHash, tx)
+        await account.updateHead(
+          { hash: header.previousBlockHash, sequence: header.sequence - 1 },
+          tx,
+        )
       })
     }
   }
@@ -511,10 +523,30 @@ export class Wallet {
     this.scan = null
   }
 
+  async *getBalances(
+    account: Account,
+    confirmations?: number,
+  ): AsyncGenerator<{
+    assetId: Buffer
+    unconfirmed: bigint
+    unconfirmedCount: number
+    confirmed: bigint
+    blockHash: Buffer | null
+    sequence: number | null
+  }> {
+    confirmations = confirmations ?? this.config.get('confirmations')
+
+    this.assertHasAccount(account)
+
+    for await (const balance of account.getBalances(confirmations)) {
+      yield balance
+    }
+  }
+
   async getBalance(
     account: Account,
     assetId: Buffer,
-    options?: { minimumBlockConfirmations?: number },
+    options?: { confirmations?: number },
   ): Promise<{
     unconfirmedCount: number
     unconfirmed: bigint
@@ -522,58 +554,25 @@ export class Wallet {
     blockHash: Buffer | null
     sequence: number | null
   }> {
-    const minimumBlockConfirmations = Math.max(
-      options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations'),
-      0,
-    )
+    const confirmations = options?.confirmations ?? this.config.get('confirmations')
 
-    return await this.walletDb.db.transaction(async (tx) => {
-      this.assertHasAccount(account)
+    this.assertHasAccount(account)
 
-      const headSequence = await this.getAccountHeadSequence(account, tx)
-
-      if (!headSequence) {
-        return {
-          unconfirmed: BigInt(0),
-          confirmed: BigInt(0),
-          unconfirmedCount: 0,
-          blockHash: null,
-          sequence: null,
-        }
-      }
-
-      return account.getBalance(headSequence, assetId, minimumBlockConfirmations, tx)
-    })
+    return account.getBalance(assetId, confirmations)
   }
 
   private async *getUnspentNotes(
     account: Account,
     assetId: Buffer,
     options?: {
-      minimumBlockConfirmations?: number
+      confirmations?: number
     },
   ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
-    const minimumBlockConfirmations =
-      options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations')
+    const confirmations = options?.confirmations ?? this.config.get('confirmations')
 
-    const headSequence = await this.getAccountHeadSequence(account)
-    if (!headSequence) {
-      return
-    }
-
-    for await (const decryptedNote of account.getUnspentNotes(assetId)) {
-      if (minimumBlockConfirmations > 0) {
-        if (!decryptedNote.sequence) {
-          continue
-        }
-
-        const confirmations = headSequence - decryptedNote.sequence
-
-        if (confirmations < minimumBlockConfirmations) {
-          continue
-        }
-      }
-
+    for await (const decryptedNote of account.getUnspentNotes(assetId, {
+      confirmations,
+    })) {
       yield decryptedNote
     }
   }
@@ -598,7 +597,7 @@ export class Wallet {
 
     expiration = expiration ?? heaviestHead.sequence + transactionExpirationDelta
 
-    if (this.chain.verifier.isExpiredSequence(expiration, this.chain.head.sequence)) {
+    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
@@ -638,7 +637,7 @@ export class Wallet {
 
     const expiration =
       options.expiration ?? heaviestHead.sequence + options.transactionExpirationDelta
-    if (this.chain.verifier.isExpiredSequence(expiration, this.chain.head.sequence)) {
+    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
@@ -703,7 +702,7 @@ export class Wallet {
     }
 
     expiration = expiration ?? heaviestHead.sequence + transactionExpirationDelta
-    if (this.chain.verifier.isExpiredSequence(expiration, this.chain.head.sequence)) {
+    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
@@ -1068,29 +1067,24 @@ export class Wallet {
     transaction: TransactionValue,
     options?: {
       headSequence?: number | null
-      minimumBlockConfirmations?: number
+      confirmations?: number
     },
     tx?: IDatabaseTransaction,
   ): Promise<TransactionStatus> {
-    const minimumBlockConfirmations =
-      options?.minimumBlockConfirmations ?? this.config.get('minimumBlockConfirmations')
+    const confirmations = options?.confirmations ?? this.config.get('confirmations')
 
-    const headSequence =
-      options?.headSequence ?? (await this.getAccountHeadSequence(account, tx))
+    const headSequence = options?.headSequence ?? (await account.getHead(tx))?.sequence
 
     if (!headSequence) {
       return TransactionStatus.UNKNOWN
     }
 
     if (transaction.sequence) {
-      const isConfirmed = headSequence - transaction.sequence >= minimumBlockConfirmations
+      const isConfirmed = headSequence - transaction.sequence >= confirmations
 
       return isConfirmed ? TransactionStatus.CONFIRMED : TransactionStatus.UNCONFIRMED
     } else {
-      const isExpired = this.chain.verifier.isExpiredSequence(
-        transaction.transaction.expiration(),
-        headSequence,
-      )
+      const isExpired = isExpiredSequence(transaction.transaction.expiration(), headSequence)
 
       return isExpired ? TransactionStatus.EXPIRED : TransactionStatus.PENDING
     }
@@ -1115,7 +1109,7 @@ export class Wallet {
 
     await this.walletDb.db.transaction(async (tx) => {
       await this.walletDb.setAccount(account, tx)
-      await account.updateHeadHash(this.chainProcessor.hash, tx)
+      await this.skipRescan(account, tx)
     })
 
     this.accounts.set(account.id, account)
@@ -1127,13 +1121,18 @@ export class Wallet {
     return account
   }
 
-  async skipRescan(account: Account): Promise<void> {
-    await account.updateHeadHash(this.chainProcessor.hash)
+  async skipRescan(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    const hash = this.chainProcessor.hash
+    const sequence = this.chainProcessor.sequence
+
+    if (hash === null || sequence === null) {
+      await account.updateHead(null, tx)
+    } else {
+      await account.updateHead({ hash, sequence }, tx)
+    }
   }
 
-  async importAccount(toImport: Omit<AccountValue, 'rescan' | 'id'>): Promise<Account> {
-    validateAccount(toImport)
-
+  async importAccount(toImport: AccountImport): Promise<Account> {
     if (toImport.name && this.getAccountByName(toImport.name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
@@ -1142,15 +1141,26 @@ export class Wallet {
       throw new Error(`Account already exists with provided spending key`)
     }
 
-    const account = new Account({
+    const key = generateKeyFromPrivateKey(toImport.spendingKey)
+
+    const accountValue: AccountValue = {
       ...toImport,
       id: uuid(),
+      incomingViewKey: key.incoming_view_key,
+      outgoingViewKey: key.outgoing_view_key,
+      publicAddress: key.public_address,
+    }
+
+    validateAccount(accountValue)
+
+    const account = new Account({
+      ...accountValue,
       walletDb: this.walletDb,
     })
 
     await this.walletDb.db.transaction(async (tx) => {
       await this.walletDb.setAccount(account, tx)
-      await account.updateHeadHash(null, tx)
+      await account.updateHead(null, tx)
     })
 
     this.accounts.set(account.id, account)
@@ -1180,7 +1190,7 @@ export class Wallet {
       }
 
       await this.walletDb.removeAccount(account, tx)
-      await this.walletDb.removeHeadHash(account, tx)
+      await this.walletDb.removeHead(account, tx)
     })
 
     this.accounts.delete(account.id)
@@ -1243,23 +1253,6 @@ export class Wallet {
     return null
   }
 
-  async getAccountHeadSequence(
-    account: Account,
-    tx?: IDatabaseTransaction,
-  ): Promise<number | null> {
-    this.assertHasAccount(account)
-
-    const headHash = await account.getHeadHash(tx)
-    if (!headHash) {
-      return null
-    }
-
-    const header = await this.chain.getHeader(headHash)
-    Assert.isNotNull(header, `Missing block header for hash '${headHash.toString('hex')}'`)
-
-    return header.sequence
-  }
-
   getDefaultAccount(): Account | null {
     if (!this.defaultAccount) {
       return null
@@ -1269,73 +1262,48 @@ export class Wallet {
   }
 
   async getEarliestHeadHash(): Promise<Buffer | null> {
-    let earliestHeader = null
+    let earliestHead = null
     for (const account of this.accounts.values()) {
-      const headHash = await account.getHeadHash()
+      const head = await account.getHead()
 
-      if (!headHash) {
+      if (!head) {
         return null
       }
 
-      const header = await this.chain.getHeader(headHash)
-
-      if (!header) {
-        // If no header is returned, the hash is likely invalid and we should remove it
-        this.logger.warn(
-          `${account.displayName} has an invalid head hash ${headHash.toString(
-            'hex',
-          )}. This account needs to be rescanned.`,
-        )
-        await account.updateHeadHash(null)
-        continue
-      }
-
-      if (!earliestHeader || earliestHeader.sequence > header.sequence) {
-        earliestHeader = header
+      if (!earliestHead || earliestHead.sequence > head.sequence) {
+        earliestHead = head
       }
     }
 
-    return earliestHeader ? earliestHeader.hash : null
+    return earliestHead ? earliestHead.hash : null
   }
 
   async getLatestHeadHash(): Promise<Buffer | null> {
-    let latestHeader = null
+    let latestHead = null
 
     for (const account of this.accounts.values()) {
-      const headHash = await account.getHeadHash()
+      const head = await account.getHead()
 
-      if (!headHash) {
+      if (!head) {
         continue
       }
 
-      const header = await this.chain.getHeader(headHash)
-
-      if (!header) {
-        this.logger.warn(
-          `${account.displayName} has an invalid head hash ${headHash.toString(
-            'hex',
-          )}. This account needs to be rescanned.`,
-        )
-        await account.updateHeadHash(null)
-        continue
-      }
-
-      if (!latestHeader || latestHeader.sequence < header.sequence) {
-        latestHeader = header
+      if (!latestHead || latestHead.sequence < head.sequence) {
+        latestHead = head
       }
     }
 
-    return latestHeader ? latestHeader.hash : null
+    return latestHead ? latestHead.hash : null
   }
 
   async isAccountUpToDate(account: Account): Promise<boolean> {
-    const headHash = await account.getHeadHash()
+    const head = await account.getHead()
     Assert.isNotUndefined(
-      headHash,
+      head,
       `isAccountUpToDate: No head hash found for account ${account.displayName}`,
     )
 
-    return BufferUtils.equalsNullable(headHash, this.chainProcessor.hash)
+    return BufferUtils.equalsNullable(head?.hash ?? null, this.chainProcessor.hash)
   }
 
   protected assertHasAccount(account: Account): void {

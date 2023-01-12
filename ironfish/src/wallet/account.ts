@@ -13,10 +13,13 @@ import { DecryptedNote } from '../workerPool/tasks/decryptNotes'
 import { AccountValue } from './walletdb/accountValue'
 import { BalanceValue } from './walletdb/balanceValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
+import { HeadValue } from './walletdb/headValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
 export const ACCOUNT_KEY_LENGTH = 32
+
+export type AccountImport = { name: string; spendingKey: string }
 
 export class Account {
   private readonly walletDb: WalletDB
@@ -82,7 +85,7 @@ export class Account {
     await this.walletDb.clearNonChainNoteHashes(this, tx)
     await this.walletDb.clearPendingTransactionHashes(this, tx)
     await this.walletDb.clearBalance(this, tx)
-    await this.updateHeadHash(null, tx)
+    await this.updateHead(null, tx)
   }
 
   async *getNotes(): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
@@ -93,7 +96,19 @@ export class Account {
 
   async *getUnspentNotes(
     assetId: Buffer,
+    options?: {
+      confirmations?: number
+    },
   ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+    const head = await this.getHead()
+    if (!head) {
+      return
+    }
+
+    const confirmations = options?.confirmations ?? 0
+
+    const maxConfirmedSequence = head.sequence - confirmations
+
     for await (const decryptedNote of this.getNotes()) {
       if (!decryptedNote.note.assetId().equals(assetId)) {
         continue
@@ -103,7 +118,11 @@ export class Account {
         continue
       }
 
-      if (!decryptedNote.index) {
+      if (!decryptedNote.sequence) {
+        continue
+      }
+
+      if (decryptedNote.sequence > maxConfirmedSequence) {
         continue
       }
 
@@ -454,15 +473,51 @@ export class Account {
     })
   }
 
+  async *getBalances(
+    confirmations: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{
+    assetId: Buffer
+    unconfirmed: bigint
+    unconfirmedCount: number
+    confirmed: bigint
+    blockHash: Buffer | null
+    sequence: number | null
+  }> {
+    const head = await this.getHead()
+    if (!head) {
+      return
+    }
+
+    for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
+      const { confirmed, unconfirmedCount } =
+        await this.calculateUnconfirmedCountAndConfirmedBalance(
+          head.sequence,
+          assetId,
+          confirmations,
+          balance.unconfirmed,
+          tx,
+        )
+
+      yield {
+        assetId,
+        unconfirmed: balance.unconfirmed,
+        unconfirmedCount,
+        confirmed,
+        blockHash: balance.blockHash,
+        sequence: balance.sequence,
+      }
+    }
+  }
+
   /**
    * Gets the balance for an account
    * unconfirmed: all notes on the chain
    * confirmed: confirmed balance minus notes in unconfirmed range
    */
   async getBalance(
-    headSequence: number,
     assetId: Buffer,
-    minimumBlockConfirmations: number,
+    confirmations: number,
     tx?: IDatabaseTransaction,
   ): Promise<{
     unconfirmed: bigint
@@ -471,16 +526,52 @@ export class Account {
     blockHash: Buffer | null
     sequence: number | null
   }> {
+    const head = await this.getHead()
+    if (!head) {
+      return {
+        unconfirmed: 0n,
+        confirmed: 0n,
+        unconfirmedCount: 0,
+        blockHash: null,
+        sequence: null,
+      }
+    }
+
+    const balance = await this.getUnconfirmedBalance(assetId, tx)
+
+    const { confirmed, unconfirmedCount } =
+      await this.calculateUnconfirmedCountAndConfirmedBalance(
+        head.sequence,
+        assetId,
+        confirmations,
+        balance.unconfirmed,
+        tx,
+      )
+
+    return {
+      unconfirmed: balance.unconfirmed,
+      unconfirmedCount,
+      confirmed,
+      blockHash: balance.blockHash,
+      sequence: balance.sequence,
+    }
+  }
+
+  private async calculateUnconfirmedCountAndConfirmedBalance(
+    headSequence: number,
+    assetId: Buffer,
+    confirmations: number,
+    unconfirmed: bigint,
+    tx?: IDatabaseTransaction,
+  ): Promise<{ confirmed: bigint; unconfirmedCount: number }> {
     let unconfirmedCount = 0
 
-    const { unconfirmed, blockHash, sequence } = await this.getUnconfirmedBalance(assetId, tx)
-
     let confirmed = unconfirmed
-    if (minimumBlockConfirmations > 0) {
+    if (confirmations > 0) {
       const unconfirmedSequenceEnd = headSequence
 
       const unconfirmedSequenceStart = Math.max(
-        unconfirmedSequenceEnd - minimumBlockConfirmations + 1,
+        unconfirmedSequenceEnd - confirmations + 1,
         GENESIS_BLOCK_SEQUENCE,
       )
 
@@ -502,11 +593,8 @@ export class Account {
     }
 
     return {
-      unconfirmed,
-      unconfirmedCount,
       confirmed,
-      blockHash,
-      sequence,
+      unconfirmedCount,
     }
   }
 
@@ -555,12 +643,12 @@ export class Account {
     await this.walletDb.saveUnconfirmedBalance(this, assetId, balance, tx)
   }
 
-  async getHeadHash(tx?: IDatabaseTransaction): Promise<Buffer | null> {
-    return this.walletDb.getHeadHash(this, tx)
+  async getHead(tx?: IDatabaseTransaction): Promise<HeadValue | null> {
+    return this.walletDb.getHead(this, tx)
   }
 
-  async updateHeadHash(headHash: Buffer | null, tx?: IDatabaseTransaction): Promise<void> {
-    await this.walletDb.saveHeadHash(this, headHash, tx)
+  async updateHead(head: HeadValue | null, tx?: IDatabaseTransaction): Promise<void> {
+    await this.walletDb.saveHead(this, head, tx)
   }
 
   async getTransactionNotes(

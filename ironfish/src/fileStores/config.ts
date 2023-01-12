@@ -9,7 +9,7 @@ import { KeyStore } from './keyStore'
 export const DEFAULT_CONFIG_NAME = 'config.json'
 export const DEFAULT_DATA_DIR = '~/.ironfish'
 export const DEFAULT_WEBSOCKET_PORT = 9033
-export const DEFAULT_DISCORD_INVITE = 'https://discord.gg/ironfish'
+export const DEFAULT_DISCORD_INVITE = 'https://discord.ironfish.network'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_USE_RPC_TLS = true
@@ -126,7 +126,7 @@ export type ConfigOptions = {
    * The minimum number of block confirmations needed when computing account
    * balance.
    */
-  minimumBlockConfirmations: number
+  confirmations: number
 
   /**
    * The name that the pool will use in block graffiti and transaction memo.
@@ -280,7 +280,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     transactionExpirationDelta: YupUtils.isPositiveInteger,
     blocksPerMessage: YupUtils.isPositiveInteger,
     minerBatchSize: YupUtils.isPositiveInteger,
-    minimumBlockConfirmations: YupUtils.isPositiveInteger,
+    confirmations: YupUtils.isPositiveInteger,
     poolName: yup.string(),
     poolAccountName: yup.string(),
     poolBanning: yup.boolean(),
@@ -307,7 +307,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
 
 export class Config extends KeyStore<ConfigOptions> {
   readonly chainDatabasePath: string
-  readonly accountDatabasePath: string
+  readonly walletDatabasePath: string
   readonly tempDir: string
 
   constructor(files: FileSystem, dataDir: string, configName?: string) {
@@ -320,7 +320,7 @@ export class Config extends KeyStore<ConfigOptions> {
     )
 
     this.chainDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'chain')
-    this.accountDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'wallet')
+    this.walletDatabasePath = this.files.join(this.storage.dataDir, 'databases', 'wallet')
     this.tempDir = this.files.join(this.storage.dataDir, 'temp')
   }
 
@@ -356,7 +356,7 @@ export class Config extends KeyStore<ConfigOptions> {
       tlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'node-key.pem')),
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
       maxPeers: 50,
-      minimumBlockConfirmations: 2,
+      confirmations: 2,
       minPeers: 1,
       targetPeers: 50,
       telemetryApi: 'https://api.ironfish.network/telemetry',

@@ -51,7 +51,7 @@ export class BalanceCommand extends IronfishCommand {
     const response = await client.getAccountBalance({
       account,
       assetId: flags.assetId,
-      minimumBlockConfirmations: flags.confirmations,
+      confirmations: flags.confirmations,
     })
     const assetId = response.content.assetId
 
@@ -99,7 +99,7 @@ export class BalanceCommand extends IronfishCommand {
     this.log(
       `${response.unconfirmedCount} notes worth ${CurrencyUtils.renderIron(
         unconfirmedDelta,
-      )} are on the chain within ${response.minimumBlockConfirmations.toString()} blocks of the head`,
+      )} are on the chain within ${response.confirmations.toString()} blocks of the head`,
     )
     this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true, assetId)}`)
   }

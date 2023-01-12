@@ -54,13 +54,13 @@ import { createDB } from '../storage/utils'
 import { Strategy } from '../strategy'
 import { AsyncUtils, BenchUtils, HashUtils } from '../utils'
 import { WorkerPool } from '../workerPool'
-import { AssetsValue, AssetsValueEncoding } from './database/assets'
+import { AssetValue, AssetValueEncoding } from './database/assetValue'
 import { HeaderEncoding } from './database/headers'
 import { SequenceToHashesValueEncoding } from './database/sequenceToHashes'
 import { TransactionsValueEncoding } from './database/transactions'
 import { NullifierSet } from './nullifierSet/nullifierSet'
 import {
-  AssetsSchema,
+  AssetSchema,
   HashToNextSchema,
   HeadersSchema,
   MetaSchema,
@@ -69,7 +69,7 @@ import {
   TransactionsSchema,
 } from './schema'
 
-export const VERSION_DATABASE_CHAIN = 10
+export const VERSION_DATABASE_CHAIN = 14
 
 export class Blockchain {
   db: IDatabase
@@ -113,7 +113,7 @@ export class Blockchain {
   // BlockHash -> BlockHash
   hashToNextHash: IDatabaseStore<HashToNextSchema>
   // Asset Identifier -> Asset
-  assets: IDatabaseStore<AssetsSchema>
+  assets: IDatabaseStore<AssetSchema>
 
   // When ever the blockchain becomes synced
   onSynced = new Event<[]>()
@@ -236,7 +236,7 @@ export class Blockchain {
     this.assets = this.db.addStore({
       name: 'bA',
       keyEncoding: BUFFER_ENCODING,
-      valueEncoding: new AssetsValueEncoding(),
+      valueEncoding: new AssetValueEncoding(),
     })
 
     this.notes = new MerkleTree({
@@ -1462,7 +1462,7 @@ export class Blockchain {
     this.onSynced.emit()
   }
 
-  async getAssetById(assetId: Buffer): Promise<AssetsValue | null> {
+  async getAssetById(assetId: Buffer): Promise<AssetValue | null> {
     if (Asset.nativeId().equals(assetId)) {
       return {
         createdTransactionHash: GENESIS_BLOCK_PREVIOUS,

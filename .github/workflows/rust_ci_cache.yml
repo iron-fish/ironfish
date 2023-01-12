@@ -9,6 +9,8 @@ on:
       - "ironfish-zkp/**"
       - "rust-toolchain"
       - ".github/workflows/rust*"
+      - ".cargo/**"
+      - "Cargo*"
 
 name: Cache Rust build
 
@@ -18,7 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -26,7 +27,5 @@ jobs:
           shared-key: nodejs
 
       - name: Build NAPI bindings for the cache
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release
+        run: |
+          cargo build --release

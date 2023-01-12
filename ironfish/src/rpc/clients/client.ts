@@ -48,6 +48,8 @@ import {
   GetTransactionStreamResponse,
   GetWorkersStatusRequest,
   GetWorkersStatusResponse,
+  PostTransactionRequest,
+  PostTransactionResponse,
   SendTransactionRequest,
   SendTransactionResponse,
   SetConfigRequest,
@@ -83,6 +85,7 @@ import {
 import { GetRpcStatusRequest, GetRpcStatusResponse } from '../routes/rpc/getStatus'
 import { BurnAssetRequest, BurnAssetResponse } from '../routes/wallet/burnAsset'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
+import { GetBalancesRequest, GetBalancesResponse } from '../routes/wallet/getBalances'
 import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/wallet/importAccount'
 import { MintAssetRequest, MintAssetResponse } from '../routes/wallet/mintAsset'
@@ -164,6 +167,15 @@ export abstract class RpcClient {
   ): Promise<RpcResponseEnded<RemoveAccountResponse>> {
     return await this.request<RemoveAccountResponse>(
       `${ApiNamespace.wallet}/remove`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getAccountBalances(
+    params: GetBalancesRequest,
+  ): Promise<RpcResponseEnded<GetBalancesResponse>> {
+    return this.request<GetBalancesResponse>(
+      `${ApiNamespace.wallet}/getBalances`,
       params,
     ).waitForEnd()
   }
@@ -489,5 +501,14 @@ export abstract class RpcClient {
 
   async getAsset(params: GetAssetRequest): Promise<RpcResponseEnded<GetAssetResponse>> {
     return this.request<GetAssetResponse>(`${ApiNamespace.chain}/getAsset`, params).waitForEnd()
+  }
+
+  async postTransaction(
+    params: PostTransactionRequest,
+  ): Promise<RpcResponseEnded<PostTransactionResponse>> {
+    return this.request<PostTransactionRequest>(
+      `${ApiNamespace.wallet}/postTransaction`,
+      params,
+    ).waitForEnd()
   }
 }

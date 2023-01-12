@@ -1,0 +1,12 @@
+{
+  "getBalances with a valid account streams balances for all assets owned by the account": [
+    {
+      "id": "4b8cadb5-d61b-4ffb-b0af-2c47ea4d3385",
+      "name": "test",
+      "spendingKey": "230307efd34b49cb01aadc78800d315f7510ab3fd95e7cb0a1bda1f886a0e7d0",
+      "incomingViewKey": "1d899496eae1a9b45c9c2d2367bbda14823331b377830cd1356f55305cbdd000",
+      "outgoingViewKey": "25b0e17c0059ac180ddb7339bf7ab526a6f39b6508aa2aff32a3957966cc7dc7",
+      "publicAddress": "002f125eebaaa19a85e97d1df1d29df9c6cebb1989deacf0359b840ae3f28947"
+    }
+  ]
+}

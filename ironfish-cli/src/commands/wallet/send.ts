@@ -11,9 +11,9 @@ export class Send extends IronfishCommand {
   static description = `Send coins to another account`
 
   static examples = [
-    '$ ironfish accounts:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',
-    '$ ironfish accounts:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount',
-    '$ ironfish accounts:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount -m my_message_for_the_transaction',
+    '$ ironfish wallet:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed',
+    '$ ironfish wallet:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount',
+    '$ ironfish wallet:send -a 2 -o 0.00000001 -t 997c586852d1b12da499bcff53595ba37d04e4909dbdb1a75f3bfd90dd7212217a1c2c0da652d187fc52ed -f otheraccount -m my_message_for_the_transaction',
   ]
 
   static flags = {
@@ -108,7 +108,7 @@ export class Send extends IronfishCommand {
       if (!defaultAccount) {
         this.error(
           `No account is currently active.
-           Use ironfish accounts:create <name> to first create an account`,
+           Use ironfish wallet:create <name> to first create an account`,
         )
       }
 

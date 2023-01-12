@@ -16,7 +16,6 @@ import {
   IDatabaseStore,
   IDatabaseTransaction,
   NULL_ENCODING,
-  NullableBufferEncoding,
   PrefixEncoding,
   StringEncoding,
   U32_ENCODING,
@@ -27,12 +26,14 @@ import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
+import { AssetValue, AssetValueEncoding } from './assetValue'
 import { BalanceValue, BalanceValueEncoding } from './balanceValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
+import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 11
+export const VERSION_DATABASE_ACCOUNTS = 15
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -51,9 +52,9 @@ export class WalletDB {
     value: MetaValue
   }>
 
-  headHashes: IDatabaseStore<{
+  heads: IDatabaseStore<{
     key: Account['id']
-    value: Buffer | null
+    value: HeadValue | null
   }>
 
   balances: IDatabaseStore<{
@@ -101,6 +102,11 @@ export class WalletDB {
     value: TransactionHash
   }>
 
+  assets: IDatabaseStore<{
+    key: [Account['prefix'], Buffer]
+    value: AssetValue
+  }>
+
   constructor({
     files,
     location,
@@ -124,10 +130,10 @@ export class WalletDB {
       valueEncoding: new MetaValueEncoding(),
     })
 
-    this.headHashes = this.db.addStore({
+    this.heads = this.db.addStore({
       name: 'h',
       keyEncoding: new StringEncoding(),
-      valueEncoding: new NullableBufferEncoding(),
+      valueEncoding: new NullableHeadValueEncoding(),
     })
 
     this.accounts = this.db.addStore({
@@ -196,6 +202,12 @@ export class WalletDB {
       name: 'T',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), U64_ENCODING, 4),
       valueEncoding: new BufferEncoding(),
+    })
+
+    this.assets = this.db.addStore({
+      name: 'as',
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+      valueEncoding: new AssetValueEncoding(),
     })
   }
 
@@ -267,29 +279,29 @@ export class WalletDB {
     }
   }
 
-  async getHeadHash(account: Account, tx?: IDatabaseTransaction): Promise<Buffer | null> {
-    const headHash = await this.headHashes.get(account.id, tx)
-    Assert.isNotUndefined(headHash)
-    return headHash
+  async getHead(account: Account, tx?: IDatabaseTransaction): Promise<HeadValue | null> {
+    const head = await this.heads.get(account.id, tx)
+    Assert.isNotUndefined(head)
+    return head
   }
 
-  async saveHeadHash(
+  async saveHead(
     account: Account,
-    headHash: Buffer | null,
+    head: HeadValue | null,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.headHashes.put(account.id, headHash, tx)
+    await this.heads.put(account.id, head, tx)
   }
 
-  async removeHeadHash(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.headHashes.del(account.id, tx)
+  async removeHead(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.heads.del(account.id, tx)
   }
 
-  async *loadHeadHashes(
+  async *loadHeads(
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<{ accountId: string; headHash: Buffer | null }, void, unknown> {
-    for await (const [accountId, headHash] of this.headHashes.getAllIter(tx)) {
-      yield { accountId, headHash }
+  ): AsyncGenerator<{ accountId: string; head: HeadValue | null }, void, unknown> {
+    for await (const [accountId, head] of this.heads.getAllIter(tx)) {
+      yield { accountId, head }
     }
   }
 

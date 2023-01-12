@@ -5,6 +5,7 @@
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
+import { isExpiredSequence } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { getTransactionSize } from '../network/utils/serializers'
@@ -136,12 +137,7 @@ export class MemPool {
       return false
     }
 
-    const isExpiredSequence = this.chain.verifier.isExpiredSequence(
-      sequence,
-      this.chain.head.sequence,
-    )
-
-    if (isExpiredSequence) {
+    if (isExpiredSequence(sequence, this.chain.head.sequence)) {
       this.logger.debug(`Invalid transaction '${hash}': expired sequence ${sequence}`)
       return false
     }
@@ -181,10 +177,7 @@ export class MemPool {
     }
 
     let nextExpired = this.expirationQueue.peek()
-    while (
-      nextExpired &&
-      this.chain.verifier.isExpiredSequence(nextExpired.expiration, this.chain.head.sequence)
-    ) {
+    while (nextExpired && isExpiredSequence(nextExpired.expiration, this.chain.head.sequence)) {
       const transaction = this.get(nextExpired.hash)
       if (!transaction) {
         continue

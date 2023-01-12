@@ -78,7 +78,7 @@ export class NodeTest {
     sdk.config.setOverride('networkId', 0)
     sdk.config.setOverride('enableListenP2P', false)
     sdk.config.setOverride('enableTelemetry', false)
-    sdk.config.setOverride('minimumBlockConfirmations', 0)
+    sdk.config.setOverride('confirmations', 0)
 
     // Allow tests to override default settings
     if (options?.config) {

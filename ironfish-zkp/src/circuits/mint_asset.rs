@@ -180,7 +180,7 @@ mod test {
         let metadata = [2u8; 77];
 
         let mut asset_plaintext: Vec<u8> = vec![];
-        asset_plaintext.extend(&public_address.to_bytes());
+        asset_plaintext.extend(public_address.to_bytes());
         asset_plaintext.extend(name);
         asset_plaintext.extend(metadata);
 

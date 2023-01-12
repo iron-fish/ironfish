@@ -4,6 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import {
   ApiMultiAssetUpload,
+  BufferUtils,
   GENESIS_BLOCK_SEQUENCE,
   GetTransactionStreamResponse,
   Meter,
@@ -90,7 +91,7 @@ export default class SyncMultiAsset extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     this.log(`Fetching head from ${api.host}`)
-    const head = await api.headMaspTransactions()
+    const head = await api.headMultiAsset()
 
     let lastCountedSequence: number
     if (head) {
@@ -114,7 +115,7 @@ export default class SyncMultiAsset extends IronfishCommand {
     async function commit(): Promise<void> {
       const serialized = buffer.map(serializeMultiAssets)
       buffer.length = 0
-      await api.uploadMaspTransactions(serialized)
+      await api.uploadMultiAsset(serialized)
     }
 
     for await (const content of response.contentStream()) {
@@ -155,7 +156,7 @@ export default class SyncMultiAsset extends IronfishCommand {
   async syncRandom(api: WebApi): Promise<void> {
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const headHash = (await api.headMaspTransactions()) || ''
+      const headHash = (await api.headMultiAsset()) || ''
 
       const choices: MultiAssetTypes[] = [
         'MULTI_ASSET_TRANSFER',
@@ -164,7 +165,7 @@ export default class SyncMultiAsset extends IronfishCommand {
       ]
       const choice = choices[Math.floor(Math.random() * choices.length)]
       const connectedblockHash = uuid()
-      await api.uploadMaspTransactions([
+      await api.uploadMultiAsset([
         {
           type: 'connected',
           block: {
@@ -184,7 +185,7 @@ export default class SyncMultiAsset extends IronfishCommand {
       await PromiseUtils.sleep(5000)
       if (Math.floor(Math.random() * 2) === 0) {
         // randomly disconnect blocks
-        await api.uploadMaspTransactions([
+        await api.uploadMultiAsset([
           {
             type: 'disconnected',
             block: {
@@ -205,19 +206,19 @@ export default class SyncMultiAsset extends IronfishCommand {
 function serializeMultiAssets(data: GetTransactionStreamResponse): ApiMultiAssetUpload {
   const txs = []
   // should not send transactions if block is disconnected
-  if (data.type !== 'connected') {
+  if (data.type === 'connected') {
     for (const tx of data.transactions) {
       const multiAssets = []
       for (const mint of tx.mints) {
         multiAssets.push({
           type: 'MULTI_ASSET_MINT' as MultiAssetTypes,
-          assetName: mint.assetName,
+          assetName: BufferUtils.toHuman(Buffer.from(mint.assetName, 'hex')),
         })
       }
       for (const burn of tx.burns) {
         multiAssets.push({
           type: 'MULTI_ASSET_BURN' as MultiAssetTypes,
-          assetName: burn.assetName,
+          assetName: BufferUtils.toHuman(Buffer.from(burn.assetName, 'hex')),
         })
       }
       for (const note of tx.notes) {
@@ -225,7 +226,7 @@ function serializeMultiAssets(data: GetTransactionStreamResponse): ApiMultiAsset
         if (note.assetId !== Asset.nativeId().toString('hex')) {
           multiAssets.push({
             type: 'MULTI_ASSET_TRANSFER' as MultiAssetTypes,
-            assetName: note.assetName,
+            assetName: BufferUtils.toHuman(Buffer.from(note.assetName, 'hex')),
           })
         }
       }

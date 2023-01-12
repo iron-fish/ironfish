@@ -48,11 +48,9 @@ jobs:
           node-version: '18.12.1'
           cache: yarn
 
-      - name: Install
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          target: ${{ matrix.settings.target }}
+      - name: Install Rust
+        run: |
+          rustup target add ${{ matrix.settings.target }}
 
       - name: Install ziglang
         uses: goto-bus-stop/setup-zig@v2

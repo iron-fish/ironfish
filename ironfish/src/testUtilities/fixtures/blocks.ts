@@ -1,14 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKey } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import { Blockchain } from '../../blockchain'
 import { IronfishNode } from '../../node'
 import { Block, BlockSerde, SerializedBlock } from '../../primitives/block'
 import { BurnDescription } from '../../primitives/burnDescription'
 import { MintDescription } from '../../primitives/mintDescription'
+import { Note } from '../../primitives/note'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
+import { RawTransaction } from '../../primitives/rawTransaction'
 import { Transaction } from '../../primitives/transaction'
 import { Account, Wallet } from '../../wallet'
 import { WorkerPool } from '../../workerPool/pool'
@@ -19,7 +21,6 @@ import {
   usePostTxFixture,
   useTxFixture,
 } from './transactions'
-
 /*
  * We need the workaround because transactions related to us
  * that get added onto a block don't get handled in the same
@@ -158,22 +159,32 @@ export async function useBlockWithRawTxFixture(
 
         return {
           note,
-          treeSize: witness.treeSize(),
-          authPath: witness.authenticationPath,
-          rootHash: witness.rootHash,
+          witness,
         }
       }),
     )
 
-    const transaction = await pool.createTransaction(
-      sender.spendingKey,
-      spends,
-      receives,
-      mints,
-      burns,
-      BigInt(0),
-      0,
-    )
+    const raw = new RawTransaction()
+    raw.spendingKey = sender.spendingKey
+    raw.expiration = 0
+    raw.mints = mints
+    raw.burns = burns
+    raw.fee = BigInt(0)
+    raw.spends = spends
+
+    for (const receive of receives) {
+      const note = new NativeNote(
+        receive.publicAddress,
+        receive.amount,
+        receive.memo,
+        receive.assetId,
+        sender.publicAddress,
+      )
+
+      raw.receives.push({ note: new Note(note.serialize()) })
+    }
+
+    const transaction = await pool.postTransaction(raw)
 
     return chain.newBlock(
       [transaction],
