@@ -633,7 +633,7 @@ impl MPCParameters {
         // Don't allow any elements be unconstrained, so that
         // the L query is always fully dense.
         for e in l.iter() {
-            if e.is_identity().unwrap_u8() == 1 {
+            if bool::from(e.is_identity()) {
                 return Err(SynthesisError::UnconstrainedVariable);
             }
         }
@@ -669,9 +669,9 @@ impl MPCParameters {
             l: Arc::new(l_affine),
 
             // Filter points at infinity away from A/B queries
-            a: Arc::new(a_g1_affine.into_iter().filter(|e| !e.is_identity().unwrap_u8() == 1).collect()),
-            b_g1: Arc::new(b_g1_affine.into_iter().filter(|e| !e.is_identity().unwrap_u8() == 1).collect()),
-            b_g2: Arc::new(b_g2_affine.into_iter().filter(|e| !e.is_identity().unwrap_u8() == 1).collect())
+            a: Arc::new(a_g1_affine.into_iter().filter(|e| !bool::from(e.is_identity())).collect()),
+            b_g1: Arc::new(b_g1_affine.into_iter().filter(|e| !bool::from(e.is_identity())).collect()),
+            b_g2: Arc::new(b_g2_affine.into_iter().filter(|e| !bool::from(e.is_identity())).collect())
         };
 
         let h = {
