@@ -39,13 +39,13 @@ router.register<typeof CreateRawTransactionRequestSchema, CreateRawTransactionRe
     // sender: Account, // this'll be a stringified public key
     // receives: {
     //   publicAddress: string 
-    //   amount: bigint
+    //   amount: string // becomes bigint
     //   memo: string
-    //   assetId: Buffer
+    //   assetId: string  
     // }[],
-    // mints: MintDescription[],
+    // mints: MintDescription[], // value will be string -> bigint, asset will be string ID. see burnAsset and mintAsset
     // burns: BurnDescription[],
-    // fee: bigint,
+    // fee: string, // becomes bigint
     // expiration: number,
 
     // maybe start with a version that just supplies [] and [] for mints and burns
