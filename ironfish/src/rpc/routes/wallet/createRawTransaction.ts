@@ -7,6 +7,8 @@ import { CurrencyUtils } from '../../../utils'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { ApiNamespace, router } from '../router'
 import { ValidationError } from '../../adapters/errors'
+import { BurnDescription } from '../../../primitives/burnDescription'
+import { MintDescription } from '../../../primitives/mintDescription'
 
 export type CreateRawTransactionRequest = {
   fromAccountName: string
@@ -108,10 +110,36 @@ router.register<typeof CreateRawTransactionRequestSchema, CreateRawTransactionRe
       }
     })
 
-    // TODO MINTS
-    const mints = []
-    const burns = []
-    // TODO BURNS
+    let mints: MintDescription[] = []
+    if (options.mints) {
+      mints = options.mints.map((mint) => { // TODO this is incorrect way of populating mints
+        let assetId = Asset.nativeId()
+        if (mint.assetId) {
+          assetId = Buffer.from(mint.assetId, 'hex')
+        }
+  
+        return {
+          asset: assetId,
+          value: CurrencyUtils.decode(mint.value),
+        }
+      })
+    }
+
+    let burns: BurnDescription[] = []
+    if (options.burns) {
+      burns = options.burns.map((burn) => { // TODO this is incorrect way of populating burns
+        let assetId = Asset.nativeId()
+        if (burn.assetId) {
+          assetId = Buffer.from(burn.assetId, 'hex')
+        }
+  
+        return {
+          asset: assetId,
+          value: CurrencyUtils.decode(burn.value),
+        }
+      })
+    }
+    
 
     const fee = CurrencyUtils.decode(options.fee)
     if (fee < 1n) {
