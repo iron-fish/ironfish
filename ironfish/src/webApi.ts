@@ -70,7 +70,7 @@ export class WebApi {
   }
 
   async getMultiAssetAddress(): Promise<string> {
-    const response = await axios.get<{ address: string }>(`${this.host}/deposit/address`)
+    const response = await axios.get<{ address: string }>(`${this.host}/deposits/address`)
     return response.data.address
   }
 
