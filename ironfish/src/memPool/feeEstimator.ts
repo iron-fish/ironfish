@@ -26,6 +26,9 @@ export interface BlockSizeEntry {
 
 export type PriorityLevel = typeof PRIORITY_LEVELS[number]
 export type PriorityLevelPercentiles = { low: number; medium: number; high: number }
+export function isPriorityLevel(value: string): boolean {
+  return PRIORITY_LEVELS.includes(value as PriorityLevel);
+}
 
 export const PRIORITY_LEVELS = ['low', 'medium', 'high'] as const
 export const BLOCK_SIZE = 'blockSize' as const

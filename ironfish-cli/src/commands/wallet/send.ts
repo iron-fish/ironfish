@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils, isValidPublicAddress, Transaction, RawTransactionSerde } from '@ironfish/sdk'
-//import { RawTransactionSerde } from '@ironfish/sdk/src/primitives/rawTransaction'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -162,7 +161,7 @@ export class Send extends IronfishCommand {
       this.log(`
 You are about to send:
 ${CurrencyUtils.renderIron(
-  rawTransaction.spends[0].note.value(),
+  amount,
   true,
   assetId,
 )} plus a transaction fee of ${CurrencyUtils.renderIron(

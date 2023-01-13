@@ -4,7 +4,7 @@
  import { Asset } from '@ironfish/rust-nodejs'
  import { BufferMap } from 'buffer-map'
  import * as yup from 'yup'
-import { PriorityLevel } from '../../../memPool/feeEstimator'
+import { assertIsPriorityLevel, isPriorityLevel, PriorityLevel, PRIORITY_LEVELS } from '../../../memPool/feeEstimator'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
  import { CurrencyUtils } from '../../../utils'
  import { NotEnoughFundsError } from '../../../wallet/errors'
@@ -50,7 +50,7 @@ import { RawTransactionSerde } from '../../../primitives/rawTransaction'
      expirationDelta: yup.number().nullable().optional(),
    })
    .defined()
- 
+
 export const CreateTransactionResponseSchema: yup.ObjectSchema<CreateTransactionResponse> = yup
   .object({
     transaction: yup.string().defined(),
@@ -144,24 +144,18 @@ export const CreateTransactionResponseSchema: yup.ObjectSchema<CreateTransaction
             transaction.expiration,
         )
        }else{
-        let priprityLevel: PriorityLevel
-        switch (transaction.feePriorityLevel) {
-            case 'low':
-              priprityLevel = 'low'
-              break
-            case 'high':
-              priprityLevel = 'high'
-              break
-            default:
-              priprityLevel = 'medium'
-          } 
+        let priorityLevel: PriorityLevel = 'medium'
+
+        if (transaction.feePriorityLevel && isPriorityLevel(transaction.feePriorityLevel)) { 
+            priorityLevel = transaction.feePriorityLevel as PriorityLevel;
+        }
 
         rawTransaction = await node.wallet.createTransactionWithFeePriorityLevel(
             account,
             receives,
             [],
             [],
-            priprityLevel,
+            priorityLevel,
             node.memPool,
             transaction.expirationDelta ?? node.config.get('transactionExpirationDelta'),
             transaction.expiration,
