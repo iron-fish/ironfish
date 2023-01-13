@@ -11,7 +11,7 @@ export class Mint extends IronfishCommand {
   static description = 'Mint tokens and increase supply for a given asset'
 
   static examples = [
-    '$ ironfish wallet:mint -m "see more here" -n mycoin -a 1000 -f myaccount -o 1',
+    '$ ironfish wallet:mint -m "see more here" -n mycoin -a 1000 -f myaccount -o 0.00000001',
   ]
 
   static flags = {
@@ -23,7 +23,6 @@ export class Mint extends IronfishCommand {
     fee: Flags.string({
       char: 'o',
       description: 'The fee amount in IRON',
-      required: true,
     }),
     amount: Flags.string({
       char: 'a',
@@ -74,6 +73,20 @@ export class Mint extends IronfishCommand {
       account = defaultAccount.name
     }
 
+    let fee
+    if (flags.fee) {
+      fee = CurrencyUtils.decodeIron(flags.fee)
+    } else {
+      const input = await CliUx.ux.prompt(
+        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)})`,
+        {
+          required: true,
+        },
+      )
+
+      fee = CurrencyUtils.decodeIron(input)
+    }
+
     const bar = CliUx.ux.progress({
       barCompleteChar: '\u2588',
       barIncompleteChar: '\u2591',
@@ -101,7 +114,7 @@ export class Mint extends IronfishCommand {
       const result = await client.mintAsset({
         account,
         assetId: flags.assetId,
-        fee: flags.fee,
+        fee: fee.toString(),
         metadata: flags.metadata,
         name: flags.name,
         value: flags.amount,
@@ -111,16 +124,13 @@ export class Mint extends IronfishCommand {
 
       const response = result.content
       this.log(`
- Minted asset ${response.name} from ${account}
- Asset Identifier: ${response.assetId}
- Value: ${response.value}
- 
- Transaction Hash: ${response.hash}
- Transaction fee: ${CurrencyUtils.renderIron(flags.fee, true)}
- 
- Find the transaction on https://explorer.ironfish.network/transaction/${
-   response.hash
- } (it can take a few minutes before the transaction appears in the Explorer)`)
+Minted asset ${response.name} from ${account}
+Asset Identifier: ${response.assetId}
+Value: ${response.value}
+
+Transaction Hash: ${response.hash}
+
+Find the transaction on https://explorer.ironfish.network/transaction/${response.hash} (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while minting the asset.`)
