@@ -49,10 +49,10 @@ export class RemoveCommand extends IronfishCommand {
       }
 
       if (wait) {
-        this.log(`Waiting for account deletion to finish . . .`)
+        CliUx.ux.action.start(`Removing account databases`)
+        await client.removeAccount({ name, confirm: true, wait })
+        CliUx.ux.action.stop(`done`)
       }
-
-      await client.removeAccount({ name, confirm: true, wait })
     }
 
     this.log(`Account '${name}' successfully removed.`)
