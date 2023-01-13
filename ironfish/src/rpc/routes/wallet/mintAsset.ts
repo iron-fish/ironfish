@@ -81,18 +81,16 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       }
     } else {
       Assert.isNotUndefined(
-        request.data.metadata,
-        'Must provide metadata and name or identifier to mint',
-      )
-      Assert.isNotUndefined(
         request.data.name,
         'Must provide metadata and name or identifier to mint',
       )
 
+      const metadata: string = request.data.metadata ?? ''
+      
       options = {
         expiration: request.data.expiration,
         fee,
-        metadata: request.data.metadata,
+        metadata: metadata,
         name: request.data.name,
         transactionExpirationDelta,
         value,
