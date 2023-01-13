@@ -143,6 +143,8 @@ router.register<typeof CreateRawTransactionRequestSchema, CreateRawTransactionRe
     if (fee < 1n) {
       throw new ValidationError(`Invalid transaction fee, ${options.fee}`)
     }
+    
+    const expiration = options.expiration ?? 0 // TODO is 0 the good default?
 
     const transaction = await node.wallet.createTransaction(
       account,
@@ -150,7 +152,7 @@ router.register<typeof CreateRawTransactionRequestSchema, CreateRawTransactionRe
       mints,
       burns,
       fee,
-      options.expiration, // TODO this is incorrect way of passing expiration
+      expiration,
     )
     const transactionBytes = RawTransactionSerde.serialize(transaction)
     request.end({ transaction: transactionBytes.toString('hex') })
