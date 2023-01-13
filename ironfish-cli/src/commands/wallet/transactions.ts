@@ -19,6 +19,9 @@ export class TransactionsCommand extends IronfishCommand {
     limit: Flags.integer({
       description: 'Number of latest transactions to get details for',
     }),
+    confirmations: Flags.integer({
+      description: 'Number of block confirmations needed to confirm a transaction',
+    }),
   }
 
   static args = [
@@ -39,6 +42,7 @@ export class TransactionsCommand extends IronfishCommand {
       account,
       hash: flags.hash,
       limit: flags.limit,
+      confirmations: flags.confirmations,
     })
 
     let showHeader = true
