@@ -134,8 +134,6 @@ export class Transaction {
   receive(note: Note): void
   /** Spend the note owned by spender_hex_key at the given witness location. */
   spend(note: Note, witness: object): void
-  /** return the sender of the transaction */
-  sender(): string
   /** Mint a new asset with a given value as part of this transaction. */
   mint(asset: Asset, value: bigint): void
   /** Burn some supply of a given asset and value as part of this transaction. */

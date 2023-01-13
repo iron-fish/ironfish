@@ -125,12 +125,6 @@ impl ProposedTransaction {
         }
     }
 
-    // return the sender of the transaction
-    // TODO(joe): change this to use value stored on transaction
-    pub fn sender(&mut self) -> PublicAddress {
-        self.spends[0].note.owner()
-    }
-
     /// Spend the note owned by spender_key at the given witness location.
     pub fn add_spend(
         &mut self,

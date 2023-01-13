@@ -149,9 +149,6 @@ describe('Demonstrate the Sapling API', () => {
       expect(publicTransaction).toBeTruthy()
     })
 
-    it('Has note spender as the transaction sender', () =>
-      expect(transaction.sender()).toBe(minerNote.sender()))
-
     it('Can verify the transaction', async () => {
       expect(publicTransaction.verify()).toBeTruthy()
       for (let i = 0; i < publicTransaction.notesLength(); i++) {
