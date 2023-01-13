@@ -158,4 +158,28 @@ describe('TransactionValueEncoding', () => {
       expectTransactionValueToMatch(deserializedValue, value)
     })
   })
+
+  describe('with negative balance delta', () => {
+    it('serializes the object into a buffer and deserializes to the original object', async () => {
+      const encoder = new TransactionValueEncoding()
+
+      const transaction = await useMinersTxFixture(nodeTest.wallet)
+
+      const assetBalanceDeltas = new BufferMap<bigint>()
+      assetBalanceDeltas.set(Asset.nativeId(), -20n)
+
+      const value: TransactionValue = {
+        transaction,
+        timestamp: new Date(),
+        blockHash: Buffer.alloc(32, 1),
+        sequence: 124,
+        submittedSequence: 123,
+        assetBalanceDeltas,
+      }
+
+      const buffer = encoder.serialize(value)
+      const deserializedValue = encoder.deserialize(buffer)
+      expectTransactionValueToMatch(deserializedValue, value)
+    })
+  })
 })
