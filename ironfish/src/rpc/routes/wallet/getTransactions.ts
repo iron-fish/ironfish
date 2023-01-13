@@ -1,9 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import FastPriorityQueue from 'fastpriorityqueue'
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
@@ -66,12 +64,6 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
 
-    if (request.data.hash) {
-      await handleSingleTransaction(request, node, account, request.data.hash)
-      request.end()
-      return
-    }
-
     const headSequence = (await account.getHead())?.sequence ?? null
 
     const options = {
@@ -79,10 +71,31 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
       confirmations: request.data.confirmations,
     }
 
-    if (request.data.limit) {
-      await handleLimitedTransactions(request, node, account, request.data.limit, options)
-    } else {
-      await handleAllTransactions(request, node, account, options)
+    if (request.data.hash) {
+      const hashBuffer = Buffer.from(request.data.hash, 'hex')
+
+      const transaction = await account.getTransaction(hashBuffer)
+
+      if (transaction) {
+        await streamTransaction(request, node, account, transaction, options)
+      }
+      request.end()
+      return
+    }
+
+    let count = 0
+
+    for await (const transaction of account.getTransactionsByTime()) {
+      if (request.closed) {
+        break
+      }
+
+      if (request.data.limit && count === request.data.limit) {
+        break
+      }
+
+      await streamTransaction(request, node, account, transaction, options)
+      count++
     }
 
     request.end()
@@ -120,84 +133,4 @@ const streamTransaction = async (
   }
 
   request.stream(serialized)
-}
-
-const handleSingleTransaction = async (
-  request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
-  node: IronfishNode,
-  account: Account,
-  hash: string,
-  options?: {
-    headSequence?: number | null
-    confirmations?: number
-  },
-): Promise<void> => {
-  const hashBuffer = Buffer.from(hash, 'hex')
-
-  const transaction = await account.getTransaction(hashBuffer)
-
-  if (transaction) {
-    await streamTransaction(request, node, account, transaction, options)
-  }
-}
-
-const handleLimitedTransactions = async (
-  request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
-  node: IronfishNode,
-  account: Account,
-  limit: number,
-  options?: {
-    headSequence?: number | null
-    confirmations?: number
-  },
-): Promise<void> => {
-  const queue = new FastPriorityQueue<TransactionValue>(function (a, b) {
-    if (a.sequence && b.sequence) {
-      // both a and b are mined on chain, use sequence as sort key
-      return a.sequence < b.sequence
-    } else {
-      // at least one is in pending status, use expiration as sort key
-      if (a.transaction.expiration() && b.transaction.expiration()) {
-        return a.transaction.expiration() < b.transaction.expiration()
-      } else {
-        // transactions without expiration are always latest
-        return b.transaction.expiration() === 0
-      }
-    }
-  })
-
-  for await (const transaction of account.getTransactionsByTime()) {
-    Assert.isNotNull(transaction)
-    queue.add(transaction)
-    // remove the earliest transaction when queue is full
-    if (queue.size > limit) {
-      queue.poll()
-    }
-  }
-  while (!queue.isEmpty()) {
-    if (request.closed) {
-      break
-    }
-
-    const transaction = queue.poll()
-    Assert.isNotUndefined(transaction)
-    await streamTransaction(request, node, account, transaction, options)
-  }
-}
-
-const handleAllTransactions = async (
-  request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
-  node: IronfishNode,
-  account: Account,
-  options?: {
-    headSequence?: number | null
-    confirmations?: number
-  },
-): Promise<void> => {
-  for await (const transaction of account.getTransactionsByTime()) {
-    if (request.closed) {
-      break
-    }
-    await streamTransaction(request, node, account, transaction, options)
-  }
 }
