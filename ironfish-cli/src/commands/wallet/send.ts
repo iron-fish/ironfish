@@ -286,6 +286,14 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
     const balancesResponse = await client.getAccountBalances({ account })
     const assetOptions = []
 
+    const balances = balancesResponse.content.balances
+    if (balances.length === 0) {
+      return undefined
+    } else if (balances.length === 1) {
+      // If there's only one available asset, showing the choices is unnecessary
+      return balancesResponse.content.balances[0].assetId
+    }
+
     // Get the asset name from the chain DB to populate the display choices
     for (const { assetId } of balancesResponse.content.balances) {
       const assetResponse = await client.getAsset({ id: assetId })
@@ -299,23 +307,14 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
       }
     }
 
-    let assetId
-
-    if (balancesResponse.content.balances.length === 1) {
-      // If there's only one available asset, showing the choices is unnecessary
-      assetId = balancesResponse.content.balances[0].assetId
-    } else if (balancesResponse.content.balances.length > 1) {
-      const response: { assetId: string } = await inquirer.prompt<{ assetId: string }>([
-        {
-          name: 'assetId',
-          message: 'Select the asset you wish to send',
-          type: 'list',
-          choices: assetOptions,
-        },
-      ])
-      assetId = response.assetId
-    }
-
-    return assetId
+    const response: { assetId: string } = await inquirer.prompt<{ assetId: string }>([
+      {
+        name: 'assetId',
+        message: 'Select the asset you wish to send',
+        type: 'list',
+        choices: assetOptions,
+      },
+    ])
+    return response.assetId
   }
 }
