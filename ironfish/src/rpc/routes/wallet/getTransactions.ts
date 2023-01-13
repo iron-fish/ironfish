@@ -1,9 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import FastPriorityQueue from 'fastpriorityqueue'
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { IronfishNode } from '../../../node'
 import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
