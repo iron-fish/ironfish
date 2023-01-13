@@ -12,7 +12,12 @@ import { ApiNamespace, router } from '../router'
 import { serializeRpcAccountTransaction } from './types'
 import { getAccount } from './utils'
 
-export type GetAccountTransactionsRequest = { account?: string; hash?: string; limit?: number }
+export type GetAccountTransactionsRequest = {
+  account?: string
+  hash?: string
+  limit?: number
+  confirmations?: number
+}
 
 export type GetAccountTransactionsResponse = {
   creator: boolean
@@ -34,6 +39,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
       account: yup.string().strip(true),
       hash: yup.string().notRequired(),
       limit: yup.number().notRequired(),
+      confirmations: yup.number().notRequired(),
     })
     .defined()
 
@@ -68,10 +74,15 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
     const headSequence = (await account.getHead())?.sequence ?? null
 
+    const options = {
+      headSequence,
+      confirmations: request.data.confirmations,
+    }
+
     if (request.data.limit) {
-      await handleLimitedTransactions(request, node, account, request.data.limit, headSequence)
+      await handleLimitedTransactions(request, node, account, request.data.limit, options)
     } else {
-      await handleAllTransactions(request, node, account, headSequence)
+      await handleAllTransactions(request, node, account, options)
     }
 
     request.end()
@@ -85,6 +96,7 @@ const streamTransaction = async (
   transaction: TransactionValue,
   options?: {
     headSequence?: number | null
+    confirmations?: number
   },
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
@@ -115,13 +127,17 @@ const handleSingleTransaction = async (
   node: IronfishNode,
   account: Account,
   hash: string,
+  options?: {
+    headSequence?: number | null
+    confirmations?: number
+  },
 ): Promise<void> => {
   const hashBuffer = Buffer.from(hash, 'hex')
 
   const transaction = await account.getTransaction(hashBuffer)
 
   if (transaction) {
-    await streamTransaction(request, node, account, transaction)
+    await streamTransaction(request, node, account, transaction, options)
   }
 }
 
@@ -130,7 +146,10 @@ const handleLimitedTransactions = async (
   node: IronfishNode,
   account: Account,
   limit: number,
-  headSequence?: number | null,
+  options?: {
+    headSequence?: number | null
+    confirmations?: number
+  },
 ): Promise<void> => {
   const queue = new FastPriorityQueue<TransactionValue>(function (a, b) {
     if (a.sequence && b.sequence) {
@@ -162,7 +181,7 @@ const handleLimitedTransactions = async (
 
     const transaction = queue.poll()
     Assert.isNotUndefined(transaction)
-    await streamTransaction(request, node, account, transaction, { headSequence })
+    await streamTransaction(request, node, account, transaction, options)
   }
 }
 
@@ -170,12 +189,15 @@ const handleAllTransactions = async (
   request: RpcRequest<GetAccountTransactionsRequest, GetAccountTransactionsResponse>,
   node: IronfishNode,
   account: Account,
-  headSequence?: number | null,
+  options?: {
+    headSequence?: number | null
+    confirmations?: number
+  },
 ): Promise<void> => {
   for await (const transaction of account.getTransactionsByTime()) {
     if (request.closed) {
       break
     }
-    await streamTransaction(request, node, account, transaction, { headSequence })
+    await streamTransaction(request, node, account, transaction, options)
   }
 }

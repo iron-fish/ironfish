@@ -11,7 +11,7 @@ export class Mint extends IronfishCommand {
   static description = 'Mint tokens and increase supply for a given asset'
 
   static examples = [
-    '$ ironfish wallet:mint -m "see more here" -n mycoin -a 1000 -f myaccount -o 1',
+    '$ ironfish wallet:mint -m "see more here" -n mycoin -a 1000 -f myaccount -o 0.00000001',
   ]
 
   static flags = {
@@ -19,12 +19,10 @@ export class Mint extends IronfishCommand {
     account: Flags.string({
       char: 'f',
       description: 'The account to mint from',
-      required: true,
     }),
     fee: Flags.string({
       char: 'o',
       description: 'The fee amount in IRON',
-      required: true,
     }),
     amount: Flags.string({
       char: 'a',
@@ -60,6 +58,35 @@ export class Mint extends IronfishCommand {
       this.exit(1)
     }
 
+    let account = flags.account?.trim()
+    if (!account) {
+      const response = await client.getDefaultAccount()
+      const defaultAccount = response.content.account
+
+      if (!defaultAccount) {
+        this.error(
+          `No account is currently active.
+           Use ironfish wallet:create <name> to first create an account`,
+        )
+      }
+
+      account = defaultAccount.name
+    }
+
+    let fee
+    if (flags.fee) {
+      fee = CurrencyUtils.decodeIron(flags.fee)
+    } else {
+      const input = await CliUx.ux.prompt(
+        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)})`,
+        {
+          required: true,
+        },
+      )
+
+      fee = CurrencyUtils.decodeIron(input)
+    }
+
     const bar = CliUx.ux.progress({
       barCompleteChar: '\u2588',
       barIncompleteChar: '\u2591',
@@ -86,9 +113,9 @@ export class Mint extends IronfishCommand {
     try {
       const amount = CurrencyUtils.decodeIron(flags.amount)
       const result = await client.mintAsset({
-        account: flags.account,
+        account,
         assetId: flags.assetId,
-        fee: flags.fee,
+        fee: CurrencyUtils.encode(fee),
         metadata: flags.metadata,
         name: flags.name,
         value: CurrencyUtils.encode(amount),
@@ -98,16 +125,15 @@ export class Mint extends IronfishCommand {
 
       const response = result.content
       this.log(`
- Minted asset ${response.name} from ${flags.account}
- Asset Identifier: ${response.assetId}
- Value: ${response.value}
- 
- Transaction Hash: ${response.hash}
- Transaction fee: ${CurrencyUtils.renderIron(flags.fee, true)}
- 
- Find the transaction on https://explorer.ironfish.network/transaction/${
-   response.hash
- } (it can take a few minutes before the transaction appears in the Explorer)`)
+Minted asset ${response.name} from ${account}
+Asset Identifier: ${response.assetId}
+Value: ${CurrencyUtils.encode(amount)}
+
+Transaction Hash: ${response.hash}
+
+Find the transaction on https://explorer.ironfish.network/transaction/${
+        response.hash
+      } (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while minting the asset.`)

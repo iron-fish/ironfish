@@ -62,7 +62,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       throw new ValidationError(`Invalid transaction fee, ${fee}`)
     }
 
-    const value = CurrencyUtils.decodeIron(request.data.value)
+    const value = CurrencyUtils.decode(request.data.value)
     if (value <= 0) {
       throw new ValidationError('Invalid mint amount')
     }

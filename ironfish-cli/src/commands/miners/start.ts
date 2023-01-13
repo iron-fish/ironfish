@@ -63,14 +63,19 @@ export class Miner extends IronfishCommand {
     const batchSize = this.sdk.config.get('minerBatchSize')
 
     if (flags.pool) {
-      if (flags.address == null) {
-        this.error(
-          "Can't mine from a pool without a public address. Use `-a address-goes-here` to provide one.",
-        )
+      let publicAddress = flags.address
+
+      if (publicAddress == null) {
+        const client = await this.sdk.connectRpc()
+        const publicKeyResponse = await client.getAccountPublicKey({})
+
+        publicAddress = publicKeyResponse.content.publicKey
       }
 
-      if (!isValidPublicAddress(flags.address)) {
-        this.error('The given public address is not valid, please provide a valid one.')
+      if (!isValidPublicAddress(publicAddress)) {
+        this.error(
+          `The given public address is not valid, please provide a valid one: ${publicAddress}`,
+        )
       }
 
       let host = this.sdk.config.get('poolHost')
@@ -91,12 +96,12 @@ export class Miner extends IronfishCommand {
 
       const nameInfo = flags.name ? ` with name ${flags.name}` : ''
       this.log(
-        `Starting to mine with public address: ${flags.address} at pool ${host}:${port}${nameInfo}`,
+        `Starting to mine with public address: ${publicAddress} at pool ${host}:${port}${nameInfo}`,
       )
 
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
-        publicAddress: flags.address,
+        publicAddress,
         logger: this.logger,
         batchSize,
         host: host,

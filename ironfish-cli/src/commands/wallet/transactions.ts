@@ -19,6 +19,9 @@ export class TransactionsCommand extends IronfishCommand {
     limit: Flags.integer({
       description: 'Number of latest transactions to get details for',
     }),
+    confirmations: Flags.integer({
+      description: 'Number of block confirmations needed to confirm a transaction',
+    }),
   }
 
   static args = [
@@ -39,6 +42,7 @@ export class TransactionsCommand extends IronfishCommand {
       account,
       hash: flags.hash,
       limit: flags.limit,
+      confirmations: flags.confirmations,
     })
 
     let showHeader = true
@@ -57,14 +61,14 @@ export class TransactionsCommand extends IronfishCommand {
           },
           creator: {
             header: 'Creator',
-            get: (transaction) => (transaction.creator ? `✔` : `x`),
+            get: (transaction) => (transaction.creator ? `✔` : ``),
           },
           hash: {
             header: 'Hash',
           },
           isMinersFee: {
             header: 'Miner Fee',
-            get: (transaction) => (transaction.isMinersFee ? `✔` : `x`),
+            get: (transaction) => (transaction.isMinersFee ? `✔` : ``),
           },
           fee: {
             header: 'Fee ($IRON)',
