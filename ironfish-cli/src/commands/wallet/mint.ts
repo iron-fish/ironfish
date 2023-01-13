@@ -28,7 +28,7 @@ export class Mint extends IronfishCommand {
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'Amount of coins to mint',
+      description: 'Amount of coins to mint in IRON',
       required: true,
     }),
     assetId: Flags.string({
@@ -84,13 +84,14 @@ export class Mint extends IronfishCommand {
     }
 
     try {
+      const amount = CurrencyUtils.decodeIron(flags.amount)
       const result = await client.mintAsset({
         account: flags.account,
         assetId: flags.assetId,
         fee: flags.fee,
         metadata: flags.metadata,
         name: flags.name,
-        value: flags.amount,
+        value: CurrencyUtils.encode(amount),
       })
 
       stopProgressBar()

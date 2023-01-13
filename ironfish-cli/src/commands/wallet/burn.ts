@@ -26,7 +26,7 @@ export class Burn extends IronfishCommand {
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'Amount of coins to burn',
+      description: 'Amount of coins to burn in IRON',
       required: true,
     }),
     assetId: Flags.string({
@@ -72,11 +72,12 @@ export class Burn extends IronfishCommand {
     }
 
     try {
+      const amount = CurrencyUtils.decodeIron(flags.amount)
       const result = await client.burnAsset({
         account: flags.account,
         assetId: flags.assetId,
         fee: flags.fee,
-        value: flags.amount,
+        value: CurrencyUtils.encode(amount),
       })
 
       stopProgressBar()
