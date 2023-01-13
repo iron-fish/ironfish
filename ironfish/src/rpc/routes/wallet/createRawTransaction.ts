@@ -125,7 +125,7 @@ router.register<typeof CreateRawTransactionRequestSchema, CreateRawTransactionRe
 
     const burns: BurnDescription[] = []
     if (options.burns) {
-      options.burns.map((burn) => { // TODO this is incorrect way of populating burns
+      options.burns.map((burn) => {
         let assetId = Asset.nativeId()
         if (burn.assetId) {
           assetId = Buffer.from(burn.assetId, 'hex')
@@ -143,7 +143,7 @@ router.register<typeof CreateRawTransactionRequestSchema, CreateRawTransactionRe
     if (fee < 1n) {
       throw new ValidationError(`Invalid transaction fee, ${options.fee}`)
     }
-    
+
     const expiration = options.expiration ?? 0 // TODO is 0 the good default?
 
     const transaction = await node.wallet.createTransaction(
