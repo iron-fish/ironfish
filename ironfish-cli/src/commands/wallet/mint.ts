@@ -19,7 +19,6 @@ export class Mint extends IronfishCommand {
     account: Flags.string({
       char: 'f',
       description: 'The account to mint from',
-      required: true,
     }),
     fee: Flags.string({
       char: 'o',
@@ -57,6 +56,21 @@ export class Mint extends IronfishCommand {
         `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
       )
       this.exit(1)
+    }
+
+    let account = flags.account?.trim()
+    if (!account) {
+      const response = await client.getDefaultAccount()
+      const defaultAccount = response.content.account
+
+      if (!defaultAccount) {
+        this.error(
+          `No account is currently active.
+           Use ironfish wallet:create <name> to first create an account`,
+        )
+      }
+
+      account = defaultAccount.name
     }
 
     let fee
@@ -98,7 +112,7 @@ export class Mint extends IronfishCommand {
 
     try {
       const result = await client.mintAsset({
-        account: flags.account,
+        account,
         assetId: flags.assetId,
         fee: fee.toString(),
         metadata: flags.metadata,
@@ -110,7 +124,7 @@ export class Mint extends IronfishCommand {
 
       const response = result.content
       this.log(`
-Minted asset ${response.name} from ${flags.account}
+Minted asset ${response.name} from ${account}
 Asset Identifier: ${response.assetId}
 Value: ${response.value}
 
