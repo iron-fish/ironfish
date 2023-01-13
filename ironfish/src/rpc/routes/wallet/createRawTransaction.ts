@@ -108,33 +108,33 @@ router.register<typeof CreateRawTransactionRequestSchema, CreateRawTransactionRe
       }
     })
 
-    let mints: MintDescription[] = []
+    const mints: MintDescription[] = []
     if (options.mints) {
-      mints = options.mints.map((mint) => { // TODO this is incorrect way of populating mints
+      options.mints.map((mint) => { 
         let assetId = Asset.nativeId()
         if (mint.assetId) {
           assetId = Buffer.from(mint.assetId, 'hex')
         }
-  
-        return {
+        //TODO how to get from AssetID to Asset?
+        mints.push({
           asset: assetId,
           value: CurrencyUtils.decode(mint.value),
-        }
+        })
       })
     }
 
-    let burns: BurnDescription[] = []
+    const burns: BurnDescription[] = []
     if (options.burns) {
-      burns = options.burns.map((burn) => { // TODO this is incorrect way of populating burns
+      options.burns.map((burn) => { // TODO this is incorrect way of populating burns
         let assetId = Asset.nativeId()
         if (burn.assetId) {
           assetId = Buffer.from(burn.assetId, 'hex')
         }
-  
-        return {
+        //TODO how to get from AssetID to Asset?
+        burns.push({
           asset: assetId,
           value: CurrencyUtils.decode(burn.value),
-        }
+        })
       })
     }
     
