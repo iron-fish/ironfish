@@ -17,7 +17,6 @@ export class Burn extends IronfishCommand {
     account: Flags.string({
       char: 'f',
       description: 'The account to burn from',
-      required: true,
     }),
     fee: Flags.string({
       char: 'o',
@@ -48,6 +47,21 @@ export class Burn extends IronfishCommand {
       this.exit(1)
     }
 
+    let account = flags.account?.trim()
+    if (!account) {
+      const response = await client.getDefaultAccount()
+      const defaultAccount = response.content.account
+
+      if (!defaultAccount) {
+        this.error(
+          `No account is currently active.
+           Use ironfish wallet:create <name> to first create an account`,
+        )
+      }
+
+      account = defaultAccount.name
+    }
+
     const bar = CliUx.ux.progress({
       barCompleteChar: '\u2588',
       barIncompleteChar: '\u2591',
@@ -73,7 +87,7 @@ export class Burn extends IronfishCommand {
 
     try {
       const result = await client.burnAsset({
-        account: flags.account,
+        account,
         assetId: flags.assetId,
         fee: flags.fee,
         value: flags.amount,
@@ -83,7 +97,7 @@ export class Burn extends IronfishCommand {
 
       const response = result.content
       this.log(`
-   Burned asset ${response.assetId} from ${flags.account}
+   Burned asset ${response.assetId} from ${account}
    Value: ${flags.amount}
    
    Transaction Hash: ${response.hash}
