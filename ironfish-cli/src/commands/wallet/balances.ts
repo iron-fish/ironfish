@@ -16,6 +16,7 @@ export class BalancesCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    ...CliUx.ux.table.flags(),
     all: Flags.boolean({
       default: false,
       description: `Also show unconfirmed balance, head hash, and head sequence`,
