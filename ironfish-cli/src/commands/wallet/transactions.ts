@@ -57,14 +57,14 @@ export class TransactionsCommand extends IronfishCommand {
           },
           creator: {
             header: 'Creator',
-            get: (transaction) => (transaction.creator ? `✔` : `x`),
+            get: (transaction) => (transaction.creator ? `✔` : ``),
           },
           hash: {
             header: 'Hash',
           },
           isMinersFee: {
             header: 'Miner Fee',
-            get: (transaction) => (transaction.isMinersFee ? `✔` : `x`),
+            get: (transaction) => (transaction.isMinersFee ? `✔` : ``),
           },
           fee: {
             header: 'Fee ($IRON)',
