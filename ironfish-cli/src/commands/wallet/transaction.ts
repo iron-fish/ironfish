@@ -64,8 +64,14 @@ export class TransactionCommand extends IronfishCommand {
           get: (note) => (note.owner ? `✔` : `x`),
         },
         amount: {
-          header: 'Amount ($IRON)',
+          header: 'Amount',
           get: (note) => CurrencyUtils.renderIron(note.value),
+        },
+        assetName: {
+          header: 'Asset Name',
+        },
+        assetId: {
+          header: 'Asset Id',
         },
         isSpent: {
           header: 'Spent',

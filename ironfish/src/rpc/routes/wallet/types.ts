@@ -20,6 +20,8 @@ export type RpcAccountTransaction = {
 export type RpcAccountDecryptedNote = {
   owner: boolean
   value: string
+  assetId: string
+  assetName: string
   memo: string
   sender: string
   spent: boolean
