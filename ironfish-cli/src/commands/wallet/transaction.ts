@@ -48,7 +48,9 @@ export class TransactionCommand extends IronfishCommand {
     this.log(`Miner Fee: ${response.content.transaction.isMinersFee ? `✔` : `x`}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(response.content.transaction.fee, true)}`)
     if (response.content.transaction.blockHash && response.content.transaction.blockSequence) {
-      this.log(`Block Hash: ${Buffer.from(response.content.transaction.blockHash).toString('hex')}`)
+      this.log(
+        `Block Hash: ${Buffer.from(response.content.transaction.blockHash).toString('hex')}`,
+      )
       this.log(`Block Sequence: ${response.content.transaction.blockSequence}`)
     }
     this.log(`Spends Count: ${response.content.transaction.spendsCount}`)
