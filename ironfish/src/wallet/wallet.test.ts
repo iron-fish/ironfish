@@ -1168,6 +1168,7 @@ describe('Accounts', () => {
           [],
           BigInt(0),
           0,
+          0,
         )
 
         const transaction = await node.wallet.postTransaction(raw)
