@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils } from '@ironfish/sdk'
+import { BufferUtils, CurrencyUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -48,7 +48,7 @@ export class TransactionCommand extends IronfishCommand {
     this.log(`Miner Fee: ${response.content.transaction.isMinersFee ? `✔` : `x`}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(response.content.transaction.fee, true)}`)
     if (response.content.transaction.blockHash && response.content.transaction.blockSequence) {
-      this.log(`Block Hash: ${response.content.transaction.blockHash}`)
+      this.log(`Block Hash: ${Buffer.from(response.content.transaction.blockHash).toString('hex')}`)
       this.log(`Block Sequence: ${response.content.transaction.blockSequence}`)
     }
     this.log(`Spends Count: ${response.content.transaction.spendsCount}`)
@@ -69,9 +69,11 @@ export class TransactionCommand extends IronfishCommand {
         },
         assetName: {
           header: 'Asset Name',
+          get: (note) => BufferUtils.toHuman(Buffer.from(note.assetName)),
         },
         assetId: {
           header: 'Asset Id',
+          get: (note) => Buffer.from(note.assetId).toString('hex'),
         },
         isSpent: {
           header: 'Spent',

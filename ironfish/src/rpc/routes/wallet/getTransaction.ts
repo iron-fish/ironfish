@@ -13,11 +13,11 @@ export type GetAccountTransactionRequest = { account?: string; hash: string }
 export type GetAccountTransactionResponse = {
   account: string
   transaction: {
-    hash: string
+    hash: Buffer
     status: string
     isMinersFee: boolean
     fee: string
-    blockHash?: string
+    blockHash?: Buffer
     blockSequence?: number
     notesCount: number
     spendsCount: number
@@ -39,11 +39,11 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
       account: yup.string().defined(),
       transaction: yup
         .object({
-          hash: yup.string().required(),
+          hash: yup.mixed<Buffer>().required(),
           status: yup.string().defined(),
           isMinersFee: yup.boolean().defined(),
           fee: yup.string().defined(),
-          blockHash: yup.string().optional(),
+          blockHash: yup.mixed<Buffer>().optional(),
           blockSequence: yup.number().optional(),
           notesCount: yup.number().defined(),
           spendsCount: yup.number().defined(),
@@ -53,8 +53,8 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
                 .object({
                   owner: yup.boolean().defined(),
                   value: yup.string().defined(),
-                  assetId: yup.string().defined(),
-                  assetName: yup.string().defined(),
+                  assetId: yup.mixed<Buffer>().defined(),
+                  assetName: yup.mixed<Buffer>().defined(),
                   sender: yup.string().defined(),
                   memo: yup.string().trim().defined(),
                   spent: yup.boolean(),
@@ -106,8 +106,8 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
         owner,
         memo: note.memo(),
         value: CurrencyUtils.encode(note.value()),
-        assetId: note.assetId().toString('hex'),
-        assetName: asset?.name.toString('utf8') || '',
+        assetId: note.assetId(),
+        assetName: asset?.name || Buffer.alloc(0),
         sender: note.sender(),
         spent: spent,
       })

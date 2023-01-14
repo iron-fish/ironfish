@@ -20,7 +20,7 @@ export type GetAccountTransactionsRequest = {
 export type GetAccountTransactionsResponse = {
   creator: boolean
   status: string
-  hash: string
+  hash: Buffer
   isMinersFee: boolean
   fee: string
   notesCount: number
@@ -46,7 +46,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
     .object({
       creator: yup.boolean().defined(),
       status: yup.string().defined(),
-      hash: yup.string().defined(),
+      hash: yup.mixed<Buffer>().defined(),
       isMinersFee: yup.boolean().defined(),
       fee: yup.string().defined(),
       notesCount: yup.number().defined(),

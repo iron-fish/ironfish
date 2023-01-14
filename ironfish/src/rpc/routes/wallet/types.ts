@@ -4,10 +4,10 @@
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 
 export type RpcAccountTransaction = {
-  hash: string
+  hash: Buffer
   isMinersFee: boolean
   fee: string
-  blockHash?: string
+  blockHash?: Buffer
   blockSequence?: number
   notesCount: number
   spendsCount: number
@@ -20,8 +20,8 @@ export type RpcAccountTransaction = {
 export type RpcAccountDecryptedNote = {
   owner: boolean
   value: string
-  assetId: string
-  assetName: string
+  assetId: Buffer
+  assetName: Buffer
   memo: string
   sender: string
   spent: boolean
@@ -31,10 +31,10 @@ export function serializeRpcAccountTransaction(
   transaction: TransactionValue,
 ): RpcAccountTransaction {
   return {
-    hash: transaction.transaction.hash().toString('hex'),
+    hash: transaction.transaction.hash(),
     isMinersFee: transaction.transaction.isMinersFee(),
     fee: transaction.transaction.fee().toString(),
-    blockHash: transaction.blockHash?.toString('hex'),
+    blockHash: transaction.blockHash ?? undefined,
     blockSequence: transaction.sequence ?? undefined,
     notesCount: transaction.transaction.notes.length,
     spendsCount: transaction.transaction.spends.length,

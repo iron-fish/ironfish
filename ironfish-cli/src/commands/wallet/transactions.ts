@@ -65,6 +65,7 @@ export class TransactionsCommand extends IronfishCommand {
           },
           hash: {
             header: 'Hash',
+            get: (transaction) => Buffer.from(transaction.hash).toString('hex')
           },
           isMinersFee: {
             header: 'Miner Fee',
