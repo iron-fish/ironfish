@@ -248,6 +248,7 @@ export async function useBlockWithTx(
       [],
       [],
       BigInt(options.fee ?? 1),
+      0,
       options.expiration ?? 0,
     )
 
@@ -305,6 +306,7 @@ export async function useBlockWithTxs(
         [],
         [],
         BigInt(1),
+        0,
         0,
       )
 
