@@ -1170,7 +1170,7 @@ describe('Accounts', () => {
           0,
         )
 
-        const transaction = await node.wallet.postTransaction(raw)
+        const transaction = await node.wallet.postTransaction(raw, node.memPool)
 
         return node.chain.newBlock(
           [transaction],
