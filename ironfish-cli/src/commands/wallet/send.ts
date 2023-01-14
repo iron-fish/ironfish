@@ -1,8 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, isValidPublicAddress } from '@ironfish/sdk'
+import { Asset } from '@ironfish/rust-nodejs'
+import { BufferUtils, CurrencyUtils, isValidPublicAddress, RpcClient } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -63,6 +65,7 @@ export class Send extends IronfishCommand {
     const { flags } = await this.parse(Send)
     let amount = null
     let fee = null
+    let assetId = null
     let to = flags.to?.trim()
     let from = flags.account?.trim()
     const expiration = flags.expiration
@@ -78,11 +81,21 @@ export class Send extends IronfishCommand {
       this.exit(1)
     }
 
+    if (flags.assetId) {
+      assetId = flags.assetId
+    }
+
+    if (assetId === null) {
+      assetId = await this.selectAsset(client, from)
+    }
+
+    if (!assetId) {
+      assetId = Asset.nativeId().toString('hex')
+    }
+
     if (flags.amount) {
       amount = CurrencyUtils.decodeIron(flags.amount)
     }
-
-    const assetId = flags.assetId
 
     if (amount === null) {
       const response = await client.getAccountBalance({ account: from, assetId })
@@ -264,5 +277,44 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
       }
       this.exit(2)
     }
+  }
+
+  async selectAsset(
+    client: RpcClient,
+    account: string | undefined,
+  ): Promise<string | undefined> {
+    const balancesResponse = await client.getAccountBalances({ account })
+    const assetOptions = []
+
+    const balances = balancesResponse.content.balances
+    if (balances.length === 0) {
+      return undefined
+    } else if (balances.length === 1) {
+      // If there's only one available asset, showing the choices is unnecessary
+      return balancesResponse.content.balances[0].assetId
+    }
+
+    // Get the asset name from the chain DB to populate the display choices
+    for (const { assetId } of balancesResponse.content.balances) {
+      const assetResponse = await client.getAsset({ id: assetId })
+
+      if (assetResponse.content.name) {
+        const displayName = BufferUtils.toHuman(Buffer.from(assetResponse.content.name, 'hex'))
+        assetOptions.push({
+          value: assetId,
+          name: `${assetId} (${displayName})`,
+        })
+      }
+    }
+
+    const response: { assetId: string } = await inquirer.prompt<{ assetId: string }>([
+      {
+        name: 'assetId',
+        message: 'Select the asset you wish to send',
+        type: 'list',
+        choices: assetOptions,
+      },
+    ])
+    return response.assetId
   }
 }
