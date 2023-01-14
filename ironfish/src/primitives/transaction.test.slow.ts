@@ -79,6 +79,7 @@ describe('Accounts', () => {
       [],
       BigInt(1),
       0,
+      0,
     )
     await expect(response).rejects.toThrow(Error)
   })
@@ -112,6 +113,7 @@ describe('Accounts', () => {
       [],
       [],
       BigInt(1),
+      0,
       0,
     )
 

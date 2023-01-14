@@ -520,6 +520,7 @@ describe('Accounts', () => {
         [],
         BigInt(1),
         0,
+        0,
       )
 
       const transaction = await nodeA.wallet.postTransaction(raw)
@@ -550,6 +551,7 @@ describe('Accounts', () => {
         [],
         [],
         BigInt(1),
+        0,
         0,
       ),
     ).resolves.toBeTruthy()
@@ -664,6 +666,7 @@ describe('Accounts', () => {
           [],
           BigInt(0),
           0,
+          0,
         )
 
         const transaction = await nodeA.wallet.postTransaction(raw)
@@ -775,6 +778,7 @@ describe('Accounts', () => {
           [],
           [],
           BigInt(0),
+          0,
           0,
         )
 
