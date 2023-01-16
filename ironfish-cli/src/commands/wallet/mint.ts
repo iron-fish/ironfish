@@ -127,7 +127,7 @@ export class Mint extends IronfishCommand {
       this.log(`
 Minted asset ${response.name} from ${account}
 Asset Identifier: ${response.assetId}
-Value: ${CurrencyUtils.encodeIron(amount)}
+Value: ${CurrencyUtils.renderIron(response.value)}
 
 Transaction Hash: ${response.hash}
 

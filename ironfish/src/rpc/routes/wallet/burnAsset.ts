@@ -19,6 +19,7 @@ export interface BurnAssetRequest {
 export interface BurnAssetResponse {
   assetId: string
   hash: string
+  value: string
 }
 
 export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetRequest> = yup
@@ -36,6 +37,7 @@ export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> = yup
   .object({
     assetId: yup.string().required(),
     hash: yup.string().required(),
+    value: yup.string().required(),
   })
   .defined()
 
@@ -73,6 +75,7 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     request.end({
       assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),
+      value: burn.value.toString(),
     })
   },
 )
