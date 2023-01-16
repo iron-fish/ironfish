@@ -11,7 +11,10 @@ export class Mint extends IronfishCommand {
   static description = 'Mint tokens and increase supply for a given asset'
 
   static examples = [
-    '$ ironfish wallet:mint -m "see more here" -n mycoin -a 1000 -f myaccount -o 0.00000001',
+    '$ ironfish wallet:mint --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000',
+    '$ ironfish wallet:mint --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000 --account=otheraccount',
+    '$ ironfish wallet:mint --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000 --account=otheraccount --fee=0.00000001',
+    '$ ironfish wallet:mint --metadata="see more here" --name=mycoin --amount=1000',
   ]
 
   static flags = {
