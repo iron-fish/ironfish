@@ -112,7 +112,7 @@ export class Burn extends IronfishCommand {
       const response = result.content
       this.log(`
 Burned asset ${response.assetId} from ${account}
-Value: ${CurrencyUtils.encode(amount)}
+Value: ${CurrencyUtils.encodeIron(amount)}
 
 Transaction Hash: ${response.hash}
 
