@@ -75,7 +75,7 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     request.end({
       assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),
-      value: burn.value.toString(),
+      value: CurrencyUtils.encode(burn.value),
     })
   },
 )
