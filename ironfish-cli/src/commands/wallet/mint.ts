@@ -92,6 +92,7 @@ export class Mint extends IronfishCommand {
         if (!metadata) {
           metadata = await CliUx.ux.prompt('Enter metadata for the new asset', {
             default: '',
+            required: false,
           })
         }
       } else {
