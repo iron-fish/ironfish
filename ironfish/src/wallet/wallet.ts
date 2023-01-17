@@ -55,6 +55,12 @@ export enum TransactionStatus {
   UNKNOWN = 'unknown',
 }
 
+export enum TransactionType {
+  SEND = 'send',
+  RECEIVE = 'receive',
+  MINER = 'miner',
+}
+
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
@@ -367,10 +373,9 @@ export class Wallet {
 
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
-        for await (const {
-          transaction,
-          initialNoteIndex,
-        } of this.chain.iterateBlockTransactions(blockHeader)) {
+        const transactions = await this.chain.getBlockTransactions(blockHeader)
+
+        for (const { transaction, initialNoteIndex } of transactions) {
           if (scan && scan.isAborted) {
             scan.signalComplete()
             this.scan = null
@@ -408,7 +413,9 @@ export class Wallet {
 
     for (const account of accounts) {
       await this.walletDb.db.transaction(async (tx) => {
-        for await (const { transaction } of this.chain.iterateBlockTransactions(header)) {
+        const transactions = await this.chain.getBlockTransactions(header)
+
+        for (const { transaction } of transactions.slice().reverse()) {
           await account.disconnectTransaction(header, transaction, tx)
 
           if (transaction.isMinersFee()) {
@@ -586,43 +593,21 @@ export class Wallet {
       memo: string
       assetId: Buffer
     }[],
-    transactionFee: bigint,
-    transactionExpirationDelta: number,
+    fee: bigint,
+    expirationDelta: number,
     expiration?: number | null,
   ): Promise<Transaction> {
-    const heaviestHead = this.chain.head
-    if (heaviestHead === null) {
-      throw new Error('You must have a genesis block to create a transaction')
-    }
-
-    expiration = expiration ?? heaviestHead.sequence + transactionExpirationDelta
-
-    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
-      throw new Error('Invalid expiration sequence for transaction')
-    }
-
     const raw = await this.createTransaction(
       sender,
       receives,
       [],
       [],
-      transactionFee,
+      fee,
+      expirationDelta,
       expiration,
     )
 
-    const transaction = await this.postTransaction(raw)
-
-    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
-    if (!verify.valid) {
-      throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
-    }
-
-    await this.addPendingTransaction(transaction)
-    memPool.acceptTransaction(transaction)
-    this.broadcastTransaction(transaction)
-    this.onTransactionCreated.emit(transaction)
-
-    return transaction
+    return this.postTransaction(raw, memPool)
   }
 
   async mint(
@@ -630,17 +615,6 @@ export class Wallet {
     account: Account,
     options: MintAssetOptions,
   ): Promise<Transaction> {
-    const heaviestHead = this.chain.head
-    if (heaviestHead === null) {
-      throw new Error('You must have a genesis block to create a transaction')
-    }
-
-    const expiration =
-      options.expiration ?? heaviestHead.sequence + options.transactionExpirationDelta
-    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
-      throw new Error('Invalid expiration sequence for transaction')
-    }
-
     let asset: Asset
     if ('assetId' in options) {
       const record = await this.chain.getAssetById(options.assetId)
@@ -669,22 +643,11 @@ export class Wallet {
       [{ asset, value: options.value }],
       [],
       options.fee,
-      expiration,
+      options.expirationDelta,
+      options.expiration,
     )
 
-    const transaction = await this.postTransaction(raw)
-
-    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
-    if (!verify.valid) {
-      throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
-    }
-
-    await this.addPendingTransaction(transaction)
-    memPool.acceptTransaction(transaction)
-    this.broadcastTransaction(transaction)
-    this.onTransactionCreated.emit(transaction)
-
-    return transaction
+    return this.postTransaction(raw, memPool)
   }
 
   async burn(
@@ -693,41 +656,20 @@ export class Wallet {
     assetId: Buffer,
     value: bigint,
     fee: bigint,
-    transactionExpirationDelta: number,
+    expirationDelta: number,
     expiration?: number,
   ): Promise<Transaction> {
-    const heaviestHead = this.chain.head
-    if (heaviestHead === null) {
-      throw new Error('You must have a genesis block to create a transaction')
-    }
-
-    expiration = expiration ?? heaviestHead.sequence + transactionExpirationDelta
-    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
-      throw new Error('Invalid expiration sequence for transaction')
-    }
-
     const raw = await this.createTransaction(
       account,
       [],
       [],
       [{ assetId, value }],
       fee,
+      expirationDelta,
       expiration,
     )
 
-    const transaction = await this.postTransaction(raw)
-
-    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
-    if (!verify.valid) {
-      throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
-    }
-
-    await this.addPendingTransaction(transaction)
-    memPool.acceptTransaction(transaction)
-    this.broadcastTransaction(transaction)
-    this.onTransactionCreated.emit(transaction)
-
-    return transaction
+    return this.postTransaction(raw, memPool)
   }
 
   async createTransaction(
@@ -741,8 +683,20 @@ export class Wallet {
     mints: MintDescription[],
     burns: BurnDescription[],
     fee: bigint,
-    expiration: number,
+    expirationDelta: number,
+    expiration?: number | null,
   ): Promise<RawTransaction> {
+    const heaviestHead = this.chain.head
+    if (heaviestHead === null) {
+      throw new Error('You must have a genesis block to create a transaction')
+    }
+
+    expiration = expiration ?? heaviestHead.sequence + expirationDelta
+
+    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
+      throw new Error('Invalid expiration sequence for transaction')
+    }
+
     const unlock = await this.createTransactionMutex.lock()
 
     try {
@@ -782,8 +736,20 @@ export class Wallet {
     }
   }
 
-  async postTransaction(raw: RawTransaction): Promise<Transaction> {
-    return this.workerPool.postTransaction(raw)
+  async postTransaction(raw: RawTransaction, memPool: MemPool): Promise<Transaction> {
+    const transaction = await this.workerPool.postTransaction(raw)
+
+    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
+    if (!verify.valid) {
+      throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
+    }
+
+    await this.addPendingTransaction(transaction)
+    memPool.acceptTransaction(transaction)
+    this.broadcastTransaction(transaction)
+    this.onTransactionCreated.emit(transaction)
+
+    return transaction
   }
 
   async fund(
@@ -1088,6 +1054,27 @@ export class Wallet {
 
       return isExpired ? TransactionStatus.EXPIRED : TransactionStatus.PENDING
     }
+  }
+
+  async getTransactionType(
+    account: Account,
+    transaction: TransactionValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<TransactionType> {
+    if (transaction.transaction.isMinersFee()) {
+      return TransactionType.MINER
+    }
+
+    let send = false
+
+    for (const spend of transaction.transaction.spends) {
+      if ((await account.getNoteHash(spend.nullifier, tx)) !== null) {
+        send = true
+        break
+      }
+    }
+
+    return send ? TransactionType.SEND : TransactionType.RECEIVE
   }
 
   async createAccount(name: string, setDefault = false): Promise<Account> {

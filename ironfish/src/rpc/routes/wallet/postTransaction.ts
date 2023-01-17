@@ -29,7 +29,7 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   async (request, node): Promise<void> => {
     const rawTransactionBytes = Buffer.from(request.data.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-    const postedTransaction = await node.wallet.postTransaction(rawTransaction)
+    const postedTransaction = await node.wallet.postTransaction(rawTransaction, node.memPool)
     const postedTransactionBytes = postedTransaction.serialize()
 
     request.end({ transaction: postedTransactionBytes.toString('hex') })

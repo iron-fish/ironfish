@@ -520,9 +520,10 @@ describe('Accounts', () => {
         [],
         BigInt(1),
         0,
+        0,
       )
 
-      const transaction = await nodeA.wallet.postTransaction(raw)
+      const transaction = await nodeA.wallet.postTransaction(raw, nodeA.memPool)
 
       // Create block 2
       return nodeA.chain.newBlock(
@@ -550,6 +551,7 @@ describe('Accounts', () => {
         [],
         [],
         BigInt(1),
+        0,
         0,
       ),
     ).resolves.toBeTruthy()
@@ -664,9 +666,10 @@ describe('Accounts', () => {
           [],
           BigInt(0),
           0,
+          0,
         )
 
-        const transaction = await nodeA.wallet.postTransaction(raw)
+        const transaction = await nodeA.wallet.postTransaction(raw, nodeA.memPool)
 
         // Create block A2
         return nodeA.chain.newBlock(
@@ -776,9 +779,10 @@ describe('Accounts', () => {
           [],
           BigInt(0),
           0,
+          0,
         )
 
-        const transaction = await nodeB.wallet.postTransaction(raw)
+        const transaction = await nodeB.wallet.postTransaction(raw, nodeB.memPool)
 
         // Create block A2
         return nodeA.chain.newBlock(

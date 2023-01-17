@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils } from '@ironfish/sdk'
+import { CurrencyUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -45,14 +45,17 @@ export class TransactionCommand extends IronfishCommand {
     this.log(`Transaction: ${hash}`)
     this.log(`Account: ${response.content.account}`)
     this.log(`Status: ${response.content.transaction.status}`)
-    this.log(`Miner Fee: ${response.content.transaction.isMinersFee ? `✔` : `x`}`)
+    this.log(`Type: ${response.content.transaction.type}`)
+    this.log(`Timestamp: ${TimeUtils.renderString(response.content.transaction.timestamp)}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(response.content.transaction.fee, true)}`)
     if (response.content.transaction.blockHash && response.content.transaction.blockSequence) {
       this.log(`Block Hash: ${response.content.transaction.blockHash}`)
       this.log(`Block Sequence: ${response.content.transaction.blockSequence}`)
     }
-    this.log(`Spends Count: ${response.content.transaction.spendsCount}`)
     this.log(`Notes Count: ${response.content.transaction.notesCount}`)
+    this.log(`Spends Count: ${response.content.transaction.spendsCount}`)
+    this.log(`Mints Count: ${response.content.transaction.mintsCount}`)
+    this.log(`Burns Count: ${response.content.transaction.burnsCount}`)
     this.log(`Sender: ${response.content.transaction.notes[0].sender}`)
 
     if (response.content.transaction.notes.length > 0) {
@@ -64,8 +67,14 @@ export class TransactionCommand extends IronfishCommand {
           get: (note) => (note.owner ? `✔` : `x`),
         },
         amount: {
-          header: 'Amount ($IRON)',
+          header: 'Amount',
           get: (note) => CurrencyUtils.renderIron(note.value),
+        },
+        assetName: {
+          header: 'Asset Name',
+        },
+        assetId: {
+          header: 'Asset Id',
         },
         isSpent: {
           header: 'Spent',

@@ -88,6 +88,7 @@ describe('burnAsset', () => {
       expect(response.content).toEqual({
         assetId: asset.id().toString('hex'),
         hash: burnTransaction.hash().toString('hex'),
+        value: burnTransaction.burns[0].value.toString(),
       })
     })
   })

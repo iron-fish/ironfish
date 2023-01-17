@@ -59,6 +59,7 @@ export async function createRawTransaction(options: {
     options.mints ?? [],
     options.burns ?? [],
     options.fee ?? 0n,
+    0,
     options.expiration ?? 0,
   )
 }

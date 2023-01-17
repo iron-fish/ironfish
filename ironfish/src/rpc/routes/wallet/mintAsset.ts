@@ -62,12 +62,12 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       throw new ValidationError(`Invalid transaction fee, ${fee}`)
     }
 
-    const value = CurrencyUtils.decodeIron(request.data.value)
+    const value = CurrencyUtils.decode(request.data.value)
     if (value <= 0) {
       throw new ValidationError('Invalid mint amount')
     }
 
-    const transactionExpirationDelta =
+    const expirationDelta =
       request.data.expirationDelta ?? node.config.get('transactionExpirationDelta')
 
     let options: MintAssetOptions
@@ -76,25 +76,20 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         assetId: Buffer.from(request.data.assetId, 'hex'),
         expiration: request.data.expiration,
         fee,
-        transactionExpirationDelta,
+        expirationDelta,
         value,
       }
     } else {
-      Assert.isNotUndefined(
-        request.data.metadata,
-        'Must provide metadata and name or identifier to mint',
-      )
-      Assert.isNotUndefined(
-        request.data.name,
-        'Must provide metadata and name or identifier to mint',
-      )
+      Assert.isNotUndefined(request.data.name, 'Must provide name or identifier to mint')
+
+      const metadata: string = request.data.metadata ?? ''
 
       options = {
         expiration: request.data.expiration,
         fee,
-        metadata: request.data.metadata,
+        metadata: metadata,
         name: request.data.name,
-        transactionExpirationDelta,
+        expirationDelta,
         value,
       }
     }

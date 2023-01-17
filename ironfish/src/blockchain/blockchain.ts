@@ -1177,10 +1177,10 @@ export class Blockchain {
     }
   }
 
-  async *iterateBlockTransactions(
+  async getBlockTransactions(
     header: BlockHeader,
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<
+  ): Promise<
     {
       transaction: Transaction
       initialNoteIndex: number
@@ -1188,34 +1188,33 @@ export class Blockchain {
       blockHash: Buffer
       previousBlockHash: Buffer
       timestamp: Date
-    },
-    void,
-    unknown
+    }[]
   > {
     const block = await this.getBlock(header, tx)
-
     if (!block) {
-      return
+      return []
     }
 
     Assert.isNotNull(header.noteSize)
     let noteIndex = header.noteSize
 
+    const transactions = []
     // Transactions should be handled in reverse order because
     // header.noteCommitment is the size of the tree after the
     // last note in the block.
     for (const transaction of block.transactions.slice().reverse()) {
       noteIndex -= transaction.notes.length
-
-      yield {
+      transactions.unshift({
         transaction,
         initialNoteIndex: noteIndex,
         blockHash: header.hash,
         sequence: header.sequence,
         previousBlockHash: header.previousBlockHash,
         timestamp: header.timestamp,
-      }
+      })
     }
+
+    return transactions
   }
 
   async saveConnect(

@@ -10,29 +10,29 @@ import { ProgressBar } from '../../types'
 export class Burn extends IronfishCommand {
   static description = 'Burn tokens and decrease supply for a given asset'
 
-  static examples = ['$ ironfish wallet:burn -i "assetId" -a 1000 -f myaccount -o 1']
+  static examples = [
+    '$ ironfish wallet:burn --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000',
+    '$ ironfish wallet:burn --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000 --account=otheraccount',
+    '$ ironfish wallet:burn --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000 --account=otheraccount --fee=0.00000001',
+  ]
 
   static flags = {
     ...RemoteFlags,
     account: Flags.string({
       char: 'f',
       description: 'The account to burn from',
-      required: true,
     }),
     fee: Flags.string({
       char: 'o',
       description: 'The fee amount in IRON',
-      required: true,
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'Amount of coins to burn',
-      required: true,
+      description: 'Amount of coins to burn in IRON',
     }),
     assetId: Flags.string({
       char: 'i',
       description: 'Identifier for the asset',
-      required: true,
     }),
   }
 
@@ -46,6 +46,53 @@ export class Burn extends IronfishCommand {
         `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
       )
       this.exit(1)
+    }
+
+    let account = flags.account?.trim()
+    if (!account) {
+      const response = await client.getDefaultAccount()
+      const defaultAccount = response.content.account
+
+      if (!defaultAccount) {
+        this.error(
+          `No account is currently active.
+           Use ironfish wallet:create <name> to first create an account`,
+        )
+      }
+
+      account = defaultAccount.name
+    }
+
+    let assetId = flags.assetId
+    if (!assetId) {
+      assetId = await CliUx.ux.prompt('Enter the Asset Identifier to burn supply for', {
+        required: true,
+      })
+    }
+
+    let amount
+    if (flags.amount) {
+      amount = CurrencyUtils.decodeIron(flags.amount)
+    } else {
+      const input = await CliUx.ux.prompt('Enter the amount to burn in IRON', {
+        required: true,
+      })
+
+      amount = CurrencyUtils.decodeIron(input)
+    }
+
+    let fee
+    if (flags.fee) {
+      fee = CurrencyUtils.decodeIron(flags.fee)
+    } else {
+      const input = await CliUx.ux.prompt(
+        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)})`,
+        {
+          required: true,
+        },
+      )
+
+      fee = CurrencyUtils.decodeIron(input)
     }
 
     const bar = CliUx.ux.progress({
@@ -73,25 +120,24 @@ export class Burn extends IronfishCommand {
 
     try {
       const result = await client.burnAsset({
-        account: flags.account,
-        assetId: flags.assetId,
-        fee: flags.fee,
-        value: flags.amount,
+        account,
+        assetId,
+        fee: CurrencyUtils.encode(fee),
+        value: CurrencyUtils.encode(amount),
       })
 
       stopProgressBar()
 
       const response = result.content
       this.log(`
-   Burned asset ${response.assetId} from ${flags.account}
-   Value: ${flags.amount}
-   
-   Transaction Hash: ${response.hash}
-   Transaction fee: ${CurrencyUtils.renderIron(flags.fee, true)}
-   
-   Find the transaction on https://explorer.ironfish.network/transaction/${
-     response.hash
-   } (it can take a few minutes before the transaction appears in the Explorer)`)
+Burned asset ${response.assetId} from ${account}
+Value: ${CurrencyUtils.renderIron(response.value)}
+
+Transaction Hash: ${response.hash}
+
+Find the transaction on https://explorer.ironfish.network/transaction/${
+        response.hash
+      } (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while burning the asset.`)

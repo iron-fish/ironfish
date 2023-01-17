@@ -15,12 +15,15 @@ export type GetAccountTransactionResponse = {
   transaction: {
     hash: string
     status: string
-    isMinersFee: boolean
+    type: string
     fee: string
     blockHash?: string
     blockSequence?: number
     notesCount: number
     spendsCount: number
+    mintsCount: number
+    burnsCount: number
+    timestamp: number
     notes: RpcAccountDecryptedNote[]
   } | null
 }
@@ -41,18 +44,23 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
         .object({
           hash: yup.string().required(),
           status: yup.string().defined(),
-          isMinersFee: yup.boolean().defined(),
+          type: yup.string().defined(),
           fee: yup.string().defined(),
           blockHash: yup.string().optional(),
           blockSequence: yup.number().optional(),
           notesCount: yup.number().defined(),
           spendsCount: yup.number().defined(),
+          mintsCount: yup.number().defined(),
+          burnsCount: yup.number().defined(),
+          timestamp: yup.number().defined(),
           notes: yup
             .array(
               yup
                 .object({
                   owner: yup.boolean().defined(),
                   value: yup.string().defined(),
+                  assetId: yup.string().defined(),
+                  assetName: yup.string().defined(),
                   sender: yup.string().defined(),
                   memo: yup.string().trim().defined(),
                   spent: yup.boolean(),
@@ -98,10 +106,14 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
         ? decryptedNoteForOwner.note
         : new Note(decryptedNote.serializedNote)
 
+      const asset = await node.chain.getAssetById(note.assetId())
+
       serializedNotes.push({
         owner,
         memo: note.memo(),
         value: CurrencyUtils.encode(note.value()),
+        assetId: note.assetId().toString('hex'),
+        assetName: asset?.name.toString('utf8') || '',
         sender: note.sender(),
         spent: spent,
       })
@@ -110,11 +122,13 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
     const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
     const status = await node.wallet.getTransactionStatus(account, transaction)
+    const type = await node.wallet.getTransactionType(account, transaction)
 
     const serialized = {
       ...serializedTransaction,
       notes: serializedNotes,
       status,
+      type,
     }
 
     request.end({

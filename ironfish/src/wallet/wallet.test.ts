@@ -947,7 +947,7 @@ describe('Accounts', () => {
           node.wallet.mint(node.memPool, account, {
             assetId,
             fee: BigInt(0),
-            transactionExpirationDelta: node.config.get('transactionExpirationDelta'),
+            expirationDelta: node.config.get('transactionExpirationDelta'),
             value: BigInt(1),
           }),
         ).rejects.toThrow(
@@ -982,7 +982,7 @@ describe('Accounts', () => {
           node.wallet.mint(node.memPool, accountB, {
             assetId: asset.id(),
             fee: BigInt(0),
-            transactionExpirationDelta: node.config.get('transactionExpirationDelta'),
+            expirationDelta: node.config.get('transactionExpirationDelta'),
             value: BigInt(1),
           }),
         ).rejects.toThrow(`Unauthorized to mint for asset '${asset.id().toString('hex')}'`)
@@ -1016,7 +1016,7 @@ describe('Accounts', () => {
           return node.wallet.mint(node.memPool, account, {
             assetId: asset.id(),
             fee: BigInt(0),
-            transactionExpirationDelta: node.config.get('transactionExpirationDelta'),
+            expirationDelta: node.config.get('transactionExpirationDelta'),
             value: mintValueB,
           })
         })
@@ -1168,9 +1168,10 @@ describe('Accounts', () => {
           [],
           BigInt(0),
           0,
+          0,
         )
 
-        const transaction = await node.wallet.postTransaction(raw)
+        const transaction = await node.wallet.postTransaction(raw, node.memPool)
 
         return node.chain.newBlock(
           [transaction],

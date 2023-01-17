@@ -248,10 +248,11 @@ export async function useBlockWithTx(
       [],
       [],
       BigInt(options.fee ?? 1),
+      0,
       options.expiration ?? 0,
     )
 
-    const transaction = await node.wallet.postTransaction(raw)
+    const transaction = await node.wallet.postTransaction(raw, node.memPool)
 
     return node.chain.newBlock(
       [transaction],
@@ -306,9 +307,10 @@ export async function useBlockWithTxs(
         [],
         BigInt(1),
         0,
+        0,
       )
 
-      const transaction = await node.wallet.postTransaction(raw)
+      const transaction = await node.wallet.postTransaction(raw, node.memPool)
 
       await node.wallet.addPendingTransaction(transaction)
       transactions.push(transaction)

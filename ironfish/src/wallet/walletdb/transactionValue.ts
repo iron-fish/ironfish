@@ -47,7 +47,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
 
     for (const [assetId, balanceDelta] of value.assetBalanceDeltas) {
       bw.writeHash(assetId)
-      bw.writeBigU64(balanceDelta)
+      bw.writeBigI64(balanceDelta)
     }
 
     return bw.render()
@@ -79,7 +79,7 @@ export class TransactionValueEncoding implements IDatabaseEncoding<TransactionVa
 
     for (let i = 0; i < assetCount; i++) {
       const assetId = reader.readHash()
-      const balanceDelta = reader.readBigU64()
+      const balanceDelta = reader.readBigI64()
       assetBalanceDeltas.set(assetId, balanceDelta)
     }
 

@@ -90,4 +90,45 @@ const renderSpan = (
   return parts.join(' ')
 }
 
-export const TimeUtils = { renderEstimate, renderSpan }
+/**
+ * Render a timestamp in human formatting for the users local timezone
+ */
+const renderString = (timestamp: number): string => {
+  const date = new Date(timestamp).toLocaleDateString(undefined)
+  const time = new Date(timestamp).toLocaleTimeString(undefined, { timeZoneName: 'short' })
+  return `${date} ${time}`
+}
+
+/**
+ * Render a timestamp's date in human formatting for the users local timezone
+ */
+const renderDate = (timestamp: number, locale?: string): string => {
+  const date = new Date(timestamp).toLocaleDateString(locale)
+  const timezone = getTimezoneCode(locale)
+  return `${date} ${timezone}`
+}
+
+/**
+ * Render a timestamp's time in human formatting for the users local timezone
+ */
+const renderTime = (timestamp: number, locale?: string): string => {
+  return new Date(timestamp).toLocaleTimeString(locale, { timeZoneName: 'short' })
+}
+
+/**
+ * Get the timezone code such as EST, PDT
+ */
+const getTimezoneCode = (locale?: string): string => {
+  const date = new Date().toLocaleTimeString(locale, { timeZoneName: 'short' })
+  const parts = date.split(' ')
+  return parts[parts.length - 1] ?? ''
+}
+
+export const TimeUtils = {
+  renderEstimate,
+  renderSpan,
+  renderString,
+  renderDate,
+  renderTime,
+  getTimezoneCode,
+}

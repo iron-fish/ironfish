@@ -1,7 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils } from '@ironfish/sdk'
+import { Asset } from '@ironfish/rust-nodejs'
+import { CurrencyUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -18,6 +19,9 @@ export class TransactionsCommand extends IronfishCommand {
     }),
     limit: Flags.integer({
       description: 'Number of latest transactions to get details for',
+    }),
+    confirmations: Flags.integer({
+      description: 'Number of block confirmations needed to confirm a transaction',
     }),
   }
 
@@ -39,32 +43,38 @@ export class TransactionsCommand extends IronfishCommand {
       account,
       hash: flags.hash,
       limit: flags.limit,
+      confirmations: flags.confirmations,
     })
 
     let showHeader = true
 
     for await (const transaction of response.contentStream()) {
+      const ironDelta = transaction.assetBalanceDeltas.find(
+        (d) => d.assetId === Asset.nativeId().toString('hex'),
+      )
+
       CliUx.ux.table(
         [transaction],
         {
           timestamp: {
             header: 'Timestamp',
-            get: (transaction) => new Date(transaction.timestamp).toLocaleString(),
+            get: (transaction) => TimeUtils.renderString(transaction.timestamp),
           },
           status: {
             header: 'Status',
             minWidth: 12,
           },
-          creator: {
-            header: 'Creator',
-            get: (transaction) => (transaction.creator ? `✔` : `x`),
+          type: {
+            header: 'Type',
+            minWidth: 8,
           },
           hash: {
             header: 'Hash',
           },
-          isMinersFee: {
-            header: 'Miner Fee',
-            get: (transaction) => (transaction.isMinersFee ? `✔` : `x`),
+          amount: {
+            header: 'Amount ($IRON)',
+            get: (_) => (ironDelta ? CurrencyUtils.renderIron(ironDelta.delta) : '0'),
+            minWidth: 20,
           },
           fee: {
             header: 'Fee ($IRON)',
