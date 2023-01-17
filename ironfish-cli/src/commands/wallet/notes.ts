@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils } from '@ironfish/sdk'
+import { BufferUtils, CurrencyUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -42,6 +42,7 @@ export class NotesCommand extends IronfishCommand {
           },
           assetName: {
             header: 'Asset Name',
+            get: (row) => BufferUtils.toHuman(Buffer.from(row.assetName, 'hex')),
           },
           assetId: {
             header: 'Asset Id',
