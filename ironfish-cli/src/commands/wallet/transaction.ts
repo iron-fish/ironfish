@@ -91,6 +91,6 @@ export class TransactionCommand extends IronfishCommand {
     )
     assetBalanceDeltas.forEach((delta: string, assetId: string) => {
       this.log(`Delta is ${delta} for asset ${assetId}`)
-    });
+    })
   }
 }
