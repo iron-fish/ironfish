@@ -79,6 +79,7 @@ describe('Accounts', () => {
       [],
       BigInt(1),
       0,
+      0,
     )
     await expect(response).rejects.toThrow(Error)
   })
@@ -113,9 +114,10 @@ describe('Accounts', () => {
       [],
       BigInt(1),
       0,
+      0,
     )
 
-    const transaction = await nodeA.wallet.postTransaction(raw)
+    const transaction = await nodeA.wallet.postTransaction(raw, nodeA.memPool)
 
     expect(transaction.isMinersFee()).toBe(false)
   })
