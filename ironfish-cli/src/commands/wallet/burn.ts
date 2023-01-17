@@ -10,7 +10,11 @@ import { ProgressBar } from '../../types'
 export class Burn extends IronfishCommand {
   static description = 'Burn tokens and decrease supply for a given asset'
 
-  static examples = ['$ ironfish wallet:burn -i "assetId" -a 1000 -f myaccount -o 0.00000001']
+  static examples = [
+    '$ ironfish wallet:burn --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000',
+    '$ ironfish wallet:burn --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000 --account=otheraccount',
+    '$ ironfish wallet:burn --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000 --account=otheraccount --fee=0.00000001',
+  ]
 
   static flags = {
     ...RemoteFlags,
