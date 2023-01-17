@@ -25,6 +25,7 @@ export type GetAccountTransactionResponse = {
     burnsCount: number
     timestamp: number
     notes: RpcAccountDecryptedNote[]
+    assetBalanceDeltas: string
   } | null
 }
 
@@ -68,6 +69,7 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
                 .defined(),
             )
             .defined(),
+          assetBalanceDeltas: yup.string().defined(),
         })
         .defined(),
     })
