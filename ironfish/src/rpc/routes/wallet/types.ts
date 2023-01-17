@@ -5,7 +5,6 @@ import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 
 export type RpcAccountTransaction = {
   hash: string
-  isMinersFee: boolean
   fee: string
   blockHash?: string
   blockSequence?: number
@@ -39,7 +38,6 @@ export function serializeRpcAccountTransaction(
 
   return {
     hash: transaction.transaction.hash().toString('hex'),
-    isMinersFee: transaction.transaction.isMinersFee(),
     fee: transaction.transaction.fee().toString(),
     blockHash: transaction.blockHash?.toString('hex'),
     blockSequence: transaction.sequence ?? undefined,

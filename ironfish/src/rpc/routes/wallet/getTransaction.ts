@@ -15,7 +15,7 @@ export type GetAccountTransactionResponse = {
   transaction: {
     hash: string
     status: string
-    isMinersFee: boolean
+    type: string
     fee: string
     blockHash?: string
     blockSequence?: number
@@ -44,7 +44,7 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
         .object({
           hash: yup.string().required(),
           status: yup.string().defined(),
-          isMinersFee: yup.boolean().defined(),
+          type: yup.string().defined(),
           fee: yup.string().defined(),
           blockHash: yup.string().optional(),
           blockSequence: yup.number().optional(),
@@ -122,11 +122,13 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
     const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
     const status = await node.wallet.getTransactionStatus(account, transaction)
+    const type = await node.wallet.getTransactionType(account, transaction)
 
     const serialized = {
       ...serializedTransaction,
       notes: serializedNotes,
       status,
+      type,
     }
 
     request.end({
