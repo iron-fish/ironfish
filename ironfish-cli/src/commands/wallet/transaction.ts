@@ -86,7 +86,7 @@ export class TransactionCommand extends IronfishCommand {
       })
     }
 
-    if (response.content.transaction.assetBalanceDeltas.length > 0) {
+    if (response.content.transaction.assetBalanceDeltas) {
       this.log(`---Asset Balance Deltas---\n`)
       CliUx.ux.table(response.content.transaction.assetBalanceDeltas, {
         assetId: {
