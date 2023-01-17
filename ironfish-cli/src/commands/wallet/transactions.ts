@@ -49,14 +49,9 @@ export class TransactionsCommand extends IronfishCommand {
     let showHeader = true
 
     for await (const transaction of response.contentStream()) {
-      let ironDelta = '0'
-
-      for (const { assetId, delta } of transaction.assetBalanceDeltas) {
-        if (assetId === Asset.nativeId().toString('hex')) {
-          ironDelta = delta
-          break
-        }
-      }
+      const ironDelta = transaction.assetBalanceDeltas.find(
+        (d) => d.assetId === Asset.nativeId().toString('hex'),
+      )
 
       CliUx.ux.table(
         [transaction],
@@ -82,7 +77,7 @@ export class TransactionsCommand extends IronfishCommand {
           },
           amount: {
             header: 'Amount ($IRON)',
-            get: (_) => CurrencyUtils.renderIron(ironDelta),
+            get: (_) => (ironDelta ? CurrencyUtils.renderIron(ironDelta.delta) : '0'),
             minWidth: 20,
           },
           fee: {
