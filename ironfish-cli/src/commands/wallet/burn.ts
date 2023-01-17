@@ -29,12 +29,10 @@ export class Burn extends IronfishCommand {
     amount: Flags.string({
       char: 'a',
       description: 'Amount of coins to burn in IRON',
-      required: true,
     }),
     assetId: Flags.string({
       char: 'i',
       description: 'Identifier for the asset',
-      required: true,
     }),
   }
 
@@ -63,6 +61,24 @@ export class Burn extends IronfishCommand {
       }
 
       account = defaultAccount.name
+    }
+
+    let assetId = flags.assetId
+    if (!assetId) {
+      assetId = await CliUx.ux.prompt('Enter the Asset Identifier to burn supply for', {
+        required: true,
+      })
+    }
+
+    let amount
+    if (flags.amount) {
+      amount = CurrencyUtils.decodeIron(flags.amount)
+    } else {
+      const input = await CliUx.ux.prompt('Enter the amount to burn in $IRON', {
+        required: true,
+      })
+
+      amount = CurrencyUtils.decodeIron(input)
     }
 
     let fee
@@ -103,10 +119,9 @@ export class Burn extends IronfishCommand {
     }
 
     try {
-      const amount = CurrencyUtils.decodeIron(flags.amount)
       const result = await client.burnAsset({
         account,
-        assetId: flags.assetId,
+        assetId,
         fee: CurrencyUtils.encode(fee),
         value: CurrencyUtils.encode(amount),
       })
