@@ -29,7 +29,7 @@ export class Mint extends IronfishCommand {
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'Amount of coins to mint',
+      description: 'Amount of coins to mint in IRON',
       required: true,
     }),
     assetId: Flags.string({
@@ -114,13 +114,14 @@ export class Mint extends IronfishCommand {
     }
 
     try {
+      const amount = CurrencyUtils.decodeIron(flags.amount)
       const result = await client.mintAsset({
         account,
         assetId: flags.assetId,
-        fee: fee.toString(),
+        fee: CurrencyUtils.encode(fee),
         metadata: flags.metadata,
         name: flags.name,
-        value: flags.amount,
+        value: CurrencyUtils.encode(amount),
       })
 
       stopProgressBar()
@@ -129,11 +130,13 @@ export class Mint extends IronfishCommand {
       this.log(`
 Minted asset ${response.name} from ${account}
 Asset Identifier: ${response.assetId}
-Value: ${response.value}
+Value: ${CurrencyUtils.renderIron(response.value)}
 
 Transaction Hash: ${response.hash}
 
-Find the transaction on https://explorer.ironfish.network/transaction/${response.hash} (it can take a few minutes before the transaction appears in the Explorer)`)
+Find the transaction on https://explorer.ironfish.network/transaction/${
+        response.hash
+      } (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while minting the asset.`)

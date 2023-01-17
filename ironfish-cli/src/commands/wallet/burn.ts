@@ -28,7 +28,7 @@ export class Burn extends IronfishCommand {
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'Amount of coins to burn',
+      description: 'Amount of coins to burn in IRON',
       required: true,
     }),
     assetId: Flags.string({
@@ -103,11 +103,12 @@ export class Burn extends IronfishCommand {
     }
 
     try {
+      const amount = CurrencyUtils.decodeIron(flags.amount)
       const result = await client.burnAsset({
         account,
         assetId: flags.assetId,
-        fee: fee.toString(),
-        value: flags.amount,
+        fee: CurrencyUtils.encode(fee),
+        value: CurrencyUtils.encode(amount),
       })
 
       stopProgressBar()
@@ -115,11 +116,13 @@ export class Burn extends IronfishCommand {
       const response = result.content
       this.log(`
 Burned asset ${response.assetId} from ${account}
-Value: ${flags.amount}
+Value: ${CurrencyUtils.renderIron(response.value)}
 
 Transaction Hash: ${response.hash}
 
-Find the transaction on https://explorer.ironfish.network/transaction/${response.hash} (it can take a few minutes before the transaction appears in the Explorer)`)
+Find the transaction on https://explorer.ironfish.network/transaction/${
+        response.hash
+      } (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while burning the asset.`)
