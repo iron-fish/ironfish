@@ -587,8 +587,8 @@ export class Wallet {
       memo: string
       assetId: Buffer
     }[],
-    transactionFee: bigint,
-    transactionExpirationDelta: number,
+    fee: bigint,
+    expirationDelta: number,
     expiration?: number | null,
   ): Promise<Transaction> {
     const raw = await this.createTransaction(
@@ -596,8 +596,8 @@ export class Wallet {
       receives,
       [],
       [],
-      transactionFee,
-      transactionExpirationDelta,
+      fee,
+      expirationDelta,
       expiration,
     )
 
@@ -637,7 +637,7 @@ export class Wallet {
       [{ asset, value: options.value }],
       [],
       options.fee,
-      options.transactionExpirationDelta,
+      options.expirationDelta,
       options.expiration,
     )
 
@@ -650,7 +650,7 @@ export class Wallet {
     assetId: Buffer,
     value: bigint,
     fee: bigint,
-    transactionExpirationDelta: number,
+    expirationDelta: number,
     expiration?: number,
   ): Promise<Transaction> {
     const raw = await this.createTransaction(
@@ -659,7 +659,7 @@ export class Wallet {
       [],
       [{ assetId, value }],
       fee,
-      transactionExpirationDelta,
+      expirationDelta,
       expiration,
     )
 
@@ -677,7 +677,7 @@ export class Wallet {
     mints: MintDescription[],
     burns: BurnDescription[],
     fee: bigint,
-    transactionExpirationDelta: number,
+    expirationDelta: number,
     expiration?: number | null,
   ): Promise<RawTransaction> {
     const heaviestHead = this.chain.head
@@ -685,7 +685,7 @@ export class Wallet {
       throw new Error('You must have a genesis block to create a transaction')
     }
 
-    expiration = expiration ?? heaviestHead.sequence + transactionExpirationDelta
+    expiration = expiration ?? heaviestHead.sequence + expirationDelta
 
     if (isExpiredSequence(expiration, this.chain.head.sequence)) {
       throw new Error('Invalid expiration sequence for transaction')
