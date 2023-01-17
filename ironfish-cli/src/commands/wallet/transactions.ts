@@ -53,7 +53,10 @@ export class TransactionsCommand extends IronfishCommand {
         {
           timestamp: {
             header: 'Timestamp',
-            get: (transaction) => new Date(transaction.timestamp).toLocaleString(),
+            get: (transaction) =>
+              new Date(transaction.timestamp).toLocaleString(undefined, {
+                timeZoneName: 'short',
+              }),
           },
           status: {
             header: 'Status',
