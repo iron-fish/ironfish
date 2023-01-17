@@ -29,7 +29,7 @@ export type GetAccountTransactionsResponse = {
   burnsCount: number
   expiration: number
   timestamp: number
-  assetBalanceDeltas: string
+  assetBalanceDeltas: Array<{ assetId: string; delta: string }>
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -56,7 +56,16 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
       burnsCount: yup.number().defined(),
       expiration: yup.number().defined(),
       timestamp: yup.number().defined(),
-      assetBalanceDeltas: yup.string().defined(),
+      assetBalanceDeltas: yup
+        .array(
+          yup
+            .object({
+              assetId: yup.string().defined(),
+              delta: yup.string().defined(),
+            })
+            .defined(),
+        )
+        .defined(),
     })
     .defined()
 
