@@ -21,6 +21,8 @@ export type GetAccountTransactionResponse = {
     blockSequence?: number
     notesCount: number
     spendsCount: number
+    mintsCount: number
+    burnsCount: number
     timestamp: number
     notes: RpcAccountDecryptedNote[]
   } | null
@@ -48,6 +50,8 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
           blockSequence: yup.number().optional(),
           notesCount: yup.number().defined(),
           spendsCount: yup.number().defined(),
+          mintsCount: yup.number().defined(),
+          burnsCount: yup.number().defined(),
           timestamp: yup.number().defined(),
           notes: yup
             .array(
