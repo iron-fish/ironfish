@@ -85,5 +85,12 @@ export class TransactionCommand extends IronfishCommand {
         },
       })
     }
+
+    const assetBalanceDeltas: Map<string, string> = new Map(
+      Object.entries(JSON.parse(response.content.transaction.assetBalanceDeltas)),
+    )
+    assetBalanceDeltas.forEach((delta: string, assetId: string) => {
+      this.log(`Delta is ${delta} for asset ${assetId}`)
+    });
   }
 }
