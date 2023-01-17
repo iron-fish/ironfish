@@ -93,7 +93,7 @@ export class TransactionCommand extends IronfishCommand {
           header: 'Asset ID',
         },
         delta: {
-          header: 'Delta',
+          header: 'Balance Change',
         },
       })
     }
