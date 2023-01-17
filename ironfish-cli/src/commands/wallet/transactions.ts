@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils } from '@ironfish/sdk'
+import { CurrencyUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -53,7 +53,7 @@ export class TransactionsCommand extends IronfishCommand {
         {
           timestamp: {
             header: 'Timestamp',
-            get: (transaction) => new Date(transaction.timestamp).toLocaleString(),
+            get: (transaction) => TimeUtils.renderString(transaction.timestamp),
           },
           status: {
             header: 'Status',

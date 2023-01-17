@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils } from '@ironfish/sdk'
+import { CurrencyUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -45,7 +45,7 @@ export class TransactionCommand extends IronfishCommand {
     this.log(`Transaction: ${hash}`)
     this.log(`Account: ${response.content.account}`)
     this.log(`Status: ${response.content.transaction.status}`)
-    this.log(`Timestamp: ${new Date(response.content.transaction.timestamp).toLocaleString()}`)
+    this.log(`Timestamp: ${TimeUtils.renderString(response.content.transaction.timestamp)}`)
     this.log(`Miner Fee: ${response.content.transaction.isMinersFee ? `✔` : `x`}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(response.content.transaction.fee, true)}`)
     if (response.content.transaction.blockHash && response.content.transaction.blockSequence) {

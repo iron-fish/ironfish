@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { GetPeerMessagesResponse, GetPeerResponse } from '@ironfish/sdk'
+import { GetPeerMessagesResponse, GetPeerResponse, TimeUtils } from '@ironfish/sdk'
 import colors from 'colors/safe'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -57,7 +57,7 @@ export class ShowCommand extends IronfishCommand {
   }
 
   renderMessage(message: GetPeerMessagesResponseMessages): string {
-    const time = new Date(message.timestamp).toLocaleTimeString()
+    const time = TimeUtils.renderTime(message.timestamp)
     const direction = colors.yellow(message.direction === 'send' ? 'SEND' : 'RECV')
     const type = message.brokeringPeerDisplayName
       ? `(broker: ${message.brokeringPeerDisplayName}) ${message.type}`
