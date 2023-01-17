@@ -15,6 +15,7 @@ export type RpcAccountTransaction = {
   burnsCount: number
   expiration: number
   timestamp: number
+  assetBalanceDeltas: Array<{ assetId: string; delta: string }>
 }
 
 export type RpcAccountDecryptedNote = {
@@ -30,6 +31,12 @@ export type RpcAccountDecryptedNote = {
 export function serializeRpcAccountTransaction(
   transaction: TransactionValue,
 ): RpcAccountTransaction {
+  const assetBalanceDeltas: Array<{ assetId: string; delta: string }> = []
+
+  for (const [assetId, balance] of transaction.assetBalanceDeltas.entries()) {
+    assetBalanceDeltas.push({ assetId: assetId.toString('hex'), delta: balance.toString() })
+  }
+
   return {
     hash: transaction.transaction.hash().toString('hex'),
     isMinersFee: transaction.transaction.isMinersFee(),
@@ -42,5 +49,6 @@ export function serializeRpcAccountTransaction(
     burnsCount: transaction.transaction.burns.length,
     expiration: transaction.transaction.expiration(),
     timestamp: transaction.timestamp.getTime(),
+    assetBalanceDeltas,
   }
 }

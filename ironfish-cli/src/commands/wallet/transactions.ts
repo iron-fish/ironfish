@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { CurrencyUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
@@ -48,6 +49,10 @@ export class TransactionsCommand extends IronfishCommand {
     let showHeader = true
 
     for await (const transaction of response.contentStream()) {
+      const ironDelta = transaction.assetBalanceDeltas.find(
+        (d) => d.assetId === Asset.nativeId().toString('hex'),
+      )
+
       CliUx.ux.table(
         [transaction],
         {
@@ -69,6 +74,11 @@ export class TransactionsCommand extends IronfishCommand {
           isMinersFee: {
             header: 'Miner Fee',
             get: (transaction) => (transaction.isMinersFee ? `✔` : ``),
+          },
+          amount: {
+            header: 'Amount ($IRON)',
+            get: (_) => (ironDelta ? CurrencyUtils.renderIron(ironDelta.delta) : '0'),
+            minWidth: 20,
           },
           fee: {
             header: 'Fee ($IRON)',
