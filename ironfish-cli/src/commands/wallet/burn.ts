@@ -74,7 +74,7 @@ export class Burn extends IronfishCommand {
     if (flags.amount) {
       amount = CurrencyUtils.decodeIron(flags.amount)
     } else {
-      const input = await CliUx.ux.prompt('Enter the amount to burn in $IRON', {
+      const input = await CliUx.ux.prompt('Enter the amount to burn in IRON', {
         required: true,
       })
 
