@@ -823,4 +823,29 @@ export class WalletDB {
       yield transaction
     }
   }
+
+  async putAsset(
+    account: Account,
+    assetId: Buffer,
+    assetValue: AssetValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.assets.put([account.prefix, assetId], assetValue, tx)
+  }
+
+  async getAsset(
+    account: Account,
+    assetId: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<AssetValue | undefined> {
+    return this.assets.get([account.prefix, assetId], tx)
+  }
+
+  async deleteAsset(
+    account: Account,
+    assetId: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.assets.del([account.prefix, assetId], tx)
+  }
 }

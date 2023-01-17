@@ -7,7 +7,9 @@ import { Assert } from '../assert'
 import {
   createNodeTest,
   useAccountFixture,
+  useBurnBlockFixture,
   useMinerBlockFixture,
+  useMintBlockFixture,
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils/async'
@@ -441,6 +443,84 @@ describe('Accounts', () => {
 
       expect(pendingHashEntry).toBeUndefined()
     })
+
+    it('should correctly update the asset store from a mint description', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toMatchObject({
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        supply: value,
+      })
+
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
+    })
+
+    it('should correctly update the asset store from a burn description', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const mintValue = BigInt(10)
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value: mintValue,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      const burnValue = BigInt(1)
+      const burnBlock = await useBurnBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value: burnValue,
+        sequence: 4,
+      })
+      await expect(node.chain).toAddBlock(burnBlock)
+      await node.wallet.updateHead()
+
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toMatchObject({
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        supply: mintValue - burnValue,
+      })
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
+    })
   })
 
   describe('disconnectTransaction', () => {
@@ -579,6 +659,124 @@ describe('Accounts', () => {
       ])
 
       expect(pendingHashEntry).toBeDefined()
+    })
+
+    it('should correctly update the asset store from a mint description', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const firstMintValue = BigInt(10)
+      const firstMintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value: firstMintValue,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(firstMintBlock)
+      await node.wallet.updateHead()
+
+      const secondMintValue = BigInt(10)
+      const secondMintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value: secondMintValue,
+        sequence: 4,
+      })
+      await expect(node.chain).toAddBlock(secondMintBlock)
+      await node.wallet.updateHead()
+
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toMatchObject({
+        createdTransactionHash: firstMintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        supply: firstMintValue + secondMintValue,
+      })
+
+      await accountA.disconnectTransaction(
+        secondMintBlock.header,
+        secondMintBlock.transactions[1],
+      )
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toMatchObject({
+        createdTransactionHash: firstMintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        supply: firstMintValue,
+      })
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
+
+      await accountA.disconnectTransaction(
+        firstMintBlock.header,
+        firstMintBlock.transactions[1],
+      )
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toBeUndefined()
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
+    })
+
+    it('should correctly update the asset store from a burn description', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const mintValue = BigInt(10)
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value: mintValue,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      const burnValue = BigInt(1)
+      const burnBlock = await useBurnBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value: burnValue,
+        sequence: 4,
+      })
+      await expect(node.chain).toAddBlock(burnBlock)
+      await node.wallet.updateHead()
+
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toMatchObject({
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        supply: mintValue - burnValue,
+      })
+
+      await accountA.disconnectTransaction(burnBlock.header, burnBlock.transactions[1])
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toMatchObject({
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        supply: mintValue,
+      })
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
     })
   })
 
