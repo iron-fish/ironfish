@@ -71,7 +71,7 @@ export async function useTxFixture(
         expiration ?? 0,
       )
 
-      return await wallet.postTransaction(raw)
+      return await wallet.workerPool.postTransaction(raw)
     })
 
   return useFixture(generate, {

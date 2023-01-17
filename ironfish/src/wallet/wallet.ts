@@ -601,19 +601,7 @@ export class Wallet {
       expiration,
     )
 
-    const transaction = await this.postTransaction(raw)
-
-    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
-    if (!verify.valid) {
-      throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
-    }
-
-    await this.addPendingTransaction(transaction)
-    memPool.acceptTransaction(transaction)
-    this.broadcastTransaction(transaction)
-    this.onTransactionCreated.emit(transaction)
-
-    return transaction
+    return this.postTransaction(raw, memPool)
   }
 
   async mint(
@@ -653,19 +641,7 @@ export class Wallet {
       options.expiration,
     )
 
-    const transaction = await this.postTransaction(raw)
-
-    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
-    if (!verify.valid) {
-      throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
-    }
-
-    await this.addPendingTransaction(transaction)
-    memPool.acceptTransaction(transaction)
-    this.broadcastTransaction(transaction)
-    this.onTransactionCreated.emit(transaction)
-
-    return transaction
+    return this.postTransaction(raw, memPool)
   }
 
   async burn(
@@ -687,19 +663,7 @@ export class Wallet {
       expiration,
     )
 
-    const transaction = await this.postTransaction(raw)
-
-    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
-    if (!verify.valid) {
-      throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
-    }
-
-    await this.addPendingTransaction(transaction)
-    memPool.acceptTransaction(transaction)
-    this.broadcastTransaction(transaction)
-    this.onTransactionCreated.emit(transaction)
-
-    return transaction
+    return this.postTransaction(raw, memPool)
   }
 
   async createTransaction(
@@ -766,8 +730,20 @@ export class Wallet {
     }
   }
 
-  async postTransaction(raw: RawTransaction): Promise<Transaction> {
-    return this.workerPool.postTransaction(raw)
+  async postTransaction(raw: RawTransaction, memPool: MemPool): Promise<Transaction> {
+    const transaction = await this.workerPool.postTransaction(raw)
+
+    const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
+    if (!verify.valid) {
+      throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
+    }
+
+    await this.addPendingTransaction(transaction)
+    memPool.acceptTransaction(transaction)
+    this.broadcastTransaction(transaction)
+    this.onTransactionCreated.emit(transaction)
+
+    return transaction
   }
 
   async fund(

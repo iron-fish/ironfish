@@ -72,7 +72,7 @@ describe('mint', () => {
           BigInt(0),
           0,
         )
-        return wallet.postTransaction(raw)
+        return wallet.postTransaction(raw, node.memPool)
       })
 
       jest.spyOn(wallet, 'mint').mockResolvedValueOnce(mintTransaction)

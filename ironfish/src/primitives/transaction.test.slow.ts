@@ -117,7 +117,7 @@ describe('Accounts', () => {
       0,
     )
 
-    const transaction = await nodeA.wallet.postTransaction(raw)
+    const transaction = await nodeA.wallet.postTransaction(raw, nodeA.memPool)
 
     expect(transaction.isMinersFee()).toBe(false)
   })
