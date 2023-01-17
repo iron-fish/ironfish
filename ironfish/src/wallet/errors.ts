@@ -10,7 +10,7 @@ export class NotEnoughFundsError extends Error {
   constructor(assetId: Buffer, amount: bigint, amountNeeded: bigint) {
     super()
     this.message = `Insufficient funds: Needed ${CurrencyUtils.renderIron(
-      amountNeeded.toString(),
+      amountNeeded,
     )} but have '${CurrencyUtils.renderIron(amount, true, assetId.toString('hex'))}'`
   }
 }
