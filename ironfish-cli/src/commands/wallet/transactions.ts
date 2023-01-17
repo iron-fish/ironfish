@@ -64,16 +64,12 @@ export class TransactionsCommand extends IronfishCommand {
             header: 'Status',
             minWidth: 12,
           },
-          creator: {
-            header: 'Creator',
-            get: (transaction) => (transaction.creator ? `✔` : ``),
+          type: {
+            header: 'Type',
+            minWidth: 8,
           },
           hash: {
             header: 'Hash',
-          },
-          isMinersFee: {
-            header: 'Miner Fee',
-            get: (transaction) => (transaction.isMinersFee ? `✔` : ``),
           },
           amount: {
             header: 'Amount ($IRON)',

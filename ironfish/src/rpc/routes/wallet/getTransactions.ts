@@ -18,10 +18,9 @@ export type GetAccountTransactionsRequest = {
 }
 
 export type GetAccountTransactionsResponse = {
-  creator: boolean
   status: string
+  type: string
   hash: string
-  isMinersFee: boolean
   fee: string
   notesCount: number
   spendsCount: number
@@ -45,10 +44,9 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
 export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTransactionsResponse> =
   yup
     .object({
-      creator: yup.boolean().defined(),
       status: yup.string().defined(),
+      type: yup.string().defined(),
       hash: yup.string().defined(),
-      isMinersFee: yup.boolean().defined(),
       fee: yup.string().defined(),
       notesCount: yup.number().defined(),
       spendsCount: yup.number().defined(),
@@ -125,22 +123,13 @@ const streamTransaction = async (
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
-  let creator = false
-  for (const spend of transaction.transaction.spends) {
-    const noteHash = await account.getNoteHash(spend.nullifier)
-
-    if (noteHash) {
-      creator = true
-      break
-    }
-  }
-
   const status = await node.wallet.getTransactionStatus(account, transaction, options)
+  const type = await node.wallet.getTransactionType(account, transaction)
 
   const serialized = {
     ...serializedTransaction,
-    creator,
     status,
+    type,
   }
 
   request.stream(serialized)

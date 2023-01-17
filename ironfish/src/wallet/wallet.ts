@@ -55,6 +55,12 @@ export enum TransactionStatus {
   UNKNOWN = 'unknown',
 }
 
+export enum TransactionType {
+  SEND = 'send',
+  RECEIVE = 'receive',
+  MINER = 'miner',
+}
+
 export class Wallet {
   readonly onAccountImported = new Event<[account: Account]>()
   readonly onAccountRemoved = new Event<[account: Account]>()
@@ -1048,6 +1054,27 @@ export class Wallet {
 
       return isExpired ? TransactionStatus.EXPIRED : TransactionStatus.PENDING
     }
+  }
+
+  async getTransactionType(
+    account: Account,
+    transaction: TransactionValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<TransactionType> {
+    if (transaction.transaction.isMinersFee()) {
+      return TransactionType.MINER
+    }
+
+    let send = false
+
+    for (const spend of transaction.transaction.spends) {
+      if ((await account.getNoteHash(spend.nullifier, tx)) !== undefined) {
+        send = true
+        break
+      }
+    }
+
+    return send ? TransactionType.SEND : TransactionType.RECEIVE
   }
 
   async createAccount(name: string, setDefault = false): Promise<Account> {
