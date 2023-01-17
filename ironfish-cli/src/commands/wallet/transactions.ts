@@ -83,7 +83,7 @@ export class TransactionsCommand extends IronfishCommand {
           },
           amount: {
             header: 'Amount ($IRON)',
-            get: (_) => CurrencyUtils.renderIron(ironDelta),
+            get: (_) => (ironDelta ? CurrencyUtils.renderIron(ironDelta.delta) : '0'),
             minWidth: 20,
           },
           fee: {
