@@ -53,7 +53,7 @@ export class TransactionsCommand extends IronfishCommand {
         {
           timestamp: {
             header: 'Timestamp',
-            get: (transaction) => TimeUtils.renderDate(transaction.timestamp),
+            get: (transaction) => TimeUtils.renderString(transaction.timestamp),
           },
           status: {
             header: 'Status',
