@@ -67,7 +67,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       throw new ValidationError('Invalid mint amount')
     }
 
-    const transactionExpirationDelta =
+    const expirationDelta =
       request.data.expirationDelta ?? node.config.get('transactionExpirationDelta')
 
     let options: MintAssetOptions
@@ -76,7 +76,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         assetId: Buffer.from(request.data.assetId, 'hex'),
         expiration: request.data.expiration,
         fee,
-        transactionExpirationDelta,
+        expirationDelta,
         value,
       }
     } else {
@@ -89,7 +89,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         fee,
         metadata: metadata,
         name: request.data.name,
-        transactionExpirationDelta,
+        expirationDelta,
         value,
       }
     }

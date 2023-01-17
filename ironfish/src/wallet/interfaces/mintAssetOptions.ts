@@ -6,14 +6,14 @@ export type MintAssetOptions =
       fee: bigint
       metadata: string
       name: string
-      transactionExpirationDelta: number
       value: bigint
+      expirationDelta: number
       expiration?: number
     }
   | {
       assetId: Buffer
       fee: bigint
-      transactionExpirationDelta: number
       value: bigint
+      expirationDelta: number
       expiration?: number
     }
