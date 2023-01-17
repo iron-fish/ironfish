@@ -52,8 +52,10 @@ export class TransactionCommand extends IronfishCommand {
       this.log(`Block Hash: ${response.content.transaction.blockHash}`)
       this.log(`Block Sequence: ${response.content.transaction.blockSequence}`)
     }
-    this.log(`Spends Count: ${response.content.transaction.spendsCount}`)
     this.log(`Notes Count: ${response.content.transaction.notesCount}`)
+    this.log(`Spends Count: ${response.content.transaction.spendsCount}`)
+    this.log(`Mints Count: ${response.content.transaction.mintsCount}`)
+    this.log(`Burns Count: ${response.content.transaction.burnsCount}`)
     this.log(`Sender: ${response.content.transaction.notes[0].sender}`)
 
     if (response.content.transaction.notes.length > 0) {
