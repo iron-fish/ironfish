@@ -11,6 +11,8 @@ export class NotEnoughFundsError extends Error {
     super()
     this.message = `Insufficient funds: Needed ${CurrencyUtils.renderIron(
       amountNeeded,
-    )} but have '${CurrencyUtils.renderIron(amount, true, assetId.toString('hex'))}'`
+      true,
+      assetId.toString('hex'),
+    )} but have '${CurrencyUtils.renderIron(amount)}'`
   }
 }
