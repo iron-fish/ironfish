@@ -27,7 +27,6 @@ export class Mint extends IronfishCommand {
     amount: Flags.string({
       char: 'a',
       description: 'Amount of coins to mint in IRON',
-      required: true,
     }),
     assetId: Flags.string({
       char: 'i',
@@ -73,6 +72,43 @@ export class Mint extends IronfishCommand {
       account = defaultAccount.name
     }
 
+    let assetId = flags.assetId
+    let metadata = flags.metadata
+    let name = flags.name
+    // We need at least one of asset id or metadata / name
+    if (!(assetId || (metadata && name))) {
+      const mintNewAsset = await CliUx.ux.confirm('Do you want to create a new asset (Y/N)?')
+
+      if (mintNewAsset) {
+        if (!name) {
+          name = await CliUx.ux.prompt('Enter the name for the new asset', {
+            required: true,
+          })
+        }
+
+        if (!metadata) {
+          metadata = await CliUx.ux.prompt('Enter metadata for the new asset', {
+            required: true,
+          })
+        }
+      } else {
+        assetId = await CliUx.ux.prompt('Enter the Asset Identifier to mint supply for', {
+          required: true,
+        })
+      }
+    }
+
+    let amount
+    if (flags.amount) {
+      amount = CurrencyUtils.decodeIron(flags.amount)
+    } else {
+      const input = await CliUx.ux.prompt('Enter the amount to mint in $IRON', {
+        required: true,
+      })
+
+      amount = CurrencyUtils.decodeIron(input)
+    }
+
     let fee
     if (flags.fee) {
       fee = CurrencyUtils.decodeIron(flags.fee)
@@ -111,13 +147,12 @@ export class Mint extends IronfishCommand {
     }
 
     try {
-      const amount = CurrencyUtils.decodeIron(flags.amount)
       const result = await client.mintAsset({
         account,
-        assetId: flags.assetId,
+        assetId,
         fee: CurrencyUtils.encode(fee),
-        metadata: flags.metadata,
-        name: flags.name,
+        metadata,
+        name,
         value: CurrencyUtils.encode(amount),
       })
 
