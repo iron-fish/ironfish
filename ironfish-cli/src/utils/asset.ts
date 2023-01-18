@@ -26,11 +26,11 @@ export async function selectAsset(
     return undefined
   } else if (balances.length === 1) {
     // If there's only one available asset, showing the choices is unnecessary
-    return balancesResponse.content.balances[0].assetId
+    return balances[0].assetId
   }
 
   // Get the asset name from the chain DB to populate the display choices
-  for (const { assetId } of balancesResponse.content.balances) {
+  for (const { assetId } of balances) {
     const assetResponse = await client.getAsset({ id: assetId })
 
     if (assetResponse.content.name) {
