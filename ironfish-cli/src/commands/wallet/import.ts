@@ -43,7 +43,7 @@ export class ImportCommand extends IronfishCommand {
     }
 
     if (account === null) {
-      this.log('No wallet to import provided')
+      this.log('No account to import provided')
       return this.exit(1)
     }
 
@@ -53,10 +53,10 @@ export class ImportCommand extends IronfishCommand {
     })
 
     const { name, isDefaultAccount } = result.content
-    this.log(`Wallet ${name} imported.`)
+    this.log(`Account ${name} imported.`)
 
     if (isDefaultAccount) {
-      this.log(`The default wallet is now: ${name}`)
+      this.log(`The default account is now: ${name}`)
     } else {
       this.log(`Run "ironfish wallet:use ${name}" to set the account as default`)
     }
@@ -88,11 +88,11 @@ export class ImportCommand extends IronfishCommand {
   }
 
   async importTTY(): Promise<AccountImport> {
-    const accountName = await CliUx.ux.prompt('Enter the wallet name', {
+    const accountName = await CliUx.ux.prompt('Enter the account name', {
       required: true,
     })
 
-    const spendingKey = await CliUx.ux.prompt('Enter the wallet spending key', {
+    const spendingKey = await CliUx.ux.prompt('Enter the account spending key', {
       required: true,
     })
 
