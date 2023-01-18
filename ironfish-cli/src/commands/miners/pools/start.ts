@@ -114,11 +114,11 @@ export class StartPool extends IronfishCommand {
     }
 
     this.pool = await MiningPool.init({
+      rpc,
       config: this.sdk.config,
       logger: this.logger,
-      rpc,
-      enablePayouts: flags.payouts,
       webhooks: webhooks,
+      enablePayouts: flags.payouts,
       host: host,
       port: port,
       balancePercentPayoutFlag: flags.balancePercentPayout,
