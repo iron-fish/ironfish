@@ -79,31 +79,32 @@ export class Mint extends IronfishCommand {
     let assetId = flags.assetId
     let metadata = flags.metadata
     let name = flags.name
-    // We need at least one of asset id or metadata / name
-    if (!(assetId || (metadata && name))) {
-      const mintNewAsset = await CliUx.ux.confirm('Do you want to create a new asset (Y/N)?')
 
-      if (mintNewAsset) {
-        if (!name) {
-          name = await CliUx.ux.prompt('Enter the name for the new asset', {
-            required: true,
-          })
-        }
+    // We can assume the prompt can be skipped if at least one of metadata or
+    // name is provided
+    let isMintingNewAsset = Boolean(metadata || name)
+    if (!assetId && !metadata && !name) {
+      isMintingNewAsset = await CliUx.ux.confirm('Do you want to create a new asset (Y/N)?')
+    }
 
-        if (!metadata) {
-          metadata = await CliUx.ux.prompt('Enter metadata for the new asset', {
-            default: '',
-            required: false,
-          })
-        }
-      } else {
-        if (assetId == null) {
-          assetId = await selectAsset(client, account, false)
-        }
+    if (isMintingNewAsset) {
+      if (!name) {
+        name = await CliUx.ux.prompt('Enter the name for the new asset', {
+          required: true,
+        })
+      }
 
-        if (assetId == null) {
-          this.error(`You must have an existing asset, try creating a new one.`)
-        }
+      if (!metadata) {
+        metadata = await CliUx.ux.prompt('Enter metadata for the new asset', {
+          default: '',
+          required: false,
+        })
+      }
+    } else if (!assetId) {
+      assetId = await selectAsset(client, account, false)
+
+      if (!assetId) {
+        this.error(`You must have an existing asset. Try creating a new one.`)
       }
     }
 
