@@ -78,28 +78,31 @@ export class Mint extends IronfishCommand {
     let assetId = flags.assetId
     let metadata = flags.metadata
     let name = flags.name
-    // We need at least one of asset id or metadata / name
-    if (!(assetId || (metadata && name))) {
-      const mintNewAsset = await CliUx.ux.confirm('Do you want to create a new asset (Y/N)?')
 
-      if (mintNewAsset) {
-        if (!name) {
-          name = await CliUx.ux.prompt('Enter the name for the new asset', {
-            required: true,
-          })
-        }
+    // We can assume the prompt can be skipped if at least one of metadata or
+    // name is provided
+    let isMintingNewAsset = Boolean(metadata || name)
+    if (!assetId && !metadata && !name) {
+      isMintingNewAsset = await CliUx.ux.confirm('Do you want to create a new asset (Y/N)?')
+    }
 
-        if (!metadata) {
-          metadata = await CliUx.ux.prompt('Enter metadata for the new asset', {
-            default: '',
-            required: false,
-          })
-        }
-      } else {
-        assetId = await CliUx.ux.prompt('Enter the Asset Identifier to mint supply for', {
+    if (isMintingNewAsset) {
+      if (!name) {
+        name = await CliUx.ux.prompt('Enter the name for the new asset', {
           required: true,
         })
       }
+
+      if (!metadata) {
+        metadata = await CliUx.ux.prompt('Enter metadata for the new asset', {
+          default: '',
+          required: false,
+        })
+      }
+    } else if (!assetId) {
+      assetId = await CliUx.ux.prompt('Enter the Asset Identifier to mint supply for', {
+        required: true,
+      })
     }
 
     let amount
