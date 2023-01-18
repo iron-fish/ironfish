@@ -6,6 +6,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
+import { selectAsset } from '../../utils/asset'
 
 export class Mint extends IronfishCommand {
   static description = 'Mint tokens and increase supply for a given asset'
@@ -96,9 +97,13 @@ export class Mint extends IronfishCommand {
           })
         }
       } else {
-        assetId = await CliUx.ux.prompt('Enter the Asset Identifier to mint supply for', {
-          required: true,
-        })
+        if (assetId == null) {
+          assetId = await selectAsset(client, account, false)
+        }
+
+        if (assetId == null) {
+          this.error(`You must have an existing asset, try creating a new one.`)
+        }
       }
     }
 
