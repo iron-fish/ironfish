@@ -1479,6 +1479,97 @@ describe('Accounts', () => {
       accountAHead = await accountA.getHead()
       expect(accountAHead?.hash).toEqualHash(blockA1.header.hash)
     })
+
+    it('should update balance hash and sequence for each block', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA1.header.hash,
+        sequence: blockA1.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+      await expect(accountB.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA1.header.hash,
+        sequence: blockA1.header.sequence,
+        unconfirmed: 0n,
+      })
+
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountB, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA2.header.hash,
+        sequence: blockA2.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+      await expect(accountB.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA2.header.hash,
+        sequence: blockA2.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+    })
+
+    it('should update balance hash and sequence for each asset in each block', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA1.header.hash,
+        sequence: blockA1.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+
+      const asset = new Asset(accountA.spendingKey, 'fakeasset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: mintBlock.header.hash,
+        sequence: mintBlock.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+      await expect(accountA.getUnconfirmedBalance(asset.id())).resolves.toMatchObject({
+        blockHash: mintBlock.header.hash,
+        sequence: mintBlock.header.sequence,
+        unconfirmed: value,
+      })
+
+      const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA3)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA3.header.hash,
+        sequence: blockA3.header.sequence,
+        unconfirmed: 4000000000n,
+      })
+      await expect(accountA.getUnconfirmedBalance(asset.id())).resolves.toMatchObject({
+        blockHash: blockA3.header.hash,
+        sequence: blockA3.header.sequence,
+        unconfirmed: value,
+      })
+    })
   })
 
   describe('disconnectBlock', () => {
@@ -1647,6 +1738,123 @@ describe('Accounts', () => {
       await node.wallet.disconnectBlock(blockA1.header)
 
       await expect(accountA.hasTransaction(transaction.hash())).resolves.toEqual(false)
+    })
+
+    it('should update balance hash and sequence for each block', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA1.header.hash,
+        sequence: blockA1.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+      await expect(accountB.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA1.header.hash,
+        sequence: blockA1.header.sequence,
+        unconfirmed: 0n,
+      })
+
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountB, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA2.header.hash,
+        sequence: blockA2.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+      await expect(accountB.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA2.header.hash,
+        sequence: blockA2.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+
+      await node.wallet.disconnectBlock(blockA2.header)
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA1.header.hash,
+        sequence: blockA1.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+      await expect(accountB.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA1.header.hash,
+        sequence: blockA1.header.sequence,
+        unconfirmed: 0n,
+      })
+    })
+
+    it('should update balance hash and sequence for each asset in each block', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA1.header.hash,
+        sequence: blockA1.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+
+      const asset = new Asset(accountA.spendingKey, 'fakeasset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: mintBlock.header.hash,
+        sequence: mintBlock.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+      await expect(accountA.getUnconfirmedBalance(asset.id())).resolves.toMatchObject({
+        blockHash: mintBlock.header.hash,
+        sequence: mintBlock.header.sequence,
+        unconfirmed: value,
+      })
+
+      const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA3)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: blockA3.header.hash,
+        sequence: blockA3.header.sequence,
+        unconfirmed: 4000000000n,
+      })
+      await expect(accountA.getUnconfirmedBalance(asset.id())).resolves.toMatchObject({
+        blockHash: blockA3.header.hash,
+        sequence: blockA3.header.sequence,
+        unconfirmed: value,
+      })
+
+      await node.wallet.disconnectBlock(blockA3.header)
+
+      await expect(accountA.getUnconfirmedBalance(Asset.nativeId())).resolves.toMatchObject({
+        blockHash: mintBlock.header.hash,
+        sequence: mintBlock.header.sequence,
+        unconfirmed: 2000000000n,
+      })
+      await expect(accountA.getUnconfirmedBalance(asset.id())).resolves.toMatchObject({
+        blockHash: mintBlock.header.hash,
+        sequence: mintBlock.header.sequence,
+        unconfirmed: value,
+      })
     })
   })
 
