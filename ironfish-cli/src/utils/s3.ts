@@ -2,15 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import type { Readable } from 'stream'
 import {
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
+  GetObjectCommand,
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
 import { Assert, ErrorUtils, Logger } from '@ironfish/sdk'
 import fsAsync from 'fs/promises'
+import { pipeline } from 'stream/promises'
 
 // AWS requires that upload parts be at least 5MB
 const MINIMUM_MULTIPART_FILE_SIZE = 5 * 1024 * 1024
@@ -181,4 +184,23 @@ async function uploadToBucket(
     })
 }
 
-export const S3Utils = { uploadToBucket }
+async function downloadFromBucket(
+  s3: S3Client,
+  bucket: string,
+  keyName: string,
+  output: string,
+): Promise<void> {
+  const command = new GetObjectCommand({ Bucket: bucket, Key: keyName })
+  const response = await s3.send(command)
+  if (response.Body) {
+    const fileHandle = await fsAsync.open(output, 'w')
+    const ws = fileHandle.createWriteStream()
+
+    await pipeline(response.Body as Readable, ws)
+
+    ws.close()
+    await fileHandle.close()
+  }
+}
+
+export const S3Utils = { downloadFromBucket, uploadToBucket }
