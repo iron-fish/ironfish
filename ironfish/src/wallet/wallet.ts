@@ -17,6 +17,7 @@ import { Event } from '../event'
 import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
+import { getFee } from '../memPool/feeEstimator'
 import { NoteHasher } from '../merkletree/hasher'
 import { NoteWitness, Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
@@ -24,7 +25,9 @@ import { BlockHeader } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
 import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
+import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
 import { RawTransaction } from '../primitives/rawTransaction'
+import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
@@ -682,13 +685,18 @@ export class Wallet {
     }[],
     mints: MintDescription[],
     burns: BurnDescription[],
-    fee: bigint,
+    fee: bigint | null,
     expirationDelta: number,
     expiration?: number | null,
+    feeRate?: bigint,
   ): Promise<RawTransaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
       throw new Error('You must have a genesis block to create a transaction')
+    }
+
+    if (fee == null && feeRate == null) {
+      throw new Error('Fee or FeeRate is required to create a transaction')
     }
 
     expiration = expiration ?? heaviestHead.sequence + expirationDelta
@@ -711,7 +719,25 @@ export class Wallet {
       raw.expiration = expiration
       raw.mints = mints
       raw.burns = burns
-      raw.fee = fee
+
+      if (fee) {
+        raw.fee = fee
+      }
+
+      if (feeRate) {
+        let size = 0
+        size += 8 // spends length
+        size += 8 // notes length
+        size += 8 // fee
+        size += 4 // expiration
+        size += 64 // signature
+
+        size += raw.spends.length * SPEND_SERIALIZED_SIZE_IN_BYTE
+
+        size += raw.receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
+
+        raw.fee = getFee(feeRate, size)
+      }
 
       for (const receive of receives) {
         const note = new NativeNote(
@@ -726,7 +752,7 @@ export class Wallet {
       }
 
       await this.fund(raw, {
-        fee: fee,
+        fee: raw.fee,
         account: sender,
       })
 
