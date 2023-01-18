@@ -4,11 +4,11 @@ use std::fs::File;
 use std::io::BufReader;
 use blake2::{Blake2b512, Digest};
 
-fn main() {
-    let params = File::open("params").unwrap();
+pub fn verify_transform(params_path: &str, new_params_path: &str) -> String {
+    let params = File::open(params_path).expect(&format!("couldn't open `{}`", params_path));
     let mut params = BufReader::with_capacity(1024 * 1024, params);
 
-    let new_params = File::open("new_params").unwrap();
+    let new_params = File::open(new_params_path).expect(&format!("couldn't open `{}`", new_params_path));
     let mut new_params = BufReader::with_capacity(1024 * 1024, new_params);
 
     let sapling_spend = ironfish_phase2::MPCParameters::read(&mut params, false)
@@ -50,15 +50,5 @@ fn main() {
     h.update(&h3);
     let h = h.finalize();
 
-    println!("{}", into_hex(h.as_ref()));
-}
-
-fn into_hex(h: &[u8]) -> String {
-    let mut f = String::new();
-
-    for byte in &h[..] {
-        f += &format!("{:02x}", byte);
-    }
-
-    f
+    format!("{:02x}", h)
 }

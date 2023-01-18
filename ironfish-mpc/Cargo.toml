@@ -19,9 +19,6 @@ name = "beacon"
 required-features = ["beacon"]
 
 [[bin]]
-name = "verify_transform"
-
-[[bin]]
 name = "split_params"
 
 [dependencies]
