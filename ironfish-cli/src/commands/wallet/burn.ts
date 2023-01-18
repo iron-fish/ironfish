@@ -6,6 +6,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
+import { selectAsset } from '../../utils/asset'
 
 export class Burn extends IronfishCommand {
   static description = 'Burn tokens and decrease supply for a given asset'
@@ -64,10 +65,13 @@ export class Burn extends IronfishCommand {
     }
 
     let assetId = flags.assetId
-    if (!assetId) {
-      assetId = await CliUx.ux.prompt('Enter the Asset Identifier to burn supply for', {
-        required: true,
-      })
+
+    if (assetId == null) {
+      assetId = await selectAsset(client, account, false)
+    }
+
+    if (assetId == null) {
+      this.error(`You must have a custom asset in order to burn.`)
     }
 
     let amount
