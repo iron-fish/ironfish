@@ -124,7 +124,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
         memo: note.memo(),
         value: CurrencyUtils.encode(note.value()),
         assetId: note.assetId().toString('hex'),
-        assetName: asset?.name.toString('utf8') || '',
+        assetName: asset?.name.toString('hex') || '',
         sender: note.sender(),
         spent: spent,
       })
