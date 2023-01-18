@@ -1,4 +1,3 @@
-extern crate phase2;
 extern crate pairing;
 
 use std::fs::File;
@@ -9,13 +8,13 @@ fn main() {
     let params = File::open("params").unwrap();
     let mut params = BufReader::with_capacity(1024 * 1024, params);
 
-    let sapling_spend = phase2::MPCParameters::read(&mut params, true)
+    let sapling_spend = ironfish_phase2::MPCParameters::read(&mut params, true)
         .expect("couldn't deserialize Sapling Spend params");
 
-    let sapling_output = phase2::MPCParameters::read(&mut params, true)
+    let sapling_output = ironfish_phase2::MPCParameters::read(&mut params, true)
         .expect("couldn't deserialize Sapling Output params");
 
-    let sapling_mint = phase2::MPCParameters::read(&mut params, true)
+    let sapling_mint = ironfish_phase2::MPCParameters::read(&mut params, true)
         .expect("couldn't deserialize Sapling Mint params");
 
     let sapling_spend_contributions = sapling_spend.verify(ironfish_zkp::proofs::Spend {

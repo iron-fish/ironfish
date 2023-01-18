@@ -1,4 +1,3 @@
-extern crate phase2;
 extern crate pairing;
 
 use std::fs::File;
@@ -9,7 +8,7 @@ fn main() {
     let mut params = BufWriter::with_capacity(1024 * 1024, params);
 
     // Sapling spend circuit
-    phase2::MPCParameters::new(ironfish_zkp::proofs::Spend {
+    ironfish_phase2::MPCParameters::new(ironfish_zkp::proofs::Spend {
         value_commitment: None,
         proof_generation_key: None,
         payment_address: None,
@@ -22,7 +21,7 @@ fn main() {
     }).unwrap().write(&mut params).unwrap();
 
     // Sapling output circuit
-    phase2::MPCParameters::new(ironfish_zkp::proofs::Output {
+    ironfish_phase2::MPCParameters::new(ironfish_zkp::proofs::Output {
         value_commitment: None,
         payment_address: None,
         commitment_randomness: None,
@@ -33,7 +32,7 @@ fn main() {
     }).unwrap().write(&mut params).unwrap();
 
     // Sapling mint circuit
-    phase2::MPCParameters::new(ironfish_zkp::proofs::MintAsset {
+    ironfish_phase2::MPCParameters::new(ironfish_zkp::proofs::MintAsset {
         name: [0u8; 32],
         metadata: [0u8; 77],
         proof_generation_key: None,

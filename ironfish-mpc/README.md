@@ -1,6 +1,6 @@
-# ironfish-phase2
+# ironfish-mpc
 
-Much of the code in this folder was originally forked from https://github.com/ebfull/phase2. The original licenses and copyright are retained in this folder.
+Much of the code in this folder was originally forked from https://github.com/zcash-hackworks/sapling-mpc. The original licenses and copyright are retained in this folder.
 
 ## License
 

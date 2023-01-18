@@ -671,15 +671,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "ironfish-phase2"
+version = "0.2.2"
+dependencies = [
+ "bellman",
+ "blake2",
+ "bls12_381",
+ "byteorder",
+ "crossbeam",
+ "ff 0.12.1",
+ "group 0.12.1",
+ "num_cpus",
+ "pairing 0.22.0",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "rayon",
+]
+
+[[package]]
 name = "ironfish-rust-nodejs"
 version = "0.1.0"
 dependencies = [
  "base64",
+ "ironfish_mpc",
  "ironfish_rust",
  "napi",
  "napi-build",
  "napi-derive",
  "napi-derive-backend",
+]
+
+[[package]]
+name = "ironfish_mpc"
+version = "0.2.0"
+dependencies = [
+ "blake2",
+ "byteorder",
+ "hex-literal",
+ "ironfish-phase2",
+ "ironfish_zkp",
+ "pairing 0.23.0",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
 ]
 
 [[package]]
@@ -1011,24 +1044,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phase2"
-version = "0.2.2"
-dependencies = [
- "bellman",
- "blake2",
- "bls12_381",
- "byteorder",
- "crossbeam",
- "ff 0.12.1",
- "group 0.12.1",
- "num_cpus",
- "pairing 0.22.0",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
- "rayon",
-]
-
-[[package]]
 name = "pin-project-lite"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1267,20 +1282,6 @@ checksum = "0c0fbb5f676da676c260ba276a8f43a8dc67cf02d1438423aeb1c677a7212686"
 dependencies = [
  "cipher",
  "zeroize",
-]
-
-[[package]]
-name = "sapling-mpc"
-version = "0.2.0"
-dependencies = [
- "blake2",
- "byteorder",
- "hex-literal",
- "ironfish_zkp",
- "pairing 0.23.0",
- "phase2",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
 ]
 
 [[package]]

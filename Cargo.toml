@@ -1,10 +1,10 @@
 [workspace]
 
 members = [
+    "ironfish-mpc",
+    "ironfish-phase2",
     "ironfish-rust",
     "ironfish-rust-nodejs",
-    "ironfish-phase2",
-    "ironfish-setup",
     "ironfish-zkp",
 ]
 

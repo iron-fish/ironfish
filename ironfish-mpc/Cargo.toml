@@ -1,7 +1,7 @@
 [package]
-name = "sapling-mpc"
+name = "ironfish_mpc"
 version = "0.2.0"
-authors = ["Sean Bowe <ewillbefull@gmail.com>"]
+authors = ["Sean Bowe <ewillbefull@gmail.com>", "Iron Fish <contact@ironfish.network> (https://ironfish.network)"]
 
 [package.edition]
 workspace = true
@@ -19,16 +19,13 @@ name = "beacon"
 required-features = ["beacon"]
 
 [[bin]]
-name = "compute"
-
-[[bin]]
 name = "verify_transform"
 
 [[bin]]
 name = "split_params"
 
 [dependencies]
-phase2 = { path = "../ironfish-phase2" }
+ironfish-phase2 = { path = "../ironfish-phase2" }
 pairing = "0.23"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
