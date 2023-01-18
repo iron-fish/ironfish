@@ -27,24 +27,24 @@ export class CreateCommand extends IronfishCommand {
     let name = args.account as string
 
     if (!name) {
-      name = await CliUx.ux.prompt('Enter the name of the account', {
+      name = await CliUx.ux.prompt('Enter the name of the wallet', {
         required: true,
       })
     }
 
     const client = await this.sdk.connectRpc()
 
-    this.log(`Creating account ${name}`)
+    this.log(`Creating wallet ${name}`)
     const result = await client.createAccount({ name })
 
     const { publicAddress, isDefaultAccount } = result.content
 
-    this.log(`Account ${name} created with public address ${publicAddress}`)
+    this.log(`Wallet ${name} created with public address ${publicAddress}`)
 
     if (isDefaultAccount) {
-      this.log(`The default account is now: ${name}`)
+      this.log(`The default wallet is now: ${name}`)
     } else {
-      this.log(`Run "ironfish accounts:use ${name}" to set the account as default`)
+      this.log(`Run "ironfish wallet:use ${name}" to set the wallet as default`)
     }
   }
 }

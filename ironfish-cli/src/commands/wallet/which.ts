@@ -6,11 +6,11 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class WhichCommand extends IronfishCommand {
-  static description = `Show the account currently used.
+  static description = `Show the wallet currently used.
 
-  By default all commands will use this account when deciding what
-  keys to use. If no account is specified as the default, you must
-  specify the account in the command using --account <name>`
+  By default all commands will use this wallet when deciding what
+  keys to use. If no wallet is specified as the default, you must
+  specify the wallet in the command using --account <name>`
 
   static flags = {
     ...RemoteFlags,
@@ -33,10 +33,10 @@ export class WhichCommand extends IronfishCommand {
 
     if (!accountName) {
       this.log(
-        'There is currently no account being used.\n' +
-          ' * Create an account: "ironfish accounts:create"\n' +
-          ' * List all accounts: "ironfish accounts:list"\n' +
-          ' * Use an existing account: "ironfish accounts:use <name>"',
+        'There is currently no wallet being used.\n' +
+          ' * Create an wallet: "ironfish wallet:create"\n' +
+          ' * List all wallets: "ironfish wallet:list"\n' +
+          ' * Use an existing wallet: "ironfish wallet:use <name>"',
       )
       this.exit(0)
     }

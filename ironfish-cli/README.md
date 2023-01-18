@@ -20,15 +20,13 @@ Run this command in the terminal:
 Interact with the node in a new terminal window:
 - `yarn start status`
    - Show your node's status
-- `yarn start accounts:balance` 
-   - Show the balance of your account, including $IRON from blocks you've mined
+- `yarn start wallet:balance` 
+   - Show the balance of your wallet, including $IRON from blocks you've mined
    - Tentative balance includes all known transactions. Spending balance includes only transactions on blocks on the main chain
 - `yarn start faucet`
    - Request a small amount of $IRON for testing payments
-- `yarn start accounts:pay`
-   - Send $IRON to another account
-- `yarn start accounts:transactions [account]`
-   - Display transactions from and to your account
+- `yarn start wallet:transactions [wallet]`
+   - Display transactions from and to your wallet
 
 ### Start a node and start mining
 Run these commands in two different terminals:
