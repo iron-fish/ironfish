@@ -9,14 +9,18 @@ import inquirer from 'inquirer'
 export async function selectAsset(
   client: RpcClient,
   account: string | undefined,
-  showNativeAsset = true,
+  options: {
+    action: string
+    showNativeAsset: boolean
+    showSingleAssetChoice: boolean
+  },
 ): Promise<string | undefined> {
   const balancesResponse = await client.getAccountBalances({ account })
   const assetOptions = []
 
   let balances = balancesResponse.content.balances
 
-  if (!showNativeAsset) {
+  if (!options.showNativeAsset) {
     balances = balances.filter(
       (balance) => balance.assetId !== Asset.nativeId().toString('hex'),
     )
@@ -24,7 +28,7 @@ export async function selectAsset(
 
   if (balances.length === 0) {
     return undefined
-  } else if (balances.length === 1) {
+  } else if (balances.length === 1 && !options.showSingleAssetChoice) {
     // If there's only one available asset, showing the choices is unnecessary
     return balances[0].assetId
   }
@@ -45,7 +49,7 @@ export async function selectAsset(
   const response: { assetId: string } = await inquirer.prompt<{ assetId: string }>([
     {
       name: 'assetId',
-      message: 'Select the asset you wish to send',
+      message: `Select the asset you wish to ${options.action}`,
       type: 'list',
       choices: assetOptions,
     },
