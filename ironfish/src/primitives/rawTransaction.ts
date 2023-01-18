@@ -27,6 +27,7 @@ export interface MintData {
   metadata: string
   value: bigint
 }
+export const TYPE_NUMBER_SIZE = 8
 
 export class RawTransaction {
   spendingKey = ''
@@ -202,32 +203,32 @@ export class RawTransactionSerde {
     size += bufio.sizeVarString(raw.spendingKey)
     size += TRANSACTION_FEE_LENGTH // raw.fee
 
-    size += 8 // raw.spends.length
+    size += TYPE_NUMBER_SIZE // raw.spends.length
     for (const spend of raw.spends) {
       size += bufio.sizeVarBytes(spend.note.serialize())
 
-      size += 8 // spend.witness.treeSize()
+      size += TYPE_NUMBER_SIZE // spend.witness.treeSize()
       size += bufio.sizeVarBytes(spend.witness.rootHash)
-      size += 8 // spend.witness.authPath.length
+      size += TYPE_NUMBER_SIZE // spend.witness.authPath.length
       for (const step of spend.witness.authPath()) {
         size += 1 // step.side()
         size += bufio.sizeVarBytes(step.hashOfSibling())
       }
     }
 
-    size += 8 // raw.receives.length
+    size += TYPE_NUMBER_SIZE // raw.receives.length
     for (const receive of raw.receives) {
       size += bufio.sizeVarBytes(receive.note.serialize())
     }
 
-    size += 8 // raw.mints.length
+    size += TYPE_NUMBER_SIZE // raw.mints.length
     for (const mint of raw.mints) {
       size += bufio.sizeVarString(mint.name)
       size += bufio.sizeVarString(mint.metadata)
       size += AMOUNT_VALUE_LENGTH // mint.value
     }
 
-    size += 8 // raw.burns.length
+    size += TYPE_NUMBER_SIZE // raw.burns.length
     for (const _ of raw.burns) {
       size += ASSET_ID_LENGTH // burn.assetId
       size += AMOUNT_VALUE_LENGTH // burn.value

@@ -8,7 +8,7 @@ import {
   ASSET_LENGTH,
   ENCRYPTED_NOTE_LENGTH,
   PROOF_LENGTH,
-  TRANSACTION_PUBLIC_KEY_LENGTH,
+  TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH,
   TRANSACTION_SIGNATURE_LENGTH,
   TransactionPosted,
 } from '@ironfish/rust-nodejs'
@@ -55,7 +55,7 @@ export class Transaction {
     this._expiration = reader.readU32() // 4
     // randomized public key of sender
     // to read the value of rpk reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
-    reader.seek(TRANSACTION_PUBLIC_KEY_LENGTH)
+    reader.seek(TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH)
 
     // spend description
     this.spends = Array.from({ length: _spendsLength }, () => {

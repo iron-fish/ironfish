@@ -36,7 +36,7 @@ export interface NativeSpendDescription {
 }
 export const PROOF_LENGTH: number
 export const TRANSACTION_SIGNATURE_LENGTH: number
-export const TRANSACTION_PUBLIC_KEY_LENGTH: number
+export const TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH: number
 export const TRANSACTION_EXPIRATION_LENGTH: number
 export const TRANSACTION_FEE_LENGTH: number
 export const TRANSACTION_VERSION: number
