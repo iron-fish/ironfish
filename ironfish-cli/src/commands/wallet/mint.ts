@@ -47,6 +47,10 @@ export class Mint extends IronfishCommand {
       description: 'Name for the asset',
       required: false,
     }),
+    confirm: Flags.boolean({
+      default: false,
+      description: 'Confirm without asking',
+    }),
   }
 
   async start(): Promise<void> {
@@ -136,6 +140,26 @@ export class Mint extends IronfishCommand {
       )
 
       fee = CurrencyUtils.decodeIron(input)
+    }
+
+    if (!flags.confirm) {
+      const nameString = name ? `Name: ${name}` : ''
+      const metadataString = metadata ? `Metadata: ${metadata}` : ''
+      const includeTicker = !!assetId
+      const amountString = CurrencyUtils.renderIron(amount, includeTicker, assetId)
+      const feeString = CurrencyUtils.renderIron(fee, true)
+      this.log(`
+You are about to mint ${nameString} ${metadataString}
+${amountString} plus a transaction fee of ${feeString} with the account ${account}
+
+* This action is NOT reversible *
+`)
+
+      const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
+      if (!confirm) {
+        this.log('Transaction aborted.')
+        this.exit(0)
+      }
     }
 
     const bar = CliUx.ux.progress({
