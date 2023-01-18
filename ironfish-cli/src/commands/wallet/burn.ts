@@ -35,6 +35,10 @@ export class Burn extends IronfishCommand {
       char: 'i',
       description: 'Identifier for the asset',
     }),
+    confirm: Flags.boolean({
+      default: false,
+      description: 'Confirm without asking',
+    }),
   }
 
   async start(): Promise<void> {
@@ -102,6 +106,25 @@ export class Burn extends IronfishCommand {
       )
 
       fee = CurrencyUtils.decodeIron(input)
+    }
+
+    if (!flags.confirm) {
+      this.log(`
+You are about to burn:
+${CurrencyUtils.renderIron(
+  amount,
+  true,
+  assetId,
+)} plus a transaction fee of ${CurrencyUtils.renderIron(fee, true)} with the account ${account}
+
+* This action is NOT reversible *
+`)
+
+      const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
+      if (!confirm) {
+        this.log('Transaction aborted.')
+        this.exit(0)
+      }
     }
 
     const bar = CliUx.ux.progress({
