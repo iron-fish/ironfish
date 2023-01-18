@@ -92,6 +92,7 @@ export class Burn extends IronfishCommand {
       const input = await CliUx.ux.prompt(
         `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)})`,
         {
+          default: CurrencyUtils.renderIron(1n),
           required: true,
         },
       )
