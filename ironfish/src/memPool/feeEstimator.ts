@@ -244,6 +244,7 @@ export class FeeEstimator {
       sender,
       Asset.nativeId(),
       amountNeeded,
+      0,
     )
 
     size += notes.length * SPEND_SERIALIZED_SIZE_IN_BYTE

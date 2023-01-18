@@ -44,6 +44,10 @@ export class Send extends IronfishCommand {
       default: false,
       description: 'Confirm without asking',
     }),
+    confirmations: Flags.integer({
+      required: false,
+      description: 'Minimum number of blocks confirmations to include a note',
+    }),
     expiration: Flags.integer({
       char: 'e',
       description:
@@ -86,7 +90,7 @@ export class Send extends IronfishCommand {
     }
 
     if (assetId === null) {
-      assetId = await this.selectAsset(client, from)
+      assetId = await this.selectAsset(client, from, flags.confirmations)
     }
 
     if (!assetId) {
@@ -253,6 +257,7 @@ ${CurrencyUtils.renderIron(
         ],
         fee: CurrencyUtils.encode(fee),
         expiration: expiration,
+        confirmations: flags.confirmations,
       })
 
       stopProgressBar()
@@ -282,8 +287,13 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
   async selectAsset(
     client: RpcClient,
     account: string | undefined,
+    confirmations?: number,
   ): Promise<string | undefined> {
-    const balancesResponse = await client.getAccountBalances({ account })
+    const balancesResponse = await client.getAccountBalances({
+      account,
+      confirmations,
+    })
+
     const assetOptions = []
 
     const balances = balancesResponse.content.balances
