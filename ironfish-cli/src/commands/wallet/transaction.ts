@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CurrencyUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
+import { flagUsages } from '@oclif/core/lib/parser'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -11,6 +12,7 @@ export class TransactionCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    ...CliUx.ux.table.flags(),
   }
 
   static args = [
@@ -29,7 +31,7 @@ export class TransactionCommand extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { args } = await this.parse(TransactionCommand)
+    const { flags, args } = await this.parse(TransactionCommand)
     const hash = args.hash as string
     const account = args.account as string | undefined
 
@@ -61,41 +63,54 @@ export class TransactionCommand extends IronfishCommand {
     if (response.content.transaction.notes.length > 0) {
       this.log(`---Notes---\n`)
 
-      CliUx.ux.table(response.content.transaction.notes, {
-        owner: {
-          header: 'Owner',
-          get: (note) => (note.owner ? `✔` : `x`),
+      CliUx.ux.table(
+        response.content.transaction.notes,
+        {
+          owner: {
+            header: 'Owner',
+            get: (note) => (note.owner ? `✔` : `x`),
+          },
+          amount: {
+            header: 'Amount',
+            get: (note) => CurrencyUtils.renderIron(note.value),
+          },
+          assetName: {
+            header: 'Asset Name',
+          },
+          assetId: {
+            header: 'Asset Id',
+          },
+          isSpent: {
+            header: 'Spent',
+            get: (note) => (!note.owner ? '?' : note.spent ? `✔` : `x`),
+          },
+          memo: {
+            header: 'Memo',
+          },
         },
-        amount: {
-          header: 'Amount',
-          get: (note) => CurrencyUtils.renderIron(note.value),
+        {
+          ...flags,
         },
-        assetName: {
-          header: 'Asset Name',
-        },
-        assetId: {
-          header: 'Asset Id',
-        },
-        isSpent: {
-          header: 'Spent',
-          get: (note) => (!note.owner ? '?' : note.spent ? `✔` : `x`),
-        },
-        memo: {
-          header: 'Memo',
-        },
-      })
+      )
     }
 
     if (response.content.transaction.assetBalanceDeltas) {
       this.log(`---Asset Balance Deltas---\n`)
-      CliUx.ux.table(response.content.transaction.assetBalanceDeltas, {
-        assetId: {
-          header: 'Asset ID',
+
+      CliUx.ux.table(
+        response.content.transaction.assetBalanceDeltas,
+        {
+          assetId: {
+            header: 'Asset ID',
+          },
+          delta: {
+            header: 'Balance Change',
+          },
         },
-        delta: {
-          header: 'Balance Change',
+        {
+          ...flags,
         },
-      })
+      )
     }
   }
 }
