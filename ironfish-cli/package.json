@@ -1,6 +1,6 @@
 {
   "name": "ironfish",
-  "version": "0.1.59",
+  "version": "0.1.60",
   "description": "CLI for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -59,7 +59,7 @@
     "@aws-sdk/client-cognito-identity": "3.215.0",
     "@aws-sdk/client-s3": "3.127.0",
     "@ironfish/rust-nodejs": "0.1.22",
-    "@ironfish/sdk": "0.0.36",
+    "@ironfish/sdk": "0.0.37",
     "@oclif/core": "1.23.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",
@@ -89,26 +89,7 @@
       "@oclif/plugin-help",
       "@oclif/plugin-not-found"
     ],
-    "topics": {
-      "accounts": {
-        "description": "Create and delete accounts"
-      },
-      "chain": {
-        "description": "Manage the blockchain"
-      },
-      "config": {
-        "description": "Show and edit the node configuration"
-      },
-      "faucet": {
-        "description": "Get coins to start using Iron Fish"
-      },
-      "miners": {
-        "description": "Manage an Iron Fish miner"
-      },
-      "peers": {
-        "description": "Manage the peers connected to this node"
-      }
-    }
+    "topics": {}
   },
   "bin": {
     "ironfish": "./bin/run"

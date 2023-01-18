@@ -13,7 +13,7 @@ import {
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 
-const RESCAN_MESSAGE = 'Account must be rescanned using `accounts:rescan --reset`.'
+const RESCAN_MESSAGE = 'Account must be rescanned using `wallet:rescan --reset`.'
 export default class Repair extends IronfishCommand {
   static hidden = false
 

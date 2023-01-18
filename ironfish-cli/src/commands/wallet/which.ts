@@ -34,9 +34,9 @@ export class WhichCommand extends IronfishCommand {
     if (!accountName) {
       this.log(
         'There is currently no account being used.\n' +
-          ' * Create an account: "ironfish accounts:create"\n' +
-          ' * List all accounts: "ironfish accounts:list"\n' +
-          ' * Use an existing account: "ironfish accounts:use <name>"',
+          ' * Create an account: "ironfish wallet:create"\n' +
+          ' * List all accounts: "ironfish wallet:accounts"\n' +
+          ' * Use an existing account: "ironfish wallet:use <name>"',
       )
       this.exit(0)
     }

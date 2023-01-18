@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, TimeUtils } from '@ironfish/sdk'
+import { BufferUtils, CurrencyUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -72,6 +72,7 @@ export class TransactionCommand extends IronfishCommand {
         },
         assetName: {
           header: 'Asset Name',
+          get: (note) => BufferUtils.toHuman(Buffer.from(note.assetName, 'hex')),
         },
         assetId: {
           header: 'Asset Id',
@@ -82,6 +83,18 @@ export class TransactionCommand extends IronfishCommand {
         },
         memo: {
           header: 'Memo',
+        },
+      })
+    }
+
+    if (response.content.transaction.assetBalanceDeltas) {
+      this.log(`---Asset Balance Deltas---\n`)
+      CliUx.ux.table(response.content.transaction.assetBalanceDeltas, {
+        assetId: {
+          header: 'Asset ID',
+        },
+        delta: {
+          header: 'Balance Change',
         },
       })
     }

@@ -25,6 +25,7 @@ export type GetAccountTransactionResponse = {
     burnsCount: number
     timestamp: number
     notes: RpcAccountDecryptedNote[]
+    assetBalanceDeltas: Array<{ assetId: string; delta: string }>
   } | null
 }
 
@@ -64,6 +65,16 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
                   sender: yup.string().defined(),
                   memo: yup.string().trim().defined(),
                   spent: yup.boolean(),
+                })
+                .defined(),
+            )
+            .defined(),
+          assetBalanceDeltas: yup
+            .array(
+              yup
+                .object({
+                  assetId: yup.string().defined(),
+                  delta: yup.string().defined(),
                 })
                 .defined(),
             )
@@ -113,7 +124,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
         memo: note.memo(),
         value: CurrencyUtils.encode(note.value()),
         assetId: note.assetId().toString('hex'),
-        assetName: asset?.name.toString('utf8') || '',
+        assetName: asset?.name.toString('hex') || '',
         sender: note.sender(),
         spent: spent,
       })

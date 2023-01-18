@@ -6,6 +6,7 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
+import { selectAsset } from '../../utils/asset'
 
 export class Mint extends IronfishCommand {
   static description = 'Mint tokens and increase supply for a given asset'
@@ -46,6 +47,10 @@ export class Mint extends IronfishCommand {
       description: 'Name for the asset',
       required: false,
     }),
+    confirm: Flags.boolean({
+      default: false,
+      description: 'Confirm without asking',
+    }),
   }
 
   async start(): Promise<void> {
@@ -78,27 +83,36 @@ export class Mint extends IronfishCommand {
     let assetId = flags.assetId
     let metadata = flags.metadata
     let name = flags.name
-    // We need at least one of asset id or metadata / name
-    if (!(assetId || (metadata && name))) {
-      const mintNewAsset = await CliUx.ux.confirm('Do you want to create a new asset (Y/N)?')
 
-      if (mintNewAsset) {
-        if (!name) {
-          name = await CliUx.ux.prompt('Enter the name for the new asset', {
-            required: true,
-          })
-        }
+    // We can assume the prompt can be skipped if at least one of metadata or
+    // name is provided
+    let isMintingNewAsset = Boolean(metadata || name)
+    if (!assetId && !metadata && !name) {
+      isMintingNewAsset = await CliUx.ux.confirm('Do you want to create a new asset (Y/N)?')
+    }
 
-        if (!metadata) {
-          metadata = await CliUx.ux.prompt('Enter metadata for the new asset', {
-            default: '',
-            required: false,
-          })
-        }
-      } else {
-        assetId = await CliUx.ux.prompt('Enter the Asset Identifier to mint supply for', {
+    if (isMintingNewAsset) {
+      if (!name) {
+        name = await CliUx.ux.prompt('Enter the name for the new asset', {
           required: true,
         })
+      }
+
+      if (!metadata) {
+        metadata = await CliUx.ux.prompt('Enter metadata for the new asset', {
+          default: '',
+          required: false,
+        })
+      }
+    } else if (!assetId) {
+      assetId = await selectAsset(client, account, {
+        action: 'mint',
+        showNativeAsset: false,
+        showSingleAssetChoice: true,
+      })
+
+      if (!assetId) {
+        this.error(`You must have an existing asset. Try creating a new one.`)
       }
     }
 
@@ -106,7 +120,7 @@ export class Mint extends IronfishCommand {
     if (flags.amount) {
       amount = CurrencyUtils.decodeIron(flags.amount)
     } else {
-      const input = await CliUx.ux.prompt('Enter the amount to mint in $IRON', {
+      const input = await CliUx.ux.prompt('Enter the amount to mint in the custom asset', {
         required: true,
       })
 
@@ -120,11 +134,32 @@ export class Mint extends IronfishCommand {
       const input = await CliUx.ux.prompt(
         `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)})`,
         {
+          default: CurrencyUtils.renderIron(1n),
           required: true,
         },
       )
 
       fee = CurrencyUtils.decodeIron(input)
+    }
+
+    if (!flags.confirm) {
+      const nameString = name ? `Name: ${name}` : ''
+      const metadataString = metadata ? `Metadata: ${metadata}` : ''
+      const includeTicker = !!assetId
+      const amountString = CurrencyUtils.renderIron(amount, includeTicker, assetId)
+      const feeString = CurrencyUtils.renderIron(fee, true)
+      this.log(`
+You are about to mint ${nameString} ${metadataString}
+${amountString} plus a transaction fee of ${feeString} with the account ${account}
+
+* This action is NOT reversible *
+`)
+
+      const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
+      if (!confirm) {
+        this.log('Transaction aborted.')
+        this.exit(0)
+      }
     }
 
     const bar = CliUx.ux.progress({

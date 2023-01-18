@@ -99,7 +99,7 @@ export class BalanceCommand extends IronfishCommand {
     this.log(
       `${response.unconfirmedCount} notes worth ${CurrencyUtils.renderIron(
         unconfirmedDelta,
-      )} are on the chain within ${response.confirmations.toString()} blocks of the head`,
+      )} are on the chain within ${response.confirmations} blocks of the head`,
     )
     this.log(`Unconfirmed: ${CurrencyUtils.renderIron(unconfirmed, true, assetId)}`)
   }
