@@ -21,6 +21,6 @@ export function getAccount(node: IronfishNode, name?: string): Account {
 
   throw new ValidationError(
     `No account is currently active.\n\n` +
-      `Use ironfish accounts:create <name> to first create an account`,
+      `Use ironfish wallet:create <name> to first create an account`,
   )
 }
