@@ -752,6 +752,48 @@ describe('Accounts', () => {
         'Fee or FeeRate is required to create a transaction',
       )
     })
+
+    it('should create raw transaction with fee rate', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+
+      await node.wallet.updateHead()
+
+      const transaction = blockA1.minersFee
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+      Assert.isNotNull(transactionValue.sequence)
+
+      const rawTransaction = await node.wallet.createTransaction(
+        accountA,
+        [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: 10n,
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        [],
+        [],
+        null,
+        0,
+        0,
+        200n,
+      )
+
+      expect(rawTransaction.receives.length).toBe(1)
+      expect(rawTransaction.expiration).toBeDefined()
+      expect(rawTransaction.burns.length).toBe(0)
+      expect(rawTransaction.mints.length).toBe(0)
+      expect(rawTransaction.spends.length).toBe(1)
+      expect(rawTransaction.fee).toBeGreaterThan(0n)
+    })
   })
 
   describe('getTransactionStatus', () => {
