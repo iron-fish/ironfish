@@ -3386,5 +3386,41 @@
         }
       ]
     }
+  ],
+  "Accounts createTransaction should throw error if fee and fee rate are empty": [
+    {
+      "id": "4aa31f91-ae2a-4712-98ad-048894d4432d",
+      "name": "a",
+      "spendingKey": "4c664f506e38cdcb4ea5c142f31535a44da1d9734e69f869da6eea8cc8367674",
+      "incomingViewKey": "f3984cdb4fd0cce52bee9b3039585c25e8f201779e27e821a8ad06c0f3a1a000",
+      "outgoingViewKey": "00231d26af10c38d4a1663b3f7e09c28d850e42d88bcf9522c4c69649305d216",
+      "publicAddress": "090c85e46106a9f6103fc2e9ec63c0cba75aff26b4eb08e4772b559717682610"
+    },
+    {
+      "header": {
+        "sequence": 2,
+        "previousBlockHash": "D179D8B74987D6617267D46F4958554BA0DF02D7E5E6117DB02D6FF38FD0F6DA",
+        "noteCommitment": {
+          "type": "Buffer",
+          "data": "base64:tbrFInXexEwRuvfEAEEirYUMnbEGUGlBfpofsshO7VI="
+        },
+        "transactionCommitment": {
+          "type": "Buffer",
+          "data": "base64:F8NZ8+CTsDdF2U3OqdJNpSNOvb+DhvRoRbAHhED5or4="
+        },
+        "target": "883423532389192164791648750371459257913741948437809479060803100646309888",
+        "randomness": "0",
+        "timestamp": 1674010083491,
+        "graffiti": "0000000000000000000000000000000000000000000000000000000000000000",
+        "noteSize": 4,
+        "work": "0"
+      },
+      "transactions": [
+        {
+          "type": "Buffer",
+          "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAOKwBBmH03AeCYqCtp3f6wSzF9zo4kbpHfvenxm1D6eq4Ewl7cE3diAIT60NqAf7EZWyDUFS5Ere4i4cMVWm5TwYkKUzNkEaoPAJVzBn9dz6zQQRUWq4jMOPHJspaet4T1whfIMDQ1uSr+4mFz3Og9TWMJxbJHhqBv1ta5OrT4+UMdxXhLJk9Oc1W+p3nyeRZy/y2SAEaY4mSHYf6Q7md+NNNjXM8X83wSSYWdsA/SHSX0qzab5cIN+aQ0p0Cwlet0NL57HR1TonoAKaiM5r4jeKT8FSeoUvLRnBiqNJnk6NqsSBE2q0M8ELsLcKKMCD/NtcNuN34V//xryPMrbEF5rujAsSuZv4t/apTCBYLWCdb+97Ykxq3I7LX4yDwHnsTA+nQacKatpvmjpOFNkp+D28Jzh19xx4qIAgKdkUkmEZ+BtYd5Exhl4Dd2sqMjpLPFZiWoJoeDK+tMIvj4yUnurKK7xN+bK8hik6EvKnuZZgTtrqbvMfWJC5JHFhEN600bXHCJRSUmbyY5D7fagGcai/2EOqWJMNlIhhnxU/3kVvYJGUSFkUkohhSrbOhKnde6xSaUGVZkhkDBuSrX3yKupsnh7TKvkBuWdHKC0MUCrmA5gY8uGUEPElyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwdzBzstO2g7EBbe1Up8onT0rW/f3hfTqpgiGasOLQUdTQkFAZXuZb1qC8ihYmukfaSotRpoFYIBP+PABnXpkIAg=="
+        }
+      ]
+    }
   ]
 }
