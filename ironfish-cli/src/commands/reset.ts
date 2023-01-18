@@ -45,6 +45,9 @@ export default class Reset extends IronfishCommand {
       this.exit(0)
     }
 
+    this.sdk.internal.set('networkId', this.sdk.config.defaults.networkId)
+    this.sdk.internal.set('isFirstRun', true)
+    await this.sdk.internal.save()
     const walletDatabasePath = this.sdk.config.walletDatabasePath
     const chainDatabasePath = this.sdk.config.chainDatabasePath
     const hostFilePath: string = this.sdk.config.files.join(
