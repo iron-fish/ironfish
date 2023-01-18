@@ -101,11 +101,9 @@ export class Mint extends IronfishCommand {
         })
       }
     } else if (!assetId) {
-      if (assetId == null) {
-        assetId = await selectAsset(client, account, false)
-      }
+      assetId = await selectAsset(client, account, false)
 
-      if (assetId == null) {
+      if (!assetId) {
         this.error(`You must have an existing asset. Try creating a new one.`)
       }
     }
