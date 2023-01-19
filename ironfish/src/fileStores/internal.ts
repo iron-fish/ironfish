@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FileSystem } from '../fileSystems'
+import { DEFAULT_NETWORK_ID } from './config'
 import { KeyStore } from './keyStore'
 
 export type InternalOptions = {
@@ -17,7 +18,7 @@ export const InternalOptionsDefaults: InternalOptions = {
   networkIdentity: '',
   telemetryNodeId: '',
   rpcAuthToken: '',
-  networkId: 0,
+  networkId: DEFAULT_NETWORK_ID,
 }
 
 export class InternalStore extends KeyStore<InternalOptions> {
