@@ -30,7 +30,7 @@ export interface MerkleHasher<E, H, SE extends JsonSerializable, SH extends Json
   /**
    * Get the hash of a given element
    */
-  merkleHash: (element: E) => H
+  hash: (element: E) => H
 
   /**
    * Combine two hashes to get the parent hash
@@ -66,8 +66,8 @@ export class NoteHasher
     return this._merkleNoteHashSerde
   }
 
-  merkleHash(note: NoteEncrypted): Buffer {
-    return note.merkleHash()
+  hash(note: NoteEncrypted): Buffer {
+    return note.hash()
   }
 
   combineHash(
@@ -97,7 +97,7 @@ export class ConcatHasher implements MerkleHasher<string, string, string, string
     return left + right
   }
 
-  merkleHash(element: string): string {
+  hash(element: string): string {
     return element
   }
 }
@@ -124,7 +124,7 @@ export class RangeHasher implements MerkleHasher<string, string, string, string>
     return leftSplit[0] + '-' + rightSplit[rightSplit.length - 1]
   }
 
-  merkleHash(element: string): string {
+  hash(element: string): string {
     return element
   }
 }
@@ -148,7 +148,7 @@ export class StructureHasher implements MerkleHasher<string, string, string, str
     return `<${left}|${right}-${depth}>`
   }
 
-  merkleHash(element: string): string {
+  hash(element: string): string {
     return element
   }
 }

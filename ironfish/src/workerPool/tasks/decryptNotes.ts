@@ -228,7 +228,7 @@ export class DecryptNotesTask extends WorkerTask {
         decryptedNotes.push({
           index: currentNoteIndex,
           forSpender: false,
-          hash: note.merkleHash(),
+          hash: note.hash(),
           nullifier:
             currentNoteIndex !== null
               ? receivedNote.nullifier(spendingKey, BigInt(currentNoteIndex))
@@ -244,7 +244,7 @@ export class DecryptNotesTask extends WorkerTask {
         decryptedNotes.push({
           index: currentNoteIndex,
           forSpender: true,
-          hash: note.merkleHash(),
+          hash: note.hash(),
           nullifier: null,
           serializedNote: spentNote.serialize(),
         })

@@ -120,7 +120,7 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
             size: getTransactionSize(transaction),
             fee: Number(transaction.fee()),
             notes: transaction.notes.map((note) => ({
-              commitment: note.merkleHash().toString('hex'),
+              commitment: note.hash().toString('hex'),
             })),
             spends: transaction.spends.map((spend) => ({
               nullifier: spend.nullifier.toString('hex'),
