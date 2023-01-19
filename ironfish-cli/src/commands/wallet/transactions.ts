@@ -1,12 +1,20 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
-import { CurrencyUtils, GetAccountTransactionsResponse, TransactionType } from '@ironfish/sdk'
+import { Asset, ASSET_NAME_LENGTH } from '@ironfish/rust-nodejs'
+import {
+  BufferUtils,
+  CurrencyUtils,
+  GetAccountTransactionsResponse,
+  TransactionType,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { TableCols } from '../../utils/table'
+import { TableCols, truncateCol } from '../../utils/table'
+
+const MAX_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH + 1
+const MIN_ASSET_NAME_COLUMN_WIDTH = 'Asset Name'.length + 1
 
 export class TransactionsCommand extends IronfishCommand {
   static description = `Display the account transactions`
@@ -48,12 +56,29 @@ export class TransactionsCommand extends IronfishCommand {
     })
 
     let showHeader = true
+    const assetNameWidth = flags.extended
+      ? MAX_ASSET_NAME_COLUMN_WIDTH
+      : MIN_ASSET_NAME_COLUMN_WIDTH
 
     for await (const transaction of response.contentStream()) {
-      const transactionRow = this.getTransactionRow(transaction)
+      const transactionHeader = this.getTransactionHeader(transaction)
+
+      const transactionRows: TransactionRow[] = []
+      for (const { assetId, assetName, delta } of transaction.assetBalanceDeltas) {
+        if (assetId === Asset.nativeId().toString('hex')) {
+          continue
+        }
+
+        transactionRows.push({
+          ...transaction,
+          assetId,
+          assetName: BufferUtils.toHuman(Buffer.from(assetName, 'hex')),
+          amount: BigInt(delta),
+        })
+      }
 
       CliUx.ux.table(
-        [transactionRow],
+        [transactionHeader, ...transactionRows],
         {
           timestamp: TableCols.timestamp({
             streaming: true,
@@ -69,31 +94,43 @@ export class TransactionsCommand extends IronfishCommand {
           hash: {
             header: 'Hash',
           },
+          assetId: {
+            header: 'Asset ID',
+          },
+          assetName: {
+            header: 'Asset Name',
+            get: (row) => truncateCol(row.assetName, assetNameWidth),
+            minWidth: assetNameWidth,
+          },
           amount: {
-            header: 'Net Amount ($IRON)',
+            header: 'Net Amount',
             get: (row) => (row.amount !== 0n ? CurrencyUtils.renderIron(row.amount) : ''),
-            minWidth: 20,
+            minWidth: 16,
           },
           feePaid: {
             header: 'Fee Paid ($IRON)',
-            get: (row) => (row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : ''),
-            minWidth: 20,
+            get: (row) =>
+              row.feePaid && row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : '',
           },
           notesCount: {
             header: 'Notes',
             minWidth: 5,
+            extended: true,
           },
           spendsCount: {
             header: 'Spends',
             minWidth: 5,
+            extended: true,
           },
           mintsCount: {
             header: 'Mints',
             minWidth: 5,
+            extended: true,
           },
           burnsCount: {
             header: 'Burns',
             minWidth: 5,
+            extended: true,
           },
           expiration: {
             header: 'Expiration',
@@ -110,7 +147,7 @@ export class TransactionsCommand extends IronfishCommand {
     }
   }
 
-  getTransactionRow(transaction: GetAccountTransactionsResponse): TransactionRow {
+  getTransactionHeader(transaction: GetAccountTransactionsResponse): TransactionRow {
     const assetId = Asset.nativeId().toString('hex')
 
     const nativeAssetBalanceDelta = transaction.assetBalanceDeltas.find(
@@ -129,6 +166,8 @@ export class TransactionsCommand extends IronfishCommand {
 
     return {
       ...transaction,
+      assetId,
+      assetName: '$IRON',
       amount,
       feePaid,
     }
@@ -140,8 +179,10 @@ type TransactionRow = {
   status: string
   type: string
   hash: string
+  assetId: string
+  assetName: string
   amount: bigint
-  feePaid: bigint
+  feePaid?: bigint
   notesCount: number
   spendsCount: number
   mintsCount: number
