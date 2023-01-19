@@ -3,14 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { Readable } from 'stream'
+import { CognitoIdentity } from '@aws-sdk/client-cognito-identity'
 import {
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
   GetObjectCommand,
+  ListObjectsCommand,
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
+import { Credentials } from '@aws-sdk/types/dist-types/credentials'
 import { Assert, ErrorUtils, Logger } from '@ironfish/sdk'
 import fsAsync from 'fs/promises'
 import { pipeline } from 'stream/promises'
@@ -34,7 +37,7 @@ class UploadLastMultipartError extends UploadToBucketError {}
 class UploadReadFileError extends UploadToBucketError {}
 class UploadFailedError extends UploadToBucketError {}
 
-async function uploadToBucket(
+export async function uploadToBucket(
   s3: S3Client,
   filePath: string,
   contentType: string,
@@ -184,7 +187,7 @@ async function uploadToBucket(
     })
 }
 
-async function downloadFromBucket(
+export async function downloadFromBucket(
   s3: S3Client,
   bucket: string,
   keyName: string,
@@ -203,4 +206,72 @@ async function downloadFromBucket(
   }
 }
 
-export const S3Utils = { downloadFromBucket, uploadToBucket }
+export async function getBucketObjects(s3: S3Client, bucket: string): Promise<string[]> {
+  const command = new ListObjectsCommand({ Bucket: bucket })
+  const response = await s3.send(command)
+
+  const keys: string[] = []
+
+  for (const obj of response.Contents || []) {
+    if (obj.Key !== undefined) {
+      keys.push(obj.Key)
+    }
+  }
+
+  return keys
+}
+
+export async function getS3Client(
+  accessKeyId?: string,
+  secretAccessKey?: string,
+): Promise<S3Client> {
+  const region = 'us-east-1'
+
+  if (accessKeyId && secretAccessKey) {
+    return new S3Client({
+      useAccelerateEndpoint: true,
+      useDualstackEndpoint: true,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+      region,
+    })
+  }
+
+  const credentials = await getCognitoIdentityCredentials()
+
+  return new S3Client({
+    useAccelerateEndpoint: true,
+    credentials,
+    region,
+  })
+}
+
+async function getCognitoIdentityCredentials(): Promise<Credentials> {
+  const identityPoolId = 'us-east-1:3ebc542a-6ac4-4c5d-9558-1621eadd2382'
+
+  const cognito = new CognitoIdentity({ region: 'us-east-1' })
+
+  const identityResponse = await cognito.getId({ IdentityPoolId: identityPoolId })
+
+  const identityId = identityResponse.IdentityId
+
+  const credentialsResponse = await cognito.getCredentialsForIdentity({
+    IdentityId: identityId,
+  })
+
+  const cognitoAccessKeyId = credentialsResponse.Credentials?.AccessKeyId
+  const cognitoSecretAccessKey = credentialsResponse.Credentials?.SecretKey
+  const cognitoSessionToken = credentialsResponse.Credentials?.SessionToken
+
+  Assert.isNotUndefined(cognitoAccessKeyId)
+  Assert.isNotUndefined(cognitoSecretAccessKey)
+  Assert.isNotUndefined(cognitoSessionToken)
+
+  return {
+    accessKeyId: cognitoAccessKeyId,
+    secretAccessKey: cognitoSecretAccessKey,
+    sessionToken: cognitoSessionToken,
+  }
+}

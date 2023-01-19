@@ -4,7 +4,7 @@
 export * from './asset'
 export * from './editor'
 export * from './rpc'
-export * from './s3'
+export * as S3Utils from './s3'
 export * from './tar'
 export * from './terminal'
 export * from './types'

@@ -1,11 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CognitoIdentity } from '@aws-sdk/client-cognito-identity'
-import { S3Client } from '@aws-sdk/client-s3'
-import { Credentials } from '@aws-sdk/types/dist-types/credentials'
 import { contribute } from '@ironfish/rust-nodejs'
-import { Assert } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import path from 'path'
@@ -71,7 +67,7 @@ export default class Ceremony extends IronfishCommand {
     client.onInitiateContribution.on(async ({ downloadLink }) => {
       CliUx.ux.action.stop()
 
-      const s3 = await this.getS3Client()
+      const s3 = await S3Utils.getS3Client()
 
       const tempDir = this.sdk.config.tempDir
       await fsAsync.mkdir(tempDir, { recursive: true })
@@ -118,57 +114,5 @@ export default class Ceremony extends IronfishCommand {
     })
 
     await client.waitForStop()
-  }
-
-  private async getS3Client(accessKeyId?: string, secretAccessKey?: string): Promise<S3Client> {
-    const region = 'us-east-1'
-
-    if (accessKeyId && secretAccessKey) {
-      return new S3Client({
-        useAccelerateEndpoint: true,
-        useDualstackEndpoint: true,
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-        },
-        region,
-      })
-    }
-
-    const credentials = await this.getCognitoIdentityCredentials()
-
-    return new S3Client({
-      useAccelerateEndpoint: true,
-      credentials,
-      region,
-    })
-  }
-
-  private async getCognitoIdentityCredentials(): Promise<Credentials> {
-    const identityPoolId = 'us-east-1:3ebc542a-6ac4-4c5d-9558-1621eadd2382'
-
-    const cognito = new CognitoIdentity({ region: 'us-east-1' })
-
-    const identityResponse = await cognito.getId({ IdentityPoolId: identityPoolId })
-
-    const identityId = identityResponse.IdentityId
-
-    const credentialsResponse = await cognito.getCredentialsForIdentity({
-      IdentityId: identityId,
-    })
-
-    const cognitoAccessKeyId = credentialsResponse.Credentials?.AccessKeyId
-    const cognitoSecretAccessKey = credentialsResponse.Credentials?.SecretKey
-    const cognitoSessionToken = credentialsResponse.Credentials?.SessionToken
-
-    Assert.isNotUndefined(cognitoAccessKeyId)
-    Assert.isNotUndefined(cognitoSecretAccessKey)
-    Assert.isNotUndefined(cognitoSessionToken)
-
-    return {
-      accessKeyId: cognitoAccessKeyId,
-      secretAccessKey: cognitoSecretAccessKey,
-      sessionToken: cognitoSessionToken,
-    }
   }
 }

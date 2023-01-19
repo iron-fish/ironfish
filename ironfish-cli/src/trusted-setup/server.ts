@@ -141,6 +141,5 @@ export class CeremonyServer {
     } else {
       this.logger.info(`Client ${client.id} sent message: ${message}`)
     }
-
   }
 }
