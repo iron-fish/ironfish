@@ -17,10 +17,10 @@ crate-type = ["cdylib"]
 [dependencies]
 base64 = "0.13.0"
 ironfish_rust = { path = "../ironfish-rust" }
-napi-derive = "2.9.3"
+napi-derive = "2.9.5"
 
 [dependencies.napi]
-version = "2.10.4"
+version = "2.10.9"
 features = ["napi6"]
 
 [build-dependencies]
