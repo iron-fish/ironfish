@@ -50,14 +50,27 @@ export default class Ceremony extends IronfishCommand {
       port,
       logger: this.logger.withTag('ceremonyClient'),
     })
-    await client.start()
+
+    CliUx.ux.action.start('Connecting')
+    const connected = await client.start()
+    CliUx.ux.action.stop()
+
+    if (!connected) {
+      this.error('Unable to connect to contribution server.')
+    }
+
+    // Join the queue
     client.join()
 
+    CliUx.ux.action.start('Waiting to contribute', undefined, { stdout: true })
+
     client.onJoined.on(({ queueLocation }) => {
-      this.log(`You're currently #${queueLocation} in line to contribute.`)
+      CliUx.ux.action.status = `Current position: ${queueLocation}`
     })
 
     client.onInitiateContribution.on(async ({ downloadLink }) => {
+      CliUx.ux.action.stop()
+
       const s3 = await this.getS3Client()
 
       const tempDir = this.sdk.config.tempDir
@@ -100,8 +113,11 @@ export default class Ceremony extends IronfishCommand {
 
       this.log('Contributions received. Thank you!')
 
+      client.stop()
       this.exit(0)
     })
+
+    await client.waitForStop()
   }
 
   private async getS3Client(accessKeyId?: string, secretAccessKey?: string): Promise<S3Client> {

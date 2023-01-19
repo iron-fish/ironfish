@@ -11,6 +11,9 @@ export class CeremonyClient {
   readonly port: number
   readonly logger: Logger
 
+  private stopPromise: Promise<void> | null = null
+  private stopResolve: (() => void) | null = null
+
   readonly onJoined = new Event<[{ queueLocation: number }]>()
   readonly onInitiateContribution = new Event<[{ downloadLink: string }]>()
 
@@ -23,26 +26,32 @@ export class CeremonyClient {
     this.socket.on('data', (data) => void this.onData(data))
   }
 
-  async start(): Promise<void> {
-    this.logger.info('Connecting...')
+  async start(): Promise<boolean> {
+    this.stopPromise = new Promise((r) => (this.stopResolve = r))
+
     const connected = await connectSocket(this.socket, this.host, this.port)
       .then(() => true)
       .catch((e) => {
-        this.logger.info('connection error')
         return false
       })
 
     if (connected) {
-      this.logger.info('Successfully connected')
       this.socket.on('error', this.onError)
       this.socket.on('close', this.onDisconnect)
-    } else {
-      this.logger.info('Connection not successful')
     }
+
+    return connected
   }
 
   stop(): void {
     this.socket.end()
+    this.stopResolve && this.stopResolve()
+    this.stopPromise = null
+    this.stopResolve = null
+  }
+
+  async waitForStop(): Promise<void> {
+    await this.stopPromise
   }
 
   join(): void {
@@ -88,9 +97,9 @@ export class CeremonyClient {
       this.onJoined.emit({ queueLocation: parsedMessage.queueLocation })
     } else if (parsedMessage.method === 'initiate-contribution') {
       this.onInitiateContribution.emit({ downloadLink: parsedMessage.downloadLink })
+    } else {
+      this.logger.info(`Received message: ${message}`)
     }
-
-    this.logger.info(`Received message: ${message}`)
   }
 }
 
