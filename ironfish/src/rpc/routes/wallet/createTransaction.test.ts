@@ -4,7 +4,7 @@
 
 import { Asset } from '@ironfish/rust-nodejs'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { useMinerBlockFixture } from '../../../testUtilities'
+import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
 import { ERROR_CODES } from '../../adapters/errors'
@@ -46,7 +46,7 @@ describe('Route wallet/createTransaction', () => {
   let sender: Account
 
   beforeAll(async () => {
-    sender = await routeTest.node.wallet.createAccount('existingAccount', true)
+    sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
   })
 
   it('throws if not connected to network', async () => {
@@ -93,11 +93,12 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
+      block.transactions[0].notes[0].decryptNoteForOwner(sender.incomingViewKey)
+
       await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
 
       await Promise.all([routeTest.node.wallet.updateHead()])
     }
-
     const response = await routeTest.client.createTransaction(REQUEST_PARAMS)
 
     expect(response.status).toBe(200)

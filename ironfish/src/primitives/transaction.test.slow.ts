@@ -77,9 +77,10 @@ describe('Accounts', () => {
       ],
       [],
       [],
-      BigInt(1),
-      0,
-      0,
+      {
+        fee: 1n,
+        expiration: 0,
+      },
     )
     await expect(response).rejects.toThrow(Error)
   })
@@ -112,9 +113,10 @@ describe('Accounts', () => {
       ],
       [],
       [],
-      BigInt(1),
-      0,
-      0,
+      {
+        fee: 1n,
+        expiration: 0,
+      },
     )
 
     const transaction = await nodeA.wallet.postTransaction(raw, nodeA.memPool)

@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   Asset,
+  ASSET_ID_LENGTH,
+  ASSET_LENGTH,
   generateKey,
   generateKeyFromPrivateKey,
   Note as NativeNote,
@@ -27,7 +29,6 @@ import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
 import { RawTransaction } from '../primitives/rawTransaction'
-import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
@@ -600,15 +601,11 @@ export class Wallet {
     expirationDelta: number,
     expiration?: number | null,
   ): Promise<Transaction> {
-    const raw = await this.createTransaction(
-      sender,
-      receives,
-      [],
-      [],
+    const raw = await this.createTransaction(sender, receives, [], [], {
       fee,
       expirationDelta,
-      expiration,
-    )
+      expiration: expiration ?? undefined,
+    })
 
     return this.postTransaction(raw, memPool)
   }
@@ -645,9 +642,11 @@ export class Wallet {
       [],
       [{ asset, value: options.value }],
       [],
-      options.fee,
-      options.expirationDelta,
-      options.expiration,
+      {
+        fee: options.fee,
+        expirationDelta: options.expirationDelta,
+        expiration: options.expiration,
+      },
     )
 
     return this.postTransaction(raw, memPool)
@@ -662,15 +661,11 @@ export class Wallet {
     expirationDelta: number,
     expiration?: number,
   ): Promise<Transaction> {
-    const raw = await this.createTransaction(
-      account,
-      [],
-      [],
-      [{ assetId, value }],
-      fee,
-      expirationDelta,
-      expiration,
-    )
+    const raw = await this.createTransaction(account, [], [], [{ assetId, value }], {
+      fee: fee,
+      expirationDelta: expirationDelta,
+      expiration: expiration,
+    })
 
     return this.postTransaction(raw, memPool)
   }
@@ -685,23 +680,28 @@ export class Wallet {
     }[],
     mints: MintDescription[],
     burns: BurnDescription[],
-    fee: bigint | null,
-    expirationDelta: number,
-    expiration?: number | null,
-    feeRate?: bigint,
+    options: {
+      fee?: bigint
+      feeRate?: bigint
+      expiration?: number
+      expirationDelta?: number
+    },
   ): Promise<RawTransaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
       throw new Error('You must have a genesis block to create a transaction')
     }
 
-    if (fee == null && feeRate == null) {
+    if (options.fee === undefined && options.feeRate === undefined) {
       throw new Error('Fee or FeeRate is required to create a transaction')
     }
 
-    expiration = expiration ?? heaviestHead.sequence + expirationDelta
+    let expiration = options.expiration
+    if (expiration === undefined && options.expirationDelta) {
+      expiration = heaviestHead.sequence + options.expirationDelta
+    }
 
-    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
+    if (expiration === undefined || isExpiredSequence(expiration, this.chain.head.sequence)) {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
@@ -720,25 +720,6 @@ export class Wallet {
       raw.mints = mints
       raw.burns = burns
 
-      if (fee) {
-        raw.fee = fee
-      }
-
-      if (feeRate) {
-        let size = 0
-        size += 8 // spends length
-        size += 8 // notes length
-        size += 8 // fee
-        size += 4 // expiration
-        size += 64 // signature
-
-        size += raw.spends.length * SPEND_SERIALIZED_SIZE_IN_BYTE
-
-        size += raw.receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
-
-        raw.fee = getFee(feeRate, size)
-      }
-
       for (const receive of receives) {
         const note = new NativeNote(
           receive.publicAddress,
@@ -749,6 +730,27 @@ export class Wallet {
         )
 
         raw.receives.push({ note: new Note(note.serialize()) })
+      }
+
+      if (options.fee) {
+        raw.fee = options.fee
+      }
+
+      if (options.feeRate) {
+        let size = 0
+        size += 8 // spends length
+        size += 8 // notes length
+        size += 8 // fee
+        size += 4 // expiration
+        size += 64 // signature
+
+        size += raw.receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
+
+        size += raw.mints.length * (ASSET_LENGTH + 8)
+
+        size += raw.burns.length * (ASSET_ID_LENGTH + 8)
+
+        raw.fee = getFee(options.feeRate, size)
       }
 
       await this.fund(raw, {

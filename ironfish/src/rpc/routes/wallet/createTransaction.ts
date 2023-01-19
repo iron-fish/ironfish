@@ -32,8 +32,8 @@ export type CreateTransactionRequest = {
   }[]
   fee?: string
   feeRate?: string
-  expiration?: number | null
-  expirationDelta?: number | null
+  expiration?: number
+  expirationDelta?: number
 }
 
 export type CreateTransactionResponse = {
@@ -79,8 +79,8 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
       .optional(),
     fee: yup.string().optional(),
     feePriorityLevel: yup.string().optional(),
-    expiration: yup.number().nullable().optional(),
-    expirationDelta: yup.number().nullable().optional(),
+    expiration: yup.number().optional(),
+    expirationDelta: yup.number().optional(),
   })
   .defined()
 
@@ -115,15 +115,33 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       )
     }
 
+    const totalByAssetIdentifier = new BufferMap<bigint>()
+    if (transaction.fee) {
+      const fee = CurrencyUtils.decode(transaction.fee)
+      if (fee < 1n) {
+        throw new ValidationError(`Invalid transaction fee, ${transaction.fee}`)
+      }
+
+      totalByAssetIdentifier.set(Asset.nativeId(), fee)
+    }
+
     const receives = transaction.receives.map((receive) => {
       let assetId = Asset.nativeId()
       if (receive.assetId) {
         assetId = Buffer.from(receive.assetId, 'hex')
       }
 
+      const amount = CurrencyUtils.decode(receive.amount)
+      if (amount < 0) {
+        throw new ValidationError(`Invalid transaction amount ${amount}.`)
+      }
+
+      const sum = totalByAssetIdentifier.get(assetId) ?? BigInt(0)
+      totalByAssetIdentifier.set(assetId, sum + amount)
+
       return {
         publicAddress: receive.publicAddress,
-        amount: CurrencyUtils.decode(receive.amount),
+        amount: amount,
         memo: receive.memo,
         assetId,
       }
@@ -153,25 +171,6 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       })
     }
 
-    const totalByAssetIdentifier = new BufferMap<bigint>()
-    if (transaction.fee) {
-      const fee = CurrencyUtils.decode(transaction.fee)
-      if (fee < 1n) {
-        throw new ValidationError(`Invalid transaction fee, ${transaction.fee}`)
-      }
-
-      totalByAssetIdentifier.set(Asset.nativeId(), fee)
-    }
-
-    for (const { assetId, amount } of receives) {
-      if (amount < 0) {
-        throw new ValidationError(`Invalid transaction amount ${amount}.`)
-      }
-
-      const sum = totalByAssetIdentifier.get(assetId) ?? BigInt(0)
-      totalByAssetIdentifier.set(assetId, sum + amount)
-    }
-
     // Check that the node account is updated
     for (const [assetId, sum] of totalByAssetIdentifier) {
       const balance = await node.wallet.getBalance(account, assetId)
@@ -189,30 +188,23 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
 
     try {
       if (transaction.fee) {
-        rawTransaction = await node.wallet.createTransaction(
-          account,
-          receives,
-          [],
-          [],
-          BigInt(transaction.fee),
-          transaction.expirationDelta ?? node.config.get('transactionExpirationDelta'),
-          transaction.expiration,
-        )
+        rawTransaction = await node.wallet.createTransaction(account, receives, [], [], {
+          fee: BigInt(transaction.fee),
+          expirationDelta:
+            transaction.expirationDelta ?? node.config.get('transactionExpirationDelta'),
+          expiration: transaction.expiration,
+        })
       } else {
         const feeRate = BigInt(
           transaction.feeRate ?? node.memPool.feeEstimator.estimateFeeRate('medium'),
         )
 
-        rawTransaction = await node.wallet.createTransaction(
-          account,
-          receives,
-          mints,
-          burns,
-          null,
-          transaction.expirationDelta ?? node.config.get('transactionExpirationDelta'),
-          transaction.expiration,
-          feeRate,
-        )
+        rawTransaction = await node.wallet.createTransaction(account, receives, mints, burns, {
+          expirationDelta:
+            transaction.expirationDelta ?? node.config.get('transactionExpirationDelta'),
+          expiration: transaction.expiration,
+          feeRate: feeRate,
+        })
       }
 
       const rawTransactionBytes = RawTransactionSerde.serialize(rawTransaction)
@@ -222,7 +214,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
     } catch (e) {
       if (e instanceof NotEnoughFundsError) {
         throw new ValidationError(
-          `Your balance changed while creating a transaction.`,
+          `Not enough unspent notes available to fund the transaction. Please wait for any pending transactions to be confirmed.`,
           400,
           ERROR_CODES.INSUFFICIENT_BALANCE,
         )

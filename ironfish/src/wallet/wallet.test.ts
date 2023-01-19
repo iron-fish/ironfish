@@ -744,8 +744,9 @@ describe('Accounts', () => {
         ],
         [],
         [],
-        null,
-        0,
+        {
+          expiration: 0,
+        },
       )
 
       await expect(rawTransaction).rejects.toThrow(
@@ -781,10 +782,10 @@ describe('Accounts', () => {
         ],
         [],
         [],
-        null,
-        0,
-        0,
-        200n,
+        {
+          expiration: 0,
+          feeRate: 200n,
+        },
       )
 
       expect(rawTransaction.receives.length).toBe(1)
@@ -1247,9 +1248,10 @@ describe('Accounts', () => {
           [],
           [{ asset, value: mintValue }],
           [],
-          BigInt(0),
-          0,
-          0,
+          {
+            fee: 0n,
+            expiration: 0,
+          },
         )
 
         const transaction = await node.wallet.postTransaction(raw, node.memPool)
