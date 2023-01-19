@@ -126,11 +126,11 @@ export default class Faucet extends IronfishCommand {
       return
     }
 
-    const baseFaucetTransactions = await api.getNextFaucetTransactions(
+    const unprocessedFaucetTransactions = await api.getNextFaucetTransactions(
       MAX_RECIPIENTS_PER_TRANSACTION,
     )
 
-    if (baseFaucetTransactions.length === 0) {
+    if (unprocessedFaucetTransactions.length === 0) {
       this.log('No faucet jobs, waiting 5s')
       await PromiseUtils.sleep(5000)
       return
@@ -139,7 +139,7 @@ export default class Faucet extends IronfishCommand {
     const invalidFaucetTransactions = []
     let faucetTransactions = []
 
-    for (const transaction of baseFaucetTransactions) {
+    for (const transaction of unprocessedFaucetTransactions) {
       if (isValidPublicAddress(transaction.public_key)) {
         faucetTransactions.push(transaction)
       } else {
