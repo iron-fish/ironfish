@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
 import { Meter, PromiseUtils, RpcConnectionError, RpcSocketClient, WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
@@ -126,12 +126,25 @@ export default class Faucet extends IronfishCommand {
       return
     }
 
-    let faucetTransactions = await api.getNextFaucetTransactions(MAX_RECIPIENTS_PER_TRANSACTION)
+    const unprocessedFaucetTransactions = await api.getNextFaucetTransactions(
+      MAX_RECIPIENTS_PER_TRANSACTION,
+    )
 
-    if (faucetTransactions.length === 0) {
+    if (unprocessedFaucetTransactions.length === 0) {
       this.log('No faucet jobs, waiting 5s')
       await PromiseUtils.sleep(5000)
       return
+    }
+
+    const invalidFaucetTransactions = []
+    let faucetTransactions = []
+
+    for (const transaction of unprocessedFaucetTransactions) {
+      if (isValidPublicAddress(transaction.public_key)) {
+        faucetTransactions.push(transaction)
+      } else {
+        invalidFaucetTransactions.push(transaction)
+      }
     }
 
     const response = await client.getAccountBalance({ account })
@@ -199,6 +212,13 @@ export default class Faucet extends IronfishCommand {
 
     for (const faucetTransaction of faucetTransactions) {
       await api.completeFaucetTransaction(faucetTransaction.id, tx.content.hash)
+    }
+
+    for (const invalidFaucetTransactions of faucetTransactions) {
+      await api.completeFaucetTransaction(
+        invalidFaucetTransactions.id,
+        '000000000000000000000000000000000000000000000000000000000000000',
+      )
     }
   }
 }
