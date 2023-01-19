@@ -67,7 +67,8 @@ export default class Ceremony extends IronfishCommand {
     client.onInitiateContribution.on(async ({ downloadLink }) => {
       CliUx.ux.action.stop()
 
-      const s3 = await S3Utils.getS3Client()
+      const credentials = await S3Utils.getCognitoIdentityCredentials()
+      const s3 = S3Utils.getS3Client(true, credentials)
 
       const tempDir = this.sdk.config.tempDir
       await fsAsync.mkdir(tempDir, { recursive: true })

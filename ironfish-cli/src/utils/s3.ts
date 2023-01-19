@@ -221,34 +221,31 @@ export async function getBucketObjects(s3: S3Client, bucket: string): Promise<st
   return keys
 }
 
-export async function getS3Client(
-  accessKeyId?: string,
-  secretAccessKey?: string,
-): Promise<S3Client> {
+export function getS3Client(
+  useDualstackEndpoint: boolean,
+  credentials?: {
+    accessKeyId: string
+    secretAccessKey: string
+  },
+): S3Client {
   const region = 'us-east-1'
 
-  if (accessKeyId && secretAccessKey) {
+  if (credentials) {
     return new S3Client({
       useAccelerateEndpoint: true,
-      useDualstackEndpoint: true,
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
+      useDualstackEndpoint,
+      credentials,
       region,
     })
   }
 
-  const credentials = await getCognitoIdentityCredentials()
-
   return new S3Client({
     useAccelerateEndpoint: true,
-    credentials,
     region,
   })
 }
 
-async function getCognitoIdentityCredentials(): Promise<Credentials> {
+export async function getCognitoIdentityCredentials(): Promise<Credentials> {
   const identityPoolId = 'us-east-1:3ebc542a-6ac4-4c5d-9558-1621eadd2382'
 
   const cognito = new CognitoIdentity({ region: 'us-east-1' })

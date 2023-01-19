@@ -1,9 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { S3Client } from '@aws-sdk/client-s3'
 import { ErrorUtils, Logger, SetTimeoutToken } from '@ironfish/sdk'
 import net from 'net'
 import { v4 as uuid } from 'uuid'
+import { S3Utils } from '../utils'
 import { CeremonyClientMessage, CeremonyServerMessage } from './schema'
 
 type CurrentContributor = {
@@ -64,21 +66,35 @@ export class CeremonyServer {
   readonly port: number
   readonly host: string
 
+  readonly s3Bucket: string
+  private s3Client: S3Client
+
   private queue: CeremonyServerClient[]
 
   private currentContributor: CurrentContributor | null = null
 
-  constructor(options: { logger: Logger; port: number; host: string }) {
+  constructor(options: {
+    logger: Logger
+    port: number
+    host: string
+    s3Bucket: string
+    s3Client: S3Client
+  }) {
     this.logger = options.logger
     this.queue = []
 
     this.host = options.host
     this.port = options.port
 
+    this.s3Bucket = options.s3Bucket
+    this.s3Client = options.s3Client
+
     this.server = net.createServer((s) => this.onConnection(s))
   }
 
-  start(): void {
+  async start(): Promise<void> {
+    const items = await S3Utils.getBucketObjects(this.s3Client, this.s3Bucket)
+
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
     this.server.listen(this.port, this.host)
     this.logger.info(`Server started at ${this.host}:${this.port}`)

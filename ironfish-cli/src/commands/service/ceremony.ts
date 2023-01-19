@@ -5,6 +5,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { CeremonyServer } from '../../trusted-setup/server'
+import { S3Utils } from '../../utils'
 
 export default class Ceremony extends IronfishCommand {
   static hidden = true
@@ -30,13 +31,17 @@ export default class Ceremony extends IronfishCommand {
     const DEFAULT_HOST = '0.0.0.0'
     const DEFAULT_PORT = 9040
 
+    const s3Client = await S3Utils.getS3Client(false)
+
     const server = new CeremonyServer({
       logger: this.logger,
       port: DEFAULT_PORT,
       host: DEFAULT_HOST,
+      s3Bucket: flags.bucket,
+      s3Client: s3Client,
     })
 
-    server.start()
+    await server.start()
 
     await server.waitForStop()
   }
