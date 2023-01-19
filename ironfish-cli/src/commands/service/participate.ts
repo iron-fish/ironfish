@@ -19,7 +19,7 @@ export default class Participate extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(Participate)
 
-    const DEFAULT_HOST = '0.0.0.0'
+    const DEFAULT_HOST = 'ec2-3-142-140-72.us-east-2.compute.amazonaws.com'
     const DEFAULT_PORT = 9040
 
     const client = new CeremonyClient({
