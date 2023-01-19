@@ -217,7 +217,7 @@ export default class Faucet extends IronfishCommand {
     for (const invalidFaucetTransactions of faucetTransactions) {
       await api.completeFaucetTransaction(
         invalidFaucetTransactions.id,
-        '000000000000000000000000000000000000000000000000000000000000000',
+        '0000000000000000000000000000000000000000000000000000000000000000',
       )
     }
   }
