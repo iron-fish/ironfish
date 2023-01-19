@@ -75,12 +75,12 @@ export class TransactionsCommand extends IronfishCommand {
           },
           amount: {
             header: 'Net Amount ($IRON)',
-            get: (row) => (row.amount > 0 ? CurrencyUtils.renderIron(row.amount) : ''),
+            get: (row) => (row.amount !== 0n ? CurrencyUtils.renderIron(row.amount) : ''),
             minWidth: 20,
           },
           feePaid: {
             header: 'Fee Paid ($IRON)',
-            get: (row) => (row.feePaid > 0 ? CurrencyUtils.renderIron(row.feePaid) : ''),
+            get: (row) => (row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : ''),
             minWidth: 20,
           },
           notesCount: {
