@@ -126,17 +126,26 @@ export default class Faucet extends IronfishCommand {
       return
     }
 
-    let faucetTransactions = await api.getNextFaucetTransactions(MAX_RECIPIENTS_PER_TRANSACTION)
+    const baseFaucetTransactions = await api.getNextFaucetTransactions(
+      MAX_RECIPIENTS_PER_TRANSACTION,
+    )
 
-    if (faucetTransactions.length === 0) {
+    if (baseFaucetTransactions.length === 0) {
       this.log('No faucet jobs, waiting 5s')
       await PromiseUtils.sleep(5000)
       return
     }
 
-    faucetTransactions = faucetTransactions.filter((transaction) => {
-      isValidPublicAddress(transaction.public_key)
-    })
+    const invalidFaucetTransactions = []
+    let faucetTransactions = []
+
+    for (const transaction of baseFaucetTransactions) {
+      if (isValidPublicAddress(transaction.public_key)) {
+        faucetTransactions.push(transaction)
+      } else {
+        invalidFaucetTransactions.push(transaction)
+      }
+    }
 
     const response = await client.getAccountBalance({ account })
 
@@ -203,6 +212,13 @@ export default class Faucet extends IronfishCommand {
 
     for (const faucetTransaction of faucetTransactions) {
       await api.completeFaucetTransaction(faucetTransaction.id, tx.content.hash)
+    }
+
+    for (const invalidFaucetTransactions of faucetTransactions) {
+      await api.completeFaucetTransaction(
+        invalidFaucetTransactions.id,
+        '000000000000000000000000000000000000000000000000000000000000000',
+      )
     }
   }
 }
