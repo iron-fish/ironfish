@@ -9,7 +9,7 @@ export type CeremonyServerMessage =
       queueLocation: number
     }
   | {
-      method: 'intiate-contribution'
+      method: 'initiate-contribution'
       downloadLink: string
     }
   | {

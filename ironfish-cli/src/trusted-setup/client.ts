@@ -1,14 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ErrorUtils, Logger } from '@ironfish/sdk'
+import { ErrorUtils, Event, Logger } from '@ironfish/sdk'
 import net from 'net'
+import { CeremonyClientMessage, CeremonyServerMessage } from './schema'
 
 export class CeremonyClient {
   readonly socket: net.Socket
   readonly host: string
   readonly port: number
   readonly logger: Logger
+
+  readonly onJoined = new Event<[{ queueLocation: number }]>()
+  readonly onInitiateContribution = new Event<[{ downloadLink: string }]>()
 
   constructor(options: { host: string; port: number; logger: Logger }) {
     this.host = options.host
@@ -41,7 +45,22 @@ export class CeremonyClient {
     this.socket.end()
   }
 
-  send(message: string): void {
+  join(): void {
+    const message: CeremonyClientMessage = { method: 'join' }
+    this.send(JSON.stringify(message))
+  }
+
+  contributionComplete(): void {
+    const message: CeremonyClientMessage = { method: 'contribution-complete' }
+    this.send(JSON.stringify(message))
+  }
+
+  uploadComplete(): void {
+    const message: CeremonyClientMessage = { method: 'upload-complete' }
+    this.send(JSON.stringify(message))
+  }
+
+  private send(message: string): void {
     this.socket.write(message + '\n')
   }
 
@@ -57,7 +76,21 @@ export class CeremonyClient {
 
   private onData(data: Buffer): void {
     const message = data.toString('utf-8')
-    this.logger.info(`Recieved message: ${message}`)
+    let parsedMessage
+    try {
+      parsedMessage = JSON.parse(message) as CeremonyServerMessage
+    } catch {
+      this.logger.debug(`Received unknown message: ${message}`)
+      return
+    }
+
+    if (parsedMessage.method === 'joined') {
+      this.onJoined.emit({ queueLocation: parsedMessage.queueLocation })
+    } else if (parsedMessage.method === 'initiate-contribution') {
+      this.onInitiateContribution.emit({ downloadLink: parsedMessage.downloadLink })
+    }
+
+    this.logger.info(`Received message: ${message}`)
   }
 }
 

@@ -6,11 +6,12 @@ import { S3Client } from '@aws-sdk/client-s3'
 import { Credentials } from '@aws-sdk/types/dist-types/credentials'
 import { contribute } from '@ironfish/rust-nodejs'
 import { Assert } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
+import { CliUx, Flags } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import path from 'path'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
+import { CeremonyClient } from '../trusted-setup/client'
 import { S3Utils } from '../utils'
 
 export default class Ceremony extends IronfishCommand {
@@ -19,6 +20,15 @@ export default class Ceremony extends IronfishCommand {
   static flags = {
     [VerboseFlagKey]: VerboseFlag,
     [DataDirFlagKey]: DataDirFlag,
+    host: Flags.string({
+      parse: (input: string) => Promise.resolve(input.trim()),
+      default: '127.0.0.1',
+      description: 'Host address of the ceremony coordination server',
+    }),
+    port: Flags.integer({
+      default: 9040,
+      description: 'Port of the ceremony coordination server',
+    }),
   }
 
   static args = [
@@ -30,46 +40,68 @@ export default class Ceremony extends IronfishCommand {
   ]
 
   async start(): Promise<void> {
-    const { args } = await this.parse(Ceremony)
+    const { flags, args } = await this.parse(Ceremony)
     const bucket = (args.bucket as string).trim()
+    const { host, port } = flags
 
-    const s3 = await this.getS3Client()
+    // Start the client
+    const client = new CeremonyClient({
+      host,
+      port,
+      logger: this.logger.withTag('ceremonyClient'),
+    })
+    await client.start()
+    client.join()
 
-    const tempDir = this.sdk.config.tempDir
-    await fsAsync.mkdir(tempDir, { recursive: true })
+    client.onJoined.on(({ queueLocation }) => {
+      this.log(`You're currently #${queueLocation} in line to contribute.`)
+    })
 
-    const inputPath = path.join(tempDir, 'params')
-    const outputPath = path.join(tempDir, 'newParams')
+    client.onInitiateContribution.on(async ({ downloadLink }) => {
+      const s3 = await this.getS3Client()
 
-    CliUx.ux.action.start(`Downloading params to ${inputPath}`)
+      const tempDir = this.sdk.config.tempDir
+      await fsAsync.mkdir(tempDir, { recursive: true })
 
-    await S3Utils.downloadFromBucket(s3, bucket, 'params', inputPath)
+      const inputPath = path.join(tempDir, 'params')
+      const outputPath = path.join(tempDir, 'newParams')
 
-    CliUx.ux.action.stop(`done`)
+      CliUx.ux.action.start(`Downloading params to ${inputPath}`)
 
-    CliUx.ux.action.start(`Generating contribution`)
+      await S3Utils.downloadFromBucket(s3, bucket, 'params', inputPath)
 
-    const hash = await contribute(inputPath, outputPath)
+      CliUx.ux.action.stop(`done`)
 
-    CliUx.ux.action.stop(`done`)
+      CliUx.ux.action.start(`Generating contribution`)
 
-    this.log(`Done! Your contribution has been written to \`${outputPath}\`.`)
-    this.log(`The contribution you made is bound to the following hash:\n${hash}`)
+      const hash = await contribute(inputPath, outputPath)
 
-    CliUx.ux.action.start(`Uploading params`)
+      CliUx.ux.action.stop(`done`)
 
-    await S3Utils.uploadToBucket(
-      s3,
-      outputPath,
-      'application/octet-stream',
-      bucket,
-      'newParams',
-      this.logger.withTag('s3'),
-    )
+      this.log(`Done! Your contribution has been written to \`${outputPath}\`.`)
+      this.log(`The contribution you made is bound to the following hash:\n${hash}`)
 
-    CliUx.ux.action.stop('done')
+      client.contributionComplete()
 
-    this.log('Contributions received. Thank you!')
+      CliUx.ux.action.start(`Uploading params`)
+
+      await S3Utils.uploadToBucket(
+        s3,
+        outputPath,
+        'application/octet-stream',
+        bucket,
+        'newParams',
+        this.logger.withTag('s3'),
+      )
+
+      CliUx.ux.action.stop('done')
+
+      client.uploadComplete()
+
+      this.log('Contributions received. Thank you!')
+
+      this.exit(0)
+    })
   }
 
   private async getS3Client(accessKeyId?: string, secretAccessKey?: string): Promise<S3Client> {
