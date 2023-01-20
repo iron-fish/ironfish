@@ -30,8 +30,8 @@ export type CreateTransactionRequest = {
     assetId: string
     value: string
   }[]
-  fee?: string
-  feeRate?: string
+  fee?: string | null
+  feeRate?: string | null
   expiration?: number
   expirationDelta?: number
 }
@@ -77,8 +77,8 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
           .defined(),
       )
       .optional(),
-    fee: yup.string().optional(),
-    feePriorityLevel: yup.string().optional(),
+    fee: yup.string().nullable().optional(),
+    feeRate: yup.string().nullable().optional(),
     expiration: yup.number().optional(),
     expirationDelta: yup.number().optional(),
   })
