@@ -62,7 +62,7 @@ jobs:
         working-directory: ./ironfish-rust-nodejs
 
       - name: Build
-        run: yarn build --zig ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' && '--zig-abi-suffix=2.17' || ''}} --target ${{ matrix.settings.target }}
+        run: yarn build ${{ matrix.settings.target != 'x86_64-pc-windows-msvc' && '--zig' || '' }} ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' && '--zig-abi-suffix=2.17' || ''}} --target ${{ matrix.settings.target }}
         working-directory: ./ironfish-rust-nodejs
 
       - name: Upload artifact
