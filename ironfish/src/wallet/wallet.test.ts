@@ -697,7 +697,7 @@ describe('Accounts', () => {
         id: account.id,
       })
 
-      await node.wallet.removeAccount(account.name)
+      await node.wallet.removeAccountByName(account.name)
 
       expect(node.wallet.getAccountByName(account.name)).toBeNull()
 
@@ -1647,6 +1647,71 @@ describe('Accounts', () => {
       await node.wallet.disconnectBlock(blockA1.header)
 
       await expect(accountA.hasTransaction(transaction.hash())).resolves.toEqual(false)
+    })
+  })
+
+  describe('resetAccount', () => {
+    it('should create a new account with the same keys but different id', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      await node.wallet.resetAccount(accountA)
+
+      const newAccountA = node.wallet.getAccountByName('a')
+
+      Assert.isNotNull(newAccountA)
+
+      expect(newAccountA.id).not.toEqual(accountA.id)
+
+      expect(newAccountA.spendingKey).toEqual(accountA.spendingKey)
+    })
+
+    it('should set the reset account balance to 0', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      await node.wallet.resetAccount(accountA)
+
+      const newAccountA = node.wallet.getAccountByName('a')
+
+      Assert.isNotNull(newAccountA)
+
+      expect(newAccountA.id).not.toEqual(accountA.id)
+
+      await expect(newAccountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 0n,
+        unconfirmed: 0n,
+      })
+    })
+
+    it('should set the reset account head to null', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      await node.wallet.resetAccount(accountA)
+
+      const newAccountA = node.wallet.getAccountByName('a')
+
+      Assert.isNotNull(newAccountA)
+
+      expect(newAccountA.id).not.toEqual(accountA.id)
+
+      await expect(newAccountA.getHead()).resolves.toBeNull()
+    })
+
+    it('should mark the account for deletion', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      await node.wallet.resetAccount(accountA)
+
+      await expect(node.wallet.walletDb.accountIdsToCleanup.has(accountA.id)).resolves.toBe(
+        true,
+      )
     })
   })
 })

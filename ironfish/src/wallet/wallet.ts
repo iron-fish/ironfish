@@ -290,8 +290,8 @@ export class Wallet {
   }
 
   private async resetAccounts(tx?: IDatabaseTransaction): Promise<void> {
-    for (const account of this.accounts.values()) {
-      await account.reset(tx)
+    for (const account of this.listAccounts()) {
+      await this.resetAccount(account, tx)
     }
   }
 
@@ -1192,13 +1192,39 @@ export class Wallet {
     return this.getAccountByName(name) !== null
   }
 
-  async removeAccount(name: string): Promise<void> {
+  async resetAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    const newAccount = new Account({
+      ...account,
+      id: uuid(),
+      walletDb: this.walletDb,
+    })
+
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
+      await this.walletDb.setAccount(newAccount, tx)
+      await newAccount.updateHead(null, tx)
+
+      if (account.id === this.defaultAccount) {
+        await this.walletDb.setDefaultAccount(newAccount.id, tx)
+        this.defaultAccount = newAccount.id
+      }
+
+      this.accounts.set(newAccount.id, newAccount)
+
+      await this.removeAccount(account, tx)
+    })
+  }
+
+  async removeAccountByName(name: string): Promise<void> {
     const account = this.getAccountByName(name)
     if (!account) {
       return
     }
 
-    await this.walletDb.db.transaction(async (tx) => {
+    await this.removeAccount(account)
+  }
+
+  async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (account.id === this.defaultAccount) {
         await this.walletDb.setDefaultAccount(null, tx)
         this.defaultAccount = null

@@ -77,17 +77,6 @@ export class Account {
     }
   }
 
-  async reset(tx?: IDatabaseTransaction): Promise<void> {
-    await this.walletDb.clearDecryptedNotes(this, tx)
-    await this.walletDb.clearNullifierToNoteHash(this, tx)
-    await this.walletDb.clearTransactions(this, tx)
-    await this.walletDb.clearSequenceToNoteHash(this, tx)
-    await this.walletDb.clearNonChainNoteHashes(this, tx)
-    await this.walletDb.clearPendingTransactionHashes(this, tx)
-    await this.walletDb.clearBalance(this, tx)
-    await this.updateHead(null, tx)
-  }
-
   async *getNotes(): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
     for await (const decryptedNote of this.walletDb.loadDecryptedNotes(this)) {
       yield decryptedNote
