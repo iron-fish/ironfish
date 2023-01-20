@@ -86,7 +86,7 @@ export class NoteEncrypted {
     }
   }
 
-  merkleHash(): NoteEncryptedHash {
+  hash(): NoteEncryptedHash {
     return this._noteCommitment
   }
 

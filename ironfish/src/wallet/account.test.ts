@@ -74,8 +74,8 @@ describe('Accounts', () => {
     )
 
     expect(noteHashesNotOnChain).toHaveLength(2)
-    expect(noteHashesNotOnChain).toContainEqual(note1Encrypted.merkleHash())
-    expect(noteHashesNotOnChain).toContainEqual(note2Encrypted.merkleHash())
+    expect(noteHashesNotOnChain).toContainEqual(note1Encrypted.hash())
+    expect(noteHashesNotOnChain).toContainEqual(note2Encrypted.hash())
     expect(notesInSequence).toHaveLength(0)
     expect(notesInSequence2).toHaveLength(0)
     expect(notesInSequence3).toHaveLength(0)
@@ -102,21 +102,21 @@ describe('Accounts', () => {
     expect(notesInSequence2).toHaveLength(1)
     expect(notesInSequence2).toContainEqual(
       expect.objectContaining({
-        hash: note1Encrypted.merkleHash(),
+        hash: note1Encrypted.hash(),
       }),
     )
 
     expect(notesInSequence3).toHaveLength(1)
     expect(notesInSequence3).toContainEqual(
       expect.objectContaining({
-        hash: note2Encrypted.merkleHash(),
+        hash: note2Encrypted.hash(),
       }),
     )
 
     // Check the notes are returned and in order
     expect(notesInSequence).toHaveLength(2)
-    expect(notesInSequence[0].hash).toEqual(note1Encrypted.merkleHash())
-    expect(notesInSequence[1].hash).toEqual(note2Encrypted.merkleHash())
+    expect(notesInSequence[0].hash).toEqual(note1Encrypted.hash())
+    expect(notesInSequence[1].hash).toEqual(note2Encrypted.hash())
 
     // And that no notes are returned in a range where there are none
     await expect(notesInSequenceAfter).resolves.toHaveLength(0)
@@ -271,13 +271,13 @@ describe('Accounts', () => {
 
       // transaction from A -> A, so all notes belong to A
       for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
+        const decryptedNote = await accountA.getDecryptedNote(note.hash())
 
         expect(decryptedNote).toBeDefined()
 
         const nonChainIndex = await accountA['walletDb'].nonChainNoteHashes.get([
           accountA.prefix,
-          note.merkleHash(),
+          note.hash(),
         ])
 
         expect(nonChainIndex).toBeDefined()
@@ -359,13 +359,13 @@ describe('Accounts', () => {
 
       // transaction from A -> A, so all notes belong to A
       for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
+        const decryptedNote = await accountA.getDecryptedNote(note.hash())
 
         expect(decryptedNote).toBeDefined()
 
         const nonChainIndex = await accountA['walletDb'].nonChainNoteHashes.get([
           accountA.prefix,
-          note.merkleHash(),
+          note.hash(),
         ])
 
         expect(nonChainIndex).toBeUndefined()
@@ -374,7 +374,7 @@ describe('Accounts', () => {
 
         const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
           accountA.prefix,
-          [3, note.merkleHash()],
+          [3, note.hash()],
         ])
 
         expect(sequenceIndex).toBeDefined()
@@ -462,7 +462,7 @@ describe('Accounts', () => {
 
       // transaction from A -> A, so all notes belong to A
       for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
+        const decryptedNote = await accountA.getDecryptedNote(note.hash())
 
         expect(decryptedNote).toBeDefined()
 
@@ -470,7 +470,7 @@ describe('Accounts', () => {
 
         const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
           accountA.prefix,
-          [3, note.merkleHash()],
+          [3, note.hash()],
         ])
 
         expect(sequenceIndex).toBeDefined()
@@ -480,7 +480,7 @@ describe('Accounts', () => {
       await accountA.disconnectTransaction(block3.header, transaction)
 
       for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
+        const decryptedNote = await accountA.getDecryptedNote(note.hash())
 
         expect(decryptedNote).toBeDefined()
 
@@ -488,14 +488,14 @@ describe('Accounts', () => {
 
         const nonChainIndex = await accountA['walletDb'].nonChainNoteHashes.get([
           accountA.prefix,
-          note.merkleHash(),
+          note.hash(),
         ])
 
         expect(nonChainIndex).toBeDefined()
 
         const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
           accountA.prefix,
-          [3, note.merkleHash()],
+          [3, note.hash()],
         ])
 
         expect(sequenceIndex).toBeUndefined()

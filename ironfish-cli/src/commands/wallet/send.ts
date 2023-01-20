@@ -129,7 +129,7 @@ export class Send extends IronfishCommand {
     }
 
     if (!to) {
-      to = await CliUx.ux.prompt('Enter the the public address of the recipient', {
+      to = await CliUx.ux.prompt('Enter the public address of the recipient', {
         required: true,
       })
 

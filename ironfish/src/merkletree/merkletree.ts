@@ -207,7 +207,7 @@ export class MerkleTree<
    */
   private async addLeafWithNodes(element: E, tx?: IDatabaseTransaction): Promise<void> {
     await this.db.withTransaction(tx, async (tx) => {
-      const merkleHash = this.hasher.merkleHash(element)
+      const merkleHash = this.hasher.hash(element)
       const indexOfNewLeaf = await this.getCount('Leaves', tx)
 
       let newParentIndex: NodeIndex
@@ -579,7 +579,7 @@ export class MerkleTree<
    */
   async contains(value: E, tx?: IDatabaseTransaction): Promise<boolean> {
     const currSize = await this.size(tx)
-    const elementIndex = await this.leavesIndex.get(this.hasher.merkleHash(value), tx)
+    const elementIndex = await this.leavesIndex.get(this.hasher.hash(value), tx)
 
     return elementIndex !== undefined && elementIndex < currSize
   }

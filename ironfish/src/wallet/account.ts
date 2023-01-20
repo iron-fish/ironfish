@@ -292,7 +292,7 @@ export class Account {
       }
 
       for (const note of transaction.notes) {
-        const noteHash = note.merkleHash()
+        const noteHash = note.hash()
 
         const decryptedNoteValue = await this.getDecryptedNote(noteHash, tx)
         if (decryptedNoteValue === undefined) {
@@ -439,7 +439,7 @@ export class Account {
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       for (const note of transaction.notes) {
-        await this.deleteDecryptedNote(note.merkleHash(), tx)
+        await this.deleteDecryptedNote(note.hash(), tx)
       }
 
       for (const spend of transaction.spends) {
@@ -657,7 +657,7 @@ export class Account {
     const notes = []
 
     for (const note of transaction.notes) {
-      const noteHash = note.merkleHash()
+      const noteHash = note.hash()
       const decryptedNote = await this.getDecryptedNote(noteHash)
 
       if (decryptedNote) {
