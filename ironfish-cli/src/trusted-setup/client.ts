@@ -16,7 +16,9 @@ export class CeremonyClient {
 
   readonly onJoined = new Event<[{ queueLocation: number }]>()
   readonly onInitiateUpload = new Event<[{ uploadLink: string }]>()
-  readonly onInitiateContribution = new Event<[{ downloadLink: string }]>()
+  readonly onInitiateContribution = new Event<
+    [{ bucket: string; fileName: string; contributionNumber: number }]
+  >()
 
   constructor(options: { host: string; port: number; logger: Logger }) {
     this.host = options.host
@@ -53,11 +55,6 @@ export class CeremonyClient {
 
   async waitForStop(): Promise<void> {
     await this.stopPromise
-  }
-
-  join(): void {
-    const message: CeremonyClientMessage = { method: 'join' }
-    this.send(JSON.stringify(message))
   }
 
   contributionComplete(): void {
@@ -97,9 +94,9 @@ export class CeremonyClient {
     if (parsedMessage.method === 'joined') {
       this.onJoined.emit({ queueLocation: parsedMessage.queueLocation })
     } else if (parsedMessage.method === 'initiate-upload') {
-      this.onInitiateUpload.emit({ uploadLink: parsedMessage.uploadLink })
+      // this.onInitiateContribution.emit({ uploadLink: parsedMessage.uploadLink })
     } else if (parsedMessage.method === 'initiate-contribution') {
-      this.onInitiateContribution.emit({ downloadLink: parsedMessage.downloadLink })
+      this.onInitiateContribution.emit(parsedMessage)
     } else {
       this.logger.info(`Received message: ${message}`)
     }

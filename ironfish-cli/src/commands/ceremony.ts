@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { contribute } from '@ironfish/rust-nodejs'
+import { ErrorUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
 import fsAsync from 'fs/promises'
@@ -28,17 +29,8 @@ export default class Ceremony extends IronfishCommand {
     }),
   }
 
-  static args = [
-    {
-      name: 'bucket',
-      required: true,
-      description: 'The S3 bucket to upload to',
-    },
-  ]
-
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(Ceremony)
-    const bucket = (args.bucket as string).trim()
+    const { flags } = await this.parse(Ceremony)
     const { host, port } = flags
 
     // Start the client
@@ -56,9 +48,6 @@ export default class Ceremony extends IronfishCommand {
       this.error('Unable to connect to contribution server.')
     }
 
-    // Join the queue
-    client.join()
-
     // Pre-make the directories to check for access
     const tempDir = this.sdk.config.tempDir
     await fsAsync.mkdir(tempDir, { recursive: true })
@@ -72,15 +61,17 @@ export default class Ceremony extends IronfishCommand {
       CliUx.ux.action.status = `Current position: ${queueLocation}`
     })
 
-    client.onInitiateContribution.on(async ({ downloadLink }) => {
+    client.onInitiateContribution.on(async ({ bucket, fileName, contributionNumber }) => {
       CliUx.ux.action.stop()
+
+      this.log(`Starting contribution. You are contributor #${contributionNumber}`)
 
       const credentials = await S3Utils.getCognitoIdentityCredentials()
       const s3 = S3Utils.getS3Client(true, credentials)
 
       CliUx.ux.action.start(`Downloading params to ${inputPath}`)
 
-      await S3Utils.downloadFromBucket(s3, bucket, 'params', inputPath)
+      await S3Utils.downloadFromBucket(s3, bucket, fileName, inputPath)
 
       CliUx.ux.action.stop(`done`)
 
@@ -117,7 +108,7 @@ export default class Ceremony extends IronfishCommand {
           },
         })
       } catch (e) {
-        this.log(e)
+        this.log(ErrorUtils.renderError(e))
       }
 
       CliUx.ux.action.stop()

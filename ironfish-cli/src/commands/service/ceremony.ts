@@ -31,7 +31,7 @@ export default class Ceremony extends IronfishCommand {
     const DEFAULT_HOST = '0.0.0.0'
     const DEFAULT_PORT = 9040
 
-    const s3Client = await S3Utils.getS3Client(false)
+    const s3Client = S3Utils.getS3Client(false)
 
     const server = new CeremonyServer({
       logger: this.logger,
@@ -39,6 +39,7 @@ export default class Ceremony extends IronfishCommand {
       host: DEFAULT_HOST,
       s3Bucket: flags.bucket,
       s3Client: s3Client,
+      tempDir: this.sdk.config.tempDir,
     })
 
     await server.start()

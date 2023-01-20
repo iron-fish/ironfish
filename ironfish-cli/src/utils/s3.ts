@@ -7,9 +7,13 @@ import { CognitoIdentity } from '@aws-sdk/client-cognito-identity'
 import {
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
+  CopyObjectCommand,
+  CopyObjectCommandInput,
+  CopyObjectCommandOutput,
   CreateMultipartUploadCommand,
   GetObjectCommand,
   ListObjectsCommand,
+  ListObjectsCommandInput,
   PutObjectCommand,
   S3Client,
   UploadPartCommand,
@@ -227,18 +231,41 @@ export async function getPresignedUploadUrl(
 }
 
 export async function getBucketObjects(s3: S3Client, bucket: string): Promise<string[]> {
-  const command = new ListObjectsCommand({ Bucket: bucket })
-  const response = await s3.send(command)
-
+  let truncated = true
+  let commandParams: ListObjectsCommandInput = { Bucket: bucket }
   const keys: string[] = []
 
-  for (const obj of response.Contents || []) {
-    if (obj.Key !== undefined) {
-      keys.push(obj.Key)
+  while (truncated) {
+    const command = new ListObjectsCommand(commandParams)
+    const response = await s3.send(command)
+
+    for (const obj of response.Contents || []) {
+      if (obj.Key !== undefined) {
+        keys.push(obj.Key)
+      }
     }
+
+    truncated = response.IsTruncated || false
+    commandParams = { Bucket: bucket, Marker: response.Contents?.slice(-1)[0]?.Key }
   }
 
   return keys
+}
+
+export async function copyBucketObject(
+  s3: S3Client,
+  bucket: string,
+  sourceFile: string,
+  destFile: string,
+): Promise<CopyObjectCommandOutput> {
+  const commandParams: CopyObjectCommandInput = {
+    Bucket: bucket,
+    CopySource: `/${bucket}/${sourceFile}`,
+    Key: destFile,
+  }
+
+  const command = new CopyObjectCommand(commandParams)
+  return s3.send(command)
 }
 
 export function getS3Client(

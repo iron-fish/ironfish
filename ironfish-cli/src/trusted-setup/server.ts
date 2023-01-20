@@ -3,14 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { S3Client } from '@aws-sdk/client-s3'
 import { ErrorUtils, Logger, SetTimeoutToken } from '@ironfish/sdk'
+import fsAsync from 'fs/promises'
 import net from 'net'
+import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { S3Utils } from '../utils'
 import { CeremonyClientMessage, CeremonyServerMessage } from './schema'
 
+const CONTRIBUTE_TIMEOUT_MS = 50000
+const UPLOAD_TIMEOUT_MS = 50000
+const PRESIGNED_EXPIRATION_SEC = 15
+
 type CurrentContributor = {
   state: 'STARTED' | 'UPLOADING'
   client: CeremonyServerClient
+  actionTimeout: SetTimeoutToken
 }
 
 class CeremonyServerClient {
@@ -18,30 +25,14 @@ class CeremonyServerClient {
   socket: net.Socket
   connected: boolean
 
-  static JOIN_TIMEOUT_MS = 5000
-
-  private joinTimeout: SetTimeoutToken | null = null
-
   constructor(options: { socket: net.Socket; id: string }) {
     this.id = options.id
     this.socket = options.socket
     this.connected = true
-
-    this.joinTimeout = setTimeout(() => {
-      this.close(new Error('Failed to send join message'))
-    }, CeremonyServerClient.JOIN_TIMEOUT_MS)
   }
 
-  joined(queueLocation: number) {
-    this.joinTimeout && clearTimeout(this.joinTimeout)
-    this.joinTimeout = null
-
-    const message: CeremonyServerMessage = { method: 'joined', queueLocation }
-    this.send(JSON.stringify(message))
-  }
-
-  private send(message: string): void {
-    this.socket.write(message + '\n')
+  send(message: CeremonyServerMessage): void {
+    this.socket.write(JSON.stringify(message) + '\n')
   }
 
   close(error?: Error): void {
@@ -50,8 +41,6 @@ class CeremonyServerClient {
     }
 
     this.connected = false
-    this.joinTimeout && clearTimeout(this.joinTimeout)
-    this.joinTimeout = null
     this.socket.destroy(error)
   }
 }
@@ -69,6 +58,8 @@ export class CeremonyServer {
   readonly s3Bucket: string
   private s3Client: S3Client
 
+  readonly tempDir: string
+
   private queue: CeremonyServerClient[]
 
   private currentContributor: CurrentContributor | null = null
@@ -79,6 +70,7 @@ export class CeremonyServer {
     host: string
     s3Bucket: string
     s3Client: S3Client
+    tempDir: string
   }) {
     this.logger = options.logger
     this.queue = []
@@ -86,14 +78,67 @@ export class CeremonyServer {
     this.host = options.host
     this.port = options.port
 
+    this.tempDir = options.tempDir
+
     this.s3Bucket = options.s3Bucket
     this.s3Client = options.s3Client
 
     this.server = net.createServer((s) => this.onConnection(s))
   }
 
+  async getLatestParamName(): Promise<string> {
+    const paramFileNames = await S3Utils.getBucketObjects(this.s3Client, this.s3Bucket)
+    const validParams = paramFileNames
+      .slice(0)
+      .filter((fileName) => /^params_\d{4}$/.exec(fileName)?.length === 1)
+    validParams.sort()
+    return validParams[validParams.length - 1]
+  }
+
+  closeClient(client: CeremonyServerClient, error?: Error): void {
+    if (this.currentContributor?.client.id === client.id) {
+      clearTimeout(this.currentContributor.actionTimeout)
+      this.currentContributor = null
+      void this.startNextContributor()
+    }
+
+    client.close(error)
+  }
+
+  /** initiate a contributor if one does not already exist */
+  async startNextContributor(): Promise<void> {
+    if (this.currentContributor !== null) {
+      return
+    }
+
+    const next = this.queue.shift()
+    if (!next) {
+      return
+    }
+
+    const contributionTimeout = setTimeout(() => {
+      this.closeClient(next, new Error('Failed to complete contribution in time'))
+    }, CONTRIBUTE_TIMEOUT_MS)
+
+    this.currentContributor = {
+      state: 'STARTED',
+      client: next,
+      actionTimeout: contributionTimeout,
+    }
+
+    const latestParamName = await this.getLatestParamName()
+    const latestParamNumber = parseInt(latestParamName.split('_')[1])
+    next.send({
+      method: 'initiate-contribution',
+      bucket: this.s3Bucket,
+      fileName: latestParamName,
+      contributionNumber: latestParamNumber,
+    })
+  }
+
   async start(): Promise<void> {
-    const items = await S3Utils.getBucketObjects(this.s3Client, this.s3Bucket)
+    // Pre-make the directories to check for access
+    await fsAsync.mkdir(this.tempDir, { recursive: true })
 
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
     this.server.listen(this.port, this.host)
@@ -114,22 +159,25 @@ export class CeremonyServer {
 
   private onConnection(socket: net.Socket): void {
     const client = new CeremonyServerClient({ socket, id: uuid() })
+    this.queue.push(client)
+    client.send({ method: 'joined', queueLocation: this.queue.length })
 
-    socket.on('data', (data: Buffer) => this.onData(client, data))
+    socket.on('data', (data: Buffer) => void this.onData(client, data))
     socket.on('close', () => this.onDisconnect(client))
     socket.on('error', (e) => this.onError(client, e))
 
-    this.logger.info(`Client ${client.id} connected`)
+    this.logger.info(`Client ${client.id} connected. ${this.queue.length} total`)
+    void this.startNextContributor()
   }
 
   private onDisconnect(client: CeremonyServerClient): void {
-    client.close()
+    this.closeClient(client)
     this.queue = this.queue.filter((c) => client.id !== c.id)
     this.logger.info(`Client ${client.id} disconnected (${this.queue.length} total)`)
   }
 
   private onError(client: CeremonyServerClient, e: Error): void {
-    client.close(e)
+    this.closeClient(client, e)
     this.queue = this.queue.filter((c) => client.id === c.id)
     this.logger.info(
       `Client ${client.id} disconnected with error '${ErrorUtils.renderError(e)}'. (${
@@ -138,7 +186,7 @@ export class CeremonyServer {
     )
   }
 
-  private onData(client: CeremonyServerClient, data: Buffer): void {
+  private async onData(client: CeremonyServerClient, data: Buffer): Promise<void> {
     const message = data.toString('utf-8')
 
     let parsedMessage
@@ -149,11 +197,61 @@ export class CeremonyServer {
       return
     }
 
-    if (parsedMessage.method === 'join') {
-      this.queue.push(client)
-      client.joined(this.queue.length)
+    this.logger.info(`Client ${client.id} sent message: ${parsedMessage.method}`)
 
-      this.logger.info(`Client ${client.id} joined the queue (${this.queue.length} total)`)
+    if (parsedMessage.method === 'contribution-complete') {
+      if (this.currentContributor?.client.id !== client.id) {
+        this.closeClient(
+          client,
+          new Error('contribution-complete message sent but not the current contributor'),
+        )
+        return
+      }
+
+      this.currentContributor.actionTimeout &&
+        clearTimeout(this.currentContributor.actionTimeout)
+
+      const presignedUrl = await S3Utils.getPresignedUploadUrl(
+        this.s3Client,
+        this.s3Bucket,
+        client.id,
+        PRESIGNED_EXPIRATION_SEC,
+      )
+
+      this.currentContributor.actionTimeout = setTimeout(() => {
+        this.closeClient(client, new Error('Failed to complete upload in time'))
+      }, UPLOAD_TIMEOUT_MS)
+
+      client.send({
+        method: 'initiate-upload',
+        uploadLink: presignedUrl,
+      })
+    } else if (parsedMessage.method === 'upload-complete') {
+      const latestParamName = await this.getLatestParamName()
+      const latestParamNumber = parseInt(latestParamName.split('_')[1])
+
+      const oldParamsDownloadPath = path.join(this.tempDir, 'params')
+      await S3Utils.downloadFromBucket(
+        this.s3Client,
+        this.s3Bucket,
+        latestParamName,
+        oldParamsDownloadPath,
+      )
+
+      const newParamsDownloadPath = path.join(this.tempDir, 'newParams')
+      await S3Utils.downloadFromBucket(
+        this.s3Client,
+        this.s3Bucket,
+        client.id,
+        newParamsDownloadPath,
+      )
+
+      // TODO: run verification and upload file instead of copy
+
+      const destFile = 'params_' + latestParamNumber.toString().padStart(4, '0')
+      await S3Utils.copyBucketObject(this.s3Client, this.s3Bucket, client.id, destFile)
+
+      client.send({ method: 'contribution-verified', downloadLink: '' })
     } else {
       this.logger.info(`Client ${client.id} sent message: ${message}`)
     }
