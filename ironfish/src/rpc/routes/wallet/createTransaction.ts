@@ -214,15 +214,19 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
     try {
       if (data.fee) {
         rawTransaction = await node.wallet.createTransaction(account, receives, mints, burns, {
-          fee: BigInt(data.fee),
+          fee: CurrencyUtils.decode(data.fee),
           expirationDelta:
             data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
           expiration: data.expiration,
         })
       } else {
-        const feeRate = BigInt(
-          data.feeRate ?? node.memPool.feeEstimator.estimateFeeRate('medium'),
-        )
+        let feeRate
+
+        if (data.feeRate) {
+          feeRate = CurrencyUtils.decode(data.feeRate)
+        } else {
+          feeRate = node.memPool.feeEstimator.estimateFeeRate('medium')
+        }
 
         rawTransaction = await node.wallet.createTransaction(account, receives, mints, burns, {
           expirationDelta:
