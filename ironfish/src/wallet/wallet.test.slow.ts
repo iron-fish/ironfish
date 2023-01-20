@@ -518,9 +518,10 @@ describe('Accounts', () => {
         ],
         [],
         [],
-        BigInt(1),
-        0,
-        0,
+        {
+          fee: 1n,
+          expiration: 0,
+        },
       )
 
       const transaction = await nodeA.wallet.postTransaction(raw, nodeA.memPool)
@@ -550,9 +551,10 @@ describe('Accounts', () => {
         ],
         [],
         [],
-        BigInt(1),
-        0,
-        0,
+        {
+          fee: 1n,
+          expiration: 0,
+        },
       ),
     ).resolves.toBeTruthy()
   })
@@ -664,9 +666,10 @@ describe('Accounts', () => {
           ],
           [],
           [],
-          BigInt(0),
-          0,
-          0,
+          {
+            fee: 1n,
+            expiration: 0,
+          },
         )
 
         const transaction = await nodeA.wallet.postTransaction(raw, nodeA.memPool)
@@ -777,9 +780,10 @@ describe('Accounts', () => {
           ],
           [],
           [],
-          BigInt(0),
-          0,
-          0,
+          {
+            fee: 0n,
+            expiration: 0,
+          },
         )
 
         const transaction = await nodeB.wallet.postTransaction(raw, nodeB.memPool)
