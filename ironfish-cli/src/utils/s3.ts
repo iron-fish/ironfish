@@ -10,9 +10,11 @@ import {
   CreateMultipartUploadCommand,
   GetObjectCommand,
   ListObjectsCommand,
+  PutObjectCommand,
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { Credentials } from '@aws-sdk/types/dist-types/credentials'
 import { Assert, ErrorUtils, Logger } from '@ironfish/sdk'
 import fsAsync from 'fs/promises'
@@ -204,6 +206,24 @@ export async function downloadFromBucket(
     ws.close()
     await fileHandle.close()
   }
+}
+
+export async function getPresignedUploadUrl(
+  s3: S3Client,
+  bucket: string,
+  keyName: string,
+  expiresInSeconds: number,
+): Promise<string> {
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: keyName,
+  })
+
+  const signedUrl = await getSignedUrl(s3, command, {
+    expiresIn: expiresInSeconds,
+  })
+
+  return signedUrl
 }
 
 export async function getBucketObjects(s3: S3Client, bucket: string): Promise<string[]> {

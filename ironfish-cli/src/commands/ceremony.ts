@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { contribute } from '@ironfish/rust-nodejs'
 import { CliUx, Flags } from '@oclif/core'
+import axios from 'axios'
 import fsAsync from 'fs/promises'
 import path from 'path'
 import { IronfishCommand } from '../command'
@@ -58,6 +59,13 @@ export default class Ceremony extends IronfishCommand {
     // Join the queue
     client.join()
 
+    // Pre-make the directories to check for access
+    const tempDir = this.sdk.config.tempDir
+    await fsAsync.mkdir(tempDir, { recursive: true })
+
+    const inputPath = path.join(tempDir, 'params')
+    const outputPath = path.join(tempDir, 'newParams')
+
     CliUx.ux.action.start('Waiting to contribute', undefined, { stdout: true })
 
     client.onJoined.on(({ queueLocation }) => {
@@ -69,12 +77,6 @@ export default class Ceremony extends IronfishCommand {
 
       const credentials = await S3Utils.getCognitoIdentityCredentials()
       const s3 = S3Utils.getS3Client(true, credentials)
-
-      const tempDir = this.sdk.config.tempDir
-      await fsAsync.mkdir(tempDir, { recursive: true })
-
-      const inputPath = path.join(tempDir, 'params')
-      const outputPath = path.join(tempDir, 'newParams')
 
       CliUx.ux.action.start(`Downloading params to ${inputPath}`)
 
@@ -92,24 +94,36 @@ export default class Ceremony extends IronfishCommand {
       this.log(`The contribution you made is bound to the following hash:\n${hash}`)
 
       client.contributionComplete()
+    })
+
+    client.onInitiateUpload.on(async ({ uploadLink }) => {
+      this.log('Received upload link.')
 
       CliUx.ux.action.start(`Uploading params`)
 
-      await S3Utils.uploadToBucket(
-        s3,
-        outputPath,
-        'application/octet-stream',
-        bucket,
-        'newParams',
-        this.logger.withTag('s3'),
-      )
+      const fileHandle = await fsAsync.open(outputPath, 'r')
+      const stat = await fsAsync.stat(outputPath)
 
-      CliUx.ux.action.stop('done')
+      try {
+        await axios.put(uploadLink, fileHandle.createReadStream(), {
+          maxBodyLength: 1000000000,
+          responseType: 'text',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Content-Length': stat.size,
+          },
+          onUploadProgress: (p: ProgressEvent) => {
+            this.log('loaded', p.loaded, 'total', p.total)
+          },
+        })
+      } catch (e) {
+        this.log(e)
+      }
 
+      CliUx.ux.action.stop()
       client.uploadComplete()
 
       this.log('Contributions received. Thank you!')
-
       client.stop()
       this.exit(0)
     })

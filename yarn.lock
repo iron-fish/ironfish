@@ -1120,6 +1120,20 @@
     "@aws-sdk/types" "3.215.0"
     tslib "^2.3.1"
 
+"@aws-sdk/s3-request-presigner@3.127.0":
+  version "3.127.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/s3-request-presigner/-/s3-request-presigner-3.127.0.tgz#fdea0bce2aa61c42f1e7df7418c4a3dd3c8ea74f"
+  integrity sha512-OFzuVMVHjLFH66I8a6KxpfWRec/ntQPIHTATpAXM3N0F2bVHnfXs/5H+swfBABMZQOZzmNOLlK4UNkQ/pusb7g==
+  dependencies:
+    "@aws-sdk/middleware-sdk-s3" "3.127.0"
+    "@aws-sdk/protocol-http" "3.127.0"
+    "@aws-sdk/signature-v4-multi-region" "3.127.0"
+    "@aws-sdk/smithy-client" "3.127.0"
+    "@aws-sdk/types" "3.127.0"
+    "@aws-sdk/util-create-request" "3.127.0"
+    "@aws-sdk/util-format-url" "3.127.0"
+    tslib "^2.3.1"
+
 "@aws-sdk/service-error-classification@3.127.0":
   version "3.127.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/service-error-classification/-/service-error-classification-3.127.0.tgz#64b69215b2525e3b6806856187ef54b00c0f85d1"
@@ -1325,6 +1339,16 @@
   dependencies:
     tslib "^2.3.1"
 
+"@aws-sdk/util-create-request@3.127.0":
+  version "3.127.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/util-create-request/-/util-create-request-3.127.0.tgz#6edd6510034b2a850386402d42eb2ca214ca8772"
+  integrity sha512-jDSOgmgBiQp+LDl0pbaLw3m8iAvGIX5cY2x0zXfPa3rV1ChAaF+d70A5/KvR7seq0JPCXJBP+zRa11GbaCgQqg==
+  dependencies:
+    "@aws-sdk/middleware-stack" "3.127.0"
+    "@aws-sdk/smithy-client" "3.127.0"
+    "@aws-sdk/types" "3.127.0"
+    tslib "^2.3.1"
+
 "@aws-sdk/util-defaults-mode-browser@3.127.0":
   version "3.127.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/util-defaults-mode-browser/-/util-defaults-mode-browser-3.127.0.tgz#4fa9fe802e4296c0ab2e63a6a3c7c787ac5286df"
@@ -1375,6 +1399,15 @@
   integrity sha512-lhdFF5YRN+TO7SKiI7KhVejClmo7/z2dkosgGqWdldIlhV9vt/ro49eQgBK4NY/FctRnxkQtMfgZ/R3sVgqAtg==
   dependencies:
     "@aws-sdk/types" "3.215.0"
+    tslib "^2.3.1"
+
+"@aws-sdk/util-format-url@3.127.0":
+  version "3.127.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/util-format-url/-/util-format-url-3.127.0.tgz#45e4a361d6d34b6368c8df1ae948886f2043d728"
+  integrity sha512-leZeq6vxm6MSpu9Ruc5WKr7pzJ8kVXNJVerB4ixEk5KtFPPrJDw7MoEtnbnhVzhraLUnqHqYvrb6OlmkkISR+Q==
+  dependencies:
+    "@aws-sdk/querystring-builder" "3.127.0"
+    "@aws-sdk/types" "3.127.0"
     tslib "^2.3.1"
 
 "@aws-sdk/util-hex-encoding@3.109.0":

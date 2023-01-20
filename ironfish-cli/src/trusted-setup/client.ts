@@ -15,6 +15,7 @@ export class CeremonyClient {
   private stopResolve: (() => void) | null = null
 
   readonly onJoined = new Event<[{ queueLocation: number }]>()
+  readonly onInitiateUpload = new Event<[{ uploadLink: string }]>()
   readonly onInitiateContribution = new Event<[{ downloadLink: string }]>()
 
   constructor(options: { host: string; port: number; logger: Logger }) {
@@ -95,6 +96,8 @@ export class CeremonyClient {
 
     if (parsedMessage.method === 'joined') {
       this.onJoined.emit({ queueLocation: parsedMessage.queueLocation })
+    } else if (parsedMessage.method === 'initiate-upload') {
+      this.onInitiateUpload.emit({ uploadLink: parsedMessage.uploadLink })
     } else if (parsedMessage.method === 'initiate-contribution') {
       this.onInitiateContribution.emit({ downloadLink: parsedMessage.downloadLink })
     } else {

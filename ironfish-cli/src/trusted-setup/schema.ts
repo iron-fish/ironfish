@@ -13,6 +13,10 @@ export type CeremonyServerMessage =
       downloadLink: string
     }
   | {
+      method: 'initiate-upload'
+      uploadLink: string
+    }
+  | {
       method: 'contribution-verified'
       downloadLink: string
     }
