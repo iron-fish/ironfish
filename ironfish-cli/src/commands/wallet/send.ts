@@ -165,7 +165,7 @@ export class Send extends IronfishCommand {
     let rawTransactionResponse: string
     if (fee == null && feeRate == null) {
       const feeRates = await client.estimateFeeRates()
-      const feeRateOptions = []
+      const feeRateOptions: { value: number; name: string }[] = []
 
       const createTransactionRequest: CreateTransactionRequest = {
         sender: from,
@@ -180,55 +180,62 @@ export class Send extends IronfishCommand {
         expiration: expiration,
       }
 
-      const allPromises = [
-        client.createTransaction({
-          ...createTransactionRequest,
-          feeRate: feeRates.content.low,
-        }),
-        client.createTransaction({
-          ...createTransactionRequest,
-          feeRate: feeRates.content.medium,
-        }),
-        client.createTransaction({
-          ...createTransactionRequest,
-          feeRate: feeRates.content.high,
-        }),
-      ]
-
-      const createResponses = await Promise.all(allPromises)
-
+      const allPromises = []
       if (feeRates.content.low) {
-        const rawTransactionBytes = Buffer.from(createResponses[0].content.transaction, 'hex')
-        const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-
-        feeRateOptions.push({
-          value: 0,
-          name: `Low: ${rawTransaction.fee} IRON`,
-        })
+        allPromises.push(
+          client.createTransaction({
+            ...createTransactionRequest,
+            feeRate: feeRates.content.low,
+          }),
+        )
       }
 
       if (feeRates.content.medium !== feeRates.content.low) {
-        const rawTransactionBytes = Buffer.from(createResponses[1].content.transaction, 'hex')
-        const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-
-        feeRateOptions.push({
-          value: 1,
-          name: `Medium: ${rawTransaction.fee} IRON`,
-        })
+        allPromises.push(
+          client.createTransaction({
+            ...createTransactionRequest,
+            feeRate: feeRates.content.medium,
+          }),
+        )
       }
 
       if (
         feeRates.content.high !== feeRates.content.low &&
         feeRates.content.high !== feeRates.content.medium
       ) {
-        const rawTransactionBytes = Buffer.from(createResponses[2].content.transaction, 'hex')
+        allPromises.push(
+          client.createTransaction({
+            ...createTransactionRequest,
+            feeRate: feeRates.content.high,
+          }),
+        )
+      }
+
+      const createResponses = await Promise.all(allPromises)
+      createResponses.forEach((createResponse, index) => {
+        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
         const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
+        let name
+        switch (index) {
+          case 0: {
+            name = 'Low'
+            break
+          }
+          case 1: {
+            name = 'Medium'
+            break
+          }
+          default: {
+            name = 'High'
+            break
+          }
+        }
         feeRateOptions.push({
-          value: 2,
-          name: `High: ${rawTransaction.fee} IRON`,
+          value: index,
+          name: `${name}: ${CurrencyUtils.renderIron(rawTransaction.fee)} IRON`,
         })
-      }
+      })
 
       const input: { selection: number } = await inquirer.prompt<{ selection: number }>([
         {
