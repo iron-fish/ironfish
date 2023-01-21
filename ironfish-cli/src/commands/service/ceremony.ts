@@ -31,7 +31,7 @@ export default class Ceremony extends IronfishCommand {
     const DEFAULT_HOST = '0.0.0.0'
     const DEFAULT_PORT = 9040
 
-    const s3Client = S3Utils.getS3Client(false)
+    const s3Client = S3Utils.getS3Client(true)
 
     const server = new CeremonyServer({
       logger: this.logger,

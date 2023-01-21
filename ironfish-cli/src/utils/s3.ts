@@ -288,6 +288,7 @@ export function getS3Client(
 
   return new S3Client({
     useAccelerateEndpoint: true,
+    useDualstackEndpoint,
     region,
   })
 }
