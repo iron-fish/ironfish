@@ -21,7 +21,7 @@ export default class Ceremony extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'S3 bucket to download and upload params to',
-      default: 'ironfish-snapshots',
+      default: 'ironfish-contributions',
     }),
   }
 
