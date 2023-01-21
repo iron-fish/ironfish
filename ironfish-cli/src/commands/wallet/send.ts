@@ -232,7 +232,7 @@ export class Send extends IronfishCommand {
 
       const input: { selection: number } = await inquirer.prompt<{ selection: number }>([
         {
-          name: 'fee',
+          name: 'selection',
           message: `Select the fee you wish to use for this transaction`,
           type: 'list',
           choices: feeRateOptions,
