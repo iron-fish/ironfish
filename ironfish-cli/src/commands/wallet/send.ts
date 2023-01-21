@@ -44,7 +44,7 @@ export class Send extends IronfishCommand {
     }),
     feeRate: Flags.string({
       char: 'r',
-      description: 'The fee rate amount in ORE/Kilobyte',
+      description: 'The fee rate amount in IRON/Kilobyte',
     }),
     memo: Flags.string({
       char: 'm',
@@ -58,12 +58,6 @@ export class Send extends IronfishCommand {
       char: 'e',
       description:
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
-    }),
-    priority: Flags.string({
-      default: 'medium',
-      char: 'p',
-      description: 'The priority level for transaction fee estimation.',
-      options: ['low', 'medium', 'high'],
     }),
     assetId: Flags.string({
       char: 'i',
@@ -126,11 +120,11 @@ export class Send extends IronfishCommand {
         this.error(`The minimum fee is ${CurrencyUtils.renderOre(1n, true)}`)
       }
 
-      fee = flags.fee
+      fee = CurrencyUtils.encode(CurrencyUtils.decodeIron(flags.fee))
     }
 
     if (flags.feeRate) {
-      feeRate = flags.feeRate
+      feeRate = CurrencyUtils.encode(CurrencyUtils.decodeIron(flags.feeRate))
     }
 
     if (!from) {
@@ -163,14 +157,90 @@ export class Send extends IronfishCommand {
     }
 
     if (fee == null && feeRate == null) {
-      const feeRateOptions = await client.estimateFeeRates()
+      const feeRates = await client.estimateFeeRates()
+      const feeRateOptions = []
+
+      if (feeRates.content.low) {
+        const createResponse = await client.createTransaction({
+          sender: from,
+          receives: [
+            {
+              publicAddress: to,
+              amount: CurrencyUtils.encode(amount),
+              memo,
+              assetId,
+            },
+          ],
+          feeRate: feeRates.content.low,
+          expiration: expiration,
+        })
+
+        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
+        const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+        feeRateOptions.push({
+          value: feeRates.content.low,
+          name: `Low: ${rawTransaction.fee} IRON`,
+        })
+      }
+
+      if (feeRates.content.medium !== feeRates.content.low) {
+        const createResponse = await client.createTransaction({
+          sender: from,
+          receives: [
+            {
+              publicAddress: to,
+              amount: CurrencyUtils.encode(amount),
+              memo,
+              assetId,
+            },
+          ],
+          feeRate: feeRates.content.medium,
+          expiration: expiration,
+        })
+
+        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
+        const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+        feeRateOptions.push({
+          value: feeRates.content.medium,
+          name: `Medium: ${rawTransaction.fee} IRON`,
+        })
+      }
+
+      if (
+        feeRates.content.high !== feeRates.content.low &&
+        feeRates.content.high !== feeRates.content.medium
+      ) {
+        const createResponse = await client.createTransaction({
+          sender: from,
+          receives: [
+            {
+              publicAddress: to,
+              amount: CurrencyUtils.encode(amount),
+              memo,
+              assetId,
+            },
+          ],
+          feeRate: feeRates.content.high,
+          expiration: expiration,
+        })
+
+        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
+        const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+        feeRateOptions.push({
+          value: feeRates.content.high,
+          name: `High: ${rawTransaction.fee} IRON`,
+        })
+      }
 
       const input: { feeRate: string } = await inquirer.prompt<{ feeRate: string }>([
         {
           name: 'feeRate',
-          message: `Select the fee rate you wish to use`,
+          message: `Select the fee you wish to use for this transaction`,
           type: 'list',
-          choices: feeRateOptions.content,
+          choices: feeRateOptions,
         },
       ])
 

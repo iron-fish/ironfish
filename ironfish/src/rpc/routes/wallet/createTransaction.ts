@@ -224,6 +224,10 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
 
         if (data.feeRate) {
           feeRate = CurrencyUtils.decode(data.feeRate)
+
+          if (feeRate < 1n) {
+            throw new ValidationError(`Invalid transaction fee rate, ${data.feeRate}`)
+          }
         } else {
           feeRate = node.memPool.feeEstimator.estimateFeeRate('medium')
         }
