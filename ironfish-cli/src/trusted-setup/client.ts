@@ -58,17 +58,15 @@ export class CeremonyClient {
   }
 
   contributionComplete(): void {
-    const message: CeremonyClientMessage = { method: 'contribution-complete' }
-    this.send(JSON.stringify(message))
+    this.send({ method: 'contribution-complete' })
   }
 
   uploadComplete(): void {
-    const message: CeremonyClientMessage = { method: 'upload-complete' }
-    this.send(JSON.stringify(message))
+    this.send({ method: 'upload-complete' })
   }
 
-  private send(message: string): void {
-    this.socket.write(message + '\n')
+  private send(message: CeremonyClientMessage): void {
+    this.socket.write(JSON.stringify(message) + '\n')
   }
 
   private onDisconnect = (): void => {
