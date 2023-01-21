@@ -23,7 +23,7 @@ export class BalancesCommand extends IronfishCommand {
     }),
     confirmations: Flags.integer({
       required: false,
-      description: 'Minimum number of blocks confirmations for a note',
+      description: 'Minimum number of blocks confirmations for a transaction',
     }),
   }
 
