@@ -114,9 +114,22 @@ export default class Ceremony extends IronfishCommand {
       CliUx.ux.action.stop()
       client.uploadComplete()
 
-      this.log('Contributions received. Thank you!')
-      client.stop()
-      this.exit(0)
+      CliUx.ux.action.start('Contribution uploaded. Waiting for server to verify')
+    })
+
+    client.onContributionVerified.on(({ hash }) => {
+      CliUx.ux.action.stop()
+      this.log(`Server verified contribution with hash:\n${hash}`)
+
+      if (hash === localHash) {
+        this.log('Thank you for your contribution!')
+        client.stop()
+        this.exit(0)
+      } else {
+        this.error(
+          'Hashes do not match. Please contact the Iron Fish team with this error message.',
+        )
+      }
     })
 
     await client.waitForStop()

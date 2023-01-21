@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { S3Client } from '@aws-sdk/client-s3'
+import { verifyTransform } from '@ironfish/rust-nodejs'
 import { ErrorUtils, Logger, SetTimeoutToken } from '@ironfish/sdk'
 import fsAsync from 'fs/promises'
 import net from 'net'
@@ -246,12 +247,13 @@ export class CeremonyServer {
         newParamsDownloadPath,
       )
 
-      // TODO: run verification and upload file instead of copy
+      const hash = await verifyTransform(oldParamsDownloadPath, newParamsDownloadPath)
 
       const destFile = 'params_' + latestParamNumber.toString().padStart(4, '0')
       await S3Utils.copyBucketObject(this.s3Client, this.s3Bucket, client.id, destFile)
 
-      client.send({ method: 'contribution-verified', downloadLink: '' })
+      // TODO: delete temporary local files and S3 files
+      client.send({ method: 'contribution-verified', hash })
     } else {
       this.logger.info(`Client ${client.id} sent message: ${message}`)
     }

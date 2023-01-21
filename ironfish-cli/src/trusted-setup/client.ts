@@ -19,6 +19,7 @@ export class CeremonyClient {
   readonly onInitiateContribution = new Event<
     [{ bucket: string; fileName: string; contributionNumber: number }]
   >()
+  readonly onContributionVerified = new Event<[{ hash: string }]>()
 
   constructor(options: { host: string; port: number; logger: Logger }) {
     this.host = options.host
@@ -95,6 +96,8 @@ export class CeremonyClient {
       // this.onInitiateContribution.emit({ uploadLink: parsedMessage.uploadLink })
     } else if (parsedMessage.method === 'initiate-contribution') {
       this.onInitiateContribution.emit(parsedMessage)
+    } else if (parsedMessage.method === 'contribution-verified') {
+      this.onContributionVerified.emit(parsedMessage)
     } else {
       this.logger.info(`Received message: ${message}`)
     }

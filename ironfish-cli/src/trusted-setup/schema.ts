@@ -19,7 +19,7 @@ export type CeremonyServerMessage =
     }
   | {
       method: 'contribution-verified'
-      downloadLink: string
+      hash: string
     }
 
 export type CeremonyClientMessage =
