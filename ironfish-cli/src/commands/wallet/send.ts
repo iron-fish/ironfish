@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
+  CreateTransactionRequest,
   CurrencyUtils,
   isValidPublicAddress,
   RawTransactionSerde,
@@ -160,22 +161,38 @@ export class Send extends IronfishCommand {
       const feeRates = await client.estimateFeeRates()
       const feeRateOptions = []
 
-      if (feeRates.content.low) {
-        const createResponse = await client.createTransaction({
-          sender: from,
-          receives: [
-            {
-              publicAddress: to,
-              amount: CurrencyUtils.encode(amount),
-              memo,
-              assetId,
-            },
-          ],
-          feeRate: feeRates.content.low,
-          expiration: expiration,
-        })
+      const createTransactionRequest: CreateTransactionRequest = {
+        sender: from,
+        receives: [
+          {
+            publicAddress: to,
+            amount: CurrencyUtils.encode(amount),
+            memo,
+            assetId,
+          },
+        ],
+        expiration: expiration,
+      }
 
-        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
+      const allPromises = [
+        client.createTransaction({
+          ...createTransactionRequest,
+          feeRate: feeRates.content.low,
+        }),
+        client.createTransaction({
+          ...createTransactionRequest,
+          feeRate: feeRates.content.medium,
+        }),
+        client.createTransaction({
+          ...createTransactionRequest,
+          feeRate: feeRates.content.high,
+        }),
+      ]
+
+      const createResponses = await Promise.all(allPromises)
+
+      if (feeRates.content.low) {
+        const rawTransactionBytes = Buffer.from(createResponses[0].content.transaction, 'hex')
         const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
         feeRateOptions.push({
@@ -185,21 +202,7 @@ export class Send extends IronfishCommand {
       }
 
       if (feeRates.content.medium !== feeRates.content.low) {
-        const createResponse = await client.createTransaction({
-          sender: from,
-          receives: [
-            {
-              publicAddress: to,
-              amount: CurrencyUtils.encode(amount),
-              memo,
-              assetId,
-            },
-          ],
-          feeRate: feeRates.content.medium,
-          expiration: expiration,
-        })
-
-        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
+        const rawTransactionBytes = Buffer.from(createResponses[1].content.transaction, 'hex')
         const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
         feeRateOptions.push({
@@ -212,21 +215,7 @@ export class Send extends IronfishCommand {
         feeRates.content.high !== feeRates.content.low &&
         feeRates.content.high !== feeRates.content.medium
       ) {
-        const createResponse = await client.createTransaction({
-          sender: from,
-          receives: [
-            {
-              publicAddress: to,
-              amount: CurrencyUtils.encode(amount),
-              memo,
-              assetId,
-            },
-          ],
-          feeRate: feeRates.content.high,
-          expiration: expiration,
-        })
-
-        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
+        const rawTransactionBytes = Buffer.from(createResponses[2].content.transaction, 'hex')
         const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
         feeRateOptions.push({
