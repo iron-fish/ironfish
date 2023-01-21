@@ -157,6 +157,12 @@ export class Send extends IronfishCommand {
       this.exit(1)
     }
 
+    if (expiration !== undefined && expiration < 0) {
+      this.log('Expiration sequence must be non-negative')
+      this.exit(1)
+    }
+
+    let rawTransactionResponse: string
     if (fee == null && feeRate == null) {
       const feeRates = await client.estimateFeeRates()
       const feeRateOptions = []
@@ -196,7 +202,7 @@ export class Send extends IronfishCommand {
         const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
         feeRateOptions.push({
-          value: feeRates.content.low,
+          value: 0,
           name: `Low: ${rawTransaction.fee} IRON`,
         })
       }
@@ -206,7 +212,7 @@ export class Send extends IronfishCommand {
         const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
         feeRateOptions.push({
-          value: feeRates.content.medium,
+          value: 1,
           name: `Medium: ${rawTransaction.fee} IRON`,
         })
       }
@@ -219,44 +225,40 @@ export class Send extends IronfishCommand {
         const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
         feeRateOptions.push({
-          value: feeRates.content.high,
+          value: 2,
           name: `High: ${rawTransaction.fee} IRON`,
         })
       }
 
-      const input: { feeRate: string } = await inquirer.prompt<{ feeRate: string }>([
+      const input: { selection: number } = await inquirer.prompt<{ selection: number }>([
         {
-          name: 'feeRate',
+          name: 'fee',
           message: `Select the fee you wish to use for this transaction`,
           type: 'list',
           choices: feeRateOptions,
         },
       ])
 
-      feeRate = input.feeRate
+      rawTransactionResponse = createResponses[input.selection].content.transaction
+    } else {
+      const createResponse = await client.createTransaction({
+        sender: from,
+        receives: [
+          {
+            publicAddress: to,
+            amount: CurrencyUtils.encode(amount),
+            memo,
+            assetId,
+          },
+        ],
+        fee: fee,
+        feeRate: feeRate,
+        expiration: expiration,
+      })
+      rawTransactionResponse = createResponse.content.transaction
     }
 
-    if (expiration !== undefined && expiration < 0) {
-      this.log('Expiration sequence must be non-negative')
-      this.exit(1)
-    }
-
-    const createResponse = await client.createTransaction({
-      sender: from,
-      receives: [
-        {
-          publicAddress: to,
-          amount: CurrencyUtils.encode(amount),
-          memo,
-          assetId,
-        },
-      ],
-      fee: fee,
-      feeRate: feeRate,
-      expiration: expiration,
-    })
-
-    const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
+    const rawTransactionBytes = Buffer.from(rawTransactionResponse, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
     if (!flags.confirm) {
@@ -308,7 +310,7 @@ ${CurrencyUtils.renderIron(
 
     try {
       const result = await client.postTransaction({
-        transaction: createResponse.content.transaction,
+        transaction: rawTransactionResponse,
       })
 
       stopProgressBar()
