@@ -241,28 +241,37 @@ export class CeremonyServer {
         clearTimeout(this.currentContributor.actionTimeout)
 
       const latestParamName = await this.getLatestParamName()
-      const latestParamNumber = parseInt(latestParamName.split('_')[1])
+      const nextParamNumber = parseInt(latestParamName.split('_')[1]) + 1
 
-      const oldParamsDownloadPath = path.join(this.tempDir, 'params')
-      await S3Utils.downloadFromBucket(
+      const oldParamsDownloadPath = path.join(this.tempDir, latestParamName)
+      const oldParamsPromise = S3Utils.downloadFromBucket(
         this.s3Client,
         this.s3Bucket,
         latestParamName,
         oldParamsDownloadPath,
       )
 
-      const newParamsDownloadPath = path.join(this.tempDir, 'newParams')
-      await S3Utils.downloadFromBucket(
+      const newParamsDownloadPath = path.join(this.tempDir, client.id)
+      const newParamsPromise = S3Utils.downloadFromBucket(
         this.s3Client,
         this.s3Bucket,
         client.id,
         newParamsDownloadPath,
       )
 
+      await Promise.all([oldParamsPromise, newParamsPromise])
+
       const hash = await verifyTransform(oldParamsDownloadPath, newParamsDownloadPath)
 
-      const destFile = 'params_' + latestParamNumber.toString().padStart(4, '0')
-      await S3Utils.copyBucketObject(this.s3Client, this.s3Bucket, client.id, destFile)
+      const destFile = 'params_' + nextParamNumber.toString().padStart(4, '0')
+      await S3Utils.uploadToBucket(
+        this.s3Client,
+        newParamsDownloadPath,
+        'application/octet-stream',
+        this.s3Bucket,
+        destFile,
+        this.logger,
+      )
 
       // TODO: delete temporary local files and S3 files
       client.send({ method: 'contribution-verified', hash })
