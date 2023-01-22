@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ErrorUtils, Event, Logger } from '@ironfish/sdk'
+import { Assert, ErrorUtils, Event, Logger } from '@ironfish/sdk'
 import net from 'net'
 import { CeremonyClientMessage, CeremonyServerMessage } from './schema'
 
@@ -11,8 +11,8 @@ export class CeremonyClient {
   readonly port: number
   readonly logger: Logger
 
-  private stopPromise: Promise<void> | null = null
-  private stopResolve: (() => void) | null = null
+  private stopPromise: Promise<{ success: boolean }> | null = null
+  private stopResolve: ((params: { success: boolean }) => void) | null = null
 
   readonly onJoined = new Event<[{ queueLocation: number }]>()
   readonly onInitiateUpload = new Event<[{ uploadLink: string }]>()
@@ -45,15 +45,16 @@ export class CeremonyClient {
     return connected
   }
 
-  stop(): void {
+  stop(success: boolean): void {
     this.socket.end()
-    this.stopResolve && this.stopResolve()
+    this.stopResolve && this.stopResolve({ success })
     this.stopPromise = null
     this.stopResolve = null
   }
 
-  async waitForStop(): Promise<void> {
-    await this.stopPromise
+  waitForStop(): Promise<{ success: boolean }> {
+    Assert.isNotNull(this.stopPromise, 'Cannot wait for stop before starting')
+    return this.stopPromise
   }
 
   contributionComplete(): void {
@@ -69,9 +70,9 @@ export class CeremonyClient {
   }
 
   private onDisconnect = (): void => {
+    this.stop(false)
     this.socket.off('error', this.onError)
     this.socket.off('close', this.onDisconnect)
-    // TODO: Reconnect
   }
 
   private onError = (error: unknown): void => {

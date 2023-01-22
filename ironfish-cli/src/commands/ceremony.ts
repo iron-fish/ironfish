@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { contribute } from '@ironfish/rust-nodejs'
-import { ErrorUtils } from '@ironfish/sdk'
+import { ErrorUtils, PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
 import fsAsync from 'fs/promises'
@@ -33,29 +33,21 @@ export default class Ceremony extends IronfishCommand {
     const { flags } = await this.parse(Ceremony)
     const { host, port } = flags
 
-    // Start the client
-    const client = new CeremonyClient({
-      host,
-      port,
-      logger: this.logger.withTag('ceremonyClient'),
-    })
-
-    CliUx.ux.action.start('Connecting')
-    const connected = await client.start()
-    CliUx.ux.action.stop()
-
-    if (!connected) {
-      this.error('Unable to connect to contribution server.')
-    }
-
-    // Pre-make the directories to check for access
+    // Pre-make the temp directory to check for access
     const tempDir = this.sdk.config.tempDir
     await fsAsync.mkdir(tempDir, { recursive: true })
 
     const inputPath = path.join(tempDir, 'params')
     const outputPath = path.join(tempDir, 'newParams')
 
-    CliUx.ux.action.start('Waiting to contribute', undefined, { stdout: true })
+    let localHash: string | null = null
+
+    // Create the client and bind events
+    const client = new CeremonyClient({
+      host,
+      port,
+      logger: this.logger.withTag('ceremonyClient'),
+    })
 
     client.onJoined.on(({ queueLocation }) => {
       CliUx.ux.action.status = `Current position: ${queueLocation}`
@@ -88,12 +80,12 @@ export default class Ceremony extends IronfishCommand {
 
       CliUx.ux.action.start(`Generating contribution`)
 
-      const hash = await contribute(inputPath, outputPath)
+      localHash = await contribute(inputPath, outputPath)
 
       CliUx.ux.action.stop(`done`)
 
       this.log(`Done! Your contribution has been written to \`${outputPath}\`.`)
-      this.log(`The contribution you made is bound to the following hash:\n${hash}`)
+      this.log(`The contribution you made is bound to the following hash:\n${localHash}`)
 
       client.contributionComplete()
     })
@@ -119,7 +111,7 @@ export default class Ceremony extends IronfishCommand {
           },
         })
       } catch (e) {
-        this.log(ErrorUtils.renderError(e))
+        this.error(ErrorUtils.renderError(e))
       }
 
       CliUx.ux.action.stop()
@@ -134,7 +126,7 @@ export default class Ceremony extends IronfishCommand {
 
       if (hash === localHash) {
         this.log('Thank you for your contribution!')
-        client.stop()
+        client.stop(true)
         this.exit(0)
       } else {
         this.error(
@@ -143,6 +135,31 @@ export default class Ceremony extends IronfishCommand {
       }
     })
 
-    await client.waitForStop()
+    // Retry connection until contributions are received
+    let connected = false
+    while (!connected) {
+      CliUx.ux.action.start('Connecting')
+      connected = await client.start()
+      CliUx.ux.action.stop()
+
+      if (!connected) {
+        this.log('Unable to connect to contribution server. Retrying in 5 seconds.')
+        await PromiseUtils.sleep(5000)
+        continue
+      }
+
+      CliUx.ux.action.start('Waiting to contribute', undefined, { stdout: true })
+
+      const result = await client.waitForStop()
+      connected = result.success
+
+      if (!connected) {
+        if (CliUx.ux.action.running) {
+          CliUx.ux.action.stop('error')
+        }
+        this.log('Lost connection to contribution server. Retrying in 5 seconds.')
+        await PromiseUtils.sleep(5000)
+      }
+    }
   }
 }
