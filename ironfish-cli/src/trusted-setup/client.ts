@@ -35,9 +35,7 @@ export class CeremonyClient {
 
     const connected = await connectSocket(this.socket, this.host, this.port)
       .then(() => true)
-      .catch((e) => {
-        return false
-      })
+      .catch(() => false)
 
     if (connected) {
       this.socket.on('error', this.onError)
