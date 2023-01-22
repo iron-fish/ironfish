@@ -17,7 +17,7 @@ export class CeremonyClient {
   readonly onJoined = new Event<[{ queueLocation: number }]>()
   readonly onInitiateUpload = new Event<[{ uploadLink: string }]>()
   readonly onInitiateContribution = new Event<
-    [{ bucket: string; fileName: string; contributionNumber: number }]
+    [{ downloadLink: string; contributionNumber: number }]
   >()
   readonly onContributionVerified = new Event<[{ hash: string }]>()
 

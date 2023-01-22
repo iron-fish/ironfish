@@ -7,10 +7,10 @@ import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
 import fsAsync from 'fs/promises'
 import path from 'path'
+import { pipeline } from 'stream/promises'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
 import { CeremonyClient } from '../trusted-setup/client'
-import { S3Utils } from '../utils'
 
 export default class Ceremony extends IronfishCommand {
   static description = 'Contribute randomness to the Iron Fish trusted setup'
@@ -61,17 +61,28 @@ export default class Ceremony extends IronfishCommand {
       CliUx.ux.action.status = `Current position: ${queueLocation}`
     })
 
-    client.onInitiateContribution.on(async ({ bucket, fileName, contributionNumber }) => {
+    client.onInitiateContribution.on(async ({ downloadLink, contributionNumber }) => {
       CliUx.ux.action.stop()
 
       this.log(`Starting contribution. You are contributor #${contributionNumber}`)
 
-      const credentials = await S3Utils.getCognitoIdentityCredentials()
-      const s3 = S3Utils.getS3Client(true, credentials)
-
       CliUx.ux.action.start(`Downloading params to ${inputPath}`)
 
-      await S3Utils.downloadFromBucket(s3, bucket, fileName, inputPath)
+      const fileHandle = await fsAsync.open(inputPath, 'w')
+
+      let response
+      try {
+        response = await axios.get(downloadLink, {
+          responseType: 'stream',
+          onDownloadProgress: (p: ProgressEvent) => {
+            this.log('loaded', p.loaded, 'total', p.total)
+          },
+        })
+      } catch (e) {
+        this.error(ErrorUtils.renderError(e))
+      }
+
+      await pipeline(response.data, fileHandle.createWriteStream())
 
       CliUx.ux.action.stop(`done`)
 

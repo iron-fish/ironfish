@@ -131,9 +131,10 @@ export class CeremonyServer {
     const latestParamNumber = parseInt(latestParamName.split('_')[1])
     next.send({
       method: 'initiate-contribution',
-      bucket: this.s3Bucket,
-      fileName: latestParamName,
-      contributionNumber: latestParamNumber,
+      // S3Client doesn't support unauthenticated uploads, so we can build the URL to download from here:
+      // https://docs.aws.amazon.com/AmazonS3/latest/userguide/transfer-acceleration-getting-started.html
+      downloadLink: `https://${this.s3Bucket}.s3-accelerate.dualstack.amazonaws.com/${latestParamName}`,
+      contributionNumber: latestParamNumber + 1,
     })
   }
 

@@ -9,8 +9,7 @@ export type CeremonyServerMessage =
     }
   | {
       method: 'initiate-contribution'
-      bucket: string
-      fileName: string
+      downloadLink: string
       contributionNumber: number
     }
   | {
