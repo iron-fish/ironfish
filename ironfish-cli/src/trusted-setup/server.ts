@@ -229,6 +229,17 @@ export class CeremonyServer {
         uploadLink: presignedUrl,
       })
     } else if (parsedMessage.method === 'upload-complete') {
+      if (this.currentContributor?.client.id !== client.id) {
+        this.closeClient(
+          client,
+          new Error('upload-complete message sent but not the current contributor'),
+        )
+        return
+      }
+
+      this.currentContributor.actionTimeout &&
+        clearTimeout(this.currentContributor.actionTimeout)
+
       const latestParamName = await this.getLatestParamName()
       const latestParamNumber = parseInt(latestParamName.split('_')[1])
 
