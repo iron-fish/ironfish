@@ -91,7 +91,7 @@ export class CeremonyClient {
     if (parsedMessage.method === 'joined') {
       this.onJoined.emit({ queueLocation: parsedMessage.queueLocation })
     } else if (parsedMessage.method === 'initiate-upload') {
-      // this.onInitiateContribution.emit({ uploadLink: parsedMessage.uploadLink })
+      this.onInitiateUpload.emit({ uploadLink: parsedMessage.uploadLink })
     } else if (parsedMessage.method === 'initiate-contribution') {
       this.onInitiateContribution.emit(parsedMessage)
     } else if (parsedMessage.method === 'contribution-verified') {
