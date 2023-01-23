@@ -3458,5 +3458,45 @@
         }
       ]
     }
+  ],
+  "Accounts resetAccount should create a new account with the same keys but different id": [
+    {
+      "id": "38cf04fa-942e-4e96-b72c-29e06d96887f",
+      "name": "a",
+      "spendingKey": "8e2400b626013127ae6b27aea9557cc88846333a97c867cd757e553dc915da0d",
+      "incomingViewKey": "12cb4c3ec48396359f647ed2b3b53673d37182a1b7817090c71d5c8acd281103",
+      "outgoingViewKey": "dfb5ff6f4d3af68bcf0f2ca75ff8a9652e1bd8d155a8d6a81dd4bb5ddcde59a1",
+      "publicAddress": "efe8e8dc577a4cbaaea022c62a293a813e10b82ffc44600f675dd0b7d5a82dc3"
+    }
+  ],
+  "Accounts resetAccount should mark the account for deletion": [
+    {
+      "id": "c7ab9d12-b996-4761-9e92-a5165f70bb9d",
+      "name": "a",
+      "spendingKey": "4d42b677f4f5d303fc3941b597d7d57b39e02c2579df35aab497578e5c3bcc51",
+      "incomingViewKey": "b04a9ff3e62bbb80062eb6fc121013f389fc7b941895dfb68a7c9ea9f92a0a01",
+      "outgoingViewKey": "e2c1cf4cb0f9ea0973979e4da36595e8c0e1f4486ba1f8200a018ad2790620f0",
+      "publicAddress": "66251c4610fa63b1171e5e5b1057f0fa6a6ba5441b0ce435c9a1b51df84a89d7"
+    }
+  ],
+  "Accounts resetAccount should set the reset account balance to 0": [
+    {
+      "id": "98e0ddc6-02c0-430e-b7b7-f32a7fa737e2",
+      "name": "a",
+      "spendingKey": "ae6f9ece6db13cf47a31d7cebf4bd38d14ade64c0078ec16cfcca78d2d30e170",
+      "incomingViewKey": "5297fbc6cf21366ae9002bdbd9a21e9626edcade26ab490e1dae8ef738104300",
+      "outgoingViewKey": "653521aabe9da13ba574d6045685ab25907b91e5249db10543d7f8f5d737f8b6",
+      "publicAddress": "4ee6b646284601c80e2a00e18f3d5562e76eaf45b7d7f72d5d43a99617514b0d"
+    }
+  ],
+  "Accounts resetAccount should set the reset account head to null": [
+    {
+      "id": "ebcc2b93-afd3-4156-9fa4-a3fef47d55ff",
+      "name": "a",
+      "spendingKey": "3a26da26c9e286830dc5ec89c4af7f1390e877d8e7a4a09e6c8762282b72f557",
+      "incomingViewKey": "a394d6eae89b64b6f13e3ee70d9bde2b92838356161cadd6e1edde8aceee3902",
+      "outgoingViewKey": "cb9f4d8e996b59c087f1404c6aee94ee9f67ef49d906333741409c2b93a39ba9",
+      "publicAddress": "d599e704740bf85704824064fe7ca130bca560a246aa60705bf880b8d327ab1d"
+    }
   ]
 }
