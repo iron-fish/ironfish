@@ -7,6 +7,11 @@ import { table } from '@oclif/core/lib/cli-ux/styled/table'
 
 /**
  * Estimated max length of the longest TimeUtils.renderTime()
+ *
+ * I chose a date where all time components in en-us have 2 digits
+ * this will be wrong in some cases but it's a decent heuristic.
+ *
+ * 12/25/2024 11:59:59 PM EST
  */
 const MAX_TIMESTAMP_LENGTH = TimeUtils.renderString(
   new Date(2024, 11, 25, 23, 59, 59).getTime(),
