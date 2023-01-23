@@ -181,7 +181,7 @@ export class Send extends IronfishCommand {
       }
 
       const allPromises = []
-      if (feeRates.content.low) {
+      if (feeRates.content.low !== undefined) {
         allPromises.push(
           client.createTransaction({
             ...createTransactionRequest,
