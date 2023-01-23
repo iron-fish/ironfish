@@ -214,9 +214,19 @@ export default class Faucet extends IronfishCommand {
       await api.completeFaucetTransaction(faucetTransaction.id, tx.content.hash)
     }
 
-    for (const invalidFaucetTransactions of faucetTransactions) {
+    if (invalidFaucetTransactions.length) {
+      this.log(
+        `INVALIDATING: ${JSON.stringify(
+          invalidFaucetTransactions,
+          ['id', 'public_key', 'started_at'],
+          '   ',
+        )}`,
+      )
+    }
+
+    for (const invalidFaucetTransaction of invalidFaucetTransactions) {
       await api.completeFaucetTransaction(
-        invalidFaucetTransactions.id,
+        invalidFaucetTransaction.id,
         '0000000000000000000000000000000000000000000000000000000000000000',
       )
     }
