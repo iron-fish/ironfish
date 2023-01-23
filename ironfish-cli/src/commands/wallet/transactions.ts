@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import {
-  CurrencyUtils,
-  GetAccountTransactionsResponse,
-  TransactionType,
-} from '@ironfish/sdk'
+import { CurrencyUtils, GetAccountTransactionsResponse, TransactionType } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
