@@ -25,7 +25,7 @@ export class BalanceCommand extends IronfishCommand {
     }),
     confirmations: Flags.integer({
       required: false,
-      description: 'Minimum number of blocks confirmations for a note',
+      description: 'Minimum number of blocks confirmations for a transaction',
     }),
     assetId: Flags.string({
       required: false,
@@ -97,7 +97,7 @@ export class BalanceCommand extends IronfishCommand {
     this.log('')
 
     this.log(
-      `${response.unconfirmedCount} notes worth ${CurrencyUtils.renderIron(
+      `${response.unconfirmedCount} transactions worth ${CurrencyUtils.renderIron(
         unconfirmedDelta,
       )} are on the chain within ${response.confirmations} blocks of the head`,
     )

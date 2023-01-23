@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BufferMap } from 'buffer-map'
+import { BufferMap, BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
 import { BlockHeader, Transaction } from '../primitives'
@@ -513,7 +513,7 @@ export class Account {
   /**
    * Gets the balance for an account
    * unconfirmed: all notes on the chain
-   * confirmed: confirmed balance minus notes in unconfirmed range
+   * confirmed: confirmed balance minus transactions in unconfirmed range
    */
   async getBalance(
     assetId: Buffer,
@@ -575,6 +575,8 @@ export class Account {
         GENESIS_BLOCK_SEQUENCE,
       )
 
+      const unconfirmedTransactionHashes = new BufferSet()
+
       for await (const note of this.walletDb.loadNotesInSequenceRange(
         this,
         unconfirmedSequenceStart,
@@ -585,10 +587,20 @@ export class Account {
           continue
         }
 
-        if (!note.spent) {
-          unconfirmedCount++
-          confirmed -= note.note.value()
+        if (unconfirmedTransactionHashes.has(note.transactionHash)) {
+          continue
         }
+
+        unconfirmedTransactionHashes.add(note.transactionHash)
+
+        const transaction = await this.getTransaction(note.transactionHash)
+        Assert.isNotUndefined(transaction)
+
+        const balanceDelta = transaction.assetBalanceDeltas.get(note.note.assetId())
+        Assert.isNotUndefined(balanceDelta)
+
+        unconfirmedCount++
+        confirmed -= balanceDelta
       }
     }
 
