@@ -67,6 +67,10 @@ export class BalancesCommand extends IronfishCommand {
           header: 'Unconfirmed Balance',
           get: (row) => CurrencyUtils.renderIron(row.unconfirmed),
         },
+        pending: {
+          header: 'Pending Balance',
+          get: (row) => CurrencyUtils.renderIron(row.pending),
+        },
         blockHash: {
           header: 'Head Hash',
           get: (row) => row.blockHash || 'NULL',

@@ -569,6 +569,8 @@ export class Wallet {
     assetId: Buffer
     unconfirmed: bigint
     unconfirmedCount: number
+    pending: bigint
+    pendingCount: number
     confirmed: bigint
     blockHash: Buffer | null
     sequence: number | null
@@ -590,6 +592,8 @@ export class Wallet {
     unconfirmedCount: number
     unconfirmed: bigint
     confirmed: bigint
+    pendingCount: number
+    pending: bigint
     blockHash: Buffer | null
     sequence: number | null
   }> {
