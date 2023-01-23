@@ -57,7 +57,9 @@ export class TransactionsCommand extends IronfishCommand {
       CliUx.ux.table(
         [transaction],
         {
-          timestamp: TableCols.timestamp(),
+          timestamp: TableCols.timestamp({
+            streaming: true,
+          }),
           status: {
             header: 'Status',
             minWidth: 12,

@@ -18,6 +18,7 @@ const MAX_TIMESTAMP_LENGTH = TimeUtils.renderString(
 ).length
 
 const timestamp = <T extends Record<string, unknown>>(options?: {
+  streaming?: boolean
   header?: string
   field?: string
   get?: (row: Record<string, unknown>) => string
@@ -25,7 +26,17 @@ const timestamp = <T extends Record<string, unknown>>(options?: {
 }): Partial<table.Column<T>> => {
   const header = options?.header ?? 'Timestamp'
   const field = options?.field ?? 'timestamp'
-  const minWidth = options?.minWidth ?? MAX_TIMESTAMP_LENGTH
+
+  // Are you rendering one row at a time by a streaming response?
+  const streaming = options?.streaming ?? false
+
+  // We should only use estimated minWidth if you are streaming
+  let minWidth
+  if (!streaming && options?.minWidth === undefined) {
+    minWidth = MAX_TIMESTAMP_LENGTH
+  } else {
+    minWidth = options?.minWidth
+  }
 
   const get =
     options?.get ??
