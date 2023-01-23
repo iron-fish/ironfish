@@ -11,9 +11,9 @@ import { v4 as uuid } from 'uuid'
 import { S3Utils } from '../utils'
 import { CeremonyClientMessage, CeremonyServerMessage } from './schema'
 
-const CONTRIBUTE_TIMEOUT_MS = 50000
+const CONTRIBUTE_TIMEOUT_MS = 5 * 60 * 1000
 const UPLOAD_TIMEOUT_MS = 5 * 60 * 1000
-const PRESIGNED_EXPIRATION_SEC = 15
+const PRESIGNED_EXPIRATION_SEC = 5 * 60
 
 type CurrentContributor = {
   state: 'STARTED' | 'UPLOADING'
