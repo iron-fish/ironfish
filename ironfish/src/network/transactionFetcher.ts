@@ -19,12 +19,14 @@ type TransactionState =
   | {
       action: 'REQUEST_SCHEDULED'
       timeout: NodeJS.Timeout
+      sources: Set<Identity>
     }
   | {
       peer: Peer
       action: 'IN_FLIGHT'
       timeout: NodeJS.Timeout
       clearDisconnectHandler: () => void
+      sources: Set<Identity>
     }
   | {
       action: 'PROCESSING'
@@ -40,9 +42,6 @@ type TransactionState =
 export class TransactionFetcher {
   // State of the current requests for each transaction
   private readonly pending = new BufferMap<TransactionState>()
-
-  // Set of peers that also may be able to fetch the transaction
-  private readonly sources = new BufferMap<Set<Identity>>()
 
   private readonly peerNetwork: PeerNetwork
 
@@ -71,9 +70,7 @@ export class TransactionFetcher {
       return
     }
 
-    const sources = this.sources.get(hash) || new Set<Identity>()
-    sources.add(peer.state.identity)
-    this.sources.set(hash, sources)
+    currentState?.sources.add(peer.state.identity)
 
     if (!currentState) {
       const timeout = setTimeout(() => {
@@ -88,6 +85,7 @@ export class TransactionFetcher {
       this.pending.set(hash, {
         action: 'REQUEST_SCHEDULED',
         timeout,
+        sources: new Set<Identity>([peer.state.identity]),
       })
     }
   }
@@ -115,7 +113,6 @@ export class TransactionFetcher {
     currentState && this.cleanupCallbacks(currentState)
 
     this.pending.delete(hash)
-    this.sources.delete(hash)
   }
 
   private requestFromNextPeer(hash: TransactionHash): void {
@@ -138,8 +135,17 @@ export class TransactionFetcher {
   }
 
   private requestTransaction(hash: TransactionHash): void {
+    const currentState = this.pending.get(hash)
+
+    if (currentState === undefined || currentState.action === 'PROCESSING') {
+      return
+    }
+
+    const sources = currentState.sources
+
     // Get the next peer randomly to distribute load more evenly
-    const peer = this.popRandomPeer(hash)
+    const peer = this.popRandomPeer(sources)
+
     if (!peer) {
       this.removeTransaction(hash)
       return
@@ -175,16 +181,11 @@ export class TransactionFetcher {
       action: 'IN_FLIGHT',
       timeout,
       clearDisconnectHandler,
+      sources,
     })
   }
 
-  private popRandomPeer(hash: TransactionHash): Peer | null {
-    const sources = this.sources.get(hash)
-
-    if (!sources) {
-      return null
-    }
-
+  private popRandomPeer(sources: Set<Identity>): Peer | null {
     const random = ArrayUtils.shuffle([...sources])
 
     let nextPeer = null
