@@ -790,6 +790,7 @@ export class Wallet {
       if (options.feeRate) {
         size += raw.spends.length * SPEND_SERIALIZED_SIZE_IN_BYTE
         raw.fee = getFee(options.feeRate, size)
+        raw.spends = []
 
         await this.fund(raw, {
           fee: raw.fee,
