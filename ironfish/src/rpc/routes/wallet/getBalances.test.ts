@@ -71,6 +71,7 @@ describe('getBalances', () => {
           assetId: mockBalance.assetId.toString('hex'),
           confirmed: mockBalance.confirmed.toString(),
           unconfirmed: mockBalance.unconfirmed.toString(),
+          pending: mockBalance.pending.toString(),
         })),
       )
     })
