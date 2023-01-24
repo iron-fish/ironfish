@@ -4,15 +4,17 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import {
   CreateTransactionRequest,
+  CreateTransactionResponse,
   CurrencyUtils,
   isValidPublicAddress,
   RawTransactionSerde,
+  RpcResponseEnded,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { IronFlag, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
 
@@ -39,11 +41,12 @@ export class Send extends IronfishCommand {
       char: 't',
       description: 'The public address of the recipient',
     }),
-    fee: Flags.string({
+    fee: IronFlag({
       char: 'o',
       description: 'The fee amount in IRON',
+      largerThan: '0',
     }),
-    feeRate: Flags.string({
+    feeRate: IronFlag({
       char: 'r',
       description: 'The fee rate amount in IRON/Kilobyte',
     }),
@@ -116,16 +119,12 @@ export class Send extends IronfishCommand {
       amount = CurrencyUtils.decodeIron(input)
     }
 
-    if (flags.fee) {
-      if (CurrencyUtils.decodeIron(flags.fee) < 1n) {
-        this.error(`The minimum fee is ${CurrencyUtils.renderOre(1n, true)}`)
-      }
-
-      fee = CurrencyUtils.encode(CurrencyUtils.decodeIron(flags.fee))
+    if (flags.fee !== undefined) {
+      fee = CurrencyUtils.encode(flags.fee)
     }
 
-    if (flags.feeRate) {
-      feeRate = CurrencyUtils.encode(CurrencyUtils.decodeIron(flags.feeRate))
+    if (flags.feeRate !== undefined) {
+      feeRate = CurrencyUtils.encode(flags.Rate)
     }
 
     if (!from) {
@@ -163,8 +162,16 @@ export class Send extends IronfishCommand {
     }
 
     let rawTransactionResponse: string
-    if (fee == null && feeRate == null) {
-      const feeRates = await client.estimateFeeRates()
+    if (fee === undefined && feeRate === undefined) {
+      const feeRatesResponse = await client.estimateFeeRates()
+      const feeRates = new Set([
+        feeRatesResponse.content.low ?? '1',
+        feeRatesResponse.content.medium ?? '1',
+        feeRatesResponse.content.high ?? '1',
+      ])
+
+      const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
+
       const feeRateOptions: { value: number; name: string }[] = []
 
       const createTransactionRequest: CreateTransactionRequest = {
@@ -180,60 +187,24 @@ export class Send extends IronfishCommand {
         expiration: expiration,
       }
 
-      const allPromises = []
-      if (feeRates.content.low !== undefined) {
+      const allPromises: Promise<RpcResponseEnded<CreateTransactionResponse>>[] = []
+      feeRates.forEach((feeRate) => {
         allPromises.push(
           client.createTransaction({
             ...createTransactionRequest,
-            feeRate: feeRates.content.low,
+            feeRate: feeRate,
           }),
         )
-      }
-
-      if (feeRates.content.medium !== feeRates.content.low) {
-        allPromises.push(
-          client.createTransaction({
-            ...createTransactionRequest,
-            feeRate: feeRates.content.medium,
-          }),
-        )
-      }
-
-      if (
-        feeRates.content.high !== feeRates.content.low &&
-        feeRates.content.high !== feeRates.content.medium
-      ) {
-        allPromises.push(
-          client.createTransaction({
-            ...createTransactionRequest,
-            feeRate: feeRates.content.high,
-          }),
-        )
-      }
+      })
 
       const createResponses = await Promise.all(allPromises)
       createResponses.forEach((createResponse, index) => {
         const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
         const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
-        let name
-        switch (index) {
-          case 0: {
-            name = 'Low'
-            break
-          }
-          case 1: {
-            name = 'Medium'
-            break
-          }
-          default: {
-            name = 'High'
-            break
-          }
-        }
         feeRateOptions.push({
           value: index,
-          name: `${name}: ${CurrencyUtils.renderIron(rawTransaction.fee)} IRON`,
+          name: `${feeRateNames[index]}: ${CurrencyUtils.renderIron(rawTransaction.fee)} IRON`,
         })
       })
 
