@@ -103,19 +103,21 @@ remoteFlags[RpcAuthFlagKey] = RpcAuthFlag as unknown as CompletableOptionFlag
  */
 export const RemoteFlags = remoteFlags
 
-export type IronOpts = { largerThan?: bigint; name: string }
+export type IronOpts = { largerThan?: bigint; flagName: string }
 
 export const IronFlag = Flags.custom<bigint, IronOpts>({
-  parse: async (input, _ctx, opts) => parseIron(input, opts), // eslint-disable-line
+  parse: async (input, _ctx, opts) => parseIron(input, opts),
   char: 'i',
 })
 
-const parseIron = (input: string, opts: IronOpts): bigint => {
-  const { largerThan, name } = opts ?? {}
-  const value = CurrencyUtils.decodeIron(input)
-  if (largerThan !== undefined && value <= largerThan) {
-    throw new Error(`The minimum ${name} is ${CurrencyUtils.renderOre(1n, true)}`)
-  }
+const parseIron = (input: string, opts: IronOpts): Promise<bigint> => {
+  return new Promise((resolve, reject) => {
+    const { largerThan, flagName } = opts ?? {}
+    const value = CurrencyUtils.decodeIron(input)
+    if (largerThan !== undefined && value <= largerThan) {
+      reject(new Error(`The minimum ${flagName} is ${CurrencyUtils.renderOre(1n, true)}`))
+    }
 
-  return value
+    resolve(value)
+  })
 }
