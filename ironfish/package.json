@@ -22,6 +22,7 @@
     "@napi-rs/blake-hash": "1.3.1",
     "axios": "0.21.4",
     "blru": "0.1.6",
+    "bs58check-ts": "^0.0.8",
     "buffer": "6.0.3",
     "buffer-json": "2.0.0",
     "buffer-map": "0.0.7",
