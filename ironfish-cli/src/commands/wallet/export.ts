@@ -8,7 +8,7 @@ import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
-import bs58safe from 'bs58check-ts'
+import bs58safe from 'bs58safe'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
