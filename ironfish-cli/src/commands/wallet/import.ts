@@ -5,7 +5,6 @@ import { AccountImport, JSONUtils, PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import bs58safe from 'bs58safe'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
@@ -16,11 +15,6 @@ export class ImportCommand extends IronfishCommand {
       allowNo: true,
       default: true,
       description: 'Rescan the blockchain once the account is imported',
-    }),
-    base58: Flags.boolean({
-      allowNo: true,
-      default: false,
-      description: 'Import the account using base58 encoding, rather than the default hex encoding',
     }),
   }
 
@@ -41,11 +35,11 @@ export class ImportCommand extends IronfishCommand {
 
     let account: AccountImport | null = null
     if (importPath) {
-      account = await this.importFile(importPath, flags.base58)
+      account = await this.importFile(importPath)
     } else if (process.stdin.isTTY) {
-      account = await this.importTTY(flags.base58)
+      account = await this.importTTY()
     } else if (!process.stdin.isTTY) {
-      account = await this.importPipe(flags.base58)
+      account = await this.importPipe()
     }
 
     if (account === null) {
@@ -68,16 +62,13 @@ export class ImportCommand extends IronfishCommand {
     }
   }
 
-  async importFile(path: string, useBase58: boolean): Promise<AccountImport> {
+  async importFile(path: string): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    if (useBase58) {
-      return JSONUtils.parse<AccountImport>(bs58safe.decode(data).toString('utf8'))
-    }
     return JSONUtils.parse<AccountImport>(data)
   }
 
-  async importPipe(useBase58: boolean): Promise<AccountImport> {
+  async importPipe(): Promise<AccountImport> {
     let data = ''
 
     const onData = (dataIn: string): void => {
@@ -92,13 +83,11 @@ export class ImportCommand extends IronfishCommand {
     }
 
     process.stdin.off('data', onData)
-    if (useBase58) {
-      return JSONUtils.parse<AccountImport>(bs58safe.decode(data).toString('utf8'))
-    }
+
     return JSONUtils.parse<AccountImport>(data)
   }
 
-  async importTTY(useBase58: boolean): Promise<AccountImport> {
+  async importTTY(): Promise<AccountImport> {
     const accountName = await CliUx.ux.prompt('Enter the account name', {
       required: true,
     })
@@ -109,7 +98,7 @@ export class ImportCommand extends IronfishCommand {
 
     return {
       name: accountName,
-      spendingKey: useBase58 ? bs58safe.decode(spendingKey).toString('utf8') : spendingKey,
+      spendingKey: spendingKey,
     }
   }
 }
