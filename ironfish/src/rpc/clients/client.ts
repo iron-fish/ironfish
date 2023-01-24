@@ -87,6 +87,7 @@ import {
   CreateTransactionResponse,
 } from '../routes/wallet/createTransaction'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
+import { ExportAccountBase58Request, ExportAccountBase58Response } from '../routes/wallet/exportAccountBase58'
 import { GetBalancesRequest, GetBalancesResponse } from '../routes/wallet/getBalances'
 import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/wallet/importAccount'
@@ -205,6 +206,15 @@ export abstract class RpcClient {
     params: ExportAccountRequest = {},
   ): Promise<RpcResponseEnded<ExportAccountResponse>> {
     return this.request<ExportAccountResponse>(
+      `${ApiNamespace.wallet}/exportAccount`,
+      params,
+    ).waitForEnd()
+  }
+
+  async exportAccountBase58(
+    params: ExportAccountBase58Request = {},
+  ): Promise<RpcResponseEnded<ExportAccountBase58Response>> {
+    return this.request<ExportAccountBase58Response>(
       `${ApiNamespace.wallet}/exportAccount`,
       params,
     ).waitForEnd()
