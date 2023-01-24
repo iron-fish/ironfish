@@ -8,7 +8,6 @@ import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
-import bs58safe from 'bs58safe'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
@@ -19,11 +18,6 @@ export class ExportCommand extends IronfishCommand {
     local: Flags.boolean({
       default: false,
       description: 'Export an account without an online node',
-    }),
-    base58: Flags.boolean({
-      allowNo: true,
-      default: false,
-      description: 'Export the account keys using base58 encoding, rather than the default hex encoding',
     }),
   }
 
@@ -50,12 +44,6 @@ export class ExportCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc(local)
     const response = await client.exportAccount({ account })
-
-    if (flags.base58) {
-      response.content.account.spendingKey = bs58safe.encode(Buffer.from(response.content.account.spendingKey, 'hex'))
-      response.content.account.incomingViewKey = bs58safe.encode(Buffer.from(response.content.account.incomingViewKey, 'hex'))
-      response.content.account.outgoingViewKey = bs58safe.encode(Buffer.from(response.content.account.outgoingViewKey, 'hex'))
-    }
 
     let output = JSON.stringify(response.content.account, undefined, '   ')
 
