@@ -304,10 +304,13 @@ export class CeremonyServer {
     client.logger.info(`Downloading params from S3 to verify`)
     await Promise.all([oldParamsPromise, newParamsPromise])
 
+    client.logger.info(`Deleting uploaded params from S3`)
+    await S3Utils.deleteBucketObject(this.s3Client, this.s3Bucket, client.id)
+
     client.logger.info(`Verifying contribution`)
     const hash = await verifyTransform(oldParamsDownloadPath, newParamsDownloadPath)
 
-    client.logger.info(`Uploading contribution`)
+    client.logger.info(`Uploading verified contribution`)
     const destFile = 'params_' + nextParamNumber.toString().padStart(4, '0')
     await S3Utils.uploadToBucket(
       this.s3Client,
@@ -321,9 +324,6 @@ export class CeremonyServer {
     client.logger.info(`Cleaning up local files`)
     await fsAsync.rename(newParamsDownloadPath, path.join(this.tempDir, destFile))
     await fsAsync.rm(oldParamsDownloadPath)
-
-    client.logger.info(`Cleaning up S3 files`)
-    await S3Utils.deleteBucketObject(this.s3Client, this.s3Bucket, client.id)
 
     client.send({ method: 'contribution-verified', hash })
 
