@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
@@ -9,10 +8,7 @@ import { MemPool } from '../memPool'
 import { getTransactionSize } from '../network/utils/serializers'
 import { getBlockSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
-import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
-import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import { Wallet } from '../wallet'
-import { Account } from '../wallet/account'
 
 export interface FeeRateEntry {
   feeRate: bigint
@@ -210,59 +206,6 @@ export class FeeEstimator {
 
   size(priorityLevel: PriorityLevel): number | undefined {
     return this.queues[priorityLevel].length
-  }
-
-  async estimateFee(
-    priorityLevel: PriorityLevel,
-    sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
-  ): Promise<bigint> {
-    const estimateFeeRate = this.estimateFeeRate(priorityLevel)
-    const estimateTransactionSize = await this.getPendingTransactionSize(
-      sender,
-      receives,
-      estimateFeeRate,
-    )
-    return getFee(estimateFeeRate, estimateTransactionSize)
-  }
-
-  private async getPendingTransactionSize(
-    sender: Account,
-    receives: { publicAddress: string; amount: bigint; memo: string }[],
-    feeRate: bigint,
-  ): Promise<number> {
-    let size = 0
-    size += 8 // spends length
-    size += 8 // notes length
-    size += 8 // fee
-    size += 4 // expiration
-    size += 64 // signature
-
-    const amountNeeded = receives.reduce((acc, receive) => acc + receive.amount, BigInt(0))
-
-    const { amount, notes } = await this.wallet.createSpendsForAsset(
-      sender,
-      Asset.nativeId(),
-      amountNeeded,
-    )
-
-    size += notes.length * SPEND_SERIALIZED_SIZE_IN_BYTE
-
-    size += receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
-
-    const spenderChange = amount - amountNeeded
-
-    const pendingFee = getFee(feeRate, size)
-
-    if (spenderChange === pendingFee) {
-      return size
-    } else if (spenderChange > pendingFee) {
-      // add a note for spender change
-      return size + NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
-    } else {
-      // add a spend for the fee and a note for spender change
-      return size + NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE + SPEND_SERIALIZED_SIZE_IN_BYTE
-    }
   }
 
   private isFull(arrayLength: number): boolean {
