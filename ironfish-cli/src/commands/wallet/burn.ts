@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils } from '@ironfish/sdk'
+import { CurrencyUtils, MAXIMUM_ORE_AMOUNT, MINIMUM_ORE_AMOUNT } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -84,18 +84,37 @@ export class Burn extends IronfishCommand {
 
     let amount
     if (flags.amount) {
-      amount = CurrencyUtils.decodeIron(flags.amount)
+      try {
+        amount = CurrencyUtils.decodeIron(flags.amount)
+      } catch {
+        amount = new Error()
+      }
     } else {
       const input = await CliUx.ux.prompt('Enter the amount to burn in the custom asset', {
         required: true,
       })
+      try {
+        amount = CurrencyUtils.decodeIron(input)
+      } catch {
+        amount = new Error()
+      }
+    }
 
-      amount = CurrencyUtils.decodeIron(input)
+    if (
+      typeof amount !== 'bigint' ||
+      amount < MINIMUM_ORE_AMOUNT ||
+      amount > MAXIMUM_ORE_AMOUNT
+    ) {
+      this.error(`The amount of coins is not a valid number.`)
     }
 
     let fee
     if (flags.fee) {
-      fee = CurrencyUtils.decodeIron(flags.fee)
+      try {
+        fee = CurrencyUtils.decodeIron(flags.fee)
+      } catch {
+        fee = new Error()
+      }
     } else {
       const input = await CliUx.ux.prompt(
         `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)})`,
@@ -105,7 +124,15 @@ export class Burn extends IronfishCommand {
         },
       )
 
-      fee = CurrencyUtils.decodeIron(input)
+      try {
+        fee = CurrencyUtils.decodeIron(input)
+      } catch {
+        fee = new Error()
+      }
+    }
+
+    if (typeof fee !== 'bigint' || fee < MINIMUM_ORE_AMOUNT || fee > MAXIMUM_ORE_AMOUNT) {
+      this.error(`The fee amount is not a valid number.`)
     }
 
     if (!flags.confirm) {

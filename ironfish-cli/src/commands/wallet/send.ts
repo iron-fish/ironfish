@@ -106,7 +106,11 @@ export class Send extends IronfishCommand {
     }
 
     if (flags.amount) {
-      amount = CurrencyUtils.decodeIron(flags.amount)
+      try {
+        amount = CurrencyUtils.decodeIron(flags.amount)
+      } catch {
+        amount = new Error()
+      }
     }
 
     if (amount === null) {
@@ -119,7 +123,19 @@ export class Send extends IronfishCommand {
         },
       )
 
-      amount = CurrencyUtils.decodeIron(input)
+      try {
+        amount = CurrencyUtils.decodeIron(input)
+      } catch {
+        amount = new Error()
+      }
+    }
+
+    if (
+      typeof amount !== 'bigint' ||
+      amount < MINIMUM_ORE_AMOUNT ||
+      amount > MAXIMUM_ORE_AMOUNT
+    ) {
+      this.error(`The amount of coins is not a valid number.`)
     }
 
     if (flags.fee !== undefined) {
