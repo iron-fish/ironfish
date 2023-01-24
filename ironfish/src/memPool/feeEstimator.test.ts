@@ -1,20 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { getBlockSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
-import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
-import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import {
   createNodeTest,
   useAccountFixture,
   useBlockWithTx,
   useBlockWithTxs,
 } from '../testUtilities'
-import { AsyncUtils } from '../utils/async'
-import { FeeEstimator, FeeRateEntry, getFee, getFeeRate, PRIORITY_LEVELS } from './feeEstimator'
+import { FeeEstimator, FeeRateEntry, getFeeRate, PRIORITY_LEVELS } from './feeEstimator'
 
 function getEstimateFeeRate(
   block: Block,

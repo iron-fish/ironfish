@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { createRootLogger, Logger } from '../logger'
@@ -9,10 +8,7 @@ import { MemPool } from '../memPool'
 import { getTransactionSize } from '../network/utils/serializers'
 import { getBlockSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
-import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
-import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import { Wallet } from '../wallet'
-import { Account } from '../wallet/account'
 
 export interface FeeRateEntry {
   feeRate: bigint
