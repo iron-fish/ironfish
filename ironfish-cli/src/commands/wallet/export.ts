@@ -19,6 +19,12 @@ export class ExportCommand extends IronfishCommand {
       default: false,
       description: 'Export an account without an online node',
     }),
+    base58: Flags.boolean({
+      allowNo: true,
+      default: false,
+      description:
+        'Export the account using base58 encoding, rather than the default hex encoding',
+    }),
   }
 
   static args = [
@@ -43,9 +49,17 @@ export class ExportCommand extends IronfishCommand {
     const exportPath = args.path as string | undefined
 
     const client = await this.sdk.connectRpc(local)
-    const response = await client.exportAccount({ account })
-
-    let output = JSON.stringify(response.content.account, undefined, '   ')
+    let output: string = ''
+    let name: string = ''
+    if (flags.base58) {
+      const response = await client.exportAccountBase58({ account })
+      output = JSON.stringify(response.content.account, undefined, '   ')
+      name = response.content.account.name
+    } else {
+      const response = await client.exportAccount({ account })
+      output = JSON.stringify(response.content.account, undefined, '   ')
+      name = response.content.account.name
+    }
 
     if (exportPath) {
       let resolved = this.sdk.fileSystem.resolve(exportPath)
@@ -70,7 +84,7 @@ export class ExportCommand extends IronfishCommand {
         }
 
         await fs.promises.writeFile(resolved, output)
-        this.log(`Exported account ${response.content.account.name} to ${resolved}`)
+        this.log(`Exported account ${name} to ${resolved}`)
       } catch (err: unknown) {
         if (ErrorUtils.isNoEntityError(err)) {
           await fs.promises.mkdir(path.dirname(resolved), { recursive: true })
