@@ -328,6 +328,13 @@ export class Account {
         assetBalanceDeltas.increment(spentNote.note.assetId(), spentNote.note.value())
       }
 
+      await this.walletDb.deleteSequenceToTransactionHash(
+        this,
+        blockHeader.sequence,
+        transaction.hash(),
+        tx,
+      )
+
       await this.walletDb.savePendingTransactionHash(
         this,
         transaction.expiration(),
