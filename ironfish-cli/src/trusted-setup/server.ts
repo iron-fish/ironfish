@@ -113,29 +113,32 @@ export class CeremonyServer {
       return
     }
 
-    const next = this.queue.shift()
-    if (!next) {
+    const nextClient = this.queue.shift()
+    if (!nextClient) {
       return
     }
 
     const contributionTimeout = setTimeout(() => {
-      this.closeClient(next, new Error('Failed to complete contribution in time'))
+      this.closeClient(nextClient, new Error('Failed to complete contribution in time'))
     }, CONTRIBUTE_TIMEOUT_MS)
 
     this.currentContributor = {
       state: 'STARTED',
-      client: next,
+      client: nextClient,
       actionTimeout: contributionTimeout,
     }
 
     const latestParamName = await this.getLatestParamName()
-    const latestParamNumber = parseInt(latestParamName.split('_')[1])
-    next.send({
+    const nextParamNumber = parseInt(latestParamName.split('_')[1]) + 1
+
+    nextClient.logger.info(`Starting contribution ${nextParamNumber}`)
+
+    nextClient.send({
       method: 'initiate-contribution',
       // S3Client doesn't support unauthenticated uploads, so we can build the URL to download from here:
       // https://docs.aws.amazon.com/AmazonS3/latest/userguide/transfer-acceleration-getting-started.html
       downloadLink: `https://${this.s3Bucket}.s3-accelerate.dualstack.amazonaws.com/${latestParamName}`,
-      contributionNumber: latestParamNumber + 1,
+      contributionNumber: nextParamNumber,
     })
   }
 
@@ -324,7 +327,7 @@ export class CeremonyServer {
 
     client.send({ method: 'contribution-verified', hash })
 
-    client.logger.info(`Starting next contributor`)
+    client.logger.info(`Contribution ${nextParamNumber} complete`)
     await this.startNextContributor()
     this.sendUpdatedLocationsToClients()
   }
