@@ -323,7 +323,7 @@ export class CeremonyServer {
     await fsAsync.rm(oldParamsDownloadPath)
 
     client.logger.info(`Cleaning up S3 files`)
-    await S3Utils.deleteBucketObject(this.s3Client, this.s3Bucket, newParamsDownloadPath)
+    await S3Utils.deleteBucketObject(this.s3Client, this.s3Bucket, client.id)
 
     client.send({ method: 'contribution-verified', hash })
 

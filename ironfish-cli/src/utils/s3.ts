@@ -275,7 +275,7 @@ export async function deleteBucketObject(
   bucket: string,
   fileName: string,
 ): Promise<DeleteObjectCommandOutput> {
-  return await s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: fileName }))
+  return s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: fileName }))
 }
 
 export function getS3Client(
