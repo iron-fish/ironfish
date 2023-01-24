@@ -5,7 +5,7 @@ import { AccountImport, JSONUtils, PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import bs58safe from 'bs58safe'
+import bs58safe from 'bs58check-ts'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
