@@ -62,7 +62,10 @@ export default class Restore extends IronfishCommand {
     const downloadDir = path.join(workDir, bucket)
     const downloadTo = path.join(downloadDir, name)
     const unzipTo = path.join(downloadDir, path.basename(downloadTo, EXTENSION))
-    const downloadFrom = S3Utils.getDownloadUrl(bucket, name, { accelerated: false, regionCode: 'us-east-1' })
+    const downloadFrom = S3Utils.getDownloadUrl(bucket, name, {
+      accelerated: false,
+      regionCode: 'us-east-1',
+    })
 
     await fsAsync.rm(workDir, { recursive: true, force: true })
     await fsAsync.mkdir(downloadDir, { recursive: true })

@@ -9,7 +9,6 @@ import net from 'net'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { S3Utils } from '../utils'
-import { getDownloadUrl } from '../utils/s3'
 import { CeremonyClientMessage, CeremonyServerMessage } from './schema'
 
 const CONTRIBUTE_TIMEOUT_MS = 5 * 60 * 1000
@@ -137,7 +136,12 @@ export class CeremonyServer {
     nextClient.send({
       method: 'initiate-contribution',
       // S3Client doesn't support unauthenticated downloads, so we can build the URL to download for the client:
-      downloadLink: S3Utils.getDownloadUrl(this.s3Bucket, latestParamName, { accelerated: true }, { dualStack: true }),
+      downloadLink: S3Utils.getDownloadUrl(
+        this.s3Bucket,
+        latestParamName,
+        { accelerated: true },
+        { dualStack: true },
+      ),
       contributionNumber: nextParamNumber,
     })
   }
@@ -334,7 +338,12 @@ export class CeremonyServer {
       { dualStack: true },
     )
 
-    client.send({ method: 'contribution-verified', hash, downloadLink, contributionNumber: nextParamNumber })
+    client.send({
+      method: 'contribution-verified',
+      hash,
+      downloadLink,
+      contributionNumber: nextParamNumber,
+    })
 
     client.logger.info(`Contribution ${nextParamNumber} complete`)
     await this.startNextContributor()
