@@ -16,6 +16,12 @@ export class ImportCommand extends IronfishCommand {
       default: true,
       description: 'Rescan the blockchain once the account is imported',
     }),
+    base58: Flags.boolean({
+      allowNo: true,
+      default: false,
+      description:
+        'Import the account using base58 encoding, rather than the default hex encoding',
+    }),
   }
 
   static args = [
@@ -47,12 +53,24 @@ export class ImportCommand extends IronfishCommand {
       return this.exit(1)
     }
 
-    const result = await client.importAccount({
-      account: account,
-      rescan: flags.rescan,
-    })
+    let name : string = ""
+    let isDefaultAccount : boolean = false
 
-    const { name, isDefaultAccount } = result.content
+    if (flags.base58) {
+      const result = await client.importAccountBase58({
+        account: account,
+        rescan: flags.rescan,
+      })
+      name = result.content.name
+      isDefaultAccount = result.content.isDefaultAccount
+    } else {
+      const result = await client.importAccount({
+        account: account,
+        rescan: flags.rescan,
+      })
+      name = result.content.name
+      isDefaultAccount = result.content.isDefaultAccount
+    }
     this.log(`Account ${name} imported.`)
 
     if (isDefaultAccount) {
