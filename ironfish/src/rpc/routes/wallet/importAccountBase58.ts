@@ -6,17 +6,17 @@ import { AccountImport } from '../../../wallet/account'
 import { ApiNamespace, router } from '../router'
 import bs58safe from 'bs58check-ts'
 
-export type ImportAccountRequestBase58 = {
+export type ImportAccountBase58Request = {
   account: AccountImport
   rescan?: boolean
 }
 
-export type ImportAccountResponseBase58 = {
+export type ImportAccountBase58Response = {
   name: string
   isDefaultAccount: boolean
 }
 
-export const ImportAccountRequestBase58Schema: yup.ObjectSchema<ImportAccountRequestBase58> = yup
+export const ImportAccountBase58RequestSchema: yup.ObjectSchema<ImportAccountBase58Request> = yup
   .object({
     rescan: yup.boolean().optional().default(true),
     account: yup
@@ -28,16 +28,16 @@ export const ImportAccountRequestBase58Schema: yup.ObjectSchema<ImportAccountReq
   })
   .defined()
 
-export const ImportAccountResponseBase58Schema: yup.ObjectSchema<ImportAccountResponseBase58> = yup
+export const ImportAccountBase58ResponseSchema: yup.ObjectSchema<ImportAccountBase58Response> = yup
   .object({
     name: yup.string().defined(),
     isDefaultAccount: yup.boolean().defined(),
   })
   .defined()
 
-router.register<typeof ImportAccountRequestBase58Schema, ImportAccountResponseBase58>(
+router.register<typeof ImportAccountBase58RequestSchema, ImportAccountBase58Response>(
   `${ApiNamespace.wallet}/importAccountBase58`,
-  ImportAccountRequestBase58Schema,
+  ImportAccountBase58RequestSchema,
   async (request, node): Promise<void> => {
     request.data.account.spendingKey = bs58safe.decode(request.data.account.spendingKey).toString('hex')
     const account = await node.wallet.importAccount(request.data.account)
