@@ -127,19 +127,20 @@ export default class Ceremony extends IronfishCommand {
       CliUx.ux.action.start('Contribution uploaded. Waiting for server to verify')
     })
 
-    client.onContributionVerified.on(({ hash }) => {
+    client.onContributionVerified.on(({ hash, downloadLink, contributionNumber }) => {
       CliUx.ux.action.stop()
-      this.log(`Server verified contribution with hash:\n${hash}`)
 
-      if (hash === localHash) {
-        this.log('Thank you for your contribution!')
-        client.stop(true)
-        this.exit(0)
-      } else {
+      if (hash !== localHash) {
         this.error(
           'Hashes do not match. Please contact the Iron Fish team with this error message.',
         )
       }
+
+      this.log(
+        `Thank you for your contribution to the Iron Fish Ceremony. You have successfully contributed at position #${contributionNumber}. The public hash of your contribution is "${hash}". You can view your contributed file at ${downloadLink}.`,
+      )
+      client.stop(true)
+      this.exit(0)
     })
 
     // Retry connection until contributions are received
@@ -147,7 +148,7 @@ export default class Ceremony extends IronfishCommand {
     while (!connected) {
       CliUx.ux.action.start('Connecting')
       connected = await client.start()
-      CliUx.ux.action.stop()
+      CliUx.ux.action.stop(connected ? 'done' : 'error')
 
       if (!connected) {
         this.log('Unable to connect to contribution server. Retrying in 5 seconds.')

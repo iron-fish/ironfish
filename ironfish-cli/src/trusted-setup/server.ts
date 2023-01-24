@@ -325,7 +325,16 @@ export class CeremonyServer {
     await fsAsync.rename(newParamsDownloadPath, path.join(this.tempDir, destFile))
     await fsAsync.rm(oldParamsDownloadPath)
 
-    client.send({ method: 'contribution-verified', hash })
+    const downloadLink = S3Utils.getDownloadUrl(
+      this.s3Bucket,
+      destFile,
+      {
+        accelerated: true,
+      },
+      { dualStack: true },
+    )
+
+    client.send({ method: 'contribution-verified', hash, downloadLink, contributionNumber: nextParamNumber })
 
     client.logger.info(`Contribution ${nextParamNumber} complete`)
     await this.startNextContributor()

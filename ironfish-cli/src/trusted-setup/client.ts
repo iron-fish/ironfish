@@ -19,7 +19,9 @@ export class CeremonyClient {
   readonly onInitiateContribution = new Event<
     [{ downloadLink: string; contributionNumber: number }]
   >()
-  readonly onContributionVerified = new Event<[{ hash: string }]>()
+  readonly onContributionVerified = new Event<
+    [{ hash: string; downloadLink: string; contributionNumber: number }]
+  >()
 
   constructor(options: { host: string; port: number; logger: Logger }) {
     this.host = options.host
