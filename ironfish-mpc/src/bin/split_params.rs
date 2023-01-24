@@ -4,11 +4,11 @@ extern crate pairing;
 extern crate rand;
 
 use std::fs::File;
-use std::io::{BufWriter, BufReader};
+use std::io::{BufReader, BufWriter};
 
 fn main() {
     let current_params = File::open("params").expect("couldn't open `./params`");
-    let mut current_params = BufReader::with_capacity(1024*1024, current_params);
+    let mut current_params = BufReader::with_capacity(1024 * 1024, current_params);
 
     let sapling_spend = ironfish_phase2::MPCParameters::read(&mut current_params, false)
         .expect("couldn't deserialize Sapling Spend params");
@@ -20,23 +20,29 @@ fn main() {
         .expect("couldn't deserialize Sapling Mint params");
 
     {
-        let f = File::create("sapling-spend.params").expect("couldn't create `./sapling-spend.params`");
-        let mut f = BufWriter::with_capacity(1024*1024, f);
-        sapling_spend.write(&mut f)
+        let f =
+            File::create("sapling-spend.params").expect("couldn't create `./sapling-spend.params`");
+        let mut f = BufWriter::with_capacity(1024 * 1024, f);
+        sapling_spend
+            .write(&mut f)
             .expect("couldn't write new Sapling Spend params");
     }
 
     {
-        let f = File::create("sapling-output.params").expect("couldn't create `./sapling-output.params`");
-        let mut f = BufWriter::with_capacity(1024*1024, f);
-        sapling_output.write(&mut f)
+        let f = File::create("sapling-output.params")
+            .expect("couldn't create `./sapling-output.params`");
+        let mut f = BufWriter::with_capacity(1024 * 1024, f);
+        sapling_output
+            .write(&mut f)
             .expect("couldn't write new Sapling Output params");
     }
 
     {
-        let f = File::create("sapling-mint.params").expect("couldn't create `./sapling-mint.params`");
-        let mut f = BufWriter::with_capacity(1024*1024, f);
-        sapling_mint.write(&mut f)
+        let f =
+            File::create("sapling-mint.params").expect("couldn't create `./sapling-mint.params`");
+        let mut f = BufWriter::with_capacity(1024 * 1024, f);
+        sapling_mint
+            .write(&mut f)
             .expect("couldn't write new Sapling Mint params");
     }
 }

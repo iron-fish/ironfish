@@ -18,7 +18,10 @@ fn main() {
         anchor: None,
         asset_generator: None,
         sender_address: None,
-    }).unwrap().write(&mut params).unwrap();
+    })
+    .unwrap()
+    .write(&mut params)
+    .unwrap();
 
     // Sapling output circuit
     ironfish_phase2::MPCParameters::new(ironfish_zkp::proofs::Output {
@@ -29,7 +32,10 @@ fn main() {
         asset_generator: None,
         ar: None,
         proof_generation_key: None,
-    }).unwrap().write(&mut params).unwrap();
+    })
+    .unwrap()
+    .write(&mut params)
+    .unwrap();
 
     // Sapling mint circuit
     ironfish_phase2::MPCParameters::new(ironfish_zkp::proofs::MintAsset {
@@ -37,5 +43,8 @@ fn main() {
         metadata: [0u8; 77],
         proof_generation_key: None,
         public_key_randomness: None,
-    }).unwrap().write(&mut params).unwrap();
+    })
+    .unwrap()
+    .write(&mut params)
+    .unwrap();
 }

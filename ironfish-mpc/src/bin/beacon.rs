@@ -2,10 +2,10 @@ extern crate pairing;
 extern crate rand;
 extern crate rand_chacha;
 
+use blake2::{Blake2b512, Digest};
 use std::convert::TryInto;
 use std::fs::File;
-use std::io::{BufWriter, BufReader};
-use blake2::{Blake2b512, Digest};
+use std::io::{BufReader, BufWriter};
 
 fn decode_hex(s: &str) -> Vec<u8> {
     (0..s.len())
@@ -16,10 +16,10 @@ fn decode_hex(s: &str) -> Vec<u8> {
 
 fn main() {
     let current_params = File::open("params").expect("couldn't open `./params`");
-    let mut current_params = BufReader::with_capacity(1024*1024, current_params);
+    let mut current_params = BufReader::with_capacity(1024 * 1024, current_params);
 
     let new_params = File::create("new_params").expect("couldn't create `./new_params`");
-    let mut new_params = BufWriter::with_capacity(1024*1024, new_params);
+    let mut new_params = BufWriter::with_capacity(1024 * 1024, new_params);
 
     let mut sapling_spend = ironfish_phase2::MPCParameters::read(&mut current_params, false)
         .expect("couldn't deserialize Sapling Spend params");
@@ -32,11 +32,15 @@ fn main() {
 
     // Create an RNG based on the outcome of the random beacon
     let rng = &mut {
-        use rand::{SeedableRng};
+        use rand::SeedableRng;
         use rand_chacha::ChaChaRng;
 
         // Place beacon value here (2^42 SHA256 hash of Bitcoin block hash #534861)
-        let beacon_value: [u8; 32] = decode_hex("2bf41a959668e5b9b688e58d613b3dcc99ee159a880cf764ec67e6488d8b8af3").as_slice().try_into().unwrap();
+        let beacon_value: [u8; 32] =
+            decode_hex("2bf41a959668e5b9b688e58d613b3dcc99ee159a880cf764ec67e6488d8b8af3")
+                .as_slice()
+                .try_into()
+                .unwrap();
 
         print!("Final result of beacon: ");
         for b in beacon_value.iter() {
@@ -51,9 +55,15 @@ fn main() {
     let h2 = sapling_output.contribute(rng);
     let h3 = sapling_mint.contribute(rng);
 
-    sapling_spend.write(&mut new_params).expect("couldn't write new Sapling Spend params");
-    sapling_output.write(&mut new_params).expect("couldn't write new Sapling Output params");
-    sapling_mint.write(&mut new_params).expect("couldn't write new Sapling Mint params");
+    sapling_spend
+        .write(&mut new_params)
+        .expect("couldn't write new Sapling Spend params");
+    sapling_output
+        .write(&mut new_params)
+        .expect("couldn't write new Sapling Output params");
+    sapling_mint
+        .write(&mut new_params)
+        .expect("couldn't write new Sapling Mint params");
 
     let mut h = Blake2b512::new();
     h.update(&h1);
@@ -61,9 +71,11 @@ fn main() {
     h.update(&h3);
     let h = h.finalize();
 
-    print!("Done!\n\n\
+    print!(
+        "Done!\n\n\
               Your contribution has been written to `./new_params`\n\n\
-              The contribution you made is bound to the following hash:\n");
+              The contribution you made is bound to the following hash:\n"
+    );
 
     for line in h.chunks(16) {
         print!("\t");

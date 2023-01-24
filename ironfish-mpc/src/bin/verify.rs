@@ -1,8 +1,8 @@
 extern crate pairing;
 
+use blake2::{Blake2b512, Digest};
 use std::fs::File;
 use std::io::BufReader;
-use blake2::{Blake2b512, Digest};
 
 fn main() {
     let params = File::open("params").unwrap();
@@ -17,36 +17,43 @@ fn main() {
     let sapling_mint = ironfish_phase2::MPCParameters::read(&mut params, true)
         .expect("couldn't deserialize Sapling Mint params");
 
-    let sapling_spend_contributions = sapling_spend.verify(ironfish_zkp::proofs::Spend {
-        value_commitment: None,
-        proof_generation_key: None,
-        payment_address: None,
-        commitment_randomness: None,
-        ar: None,
-        auth_path: vec![None; ironfish_zkp::constants::TREE_DEPTH],
-        anchor: None,
-        asset_generator: None,
-        sender_address: None,
-    }).expect("parameters are invalid");
+    let sapling_spend_contributions = sapling_spend
+        .verify(ironfish_zkp::proofs::Spend {
+            value_commitment: None,
+            proof_generation_key: None,
+            payment_address: None,
+            commitment_randomness: None,
+            ar: None,
+            auth_path: vec![None; ironfish_zkp::constants::TREE_DEPTH],
+            anchor: None,
+            asset_generator: None,
+            sender_address: None,
+        })
+        .expect("parameters are invalid");
 
-    let sapling_output_contributions = sapling_output.verify(ironfish_zkp::proofs::Output {
-        value_commitment: None,
-        payment_address: None,
-        commitment_randomness: None,
-        esk: None,
-        asset_generator: None,
-        ar: None,
-        proof_generation_key: None,
-    }).expect("parameters are invalid");
+    let sapling_output_contributions = sapling_output
+        .verify(ironfish_zkp::proofs::Output {
+            value_commitment: None,
+            payment_address: None,
+            commitment_randomness: None,
+            esk: None,
+            asset_generator: None,
+            ar: None,
+            proof_generation_key: None,
+        })
+        .expect("parameters are invalid");
 
-    let sapling_mint_contributions = sapling_mint.verify(ironfish_zkp::proofs::MintAsset {
-        name: [0u8; 32],
-        metadata: [0u8; 77],
-        proof_generation_key: None,
-        public_key_randomness: None,
-    }).expect("parameters are invalid");
+    let sapling_mint_contributions = sapling_mint
+        .verify(ironfish_zkp::proofs::MintAsset {
+            name: [0u8; 32],
+            metadata: [0u8; 77],
+            proof_generation_key: None,
+            public_key_randomness: None,
+        })
+        .expect("parameters are invalid");
 
-    for ((a, b), c) in sapling_spend_contributions.into_iter()
+    for ((a, b), c) in sapling_spend_contributions
+        .into_iter()
         .zip(sapling_output_contributions.into_iter())
         .zip(sapling_mint_contributions)
     {
