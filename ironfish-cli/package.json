@@ -67,6 +67,7 @@
     "axios": "0.21.4",
     "blessed": "0.1.81",
     "blru": "0.1.6",
+    "bs58check-ts": "^0.0.8",
     "buffer-map": "0.0.7",
     "inquirer": "8.2.5",
     "json-colorizer": "2.2.2",

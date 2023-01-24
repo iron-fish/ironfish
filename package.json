@@ -62,8 +62,5 @@
     "ejs": "^3.1.7",
     "handlebars": "4.7.7",
     "node-notifier": "8.0.1"
-  },
-  "dependencies": {
-    "bs58check-ts": "^0.0.8"
   }
 }
