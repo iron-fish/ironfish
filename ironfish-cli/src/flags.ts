@@ -103,10 +103,10 @@ remoteFlags[RpcAuthFlagKey] = RpcAuthFlag as unknown as CompletableOptionFlag
  */
 export const RemoteFlags = remoteFlags
 
-export type IronOpts = { largerThan?: bigint, name: string }
+export type IronOpts = { largerThan?: bigint; name: string }
 
 export const IronFlag = Flags.custom<bigint, IronOpts>({
-  parse: async (input, _ctx, opts) => parseIron(input, opts),
+  parse: async (input, _ctx, opts) => parseIron(input, opts), // eslint-disable-line
   char: 'i',
 })
 
