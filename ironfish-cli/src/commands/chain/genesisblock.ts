@@ -53,7 +53,6 @@ export default class GenesisBlockCommand extends IronfishCommand {
       description: 'The amount of coins in the genesis block',
     }),
     dryRun: Flags.boolean({
-      char: 'd',
       default: false,
       description: 'Display genesis block allocations without creating the genesis block',
     }),

@@ -42,6 +42,7 @@ export const ConfigFlag = Flags.string({
 })
 
 export const DataDirFlag = Flags.string({
+  char: 'd',
   default: DEFAULT_DATA_DIR,
   description: 'The path to the data dir',
   env: 'IRONFISH_DATA_DIR',
