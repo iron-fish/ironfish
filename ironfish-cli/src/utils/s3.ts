@@ -232,6 +232,29 @@ export async function getPresignedUploadUrl(
   return signedUrl
 }
 
+/**
+ * Returns an HTTPS URL to a file in S3.
+ * https://docs.aws.amazon.com/AmazonS3/latest/userguide/transfer-acceleration-getting-started.html
+ * https://docs.aws.amazon.com/AmazonS3/latest/userguide/dual-stack-endpoints.html
+ */
+export function getDownloadUrl(
+  bucket: string,
+  key: string,
+  region: { accelerated: true } | { accelerated: false; regionCode: string },
+  options?: { dualStack?: boolean },
+): string {
+  const dualStack = options?.dualStack ?? false
+
+  let regionString
+  if (region.accelerated) {
+    regionString = dualStack ? 's3-accelerate.dualstack' : 's3-accelerate'
+  } else {
+    regionString = dualStack ? `s3.dualstack.${region.regionCode}` : `s3.${region.regionCode}`
+  }
+
+  return `https://${bucket}.${regionString}.amazonaws.com/${key}`
+}
+
 export async function getBucketObjects(s3: S3Client, bucket: string): Promise<string[]> {
   let truncated = true
   let commandParams: ListObjectsCommandInput = { Bucket: bucket }

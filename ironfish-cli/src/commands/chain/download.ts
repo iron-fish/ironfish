@@ -21,6 +21,7 @@ import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { SnapshotManifest } from '../../snapshot'
 import { ProgressBar } from '../../types'
+import { S3Utils } from '../../utils'
 import { UrlUtils } from '../../utils/url'
 
 export default class Download extends IronfishCommand {
@@ -34,7 +35,7 @@ export default class Download extends IronfishCommand {
       char: 'm',
       parse: (input: string) => Promise.resolve(input.trim()),
       description: 'Manifest url to download snapshot from',
-      default: 'https://ironfish-snapshots.s3-accelerate.amazonaws.com/manifest.json',
+      default: S3Utils.getDownloadUrl('ironfish-snapshots', 'manifest.json', { accelerated: true }),
     }),
     path: Flags.string({
       char: 'p',
