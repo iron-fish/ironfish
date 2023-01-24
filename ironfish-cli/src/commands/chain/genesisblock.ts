@@ -168,7 +168,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     }
 
     // Exit if dry run, otherwise confirm
-    if (flags.dryRun) {
+    if (flags.dry) {
       this.exit(0)
     } else {
       const result = await CliUx.ux.confirm('\nCreate the genesis block? (y)es / (n)o')
