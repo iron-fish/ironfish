@@ -108,6 +108,24 @@ describe('Verifier', () => {
         valid: false,
       })
     })
+
+    it('returns false on transactions containing invalid mint values', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const asset = new Asset(account.spendingKey, 'testcoin', '')
+
+      const transaction = await usePostTxFixture({
+        node: nodeTest.node,
+        wallet: nodeTest.wallet,
+        from: account,
+        mints: [{ asset, value: 100000000000000000000n }],
+      })
+
+      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+      expect(result).toEqual({
+        reason: VerificationResultReason.MAX_MINT_VALUE_EXCEEDED,
+        valid: false,
+      })
+    })
   })
 
   describe('Block', () => {
@@ -183,7 +201,7 @@ describe('Verifier', () => {
       })
     })
 
-    it('rejects a block with an invalid mint', async () => {
+    it('rejects a block with an invalid mint name', async () => {
       const account = await useAccountFixture(nodeTest.node.wallet)
       const asset = new Asset(account.spendingKey, 'testcoin', '')
 
@@ -200,6 +218,27 @@ describe('Verifier', () => {
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_ASSET_NAME,
+        valid: false,
+      })
+    })
+
+    it('rejects a block with an invalid mint value', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const asset = new Asset(account.spendingKey, 'testcoin', '')
+
+      const block = await useMintBlockFixture({
+        node: nodeTest.node,
+        account,
+        asset,
+        value: BigInt(5),
+      })
+
+      jest
+        .spyOn(block.transactions[1], 'mints', 'get')
+        .mockReturnValue([{ asset, value: 100000000000000000000n }])
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        reason: VerificationResultReason.MAX_MINT_VALUE_EXCEEDED,
         valid: false,
       })
     })
