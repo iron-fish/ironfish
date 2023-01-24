@@ -44,9 +44,9 @@ router.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
       const feeRates = feeEstimator.estimateFeeRates()
 
       request.end({
-        low: feeRates.low.toString(),
-        medium: feeRates.medium.toString(),
-        high: feeRates.high.toString(),
+        low: feeRates.low > 0 ? feeRates.low.toString() : '1',
+        medium: feeRates.medium > 0 ? feeRates.medium.toString() : '1',
+        high: feeRates.high > 0 ? feeRates.high.toString() : '1',
       })
     }
   },
