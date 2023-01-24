@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { createRootLogger, setLogPrefixFromConfig } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -33,8 +34,10 @@ export default class Ceremony extends IronfishCommand {
 
     const s3Client = S3Utils.getS3Client(true)
 
+    setLogPrefixFromConfig(`[%tag%]`)
+
     const server = new CeremonyServer({
-      logger: this.logger,
+      logger: createRootLogger(),
       port: DEFAULT_PORT,
       host: DEFAULT_HOST,
       s3Bucket: flags.bucket,
