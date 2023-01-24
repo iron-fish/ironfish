@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AccountImport, JSONUtils, PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import bs58safe from 'bs58check-ts'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import bs58safe from 'bs58check-ts'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
@@ -20,8 +20,7 @@ export class ImportCommand extends IronfishCommand {
     base58: Flags.boolean({
       allowNo: true,
       default: false,
-      description:
-        'Import the account using base58 encoding, rather than the default hex encoding',
+      description: 'Import the account using base58 encoding, rather than the default hex encoding',
     }),
   }
 
