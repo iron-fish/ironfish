@@ -9,7 +9,6 @@ on:
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
       - "ironfish-zkp/**"
-      - "ironfish-setup/**"
       - "rust-toolchain"
       - ".github/workflows/rust*"
       - ".cargo/**"
