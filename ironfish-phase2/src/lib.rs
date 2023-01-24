@@ -673,7 +673,7 @@ impl MPCParameters {
     /// sure their contribution is in the final parameters, by
     /// checking to see if it appears in the output of
     /// `MPCParameters::verify`.
-    pub fn contribute<R: Rng>(
+    pub fn contribute<R: rand::RngCore>(
         &mut self,
         rng: &mut R
     ) -> [u8; 64]

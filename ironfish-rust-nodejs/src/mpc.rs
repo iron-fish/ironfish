@@ -7,6 +7,7 @@ use napi_derive::napi;
 pub struct Contribute {
   input_path: String,
   output_path: String,
+  seed: Option<String>,
 }
 
 #[napi]
@@ -15,7 +16,7 @@ impl Task for Contribute {
   type JsValue = JsString;
  
   fn compute(&mut self) -> Result<Self::Output> {
-    Ok(ironfish_mpc::compute(&self.input_path, &self.output_path))
+    Ok(ironfish_mpc::compute(&self.input_path, &self.output_path, &self.seed))
   }
  
   fn resolve(&mut self, env: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -24,8 +25,8 @@ impl Task for Contribute {
 }
 
 #[napi]
-pub fn contribute(input_path: String, output_path: String) -> AsyncTask<Contribute> {
-  AsyncTask::new(Contribute { input_path, output_path })
+pub fn contribute(input_path: String, output_path: String, seed: Option<String>) -> AsyncTask<Contribute> {
+  AsyncTask::new(Contribute { input_path, output_path, seed })
 }
 
 pub struct VerifyTransform {

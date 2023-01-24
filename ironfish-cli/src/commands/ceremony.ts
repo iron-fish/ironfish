@@ -42,6 +42,13 @@ export default class Ceremony extends IronfishCommand {
 
     let localHash: string | null = null
 
+    // Prompt for randomness
+    let randomness: string | null = await CliUx.ux.prompt(
+      "Provide some randomness to contribute to the ceremony. For more information on where this should come from and it's importance, please read [link_to_blog_or_randomness_info]. If none is provided, it will automatically be generated for you (press enter)",
+      { required: false },
+    )
+    randomness = randomness.length ? randomness : null
+
     // Create the client and bind events
     const client = new CeremonyClient({
       host,
@@ -58,7 +65,7 @@ export default class Ceremony extends IronfishCommand {
 
       this.log(`Starting contribution. You are contributor #${contributionNumber}`)
 
-      CliUx.ux.action.start(`Downloading params to ${inputPath}`)
+      CliUx.ux.action.start(`Downloading the previous contribution to ${inputPath}`)
 
       const fileHandle = await fsAsync.open(inputPath, 'w')
 
@@ -78,9 +85,9 @@ export default class Ceremony extends IronfishCommand {
 
       CliUx.ux.action.stop(`done`)
 
-      CliUx.ux.action.start(`Generating contribution`)
+      CliUx.ux.action.start(`Contributing your randomness`)
 
-      localHash = await contribute(inputPath, outputPath)
+      localHash = await contribute(inputPath, outputPath, randomness)
 
       CliUx.ux.action.stop(`done`)
 
@@ -157,7 +164,9 @@ export default class Ceremony extends IronfishCommand {
         if (CliUx.ux.action.running) {
           CliUx.ux.action.stop('error')
         }
-        this.log('Lost connection to contribution server. Retrying in 5 seconds.')
+        this.log(
+          `We're sorry, but your contribution either timed out or you lost connection. Attempting to connect again in 5 seconds.`,
+        )
         await PromiseUtils.sleep(5000)
       }
     }

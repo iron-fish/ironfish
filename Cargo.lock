@@ -713,6 +713,7 @@ dependencies = [
  "pairing 0.23.0",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
+ "rand_seeder",
 ]
 
 [[package]]
@@ -1174,6 +1175,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
 dependencies = [
  "rand_core 0.5.1",
+]
+
+[[package]]
+name = "rand_seeder"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf2890aaef0aa82719a50e808de264f9484b74b442e1a3a0e5ee38243ac40bdb"
+dependencies = [
+ "rand_core 0.6.4",
 ]
 
 [[package]]

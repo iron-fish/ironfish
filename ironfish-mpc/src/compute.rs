@@ -4,8 +4,10 @@ extern crate rand;
 use std::fs::File;
 use std::io::{BufWriter, BufReader};
 use blake2::{Blake2b512, Digest};
+use rand_chacha::ChaCha20Rng;
+use rand_seeder::Seeder;
 
-pub fn compute(input_path: &str, output_path: &str) -> String {
+pub fn compute(input_path: &str, output_path: &str, seed: &Option<String>) -> String {
     let current_params = File::open(input_path).expect(&format!("couldn't open `{}`", input_path));
     let mut current_params = BufReader::with_capacity(1024*1024, current_params);
 
@@ -21,7 +23,10 @@ pub fn compute(input_path: &str, output_path: &str) -> String {
     let mut sapling_mint = ironfish_phase2::MPCParameters::read(&mut current_params, false)
         .expect("couldn't deserialize Sapling Mint params");
 
-    let rng = &mut rand::thread_rng();
+    let rng: &mut Box<dyn rand::RngCore> = &mut match seed {
+        Some(s) => Box::new(Seeder::from(s).make_rng::<ChaCha20Rng>()),
+        None => Box::new(rand::thread_rng()),
+    };
 
     let h1 = sapling_spend.contribute(rng);
     let h2 = sapling_output.contribute(rng);
