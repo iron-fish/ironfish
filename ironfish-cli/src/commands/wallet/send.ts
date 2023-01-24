@@ -7,6 +7,8 @@ import {
   CreateTransactionResponse,
   CurrencyUtils,
   isValidPublicAddress,
+  MAXIMUM_ORE_AMOUNT,
+  MINIMUM_ORE_AMOUNT,
   RawTransactionSerde,
   RpcResponseEnded,
   Transaction,
