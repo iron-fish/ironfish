@@ -125,7 +125,7 @@ export class Send extends IronfishCommand {
     }
 
     if (flags.feeRate !== undefined) {
-      feeRate = CurrencyUtils.encode(flags.Rate)
+      feeRate = CurrencyUtils.encode(flags.feeRate)
     }
 
     if (!from) {
