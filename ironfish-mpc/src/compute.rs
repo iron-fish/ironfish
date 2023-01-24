@@ -8,10 +8,12 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter};
 
 pub fn compute(input_path: &str, output_path: &str, seed: &Option<String>) -> String {
-    let current_params = File::open(input_path).expect(&format!("couldn't open `{}`", input_path));
+    let current_params =
+        File::open(input_path).unwrap_or_else(|_| panic!("couldn't open `{}`", input_path));
     let mut current_params = BufReader::with_capacity(1024 * 1024, current_params);
 
-    let new_params = File::create(output_path).expect(&format!("couldn't open `{}`", output_path));
+    let new_params =
+        File::create(output_path).unwrap_or_else(|_| panic!("couldn't create `{}`", output_path));
     let mut new_params = BufWriter::with_capacity(1024 * 1024, new_params);
 
     let mut sapling_spend = ironfish_phase2::MPCParameters::read(&mut current_params, false)
@@ -43,9 +45,9 @@ pub fn compute(input_path: &str, output_path: &str, seed: &Option<String>) -> St
         .expect("couldn't write new Sapling Mint params");
 
     let mut h = Blake2b512::new();
-    h.update(&h1);
-    h.update(&h2);
-    h.update(&h3);
+    h.update(h1);
+    h.update(h2);
+    h.update(h3);
     let h = h.finalize();
 
     format!("{:02x}", h)

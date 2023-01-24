@@ -5,11 +5,12 @@ use std::fs::File;
 use std::io::BufReader;
 
 pub fn verify_transform(params_path: &str, new_params_path: &str) -> String {
-    let params = File::open(params_path).expect(&format!("couldn't open `{}`", params_path));
+    let params =
+        File::open(params_path).unwrap_or_else(|_| panic!("couldn't open `{}`", params_path));
     let mut params = BufReader::with_capacity(1024 * 1024, params);
 
-    let new_params =
-        File::open(new_params_path).expect(&format!("couldn't open `{}`", new_params_path));
+    let new_params = File::open(new_params_path)
+        .unwrap_or_else(|_| panic!("couldn't open `{}`", new_params_path));
     let mut new_params = BufReader::with_capacity(1024 * 1024, new_params);
 
     let sapling_spend = ironfish_phase2::MPCParameters::read(&mut params, false)
@@ -46,9 +47,9 @@ pub fn verify_transform(params_path: &str, new_params_path: &str) -> String {
     };
 
     let mut h = Blake2b512::new();
-    h.update(&h1);
-    h.update(&h2);
-    h.update(&h3);
+    h.update(h1);
+    h.update(h2);
+    h.update(h3);
     let h = h.finalize();
 
     format!("{:02x}", h)

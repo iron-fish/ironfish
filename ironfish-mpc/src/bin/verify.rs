@@ -58,9 +58,9 @@ fn main() {
         .zip(sapling_mint_contributions)
     {
         let mut h = Blake2b512::new();
-        h.update(&a);
-        h.update(&b);
-        h.update(&c);
+        h.update(a);
+        h.update(b);
+        h.update(c);
         let h = h.finalize();
 
         println!("{}", into_hex(h.as_ref()));
@@ -70,7 +70,7 @@ fn main() {
 fn into_hex(h: &[u8]) -> String {
     let mut f = String::new();
 
-    for byte in &h[..] {
+    for byte in h {
         f += &format!("{:02x}", byte);
     }
 

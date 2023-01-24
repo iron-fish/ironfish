@@ -210,6 +210,7 @@ use blake2::{Blake2b512, Digest};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use std::{
+    fmt,
     fs::File,
     io::{self, BufReader, Read, Write},
     ops::{AddAssign, Mul},
@@ -349,6 +350,15 @@ impl<Scalar: PrimeField> ConstraintSystem<Scalar> for KeypairAssembly<Scalar> {
     }
 }
 
+#[derive(Debug)]
+pub struct FailedVerification;
+
+impl fmt::Display for FailedVerification {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Verification failed")
+    }
+}
+
 /// MPC parameters are just like bellman `Parameters` except, when serialized,
 /// they contain a transcript of contributions at the end, which can be verified.
 #[derive(Clone)]
@@ -361,7 +371,7 @@ pub struct MPCParameters {
 impl PartialEq for MPCParameters {
     fn eq(&self, other: &MPCParameters) -> bool {
         self.params == other.params
-            && &self.cs_hash[..] == &other.cs_hash[..]
+            && self.cs_hash[..] == other.cs_hash[..]
             && self.contributions == other.contributions
     }
 }
@@ -430,7 +440,7 @@ impl MPCParameters {
             reader.read_exact(byte_buffer.as_mut())?;
 
             let point = bls12_381::G1Affine::from_uncompressed(&byte_buffer)
-                .unwrap_or_else(|| G1Affine::identity());
+                .unwrap_or_else(G1Affine::identity);
 
             if bool::from(point.is_identity()) {
                 return Err(io::Error::new(
@@ -447,7 +457,7 @@ impl MPCParameters {
             reader.read_exact(byte_buffer.as_mut())?;
 
             let point = bls12_381::G2Affine::from_uncompressed(&byte_buffer)
-                .unwrap_or_else(|| G2Affine::identity());
+                .unwrap_or_else(G2Affine::identity);
 
             if bool::from(point.is_identity()) {
                 return Err(io::Error::new(
@@ -495,12 +505,13 @@ impl MPCParameters {
         let mut b_g1 = vec![G1Projective::identity(); assembly.num_inputs + assembly.num_aux];
         let mut b_g2 = vec![G2Projective::identity(); assembly.num_inputs + assembly.num_aux];
 
+        #[allow(clippy::too_many_arguments)]
         fn eval(
             // Lagrange coefficients for tau
-            coeffs_g1: &Vec<G1Affine>,
-            coeffs_g2: &Vec<G2Affine>,
-            alpha_coeffs_g1: &Vec<G1Affine>,
-            beta_coeffs_g1: &Vec<G1Affine>,
+            coeffs_g1: &[G1Affine],
+            coeffs_g2: &[G2Affine],
+            alpha_coeffs_g1: &[G1Affine],
+            beta_coeffs_g1: &[G1Affine],
 
             // QAP polynomials
             at: &[Vec<(bls12_381::Scalar, usize)>],
@@ -611,8 +622,8 @@ impl MPCParameters {
 
         let vk = VerifyingKey {
             alpha_g1: alpha,
-            beta_g1: beta_g1,
-            beta_g2: beta_g2,
+            beta_g1,
+            beta_g2,
             gamma_g2: G2Affine::generator(),
             delta_g1: G1Affine::generator(),
             delta_g2: G2Affine::generator(),
@@ -620,7 +631,7 @@ impl MPCParameters {
         };
 
         let params = Parameters {
-            vk: vk,
+            vk,
             h: Arc::new(h),
             l: Arc::new(l_affine),
 
@@ -658,8 +669,8 @@ impl MPCParameters {
         cs_hash.copy_from_slice(h.as_ref());
 
         Ok(MPCParameters {
-            params: params,
-            cs_hash: cs_hash,
+            params,
+            cs_hash,
             contributions: vec![],
         })
     }
@@ -691,8 +702,8 @@ impl MPCParameters {
         }
 
         let delta_inv = privkey.delta.invert().unwrap();
-        let mut l = (&self.params.l[..]).to_vec();
-        let mut h = (&self.params.h[..]).to_vec();
+        let mut l = (self.params.l[..]).to_vec();
+        let mut h = (self.params.h[..]).to_vec();
         batch_exp(&mut l, delta_inv);
         batch_exp(&mut h, delta_inv);
         self.params.l = Arc::new(l);
@@ -720,50 +731,53 @@ impl MPCParameters {
     /// contributors obtained when they ran
     /// `MPCParameters::contribute`, for ensuring that contributions
     /// exist in the final parameters.
-    pub fn verify<C: Circuit<bls12_381::Scalar>>(&self, circuit: C) -> Result<Vec<[u8; 64]>, ()> {
-        let initial_params = MPCParameters::new(circuit).map_err(|_| ())?;
+    pub fn verify<C: Circuit<bls12_381::Scalar>>(
+        &self,
+        circuit: C,
+    ) -> Result<Vec<[u8; 64]>, FailedVerification> {
+        let initial_params = MPCParameters::new(circuit).map_err(|_| FailedVerification)?;
 
         // H/L will change, but should have same length
         if initial_params.params.h.len() != self.params.h.len() {
-            return Err(());
+            return Err(FailedVerification);
         }
         if initial_params.params.l.len() != self.params.l.len() {
-            return Err(());
+            return Err(FailedVerification);
         }
 
         // A/B_G1/B_G2 doesn't change at all
         if initial_params.params.a != self.params.a {
-            return Err(());
+            return Err(FailedVerification);
         }
         if initial_params.params.b_g1 != self.params.b_g1 {
-            return Err(());
+            return Err(FailedVerification);
         }
         if initial_params.params.b_g2 != self.params.b_g2 {
-            return Err(());
+            return Err(FailedVerification);
         }
 
         // alpha/beta/gamma don't change
         if initial_params.params.vk.alpha_g1 != self.params.vk.alpha_g1 {
-            return Err(());
+            return Err(FailedVerification);
         }
         if initial_params.params.vk.beta_g1 != self.params.vk.beta_g1 {
-            return Err(());
+            return Err(FailedVerification);
         }
         if initial_params.params.vk.beta_g2 != self.params.vk.beta_g2 {
-            return Err(());
+            return Err(FailedVerification);
         }
         if initial_params.params.vk.gamma_g2 != self.params.vk.gamma_g2 {
-            return Err(());
+            return Err(FailedVerification);
         }
 
         // IC shouldn't change, as gamma doesn't change
         if initial_params.params.vk.ic != self.params.vk.ic {
-            return Err(());
+            return Err(FailedVerification);
         }
 
         // cs_hash should be the same
-        if &initial_params.cs_hash[..] != &self.cs_hash[..] {
-            return Err(());
+        if initial_params.cs_hash[..] != self.cs_hash[..] {
+            return Err(FailedVerification);
         }
 
         let sink = io::sink();
@@ -788,19 +802,19 @@ impl MPCParameters {
 
             // The transcript must be consistent
             if &pubkey.transcript[..] != h.as_ref() {
-                return Err(());
+                return Err(FailedVerification);
             }
 
             let r = hash_to_g2(h.as_ref());
 
             // Check the signature of knowledge
             if !same_ratio((r, pubkey.r_delta), (pubkey.s, pubkey.s_delta)) {
-                return Err(());
+                return Err(FailedVerification);
             }
 
             // Check the change from the old delta is consistent
             if !same_ratio((current_delta, pubkey.delta_after), (r, pubkey.r_delta)) {
-                return Err(());
+                return Err(FailedVerification);
             }
 
             current_delta = pubkey.delta_after;
@@ -818,7 +832,7 @@ impl MPCParameters {
 
         // Current parameters should have consistent delta in G1
         if current_delta != self.params.vk.delta_g1 {
-            return Err(());
+            return Err(FailedVerification);
         }
 
         // Current parameters should have consistent delta in G2
@@ -826,7 +840,7 @@ impl MPCParameters {
             (G1Affine::generator(), current_delta),
             (G2Affine::generator(), self.params.vk.delta_g2),
         ) {
-            return Err(());
+            return Err(FailedVerification);
         }
 
         // H and L queries should be updated with delta^-1
@@ -834,14 +848,14 @@ impl MPCParameters {
             merge_pairs(&initial_params.params.h, &self.params.h),
             (self.params.vk.delta_g2, G2Affine::generator()), // reversed for inverse
         ) {
-            return Err(());
+            return Err(FailedVerification);
         }
 
         if !same_ratio(
             merge_pairs(&initial_params.params.l, &self.params.l),
             (self.params.vk.delta_g2, G2Affine::generator()), // reversed for inverse
         ) {
-            return Err(());
+            return Err(FailedVerification);
         }
 
         Ok(result)
@@ -923,8 +937,7 @@ impl PublicKey {
         let mut g2_repr: [u8; 192] = [0u8; 192];
 
         reader.read_exact(g1_repr.as_mut())?;
-        let delta_after =
-            G1Affine::from_uncompressed(&g1_repr).unwrap_or_else(|| G1Affine::identity());
+        let delta_after = G1Affine::from_uncompressed(&g1_repr).unwrap_or_else(G1Affine::identity);
 
         if bool::from(delta_after.is_identity()) {
             return Err(io::Error::new(
@@ -934,7 +947,7 @@ impl PublicKey {
         }
 
         reader.read_exact(g1_repr.as_mut())?;
-        let s = G1Affine::from_uncompressed(&g1_repr).unwrap_or_else(|| G1Affine::identity());
+        let s = G1Affine::from_uncompressed(&g1_repr).unwrap_or_else(G1Affine::identity);
 
         if bool::from(s.is_identity()) {
             return Err(io::Error::new(
@@ -944,7 +957,7 @@ impl PublicKey {
         }
 
         reader.read_exact(g1_repr.as_mut())?;
-        let s_delta = G1Affine::from_uncompressed(&g1_repr).unwrap_or_else(|| G1Affine::identity());
+        let s_delta = G1Affine::from_uncompressed(&g1_repr).unwrap_or_else(G1Affine::identity);
 
         if bool::from(s_delta.is_identity()) {
             return Err(io::Error::new(
@@ -954,7 +967,7 @@ impl PublicKey {
         }
 
         reader.read_exact(g2_repr.as_mut())?;
-        let r_delta = G2Affine::from_uncompressed(&g2_repr).unwrap_or_else(|| G2Affine::identity());
+        let r_delta = G2Affine::from_uncompressed(&g2_repr).unwrap_or_else(G2Affine::identity);
 
         if bool::from(r_delta.is_identity()) {
             return Err(io::Error::new(
@@ -982,64 +995,76 @@ impl PartialEq for PublicKey {
             && self.s == other.s
             && self.s_delta == other.s_delta
             && self.r_delta == other.r_delta
-            && &self.transcript[..] == &other.transcript[..]
+            && self.transcript[..] == other.transcript[..]
+    }
+}
+
+#[derive(Debug)]
+pub struct FailedContributionVerification;
+
+impl fmt::Display for FailedContributionVerification {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Failed to verify contribution")
     }
 }
 
 /// Verify a contribution, given the old parameters and
 /// the new parameters. Returns the hash of the contribution.
-pub fn verify_contribution(before: &MPCParameters, after: &MPCParameters) -> Result<[u8; 64], ()> {
+pub fn verify_contribution(
+    before: &MPCParameters,
+    after: &MPCParameters,
+) -> Result<[u8; 64], FailedContributionVerification> {
     // Transformation involves a single new object
     if after.contributions.len() != (before.contributions.len() + 1) {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     // None of the previous transformations should change
-    if &before.contributions[..] != &after.contributions[0..before.contributions.len()] {
-        return Err(());
+    if before.contributions[..] != after.contributions[0..before.contributions.len()] {
+        return Err(FailedContributionVerification);
     }
 
     // H/L will change, but should have same length
     if before.params.h.len() != after.params.h.len() {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
     if before.params.l.len() != after.params.l.len() {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     // A/B_G1/B_G2 doesn't change at all
     if before.params.a != after.params.a {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
     if before.params.b_g1 != after.params.b_g1 {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
     if before.params.b_g2 != after.params.b_g2 {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     // alpha/beta/gamma don't change
     if before.params.vk.alpha_g1 != after.params.vk.alpha_g1 {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
     if before.params.vk.beta_g1 != after.params.vk.beta_g1 {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
     if before.params.vk.beta_g2 != after.params.vk.beta_g2 {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
     if before.params.vk.gamma_g2 != after.params.vk.gamma_g2 {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     // IC shouldn't change, as gamma doesn't change
     if before.params.vk.ic != after.params.vk.ic {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     // cs_hash should be the same
-    if &before.cs_hash[..] != &after.cs_hash[..] {
-        return Err(());
+    if before.cs_hash[..] != after.cs_hash[..] {
+        return Err(FailedContributionVerification);
     }
 
     let sink = io::sink();
@@ -1059,14 +1084,14 @@ pub fn verify_contribution(before: &MPCParameters, after: &MPCParameters) -> Res
 
     // The transcript must be consistent
     if &pubkey.transcript[..] != h.as_ref() {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     let r = hash_to_g2(h.as_ref());
 
     // Check the signature of knowledge
     if !same_ratio((r, pubkey.r_delta), (pubkey.s, pubkey.s_delta)) {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     // Check the change from the old delta is consistent
@@ -1074,12 +1099,12 @@ pub fn verify_contribution(before: &MPCParameters, after: &MPCParameters) -> Res
         (before.params.vk.delta_g1, pubkey.delta_after),
         (r, pubkey.r_delta),
     ) {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     // Current parameters should have consistent delta in G1
     if pubkey.delta_after != after.params.vk.delta_g1 {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     // Current parameters should have consistent delta in G2
@@ -1087,7 +1112,7 @@ pub fn verify_contribution(before: &MPCParameters, after: &MPCParameters) -> Res
         (G1Affine::generator(), pubkey.delta_after),
         (G2Affine::generator(), after.params.vk.delta_g2),
     ) {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     // H and L queries should be updated with delta^-1
@@ -1095,14 +1120,14 @@ pub fn verify_contribution(before: &MPCParameters, after: &MPCParameters) -> Res
         merge_pairs(&before.params.h, &after.params.h),
         (after.params.vk.delta_g2, before.params.vk.delta_g2), // reversed for inverse
     ) {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     if !same_ratio(
         merge_pairs(&before.params.l, &after.params.l),
         (after.params.vk.delta_g2, before.params.vk.delta_g2), // reversed for inverse
     ) {
-        return Err(());
+        return Err(FailedContributionVerification);
     }
 
     let sink = io::sink();
@@ -1224,12 +1249,12 @@ fn keypair<R: Rng>(rng: &mut R, current: &MPCParameters) -> (PublicKey, PrivateK
     (
         PublicKey {
             delta_after: G1Affine::from(current.params.vk.delta_g1.mul(delta)),
-            s: s,
-            s_delta: s_delta,
-            r_delta: r_delta,
-            transcript: transcript,
+            s,
+            s_delta,
+            r_delta,
+            transcript,
         },
-        PrivateKey { delta: delta },
+        PrivateKey { delta },
     )
 }
 
@@ -1262,7 +1287,7 @@ impl<W: Write> HashWriter<W> {
     /// Construct a new `HashWriter` given an existing `writer` by value.
     pub fn new(writer: W) -> Self {
         HashWriter {
-            writer: writer,
+            writer,
             hasher: Blake2b512::new(),
         }
     }
@@ -1296,10 +1321,10 @@ impl<W: Write> Write for HashWriter<W> {
 /// and so doesn't implement `PartialEq` for `[T; 64]`
 pub fn contains_contribution(contributions: &[[u8; 64]], my_contribution: &[u8; 64]) -> bool {
     for contrib in contributions {
-        if &contrib[..] == &my_contribution[..] {
+        if contrib[..] == my_contribution[..] {
             return true;
         }
     }
 
-    return false;
+    false
 }

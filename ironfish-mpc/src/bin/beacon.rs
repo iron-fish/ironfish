@@ -46,7 +46,7 @@ fn main() {
         for b in beacon_value.iter() {
             print!("{:02x}", b);
         }
-        println!("");
+        println!();
 
         ChaChaRng::from_seed(beacon_value)
     };
@@ -66,9 +66,9 @@ fn main() {
         .expect("couldn't write new Sapling Mint params");
 
     let mut h = Blake2b512::new();
-    h.update(&h1);
-    h.update(&h2);
-    h.update(&h3);
+    h.update(h1);
+    h.update(h2);
+    h.update(h3);
     let h = h.finalize();
 
     print!(
@@ -85,7 +85,7 @@ fn main() {
             }
             print!(" ");
         }
-        println!("");
+        println!();
     }
 
     println!("\n");
