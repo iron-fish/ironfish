@@ -49,6 +49,7 @@ export class Send extends IronfishCommand {
     feeRate: IronFlag({
       char: 'r',
       description: 'The fee rate amount in IRON/Kilobyte',
+      largerThan: '0',
     }),
     memo: Flags.string({
       char: 'm',
