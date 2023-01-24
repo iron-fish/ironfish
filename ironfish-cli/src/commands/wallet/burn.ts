@@ -29,7 +29,7 @@ export class Burn extends IronfishCommand {
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'Amount of coins to burn in IRON',
+      description: 'Amount of coins to burn',
     }),
     assetId: Flags.string({
       char: 'i',
