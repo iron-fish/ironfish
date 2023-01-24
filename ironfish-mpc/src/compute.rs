@@ -7,23 +7,22 @@ use rand_seeder::Seeder;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 
-pub fn compute(input_path: &str, output_path: &str, seed: &Option<String>) -> String {
-    let current_params =
-        File::open(input_path).unwrap_or_else(|_| panic!("couldn't open `{}`", input_path));
+pub fn compute(
+    input_path: &str,
+    output_path: &str,
+    seed: &Option<String>,
+) -> Result<String, std::io::Error> {
+    let current_params = File::open(input_path)?;
     let mut current_params = BufReader::with_capacity(1024 * 1024, current_params);
 
-    let new_params =
-        File::create(output_path).unwrap_or_else(|_| panic!("couldn't create `{}`", output_path));
+    let new_params = File::create(output_path)?;
     let mut new_params = BufWriter::with_capacity(1024 * 1024, new_params);
 
-    let mut sapling_spend = ironfish_phase2::MPCParameters::read(&mut current_params, false)
-        .expect("couldn't deserialize Sapling Spend params");
+    let mut sapling_spend = ironfish_phase2::MPCParameters::read(&mut current_params, false)?;
 
-    let mut sapling_output = ironfish_phase2::MPCParameters::read(&mut current_params, false)
-        .expect("couldn't deserialize Sapling Output params");
+    let mut sapling_output = ironfish_phase2::MPCParameters::read(&mut current_params, false)?;
 
-    let mut sapling_mint = ironfish_phase2::MPCParameters::read(&mut current_params, false)
-        .expect("couldn't deserialize Sapling Mint params");
+    let mut sapling_mint = ironfish_phase2::MPCParameters::read(&mut current_params, false)?;
 
     let rng: &mut Box<dyn rand::RngCore> = &mut match seed {
         Some(s) => Box::new(Seeder::from(s).make_rng::<ChaCha20Rng>()),
@@ -50,5 +49,5 @@ pub fn compute(input_path: &str, output_path: &str, seed: &Option<String>) -> St
     h.update(h3);
     let h = h.finalize();
 
-    format!("{:02x}", h)
+    Ok(format!("{:02x}", h))
 }

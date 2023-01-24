@@ -207,24 +207,24 @@ export class CeremonyServer {
       return this.handleContributionComplete(client).catch((e) => {
         if (e instanceof Error) {
           client.logger.error(
-            `error handling contribution complete ${ErrorUtils.renderError(e)}`,
+            `Error handling contribution-complete: ${ErrorUtils.renderError(e)}`,
           )
-          this.closeClient(client, new Error(`error generating upload url`))
+          this.closeClient(client, new Error(`Error generating upload url`))
           return
         }
 
-        client.logger.error(`unknown error handling contribution complete`)
+        client.logger.error(`Error handling contribution-complete: unknown`)
         return
       })
     } else if (parsedMessage.method === 'upload-complete') {
       return this.handleUploadComplete(client).catch((e) => {
         if (e instanceof Error) {
-          client.logger.error(`error handling upload complete ${ErrorUtils.renderError(e)}`)
-          this.closeClient(client, new Error(`error verifying uploaded params`))
+          client.logger.error(`Error handling upload-complete: ${ErrorUtils.renderError(e)}`)
+          this.closeClient(client, new Error(`Error verifying uploaded params`))
           return
         }
 
-        client.logger.error(`unknown error handling upload complete`)
+        client.logger.error(`Error handling upload-complete: Unknown`)
         return
       })
     } else {
@@ -239,7 +239,7 @@ export class CeremonyServer {
 
     this.currentContributor.actionTimeout && clearTimeout(this.currentContributor.actionTimeout)
 
-    client.logger.info('generating presigned URL')
+    client.logger.info('Generating presigned URL')
 
     const presignedUrl = await S3Utils.getPresignedUploadUrl(
       this.s3Client,
@@ -248,7 +248,7 @@ export class CeremonyServer {
       PRESIGNED_EXPIRATION_SEC,
     )
 
-    client.logger.info('sending back presigned URL')
+    client.logger.info('Sending back presigned URL')
 
     this.currentContributor.actionTimeout = setTimeout(() => {
       this.closeClient(client, new Error('Failed to complete upload in time'))
@@ -273,7 +273,7 @@ export class CeremonyServer {
 
     this.currentContributor.actionTimeout && clearTimeout(this.currentContributor.actionTimeout)
 
-    client.logger.info('getting latest contribution from S3')
+    client.logger.info('Getting latest contribution from S3')
     const latestParamName = await this.getLatestParamName()
     const nextParamNumber = parseInt(latestParamName.split('_')[1]) + 1
 

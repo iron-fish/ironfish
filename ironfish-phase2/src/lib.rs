@@ -212,7 +212,7 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::{
     fmt,
     fs::File,
-    io::{self, BufReader, Read, Write},
+    io::{self, BufReader, Error, ErrorKind, Read, Write},
     ops::{AddAssign, Mul},
     sync::Arc,
 };
@@ -999,13 +999,8 @@ impl PartialEq for PublicKey {
     }
 }
 
-#[derive(Debug)]
-pub struct FailedContributionVerification;
-
-impl fmt::Display for FailedContributionVerification {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Failed to verify contribution")
-    }
+fn failed_contribution_error() -> std::io::Error {
+    Error::new(ErrorKind::Other, "Failed to verify contribution")
 }
 
 /// Verify a contribution, given the old parameters and
@@ -1013,58 +1008,58 @@ impl fmt::Display for FailedContributionVerification {
 pub fn verify_contribution(
     before: &MPCParameters,
     after: &MPCParameters,
-) -> Result<[u8; 64], FailedContributionVerification> {
+) -> Result<[u8; 64], std::io::Error> {
     // Transformation involves a single new object
     if after.contributions.len() != (before.contributions.len() + 1) {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     // None of the previous transformations should change
     if before.contributions[..] != after.contributions[0..before.contributions.len()] {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     // H/L will change, but should have same length
     if before.params.h.len() != after.params.h.len() {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
     if before.params.l.len() != after.params.l.len() {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     // A/B_G1/B_G2 doesn't change at all
     if before.params.a != after.params.a {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
     if before.params.b_g1 != after.params.b_g1 {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
     if before.params.b_g2 != after.params.b_g2 {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     // alpha/beta/gamma don't change
     if before.params.vk.alpha_g1 != after.params.vk.alpha_g1 {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
     if before.params.vk.beta_g1 != after.params.vk.beta_g1 {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
     if before.params.vk.beta_g2 != after.params.vk.beta_g2 {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
     if before.params.vk.gamma_g2 != after.params.vk.gamma_g2 {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     // IC shouldn't change, as gamma doesn't change
     if before.params.vk.ic != after.params.vk.ic {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     // cs_hash should be the same
     if before.cs_hash[..] != after.cs_hash[..] {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     let sink = io::sink();
@@ -1084,14 +1079,14 @@ pub fn verify_contribution(
 
     // The transcript must be consistent
     if &pubkey.transcript[..] != h.as_ref() {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     let r = hash_to_g2(h.as_ref());
 
     // Check the signature of knowledge
     if !same_ratio((r, pubkey.r_delta), (pubkey.s, pubkey.s_delta)) {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     // Check the change from the old delta is consistent
@@ -1099,12 +1094,12 @@ pub fn verify_contribution(
         (before.params.vk.delta_g1, pubkey.delta_after),
         (r, pubkey.r_delta),
     ) {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     // Current parameters should have consistent delta in G1
     if pubkey.delta_after != after.params.vk.delta_g1 {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     // Current parameters should have consistent delta in G2
@@ -1112,7 +1107,7 @@ pub fn verify_contribution(
         (G1Affine::generator(), pubkey.delta_after),
         (G2Affine::generator(), after.params.vk.delta_g2),
     ) {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     // H and L queries should be updated with delta^-1
@@ -1120,14 +1115,14 @@ pub fn verify_contribution(
         merge_pairs(&before.params.h, &after.params.h),
         (after.params.vk.delta_g2, before.params.vk.delta_g2), // reversed for inverse
     ) {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     if !same_ratio(
         merge_pairs(&before.params.l, &after.params.l),
         (after.params.vk.delta_g2, before.params.vk.delta_g2), // reversed for inverse
     ) {
-        return Err(FailedContributionVerification);
+        return Err(failed_contribution_error());
     }
 
     let sink = io::sink();

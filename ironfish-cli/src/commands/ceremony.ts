@@ -83,24 +83,23 @@ export default class Ceremony extends IronfishCommand {
 
       await pipeline(response.data, fileHandle.createWriteStream())
 
-      CliUx.ux.action.stop(`done`)
+      CliUx.ux.action.stop()
 
       CliUx.ux.action.start(`Contributing your randomness`)
 
       localHash = await contribute(inputPath, outputPath, randomness)
 
-      CliUx.ux.action.stop(`done`)
+      CliUx.ux.action.stop()
 
-      this.log(`Done! Your contribution has been written to \`${outputPath}\`.`)
-      this.log(`The contribution you made is bound to the following hash:\n${localHash}`)
+      CliUx.ux.action.start(`Waiting to upload your contribution`)
 
       client.contributionComplete()
     })
 
     client.onInitiateUpload.on(async ({ uploadLink }) => {
-      this.log('Received upload link.')
+      CliUx.ux.action.stop()
 
-      CliUx.ux.action.start(`Uploading params`)
+      CliUx.ux.action.start(`Uploading your contribution`)
 
       const fileHandle = await fsAsync.open(outputPath, 'r')
       const stat = await fsAsync.stat(outputPath)
@@ -108,13 +107,9 @@ export default class Ceremony extends IronfishCommand {
       try {
         await axios.put(uploadLink, fileHandle.createReadStream(), {
           maxBodyLength: 1000000000,
-          responseType: 'text',
           headers: {
             'Content-Type': 'application/octet-stream',
             'Content-Length': stat.size,
-          },
-          onUploadProgress: (p: ProgressEvent) => {
-            this.log('loaded', p.loaded, 'total', p.total)
           },
         })
       } catch (e) {

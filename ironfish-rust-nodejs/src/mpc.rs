@@ -4,6 +4,8 @@ use napi::bindgen_prelude::*;
 use napi::{Env, JsString, Result, Task};
 use napi_derive::napi;
 
+use crate::to_napi_err;
+
 pub struct Contribute {
     input_path: String,
     output_path: String,
@@ -16,11 +18,7 @@ impl Task for Contribute {
     type JsValue = JsString;
 
     fn compute(&mut self) -> Result<Self::Output> {
-        Ok(ironfish_mpc::compute(
-            &self.input_path,
-            &self.output_path,
-            &self.seed,
-        ))
+        ironfish_mpc::compute(&self.input_path, &self.output_path, &self.seed).map_err(to_napi_err)
     }
 
     fn resolve(&mut self, env: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -52,10 +50,8 @@ impl Task for VerifyTransform {
     type JsValue = JsString;
 
     fn compute(&mut self) -> Result<Self::Output> {
-        Ok(ironfish_mpc::verify_transform(
-            &self.params_path,
-            &self.new_params_path,
-        ))
+        ironfish_mpc::verify_transform(&self.params_path, &self.new_params_path)
+            .map_err(to_napi_err)
     }
 
     fn resolve(&mut self, env: Env, output: Self::Output) -> Result<Self::JsValue> {
