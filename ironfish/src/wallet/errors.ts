@@ -13,6 +13,8 @@ export class NotEnoughFundsError extends Error {
       amountNeeded,
       true,
       assetId.toString('hex'),
-    )} but have '${CurrencyUtils.renderIron(amount)}'`
+    )} but have ${CurrencyUtils.renderIron(
+      amount,
+    )} available to spend. Please fund your account and/or wait for any pending transactions to be confirmed.'`
   }
 }

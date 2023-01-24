@@ -96,10 +96,10 @@ Congratulations! The Iron Fish Faucet just added your request to the queue!
 It will be processed within the next hour and $IRON will be sent directly to your account.
 
 Check your balance by running:
-  - ironfish accounts:balance
+  - ironfish wallet:balance
 
 Learn how to send a transaction by running:
-  - ironfish accounts:pay --help`,
+  - ironfish wallet:send --help`,
     )
   }
 }

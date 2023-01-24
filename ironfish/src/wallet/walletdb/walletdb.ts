@@ -730,7 +730,7 @@ export class WalletDB {
 
     const pendingRange = StorageUtils.getPrefixesKeyRange(
       encoding.serialize([account.prefix, [headSequence + 1, Buffer.alloc(0)]]),
-      encoding.serialize([account.prefix, [2 ^ 32, Buffer.alloc(0)]]),
+      encoding.serialize([account.prefix, [2 ** 32 - 1, Buffer.alloc(0)]]),
     )
 
     for await (const [, [, transactionHash]] of this.pendingTransactionHashes.getAllKeysIter(

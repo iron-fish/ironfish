@@ -49,7 +49,7 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
       }
     }
 
-    await node.wallet.removeAccount(account.name)
+    await node.wallet.removeAccountByName(account.name)
     request.end({})
   },
 )

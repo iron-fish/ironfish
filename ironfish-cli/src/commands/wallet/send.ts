@@ -2,12 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import { BufferUtils, CurrencyUtils, isValidPublicAddress, RpcClient } from '@ironfish/sdk'
+import {
+  CreateTransactionRequest,
+  CreateTransactionResponse,
+  CurrencyUtils,
+  isValidPublicAddress,
+  RawTransactionSerde,
+  RpcResponseEnded,
+  Transaction,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { IronFlag, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
+import { selectAsset } from '../../utils/asset'
 
 export class Send extends IronfishCommand {
   static description = `Send coins to another account`
@@ -26,15 +35,23 @@ export class Send extends IronfishCommand {
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'Amount of coins to send in IRON',
+      description: 'Amount of coins to send',
     }),
     to: Flags.string({
       char: 't',
       description: 'The public address of the recipient',
     }),
-    fee: Flags.string({
+    fee: IronFlag({
       char: 'o',
       description: 'The fee amount in IRON',
+      largerThan: 0n,
+      flagName: 'fee',
+    }),
+    feeRate: IronFlag({
+      char: 'r',
+      description: 'The fee rate amount in IRON/Kilobyte',
+      largerThan: 0n,
+      flagName: 'fee rate',
     }),
     memo: Flags.string({
       char: 'm',
@@ -49,12 +66,6 @@ export class Send extends IronfishCommand {
       description:
         'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
     }),
-    priority: Flags.string({
-      default: 'medium',
-      char: 'p',
-      description: 'The priority level for transaction fee estimation.',
-      options: ['low', 'medium', 'high'],
-    }),
     assetId: Flags.string({
       char: 'i',
       description: 'The identifier for the asset to use when sending',
@@ -65,7 +76,8 @@ export class Send extends IronfishCommand {
     const { flags } = await this.parse(Send)
     let amount = null
     let fee = null
-    let assetId = null
+    let feeRate = null
+    let assetId = flags.assetId
     let to = flags.to?.trim()
     let from = flags.account?.trim()
     const expiration = flags.expiration
@@ -81,12 +93,12 @@ export class Send extends IronfishCommand {
       this.exit(1)
     }
 
-    if (flags.assetId) {
-      assetId = flags.assetId
-    }
-
-    if (assetId === null) {
-      assetId = await this.selectAsset(client, from)
+    if (assetId == null) {
+      assetId = await selectAsset(client, from, {
+        action: 'send',
+        showNativeAsset: true,
+        showSingleAssetChoice: false,
+      })
     }
 
     if (!assetId) {
@@ -110,8 +122,12 @@ export class Send extends IronfishCommand {
       amount = CurrencyUtils.decodeIron(input)
     }
 
-    if (flags.fee) {
-      fee = CurrencyUtils.decodeIron(flags.fee)
+    if (flags.fee !== undefined) {
+      fee = CurrencyUtils.encode(flags.fee)
+    }
+
+    if (flags.feeRate !== undefined) {
+      feeRate = CurrencyUtils.encode(flags.feeRate)
     }
 
     if (!from) {
@@ -129,7 +145,7 @@ export class Send extends IronfishCommand {
     }
 
     if (!to) {
-      to = await CliUx.ux.prompt('Enter the the public address of the recipient', {
+      to = await CliUx.ux.prompt('Enter the public address of the recipient', {
         required: true,
       })
 
@@ -143,55 +159,88 @@ export class Send extends IronfishCommand {
       this.exit(1)
     }
 
-    if (fee == null) {
-      let suggestedFee = ''
-      try {
-        const response = await client.estimateFee({
-          fromAccountName: from,
-          receives: [
-            {
-              publicAddress: to,
-              amount: CurrencyUtils.encode(amount),
-              memo: memo,
-            },
-          ],
-        })
-
-        switch (flags.priority) {
-          case 'low':
-            suggestedFee = CurrencyUtils.renderIron(response.content.low)
-            break
-          case 'high':
-            suggestedFee = CurrencyUtils.renderIron(response.content.high)
-            break
-          default:
-            suggestedFee = CurrencyUtils.renderIron(response.content.medium)
-        }
-      } catch {
-        suggestedFee = ''
-      }
-
-      const input = await CliUx.ux.prompt(
-        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(
-          1n,
-        )} recommended: ${suggestedFee})`,
-        {
-          required: true,
-          default: suggestedFee,
-        },
-      )
-
-      fee = CurrencyUtils.decodeIron(input)
-    }
-
-    if (fee < 1n) {
-      this.error(`The minimum fee is ${CurrencyUtils.renderOre(1n, true)}`)
-    }
-
     if (expiration !== undefined && expiration < 0) {
       this.log('Expiration sequence must be non-negative')
       this.exit(1)
     }
+
+    let rawTransactionResponse: string
+    if (fee === null && feeRate === null) {
+      const feeRatesResponse = await client.estimateFeeRates()
+      const feeRates = new Set([
+        feeRatesResponse.content.low ?? '1',
+        feeRatesResponse.content.medium ?? '1',
+        feeRatesResponse.content.high ?? '1',
+      ])
+
+      const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
+
+      const feeRateOptions: { value: number; name: string }[] = []
+
+      const createTransactionRequest: CreateTransactionRequest = {
+        sender: from,
+        receives: [
+          {
+            publicAddress: to,
+            amount: CurrencyUtils.encode(amount),
+            memo,
+            assetId,
+          },
+        ],
+        expiration: expiration,
+      }
+
+      const allPromises: Promise<RpcResponseEnded<CreateTransactionResponse>>[] = []
+      feeRates.forEach((feeRate) => {
+        allPromises.push(
+          client.createTransaction({
+            ...createTransactionRequest,
+            feeRate: feeRate,
+          }),
+        )
+      })
+
+      const createResponses = await Promise.all(allPromises)
+      createResponses.forEach((createResponse, index) => {
+        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
+        const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+        feeRateOptions.push({
+          value: index,
+          name: `${feeRateNames[index]}: ${CurrencyUtils.renderIron(rawTransaction.fee)} IRON`,
+        })
+      })
+
+      const input: { selection: number } = await inquirer.prompt<{ selection: number }>([
+        {
+          name: 'selection',
+          message: `Select the fee you wish to use for this transaction`,
+          type: 'list',
+          choices: feeRateOptions,
+        },
+      ])
+
+      rawTransactionResponse = createResponses[input.selection].content.transaction
+    } else {
+      const createResponse = await client.createTransaction({
+        sender: from,
+        receives: [
+          {
+            publicAddress: to,
+            amount: CurrencyUtils.encode(amount),
+            memo,
+            assetId,
+          },
+        ],
+        fee: fee,
+        feeRate: feeRate,
+        expiration: expiration,
+      })
+      rawTransactionResponse = createResponse.content.transaction
+    }
+
+    const rawTransactionBytes = Buffer.from(rawTransactionResponse, 'hex')
+    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
     if (!flags.confirm) {
       this.log(`
@@ -201,7 +250,7 @@ ${CurrencyUtils.renderIron(
   true,
   assetId,
 )} plus a transaction fee of ${CurrencyUtils.renderIron(
-        fee,
+        rawTransaction.fee,
         true,
       )} to ${to} from the account ${from}
 
@@ -241,34 +290,25 @@ ${CurrencyUtils.renderIron(
     }
 
     try {
-      const result = await client.sendTransaction({
-        fromAccountName: from,
-        receives: [
-          {
-            publicAddress: to,
-            amount: CurrencyUtils.encode(amount),
-            memo,
-            assetId,
-          },
-        ],
-        fee: CurrencyUtils.encode(fee),
-        expiration: expiration,
+      const result = await client.postTransaction({
+        transaction: rawTransactionResponse,
       })
 
       stopProgressBar()
 
-      const transaction = result.content
-      const recipients = transaction.receives.map((receive) => receive.publicAddress).join(', ')
-      this.log(`
-Sending ${CurrencyUtils.renderIron(amount, true, assetId)} to ${recipients} from ${
-        transaction.fromAccountName
-      }
-Transaction Hash: ${transaction.hash}
-Transaction fee: ${CurrencyUtils.renderIron(fee, true)}
+      const transactionBytes = Buffer.from(result.content.transaction, 'hex')
+      const transaction = new Transaction(transactionBytes)
 
-Find the transaction on https://explorer.ironfish.network/transaction/${
-        transaction.hash
-      } (it can take a few minutes before the transaction appears in the Explorer)`)
+      this.log(`
+Sending ${CurrencyUtils.renderIron(amount, true, assetId)} to ${to} from ${from}
+Transaction Hash: ${transaction.hash().toString('hex')}
+Transaction fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}
+
+Find the transaction on https://explorer.ironfish.network/transaction/${transaction
+        .hash()
+        .toString(
+          'hex',
+        )} (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while sending the transaction.`)
@@ -277,44 +317,5 @@ Find the transaction on https://explorer.ironfish.network/transaction/${
       }
       this.exit(2)
     }
-  }
-
-  async selectAsset(
-    client: RpcClient,
-    account: string | undefined,
-  ): Promise<string | undefined> {
-    const balancesResponse = await client.getAccountBalances({ account })
-    const assetOptions = []
-
-    const balances = balancesResponse.content.balances
-    if (balances.length === 0) {
-      return undefined
-    } else if (balances.length === 1) {
-      // If there's only one available asset, showing the choices is unnecessary
-      return balancesResponse.content.balances[0].assetId
-    }
-
-    // Get the asset name from the chain DB to populate the display choices
-    for (const { assetId } of balancesResponse.content.balances) {
-      const assetResponse = await client.getAsset({ id: assetId })
-
-      if (assetResponse.content.name) {
-        const displayName = BufferUtils.toHuman(Buffer.from(assetResponse.content.name, 'hex'))
-        assetOptions.push({
-          value: assetId,
-          name: `${assetId} (${displayName})`,
-        })
-      }
-    }
-
-    const response: { assetId: string } = await inquirer.prompt<{ assetId: string }>([
-      {
-        name: 'assetId',
-        message: 'Select the asset you wish to send',
-        type: 'list',
-        choices: assetOptions,
-      },
-    ])
-    return response.assetId
   }
 }

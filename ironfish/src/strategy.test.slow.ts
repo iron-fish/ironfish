@@ -246,7 +246,7 @@ describe('Demonstrate the Sapling API', () => {
       // Get the note we added in the previous example
       const leaf = await tree.getLeaf(receiverWitnessIndex)
       const latestNote = new NoteEncrypted(publicTransaction.getNote(0))
-      expect(leaf.merkleHash.equals(latestNote.merkleHash())).toBe(true)
+      expect(leaf.merkleHash.equals(latestNote.hash())).toBe(true)
 
       // We should be able to decrypt the note as owned by the receiver
       const decryptedNote = latestNote.decryptNoteForOwner(receiverKey.incoming_view_key)

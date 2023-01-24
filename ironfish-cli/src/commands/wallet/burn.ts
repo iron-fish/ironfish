@@ -6,14 +6,15 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
+import { selectAsset } from '../../utils/asset'
 
 export class Burn extends IronfishCommand {
   static description = 'Burn tokens and decrease supply for a given asset'
 
   static examples = [
-    '$ ironfish wallet:burn --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000',
-    '$ ironfish wallet:burn --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000 --account=otheraccount',
-    '$ ironfish wallet:burn --assetId=618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount=1000 --account=otheraccount --fee=0.00000001',
+    '$ ironfish wallet:burn --assetId 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount 1000',
+    '$ ironfish wallet:burn --assetId 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount 1000 --account otheraccount',
+    '$ ironfish wallet:burn --assetId 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4 --amount 1000 --account otheraccount --fee 0.00000001',
   ]
 
   static flags = {
@@ -28,11 +29,15 @@ export class Burn extends IronfishCommand {
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'Amount of coins to burn in IRON',
+      description: 'Amount of coins to burn',
     }),
     assetId: Flags.string({
       char: 'i',
       description: 'Identifier for the asset',
+    }),
+    confirm: Flags.boolean({
+      default: false,
+      description: 'Confirm without asking',
     }),
   }
 
@@ -64,17 +69,24 @@ export class Burn extends IronfishCommand {
     }
 
     let assetId = flags.assetId
-    if (!assetId) {
-      assetId = await CliUx.ux.prompt('Enter the Asset Identifier to burn supply for', {
-        required: true,
+
+    if (assetId == null) {
+      assetId = await selectAsset(client, account, {
+        action: 'burn',
+        showNativeAsset: false,
+        showSingleAssetChoice: true,
       })
+    }
+
+    if (assetId == null) {
+      this.error(`You must have a custom asset in order to burn.`)
     }
 
     let amount
     if (flags.amount) {
       amount = CurrencyUtils.decodeIron(flags.amount)
     } else {
-      const input = await CliUx.ux.prompt('Enter the amount to burn in IRON', {
+      const input = await CliUx.ux.prompt('Enter the amount to burn in the custom asset', {
         required: true,
       })
 
@@ -88,11 +100,31 @@ export class Burn extends IronfishCommand {
       const input = await CliUx.ux.prompt(
         `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)})`,
         {
+          default: CurrencyUtils.renderIron(1n),
           required: true,
         },
       )
 
       fee = CurrencyUtils.decodeIron(input)
+    }
+
+    if (!flags.confirm) {
+      this.log(`
+You are about to burn:
+${CurrencyUtils.renderIron(
+  amount,
+  true,
+  assetId,
+)} plus a transaction fee of ${CurrencyUtils.renderIron(fee, true)} with the account ${account}
+
+* This action is NOT reversible *
+`)
+
+      const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
+      if (!confirm) {
+        this.log('Transaction aborted.')
+        this.exit(0)
+      }
     }
 
     const bar = CliUx.ux.progress({

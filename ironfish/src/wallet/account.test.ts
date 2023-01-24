@@ -8,6 +8,7 @@ import {
   createNodeTest,
   useAccountFixture,
   useBurnBlockFixture,
+  useBlockWithTx,
   useMinerBlockFixture,
   useMintBlockFixture,
   useTxFixture,
@@ -76,8 +77,8 @@ describe('Accounts', () => {
     )
 
     expect(noteHashesNotOnChain).toHaveLength(2)
-    expect(noteHashesNotOnChain).toContainEqual(note1Encrypted.merkleHash())
-    expect(noteHashesNotOnChain).toContainEqual(note2Encrypted.merkleHash())
+    expect(noteHashesNotOnChain).toContainEqual(note1Encrypted.hash())
+    expect(noteHashesNotOnChain).toContainEqual(note2Encrypted.hash())
     expect(notesInSequence).toHaveLength(0)
     expect(notesInSequence2).toHaveLength(0)
     expect(notesInSequence3).toHaveLength(0)
@@ -104,21 +105,21 @@ describe('Accounts', () => {
     expect(notesInSequence2).toHaveLength(1)
     expect(notesInSequence2).toContainEqual(
       expect.objectContaining({
-        hash: note1Encrypted.merkleHash(),
+        hash: note1Encrypted.hash(),
       }),
     )
 
     expect(notesInSequence3).toHaveLength(1)
     expect(notesInSequence3).toContainEqual(
       expect.objectContaining({
-        hash: note2Encrypted.merkleHash(),
+        hash: note2Encrypted.hash(),
       }),
     )
 
     // Check the notes are returned and in order
     expect(notesInSequence).toHaveLength(2)
-    expect(notesInSequence[0].hash).toEqual(note1Encrypted.merkleHash())
-    expect(notesInSequence[1].hash).toEqual(note2Encrypted.merkleHash())
+    expect(notesInSequence[0].hash).toEqual(note1Encrypted.hash())
+    expect(notesInSequence[1].hash).toEqual(note2Encrypted.hash())
 
     // And that no notes are returned in a range where there are none
     await expect(notesInSequenceAfter).resolves.toHaveLength(0)
@@ -175,6 +176,25 @@ describe('Accounts', () => {
 
       // create pending transaction
       await useTxFixture(node.wallet, account, account, undefined, undefined, 4)
+
+      const pendingTransactions = await AsyncUtils.materialize(
+        account.getPendingTransactions(node.chain.head.sequence),
+      )
+
+      expect(pendingTransactions.length).toEqual(1)
+    })
+
+    it('should load pending transactions with large expiration seqeunces', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet, 'accountA')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(block1)
+      await node.wallet.updateHead()
+
+      // create pending transaction
+      await useTxFixture(node.wallet, account, account, undefined, undefined, 2 ** 32 - 2)
 
       const pendingTransactions = await AsyncUtils.materialize(
         account.getPendingTransactions(node.chain.head.sequence),
@@ -273,13 +293,13 @@ describe('Accounts', () => {
 
       // transaction from A -> A, so all notes belong to A
       for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
+        const decryptedNote = await accountA.getDecryptedNote(note.hash())
 
         expect(decryptedNote).toBeDefined()
 
         const nonChainIndex = await accountA['walletDb'].nonChainNoteHashes.get([
           accountA.prefix,
-          note.merkleHash(),
+          note.hash(),
         ])
 
         expect(nonChainIndex).toBeDefined()
@@ -361,13 +381,13 @@ describe('Accounts', () => {
 
       // transaction from A -> A, so all notes belong to A
       for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
+        const decryptedNote = await accountA.getDecryptedNote(note.hash())
 
         expect(decryptedNote).toBeDefined()
 
         const nonChainIndex = await accountA['walletDb'].nonChainNoteHashes.get([
           accountA.prefix,
-          note.merkleHash(),
+          note.hash(),
         ])
 
         expect(nonChainIndex).toBeUndefined()
@@ -376,7 +396,7 @@ describe('Accounts', () => {
 
         const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
           accountA.prefix,
-          [3, note.merkleHash()],
+          [3, note.hash()],
         ])
 
         expect(sequenceIndex).toBeDefined()
@@ -542,7 +562,7 @@ describe('Accounts', () => {
 
       // transaction from A -> A, so all notes belong to A
       for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
+        const decryptedNote = await accountA.getDecryptedNote(note.hash())
 
         expect(decryptedNote).toBeDefined()
 
@@ -550,7 +570,7 @@ describe('Accounts', () => {
 
         const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
           accountA.prefix,
-          [3, note.merkleHash()],
+          [3, note.hash()],
         ])
 
         expect(sequenceIndex).toBeDefined()
@@ -560,7 +580,7 @@ describe('Accounts', () => {
       await accountA.disconnectTransaction(block3.header, transaction)
 
       for (const note of transaction.notes) {
-        const decryptedNote = await accountA.getDecryptedNote(note.merkleHash())
+        const decryptedNote = await accountA.getDecryptedNote(note.hash())
 
         expect(decryptedNote).toBeDefined()
 
@@ -568,14 +588,14 @@ describe('Accounts', () => {
 
         const nonChainIndex = await accountA['walletDb'].nonChainNoteHashes.get([
           accountA.prefix,
-          note.merkleHash(),
+          note.hash(),
         ])
 
         expect(nonChainIndex).toBeDefined()
 
         const sequenceIndex = await accountA['walletDb'].sequenceToNoteHash.get([
           accountA.prefix,
-          [3, note.merkleHash()],
+          [3, note.hash()],
         ])
 
         expect(sequenceIndex).toBeUndefined()
@@ -852,6 +872,40 @@ describe('Accounts', () => {
 
       // but not nonChainNoteHashes
       await expect(accountHasNonChainNoteHash(accountA, noteHash)).resolves.toBe(false)
+    })
+  })
+
+  describe('getBalance', () => {
+    it('should not subtract unconfirmed spends from confirmed balance', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 2000000000n,
+      })
+
+      const { block: block3 } = await useBlockWithTx(node, accountA, accountB, false)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      // with 0 confirmations, confirmed balance includes the transaction
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 1999999998n,
+        unconfirmed: 1999999998n,
+      })
+
+      // with 1 confirmation, confirmed balance should not include the transaction
+      await expect(accountA.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 1999999998n,
+      })
     })
   })
 })

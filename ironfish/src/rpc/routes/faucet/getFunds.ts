@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AxiosError } from 'axios'
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { WebApi } from '../../../webApi'
 import { ERROR_CODES, ResponseError, ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
@@ -44,7 +45,13 @@ router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
       .catch((error: AxiosError<{ code: string; message?: string }>) => {
         if (error.response) {
           const { data, status } = error.response
+
           if (status === 422) {
+            if (data.code === 'faucet_max_requests_reached') {
+              Assert.isNotUndefined(data.message)
+              throw new ResponseError(data.message, ERROR_CODES.VALIDATION, status)
+            }
+
             throw new ResponseError(
               'You entered an invalid email.',
               ERROR_CODES.VALIDATION,

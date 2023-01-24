@@ -9,8 +9,6 @@ import {
   BlockTemplateStreamResponse,
   CreateAccountRequest,
   CreateAccountResponse,
-  EstimateFeeRequest,
-  EstimateFeeResponse,
   GetAccountNotesStreamRequest,
   GetAccountNotesStreamResponse,
   GetAccountsRequest,
@@ -84,6 +82,10 @@ import {
 } from '../routes/peers/getPeerMessages'
 import { GetRpcStatusRequest, GetRpcStatusResponse } from '../routes/rpc/getStatus'
 import { BurnAssetRequest, BurnAssetResponse } from '../routes/wallet/burnAsset'
+import {
+  CreateTransactionRequest,
+  CreateTransactionResponse,
+} from '../routes/wallet/createTransaction'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
 import { GetBalancesRequest, GetBalancesResponse } from '../routes/wallet/getBalances'
 import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
@@ -398,15 +400,6 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  async estimateFee(
-    params: EstimateFeeRequest,
-  ): Promise<RpcResponseEnded<EstimateFeeResponse>> {
-    return this.request<EstimateFeeResponse>(
-      `${ApiNamespace.chain}/estimateFee`,
-      params,
-    ).waitForEnd()
-  }
-
   async getBlock(params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> {
     return this.request<GetBlockResponse>(`${ApiNamespace.chain}/getBlock`, params).waitForEnd()
   }
@@ -506,8 +499,17 @@ export abstract class RpcClient {
   async postTransaction(
     params: PostTransactionRequest,
   ): Promise<RpcResponseEnded<PostTransactionResponse>> {
-    return this.request<PostTransactionRequest>(
+    return this.request<PostTransactionResponse>(
       `${ApiNamespace.wallet}/postTransaction`,
+      params,
+    ).waitForEnd()
+  }
+
+  async createTransaction(
+    params: CreateTransactionRequest,
+  ): Promise<RpcResponseEnded<CreateTransactionResponse>> {
+    return this.request<CreateTransactionResponse>(
+      `${ApiNamespace.wallet}/createTransaction`,
       params,
     ).waitForEnd()
   }

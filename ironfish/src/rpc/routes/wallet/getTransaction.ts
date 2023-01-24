@@ -58,7 +58,8 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
             .array(
               yup
                 .object({
-                  owner: yup.boolean().defined(),
+                  isOwner: yup.boolean().defined(),
+                  owner: yup.string().defined(),
                   value: yup.string().defined(),
                   assetId: yup.string().defined(),
                   assetName: yup.string().defined(),
@@ -111,7 +112,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       const noteHash = decryptedNote.hash
       const decryptedNoteForOwner = await account.getDecryptedNote(noteHash)
 
-      const owner = !!decryptedNoteForOwner
+      const isOwner = !!decryptedNoteForOwner
       const spent = decryptedNoteForOwner ? decryptedNoteForOwner.spent : false
       const note = decryptedNoteForOwner
         ? decryptedNoteForOwner.note
@@ -120,11 +121,12 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       const asset = await node.chain.getAssetById(note.assetId())
 
       serializedNotes.push({
-        owner,
+        isOwner,
+        owner: note.owner(),
         memo: note.memo(),
         value: CurrencyUtils.encode(note.value()),
         assetId: note.assetId().toString('hex'),
-        assetName: asset?.name.toString('utf8') || '',
+        assetName: asset?.name.toString('hex') || '',
         sender: note.sender(),
         spent: spent,
       })

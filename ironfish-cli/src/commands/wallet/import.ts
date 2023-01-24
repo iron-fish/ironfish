@@ -58,7 +58,7 @@ export class ImportCommand extends IronfishCommand {
     if (isDefaultAccount) {
       this.log(`The default account is now: ${name}`)
     } else {
-      this.log(`Run "ironfish accounts:use ${name}" to set the account as default`)
+      this.log(`Run "ironfish wallet:use ${name}" to set the account as default`)
     }
   }
 

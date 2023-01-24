@@ -158,7 +158,6 @@ describe('Transactions sendTransaction', () => {
 
     await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
-        message: expect.stringContaining('Your balance changed while creating a transaction.'),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
       }),

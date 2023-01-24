@@ -152,7 +152,7 @@ export async function useBlockWithRawTxFixture(
       notesToSpend.map(async (n) => {
         const note = n.decryptNoteForOwner(sender.incomingViewKey)
         Assert.isNotUndefined(note)
-        const treeIndex = await chain.notes.leavesIndex.get(n.merkleHash())
+        const treeIndex = await chain.notes.leavesIndex.get(n.hash())
         Assert.isNotUndefined(treeIndex)
         const witness = await chain.notes.witness(treeIndex)
         Assert.isNotNull(witness)
@@ -247,9 +247,11 @@ export async function useBlockWithTx(
       ],
       [],
       [],
-      BigInt(options.fee ?? 1),
-      0,
-      options.expiration ?? 0,
+      {
+        fee: BigInt(options.fee ?? 1n),
+        expiration: options.expiration ?? 0,
+        expirationDelta: 0,
+      },
     )
 
     const transaction = await node.wallet.postTransaction(raw, node.memPool)
@@ -305,9 +307,11 @@ export async function useBlockWithTxs(
         ],
         [],
         [],
-        BigInt(1),
-        0,
-        0,
+        {
+          fee: 1n,
+          expiration: 0,
+          expirationDelta: 0,
+        },
       )
 
       const transaction = await node.wallet.postTransaction(raw, node.memPool)

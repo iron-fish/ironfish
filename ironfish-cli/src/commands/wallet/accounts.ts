@@ -5,7 +5,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-export class ListCommand extends IronfishCommand {
+export class AccountsCommand extends IronfishCommand {
   static description = `List all the accounts on the node`
 
   static flags = {
@@ -17,7 +17,7 @@ export class ListCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(ListCommand)
+    const { flags } = await this.parse(AccountsCommand)
 
     const client = await this.sdk.connectRpc()
 
