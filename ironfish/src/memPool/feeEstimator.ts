@@ -35,13 +35,12 @@ export class FeeEstimator {
     blockSize: BlockSizeEntry[]
   }
   private percentiles: PriorityLevelPercentiles
-  private wallet: Wallet
   private readonly logger: Logger
   private maxBlockHistory = 10
   private defaultFeeRate = BigInt(1)
+  private maxBlockSizeBytes = 2000000
 
   constructor(options: {
-    wallet: Wallet
     maxBlockHistory?: number
     logger?: Logger
     percentiles?: PriorityLevelPercentiles
@@ -51,7 +50,6 @@ export class FeeEstimator {
 
     this.queues = { low: [], medium: [], high: [], blockSize: [] }
     this.percentiles = options.percentiles ?? DEFAULT_PRIORITY_LEVEL_PERCENTILES
-    this.wallet = options.wallet
   }
 
   async init(chain: Blockchain): Promise<void> {
@@ -60,6 +58,7 @@ export class FeeEstimator {
     }
 
     let currentBlockHash = chain.latest.hash
+    this.maxBlockSizeBytes = chain.consensus.parameters.maxBlockSizeBytes
 
     for (let i = 0; i < this.maxBlockHistory; i++) {
       const currentBlock = await chain.getBlock(currentBlockHash)
@@ -194,7 +193,7 @@ export class FeeEstimator {
       this.queues[BLOCK_SIZE].length
     const blockSizeRatio = BigInt(
       Math.round(
-        (averageBlockSize / this.wallet.chain.consensus.parameters.maxBlockSizeBytes) * 100,
+        (averageBlockSize / this.maxBlockSizeBytes) * 100,
       ),
     )
 

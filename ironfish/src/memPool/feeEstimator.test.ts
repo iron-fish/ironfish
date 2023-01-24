@@ -38,7 +38,6 @@ describe('FeeEstimator', () => {
       await node.chain.addBlock(block)
 
       const feeEstimator = new FeeEstimator({
-        wallet: node.wallet,
         maxBlockHistory: 1,
       })
       await feeEstimator.init(node.chain)
@@ -77,7 +76,6 @@ describe('FeeEstimator', () => {
       await node.chain.addBlock(block2)
 
       const feeEstimator = new FeeEstimator({
-        wallet: node.wallet,
         maxBlockHistory: 1,
       })
 
@@ -127,7 +125,6 @@ describe('FeeEstimator', () => {
       await node.wallet.updateHead()
 
       const feeEstimator = new FeeEstimator({
-        wallet: node.wallet,
         maxBlockHistory: 2,
       })
       await feeEstimator.init(node.chain)
@@ -152,7 +149,6 @@ describe('FeeEstimator', () => {
       await node.chain.addBlock(block)
 
       const feeEstimator = new FeeEstimator({
-        wallet: node.wallet,
         maxBlockHistory: 1,
       })
 
@@ -188,7 +184,6 @@ describe('FeeEstimator', () => {
       await node.chain.addBlock(block)
 
       const feeEstimator = new FeeEstimator({
-        wallet: node.wallet,
         maxBlockHistory: 1,
       })
 
@@ -209,7 +204,6 @@ describe('FeeEstimator', () => {
       const node = nodeTest.node
 
       const feeEstimator = new FeeEstimator({
-        wallet: node.wallet,
         maxBlockHistory: 1,
       })
 
@@ -262,7 +256,6 @@ describe('FeeEstimator', () => {
       const node = nodeTest.node
 
       const feeEstimator = new FeeEstimator({
-        wallet: node.wallet,
         maxBlockHistory: 2,
       })
 
@@ -305,7 +298,6 @@ describe('FeeEstimator', () => {
       const node = nodeTest.node
 
       const feeEstimator = new FeeEstimator({
-        wallet: node.wallet,
         maxBlockHistory: 2,
       })
 
@@ -349,7 +341,6 @@ describe('FeeEstimator', () => {
       const node = nodeTest.node
 
       const feeEstimator = new FeeEstimator({
-        wallet: node.wallet,
         maxBlockHistory: 2,
       })
 
@@ -374,7 +365,6 @@ describe('FeeEstimator', () => {
       const node = nodeTest.node
 
       const feeEstimator = new FeeEstimator({
-        wallet: node.wallet,
         maxBlockHistory: 2,
       })
 
