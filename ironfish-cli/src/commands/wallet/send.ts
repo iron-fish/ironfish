@@ -35,7 +35,7 @@ export class Send extends IronfishCommand {
     }),
     amount: Flags.string({
       char: 'a',
-      description: 'Amount of coins to send in IRON',
+      description: 'Amount of coins to send',
     }),
     to: Flags.string({
       char: 't',
