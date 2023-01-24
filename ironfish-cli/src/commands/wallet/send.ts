@@ -45,13 +45,13 @@ export class Send extends IronfishCommand {
       char: 'o',
       description: 'The fee amount in IRON',
       largerThan: 0n,
-      name: 'fee',
+      flagName: 'fee',
     }),
     feeRate: IronFlag({
       char: 'r',
       description: 'The fee rate amount in IRON/Kilobyte',
       largerThan: 0n,
-      name: 'fee rate',
+      flagName: 'fee rate',
     }),
     memo: Flags.string({
       char: 'm',
