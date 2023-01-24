@@ -162,7 +162,7 @@ export class Send extends IronfishCommand {
     }
 
     let rawTransactionResponse: string
-    if (fee === undefined && feeRate === undefined) {
+    if (fee === null && feeRate === null) {
       const feeRatesResponse = await client.estimateFeeRates()
       const feeRates = new Set([
         feeRatesResponse.content.low ?? '1',
