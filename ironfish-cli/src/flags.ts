@@ -106,7 +106,7 @@ export const RemoteFlags = remoteFlags
 export type IronOpts = { largerThan?: bigint; flagName: string }
 
 export const IronFlag = Flags.custom<bigint, IronOpts>({
-  parse: async (input, _ctx, opts) => parseIron(input, opts), 
+  parse: async (input, _ctx, opts) => parseIron(input, opts),
   char: 'i',
 })
 
