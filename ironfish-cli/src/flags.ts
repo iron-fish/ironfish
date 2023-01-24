@@ -113,7 +113,7 @@ export const IronFlag = Flags.custom<bigint, IronOpts>({
 const parseIron = (input: string, opts: IronOpts): bigint => {
   const { largerThan, name } = opts ?? {}
   const value = CurrencyUtils.decodeIron(input)
-  if (largerThan && value <= largerThan) {
+  if (largerThan !== undefined && value <= largerThan) {
     throw new Error(`The minimum ${name} is ${CurrencyUtils.renderOre(1n, true)}`)
   }
 
