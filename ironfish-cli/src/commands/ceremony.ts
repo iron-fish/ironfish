@@ -106,6 +106,8 @@ export default class Ceremony extends IronfishCommand {
 
       try {
         await axios.put(uploadLink, fileHandle.createReadStream(), {
+          // Axios requires specifying some max body length when uploading.
+          // Set it high enough that we're not likely to hit it
           maxBodyLength: 1000000000,
           headers: {
             'Content-Type': 'application/octet-stream',
