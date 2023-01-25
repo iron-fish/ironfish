@@ -48,7 +48,11 @@ router.register<typeof ImportAccountRequestSchema, ImportAccountResponse>(
         account = await node.wallet.importAccount(request.data.account)
       }
       catch (base58Error) {
-        throw new Error(`Failed to import account. When trying passed key as hex, got ${hexImportError.message}. When trying passed key as base58, got ${base58Error.message}`)
+        if (hexImportError instanceof Error && base58Error instanceof Error) {
+          throw new Error(`Failed to import account. When trying passed key as hex, got ${hexImportError.message}. When trying passed key as base58, got ${base58Error.message}`)
+        } else {
+          throw new Error('Failed to import account, and could not process returned errors when passing spending key to wallet.')
+        }
       }
     }
 
