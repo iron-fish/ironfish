@@ -62,6 +62,13 @@ export class Verifier {
       return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_COMMITMENT }
     }
 
+    const [minersFeeTransaction, ...otherTransactions] = block.transactions
+
+    // // Require the miner's fee transaction
+    if (!minersFeeTransaction || !minersFeeTransaction.isMinersFee()) {
+      return { valid: false, reason: VerificationResultReason.MINERS_FEE_EXPECTED }
+    }
+
     // Verify the transactions
     const notesLimit = 10
     const verificationPromises = []
@@ -105,29 +112,23 @@ export class Verifier {
       return invalidResult
     }
 
-    const transactionFees = await Promise.all(block.transactions.map((t) => t.fee()))
-
-    // Miner's fee should be only the first transaction
-    const minersFee = transactionFees.length > 0 ? transactionFees[0] : BigInt(0)
-
-    if (minersFee > 0) {
-      return { valid: false, reason: VerificationResultReason.MINERS_FEE_EXPECTED }
-    }
-
     // Sum the total transaction fees
     let totalTransactionFees = BigInt(0)
-    for (const fee of transactionFees.slice(1)) {
-      if (fee < 0) {
+    for (const transaction of otherTransactions) {
+      if (transaction.fee() < 0) {
         return { valid: false, reason: VerificationResultReason.INVALID_TRANSACTION_FEE }
       }
 
-      totalTransactionFees += fee
+      totalTransactionFees += transaction.fee()
     }
 
     // minersFee should be (negative) miningReward + totalTransactionFees
     const miningReward = this.chain.strategy.miningReward(block.header.sequence)
 
-    if (minersFee !== BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)) {
+    if (
+      minersFeeTransaction.fee() !==
+      BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)
+    ) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
 

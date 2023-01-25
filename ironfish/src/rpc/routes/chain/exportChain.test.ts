@@ -1,22 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '../../../assert'
-import { makeBlockAfter } from '../../../testUtilities/helpers/blockchain'
+import { useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route chain/exportChainStream', () => {
   const routeTest = createRouteTest()
 
   it('correctly exports the second block on chain', async () => {
-    const { chain, strategy } = routeTest
+    const { chain } = routeTest
     await chain.open()
-    strategy.disableMiningReward()
 
-    const genesis = await chain.getBlock(chain.genesis)
-    Assert.isNotNull(genesis)
+    const blockA1 = await useMinerBlockFixture(chain)
 
-    const blockA1 = await makeBlockAfter(chain, genesis)
     await expect(chain).toAddBlock(blockA1)
 
     const response = await routeTest.client
@@ -41,7 +37,7 @@ describe('Route chain/exportChainStream', () => {
         block: {
           head: true,
           hash: blockA1.header.hash.toString('hex'),
-          prev: genesis.header.hash.toString('hex'),
+          prev: chain.genesis.hash.toString('hex'),
           seq: 2,
         },
       },

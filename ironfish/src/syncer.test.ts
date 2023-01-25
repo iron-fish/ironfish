@@ -5,7 +5,7 @@
 import { Assert } from './assert'
 import { BAN_SCORE } from './network/peers/peer'
 import { getConnectedPeer } from './network/testUtilities'
-import { makeBlockAfter } from './testUtilities/helpers/blockchain'
+import { useMinerBlockFixture } from './testUtilities/fixtures'
 import { createNodeTest } from './testUtilities/nodeTest'
 import { PromiseUtils } from './utils'
 
@@ -136,18 +136,22 @@ describe('Syncer', () => {
   })
 
   it('should sync blocks', async () => {
-    const { strategy, chain, peerNetwork, syncer } = nodeTest
+    const { chain, peerNetwork, syncer } = nodeTest
 
     const genesis = await chain.getBlock(chain.genesis)
     Assert.isNotNull(genesis)
 
-    strategy.disableMiningReward()
     syncer.blocksPerMessage = 1
 
-    const blockA1 = await makeBlockAfter(chain, genesis)
-    const blockA2 = await makeBlockAfter(chain, blockA1)
-    const blockA3 = await makeBlockAfter(chain, blockA2)
-    const blockA4 = await makeBlockAfter(chain, blockA3)
+    const { node: nodeA } = await nodeTest.createSetup()
+    const blockA1 = await useMinerBlockFixture(nodeA.chain)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain)
+    await expect(nodeA.chain).toAddBlock(blockA3)
+    const blockA4 = await useMinerBlockFixture(nodeA.chain)
+    await expect(nodeA.chain).toAddBlock(blockA4)
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.sequence = blockA4.header.sequence
@@ -187,16 +191,13 @@ describe('Syncer', () => {
   })
 
   it('should ban peers that send empty responses', async () => {
-    const { strategy, chain, peerNetwork, syncer } = nodeTest
+    const { chain, peerNetwork, syncer } = nodeTest
 
-    strategy.disableMiningReward()
     syncer.blocksPerMessage = 1
 
-    const blockA1 = await makeBlockAfter(chain, chain.genesis)
-
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    peer.sequence = blockA1.header.sequence
-    peer.head = blockA1.header.hash
+    peer.sequence = 2
+    peer.head = Buffer.alloc(32, 1)
     peer.work = BigInt(10)
 
     const getBlocksSpy = jest
