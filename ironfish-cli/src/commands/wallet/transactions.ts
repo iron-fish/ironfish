@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import { CurrencyUtils } from '@ironfish/sdk'
+import { CurrencyUtils, GetAccountTransactionsResponse, TransactionType } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -50,12 +50,10 @@ export class TransactionsCommand extends IronfishCommand {
     let showHeader = true
 
     for await (const transaction of response.contentStream()) {
-      const ironDelta = transaction.assetBalanceDeltas.find(
-        (d) => d.assetId === Asset.nativeId().toString('hex'),
-      )
+      const transactionRow = this.getTransactionRow(transaction)
 
       CliUx.ux.table(
-        [transaction],
+        [transactionRow],
         {
           timestamp: TableCols.timestamp({
             streaming: true,
@@ -72,13 +70,13 @@ export class TransactionsCommand extends IronfishCommand {
             header: 'Hash',
           },
           amount: {
-            header: 'Amount ($IRON)',
-            get: (_) => (ironDelta ? CurrencyUtils.renderIron(ironDelta.delta) : '0'),
+            header: 'Net Amount ($IRON)',
+            get: (row) => (row.amount !== 0n ? CurrencyUtils.renderIron(row.amount) : ''),
             minWidth: 20,
           },
-          fee: {
-            header: 'Fee ($IRON)',
-            get: (transaction) => CurrencyUtils.renderIron(transaction.fee),
+          feePaid: {
+            header: 'Fee Paid ($IRON)',
+            get: (row) => (row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : ''),
             minWidth: 20,
           },
           notesCount: {
@@ -111,4 +109,42 @@ export class TransactionsCommand extends IronfishCommand {
       showHeader = false
     }
   }
+
+  getTransactionRow(transaction: GetAccountTransactionsResponse): TransactionRow {
+    const assetId = Asset.nativeId().toString('hex')
+
+    const nativeAssetBalanceDelta = transaction.assetBalanceDeltas.find(
+      (d) => d.assetId === assetId,
+    )
+
+    let amount = BigInt(nativeAssetBalanceDelta?.delta ?? '0')
+
+    let feePaid = BigInt(transaction.fee)
+
+    if (transaction.type !== TransactionType.SEND) {
+      feePaid = 0n
+    } else {
+      amount += feePaid
+    }
+
+    return {
+      ...transaction,
+      amount,
+      feePaid,
+    }
+  }
+}
+
+type TransactionRow = {
+  timestamp: number
+  status: string
+  type: string
+  hash: string
+  amount: bigint
+  feePaid: bigint
+  notesCount: number
+  spendsCount: number
+  mintsCount: number
+  burnsCount: number
+  expiration: number
 }
