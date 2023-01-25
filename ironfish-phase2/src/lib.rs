@@ -1062,16 +1062,18 @@ pub fn verify_contribution(
 
     let sink = io::sink();
     let mut sink = HashWriter::new(sink);
-    sink.write_all(&before.cs_hash[..]).unwrap();
+    sink.write_all(&before.cs_hash[..])?;
 
     for pubkey in &before.contributions {
-        pubkey.write(&mut sink).unwrap();
+        pubkey.write(&mut sink)?;
     }
 
-    let pubkey = after.contributions.last().unwrap();
-    sink.write_all(pubkey.s.to_uncompressed().as_ref()).unwrap();
-    sink.write_all(pubkey.s_delta.to_uncompressed().as_ref())
-        .unwrap();
+    let pubkey = after
+        .contributions
+        .last()
+        .ok_or_else(failed_contribution_error)?;
+    sink.write_all(pubkey.s.to_uncompressed().as_ref())?;
+    sink.write_all(pubkey.s_delta.to_uncompressed().as_ref())?;
 
     let h = sink.into_hash();
 
@@ -1125,7 +1127,7 @@ pub fn verify_contribution(
 
     let sink = io::sink();
     let mut sink = HashWriter::new(sink);
-    pubkey.write(&mut sink).unwrap();
+    pubkey.write(&mut sink)?;
     let h = sink.into_hash();
     let mut response = [0u8; 64];
     response.copy_from_slice(h.as_ref());
