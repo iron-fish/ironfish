@@ -637,6 +637,51 @@ export class WalletDB {
     }
   }
 
+  async *loadTransactionHashesInSequenceRange(
+    account: Account,
+    start: number,
+    end: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Buffer> {
+    const encoding = new PrefixEncoding(
+      BUFFER_ENCODING,
+      U32_ENCODING,
+      account.prefix.byteLength,
+    )
+
+    const range = StorageUtils.getPrefixesKeyRange(
+      encoding.serialize([account.prefix, start]),
+      encoding.serialize([account.prefix, end]),
+    )
+
+    for await (const [, [, transactionHash]] of this.sequenceToTransactionHash.getAllKeysIter(
+      tx,
+      range,
+    )) {
+      yield transactionHash
+    }
+  }
+
+  async *loadTransactionsInSequenceRange(
+    account: Account,
+    start: number,
+    end: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<TransactionValue & { hash: Buffer }> {
+    for await (const transactionHash of this.loadTransactionHashesInSequenceRange(
+      account,
+      start,
+      end,
+      tx,
+    )) {
+      const transaction = await this.loadTransaction(account, transactionHash, tx)
+
+      if (transaction) {
+        yield { ...transaction, hash: transactionHash }
+      }
+    }
+  }
+
   async deleteDecryptedNote(
     account: Account,
     noteHash: Buffer,

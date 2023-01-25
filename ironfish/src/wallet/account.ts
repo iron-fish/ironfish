@@ -614,29 +614,17 @@ export class Account {
         GENESIS_BLOCK_SEQUENCE,
       )
 
-      const unconfirmedTransactionHashes = new BufferSet()
-
-      for await (const note of this.walletDb.loadNotesInSequenceRange(
+      for await (const transaction of this.walletDb.loadTransactionsInSequenceRange(
         this,
         unconfirmedSequenceStart,
         unconfirmedSequenceEnd,
         tx,
       )) {
-        if (!note.note.assetId().equals(assetId)) {
+        const balanceDelta = transaction.assetBalanceDeltas.get(assetId)
+
+        if (balanceDelta === undefined) {
           continue
         }
-
-        if (unconfirmedTransactionHashes.has(note.transactionHash)) {
-          continue
-        }
-
-        unconfirmedTransactionHashes.add(note.transactionHash)
-
-        const transaction = await this.getTransaction(note.transactionHash)
-        Assert.isNotUndefined(transaction)
-
-        const balanceDelta = transaction.assetBalanceDeltas.get(note.note.assetId())
-        Assert.isNotUndefined(balanceDelta)
 
         unconfirmedCount++
         confirmed -= balanceDelta
