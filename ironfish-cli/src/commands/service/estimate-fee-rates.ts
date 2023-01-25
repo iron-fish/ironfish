@@ -30,7 +30,6 @@ export default class EstimateFees extends IronfishCommand {
       description: 'API host token to authenticate with',
     }),
     delay: Flags.integer({
-      char: 'd',
       required: false,
       default: 60000,
       description: 'Delay (in ms) to wait before uploading fee rate estimates',

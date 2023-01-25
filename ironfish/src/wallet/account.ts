@@ -638,6 +638,8 @@ export class Account {
     unconfirmed: bigint
     unconfirmedCount: number
     confirmed: bigint
+    pending: bigint
+    pendingCount: number
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -656,11 +658,20 @@ export class Account {
           tx,
         )
 
+      const { pending, pendingCount } = await this.calculatePendingBalance(
+        head.sequence,
+        assetId,
+        balance.unconfirmed,
+        tx,
+      )
+
       yield {
         assetId,
         unconfirmed: balance.unconfirmed,
         unconfirmedCount,
         confirmed,
+        pending,
+        pendingCount,
         blockHash: balance.blockHash,
         sequence: balance.sequence,
       }
@@ -680,6 +691,8 @@ export class Account {
     unconfirmed: bigint
     unconfirmedCount: number
     confirmed: bigint
+    pending: bigint
+    pendingCount: number
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -688,7 +701,9 @@ export class Account {
       return {
         unconfirmed: 0n,
         confirmed: 0n,
+        pending: 0n,
         unconfirmedCount: 0,
+        pendingCount: 0,
         blockHash: null,
         sequence: null,
       }
@@ -705,13 +720,45 @@ export class Account {
         tx,
       )
 
+    const { pending, pendingCount } = await this.calculatePendingBalance(
+      head.sequence,
+      assetId,
+      balance.unconfirmed,
+      tx,
+    )
+
     return {
       unconfirmed: balance.unconfirmed,
       unconfirmedCount,
       confirmed,
+      pending,
+      pendingCount,
       blockHash: balance.blockHash,
       sequence: balance.sequence,
     }
+  }
+
+  private async calculatePendingBalance(
+    headSequence: number,
+    assetId: Buffer,
+    unconfirmed: bigint,
+    tx?: IDatabaseTransaction,
+  ): Promise<{ pending: bigint; pendingCount: number }> {
+    let pending = unconfirmed
+    let pendingCount = 0
+
+    for await (const transaction of this.getPendingTransactions(headSequence, tx)) {
+      const balanceDelta = transaction.assetBalanceDeltas.get(assetId)
+
+      if (balanceDelta === undefined) {
+        continue
+      }
+
+      pending += balanceDelta
+      pendingCount++
+    }
+
+    return { pending, pendingCount }
   }
 
   private async calculateUnconfirmedCountAndConfirmedBalance(

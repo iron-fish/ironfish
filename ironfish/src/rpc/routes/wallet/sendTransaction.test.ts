@@ -105,7 +105,9 @@ describe('Transactions sendTransaction', () => {
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(0),
+      pending: BigInt(11),
       unconfirmedCount: 0,
+      pendingCount: 0,
       blockHash: null,
       sequence: null,
     })
@@ -123,7 +125,9 @@ describe('Transactions sendTransaction', () => {
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(21),
       confirmed: BigInt(0),
+      pending: BigInt(21),
       unconfirmedCount: 0,
+      pendingCount: 0,
       blockHash: null,
       sequence: null,
     })
@@ -151,7 +155,9 @@ describe('Transactions sendTransaction', () => {
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
+      pending: BigInt(11),
       unconfirmedCount: 0,
+      pendingCount: 0,
       blockHash: null,
       sequence: null,
     })
@@ -175,7 +181,9 @@ describe('Transactions sendTransaction', () => {
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
+      pending: BigInt(11),
       unconfirmedCount: 0,
+      pendingCount: 0,
       blockHash: null,
       sequence: null,
     })
@@ -195,7 +203,9 @@ describe('Transactions sendTransaction', () => {
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValueOnce({
       unconfirmed: BigInt(21),
       confirmed: BigInt(21),
+      pending: BigInt(21),
       unconfirmedCount: 0,
+      pendingCount: 0,
       blockHash: null,
       sequence: null,
     })
@@ -213,8 +223,10 @@ describe('Transactions sendTransaction', () => {
 
     jest.spyOn(routeTest.node.wallet, 'getBalance').mockResolvedValue({
       unconfirmed: BigInt(100000),
+      pending: BigInt(100000),
       confirmed: BigInt(100000),
       unconfirmedCount: 0,
+      pendingCount: 0,
       blockHash: null,
       sequence: null,
     })
