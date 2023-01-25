@@ -30,6 +30,7 @@ impl Thread {
         hash_rate_channel: Sender<u32>,
         pool_size: usize,
         batch_size: u32,
+        pause_on_success: bool,
     ) -> Self {
         let (work_sender, work_receiver) = mpsc::channel::<Command>();
 
@@ -43,6 +44,7 @@ impl Thread {
                     id,
                     pool_size,
                     batch_size as u64,
+                    pause_on_success,
                 )
             })
             .unwrap();
@@ -78,6 +80,7 @@ fn process_commands(
     start: u64,
     step_size: usize,
     default_batch_size: u64,
+    pause_on_success: bool,
 ) {
     let mut commands: VecDeque<Command> = VecDeque::new();
     loop {
@@ -124,6 +127,10 @@ fn process_commands(
                     if let Some(randomness) = match_found {
                         if let Err(e) = block_found_channel.send((randomness, mining_request_id)) {
                             panic!("Error sending found block: {:?}", e);
+                        }
+
+                        if pause_on_success {
+                            break;
                         }
                     }
 
