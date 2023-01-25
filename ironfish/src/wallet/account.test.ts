@@ -710,4 +710,46 @@ describe('Accounts', () => {
       })
     })
   })
+
+  describe('calculatePendingBalance', () => {
+    it('should calculate pending balance from unconfirmed balance and pending transactions', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const balanceA = await accountA.getBalance(Asset.nativeId(), 0)
+
+      expect(balanceA).toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 2000000000n,
+      })
+
+      const headA = await accountA.getHead()
+
+      Assert.isNotNull(headA)
+
+      expect(headA).toMatchObject({
+        hash: block2.header.hash,
+        sequence: block2.header.sequence,
+      })
+
+      await useTxFixture(node.wallet, accountA, accountB)
+
+      await expect(
+        accountA['calculatePendingBalance'](
+          headA?.sequence,
+          Asset.nativeId(),
+          balanceA.unconfirmed,
+        ),
+      ).resolves.toMatchObject({
+        pending: balanceA.unconfirmed - 1n,
+        pendingCount: 1,
+      })
+    })
+  })
 })
