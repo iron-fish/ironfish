@@ -87,7 +87,10 @@ import {
   CreateTransactionResponse,
 } from '../routes/wallet/createTransaction'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
-import { ExportAccountBase58Request, ExportAccountBase58Response } from '../routes/wallet/exportAccountBase58'
+import {
+  ExportAccountBase58Request,
+  ExportAccountBase58Response,
+} from '../routes/wallet/exportAccountBase58'
 import { GetBalancesRequest, GetBalancesResponse } from '../routes/wallet/getBalances'
 import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/wallet/importAccount'

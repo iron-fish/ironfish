@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import bs58safe from 'bs58check-ts'
 import * as yup from 'yup'
 import { Account, AccountImport } from '../../../wallet/account'
 import { ApiNamespace, router } from '../router'
-import bs58safe from 'bs58check-ts'
 
 export type ImportAccountRequest = {
   account: AccountImport
@@ -44,18 +44,22 @@ router.register<typeof ImportAccountRequestSchema, ImportAccountResponse>(
       account = await node.wallet.importAccount(request.data.account)
     } catch (hexImportError: unknown) {
       try {
-        request.data.account.spendingKey = bs58safe.decode(request.data.account.spendingKey).toString('hex')
+        request.data.account.spendingKey = bs58safe
+          .decode(request.data.account.spendingKey)
+          .toString('hex')
         account = await node.wallet.importAccount(request.data.account)
-      }
-      catch (base58Error) {
+      } catch (base58Error) {
         if (hexImportError instanceof Error && base58Error instanceof Error) {
-          throw new Error(`Failed to import account. When trying passed key as hex, got ${hexImportError.message}. When trying passed key as base58, got ${base58Error.message}`)
+          throw new Error(
+            `Failed to import account. When trying passed key as hex, got ${hexImportError.message}. When trying passed key as base58, got ${base58Error.message}`,
+          )
         } else {
-          throw new Error('Failed to import account, and could not process returned errors when passing spending key to wallet.')
+          throw new Error(
+            'Failed to import account, and could not process returned errors when passing spending key to wallet.',
+          )
         }
       }
     }
-
 
     if (request.data.rescan) {
       void node.wallet.scanTransactions()

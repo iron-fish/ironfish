@@ -49,8 +49,8 @@ export class ExportCommand extends IronfishCommand {
     const exportPath = args.path as string | undefined
 
     const client = await this.sdk.connectRpc(local)
-    let output: string = ''
-    let name: string = ''
+    let output = ''
+    let name = ''
     if (flags.base58) {
       const response = await client.exportAccountBase58({ account })
       output = JSON.stringify(response.content.account, undefined, '   ')
