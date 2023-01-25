@@ -464,6 +464,34 @@ describe('Accounts', () => {
       expect(pendingHashEntry).toBeUndefined()
     })
 
+    it('should add transactions to sequenceToTransactionHash', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const connectSpy = jest.spyOn(accountA, 'connectTransaction')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      expect(connectSpy).toHaveBeenCalled()
+
+      const sequenceIndexEntry = await node.wallet.walletDb.sequenceToTransactionHash.get([
+        accountA.prefix,
+        [block3.header.sequence, transaction.hash()],
+      ])
+
+      expect(sequenceIndexEntry).toBeNull()
+    })
+
     it('should correctly update the asset store from a mint description', async () => {
       const { node } = nodeTest
 
@@ -679,6 +707,40 @@ describe('Accounts', () => {
       ])
 
       expect(pendingHashEntry).toBeDefined()
+    })
+
+    it('should delete entries from sequenceToNoteHash', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      let sequenceIndexEntry = await accountA['walletDb'].sequenceToTransactionHash.get([
+        accountA.prefix,
+        [block3.header.sequence, transaction.hash()],
+      ])
+
+      expect(sequenceIndexEntry).toBeDefined()
+
+      // disconnect transaction
+      await accountA.disconnectTransaction(block3.header, transaction)
+
+      sequenceIndexEntry = await accountA['walletDb'].sequenceToTransactionHash.get([
+        accountA.prefix,
+        [block3.header.sequence, transaction.hash()],
+      ])
+
+      expect(sequenceIndexEntry).toBeUndefined()
     })
 
     it('should correctly update the asset store from a mint description', async () => {

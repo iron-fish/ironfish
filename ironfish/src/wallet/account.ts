@@ -474,6 +474,12 @@ export class Account {
 
       await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
       await this.deleteDisconnectedMintsFromAssetsStore(transaction, tx)
+      await this.walletDb.deleteSequenceToTransactionHash(
+        this,
+        blockHeader.sequence,
+        transaction.hash(),
+        tx,
+      )
 
       await this.walletDb.savePendingTransactionHash(
         this,
