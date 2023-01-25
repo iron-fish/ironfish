@@ -331,28 +331,19 @@ export class Account {
       const supply = existingSupply - value
       Assert.isTrue(supply >= BigInt(0))
 
-      // If we are reverting the transaction which matches the created at
-      // hash of the asset, delete the record from the store
-      if (
-        transaction.hash().equals(existingAsset.createdTransactionHash) &&
-        supply === BigInt(0)
-      ) {
-        await this.walletDb.deleteAsset(this, assetId, tx)
-      } else {
-        await this.walletDb.putAsset(
-          this,
-          assetId,
-          {
-            createdTransactionHash: existingAsset.createdTransactionHash,
-            id: asset.id(),
-            metadata: asset.metadata(),
-            name: asset.name(),
-            owner: asset.owner(),
-            supply,
-          },
-          tx,
-        )
-      }
+      await this.walletDb.putAsset(
+        this,
+        assetId,
+        {
+          createdTransactionHash: existingAsset.createdTransactionHash,
+          id: asset.id(),
+          metadata: asset.metadata(),
+          name: asset.name(),
+          owner: asset.owner(),
+          supply,
+        },
+        tx,
+      )
     }
   }
 
@@ -605,6 +596,7 @@ export class Account {
         }
       }
 
+      await this.deleteCreatedAssetsFromTransaction(transaction, tx)
       await this.walletDb.deletePendingTransactionHash(
         this,
         transaction.expiration(),
@@ -612,6 +604,30 @@ export class Account {
         tx,
       )
     })
+  }
+
+  private async deleteCreatedAssetsFromTransaction(
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { asset } of transaction.mints.slice().reverse()) {
+      // Only update the mint for the owner
+      if (asset.owner().toString('hex') !== this.publicAddress) {
+        continue
+      }
+
+      const existingAsset = await this.walletDb.getAsset(this, asset.id(), tx)
+      Assert.isNotUndefined(existingAsset)
+
+      // If we are reverting the transaction which matches the created at
+      // hash of the asset, delete the record from the store
+      if (
+        transaction.hash().equals(existingAsset.createdTransactionHash) &&
+        existingAsset.supply === BigInt(0)
+      ) {
+        await this.walletDb.deleteAsset(this, asset.id(), tx)
+      }
+    }
   }
 
   async *getBalances(

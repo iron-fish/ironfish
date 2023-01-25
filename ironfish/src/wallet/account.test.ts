@@ -7,8 +7,8 @@ import { Assert } from '../assert'
 import {
   createNodeTest,
   useAccountFixture,
-  useBurnBlockFixture,
   useBlockWithTx,
+  useBurnBlockFixture,
   useMinerBlockFixture,
   useMintBlockFixture,
   useTxFixture,
@@ -741,6 +741,7 @@ describe('Accounts', () => {
         firstMintBlock.header,
         firstMintBlock.transactions[1],
       )
+      await accountA.expireTransaction(firstMintBlock.transactions[1])
       expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toBeUndefined()
       expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
     })
