@@ -147,7 +147,9 @@ export default class Ceremony extends IronfishCommand {
         `\nThank you for your contribution to the Iron Fish Ceremony. You have successfully contributed at position #${contributionNumber}. The public hash of your contribution is:`,
       )
       this.log(display256CharacterHash(hash))
-      this.log(`You can view your contributed file at ${downloadLink}.`)
+      this.log(
+        `This hash is a record of your contribution to the Iron Fish parameters, so you should save it to check later. You can view your contributed file at ${downloadLink}.`,
+      )
 
       client.stop(true)
       this.exit(0)
@@ -188,11 +190,11 @@ const display256CharacterHash = (hash: string): string => {
   // split string every 8 characters
   let slices = hash.match(/.{1,8}/g) ?? []
 
-  let output = ''
+  const output = []
   for (let i = 0; i < 4; i++) {
-    output += `\t${slices.slice(0, 4).join(' ')}\n`
+    output.push(`\t${slices.slice(0, 4).join(' ')}`)
     slices = slices.slice(4)
   }
 
-  return output
+  return `\n${output.join('\n')}\n`
 }
