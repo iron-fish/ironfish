@@ -1165,11 +1165,15 @@ fn merge_pairs(v1: &[G1Affine], v2: &[G1Affine]) -> (G1Affine, G1Affine) {
             let rho = bls12_381::Scalar::random(&mut *rng);
             let mut new_wnaf = Wnaf::new();
             let mut wnaf = new_wnaf.scalar(&rho);
-            (wnaf.base(G1Projective::from(v1)), wnaf.base(G1Projective::from(v2)))
+            (
+                wnaf.base(G1Projective::from(v1)),
+                wnaf.base(G1Projective::from(v2)),
+            )
         })
-        .reduce(|| (G1Projective::identity(), G1Projective::identity()), |a, b| {
-            (a.0 + b.0, a.1 + b.1)
-        });
+        .reduce(
+            || (G1Projective::identity(), G1Projective::identity()),
+            |a, b| (a.0 + b.0, a.1 + b.1),
+        );
 
     (result.0.to_affine(), result.1.to_affine())
 }

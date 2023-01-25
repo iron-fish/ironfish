@@ -201,7 +201,8 @@ export class CeremonyServer {
     try {
       parsedMessage = JSON.parse(message) as CeremonyClientMessage
     } catch {
-      client.logger.error(`Received unknown message: ${message}`)
+      client.logger.error(`Could not parse client message: ${message}`)
+      this.closeClient(client, new Error(`Could not parse message`))
       return
     }
 
@@ -217,11 +218,11 @@ export class CeremonyServer {
     } else if (parsedMessage.method === 'upload-complete') {
       await this.handleUploadComplete(client).catch((e) => {
         client.logger.error(`Error handling upload-complete: ${ErrorUtils.renderError(e)}`)
-        this.closeClient(client, new Error(`Error generating upload url`))
+        this.closeClient(client, new Error(`Error verifying contribution`))
       })
     } else {
-      client.logger.error(`Unknown Message Received: ${message}`)
-      this.closeClient(client, new Error(`Error generating upload url`))
+      client.logger.error(`Unknown method received: ${message}`)
+      this.closeClient(client, new Error(`Unknown method received`))
     }
   }
 
