@@ -33,7 +33,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 16
+export const VERSION_DATABASE_ACCOUNTS = 17
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -383,6 +383,19 @@ export class WalletDB {
 
   async clearNonChainNoteHashes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.nonChainNoteHashes.clear(tx, account.prefixRange)
+  }
+
+  async *loadSequenceToTransactionHashes(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{ sequence: number; hash: Buffer }> {
+    for await (const [, [sequence, hash]] of this.sequenceToTransactionHash.getAllKeysIter(
+      tx,
+      account.prefixRange,
+      { ordered: true },
+    )) {
+      yield { sequence, hash }
+    }
   }
 
   async *loadTransactions(
@@ -882,6 +895,12 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<AssetValue | undefined> {
     return this.assets.get([account.prefix, assetId], tx)
+  }
+
+  async *loadAssets(account: Account, tx?: IDatabaseTransaction): AsyncGenerator<AssetValue> {
+    for await (const asset of this.assets.getAllValuesIter(tx, account.prefixRange)) {
+      yield asset
+    }
   }
 
   async deleteAsset(
