@@ -229,11 +229,15 @@ impl ProposedTransaction {
         {
             return Err(IronfishError::InvalidMinersFeeTransaction);
         }
-        // Ensure the merkle note has an identifiable encryption key
-        self.outputs
-            .get_mut(0)
-            .ok_or(IronfishError::InvalidMinersFeeTransaction)?
-            .set_is_miners_fee();
+        self.post_miners_fee_unchecked()
+    }
+
+    /// Do not call this directly -- see post_miners_fee.
+    pub fn post_miners_fee_unchecked(&mut self) -> Result<Transaction, IronfishError> {
+        // Set note_encryption_keys to a constant value on the outputs
+        for output in &mut self.outputs {
+            output.set_is_miners_fee();
+        }
         self._partial_post()
     }
 

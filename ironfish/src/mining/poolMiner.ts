@@ -48,7 +48,7 @@ export class MiningPoolMiner {
     }
 
     const threadCount = options.threadCount ?? 1
-    this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize)
+    this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize, false)
 
     this.stratum = new StratumClient({
       host: options.host,

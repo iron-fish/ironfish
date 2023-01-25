@@ -147,6 +147,11 @@ export class Transaction {
    */
   post_miners_fee(): Buffer
   /**
+   * Used to generate invalid miners fee transactions for testing. Call
+   * post_miners_fee instead in user-facing code.
+   */
+  _postMinersFeeUnchecked(): Buffer
+  /**
    * Post the transaction. This performs a bit of validation, and signs
    * the spends with a signature that proves the spends are part of this
    * transaction.
@@ -167,7 +172,7 @@ export class FoundBlockResult {
   constructor(randomness: string, miningRequestId: number)
 }
 export class ThreadPoolHandler {
-  constructor(threadCount: number, batchSize: number)
+  constructor(threadCount: number, batchSize: number, pauseOnSuccess: boolean)
   newWork(headerBytes: Buffer, target: Buffer, miningRequestId: number): void
   stop(): void
   pause(): void

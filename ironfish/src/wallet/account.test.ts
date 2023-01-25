@@ -461,6 +461,34 @@ describe('Accounts', () => {
 
       expect(pendingHashEntry).toBeUndefined()
     })
+
+    it('should add transactions to sequenceToTransactionHash', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const connectSpy = jest.spyOn(accountA, 'connectTransaction')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      expect(connectSpy).toHaveBeenCalled()
+
+      const sequenceIndexEntry = await node.wallet.walletDb.sequenceToTransactionHash.get([
+        accountA.prefix,
+        [block3.header.sequence, transaction.hash()],
+      ])
+
+      expect(sequenceIndexEntry).toBeNull()
+    })
   })
 
   describe('disconnectTransaction', () => {
@@ -600,6 +628,40 @@ describe('Accounts', () => {
 
       expect(pendingHashEntry).toBeDefined()
     })
+
+    it('should delete entries from sequenceToNoteHash', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      let sequenceIndexEntry = await accountA['walletDb'].sequenceToTransactionHash.get([
+        accountA.prefix,
+        [block3.header.sequence, transaction.hash()],
+      ])
+
+      expect(sequenceIndexEntry).toBeDefined()
+
+      // disconnect transaction
+      await accountA.disconnectTransaction(block3.header, transaction)
+
+      sequenceIndexEntry = await accountA['walletDb'].sequenceToTransactionHash.get([
+        accountA.prefix,
+        [block3.header.sequence, transaction.hash()],
+      ])
+
+      expect(sequenceIndexEntry).toBeUndefined()
+    })
   })
 
   describe('deleteTransaction', () => {
@@ -707,6 +769,48 @@ describe('Accounts', () => {
       await expect(accountA.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
         confirmed: 2000000000n,
         unconfirmed: 1999999998n,
+      })
+    })
+  })
+
+  describe('calculatePendingBalance', () => {
+    it('should calculate pending balance from unconfirmed balance and pending transactions', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const balanceA = await accountA.getBalance(Asset.nativeId(), 0)
+
+      expect(balanceA).toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 2000000000n,
+      })
+
+      const headA = await accountA.getHead()
+
+      Assert.isNotNull(headA)
+
+      expect(headA).toMatchObject({
+        hash: block2.header.hash,
+        sequence: block2.header.sequence,
+      })
+
+      await useTxFixture(node.wallet, accountA, accountB)
+
+      await expect(
+        accountA['calculatePendingBalance'](
+          headA?.sequence,
+          Asset.nativeId(),
+          balanceA.unconfirmed,
+        ),
+      ).resolves.toMatchObject({
+        pending: balanceA.unconfirmed - 1n,
+        pendingCount: 1,
       })
     })
   })

@@ -29,6 +29,7 @@ import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
 import { RawTransaction } from '../primitives/rawTransaction'
+import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
@@ -569,6 +570,8 @@ export class Wallet {
     assetId: Buffer
     unconfirmed: bigint
     unconfirmedCount: number
+    pending: bigint
+    pendingCount: number
     confirmed: bigint
     blockHash: Buffer | null
     sequence: number | null
@@ -590,6 +593,8 @@ export class Wallet {
     unconfirmedCount: number
     unconfirmed: bigint
     confirmed: bigint
+    pendingCount: number
+    pending: bigint
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -764,8 +769,8 @@ export class Wallet {
         raw.fee = options.fee
       }
 
+      let size = 0
       if (options.feeRate) {
-        let size = 0
         size += 8 // spends length
         size += 8 // notes length
         size += 8 // fee
@@ -785,6 +790,17 @@ export class Wallet {
         fee: raw.fee,
         account: sender,
       })
+
+      if (options.feeRate) {
+        size += raw.spends.length * SPEND_SERIALIZED_SIZE_IN_BYTE
+        raw.fee = getFee(options.feeRate, size)
+        raw.spends = []
+
+        await this.fund(raw, {
+          fee: raw.fee,
+          account: sender,
+        })
+      }
 
       return raw
     } finally {

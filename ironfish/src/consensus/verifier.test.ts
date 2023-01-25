@@ -5,12 +5,18 @@
 jest.mock('ws')
 
 import '../testUtilities/matchers/blockchain'
-import { Asset } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  generateKey,
+  Note as NativeNote,
+  Transaction as NativeTransaction,
+} from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { getBlockSize, getBlockWithMinersFeeSize } from '../network/utils/serializers'
 import { BlockHeader, Transaction } from '../primitives'
 import { transactionCommitment } from '../primitives/blockheader'
 import { Target } from '../primitives/target'
+import { SerializedTransaction } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -22,7 +28,7 @@ import {
   usePostTxFixture,
   useTxSpendsFixture,
 } from '../testUtilities'
-import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
+import { useFixture } from '../testUtilities/fixtures/fixture'
 import { VerificationResultReason } from './verifier'
 
 describe('Verifier', () => {
@@ -176,6 +182,65 @@ describe('Verifier', () => {
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.INVALID_TRANSACTION_FEE,
+        valid: false,
+      })
+    })
+
+    it('rejects a block with miners fee with multiple notes', async () => {
+      const minersBlock = await useMinerBlockFixture(nodeTest.chain)
+
+      // Make an invalid multiple-note miners fee transaction
+      const invalidMinersTransaction = await useFixture(
+        () => {
+          const key = generateKey()
+          const reward = nodeTest.strategy.miningReward(minersBlock.header.sequence)
+          const owner = key.public_address
+          const minerNote1 = new NativeNote(
+            owner,
+            BigInt(reward / 2),
+            '',
+            Asset.nativeId(),
+            owner,
+          )
+          const minerNote2 = new NativeNote(
+            owner,
+            BigInt(reward / 2),
+            '',
+            Asset.nativeId(),
+            owner,
+          )
+          const transaction = new NativeTransaction(key.spending_key)
+          transaction.receive(minerNote1)
+          transaction.receive(minerNote2)
+          return new Transaction(transaction._postMinersFeeUnchecked())
+        },
+        {
+          process: async (): Promise<void> => {},
+          serialize: (tx: Transaction): SerializedTransaction => {
+            return tx.serialize()
+          },
+          deserialize: (tx: SerializedTransaction): Transaction => {
+            return new Transaction(tx)
+          },
+        },
+      )
+
+      minersBlock.transactions[0] = invalidMinersTransaction
+      minersBlock.header.transactionCommitment = transactionCommitment(minersBlock.transactions)
+
+      expect(await nodeTest.verifier.verifyBlock(minersBlock)).toMatchObject({
+        reason: VerificationResultReason.MINERS_FEE_EXPECTED,
+        valid: false,
+      })
+    })
+
+    it('rejects a block with no transactions', async () => {
+      const block = await useMinerBlockFixture(nodeTest.node.chain)
+      block.transactions = []
+      block.header.transactionCommitment = transactionCommitment(block.transactions)
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        reason: VerificationResultReason.MINERS_FEE_EXPECTED,
         valid: false,
       })
     })
@@ -334,9 +399,11 @@ describe('Verifier', () => {
     const nodeTest = createNodeTest()
 
     it('says the block with no spends is valid', async () => {
-      const { chain, strategy } = nodeTest
-      strategy.disableMiningReward()
-      const block = await makeBlockAfter(chain, chain.head)
+      const { chain } = nodeTest
+      const block = await useMinerBlockFixture(chain)
+
+      Assert.isEqual(block.counts().nullifiers, 0)
+
       expect((await chain.verifier.verifyConnectedSpends(block)).valid).toBe(true)
     })
 

@@ -2,31 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Assert } from './assert'
 import { ChainProcessor } from './chainProcessor'
 import { BlockHeader } from './primitives/blockheader'
-import { createNodeTest } from './testUtilities'
-import { makeBlockAfter } from './testUtilities/helpers/blockchain'
+import { createNodeTest, useMinerBlockFixture } from './testUtilities'
 
 describe('ChainProcessor', () => {
   const nodeTest = createNodeTest()
 
   it('processes chain', async () => {
-    const { strategy, chain } = nodeTest
-    strategy.disableMiningReward()
+    const { chain } = nodeTest
 
-    const genesis = await chain.getBlock(chain.genesis)
-    Assert.isNotNull(genesis)
+    const { node: nodeA } = await nodeTest.createSetup()
+    const { node: nodeB } = await nodeTest.createSetup()
 
-    const blockA1 = await makeBlockAfter(chain, genesis)
-    const blockA2 = await makeBlockAfter(chain, blockA1)
-    const blockA3 = await makeBlockAfter(chain, blockA2)
-    const blockB1 = await makeBlockAfter(chain, genesis)
-    const blockB2 = await makeBlockAfter(chain, blockB1)
+    const blockA1 = await useMinerBlockFixture(nodeA.chain)
+    await expect(nodeA.chain).toAddBlock(blockA1)
+    const blockA2 = await useMinerBlockFixture(nodeA.chain)
+    await expect(nodeA.chain).toAddBlock(blockA2)
+    const blockA3 = await useMinerBlockFixture(nodeA.chain)
+    await expect(nodeA.chain).toAddBlock(blockA3)
+
+    const blockB1 = await useMinerBlockFixture(nodeB.chain)
+    await expect(nodeB.chain).toAddBlock(blockB1)
+    const blockB2 = await useMinerBlockFixture(nodeB.chain)
+    await expect(nodeB.chain).toAddBlock(blockB2)
 
     const processor = new ChainProcessor({
       chain: chain,
-      head: genesis.header.hash,
+      head: chain.genesis.hash,
     })
 
     const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
@@ -72,15 +75,11 @@ describe('ChainProcessor', () => {
   })
 
   it('handles rewinding', async () => {
-    const { strategy, chain } = nodeTest
-    strategy.disableMiningReward()
-
-    const genesis = await chain.getBlock(chain.genesis)
-    Assert.isNotNull(genesis)
+    const { chain } = nodeTest
 
     const processor = new ChainProcessor({
       chain: chain,
-      head: genesis.header.hash,
+      head: chain.genesis.hash,
     })
 
     const onEvent: jest.Mock<void, [BlockHeader, 'add' | 'remove']> = jest.fn()
@@ -91,11 +90,11 @@ describe('ChainProcessor', () => {
     expect(onEvent).toHaveBeenCalledTimes(0)
 
     // G -> A1 -> A2 -> A3
-    const blockA1 = await makeBlockAfter(chain, genesis)
+    const blockA1 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(blockA1)
-    const blockA2 = await makeBlockAfter(chain, blockA1)
+    const blockA2 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(blockA2)
-    const blockA3 = await makeBlockAfter(chain, blockA2)
+    const blockA3 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(blockA3)
 
     await processor.update()
@@ -115,10 +114,9 @@ describe('ChainProcessor', () => {
   })
 
   it('cancels updates when abort signal is triggered', async () => {
-    const { strategy, chain } = nodeTest
-    strategy.disableMiningReward()
+    const { chain } = nodeTest
 
-    const blockA1 = await makeBlockAfter(chain, chain.genesis)
+    const blockA1 = await useMinerBlockFixture(chain)
 
     await expect(chain).toAddBlock(blockA1)
     expect(chain.head.hash).toEqual(blockA1.header.hash)

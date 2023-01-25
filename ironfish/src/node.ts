@@ -259,7 +259,6 @@ export class IronfishNode {
     })
 
     const feeEstimator = new FeeEstimator({
-      wallet,
       maxBlockHistory: config.get('feeEstimatorMaxBlockHistory'),
       percentiles: {
         low: config.get('feeEstimatorPercentileLow'),

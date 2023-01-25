@@ -12,7 +12,7 @@ pub struct ThreadPool {
     mining_request_id: u32,
 }
 impl ThreadPool {
-    pub fn new(thread_count: usize, batch_size: u32) -> Self {
+    pub fn new(thread_count: usize, batch_size: u32, pause_on_success: bool) -> Self {
         let (block_found_channel, block_found_receiver) = mpsc::channel::<(u64, u32)>();
 
         let (hash_rate_channel, hash_rate_receiver) = mpsc::channel::<u32>();
@@ -25,6 +25,7 @@ impl ThreadPool {
                 hash_rate_channel.clone(),
                 thread_count,
                 batch_size,
+                pause_on_success,
             ));
         }
 

@@ -22,7 +22,6 @@ export class StartPool extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     discord: Flags.string({
-      char: 'd',
       description: 'A discord webhook URL to send critical information to',
     }),
     lark: Flags.string({

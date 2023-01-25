@@ -55,7 +55,7 @@ export class MiningSoloMiner {
     this.graffiti = options.graffiti
 
     const threadCount = options.threadCount ?? 1
-    this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize)
+    this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize, true)
 
     this.miningRequestId = 0
     this.nextMiningRequestId = 0

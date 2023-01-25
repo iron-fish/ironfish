@@ -29,7 +29,7 @@ pub use view_keys::*;
 mod test;
 
 const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Iron Fish Money ";
-
+pub const SPEND_KEY_SIZE: usize = 32;
 /// A single private key generates multiple other key parts that can
 /// be used to allow various forms of access to a commitment note:
 ///
@@ -40,7 +40,7 @@ const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Iron Fish Money ";
 pub struct SaplingKey {
     /// The private (secret) key from which all the other key parts are derived.
     /// The expanded form of this key is required before a note can be spent.
-    spending_key: [u8; 32],
+    spending_key: [u8; SPEND_KEY_SIZE],
 
     /// Part of the expanded form of the spending key, generally referred to as
     /// `ask` in the literature. Derived from spending key using a seeded
@@ -79,7 +79,7 @@ pub struct SaplingKey {
 
 impl SaplingKey {
     /// Construct a new key from an array of bytes
-    pub fn new(spending_key: [u8; 32]) -> Result<Self, IronfishError> {
+    pub fn new(spending_key: [u8; SPEND_KEY_SIZE]) -> Result<Self, IronfishError> {
         let spend_authorizing_key =
             jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 0));
 
@@ -90,8 +90,9 @@ impl SaplingKey {
         let proof_authorizing_key =
             jubjub::Fr::from_bytes_wide(&Self::convert_key(spending_key, 1));
 
-        let mut outgoing_viewing_key = [0; 32];
-        outgoing_viewing_key[0..32].clone_from_slice(&Self::convert_key(spending_key, 2)[0..32]);
+        let mut outgoing_viewing_key = [0; SPEND_KEY_SIZE];
+        outgoing_viewing_key[0..SPEND_KEY_SIZE]
+            .clone_from_slice(&Self::convert_key(spending_key, 2)[0..SPEND_KEY_SIZE]);
         let outgoing_viewing_key = OutgoingViewKey {
             view_key: outgoing_viewing_key,
         };
@@ -114,7 +115,7 @@ impl SaplingKey {
 
     /// Load a new key from a Read implementation (e.g: socket, file)
     pub fn read<R: io::Read>(reader: &mut R) -> Result<Self, IronfishError> {
-        let mut spending_key = [0; 32];
+        let mut spending_key = [0; SPEND_KEY_SIZE];
         reader.read_exact(&mut spending_key)?;
         Self::new(spending_key)
     }
@@ -124,11 +125,11 @@ impl SaplingKey {
         match hex_to_bytes(value) {
             Err(_) => Err(IronfishError::InvalidPaymentAddress),
             Ok(bytes) => {
-                if bytes.len() != 32 {
+                if bytes.len() != SPEND_KEY_SIZE {
                     Err(IronfishError::InvalidPaymentAddress)
                 } else {
-                    let mut byte_arr = [0; 32];
-                    byte_arr.clone_from_slice(&bytes[0..32]);
+                    let mut byte_arr = [0; SPEND_KEY_SIZE];
+                    byte_arr.clone_from_slice(&bytes[0..SPEND_KEY_SIZE]);
                     Self::new(byte_arr)
                 }
             }
@@ -142,8 +143,8 @@ impl SaplingKey {
         let mnemonic = Mnemonic::from_phrase(&value, language)
             .map_err(|_| IronfishError::InvalidPaymentAddress)?;
         let bytes = mnemonic.entropy();
-        let mut byte_arr = [0; 32];
-        byte_arr.clone_from_slice(&bytes[0..32]);
+        let mut byte_arr = [0; SPEND_KEY_SIZE];
+        byte_arr.clone_from_slice(&bytes[0..SPEND_KEY_SIZE]);
         Self::new(byte_arr)
     }
 
@@ -153,7 +154,7 @@ impl SaplingKey {
     /// first time.
     /// Note that unlike `new`, this function always successfully returns a value.
     pub fn generate_key() -> Self {
-        let spending_key: [u8; 32] = random();
+        let spending_key: [u8; SPEND_KEY_SIZE] = random();
         loop {
             if let Ok(key) = Self::new(spending_key) {
                 return key;
@@ -169,7 +170,7 @@ impl SaplingKey {
     // Write a bytes representation of this key to the provided stream
     pub fn write<W: io::Write>(&self, mut writer: W) -> Result<(), IronfishError> {
         let num_bytes_written = writer.write(&self.spending_key)?;
-        if num_bytes_written != 32 {
+        if num_bytes_written != SPEND_KEY_SIZE {
             return Err(IronfishError::InvalidData);
         }
 
@@ -177,7 +178,7 @@ impl SaplingKey {
     }
 
     /// Retrieve the private spending key
-    pub fn spending_key(&self) -> [u8; 32] {
+    pub fn spending_key(&self) -> [u8; SPEND_KEY_SIZE] {
         self.spending_key
     }
 
@@ -247,7 +248,7 @@ impl SaplingKey {
     ///  *  `spending_key` The 32 byte spending key
     ///  *  `modifier` a byte to add to tweak the hash for each of the three
     ///     values
-    fn convert_key(spending_key: [u8; 32], modifier: u8) -> [u8; 64] {
+    fn convert_key(spending_key: [u8; SPEND_KEY_SIZE], modifier: u8) -> [u8; 64] {
         let mut hasher = Blake2b::new()
             .hash_length(64)
             .personal(EXPANDED_SPEND_BLAKE2_KEY)
