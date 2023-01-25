@@ -34,14 +34,11 @@ pub fn compute(
     let h3 = sapling_mint.contribute(rng);
 
     sapling_spend
-        .write(&mut new_params)
-        .expect("couldn't write new Sapling Spend params");
+        .write(&mut new_params)?;
     sapling_output
-        .write(&mut new_params)
-        .expect("couldn't write new Sapling Output params");
+        .write(&mut new_params)?;
     sapling_mint
-        .write(&mut new_params)
-        .expect("couldn't write new Sapling Mint params");
+        .write(&mut new_params)?;
 
     let mut h = Blake2b512::new();
     h.update(h1);
