@@ -125,15 +125,28 @@ export default class Ceremony extends IronfishCommand {
     client.onContributionVerified.on(({ hash, downloadLink, contributionNumber }) => {
       CliUx.ux.action.stop()
 
-      if (hash !== localHash) {
-        this.error(
-          'Hashes do not match. Please contact the Iron Fish team with this error message.',
+      if (!localHash) {
+        this.log(
+          `Server verified a contribution, but you haven't made a contribution yet. Server-generated hash:`,
         )
+        this.log(display256CharacterHash(hash))
+        this.error('Please contact the Iron Fish team with this error message.')
+      }
+
+      if (hash !== localHash) {
+        this.log('Hashes do not match. Locally generated hash:')
+        this.log(display256CharacterHash(localHash))
+        this.log('Server-generated hash:')
+        this.log(display256CharacterHash(hash))
+        this.error('Please contact the Iron Fish team with this error message.')
       }
 
       this.log(
-        `Thank you for your contribution to the Iron Fish Ceremony. You have successfully contributed at position #${contributionNumber}. The public hash of your contribution is "${hash}". You can view your contributed file at ${downloadLink}.`,
+        `\nThank you for your contribution to the Iron Fish Ceremony. You have successfully contributed at position #${contributionNumber}. The public hash of your contribution is:`,
       )
+      this.log(display256CharacterHash(hash))
+      this.log(`You can view your contributed file at ${downloadLink}.`)
+
       client.stop(true)
       this.exit(0)
     })
@@ -167,4 +180,17 @@ export default class Ceremony extends IronfishCommand {
       }
     }
   }
+}
+
+const display256CharacterHash = (hash: string): string => {
+  // split string every 8 characters
+  let slices = hash.match(/.{1,8}/g) ?? []
+
+  let output = ''
+  for (let i = 0; i < 4; i++) {
+    output += `\t${slices.slice(0, 4).join(' ')}\n`
+    slices = slices.slice(4)
+  }
+
+  return output
 }
