@@ -44,7 +44,7 @@ export default class Ceremony extends IronfishCommand {
 
     // Prompt for randomness
     let randomness: string | null = await CliUx.ux.prompt(
-      "Provide some randomness to contribute to the ceremony. For more information on where this should come from and it's importance, please read [link_to_blog_or_randomness_info]. If none is provided, it will automatically be generated for you (press enter)",
+      'Provide some randomness to contribute to the ceremony. If none is provided, it will automatically be generated for you (press enter)',
       { required: false },
     )
     randomness = randomness.length ? randomness : null
