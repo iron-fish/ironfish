@@ -27,7 +27,7 @@ export class Transaction {
   public readonly notes: NoteEncrypted[]
   public readonly spends: Spend[]
   public readonly _mints: MintDescription[]
-  public readonly burns: BurnDescription[]
+  public readonly _burns: BurnDescription[]
 
   private readonly _version: number
   private readonly _fee: bigint
@@ -99,7 +99,7 @@ export class Transaction {
       return { asset, value }
     })
 
-    this.burns = Array.from({ length: _burnsLength }, () => {
+    this._burns = Array.from({ length: _burnsLength }, () => {
       const assetId = reader.readBytes(ASSET_ID_LENGTH)
       const value = reader.readBigU64()
 
@@ -233,5 +233,9 @@ export class Transaction {
 
   get mints(): MintDescription[] {
     return this._mints
+  }
+
+  get burns(): BurnDescription[] {
+    return this._burns
   }
 }

@@ -132,6 +132,51 @@ describe('Verifier', () => {
         valid: false,
       })
     })
+
+    it('returns false on transactions containing invalid burn values', async () => {
+      const node = nodeTest.node
+      const account = await useAccountFixture(node.wallet)
+      const asset = new Asset(account.spendingKey, 'testcoin', '')
+
+      const mined = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(mined)
+      await node.wallet.updateHead()
+
+      const mintValue = BigInt(100_000_000_000_000_000n)
+      const mintBlockA = await useMintBlockFixture({
+        node,
+        account,
+        asset,
+        value: mintValue,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(mintBlockA)
+      await node.wallet.updateHead()
+
+      const mintBlockB = await useMintBlockFixture({
+        node,
+        account,
+        asset,
+        value: mintValue,
+        sequence: 4,
+      })
+      await expect(node.chain).toAddBlock(mintBlockB)
+      await node.wallet.updateHead()
+
+      const burnValue = BigInt(100_000_000_000_000_001n)
+      const transaction = await usePostTxFixture({
+        node: node,
+        wallet: node.wallet,
+        from: account,
+        burns: [{ assetId: asset.id(), value: burnValue }],
+      })
+
+      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+      expect(result).toEqual({
+        reason: VerificationResultReason.MAX_BURN_VALUE_EXCEEDED,
+        valid: false,
+      })
+    })
   })
 
   describe('Block', () => {
@@ -304,6 +349,53 @@ describe('Verifier', () => {
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         reason: VerificationResultReason.MAX_MINT_VALUE_EXCEEDED,
+        valid: false,
+      })
+    })
+
+    it('rejects a block with an invalid burn value', async () => {
+      const node = nodeTest.node
+      const account = await useAccountFixture(node.wallet)
+      const asset = new Asset(account.spendingKey, 'testcoin', '')
+
+      const mined = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(mined)
+      await node.wallet.updateHead()
+
+      const mintValue = BigInt(100_000_000_000_000_000n)
+      const mintBlockA = await useMintBlockFixture({
+        node,
+        account,
+        asset,
+        value: mintValue,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(mintBlockA)
+      await node.wallet.updateHead()
+
+      const mintBlockB = await useMintBlockFixture({
+        node,
+        account,
+        asset,
+        value: mintValue,
+        sequence: 4,
+      })
+      await expect(node.chain).toAddBlock(mintBlockB)
+      await node.wallet.updateHead()
+
+      const block = await useBurnBlockFixture({
+        node: nodeTest.node,
+        account,
+        asset,
+        value: BigInt(1n),
+      })
+
+      jest
+        .spyOn(block.transactions[1], 'burns', 'get')
+        .mockReturnValue([{ assetId: asset.id(), value: BigInt(100_000_000_000_000_001n) }])
+
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        reason: VerificationResultReason.MAX_BURN_VALUE_EXCEEDED,
         valid: false,
       })
     })
