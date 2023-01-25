@@ -285,15 +285,16 @@ impl NativeTransaction {
 }
 
 #[napi]
-pub fn verify_transactions(serialized_transactions: Vec<Buffer>) -> bool {
+pub fn verify_transactions(serialized_transactions: Vec<JsBuffer>) -> Result<bool> {
     let mut transactions: Vec<Transaction> = vec![];
 
     for tx_bytes in serialized_transactions {
-        match Transaction::read(&mut tx_bytes.as_ref()) {
+        let buf = tx_bytes.into_value()?;
+        match Transaction::read(buf.as_ref()) {
             Ok(tx) => transactions.push(tx),
-            Err(_) => return false,
+            Err(_) => return Ok(false),
         }
     }
 
-    batch_verify_transactions(transactions.iter()).is_ok()
+    Ok(batch_verify_transactions(transactions.iter()).is_ok())
 }
