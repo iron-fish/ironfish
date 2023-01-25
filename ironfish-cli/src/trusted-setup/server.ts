@@ -208,31 +208,20 @@ export class CeremonyServer {
     client.logger.info(`Message Received: ${parsedMessage.method}`)
 
     if (parsedMessage.method === 'contribution-complete') {
-      return this.handleContributionComplete(client).catch((e) => {
-        if (e instanceof Error) {
-          client.logger.error(
-            `Error handling contribution-complete: ${ErrorUtils.renderError(e)}`,
-          )
-          this.closeClient(client, new Error(`Error generating upload url`))
-          return
-        }
-
-        client.logger.error(`Error handling contribution-complete: unknown`)
-        return
+      await this.handleContributionComplete(client).catch((e) => {
+        client.logger.error(
+          `Error handling contribution-complete: ${ErrorUtils.renderError(e)}`,
+        )
+        this.closeClient(client, new Error(`Error generating upload url`))
       })
     } else if (parsedMessage.method === 'upload-complete') {
-      return this.handleUploadComplete(client).catch((e) => {
-        if (e instanceof Error) {
-          client.logger.error(`Error handling upload-complete: ${ErrorUtils.renderError(e)}`)
-          this.closeClient(client, new Error(`Error verifying uploaded params`))
-          return
-        }
-
-        client.logger.error(`Error handling upload-complete: Unknown`)
-        return
+      await this.handleUploadComplete(client).catch((e) => {
+        client.logger.error(`Error handling upload-complete: ${ErrorUtils.renderError(e)}`)
+        this.closeClient(client, new Error(`Error generating upload url`))
       })
     } else {
       client.logger.error(`Unknown Message Received: ${message}`)
+      this.closeClient(client, new Error(`Error generating upload url`))
     }
   }
 
