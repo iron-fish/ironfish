@@ -277,23 +277,7 @@ export async function getBucketObjects(s3: S3Client, bucket: string): Promise<st
   return keys
 }
 
-export async function copyBucketObject(
-  s3: S3Client,
-  bucket: string,
-  sourceFile: string,
-  destFile: string,
-): Promise<CopyObjectCommandOutput> {
-  const commandParams: CopyObjectCommandInput = {
-    Bucket: bucket,
-    CopySource: `/${bucket}/${sourceFile}`,
-    Key: destFile,
-  }
-
-  const command = new CopyObjectCommand(commandParams)
-  return s3.send(command)
-}
-
-export async function deleteBucketObject(
+export async function deleteFromBucket(
   s3Client: S3Client,
   bucket: string,
   fileName: string,

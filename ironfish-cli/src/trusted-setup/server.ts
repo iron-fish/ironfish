@@ -309,7 +309,7 @@ export class CeremonyServer {
     await Promise.all([oldParamsPromise, newParamsPromise])
 
     client.logger.info(`Deleting uploaded params from S3`)
-    await S3Utils.deleteBucketObject(this.s3Client, this.s3Bucket, client.id)
+    await S3Utils.deleteFromBucket(this.s3Client, this.s3Bucket, client.id)
 
     client.logger.info(`Verifying contribution`)
     const hash = await verifyTransform(oldParamsDownloadPath, newParamsDownloadPath)
