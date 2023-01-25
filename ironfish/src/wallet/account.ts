@@ -185,6 +185,9 @@ export class Account {
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
       }
 
+      await this.saveConnectedMintsToAssetsStore(transaction, tx)
+      await this.saveConnectedBurnsToAssetsStore(transaction, tx)
+
       await this.walletDb.saveTransaction(
         this,
         transaction.hash(),
@@ -201,6 +204,147 @@ export class Account {
     })
 
     return assetBalanceDeltas
+  }
+
+  private async saveConnectedMintsToAssetsStore(
+    transaction: Transaction,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { asset, value } of transaction.mints) {
+      // Only store the asset for the owner
+      if (asset.owner().toString('hex') !== this.publicAddress) {
+        continue
+      }
+
+      const assetId = asset.id()
+      const existingAsset = await this.walletDb.getAsset(this, assetId, tx)
+
+      let createdTransactionHash = transaction.hash()
+      let supply = BigInt(0)
+      if (existingAsset) {
+        createdTransactionHash = existingAsset.createdTransactionHash
+        supply = existingAsset.supply
+      }
+
+      await this.walletDb.putAsset(
+        this,
+        assetId,
+        {
+          createdTransactionHash,
+          id: assetId,
+          metadata: asset.metadata(),
+          name: asset.name(),
+          owner: asset.owner(),
+          supply: supply + value,
+        },
+        tx,
+      )
+    }
+  }
+
+  private async saveConnectedBurnsToAssetsStore(
+    transaction: Transaction,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { assetId, value } of transaction.burns) {
+      const existingAsset = await this.walletDb.getAsset(this, assetId, tx)
+      if (!existingAsset) {
+        continue
+      }
+      // Verify the owner matches before processing a burn
+      Assert.isEqual(
+        existingAsset.owner.toString('hex'),
+        this.publicAddress,
+        'Existing asset owner should match public address',
+      )
+
+      const existingSupply = existingAsset.supply
+      const supply = existingSupply - value
+      Assert.isTrue(supply >= BigInt(0), 'Invalid burn value')
+
+      await this.walletDb.putAsset(
+        this,
+        assetId,
+        {
+          createdTransactionHash: existingAsset.createdTransactionHash,
+          id: existingAsset.id,
+          metadata: existingAsset.metadata,
+          name: existingAsset.name,
+          owner: existingAsset.owner,
+          supply,
+        },
+        tx,
+      )
+    }
+  }
+
+  private async deleteDisconnectedBurnsFromAssetsStore(
+    transaction: Transaction,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { assetId, value } of transaction.burns.slice().reverse()) {
+      const existingAsset = await this.walletDb.getAsset(this, assetId, tx)
+      if (!existingAsset) {
+        continue
+      }
+      // Verify the owner matches before processing a burn
+      Assert.isEqual(
+        existingAsset.owner.toString('hex'),
+        this.publicAddress,
+        'Existing asset owner should match public address',
+      )
+
+      const existingSupply = existingAsset.supply
+      const supply = existingSupply + value
+
+      await this.walletDb.putAsset(
+        this,
+        assetId,
+        {
+          createdTransactionHash: existingAsset.createdTransactionHash,
+          id: existingAsset.id,
+          metadata: existingAsset.metadata,
+          name: existingAsset.name,
+          owner: existingAsset.owner,
+          supply,
+        },
+        tx,
+      )
+    }
+  }
+
+  private async deleteDisconnectedMintsFromAssetsStore(
+    transaction: Transaction,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { asset, value } of transaction.mints.slice().reverse()) {
+      // Only update the mint for the owner
+      if (asset.owner().toString('hex') !== this.publicAddress) {
+        continue
+      }
+
+      const assetId = asset.id()
+      const existingAsset = await this.walletDb.getAsset(this, assetId, tx)
+      Assert.isNotUndefined(existingAsset)
+
+      const existingSupply = existingAsset.supply
+      const supply = existingSupply - value
+      Assert.isTrue(supply >= BigInt(0))
+
+      await this.walletDb.putAsset(
+        this,
+        assetId,
+        {
+          createdTransactionHash: existingAsset.createdTransactionHash,
+          id: asset.id(),
+          metadata: asset.metadata(),
+          name: asset.name(),
+          owner: asset.owner(),
+          supply,
+        },
+        tx,
+      )
+    }
   }
 
   async addPendingTransaction(
@@ -328,6 +472,8 @@ export class Account {
         assetBalanceDeltas.increment(spentNote.note.assetId(), spentNote.note.value())
       }
 
+      await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
+      await this.deleteDisconnectedMintsFromAssetsStore(transaction, tx)
       await this.walletDb.deleteSequenceToTransactionHash(
         this,
         blockHeader.sequence,
@@ -456,6 +602,7 @@ export class Account {
         }
       }
 
+      await this.deleteCreatedAssetsFromTransaction(transaction, tx)
       await this.walletDb.deletePendingTransactionHash(
         this,
         transaction.expiration(),
@@ -463,6 +610,30 @@ export class Account {
         tx,
       )
     })
+  }
+
+  private async deleteCreatedAssetsFromTransaction(
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { asset } of transaction.mints.slice().reverse()) {
+      // Only update the mint for the owner
+      if (asset.owner().toString('hex') !== this.publicAddress) {
+        continue
+      }
+
+      const existingAsset = await this.walletDb.getAsset(this, asset.id(), tx)
+      Assert.isNotUndefined(existingAsset)
+
+      // If we are reverting the transaction which matches the created at
+      // hash of the asset, delete the record from the store
+      if (
+        transaction.hash().equals(existingAsset.createdTransactionHash) &&
+        existingAsset.supply === BigInt(0)
+      ) {
+        await this.walletDb.deleteAsset(this, asset.id(), tx)
+      }
+    }
   }
 
   async *getBalances(
