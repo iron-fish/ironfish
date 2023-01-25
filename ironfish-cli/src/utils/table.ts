@@ -32,7 +32,7 @@ const timestamp = <T extends Record<string, unknown>>(options?: {
 
   // We should only use estimated minWidth if you are streaming
   let minWidth
-  if (!streaming && options?.minWidth === undefined) {
+  if (streaming && options?.minWidth === undefined) {
     minWidth = MAX_TIMESTAMP_LENGTH
   } else {
     minWidth = options?.minWidth
