@@ -12,6 +12,7 @@ import { StorageUtils } from '../storage/database/utils'
 import { DecryptedNote } from '../workerPool/tasks/decryptNotes'
 import { AssetBalances } from './assetBalances'
 import { AccountValue } from './walletdb/accountValue'
+import { AssetValue } from './walletdb/assetValue'
 import { BalanceValue } from './walletdb/balanceValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
@@ -206,9 +207,9 @@ export class Account {
     return assetBalanceDeltas
   }
 
-  private async saveConnectedMintsToAssetsStore(
+  async saveConnectedMintsToAssetsStore(
     transaction: Transaction,
-    tx: IDatabaseTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { asset, value } of transaction.mints) {
       // Only store the asset for the owner
@@ -242,9 +243,9 @@ export class Account {
     }
   }
 
-  private async saveConnectedBurnsToAssetsStore(
+  async saveConnectedBurnsToAssetsStore(
     transaction: Transaction,
-    tx: IDatabaseTransaction,
+    tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { assetId, value } of transaction.burns) {
       const existingAsset = await this.walletDb.getAsset(this, assetId, tx)
@@ -558,6 +559,16 @@ export class Account {
     return this.walletDb.loadTransactionsByTime(this, tx)
   }
 
+  async *getTransactionsOrderedBySequence(
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Readonly<TransactionValue>> {
+    for await (const { hash } of this.walletDb.loadSequenceToTransactionHashes(this, tx)) {
+      const transaction = await this.getTransaction(hash, tx)
+      Assert.isNotUndefined(transaction)
+      yield transaction
+    }
+  }
+
   getPendingTransactions(
     headSequence: number,
     tx?: IDatabaseTransaction,
@@ -634,6 +645,10 @@ export class Account {
         await this.walletDb.deleteAsset(this, asset.id(), tx)
       }
     }
+  }
+
+  getAssets(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<AssetValue>> {
+    return this.walletDb.loadAssets(this, tx)
   }
 
   async *getBalances(
