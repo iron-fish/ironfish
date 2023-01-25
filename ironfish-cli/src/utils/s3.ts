@@ -7,9 +7,6 @@ import { CognitoIdentity } from '@aws-sdk/client-cognito-identity'
 import {
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
-  CopyObjectCommand,
-  CopyObjectCommandInput,
-  CopyObjectCommandOutput,
   CreateMultipartUploadCommand,
   DeleteObjectCommand,
   DeleteObjectCommandOutput,
