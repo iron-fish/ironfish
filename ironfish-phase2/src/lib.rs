@@ -197,8 +197,6 @@
 
 extern crate bellman;
 extern crate byteorder;
-extern crate crossbeam;
-extern crate num_cpus;
 extern crate pairing;
 extern crate rand;
 extern crate rand_chacha;
@@ -1155,49 +1153,25 @@ fn same_ratio<G1: PairingCurveAffine>(g1: (G1, G1), g2: (G1::Pair, G1::Pair)) ->
 /// ... with high probability.
 fn merge_pairs(v1: &[G1Affine], v2: &[G1Affine]) -> (G1Affine, G1Affine) {
     use rand::thread_rng;
-    use std::sync::Mutex;
 
     assert_eq!(v1.len(), v2.len());
 
-    let chunk = (v1.len() / num_cpus::get()) + 1;
+    let result = (v1, v2)
+        .into_par_iter()
+        .map(|(&v1, &v2)| {
+            // We do not need to be overly cautious of the RNG
+            // used for this check.
+            let rng = &mut thread_rng();
+            let rho = bls12_381::Scalar::random(&mut *rng);
+            let mut new_wnaf = Wnaf::new();
+            let mut wnaf = new_wnaf.scalar(&rho);
+            (wnaf.base(G1Projective::from(v1)), wnaf.base(G1Projective::from(v2)))
+        })
+        .reduce(|| (G1Projective::identity(), G1Projective::identity()), |a, b| {
+            (a.0 + b.0, a.1 + b.1)
+        });
 
-    let s = Arc::new(Mutex::new(G1Projective::identity()));
-    let sx = Arc::new(Mutex::new(G1Projective::identity()));
-
-    crossbeam::scope(|scope| {
-        for (v1, v2) in v1.chunks(chunk).zip(v2.chunks(chunk)) {
-            let s = s.clone();
-            let sx = sx.clone();
-
-            scope.spawn(move || {
-                // We do not need to be overly cautious of the RNG
-                // used for this check.
-                let rng = &mut thread_rng();
-
-                let mut wnaf = Wnaf::new();
-                let mut local_s = G1Projective::identity();
-                let mut local_sx = G1Projective::identity();
-
-                for (v1, v2) in v1.iter().zip(v2.iter()) {
-                    let rho = bls12_381::Scalar::random(&mut *rng);
-                    let mut wnaf = wnaf.scalar(&rho);
-                    let v1 = wnaf.base(G1Projective::from(v1));
-                    let v2 = wnaf.base(G1Projective::from(v2));
-
-                    local_s.add_assign(&v1);
-                    local_sx.add_assign(&v2);
-                }
-
-                s.lock().unwrap().add_assign(&local_s);
-                sx.lock().unwrap().add_assign(&local_sx);
-            });
-        }
-    });
-
-    let s = s.lock().unwrap().to_affine();
-    let sx = sx.lock().unwrap().to_affine();
-
-    (s, sx)
+    (result.0.to_affine(), result.1.to_affine())
 }
 
 /// This needs to be destroyed by at least one participant

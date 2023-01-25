@@ -299,12 +299,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "crossbeam"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24ce9782d4d5c53674646a6a4c1863a21a8fc0cb649b3c94dfc16e45071dea19"
-
-[[package]]
 name = "crossbeam-channel"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -678,10 +672,8 @@ dependencies = [
  "blake2",
  "bls12_381",
  "byteorder",
- "crossbeam",
  "ff 0.12.1",
  "group 0.12.1",
- "num_cpus",
  "pairing 0.22.0",
  "rand 0.8.5",
  "rand_chacha 0.3.1",

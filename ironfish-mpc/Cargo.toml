@@ -11,7 +11,14 @@ name = "new"
 required-features = ["verification"]
 
 [[bin]]
+name = "compute"
+
+[[bin]]
 name = "verify"
+required-features = ["verification"]
+
+[[bin]]
+name = "verify_transform"
 required-features = ["verification"]
 
 [[bin]]
