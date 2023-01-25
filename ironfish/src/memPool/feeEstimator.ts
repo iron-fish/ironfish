@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
+import { Consensus } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { getTransactionSize } from '../network/utils/serializers'
 import { getBlockSize } from '../network/utils/serializers'
 import { Block, Transaction } from '../primitives'
-import { Wallet } from '../wallet'
 
 export interface FeeRateEntry {
   feeRate: bigint
@@ -35,13 +35,12 @@ export class FeeEstimator {
     blockSize: BlockSizeEntry[]
   }
   private percentiles: PriorityLevelPercentiles
-  private wallet: Wallet
   private readonly logger: Logger
   private maxBlockHistory = 10
   private defaultFeeRate = BigInt(1)
+  private consensus: Consensus | undefined
 
   constructor(options: {
-    wallet: Wallet
     maxBlockHistory?: number
     logger?: Logger
     percentiles?: PriorityLevelPercentiles
@@ -51,7 +50,6 @@ export class FeeEstimator {
 
     this.queues = { low: [], medium: [], high: [], blockSize: [] }
     this.percentiles = options.percentiles ?? DEFAULT_PRIORITY_LEVEL_PERCENTILES
-    this.wallet = options.wallet
   }
 
   async init(chain: Blockchain): Promise<void> {
@@ -60,6 +58,7 @@ export class FeeEstimator {
     }
 
     let currentBlockHash = chain.latest.hash
+    this.consensus = chain.consensus
 
     for (let i = 0; i < this.maxBlockHistory; i++) {
       const currentBlock = await chain.getBlock(currentBlockHash)
@@ -192,11 +191,9 @@ export class FeeEstimator {
     const averageBlockSize =
       this.queues[BLOCK_SIZE].reduce((a, b) => a + b.blockSize, 0) /
       this.queues[BLOCK_SIZE].length
-    const blockSizeRatio = BigInt(
-      Math.round(
-        (averageBlockSize / this.wallet.chain.consensus.parameters.maxBlockSizeBytes) * 100,
-      ),
-    )
+
+    const maxBlockSizeBytes = this.consensus?.parameters.maxBlockSizeBytes ?? 2000000
+    const blockSizeRatio = BigInt(Math.round((averageBlockSize / maxBlockSizeBytes) * 100))
 
     let feeRate = fees[Math.round((queue.length - 1) / 2)]
     feeRate = (feeRate * blockSizeRatio) / 100n
