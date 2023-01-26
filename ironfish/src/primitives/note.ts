@@ -21,14 +21,14 @@ export class Note {
   private readonly _memo: Buffer
   private readonly _assetId: Buffer
   private readonly _sender: string
+  private readonly _owner: string
 
   constructor(noteSerialized: Buffer) {
     this.noteSerialized = noteSerialized
 
     const reader = bufio.read(this.noteSerialized, true)
 
-    // skip owner public address
-    reader.seek(PUBLIC_ADDRESS_LENGTH)
+    this._owner = reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
 
     this._assetId = reader.readBytes(ASSET_ID_LENGTH, true)
 
@@ -64,6 +64,10 @@ export class Note {
 
   value(): bigint {
     return this._value
+  }
+
+  owner(): string {
+    return this._owner
   }
 
   sender(): string {

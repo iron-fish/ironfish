@@ -33,7 +33,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 15
+export const VERSION_DATABASE_ACCOUNTS = 16
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -85,6 +85,11 @@ export class WalletDB {
   transactions: IDatabaseStore<{
     key: [Account['prefix'], TransactionHash]
     value: TransactionValue
+  }>
+
+  sequenceToTransactionHash: IDatabaseStore<{
+    key: [Account['prefix'], [number, Buffer]]
+    value: null
   }>
 
   pendingTransactionHashes: IDatabaseStore<{
@@ -180,6 +185,16 @@ export class WalletDB {
       name: 't',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new TransactionValueEncoding(),
+    })
+
+    this.sequenceToTransactionHash = this.db.addStore({
+      name: 'st',
+      keyEncoding: new PrefixEncoding(
+        new BufferEncoding(),
+        new PrefixEncoding(U32_ENCODING, new BufferEncoding(), 4),
+        4,
+      ),
+      valueEncoding: NULL_ENCODING,
     })
 
     this.pendingTransactionHashes = this.db.addStore({
@@ -314,9 +329,15 @@ export class WalletDB {
     const expiration = transactionValue.transaction.expiration()
 
     await this.db.withTransaction(tx, async (tx) => {
-      if (transactionValue.blockHash) {
+      if (transactionValue.sequence !== null) {
         await this.pendingTransactionHashes.del(
           [account.prefix, [expiration, transactionHash]],
+          tx,
+        )
+
+        await this.sequenceToTransactionHash.put(
+          [account.prefix, [transactionValue.sequence, transactionHash]],
+          null,
           tx,
         )
       } else {
@@ -730,7 +751,7 @@ export class WalletDB {
 
     const pendingRange = StorageUtils.getPrefixesKeyRange(
       encoding.serialize([account.prefix, [headSequence + 1, Buffer.alloc(0)]]),
-      encoding.serialize([account.prefix, [2 ^ 32, Buffer.alloc(0)]]),
+      encoding.serialize([account.prefix, [2 ** 32 - 1, Buffer.alloc(0)]]),
     )
 
     for await (const [, [, transactionHash]] of this.pendingTransactionHashes.getAllKeysIter(
@@ -742,6 +763,28 @@ export class WalletDB {
 
       yield transaction
     }
+  }
+
+  async saveSequenceToTransactionHash(
+    account: Account,
+    sequence: number,
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.sequenceToTransactionHash.put(
+      [account.prefix, [sequence, transactionHash]],
+      null,
+      tx,
+    )
+  }
+
+  async deleteSequenceToTransactionHash(
+    account: Account,
+    sequence: number,
+    transactionHash: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.sequenceToTransactionHash.del([account.prefix, [sequence, transactionHash]], tx)
   }
 
   async savePendingTransactionHash(

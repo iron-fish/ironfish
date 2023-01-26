@@ -4,9 +4,9 @@
 import {
   useAccountFixture,
   useBlockWithTx,
+  useMinerBlockFixture,
   useMinersTxFixture,
 } from '../testUtilities/fixtures'
-import { makeBlockAfter } from '../testUtilities/helpers/blockchain'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { BlockSerde, SerializedBlock } from './block'
 
@@ -31,9 +31,7 @@ describe('Block', () => {
   })
 
   it('serializes and deserializes a block', async () => {
-    nodeTest.strategy.disableMiningReward()
-
-    const block = await makeBlockAfter(nodeTest.chain, nodeTest.chain.genesis)
+    const block = await useMinerBlockFixture(nodeTest.chain)
 
     const serialized = BlockSerde.serialize(block)
     expect(serialized).toMatchObject({ header: { timestamp: expect.any(Number) } })
@@ -88,8 +86,8 @@ describe('Block', () => {
   })
 
   it('validate get minersFee when no miners fee', async () => {
-    nodeTest.strategy.disableMiningReward()
-    const block = await makeBlockAfter(nodeTest.chain, nodeTest.chain.genesis)
+    const block = await useMinerBlockFixture(nodeTest.chain)
+    block.transactions = []
 
     expect(() => block.minersFee).toThrow('Block has no miners fee')
   })

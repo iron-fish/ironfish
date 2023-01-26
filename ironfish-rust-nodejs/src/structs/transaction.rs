@@ -230,6 +230,20 @@ impl NativeTransaction {
         Ok(Buffer::from(vec))
     }
 
+    /// Used to generate invalid miners fee transactions for testing. Call
+    /// post_miners_fee instead in user-facing code.
+    #[napi(js_name = "_postMinersFeeUnchecked")]
+    pub fn _post_miners_fee_unchecked(&mut self) -> Result<Buffer> {
+        let transaction = self
+            .transaction
+            .post_miners_fee_unchecked()
+            .map_err(to_napi_err)?;
+
+        let mut vec: Vec<u8> = vec![];
+        transaction.write(&mut vec).map_err(to_napi_err)?;
+        Ok(Buffer::from(vec))
+    }
+
     /// Post the transaction. This performs a bit of validation, and signs
     /// the spends with a signature that proves the spends are part of this
     /// transaction.
@@ -271,15 +285,16 @@ impl NativeTransaction {
 }
 
 #[napi]
-pub fn verify_transactions(serialized_transactions: Vec<Buffer>) -> bool {
+pub fn verify_transactions(serialized_transactions: Vec<JsBuffer>) -> Result<bool> {
     let mut transactions: Vec<Transaction> = vec![];
 
     for tx_bytes in serialized_transactions {
-        match Transaction::read(&mut tx_bytes.as_ref()) {
+        let buf = tx_bytes.into_value()?;
+        match Transaction::read(buf.as_ref()) {
             Ok(tx) => transactions.push(tx),
-            Err(_) => return false,
+            Err(_) => return Ok(false),
         }
     }
 
-    batch_verify_transactions(transactions.iter()).is_ok()
+    Ok(batch_verify_transactions(transactions.iter()).is_ok())
 }

@@ -64,14 +64,10 @@ describe('mint', () => {
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
       const value = BigInt(10)
       const mintTransaction = await useTxFixture(wallet, account, account, async () => {
-        const raw = await wallet.createTransaction(
-          account,
-          [],
-          [{ asset, value }],
-          [],
-          BigInt(0),
-          0,
-        )
+        const raw = await wallet.createTransaction(account, [], [{ asset, value }], [], {
+          fee: 0n,
+          expiration: 0,
+        })
         return wallet.postTransaction(raw, node.memPool)
       })
 

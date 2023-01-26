@@ -247,9 +247,11 @@ export async function useBlockWithTx(
       ],
       [],
       [],
-      BigInt(options.fee ?? 1),
-      0,
-      options.expiration ?? 0,
+      {
+        fee: BigInt(options.fee ?? 1n),
+        expiration: options.expiration ?? 0,
+        expirationDelta: 0,
+      },
     )
 
     const transaction = await node.wallet.postTransaction(raw, node.memPool)
@@ -305,9 +307,11 @@ export async function useBlockWithTxs(
         ],
         [],
         [],
-        BigInt(1),
-        0,
-        0,
+        {
+          fee: 1n,
+          expiration: 0,
+          expirationDelta: 0,
+        },
       )
 
       const transaction = await node.wallet.postTransaction(raw, node.memPool)

@@ -6,8 +6,8 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-export class RemoveCommand extends IronfishCommand {
-  static description = `Permanently remove an account`
+export class DeleteCommand extends IronfishCommand {
+  static description = `Permanently delete an account`
 
   static args = [
     {
@@ -26,7 +26,7 @@ export class RemoveCommand extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { args, flags } = await this.parse(RemoveCommand)
+    const { args, flags } = await this.parse(DeleteCommand)
     const confirm = flags.confirm
     const name = args.account as string
 
@@ -45,6 +45,6 @@ export class RemoveCommand extends IronfishCommand {
       await client.removeAccount({ name, confirm: true })
     }
 
-    this.log(`Account '${name}' successfully removed.`)
+    this.log(`Account '${name}' successfully deleted.`)
   }
 }

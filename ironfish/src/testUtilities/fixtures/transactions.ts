@@ -66,9 +66,11 @@ export async function useTxFixture(
         ],
         [],
         [],
-        fee ?? BigInt(0),
-        0,
-        expiration ?? 0,
+        {
+          fee: fee ?? 0n,
+          expiration: expiration ?? 0,
+          expirationDelta: 0,
+        },
       )
 
       return await wallet.workerPool.postTransaction(raw)

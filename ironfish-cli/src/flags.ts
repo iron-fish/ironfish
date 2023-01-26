@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  CurrencyUtils,
   DEFAULT_CONFIG_NAME,
   DEFAULT_DATA_DIR,
   DEFAULT_USE_RPC_IPC,
@@ -41,6 +42,7 @@ export const ConfigFlag = Flags.string({
 })
 
 export const DataDirFlag = Flags.string({
+  char: 'd',
   default: DEFAULT_DATA_DIR,
   description: 'The path to the data dir',
   env: 'IRONFISH_DATA_DIR',
@@ -101,3 +103,22 @@ remoteFlags[RpcAuthFlagKey] = RpcAuthFlag as unknown as CompletableOptionFlag
  * RPC client to connect to a node to run the command
  */
 export const RemoteFlags = remoteFlags
+
+export type IronOpts = { largerThan?: bigint; flagName: string }
+
+export const IronFlag = Flags.custom<bigint, IronOpts>({
+  parse: async (input, _ctx, opts) => parseIron(input, opts),
+  char: 'i',
+})
+
+const parseIron = (input: string, opts: IronOpts): Promise<bigint> => {
+  return new Promise((resolve, reject) => {
+    const { largerThan, flagName } = opts ?? {}
+    const value = CurrencyUtils.decodeIron(input)
+    if (largerThan !== undefined && value <= largerThan) {
+      reject(new Error(`The minimum ${flagName} is ${CurrencyUtils.renderOre(1n, true)}`))
+    }
+
+    resolve(value)
+  })
+}

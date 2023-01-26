@@ -23,7 +23,7 @@ export class BalancesCommand extends IronfishCommand {
     }),
     confirmations: Flags.integer({
       required: false,
-      description: 'Minimum number of blocks confirmations for a note',
+      description: 'Minimum number of blocks confirmations for a transaction',
     }),
   }
 
@@ -66,6 +66,10 @@ export class BalancesCommand extends IronfishCommand {
         unconfirmed: {
           header: 'Unconfirmed Balance',
           get: (row) => CurrencyUtils.renderIron(row.unconfirmed),
+        },
+        pending: {
+          header: 'Pending Balance',
+          get: (row) => CurrencyUtils.renderIron(row.pending),
         },
         blockHash: {
           header: 'Head Hash',
