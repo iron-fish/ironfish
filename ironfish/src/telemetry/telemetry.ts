@@ -189,11 +189,6 @@ export class Telemetry {
         type: 'integer',
         value: this.chain.head.sequence,
       },
-      {
-        name: 'create_new_block_template_duration',
-        type: 'float',
-        value: this.metrics.mining_newBlockTemplate.rate5m,
-      },
     ]
 
     for (const [messageType, meter] of this.metrics.p2p_InboundTrafficByMessage) {
