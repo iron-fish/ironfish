@@ -26,7 +26,7 @@ export class Transaction {
 
   public readonly notes: NoteEncrypted[]
   public readonly spends: Spend[]
-  public readonly _mints: MintDescription[]
+  public readonly mints: MintDescription[]
   public readonly burns: BurnDescription[]
 
   private readonly _version: number
@@ -86,7 +86,7 @@ export class Transaction {
       return new NoteEncrypted(reader.readBytes(ENCRYPTED_NOTE_LENGTH, true))
     })
 
-    this._mints = Array.from({ length: _mintsLength }, () => {
+    this.mints = Array.from({ length: _mintsLength }, () => {
       // proof
       reader.seek(192)
 
@@ -229,9 +229,5 @@ export class Transaction {
    */
   expiration(): number {
     return this._expiration
-  }
-
-  get mints(): MintDescription[] {
-    return this._mints
   }
 }

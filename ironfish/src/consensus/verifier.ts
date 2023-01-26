@@ -23,8 +23,6 @@ import { BufferUtils } from '../utils/buffer'
 import { WorkerPool } from '../workerPool'
 import { isExpiredSequence } from './utils'
 
-const MAX_MINT_VALUE = BigInt(100_000_000_000_000_000n)
-
 export class Verifier {
   chain: Blockchain
   private readonly workerPool: WorkerPool
@@ -468,10 +466,6 @@ export class Verifier {
       if (humanName.length === 0) {
         return { valid: false, reason: VerificationResultReason.INVALID_ASSET_NAME }
       }
-
-      if (mint.value > MAX_MINT_VALUE) {
-        return { valid: false, reason: VerificationResultReason.MAX_MINT_VALUE_EXCEEDED }
-      }
     }
 
     return { valid: true }
@@ -508,7 +502,6 @@ export enum VerificationResultReason {
   INVALID_TRANSACTION_PROOF = 'Invalid transaction proof',
   INVALID_TRANSACTION_VERSION = 'Invalid transaction version',
   MAX_BLOCK_SIZE_EXCEEDED = 'Block size exceeds maximum',
-  MAX_MINT_VALUE_EXCEEDED = 'Max mint value exceeded',
   MAX_TRANSACTION_SIZE_EXCEEDED = 'Transaction size exceeds maximum',
   MINERS_FEE_EXPECTED = 'Miners fee expected',
   NATIVE_BURN = 'Attempting to burn the native asset',
