@@ -169,6 +169,14 @@ export class CeremonyServer {
 
   private onConnection(socket: net.Socket): void {
     const client = new CeremonyServerClient({ socket, id: uuid(), logger: this.logger })
+
+    const ip = socket.remoteAddress
+    const matching = this.queue.filter((c) => c.socket.remoteAddress === ip)
+    if (ip === undefined || matching.length > 0) {
+      client.close(new Error('IP address already used in this service'))
+      return
+    }
+
     this.queue.push(client)
     client.send({ method: 'joined', queueLocation: this.queue.length })
 
