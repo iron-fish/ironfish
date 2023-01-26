@@ -4,6 +4,8 @@ on:
       - master
       - staging
     paths:
+      - "ironfish-mpc/**"
+      - "ironfish-phase2/**"
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
       - "ironfish-zkp/**"
