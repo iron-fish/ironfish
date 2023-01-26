@@ -876,9 +876,185 @@ impl MPCParameters {
     /// Deserialize these parameters. If `checked` is false,
     /// we won't perform curve validity and group order
     /// checks.
-    pub fn read<R: Read>(mut reader: R, checked: bool) -> io::Result<MPCParameters> {
-        let params = Parameters::read(&mut reader, checked)?;
+    pub fn read<R: Read + Send>(mut reader: R, checked: bool) -> io::Result<MPCParameters> {
+        // Parameters
+        let read_g1 = |reader: &mut R| -> io::Result<[u8; 96]> {
+            let mut repr: [u8; 96] = [0u8; 96];
+            reader.read_exact(repr.as_mut())?;
+            Ok(repr)
+        };
 
+        let process_g1 = |repr: &[u8; 96]| -> io::Result<G1Affine> {
+            let affine = if checked {
+                bls12_381::G1Affine::from_uncompressed(&repr)
+            } else {
+                bls12_381::G1Affine::from_uncompressed_unchecked(&repr)
+            };
+
+            let affine = if affine.is_some().into() {
+                Ok(affine.unwrap())
+            } else {
+                Err(io::Error::new(io::ErrorKind::InvalidData, "invalid G1"))
+            };
+
+            affine.and_then(|e| {
+                if e.is_identity().into() {
+                    Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "point at infinity",
+                    ))
+                } else {
+                    Ok(e)
+                }
+            })
+        };
+
+        let read_g2 = |reader: &mut R| -> io::Result<[u8; 192]> {
+            let mut repr: [u8; 192] = [0u8; 192];
+            reader.read_exact(repr.as_mut())?;
+            Ok(repr)
+        };
+
+        let process_g2 = |repr: &[u8; 192]| -> io::Result<G2Affine> {
+            let affine = if checked {
+                G2Affine::from_uncompressed(&repr)
+            } else {
+                G2Affine::from_uncompressed_unchecked(&repr)
+            };
+
+            let affine = if affine.is_some().into() {
+                Ok(affine.unwrap())
+            } else {
+                Err(io::Error::new(io::ErrorKind::InvalidData, "invalid G2"))
+            };
+
+            affine.and_then(|e| {
+                if e.is_identity().into() {
+                    Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "point at infinity",
+                    ))
+                } else {
+                    Ok(e)
+                }
+            })
+        };
+
+        let vk = VerifyingKey::read(&mut reader)?;
+
+        let h = {
+            println!("Reading");
+            let len = reader.read_u32::<BigEndian>()? as usize;
+            let mut bufs = Vec::with_capacity(len);
+
+            let hc = HashedChunker {
+                source: reader,
+                total: len,
+            };
+            hc.into_p.map(|b| process_g1(&b).unwrap()).collect();
+
+            for _ in 0..len {
+                bufs.push(read_g1(&mut reader)?);
+            }
+            println!("Done reading");
+
+            println!("Computing");
+            let mut h: Vec<G1Affine> = Vec::with_capacity(len);
+            bufs.par_iter().map(|b| process_g1(b).unwrap()).collect_into_vec(&mut h);
+            println!("Done computing");
+            h
+        };
+
+        let l = {
+            println!("Reading");
+            let len = reader.read_u32::<BigEndian>()? as usize;
+            let mut bufs = Vec::with_capacity(len);
+
+            for _ in 0..len {
+                bufs.push(read_g1(&mut reader)?);
+            }
+            println!("Done reading");
+
+            println!("Computing");
+            let mut l: Vec<G1Affine> = Vec::with_capacity(len);
+            bufs.par_iter().map(|b| process_g1(b).unwrap()).collect_into_vec(&mut l);
+            println!("Done computing");
+            l
+        };
+
+        let a = {
+            println!("Reading");
+            let len = reader.read_u32::<BigEndian>()? as usize;
+            let mut bufs = Vec::with_capacity(len);
+
+            for _ in 0..len {
+                bufs.push(read_g1(&mut reader)?);
+            }
+            println!("Done reading");
+
+            println!("Computing");
+            let mut a: Vec<G1Affine> = Vec::with_capacity(len);
+            bufs.par_iter().map(|b| process_g1(b).unwrap()).collect_into_vec(&mut a);
+            println!("Done computing");
+            a
+        };
+
+        let b_g1 = {
+            use std::sync::Mutex;
+            println!("Reading");
+            let len = reader.read_u32::<BigEndian>()? as usize;
+            let r = Arc::new(Mutex::new(&mut reader));
+            let mut bufs = Vec::with_capacity(len);
+
+            let mut b_g1: Vec<G1Affine> = Vec::with_capacity(len);
+
+            let res = (0..len).map(|_| read_g1(&mut reader).unwrap());
+
+            res
+                .par_bridge()
+                .map(|b| process_g1(&b).unwrap())
+                .collect();
+
+            for _ in 0..len {
+                bufs.push(read_g1(&mut reader)?);
+            }
+            println!("Done reading");
+
+            println!("Computing");
+            let mut b_g1: Vec<G1Affine> = Vec::with_capacity(len);
+            (0..len).into_par_iter().map(move |_| read_g1(&mut r.lock().unwrap()));
+            bufs.par_iter().map(|b| process_g1(b).unwrap()).collect_into_vec(&mut b_g1);
+            println!("Done computing");
+            b_g1
+        };
+
+        let b_g2 = {
+            println!("Reading");
+            let len = reader.read_u32::<BigEndian>()? as usize;
+            let mut bufs = Vec::with_capacity(len);
+
+            for _ in 0..len {
+                bufs.push(read_g2(&mut reader)?);
+            }
+            println!("Done reading");
+
+            println!("Computing");
+            let mut b_g2: Vec<G2Affine> = Vec::with_capacity(len);
+            bufs.par_iter().map(|b| process_g2(b).unwrap()).collect_into_vec(&mut b_g2);
+            println!("Done computing");
+            b_g2
+        };
+
+        let params = Parameters {
+            vk,
+            h: Arc::new(h),
+            l: Arc::new(l),
+            a: Arc::new(a),
+            b_g1: Arc::new(b_g1),
+            b_g2: Arc::new(b_g2),
+        };
+
+        // Contributions
         let mut cs_hash = [0u8; 64];
         reader.read_exact(&mut cs_hash)?;
 
@@ -1133,6 +1309,27 @@ pub fn verify_contribution(
     response.copy_from_slice(h.as_ref());
 
     Ok(response)
+}
+
+pub struct HashedChunker<T: Read + Send> {
+    source: T,
+    total: usize,
+}
+
+impl<T: Read + Send> Iterator for HashedChunker<T> {
+    type Item = [u8; 96];
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut buffer = [0u8; 96];
+        if self.total <= 0 {
+            return None;
+        }
+
+        let res = self.source.read_exact(&mut buffer);
+        match res {
+            Ok(()) => Some(buffer),
+            Err(e) => None,
+        }
+    }
 }
 
 /// Checks if pairs have the same ratio.

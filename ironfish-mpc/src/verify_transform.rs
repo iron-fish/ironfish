@@ -8,6 +8,7 @@ pub fn verify_transform(
     params_path: &str,
     new_params_path: &str,
 ) -> Result<String, std::io::Error> {
+    println!("Reading params");
     let params = File::open(params_path)?;
     let mut params = BufReader::with_capacity(1024 * 1024, params);
 
@@ -25,6 +26,8 @@ pub fn verify_transform(
     let new_sapling_output = ironfish_phase2::MPCParameters::read(&mut new_params, true)?;
 
     let new_sapling_mint = ironfish_phase2::MPCParameters::read(&mut new_params, true)?;
+
+    println!("Done reading params");
 
     let h1 = ironfish_phase2::verify_contribution(&sapling_spend, &new_sapling_spend)?;
 
