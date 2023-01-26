@@ -31,4 +31,4 @@ RUN chmod +x ./app/entrypoint.sh
 
 WORKDIR /usr/src/app
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["start", "--rpc.ipc", "--rpc.tcp"]
+CMD ["start", "--upgrade", "--rpc.ipc", "--rpc.tcp"]
