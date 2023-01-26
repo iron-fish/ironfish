@@ -193,7 +193,7 @@ export class Telemetry {
         name: 'create_new_block_template_duration',
         type: 'float',
         value: this.metrics.mining_newBlockTemplate.rate5m,
-      }
+      },
     ]
 
     for (const [messageType, meter] of this.metrics.p2p_InboundTrafficByMessage) {
@@ -296,7 +296,7 @@ export class Telemetry {
 
     if (points.length === 0) {
       return
-    } 
+    }
 
     try {
       const graffiti = GraffitiUtils.fromString(this.config.get('blockGraffiti'))
