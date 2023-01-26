@@ -3,17 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { S3Client } from '@aws-sdk/client-s3'
 import { verifyTransform } from '@ironfish/rust-nodejs'
-import { ErrorUtils, Logger, SetTimeoutToken } from '@ironfish/sdk'
+import { ErrorUtils, Logger, SetTimeoutToken, YupUtils } from '@ironfish/sdk'
 import fsAsync from 'fs/promises'
 import net from 'net'
 import path from 'path'
 import { v4 as uuid } from 'uuid'
 import { S3Utils } from '../utils'
-import { CeremonyClientMessage, CeremonyServerMessage } from './schema'
-
-const CONTRIBUTE_TIMEOUT_MS = 5 * 60 * 1000
-const UPLOAD_TIMEOUT_MS = 5 * 60 * 1000
-const PRESIGNED_EXPIRATION_SEC = 5 * 60
+import { CeremonyClientMessageSchema, CeremonyServerMessage } from './schema'
 
 type CurrentContributor = {
   state: 'STARTED' | 'UPLOADING'
@@ -66,6 +62,10 @@ export class CeremonyServer {
 
   private currentContributor: CurrentContributor | null = null
 
+  readonly contributionTimoutMs: number
+  readonly uploadTimoutMs: number
+  readonly presignedExpirationSec: number
+
   constructor(options: {
     logger: Logger
     port: number
@@ -73,6 +73,9 @@ export class CeremonyServer {
     s3Bucket: string
     s3Client: S3Client
     tempDir: string
+    contributionTimoutMs: number
+    uploadTimoutMs: number
+    presignedExpirationSec: number
   }) {
     this.logger = options.logger
     this.queue = []
@@ -84,6 +87,10 @@ export class CeremonyServer {
 
     this.s3Bucket = options.s3Bucket
     this.s3Client = options.s3Client
+
+    this.contributionTimoutMs = options.contributionTimoutMs
+    this.uploadTimoutMs = options.uploadTimoutMs
+    this.presignedExpirationSec = options.presignedExpirationSec
 
     this.server = net.createServer((s) => this.onConnection(s))
   }
@@ -120,7 +127,7 @@ export class CeremonyServer {
 
     const contributionTimeout = setTimeout(() => {
       this.closeClient(nextClient, new Error('Failed to complete contribution in time'))
-    }, CONTRIBUTE_TIMEOUT_MS)
+    }, this.contributionTimoutMs)
 
     this.currentContributor = {
       state: 'STARTED',
@@ -197,14 +204,14 @@ export class CeremonyServer {
   private async onData(client: CeremonyServerClient, data: Buffer): Promise<void> {
     const message = data.toString('utf-8')
 
-    let parsedMessage
-    try {
-      parsedMessage = JSON.parse(message) as CeremonyClientMessage
-    } catch {
+    const result = await YupUtils.tryValidate(CeremonyClientMessageSchema, message)
+    if (result.error) {
       client.logger.error(`Could not parse client message: ${message}`)
       this.closeClient(client, new Error(`Could not parse message`))
       return
     }
+
+    const parsedMessage = result.result
 
     client.logger.info(`Message Received: ${parsedMessage.method}`)
 
@@ -239,14 +246,14 @@ export class CeremonyServer {
       this.s3Client,
       this.s3Bucket,
       client.id,
-      PRESIGNED_EXPIRATION_SEC,
+      this.presignedExpirationSec,
     )
 
     client.logger.info('Sending back presigned URL')
 
     this.currentContributor.actionTimeout = setTimeout(() => {
       this.closeClient(client, new Error('Failed to complete upload in time'))
-    }, UPLOAD_TIMEOUT_MS)
+    }, this.uploadTimoutMs)
 
     client.send({
       method: 'initiate-upload',

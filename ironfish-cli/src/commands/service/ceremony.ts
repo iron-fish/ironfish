@@ -8,6 +8,10 @@ import { RemoteFlags } from '../../flags'
 import { CeremonyServer } from '../../trusted-setup/server'
 import { S3Utils } from '../../utils'
 
+const CONTRIBUTE_TIMEOUT_MS = 5 * 60 * 1000
+const UPLOAD_TIMEOUT_MS = 5 * 60 * 1000
+const PRESIGNED_EXPIRATION_SEC = 5 * 60
+
 export default class Ceremony extends IronfishCommand {
   static hidden = true
 
@@ -23,6 +27,21 @@ export default class Ceremony extends IronfishCommand {
       required: false,
       description: 'S3 bucket to download and upload params to',
       default: 'ironfish-contributions',
+    }),
+    contributionTimoutMs: Flags.integer({
+      required: false,
+      description: 'Allowable milliseconds for a contributor to run the contribution script',
+      default: CONTRIBUTE_TIMEOUT_MS,
+    }),
+    uploadTimoutMs: Flags.integer({
+      required: false,
+      description: 'Allowable milliseconds for a contributor to upload their new parameters',
+      default: UPLOAD_TIMEOUT_MS,
+    }),
+    presignedExpirationSec: Flags.integer({
+      required: false,
+      description: 'How many seconds the S3 pre-signed upload URL is valid for a contributor',
+      default: PRESIGNED_EXPIRATION_SEC,
     }),
   }
 
@@ -43,6 +62,9 @@ export default class Ceremony extends IronfishCommand {
       s3Bucket: flags.bucket,
       s3Client: s3Client,
       tempDir: this.sdk.config.tempDir,
+      contributionTimoutMs: flags.contributionTimoutMs,
+      uploadTimoutMs: flags.uploadTimoutMs,
+      presignedExpirationSec: flags.presignedExpirationSec,
     })
 
     await server.start()
