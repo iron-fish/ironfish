@@ -1,6 +1,8 @@
 on:
   pull_request:
     paths:
+      - "ironfish-mpc/**"
+      - "ironfish-phase2/**"
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
       - "ironfish-zkp/**"
@@ -12,6 +14,8 @@ on:
     branches:
       - master
     paths:
+      - "ironfish-mpc/**"
+      - "ironfish-phase2/**"
       - "ironfish-rust/**"
       - "ironfish-rust-nodejs/**"
       - "ironfish-zkp/**"
