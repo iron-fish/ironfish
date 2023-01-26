@@ -19,10 +19,10 @@ import { Metric } from './interfaces/metric'
 import { Tag } from './interfaces/tag'
 
 export class Telemetry {
-  private readonly FLUSH_INTERVAL = 5 * 60 * 1000
+  private readonly FLUSH_INTERVAL = 5 * 60 * 1000 // 5 minutes
   private readonly MAX_POINTS_TO_SUBMIT = 1000
   private readonly MAX_RETRIES = 5
-  private readonly METRICS_INTERVAL = 5 * 60 * 1000
+  private readonly METRICS_INTERVAL = 5 * 60 * 1000 // 5 minutes
 
   private readonly chain: Blockchain
   private readonly config: Config
@@ -189,6 +189,11 @@ export class Telemetry {
         type: 'integer',
         value: this.chain.head.sequence,
       },
+      {
+        name: 'create_new_block_template_duration',
+        type: 'float',
+        value: this.metrics.mining_newBlockTemplate.rate5m,
+      }
     ]
 
     for (const [messageType, meter] of this.metrics.p2p_InboundTrafficByMessage) {
@@ -225,6 +230,14 @@ export class Telemetry {
           value: meter.avg,
         })
       }
+    }
+
+    if (this.metrics.mining_newBlockTemplate._average.sampleCount() >= 10) {
+      fields.push({
+        name: 'create_new_block_template_duration',
+        type: 'float',
+        value: this.metrics.mining_newBlockTemplate.rate5m,
+      })
     }
 
     this.submit({
@@ -283,7 +296,7 @@ export class Telemetry {
 
     if (points.length === 0) {
       return
-    }
+    } 
 
     try {
       const graffiti = GraffitiUtils.fromString(this.config.get('blockGraffiti'))
