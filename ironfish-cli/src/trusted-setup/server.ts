@@ -62,8 +62,8 @@ export class CeremonyServer {
 
   private currentContributor: CurrentContributor | null = null
 
-  readonly contributionTimoutMs: number
-  readonly uploadTimoutMs: number
+  readonly contributionTimeoutMs: number
+  readonly uploadTimeoutMs: number
   readonly presignedExpirationSec: number
 
   constructor(options: {
@@ -73,8 +73,8 @@ export class CeremonyServer {
     s3Bucket: string
     s3Client: S3Client
     tempDir: string
-    contributionTimoutMs: number
-    uploadTimoutMs: number
+    contributionTimeoutMs: number
+    uploadTimeoutMs: number
     presignedExpirationSec: number
   }) {
     this.logger = options.logger
@@ -88,8 +88,8 @@ export class CeremonyServer {
     this.s3Bucket = options.s3Bucket
     this.s3Client = options.s3Client
 
-    this.contributionTimoutMs = options.contributionTimoutMs
-    this.uploadTimoutMs = options.uploadTimoutMs
+    this.contributionTimeoutMs = options.contributionTimeoutMs
+    this.uploadTimeoutMs = options.uploadTimeoutMs
     this.presignedExpirationSec = options.presignedExpirationSec
 
     this.server = net.createServer((s) => this.onConnection(s))
@@ -127,7 +127,7 @@ export class CeremonyServer {
 
     const contributionTimeout = setTimeout(() => {
       this.closeClient(nextClient, new Error('Failed to complete contribution in time'))
-    }, this.contributionTimoutMs)
+    }, this.contributionTimeoutMs)
 
     this.currentContributor = {
       state: 'STARTED',
@@ -253,7 +253,7 @@ export class CeremonyServer {
 
     this.currentContributor.actionTimeout = setTimeout(() => {
       this.closeClient(client, new Error('Failed to complete upload in time'))
-    }, this.uploadTimoutMs)
+    }, this.uploadTimeoutMs)
 
     client.send({
       method: 'initiate-upload',

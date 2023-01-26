@@ -28,12 +28,12 @@ export default class Ceremony extends IronfishCommand {
       description: 'S3 bucket to download and upload params to',
       default: 'ironfish-contributions',
     }),
-    contributionTimoutMs: Flags.integer({
+    contributionTimeoutMs: Flags.integer({
       required: false,
       description: 'Allowable milliseconds for a contributor to run the contribution script',
       default: CONTRIBUTE_TIMEOUT_MS,
     }),
-    uploadTimoutMs: Flags.integer({
+    uploadTimeoutMs: Flags.integer({
       required: false,
       description: 'Allowable milliseconds for a contributor to upload their new parameters',
       default: UPLOAD_TIMEOUT_MS,
@@ -62,8 +62,8 @@ export default class Ceremony extends IronfishCommand {
       s3Bucket: flags.bucket,
       s3Client: s3Client,
       tempDir: this.sdk.config.tempDir,
-      contributionTimoutMs: flags.contributionTimoutMs,
-      uploadTimoutMs: flags.uploadTimoutMs,
+      contributionTimeoutMs: flags.contributionTimeoutMs,
+      uploadTimeoutMs: flags.uploadTimeoutMs,
       presignedExpirationSec: flags.presignedExpirationSec,
     })
 
