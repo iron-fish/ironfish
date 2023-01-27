@@ -353,6 +353,28 @@ export class Account {
     return assetBalanceDeltas
   }
 
+  async saveTransactionAmounts(
+    transactionHash: Buffer,
+    inputAmounts: AssetBalances,
+    outputAmounts: AssetBalances,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const assetIds = new BufferSet([...inputAmounts.keys(), ...outputAmounts.keys()])
+
+    for (const assetId of assetIds) {
+      const input = inputAmounts.get(assetId) ?? 0n
+      const output = outputAmounts.get(assetId) ?? 0n
+
+      await this.walletDb.putTransactionAmounts(
+        this,
+        transactionHash,
+        assetId,
+        { input, output },
+        tx,
+      )
+    }
+  }
+
   async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (!(await this.hasTransaction(transaction.hash(), tx))) {

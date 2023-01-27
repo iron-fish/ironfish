@@ -31,9 +31,13 @@ import { BalanceValue, BalanceValueEncoding } from './balanceValue'
 import { DecryptedNoteValue, DecryptedNoteValueEncoding } from './decryptedNoteValue'
 import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
+import {
+  TransactionAmountsValue,
+  TransactionAmountsValueEncoding,
+} from './transactionAmountsValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 16
+export const VERSION_DATABASE_ACCOUNTS = 17
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -85,6 +89,11 @@ export class WalletDB {
   transactions: IDatabaseStore<{
     key: [Account['prefix'], TransactionHash]
     value: TransactionValue
+  }>
+
+  transactionAmounts: IDatabaseStore<{
+    key: [Account['prefix'], [TransactionHash, Buffer]]
+    value: TransactionAmountsValue
   }>
 
   sequenceToTransactionHash: IDatabaseStore<{
@@ -182,9 +191,19 @@ export class WalletDB {
     })
 
     this.transactions = this.db.addStore({
-      name: 't',
+      name: 'tx',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new TransactionValueEncoding(),
+    })
+
+    this.transactionAmounts = this.db.addStore({
+      name: 'ta',
+      keyEncoding: new PrefixEncoding(
+        new BufferEncoding(),
+        new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+        4,
+      ),
+      valueEncoding: new TransactionAmountsValueEncoding(),
     })
 
     this.sequenceToTransactionHash = this.db.addStore({
@@ -429,6 +448,34 @@ export class WalletDB {
       [account.prefix, [expiration, transactionHash]],
       tx,
     )
+  }
+
+  async putTransactionAmounts(
+    account: Account,
+    transactionHash: Buffer,
+    assetId: Buffer,
+    amounts: TransactionAmountsValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.transactionAmounts.put([account.prefix, [transactionHash, assetId]], amounts, tx)
+  }
+
+  async getTransactionAmounts(
+    account: Account,
+    transactionHash: Buffer,
+    assetId: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<TransactionAmountsValue | undefined> {
+    return this.transactionAmounts.get([account.prefix, [transactionHash, assetId]], tx)
+  }
+
+  async deleteTransactionAmounts(
+    account: Account,
+    transactionHash: Buffer,
+    assetId: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.transactionAmounts.del([account.prefix, [transactionHash, assetId]], tx)
   }
 
   async setNoteHashSequence(
