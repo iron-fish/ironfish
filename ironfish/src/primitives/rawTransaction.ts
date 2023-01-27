@@ -16,6 +16,7 @@ import { Transaction } from './transaction'
 
 // Needed for constructing a witness when creating transactions
 const noteHasher = new NoteHasher()
+const MAX_MINT_OR_BURN_VALUE = BigInt(100_000_000_000_000_000n)
 
 export class RawTransaction {
   spendingKey = ''
@@ -49,10 +50,18 @@ export class RawTransaction {
     }
 
     for (const mint of this.mints) {
+      if (mint.value > MAX_MINT_OR_BURN_VALUE) {
+        throw new Error('Cannot post transaction. Mint value exceededs maximum')
+      }
+
       builder.mint(mint.asset, mint.value)
     }
 
     for (const burn of this.burns) {
+      if (burn.value > MAX_MINT_OR_BURN_VALUE) {
+        throw new Error('Cannot post transaction. Burn value exceededs maximum')
+      }
+
       builder.burn(burn.assetId, burn.value)
     }
 
