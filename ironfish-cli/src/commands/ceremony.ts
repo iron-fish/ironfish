@@ -20,7 +20,7 @@ export default class Ceremony extends IronfishCommand {
     [DataDirFlagKey]: DataDirFlag,
     host: Flags.string({
       parse: (input: string) => Promise.resolve(input.trim()),
-      default: 'https://ceremony.ironfish.network',
+      default: 'ceremony.ironfish.network',
       description: 'Host address of the ceremony coordination server',
     }),
     port: Flags.integer({
