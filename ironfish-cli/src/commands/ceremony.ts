@@ -159,8 +159,9 @@ export default class Ceremony extends IronfishCommand {
     let connected = false
     while (!connected) {
       CliUx.ux.action.start('Connecting')
-      connected = await client.start()
-      CliUx.ux.action.stop(connected ? 'done' : 'error')
+      const error = await client.start()
+      connected = error === null
+      CliUx.ux.action.stop(error ? `Error connecting: ${error}` : 'done')
 
       if (!connected) {
         this.log('Unable to connect to contribution server. Retrying in 5 seconds.')
