@@ -876,7 +876,7 @@ impl MPCParameters {
     /// Deserialize these parameters. If `checked` is false,
     /// we won't perform curve validity and group order
     /// checks.
-    pub fn read<R: Read + Send>(mut reader: R, checked: bool) -> io::Result<MPCParameters> {
+    pub fn read<R: Read>(mut reader: R, checked: bool) -> io::Result<MPCParameters> {
         // Parameters
         let read_g1 = |reader: &mut R| -> io::Result<[u8; 96]> {
             let mut repr: [u8; 96] = [0u8; 96];
