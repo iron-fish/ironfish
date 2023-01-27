@@ -886,9 +886,9 @@ impl MPCParameters {
 
         let process_g1 = |repr: &[u8; 96]| -> io::Result<G1Affine> {
             let affine = if checked {
-                bls12_381::G1Affine::from_uncompressed(&repr)
+                bls12_381::G1Affine::from_uncompressed(repr)
             } else {
-                bls12_381::G1Affine::from_uncompressed_unchecked(&repr)
+                bls12_381::G1Affine::from_uncompressed_unchecked(repr)
             };
 
             let affine = if affine.is_some().into() {
@@ -917,9 +917,9 @@ impl MPCParameters {
 
         let process_g2 = |repr: &[u8; 192]| -> io::Result<G2Affine> {
             let affine = if checked {
-                G2Affine::from_uncompressed(&repr)
+                G2Affine::from_uncompressed(repr)
             } else {
-                G2Affine::from_uncompressed_unchecked(&repr)
+                G2Affine::from_uncompressed_unchecked(repr)
             };
 
             let affine = if affine.is_some().into() {
