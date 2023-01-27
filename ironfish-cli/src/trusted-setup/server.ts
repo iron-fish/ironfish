@@ -170,7 +170,7 @@ export class CeremonyServer {
   private onConnection(socket: net.Socket): void {
     const client = new CeremonyServerClient({ socket, id: uuid(), logger: this.logger })
     this.queue.push(client)
-    client.send({ method: 'joined', queueLocation: this.queue.length })
+    client.send({ method: 'joined', queueLocation: this.queue.length - 1 })
 
     socket.on('data', (data: Buffer) => void this.onData(client, data))
     socket.on('close', () => this.onDisconnect(client))
