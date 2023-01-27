@@ -943,107 +943,64 @@ impl MPCParameters {
         let vk = VerifyingKey::read(&mut reader)?;
 
         let h = {
-            println!("Reading");
             let len = reader.read_u32::<BigEndian>()? as usize;
             let mut bufs = Vec::with_capacity(len);
-
-            let hc = HashedChunker {
-                source: reader,
-                total: len,
-            };
-            hc.into_p.map(|b| process_g1(&b).unwrap()).collect();
 
             for _ in 0..len {
                 bufs.push(read_g1(&mut reader)?);
             }
-            println!("Done reading");
 
-            println!("Computing");
-            let mut h: Vec<G1Affine> = Vec::with_capacity(len);
-            bufs.par_iter().map(|b| process_g1(b).unwrap()).collect_into_vec(&mut h);
-            println!("Done computing");
+            let h: Result<_, _> = bufs.par_iter().map(process_g1).collect();
             h
-        };
+        }?;
 
         let l = {
-            println!("Reading");
             let len = reader.read_u32::<BigEndian>()? as usize;
             let mut bufs = Vec::with_capacity(len);
 
             for _ in 0..len {
                 bufs.push(read_g1(&mut reader)?);
             }
-            println!("Done reading");
 
-            println!("Computing");
-            let mut l: Vec<G1Affine> = Vec::with_capacity(len);
-            bufs.par_iter().map(|b| process_g1(b).unwrap()).collect_into_vec(&mut l);
-            println!("Done computing");
+            let l: Result<_, _> = bufs.par_iter().map(process_g1).collect();
             l
-        };
+        }?;
 
         let a = {
-            println!("Reading");
             let len = reader.read_u32::<BigEndian>()? as usize;
             let mut bufs = Vec::with_capacity(len);
 
             for _ in 0..len {
                 bufs.push(read_g1(&mut reader)?);
             }
-            println!("Done reading");
 
-            println!("Computing");
-            let mut a: Vec<G1Affine> = Vec::with_capacity(len);
-            bufs.par_iter().map(|b| process_g1(b).unwrap()).collect_into_vec(&mut a);
-            println!("Done computing");
+            let a: Result<_, _> = bufs.par_iter().map(process_g1).collect();
             a
-        };
+        }?;
 
         let b_g1 = {
-            use std::sync::Mutex;
-            println!("Reading");
             let len = reader.read_u32::<BigEndian>()? as usize;
-            let r = Arc::new(Mutex::new(&mut reader));
             let mut bufs = Vec::with_capacity(len);
-
-            let mut b_g1: Vec<G1Affine> = Vec::with_capacity(len);
-
-            let res = (0..len).map(|_| read_g1(&mut reader).unwrap());
-
-            res
-                .par_bridge()
-                .map(|b| process_g1(&b).unwrap())
-                .collect();
 
             for _ in 0..len {
                 bufs.push(read_g1(&mut reader)?);
             }
-            println!("Done reading");
 
-            println!("Computing");
-            let mut b_g1: Vec<G1Affine> = Vec::with_capacity(len);
-            (0..len).into_par_iter().map(move |_| read_g1(&mut r.lock().unwrap()));
-            bufs.par_iter().map(|b| process_g1(b).unwrap()).collect_into_vec(&mut b_g1);
-            println!("Done computing");
+            let b_g1: Result<_, _> = bufs.par_iter().map(process_g1).collect();
             b_g1
-        };
+        }?;
 
         let b_g2 = {
-            println!("Reading");
             let len = reader.read_u32::<BigEndian>()? as usize;
             let mut bufs = Vec::with_capacity(len);
 
             for _ in 0..len {
                 bufs.push(read_g2(&mut reader)?);
             }
-            println!("Done reading");
 
-            println!("Computing");
-            let mut b_g2: Vec<G2Affine> = Vec::with_capacity(len);
-            bufs.par_iter().map(|b| process_g2(b).unwrap()).collect_into_vec(&mut b_g2);
-            println!("Done computing");
+            let b_g2: Result<_, _> = bufs.par_iter().map(process_g2).collect();
             b_g2
-        };
+        }?;
 
         let params = Parameters {
             vk,
@@ -1309,27 +1266,6 @@ pub fn verify_contribution(
     response.copy_from_slice(h.as_ref());
 
     Ok(response)
-}
-
-pub struct HashedChunker<T: Read + Send> {
-    source: T,
-    total: usize,
-}
-
-impl<T: Read + Send> Iterator for HashedChunker<T> {
-    type Item = [u8; 96];
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut buffer = [0u8; 96];
-        if self.total <= 0 {
-            return None;
-        }
-
-        let res = self.source.read_exact(&mut buffer);
-        match res {
-            Ok(()) => Some(buffer),
-            Err(e) => None,
-        }
-    }
 }
 
 /// Checks if pairs have the same ratio.
