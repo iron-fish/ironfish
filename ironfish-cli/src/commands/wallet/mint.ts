@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, MAXIMUM_ORE_AMOUNT, MINIMUM_ORE_AMOUNT } from '@ironfish/sdk'
+import { CurrencyUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
 
@@ -24,13 +24,16 @@ export class Mint extends IronfishCommand {
       char: 'f',
       description: 'The account to mint from',
     }),
-    fee: Flags.string({
+    fee: IronFlag({
       char: 'o',
       description: 'The fee amount in IRON',
+      largerThan: 0n,
+      flagName: 'fee',
     }),
-    amount: Flags.string({
+    amount: IronFlag({
       char: 'a',
-      description: 'Amount of coins to mint',
+      description: 'Amount of coins to send',
+      flagName: 'amount',
     }),
     assetId: Flags.string({
       char: 'i',
@@ -118,38 +121,20 @@ export class Mint extends IronfishCommand {
 
     let amount
     if (flags.amount) {
-      try {
-        amount = CurrencyUtils.decodeIron(flags.amount)
-      } catch {
-        amount = new Error()
-      }
+      amount = flags.amount
     } else {
       const input = await CliUx.ux.prompt('Enter the amount to mint in the custom asset', {
         required: true,
       })
 
-      try {
-        amount = CurrencyUtils.decodeIron(input)
-      } catch {
-        amount = new Error()
-      }
-    }
-
-    if (
-      typeof amount !== 'bigint' ||
-      amount < MINIMUM_ORE_AMOUNT ||
-      amount > MAXIMUM_ORE_AMOUNT
-    ) {
-      this.error(`The amount of coins is not a valid number.`)
+      amount = await parseIron(input, { flagName: 'amount' }).catch((error: Error) =>
+        this.error(error.message),
+      )
     }
 
     let fee
     if (flags.fee) {
-      try {
-        fee = CurrencyUtils.decodeIron(flags.fee)
-      } catch {
-        fee = new Error()
-      }
+      fee = flags.fee
     } else {
       const input = await CliUx.ux.prompt(
         `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)})`,
@@ -159,15 +144,9 @@ export class Mint extends IronfishCommand {
         },
       )
 
-      try {
-        fee = CurrencyUtils.decodeIron(input)
-      } catch {
-        fee = new Error()
-      }
-    }
-
-    if (typeof fee !== 'bigint' || fee < MINIMUM_ORE_AMOUNT || fee > MAXIMUM_ORE_AMOUNT) {
-      this.error(`The fee amount is not a valid number.`)
+      fee = await parseIron(input, { largerThan: 0n, flagName: 'fee' }).catch((error: Error) =>
+        this.error(error.message),
+      )
     }
 
     if (!flags.confirm) {

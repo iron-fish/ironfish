@@ -7,8 +7,6 @@ import {
   CreateTransactionResponse,
   CurrencyUtils,
   isValidPublicAddress,
-  MAXIMUM_ORE_AMOUNT,
-  MINIMUM_ORE_AMOUNT,
   RawTransactionSerde,
   RpcResponseEnded,
   Transaction,
@@ -16,7 +14,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
-import { IronFlag, RemoteFlags } from '../../flags'
+import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
 
@@ -35,9 +33,10 @@ export class Send extends IronfishCommand {
       char: 'f',
       description: 'The account to send money from',
     }),
-    amount: Flags.string({
+    amount: IronFlag({
       char: 'a',
       description: 'Amount of coins to send',
+      flagName: 'amount',
     }),
     to: Flags.string({
       char: 't',
@@ -108,11 +107,7 @@ export class Send extends IronfishCommand {
     }
 
     if (flags.amount) {
-      try {
-        amount = CurrencyUtils.decodeIron(flags.amount)
-      } catch {
-        amount = new Error()
-      }
+      amount = flags.amount
     }
 
     if (amount === null) {
@@ -125,19 +120,9 @@ export class Send extends IronfishCommand {
         },
       )
 
-      try {
-        amount = CurrencyUtils.decodeIron(input)
-      } catch {
-        amount = new Error()
-      }
-    }
-
-    if (
-      typeof amount !== 'bigint' ||
-      amount < MINIMUM_ORE_AMOUNT ||
-      amount > MAXIMUM_ORE_AMOUNT
-    ) {
-      this.error(`The amount of coins is not a valid number.`)
+      amount = await parseIron(input, { flagName: 'amount' }).catch((error: Error) =>
+        this.error(error.message),
+      )
     }
 
     if (flags.fee !== undefined) {
