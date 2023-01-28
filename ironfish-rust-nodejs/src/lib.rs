@@ -4,6 +4,7 @@
 
 use std::fmt::Display;
 
+use ironfish_rust::keys::Language;
 use ironfish_rust::PublicAddress;
 use ironfish_rust::SaplingKey;
 use napi::bindgen_prelude::*;
@@ -19,6 +20,37 @@ pub mod structs;
 
 fn to_napi_err(err: impl Display) -> napi::Error {
     Error::from_reason(err.to_string())
+}
+
+// unfortunately napi doesn't support reexport of enums (bip39::Language) so we
+// have to recreate if we want type safety. hopefully in the future this will work with napi:
+// #[napi]
+// pub use bip39::Language as Language;
+// https://github.com/napi-rs/napi-rs/issues/1463
+#[napi]
+pub enum LanguageCode {
+    English,
+    ChineseSimplified,
+    ChineseTraditional,
+    French,
+    Italian,
+    Japanese,
+    Korean,
+    Spanish,
+}
+impl From<LanguageCode> for Language {
+    fn from(item: LanguageCode) -> Self {
+        match item {
+            LanguageCode::English => Language::English,
+            LanguageCode::ChineseSimplified => Language::ChineseSimplified,
+            LanguageCode::ChineseTraditional => Language::ChineseTraditional,
+            LanguageCode::French => Language::French,
+            LanguageCode::Italian => Language::Italian,
+            LanguageCode::Japanese => Language::Japanese,
+            LanguageCode::Korean => Language::Korean,
+            LanguageCode::Spanish => Language::Spanish,
+        }
+    }
 }
 
 #[napi(object)]
@@ -43,6 +75,13 @@ pub fn generate_key() -> Key {
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
         public_address: sapling_key.public_address().hex_public_address(),
     }
+}
+
+#[napi]
+pub fn words_spending_key(private_key: String, language_code: LanguageCode) -> Result<String> {
+    let key = SaplingKey::from_hex(&private_key).map_err(to_napi_err)?;
+    key.words_spending_key(&language_code.into())
+        .map_err(to_napi_err)
 }
 
 #[napi]
