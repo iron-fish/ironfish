@@ -37,7 +37,7 @@ import {
 } from './transactionAmountsValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 16
+export const VERSION_DATABASE_ACCOUNTS = 17
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
