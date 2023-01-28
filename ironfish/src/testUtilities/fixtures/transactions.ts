@@ -36,11 +36,20 @@ export async function usePostTxFixture(options: {
   }[]
   mints?: MintData[]
   burns?: BurnDescription[]
+  restore?: boolean
 }): Promise<Transaction> {
-  return useTxFixture(options.wallet, options.from, options.from, async () => {
-    const raw = await createRawTransaction(options)
-    return options.node.workerPool.postTransaction(raw, options.from.spendingKey)
-  })
+  return useTxFixture(
+    options.wallet,
+    options.from,
+    options.from,
+    async () => {
+      const raw = await createRawTransaction(options)
+      return options.node.workerPool.postTransaction(raw, options.from.spendingKey)
+    },
+    undefined,
+    undefined,
+    options.restore,
+  )
 }
 
 export async function useTxFixture(
@@ -50,6 +59,7 @@ export async function useTxFixture(
   generate?: FixtureGenerate<Transaction>,
   fee?: bigint,
   expiration?: number,
+  restore = true,
 ): Promise<Transaction> {
   generate =
     generate ||
@@ -78,7 +88,9 @@ export async function useTxFixture(
 
   return useFixture(generate, {
     process: async (tx: Transaction): Promise<void> => {
-      await restoreTransactionFixtureToAccounts(tx, wallet)
+      if (restore) {
+        await restoreTransactionFixtureToAccounts(tx, wallet)
+      }
     },
     serialize: (tx: Transaction): SerializedTransaction => {
       return tx.serialize()
