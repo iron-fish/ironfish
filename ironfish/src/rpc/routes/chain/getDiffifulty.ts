@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
+import { BlockHashSerdeInstance } from '../../../serde'
+import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
 // Get network difficulty at a specified sequence.
@@ -15,7 +16,8 @@ export type GetDifficultyRequest =
 
 export type GetDifficultyResponse = {
   sequence: number
-  difficulty: number
+  hash: string
+  difficulty: string
 }
 
 export const GetDifficultyRequestSchema: yup.ObjectSchema<GetDifficultyRequest> = yup
@@ -27,7 +29,8 @@ export const GetDifficultyRequestSchema: yup.ObjectSchema<GetDifficultyRequest> 
 export const GetDifficultyResponseSchema: yup.ObjectSchema<GetDifficultyResponse> = yup
   .object({
     sequence: yup.number().defined(),
-    difficulty: yup.number().defined(),
+    hash: yup.string().defined(),
+    difficulty: yup.string().defined(),
   })
   .defined()
 
@@ -35,23 +38,27 @@ router.register<typeof GetDifficultyRequestSchema, GetDifficultyResponse>(
   `${ApiNamespace.chain}/getDifficulty`,
   GetDifficultyRequestSchema,
   async (request, node): Promise<void> => {
-    let sequence = null
-    let block = null
+    let sequence = node.chain.head.sequence
+    let block = node.chain.head
 
     if (request.data?.sequence) {
       sequence = request.data.sequence
-      block = await node.chain.getHeaderAtSequence(sequence)
-    }
-    if (!block) {
-      block = node.chain.head
-      sequence = block.sequence
+      const sequenceBlock = await node.chain.getHeaderAtSequence(sequence)
+      if (!sequenceBlock) {
+        throw new ValidationError(`No block found at provided sequence`)
+      } else {
+        block = sequenceBlock
+      }
     }
 
-    Assert.isNotNull(sequence)
+    if (!block) {
+      throw new ValidationError(`Chain header not found`)
+    }
 
     request.end({
       sequence,
-      difficulty: Number(block.target.toDifficulty()),
+      hash: BlockHashSerdeInstance.serialize(block.hash),
+      difficulty: block.target.toDifficulty().toString(),
     })
   },
 )
