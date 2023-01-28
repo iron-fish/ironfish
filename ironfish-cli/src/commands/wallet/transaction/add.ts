@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { CliUx, Flags } from '@oclif/core'
-import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { IronfishCommand } from '../../../command'
+import { RemoteFlags } from '../../../flags'
 
-export class AddTxCommand extends IronfishCommand {
+export class TransactionAddCommand extends IronfishCommand {
   static description = `Add a transaction to your wallet`
 
   static flags = {
@@ -20,13 +20,14 @@ export class AddTxCommand extends IronfishCommand {
   static args = [
     {
       name: 'transaction',
+      required: true,
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       description: 'The transaction in hex encoding',
     },
   ]
 
   async start(): Promise<void> {
-    const { flags, args } = await this.parse(AddTxCommand)
+    const { flags, args } = await this.parse(TransactionAddCommand)
     const transaction = args.transaction as string
 
     CliUx.ux.action.start(`Adding transaction`)
