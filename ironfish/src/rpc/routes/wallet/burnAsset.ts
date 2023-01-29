@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { CurrencyUtils } from '../../../utils'
+import { BufferUtils, CurrencyUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
@@ -20,6 +20,7 @@ export interface BurnAssetRequest {
 export interface BurnAssetResponse {
   assetId: string
   hash: string
+  name: string
   value: string
 }
 
@@ -39,6 +40,7 @@ export const BurnAssetResponseSchema: yup.ObjectSchema<BurnAssetResponse> = yup
   .object({
     assetId: yup.string().required(),
     hash: yup.string().required(),
+    name: yup.string().required(),
     value: yup.string().required(),
   })
   .defined()
@@ -62,10 +64,15 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
       throw new ValidationError('Invalid burn amount')
     }
 
+    const assetBuffer = Buffer.from(request.data.assetId, 'hex')
+
+    const assetResponse = await node.chain.getAssetById(assetBuffer)
+    Assert.isNotNull(assetResponse)
+
     const transaction = await node.wallet.burn(
       node.memPool,
       account,
-      Buffer.from(request.data.assetId, 'hex'),
+      assetBuffer,
       value,
       fee,
       request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
@@ -78,6 +85,7 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     request.end({
       assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),
+      name: BufferUtils.toHuman(assetResponse.name),
       value: CurrencyUtils.encode(burn.value),
     })
   },

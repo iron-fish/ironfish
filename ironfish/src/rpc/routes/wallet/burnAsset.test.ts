@@ -8,7 +8,7 @@ import {
   usePostTxFixture,
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { CurrencyUtils } from '../../../utils'
+import { BufferUtils, CurrencyUtils } from '../../../utils'
 
 describe('burnAsset', () => {
   const routeTest = createRouteTest(true)
@@ -87,6 +87,7 @@ describe('burnAsset', () => {
 
       expect(response.content).toEqual({
         assetId: asset.id().toString('hex'),
+        name: BufferUtils.toHuman(asset.name()),
         hash: burnTransaction.hash().toString('hex'),
         value: burnTransaction.burns[0].value.toString(),
       })
