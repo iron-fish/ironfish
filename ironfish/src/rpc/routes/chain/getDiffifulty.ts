@@ -42,17 +42,12 @@ router.register<typeof GetDifficultyRequestSchema, GetDifficultyResponse>(
     let block = node.chain.head
 
     if (request.data?.sequence) {
-      sequence = request.data.sequence
-      const sequenceBlock = await node.chain.getHeaderAtSequence(sequence)
+      const sequenceBlock = await node.chain.getHeaderAtSequence(request.data.sequence)
       if (!sequenceBlock) {
-        throw new ValidationError(`No block found at provided sequence`)
-      } else {
-        block = sequenceBlock
+        throw new ValidationError(`No block found at sequence ${request.data.sequence}`)
       }
-    }
-
-    if (!block) {
-      throw new ValidationError(`Chain header not found`)
+      sequence = sequenceBlock.sequence
+      block = sequenceBlock
     }
 
     request.end({
