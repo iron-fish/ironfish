@@ -526,6 +526,60 @@ describe('Accounts', () => {
       expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
     })
 
+    it('should overwrite pending asset fields from a connected mint description', async () => {
+      const { node } = nodeTest
+      const account = await useAccountFixture(node.wallet)
+      const asset = new Asset(account.spendingKey, 'testcoin', 'metadata')
+
+      const minerBlock = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(minerBlock)
+      await node.wallet.updateHead()
+
+      const firstMintValue = BigInt(10)
+      const firstMintBlock = await useMintBlockFixture({
+        node,
+        account,
+        asset,
+        value: firstMintValue,
+        sequence: 3,
+      })
+      const firstMintTransaction = firstMintBlock.transactions[1]
+
+      expect(await account['walletDb'].getAsset(account, asset.id())).toMatchObject({
+        blockHash: null,
+        createdTransactionHash: firstMintTransaction.hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        sequence: null,
+        supply: BigInt(0),
+      })
+
+      const secondMintValue = BigInt(42)
+      const secondMintBlock = await useMintBlockFixture({
+        node,
+        account,
+        asset,
+        value: secondMintValue,
+        sequence: 3,
+      })
+      const secondMintTransaction = secondMintBlock.transactions[1]
+      await expect(node.chain).toAddBlock(secondMintBlock)
+      await node.wallet.updateHead()
+
+      expect(await account['walletDb'].getAsset(account, asset.id())).toMatchObject({
+        blockHash: secondMintBlock.header.hash,
+        createdTransactionHash: secondMintTransaction.hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        sequence: secondMintBlock.header.sequence,
+        supply: secondMintValue,
+      })
+    })
+
     it('should correctly update the asset store from a burn description', async () => {
       const { node } = nodeTest
 

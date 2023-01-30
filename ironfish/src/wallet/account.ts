@@ -141,7 +141,7 @@ export class Account {
     let timestamp = new Date()
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      const transactionValue = await this.getTransaction(transaction.hash(), tx)
+      let transactionValue = await this.getTransaction(transaction.hash(), tx)
       if (transactionValue) {
         submittedSequence = transactionValue.submittedSequence
         timestamp = transactionValue.timestamp
@@ -186,29 +186,26 @@ export class Account {
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
       }
 
-      await this.saveConnectedMintsToAssetsStore(transaction, tx)
-      await this.saveConnectedBurnsToAssetsStore(transaction, tx)
+      transactionValue = {
+        transaction,
+        blockHash,
+        sequence,
+        submittedSequence,
+        timestamp,
+        assetBalanceDeltas,
+      }
 
-      await this.walletDb.saveTransaction(
-        this,
-        transaction.hash(),
-        {
-          transaction,
-          blockHash,
-          sequence,
-          submittedSequence,
-          timestamp,
-          assetBalanceDeltas,
-        },
-        tx,
-      )
+      await this.saveMintsToAssetsStore(transactionValue, tx)
+      await this.saveConnectedBurnsToAssetsStore(transactionValue.transaction, tx)
+
+      await this.walletDb.saveTransaction(this, transaction.hash(), transactionValue, tx)
     })
 
     return assetBalanceDeltas
   }
 
-  async saveConnectedMintsToAssetsStore(
-    transaction: Transaction,
+  async saveMintsToAssetsStore(
+    { blockHash, sequence, transaction }: TransactionValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { asset, value } of transaction.mints) {
@@ -222,21 +219,34 @@ export class Account {
 
       let createdTransactionHash = transaction.hash()
       let supply = BigInt(0)
-      if (existingAsset) {
+
+      // Adjust supply if this transaction is connected on a block.
+      if (blockHash && sequence) {
+        supply += value
+      }
+
+      // If the asset has been previously confirmed on a block, use the existing
+      // block hash, created transaction hash, and sequence for the database
+      // upsert. Adjust supply from the current record.
+      if (existingAsset && existingAsset.blockHash && existingAsset.sequence) {
+        blockHash = existingAsset.blockHash
         createdTransactionHash = existingAsset.createdTransactionHash
-        supply = existingAsset.supply
+        sequence = existingAsset.sequence
+        supply += existingAsset.supply
       }
 
       await this.walletDb.putAsset(
         this,
         assetId,
         {
+          blockHash,
           createdTransactionHash,
           id: assetId,
           metadata: asset.metadata(),
           name: asset.name(),
           owner: asset.owner(),
-          supply: supply + value,
+          sequence,
+          supply,
         },
         tx,
       )
@@ -259,19 +269,20 @@ export class Account {
         'Existing asset owner should match public address',
       )
 
-      const existingSupply = existingAsset.supply
-      const supply = existingSupply - value
+      const supply = existingAsset.supply - value
       Assert.isTrue(supply >= BigInt(0), 'Invalid burn value')
 
       await this.walletDb.putAsset(
         this,
         assetId,
         {
+          blockHash: existingAsset.blockHash,
           createdTransactionHash: existingAsset.createdTransactionHash,
           id: existingAsset.id,
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           owner: existingAsset.owner,
+          sequence: existingAsset.sequence,
           supply,
         },
         tx,
@@ -302,11 +313,13 @@ export class Account {
         this,
         assetId,
         {
+          blockHash: existingAsset.blockHash,
           createdTransactionHash: existingAsset.createdTransactionHash,
           id: existingAsset.id,
           metadata: existingAsset.metadata,
           name: existingAsset.name,
           owner: existingAsset.owner,
+          sequence: existingAsset.sequence,
           supply,
         },
         tx,
@@ -336,11 +349,13 @@ export class Account {
         this,
         assetId,
         {
+          blockHash: existingAsset.blockHash,
           createdTransactionHash: existingAsset.createdTransactionHash,
           id: asset.id(),
           metadata: asset.metadata(),
           name: asset.name(),
           owner: asset.owner(),
+          sequence: existingAsset.sequence,
           supply,
         },
         tx,
@@ -398,19 +413,18 @@ export class Account {
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
       }
 
-      await this.walletDb.saveTransaction(
-        this,
-        transaction.hash(),
-        {
-          transaction,
-          blockHash: null,
-          sequence: null,
-          submittedSequence,
-          timestamp: new Date(),
-          assetBalanceDeltas,
-        },
-        tx,
-      )
+      const transactionValue = {
+        transaction,
+        blockHash: null,
+        sequence: null,
+        submittedSequence,
+        timestamp: new Date(),
+        assetBalanceDeltas,
+      }
+
+      await this.saveMintsToAssetsStore(transactionValue, tx)
+
+      await this.walletDb.saveTransaction(this, transaction.hash(), transactionValue, tx)
     })
   }
 
