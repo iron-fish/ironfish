@@ -4,7 +4,7 @@
 import { CurrencyUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
 
@@ -23,13 +23,16 @@ export class Burn extends IronfishCommand {
       char: 'f',
       description: 'The account to burn from',
     }),
-    fee: Flags.string({
+    fee: IronFlag({
       char: 'o',
       description: 'The fee amount in IRON',
+      largerThan: 0n,
+      flagName: 'fee',
     }),
-    amount: Flags.string({
+    amount: IronFlag({
       char: 'a',
       description: 'Amount of coins to burn',
+      flagName: 'amount',
     }),
     assetId: Flags.string({
       char: 'i',
@@ -84,18 +87,20 @@ export class Burn extends IronfishCommand {
 
     let amount
     if (flags.amount) {
-      amount = CurrencyUtils.decodeIron(flags.amount)
+      amount = flags.amount
     } else {
       const input = await CliUx.ux.prompt('Enter the amount to burn in the custom asset', {
         required: true,
       })
 
-      amount = CurrencyUtils.decodeIron(input)
+      amount = await parseIron(input, { flagName: 'amount' }).catch((error: Error) =>
+        this.error(error.message),
+      )
     }
 
     let fee
     if (flags.fee) {
-      fee = CurrencyUtils.decodeIron(flags.fee)
+      fee = flags.fee
     } else {
       const input = await CliUx.ux.prompt(
         `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)})`,
@@ -105,7 +110,9 @@ export class Burn extends IronfishCommand {
         },
       )
 
-      fee = CurrencyUtils.decodeIron(input)
+      fee = await parseIron(input, { largerThan: 0n, flagName: 'fee' }).catch((error: Error) =>
+        this.error(error.message),
+      )
     }
 
     if (!flags.confirm) {

@@ -14,7 +14,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
-import { IronFlag, RemoteFlags } from '../../flags'
+import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
 
@@ -33,9 +33,10 @@ export class Send extends IronfishCommand {
       char: 'f',
       description: 'The account to send money from',
     }),
-    amount: Flags.string({
+    amount: IronFlag({
       char: 'a',
       description: 'Amount of coins to send',
+      flagName: 'amount',
     }),
     to: Flags.string({
       char: 't',
@@ -106,7 +107,7 @@ export class Send extends IronfishCommand {
     }
 
     if (flags.amount) {
-      amount = CurrencyUtils.decodeIron(flags.amount)
+      amount = flags.amount
     }
 
     if (amount === null) {
@@ -119,7 +120,9 @@ export class Send extends IronfishCommand {
         },
       )
 
-      amount = CurrencyUtils.decodeIron(input)
+      amount = await parseIron(input, { flagName: 'amount' }).catch((error: Error) =>
+        this.error(error.message),
+      )
     }
 
     if (flags.fee !== undefined) {
