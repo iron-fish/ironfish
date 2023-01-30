@@ -120,7 +120,9 @@ export const parseIron = (input: string, opts: IronOpts): Promise<bigint> => {
       const value = CurrencyUtils.decodeIron(input)
 
       if (largerThan !== undefined && value <= largerThan) {
-        reject(new Error(`The minimum ${flagName} is ${CurrencyUtils.renderOre(1n, true)}`))
+        reject(
+          new Error(`The minimum ${flagName} is ${CurrencyUtils.renderOre(largerThan, true)}`),
+        )
       }
 
       if (value < MINIMUM_ORE_AMOUNT || value > MAXIMUM_ORE_AMOUNT) {
