@@ -8,6 +8,11 @@ import { ApiNamespace, router } from '../router'
 
 export type GetTransactionRequest = { blockHash: string; transactionHash: string }
 
+interface AssetDescription {
+  id: string
+  value: string
+}
+
 export type GetTransactionResponse = {
   fee: string
   expiration: number
@@ -15,6 +20,8 @@ export type GetTransactionResponse = {
   spendsCount: number
   signature: string
   notesEncrypted: string[]
+  mints?: AssetDescription[]
+  burns?: AssetDescription[]
 }
 export const GetTransactionRequestSchema: yup.ObjectSchema<GetTransactionRequest> = yup
   .object({
@@ -31,6 +38,26 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
     spendsCount: yup.number().defined(),
     signature: yup.string().defined(),
     notesEncrypted: yup.array(yup.string().defined()).defined(),
+    mints: yup
+      .array(
+        yup
+          .object({
+            id: yup.string().defined(),
+            value: yup.string().defined(),
+          })
+          .defined(),
+      )
+      .optional(),
+    burns: yup
+      .array(
+        yup
+          .object({
+            id: yup.string().defined(),
+            value: yup.string().defined(),
+          })
+          .defined(),
+      )
+      .optional(),
   })
   .defined()
 
@@ -74,6 +101,12 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
         rawTransaction.spendsCount = transaction.spends.length
         rawTransaction.signature = signature.toString('hex')
         rawTransaction.notesEncrypted = notesEncrypted
+        rawTransaction.mints = transaction.mints.map((mint) => {
+          return { id: mint.asset.id().toString('hex'), value: mint.value.toString() }
+        })
+        rawTransaction.burns = transaction.burns.map((burn) => {
+          return { id: burn.assetId.toString('hex'), value: burn.value.toString() }
+        })
       }
     })
 
