@@ -38,7 +38,7 @@ export class Migration017 extends Migration {
 
       for await (const transactionValue of account.getTransactionsOrderedBySequence(tx)) {
         await account.saveConnectedMintsToAssetsStore(transactionValue, tx)
-        await account.saveConnectedBurnsToAssetsStore(transactionValue, tx)
+        await account.saveConnectedBurnsToAssetsStore(transactionValue.transaction, tx)
       }
 
       let assetCount = 0

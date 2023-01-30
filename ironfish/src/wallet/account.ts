@@ -196,7 +196,7 @@ export class Account {
       }
 
       await this.saveConnectedMintsToAssetsStore(transactionValue, tx)
-      await this.saveConnectedBurnsToAssetsStore(transactionValue, tx)
+      await this.saveConnectedBurnsToAssetsStore(transactionValue.transaction, tx)
 
       await this.walletDb.saveTransaction(this, transaction.hash(), transactionValue, tx)
     })
@@ -254,7 +254,7 @@ export class Account {
   }
 
   async saveConnectedBurnsToAssetsStore(
-    { blockHash, sequence, transaction }: TransactionValue,
+    transaction: Transaction,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { assetId, value } of transaction.burns) {
@@ -269,10 +269,7 @@ export class Account {
         'Existing asset owner should match public address',
       )
 
-      let supply = existingAsset.supply
-      if (blockHash && sequence) {
-        supply = supply - value
-      }
+      const supply = existingAsset.supply - value
       Assert.isTrue(supply >= BigInt(0), 'Invalid burn value')
 
       await this.walletDb.putAsset(
@@ -426,7 +423,6 @@ export class Account {
       }
 
       await this.saveConnectedMintsToAssetsStore(transactionValue, tx)
-      await this.saveConnectedBurnsToAssetsStore(transactionValue, tx)
 
       await this.walletDb.saveTransaction(this, transaction.hash(), transactionValue, tx)
     })
