@@ -37,7 +37,7 @@ export class Migration017 extends Migration {
       logger.info(`  Backfilling assets for account ${account.name}`)
 
       for await (const transactionValue of account.getTransactionsOrderedBySequence(tx)) {
-        await account.saveConnectedMintsToAssetsStore(transactionValue, tx)
+        await account.saveMintsToAssetsStore(transactionValue, tx)
         await account.saveConnectedBurnsToAssetsStore(transactionValue.transaction, tx)
       }
 

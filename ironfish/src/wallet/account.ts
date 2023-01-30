@@ -195,7 +195,7 @@ export class Account {
         assetBalanceDeltas,
       }
 
-      await this.saveConnectedMintsToAssetsStore(transactionValue, tx)
+      await this.saveMintsToAssetsStore(transactionValue, tx)
       await this.saveConnectedBurnsToAssetsStore(transactionValue.transaction, tx)
 
       await this.walletDb.saveTransaction(this, transaction.hash(), transactionValue, tx)
@@ -204,7 +204,7 @@ export class Account {
     return assetBalanceDeltas
   }
 
-  async saveConnectedMintsToAssetsStore(
+  async saveMintsToAssetsStore(
     { blockHash, sequence, transaction }: TransactionValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
@@ -220,7 +220,7 @@ export class Account {
       let createdTransactionHash = transaction.hash()
       let supply = BigInt(0)
 
-      // Adjust supply if this transaction is on a block.
+      // Adjust supply if this transaction is connected on a block.
       if (blockHash && sequence) {
         supply += value
       }
@@ -422,7 +422,7 @@ export class Account {
         assetBalanceDeltas,
       }
 
-      await this.saveConnectedMintsToAssetsStore(transactionValue, tx)
+      await this.saveMintsToAssetsStore(transactionValue, tx)
 
       await this.walletDb.saveTransaction(this, transaction.hash(), transactionValue, tx)
     })
