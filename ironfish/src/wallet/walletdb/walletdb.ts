@@ -37,7 +37,7 @@ import {
 } from './transactionAmountsValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 17
+export const VERSION_DATABASE_ACCOUNTS = 16
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -191,7 +191,7 @@ export class WalletDB {
     })
 
     this.transactions = this.db.addStore({
-      name: 'tx',
+      name: 't',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new TransactionValueEncoding(),
     })
@@ -200,7 +200,7 @@ export class WalletDB {
       name: 'ta',
       keyEncoding: new PrefixEncoding(
         new BufferEncoding(),
-        new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+        new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 32),
         4,
       ),
       valueEncoding: new TransactionAmountsValueEncoding(),
