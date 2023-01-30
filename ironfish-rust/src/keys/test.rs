@@ -118,9 +118,9 @@ fn test_hex_conversion() {
 fn test_words_spending_key() {
     let key = SaplingKey::generate_key();
     let words = key
-        .words_spending_key(&bip39::Language::English)
+        .words_spending_key(bip39::Language::English)
         .expect("Should return words");
-    let expected_words = MnemonicType::for_key_size(&key.spending_key[..].len() * 8)
+    let expected_words = MnemonicType::for_key_size(key.spending_key.len() * 8)
         .expect("valid key size")
         .word_count();
     assert_eq!(words.split(' ').count(), expected_words);

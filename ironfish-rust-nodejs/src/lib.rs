@@ -26,6 +26,7 @@ fn to_napi_err(err: impl Display) -> napi::Error {
 // have to recreate if we want type safety. hopefully in the future this will work with napi:
 // #[napi]
 // pub use bip39::Language as Language;
+// https://github.com/napi-rs/napi-rs/issues/1463
 #[napi]
 pub enum LanguageCode {
     English,
@@ -79,7 +80,7 @@ pub fn generate_key() -> Key {
 #[napi]
 pub fn words_spending_key(private_key: String, language_code: LanguageCode) -> Result<String> {
     let key = SaplingKey::from_hex(&private_key).map_err(to_napi_err)?;
-    key.words_spending_key(&language_code.into())
+    key.words_spending_key(language_code.into())
         .map_err(to_napi_err)
 }
 
