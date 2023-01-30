@@ -20,7 +20,7 @@ export default class Ceremony extends IronfishCommand {
     [DataDirFlagKey]: DataDirFlag,
     host: Flags.string({
       parse: (input: string) => Promise.resolve(input.trim()),
-      default: 'https://ceremony.ironfish.network',
+      default: 'ceremony.ironfish.network',
       description: 'Host address of the ceremony coordination server',
     }),
     port: Flags.integer({
@@ -159,8 +159,9 @@ export default class Ceremony extends IronfishCommand {
     let connected = false
     while (!connected) {
       CliUx.ux.action.start('Connecting')
-      connected = await client.start()
-      CliUx.ux.action.stop(connected ? 'done' : 'error')
+      const error = await client.start()
+      connected = error === null
+      CliUx.ux.action.stop(error ? `Error connecting: ${error}` : 'done')
 
       if (!connected) {
         this.log('Unable to connect to contribution server. Retrying in 5 seconds.')

@@ -32,19 +32,19 @@ export class CeremonyClient {
     this.socket.on('data', (data) => void this.onData(data))
   }
 
-  async start(): Promise<boolean> {
+  async start(): Promise<string | null> {
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
 
-    const connected = await connectSocket(this.socket, this.host, this.port)
-      .then(() => true)
-      .catch(() => false)
+    const error = await connectSocket(this.socket, this.host, this.port)
+      .then(() => null)
+      .catch((e) => ErrorUtils.renderError(e))
 
-    if (connected) {
+    if (error === null) {
       this.socket.on('error', this.onError)
       this.socket.on('close', this.onDisconnect)
     }
 
-    return connected
+    return error
   }
 
   stop(success: boolean): void {
