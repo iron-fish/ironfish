@@ -33,6 +33,7 @@ export class Account {
   readonly spendingKey: string
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
+  readonly version: number
   publicAddress: string
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
@@ -61,6 +62,7 @@ export class Account {
     this.displayName = `${name} (${id.slice(0, 7)})`
 
     this.walletDb = walletDb
+    this.version = 1
   }
 
   serialize(): AccountValue {
@@ -71,6 +73,7 @@ export class Account {
       incomingViewKey: this.incomingViewKey,
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
+      version: this.version,
     }
   }
 
