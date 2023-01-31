@@ -4,7 +4,7 @@
 import { wordsSpendingKey } from '@ironfish/rust-nodejs'
 import { ErrorUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import bech32m from 'bech32'
+import { bech32m } from 'bech32'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
@@ -72,9 +72,9 @@ export class ExportCommand extends IronfishCommand {
     } else {
       const responseBytes = Buffer.from(JSON.stringify(response.content.account))
       const lengthLimit = 1023
-      output = bech32m.bech32m.encode(
-        'ironfishprivatekey00000',
-        bech32m.bech32m.toWords(responseBytes),
+      output = bech32m.encode(
+        'ironfishaccount00000',
+        bech32m.toWords(responseBytes),
         lengthLimit,
       )
     }

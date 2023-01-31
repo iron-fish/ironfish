@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AccountImport, JSONUtils, PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import { bech32m } from 'bech32'
+import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -26,6 +28,13 @@ export class ImportCommand extends IronfishCommand {
       description: 'The path to import the account from',
     },
   ]
+
+  static bech32ToJSON(bech32: string): string {
+    const decodedOutput = bech32m.decode(bech32, 1023)
+    const decodedWords = decodedOutput.words
+    const decodedBytes = bech32m.fromWords(decodedWords)
+    return Buffer.from(decodedBytes).toString()
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ImportCommand)
@@ -64,7 +73,12 @@ export class ImportCommand extends IronfishCommand {
 
   async importFile(path: string): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
-    const data = await this.sdk.fileSystem.readFile(resolved)
+    let data = await this.sdk.fileSystem.readFile(resolved)
+    try {
+      data = ImportCommand.bech32ToJSON(data)
+    } catch (e) {
+      CliUx.ux.info('Unable to decode bech32, assuming input is already JSON')
+    }
     return JSONUtils.parse<AccountImport>(data)
   }
 
@@ -84,10 +98,34 @@ export class ImportCommand extends IronfishCommand {
 
     process.stdin.off('data', onData)
 
+    try {
+      data = ImportCommand.bech32ToJSON(data)
+    } catch (e) {
+      CliUx.ux.info('Unable to decode bech32, assuming input is already JSON')
+    }
     return JSONUtils.parse<AccountImport>(data)
   }
 
   async importTTY(): Promise<AccountImport> {
+    const response: { decodingChoice: string } = await inquirer.prompt<{
+      decodingChoice: string
+    }>([
+      {
+        name: 'decodingChoice',
+        message: `Select the decoding format for the account import`,
+        type: 'list',
+        choices: ['bech32', 'json'],
+      },
+    ])
+
+    if (response.decodingChoice === 'bech32') {
+      const bech32input = await CliUx.ux.prompt('Paste the bech32 blob', {
+        required: true,
+      })
+      const data = ImportCommand.bech32ToJSON(bech32input)
+      return JSONUtils.parse<AccountImport>(data)
+    }
+
     const accountName = await CliUx.ux.prompt('Enter the account name', {
       required: true,
     })
