@@ -79,7 +79,7 @@ export class Burn extends IronfishCommand {
 
     const confirmations = flags.confirmations
     if (confirmations !== undefined && confirmations < 0) {
-      this.log('Number of blocks confirmations must be non-negative')
+      this.log('Number of block confirmations must be non-negative')
       this.exit(1)
     }
 
@@ -176,6 +176,7 @@ ${CurrencyUtils.renderIron(
         assetId,
         fee: CurrencyUtils.encode(fee),
         value: CurrencyUtils.encode(amount),
+        confirmations,
       })
 
       stopProgressBar()

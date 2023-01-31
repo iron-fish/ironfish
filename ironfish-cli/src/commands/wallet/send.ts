@@ -181,7 +181,7 @@ export class Send extends IronfishCommand {
     }
 
     if (confirmations !== undefined && confirmations < 0) {
-      this.log('Number of blocks confirmations must be non-negative')
+      this.log('Number of block confirmations must be non-negative')
       this.exit(1)
     }
 
