@@ -6,7 +6,6 @@ import { BufferMap } from 'buffer-map'
 import * as yup from 'yup'
 import { BurnDescription } from '../../../primitives/burnDescription'
 import { MintData } from '../../../primitives/mintData'
-import { MintDescription } from '../../../primitives/mintDescription'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { CurrencyUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
@@ -161,7 +160,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           }
 
           mintData = {
-            assetId: Buffer.from(mint.assetId,'hex'),
+            assetId: Buffer.from(mint.assetId, 'hex'),
             name: record.name.toString('utf8'),
             metadata: record.metadata.toString('utf8'),
             value: CurrencyUtils.decode(mint.value),

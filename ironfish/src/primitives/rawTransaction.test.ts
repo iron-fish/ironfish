@@ -15,6 +15,7 @@ import {
 } from '../testUtilities/fixtures'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
+import { MintData } from './mintData'
 import { Note } from './note'
 import { RawTransaction, RawTransactionSerde } from './rawTransaction'
 
@@ -24,7 +25,7 @@ describe('RawTransaction', () => {
   it('should post', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
     const asset = new Asset(account.spendingKey, 'test', '')
-    const assetName = 'test'
+    const assetName = asset.name().toString('utf8')
 
     const block = await useMinerBlockFixture(
       nodeTest.chain,
@@ -41,11 +42,20 @@ describe('RawTransaction', () => {
       value: 2n,
     }
 
-    const mint = {
+    const newAsset = new Asset(account.spendingKey, 'newAsset', 'metadata')
+    const mint: MintData = {
+      name: 'newAsset',
+      metadata: 'metadata',
+      value: 1n,
+      isNewAsset: true,
+    }
+
+    const mintExisting: MintData = {
+      assetId: asset.id(),
       name: assetName,
       metadata: '',
-      value: 1n,
-      isNewAsset: true
+      value: 2n,
+      isNewAsset: false,
     }
 
     const raw = await createRawTransaction({
@@ -56,16 +66,16 @@ describe('RawTransaction', () => {
       fee: 5n,
       expiration: 10,
       burns: [burn],
-      mints: [mint],
+      mints: [mint, mintExisting],
     })
 
     const posted = raw.post()
     expect(posted.takeReference().verify()).toBe(true)
     expect(posted.fee()).toEqual(5n)
     expect(posted.expiration()).toEqual(10)
-    expect(posted.notes.length).toEqual(3)
+    expect(posted.notes.length).toEqual(4)
     expect(posted.spends.length).toEqual(1)
-    expect(posted.mints.length).toEqual(1)
+    expect(posted.mints.length).toEqual(2)
     expect(posted.burns.length).toEqual(1)
 
     const valuesByAsset = new BufferMap<bigint>()
@@ -85,13 +95,17 @@ describe('RawTransaction', () => {
 
     const mintedValue = valuesByAsset.get(asset.id())
     Assert.isNotUndefined(mintedValue)
-    expect(mintedValue).toEqual(1n)
+    expect(mintedValue).toEqual(2n)
+
+    const mintedValue2 = valuesByAsset.get(newAsset.id())
+    Assert.isNotUndefined(mintedValue)
+    expect(mintedValue2).toEqual(1n)
   })
 
   it('should throw an error if the max mint value is exceeded', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
     const asset = new Asset(account.spendingKey, 'test', '')
-    const assetName = 'test'
+    const assetName = asset.name().toString('utf8')
 
     const block = await useMinerBlockFixture(
       nodeTest.chain,
@@ -106,7 +120,7 @@ describe('RawTransaction', () => {
       name: assetName,
       metadata: '',
       value: BigInt(500_000_000_000_000_000n),
-      isNewAsset: true
+      isNewAsset: true,
     }
 
     const raw = await createRawTransaction({

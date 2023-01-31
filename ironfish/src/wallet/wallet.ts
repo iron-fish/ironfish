@@ -300,6 +300,7 @@ export class Wallet {
   async decryptNotes(
     transaction: Transaction,
     initialNoteIndex: number | null,
+    decryptForSpender: boolean,
     accounts?: Array<Account>,
   ): Promise<Map<string, Array<DecryptedNote>>> {
     const accountsToCheck =
@@ -324,6 +325,7 @@ export class Wallet {
           outgoingViewKey: account.outgoingViewKey,
           spendingKey: account.spendingKey,
           currentNoteIndex,
+          decryptForSpender,
         })
 
         if (currentNoteIndex) {
@@ -393,6 +395,7 @@ export class Wallet {
           const decryptedNotesByAccountId = await this.decryptNotes(
             transaction,
             initialNoteIndex,
+            false,
             [account],
           )
 
@@ -474,7 +477,12 @@ export class Wallet {
       return
     }
 
-    const decryptedNotesByAccountId = await this.decryptNotes(transaction, null, accounts)
+    const decryptedNotesByAccountId = await this.decryptNotes(
+      transaction,
+      null,
+      false,
+      accounts,
+    )
 
     for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
       const account = this.accounts.get(accountId)
@@ -570,6 +578,8 @@ export class Wallet {
     assetId: Buffer
     unconfirmed: bigint
     unconfirmedCount: number
+    pending: bigint
+    pendingCount: number
     confirmed: bigint
     blockHash: Buffer | null
     sequence: number | null
@@ -591,6 +601,8 @@ export class Wallet {
     unconfirmedCount: number
     unconfirmed: bigint
     confirmed: bigint
+    pendingCount: number
+    pending: bigint
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -661,7 +673,6 @@ export class Wallet {
         value: options.value,
         isNewAsset: false,
       }
-
     } else {
       mintData = {
         name: options.name,
@@ -671,18 +682,11 @@ export class Wallet {
       }
     }
 
-
-    const raw = await this.createTransaction(
-      account,
-      [],
-      [mintData],
-      [],
-      {
-        fee: options.fee,
-        expirationDelta: options.expirationDelta,
-        expiration: options.expiration,
-      },
-    )
+    const raw = await this.createTransaction(account, [], [mintData], [], {
+      fee: options.fee,
+      expirationDelta: options.expirationDelta,
+      expiration: options.expiration,
+    })
 
     return this.postTransaction(raw, memPool)
   }

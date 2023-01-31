@@ -1129,12 +1129,18 @@ describe('Accounts', () => {
 
         const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
         const mintValue = BigInt(10)
+        const mintData = {
+          name: asset.name().toString('utf8'),
+          metadata: asset.metadata().toString('utf8'),
+          value: mintValue,
+          isNewAsset: true,
+        }
 
         const transaction = await usePostTxFixture({
           node: node,
           wallet: node.wallet,
           from: account,
-          mints: [{ asset, value: mintValue }],
+          mints: [mintData],
         })
 
         expect(transaction.mints).toEqual([{ asset: asset, value: mintValue }])
@@ -1241,18 +1247,19 @@ describe('Accounts', () => {
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
       const assetId = asset.id()
       const mintValue = BigInt(10)
+      const mintData = {
+        name: asset.name().toString('utf8'),
+        metadata: asset.metadata().toString('utf8'),
+        value: mintValue,
+        isNewAsset: true,
+      }
+
       // Mint some coins
       const blockB = await useBlockFixture(node.chain, async () => {
-        const raw = await node.wallet.createTransaction(
-          account,
-          [],
-          [{ asset, value: mintValue }],
-          [],
-          {
-            fee: 0n,
-            expiration: 0,
-          },
-        )
+        const raw = await node.wallet.createTransaction(account, [], [mintData], [], {
+          fee: 0n,
+          expiration: 0,
+        })
 
         const transaction = await node.wallet.postTransaction(raw, node.memPool)
 

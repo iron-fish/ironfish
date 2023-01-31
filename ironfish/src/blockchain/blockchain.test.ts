@@ -925,12 +925,18 @@ describe('Blockchain', () => {
         const account = await useAccountFixture(node.wallet)
 
         const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const mintData = {
+          name: asset.name().toString('utf8'),
+          metadata: asset.metadata().toString('utf8'),
+          value: 10n,
+          isNewAsset: true,
+        }
 
         const mint = await usePostTxFixture({
           node: node,
           wallet: node.wallet,
           from: account,
-          mints: [{ asset, value: 10n }],
+          mints: [mintData],
         })
 
         const block = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [

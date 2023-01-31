@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Transaction as NativeTransaction } from '@ironfish/rust-nodejs'
-import { Asset, ASSET_ID_LENGTH, ASSET_LENGTH } from '@ironfish/rust-nodejs'
+import { Asset, ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
@@ -17,6 +17,7 @@ import { Transaction } from './transaction'
 
 // Needed for constructing a witness when creating transactions
 const noteHasher = new NoteHasher()
+const MAX_MINT_OR_BURN_VALUE = BigInt(100_000_000_000_000_000n)
 
 export class RawTransaction {
   spendingKey = ''
@@ -50,25 +51,31 @@ export class RawTransaction {
     }
 
     for (const mint of this.mints) {
+      if (mint.value > MAX_MINT_OR_BURN_VALUE) {
+        throw new Error('Cannot post transaction. Mint value exceededs maximum')
+      }
+
       let asset: Asset
       if (mint.assetId !== undefined) {
-       asset = new Asset(
-        this.spendingKey,
-        mint.name,
-        mint.metadata,
-      )
+        asset = new Asset(this.spendingKey, mint.name, mint.metadata)
 
-      if (!asset.id().equals(mint.assetId)) {
-        throw new ValidationError(`Unauthorized to mint for asset '${mint.assetId.toString('hex')}'`)
+        if (!asset.id().equals(mint.assetId)) {
+          throw new ValidationError(
+            `Unauthorized to mint for asset '${mint.assetId.toString('hex')}'`,
+          )
+        }
+      } else {
+        asset = new Asset(this.spendingKey, mint.name, mint.metadata)
       }
-    }else{
-      asset = new Asset(this.spendingKey, mint.name, mint.metadata)
-    }
-  
+
       builder.mint(asset, mint.value)
     }
 
     for (const burn of this.burns) {
+      if (burn.value > MAX_MINT_OR_BURN_VALUE) {
+        throw new Error('Cannot post transaction. Burn value exceededs maximum')
+      }
+
       builder.burn(burn.assetId, burn.value)
     }
 
@@ -126,8 +133,8 @@ export class RawTransactionSerde {
           break
         case false:
           bw.writeU8(1)
-          if(mint.assetId) {
-           bw.writeBytes(mint.assetId)
+          if (mint.assetId) {
+            bw.writeBytes(mint.assetId)
           }
           break
       }
@@ -185,24 +192,23 @@ export class RawTransactionSerde {
       const metadata = reader.readVarString()
       const value = reader.readBigU64()
       const isNewAsset = reader.readU8() ? false : true
-      if(isNewAsset === false) {
+      if (isNewAsset === false) {
         const assetId = reader.readBytes(ASSET_ID_LENGTH)
-        raw.mints.push({ 
+        raw.mints.push({
           assetId: assetId,
-        name: name,
-        metadata: metadata,
-        value: value,
-        isNewAsset: isNewAsset,
+          name: name,
+          metadata: metadata,
+          value: value,
+          isNewAsset: isNewAsset,
         })
-      }else{
-        raw.mints.push({ 
-        name: name,
-        metadata: metadata,
-        value: value,
-        isNewAsset: isNewAsset,
+      } else {
+        raw.mints.push({
+          name: name,
+          metadata: metadata,
+          value: value,
+          isNewAsset: isNewAsset,
         })
       }
-    
     }
 
     const burnsLength = reader.readU64()
@@ -250,7 +256,7 @@ export class RawTransactionSerde {
       size += bufio.sizeVarString(mint.metadata)
       size += 8 // mint.value
       size += 1 // isNewAsset
-      if(mint.assetId){
+      if (mint.assetId) {
         size += ASSET_ID_LENGTH // mint.assetId
       }
     }
