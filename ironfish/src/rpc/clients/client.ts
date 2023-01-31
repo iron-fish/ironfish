@@ -33,6 +33,8 @@ import {
   GetConsensusParametersResponse,
   GetDefaultAccountRequest,
   GetDefaultAccountResponse,
+  GetDifficultyRequest,
+  GetDifficultyResponse,
   GetFundsRequest,
   GetFundsResponse,
   GetLogStreamResponse,
@@ -436,6 +438,15 @@ export abstract class RpcClient {
   ): Promise<RpcResponseEnded<GetBlockInfoResponse>> {
     return this.request<GetBlockInfoResponse>(
       `${ApiNamespace.chain}/getBlockInfo`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getDifficulty(
+    params: GetDifficultyRequest = undefined,
+  ): Promise<RpcResponseEnded<GetDifficultyResponse>> {
+    return this.request<GetDifficultyResponse>(
+      `${ApiNamespace.chain}/getDifficulty`,
       params,
     ).waitForEnd()
   }
