@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, ASSET_NAME_LENGTH } from '@ironfish/rust-nodejs'
 import {
+  Assert,
   BufferUtils,
   CurrencyUtils,
   GetAccountTransactionsResponse,
+  PartialRecursive,
   TransactionType,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -63,85 +65,137 @@ export class TransactionsCommand extends IronfishCommand {
     for await (const transaction of response.contentStream()) {
       const transactionHeader = this.getTransactionHeader(transaction)
 
-      const transactionRows: TransactionRow[] = []
+      const isGroup = transaction.assetBalanceDeltas.length > 1
+
+      if (isGroup) {
+        transactionHeader.group = '┏'
+      }
+
+      const transactionRows: PartialRecursive<TransactionRow>[] = []
       for (const { assetId, assetName, delta } of transaction.assetBalanceDeltas) {
         if (assetId === Asset.nativeId().toString('hex')) {
           continue
         }
 
+        let group = ''
+
+        if (isGroup) {
+          if (transactionRows.length === transaction.assetBalanceDeltas.length - 2) {
+            group = '┗'
+          } else {
+            group = '┣'
+          }
+        }
+
         transactionRows.push({
-          ...transaction,
+          group,
           assetId,
           assetName: BufferUtils.toHuman(Buffer.from(assetName, 'hex')),
           amount: BigInt(delta),
         })
       }
 
-      CliUx.ux.table(
-        [transactionHeader, ...transactionRows],
-        {
-          timestamp: TableCols.timestamp({
-            streaming: true,
-          }),
-          status: {
-            header: 'Status',
-            minWidth: 12,
-          },
-          type: {
-            header: 'Type',
-            minWidth: 8,
-          },
-          hash: {
-            header: 'Hash',
-          },
+      let columns: CliUx.Table.table.Columns<TransactionRow> = {
+        group: {
+          header: '',
+          minWidth: 3,
+        },
+        timestamp: TableCols.timestamp({
+          streaming: true,
+        }),
+        status: {
+          header: 'Status',
+          minWidth: 12,
+        },
+        type: {
+          header: 'Type',
+          minWidth: 8,
+        },
+        hash: {
+          header: 'Hash',
+          minWidth: 32,
+        },
+        notesCount: {
+          header: 'Notes',
+          minWidth: 5,
+          extended: true,
+        },
+        spendsCount: {
+          header: 'Spends',
+          minWidth: 5,
+          extended: true,
+        },
+        mintsCount: {
+          header: 'Mints',
+          minWidth: 5,
+          extended: true,
+        },
+        burnsCount: {
+          header: 'Burns',
+          minWidth: 5,
+          extended: true,
+        },
+        expiration: {
+          header: 'Expiration',
+        },
+        feePaid: {
+          header: 'Fee Paid ($IRON)',
+          get: (row) =>
+            row.feePaid && row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : '',
+        },
+      }
+
+      if (flags.extended) {
+        columns = {
+          ...columns,
           assetId: {
             header: 'Asset ID',
+            extended: true,
           },
           assetName: {
             header: 'Asset Name',
-            get: (row) => truncateCol(row.assetName, assetNameWidth),
+            get: (row) => {
+              Assert.isNotUndefined(row.assetName)
+              return truncateCol(row.assetName, assetNameWidth)
+            },
+            minWidth: assetNameWidth,
+            extended: true,
+          },
+        }
+      } else {
+        columns = {
+          ...columns,
+          asset: {
+            header: 'Asset',
+            get: (row) => {
+              Assert.isNotUndefined(row.assetName)
+              Assert.isNotUndefined(row.assetId)
+              const text = row.assetName.padEnd(assetNameWidth, ' ')
+              return `${text} (${row.assetId.slice(0, 5)})`
+            },
+            extended: false,
             minWidth: assetNameWidth,
           },
-          amount: {
-            header: 'Net Amount',
-            get: (row) => (row.amount !== 0n ? CurrencyUtils.renderIron(row.amount) : ''),
-            minWidth: 16,
+        }
+      }
+
+      columns = {
+        ...columns,
+        amount: {
+          header: 'Net Amount',
+          get: (row) => {
+            Assert.isNotUndefined(row.amount)
+            return row.amount !== 0n ? CurrencyUtils.renderIron(row.amount) : ''
           },
-          feePaid: {
-            header: 'Fee Paid ($IRON)',
-            get: (row) =>
-              row.feePaid && row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : '',
-          },
-          notesCount: {
-            header: 'Notes',
-            minWidth: 5,
-            extended: true,
-          },
-          spendsCount: {
-            header: 'Spends',
-            minWidth: 5,
-            extended: true,
-          },
-          mintsCount: {
-            header: 'Mints',
-            minWidth: 5,
-            extended: true,
-          },
-          burnsCount: {
-            header: 'Burns',
-            minWidth: 5,
-            extended: true,
-          },
-          expiration: {
-            header: 'Expiration',
-          },
+          minWidth: 16,
         },
-        {
-          printLine: this.log.bind(this),
-          ...flags,
-          'no-header': !showHeader,
-        },
-      )
+      }
+
+      CliUx.ux.table([transactionHeader, ...transactionRows], columns, {
+        printLine: this.log.bind(this),
+        ...flags,
+        'no-header': !showHeader,
+      })
 
       showHeader = false
     }
@@ -166,6 +220,7 @@ export class TransactionsCommand extends IronfishCommand {
 
     return {
       ...transaction,
+      group: '',
       assetId,
       assetName: '$IRON',
       amount,
@@ -175,6 +230,7 @@ export class TransactionsCommand extends IronfishCommand {
 }
 
 type TransactionRow = {
+  group: string
   timestamp: number
   status: string
   type: string
