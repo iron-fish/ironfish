@@ -13,9 +13,10 @@ export async function selectAsset(
     action: string
     showNativeAsset: boolean
     showSingleAssetChoice: boolean
+    confirmations?: number
   },
 ): Promise<string | undefined> {
-  const balancesResponse = await client.getAccountBalances({ account })
+  const balancesResponse = await client.getAccountBalances({ account: account, confirmations: options.confirmations })
   const assetOptions = []
 
   let balances = balancesResponse.content.balances

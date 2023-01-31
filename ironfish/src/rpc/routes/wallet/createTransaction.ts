@@ -34,6 +34,7 @@ export type CreateTransactionRequest = {
   feeRate?: string | null
   expiration?: number
   expirationDelta?: number
+  confirmations?: number
 }
 
 export type CreateTransactionResponse = {
@@ -81,6 +82,7 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
     feeRate: yup.string().nullable().optional(),
     expiration: yup.number().optional(),
     expirationDelta: yup.number().optional(),
+    confirmations: yup.number().optional(),
   })
   .defined()
 
@@ -103,11 +105,11 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
     }
 
     // The node must be connected to the network first
-    if (!node.peerNetwork.isReady) {
-      throw new ValidationError(
-        `Your node must be connected to the Iron Fish network to send a transaction`,
-      )
-    }
+    // if (!node.peerNetwork.isReady) {
+    //   throw new ValidationError(
+    //     `Your node must be connected to the Iron Fish network to send a transaction`,
+    //   )
+    // }
 
     if (!node.chain.synced) {
       throw new ValidationError(
@@ -218,6 +220,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           expirationDelta:
             data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
           expiration: data.expiration,
+          confirmations: data.confirmations,
         })
       } else {
         let feeRate
@@ -236,6 +239,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           expirationDelta:
             data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
           expiration: data.expiration,
+          confirmations: data.confirmations,
           feeRate: feeRate,
         })
       }
