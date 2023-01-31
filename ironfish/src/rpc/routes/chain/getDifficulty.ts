@@ -5,8 +5,6 @@ import * as yup from 'yup'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
-// Get network difficulty at a specified sequence.
-// If sequence is undefined, use current chain header difficulty as default.
 export type GetDifficultyRequest =
   | {
       sequence?: number | null
