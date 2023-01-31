@@ -399,9 +399,9 @@ export class Wallet {
             [account],
           )
 
-          const decryptedNotes = decryptedNotesByAccountId.get(account.id)
+          const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
 
-          if (!decryptedNotes) {
+          if (decryptedNotes.length === 0 && !(await account.hasSpend(transaction))) {
             continue
           }
 
@@ -484,10 +484,10 @@ export class Wallet {
       accounts,
     )
 
-    for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
-      const account = this.accounts.get(accountId)
+    for (const account of accounts) {
+      const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
 
-      if (!account) {
+      if (decryptedNotes.length === 0 && !(await account.hasSpend(transaction))) {
         continue
       }
 
