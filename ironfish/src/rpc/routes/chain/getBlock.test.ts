@@ -56,7 +56,7 @@ describe('Route chain.getBlock', () => {
       },
       metadata: {
         size: expect.any(Number),
-        difficulty: Number(block.header.target.toDifficulty()),
+        difficulty: block.header.target.toDifficulty().toString(),
       },
     })
     expect(response.content.transactions).toHaveLength(1)

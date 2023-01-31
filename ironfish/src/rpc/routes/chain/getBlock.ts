@@ -35,7 +35,7 @@ interface Block {
   transactions: Array<Transaction>
   metadata: {
     size: number
-    difficulty: number
+    difficulty: string
   }
 }
 export type GetBlockResponse = Block
@@ -103,7 +103,7 @@ export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
     metadata: yup
       .object({
         size: yup.number().defined(),
-        difficulty: yup.number().defined(),
+        difficulty: yup.string().defined(),
       })
       .defined(),
   })
@@ -197,7 +197,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       transactions,
       metadata: {
         size: blockBuffer.byteLength,
-        difficulty: Number(block.header.target.toDifficulty()),
+        difficulty: block.header.target.toDifficulty().toString(),
       },
     })
   },
