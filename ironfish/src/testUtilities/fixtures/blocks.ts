@@ -107,11 +107,9 @@ export async function useMintBlockFixture(options: {
     from: options.account,
     mints: [
       {
-        assetId: options.asset.id(),
         name: options.asset.name().toString('utf8'),
         metadata: options.asset.metadata().toString('utf8'),
         value: options.value,
-        isNewAsset: false,
       },
     ],
   })

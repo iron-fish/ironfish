@@ -24,7 +24,6 @@ describe('RawTransaction', () => {
   it('should post', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
     const asset = new Asset(account.spendingKey, 'test', '')
-    const assetName = asset.name().toString('utf8')
 
     const block = await useMinerBlockFixture(
       nodeTest.chain,
@@ -41,20 +40,10 @@ describe('RawTransaction', () => {
       value: 2n,
     }
 
-    const newAsset = new Asset(account.spendingKey, 'newAsset', 'metadata')
     const mint: MintData = {
-      name: 'newAsset',
-      metadata: 'metadata',
+      name: asset.name().toString('utf8'),
+      metadata: asset.metadata().toString('utf8'),
       value: 1n,
-      isNewAsset: true,
-    }
-
-    const mintExisting: MintData = {
-      assetId: asset.id(),
-      name: assetName,
-      metadata: '',
-      value: 2n,
-      isNewAsset: false,
     }
 
     const raw = await createRawTransaction({
@@ -65,16 +54,16 @@ describe('RawTransaction', () => {
       fee: 5n,
       expiration: 10,
       burns: [burn],
-      mints: [mint, mintExisting],
+      mints: [mint],
     })
 
     const posted = raw.post()
     expect(posted.takeReference().verify()).toBe(true)
     expect(posted.fee()).toEqual(5n)
     expect(posted.expiration()).toEqual(10)
-    expect(posted.notes.length).toEqual(4)
+    expect(posted.notes.length).toEqual(3)
     expect(posted.spends.length).toEqual(1)
-    expect(posted.mints.length).toEqual(2)
+    expect(posted.mints.length).toEqual(1)
     expect(posted.burns.length).toEqual(1)
 
     const valuesByAsset = new BufferMap<bigint>()
@@ -94,11 +83,7 @@ describe('RawTransaction', () => {
 
     const mintedValue = valuesByAsset.get(asset.id())
     Assert.isNotUndefined(mintedValue)
-    expect(mintedValue).toEqual(2n)
-
-    const mintedValue2 = valuesByAsset.get(newAsset.id())
-    Assert.isNotUndefined(mintedValue)
-    expect(mintedValue2).toEqual(1n)
+    expect(mintedValue).toEqual(1n)
   })
 
   it('should throw an error if the max mint value is exceeded', async () => {
@@ -119,7 +104,6 @@ describe('RawTransaction', () => {
       name: assetName,
       metadata: '',
       value: BigInt(500_000_000_000_000_000n),
-      isNewAsset: true,
     }
 
     const raw = await createRawTransaction({
@@ -227,14 +211,11 @@ describe('RawTransactionSerde', () => {
         name: assetName,
         metadata: assetMetadata,
         value: 5n,
-        isNewAsset: true,
       },
       {
         name: assetName,
         metadata: assetMetadata,
         value: 4n,
-        isNewAsset: false,
-        assetId: asset.id(),
       },
     ]
 
@@ -269,13 +250,10 @@ describe('RawTransactionSerde', () => {
     expect(deserialized.mints[0].name).toEqual(assetName)
     expect(deserialized.mints[0].metadata).toEqual(assetMetadata)
     expect(deserialized.mints[0].value).toEqual(5n)
-    expect(deserialized.mints[0].isNewAsset).toEqual(true)
 
     expect(deserialized.mints[1].name).toEqual(assetName)
     expect(deserialized.mints[1].metadata).toEqual(assetMetadata)
     expect(deserialized.mints[1].value).toEqual(4n)
-    expect(deserialized.mints[1].isNewAsset).toEqual(false)
-    expect(deserialized.mints[1].assetId).toEqual(asset.id())
 
     expect(deserialized.mints[0].value).toEqual(5n)
     expect(deserialized.spends[0].note).toEqual(raw.spends[0].note)

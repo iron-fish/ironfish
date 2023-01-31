@@ -8,7 +8,6 @@ import bufio from 'bufio'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
-import { ValidationError } from '../rpc/adapters/errors'
 import { BurnDescription } from './burnDescription'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
@@ -19,11 +18,9 @@ const noteHasher = new NoteHasher()
 const MAX_MINT_OR_BURN_VALUE = BigInt(100_000_000_000_000_000n)
 
 export interface MintData {
-  assetId?: Buffer
   name: string
   metadata: string
   value: bigint
-  isNewAsset: boolean
 }
 
 export class RawTransaction {
@@ -62,18 +59,7 @@ export class RawTransaction {
         throw new Error('Cannot post transaction. Mint value exceededs maximum')
       }
 
-      let asset: Asset
-      if (mint.assetId !== undefined) {
-        asset = new Asset(this.spendingKey, mint.name, mint.metadata)
-
-        if (!asset.id().equals(mint.assetId)) {
-          throw new ValidationError(
-            `Unauthorized to mint for asset '${mint.assetId.toString('hex')}'`,
-          )
-        }
-      } else {
-        asset = new Asset(this.spendingKey, mint.name, mint.metadata)
-      }
+      const asset = new Asset(this.spendingKey, mint.name, mint.metadata)
 
       builder.mint(asset, mint.value)
     }
@@ -134,17 +120,6 @@ export class RawTransactionSerde {
       bw.writeVarString(mint.name)
       bw.writeVarString(mint.metadata)
       bw.writeBigU64(mint.value)
-      switch (mint.isNewAsset) {
-        case true:
-          bw.writeU8(0)
-          break
-        case false:
-          bw.writeU8(1)
-          if (mint.assetId) {
-            bw.writeBytes(mint.assetId)
-          }
-          break
-      }
     }
 
     bw.writeU64(raw.burns.length)
@@ -198,24 +173,7 @@ export class RawTransactionSerde {
       const name = reader.readVarString()
       const metadata = reader.readVarString()
       const value = reader.readBigU64()
-      const isNewAsset = reader.readU8() ? false : true
-      if (isNewAsset === false) {
-        const assetId = reader.readBytes(ASSET_ID_LENGTH)
-        raw.mints.push({
-          assetId: assetId,
-          name: name,
-          metadata: metadata,
-          value: value,
-          isNewAsset: isNewAsset,
-        })
-      } else {
-        raw.mints.push({
-          name: name,
-          metadata: metadata,
-          value: value,
-          isNewAsset: isNewAsset,
-        })
-      }
+      raw.mints.push({ name, metadata, value })
     }
 
     const burnsLength = reader.readU64()
@@ -262,10 +220,6 @@ export class RawTransactionSerde {
       size += bufio.sizeVarString(mint.name)
       size += bufio.sizeVarString(mint.metadata)
       size += 8 // mint.value
-      size += 1 // isNewAsset
-      if (mint.assetId) {
-        size += ASSET_ID_LENGTH // mint.assetId
-      }
     }
 
     size += 8 // raw.burns.length

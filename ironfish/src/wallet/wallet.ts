@@ -666,18 +666,15 @@ export class Wallet {
       }
 
       mintData = {
-        assetId: options.assetId,
         name: record.name.toString('utf8'),
         metadata: record.metadata.toString('utf8'),
         value: options.value,
-        isNewAsset: false,
       }
     } else {
       mintData = {
         name: options.name,
         metadata: options.metadata,
         value: options.value,
-        isNewAsset: true,
       }
     }
 

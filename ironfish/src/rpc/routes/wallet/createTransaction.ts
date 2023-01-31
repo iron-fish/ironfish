@@ -159,11 +159,9 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           }
 
           mintData = {
-            assetId: Buffer.from(mint.assetId, 'hex'),
             name: record.name.toString('utf8'),
             metadata: record.metadata.toString('utf8'),
             value: CurrencyUtils.decode(mint.value),
-            isNewAsset: false,
           }
         } else {
           if (mint.name === undefined) {
@@ -173,7 +171,6 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
             name: mint.name,
             metadata: mint.metadata ?? '',
             value: CurrencyUtils.decode(mint.value),
-            isNewAsset: true,
           }
         }
 
