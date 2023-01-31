@@ -404,6 +404,16 @@ export class Account {
     return this.walletDb.hasPendingTransaction(this, hash, tx)
   }
 
+  async hasSpend(transaction: Transaction, tx?: IDatabaseTransaction): Promise<boolean> {
+    for (const spend of transaction.spends) {
+      if ((await this.getNoteHash(spend.nullifier, tx)) !== null) {
+        return true
+      }
+    }
+
+    return false
+  }
+
   getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
     return this.walletDb.loadTransactions(this, tx)
   }
