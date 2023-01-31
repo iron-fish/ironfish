@@ -6,7 +6,15 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class PostCommand extends IronfishCommand {
-  static description = `Post a raw transaction`
+  static summary = 'Post a raw transaction'
+
+  static description = `Use this command to post a raw transaction.
+
+  The output is a finalized posted transaction. The transaction is also added to the wallet, and sent out to the network.`
+
+  static examples = [
+    '$ ironfish wallet:post 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4...',
+  ]
 
   static flags = {
     ...RemoteFlags,
