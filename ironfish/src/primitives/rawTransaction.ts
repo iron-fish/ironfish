@@ -8,21 +8,21 @@ import bufio from 'bufio'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
+import { ValidationError } from '../rpc/adapters/errors'
 import { BurnDescription } from './burnDescription'
-import { MintDescription } from './mintDescription'
+import { MintData } from './mintData'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { Transaction } from './transaction'
 
 // Needed for constructing a witness when creating transactions
 const noteHasher = new NoteHasher()
-const MAX_MINT_OR_BURN_VALUE = BigInt(100_000_000_000_000_000n)
 
 export class RawTransaction {
   spendingKey = ''
   expiration: number | null = null
   fee = 0n
-  mints: MintDescription[] = []
+  mints: MintData[] = []
   burns: BurnDescription[] = []
   receives: { note: Note }[] = []
 
@@ -50,18 +50,25 @@ export class RawTransaction {
     }
 
     for (const mint of this.mints) {
-      if (mint.value > MAX_MINT_OR_BURN_VALUE) {
-        throw new Error('Cannot post transaction. Mint value exceededs maximum')
-      }
+      let asset: Asset
+      if (mint.assetId !== undefined) {
+       asset = new Asset(
+        this.spendingKey,
+        mint.name,
+        mint.metadata,
+      )
 
-      builder.mint(mint.asset, mint.value)
+      if (!asset.id().equals(mint.assetId)) {
+        throw new ValidationError(`Unauthorized to mint for asset '${mint.assetId.toString('hex')}'`)
+      }
+    }else{
+      asset = new Asset(this.spendingKey, mint.name, mint.metadata)
+    }
+  
+      builder.mint(asset, mint.value)
     }
 
     for (const burn of this.burns) {
-      if (burn.value > MAX_MINT_OR_BURN_VALUE) {
-        throw new Error('Cannot post transaction. Burn value exceededs maximum')
-      }
-
       builder.burn(burn.assetId, burn.value)
     }
 
@@ -110,8 +117,20 @@ export class RawTransactionSerde {
 
     bw.writeU64(raw.mints.length)
     for (const mint of raw.mints) {
-      bw.writeBytes(mint.asset.serialize())
+      bw.writeVarString(mint.name)
+      bw.writeVarString(mint.metadata)
       bw.writeBigU64(mint.value)
+      switch (mint.isNewAsset) {
+        case true:
+          bw.writeU8(0)
+          break
+        case false:
+          bw.writeU8(1)
+          if(mint.assetId) {
+           bw.writeBytes(mint.assetId)
+          }
+          break
+      }
     }
 
     bw.writeU64(raw.burns.length)
@@ -162,9 +181,28 @@ export class RawTransactionSerde {
 
     const mintsLength = reader.readU64()
     for (let i = 0; i < mintsLength; i++) {
-      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
+      const name = reader.readVarString()
+      const metadata = reader.readVarString()
       const value = reader.readBigU64()
-      raw.mints.push({ asset, value })
+      const isNewAsset = reader.readU8() ? false : true
+      if(isNewAsset === false) {
+        const assetId = reader.readBytes(ASSET_ID_LENGTH)
+        raw.mints.push({ 
+          assetId: assetId,
+        name: name,
+        metadata: metadata,
+        value: value,
+        isNewAsset: isNewAsset,
+        })
+      }else{
+        raw.mints.push({ 
+        name: name,
+        metadata: metadata,
+        value: value,
+        isNewAsset: isNewAsset,
+        })
+      }
+    
     }
 
     const burnsLength = reader.readU64()
@@ -207,9 +245,14 @@ export class RawTransactionSerde {
     }
 
     size += 8 // raw.mints.length
-    for (const _ of raw.mints) {
-      size += ASSET_LENGTH // mint.asset
+    for (const mint of raw.mints) {
+      size += bufio.sizeVarString(mint.name)
+      size += bufio.sizeVarString(mint.metadata)
       size += 8 // mint.value
+      size += 1 // isNewAsset
+      if(mint.assetId){
+        size += ASSET_ID_LENGTH // mint.assetId
+      }
     }
 
     size += 8 // raw.burns.length

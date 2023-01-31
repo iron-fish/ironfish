@@ -7,6 +7,7 @@ import { Blockchain } from '../../blockchain'
 import { IronfishNode } from '../../node'
 import { Block, BlockSerde, SerializedBlock } from '../../primitives/block'
 import { BurnDescription } from '../../primitives/burnDescription'
+import { MintData } from '../../primitives/mintData'
 import { MintDescription } from '../../primitives/mintDescription'
 import { Note } from '../../primitives/note'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
@@ -106,7 +107,13 @@ export async function useMintBlockFixture(options: {
     node: options.node,
     wallet: options.node.wallet,
     from: options.account,
-    mints: [{ asset: options.asset, value: options.value }],
+    mints: [{ 
+      assetId: options.asset.id(), 
+      name: options.asset.name().toString('utf8'),
+      metadata: options.asset.metadata().toString('utf8'),
+      value: options.value,
+      isNewAsset: false 
+    }],
   })
 
   return useMinerBlockFixture(options.node.chain, options.sequence, undefined, undefined, [
@@ -143,7 +150,7 @@ export async function useBlockWithRawTxFixture(
   sender: Account,
   notesToSpend: NoteEncrypted[],
   receives: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[],
-  mints: MintDescription[],
+  mints: MintData[],
   burns: BurnDescription[],
   sequence: number,
 ): Promise<Block> {
