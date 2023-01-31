@@ -4,8 +4,7 @@
 
 import { Asset } from '@ironfish/rust-nodejs'
 import { BurnDescription } from '../../primitives/burnDescription'
-import { MintData } from '../../primitives/mintData'
-import { RawTransaction } from '../../primitives/rawTransaction'
+import { MintData, RawTransaction } from '../../primitives/rawTransaction'
 import { Transaction } from '../../primitives/transaction'
 import { Account, Wallet } from '../../wallet'
 

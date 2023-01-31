@@ -10,7 +10,6 @@ import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
 import { ValidationError } from '../rpc/adapters/errors'
 import { BurnDescription } from './burnDescription'
-import { MintData } from './mintData'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { Transaction } from './transaction'
@@ -18,6 +17,14 @@ import { Transaction } from './transaction'
 // Needed for constructing a witness when creating transactions
 const noteHasher = new NoteHasher()
 const MAX_MINT_OR_BURN_VALUE = BigInt(100_000_000_000_000_000n)
+
+export interface MintData {
+  assetId?: Buffer
+  name: string
+  metadata: string
+  value: bigint
+  isNewAsset: boolean
+}
 
 export class RawTransaction {
   spendingKey = ''

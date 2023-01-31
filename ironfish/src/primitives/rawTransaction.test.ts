@@ -15,9 +15,8 @@ import {
 } from '../testUtilities/fixtures'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
-import { MintData } from './mintData'
 import { Note } from './note'
-import { RawTransaction, RawTransactionSerde } from './rawTransaction'
+import { MintData, RawTransaction, RawTransactionSerde } from './rawTransaction'
 
 describe('RawTransaction', () => {
   const nodeTest = createNodeTest()
