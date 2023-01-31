@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { contribute } from '@ironfish/rust-nodejs'
-import { ErrorUtils, PromiseUtils } from '@ironfish/sdk'
+import { ErrorUtils, PromiseUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
 import fsAsync from 'fs/promises'
@@ -42,6 +42,9 @@ export default class Ceremony extends IronfishCommand {
 
     let localHash: string | null = null
 
+    let refreshEtaInterval: NodeJS.Timeout | null = null
+    let etaDate: Date | null = null
+
     // Prompt for randomness
     let randomness: string | null = await CliUx.ux.prompt(
       'Provide some randomness to contribute to the ceremony. If none is provided, it will automatically be generated for you (press enter)',
@@ -57,11 +60,20 @@ export default class Ceremony extends IronfishCommand {
     })
 
     client.onJoined.on(({ queueLocation }) => {
-      CliUx.ux.action.status = `Current position: ${queueLocation}`
+      refreshEtaInterval && clearInterval(refreshEtaInterval)
+
+      // Estimate at most 10 minutes per queue location
+      etaDate = new Date(Date.now() + queueLocation * 1000 * 60 * 10)
+
+      CliUx.ux.action.status = renderStatus(queueLocation, etaDate)
+      refreshEtaInterval = setInterval(() => {
+        CliUx.ux.action.status = renderStatus(queueLocation, etaDate)
+      }, 10 * 1000)
     })
 
     client.onInitiateContribution.on(async ({ downloadLink, contributionNumber }) => {
       CliUx.ux.action.stop()
+      refreshEtaInterval && clearInterval(refreshEtaInterval)
 
       this.log(`Starting contribution. You are contributor #${contributionNumber}`)
 
@@ -98,6 +110,7 @@ export default class Ceremony extends IronfishCommand {
 
     client.onInitiateUpload.on(async ({ uploadLink }) => {
       CliUx.ux.action.stop()
+      refreshEtaInterval && clearInterval(refreshEtaInterval)
 
       CliUx.ux.action.start(`Uploading your contribution`)
 
@@ -126,6 +139,7 @@ export default class Ceremony extends IronfishCommand {
 
     client.onContributionVerified.on(({ hash, downloadLink, contributionNumber }) => {
       CliUx.ux.action.stop()
+      refreshEtaInterval && clearInterval(refreshEtaInterval)
 
       if (!localHash) {
         this.log(
@@ -175,6 +189,7 @@ export default class Ceremony extends IronfishCommand {
       connected = result.success
 
       if (!connected) {
+        refreshEtaInterval && clearInterval(refreshEtaInterval)
         if (CliUx.ux.action.running) {
           CliUx.ux.action.stop('error')
         }
@@ -185,6 +200,14 @@ export default class Ceremony extends IronfishCommand {
       }
     }
   }
+}
+
+const renderStatus = (queueLocation: number, etaDate: Date | null): string => {
+  return `Current position: ${queueLocation} ${
+    etaDate
+      ? `(Estimated time remaining: ${TimeUtils.renderSpan(etaDate.getTime() - Date.now())})`
+      : ''
+  }`
 }
 
 const display256CharacterHash = (hash: string): string => {
