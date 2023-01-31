@@ -20,6 +20,10 @@ export class PostCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    account: Flags.string({
+      description: 'The account to burn from',
+      required: false,
+    }),
     confirm: Flags.boolean({
       default: false,
       description: 'Confirm without asking',
@@ -42,13 +46,23 @@ export class PostCommand extends IronfishCommand {
     const serialized = Buffer.from(transaction)
     const raw = RawTransactionSerde.deserialize(serialized)
 
-    if (!flags.confirm && !this.confirm(raw)) {
+    const client = await this.sdk.connectRpc()
+
+    if (!flags.account) {
+      const response = await client.getDefaultAccount()
+
+      if (response.content.account) {
+        flags.account = response.content.account.name
+      }
+    }
+
+    if (!flags.confirm && !this.confirm(raw, flags.account)) {
       this.exit(0)
     }
 
     CliUx.ux.action.start(`Posting transaction`)
-    const client = await this.sdk.connectRpc()
-    const response = await client.postTransaction({ transaction })
+
+    const response = await client.postTransaction({ transaction, account: flags.account })
     CliUx.ux.action.stop()
 
     const posted = new Transaction(Buffer.from(response.content, 'hex'))
@@ -58,7 +72,7 @@ export class PostCommand extends IronfishCommand {
     this.log(response.content.transaction)
   }
 
-  confirm(raw: RawTransaction): Promise<boolean> {
+  confirm(raw: RawTransaction, account: string): Promise<boolean> {
     let spending = 0n
     for (const recieve of raw.receives) {
       spending += recieve.note.value()
@@ -70,7 +84,7 @@ export class PostCommand extends IronfishCommand {
       } mints and ${raw.burns.length} burns with a fee ${CurrencyUtils.renderIron(
         raw.fee,
         true,
-      )}`,
+      )} using account ${account}`,
     )
 
     return CliUx.ux.confirm('Do you want to post this (Y/N)?')
