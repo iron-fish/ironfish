@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset, DECRYPTED_NOTE_LENGTH, LanguageCode, wordsSpendingKey } from '..'
+import { Asset, DECRYPTED_NOTE_LENGTH, LanguageCode, spendingKeyToWords, wordsToSpendingKey } from '..'
 import {
   initializeSapling,
   generateKey,
@@ -27,10 +27,15 @@ describe('Demonstrate the Sapling API', () => {
     expect(typeof key.spending_key).toBe('string')
   })
 
-  it('Should return phrase words from key input', () => {
-    const key = generateKey()
-    const words = wordsSpendingKey(key.spending_key, LanguageCode.English);
-    expect(words.split(' ').length).toEqual(24)
+  it('Should be able to convert hex key to words, and reverse', () => {
+    const hexKey = 'd56b241ca965b3997485ccf06421740c1d61163922ad1c02ee69fbe09253daf7'
+    const hexKeyWords = 'step float already fan forest smile spirit ridge vacant canal fringe blouse stock mention tonight fiber bright blast omit water ankle clarify hint turn'
+    const key = generateKeyFromPrivateKey(hexKey)
+    const words = spendingKeyToWords(key.spending_key, LanguageCode.English);
+    expect(words).toEqual(hexKeyWords)
+
+    const hexKeyGenerated = wordsToSpendingKey(words, LanguageCode.English);
+    expect(hexKeyGenerated).toEqual(hexKey)
   })
 
   it('Should generate a new public address given a spending key', () => {

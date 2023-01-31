@@ -5,7 +5,6 @@
 use crate::keys::{ephemeral::EphemeralKeyPair, PUBLIC_ADDRESS_SIZE};
 
 use super::{shared_secret, PublicAddress, SaplingKey};
-use bip39::MnemonicType;
 use group::Curve;
 use jubjub::ExtendedPoint;
 
@@ -115,13 +114,22 @@ fn test_hex_conversion() {
 }
 
 #[test]
-fn test_words_spending_key() {
-    let key = SaplingKey::generate_key();
+fn test_from_and_to_words() {
+    let key_bytes = [
+        213, 107, 36, 28, 169, 101, 179, 153, 116, 133, 204, 240, 100, 33, 116, 12, 29, 97, 22, 57,
+        34, 173, 28, 2, 238, 105, 251, 224, 146, 83, 218, 247,
+    ];
+    let words_for_bytes = "step float already fan forest smile spirit ridge vacant canal fringe blouse stock mention tonight fiber bright blast omit water ankle clarify hint turn".to_owned();
+
+    // Convert to words
+    let key = SaplingKey::new(key_bytes).expect("Key should be created");
     let words = key
-        .words_spending_key(bip39::Language::English)
+        .to_words(bip39::Language::English)
         .expect("Should return words");
-    let expected_words = MnemonicType::for_key_size(key.spending_key.len() * 8)
-        .expect("valid key size")
-        .word_count();
-    assert_eq!(words.split(' ').count(), expected_words);
+    assert_eq!(words_for_bytes, words);
+
+    // Convert from words
+    let key =
+        SaplingKey::from_words(words, bip39::Language::English).expect("key should be created");
+    assert_eq!(key.spending_key, key_bytes);
 }
