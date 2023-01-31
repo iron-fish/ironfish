@@ -212,6 +212,7 @@ export class MiningPool {
 
     const eventLoopStartTime = new Date().getTime()
 
+    await this.shares.rolloverPayoutPeriod()
     await this.updateUnconfirmedBlocks()
 
     if (this.nextPayoutAttempt <= new Date().getTime()) {

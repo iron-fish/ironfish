@@ -244,4 +244,19 @@ export class MiningPoolShares {
 
     await this.db.updateBlockStatus(block.id, main, confirmed)
   }
+
+  async rolloverPayoutPeriod(): Promise<void> {
+    const payoutPeriodDuration = this.config.get('poolPayoutPeriodDuration') * 1000
+    const now = new Date().getTime()
+    const payoutPeriodCutoff = now - payoutPeriodDuration
+
+    const payoutPeriod = await this.db.getCurrentPayoutPeriod()
+
+    if (payoutPeriod && payoutPeriod.start > payoutPeriodCutoff) {
+      // Current payout period has not exceeded its duration yet
+      return
+    }
+
+    await this.db.rolloverPayoutPeriod(now)
+  }
 }

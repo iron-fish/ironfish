@@ -55,12 +55,15 @@ export class PoolDatabase {
   }
 
   async newBlock(sequence: number, hash: string, reward: string): Promise<void> {
-    await this.db.run(
-      'INSERT INTO block (blockSequence, blockHash, minerReward) VALUES (?, ?, ?)',
-      sequence,
-      hash,
-      reward,
-    )
+    const sql = `
+      INSERT INTO block (payoutPeriodId, blockSequence, blockHash, minerReward)
+      VALUES (
+        (SELECT id FROM payoutPeriod WHERE end IS NULL),
+        ?, ?, ?
+      )
+    `
+
+    await this.db.run(sql, sequence, hash, reward)
   }
 
   async getSharesForPayout(timestamp: number): Promise<DatabaseShare[]> {
@@ -160,6 +163,19 @@ export class PoolDatabase {
       blockId,
     )
   }
+
+  async getCurrentPayoutPeriod(): Promise<DatabasePayoutPeriod | undefined> {
+    const period = await this.db.get<DatabasePayoutPeriod>(
+      'SELECT * FROM payoutPeriod WHERE end is null',
+    )
+
+    return period
+  }
+
+  async rolloverPayoutPeriod(timestamp: number): Promise<void> {
+    await this.db.run('UPDATE payoutPeriod SET end = ? WHERE end IS NULL', timestamp - 1)
+    await this.db.run('INSERT INTO payoutPeriod (start) VALUES (?)', timestamp)
+  }
 }
 
 export type DatabaseShare = {
@@ -167,6 +183,14 @@ export type DatabaseShare = {
   publicAddress: string
   createdAt: Date
   payoutId: number | null
+}
+
+export type DatabasePayoutPeriod = {
+  id: number
+  // TODO: Look into why this creates a string instead of a timestamp like start and end
+  createdAt: string
+  start: number
+  end: number | null
 }
 
 export type DatabaseBlock = {
