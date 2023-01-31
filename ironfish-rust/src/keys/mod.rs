@@ -197,8 +197,8 @@ impl SaplingKey {
     /// a seed. This isn't strictly necessary for private key, but view keys
     /// will need a direct mapping. The private key could still be generated
     /// using bip-32 and bip-39 if desired.
-    pub fn words_spending_key(&self, language: Language) -> Result<String, IronfishError> {
-        let mnemonic = Mnemonic::from_entropy(&self.spending_key, language)
+    pub fn words_spending_key(&self, language: &Language) -> Result<String, IronfishError> {
+        let mnemonic = Mnemonic::from_entropy(&self.spending_key, *language)
             .map_err(|_| IronfishError::InvalidEntropy)?;
         Ok(mnemonic.phrase().to_string())
     }
