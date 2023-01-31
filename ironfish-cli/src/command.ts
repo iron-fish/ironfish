@@ -74,6 +74,10 @@ export abstract class IronfishCommand extends Command {
     } catch (error: unknown) {
       if (hasUserResponseError(error)) {
         this.log(error.codeMessage)
+
+        if (error.codeStack) {
+          this.sdk.logger.debug(error.codeStack)
+        }
       } else if (error instanceof ExitError) {
         throw error
       } else if (error instanceof CLIError) {
