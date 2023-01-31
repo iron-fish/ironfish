@@ -54,6 +54,11 @@ export class Mint extends IronfishCommand {
       default: false,
       description: 'Confirm without asking',
     }),
+    confirmations: Flags.integer({
+      char: 'c',
+      description: 'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
+      required: false,
+    }),
   }
 
   async start(): Promise<void> {
@@ -87,6 +92,12 @@ export class Mint extends IronfishCommand {
     let metadata = flags.metadata
     let name = flags.name
 
+    const confirmations = flags.confirmations
+    if (confirmations !== undefined && confirmations < 0) {
+      this.log('Number of blocks confirmations must be non-negative')
+      this.exit(1)
+    }
+
     // We can assume the prompt can be skipped if at least one of metadata or
     // name is provided
     let isMintingNewAsset = Boolean(metadata || name)
@@ -112,6 +123,7 @@ export class Mint extends IronfishCommand {
         action: 'mint',
         showNativeAsset: false,
         showSingleAssetChoice: true,
+        confirmations: confirmations,
       })
 
       if (!assetId) {
@@ -200,6 +212,7 @@ ${amountString} plus a transaction fee of ${feeString} with the account ${accoun
         metadata,
         name,
         value: CurrencyUtils.encode(amount),
+        confirmations,
       })
 
       stopProgressBar()
