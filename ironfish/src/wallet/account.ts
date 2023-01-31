@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BufferMap } from 'buffer-map'
+import { BufferMap, BufferSet } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
 import { BlockHeader, Transaction } from '../primitives'
@@ -15,6 +15,7 @@ import { AccountValue } from './walletdb/accountValue'
 import { BalanceValue } from './walletdb/balanceValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
+import { TransactionAmountsValue } from './walletdb/transactionAmountsValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
@@ -136,6 +137,8 @@ export class Account {
     const blockHash = blockHeader.hash
     const sequence = blockHeader.sequence
     const assetBalanceDeltas = new AssetBalances()
+    const inputs = new AssetBalances()
+    const outputs = new AssetBalances()
     let submittedSequence = sequence
     let timestamp = new Date()
 
@@ -165,6 +168,7 @@ export class Account {
         }
 
         assetBalanceDeltas.increment(note.note.assetId(), note.note.value())
+        outputs.increment(note.note.assetId(), note.note.value())
 
         await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
       }
@@ -180,6 +184,7 @@ export class Account {
         Assert.isNotUndefined(note)
 
         assetBalanceDeltas.increment(note.note.assetId(), -note.note.value())
+        inputs.increment(note.note.assetId(), note.note.value())
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
@@ -198,6 +203,7 @@ export class Account {
         },
         tx,
       )
+      await this.saveTransactionAmounts(transaction.hash(), inputs, outputs, tx)
     })
 
     return assetBalanceDeltas
@@ -210,6 +216,8 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     const assetBalanceDeltas = new AssetBalances()
+    const inputs = new AssetBalances()
+    const outputs = new AssetBalances()
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (await this.hasTransaction(transaction.hash(), tx)) {
@@ -233,6 +241,7 @@ export class Account {
         }
 
         assetBalanceDeltas.increment(note.note.assetId(), note.note.value())
+        outputs.increment(note.note.assetId(), note.note.value())
 
         await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
       }
@@ -248,6 +257,7 @@ export class Account {
         Assert.isNotUndefined(note)
 
         assetBalanceDeltas.increment(note.note.assetId(), -note.note.value())
+        inputs.increment(note.note.assetId(), note.note.value())
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
@@ -266,6 +276,7 @@ export class Account {
         },
         tx,
       )
+      await this.saveTransactionAmounts(transaction.hash(), inputs, outputs, tx)
     })
   }
 
@@ -353,6 +364,30 @@ export class Account {
     return assetBalanceDeltas
   }
 
+  async saveTransactionAmounts(
+    transactionHash: Buffer,
+    inputAmounts: AssetBalances,
+    outputAmounts: AssetBalances,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const assetIds = new BufferSet([...inputAmounts.keys(), ...outputAmounts.keys()])
+
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
+      for (const assetId of assetIds) {
+        const input = inputAmounts.get(assetId) ?? 0n
+        const output = outputAmounts.get(assetId) ?? 0n
+
+        await this.walletDb.putTransactionAmounts(
+          this,
+          transactionHash,
+          assetId,
+          { input, output },
+          tx,
+        )
+      }
+    })
+  }
+
   async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (!(await this.hasTransaction(transaction.hash(), tx))) {
@@ -434,6 +469,14 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<TransactionValue> {
     return this.walletDb.loadExpiredTransactions(this, headSequence, tx)
+  }
+
+  getTransactionAmounts(
+    transactionHash: Buffer,
+    assetId: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<TransactionAmountsValue | undefined> {
+    return this.walletDb.getTransactionAmounts(this, transactionHash, assetId, tx)
   }
 
   async expireTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {

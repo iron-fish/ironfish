@@ -355,6 +355,36 @@ describe('Accounts', () => {
 
       expect(pendingHashEntry).toBeDefined()
     })
+
+    it('should add transaction amounts to transactionAmounts', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const addPendingSpy = jest.spyOn(accountA, 'addPendingTransaction')
+
+      const block1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block1)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountB)
+
+      expect(addPendingSpy).toHaveBeenCalled()
+
+      await expect(
+        accountA.getTransactionAmounts(transaction.hash(), Asset.nativeId()),
+      ).resolves.toMatchObject({
+        input: 2000000000n,
+        output: 1999999999n,
+      })
+      await expect(
+        accountB.getTransactionAmounts(transaction.hash(), Asset.nativeId()),
+      ).resolves.toMatchObject({
+        input: 0n,
+        output: 1n,
+      })
+    })
   })
 
   describe('connectTransaction', () => {
@@ -489,6 +519,50 @@ describe('Accounts', () => {
       ])
 
       expect(sequenceIndexEntry).toBeNull()
+    })
+
+    it('should add transaction amounts to transactionAmounts', async () => {
+      const { node } = nodeTest
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
+
+      const connectSpy = jest.spyOn(accountB, 'connectTransaction')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+      await nodeB.chain.addBlock(block2)
+      await nodeB.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountB)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      expect(connectSpy).not.toHaveBeenCalled()
+
+      // accountB has not yet seen the transaction
+      await expect(
+        accountB.getTransactionAmounts(transaction.hash(), Asset.nativeId()),
+      ).resolves.toBeUndefined()
+
+      // connect block to nodeB's chain
+      await nodeB.chain.addBlock(block3)
+      await nodeB.wallet.updateHead()
+
+      expect(connectSpy).toHaveBeenCalled()
+
+      // accountB now has the transactionAmounts for the transaction
+      await expect(
+        accountB.getTransactionAmounts(transaction.hash(), Asset.nativeId()),
+      ).resolves.toMatchObject({
+        input: 0n,
+        output: 1n,
+      })
     })
   })
 
