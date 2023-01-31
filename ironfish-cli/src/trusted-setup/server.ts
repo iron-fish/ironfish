@@ -277,7 +277,7 @@ export class CeremonyServer {
 
   private sendUpdatedLocationsToClients() {
     for (const [i, client] of this.queue.entries()) {
-      client.send({ method: 'joined', queueLocation: i })
+      client.send({ method: 'joined', queueLocation: i + 1 })
     }
   }
 
