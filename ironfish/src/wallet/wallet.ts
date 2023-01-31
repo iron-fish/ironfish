@@ -689,7 +689,7 @@ export class Wallet {
         fee: options.fee,
         expirationDelta: options.expirationDelta,
         expiration: options.expiration,
-        confirmations: options.confirmations
+        confirmations: options.confirmations,
       },
     )
 
@@ -901,7 +901,12 @@ export class Wallet {
     const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
 
     for (const [assetId, amountNeeded] of amountsNeeded.entries()) {
-      const { amount, notes } = await this.createSpendsForAsset(sender, assetId, amountNeeded, confirmations)
+      const { amount, notes } = await this.createSpendsForAsset(
+        sender,
+        assetId,
+        amountNeeded,
+        confirmations,
+      )
 
       if (amount < amountNeeded) {
         throw new NotEnoughFundsError(assetId, amount, amountNeeded)
@@ -924,7 +929,7 @@ export class Wallet {
 
     const head = await sender.getHead()
     if (!head) {
-      return { amount, notes}
+      return { amount, notes }
     }
 
     for await (const unspentNote of this.getUnspentNotes(sender, assetId)) {

@@ -74,7 +74,8 @@ export class Send extends IronfishCommand {
     }),
     confirmations: Flags.integer({
       char: 'c',
-      description: 'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
+      description:
+        'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
       required: false,
     }),
     assetId: Flags.string({
@@ -123,7 +124,7 @@ export class Send extends IronfishCommand {
     }
 
     if (amount === null) {
-      const response = await client.getAccountBalance({ account: from, assetId, confirmations})
+      const response = await client.getAccountBalance({ account: from, assetId, confirmations })
 
       const input = await CliUx.ux.prompt(
         `Enter the amount (balance: ${CurrencyUtils.renderIron(response.content.confirmed)})`,

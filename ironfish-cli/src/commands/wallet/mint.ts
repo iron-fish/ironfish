@@ -56,7 +56,8 @@ export class Mint extends IronfishCommand {
     }),
     confirmations: Flags.integer({
       char: 'c',
-      description: 'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
+      description:
+        'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
       required: false,
     }),
   }

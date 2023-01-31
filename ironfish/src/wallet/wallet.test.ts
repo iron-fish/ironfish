@@ -1280,7 +1280,7 @@ describe('Accounts', () => {
         account,
         assetId,
         BigInt(2),
-        0
+        0,
       )
       expect(amount).toEqual(mintValue)
       expect(notes).toHaveLength(1)

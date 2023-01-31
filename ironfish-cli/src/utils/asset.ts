@@ -16,7 +16,10 @@ export async function selectAsset(
     confirmations?: number
   },
 ): Promise<string | undefined> {
-  const balancesResponse = await client.getAccountBalances({ account: account, confirmations: options.confirmations })
+  const balancesResponse = await client.getAccountBalances({
+    account: account,
+    confirmations: options.confirmations,
+  })
   const assetOptions = []
 
   let balances = balancesResponse.content.balances
