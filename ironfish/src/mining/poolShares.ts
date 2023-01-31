@@ -8,7 +8,6 @@ import { RpcSocketClient } from '../rpc/clients/socketClient'
 import { ErrorUtils } from '../utils'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
-import { SetTimeoutToken } from '../utils/types'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
 import { WebhookNotifier } from './webhooks'
 
@@ -20,11 +19,9 @@ export class MiningPoolShares {
 
   private readonly db: PoolDatabase
   private enablePayouts: boolean
-  private payoutInterval: SetTimeoutToken | null
 
   private poolName: string
   private recentShareCutoff: number
-  private attemptPayoutInterval: number
   private accountName: string
   private balancePercentPayout: bigint
   private balancePercentPayoutFlag: number | undefined
@@ -47,12 +44,9 @@ export class MiningPoolShares {
 
     this.poolName = this.config.get('poolName')
     this.recentShareCutoff = this.config.get('poolRecentShareCutoff')
-    this.attemptPayoutInterval = this.config.get('poolAttemptPayoutInterval')
     this.accountName = this.config.get('poolAccountName')
     this.balancePercentPayout = BigInt(this.config.get('poolBalancePercentPayout'))
     this.balancePercentPayoutFlag = options.balancePercentPayoutFlag
-
-    this.payoutInterval = null
   }
 
   static async init(options: {
@@ -80,14 +74,10 @@ export class MiningPoolShares {
   }
 
   async start(): Promise<void> {
-    if (this.enablePayouts) {
-      this.startPayoutInterval()
-    }
     await this.db.start()
   }
 
   async stop(): Promise<void> {
-    this.stopPayoutInterval()
     await this.db.stop()
   }
 
@@ -96,6 +86,10 @@ export class MiningPoolShares {
   }
 
   async createPayout(): Promise<void> {
+    if (!this.enablePayouts) {
+      return
+    }
+
     // TODO: Make a max payout amount per transaction
     //   - its currently possible to have a payout include so many inputs that it expires before it
     //     gets added to the mempool. suspect this would cause issues elsewhere
@@ -220,18 +214,6 @@ export class MiningPoolShares {
     const timestamp = Math.floor(new Date().getTime() / 1000) - this.recentShareCutoff
 
     return await this.db.shareCountSince(timestamp, publicAddress)
-  }
-
-  private startPayoutInterval() {
-    this.payoutInterval = setInterval(() => {
-      void this.createPayout()
-    }, this.attemptPayoutInterval * 1000)
-  }
-
-  private stopPayoutInterval() {
-    if (this.payoutInterval) {
-      clearInterval(this.payoutInterval)
-    }
   }
 
   async sharesPendingPayout(publicAddress?: string): Promise<number> {
