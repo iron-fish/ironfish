@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset, DECRYPTED_NOTE_LENGTH } from '..'
+import { Asset, DECRYPTED_NOTE_LENGTH, LanguageCode, wordsSpendingKey } from '..'
 import {
   initializeSapling,
   generateKey,
@@ -25,6 +25,12 @@ describe('Demonstrate the Sapling API', () => {
     expect(typeof key.outgoing_view_key).toBe('string')
     expect(typeof key.public_address).toBe('string')
     expect(typeof key.spending_key).toBe('string')
+  })
+
+  it('Should return phrase words from key input', () => {
+    const key = generateKey()
+    const words = wordsSpendingKey(key.spending_key, LanguageCode.English);
+    expect(words.split(' ').length).toEqual(24)
   })
 
   it('Should generate a new public address given a spending key', () => {

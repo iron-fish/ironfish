@@ -5,6 +5,7 @@
 use crate::keys::{ephemeral::EphemeralKeyPair, PUBLIC_ADDRESS_SIZE};
 
 use super::{shared_secret, PublicAddress, SaplingKey};
+use bip39::MnemonicType;
 use group::Curve;
 use jubjub::ExtendedPoint;
 
@@ -111,4 +112,16 @@ fn test_hex_conversion() {
     assert_eq!(second_address, address);
 
     assert!(PublicAddress::from_hex("invalid").is_err());
+}
+
+#[test]
+fn test_words_spending_key() {
+    let key = SaplingKey::generate_key();
+    let words = key
+        .words_spending_key(bip39::Language::English)
+        .expect("Should return words");
+    let expected_words = MnemonicType::for_key_size(key.spending_key.len() * 8)
+        .expect("valid key size")
+        .word_count();
+    assert_eq!(words.split(' ').count(), expected_words);
 }
