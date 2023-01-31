@@ -42,6 +42,11 @@ export class Burn extends IronfishCommand {
       default: false,
       description: 'Confirm without asking',
     }),
+    confirmations: Flags.integer({
+      char: 'c',
+      description: 'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
+      required: false,
+    }),
   }
 
   async start(): Promise<void> {
@@ -71,6 +76,12 @@ export class Burn extends IronfishCommand {
       account = defaultAccount.name
     }
 
+    const confirmations = flags.confirmations
+    if (confirmations !== undefined && confirmations < 0) {
+      this.log('Number of blocks confirmations must be non-negative')
+      this.exit(1)
+    }
+
     let assetId = flags.assetId
 
     if (assetId == null) {
@@ -78,6 +89,7 @@ export class Burn extends IronfishCommand {
         action: 'burn',
         showNativeAsset: false,
         showSingleAssetChoice: true,
+        confirmations,
       })
     }
 

@@ -704,11 +704,13 @@ export class Wallet {
     fee: bigint,
     expirationDelta: number,
     expiration?: number,
+    confirmations?: number,
   ): Promise<Transaction> {
     const raw = await this.createTransaction(account, [], [], [{ assetId, value }], {
       fee: fee,
       expirationDelta: expirationDelta,
       expiration: expiration,
+      confirmations: confirmations,
     })
 
     return this.postTransaction(raw, memPool)

@@ -14,6 +14,7 @@ export interface BurnAssetRequest {
   value: string
   expiration?: number
   expirationDelta?: number
+  confirmations?: number
 }
 
 export interface BurnAssetResponse {
@@ -30,6 +31,7 @@ export const BurnAssetRequestSchema: yup.ObjectSchema<BurnAssetRequest> = yup
     value: yup.string().required(),
     expiration: yup.number().optional(),
     expirationDelta: yup.number().optional(),
+    confirmations: yup.number().optional(),
   })
   .defined()
 
@@ -68,6 +70,7 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
       fee,
       request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
       request.data.expiration,
+      request.data.confirmations,
     )
     Assert.isEqual(transaction.burns.length, 1)
     const burn = transaction.burns[0]
