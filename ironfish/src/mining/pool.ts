@@ -7,6 +7,7 @@ import { Assert } from '../assert'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { Target } from '../primitives/target'
+import { Transaction } from '../primitives/transaction'
 import { RpcSocketClient } from '../rpc/clients'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { BigIntUtils } from '../utils/bigint'
@@ -211,7 +212,9 @@ export class MiningPool {
 
     const eventLoopStartTime = new Date().getTime()
 
-    if (this.nextPayoutAttempt <= eventLoopStartTime) {
+    await this.updateUnconfirmedBlocks()
+
+    if (this.nextPayoutAttempt <= new Date().getTime()) {
       this.nextPayoutAttempt = new Date().getTime() + this.attemptPayoutInterval * 1000
       await this.shares.createPayout()
     }
@@ -290,11 +293,18 @@ export class MiningPool {
         const hashRate = await this.estimateHashRate()
         const hashedHeaderHex = hashedHeader.toString('hex')
 
+        const minersFee = new Transaction(
+          Buffer.from(blockTemplate.transactions[0], 'hex'),
+        ).fee()
+
+        await this.shares.submitBlock(blockTemplate.header.sequence, hashedHeaderHex, minersFee)
+
         this.logger.info(
           `Block ${hashedHeaderHex} submitted successfully! ${FileUtils.formatHashRate(
             hashRate,
           )}/s`,
         )
+
         this.webhooks.map((w) =>
           w.poolSubmittedBlock(hashedHeaderHex, hashRate, this.stratum.clients.size),
         )
@@ -516,5 +526,19 @@ export class MiningPool {
     }
 
     return status
+  }
+
+  async updateUnconfirmedBlocks(): Promise<void> {
+    const unconfirmedBlocks = await this.shares.unconfirmedBlocks()
+
+    for (const block of unconfirmedBlocks) {
+      const blockInfoResp = await this.rpc.getBlockInfo({
+        hash: block.blockHash,
+        confirmations: this.config.get('confirmations'),
+      })
+
+      const { main, confirmed } = blockInfoResp.content.metadata
+      await this.shares.updateBlockStatus(block, main, confirmed)
+    }
   }
 }

@@ -54,6 +54,15 @@ export class PoolDatabase {
     await this.db.run('INSERT INTO share (publicAddress) VALUES (?)', publicAddress)
   }
 
+  async newBlock(sequence: number, hash: string, reward: string): Promise<void> {
+    await this.db.run(
+      'INSERT INTO block (blockSequence, blockHash, minerReward) VALUES (?, ?, ?)',
+      sequence,
+      hash,
+      reward,
+    )
+  }
+
   async getSharesForPayout(timestamp: number): Promise<DatabaseShare[]> {
     return await this.db.all(
       "SELECT * FROM share WHERE payoutId IS NULL AND createdAt < datetime(?, 'unixepoch')",
@@ -129,6 +138,28 @@ export class PoolDatabase {
 
     return result.count
   }
+
+  async unconfirmedBlocks(): Promise<DatabaseBlock[]> {
+    const sql = 'SELECT * FROM block WHERE confirmed = false'
+
+    const rows = await this.db.all<RawDatabaseBlock[]>(sql)
+
+    const result: DatabaseBlock[] = []
+    for (const row of rows) {
+      result.push(parseDatabaseBlock(row))
+    }
+
+    return result
+  }
+
+  async updateBlockStatus(blockId: number, main: boolean, confirmed: boolean): Promise<void> {
+    await this.db.run(
+      'UPDATE block SET main = ?, confirmed = ? WHERE id = ?',
+      main,
+      confirmed,
+      blockId,
+    )
+  }
 }
 
 export type DatabaseShare = {
@@ -136,4 +167,36 @@ export type DatabaseShare = {
   publicAddress: string
   createdAt: Date
   payoutId: number | null
+}
+
+export type DatabaseBlock = {
+  id: number
+  createdAt: Date
+  blockSequence: number
+  blockHash: string
+  minerReward: bigint
+  confirmed: boolean
+  main: boolean
+}
+
+interface RawDatabaseBlock {
+  id: number
+  createdAt: string
+  blockSequence: number
+  blockHash: string
+  minerReward: string
+  confirmed: number
+  main: number
+}
+
+function parseDatabaseBlock(rawBlock: RawDatabaseBlock): DatabaseBlock {
+  return {
+    id: rawBlock.id,
+    createdAt: new Date(rawBlock.createdAt),
+    blockSequence: rawBlock.blockSequence,
+    blockHash: rawBlock.blockHash,
+    minerReward: BigInt(rawBlock.minerReward),
+    confirmed: Boolean(rawBlock.confirmed),
+    main: Boolean(rawBlock.main),
+  }
 }
