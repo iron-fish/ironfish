@@ -80,7 +80,7 @@ pub fn generate_key() -> Key {
 #[napi]
 pub fn words_spending_key(private_key: String, language_code: LanguageCode) -> Result<String> {
     let key = SaplingKey::from_hex(&private_key).map_err(to_napi_err)?;
-    key.words_spending_key(&language_code.into())
+    key.words_spending_key(language_code.into())
         .map_err(to_napi_err)
 }
 
