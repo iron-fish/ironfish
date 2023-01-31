@@ -20,12 +20,12 @@ describe('Route chain/getBlockInfo', () => {
     const blockA2 = await useMinerBlockFixture(chain)
     await expect(chain).toAddBlock(blockA2)
 
-    //Get hash of blocks
+    // Get hash of blocks
     const hash0 = chain.genesis.hash.toString('hex')
     const hash1 = blockA1.header.hash.toString('hex')
     const hash2 = blockA2.header.hash.toString('hex')
 
-    //Find block matching hash
+    // Find block matching hash
     let response = await routeTest.client
       .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: hash2 })
       .waitForEnd()
@@ -37,7 +37,7 @@ describe('Route chain/getBlockInfo', () => {
       },
     })
 
-    //Now miss on a hash check
+    // Now miss on a hash check
     try {
       await routeTest.client
         .request<GetBlockInfoResponse>('chain/getBlockInfo', {
@@ -53,7 +53,7 @@ describe('Route chain/getBlockInfo', () => {
       expect(e.message).toContain('No block found with hash')
     }
 
-    //Find block matching sequence
+    // Find block matching sequence
     response = await routeTest.client
       .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '2' })
       .waitForEnd()
@@ -65,7 +65,7 @@ describe('Route chain/getBlockInfo', () => {
       },
     })
 
-    //Find block matching sequence
+    // Find block matching sequence
     response = await routeTest.client
       .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '-1' })
       .waitForEnd()
@@ -77,7 +77,7 @@ describe('Route chain/getBlockInfo', () => {
       },
     })
 
-    //Now miss on a sequence check
+    // Now miss on a sequence check
     try {
       await routeTest.client
         .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '1234' })
@@ -109,7 +109,7 @@ describe('Route chain/getBlockInfo', () => {
   })
 
   it('Receives transactions from a matched block', async () => {
-    //Create separate test case for showing transactions
+    // Create separate test case for showing transactions
     const { node } = routeTest
 
     const { block } = await useBlockWithTx(node)
@@ -128,5 +128,41 @@ describe('Route chain/getBlockInfo', () => {
     })
 
     expect(response.content.block.transactions[0].fee).toBe('-2000000001')
+  })
+
+  it('has block confirmation status', async () => {
+    const { node } = routeTest
+
+    const { block } = await useBlockWithTx(node)
+    await expect(node.chain).toAddBlock(block)
+    const hash = block.header.hash.toString('hex')
+
+    const response = await routeTest.client
+      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '3' })
+      .waitForEnd()
+
+    expect(response.content).toMatchObject({
+      block: {
+        hash: hash,
+        sequence: 3,
+      },
+      metadata: {
+        confirmed: true,
+      },
+    })
+
+    const unconfirmedResponse = await routeTest.client
+      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '3', confirmations: 10 })
+      .waitForEnd()
+
+    expect(unconfirmedResponse.content).toMatchObject({
+      block: {
+        hash: hash,
+        sequence: 3,
+      },
+      metadata: {
+        confirmed: false,
+      },
+    })
   })
 })
