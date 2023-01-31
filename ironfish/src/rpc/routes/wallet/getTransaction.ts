@@ -5,7 +5,11 @@ import * as yup from 'yup'
 import { Note } from '../../../primitives/note'
 import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
-import { RpcAccountDecryptedNote, serializeRpcAccountTransaction } from './types'
+import {
+  getAssetBalanceDeltas,
+  RpcAccountDecryptedNote,
+  serializeRpcAccountTransaction,
+} from './types'
 import { getAccount } from './utils'
 
 export type GetAccountTransactionRequest = { account?: string; hash: string }
@@ -25,7 +29,7 @@ export type GetAccountTransactionResponse = {
     burnsCount: number
     timestamp: number
     notes: RpcAccountDecryptedNote[]
-    assetBalanceDeltas: Array<{ assetId: string; delta: string }>
+    assetBalanceDeltas: Array<{ assetId: string; assetName: string; delta: string }>
   } | null
 }
 
@@ -75,6 +79,7 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
               yup
                 .object({
                   assetId: yup.string().defined(),
+                  assetName: yup.string().defined(),
                   delta: yup.string().defined(),
                 })
                 .defined(),
@@ -134,11 +139,14 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
 
     const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
+    const assetBalanceDeltas = await getAssetBalanceDeltas(node, transaction)
+
     const status = await node.wallet.getTransactionStatus(account, transaction)
     const type = await node.wallet.getTransactionType(account, transaction)
 
     const serialized = {
       ...serializedTransaction,
+      assetBalanceDeltas,
       notes: serializedNotes,
       status,
       type,

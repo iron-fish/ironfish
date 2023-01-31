@@ -7,7 +7,7 @@ import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
 import { ApiNamespace, router } from '../router'
-import { serializeRpcAccountTransaction } from './types'
+import { getAssetBalanceDeltas, serializeRpcAccountTransaction } from './types'
 import { getAccount } from './utils'
 
 export type GetAccountTransactionsRequest = {
@@ -28,7 +28,7 @@ export type GetAccountTransactionsResponse = {
   burnsCount: number
   expiration: number
   timestamp: number
-  assetBalanceDeltas: Array<{ assetId: string; delta: string }>
+  assetBalanceDeltas: Array<{ assetId: string; assetName: string; delta: string }>
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -59,6 +59,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
           yup
             .object({
               assetId: yup.string().defined(),
+              assetName: yup.string().defined(),
               delta: yup.string().defined(),
             })
             .defined(),
@@ -123,11 +124,14 @@ const streamTransaction = async (
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
+  const assetBalanceDeltas = await getAssetBalanceDeltas(node, transaction)
+
   const status = await node.wallet.getTransactionStatus(account, transaction, options)
   const type = await node.wallet.getTransactionType(account, transaction)
 
   const serialized = {
     ...serializedTransaction,
+    assetBalanceDeltas,
     status,
     type,
   }

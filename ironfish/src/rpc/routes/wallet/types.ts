@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { IronfishNode } from '../../../node'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 
 export type RpcAccountTransaction = {
@@ -14,7 +15,12 @@ export type RpcAccountTransaction = {
   burnsCount: number
   expiration: number
   timestamp: number
-  assetBalanceDeltas: Array<{ assetId: string; delta: string }>
+}
+
+export type RcpAccountAssetBalanceDelta = {
+  assetId: string
+  assetName: string
+  delta: string
 }
 
 export type RpcAccountDecryptedNote = {
@@ -31,12 +37,6 @@ export type RpcAccountDecryptedNote = {
 export function serializeRpcAccountTransaction(
   transaction: TransactionValue,
 ): RpcAccountTransaction {
-  const assetBalanceDeltas: Array<{ assetId: string; delta: string }> = []
-
-  for (const [assetId, balance] of transaction.assetBalanceDeltas.entries()) {
-    assetBalanceDeltas.push({ assetId: assetId.toString('hex'), delta: balance.toString() })
-  }
-
   return {
     hash: transaction.transaction.hash().toString('hex'),
     fee: transaction.transaction.fee().toString(),
@@ -48,6 +48,27 @@ export function serializeRpcAccountTransaction(
     burnsCount: transaction.transaction.burns.length,
     expiration: transaction.transaction.expiration(),
     timestamp: transaction.timestamp.getTime(),
-    assetBalanceDeltas,
   }
+}
+
+export async function getAssetBalanceDeltas(
+  node: IronfishNode,
+  transaction: TransactionValue,
+): Promise<RcpAccountAssetBalanceDelta[]> {
+  const assetBalanceDeltas = new Array<RcpAccountAssetBalanceDelta>()
+
+  for (const [assetId, delta] of transaction.assetBalanceDeltas.entries()) {
+    // TODO: update to use wallet assets store
+    const asset = await node.chain.getAssetById(assetId)
+
+    const assetName = asset?.name.toString('hex') ?? ''
+
+    assetBalanceDeltas.push({
+      assetId: assetId.toString('hex'),
+      assetName,
+      delta: delta.toString(),
+    })
+  }
+
+  return assetBalanceDeltas
 }
