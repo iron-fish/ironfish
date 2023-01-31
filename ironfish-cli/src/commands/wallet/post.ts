@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CliUx } from '@oclif/core'
+import { CurrencyUtils, RawTransaction, RawTransactionSerde } from '@ironfish/sdk'
+import { CliUx, Flags } from '@oclif/core'
+import { flags } from '@oclif/core/lib/parser'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -18,19 +20,31 @@ export class PostCommand extends IronfishCommand {
 
   static flags = {
     ...RemoteFlags,
+    confirm: Flags.boolean({
+      default: false,
+      description: 'Confirm without asking',
+    }),
   }
 
   static args = [
     {
       name: 'transaction',
+      required: true,
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       description: 'The raw transaction in hex encoding',
     },
   ]
 
   async start(): Promise<void> {
-    const { args } = await this.parse(PostCommand)
+    const { flags, args } = await this.parse(PostCommand)
     const transaction = args.transaction as string
+
+    const serialized = Buffer.from(transaction)
+    const raw = RawTransactionSerde.deserialize(serialized)
+
+    if (!flags.confirm && !this.confirm(raw)) {
+      this.exit(0)
+    }
 
     CliUx.ux.action.start(`Posting transaction`)
     const client = await this.sdk.connectRpc()
@@ -38,5 +52,23 @@ export class PostCommand extends IronfishCommand {
     CliUx.ux.action.stop()
 
     this.log(response.content.transaction)
+  }
+
+  confirm(raw: RawTransaction): Promise<boolean> {
+    let spending = 0n
+    for (const recieve of raw.receives) {
+      spending += recieve.note.value()
+    }
+
+    this.log(
+      `You are about to post a transaction that sends ${spending}, with ${
+        raw.mints.length
+      } mints and ${raw.burns.length} burns with a fee ${CurrencyUtils.renderIron(
+        raw.fee,
+        true,
+      )}`,
+    )
+
+    return CliUx.ux.confirm('Do you want to post this (Y/N)?')
   }
 }
