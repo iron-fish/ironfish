@@ -30,7 +30,6 @@ describe('Demonstrate the Sapling API', () => {
   it('Should return phrase words from key input', () => {
     const key = generateKey()
     const words = wordsSpendingKey(key.spending_key, LanguageCode.English);
-    console.log(words)
     expect(words.split(' ').length).toEqual(24)
   })
 
