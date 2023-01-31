@@ -212,9 +212,8 @@ export class MiningPool {
     const eventLoopStartTime = new Date().getTime()
 
     if (this.nextPayoutAttempt <= eventLoopStartTime) {
-      const nextPayoutAttempt = new Date().getTime() + this.attemptPayoutInterval * 1000
+      this.nextPayoutAttempt = new Date().getTime() + this.attemptPayoutInterval * 1000
       await this.shares.createPayout()
-      this.nextPayoutAttempt = nextPayoutAttempt
     }
 
     const eventLoopEndTime = new Date().getTime()
