@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, RawTransaction, RawTransactionSerde } from '@ironfish/sdk'
+import { CurrencyUtils, RawTransaction, RawTransactionSerde, Transaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { flags } from '@oclif/core/lib/parser'
 import { IronfishCommand } from '../../command'
@@ -51,6 +51,10 @@ export class PostCommand extends IronfishCommand {
     const response = await client.postTransaction({ transaction })
     CliUx.ux.action.stop()
 
+    const posted = new Transaction(Buffer.from(response.content, 'hex'))
+
+    this.log(`Posted transaction ${posted.hash().toString('hex')}`)
+    this.log('')
     this.log(response.content.transaction)
   }
 
