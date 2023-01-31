@@ -34,6 +34,7 @@ describe('getBalances', () => {
           confirmed: BigInt(2000000000),
           unconfirmed: BigInt(2000000000),
           pending: BigInt(2000000000),
+          available: BigInt(2000000000),
           unconfirmedCount: 0,
           pendingCount: 0,
           blockHash: null,
@@ -44,6 +45,7 @@ describe('getBalances', () => {
           confirmed: BigInt(8),
           unconfirmed: BigInt(8),
           pending: BigInt(8),
+          available: BigInt(8),
           unconfirmedCount: 0,
           pendingCount: 0,
           blockHash: null,
@@ -72,6 +74,7 @@ describe('getBalances', () => {
           confirmed: mockBalance.confirmed.toString(),
           unconfirmed: mockBalance.unconfirmed.toString(),
           pending: mockBalance.pending.toString(),
+          available: mockBalance.available.toString(),
         })),
       )
     })

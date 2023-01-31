@@ -19,6 +19,7 @@ export interface GetBalancesResponse {
     unconfirmedCount: number
     pending: string
     pendingCount: number
+    available: string
     blockHash: string | null
     sequence: number | null
   }[]
@@ -46,6 +47,7 @@ export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = 
             pending: yup.string().defined(),
             pendingCount: yup.number().defined(),
             confirmed: yup.string().defined(),
+            available: yup.string().defined(),
             blockHash: yup.string().nullable(true).defined(),
             sequence: yup.number().nullable(true).defined(),
           })
@@ -71,6 +73,7 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
       unconfirmedCount,
       pending,
       pendingCount,
+      available,
     } of node.wallet.getBalances(account, request.data.confirmations)) {
       if (request.closed) {
         return
@@ -85,6 +88,7 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
         unconfirmedCount,
         pending: pending.toString(),
         pendingCount,
+        available: available.toString(),
       })
     }
 

@@ -528,6 +528,7 @@ export class Account {
     confirmed: bigint
     pending: bigint
     pendingCount: number
+    available: bigint
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -537,21 +538,14 @@ export class Account {
     }
 
     for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
-      const { confirmed, unconfirmedCount } =
-        await this.calculateUnconfirmedCountAndConfirmedBalance(
+      const { confirmed, pending, available, unconfirmedCount, pendingCount } =
+        await this.calculateBalances(
           head.sequence,
           assetId,
           confirmations,
           balance.unconfirmed,
           tx,
         )
-
-      const { pending, pendingCount } = await this.calculatePendingBalance(
-        head.sequence,
-        assetId,
-        balance.unconfirmed,
-        tx,
-      )
 
       yield {
         assetId,
@@ -560,6 +554,7 @@ export class Account {
         confirmed,
         pending,
         pendingCount,
+        available,
         blockHash: balance.blockHash,
         sequence: balance.sequence,
       }
@@ -581,6 +576,7 @@ export class Account {
     confirmed: bigint
     pending: bigint
     pendingCount: number
+    available: bigint
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -590,6 +586,7 @@ export class Account {
         unconfirmed: 0n,
         confirmed: 0n,
         pending: 0n,
+        available: 0n,
         unconfirmedCount: 0,
         pendingCount: 0,
         blockHash: null,
@@ -599,8 +596,8 @@ export class Account {
 
     const balance = await this.getUnconfirmedBalance(assetId, tx)
 
-    const { confirmed, unconfirmedCount } =
-      await this.calculateUnconfirmedCountAndConfirmedBalance(
+    const { confirmed, pending, available, unconfirmedCount, pendingCount } =
+      await this.calculateBalances(
         head.sequence,
         assetId,
         confirmations,
@@ -608,57 +605,35 @@ export class Account {
         tx,
       )
 
-    const { pending, pendingCount } = await this.calculatePendingBalance(
-      head.sequence,
-      assetId,
-      balance.unconfirmed,
-      tx,
-    )
-
     return {
       unconfirmed: balance.unconfirmed,
       unconfirmedCount,
       confirmed,
       pending,
       pendingCount,
+      available,
       blockHash: balance.blockHash,
       sequence: balance.sequence,
     }
   }
 
-  private async calculatePendingBalance(
-    headSequence: number,
-    assetId: Buffer,
-    unconfirmed: bigint,
-    tx?: IDatabaseTransaction,
-  ): Promise<{ pending: bigint; pendingCount: number }> {
-    let pending = unconfirmed
-    let pendingCount = 0
-
-    for await (const transaction of this.getPendingTransactions(headSequence, tx)) {
-      const balanceDelta = transaction.assetBalanceDeltas.get(assetId)
-
-      if (balanceDelta === undefined) {
-        continue
-      }
-
-      pending += balanceDelta
-      pendingCount++
-    }
-
-    return { pending, pendingCount }
-  }
-
-  private async calculateUnconfirmedCountAndConfirmedBalance(
+  async calculateBalances(
     headSequence: number,
     assetId: Buffer,
     confirmations: number,
     unconfirmed: bigint,
     tx?: IDatabaseTransaction,
-  ): Promise<{ confirmed: bigint; unconfirmedCount: number }> {
+  ): Promise<{
+    confirmed: bigint
+    pending: bigint
+    available: bigint
+    unconfirmedCount: number
+    pendingCount: number
+  }> {
     let unconfirmedCount = 0
-
     let confirmed = unconfirmed
+    let available = unconfirmed
+
     if (confirmations > 0) {
       const unconfirmedSequenceEnd = headSequence
 
@@ -667,26 +642,59 @@ export class Account {
         GENESIS_BLOCK_SEQUENCE,
       )
 
-      for await (const transaction of this.walletDb.loadTransactionsInSequenceRange(
+      for await (const transactionHash of this.walletDb.loadTransactionHashesInSequenceRange(
         this,
         unconfirmedSequenceStart,
         unconfirmedSequenceEnd,
         tx,
       )) {
-        const balanceDelta = transaction.assetBalanceDeltas.get(assetId)
+        const amounts = await this.walletDb.getTransactionAmounts(
+          this,
+          transactionHash,
+          assetId,
+          tx,
+        )
 
-        if (balanceDelta === undefined) {
+        if (amounts === undefined) {
           continue
         }
 
         unconfirmedCount++
-        confirmed -= balanceDelta
+        confirmed -= amounts.output - amounts.input
+        available -= amounts.output
       }
+    }
+
+    let pendingCount = 0
+    let pending = unconfirmed
+
+    for await (const transactionHash of this.walletDb.loadPendingTransactionHashes(
+      this,
+      headSequence,
+      tx,
+    )) {
+      const amounts = await this.walletDb.getTransactionAmounts(
+        this,
+        transactionHash,
+        assetId,
+        tx,
+      )
+
+      if (amounts === undefined) {
+        continue
+      }
+
+      pendingCount++
+      pending += amounts.output - amounts.input
+      available -= amounts.input
     }
 
     return {
       confirmed,
+      pending,
+      available,
       unconfirmedCount,
+      pendingCount,
     }
   }
 

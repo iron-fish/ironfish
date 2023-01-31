@@ -930,9 +930,7 @@ describe('Accounts', () => {
         unconfirmed: 10n,
       })
     })
-  })
 
-  describe('calculatePendingBalance', () => {
     it('should calculate pending balance from unconfirmed balance and pending transactions', async () => {
       const { node } = nodeTest
 
@@ -961,15 +959,122 @@ describe('Accounts', () => {
 
       await useTxFixture(node.wallet, accountA, accountB)
 
-      await expect(
-        accountA['calculatePendingBalance'](
-          headA?.sequence,
-          Asset.nativeId(),
-          balanceA.unconfirmed,
-        ),
-      ).resolves.toMatchObject({
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
         pending: balanceA.unconfirmed - 1n,
         pendingCount: 1,
+      })
+    })
+
+    it('should calculate available balance from pending transactions', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const balanceA = await accountA.getBalance(Asset.nativeId(), 0)
+
+      expect(balanceA).toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 2000000000n,
+        available: 2000000000n,
+      })
+
+      await useTxFixture(node.wallet, accountA, accountB)
+
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        pending: balanceA.unconfirmed - 1n,
+        pendingCount: 1,
+        available: 0n,
+      })
+    })
+
+    it('should calculate available balance from unconfirmed transactions', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 2000000000n,
+        available: 2000000000n,
+      })
+
+      const { block: block3 } = await useBlockWithTx(node, accountA, accountB, false)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      // with 0 confirmations, available balance includes the transaction
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 1999999998n,
+        unconfirmed: 1999999998n,
+        available: 1999999998n,
+      })
+
+      // with 1 confirmation, available balance should not include the spent note or change
+      await expect(accountA.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 1999999998n,
+        available: 0n,
+      })
+    })
+
+    it('should calculate available balance from pending and unconfirmed transactions', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+      const block3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 4000000000n,
+        unconfirmed: 4000000000n,
+        available: 4000000000n,
+      })
+
+      const { block: block4 } = await useBlockWithTx(node, accountA, accountB, false)
+      await node.chain.addBlock(block4)
+      await node.wallet.updateHead()
+
+      // with 0 confirmations, available balance includes the transaction
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 3999999998n,
+        unconfirmed: 3999999998n,
+        available: 3999999998n,
+      })
+
+      // with 1 confirmation, available balance should not include the spent note or change
+      await expect(accountA.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
+        confirmed: 4000000000n,
+        unconfirmed: 3999999998n,
+        available: 2000000000n,
+      })
+
+      // create a pending transaction sending 1 $ORE from A to B
+      await useTxFixture(node.wallet, accountA, accountB)
+
+      // with 1 confirmation, all available notes have been spent in unconfirmed or pending transactions
+      await expect(accountA.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
+        confirmed: 4000000000n,
+        unconfirmed: 3999999998n,
+        pending: 3999999997n,
+        available: 0n,
+        pendingCount: 1,
+        unconfirmedCount: 1,
       })
     })
   })

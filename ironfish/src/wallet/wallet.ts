@@ -581,6 +581,7 @@ export class Wallet {
     pending: bigint
     pendingCount: number
     confirmed: bigint
+    available: bigint
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -603,6 +604,7 @@ export class Wallet {
     confirmed: bigint
     pendingCount: number
     pending: bigint
+    available: bigint
     blockHash: Buffer | null
     sequence: number | null
   }> {
