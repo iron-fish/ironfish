@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { BufferMap, BufferSet } from 'buffer-map'
+import { BufferMap } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
 import { BlockHeader, Transaction } from '../primitives'
@@ -614,29 +614,17 @@ export class Account {
         GENESIS_BLOCK_SEQUENCE,
       )
 
-      const unconfirmedTransactionHashes = new BufferSet()
-
-      for await (const note of this.walletDb.loadNotesInSequenceRange(
+      for await (const transaction of this.walletDb.loadTransactionsInSequenceRange(
         this,
         unconfirmedSequenceStart,
         unconfirmedSequenceEnd,
         tx,
       )) {
-        if (!note.note.assetId().equals(assetId)) {
+        const balanceDelta = transaction.assetBalanceDeltas.get(assetId)
+
+        if (balanceDelta === undefined) {
           continue
         }
-
-        if (unconfirmedTransactionHashes.has(note.transactionHash)) {
-          continue
-        }
-
-        unconfirmedTransactionHashes.add(note.transactionHash)
-
-        const transaction = await this.getTransaction(note.transactionHash)
-        Assert.isNotUndefined(transaction)
-
-        const balanceDelta = transaction.assetBalanceDeltas.get(note.note.assetId())
-        Assert.isNotUndefined(balanceDelta)
 
         unconfirmedCount++
         confirmed -= balanceDelta
