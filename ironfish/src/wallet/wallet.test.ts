@@ -1570,6 +1570,69 @@ describe('Accounts', () => {
         unconfirmed: value,
       })
     })
+
+    it('should save assets from the chain the account does not own', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const minerBlock = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        accountA,
+        node.wallet,
+      )
+      await expect(node.chain).toAddBlock(minerBlock)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(accountA.spendingKey, 'fakeasset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      const transaction = await usePostTxFixture({
+        node,
+        wallet: node.wallet,
+        from: accountA,
+        to: accountB,
+        assetId: asset.id(),
+        amount: BigInt(1n),
+      })
+      const block = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [
+        transaction,
+      ])
+      await expect(node.chain).toAddBlock(block)
+      await node.wallet.updateHead()
+
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual({
+        blockHash: mintBlock.header.hash,
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: Buffer.from(accountA.publicAddress, 'hex'),
+        sequence: mintBlock.header.sequence,
+        supply: value,
+      })
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toEqual({
+        blockHash: null,
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: Buffer.from(accountA.publicAddress, 'hex'),
+        sequence: null,
+        supply: null,
+      })
+    }, 1000000)
   })
 
   describe('disconnectBlock', () => {

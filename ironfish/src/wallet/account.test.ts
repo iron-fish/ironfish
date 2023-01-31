@@ -553,7 +553,7 @@ describe('Accounts', () => {
         name: asset.name(),
         owner: asset.owner(),
         sequence: null,
-        supply: BigInt(0),
+        supply: null,
       })
 
       const secondMintValue = BigInt(42)

@@ -18,7 +18,8 @@ export interface AssetValue {
   metadata: Buffer
   name: Buffer
   owner: Buffer
-  supply: bigint
+  // Populated for assets the account owns
+  supply: bigint | null
   // Populated once the asset has been added to the main chain
   blockHash: Buffer | null
   sequence: number | null
@@ -31,6 +32,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     let flags = 0
     flags |= Number(!!value.blockHash) << 0
     flags |= Number(!!value.sequence) << 1
+    flags |= Number(!!value.supply) << 2
     bw.writeU8(flags)
 
     if (value.blockHash) {
@@ -41,12 +43,15 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
       bw.writeU32(value.sequence)
     }
 
+    if (value.supply) {
+      bw.writeVarBytes(BigIntUtils.toBytesLE(value.supply))
+    }
+
     bw.writeHash(value.createdTransactionHash)
     bw.writeHash(value.id)
     bw.writeBytes(value.metadata)
     bw.writeBytes(value.name)
     bw.writeBytes(value.owner)
-    bw.writeVarBytes(BigIntUtils.toBytesLE(value.supply))
     return bw.render()
   }
 
@@ -56,6 +61,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     const flags = reader.readU8()
     const hasBlockHash = flags & (1 << 0)
     const hasSequence = flags & (1 << 1)
+    const hasSupply = flags & (1 << 2)
 
     let blockHash = null
     if (hasBlockHash) {
@@ -67,12 +73,16 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
       sequence = reader.readU32()
     }
 
+    let supply = null
+    if (hasSupply) {
+      supply = BigIntUtils.fromBytesLE(reader.readVarBytes())
+    }
+
     const createdTransactionHash = reader.readHash()
     const id = reader.readBytes(ASSET_ID_LENGTH)
     const metadata = reader.readBytes(ASSET_METADATA_LENGTH)
     const name = reader.readBytes(ASSET_NAME_LENGTH)
     const owner = reader.readBytes(ASSET_OWNER_LENGTH)
-    const supply = BigIntUtils.fromBytesLE(reader.readVarBytes())
     return { blockHash, createdTransactionHash, id, metadata, name, owner, sequence, supply }
   }
 
@@ -88,12 +98,15 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
       size += 4
     }
 
+    if (value.supply) {
+      size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(value.supply))
+    }
+
     size += 32 // createdTransactionHash
     size += ASSET_ID_LENGTH // id
     size += ASSET_METADATA_LENGTH // metadata
     size += ASSET_NAME_LENGTH // name
     size += PUBLIC_ADDRESS_LENGTH // owner
-    size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(value.supply)) // supply
     return size
   }
 }

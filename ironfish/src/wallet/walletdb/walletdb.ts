@@ -6,6 +6,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
+import { GENESIS_BLOCK_PREVIOUS } from '../../primitives/block'
 import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
 import { TransactionHash } from '../../primitives/transaction'
@@ -894,6 +895,18 @@ export class WalletDB {
     assetId: Buffer,
     tx?: IDatabaseTransaction,
   ): Promise<AssetValue | undefined> {
+    if (assetId.equals(Asset.nativeId())) {
+      return {
+        createdTransactionHash: GENESIS_BLOCK_PREVIOUS,
+        id: Asset.nativeId(),
+        metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
+        name: Buffer.from('$IRON', 'utf8'),
+        owner: Buffer.from('Iron Fish', 'utf8'),
+        blockHash: null,
+        sequence: null,
+        supply: null,
+      }
+    }
     return this.assets.get([account.prefix, assetId], tx)
   }
 
