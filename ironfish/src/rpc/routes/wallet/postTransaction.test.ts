@@ -2,16 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { v4 as uuid } from 'uuid'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
+import { useAccountFixture } from '../../../testUtilities'
 import { createRawTransaction } from '../../../testUtilities/helpers/transaction'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { Account } from '../../../wallet/account'
 
 describe('Route wallet/postTransaction', () => {
   const routeTest = createRouteTest(true)
+  let account: Account
+
+  beforeAll(async () => {
+    account = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+  })
 
   it('should accept a valid raw transaction', async () => {
-    const account = await routeTest.node.wallet.createAccount(uuid(), true)
     const options = {
       wallet: routeTest.node.wallet,
       from: account,
@@ -19,7 +24,7 @@ describe('Route wallet/postTransaction', () => {
     const rawTransaction = await createRawTransaction(options)
     const response = await routeTest.client.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
-      sender: account.spendingKey,
+      sender: account.name,
     })
 
     expect(response.status).toBe(200)
@@ -27,11 +32,10 @@ describe('Route wallet/postTransaction', () => {
   })
 
   it("should return an error if the transaction won't deserialize", async () => {
-    const account = await routeTest.node.wallet.createAccount(uuid(), true)
     await expect(
       routeTest.client.postTransaction({
         transaction: '0xdeadbeef',
-        sender: account.spendingKey,
+        sender: account.name,
       }),
     ).rejects.toThrow('Out of bounds read (offset=0).')
   })

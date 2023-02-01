@@ -1,0 +1,12 @@
+{
+  "": [
+    {
+      "id": "09b76093-862f-4d2b-b416-6474ec46f021",
+      "name": "existingAccount",
+      "spendingKey": "782e5cc7ffc5a255193e50a749486559f128d57d0ddadda304bd0d77c6b540b0",
+      "incomingViewKey": "7f1aaa09bf6179f6b36f7d781bfe7c04963f8163fbbd2066f0e8177ce2503607",
+      "outgoingViewKey": "9f1b3e54c5644f1f53a51d9700862dd7d8bd398302dcba3103b35683123546bd",
+      "publicAddress": "a4fcf69c060432ddb044045a47308fcc29328d9c1297e33ede01a79d4b95c33c"
+    }
+  ]
+}
