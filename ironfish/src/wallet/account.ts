@@ -137,13 +137,11 @@ export class Account {
     const sequence = blockHeader.sequence
     const assetBalanceDeltas = new AssetBalances()
     let submittedSequence = sequence
-    let timestamp = new Date()
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       const transactionValue = await this.getTransaction(transaction.hash(), tx)
       if (transactionValue) {
         submittedSequence = transactionValue.submittedSequence
-        timestamp = transactionValue.timestamp
       }
 
       for (const decryptedNote of decryptedNotes) {
@@ -193,7 +191,7 @@ export class Account {
           blockHash,
           sequence,
           submittedSequence,
-          timestamp,
+          timestamp: blockHeader.timestamp,
           assetBalanceDeltas,
         },
         tx,

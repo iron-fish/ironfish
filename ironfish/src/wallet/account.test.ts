@@ -490,6 +490,29 @@ describe('Accounts', () => {
 
       expect(sequenceIndexEntry).toBeNull()
     })
+
+    it('should set the transaction timestamp equal to the block header timestamp', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      const transactionRecord = await accountA.getTransaction(transaction.hash())
+
+      Assert.isNotUndefined(transactionRecord)
+
+      expect(transactionRecord.timestamp).toEqual(block3.header.timestamp)
+    })
   })
 
   describe('disconnectTransaction', () => {
