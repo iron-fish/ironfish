@@ -38,6 +38,13 @@ export class WatchTxCommand extends IronfishCommand {
     const account = args.account as string | undefined
 
     const client = await this.sdk.connectRpc()
-    await watchTransaction(client, this.logger, account, hash, flags.confirmations)
+
+    await watchTransaction({
+      client,
+      logger: this.logger,
+      account,
+      hash,
+      confirmations: flags.confirmations,
+    })
   }
 }

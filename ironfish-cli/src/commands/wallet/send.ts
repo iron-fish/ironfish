@@ -330,7 +330,13 @@ Find the transaction on https://explorer.ironfish.network/transaction/${transact
 
     if (flags.watch && transaction) {
       this.log('')
-      await watchTransaction(client, this.logger, from, transaction.hash().toString('hex'))
+
+      await watchTransaction({
+        client,
+        logger: this.logger,
+        account: from,
+        hash: transaction.hash().toString('hex'),
+      })
     }
   }
 }

@@ -4,6 +4,7 @@
 
 import {
   Assert,
+  createRootLogger,
   Logger,
   PromiseUtils,
   RpcClient,
@@ -12,19 +13,31 @@ import {
 } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 
-export async function watchTransaction(
-  client: RpcClient,
-  logger: Logger,
-  account: string | undefined,
-  hash: string,
-  confirmations?: number,
-  waitUntil: TransactionStatus = TransactionStatus.CONFIRMED,
-): Promise<void> {
-  let last = await client.getAccountTransaction({ account, hash })
+export async function watchTransaction(options: {
+  client: RpcClient
+  hash: string
+  account?: string
+  confirmations?: number
+  waitUntil?: TransactionStatus
+  pollFrequencyMs?: number
+  logger?: Logger
+}): Promise<void> {
+  const logger = options.logger ?? createRootLogger()
+  const waitUntil = options.waitUntil ?? TransactionStatus.CONFIRMED
+  const pollFrequencyMs = options.pollFrequencyMs ?? 10000
+
   let lastTime = Date.now()
 
+  let last = await options.client.getAccountTransaction({
+    account: options.account,
+    hash: options.hash,
+    confirmations: options.confirmations,
+  })
+
+  const startTime = lastTime
+
   if (last.content.transaction == null) {
-    logger.log(`Tried to watch tranaction ${hash} but it's missing.`)
+    logger.log(`Tried to watch tranaction ${options.hash} but it's missing.`)
     return
   }
 
@@ -37,22 +50,30 @@ export async function watchTransaction(
 
   logger.log(`Watching transaction ${last.content.transaction.hash}`)
 
-  CliUx.ux.action.start(`Watching`)
-  CliUx.ux.action.status = last.content.transaction.status
+  CliUx.ux.action.start(`Current Status`)
+  const span = TimeUtils.renderSpan(0, { hideMilliseconds: true })
+  CliUx.ux.action.status = `${last.content.transaction.status} ${span}`
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
     Assert.isNotNull(last.content.transaction)
 
-    const response = await client.getAccountTransaction({ account, hash, confirmations })
+    const response = await options.client.getAccountTransaction({
+      account: options.account,
+      hash: options.hash,
+      confirmations: options.confirmations,
+    })
 
     if (response.content.transaction == null) {
-      CliUx.ux.action.stop(`Transaction ${hash} deleted while watching it.`)
-      return
+      CliUx.ux.action.stop(`Transaction ${options.hash} deleted while watching it.`)
+      break
     }
 
     if (response.content.transaction.status === last.content.transaction.status) {
-      await PromiseUtils.sleep(2000)
+      const duration = Date.now() - lastTime
+      const span = TimeUtils.renderSpan(duration, { hideMilliseconds: true })
+      CliUx.ux.action.status = `${last.content.transaction.status} ${span}`
+      await PromiseUtils.sleep(pollFrequencyMs)
       continue
     }
 
@@ -63,17 +84,20 @@ export async function watchTransaction(
     CliUx.ux.action.stop(
       `${last.content.transaction.status} -> ${
         response.content.transaction.status
-      }: ${TimeUtils.renderSpan(duration)}`,
+      }: ${TimeUtils.renderSpan(duration, { hideMilliseconds: true })}`,
     )
 
     last = response
 
-    CliUx.ux.action.start(`Watching`)
-    CliUx.ux.action.status = response.content.transaction.status
+    CliUx.ux.action.start(`Current Status`)
+    const span = TimeUtils.renderSpan(0, { hideMilliseconds: true })
+    CliUx.ux.action.status = `${response.content.transaction.status} ${span}`
 
     if (response.content.transaction.status === waitUntil) {
-      CliUx.ux.action.stop()
-      return
+      const duration = now - startTime
+      const span = TimeUtils.renderSpan(duration, { hideMilliseconds: true })
+      CliUx.ux.action.stop(`done after ${span}`)
+      break
     }
   }
 }
