@@ -180,11 +180,6 @@ export class Send extends IronfishCommand {
       this.exit(1)
     }
 
-    if (confirmations !== undefined && confirmations < 0) {
-      this.log('Number of block confirmations must be non-negative')
-      this.exit(1)
-    }
-
     let rawTransactionResponse: string
     if (fee === null && feeRate === null) {
       const feeRatesResponse = await client.estimateFeeRates()

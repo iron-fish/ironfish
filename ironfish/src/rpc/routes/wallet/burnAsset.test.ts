@@ -83,7 +83,6 @@ describe('burnAsset', () => {
         assetId: assetId.toString('hex'),
         fee: '1',
         value: CurrencyUtils.encode(value),
-        confirmations: 0,
       })
 
       expect(response.content).toEqual({

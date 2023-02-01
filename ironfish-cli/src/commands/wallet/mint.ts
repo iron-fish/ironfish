@@ -94,10 +94,6 @@ export class Mint extends IronfishCommand {
     let name = flags.name
 
     const confirmations = flags.confirmations
-    if (confirmations !== undefined && confirmations < 0) {
-      this.log('Number of block confirmations must be non-negative')
-      this.exit(1)
-    }
 
     // We can assume the prompt can be skipped if at least one of metadata or
     // name is provided

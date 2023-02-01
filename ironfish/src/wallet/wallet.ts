@@ -922,7 +922,7 @@ export class Wallet {
     sender: Account,
     assetId: Buffer,
     amountNeeded: bigint,
-    numRequiredConfirmations: number,
+    confirmations: number,
   ): Promise<{ amount: bigint; notes: Array<{ note: Note; witness: NoteWitness }> }> {
     let amount = BigInt(0)
     const notes: Array<{ note: Note; witness: NoteWitness }> = []
@@ -941,8 +941,7 @@ export class Wallet {
       Assert.isNotNull(unspentNote.nullifier)
       Assert.isNotNull(unspentNote.sequence)
 
-      // Chosen unspent notes must be `numRequiredConfirmations` blocks before the head
-      const isConfirmed = head.sequence - unspentNote.sequence >= numRequiredConfirmations
+      const isConfirmed = head.sequence - unspentNote.sequence >= confirmations
       if (!isConfirmed) {
         continue
       }

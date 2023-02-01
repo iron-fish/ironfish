@@ -78,10 +78,6 @@ export class Burn extends IronfishCommand {
     }
 
     const confirmations = flags.confirmations
-    if (confirmations !== undefined && confirmations < 0) {
-      this.log('Number of block confirmations must be non-negative')
-      this.exit(1)
-    }
 
     let assetId = flags.assetId
 
