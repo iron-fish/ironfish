@@ -16,7 +16,6 @@ describe('AccountValueEncoding', () => {
       outgoingViewKey: key.outgoing_view_key,
       publicAddress: key.public_address,
       spendingKey: key.spending_key,
-      version: 1,
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)
