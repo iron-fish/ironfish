@@ -3,9 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
+import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
-export type PostTransactionRequest = { transaction: string }
+export type PostTransactionRequest = {
+  sender: string
+  transaction: string
+}
 
 export type PostTransactionResponse = {
   transaction: string
@@ -13,6 +17,7 @@ export type PostTransactionResponse = {
 
 export const PostTransactionRequestSchema: yup.ObjectSchema<PostTransactionRequest> = yup
   .object({
+    sender: yup.string().defined(),
     transaction: yup.string().defined(),
   })
   .defined()
@@ -27,9 +32,21 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   `${ApiNamespace.wallet}/postTransaction`,
   PostTransactionRequestSchema,
   async (request, node): Promise<void> => {
+    const data = request.data
+
+    const account = node.wallet.getAccountByName(data.sender)
+
+    if (!account) {
+      throw new ValidationError(`No account found with name ${data.sender}`)
+    }
+
     const rawTransactionBytes = Buffer.from(request.data.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-    const postedTransaction = await node.wallet.postTransaction(rawTransaction, node.memPool)
+    const postedTransaction = await node.wallet.postTransaction(
+      rawTransaction,
+      node.memPool,
+      account.spendingKey,
+    )
     const postedTransactionBytes = postedTransaction.serialize()
 
     request.end({ transaction: postedTransactionBytes.toString('hex') })

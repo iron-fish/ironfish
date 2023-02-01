@@ -39,7 +39,7 @@ export async function usePostTxFixture(options: {
 }): Promise<Transaction> {
   return useTxFixture(options.wallet, options.from, options.from, async () => {
     const raw = await createRawTransaction(options)
-    return options.node.workerPool.postTransaction(raw)
+    return options.node.workerPool.postTransaction(raw, options.from.spendingKey)
   })
 }
 
@@ -73,7 +73,7 @@ export async function useTxFixture(
         },
       )
 
-      return await wallet.workerPool.postTransaction(raw)
+      return await wallet.workerPool.postTransaction(raw, from.spendingKey)
     })
 
   return useFixture(generate, {

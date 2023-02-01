@@ -19,6 +19,7 @@ describe('Route wallet/postTransaction', () => {
     const rawTransaction = await createRawTransaction(options)
     const response = await routeTest.client.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
+      sender: account.spendingKey,
     })
 
     expect(response.status).toBe(200)
@@ -26,9 +27,11 @@ describe('Route wallet/postTransaction', () => {
   })
 
   it("should return an error if the transaction won't deserialize", async () => {
+    const account = await routeTest.node.wallet.createAccount(uuid(), true)
     await expect(
       routeTest.client.postTransaction({
         transaction: '0xdeadbeef',
+        sender: account.spendingKey,
       }),
     ).rejects.toThrow('Out of bounds read (offset=0).')
   })

@@ -24,7 +24,6 @@ export interface MintData {
 }
 
 export class RawTransaction {
-  spendingKey = ''
   expiration: number | null = null
   fee = 0n
   mints: MintData[] = []
@@ -41,8 +40,8 @@ export class RawTransaction {
     >
   }[] = []
 
-  post(): Transaction {
-    const builder = new NativeTransaction(this.spendingKey)
+  post(spendingKey: string): Transaction {
+    const builder = new NativeTransaction(spendingKey)
 
     for (const spend of this.spends) {
       builder.spend(spend.note.takeReference(), spend.witness)
@@ -59,7 +58,7 @@ export class RawTransaction {
         throw new Error('Cannot post transaction. Mint value exceededs maximum')
       }
 
-      const asset = new Asset(this.spendingKey, mint.name, mint.metadata)
+      const asset = new Asset(spendingKey, mint.name, mint.metadata)
 
       builder.mint(asset, mint.value)
     }
@@ -87,7 +86,6 @@ export class RawTransactionSerde {
   static serialize(raw: RawTransaction): Buffer {
     const bw = bufio.write(this.getSize(raw))
 
-    bw.writeVarString(raw.spendingKey)
     bw.writeBigU64(raw.fee)
 
     bw.writeU64(raw.spends.length)
@@ -140,7 +138,6 @@ export class RawTransactionSerde {
     const reader = bufio.read(buffer, true)
 
     const raw = new RawTransaction()
-    raw.spendingKey = reader.readVarString()
     raw.fee = reader.readBigU64()
 
     const spendsLength = reader.readU64()
@@ -194,7 +191,6 @@ export class RawTransactionSerde {
   static getSize(raw: RawTransaction): number {
     let size = 0
 
-    size += bufio.sizeVarString(raw.spendingKey)
     size += 8 // raw.fee
 
     size += 8 // raw.spends.length

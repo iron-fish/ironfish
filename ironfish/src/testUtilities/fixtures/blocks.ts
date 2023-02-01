@@ -170,7 +170,6 @@ export async function useBlockWithRawTxFixture(
     )
 
     const raw = new RawTransaction()
-    raw.spendingKey = sender.spendingKey
     raw.expiration = 0
     raw.mints = mints
     raw.burns = burns
@@ -189,7 +188,7 @@ export async function useBlockWithRawTxFixture(
       raw.receives.push({ note: new Note(note.serialize()) })
     }
 
-    const transaction = await pool.postTransaction(raw)
+    const transaction = await pool.postTransaction(raw, sender.spendingKey)
 
     return chain.newBlock(
       [transaction],
@@ -259,7 +258,7 @@ export async function useBlockWithTx(
       },
     )
 
-    const transaction = await node.wallet.postTransaction(raw, node.memPool)
+    const transaction = await node.wallet.postTransaction(raw, node.memPool, from.spendingKey)
 
     return node.chain.newBlock(
       [transaction],
@@ -319,7 +318,7 @@ export async function useBlockWithTxs(
         },
       )
 
-      const transaction = await node.wallet.postTransaction(raw, node.memPool)
+      const transaction = await node.wallet.postTransaction(raw, node.memPool, from.spendingKey)
 
       await node.wallet.addPendingTransaction(transaction)
       transactions.push(transaction)
