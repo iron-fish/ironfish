@@ -8,6 +8,8 @@ import { NodeFileProvider } from '../../fileSystems/nodeFileSystem'
 import { Logger } from '../../logger'
 import { Migrator } from './migrator'
 
+const MAX_ADDRESSES_PER_PAYOUT = 200
+
 export class PoolDatabase {
   private readonly db: Database
   private readonly config: Config
@@ -51,7 +53,18 @@ export class PoolDatabase {
   }
 
   async newShare(publicAddress: string): Promise<void> {
+    // Old shares
     await this.db.run('INSERT INTO share (publicAddress) VALUES (?)', publicAddress)
+
+    // New shares
+    const sql = `
+      INSERT INTO payoutShare (payoutPeriodId, publicAddress)
+      VALUES (
+        (SELECT id FROM payoutPeriod WHERE end IS NULL),
+        ?
+      )
+    `
+    await this.db.run(sql, publicAddress)
   }
 
   async newBlock(sequence: number, hash: string, reward: string): Promise<void> {
@@ -142,6 +155,25 @@ export class PoolDatabase {
     return result.count
   }
 
+  // Returns a capped number of unique public addresses and the amount of shares
+  // they earned for a specific payout period
+  async payoutAddresses(
+    payoutPeriodId: number,
+  ): Promise<{ publicAddress: string; shareCount: number }[]> {
+    const sql = `
+      SELECT publicAddress, COUNT(id) shareCount
+      FROM payoutShare
+      WHERE payoutPeriodId = ?
+      GROUP BY publicAddress
+      LIMIT ?
+    `
+    return await this.db.all<{ publicAddress: string; shareCount: number }[]>(
+      sql,
+      payoutPeriodId,
+      MAX_ADDRESSES_PER_PAYOUT,
+    )
+  }
+
   async unconfirmedBlocks(): Promise<DatabaseBlock[]> {
     const sql = 'SELECT * FROM block WHERE confirmed = false'
 
@@ -178,11 +210,20 @@ export class PoolDatabase {
   }
 }
 
+// Old share
 export type DatabaseShare = {
   id: number
   publicAddress: string
   createdAt: Date
   payoutId: number | null
+}
+
+// New share
+export type DatabasePayoutShare = {
+  id: number
+  publicAddress: string
+  createdAt: string
+  payoutPeriodId: number
 }
 
 export type DatabasePayoutPeriod = {
