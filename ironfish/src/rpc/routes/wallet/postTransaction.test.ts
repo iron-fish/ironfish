@@ -6,17 +6,13 @@ import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { useAccountFixture } from '../../../testUtilities'
 import { createRawTransaction } from '../../../testUtilities/helpers/transaction'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { Account } from '../../../wallet/account'
 
 describe('Route wallet/postTransaction', () => {
   const routeTest = createRouteTest(true)
-  let account: Account
-
-  beforeAll(async () => {
-    account = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
-  })
 
   it('should accept a valid raw transaction', async () => {
+    const account = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     const options = {
       wallet: routeTest.node.wallet,
       from: account,
@@ -32,6 +28,8 @@ describe('Route wallet/postTransaction', () => {
   })
 
   it("should return an error if the transaction won't deserialize", async () => {
+    const account = await useAccountFixture(routeTest.node.wallet, 'accountB')
+
     await expect(
       routeTest.client.postTransaction({
         transaction: '0xdeadbeef',

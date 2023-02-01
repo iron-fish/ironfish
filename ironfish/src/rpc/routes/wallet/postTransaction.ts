@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
+import { getAccount } from './utils'
 
 export type PostTransactionRequest = {
-  sender: string
+  sender?: string
   transaction: string
 }
 
@@ -32,13 +32,7 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   `${ApiNamespace.wallet}/postTransaction`,
   PostTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    const data = request.data
-
-    const account = node.wallet.getAccountByName(data.sender)
-
-    if (!account) {
-      throw new ValidationError(`No account found with name ${data.sender}`)
-    }
+    const account = getAccount(node, request.data.sender)
 
     const rawTransactionBytes = Buffer.from(request.data.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
