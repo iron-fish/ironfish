@@ -54,7 +54,8 @@ export interface Key {
   public_address: string
 }
 export function generateKey(): Key
-export function wordsSpendingKey(privateKey: string, languageCode: LanguageCode): string
+export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
+export function wordsToSpendingKey(words: string, languageCode: LanguageCode): string
 export function generateKeyFromPrivateKey(privateKey: string): Key
 export function initializeSapling(): void
 export function isValidPublicAddress(hexAddress: string): boolean
