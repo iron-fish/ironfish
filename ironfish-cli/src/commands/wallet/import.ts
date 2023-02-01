@@ -29,11 +29,15 @@ export class ImportCommand extends IronfishCommand {
     },
   ]
 
-  static bech32ToJSON(bech32: string): string {
-    const decodedOutput = bech32m.decode(bech32, 1023)
-    const decodedWords = decodedOutput.words
-    const decodedBytes = bech32m.fromWords(decodedWords)
-    return Buffer.from(decodedBytes).toString()
+  static bech32ToJSON(bech32: string): string | null {
+    try {
+      const decodedOutput = bech32m.decode(bech32, 1023)
+      const decodedWords = decodedOutput.words
+      const decodedBytes = bech32m.fromWords(decodedWords)
+      return Buffer.from(decodedBytes).toString()
+    } catch (e) {
+      return null
+    }
   }
 
   async start(): Promise<void> {
@@ -74,12 +78,8 @@ export class ImportCommand extends IronfishCommand {
   async importFile(path: string): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
     let data = await this.sdk.fileSystem.readFile(resolved)
-    try {
-      data = ImportCommand.bech32ToJSON(data)
-    } catch (e) {
-      CliUx.ux.info('Unable to decode bech32, assuming input is already JSON')
-    }
-    return JSONUtils.parse<AccountImport>(data)
+    const convertedData = ImportCommand.bech32ToJSON(data)
+    return JSONUtils.parse<AccountImport>(convertedData !== null ? convertedData : data)
   }
 
   async importPipe(): Promise<AccountImport> {
@@ -98,12 +98,8 @@ export class ImportCommand extends IronfishCommand {
 
     process.stdin.off('data', onData)
 
-    try {
-      data = ImportCommand.bech32ToJSON(data)
-    } catch (e) {
-      CliUx.ux.info('Unable to decode bech32, assuming input is already JSON')
-    }
-    return JSONUtils.parse<AccountImport>(data)
+    const convertedData = ImportCommand.bech32ToJSON(data)
+    return JSONUtils.parse<AccountImport>(convertedData !== null ? convertedData : data)
   }
 
   async importTTY(): Promise<AccountImport> {
