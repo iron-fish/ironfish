@@ -17,7 +17,7 @@ export type PostTransactionResponse = {
 
 export const PostTransactionRequestSchema: yup.ObjectSchema<PostTransactionRequest> = yup
   .object({
-    sender: yup.string().defined(),
+    sender: yup.string().strip(true),
     transaction: yup.string().defined(),
   })
   .defined()
