@@ -4,7 +4,6 @@
 import { AccountImport, JSONUtils, PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { bech32m } from 'bech32'
-import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -77,7 +76,7 @@ export class ImportCommand extends IronfishCommand {
 
   async importFile(path: string): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
-    let data = await this.sdk.fileSystem.readFile(resolved)
+    const data = await this.sdk.fileSystem.readFile(resolved)
     const convertedData = ImportCommand.bech32ToJSON(data)
     return JSONUtils.parse<AccountImport>(convertedData !== null ? convertedData : data)
   }
@@ -103,7 +102,6 @@ export class ImportCommand extends IronfishCommand {
   }
 
   async importTTY(): Promise<AccountImport> {
-
     const userInput = await CliUx.ux.prompt('Paste the output of wallet:export', {
       required: true,
     })
