@@ -195,7 +195,8 @@ export class CeremonyServer {
     }
 
     this.queue.push(client)
-    client.send({ method: 'joined', queueLocation: this.queue.length })
+    const estimate = this.queue.length * (this.contributionTimeoutMs + this.uploadTimeoutMs)
+    client.send({ method: 'joined', queueLocation: this.queue.length, estimate })
 
     client.logger.info(`Connected ${this.queue.length} total`)
     void this.startNextContributor()
@@ -277,7 +278,9 @@ export class CeremonyServer {
 
   private sendUpdatedLocationsToClients() {
     for (const [i, client] of this.queue.entries()) {
-      client.send({ method: 'joined', queueLocation: i + 1 })
+      const queueLocation = i + 1
+      const estimate = queueLocation * (this.uploadTimeoutMs + this.contributionTimeoutMs)
+      client.send({ method: 'joined', queueLocation, estimate })
     }
   }
 

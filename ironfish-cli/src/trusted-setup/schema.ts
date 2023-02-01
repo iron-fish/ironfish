@@ -8,6 +8,7 @@ export type CeremonyServerMessage =
   | {
       method: 'joined'
       queueLocation: number
+      estimate: number
     }
   | {
       method: 'initiate-contribution'
