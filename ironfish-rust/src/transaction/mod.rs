@@ -660,7 +660,7 @@ impl Transaction {
     /// Calculate a hash of the transaction data. This hash was signed by the
     /// private keys when the transaction was constructed, and will now be
     /// reconstructed to verify the signature.
-    pub fn transaction_signature_hash(&self) -> [u8; 32]{
+    pub fn transaction_signature_hash(&self) -> [u8; 32] {
         let mut hasher = Blake2b::new()
             .hash_length(32)
             .personal(SIGNATURE_HASH_PERSONALIZATION)
