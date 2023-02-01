@@ -151,6 +151,19 @@ export class ImportCommand extends IronfishCommand {
       required: true,
     })
 
+<<<<<<< HEAD
     return await this.stringToAccountImport(userInput)
+=======
+    const spendingKey = await CliUx.ux.prompt('Enter the account spending key', {
+      required: true,
+    })
+
+    return {
+      name: accountName,
+      spendingKey: spendingKey,
+      // the user doesn't know about versions, so assume the latest
+      version: 1,
+    }
+>>>>>>> b5b719b4 (init)
   }
 }

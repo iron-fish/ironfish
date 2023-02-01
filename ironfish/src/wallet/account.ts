@@ -22,7 +22,7 @@ import { WalletDB } from './walletdb/walletdb'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
-export type AccountImport = { name: string; spendingKey: string }
+export type AccountImport = { name: string; spendingKey: string; version: number }
 
 export class Account {
   private readonly walletDb: WalletDB

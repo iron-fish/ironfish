@@ -22,6 +22,7 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
       .object({
         name: yup.string().defined(),
         spendingKey: yup.string().defined(),
+        version: yup.number().defined(),
       })
       .defined(),
   })
