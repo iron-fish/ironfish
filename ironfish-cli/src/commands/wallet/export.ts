@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { wordsSpendingKey } from '@ironfish/rust-nodejs'
+import { spendingKeyToWords } from '@ironfish/rust-nodejs'
 import { ErrorUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { bech32m } from 'bech32'
@@ -61,14 +61,15 @@ export class ExportCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc(local)
     const response = await client.exportAccount({ account })
 
-    let output = ''
-    if (flags.json) {
-      output = JSON.stringify(response.content.account, undefined, '   ')
-    } else if (flags.language) {
-      output = wordsSpendingKey(response.content.account.spendingKey, LANGUAGES[flags.language])
+    let output
+    if (flags.language) {
+      output = spendingKeyToWords(
+        response.content.account.spendingKey,
+        LANGUAGES[flags.language],
+      )
     } else if (flags.mnemonic) {
       const language = await selectLanguage()
-      output = wordsSpendingKey(response.content.account.spendingKey, language)
+      output = spendingKeyToWords(response.content.account.spendingKey, language)
     } else {
       const responseBytes = Buffer.from(JSON.stringify(response.content.account))
       const lengthLimit = 1023
