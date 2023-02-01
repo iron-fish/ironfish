@@ -3,15 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { BlockHashSerdeInstance } from '../../../serde'
+import { CurrencyUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
 export type GetTransactionRequest = { blockHash: string; transactionHash: string }
-
-interface AssetDescription {
-  id: string
-  value: string
-}
 
 export type GetTransactionResponse = {
   fee: string
@@ -20,8 +16,14 @@ export type GetTransactionResponse = {
   spendsCount: number
   signature: string
   notesEncrypted: string[]
-  mints?: AssetDescription[]
-  burns?: AssetDescription[]
+  mints: {
+    assetId: string
+    value: string
+  }[]
+  burns: {
+    assetId: string
+    value: string
+  }[]
 }
 export const GetTransactionRequestSchema: yup.ObjectSchema<GetTransactionRequest> = yup
   .object({
@@ -42,22 +44,22 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
       .array(
         yup
           .object({
-            id: yup.string().defined(),
+            assetId: yup.string().defined(),
             value: yup.string().defined(),
           })
           .defined(),
       )
-      .optional(),
+      .defined(),
     burns: yup
       .array(
         yup
           .object({
-            id: yup.string().defined(),
+            assetId: yup.string().defined(),
             value: yup.string().defined(),
           })
           .defined(),
       )
-      .optional(),
+      .defined(),
   })
   .defined()
 
@@ -83,7 +85,10 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       spendsCount: 0,
       signature: '',
       notesEncrypted: [],
+      mints: [],
+      burns: [],
     }
+
     block.transactions.map((transaction) => {
       if (transaction.hash().toString('hex') === request.data.transactionHash) {
         const fee = transaction.fee().toString()
@@ -101,12 +106,16 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
         rawTransaction.spendsCount = transaction.spends.length
         rawTransaction.signature = signature.toString('hex')
         rawTransaction.notesEncrypted = notesEncrypted
-        rawTransaction.mints = transaction.mints.map((mint) => {
-          return { id: mint.asset.id().toString('hex'), value: mint.value.toString() }
-        })
-        rawTransaction.burns = transaction.burns.map((burn) => {
-          return { id: burn.assetId.toString('hex'), value: burn.value.toString() }
-        })
+
+        rawTransaction.mints = transaction.mints.map((mint) => ({
+          assetId: mint.asset.id().toString('hex'),
+          value: CurrencyUtils.encode(mint.value),
+        }))
+
+        rawTransaction.burns = transaction.burns.map((burn) => ({
+          assetId: burn.assetId.toString('hex'),
+          value: CurrencyUtils.encode(burn.value),
+        }))
       }
     })
 
