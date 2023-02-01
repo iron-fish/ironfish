@@ -200,12 +200,17 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
     for (const [assetId, sum] of totalByAssetIdentifier) {
       const balance = await node.wallet.getBalance(account, assetId)
 
-      if (balance.confirmed < sum) {
-        throw new ValidationError(
-          `Your balance is too low. Add funds to your account first`,
-          undefined,
-          ERROR_CODES.INSUFFICIENT_BALANCE,
-        )
+      if (balance.available < sum) {
+        let message = `Your available balance of ${balance.available} is too low to fund the ${sum} needed for this transaction.\n`
+        if (balance.unconfirmedCount > 0 || balance.pendingCount > 0) {
+          message += `You have ${
+            balance.unconfirmedCount + balance.pendingCount
+          } transactions with unconfirmed or pending status. Please wait for these transactions to be confirmed.`
+        } else {
+          message += `Please add funds to your account.`
+        }
+
+        throw new ValidationError(message, undefined, ERROR_CODES.INSUFFICIENT_BALANCE)
       }
     }
 

@@ -114,7 +114,9 @@ export class Send extends IronfishCommand {
       const response = await client.getAccountBalance({ account: from, assetId })
 
       const input = await CliUx.ux.prompt(
-        `Enter the amount (balance: ${CurrencyUtils.renderIron(response.content.confirmed)})`,
+        `Enter the amount (available balance: ${CurrencyUtils.renderIron(
+          response.content.available,
+        )})`,
         {
           required: true,
         },
