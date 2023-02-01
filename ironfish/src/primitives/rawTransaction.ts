@@ -136,7 +136,7 @@ export class RawTransactionSerde {
 
     bw.writeU8(Number(raw.expiration != null))
     if (raw.expiration != null) {
-      bw.writeU64(raw.expiration)
+      bw.writeU32(raw.expiration)
     }
 
     return bw.render()
@@ -191,7 +191,7 @@ export class RawTransactionSerde {
 
     const hasExpiration = reader.readU8()
     if (hasExpiration) {
-      raw.expiration = reader.readU64()
+      raw.expiration = reader.readU32() 
     }
 
     return raw
