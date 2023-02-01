@@ -1275,16 +1275,31 @@ describe('Accounts', () => {
       const note = outputNote.decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(note)
 
+      const invalidRequiredConfirmations = 100
+      const validRequiredConfirmations = 0
+
       // Check what notes would be spent
       const { amount, notes } = await node.wallet.createSpendsForAsset(
         account,
         assetId,
         BigInt(2),
-        0,
+        validRequiredConfirmations,
       )
       expect(amount).toEqual(mintValue)
       expect(notes).toHaveLength(1)
       expect(notes[0].note).toMatchObject(note)
+
+      // Ensure no blocks fufill the minimum nubmer of confirmations requirement
+      const { amount: invalidAmount, notes: invalidNotes } =
+        await node.wallet.createSpendsForAsset(
+          account,
+          assetId,
+          BigInt(2),
+          invalidRequiredConfirmations,
+        )
+
+      expect(invalidAmount).toEqual(BigInt(0))
+      expect(invalidNotes).toHaveLength(0)
     })
   })
 
