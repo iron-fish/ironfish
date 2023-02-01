@@ -205,11 +205,19 @@ export class Account {
   }
 
   async saveAssetFromChain(
-    createdTransactionHash: Buffer,
-    metadata: Buffer,
-    id: Buffer,
-    name: Buffer,
-    owner: Buffer,
+    {
+      createdTransactionHash,
+      id,
+      metadata,
+      name,
+      owner,
+    }: {
+      createdTransactionHash: Buffer
+      metadata: Buffer
+      id: Buffer
+      name: Buffer
+      owner: Buffer
+    },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.putAsset(

@@ -412,6 +412,7 @@ export class Wallet {
           assetBalanceDeltas.update(transactionDeltas)
 
           await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, tx)
+
           scan?.signal(blockHeader.sequence)
         }
 
@@ -440,11 +441,13 @@ export class Wallet {
         const chainAsset = await this.chain.getAssetById(note.assetId())
         Assert.isNotNull(chainAsset, 'Asset must be non-null in the chain')
         await account.saveAssetFromChain(
-          chainAsset.createdTransactionHash,
-          chainAsset.id,
-          chainAsset.metadata,
-          chainAsset.name,
-          chainAsset.owner,
+          {
+            createdTransactionHash: chainAsset.createdTransactionHash,
+            id: chainAsset.id,
+            metadata: chainAsset.metadata,
+            name: chainAsset.name,
+            owner: chainAsset.owner,
+          },
           tx,
         )
       }
