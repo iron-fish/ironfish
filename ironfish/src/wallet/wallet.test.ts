@@ -1632,7 +1632,7 @@ describe('Accounts', () => {
         sequence: null,
         supply: null,
       })
-    }, 1000000)
+    })
   })
 
   describe('disconnectBlock', () => {

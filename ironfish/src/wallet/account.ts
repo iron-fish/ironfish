@@ -206,8 +206,8 @@ export class Account {
 
   async saveAssetFromChain(
     createdTransactionHash: Buffer,
-    metadata: Buffer,
     id: Buffer,
+    metadata: Buffer,
     name: Buffer,
     owner: Buffer,
     tx?: IDatabaseTransaction,
