@@ -1275,29 +1275,45 @@ describe('Accounts', () => {
       const note = outputNote.decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(note)
 
-      const invalidRequiredConfirmations = 100
-      const validRequiredConfirmations = 0
-
       // Check what notes would be spent
       const { amount, notes } = await node.wallet.createSpendsForAsset(
         account,
         assetId,
         BigInt(2),
-        validRequiredConfirmations,
+        0,
       )
+
       expect(amount).toEqual(mintValue)
       expect(notes).toHaveLength(1)
       expect(notes[0].note).toMatchObject(note)
+    })
 
-      // Ensure no blocks fufill the minimum nubmer of confirmations requirement
+    it('should return spendable notes dependant on confirmations', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      const mined = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(mined)
+      await node.wallet.updateHead()
+
+      const value = BigInt(10)
+      const assetId = Asset.nativeId()
+
+      const invalidConfirmations = 100
+      const validConfirmations = 0
+
+      const { amount: validAmount, notes: validNotes } = await node.wallet.createSpendsForAsset(
+        account,
+        assetId,
+        value,
+        validConfirmations,
+      )
+      expect(validAmount).toEqual(2000000000n)
+      expect(validNotes).toHaveLength(1)
+
+      // No notes should be returned
       const { amount: invalidAmount, notes: invalidNotes } =
-        await node.wallet.createSpendsForAsset(
-          account,
-          assetId,
-          BigInt(2),
-          invalidRequiredConfirmations,
-        )
-
+        await node.wallet.createSpendsForAsset(account, assetId, value, invalidConfirmations)
       expect(invalidAmount).toEqual(BigInt(0))
       expect(invalidNotes).toHaveLength(0)
     })
