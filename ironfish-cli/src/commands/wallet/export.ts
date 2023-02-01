@@ -70,11 +70,11 @@ export class ExportCommand extends IronfishCommand {
       const language = await selectLanguage()
       output = wordsSpendingKey(response.content.account.spendingKey, language)
     } else {
-      const bytes2 = Buffer.from(JSON.stringify(response.content.account))
+      const responseBytes = Buffer.from(JSON.stringify(response.content.account))
       const lengthLimit = 1023
       output = bech32m.bech32m.encode(
         'ironfishprivatekey00000',
-        bech32m.bech32m.toWords(bytes2),
+        bech32m.bech32m.toWords(responseBytes),
         lengthLimit,
       )
     }
