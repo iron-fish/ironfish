@@ -12,7 +12,11 @@ import {
 } from './types'
 import { getAccount } from './utils'
 
-export type GetAccountTransactionRequest = { account?: string; hash: string }
+export type GetAccountTransactionRequest = {
+  hash: string
+  account?: string
+  confirmations?: number
+}
 
 export type GetAccountTransactionResponse = {
   account: string
@@ -36,8 +40,9 @@ export type GetAccountTransactionResponse = {
 export const GetAccountTransactionRequestSchema: yup.ObjectSchema<GetAccountTransactionRequest> =
   yup
     .object({
-      account: yup.string().strip(true),
+      account: yup.string(),
       hash: yup.string().defined(),
+      confirmations: yup.string(),
     })
     .defined()
 
@@ -141,7 +146,10 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
 
     const assetBalanceDeltas = await getAssetBalanceDeltas(node, transaction)
 
-    const status = await node.wallet.getTransactionStatus(account, transaction)
+    const status = await node.wallet.getTransactionStatus(account, transaction, {
+      confirmations: request.data.confirmations,
+    })
+
     const type = await node.wallet.getTransactionType(account, transaction)
 
     const serialized = {

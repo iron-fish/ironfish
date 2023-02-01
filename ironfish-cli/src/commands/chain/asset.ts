@@ -10,7 +10,7 @@ export default class Asset extends IronfishCommand {
 
   static args = [
     {
-      name: 'identifier',
+      name: 'id',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
       description: 'The identifier of the asset',

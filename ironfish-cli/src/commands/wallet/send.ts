@@ -17,6 +17,7 @@ import { IronfishCommand } from '../../command'
 import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
+import { watchTransaction } from '../../utils/transaction'
 
 export class Send extends IronfishCommand {
   static description = `Send coins to another account`
@@ -61,6 +62,10 @@ export class Send extends IronfishCommand {
     confirm: Flags.boolean({
       default: false,
       description: 'Confirm without asking',
+    }),
+    watch: Flags.boolean({
+      default: false,
+      description: 'Wait for the transaction to be confirmed',
     }),
     expiration: Flags.integer({
       char: 'e',
@@ -292,6 +297,8 @@ ${CurrencyUtils.renderIron(
       bar.stop()
     }
 
+    let transaction
+
     try {
       const result = await client.postTransaction({
         transaction: rawTransactionResponse,
@@ -300,7 +307,7 @@ ${CurrencyUtils.renderIron(
       stopProgressBar()
 
       const transactionBytes = Buffer.from(result.content.transaction, 'hex')
-      const transaction = new Transaction(transactionBytes)
+      transaction = new Transaction(transactionBytes)
 
       this.log(`
 Sending ${CurrencyUtils.renderIron(amount, true, assetId)} to ${to} from ${from}
@@ -319,6 +326,17 @@ Find the transaction on https://explorer.ironfish.network/transaction/${transact
         this.error(error.message)
       }
       this.exit(2)
+    }
+
+    if (flags.watch && transaction) {
+      this.log('')
+
+      await watchTransaction({
+        client,
+        logger: this.logger,
+        account: from,
+        hash: transaction.hash().toString('hex'),
+      })
     }
   }
 }
