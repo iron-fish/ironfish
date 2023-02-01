@@ -103,23 +103,16 @@ export class ImportCommand extends IronfishCommand {
   }
 
   async importTTY(): Promise<AccountImport> {
-    const response: { decodingChoice: string } = await inquirer.prompt<{
-      decodingChoice: string
-    }>([
-      {
-        name: 'decodingChoice',
-        message: `Select the decoding format for the account import`,
-        type: 'list',
-        choices: ['bech32', 'json'],
-      },
-    ])
 
-    if (response.decodingChoice === 'bech32') {
-      const bech32input = await CliUx.ux.prompt('Paste the bech32 blob', {
-        required: true,
-      })
-      const data = ImportCommand.bech32ToJSON(bech32input)
-      return JSONUtils.parse<AccountImport>(data)
+    const userInput = await CliUx.ux.prompt('Paste the output of wallet:export', {
+      required: true,
+    })
+    const data = ImportCommand.bech32ToJSON(userInput)
+    try {
+      const retData = JSONUtils.parse<AccountImport>(data !== null ? data : userInput)
+      return retData
+    } catch (e) {
+      CliUx.ux.info('Unable to decode the account, requesting account details individually')
     }
 
     const accountName = await CliUx.ux.prompt('Enter the account name', {
