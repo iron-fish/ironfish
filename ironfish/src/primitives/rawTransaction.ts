@@ -191,7 +191,7 @@ export class RawTransactionSerde {
 
     const hasExpiration = reader.readU8()
     if (hasExpiration) {
-      raw.expiration = reader.readU32() 
+      raw.expiration = reader.readU32()
     }
 
     return raw
