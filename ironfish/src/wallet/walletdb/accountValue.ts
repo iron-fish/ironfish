@@ -14,7 +14,6 @@ export interface AccountValue {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  version: number
 }
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
@@ -26,7 +25,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
-    bw.writeU8(value.version)
 
     return bw.render()
   }
@@ -39,7 +37,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
-    const version = reader.readU8()
 
     return {
       id,
@@ -48,7 +45,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       incomingViewKey,
       outgoingViewKey,
       publicAddress,
-      version,
     }
   }
 
@@ -60,7 +56,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
-    size += 1 // version
 
     return size
   }

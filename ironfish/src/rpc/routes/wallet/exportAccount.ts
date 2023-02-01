@@ -13,7 +13,6 @@ export type ExportAccountResponse = {
     incomingViewKey: string
     outgoingViewKey: string
     publicAddress: string
-    version: number
   }
 }
 
@@ -32,7 +31,6 @@ export const ExportAccountResponseSchema: yup.ObjectSchema<ExportAccountResponse
         incomingViewKey: yup.string().defined(),
         outgoingViewKey: yup.string().defined(),
         publicAddress: yup.string().defined(),
-        version: yup.number().defined(),
       })
       .defined(),
   })
