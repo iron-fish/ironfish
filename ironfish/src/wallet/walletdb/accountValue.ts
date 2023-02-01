@@ -39,8 +39,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
-    let version:number = 1;
-    if (reader.left() != 0) {
+    let version = 1
+    if (reader.left() !== 0) {
       version = reader.readU8()
     }
 

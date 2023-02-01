@@ -52,7 +52,7 @@ export class ImportCommand extends IronfishCommand {
       CliUx.ux.error(`Invalid import type`)
     }
 
-    if (account.version == 0) {
+    if (account.version === 0) {
       // legacy account that has no version. update it to version 1, where we started tracking account versions
       account.version = 1
     }
