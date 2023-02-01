@@ -943,7 +943,8 @@ export class Wallet {
 
       // TODO: add test for this
       // Chosen unspent notes must be `confirmations` blocks before the head
-      if (unspentNote.sequence > head.sequence - confirmations) {
+      const isConfirmed = head.sequence - unspentNote.sequence >= confirmations
+      if (!isConfirmed) {
         continue
       }
 
