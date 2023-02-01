@@ -73,6 +73,9 @@ export class BalanceCommand extends IronfishCommand {
       this.log(
         `Pending:     ${CurrencyUtils.renderIron(response.content.pending, true, assetId)}`,
       )
+      this.log(
+        `Available:   ${CurrencyUtils.renderIron(response.content.available, true, assetId)}`,
+      )
       return
     }
 
@@ -84,9 +87,11 @@ export class BalanceCommand extends IronfishCommand {
     const unconfirmed = CurrencyUtils.decode(response.unconfirmed)
     const confirmed = CurrencyUtils.decode(response.confirmed)
     const pending = CurrencyUtils.decode(response.pending)
+    const available = CurrencyUtils.decode(response.available)
 
     const unconfirmedDelta = unconfirmed - confirmed
     const pendingDelta = pending - unconfirmed
+    const availableDelta = confirmed - available
 
     this.log(`Account: ${response.account}`)
 
@@ -97,12 +102,12 @@ export class BalanceCommand extends IronfishCommand {
     )
     this.log('')
 
-    this.log(`Your confirmed balance is made of notes on the chain that are safe to spend`)
+    this.log(`Your confirmed balance is made of notes on the chain`)
     this.log(`Confirmed: ${CurrencyUtils.renderIron(confirmed, true, assetId)}`)
     this.log('')
 
     this.log(
-      `${response.unconfirmedCount} transactions worth ${CurrencyUtils.renderIron(
+      `${response.unconfirmedCount} unconfirmed transactions worth ${CurrencyUtils.renderIron(
         unconfirmedDelta,
       )} are on the chain within ${response.confirmations} blocks of the head`,
     )
@@ -115,5 +120,13 @@ export class BalanceCommand extends IronfishCommand {
       )} are pending and have not been added to the chain`,
     )
     this.log(`Pending: ${CurrencyUtils.renderIron(pending, true, assetId)}`)
+    this.log('')
+
+    this.log(
+      `Your account is using notes worth ${CurrencyUtils.renderIron(
+        availableDelta,
+      )} in pending and unconfirmed transactions`,
+    )
+    this.log(`Available to spend: ${CurrencyUtils.renderIron(available, true, assetId)}`)
   }
 }

@@ -71,6 +71,10 @@ export class BalancesCommand extends IronfishCommand {
           header: 'Pending Balance',
           get: (row) => CurrencyUtils.renderIron(row.pending),
         },
+        available: {
+          header: 'Available Balance',
+          get: (row) => CurrencyUtils.renderIron(row.available),
+        },
         blockHash: {
           header: 'Head Hash',
           get: (row) => row.blockHash || 'NULL',
