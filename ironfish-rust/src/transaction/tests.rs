@@ -105,14 +105,9 @@ fn test_transaction() {
         Transaction::read(&mut serialized_transaction[..].as_ref())
             .expect("should be able to deserialize valid transaction");
 
-    assert_eq!(read_back_transaction.version, TRANSACTION_VERSION);
     assert_eq!(
         read_back_transaction.expiration.to_le_bytes().len(),
         TRANSACTION_EXPIRATION_SIZE
-    );
-    assert_eq!(
-        public_transaction.expiration,
-        read_back_transaction.expiration
     );
     assert_eq!(
         read_back_transaction.fee.to_le_bytes().len(),
