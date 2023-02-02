@@ -11,7 +11,6 @@ import { pipeline } from 'stream/promises'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
 import { CeremonyClient } from '../trusted-setup/client'
-import { nameIsValid } from '../trusted-setup/schema'
 
 export default class Ceremony extends IronfishCommand {
   static description = 'Contribute randomness to the Iron Fish trusted setup'
@@ -52,15 +51,10 @@ export default class Ceremony extends IronfishCommand {
     )
     randomness = randomness.length ? randomness : null
 
-    let name = 'anonymous'
-    do {
-      // Prompt for graffiti / name
-      const nameInput = await CliUx.ux.prompt(
-        `\nIf you'd like to associate a name with this contribution, type it here, then press Enter. Name must only include letters, numbers and spaces and be less than 30 characters. To accept the default, just press Enter (anonymous)`,
-        { required: false },
-      )
-      name = nameInput.length ? nameInput.trim() : name
-    } while (!nameIsValid(name))
+    const name = await CliUx.ux.prompt(
+      `If you'd like to associate a name with this contribution, type it here, then press Enter. Otherwise, to contribute anonymously, just press Enter`,
+      { required: false },
+    )
 
     // Create the client and bind events
     const client = new CeremonyClient({

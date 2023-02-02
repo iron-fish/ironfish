@@ -49,6 +49,7 @@ export async function uploadToBucket(
   bucket: string,
   keyName: string,
   logger?: Logger,
+  metadata?: Record<string, string>,
 ): Promise<void> {
   const fileHandle = await fsAsync.open(filePath, 'r')
 
@@ -68,6 +69,7 @@ export async function uploadToBucket(
     Bucket: bucket,
     Key: keyName,
     ContentType: contentType,
+    Metadata: metadata,
   }
 
   const uploadId = await s3

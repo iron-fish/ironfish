@@ -63,7 +63,7 @@ export class CeremonyClient {
     this.send({ method: 'contribution-complete' })
   }
 
-  join(name?: string): void {
+  join(name: string): void {
     this.send({ method: 'join', name })
   }
 

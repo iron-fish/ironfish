@@ -116,7 +116,7 @@ export class CeremonyServer {
     const paramFileNames = await S3Utils.getBucketObjects(this.s3Client, this.s3Bucket)
     const validParams = paramFileNames
       .slice(0)
-      .filter((fileName) => /^params_\d{5}.*$/.test(fileName))
+      .filter((fileName) => /^params_\d{5}$/.test(fileName))
     validParams.sort()
     return validParams[validParams.length - 1]
   }
@@ -345,8 +345,7 @@ export class CeremonyServer {
     const hash = await verifyTransform(oldParamsDownloadPath, newParamsDownloadPath)
 
     client.logger.info(`Uploading verified contribution`)
-    const nameSuffix = client.name === undefined ? '' : `_${client.name.split(' ').join('_')}`
-    const destFile = 'params_' + nextParamNumber.toString().padStart(5, '0') + nameSuffix
+    const destFile = 'params_' + nextParamNumber.toString().padStart(5, '0')
     await S3Utils.uploadToBucket(
       this.s3Client,
       newParamsDownloadPath,
@@ -354,6 +353,7 @@ export class CeremonyServer {
       this.s3Bucket,
       destFile,
       client.logger,
+      client.name ? { contributorName: encodeURIComponent(client.name) } : undefined,
     )
 
     client.logger.info(`Cleaning up local files`)
