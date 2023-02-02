@@ -97,12 +97,12 @@ export class Send extends IronfishCommand {
     const client = await this.sdk.connectRpc(false, true)
 
     const status = await client.getNodeStatus()
-    // if (!status.content.blockchain.synced) {
-    //   this.log(
-    //     `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
-    //   )
-    //   this.exit(1)
-    // }
+    if (!status.content.blockchain.synced) {
+      this.log(
+        `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
+      )
+      this.exit(1)
+    }
 
     if (assetId == null) {
       assetId = await selectAsset(client, from, {
