@@ -509,6 +509,7 @@ export class Wallet {
       }
 
       await account.addPendingTransaction(transaction, decryptedNotes, this.chain.head.sequence)
+      await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes)
     }
   }
 
