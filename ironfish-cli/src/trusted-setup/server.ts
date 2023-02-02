@@ -93,6 +93,9 @@ export class CeremonyServer {
   readonly uploadTimeoutMs: number
   readonly presignedExpirationSec: number
 
+  readonly startDate: number
+  private token: string
+
   constructor(options: {
     logger: Logger
     port: number
@@ -103,6 +106,8 @@ export class CeremonyServer {
     contributionTimeoutMs: number
     uploadTimeoutMs: number
     presignedExpirationSec: number
+    startDate: number
+    token: string
   }) {
     this.logger = options.logger
     this.queue = []
@@ -119,6 +124,9 @@ export class CeremonyServer {
     this.uploadTimeoutMs = options.uploadTimeoutMs
     this.presignedExpirationSec = options.presignedExpirationSec
 
+    this.startDate = options.startDate
+    this.token = options.token
+
     this.server = net.createServer((s) => this.onConnection(s))
   }
 
@@ -131,7 +139,7 @@ export class CeremonyServer {
     return validParams[validParams.length - 1]
   }
 
-  closeClient(client: CeremonyServerClient, error?: Error): void {
+  closeClient(client: CeremonyServerClient, error?: Error, disconnect = false): void {
     if (this.currentContributor?.client?.id === client.id) {
       if (this.currentContributor.state === 'VERIFYING') {
         this.currentContributor.client = null
@@ -141,6 +149,8 @@ export class CeremonyServer {
         void this.startNextContributor()
       }
     }
+
+    disconnect && client.send({ method: 'disconnect', error: ErrorUtils.renderError(error) })
 
     client.close(error)
   }
@@ -219,7 +229,7 @@ export class CeremonyServer {
         this.queue.find((c) => c.socket.remoteAddress === ip) !== undefined ||
         this.currentContributor?.client?.socket.remoteAddress === ip)
     ) {
-      this.closeClient(client, new Error('IP address already used in this service'))
+      this.closeClient(client, new Error('IP address already used in this service'), true)
       return
     }
   }
@@ -244,7 +254,7 @@ export class CeremonyServer {
     const result = await YupUtils.tryValidate(CeremonyClientMessageSchema, message)
     if (result.error) {
       client.logger.error(`Could not parse client message: ${message}`)
-      this.closeClient(client, new Error(`Could not parse message`))
+      this.closeClient(client, new Error(`Could not parse message`), true)
       return
     }
 
@@ -253,6 +263,17 @@ export class CeremonyServer {
     client.logger.info(`Message Received: ${parsedMessage.method}`)
 
     if (parsedMessage.method === 'join' && !client.joined) {
+      if (Date.now() < this.startDate && parsedMessage.token !== this.token) {
+        this.closeClient(
+          client,
+          new Error(
+            `The ceremony does not start until ${new Date(this.startDate).toUTCString()}`,
+          ),
+          true,
+        )
+        return
+      }
+
       this.queue.push(client)
       const estimate = this.queue.length * (this.contributionTimeoutMs + this.uploadTimeoutMs)
       client.join(parsedMessage.name)

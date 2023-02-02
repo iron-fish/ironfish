@@ -25,15 +25,21 @@ export type CeremonyServerMessage =
       downloadLink: string
       contributionNumber: number
     }
+  | {
+      method: 'disconnect'
+      error: string
+    }
 
 export type CeremonyClientMessage = {
   method: 'contribution-complete' | 'upload-complete' | 'join'
   name?: string // only used on join
+  token?: string // only used on join
 }
 
 export const CeremonyClientMessageSchema: yup.ObjectSchema<CeremonyClientMessage> = yup
   .object({
     method: yup.string().oneOf(['contribution-complete', 'upload-complete', 'join']).required(),
     name: yup.string(),
+    token: yup.string(),
   })
   .required()
