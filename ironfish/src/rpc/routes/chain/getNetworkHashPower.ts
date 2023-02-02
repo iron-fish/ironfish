@@ -33,8 +33,6 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
   `${ApiNamespace.chain}/getNetworkHashPower`,
   GetNetworkHashPowerRequestSchema,
   async (request, node): Promise<void> => {
-    const sequence = node.chain.head.sequence
-
     // default values for lookup and height
     let lookup = 120
     let height = -1
@@ -47,15 +45,15 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
       height = request.data.height
     }
 
-    let currentBlock = node.chain.head
+    let startBlock = node.chain.head
 
-    if (height >= 0 && height < sequence) {
-      // set block to the block at height
+    // set start block to the block at height
+    if (height >= 0 && height < node.chain.head.sequence) {
       const blockAtHeight = await node.chain.getHeaderAtSequence(height)
       if (blockAtHeight) {
-        currentBlock = blockAtHeight
+        startBlock = blockAtHeight
       } else {
-        // TODO: exit / handle
+        throw new Error(`No block found at height ${height}`)
       }
     }
 
@@ -63,25 +61,28 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
       // TODO: set lookup to all blocks since last difficulty change
     }
 
-    if (lookup > sequence) {
-      lookup = sequence
+    if (lookup > startBlock.sequence) {
+      lookup = startBlock.sequence
     }
 
-    let minTime = currentBlock.timestamp
-    let maxTime = currentBlock.timestamp
+    let minTime = startBlock.timestamp
+    let maxTime = startBlock.timestamp
 
-    for (let i = 0; i < lookup; i++) {
+    let currentBlock = startBlock
+
+    // TODO: can we skip iterating and just index directly to seq - lookup
+    for (let i = 0; i < lookup; ++i) {
       const previousBlock = await node.chain.getHeader(currentBlock.previousBlockHash)
       if (previousBlock) {
-        // do something
+        const previousBlockTime = previousBlock.timestamp
+
+        minTime = previousBlockTime < minTime ? previousBlockTime : minTime
+        maxTime = previousBlockTime > maxTime ? previousBlockTime : maxTime
+
         currentBlock = previousBlock
-
-        const previousBlockTime = currentBlock.timestamp
-
-        minTime = previousBlockTime < minTime ? currentBlock.timestamp : minTime
-        maxTime = previousBlockTime > maxTime ? currentBlock.timestamp : maxTime
       } else {
-        // TODO: block DNE, do something
+        // TODO: should we throw an error here?
+        throw new Error(`No block found at height ${currentBlock.sequence - 1}}`)
       }
     }
 
@@ -92,8 +93,8 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
       })
     }
 
-    const workDifference = node.chain.head.work - currentBlock.work
-    const timeDifference = (maxTime.getTime() - minTime.getTime()) / 1000
+    const workDifference = startBlock.work - currentBlock.work
+    const timeDifference = (maxTime.getTime() - minTime.getTime()) / 1000 // in seconds
 
     const hashesPerSecond = Number(workDifference) / timeDifference
 
