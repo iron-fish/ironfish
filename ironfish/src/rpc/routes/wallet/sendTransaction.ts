@@ -20,6 +20,7 @@ export type SendTransactionRequest = {
   fee: string
   expiration?: number | null
   expirationDelta?: number | null
+  confirmations?: number | null
 }
 
 export type SendTransactionResponse = {
@@ -51,6 +52,7 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
     fee: yup.string().defined(),
     expiration: yup.number().nullable().optional(),
     expirationDelta: yup.number().nullable().optional(),
+    confirmations: yup.number().nullable().optional(),
   })
   .defined()
 
@@ -149,6 +151,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
         BigInt(transaction.fee),
         transaction.expirationDelta ?? node.config.get('transactionExpirationDelta'),
         transaction.expiration,
+        transaction.confirmations,
       )
 
       request.end({
