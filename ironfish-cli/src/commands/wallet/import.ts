@@ -77,8 +77,7 @@ export class ImportCommand extends IronfishCommand {
   async importFile(path: string): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    const convertedData = ImportCommand.bech32ToJSON(data)
-    return JSONUtils.parse<AccountImport>(convertedData !== null ? convertedData : data)
+    return JSONUtils.parse<AccountImport>(ImportCommand.bech32ToJSON(data) ?? data)
   }
 
   async importPipe(): Promise<AccountImport> {
@@ -105,9 +104,10 @@ export class ImportCommand extends IronfishCommand {
     const userInput = await CliUx.ux.prompt('Paste the output of wallet:export', {
       required: true,
     })
-    const data = ImportCommand.bech32ToJSON(userInput)
     try {
-      const retData = JSONUtils.parse<AccountImport>(data !== null ? data : userInput)
+      const retData = JSONUtils.parse<AccountImport>(
+        ImportCommand.bech32ToJSON(userInput) ?? userInput,
+      )
       return retData
     } catch (e) {
       CliUx.ux.info('Unable to decode the account, requesting account details individually')
