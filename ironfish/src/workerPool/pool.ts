@@ -137,8 +137,11 @@ export class WorkerPool {
     return new Transaction(Buffer.from(response.serializedTransactionPosted))
   }
 
-  async postTransaction(transaction: RawTransaction): Promise<Transaction> {
-    const request = new PostTransactionRequest(transaction)
+  async postTransaction(
+    transaction: RawTransaction,
+    spendingKey: string,
+  ): Promise<Transaction> {
+    const request = new PostTransactionRequest(transaction, spendingKey)
 
     const response = await this.execute(request).result()
 
