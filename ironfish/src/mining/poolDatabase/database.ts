@@ -23,7 +23,11 @@ export class PoolDatabase {
     this.successfulPayoutInterval = this.config.get('poolSuccessfulPayoutInterval')
   }
 
-  static async init(options: { config: Config; logger: Logger }): Promise<PoolDatabase> {
+  static async init(options: {
+    config: Config
+    logger: Logger
+    dbPath?: string
+  }): Promise<PoolDatabase> {
     const fs = new NodeFileProvider()
     await fs.init()
 
@@ -31,7 +35,7 @@ export class PoolDatabase {
     await fs.mkdir(poolFolder, { recursive: true })
 
     const db = await open({
-      filename: fs.join(poolFolder, '/database.sqlite'),
+      filename: options.dbPath || fs.join(poolFolder, '/database.sqlite'),
       driver: sqlite3.Database,
     })
 

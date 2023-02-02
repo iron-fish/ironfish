@@ -4,7 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
-import { RpcSocketClient } from '../rpc/clients/socketClient'
+import { RpcClient } from '../rpc/clients/client'
 import { ErrorUtils } from '../utils'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
@@ -12,7 +12,7 @@ import { DatabaseShare, PoolDatabase } from './poolDatabase'
 import { WebhookNotifier } from './webhooks'
 
 export class MiningPoolShares {
-  readonly rpc: RpcSocketClient
+  readonly rpc: RpcClient
   readonly config: Config
   readonly logger: Logger
   readonly webhooks: WebhookNotifier[]
@@ -28,7 +28,7 @@ export class MiningPoolShares {
 
   private constructor(options: {
     db: PoolDatabase
-    rpc: RpcSocketClient
+    rpc: RpcClient
     config: Config
     logger: Logger
     webhooks?: WebhookNotifier[]
@@ -50,7 +50,7 @@ export class MiningPoolShares {
   }
 
   static async init(options: {
-    rpc: RpcSocketClient
+    rpc: RpcClient
     config: Config
     logger: Logger
     webhooks?: WebhookNotifier[]
