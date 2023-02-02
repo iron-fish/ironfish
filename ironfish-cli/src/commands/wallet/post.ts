@@ -45,7 +45,7 @@ export class PostCommand extends IronfishCommand {
     const { flags, args } = await this.parse(PostCommand)
     const transaction = args.transaction as string
 
-    const serialized = Buffer.from(transaction)
+    const serialized = Buffer.from(transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(serialized)
 
     const client = await this.sdk.connectRpc()
@@ -85,9 +85,7 @@ export class PostCommand extends IronfishCommand {
     this.log(response.content.transaction)
 
     if (flags.offline === true) {
-      this.log(
-        `\n Run "ironfish wallet:transaction:add ${response.content.transaction}" to add the transaction to your wallet`,
-      )
+      this.log(`\n Run "ironfish wallet:transaction:add" to add the transaction to your wallet`)
     }
   }
 
@@ -98,12 +96,12 @@ export class PostCommand extends IronfishCommand {
     }
 
     this.log(
-      `You are about to post a transaction that sends ${spending}, with ${
-        raw.mints.length
-      } mints and ${raw.burns.length} burns with a fee ${CurrencyUtils.renderIron(
-        raw.fee,
+      `You are about to post a transaction that sends ${CurrencyUtils.renderIron(
+        spending,
         true,
-      )} using account ${account}`,
+      )}, with ${raw.mints.length} mints and ${
+        raw.burns.length
+      } burns with a fee ${CurrencyUtils.renderIron(raw.fee, true)} using account ${account}`,
     )
 
     return CliUx.ux.confirm('Do you want to post this (Y/N)?')
