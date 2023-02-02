@@ -18,7 +18,7 @@ import {
   NULL_ENCODING,
   PrefixEncoding,
   StringEncoding,
-  U32_ENCODING,
+  U32_ENCODING_BE,
   U64_ENCODING,
 } from '../../storage'
 import { StorageUtils } from '../../storage/database/utils'
@@ -33,7 +33,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 16
+export const VERSION_DATABASE_ACCOUNTS = 17
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -166,10 +166,10 @@ export class WalletDB {
     })
 
     this.sequenceToNoteHash = this.db.addStore({
-      name: 's',
+      name: 'SN',
       keyEncoding: new PrefixEncoding(
         new BufferEncoding(),
-        new PrefixEncoding(U32_ENCODING, new BufferEncoding(), 4),
+        new PrefixEncoding(U32_ENCODING_BE, new BufferEncoding(), 4),
         4,
       ),
       valueEncoding: NULL_ENCODING,
@@ -188,20 +188,20 @@ export class WalletDB {
     })
 
     this.sequenceToTransactionHash = this.db.addStore({
-      name: 'st',
+      name: 'ST',
       keyEncoding: new PrefixEncoding(
         new BufferEncoding(),
-        new PrefixEncoding(U32_ENCODING, new BufferEncoding(), 4),
+        new PrefixEncoding(U32_ENCODING_BE, new BufferEncoding(), 4),
         4,
       ),
       valueEncoding: NULL_ENCODING,
     })
 
     this.pendingTransactionHashes = this.db.addStore({
-      name: 'p',
+      name: 'PT',
       keyEncoding: new PrefixEncoding(
         new BufferEncoding(),
-        new PrefixEncoding(U32_ENCODING, new BufferEncoding(), 4),
+        new PrefixEncoding(U32_ENCODING_BE, new BufferEncoding(), 4),
         4,
       ),
       valueEncoding: NULL_ENCODING,
@@ -608,7 +608,7 @@ export class WalletDB {
   ): AsyncGenerator<Buffer> {
     const encoding = new PrefixEncoding(
       BUFFER_ENCODING,
-      U32_ENCODING,
+      U32_ENCODING_BE,
       account.prefix.byteLength,
     )
 
@@ -645,7 +645,7 @@ export class WalletDB {
   ): AsyncGenerator<Buffer> {
     const encoding = new PrefixEncoding(
       BUFFER_ENCODING,
-      U32_ENCODING,
+      U32_ENCODING_BE,
       account.prefix.byteLength,
     )
 
@@ -750,11 +750,11 @@ export class WalletDB {
     await this.balances.clear(tx, account.prefixRange)
   }
 
-  async *loadExpiredTransactions(
+  async *loadExpiredTransactionHashes(
     account: Account,
     headSequence: number,
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<TransactionValue> {
+  ): AsyncGenerator<Buffer> {
     const encoding = this.pendingTransactionHashes.keyEncoding
 
     const expiredRange = StorageUtils.getPrefixesKeyRange(
@@ -766,6 +766,20 @@ export class WalletDB {
       tx,
       expiredRange,
     )) {
+      yield transactionHash
+    }
+  }
+
+  async *loadExpiredTransactions(
+    account: Account,
+    headSequence: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<TransactionValue> {
+    for await (const transactionHash of this.loadExpiredTransactionHashes(
+      account,
+      headSequence,
+      tx,
+    )) {
       const transaction = await this.loadTransaction(account, transactionHash, tx)
       Assert.isNotUndefined(transaction)
 
@@ -773,11 +787,11 @@ export class WalletDB {
     }
   }
 
-  async *loadPendingTransactions(
+  async *loadPendingTransactionHashes(
     account: Account,
     headSequence: number,
     tx?: IDatabaseTransaction,
-  ): AsyncGenerator<TransactionValue> {
+  ): AsyncGenerator<Buffer> {
     const encoding = this.pendingTransactionHashes.keyEncoding
 
     const noExpirationRange = StorageUtils.getPrefixKeyRange(
@@ -788,10 +802,7 @@ export class WalletDB {
       tx,
       noExpirationRange,
     )) {
-      const transaction = await this.loadTransaction(account, transactionHash, tx)
-      Assert.isNotUndefined(transaction)
-
-      yield transaction
+      yield transactionHash
     }
 
     const pendingRange = StorageUtils.getPrefixesKeyRange(
@@ -802,6 +813,20 @@ export class WalletDB {
     for await (const [, [, transactionHash]] of this.pendingTransactionHashes.getAllKeysIter(
       tx,
       pendingRange,
+    )) {
+      yield transactionHash
+    }
+  }
+
+  async *loadPendingTransactions(
+    account: Account,
+    headSequence: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<TransactionValue> {
+    for await (const transactionHash of this.loadPendingTransactionHashes(
+      account,
+      headSequence,
+      tx,
     )) {
       const transaction = await this.loadTransaction(account, transactionHash, tx)
       Assert.isNotUndefined(transaction)

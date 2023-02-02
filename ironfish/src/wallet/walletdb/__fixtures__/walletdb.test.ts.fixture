@@ -1,0 +1,42 @@
+{
+  "WalletDB loadNoteHashesInSequenceRange loads note hashes in the provided range": [
+    {
+      "id": "0e7b38bc-ec81-4684-810c-b9db2ee892cd",
+      "name": "test",
+      "spendingKey": "fa5efee37ae37d91f39fc1359a4c208c34f56b61171704a5946a647223b500f6",
+      "incomingViewKey": "2fd48d0953832e120e510330c26456d01c3df230b4bbeec463f508ac2c864006",
+      "outgoingViewKey": "73438b606fc5af0e08bb2c9ce81a4a138f369f71eaa53e7790c2a6150caeac04",
+      "publicAddress": "55daa782b5c2dc29646d3ae5f0d2d3c7c99ee590e7ebdf7a3fdacc6e547fac0c"
+    }
+  ],
+  "WalletDB loadTransactionHashesInSequenceRange loads transaction hashes in the provided range": [
+    {
+      "id": "c2272829-4379-4b5e-98f7-6c4eb112fb58",
+      "name": "test",
+      "spendingKey": "a63b2a839960581373b8b4cc63b995c32e28ffdc0005a5aca96000fbcc9358be",
+      "incomingViewKey": "c5472c7f2f230ed048d908ff90385e3a9556bffda82500aa84d6e2fd90209107",
+      "outgoingViewKey": "b9be459a2e35da5a72c3e5a788dcb3fa1ce62194710979d6ffa5b09966f394a1",
+      "publicAddress": "5126fac26340d8454b64de51fa96e94641a4196321663206f8e172ecfe6eb2ba"
+    }
+  ],
+  "WalletDB loadExpiredTransactionHashes loads transaction hashes with expiration sequences in the expired range": [
+    {
+      "id": "effa5cd0-e5a6-40c4-bd1f-264e2dfc61b9",
+      "name": "test",
+      "spendingKey": "f93d51183d1366d5014e82a3c418f8d52fdd56fd8a0b5b88e8539990f0de885a",
+      "incomingViewKey": "9c3d9dbc3759509d1056b1243f6ee768539455d265e0446d5bb220d662ccf601",
+      "outgoingViewKey": "1fe8cc66325238e7afaecd556e51bf2c7a041775f18ebc016b30eebfac45be71",
+      "publicAddress": "90f6ba51e618293d2773eff1bb6f7055a4f97208c41586ce02548694d24809ab"
+    }
+  ],
+  "WalletDB loadPendingTransactionHashes loads transaction hashes with expiration sequences outside the expired range": [
+    {
+      "id": "b433e112-2ecd-4a26-80f2-f09e6b7951ca",
+      "name": "test",
+      "spendingKey": "a84e7384f5ccf7051102dbb0006f82bbda6fa5bc85786109cbb7d86e88a55faf",
+      "incomingViewKey": "7c9369a0638824a59aa4da319defe0fe1db3aed1f3e50be3664a0ab1d980f505",
+      "outgoingViewKey": "f086aa2880af2409f1d46e5acf853929f780d1d85ef5729c2279c73c7b44b3b8",
+      "publicAddress": "898d6f68973b0892caf2e4d539bc87beff7422d48234a23ef77d939d46e17ae4"
+    }
+  ]
+}
