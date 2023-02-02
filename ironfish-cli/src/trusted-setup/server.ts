@@ -11,11 +11,21 @@ import { v4 as uuid } from 'uuid'
 import { S3Utils } from '../utils'
 import { CeremonyClientMessageSchema, CeremonyServerMessage } from './schema'
 
-type CurrentContributor = {
-  state: 'STARTED' | 'UPLOADING'
-  client: CeremonyServerClient
-  actionTimeout: SetTimeoutToken
-}
+type CurrentContributor =
+  | {
+      state: 'STARTED'
+      client: CeremonyServerClient
+      actionTimeout: SetTimeoutToken
+    }
+  | {
+      state: 'UPLOADING'
+      client: CeremonyServerClient
+      actionTimeout: SetTimeoutToken
+    }
+  | {
+      state: 'VERIFYING'
+      client: CeremonyServerClient | null
+    }
 
 const ENABLE_IP_BANNING = true
 
@@ -122,10 +132,14 @@ export class CeremonyServer {
   }
 
   closeClient(client: CeremonyServerClient, error?: Error): void {
-    if (this.currentContributor?.client.id === client.id) {
-      clearTimeout(this.currentContributor.actionTimeout)
-      this.currentContributor = null
-      void this.startNextContributor()
+    if (this.currentContributor?.client?.id === client.id) {
+      if (this.currentContributor.state === 'VERIFYING') {
+        this.currentContributor.client = null
+      } else {
+        clearTimeout(this.currentContributor.actionTimeout)
+        this.currentContributor = null
+        void this.startNextContributor()
+      }
     }
 
     client.close(error)
@@ -203,7 +217,7 @@ export class CeremonyServer {
       ENABLE_IP_BANNING &&
       (ip === undefined ||
         this.queue.find((c) => c.socket.remoteAddress === ip) !== undefined ||
-        this.currentContributor?.client.socket.remoteAddress === ip)
+        this.currentContributor?.client?.socket.remoteAddress === ip)
     ) {
       this.closeClient(client, new Error('IP address already used in this service'))
       return
@@ -265,11 +279,14 @@ export class CeremonyServer {
   }
 
   private async handleContributionComplete(client: CeremonyServerClient) {
-    if (this.currentContributor?.client.id !== client.id) {
-      throw new Error('upload-complete message sent but not the current contributor')
+    if (
+      this.currentContributor?.client?.id !== client.id ||
+      this.currentContributor.state !== 'STARTED'
+    ) {
+      throw new Error('contribution-complete message sent but not the current contributor')
     }
 
-    this.currentContributor.actionTimeout && clearTimeout(this.currentContributor.actionTimeout)
+    clearTimeout(this.currentContributor.actionTimeout)
 
     client.logger.info('Generating presigned URL')
 
@@ -282,14 +299,18 @@ export class CeremonyServer {
 
     client.logger.info('Sending back presigned URL')
 
-    this.currentContributor.actionTimeout = setTimeout(() => {
-      this.closeClient(client, new Error('Failed to complete upload in time'))
-    }, this.uploadTimeoutMs)
-
     client.send({
       method: 'initiate-upload',
       uploadLink: presignedUrl,
     })
+
+    this.currentContributor = {
+      state: 'UPLOADING',
+      actionTimeout: setTimeout(() => {
+        this.closeClient(client, new Error('Failed to complete upload in time'))
+      }, this.uploadTimeoutMs),
+      client: this.currentContributor.client,
+    }
   }
 
   private sendUpdatedLocationsToClients() {
@@ -301,11 +322,19 @@ export class CeremonyServer {
   }
 
   private async handleUploadComplete(client: CeremonyServerClient) {
-    if (this.currentContributor?.client.id !== client.id) {
+    if (
+      this.currentContributor?.client?.id !== client.id ||
+      this.currentContributor.state !== 'UPLOADING'
+    ) {
       throw new Error('upload-complete message sent but not the current contributor')
     }
 
-    this.currentContributor.actionTimeout && clearTimeout(this.currentContributor.actionTimeout)
+    clearTimeout(this.currentContributor.actionTimeout)
+
+    this.currentContributor = {
+      state: 'VERIFYING',
+      client: this.currentContributor.client,
+    }
 
     client.logger.info('Getting latest contribution from S3')
     const latestParamName = await this.getLatestParamName()
@@ -377,6 +406,7 @@ export class CeremonyServer {
     })
 
     client.logger.info(`Contribution ${nextParamNumber} complete`)
+    this.currentContributor = null
     await this.startNextContributor()
     this.sendUpdatedLocationsToClients()
   }
