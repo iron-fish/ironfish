@@ -17,11 +17,16 @@ type CurrentContributor = {
   actionTimeout: SetTimeoutToken
 }
 
+const ENABLE_IP_BANNING = true
+
 class CeremonyServerClient {
   id: string
   socket: net.Socket
   connected: boolean
   logger: Logger
+  private _joined?: {
+    name?: string
+  }
 
   constructor(options: { socket: net.Socket; id: string; logger: Logger }) {
     this.id = options.id
@@ -32,6 +37,18 @@ class CeremonyServerClient {
 
   send(message: CeremonyServerMessage): void {
     this.socket.write(JSON.stringify(message) + '\n')
+  }
+
+  join(name?: string) {
+    this._joined = { name }
+  }
+
+  get joined(): boolean {
+    return this._joined !== undefined
+  }
+
+  get name(): string | undefined {
+    return this._joined?.name
   }
 
   close(error?: Error): void {
@@ -99,7 +116,7 @@ export class CeremonyServer {
     const paramFileNames = await S3Utils.getBucketObjects(this.s3Client, this.s3Bucket)
     const validParams = paramFileNames
       .slice(0)
-      .filter((fileName) => /^params_\d{4}$/.exec(fileName)?.length === 1)
+      .filter((fileName) => /^params_\d{5}$/.test(fileName))
     validParams.sort()
     return validParams[validParams.length - 1]
   }
@@ -177,22 +194,20 @@ export class CeremonyServer {
   private onConnection(socket: net.Socket): void {
     const client = new CeremonyServerClient({ socket, id: uuid(), logger: this.logger })
 
-    const ip = socket.remoteAddress
-    const matching = this.queue.filter((c) => c.socket.remoteAddress === ip)
-    if (ip === undefined || matching.length > 0) {
-      client.close(new Error('IP address already used in this service'))
-      return
-    }
-
-    this.queue.push(client)
-    client.send({ method: 'joined', queueLocation: this.queue.length })
-
     socket.on('data', (data: Buffer) => void this.onData(client, data))
     socket.on('close', () => this.onDisconnect(client))
     socket.on('error', (e) => this.onError(client, e))
 
-    client.logger.info(`Connected ${this.queue.length} total`)
-    void this.startNextContributor()
+    const ip = socket.remoteAddress
+    if (
+      ENABLE_IP_BANNING &&
+      (ip === undefined ||
+        this.queue.find((c) => c.socket.remoteAddress === ip) !== undefined ||
+        this.currentContributor?.client.socket.remoteAddress === ip)
+    ) {
+      this.closeClient(client, new Error('IP address already used in this service'))
+      return
+    }
   }
 
   private onDisconnect(client: CeremonyServerClient): void {
@@ -223,7 +238,15 @@ export class CeremonyServer {
 
     client.logger.info(`Message Received: ${parsedMessage.method}`)
 
-    if (parsedMessage.method === 'contribution-complete') {
+    if (parsedMessage.method === 'join' && !client.joined) {
+      this.queue.push(client)
+      const estimate = this.queue.length * (this.contributionTimeoutMs + this.uploadTimeoutMs)
+      client.join(parsedMessage.name)
+      client.send({ method: 'joined', queueLocation: this.queue.length, estimate })
+
+      client.logger.info(`Connected ${this.queue.length} total`)
+      void this.startNextContributor()
+    } else if (parsedMessage.method === 'contribution-complete') {
       await this.handleContributionComplete(client).catch((e) => {
         client.logger.error(
           `Error handling contribution-complete: ${ErrorUtils.renderError(e)}`,
@@ -271,7 +294,9 @@ export class CeremonyServer {
 
   private sendUpdatedLocationsToClients() {
     for (const [i, client] of this.queue.entries()) {
-      client.send({ method: 'joined', queueLocation: i })
+      const queueLocation = i + 1
+      const estimate = queueLocation * (this.uploadTimeoutMs + this.contributionTimeoutMs)
+      client.send({ method: 'joined', queueLocation, estimate })
     }
   }
 
@@ -320,7 +345,7 @@ export class CeremonyServer {
     const hash = await verifyTransform(oldParamsDownloadPath, newParamsDownloadPath)
 
     client.logger.info(`Uploading verified contribution`)
-    const destFile = 'params_' + nextParamNumber.toString().padStart(4, '0')
+    const destFile = 'params_' + nextParamNumber.toString().padStart(5, '0')
     await S3Utils.uploadToBucket(
       this.s3Client,
       newParamsDownloadPath,
@@ -328,6 +353,7 @@ export class CeremonyServer {
       this.s3Bucket,
       destFile,
       client.logger,
+      client.name ? { contributorName: encodeURIComponent(client.name) } : undefined,
     )
 
     client.logger.info(`Cleaning up local files`)

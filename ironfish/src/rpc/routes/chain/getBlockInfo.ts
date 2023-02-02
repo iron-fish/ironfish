@@ -12,6 +12,7 @@ export type GetBlockInfoRequest = {
   search?: string
   hash?: string
   sequence?: number
+  confirmations?: number
 }
 
 export type GetBlockInfoResponse = {
@@ -32,6 +33,7 @@ export type GetBlockInfoResponse = {
   }
   metadata: {
     main: boolean
+    confirmed: boolean
   }
 }
 
@@ -41,6 +43,7 @@ export const GetBlockInfoRequestSchema: yup.ObjectSchema<GetBlockInfoRequest> = 
     search: yup.string(),
     hash: yup.string(),
     sequence: yup.number(),
+    confirmations: yup.number().min(0).optional(),
   })
   .defined()
 
@@ -72,6 +75,7 @@ export const GetBlockInfoResponseSchema: yup.ObjectSchema<GetBlockInfoResponse> 
     metadata: yup
       .object({
         main: yup.boolean().defined(),
+        confirmed: yup.boolean().defined(),
       })
       .defined(),
   })
@@ -83,6 +87,8 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
   async (request, node): Promise<void> => {
     let header: BlockHeader | null = null
     let error = ''
+
+    const confirmations = request.data.confirmations ?? node.config.get('confirmations')
 
     if (request.data.search) {
       const search = request.data.search.trim()
@@ -138,6 +144,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
     }
 
     const main = await node.chain.isHeadChain(header)
+    const confirmed = node.chain.head.sequence - header.sequence >= confirmations
 
     request.end({
       block: {
@@ -151,6 +158,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
       },
       metadata: {
         main: main,
+        confirmed: confirmed,
       },
     })
   },

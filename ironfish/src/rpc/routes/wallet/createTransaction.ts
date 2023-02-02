@@ -33,6 +33,7 @@ export type CreateTransactionRequest = {
   feeRate?: string | null
   expiration?: number
   expirationDelta?: number
+  confirmations?: number
 }
 
 export type CreateTransactionResponse = {
@@ -80,6 +81,7 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
     feeRate: yup.string().nullable().optional(),
     expiration: yup.number().optional(),
     expirationDelta: yup.number().optional(),
+    confirmations: yup.number().optional(),
   })
   .defined()
 
@@ -214,6 +216,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           expirationDelta:
             data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
           expiration: data.expiration,
+          confirmations: data.confirmations,
         })
       } else {
         let feeRate
@@ -232,6 +235,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           expirationDelta:
             data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
           expiration: data.expiration,
+          confirmations: data.confirmations,
           feeRate: feeRate,
         })
       }

@@ -112,3 +112,24 @@ fn test_hex_conversion() {
 
     assert!(PublicAddress::from_hex("invalid").is_err());
 }
+
+#[test]
+fn test_from_and_to_words() {
+    let key_bytes = [
+        213, 107, 36, 28, 169, 101, 179, 153, 116, 133, 204, 240, 100, 33, 116, 12, 29, 97, 22, 57,
+        34, 173, 28, 2, 238, 105, 251, 224, 146, 83, 218, 247,
+    ];
+    let words_for_bytes = "step float already fan forest smile spirit ridge vacant canal fringe blouse stock mention tonight fiber bright blast omit water ankle clarify hint turn".to_owned();
+
+    // Convert to words
+    let key = SaplingKey::new(key_bytes).expect("Key should be created");
+    let words = key
+        .to_words(bip39::Language::English)
+        .expect("Should return words");
+    assert_eq!(words_for_bytes, words);
+
+    // Convert from words
+    let key =
+        SaplingKey::from_words(words, bip39::Language::English).expect("key should be created");
+    assert_eq!(key.spending_key, key_bytes);
+}

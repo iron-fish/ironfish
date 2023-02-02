@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { contribute } from '@ironfish/rust-nodejs'
-import { ErrorUtils, PromiseUtils } from '@ironfish/sdk'
+import { ErrorUtils, PromiseUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
 import fsAsync from 'fs/promises'
@@ -41,13 +41,20 @@ export default class Ceremony extends IronfishCommand {
     const outputPath = path.join(tempDir, 'newParams')
 
     let localHash: string | null = null
+    let refreshEtaInterval: NodeJS.Timeout | null = null
+    let etaDate: Date | null = null
 
     // Prompt for randomness
     let randomness: string | null = await CliUx.ux.prompt(
-      'Provide some randomness to contribute to the ceremony. If none is provided, it will automatically be generated for you (press enter)',
+      `If you'd like to contribute your own randomness to the ceremony, type it here, then press Enter. For more information on where this should come from and its importance, please read https://setup.ironfish.network. If you'd like the command to generate some randomness for you, just press Enter`,
       { required: false },
     )
     randomness = randomness.length ? randomness : null
+
+    const name = await CliUx.ux.prompt(
+      `If you'd like to associate a name with this contribution, type it here, then press Enter. Otherwise, to contribute anonymously, just press Enter`,
+      { required: false },
+    )
 
     // Create the client and bind events
     const client = new CeremonyClient({
@@ -56,12 +63,22 @@ export default class Ceremony extends IronfishCommand {
       logger: this.logger.withTag('ceremonyClient'),
     })
 
-    client.onJoined.on(({ queueLocation }) => {
+    client.onJoined.on(({ queueLocation, estimate }) => {
+      refreshEtaInterval && clearInterval(refreshEtaInterval)
+
+      etaDate = new Date(Date.now() + estimate)
+
+      CliUx.ux.action.status = renderStatus(queueLocation, etaDate)
+      refreshEtaInterval = setInterval(() => {
+        CliUx.ux.action.status = renderStatus(queueLocation, etaDate)
+      }, 10 * 1000)
+
       CliUx.ux.action.status = `Current position: ${queueLocation}`
     })
 
     client.onInitiateContribution.on(async ({ downloadLink, contributionNumber }) => {
       CliUx.ux.action.stop()
+      refreshEtaInterval && clearInterval(refreshEtaInterval)
 
       this.log(`Starting contribution. You are contributor #${contributionNumber}`)
 
@@ -98,6 +115,7 @@ export default class Ceremony extends IronfishCommand {
 
     client.onInitiateUpload.on(async ({ uploadLink }) => {
       CliUx.ux.action.stop()
+      refreshEtaInterval && clearInterval(refreshEtaInterval)
 
       CliUx.ux.action.start(`Uploading your contribution`)
 
@@ -126,6 +144,7 @@ export default class Ceremony extends IronfishCommand {
 
     client.onContributionVerified.on(({ hash, downloadLink, contributionNumber }) => {
       CliUx.ux.action.stop()
+      refreshEtaInterval && clearInterval(refreshEtaInterval)
 
       if (!localHash) {
         this.log(
@@ -169,6 +188,8 @@ export default class Ceremony extends IronfishCommand {
         continue
       }
 
+      client.join(name)
+
       CliUx.ux.action.start('Waiting to contribute', undefined, { stdout: true })
 
       const result = await client.waitForStop()
@@ -187,9 +208,17 @@ export default class Ceremony extends IronfishCommand {
   }
 }
 
+const renderStatus = (queueLocation: number, etaDate: Date | null): string => {
+  return `Current position: ${queueLocation} ${
+    etaDate
+      ? `(Estimated time remaining: ${TimeUtils.renderSpan(etaDate.getTime() - Date.now())})`
+      : ''
+  }`
+}
+
 const display256CharacterHash = (hash: string): string => {
   // split string every 8 characters
-  let slices = hash.match(/.{1,8}/g) ?? []
+  let slices: string[] = hash.match(/.{1,8}/g) ?? []
 
   const output = []
   for (let i = 0; i < 4; i++) {

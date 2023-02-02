@@ -36,6 +36,7 @@ describe('Route wallet/createTransaction', () => {
           fee: 0n,
           expiration: 0,
         })
+
         return routeTest.node.wallet.postTransaction(
           raw,
           routeTest.node.memPool,

@@ -929,7 +929,6 @@ describe('Blockchain', () => {
           name: asset.name().toString('utf8'),
           metadata: asset.metadata().toString('utf8'),
           value: 10n,
-          isNewAsset: true,
         }
 
         const mint = await usePostTxFixture({

@@ -8,6 +8,7 @@ export type CeremonyServerMessage =
   | {
       method: 'joined'
       queueLocation: number
+      estimate: number
     }
   | {
       method: 'initiate-contribution'
@@ -26,11 +27,13 @@ export type CeremonyServerMessage =
     }
 
 export type CeremonyClientMessage = {
-  method: 'contribution-complete' | 'upload-complete'
+  method: 'contribution-complete' | 'upload-complete' | 'join'
+  name?: string // only used on join
 }
 
 export const CeremonyClientMessageSchema: yup.ObjectSchema<CeremonyClientMessage> = yup
   .object({
-    method: yup.string().oneOf(['contribution-complete', 'upload-complete']).required(),
+    method: yup.string().oneOf(['contribution-complete', 'upload-complete', 'join']).required(),
+    name: yup.string(),
   })
   .required()

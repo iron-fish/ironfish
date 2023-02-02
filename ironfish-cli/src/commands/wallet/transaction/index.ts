@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BufferUtils, CurrencyUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
-import { IronfishCommand } from '../../command'
-import { RemoteFlags } from '../../flags'
+import { IronfishCommand } from '../../../command'
+import { RemoteFlags } from '../../../flags'
 
 export class TransactionCommand extends IronfishCommand {
   static description = `Display an account transaction`

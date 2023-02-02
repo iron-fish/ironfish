@@ -398,9 +398,9 @@ export class Wallet {
             [account],
           )
 
-          const decryptedNotes = decryptedNotesByAccountId.get(account.id)
+          const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
 
-          if (!decryptedNotes) {
+          if (decryptedNotes.length === 0 && !(await account.hasSpend(transaction))) {
             continue
           }
 
@@ -483,10 +483,10 @@ export class Wallet {
       accounts,
     )
 
-    for (const [accountId, decryptedNotes] of decryptedNotesByAccountId) {
-      const account = this.accounts.get(accountId)
+    for (const account of accounts) {
+      const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
 
-      if (!account) {
+      if (decryptedNotes.length === 0 && !(await account.hasSpend(transaction))) {
         continue
       }
 
@@ -640,11 +640,13 @@ export class Wallet {
     fee: bigint,
     expirationDelta: number,
     expiration?: number | null,
+    confirmations?: number | null,
   ): Promise<Transaction> {
     const raw = await this.createTransaction(sender, receives, [], [], {
       fee,
       expirationDelta,
       expiration: expiration ?? undefined,
+      confirmations: confirmations ?? undefined,
     })
 
     return this.postTransaction(raw, memPool, sender.spendingKey)
@@ -682,6 +684,7 @@ export class Wallet {
       fee: options.fee,
       expirationDelta: options.expirationDelta,
       expiration: options.expiration,
+      confirmations: options.confirmations,
     })
 
     return this.postTransaction(raw, memPool, account.spendingKey)
@@ -695,11 +698,13 @@ export class Wallet {
     fee: bigint,
     expirationDelta: number,
     expiration?: number,
+    confirmations?: number,
   ): Promise<Transaction> {
     const raw = await this.createTransaction(account, [], [], [{ assetId, value }], {
       fee: fee,
       expirationDelta: expirationDelta,
       expiration: expiration,
+      confirmations: confirmations,
     })
 
     return this.postTransaction(raw, memPool, account.spendingKey)
@@ -720,6 +725,7 @@ export class Wallet {
       feeRate?: bigint
       expiration?: number
       expirationDelta?: number
+      confirmations?: number
     },
   ): Promise<RawTransaction> {
     const heaviestHead = this.chain.head
@@ -730,6 +736,8 @@ export class Wallet {
     if (options.fee === undefined && options.feeRate === undefined) {
       throw new Error('Fee or FeeRate is required to create a transaction')
     }
+
+    const confirmations = options.confirmations ?? this.config.get('confirmations')
 
     let expiration = options.expiration
     if (expiration === undefined && options.expirationDelta) {
@@ -790,6 +798,7 @@ export class Wallet {
       await this.fund(raw, {
         fee: raw.fee,
         account: sender,
+        confirmations: confirmations,
       })
 
       if (options.feeRate) {
@@ -800,6 +809,7 @@ export class Wallet {
         await this.fund(raw, {
           fee: raw.fee,
           account: sender,
+          confirmations: confirmations,
         })
       }
 
@@ -834,13 +844,14 @@ export class Wallet {
     options: {
       fee: bigint
       account: Account
+      confirmations: number
     },
   ): Promise<void> {
     const needed = this.buildAmountsNeeded(raw, {
       fee: options.fee,
     })
 
-    const spends = await this.createSpends(options.account, needed)
+    const spends = await this.createSpends(options.account, needed, options.confirmations)
 
     for (const spend of spends) {
       const witness = new Witness(
@@ -882,11 +893,17 @@ export class Wallet {
   private async createSpends(
     sender: Account,
     amountsNeeded: BufferMap<bigint>,
+    confirmations: number,
   ): Promise<Array<{ note: Note; witness: NoteWitness }>> {
     const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
 
     for (const [assetId, amountNeeded] of amountsNeeded.entries()) {
-      const { amount, notes } = await this.createSpendsForAsset(sender, assetId, amountNeeded)
+      const { amount, notes } = await this.createSpendsForAsset(
+        sender,
+        assetId,
+        amountNeeded,
+        confirmations,
+      )
 
       if (amount < amountNeeded) {
         throw new NotEnoughFundsError(assetId, amount, amountNeeded)
@@ -902,9 +919,15 @@ export class Wallet {
     sender: Account,
     assetId: Buffer,
     amountNeeded: bigint,
+    confirmations: number,
   ): Promise<{ amount: bigint; notes: Array<{ note: Note; witness: NoteWitness }> }> {
     let amount = BigInt(0)
     const notes: Array<{ note: Note; witness: NoteWitness }> = []
+
+    const head = await sender.getHead()
+    if (!head) {
+      return { amount, notes }
+    }
 
     for await (const unspentNote of this.getUnspentNotes(sender, assetId)) {
       if (unspentNote.note.value() <= BigInt(0)) {
@@ -913,6 +936,12 @@ export class Wallet {
 
       Assert.isNotNull(unspentNote.index)
       Assert.isNotNull(unspentNote.nullifier)
+      Assert.isNotNull(unspentNote.sequence)
+
+      const isConfirmed = head.sequence - unspentNote.sequence >= confirmations
+      if (!isConfirmed) {
+        continue
+      }
 
       if (await this.checkNoteOnChainAndRepair(sender, unspentNote)) {
         continue

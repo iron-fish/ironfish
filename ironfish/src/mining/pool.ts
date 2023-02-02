@@ -21,6 +21,7 @@ import { mineableHeaderString } from './utils'
 import { WebhookNotifier } from './webhooks'
 
 const RECALCULATE_TARGET_TIMEOUT = 10000
+const EVENT_LOOP_MS = 10 * 1000
 
 export class MiningPool {
   readonly stratum: StratumServer
@@ -37,6 +38,11 @@ export class MiningPool {
   private connectWarned: boolean
   private connectTimeout: SetTimeoutToken | null
 
+  private eventLoopTimeout: SetTimeoutToken | null
+
+  private attemptPayoutInterval: number
+  private nextPayoutAttempt: number
+
   name: string
 
   nextMiningRequestId: number
@@ -49,8 +55,7 @@ export class MiningPool {
   currentHeadTimestamp: number | null
   currentHeadDifficulty: bigint | null
 
-  recalculateTargetInterval: SetIntervalToken | null
-
+  private recalculateTargetInterval: SetIntervalToken | null
   private notifyStatusInterval: SetIntervalToken | null
 
   private constructor(options: {
@@ -91,6 +96,11 @@ export class MiningPool {
     this.connectTimeout = null
     this.connectWarned = false
     this.started = false
+
+    this.eventLoopTimeout = null
+
+    this.attemptPayoutInterval = this.config.get('poolAttemptPayoutInterval')
+    this.nextPayoutAttempt = new Date().getTime()
 
     this.recalculateTargetInterval = null
     this.notifyStatusInterval = null
@@ -155,7 +165,8 @@ export class MiningPool {
       )
     }
 
-    void this.startConnectingRpc()
+    await this.startConnectingRpc()
+    void this.eventLoop()
   }
 
   async stop(): Promise<void> {
@@ -180,6 +191,10 @@ export class MiningPool {
       clearTimeout(this.connectTimeout)
     }
 
+    if (this.eventLoopTimeout) {
+      clearTimeout(this.eventLoopTimeout)
+    }
+
     if (this.recalculateTargetInterval) {
       clearInterval(this.recalculateTargetInterval)
     }
@@ -187,6 +202,25 @@ export class MiningPool {
     if (this.notifyStatusInterval) {
       clearInterval(this.notifyStatusInterval)
     }
+  }
+
+  private async eventLoop(): Promise<void> {
+    if (!this.started) {
+      return
+    }
+
+    const eventLoopStartTime = new Date().getTime()
+
+    if (this.nextPayoutAttempt <= eventLoopStartTime) {
+      this.nextPayoutAttempt = new Date().getTime() + this.attemptPayoutInterval * 1000
+      await this.shares.createPayout()
+    }
+
+    const eventLoopEndTime = new Date().getTime()
+    const eventLoopDuration = eventLoopEndTime - eventLoopStartTime
+    this.logger.debug(`Mining pool event loop took ${eventLoopDuration} milliseconds`)
+
+    this.eventLoopTimeout = setTimeout(() => void this.eventLoop(), EVENT_LOOP_MS)
   }
 
   async waitForStop(): Promise<void> {
