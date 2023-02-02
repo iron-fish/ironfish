@@ -60,10 +60,11 @@ export class ExportCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc(local)
     const response = await client.exportAccount({ account })
-    const responseJSONString = JSON.stringify(response.content.account)
 
-    let output
-    if (flags.language) {
+    let output = ''
+    if (flags.json) {
+      output = JSON.stringify(response.content.account, undefined, '   ')
+    } else if (flags.language) {
       output = spendingKeyToWords(
         response.content.account.spendingKey,
         LANGUAGES[flags.language],
@@ -71,16 +72,10 @@ export class ExportCommand extends IronfishCommand {
     } else if (flags.mnemonic) {
       const language = await selectLanguage()
       output = spendingKeyToWords(response.content.account.spendingKey, language)
-    } else if (flags.json) {
-      output = responseJSONString
     } else {
-      const responseBytes = Buffer.from(responseJSONString)
+      const bytes2 = Buffer.from(JSON.stringify(response.content.account))
       const lengthLimit = 1023
-      output = bech32m.encode(
-        'ironfishaccount00000',
-        bech32m.toWords(responseBytes),
-        lengthLimit,
-      )
+      output = bech32m.encode('ironfishprivatekey00000', bech32m.toWords(bytes2), lengthLimit)
     }
 
     if (exportPath) {
