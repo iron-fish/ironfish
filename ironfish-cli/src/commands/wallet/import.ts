@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { AccountImport, JSONUtils, PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import { bech32m } from 'bech32'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
@@ -26,6 +27,17 @@ export class ImportCommand extends IronfishCommand {
       description: 'The path to import the account from',
     },
   ]
+
+  static bech32ToJSON(bech32: string): string | null {
+    try {
+      const decodedOutput = bech32m.decode(bech32, 1023)
+      const decodedWords = decodedOutput.words
+      const decodedBytes = bech32m.fromWords(decodedWords)
+      return Buffer.from(decodedBytes).toString()
+    } catch (e) {
+      return null
+    }
+  }
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ImportCommand)
@@ -65,7 +77,11 @@ export class ImportCommand extends IronfishCommand {
   async importFile(path: string): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    return JSONUtils.parse<AccountImport>(data)
+    try {
+      return JSONUtils.parse<AccountImport>(ImportCommand.bech32ToJSON(data) ?? data)
+    } catch (e) {
+      CliUx.ux.error(`Failed to decode the account from the provided file: ${path}`)
+    }
   }
 
   async importPipe(): Promise<AccountImport> {
@@ -84,10 +100,31 @@ export class ImportCommand extends IronfishCommand {
 
     process.stdin.off('data', onData)
 
-    return JSONUtils.parse<AccountImport>(data)
+    try {
+      return JSONUtils.parse<AccountImport>(ImportCommand.bech32ToJSON(data) ?? data)
+    } catch (e) {
+      CliUx.ux.error(`Failed to decode the account from the provided input`)
+    }
   }
 
   async importTTY(): Promise<AccountImport> {
+    const userInput = await CliUx.ux.prompt('Paste the output of wallet:export', {
+      required: true,
+    })
+    try {
+      const retData = JSONUtils.parse<AccountImport>(
+        ImportCommand.bech32ToJSON(userInput) ?? userInput,
+      )
+      return retData
+    } catch (e) {
+      CliUx.ux.error(
+        'Failed to decode the account from the provided input, please continue with the manual input below',
+        {
+          exit: false,
+        },
+      )
+    }
+
     const accountName = await CliUx.ux.prompt('Enter the account name', {
       required: true,
     })

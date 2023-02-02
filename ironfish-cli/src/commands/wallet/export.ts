@@ -4,6 +4,7 @@
 import { spendingKeyToWords } from '@ironfish/rust-nodejs'
 import { ErrorUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import { bech32m } from 'bech32'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
@@ -30,6 +31,10 @@ export class ExportCommand extends IronfishCommand {
       required: false,
       options: LANGUAGE_KEYS,
     }),
+    json: Flags.boolean({
+      default: false,
+      description: 'Output the account as JSON, rather than the default bech32',
+    }),
   }
 
   static args = [
@@ -55,6 +60,8 @@ export class ExportCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc(local)
     const response = await client.exportAccount({ account })
+    const responseJSONString = JSON.stringify(response.content.account)
+
     let output
     if (flags.language) {
       output = spendingKeyToWords(
@@ -64,8 +71,16 @@ export class ExportCommand extends IronfishCommand {
     } else if (flags.mnemonic) {
       const language = await selectLanguage()
       output = spendingKeyToWords(response.content.account.spendingKey, language)
+    } else if (flags.json) {
+      output = responseJSONString
     } else {
-      output = JSON.stringify(response.content.account, undefined, '   ')
+      const responseBytes = Buffer.from(responseJSONString)
+      const lengthLimit = 1023
+      output = bech32m.encode(
+        'ironfishaccount00000',
+        bech32m.toWords(responseBytes),
+        lengthLimit,
+      )
     }
 
     if (exportPath) {
@@ -104,7 +119,7 @@ export class ExportCommand extends IronfishCommand {
       return
     }
 
-    if (color && !flags.language && !flags.mnemonic) {
+    if (color && flags.json) {
       output = jsonColorizer(output)
     }
     this.log(output)
