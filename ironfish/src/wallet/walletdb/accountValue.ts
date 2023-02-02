@@ -26,7 +26,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
-    bw.writeU8(value.version)
+    bw.writeU16(value.version)
 
     return bw.render()
   }
@@ -41,7 +41,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
     let version = 1
     if (reader.left() !== 0) {
-      version = reader.readU8()
+      version = reader.readU16()
     }
 
     return {
@@ -63,7 +63,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
-    size += 1 // version
+    size += 2 // version
 
     return size
   }
