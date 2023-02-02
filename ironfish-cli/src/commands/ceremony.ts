@@ -200,7 +200,7 @@ export default class Ceremony extends IronfishCommand {
         continue
       }
 
-      client.join(name)
+      client.join(name, flags.token)
 
       CliUx.ux.action.start('Waiting to contribute', undefined, { stdout: true })
 
