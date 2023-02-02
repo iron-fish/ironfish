@@ -117,7 +117,9 @@ export class ImportCommand extends IronfishCommand {
       )
       return retData
     } catch (e) {
-      CliUx.ux.info('Failed to decode the account from the provided input, please continue with the manual input below')
+      CliUx.ux.info(
+        'Failed to decode the account from the provided input, please continue with the manual input below',
+      )
     }
 
     const accountName = await CliUx.ux.prompt('Enter the account name', {
