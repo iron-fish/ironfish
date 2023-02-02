@@ -52,9 +52,10 @@ export default class Ceremony extends IronfishCommand {
     token: Flags.string({
       required: true,
     }),
-    enableIPBanning: Flags.boolean({
+    skipIPCheck: Flags.boolean({
       required: false,
-      default: true,
+      description: 'Pass this flag if you want to skip checking for duplicate IPs',
+      default: false,
     }),
   }
 
@@ -80,7 +81,7 @@ export default class Ceremony extends IronfishCommand {
       presignedExpirationSec: flags.presignedExpirationSec,
       startDate: flags.startDate,
       token: flags.token,
-      enableIPBanning: flags.enableIPBanning,
+      enableIPBanning: !flags.skipIPCheck,
     })
 
     await server.start()
