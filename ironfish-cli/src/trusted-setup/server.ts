@@ -17,6 +17,8 @@ type CurrentContributor = {
   actionTimeout: SetTimeoutToken
 }
 
+const ENABLE_IP_BANNING = true
+
 class CeremonyServerClient {
   id: string
   socket: net.Socket
@@ -177,19 +179,24 @@ export class CeremonyServer {
   private onConnection(socket: net.Socket): void {
     const client = new CeremonyServerClient({ socket, id: uuid(), logger: this.logger })
 
+    socket.on('data', (data: Buffer) => void this.onData(client, data))
+    socket.on('close', () => this.onDisconnect(client))
+    socket.on('error', (e) => this.onError(client, e))
+
     const ip = socket.remoteAddress
-    const matching = this.queue.filter((c) => c.socket.remoteAddress === ip)
-    if (ip === undefined || matching.length > 0) {
-      client.close(new Error('IP address already used in this service'))
+    if (
+      ENABLE_IP_BANNING &&
+      (ip === undefined ||
+        this.queue.find((c) => c.socket.remoteAddress === ip) !== undefined ||
+        this.currentContributor?.client.socket.remoteAddress === ip)
+    ) {
+      this.closeClient(client, new Error('IP address already used in this service'))
       return
     }
 
     this.queue.push(client)
-    client.send({ method: 'joined', queueLocation: this.queue.length })
-
-    socket.on('data', (data: Buffer) => void this.onData(client, data))
-    socket.on('close', () => this.onDisconnect(client))
-    socket.on('error', (e) => this.onError(client, e))
+    const estimate = this.queue.length * (this.contributionTimeoutMs + this.uploadTimeoutMs)
+    client.send({ method: 'joined', queueLocation: this.queue.length, estimate })
 
     client.logger.info(`Connected ${this.queue.length} total`)
     void this.startNextContributor()
@@ -271,7 +278,9 @@ export class CeremonyServer {
 
   private sendUpdatedLocationsToClients() {
     for (const [i, client] of this.queue.entries()) {
-      client.send({ method: 'joined', queueLocation: i })
+      const queueLocation = i + 1
+      const estimate = queueLocation * (this.uploadTimeoutMs + this.contributionTimeoutMs)
+      client.send({ method: 'joined', queueLocation, estimate })
     }
   }
 

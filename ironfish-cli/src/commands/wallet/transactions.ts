@@ -16,7 +16,7 @@ import { RemoteFlags } from '../../flags'
 import { TableCols, truncateCol } from '../../utils/table'
 
 const MAX_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH + 1
-const MIN_ASSET_NAME_COLUMN_WIDTH = 'Asset Name'.length + 1
+const MIN_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH / 2 + 1
 
 export class TransactionsCommand extends IronfishCommand {
   static description = `Display the account transactions`
@@ -57,141 +57,14 @@ export class TransactionsCommand extends IronfishCommand {
       confirmations: flags.confirmations,
     })
 
+    const columns = this.getColumns(flags.extended)
+
     let showHeader = true
-    const assetNameWidth = flags.extended
-      ? MAX_ASSET_NAME_COLUMN_WIDTH
-      : MIN_ASSET_NAME_COLUMN_WIDTH
 
     for await (const transaction of response.contentStream()) {
-      const transactionHeader = this.getTransactionHeader(transaction)
+      const transactionRows = this.getTransactionRows(transaction)
 
-      const isGroup = transaction.assetBalanceDeltas.length > 1
-
-      if (isGroup) {
-        transactionHeader.group = '┏'
-      }
-
-      const transactionRows: PartialRecursive<TransactionRow>[] = []
-      for (const { assetId, assetName, delta } of transaction.assetBalanceDeltas) {
-        if (assetId === Asset.nativeId().toString('hex')) {
-          continue
-        }
-
-        let group = ''
-
-        if (isGroup) {
-          if (transactionRows.length === transaction.assetBalanceDeltas.length - 2) {
-            group = '┗'
-          } else {
-            group = '┣'
-          }
-        }
-
-        transactionRows.push({
-          group,
-          assetId,
-          assetName: BufferUtils.toHuman(Buffer.from(assetName, 'hex')),
-          amount: BigInt(delta),
-        })
-      }
-
-      let columns: CliUx.Table.table.Columns<TransactionRow> = {
-        group: {
-          header: '',
-          minWidth: 3,
-        },
-        timestamp: TableCols.timestamp({
-          streaming: true,
-        }),
-        status: {
-          header: 'Status',
-          minWidth: 12,
-        },
-        type: {
-          header: 'Type',
-          minWidth: 8,
-        },
-        hash: {
-          header: 'Hash',
-          minWidth: 32,
-        },
-        notesCount: {
-          header: 'Notes',
-          minWidth: 5,
-          extended: true,
-        },
-        spendsCount: {
-          header: 'Spends',
-          minWidth: 5,
-          extended: true,
-        },
-        mintsCount: {
-          header: 'Mints',
-          minWidth: 5,
-          extended: true,
-        },
-        burnsCount: {
-          header: 'Burns',
-          minWidth: 5,
-          extended: true,
-        },
-        expiration: {
-          header: 'Expiration',
-        },
-        feePaid: {
-          header: 'Fee Paid ($IRON)',
-          get: (row) =>
-            row.feePaid && row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : '',
-        },
-      }
-
-      if (flags.extended) {
-        columns = {
-          ...columns,
-          assetId: {
-            header: 'Asset ID',
-            extended: true,
-          },
-          assetName: {
-            header: 'Asset Name',
-            get: (row) => {
-              Assert.isNotUndefined(row.assetName)
-              return truncateCol(row.assetName, assetNameWidth)
-            },
-            minWidth: assetNameWidth,
-            extended: true,
-          },
-        }
-      } else {
-        columns = {
-          ...columns,
-          asset: {
-            header: 'Asset',
-            get: (row) => {
-              Assert.isNotUndefined(row.assetName)
-              Assert.isNotUndefined(row.assetId)
-              const text = row.assetName.padEnd(assetNameWidth, ' ')
-              return `${text} (${row.assetId.slice(0, 5)})`
-            },
-            extended: false,
-            minWidth: assetNameWidth,
-          },
-        }
-      }
-
-      columns = {
-        ...columns,
-        amount: {
-          header: 'Net Amount',
-          get: (row) => {
-            Assert.isNotUndefined(row.amount)
-            return row.amount !== 0n ? CurrencyUtils.renderIron(row.amount) : ''
-          },
-          minWidth: 16,
-        },
-      }
-
-      CliUx.ux.table([transactionHeader, ...transactionRows], columns, {
+      CliUx.ux.table(transactionRows, columns, {
         printLine: this.log.bind(this),
         ...flags,
         'no-header': !showHeader,
@@ -201,11 +74,13 @@ export class TransactionsCommand extends IronfishCommand {
     }
   }
 
-  getTransactionHeader(transaction: GetAccountTransactionsResponse): TransactionRow {
-    const assetId = Asset.nativeId().toString('hex')
+  getTransactionRows(
+    transaction: GetAccountTransactionsResponse,
+  ): PartialRecursive<TransactionRow>[] {
+    const nativeAssetId = Asset.nativeId().toString('hex')
 
     const nativeAssetBalanceDelta = transaction.assetBalanceDeltas.find(
-      (d) => d.assetId === assetId,
+      (d) => d.assetId === nativeAssetId,
     )
 
     let amount = BigInt(nativeAssetBalanceDelta?.delta ?? '0')
@@ -218,13 +93,152 @@ export class TransactionsCommand extends IronfishCommand {
       amount += feePaid
     }
 
+    const transactionRows = []
+
+    const assetCount = transaction.assetBalanceDeltas.length
+    const isGroup = assetCount > 1
+
+    // $IRON should appear first if it is the only asset in the transaction or the net amount was non-zero
+    if (!isGroup || amount !== 0n) {
+      transactionRows.push({
+        ...transaction,
+        group: isGroup ? '┏' : '',
+        assetId: nativeAssetId,
+        assetName: '$IRON',
+        amount,
+        feePaid,
+      })
+    }
+
+    for (const [
+      index,
+      { assetId, assetName, delta },
+    ] of transaction.assetBalanceDeltas.entries()) {
+      // skip the native asset, added above
+      if (assetId === Asset.nativeId().toString('hex')) {
+        continue
+      }
+
+      if (transactionRows.length === 0) {
+        // include full transaction details if the native asset had no net change
+        transactionRows.push({
+          ...transaction,
+          group: assetCount === 2 ? '' : '┏',
+          assetId: assetId,
+          assetName: BufferUtils.toHuman(Buffer.from(assetName, 'hex')),
+          amount: BigInt(delta),
+          feePaid,
+        })
+      } else {
+        transactionRows.push({
+          group: index === assetCount - 1 ? '┗' : '┣',
+          assetId,
+          assetName: BufferUtils.toHuman(Buffer.from(assetName, 'hex')),
+          amount: BigInt(delta),
+        })
+      }
+    }
+
+    return transactionRows
+  }
+
+  getColumns(extended: boolean): CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> {
+    const assetNameWidth = extended ? MAX_ASSET_NAME_COLUMN_WIDTH : MIN_ASSET_NAME_COLUMN_WIDTH
+
+    let columns: CliUx.Table.table.Columns<TransactionRow> = {
+      group: {
+        header: '',
+        minWidth: 3,
+      },
+      timestamp: TableCols.timestamp({
+        streaming: true,
+      }),
+      status: {
+        header: 'Status',
+        minWidth: 12,
+      },
+      type: {
+        header: 'Type',
+        minWidth: 8,
+      },
+      hash: {
+        header: 'Hash',
+        minWidth: 32,
+      },
+      notesCount: {
+        header: 'Notes',
+        minWidth: 5,
+        extended: true,
+      },
+      spendsCount: {
+        header: 'Spends',
+        minWidth: 5,
+        extended: true,
+      },
+      mintsCount: {
+        header: 'Mints',
+        minWidth: 5,
+        extended: true,
+      },
+      burnsCount: {
+        header: 'Burns',
+        minWidth: 5,
+        extended: true,
+      },
+      expiration: {
+        header: 'Expiration',
+      },
+      feePaid: {
+        header: 'Fee Paid ($IRON)',
+        get: (row) =>
+          row.feePaid && row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : '',
+      },
+    }
+
+    if (extended) {
+      columns = {
+        ...columns,
+        assetId: {
+          header: 'Asset ID',
+          extended: true,
+        },
+        assetName: {
+          header: 'Asset Name',
+          get: (row) => {
+            Assert.isNotUndefined(row.assetName)
+            return truncateCol(row.assetName, assetNameWidth)
+          },
+          minWidth: assetNameWidth,
+          extended: true,
+        },
+      }
+    } else {
+      columns = {
+        ...columns,
+        asset: {
+          header: 'Asset',
+          get: (row) => {
+            Assert.isNotUndefined(row.assetName)
+            Assert.isNotUndefined(row.assetId)
+            const assetName = truncateCol(row.assetName, assetNameWidth)
+            const text = assetName.padEnd(assetNameWidth, ' ')
+            return `${text} (${row.assetId.slice(0, 5)})`
+          },
+          minWidth: assetNameWidth,
+        },
+      }
+    }
+
     return {
-      ...transaction,
-      group: '',
-      assetId,
-      assetName: '$IRON',
-      amount,
-      feePaid,
+      ...columns,
+      amount: {
+        header: 'Net Amount',
+        get: (row) => {
+          Assert.isNotUndefined(row.amount)
+          return CurrencyUtils.renderIron(row.amount)
+        },
+        minWidth: 16,
+      },
     }
   }
 }

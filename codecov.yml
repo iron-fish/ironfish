@@ -32,10 +32,6 @@ flags:
     paths:
       - ironfish-rust
     carryforward: true
-  ironfish-cli:
-    paths:
-      - ironfish-cli
-    carryforward: true
   ironfish:
     paths:
       - ironfish

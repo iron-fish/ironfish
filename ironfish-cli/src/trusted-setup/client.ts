@@ -14,7 +14,7 @@ export class CeremonyClient {
   private stopPromise: Promise<{ success: boolean }> | null = null
   private stopResolve: ((params: { success: boolean }) => void) | null = null
 
-  readonly onJoined = new Event<[{ queueLocation: number }]>()
+  readonly onJoined = new Event<[{ queueLocation: number; estimate: number }]>()
   readonly onInitiateUpload = new Event<[{ uploadLink: string }]>()
   readonly onInitiateContribution = new Event<
     [{ downloadLink: string; contributionNumber: number }]
@@ -92,7 +92,10 @@ export class CeremonyClient {
     }
 
     if (parsedMessage.method === 'joined') {
-      this.onJoined.emit({ queueLocation: parsedMessage.queueLocation })
+      this.onJoined.emit({
+        queueLocation: parsedMessage.queueLocation,
+        estimate: parsedMessage.estimate,
+      })
     } else if (parsedMessage.method === 'initiate-upload') {
       this.onInitiateUpload.emit({ uploadLink: parsedMessage.uploadLink })
     } else if (parsedMessage.method === 'initiate-contribution') {
