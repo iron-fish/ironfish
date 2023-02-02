@@ -117,8 +117,11 @@ export class ImportCommand extends IronfishCommand {
       )
       return retData
     } catch (e) {
-      CliUx.ux.info(
+      CliUx.ux.error(
         'Failed to decode the account from the provided input, please continue with the manual input below',
+        {
+          exit: false,
+        },
       )
     }
 
