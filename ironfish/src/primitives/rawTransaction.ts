@@ -3,13 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Transaction as NativeTransaction } from '@ironfish/rust-nodejs'
-import { Asset, ASSET_ID_LENGTH, ASSET_LENGTH } from '@ironfish/rust-nodejs'
+import { Asset, ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
 import { BurnDescription } from './burnDescription'
-import { MintDescription } from './mintDescription'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { Transaction } from './transaction'
@@ -18,11 +17,17 @@ import { Transaction } from './transaction'
 const noteHasher = new NoteHasher()
 const MAX_MINT_OR_BURN_VALUE = BigInt(100_000_000_000_000_000n)
 
+export interface MintData {
+  name: string
+  metadata: string
+  value: bigint
+}
+
 export class RawTransaction {
   spendingKey = ''
   expiration: number | null = null
   fee = 0n
-  mints: MintDescription[] = []
+  mints: MintData[] = []
   burns: BurnDescription[] = []
   receives: { note: Note }[] = []
 
@@ -54,7 +59,9 @@ export class RawTransaction {
         throw new Error('Cannot post transaction. Mint value exceededs maximum')
       }
 
-      builder.mint(mint.asset, mint.value)
+      const asset = new Asset(this.spendingKey, mint.name, mint.metadata)
+
+      builder.mint(asset, mint.value)
     }
 
     for (const burn of this.burns) {
@@ -110,7 +117,8 @@ export class RawTransactionSerde {
 
     bw.writeU64(raw.mints.length)
     for (const mint of raw.mints) {
-      bw.writeBytes(mint.asset.serialize())
+      bw.writeVarString(mint.name)
+      bw.writeVarString(mint.metadata)
       bw.writeBigU64(mint.value)
     }
 
@@ -162,9 +170,10 @@ export class RawTransactionSerde {
 
     const mintsLength = reader.readU64()
     for (let i = 0; i < mintsLength; i++) {
-      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
+      const name = reader.readVarString()
+      const metadata = reader.readVarString()
       const value = reader.readBigU64()
-      raw.mints.push({ asset, value })
+      raw.mints.push({ name, metadata, value })
     }
 
     const burnsLength = reader.readU64()
@@ -207,8 +216,9 @@ export class RawTransactionSerde {
     }
 
     size += 8 // raw.mints.length
-    for (const _ of raw.mints) {
-      size += ASSET_LENGTH // mint.asset
+    for (const mint of raw.mints) {
+      size += bufio.sizeVarString(mint.name)
+      size += bufio.sizeVarString(mint.metadata)
       size += 8 // mint.value
     }
 

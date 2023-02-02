@@ -5,8 +5,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import * as yup from 'yup'
 import { BurnDescription } from '../../../primitives/burnDescription'
-import { MintDescription } from '../../../primitives/mintDescription'
-import { RawTransactionSerde } from '../../../primitives/rawTransaction'
+import { MintData, RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { CurrencyUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
@@ -149,10 +148,10 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       }
     })
 
-    const mints: MintDescription[] = []
+    const mints: MintData[] = []
     if (data.mints) {
       for (const mint of data.mints) {
-        let asset: Asset
+        let mintData: MintData
         if (mint.assetId) {
           const record = await node.chain.getAssetById(Buffer.from(mint.assetId, 'hex'))
           if (!record) {
@@ -161,26 +160,23 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
             )
           }
 
-          asset = new Asset(
-            account.spendingKey,
-            record.name.toString('utf8'),
-            record.metadata.toString('utf8'),
-          )
-          // Verify the stored asset produces the same identfier before building a transaction
-          if (!asset.id().equals(Buffer.from(mint.assetId, 'hex'))) {
-            throw new ValidationError(`Unauthorized to mint for asset '${mint.assetId}'`)
+          mintData = {
+            name: record.name.toString('utf8'),
+            metadata: record.metadata.toString('utf8'),
+            value: CurrencyUtils.decode(mint.value),
           }
         } else {
           if (mint.name === undefined) {
             throw new ValidationError('Must provide name or identifier to mint')
           }
-          asset = new Asset(account.spendingKey, mint.name, mint.metadata ?? '')
+          mintData = {
+            name: mint.name,
+            metadata: mint.metadata ?? '',
+            value: CurrencyUtils.decode(mint.value),
+          }
         }
 
-        mints.push({
-          asset: asset,
-          value: CurrencyUtils.decode(mint.value),
-        })
+        mints.push(mintData)
       }
     }
 

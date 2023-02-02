@@ -4,8 +4,7 @@
 
 import { Asset } from '@ironfish/rust-nodejs'
 import { BurnDescription } from '../../primitives/burnDescription'
-import { MintDescription } from '../../primitives/mintDescription'
-import { RawTransaction } from '../../primitives/rawTransaction'
+import { MintData, RawTransaction } from '../../primitives/rawTransaction'
 import { Transaction } from '../../primitives/transaction'
 import { Account, Wallet } from '../../wallet'
 
@@ -39,7 +38,7 @@ export async function createRawTransaction(options: {
     memo: string
     assetId: Buffer
   }[]
-  mints?: MintDescription[]
+  mints?: MintData[]
   burns?: BurnDescription[]
 }): Promise<RawTransaction> {
   const receives = options.receives ?? []

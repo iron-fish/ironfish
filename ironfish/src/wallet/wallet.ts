@@ -25,10 +25,9 @@ import { NoteWitness, Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { BlockHeader } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
-import { MintDescription } from '../primitives/mintDescription'
 import { Note } from '../primitives/note'
 import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
-import { RawTransaction } from '../primitives/rawTransaction'
+import { MintData, RawTransaction } from '../primitives/rawTransaction'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
@@ -658,7 +657,8 @@ export class Wallet {
     account: Account,
     options: MintAssetOptions,
   ): Promise<Transaction> {
-    let asset: Asset
+    let mintData: MintData
+
     if ('assetId' in options) {
       const record = await this.chain.getAssetById(options.assetId)
       if (!record) {
@@ -667,31 +667,25 @@ export class Wallet {
         )
       }
 
-      asset = new Asset(
-        account.spendingKey,
-        record.name.toString('utf8'),
-        record.metadata.toString('utf8'),
-      )
-      // Verify the stored asset produces the same identfier before building a transaction
-      if (!options.assetId.equals(asset.id())) {
-        throw new Error(`Unauthorized to mint for asset '${options.assetId.toString('hex')}'`)
+      mintData = {
+        name: record.name.toString('utf8'),
+        metadata: record.metadata.toString('utf8'),
+        value: options.value,
       }
     } else {
-      asset = new Asset(account.spendingKey, options.name, options.metadata)
+      mintData = {
+        name: options.name,
+        metadata: options.metadata,
+        value: options.value,
+      }
     }
 
-    const raw = await this.createTransaction(
-      account,
-      [],
-      [{ asset, value: options.value }],
-      [],
-      {
-        fee: options.fee,
-        expirationDelta: options.expirationDelta,
-        expiration: options.expiration,
-        confirmations: options.confirmations,
-      },
-    )
+    const raw = await this.createTransaction(account, [], [mintData], [], {
+      fee: options.fee,
+      expirationDelta: options.expirationDelta,
+      expiration: options.expiration,
+      confirmations: options.confirmations,
+    })
 
     return this.postTransaction(raw, memPool)
   }
@@ -724,7 +718,7 @@ export class Wallet {
       memo: string
       assetId: Buffer
     }[],
-    mints: MintDescription[],
+    mints: MintData[],
     burns: BurnDescription[],
     options: {
       fee?: bigint

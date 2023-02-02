@@ -16,7 +16,7 @@ import {
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { Note } from './note'
-import { RawTransaction, RawTransactionSerde } from './rawTransaction'
+import { MintData, RawTransaction, RawTransactionSerde } from './rawTransaction'
 
 describe('RawTransaction', () => {
   const nodeTest = createNodeTest()
@@ -40,8 +40,9 @@ describe('RawTransaction', () => {
       value: 2n,
     }
 
-    const mint = {
-      asset,
+    const mint: MintData = {
+      name: asset.name().toString('utf8'),
+      metadata: asset.metadata().toString('utf8'),
       value: 1n,
     }
 
@@ -88,6 +89,7 @@ describe('RawTransaction', () => {
   it('should throw an error if the max mint value is exceeded', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
     const asset = new Asset(account.spendingKey, 'test', '')
+    const assetName = asset.name().toString('utf8')
 
     const block = await useMinerBlockFixture(
       nodeTest.chain,
@@ -99,7 +101,8 @@ describe('RawTransaction', () => {
     await nodeTest.wallet.updateHead()
 
     const mint = {
-      asset,
+      name: assetName,
+      metadata: '',
       value: BigInt(500_000_000_000_000_000n),
     }
 
@@ -174,6 +177,8 @@ describe('RawTransactionSerde', () => {
   it('serializes and deserializes a block', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
     const asset = new Asset(account.spendingKey, 'asset', 'metadata')
+    const assetName = 'asset'
+    const assetMetadata = 'metadata'
 
     const note = new Note(
       new NativeNote(
@@ -203,8 +208,14 @@ describe('RawTransactionSerde', () => {
 
     raw.mints = [
       {
-        asset: asset,
+        name: assetName,
+        metadata: assetMetadata,
         value: 5n,
+      },
+      {
+        name: assetName,
+        metadata: assetMetadata,
+        value: 4n,
       },
     ]
 
@@ -236,7 +247,14 @@ describe('RawTransactionSerde', () => {
     expect(deserialized.receives[0].note).toEqual(raw.receives[0].note)
     expect(deserialized.burns[0].assetId).toEqual(asset.id())
     expect(deserialized.burns[0].value).toEqual(5n)
-    expect(deserialized.mints[0].asset.serialize()).toEqual(asset.serialize())
+    expect(deserialized.mints[0].name).toEqual(assetName)
+    expect(deserialized.mints[0].metadata).toEqual(assetMetadata)
+    expect(deserialized.mints[0].value).toEqual(5n)
+
+    expect(deserialized.mints[1].name).toEqual(assetName)
+    expect(deserialized.mints[1].metadata).toEqual(assetMetadata)
+    expect(deserialized.mints[1].value).toEqual(4n)
+
     expect(deserialized.mints[0].value).toEqual(5n)
     expect(deserialized.spends[0].note).toEqual(raw.spends[0].note)
     expect(IsNoteWitnessEqual(deserialized.spends[0].witness, raw.spends[0].witness)).toBe(true)

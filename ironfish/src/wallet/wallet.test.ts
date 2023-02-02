@@ -1038,39 +1038,6 @@ describe('Accounts', () => {
       })
     })
 
-    describe('for an identifier not owned by the account', () => {
-      it('throws an unauthorized exception', async () => {
-        const { node } = await nodeTest.createSetup()
-        const accountA = await useAccountFixture(node.wallet, 'accountA')
-        const accountB = await useAccountFixture(node.wallet, 'accountB')
-
-        const mined = await useMinerBlockFixture(node.chain, 2, accountA)
-        await expect(node.chain).toAddBlock(mined)
-        await node.wallet.updateHead()
-
-        const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
-        const value = BigInt(10)
-        const mintBlock = await useMintBlockFixture({
-          node,
-          account: accountA,
-          asset,
-          value,
-          sequence: 3,
-        })
-        await expect(node.chain).toAddBlock(mintBlock)
-        await node.wallet.updateHead()
-
-        await expect(
-          node.wallet.mint(node.memPool, accountB, {
-            assetId: asset.id(),
-            fee: BigInt(0),
-            expirationDelta: node.config.get('transactionExpirationDelta'),
-            value: BigInt(1),
-          }),
-        ).rejects.toThrow(`Unauthorized to mint for asset '${asset.id().toString('hex')}'`)
-      })
-    })
-
     describe('for a valid asset identifier', () => {
       it('adds balance for the asset from the wallet', async () => {
         const { node } = await nodeTest.createSetup()
@@ -1129,12 +1096,18 @@ describe('Accounts', () => {
 
         const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
         const mintValue = BigInt(10)
+        const mintData = {
+          name: asset.name().toString('utf8'),
+          metadata: asset.metadata().toString('utf8'),
+          value: mintValue,
+          isNewAsset: true,
+        }
 
         const transaction = await usePostTxFixture({
           node: node,
           wallet: node.wallet,
           from: account,
-          mints: [{ asset, value: mintValue }],
+          mints: [mintData],
         })
 
         expect(transaction.mints).toEqual([{ asset: asset, value: mintValue }])
@@ -1241,18 +1214,19 @@ describe('Accounts', () => {
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
       const assetId = asset.id()
       const mintValue = BigInt(10)
+      const mintData = {
+        name: asset.name().toString('utf8'),
+        metadata: asset.metadata().toString('utf8'),
+        value: mintValue,
+        isNewAsset: true,
+      }
+
       // Mint some coins
       const blockB = await useBlockFixture(node.chain, async () => {
-        const raw = await node.wallet.createTransaction(
-          account,
-          [],
-          [{ asset, value: mintValue }],
-          [],
-          {
-            fee: 0n,
-            expiration: 0,
-          },
-        )
+        const raw = await node.wallet.createTransaction(account, [], [mintData], [], {
+          fee: 0n,
+          expiration: 0,
+        })
 
         const transaction = await node.wallet.postTransaction(raw, node.memPool)
 
