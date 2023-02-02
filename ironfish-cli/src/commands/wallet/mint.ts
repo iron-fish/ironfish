@@ -54,6 +54,11 @@ export class Mint extends IronfishCommand {
       default: false,
       description: 'Confirm without asking',
     }),
+    rawTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return raw transaction. Use it to mint an asset but not post to the network',
+    }),
   }
 
   async start(): Promise<void> {
@@ -200,12 +205,17 @@ ${amountString} plus a transaction fee of ${feeString} with the account ${accoun
         metadata,
         name,
         value: CurrencyUtils.encode(amount),
+        isRawTransaction: flags.rawTransaction,
       })
 
       stopProgressBar()
 
       const response = result.content
-      this.log(`
+
+      if (flags.rawTransaction) {
+        this.log(`Raw transaction: ${response.rawTransaction}`)
+      } else {
+        this.log(`
 Minted asset ${response.name} from ${account}
 Asset Identifier: ${response.assetId}
 Value: ${CurrencyUtils.renderIron(response.value)}
@@ -213,8 +223,9 @@ Value: ${CurrencyUtils.renderIron(response.value)}
 Transaction Hash: ${response.hash}
 
 Find the transaction on https://explorer.ironfish.network/transaction/${
-        response.hash
-      } (it can take a few minutes before the transaction appears in the Explorer)`)
+          response.hash
+        } (it can take a few minutes before the transaction appears in the Explorer)`)
+      }
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while minting the asset.`)

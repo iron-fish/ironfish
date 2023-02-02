@@ -5,6 +5,7 @@ import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
+import { Transaction } from '../primitives/transaction'
 import {
   createNodeTest,
   useAccountFixture,
@@ -1095,12 +1096,17 @@ describe('Accounts', () => {
 
         const mintValueB = BigInt(10)
         const transaction = await useTxFixture(node.wallet, account, account, () => {
-          return node.wallet.mint(node.memPool, account, {
+          const mintTx = node.wallet.mint(node.memPool, account, {
             assetId: asset.id(),
             fee: BigInt(0),
             expirationDelta: node.config.get('transactionExpirationDelta'),
             value: mintValueB,
           })
+          if (mintTx instanceof Transaction) {
+            return mintTx
+          } else {
+            throw Error
+          }
         })
 
         const mintBlock = await node.chain.newBlock(

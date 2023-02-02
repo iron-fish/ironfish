@@ -76,6 +76,11 @@ export class Send extends IronfishCommand {
       char: 'i',
       description: 'The identifier for the asset to use when sending',
     }),
+    rawTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return raw transaction. Use it to create a transaction but not post to the network',
+    }),
   }
 
   async start(): Promise<void> {
@@ -92,12 +97,12 @@ export class Send extends IronfishCommand {
     const client = await this.sdk.connectRpc(false, true)
 
     const status = await client.getNodeStatus()
-    if (!status.content.blockchain.synced) {
-      this.log(
-        `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
-      )
-      this.exit(1)
-    }
+    // if (!status.content.blockchain.synced) {
+    //   this.log(
+    //     `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
+    //   )
+    //   this.exit(1)
+    // }
 
     if (assetId == null) {
       assetId = await selectAsset(client, from, {
@@ -270,6 +275,11 @@ ${CurrencyUtils.renderIron(
         this.log('Transaction aborted.')
         this.exit(0)
       }
+    }
+
+    if (flags.rawTransaction) {
+      this.log(`Raw transaction: ${rawTransactionResponse}`)
+      this.exit(0)
     }
 
     // Run the progress bar for about 2 minutes

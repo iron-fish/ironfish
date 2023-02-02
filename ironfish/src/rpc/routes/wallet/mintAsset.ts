@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { RawTransaction, RawTransactionSerde } from '../../../primitives'
+import { Transaction } from '../../../primitives/transaction'
 import { CurrencyUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
 import { ValidationError } from '../../adapters'
@@ -17,6 +19,7 @@ export interface MintAssetRequest {
   expirationDelta?: number
   metadata?: string
   name?: string
+  isRawTransaction?: boolean
 }
 
 export interface MintAssetResponse {
@@ -24,6 +27,7 @@ export interface MintAssetResponse {
   hash: string
   name: string
   value: string
+  rawTransaction: string
 }
 
 export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
@@ -36,6 +40,7 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
     expirationDelta: yup.number().optional(),
     metadata: yup.string().optional(),
     name: yup.string().optional(),
+    isRawTransaction: yup.boolean().optional(),
   })
   .defined()
 
@@ -45,6 +50,7 @@ export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> = yup
     hash: yup.string().required(),
     name: yup.string().required(),
     value: yup.string().required(),
+    rawTransaction: yup.string().required(),
   })
   .defined()
 
@@ -70,6 +76,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     const expirationDelta =
       request.data.expirationDelta ?? node.config.get('transactionExpirationDelta')
 
+    const rawTransaction = request.data.isRawTransaction
     let options: MintAssetOptions
     if (request.data.assetId) {
       options = {
@@ -78,6 +85,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         fee,
         expirationDelta,
         value,
+        rawTransaction,
       }
     } else {
       Assert.isNotUndefined(request.data.name, 'Must provide name or identifier to mint')
@@ -91,18 +99,30 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         name: request.data.name,
         expirationDelta,
         value,
+        rawTransaction,
       }
     }
 
     const transaction = await node.wallet.mint(node.memPool, account, options)
     Assert.isEqual(transaction.mints.length, 1)
     const mint = transaction.mints[0]
+    let hash = ''
+    let raw = ''
+    if (transaction instanceof Transaction) {
+      hash = transaction.hash().toString('hex')
+    }
+
+    if (transaction instanceof RawTransaction) {
+      const rawTransactionBytes = RawTransactionSerde.serialize(transaction)
+      raw = rawTransactionBytes.toString('hex')
+    }
 
     request.end({
       assetId: mint.asset.id().toString('hex'),
-      hash: transaction.hash().toString('hex'),
+      hash: hash,
       name: mint.asset.name().toString('utf8'),
       value: mint.value.toString(),
+      rawTransaction: raw,
     })
   },
 )

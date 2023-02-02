@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
+import { RawTransactionSerde } from '../../../primitives'
 import { useAccountFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
@@ -86,7 +87,39 @@ describe('mint', () => {
         hash: mintTransaction.hash().toString('hex'),
         name: asset.name().toString('utf8'),
         value: mintTransaction.mints[0].value.toString(),
+        rawTransaction: '',
       })
+    })
+
+    it('returns the raw transaction', async () => {
+      const node = routeTest.node
+      const wallet = node.wallet
+      const account = await useAccountFixture(wallet, 'accountA')
+
+      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const value = BigInt(10)
+      const raw = await wallet.createTransaction(account, [], [{ asset, value }], [], {
+        fee: 0n,
+        expiration: 0,
+      })
+
+      jest.spyOn(wallet, 'mint').mockResolvedValueOnce(raw)
+
+      const response = await routeTest.client.mintAsset({
+        account: account.name,
+        fee: '1',
+        metadata: asset.metadata().toString('hex'),
+        name: asset.name().toString('hex'),
+        value: CurrencyUtils.encode(value),
+        isRawTransaction: true,
+      })
+
+      expect(response.content.assetId).toEqual(asset.id().toString('hex'))
+      expect(response.content.hash).toEqual('')
+      expect(response.content.value).toEqual(raw.mints[0].value.toString())
+      expect(response.content.rawTransaction).toEqual(
+        RawTransactionSerde.serialize(raw).toString('hex'),
+      )
     })
   })
 })

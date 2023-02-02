@@ -655,7 +655,7 @@ export class Wallet {
     memPool: MemPool,
     account: Account,
     options: MintAssetOptions,
-  ): Promise<Transaction> {
+  ): Promise<Transaction | RawTransaction> {
     let asset: Asset
     if ('assetId' in options) {
       const record = await this.chain.getAssetById(options.assetId)
@@ -689,6 +689,10 @@ export class Wallet {
         expiration: options.expiration,
       },
     )
+
+    if (options.rawTransaction === true) {
+      return raw
+    }
 
     return this.postTransaction(raw, memPool)
   }
