@@ -16,6 +16,7 @@ describe('poolShares', () => {
       config: routeTest.sdk.config,
       logger: createRootLogger().withTag('test'),
       enablePayouts: false,
+      dbPath: ':memory:',
     })
 
     await shares.start()

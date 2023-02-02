@@ -56,10 +56,12 @@ export class MiningPoolShares {
     webhooks?: WebhookNotifier[]
     enablePayouts?: boolean
     balancePercentPayoutFlag?: number
+    dbPath?: string
   }): Promise<MiningPoolShares> {
     const db = await PoolDatabase.init({
       config: options.config,
       logger: options.logger,
+      dbPath: options.dbPath,
     })
 
     return new MiningPoolShares({
