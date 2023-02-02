@@ -118,9 +118,13 @@ export class CeremonyServer {
 
   closeClient(client: CeremonyServerClient, error?: Error): void {
     if (this.currentContributor?.client?.id === client.id) {
-      clearTimeout(this.currentContributor.actionTimeout)
-      this.currentContributor = null
-      void this.startNextContributor()
+      if (this.currentContributor.state === 'VERIFYING') {
+        this.currentContributor.client = null
+      } else {
+        clearTimeout(this.currentContributor.actionTimeout)
+        this.currentContributor = null
+        void this.startNextContributor()
+      }
     }
 
     client.close(error)
@@ -385,6 +389,7 @@ export class CeremonyServer {
     })
 
     client.logger.info(`Contribution ${nextParamNumber} complete`)
+    this.currentContributor = null
     await this.startNextContributor()
     this.sendUpdatedLocationsToClients()
   }
