@@ -82,6 +82,11 @@ export class Send extends IronfishCommand {
       char: 'i',
       description: 'The identifier for the asset to use when sending',
     }),
+    rawTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return raw transaction. Use it to create a transaction but not post to the network',
+    }),
   }
 
   async start(): Promise<void> {
@@ -280,6 +285,11 @@ ${CurrencyUtils.renderIron(
         this.log('Transaction aborted.')
         this.exit(0)
       }
+    }
+
+    if (flags.rawTransaction) {
+      this.log(`Raw transaction: ${rawTransactionResponse}`)
+      this.exit(0)
     }
 
     // Run the progress bar for about 2 minutes
