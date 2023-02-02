@@ -76,7 +76,7 @@ export class ExportCommand extends IronfishCommand {
       const responseBytes = Buffer.from(JSON.stringify(response.content.account))
       const lengthLimit = 1023
       output = bech32m.encode(
-        'ironfishprivatekey00000',
+        'ironfishaccount00000',
         bech32m.toWords(responseBytes),
         lengthLimit,
       )

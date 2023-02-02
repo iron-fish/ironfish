@@ -48,7 +48,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       incomingViewKey,
       outgoingViewKey,
       publicAddress,
-      version
+      version,
     }
   }
 
