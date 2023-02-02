@@ -77,7 +77,11 @@ export class ImportCommand extends IronfishCommand {
   async importFile(path: string): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    return JSONUtils.parse<AccountImport>(ImportCommand.bech32ToJSON(data) ?? data)
+    try {
+      return JSONUtils.parse<AccountImport>(ImportCommand.bech32ToJSON(data) ?? data)
+    } catch (e) {
+      CliUx.ux.error(`Failed to decode the account from the provided file: ${path}`)
+    }
   }
 
   async importPipe(): Promise<AccountImport> {
@@ -96,8 +100,11 @@ export class ImportCommand extends IronfishCommand {
 
     process.stdin.off('data', onData)
 
-    const convertedData = ImportCommand.bech32ToJSON(data)
-    return JSONUtils.parse<AccountImport>(convertedData !== null ? convertedData : data)
+    try {
+      return JSONUtils.parse<AccountImport>(ImportCommand.bech32ToJSON(data) ?? data)
+    } catch (e) {
+      CliUx.ux.error(`Failed to decode the account from the provided input`)
+    }
   }
 
   async importTTY(): Promise<AccountImport> {
