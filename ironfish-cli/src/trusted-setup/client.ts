@@ -63,6 +63,10 @@ export class CeremonyClient {
     this.send({ method: 'contribution-complete' })
   }
 
+  join(name: string): void {
+    this.send({ method: 'join', name })
+  }
+
   uploadComplete(): void {
     this.send({ method: 'upload-complete' })
   }
