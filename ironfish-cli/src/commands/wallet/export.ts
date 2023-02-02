@@ -62,10 +62,8 @@ export class ExportCommand extends IronfishCommand {
     const response = await client.exportAccount({ account })
     const responseJSONString = JSON.stringify(response.content.account)
 
-    let output = ''
-    if (flags.json) {
-      output = JSON.stringify(response.content.account, undefined, '   ')
-    } else if (flags.language) {
+    let output
+    if (flags.language) {
       output = spendingKeyToWords(
         response.content.account.spendingKey,
         LANGUAGES[flags.language],

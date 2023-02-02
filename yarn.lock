@@ -2006,11 +2006,6 @@
   integrity sha512-TI+rCtooWHr3QJ27kJxfjutghu44DLnasDMwpDqCXVTal9RLp3RSYNh4NdBrRP2cQAoG9A8juOQl6P6oZG4JxA==
   dependencies:
     "@babel/code-frame" "^7.18.6"
-<<<<<<< HEAD
-    "@babel/parser" "^7.20.7"
-    "@babel/types" "^7.20.7"
-<<<<<<< HEAD
-=======
     "@babel/parser" "^7.18.10"
     "@babel/types" "^7.18.10"
 
@@ -2028,7 +2023,6 @@
     "@babel/types" "^7.16.0"
     debug "^4.1.0"
     globals "^11.1.0"
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 
 "@babel/traverse@^7.20.1", "@babel/traverse@^7.20.5", "@babel/traverse@^7.7.2":
   version "7.20.5"
@@ -2046,31 +2040,6 @@
     debug "^4.1.0"
     globals "^11.1.0"
 
-<<<<<<< HEAD
-=======
-
-"@babel/traverse@^7.20.10", "@babel/traverse@^7.20.12", "@babel/traverse@^7.20.13", "@babel/traverse@^7.7.2":
-  version "7.20.13"
-  resolved "https://registry.yarnpkg.com/@babel/traverse/-/traverse-7.20.13.tgz#817c1ba13d11accca89478bd5481b2d168d07473"
-  integrity sha512-kMJXfF0T6DIS9E8cgdLCSAL+cuCK+YEZHWiLK0SXpTo8YRj5lpJu3CDNKiIBCne4m9hhTIqUg6SYTAI39tAiVQ==
-  dependencies:
-    "@babel/code-frame" "^7.18.6"
-    "@babel/generator" "^7.20.7"
-    "@babel/helper-environment-visitor" "^7.18.9"
-    "@babel/helper-function-name" "^7.19.0"
-    "@babel/helper-hoist-variables" "^7.18.6"
-    "@babel/helper-split-export-declaration" "^7.18.6"
-    "@babel/parser" "^7.20.13"
-    "@babel/types" "^7.20.7"
-    debug "^4.1.0"
-    globals "^11.1.0"
-
->>>>>>> b3b6901e (remove .yarn folder)
-"@babel/types@^7.0.0", "@babel/types@^7.18.6", "@babel/types@^7.19.0", "@babel/types@^7.20.2", "@babel/types@^7.20.7", "@babel/types@^7.3.0", "@babel/types@^7.3.3":
-  version "7.20.7"
-  resolved "https://registry.yarnpkg.com/@babel/types/-/types-7.20.7.tgz#54ec75e252318423fc07fb644dc6a58a64c09b7f"
-  integrity sha512-69OnhBxSSgK0OzTJai4kyPDiKTIe3j+ctaHdIGVbRahTLAT7L3R9oeXHC2aVSuGYt3cVnoAMDmOCgJ2yaiLMvg==
-=======
 "@babel/types@^7.0.0", "@babel/types@^7.16.0", "@babel/types@^7.3.0", "@babel/types@^7.3.3":
   version "7.16.0"
   resolved "https://registry.yarnpkg.com/@babel/types/-/types-7.16.0.tgz#db3b313804f96aadd0b776c4823e127ad67289ba"
@@ -2083,7 +2052,6 @@
   version "7.20.5"
   resolved "https://registry.yarnpkg.com/@babel/types/-/types-7.20.5.tgz#e206ae370b5393d94dfd1d04cd687cace53efa84"
   integrity sha512-c9fst/h2/dcF7H+MJKZ2T0KjEQ8hY/BNnDk/H3XY8C4Aw/eWQXWn/lWntHF9ooUBnGmEvbfGrTgLWc+um0YDUg==
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
   dependencies:
     "@babel/helper-string-parser" "^7.19.4"
     "@babel/helper-validator-identifier" "^7.19.1"
@@ -3334,17 +3302,6 @@
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/@npmcli/installed-package-contents/-/installed-package-contents-1.0.7.tgz#ab7408c6147911b970a8abe261ce512232a3f4fa"
   integrity sha512-9rufe0wnJusCQoLpV9ZPKIVP55itrM5BxOXs10DmdbRfgWtHy1LDyskbwRnBghuB0PrF7pNPOqREVtpz4HqzKw==
-<<<<<<< HEAD
-  dependencies:
-    npm-bundled "^1.1.1"
-    npm-normalize-package-bin "^1.0.1"
-
-"@npmcli/map-workspaces@^2.0.0", "@npmcli/map-workspaces@^2.0.3":
-  version "2.0.4"
-  resolved "https://registry.yarnpkg.com/@npmcli/map-workspaces/-/map-workspaces-2.0.4.tgz#9e5e8ab655215a262aefabf139782b894e0504fc"
-  integrity sha512-bMo0aAfwhVwqoVM5UzX1DJnlvVvzDCHae821jv48L1EsrYwfOZChlqWYXEtto/+BkBXetPbEWgau++/brh4oVg==
-  dependencies:
-=======
   dependencies:
     npm-bundled "^1.1.1"
     npm-normalize-package-bin "^1.0.1"
@@ -3364,7 +3321,6 @@
   resolved "https://registry.yarnpkg.com/@npmcli/map-workspaces/-/map-workspaces-2.0.4.tgz#9e5e8ab655215a262aefabf139782b894e0504fc"
   integrity sha512-bMo0aAfwhVwqoVM5UzX1DJnlvVvzDCHae821jv48L1EsrYwfOZChlqWYXEtto/+BkBXetPbEWgau++/brh4oVg==
   dependencies:
->>>>>>> b3b6901e (remove .yarn folder)
     "@npmcli/name-from-folder" "^1.0.1"
     glob "^8.0.1"
     minimatch "^5.0.1"
@@ -3838,26 +3794,7 @@
     "@octokit/core" "^4.0.0"
     "@octokit/plugin-paginate-rest" "^4.0.0"
     "@octokit/plugin-request-log" "^1.0.4"
-<<<<<<< HEAD
-    "@octokit/plugin-rest-endpoint-methods" "^7.0.0"
-<<<<<<< HEAD
-
-"@octokit/types@^6.0.3", "@octokit/types@^6.16.1", "@octokit/types@^6.39.0", "@octokit/types@^6.40.0":
-  version "6.41.0"
-  resolved "https://registry.yarnpkg.com/@octokit/types/-/types-6.41.0.tgz#e58ef78d78596d2fb7df9c6259802464b5f84a04"
-  integrity sha512-eJ2jbzjdijiL3B4PrSQaSjuF2sPEQPVCPzBvTHJD9Nz+9dw2SGH4K4xeQJ77YfTq5bRQ+bD8wT11JbeDPmxmGg==
-  dependencies:
-    "@octokit/openapi-types" "^12.11.0"
-
-"@octokit/types@^9.0.0":
-  version "9.0.0"
-  resolved "https://registry.yarnpkg.com/@octokit/types/-/types-9.0.0.tgz#6050db04ddf4188ec92d60e4da1a2ce0633ff635"
-  integrity sha512-LUewfj94xCMH2rbD5YJ+6AQ4AVjFYTgpp6rboWM5T7N3IsIF65SBEOVcYMGAEzO/kKNiNaW4LoWtoThOhH06gw==
-  dependencies:
-=======
-=======
     "@octokit/plugin-rest-endpoint-methods" "^6.0.0"
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 
 "@octokit/types@^6.0.3", "@octokit/types@^6.16.1", "@octokit/types@^6.34.0":
   version "6.34.0"
@@ -3871,12 +3808,7 @@
   resolved "https://registry.yarnpkg.com/@octokit/types/-/types-7.5.0.tgz#85646021bd618467b7cc465d9734b3f2878c9fae"
   integrity sha512-aHm+olfIZjQpzoODpl+RCZzchKOrdSLJs+yfI7pMMcmB19Li6vidgx0DwUDO/Ic4Q3fq/lOjJORVCcLZefcrJw==
   dependencies:
-<<<<<<< HEAD
->>>>>>> b3b6901e (remove .yarn folder)
-    "@octokit/openapi-types" "^16.0.0"
-=======
     "@octokit/openapi-types" "^13.11.0"
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 
 "@parcel/watcher@2.0.4":
   version "2.0.4"
@@ -3886,32 +3818,10 @@
     node-addon-api "^3.2.1"
     node-gyp-build "^4.3.0"
 
-<<<<<<< HEAD
-"@sinclair/typebox@^0.25.16":
-  version "0.25.21"
-  resolved "https://registry.yarnpkg.com/@sinclair/typebox/-/typebox-0.25.21.tgz#763b05a4b472c93a8db29b2c3e359d55b29ce272"
-  integrity sha512-gFukHN4t8K4+wVC+ECqeqwzBDeFeTzBXroBTqE6vcWrQGbEUpHO7LYdG0f4xnvYq4VOEwITSlHlp0JBAIFMS/g==
-<<<<<<< HEAD
-
-"@sinonjs/commons@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@sinonjs/commons/-/commons-2.0.0.tgz#fd4ca5b063554307e8327b4564bd56d3b73924a3"
-  integrity sha512-uLa0j859mMrg2slwQYdO/AkrOfmH+X6LTVmNTS9CqexuE2IvVORIkSpJLqePAbEnKJ77aMmCwr1NUZ57120Xcg==
-  dependencies:
-    type-detect "4.0.8"
-
-"@sinonjs/fake-timers@^10.0.2":
-  version "10.0.2"
-  resolved "https://registry.yarnpkg.com/@sinonjs/fake-timers/-/fake-timers-10.0.2.tgz#d10549ed1f423d80639c528b6c7f5a1017747d0c"
-  integrity sha512-SwUDyjWnah1AaNl7kxsa7cfLhlTYoiyhDAIgyh+El30YvXs/o7OLXpYH88Zdhyx9JExKrmHDJ+10bwIcY80Jmw==
-  dependencies:
-=======
-=======
 "@sinclair/typebox@^0.24.1":
   version "0.24.51"
   resolved "https://registry.yarnpkg.com/@sinclair/typebox/-/typebox-0.24.51.tgz#645f33fe4e02defe26f2f5c0410e1c094eac7f5f"
   integrity sha512-1P1OROm/rdubP5aFDSZQILU0vrLCJ4fvHt6EoqHEM+2D/G5MK3bIaymUKLit8Js9gbns5UyJnkP/TZROLw4tUA==
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 
 "@sinonjs/commons@^1.7.0":
   version "1.8.3"
@@ -3932,12 +3842,7 @@
   resolved "https://registry.yarnpkg.com/@sinonjs/fake-timers/-/fake-timers-9.1.2.tgz#4eaab737fab77332ab132d396a3c0d364bd0ea8c"
   integrity sha512-BPS4ynJW/o92PUR4wgriz2Ud5gpST5vz6GQfMixEDK0Z8ZCUv2M7SkBLykH56T++Xs+8ln9zTGbOvNGIe02/jw==
   dependencies:
-<<<<<<< HEAD
->>>>>>> b3b6901e (remove .yarn folder)
-    "@sinonjs/commons" "^2.0.0"
-=======
     "@sinonjs/commons" "^1.7.0"
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 
 "@tootallnate/once@1":
   version "1.1.2"
@@ -4105,26 +4010,8 @@
   version "4.14.170"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.170.tgz#0d67711d4bf7f4ca5147e9091b847479b87925d6"
   integrity sha512-bpcvu/MKHHeYX+qeEN8GE7DIravODWdACVA1ctevD8CN24RhPZIKMn9ntfAsrvLfSX3cR5RrBKAbYm9bGs0A+Q==
-<<<<<<< HEAD
 
-"@types/minimatch@*":
-  version "5.1.2"
-  resolved "https://registry.yarnpkg.com/@types/minimatch/-/minimatch-5.1.2.tgz#07508b45797cb81ec3f273011b054cd0755eddca"
-  integrity sha512-K0VQKziLUWkVKiRVrx4a40iPaxTUefQmjtkQofBkYRcoaaL/8rhwDWww9qWbrgicNOgnpIsMxyNIUM4+n6dUIA==
-
-=======
-
-<<<<<<< HEAD
-"@types/minimatch@*":
-  version "5.1.2"
-  resolved "https://registry.yarnpkg.com/@types/minimatch/-/minimatch-5.1.2.tgz#07508b45797cb81ec3f273011b054cd0755eddca"
-  integrity sha512-K0VQKziLUWkVKiRVrx4a40iPaxTUefQmjtkQofBkYRcoaaL/8rhwDWww9qWbrgicNOgnpIsMxyNIUM4+n6dUIA==
-
->>>>>>> b3b6901e (remove .yarn folder)
-"@types/minimatch@^3.0.3":
-=======
 "@types/minimatch@*", "@types/minimatch@^3.0.3":
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
   version "3.0.5"
   resolved "https://registry.yarnpkg.com/@types/minimatch/-/minimatch-3.0.5.tgz#1001cc5e6a3704b83c236027e77f2f58ea010f40"
   integrity sha512-Klz949h02Gz2uZCMGwDUSDS1YBlTdDDgbWHi+81l29tQALUtvz4rAYi5uoVhE5Lagoq6DeqAUlbrHvW/mXDgdQ==
@@ -4782,29 +4669,12 @@ babel-preset-current-node-syntax@^1.0.0:
     "@babel/plugin-syntax-optional-chaining" "^7.8.3"
     "@babel/plugin-syntax-top-level-await" "^7.8.3"
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 babel-preset-jest@^29.2.0:
   version "29.2.0"
   resolved "https://registry.yarnpkg.com/babel-preset-jest/-/babel-preset-jest-29.2.0.tgz#3048bea3a1af222e3505e4a767a974c95a7620dc"
   integrity sha512-z9JmMJppMxNv8N7fNRHvhMg9cvIkMxQBXgFkane3yKVEvEOP+kB50lk8DFRvF9PGqbyXxlmebKWhuDORO8RgdA==
-<<<<<<< HEAD
   dependencies:
     babel-plugin-jest-hoist "^29.2.0"
-=======
-babel-preset-jest@^29.4.0:
-  version "29.4.0"
-  resolved "https://registry.yarnpkg.com/babel-preset-jest/-/babel-preset-jest-29.4.0.tgz#c2b03c548b02dea0a18ae21d5759c136f9251ee4"
-  integrity sha512-fUB9vZflUSM3dO/6M2TCAepTzvA4VkOvl67PjErcrQMGt9Eve7uazaeyCZ2th3UtI7ljpiBJES0F7A1vBRsLZA==
-  dependencies:
-    babel-plugin-jest-hoist "^29.4.0"
->>>>>>> b3b6901e (remove .yarn folder)
-=======
-  dependencies:
-    babel-plugin-jest-hoist "^29.2.0"
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
     babel-preset-current-node-syntax "^1.0.0"
 
 balanced-match@^1.0.0:
@@ -4823,8 +4693,6 @@ bech32@2.0.0:
   integrity sha512-LcknSilhIGatDAsY1ak2I8VtGaHNhgMSYVxFrGLXv+xLHytaKZKcaUJJUE7qmBr7h33o5YQwP55pMI0xmkpJwg==
 
 before-after-hook@^2.2.0:
-<<<<<<< HEAD
-<<<<<<< HEAD
   version "2.2.2"
   resolved "https://registry.yarnpkg.com/before-after-hook/-/before-after-hook-2.2.2.tgz#a6e8ca41028d90ee2c24222f201c90956091613e"
   integrity sha512-3pZEU3NT5BFUo/AD5ERPWOgQOCZITni6iavr5AUw5AUwQjMlI0kzu5btnyD39AF0gUEsDPwJT+oY1ORBJijPjQ==
@@ -4846,37 +4714,6 @@ binary-extensions@^2.0.0:
   resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-2.2.0.tgz#75f502eeaf9ffde42fc98829645be4ea76bd9e2d"
   integrity sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==
 
-=======
-  version "2.2.3"
-  resolved "https://registry.yarnpkg.com/before-after-hook/-/before-after-hook-2.2.3.tgz#c51e809c81a4e354084422b9b26bad88249c517c"
-  integrity sha512-NzUnlZexiaH/46WDhANlyR2bXRopNg4F/zuSA3OpZnllCUgRaOF2znDioDWrmbNVsuZk6l9pMquQB38cfBZwkQ==
-=======
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/before-after-hook/-/before-after-hook-2.2.2.tgz#a6e8ca41028d90ee2c24222f201c90956091613e"
-  integrity sha512-3pZEU3NT5BFUo/AD5ERPWOgQOCZITni6iavr5AUw5AUwQjMlI0kzu5btnyD39AF0gUEsDPwJT+oY1ORBJijPjQ==
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
-
-bin-links@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/bin-links/-/bin-links-3.0.0.tgz#8273063638919f6ba4fbe890de9438c1b3adf0b7"
-  integrity sha512-fC7kPWcEkAWBgCKxmAMqZldlIeHsXwQy9JXzrppAVQiukGiDKxmYesJcBKWu6UMwx/5GOfo10wtK/4zy+Xt/mg==
-  dependencies:
-    cmd-shim "^4.0.1"
-    mkdirp-infer-owner "^2.0.0"
-    npm-normalize-package-bin "^1.0.0"
-    read-cmd-shim "^2.0.0"
-    rimraf "^3.0.0"
-    write-file-atomic "^4.0.0"
-
-<<<<<<< HEAD
->>>>>>> b3b6901e (remove .yarn folder)
-=======
-binary-extensions@^2.0.0:
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-2.2.0.tgz#75f502eeaf9ffde42fc98829645be4ea76bd9e2d"
-  integrity sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==
-
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 binaryextensions@^4.15.0, binaryextensions@^4.16.0:
   version "4.18.0"
   resolved "https://registry.yarnpkg.com/binaryextensions/-/binaryextensions-4.18.0.tgz#22aeada2d14de062c60e8ca59a504a5636a76ceb"
@@ -4901,15 +4738,7 @@ bl@^4.0.3, bl@^4.1.0:
 blessed@0.1.81:
   version "0.1.81"
   resolved "https://registry.yarnpkg.com/blessed/-/blessed-0.1.81.tgz#f962d687ec2c369570ae71af843256e6d0ca1129"
-<<<<<<< HEAD
-<<<<<<< HEAD
   integrity sha1-+WLWh+wsNpVwrnGvhDJW5tDKESk=
-=======
-  integrity sha512-LoF5gae+hlmfORcG1M5+5XZi4LBmvlXTzwJWzUlPryN/SJdSflZvROM2TwkT0GMpq7oqT48NRd4GS7BiVBc5OQ==
->>>>>>> b3b6901e (remove .yarn folder)
-=======
-  integrity sha1-+WLWh+wsNpVwrnGvhDJW5tDKESk=
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 
 blru@0.1.6:
   version "0.1.6"
@@ -4920,15 +4749,7 @@ blru@0.1.6:
 
 bn.js@^5.2.1:
   version "5.2.1"
-<<<<<<< HEAD
-<<<<<<< HEAD
   resolved "https://registry.npmmirror.com/bn.js/-/bn.js-5.2.1.tgz#0bc527a6a0d18d0aa8d5b0538ce4a77dccfa7b70"
-=======
-  resolved "https://registry.yarnpkg.com/bn.js/-/bn.js-5.2.1.tgz#0bc527a6a0d18d0aa8d5b0538ce4a77dccfa7b70"
->>>>>>> b3b6901e (remove .yarn folder)
-=======
-  resolved "https://registry.npmmirror.com/bn.js/-/bn.js-5.2.1.tgz#0bc527a6a0d18d0aa8d5b0538ce4a77dccfa7b70"
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
   integrity sha512-eXRvHzWyYPBuB4NBy0cmYQjGitUrtqwbvlzP3G6VFnNRbsZQIxQ10PbKKHt8gZ/HW/D/747aDl+QkDqg3KQLMQ==
 
 bowser@^2.11.0:
@@ -4951,25 +4772,13 @@ brace-expansion@^2.0.1:
   dependencies:
     balanced-match "^1.0.0"
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 braces@^3.0.1, braces@~3.0.2:
-=======
-braces@^3.0.2:
->>>>>>> b3b6901e (remove .yarn folder)
-=======
-braces@^3.0.1, braces@~3.0.2:
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/braces/-/braces-3.0.2.tgz#3454e1a462ee8d599e236df336cd9ea4f8afe107"
   integrity sha512-b8um+L1RzM3WDSzvhm6gIz1yfTbBt6YTlcEKAvsmqCZZFw46z626lVj9j1yEPW33H5H+lBQpZMP1k8l+78Ha0A==
   dependencies:
     fill-range "^7.0.1"
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 browserslist@^4.17.5:
   version "4.18.1"
   resolved "https://registry.yarnpkg.com/browserslist/-/browserslist-4.18.1.tgz#60d3920f25b6860eb917c6c7b185576f4d8b017f"
@@ -4981,7 +4790,6 @@ browserslist@^4.17.5:
     node-releases "^2.0.1"
     picocolors "^1.0.0"
 
-<<<<<<< HEAD
 browserslist@^4.21.3:
   version "4.21.4"
   resolved "https://registry.yarnpkg.com/browserslist/-/browserslist-4.21.4.tgz#e7496bbc67b9e39dd0f98565feccdcb0d4ff6987"
@@ -4991,26 +4799,6 @@ browserslist@^4.21.3:
     electron-to-chromium "^1.4.251"
     node-releases "^2.0.6"
     update-browserslist-db "^1.0.9"
-=======
-=======
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
-browserslist@^4.21.3:
-  version "4.21.4"
-  resolved "https://registry.yarnpkg.com/browserslist/-/browserslist-4.21.4.tgz#e7496bbc67b9e39dd0f98565feccdcb0d4ff6987"
-  integrity sha512-CBHJJdDmgjl3daYjN5Cp5kbTf1mUhZoS+beLklHIvkOWscs83YAhLlF3Wsh/lciQYAcbBJgTOD44VtG31ZM4Hw==
-  dependencies:
-<<<<<<< HEAD
-    caniuse-lite "^1.0.30001449"
-    electron-to-chromium "^1.4.284"
-    node-releases "^2.0.8"
-    update-browserslist-db "^1.0.10"
->>>>>>> b3b6901e (remove .yarn folder)
-=======
-    caniuse-lite "^1.0.30001400"
-    electron-to-chromium "^1.4.251"
-    node-releases "^2.0.6"
-    update-browserslist-db "^1.0.9"
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 
 bs-logger@0.x:
   version "0.2.6"
@@ -5028,16 +4816,7 @@ bser@2.1.1:
 
 bsert@~0.0.10:
   version "0.0.10"
-<<<<<<< HEAD
-<<<<<<< HEAD
   resolved "git+https://github.com/chjj/bsert.git#bd09d49eab8644bca08ae8259a3d8756e7d453fc"
-=======
-  resolved "https://registry.yarnpkg.com/bsert/-/bsert-0.0.10.tgz#231ac82873a1418c6ade301ab5cd9ae385895597"
-  integrity sha512-NHNwlac+WPy4t2LoNh8pXk8uaIGH3NSaIUbTTRXGpE2WEbq0te/tDykYHkFK57YKLPjv/aGHmbqvnGeVWDz57Q==
->>>>>>> b3b6901e (remove .yarn folder)
-=======
-  resolved "git+https://github.com/chjj/bsert.git#bd09d49eab8644bca08ae8259a3d8756e7d453fc"
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 
 buffer-from@^1.0.0:
   version "1.1.2"
@@ -5075,39 +4854,6 @@ buffer@^5.5.0:
   version "5.7.1"
   resolved "https://registry.yarnpkg.com/buffer/-/buffer-5.7.1.tgz#ba62e7c13133053582197160851a8f648e99eed0"
   integrity sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==
-<<<<<<< HEAD
-  dependencies:
-    base64-js "^1.3.1"
-    ieee754 "^1.1.13"
-
-bufio@1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/bufio/-/bufio-1.2.0.tgz#b9ad1c06b0d9010363c387c39d2810a7086d143f"
-  integrity sha512-UlFk8z/PwdhYQTXSQQagwGAdtRI83gib2n4uy4rQnenxUM2yQi8lBDzF230BNk+3wAoZDxYRoBwVVUPgHa9MCA==
-
-builtins@^1.0.3:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/builtins/-/builtins-1.0.3.tgz#cb94faeb61c8696451db36534e1422f94f0aee88"
-  integrity sha512-uYBjakWipfaO/bXI7E8rq6kpwHRZK5cNYrUv2OzZSI/FvmdMyXJ2tG9dKcjEC5YHmHpUAwsargWIZNWdxb/bnQ==
-
-builtins@^5.0.0:
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/builtins/-/builtins-5.0.1.tgz#87f6db9ab0458be728564fa81d876d8d74552fa9"
-  integrity sha512-qwVpFEHNfhYJIzNRBvd2C1kyo6jz3ZSMPyyuR47OPdiKWlbYnZNyDWuyR175qDnAJLiCo5fBBqPb3RiXgWlkOQ==
-  dependencies:
-    semver "^7.0.0"
-
-byte-size@^7.0.0:
-  version "7.0.1"
-  resolved "https://registry.yarnpkg.com/byte-size/-/byte-size-7.0.1.tgz#b1daf3386de7ab9d706b941a748dbfc71130dee3"
-  integrity sha512-crQdqyCwhokxwV1UyDzLZanhkugAgft7vt0qbbdt60C6Zf3CAiGmtUCylbtYwrU6loOUw3euGrNtW1J651ot1A==
-
-cacache@^15.0.3, cacache@^15.0.5, cacache@^15.2.0:
-  version "15.3.0"
-  resolved "https://registry.yarnpkg.com/cacache/-/cacache-15.3.0.tgz#dc85380fb2f556fe3dda4c719bfa0ec875a7f1eb"
-  integrity sha512-VVdYzXEn+cnbXpFgWs5hTT7OScegHVmLhJIR8Ufqk3iFD6A6j5iSX1KuBTfNEv4tdJWE2PzA6IVFtcLC7fN9wQ==
-  dependencies:
-=======
   dependencies:
     base64-js "^1.3.1"
     ieee754 "^1.1.13"
@@ -5139,7 +4885,6 @@ cacache@^15.0.3, cacache@^15.0.5, cacache@^15.2.0:
   resolved "https://registry.yarnpkg.com/cacache/-/cacache-15.3.0.tgz#dc85380fb2f556fe3dda4c719bfa0ec875a7f1eb"
   integrity sha512-VVdYzXEn+cnbXpFgWs5hTT7OScegHVmLhJIR8Ufqk3iFD6A6j5iSX1KuBTfNEv4tdJWE2PzA6IVFtcLC7fN9wQ==
   dependencies:
->>>>>>> b3b6901e (remove .yarn folder)
     "@npmcli/fs" "^1.0.0"
     "@npmcli/move-file" "^1.0.1"
     chownr "^2.0.0"
@@ -7189,17 +6934,6 @@ http-proxy-agent@^5.0.0:
     "@tootallnate/once" "2"
     agent-base "6"
     debug "4"
-<<<<<<< HEAD
-
-https-proxy-agent@^5.0.0:
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/https-proxy-agent/-/https-proxy-agent-5.0.1.tgz#c59ef224a04fe8b754f3db0063a25ea30d0005d6"
-  integrity sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==
-  dependencies:
-    agent-base "6"
-    debug "4"
-
-=======
 
 https-proxy-agent@^5.0.0:
   version "5.0.0"
@@ -7209,15 +6943,11 @@ https-proxy-agent@^5.0.0:
     agent-base "6"
     debug "4"
 
-<<<<<<< HEAD
->>>>>>> b3b6901e (remove .yarn folder)
-=======
 human-signals@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/human-signals/-/human-signals-1.1.1.tgz#c5b1cd14f50aeae09ab6c59fe63ba3395fe4dfa3"
   integrity sha512-SEQu7vl8KjNL2eoGBLF3+wAjpsNfA9XMlXAYj/3EdaNfAlxKthD1xjEQfGOUhllCGGJVNY34bRr6lPINhNjyZw==
 
->>>>>>> 2bdd123b (staging's yarn.lock + bech32)
 human-signals@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/human-signals/-/human-signals-2.1.0.tgz#dc91fcba42e4d06e4abaed33b3e7a3c02f514ea0"
@@ -8736,20 +8466,6 @@ minipass-fetch@^1.3.2, minipass-fetch@^1.4.1:
     minipass "^3.1.0"
     minipass-sized "^1.0.3"
     minizlib "^2.0.0"
-<<<<<<< HEAD
-  optionalDependencies:
-    encoding "^0.1.12"
-
-minipass-fetch@^2.0.3:
-  version "2.1.2"
-  resolved "https://registry.yarnpkg.com/minipass-fetch/-/minipass-fetch-2.1.2.tgz#95560b50c472d81a3bc76f20ede80eaed76d8add"
-  integrity sha512-LT49Zi2/WMROHYoqGgdlQIZh8mLPZmOrN2NdJjMXxYe4nkN6FUyuPuOAOedNJDrx0IRGg9+4guZewtp8hE6TxA==
-  dependencies:
-    minipass "^3.1.6"
-    minipass-sized "^1.0.3"
-    minizlib "^2.1.2"
-  optionalDependencies:
-=======
   optionalDependencies:
     encoding "^0.1.12"
 
@@ -8762,7 +8478,6 @@ minipass-fetch@^2.0.3:
     minipass-sized "^1.0.3"
     minizlib "^2.1.2"
   optionalDependencies:
->>>>>>> b3b6901e (remove .yarn folder)
     encoding "^0.1.13"
 
 minipass-flush@^1.0.5:
