@@ -11,7 +11,6 @@ use crate::{
     note::Note,
     test_util::make_fake_witness,
     transaction::{TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE},
-    TRANSACTION_VERSION,
 };
 
 use ironfish_zkp::redjubjub::Signature;
