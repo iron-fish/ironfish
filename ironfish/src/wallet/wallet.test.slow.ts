@@ -524,7 +524,11 @@ describe('Accounts', () => {
         },
       )
 
-      const transaction = await nodeA.wallet.postTransaction(raw, nodeA.memPool)
+      const transaction = await nodeA.wallet.postTransaction(
+        raw,
+        nodeA.memPool,
+        accountA.spendingKey,
+      )
 
       // Create block 2
       return nodeA.chain.newBlock(
@@ -672,7 +676,11 @@ describe('Accounts', () => {
           },
         )
 
-        const transaction = await nodeA.wallet.postTransaction(raw, nodeA.memPool)
+        const transaction = await nodeA.wallet.postTransaction(
+          raw,
+          nodeA.memPool,
+          accountA.spendingKey,
+        )
 
         // Create block A2
         return nodeA.chain.newBlock(
@@ -786,7 +794,11 @@ describe('Accounts', () => {
           },
         )
 
-        const transaction = await nodeB.wallet.postTransaction(raw, nodeB.memPool)
+        const transaction = await nodeB.wallet.postTransaction(
+          raw,
+          nodeB.memPool,
+          accountANodeB.spendingKey,
+        )
 
         // Create block A2
         return nodeA.chain.newBlock(

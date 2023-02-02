@@ -57,7 +57,7 @@ describe('RawTransaction', () => {
       mints: [mint],
     })
 
-    const posted = raw.post()
+    const posted = raw.post(account.spendingKey)
     expect(posted.takeReference().verify()).toBe(true)
     expect(posted.fee()).toEqual(5n)
     expect(posted.expiration()).toEqual(10)
@@ -117,7 +117,9 @@ describe('RawTransaction', () => {
       mints: [mint],
     })
 
-    expect(() => raw.post()).toThrow('Cannot post transaction. Mint value exceededs maximum')
+    expect(() => raw.post(account.spendingKey)).toThrow(
+      'Cannot post transaction. Mint value exceededs maximum',
+    )
   })
 
   it('should throw an error if the max burn value is exceeded', async () => {
@@ -167,7 +169,9 @@ describe('RawTransaction', () => {
       mints: [],
     })
 
-    expect(() => raw.post()).toThrow('Cannot post transaction. Burn value exceededs maximum')
+    expect(() => raw.post(account.spendingKey)).toThrow(
+      'Cannot post transaction. Burn value exceededs maximum',
+    )
   })
 })
 
@@ -202,7 +206,6 @@ describe('RawTransactionSerde', () => {
     )
 
     const raw = new RawTransaction()
-    raw.spendingKey = account.spendingKey
     raw.expiration = 60
     raw.fee = 1337n
 
@@ -238,7 +241,6 @@ describe('RawTransactionSerde', () => {
     const deserialized = RawTransactionSerde.deserialize(serialized)
 
     expect(deserialized).toMatchObject({
-      spendingKey: raw.spendingKey,
       expiration: raw.expiration,
       fee: raw.fee,
     })

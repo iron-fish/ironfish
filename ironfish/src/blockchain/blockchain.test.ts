@@ -1399,12 +1399,10 @@ describe('Blockchain', () => {
           Assert.isNotNull(witness)
 
           const rawBurn = new RawTransaction()
-          rawBurn.spendingKey = account.spendingKey
           rawBurn.spends = [{ note: note.note, witness }]
           rawBurn.burns = [{ assetId, value: BigInt(2) }]
 
           const rawSend = new RawTransaction()
-          rawSend.spendingKey = account.spendingKey
           rawSend.spends = [{ note: note.note, witness }]
           rawSend.receives = [
             {
@@ -1420,8 +1418,14 @@ describe('Blockchain', () => {
             },
           ]
 
-          const burnTransaction = await node.workerPool.postTransaction(rawBurn)
-          const spendTransaction = await node.workerPool.postTransaction(rawSend)
+          const burnTransaction = await node.workerPool.postTransaction(
+            rawBurn,
+            account.spendingKey,
+          )
+          const spendTransaction = await node.workerPool.postTransaction(
+            rawSend,
+            account.spendingKey,
+          )
           const fee = burnTransaction.fee() + spendTransaction.fee()
 
           return node.chain.newBlock(
