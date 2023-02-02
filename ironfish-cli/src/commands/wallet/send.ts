@@ -267,7 +267,7 @@ export class Send extends IronfishCommand {
 
     if (!flags.confirm) {
       this.log(`
-You are about to send:
+You are about to create a transaction:
 ${CurrencyUtils.renderIron(
   amount,
   true,
@@ -289,6 +289,7 @@ ${CurrencyUtils.renderIron(
 
     if (flags.rawTransaction) {
       this.log(`Raw transaction: ${rawTransactionResponse}`)
+      this.log(`\nRun "ironfish wallet:post" to post the raw transaction. `)
       this.exit(0)
     }
 
