@@ -679,19 +679,13 @@ export class Wallet {
         value: options.value,
       }
     }
-      
-    const raw = await this.createTransaction(
-      account,
-      [],
-      [mintData],
-      [],
-      {
-        fee: options.fee,
-        expirationDelta: options.expirationDelta,
-        expiration: options.expiration,
-        confirmations: options.confirmations,
-      },
-    )       
+
+    const raw = await this.createTransaction(account, [], [mintData], [], {
+      fee: options.fee,
+      expirationDelta: options.expirationDelta,
+      expiration: options.expiration,
+      confirmations: options.confirmations,
+    })
 
     return this.postTransaction(raw, memPool)
   }
