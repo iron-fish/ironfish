@@ -27,6 +27,9 @@ export default class Ceremony extends IronfishCommand {
       default: 9040,
       description: 'Port of the ceremony coordination server',
     }),
+    token: Flags.string({
+      required: false,
+    }),
   }
 
   async start(): Promise<void> {
@@ -174,6 +177,15 @@ export default class Ceremony extends IronfishCommand {
       this.exit(0)
     })
 
+    client.onStopRetry.on(({ error }) => {
+      CliUx.ux.action.stop()
+      refreshEtaInterval && clearInterval(refreshEtaInterval)
+
+      this.log(`Stopping contribution: ${error}`)
+
+      client.stop(true)
+    })
+
     // Retry connection until contributions are received
     let connected = false
     while (!connected) {
@@ -193,7 +205,7 @@ export default class Ceremony extends IronfishCommand {
       CliUx.ux.action.start('Waiting to contribute', undefined, { stdout: true })
 
       const result = await client.waitForStop()
-      connected = result.success
+      connected = result.stopRetries
 
       if (!connected) {
         if (CliUx.ux.action.running) {
