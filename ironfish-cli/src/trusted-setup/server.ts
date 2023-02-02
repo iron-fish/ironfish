@@ -27,8 +27,6 @@ type CurrentContributor =
       client: CeremonyServerClient | null
     }
 
-const ENABLE_IP_BANNING = true
-
 class CeremonyServerClient {
   id: string
   socket: net.Socket
@@ -96,6 +94,8 @@ export class CeremonyServer {
   readonly startDate: number
   private token: string
 
+  readonly enableIPBanning: boolean
+
   constructor(options: {
     logger: Logger
     port: number
@@ -108,6 +108,7 @@ export class CeremonyServer {
     presignedExpirationSec: number
     startDate: number
     token: string
+    enableIPBanning: boolean
   }) {
     this.logger = options.logger
     this.queue = []
@@ -126,6 +127,8 @@ export class CeremonyServer {
 
     this.startDate = options.startDate
     this.token = options.token
+
+    this.enableIPBanning = options.enableIPBanning
 
     this.server = net.createServer((s) => this.onConnection(s))
   }
@@ -224,7 +227,7 @@ export class CeremonyServer {
 
     const ip = socket.remoteAddress
     if (
-      ENABLE_IP_BANNING &&
+      this.enableIPBanning &&
       (ip === undefined ||
         this.queue.find((c) => c.socket.remoteAddress === ip) !== undefined ||
         this.currentContributor?.client?.socket.remoteAddress === ip)

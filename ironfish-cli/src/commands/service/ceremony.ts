@@ -52,6 +52,10 @@ export default class Ceremony extends IronfishCommand {
     token: Flags.string({
       required: true,
     }),
+    enableIPBanning: Flags.boolean({
+      required: false,
+      default: true,
+    }),
   }
 
   async start(): Promise<void> {
@@ -76,6 +80,7 @@ export default class Ceremony extends IronfishCommand {
       presignedExpirationSec: flags.presignedExpirationSec,
       startDate: flags.startDate,
       token: flags.token,
+      enableIPBanning: flags.enableIPBanning,
     })
 
     await server.start()
