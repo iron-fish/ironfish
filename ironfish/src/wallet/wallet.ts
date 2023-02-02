@@ -1216,7 +1216,6 @@ export class Wallet {
       incomingViewKey: key.incoming_view_key,
       outgoingViewKey: key.outgoing_view_key,
       publicAddress: key.public_address,
-      version: 1,
     }
 
     validateAccount(accountValue)
