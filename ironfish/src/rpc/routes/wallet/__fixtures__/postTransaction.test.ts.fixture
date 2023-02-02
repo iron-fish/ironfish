@@ -28,5 +28,15 @@
       "outgoingViewKey": "eab5f76772c895f7106c0b678c73ef04b5473d9a447ad420083b03fb52467fbb",
       "publicAddress": "aef9fdc4980f3c29ba1f56f27217409f1cf4f3de4920b32b72c3edb31ffb7f6a"
     }
+  ],
+  "Route wallet/postTransaction should post a raw transaction offline": [
+    {
+      "id": "14ff6046-900b-4130-954c-3247df22c143",
+      "name": "accountA",
+      "spendingKey": "22a8aa82b084c8b6b244efef87d11199a5fd464c7f8a11e077dfd891743a1318",
+      "incomingViewKey": "c78ea2c27ac43438e568e4eed592a355e88580a49cad2e6e40bff880584fb707",
+      "outgoingViewKey": "f9169f7772cab81c7bdc7ca40c2ace2f3eb3395fdb6064bad2f217b53fd9435b",
+      "publicAddress": "d95be43f24026bfd04f2e673307cef1d10699a4d1f6ee9f95dcdd67e355a7451"
+    }
   ]
 }

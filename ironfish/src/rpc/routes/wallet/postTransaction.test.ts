@@ -10,8 +10,29 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 describe('Route wallet/postTransaction', () => {
   const routeTest = createRouteTest(true)
 
+  it('should post a raw transaction offline', async () => {
+    const account = await useAccountFixture(routeTest.node.wallet, 'accountA')
+    const addSpy = jest.spyOn(routeTest.node.wallet, 'addPendingTransaction')
+
+    const options = {
+      wallet: routeTest.node.wallet,
+      from: account,
+    }
+    const rawTransaction = await createRawTransaction(options)
+    const response = await routeTest.client.postTransaction({
+      transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
+      sender: account.name,
+      offline: true,
+    })
+
+    expect(addSpy).toHaveBeenCalledTimes(0)
+    expect(response.status).toBe(200)
+    expect(response.content.transaction).toBeDefined()
+  })
+
   it('should accept a valid raw transaction', async () => {
     const account = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+    const addSpy = jest.spyOn(routeTest.node.wallet, 'addPendingTransaction')
 
     const options = {
       wallet: routeTest.node.wallet,
@@ -23,6 +44,7 @@ describe('Route wallet/postTransaction', () => {
       sender: account.name,
     })
 
+    expect(addSpy).toHaveBeenCalledTimes(1)
     expect(response.status).toBe(200)
     expect(response.content.transaction).toBeDefined()
   })
