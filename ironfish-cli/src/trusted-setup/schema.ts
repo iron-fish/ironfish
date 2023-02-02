@@ -27,11 +27,26 @@ export type CeremonyServerMessage =
     }
 
 export type CeremonyClientMessage = {
-  method: 'contribution-complete' | 'upload-complete'
+  method: 'contribution-complete' | 'upload-complete' | 'join'
+  name?: string // only used on join
+  password?: string // only used on join
 }
+
+const nameRegexes = [/^[ a-zA-Z0-9]+$/, /^[^ ].*/, /.*[^ ]$/]
 
 export const CeremonyClientMessageSchema: yup.ObjectSchema<CeremonyClientMessage> = yup
   .object({
-    method: yup.string().oneOf(['contribution-complete', 'upload-complete']).required(),
+    method: yup.string().oneOf(['contribution-complete', 'upload-complete', 'join']).required(),
+    name: yup
+      .string()
+      .max(30)
+      .matches(nameRegexes[0]) // all characters must be alphanumeric or space
+      .matches(nameRegexes[1]) // first character cannot be a space
+      .matches(nameRegexes[2]), // last character cannot be a space
+    password: yup.string(),
   })
   .required()
+
+export const nameIsValid = (name: string): boolean => {
+  return !nameRegexes.map((r) => r.test(name)).includes(false) && name.length <= 30
+}

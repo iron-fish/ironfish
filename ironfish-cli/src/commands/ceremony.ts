@@ -11,6 +11,7 @@ import { pipeline } from 'stream/promises'
 import { IronfishCommand } from '../command'
 import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
 import { CeremonyClient } from '../trusted-setup/client'
+import { nameIsValid } from '../trusted-setup/schema'
 
 export default class Ceremony extends IronfishCommand {
   static description = 'Contribute randomness to the Iron Fish trusted setup'
@@ -46,10 +47,20 @@ export default class Ceremony extends IronfishCommand {
 
     // Prompt for randomness
     let randomness: string | null = await CliUx.ux.prompt(
-      `If you'd like to contribute your own randomness to the ceremony, type it here, then press Enter. For more information on where this should come from and its importance, please read https://setup.ironfish.network. If you'd like the command to generate some randomness for you, just press Enter:`,
+      `If you'd like to contribute your own randomness to the ceremony, type it here, then press Enter. For more information on where this should come from and its importance, please read https://setup.ironfish.network. If you'd like the command to generate some randomness for you, just press Enter`,
       { required: false },
     )
     randomness = randomness.length ? randomness : null
+
+    let name = 'anonymous'
+    do {
+      // Prompt for graffiti / name
+      const nameInput = await CliUx.ux.prompt(
+        `\nIf you'd like to associate a name with this contribution, type it here, then press Enter. Name must only include letters, numbers and spaces and be less than 30 characters. To accept the default, just press Enter (anonymous)`,
+        { required: false },
+      )
+      name = nameInput.length ? nameInput.trim() : name
+    } while (!nameIsValid(name))
 
     // Create the client and bind events
     const client = new CeremonyClient({
@@ -182,6 +193,8 @@ export default class Ceremony extends IronfishCommand {
         await PromiseUtils.sleep(5000)
         continue
       }
+
+      client.join(name)
 
       CliUx.ux.action.start('Waiting to contribute', undefined, { stdout: true })
 
