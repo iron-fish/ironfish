@@ -8,7 +8,7 @@ import { Config } from '../../fileStores'
 import { NodeFileProvider } from '../../fileSystems'
 import { createRootLogger } from '../../logger'
 import { getUniqueTestDataDir } from '../../testUtilities/utils'
-import { PoolDatabase } from './database'
+import { PoolDatabase, RawDatabaseBlock } from './database'
 
 describe('poolDatabase', () => {
   let db: PoolDatabase
@@ -58,5 +58,73 @@ describe('poolDatabase', () => {
     )
     Assert.isNotUndefined(period1Raw, 'period1Raw should exist')
     expect(period1Raw.end).toEqual(payoutPeriod2.start - 1)
+  })
+
+  it('blocks', async () => {
+    const getBlock = async (id: number): Promise<RawDatabaseBlock> => {
+      const result = await db['db'].get<RawDatabaseBlock>(
+        'SELECT * FROM block WHERE id = ?',
+        id,
+      )
+      Assert.isNotUndefined(result)
+      return result
+    }
+
+    const minerReward = '2000560003'
+
+    await db.rolloverPayoutPeriod(new Date().getTime())
+
+    // Block 1: main chain and confirmed
+    const block1Id = await db.newBlock(1, 'hash1', minerReward)
+    Assert.isNotUndefined(block1Id)
+    await db.updateBlockStatus(block1Id, true, true)
+
+    await expect(getBlock(block1Id)).resolves.toMatchObject({
+      id: block1Id,
+      main: 1,
+      confirmed: 1,
+      minerReward,
+    })
+
+    // Block 2: forked and confirmed
+    const block2Id = await db.newBlock(1, 'hash2', minerReward)
+    Assert.isNotUndefined(block2Id)
+    await db.updateBlockStatus(block2Id, false, true)
+
+    await expect(getBlock(block2Id)).resolves.toMatchObject({
+      id: block2Id,
+      main: 0,
+      confirmed: 1,
+      minerReward,
+    })
+
+    // Block 3: main chain and unconfirmed
+    const block3Id = await db.newBlock(2, 'hash3', minerReward)
+    Assert.isNotUndefined(block3Id)
+    await db.updateBlockStatus(block3Id, true, false)
+
+    await expect(getBlock(block3Id)).resolves.toMatchObject({
+      id: block3Id,
+      main: 1,
+      confirmed: 0,
+      minerReward,
+    })
+
+    // Block 4: forked and unconfirmed
+    const block4Id = await db.newBlock(2, 'hash4', minerReward)
+    Assert.isNotUndefined(block4Id)
+    await db.updateBlockStatus(block4Id, false, false)
+
+    await expect(getBlock(block4Id)).resolves.toMatchObject({
+      id: block4Id,
+      main: 0,
+      confirmed: 0,
+      minerReward,
+    })
+
+    const blocks = await db.unconfirmedBlocks()
+    expect(blocks.length).toEqual(2)
+    expect(blocks[0].id).toEqual(block3Id)
+    expect(blocks[1].id).toEqual(block4Id)
   })
 })

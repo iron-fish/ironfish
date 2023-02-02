@@ -9,6 +9,7 @@ import { ErrorUtils } from '../utils'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
+import { DatabaseBlock } from './poolDatabase/database'
 import { WebhookNotifier } from './webhooks'
 
 export class MiningPoolShares {
@@ -235,5 +236,29 @@ export class MiningPoolShares {
     }
 
     await this.db.rolloverPayoutPeriod(now)
+  }
+
+  async submitBlock(sequence: number, hash: string, reward: bigint): Promise<void> {
+    if (reward < 0) {
+      reward *= BigInt(-1)
+    }
+
+    await this.db.newBlock(sequence, hash, reward.toString())
+  }
+
+  async unconfirmedBlocks(): Promise<DatabaseBlock[]> {
+    return await this.db.unconfirmedBlocks()
+  }
+
+  async updateBlockStatus(
+    block: DatabaseBlock,
+    main: boolean,
+    confirmed: boolean,
+  ): Promise<void> {
+    if (main === block.main && confirmed === block.confirmed) {
+      return
+    }
+
+    await this.db.updateBlockStatus(block.id, main, confirmed)
   }
 }

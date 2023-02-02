@@ -146,6 +146,41 @@ export class PoolDatabase {
     await this.db.run('INSERT INTO payoutPeriod (start) VALUES (?)', timestamp)
     await this.db.run('COMMIT')
   }
+
+  async newBlock(sequence: number, hash: string, reward: string): Promise<number | undefined> {
+    const sql = `
+      INSERT INTO block (payoutPeriodId, blockSequence, blockHash, minerReward)
+      VALUES (
+        (SELECT id FROM payoutPeriod WHERE end IS NULL),
+        ?, ?, ?
+      )
+    `
+
+    const result = await this.db.run(sql, sequence, hash, reward)
+    return result.lastID
+  }
+
+  async unconfirmedBlocks(): Promise<DatabaseBlock[]> {
+    const rows = await this.db.all<RawDatabaseBlock[]>(
+      'SELECT * FROM block WHERE confirmed = FALSE',
+    )
+
+    const results: DatabaseBlock[] = []
+    for (const row of rows) {
+      results.push(parseDatabaseBlock(row))
+    }
+
+    return results
+  }
+
+  async updateBlockStatus(blockId: number, main: boolean, confirmed: boolean): Promise<void> {
+    await this.db.run(
+      'UPDATE block SET main = ?, confirmed = ? WHERE id = ?',
+      main,
+      confirmed,
+      blockId,
+    )
+  }
 }
 
 export type DatabaseShare = {
@@ -161,4 +196,39 @@ export type DatabasePayoutPeriod = {
   createdAt: string
   start: number
   end: number | null
+}
+
+export type DatabaseBlock = {
+  id: number
+  createdAt: Date
+  blockSequence: number
+  blockHash: string
+  minerReward: bigint
+  confirmed: boolean
+  main: boolean
+  payoutPeriodId: number
+}
+
+export interface RawDatabaseBlock {
+  id: number
+  createdAt: string
+  blockSequence: number
+  blockHash: string
+  minerReward: string
+  confirmed: number
+  main: number
+  payoutPeriodId: number
+}
+
+function parseDatabaseBlock(rawBlock: RawDatabaseBlock): DatabaseBlock {
+  return {
+    id: rawBlock.id,
+    createdAt: new Date(rawBlock.createdAt),
+    blockSequence: rawBlock.blockSequence,
+    blockHash: rawBlock.blockHash,
+    minerReward: BigInt(rawBlock.minerReward),
+    confirmed: Boolean(rawBlock.confirmed),
+    main: Boolean(rawBlock.main),
+    payoutPeriodId: rawBlock.payoutPeriodId,
+  }
 }
