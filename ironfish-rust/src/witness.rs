@@ -29,14 +29,11 @@ pub trait WitnessTrait {
     fn get_auth_path(&self) -> Vec<WitnessNode<Scalar>>;
 
     fn root_hash(&self) -> Scalar;
-
-    fn tree_size(&self) -> u32;
 }
 
 /// A Rust implementation of a WitnessTrait, used for testing Witness-related
 /// code within Rust.
 pub struct Witness {
-    pub tree_size: usize,
     pub root_hash: Scalar,
     pub auth_path: Vec<WitnessNode<Scalar>>,
 }
@@ -44,10 +41,10 @@ pub struct Witness {
 /// Implement partial equality, ignoring the Sapling Arc
 impl PartialEq for Witness {
     fn eq(&self, other: &Witness) -> bool {
-        self.tree_size == other.tree_size
-            && self.root_hash == other.root_hash
-            && self.auth_path == other.auth_path
+        self.root_hash == other.root_hash && 
+        self.auth_path == other.auth_path
     }
+    
 }
 
 impl WitnessTrait for Witness {
@@ -74,16 +71,11 @@ impl WitnessTrait for Witness {
     fn root_hash(&self) -> Scalar {
         self.root_hash
     }
-
-    fn tree_size(&self) -> u32 {
-        self.tree_size as u32
-    }
 }
 
 impl fmt::Debug for Witness {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Witness {{")?;
-        writeln!(f, "    tree_size: {}", self.tree_size)?;
         writeln!(f, "    root_hash: {:?}", self.root_hash)?;
         writeln!(f, "    auth_path: {{")?;
 

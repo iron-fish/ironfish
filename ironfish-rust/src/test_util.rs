@@ -29,7 +29,6 @@ pub(crate) fn make_fake_witness(note: &Note) -> Witness {
     Witness {
         auth_path: witness_auth_path,
         root_hash,
-        tree_size: 1400,
     }
 }
 

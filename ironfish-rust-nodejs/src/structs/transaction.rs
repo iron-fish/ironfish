@@ -132,7 +132,6 @@ impl NativeTransactionPosted {
         let nullifier = Buffer::from(proof.nullifier().to_vec());
 
         Ok(NativeSpendDescription {
-            tree_size: proof.tree_size(),
             root_hash: Buffer::from(root_hash),
             nullifier,
         })

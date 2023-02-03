@@ -7,7 +7,6 @@ use napi_derive::napi;
 
 #[napi(object)]
 pub struct NativeSpendDescription {
-    pub tree_size: u32,
     pub root_hash: Buffer,
     pub nullifier: Buffer,
 }

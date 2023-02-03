@@ -102,17 +102,4 @@ impl WitnessTrait for JsWitness {
             .unwrap()
             .0
     }
-
-    fn tree_size(&self) -> u32 {
-        let f: JsFunction = self.obj.get("treeSize").unwrap().unwrap();
-
-        let args: &[napi::JsBuffer; 0] = &[];
-
-        f.call(Some(&self.obj), args)
-            .unwrap()
-            .coerce_to_number()
-            .unwrap()
-            .get_uint32()
-            .unwrap()
-    }
 }

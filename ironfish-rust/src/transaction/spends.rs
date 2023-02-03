@@ -47,10 +47,6 @@ pub struct SpendBuilder {
     /// `anchor` in the literature.
     pub(crate) root_hash: Scalar,
 
-    /// The size of the tree at the time the proof was calculated. This is not
-    /// incorporated into the proof, but is supplied to help miners verify the
-    /// root hash at the time of spend.
-    pub(crate) tree_size: u32,
     pub(crate) witness_position: u64,
     pub(crate) auth_path: Vec<Option<(Scalar, bool)>>,
 }
@@ -69,7 +65,6 @@ impl SpendBuilder {
             note,
             value_commitment,
             root_hash: witness.root_hash(),
-            tree_size: witness.tree_size(),
             witness_position: witness_position(witness),
             auth_path: sapling_auth_path(witness),
         }
@@ -126,7 +121,6 @@ impl SpendBuilder {
             proof,
             value_commitment: value_commitment_point,
             root_hash: self.root_hash,
-            tree_size: self.tree_size,
             nullifier,
             authorizing_signature: blank_signature,
         };
@@ -205,11 +199,6 @@ pub struct SpendDescription {
     /// Referred to as `anchor` in the literature.
     pub(crate) root_hash: Scalar,
 
-    /// The size of the tree at the time the proof was calculated. This is not
-    /// incorporated into the proof, but helps miners verify that the root
-    /// hash the client supplied is valid in the tree.
-    pub(crate) tree_size: u32,
-
     /// Bytes to be placed into the nullifier set to verify whether this
     /// note has been previously spent.
     pub(crate) nullifier: Nullifier,
@@ -230,7 +219,6 @@ impl SpendDescription {
         let proof = groth16::Proof::read(&mut reader)?;
         let value_commitment = read_point(&mut reader)?;
         let root_hash = read_scalar(&mut reader)?;
-        let tree_size = reader.read_u32::<LittleEndian>()?;
         let mut nullifier = Nullifier([0; 32]);
         reader.read_exact(&mut nullifier.0)?;
         let authorizing_signature = redjubjub::Signature::read(&mut reader)?;
@@ -239,7 +227,6 @@ impl SpendDescription {
             proof,
             value_commitment,
             root_hash,
-            tree_size,
             nullifier,
             authorizing_signature,
         })
@@ -259,10 +246,6 @@ impl SpendDescription {
 
     pub fn root_hash(&self) -> Scalar {
         self.root_hash
-    }
-
-    pub fn tree_size(&self) -> u32 {
-        self.tree_size
     }
 
     /// Verify that the signature on this proof is signing the provided input
@@ -343,7 +326,6 @@ impl SpendDescription {
             &self.proof,
             &self.value_commitment,
             &self.root_hash,
-            self.tree_size,
             &self.nullifier,
         )
     }
@@ -356,13 +338,11 @@ fn serialize_signature_fields<W: io::Write>(
     proof: &groth16::Proof<Bls12>,
     value_commitment: &ExtendedPoint,
     root_hash: &Scalar,
-    tree_size: u32,
     nullifier: &Nullifier,
 ) -> Result<(), IronfishError> {
     proof.write(&mut writer)?;
     writer.write_all(&value_commitment.to_bytes())?;
     writer.write_all(root_hash.to_repr().as_ref())?;
-    writer.write_u32::<LittleEndian>(tree_size)?;
     writer.write_all(&nullifier.0)?;
 
     Ok(())
