@@ -26,10 +26,12 @@ describe('Route chain/getNetworkHashPower', () => {
       await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
       await Promise.all([routeTest.node.wallet.updateHead()])
     }
-
-    await expect(routeTest.client.getNetworkHashPower({})).resolves.toMatchObject({
-      hashesPerSecond: expect.any(Number),
-    })
+    const response = await routeTest.client.getNetworkHashPower({})
+    expect(response.content).toEqual(
+      expect.objectContaining({
+        hashesPerSecond: expect.any(Number),
+      }),
+    )
   })
 
   it('should fail with a negative lookup value', async () => {
@@ -47,13 +49,15 @@ describe('Route chain/getNetworkHashPower', () => {
   })
 
   it('should return 0 network hash power if start block == end block', async () => {
-    await expect(
-      routeTest.client.getNetworkHashPower({
-        lookup: 1,
-        height: 1,
-      }),
-    ).resolves.toMatchObject({
-      hashesPerSecond: 0,
+    const response = await routeTest.client.getNetworkHashPower({
+      lookup: 1,
+      height: 1,
     })
+
+    expect(response.content).toEqual(
+      expect.objectContaining({
+        hashesPerSecond: 0,
+      }),
+    )
   })
 })
