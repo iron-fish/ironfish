@@ -40,9 +40,9 @@ export default class Power extends IronfishCommand {
     this.log(`Calculating hash speed...`)
 
     const data = await this.sdk.client.getNetworkHashPower({ lookup: lookup, height: height })
-    let hashesPerSecond = data.content.hashesPerSecond
 
-    const units: { [divs: number]: string } = {
+    // Take a raw hash/s value and convert it to a magnitude-appropriate human readable string
+    const hashRateUnits: { [numDivisions: number]: string } = {
       0: 'H/s',
       1: 'KH/s',
       2: 'MH/s',
@@ -52,15 +52,21 @@ export default class Power extends IronfishCommand {
     }
 
     let numDivisions = 0
+    let hashesPerSecond = data.content.hashesPerSecond
+
     while (hashesPerSecond > 1000) {
       hashesPerSecond /= 1000
       numDivisions += 1
     }
 
+    const truncatedHashesPerSecond = Math.floor(hashesPerSecond * 100) / 100
+
     this.log(
-      `The network is operating at ${hashesPerSecond} ${units[numDivisions]} over the last ${
-        lookup ?? 120
-      } blocks ending at ${height && height > 0 ? `block ${height}` : 'head'}.`,
+      `The network is operating at ${truncatedHashesPerSecond} ${
+        hashRateUnits[numDivisions]
+      } over the last ${lookup ?? 120} blocks ending at ${
+        height && height > 0 ? `block ${height}` : 'head'
+      }.`,
     )
   }
 }
