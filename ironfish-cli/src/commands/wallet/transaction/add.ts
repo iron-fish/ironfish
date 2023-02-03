@@ -35,6 +35,6 @@ export class TransactionAddCommand extends IronfishCommand {
     const response = await client.addTransaction({ transaction, broadcast: flags.broadcast })
     CliUx.ux.action.stop()
 
-    this.log(`Transaction added for account ${response.content.account}`)
+    this.log(`Transaction added for accounts: ${response.content.accounts.join(', ')}`)
   }
 }

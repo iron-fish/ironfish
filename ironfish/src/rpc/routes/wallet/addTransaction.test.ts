@@ -20,7 +20,7 @@ describe('Route wallet/addTransaction', () => {
     })
 
     expect(response.status).toBe(200)
-    expect(response.content.account).toBe(account.name)
+    expect(response.content.accounts[0]).toBe(account.name)
     await expect(account.hasTransaction(transaction.hash())).resolves.toBe(true)
   })
 
@@ -40,7 +40,7 @@ describe('Route wallet/addTransaction', () => {
     })
 
     expect(response.status).toBe(200)
-    expect(response.content.account).toBe(account.name)
+    expect(response.content.accounts[0]).toBe(account.name)
     expect(broadcastSpy).toHaveBeenCalled()
   })
 

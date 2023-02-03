@@ -13,7 +13,7 @@ export type AddTransactionRequest = {
 }
 
 export type AddTransactionResponse = {
-  account: string
+  accounts: string[]
 }
 
 export const AddTransactionRequestSchema: yup.ObjectSchema<AddTransactionRequest> = yup
@@ -25,7 +25,7 @@ export const AddTransactionRequestSchema: yup.ObjectSchema<AddTransactionRequest
 
 export const AddTransactionResponseSchema: yup.ObjectSchema<AddTransactionResponse> = yup
   .object({
-    account: yup.string().defined(),
+    accounts: yup.array(yup.string().defined()).defined(),
   })
   .defined()
 
@@ -47,11 +47,11 @@ router.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
 
     await node.wallet.addPendingTransaction(transaction)
 
-    const account = await AsyncUtils.find(node.wallet.listAccounts(), (account) =>
+    const accounts = await AsyncUtils.filter(node.wallet.listAccounts(), (account) =>
       account.hasTransaction(transaction.hash()),
     )
 
-    if (!account) {
+    if (accounts.length === 0) {
       throw new ValidationError(
         `Transaction ${transaction.hash().toString('hex')} is not related to any account`,
       )
@@ -64,7 +64,7 @@ router.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
     }
 
     request.end({
-      account: account.name,
+      accounts: accounts.map((a) => a.name),
     })
   },
 )
