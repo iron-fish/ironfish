@@ -41,10 +41,8 @@ pub struct Witness {
 /// Implement partial equality, ignoring the Sapling Arc
 impl PartialEq for Witness {
     fn eq(&self, other: &Witness) -> bool {
-        self.root_hash == other.root_hash && 
-        self.auth_path == other.auth_path
+        self.root_hash == other.root_hash && self.auth_path == other.auth_path
     }
-    
 }
 
 impl WitnessTrait for Witness {
