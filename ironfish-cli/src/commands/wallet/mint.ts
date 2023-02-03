@@ -60,6 +60,11 @@ export class Mint extends IronfishCommand {
         'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
       required: false,
     }),
+    rawTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return raw transaction. Use it to create a transaction but not post to the network',
+    }),
   }
 
   async start(): Promise<void> {
@@ -180,15 +185,23 @@ export class Mint extends IronfishCommand {
       this.log(`
 You are about to mint ${nameString} ${metadataString}
 ${amountString} plus a transaction fee of ${feeString} with the account ${account}
-
-* This action is NOT reversible *
 `)
+
+      if (!flags.rawTransaction) {
+        this.log(`* This action is NOT reversible *\n`)
+      }
 
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirm) {
         this.log('Transaction aborted.')
         this.exit(0)
       }
+    }
+
+    if (flags.rawTransaction) {
+      this.log(`Raw transaction: ${mintResponse.content.transaction}`)
+      this.log(`\nRun "ironfish wallet:post" to post the raw transaction. `)
+      this.exit(0)
     }
 
     const bar = CliUx.ux.progress({

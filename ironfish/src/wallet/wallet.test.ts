@@ -1069,7 +1069,7 @@ describe('Accounts', () => {
             value: mintValueB,
           })
 
-          return node.wallet.postTransaction(raw, node.memPool, account.spendingKey)
+          return node.wallet.post(raw, node.memPool, account.spendingKey)
         })
 
         const mintBlock = await node.chain.newBlock(

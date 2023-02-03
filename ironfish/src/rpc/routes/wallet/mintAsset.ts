@@ -43,7 +43,6 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
 
 export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> = yup
   .object({
-    assetId: yup.string().required(),
     name: yup.string().required(),
     value: yup.string().required(),
     transaction: yup.string().required(),
@@ -105,7 +104,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     const mint = raw.mints[0]
 
     request.end({
-      name: mint.name,
+      name: mint.name.toString(),
       value: mint.value.toString(),
       transaction: rawTransactionBytes.toString('hex'),
     })

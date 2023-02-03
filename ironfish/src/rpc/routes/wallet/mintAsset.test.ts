@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
+import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { useAccountFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
@@ -56,7 +57,7 @@ describe('mint', () => {
   })
 
   describe('with valid parameters', () => {
-    it('returns the asset identifier and transaction hash', async () => {
+    it('returns a raw transaction', async () => {
       const node = routeTest.node
       const wallet = node.wallet
       const account = await useAccountFixture(wallet)
@@ -94,6 +95,10 @@ describe('mint', () => {
       expect(response.content.name).toEqual(asset.name().toString('utf8'))
       expect(response.content.value).toEqual(mintTransaction.mints[0].value.toString())
       expect(response.content.transaction).toBeDefined()
+
+      const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
+      const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+      expect(rawTransaction.mints.length).toEqual(1)
     })
   })
 })
