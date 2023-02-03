@@ -7,7 +7,7 @@ import { ApiNamespace, router } from '../router'
 
 export type GetNetworkHashPowerRequest = {
   lookup?: number // number of blocks to lookup
-  height?: number // estimate network speed at the time this block was found
+  height?: number // estimate network speed at the time of the given height
 }
 
 export type GetNetworkHashPowerResponse = {
@@ -45,59 +45,50 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
       height = request.data.height
     }
 
-    let startBlock = node.chain.head
+    /*
+      For bitcoin, a negative lookup specifies using all blocks since the last difficulty change.
+      For ironfish, the difficulty changes for every block, so this isn't supported.
+    */
+    if (lookup < 0) {
+      throw new ValidationError('Lookup value must be greater than 0')
+    }
 
-    // set start block to the block at height
-    if (height >= 0 && height < node.chain.head.sequence) {
+    let endBlock = node.chain.head
+
+    // estimate network hps at specified height
+    if (height > 0 && height < node.chain.head.sequence) {
       const blockAtHeight = await node.chain.getHeaderAtSequence(height)
-      if (blockAtHeight) {
-        startBlock = blockAtHeight
-      } else {
-        throw new Error(`No block found at height ${height}`)
+      if (!blockAtHeight) {
+        throw new Error(`No end block found at height ${height}`)
       }
+      endBlock = blockAtHeight
     }
 
-    if (lookup <= 0) {
-      // TODO: set lookup to all blocks since last difficulty change
+    // Genesis block has sequence 1 - clamp lookup to prevent going out-of-bounds
+    if (lookup >= endBlock.sequence) {
+      lookup = endBlock.sequence - 1
     }
 
-    if (lookup > startBlock.sequence) {
-      lookup = startBlock.sequence
+    const startBlock = await node.chain.getHeaderAtSequence(endBlock.sequence - lookup)
+    if (!startBlock) {
+      throw new Error(`Failure to find start block ${endBlock.sequence - lookup}`)
     }
 
-    let minTime = startBlock.timestamp
-    let maxTime = startBlock.timestamp
-
-    let currentBlock = startBlock
-
-    // TODO: can we skip iterating and just index directly to seq - lookup
-    for (let i = 0; i < lookup; ++i) {
-      const previousBlock = await node.chain.getHeader(currentBlock.previousBlockHash)
-      if (previousBlock) {
-        const previousBlockTime = previousBlock.timestamp
-
-        minTime = previousBlockTime < minTime ? previousBlockTime : minTime
-        maxTime = previousBlockTime > maxTime ? previousBlockTime : maxTime
-
-        currentBlock = previousBlock
-      } else {
-        // TODO: should we throw an error here?
-        throw new Error(`No block found at height ${currentBlock.sequence - 1}}`)
-      }
-    }
+    const startTime = startBlock.timestamp.getTime()
+    const endTime = endBlock.timestamp.getTime()
 
     // Don't divide by 0
-    if (minTime == maxTime) {
+    if (startTime === endTime) {
       request.end({
         hashesPerSecond: 0,
       })
+      return
     }
 
-    const workDifference = startBlock.work - currentBlock.work
-    const timeDifference = (maxTime.getTime() - minTime.getTime()) / 1000 // in seconds
+    const workDifference = Number(endBlock.work - startBlock.work)
+    const timeDifference = (endTime - startTime) / 1000 // in seconds
 
-    const hashesPerSecond = Number(workDifference) / timeDifference
-
+    const hashesPerSecond = workDifference / timeDifference
     request.end({
       hashesPerSecond,
     })

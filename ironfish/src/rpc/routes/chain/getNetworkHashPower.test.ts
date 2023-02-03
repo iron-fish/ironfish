@@ -4,7 +4,7 @@
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account } from '../../../wallet'
-import { GetNetworkHashPowerResponse } from './getNetworkHashPower'
+import { ERROR_CODES } from '../../adapters'
 
 describe('Route chain/getNetworkHashPower', () => {
   const routeTest = createRouteTest(true)
@@ -14,8 +14,8 @@ describe('Route chain/getNetworkHashPower', () => {
     sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
   })
 
-  it('get network hash power', async () => {
-    for (let i = 0; i < 3; ++i) {
+  it('should succeed with default values', async () => {
+    for (let i = 0; i < 5; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
         undefined,
@@ -27,20 +27,33 @@ describe('Route chain/getNetworkHashPower', () => {
       await Promise.all([routeTest.node.wallet.updateHead()])
     }
 
-    const response = await routeTest.client
-      .request<GetNetworkHashPowerResponse>('chain/getNetworkHashPower', {
-        lookup: 5,
-      })
-      .waitForEnd()
-    console.log(routeTest.chain.genesis.timestamp.getTime(), routeTest.chain.genesis.work)
-    console.log(routeTest.chain.head.timestamp.getTime(), routeTest.chain.head.work)
-    console.log(
-      (Number(routeTest.chain.head.work) - Number(routeTest.chain.genesis.work)) /
-        ((routeTest.chain.head.timestamp.getTime() -
-          routeTest.chain.genesis.timestamp.getTime()) /
-          1000),
+    await expect(routeTest.client.getNetworkHashPower({})).resolves.toMatchObject({
+      hashesPerSecond: expect.any(Number),
+    })
+  })
+
+  it('should fail with a negative lookup value', async () => {
+    await expect(
+      routeTest.client.getNetworkHashPower({
+        lookup: -1,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        message: expect.stringContaining('Lookup value must be greater than 0'),
+        status: 400,
+        code: ERROR_CODES.VALIDATION,
+      }),
     )
-    console.log(response.content.hashesPerSecond)
-    // do something
+  })
+
+  it('should return 0 network hash power if start block == end block', async () => {
+    await expect(
+      routeTest.client.getNetworkHashPower({
+        lookup: 1,
+        height: 1,
+      }),
+    ).resolves.toMatchObject({
+      hashesPerSecond: 0,
+    })
   })
 })
