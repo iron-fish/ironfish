@@ -1228,11 +1228,7 @@ describe('Accounts', () => {
           expiration: 0,
         })
 
-        const transaction = await node.wallet.postTransaction(
-          raw,
-          node.memPool,
-          account.spendingKey,
-        )
+        const transaction = await node.wallet.post(raw, node.memPool, account.spendingKey)
 
         return node.chain.newBlock(
           [transaction],

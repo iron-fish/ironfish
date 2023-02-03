@@ -649,7 +649,7 @@ export class Wallet {
       confirmations: confirmations ?? undefined,
     })
 
-    return this.postTransaction(raw, memPool, sender.spendingKey)
+    return this.post(raw, memPool, sender.spendingKey)
   }
 
   async mint(
@@ -687,7 +687,7 @@ export class Wallet {
       confirmations: options.confirmations,
     })
 
-    return this.postTransaction(raw, memPool, account.spendingKey)
+    return this.post(raw, memPool, account.spendingKey)
   }
 
   async burn(
@@ -707,7 +707,7 @@ export class Wallet {
       confirmations: confirmations,
     })
 
-    return this.postTransaction(raw, memPool, account.spendingKey)
+    return this.post(raw, memPool, account.spendingKey)
   }
 
   async createTransaction(
@@ -819,12 +819,8 @@ export class Wallet {
     }
   }
 
-  async postTransaction(
-    raw: RawTransaction,
-    memPool: MemPool,
-    spendingKey: string,
-  ): Promise<Transaction> {
-    const transaction = await this.workerPool.postTransaction(raw, spendingKey)
+  async post(raw: RawTransaction, memPool: MemPool, spendingKey: string): Promise<Transaction> {
+    const transaction = await this.postTransaction(raw, spendingKey)
 
     const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
@@ -837,6 +833,10 @@ export class Wallet {
     this.onTransactionCreated.emit(transaction)
 
     return transaction
+  }
+
+  async postTransaction(raw: RawTransaction, spendingKey: string): Promise<Transaction> {
+    return await this.workerPool.postTransaction(raw, spendingKey)
   }
 
   async fund(
