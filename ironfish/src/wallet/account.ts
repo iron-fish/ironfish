@@ -204,6 +204,32 @@ export class Account {
     return assetBalanceDeltas
   }
 
+  async saveAssetFromChain(
+    createdTransactionHash: Buffer,
+    id: Buffer,
+    metadata: Buffer,
+    name: Buffer,
+    owner: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.walletDb.putAsset(
+      this,
+      id,
+      {
+        createdTransactionHash,
+        id,
+        metadata,
+        name,
+        owner,
+        // These fields are used for assets the account owns
+        blockHash: null,
+        sequence: null,
+        supply: null,
+      },
+      tx,
+    )
+  }
+
   async saveMintsToAssetsStore(
     { blockHash, sequence, transaction }: TransactionValue,
     tx?: IDatabaseTransaction,
@@ -229,6 +255,7 @@ export class Account {
       // block hash, created transaction hash, and sequence for the database
       // upsert. Adjust supply from the current record.
       if (existingAsset && existingAsset.blockHash && existingAsset.sequence) {
+        Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
         blockHash = existingAsset.blockHash
         createdTransactionHash = existingAsset.createdTransactionHash
         sequence = existingAsset.sequence
@@ -268,6 +295,7 @@ export class Account {
         this.publicAddress,
         'Existing asset owner should match public address',
       )
+      Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
 
       const supply = existingAsset.supply - value
       Assert.isTrue(supply >= BigInt(0), 'Invalid burn value')
@@ -305,6 +333,7 @@ export class Account {
         this.publicAddress,
         'Existing asset owner should match public address',
       )
+      Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
 
       const existingSupply = existingAsset.supply
       const supply = existingSupply + value
@@ -328,6 +357,7 @@ export class Account {
   }
 
   private async deleteDisconnectedMintsFromAssetsStore(
+    blockHeader: BlockHeader,
     transaction: Transaction,
     tx: IDatabaseTransaction,
   ): Promise<void> {
@@ -340,22 +370,30 @@ export class Account {
       const assetId = asset.id()
       const existingAsset = await this.walletDb.getAsset(this, assetId, tx)
       Assert.isNotUndefined(existingAsset)
+      Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
 
       const existingSupply = existingAsset.supply
       const supply = existingSupply - value
       Assert.isTrue(supply >= BigInt(0))
 
+      let blockHash = existingAsset.blockHash
+      let sequence = existingAsset.sequence
+      if (blockHash && blockHash.equals(blockHeader.hash)) {
+        blockHash = null
+        sequence = null
+      }
+
       await this.walletDb.putAsset(
         this,
         assetId,
         {
-          blockHash: existingAsset.blockHash,
+          blockHash,
           createdTransactionHash: existingAsset.createdTransactionHash,
           id: asset.id(),
           metadata: asset.metadata(),
           name: asset.name(),
           owner: asset.owner(),
-          sequence: existingAsset.sequence,
+          sequence,
           supply,
         },
         tx,
@@ -488,7 +526,7 @@ export class Account {
       }
 
       await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
-      await this.deleteDisconnectedMintsFromAssetsStore(transaction, tx)
+      await this.deleteDisconnectedMintsFromAssetsStore(blockHeader, transaction, tx)
       await this.walletDb.deleteSequenceToTransactionHash(
         this,
         blockHeader.sequence,
@@ -652,10 +690,7 @@ export class Account {
 
       // If we are reverting the transaction which matches the created at
       // hash of the asset, delete the record from the store
-      if (
-        transaction.hash().equals(existingAsset.createdTransactionHash) &&
-        existingAsset.supply === BigInt(0)
-      ) {
+      if (transaction.hash().equals(existingAsset.createdTransactionHash)) {
         await this.walletDb.deleteAsset(this, asset.id(), tx)
       }
     }
