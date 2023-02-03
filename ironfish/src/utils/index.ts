@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export * from './array'
 export * from './async'
+export * from './bech32m'
 export * from './bench'
 export * from './bigint'
 export * from './blockchain'
