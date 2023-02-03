@@ -35,8 +35,22 @@ export interface NativeSpendDescription {
   nullifier: Buffer
 }
 export const PROOF_LENGTH: number
+export const TRANSACTION_SIGNATURE_LENGTH: number
+export const TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH: number
+export const TRANSACTION_EXPIRATION_LENGTH: number
+export const TRANSACTION_FEE_LENGTH: number
 export const TRANSACTION_VERSION: number
 export function verifyTransactions(serializedTransactions: Array<Buffer>): boolean
+export const enum LanguageCode {
+  English = 0,
+  ChineseSimplified = 1,
+  ChineseTraditional = 2,
+  French = 3,
+  Italian = 4,
+  Japanese = 5,
+  Korean = 6,
+  Spanish = 7
+}
 export interface Key {
   spending_key: string
   incoming_view_key: string
@@ -44,6 +58,8 @@ export interface Key {
   public_address: string
 }
 export function generateKey(): Key
+export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
+export function wordsToSpendingKey(words: string, languageCode: LanguageCode): string
 export function generateKeyFromPrivateKey(privateKey: string): Key
 export function initializeSapling(): void
 export function isValidPublicAddress(hexAddress: string): boolean

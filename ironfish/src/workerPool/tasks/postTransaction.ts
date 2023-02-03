@@ -5,28 +5,39 @@
 import bufio from 'bufio'
 import { Transaction } from '../../primitives'
 import { RawTransaction, RawTransactionSerde } from '../../primitives/rawTransaction'
+import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
 export class PostTransactionRequest extends WorkerMessage {
   readonly transaction: RawTransaction
+  readonly spendingKey: string
 
-  constructor(transaction: RawTransaction, jobId?: number) {
+  constructor(transaction: RawTransaction, spendingKey: string, jobId?: number) {
     super(WorkerMessageType.PostTransaction, jobId)
     this.transaction = transaction
+    this.spendingKey = spendingKey
   }
 
   serialize(): Buffer {
-    return RawTransactionSerde.serialize(this.transaction)
+    const bw = bufio.write(this.getSize())
+    bw.writeBytes(Buffer.from(this.spendingKey, 'hex'))
+    bw.writeBytes(RawTransactionSerde.serialize(this.transaction))
+
+    return bw.render()
   }
 
   static deserialize(jobId: number, buffer: Buffer): PostTransactionRequest {
-    const raw = RawTransactionSerde.deserialize(buffer)
-    return new PostTransactionRequest(raw, jobId)
+    const reader = bufio.read(buffer, true)
+    const spendingKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
+    const raw = RawTransactionSerde.deserialize(
+      reader.readBytes(buffer.length - ACCOUNT_KEY_LENGTH),
+    )
+    return new PostTransactionRequest(raw, spendingKey, jobId)
   }
 
   getSize(): number {
-    return RawTransactionSerde.getSize(this.transaction)
+    return RawTransactionSerde.getSize(this.transaction) + ACCOUNT_KEY_LENGTH
   }
 }
 
@@ -67,7 +78,7 @@ export class PostTransactionTask extends WorkerTask {
   }
 
   execute(request: PostTransactionRequest): PostTransactionResponse {
-    const posted = request.transaction.post()
+    const posted = request.transaction.post(request.spendingKey)
     return new PostTransactionResponse(posted, request.jobId)
   }
 }

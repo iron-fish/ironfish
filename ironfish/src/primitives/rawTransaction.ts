@@ -2,14 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Transaction as NativeTransaction } from '@ironfish/rust-nodejs'
-import { Asset, ASSET_ID_LENGTH, ASSET_LENGTH } from '@ironfish/rust-nodejs'
+import {
+  AMOUNT_VALUE_LENGTH,
+  Transaction as NativeTransaction,
+  TRANSACTION_EXPIRATION_LENGTH,
+  TRANSACTION_FEE_LENGTH,
+} from '@ironfish/rust-nodejs'
+import { Asset, ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
 import { BurnDescription } from './burnDescription'
-import { MintDescription } from './mintDescription'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { Transaction } from './transaction'
@@ -18,11 +22,16 @@ import { Transaction } from './transaction'
 const noteHasher = new NoteHasher()
 const MAX_MINT_OR_BURN_VALUE = BigInt(100_000_000_000_000_000n)
 
+export interface MintData {
+  name: string
+  metadata: string
+  value: bigint
+}
+
 export class RawTransaction {
-  spendingKey = ''
   expiration: number | null = null
   fee = 0n
-  mints: MintDescription[] = []
+  mints: MintData[] = []
   burns: BurnDescription[] = []
   receives: { note: Note }[] = []
 
@@ -36,8 +45,8 @@ export class RawTransaction {
     >
   }[] = []
 
-  post(): Transaction {
-    const builder = new NativeTransaction(this.spendingKey)
+  post(spendingKey: string): Transaction {
+    const builder = new NativeTransaction(spendingKey)
 
     for (const spend of this.spends) {
       builder.spend(spend.note.takeReference(), spend.witness)
@@ -54,7 +63,9 @@ export class RawTransaction {
         throw new Error('Cannot post transaction. Mint value exceededs maximum')
       }
 
-      builder.mint(mint.asset, mint.value)
+      const asset = new Asset(spendingKey, mint.name, mint.metadata)
+
+      builder.mint(asset, mint.value)
     }
 
     for (const burn of this.burns) {
@@ -80,7 +91,6 @@ export class RawTransactionSerde {
   static serialize(raw: RawTransaction): Buffer {
     const bw = bufio.write(this.getSize(raw))
 
-    bw.writeVarString(raw.spendingKey)
     bw.writeBigU64(raw.fee)
 
     bw.writeU64(raw.spends.length)
@@ -110,7 +120,8 @@ export class RawTransactionSerde {
 
     bw.writeU64(raw.mints.length)
     for (const mint of raw.mints) {
-      bw.writeBytes(mint.asset.serialize())
+      bw.writeVarString(mint.name)
+      bw.writeVarString(mint.metadata)
       bw.writeBigU64(mint.value)
     }
 
@@ -122,7 +133,7 @@ export class RawTransactionSerde {
 
     bw.writeU8(Number(raw.expiration != null))
     if (raw.expiration != null) {
-      bw.writeU64(raw.expiration)
+      bw.writeU32(raw.expiration)
     }
 
     return bw.render()
@@ -132,7 +143,6 @@ export class RawTransactionSerde {
     const reader = bufio.read(buffer, true)
 
     const raw = new RawTransaction()
-    raw.spendingKey = reader.readVarString()
     raw.fee = reader.readBigU64()
 
     const spendsLength = reader.readU64()
@@ -162,9 +172,10 @@ export class RawTransactionSerde {
 
     const mintsLength = reader.readU64()
     for (let i = 0; i < mintsLength; i++) {
-      const asset = Asset.deserialize(reader.readBytes(ASSET_LENGTH))
+      const name = reader.readVarString()
+      const metadata = reader.readVarString()
       const value = reader.readBigU64()
-      raw.mints.push({ asset, value })
+      raw.mints.push({ name, metadata, value })
     }
 
     const burnsLength = reader.readU64()
@@ -176,7 +187,7 @@ export class RawTransactionSerde {
 
     const hasExpiration = reader.readU8()
     if (hasExpiration) {
-      raw.expiration = reader.readU64()
+      raw.expiration = reader.readU32()
     }
 
     return raw
@@ -185,8 +196,7 @@ export class RawTransactionSerde {
   static getSize(raw: RawTransaction): number {
     let size = 0
 
-    size += bufio.sizeVarString(raw.spendingKey)
-    size += 8 // raw.fee
+    size += TRANSACTION_FEE_LENGTH // raw.fee
 
     size += 8 // raw.spends.length
     for (const spend of raw.spends) {
@@ -207,20 +217,21 @@ export class RawTransactionSerde {
     }
 
     size += 8 // raw.mints.length
-    for (const _ of raw.mints) {
-      size += ASSET_LENGTH // mint.asset
-      size += 8 // mint.value
+    for (const mint of raw.mints) {
+      size += bufio.sizeVarString(mint.name)
+      size += bufio.sizeVarString(mint.metadata)
+      size += AMOUNT_VALUE_LENGTH // mint.value
     }
 
     size += 8 // raw.burns.length
     for (const _ of raw.burns) {
       size += ASSET_ID_LENGTH // burn.assetId
-      size += 8 // burn.value
+      size += AMOUNT_VALUE_LENGTH // burn.value
     }
 
     size += 1 // has expiration sequence
     if (raw.expiration != null) {
-      size += 8 // raw.expiration
+      size += TRANSACTION_EXPIRATION_LENGTH // raw.expiration
     }
 
     return size

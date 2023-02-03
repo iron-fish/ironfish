@@ -56,3 +56,11 @@ const timestamp = <T extends Record<string, unknown>>(options?: {
 }
 
 export const TableCols = { timestamp }
+
+export function truncateCol(value: string, maxWidth: number | null): string {
+  if (maxWidth === null || value.length <= maxWidth) {
+    return value
+  }
+
+  return value.slice(0, maxWidth - 1) + '…'
+}

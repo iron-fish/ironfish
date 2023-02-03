@@ -877,8 +877,141 @@ impl MPCParameters {
     /// we won't perform curve validity and group order
     /// checks.
     pub fn read<R: Read>(mut reader: R, checked: bool) -> io::Result<MPCParameters> {
-        let params = Parameters::read(&mut reader, checked)?;
+        // Parameters
+        let read_g1 = |reader: &mut R| -> io::Result<[u8; 96]> {
+            let mut repr: [u8; 96] = [0u8; 96];
+            reader.read_exact(repr.as_mut())?;
+            Ok(repr)
+        };
 
+        let process_g1 = |repr: &[u8; 96]| -> io::Result<G1Affine> {
+            let affine = if checked {
+                bls12_381::G1Affine::from_uncompressed(repr)
+            } else {
+                bls12_381::G1Affine::from_uncompressed_unchecked(repr)
+            };
+
+            let affine = if affine.is_some().into() {
+                Ok(affine.unwrap())
+            } else {
+                Err(io::Error::new(io::ErrorKind::InvalidData, "invalid G1"))
+            };
+
+            affine.and_then(|e| {
+                if e.is_identity().into() {
+                    Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "point at infinity",
+                    ))
+                } else {
+                    Ok(e)
+                }
+            })
+        };
+
+        let read_g2 = |reader: &mut R| -> io::Result<[u8; 192]> {
+            let mut repr: [u8; 192] = [0u8; 192];
+            reader.read_exact(repr.as_mut())?;
+            Ok(repr)
+        };
+
+        let process_g2 = |repr: &[u8; 192]| -> io::Result<G2Affine> {
+            let affine = if checked {
+                G2Affine::from_uncompressed(repr)
+            } else {
+                G2Affine::from_uncompressed_unchecked(repr)
+            };
+
+            let affine = if affine.is_some().into() {
+                Ok(affine.unwrap())
+            } else {
+                Err(io::Error::new(io::ErrorKind::InvalidData, "invalid G2"))
+            };
+
+            affine.and_then(|e| {
+                if e.is_identity().into() {
+                    Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "point at infinity",
+                    ))
+                } else {
+                    Ok(e)
+                }
+            })
+        };
+
+        let vk = VerifyingKey::read(&mut reader)?;
+
+        let h = {
+            let len = reader.read_u32::<BigEndian>()? as usize;
+            let mut bufs = Vec::with_capacity(len);
+
+            for _ in 0..len {
+                bufs.push(read_g1(&mut reader)?);
+            }
+
+            let h: Result<_, _> = bufs.par_iter().map(process_g1).collect();
+            h
+        }?;
+
+        let l = {
+            let len = reader.read_u32::<BigEndian>()? as usize;
+            let mut bufs = Vec::with_capacity(len);
+
+            for _ in 0..len {
+                bufs.push(read_g1(&mut reader)?);
+            }
+
+            let l: Result<_, _> = bufs.par_iter().map(process_g1).collect();
+            l
+        }?;
+
+        let a = {
+            let len = reader.read_u32::<BigEndian>()? as usize;
+            let mut bufs = Vec::with_capacity(len);
+
+            for _ in 0..len {
+                bufs.push(read_g1(&mut reader)?);
+            }
+
+            let a: Result<_, _> = bufs.par_iter().map(process_g1).collect();
+            a
+        }?;
+
+        let b_g1 = {
+            let len = reader.read_u32::<BigEndian>()? as usize;
+            let mut bufs = Vec::with_capacity(len);
+
+            for _ in 0..len {
+                bufs.push(read_g1(&mut reader)?);
+            }
+
+            let b_g1: Result<_, _> = bufs.par_iter().map(process_g1).collect();
+            b_g1
+        }?;
+
+        let b_g2 = {
+            let len = reader.read_u32::<BigEndian>()? as usize;
+            let mut bufs = Vec::with_capacity(len);
+
+            for _ in 0..len {
+                bufs.push(read_g2(&mut reader)?);
+            }
+
+            let b_g2: Result<_, _> = bufs.par_iter().map(process_g2).collect();
+            b_g2
+        }?;
+
+        let params = Parameters {
+            vk,
+            h: Arc::new(h),
+            l: Arc::new(l),
+            a: Arc::new(a),
+            b_g1: Arc::new(b_g1),
+            b_g2: Arc::new(b_g2),
+        };
+
+        // Contributions
         let mut cs_hash = [0u8; 64];
         reader.read_exact(&mut cs_hash)?;
 

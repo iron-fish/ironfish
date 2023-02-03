@@ -214,7 +214,7 @@ describe('Transactions sendTransaction', () => {
     expect(result.content.hash).toEqual(tx.hash().toString('hex'))
   })
 
-  it('lets you configure the expiration', async () => {
+  it('lets you configure the expiration and confirmations', async () => {
     const account = await useAccountFixture(routeTest.node.wallet, 'expiration')
     const tx = await useMinersTxFixture(routeTest.node.wallet, account)
 
@@ -242,12 +242,14 @@ describe('Transactions sendTransaction', () => {
       expect.anything(),
       routeTest.node.config.get('transactionExpirationDelta'),
       undefined,
+      undefined,
     )
 
     await routeTest.client.sendTransaction({
       ...TEST_PARAMS,
       expiration: 1234,
       expirationDelta: 12345,
+      confirmations: 10,
     })
 
     expect(sendSpy).toHaveBeenCalledWith(
@@ -257,6 +259,7 @@ describe('Transactions sendTransaction', () => {
       expect.anything(),
       12345,
       1234,
+      10,
     )
   })
 })

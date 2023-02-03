@@ -20,23 +20,24 @@ describe('Route wallet/createTransaction', () => {
     routeTest.chain.synced = true
 
     const asset = new Asset(sender.spendingKey, 'new-asset', 'metadata')
-    const value = 10n
+    const mintData = {
+      name: asset.name().toString('utf8'),
+      metadata: asset.metadata().toString('utf8'),
+      value: 10n,
+      isNewAsset: true,
+    }
+
     const mintTransaction = await useTxFixture(
       routeTest.node.wallet,
       sender,
       sender,
       async () => {
-        const raw = await routeTest.node.wallet.createTransaction(
-          sender,
-          [],
-          [{ asset, value }],
-          [],
-          {
-            fee: 0n,
-            expiration: 0,
-          },
-        )
-        return routeTest.node.wallet.postTransaction(raw, routeTest.node.memPool)
+        const raw = await routeTest.node.wallet.createTransaction(sender, [], [mintData], [], {
+          fee: 0n,
+          expiration: 0,
+        })
+
+        return routeTest.node.wallet.post(raw, routeTest.node.memPool, sender.spendingKey)
       },
     )
 

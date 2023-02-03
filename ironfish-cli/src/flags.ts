@@ -8,6 +8,8 @@ import {
   DEFAULT_USE_RPC_IPC,
   DEFAULT_USE_RPC_TCP,
   DEFAULT_USE_RPC_TLS,
+  MAXIMUM_ORE_AMOUNT,
+  MINIMUM_ORE_AMOUNT,
 } from '@ironfish/sdk'
 import { Flags, Interfaces } from '@oclif/core'
 
@@ -111,14 +113,25 @@ export const IronFlag = Flags.custom<bigint, IronOpts>({
   char: 'i',
 })
 
-const parseIron = (input: string, opts: IronOpts): Promise<bigint> => {
+export const parseIron = (input: string, opts: IronOpts): Promise<bigint> => {
   return new Promise((resolve, reject) => {
     const { largerThan, flagName } = opts ?? {}
-    const value = CurrencyUtils.decodeIron(input)
-    if (largerThan !== undefined && value <= largerThan) {
-      reject(new Error(`The minimum ${flagName} is ${CurrencyUtils.renderOre(1n, true)}`))
-    }
+    try {
+      const value = CurrencyUtils.decodeIron(input)
 
-    resolve(value)
+      if (largerThan !== undefined && value <= largerThan) {
+        reject(
+          new Error(`The minimum ${flagName} is ${CurrencyUtils.renderOre(largerThan, true)}`),
+        )
+      }
+
+      if (value < MINIMUM_ORE_AMOUNT || value > MAXIMUM_ORE_AMOUNT) {
+        reject(new Error(`The number inputted for ${flagName} is invalid.`))
+      }
+
+      resolve(value)
+    } catch {
+      reject(new Error(`The number inputted for ${flagName} is invalid.`))
+    }
   })
 }

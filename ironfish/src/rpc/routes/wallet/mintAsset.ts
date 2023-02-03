@@ -15,6 +15,7 @@ export interface MintAssetRequest {
   assetId?: string
   expiration?: number
   expirationDelta?: number
+  confirmations?: number
   metadata?: string
   name?: string
 }
@@ -34,6 +35,7 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
     assetId: yup.string().optional(),
     expiration: yup.number().optional(),
     expirationDelta: yup.number().optional(),
+    confirmations: yup.number().optional(),
     metadata: yup.string().optional(),
     name: yup.string().optional(),
   })
@@ -78,6 +80,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         fee,
         expirationDelta,
         value,
+        confirmations: request.data.confirmations,
       }
     } else {
       Assert.isNotUndefined(request.data.name, 'Must provide name or identifier to mint')
@@ -91,6 +94,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         name: request.data.name,
         expirationDelta,
         value,
+        confirmations: request.data.confirmations,
       }
     }
 

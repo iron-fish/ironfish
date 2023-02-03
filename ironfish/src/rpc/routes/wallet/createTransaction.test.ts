@@ -276,6 +276,7 @@ describe('Route wallet/createTransaction', () => {
         },
       ],
       fee: BigInt(1).toString(),
+      confirmations: 0,
     })
 
     expect(response.status).toBe(200)
@@ -371,5 +372,53 @@ describe('Route wallet/createTransaction', () => {
         fee: BigInt(1).toString(),
       }),
     ).rejects.toThrow(`Must provide name or identifier to mint`)
+  })
+
+  it('should throw an error when attempting to create a transaction with no valid confirmations', async () => {
+    routeTest.node.peerNetwork['_isReady'] = true
+    routeTest.chain.synced = true
+
+    const block = await useMinerBlockFixture(
+      routeTest.chain,
+      undefined,
+      sender,
+      routeTest.node.wallet,
+    )
+
+    await expect(routeTest.node.chain).toAddBlock(block)
+    await routeTest.node.wallet.updateHead()
+
+    const asset = new Asset(sender.spendingKey, 'mint-asset', 'metadata')
+
+    await expect(
+      routeTest.client.createTransaction({
+        sender: 'existingAccount',
+        receives: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: BigInt(10).toString(),
+            memo: '',
+            assetId: Asset.nativeId().toString('hex'),
+          },
+        ],
+        mints: [
+          {
+            metadata: asset.metadata().toString('hex'),
+            name: asset.name().toString('hex'),
+            value: BigInt(10).toString(),
+          },
+        ],
+        fee: BigInt(1).toString(),
+        confirmations: 1000,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        message: expect.stringContaining(
+          `Not enough unspent notes available to fund the transaction.`,
+        ),
+        status: 400,
+        code: ERROR_CODES.INSUFFICIENT_BALANCE,
+      }),
+    )
   })
 })

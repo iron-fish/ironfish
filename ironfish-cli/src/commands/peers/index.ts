@@ -6,16 +6,20 @@ import { CliUx, Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { CommandFlags } from '../../types'
 
 type GetPeerResponsePeer = GetPeersResponse['peers'][0]
 
 const STATE_COLUMN_HEADER = 'STATE'
+const tableFlags = CliUx.ux.table.flags()
+tableFlags.sort.default = STATE_COLUMN_HEADER
 
 export class ListCommand extends IronfishCommand {
   static description = `List all connected peers`
 
   static flags = {
     ...RemoteFlags,
+    ...tableFlags,
     follow: Flags.boolean({
       char: 'f',
       default: false,
@@ -24,16 +28,6 @@ export class ListCommand extends IronfishCommand {
     all: Flags.boolean({
       default: false,
       description: 'Show all peers, not just connected peers',
-    }),
-    extended: Flags.boolean({
-      char: 'e',
-      default: false,
-      description: 'Display all information',
-    }),
-    sort: Flags.string({
-      char: 'o',
-      default: STATE_COLUMN_HEADER,
-      description: 'Sort by column header',
     }),
     agents: Flags.boolean({
       char: 'a',
@@ -94,14 +88,7 @@ export class ListCommand extends IronfishCommand {
 
 function renderTable(
   content: GetPeersResponse,
-  flags: {
-    extended: boolean
-    names: boolean
-    all: boolean
-    sort: string
-    agents: boolean
-    sequence: boolean
-  },
+  flags: CommandFlags<typeof ListCommand>,
 ): string {
   let columns: CliUx.Table.table.Columns<GetPeerResponsePeer> = {
     identity: {
@@ -201,8 +188,7 @@ function renderTable(
 
   CliUx.ux.table(peers, columns, {
     printLine: (line) => (result += `${String(line)}\n`),
-    extended: flags.extended,
-    sort: flags.sort,
+    ...flags,
   })
 
   return result

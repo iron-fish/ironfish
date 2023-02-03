@@ -7,10 +7,9 @@ import { Blockchain } from '../../blockchain'
 import { IronfishNode } from '../../node'
 import { Block, BlockSerde, SerializedBlock } from '../../primitives/block'
 import { BurnDescription } from '../../primitives/burnDescription'
-import { MintDescription } from '../../primitives/mintDescription'
 import { Note } from '../../primitives/note'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
-import { RawTransaction } from '../../primitives/rawTransaction'
+import { MintData, RawTransaction } from '../../primitives/rawTransaction'
 import { Transaction } from '../../primitives/transaction'
 import { Account, Wallet } from '../../wallet'
 import { WorkerPool } from '../../workerPool/pool'
@@ -106,7 +105,13 @@ export async function useMintBlockFixture(options: {
     node: options.node,
     wallet: options.node.wallet,
     from: options.account,
-    mints: [{ asset: options.asset, value: options.value }],
+    mints: [
+      {
+        name: options.asset.name().toString('utf8'),
+        metadata: options.asset.metadata().toString('utf8'),
+        value: options.value,
+      },
+    ],
   })
 
   return useMinerBlockFixture(options.node.chain, options.sequence, undefined, undefined, [
@@ -143,7 +148,7 @@ export async function useBlockWithRawTxFixture(
   sender: Account,
   notesToSpend: NoteEncrypted[],
   receives: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[],
-  mints: MintDescription[],
+  mints: MintData[],
   burns: BurnDescription[],
   sequence: number,
 ): Promise<Block> {
@@ -165,7 +170,6 @@ export async function useBlockWithRawTxFixture(
     )
 
     const raw = new RawTransaction()
-    raw.spendingKey = sender.spendingKey
     raw.expiration = 0
     raw.mints = mints
     raw.burns = burns
@@ -184,7 +188,7 @@ export async function useBlockWithRawTxFixture(
       raw.receives.push({ note: new Note(note.serialize()) })
     }
 
-    const transaction = await pool.postTransaction(raw)
+    const transaction = await pool.postTransaction(raw, sender.spendingKey)
 
     return chain.newBlock(
       [transaction],
@@ -254,7 +258,7 @@ export async function useBlockWithTx(
       },
     )
 
-    const transaction = await node.wallet.postTransaction(raw, node.memPool)
+    const transaction = await node.wallet.post(raw, node.memPool, from.spendingKey)
 
     return node.chain.newBlock(
       [transaction],
@@ -314,7 +318,7 @@ export async function useBlockWithTxs(
         },
       )
 
-      const transaction = await node.wallet.postTransaction(raw, node.memPool)
+      const transaction = await node.wallet.post(raw, node.memPool, from.spendingKey)
 
       await node.wallet.addPendingTransaction(transaction)
       transactions.push(transaction)
@@ -338,6 +342,7 @@ export async function useTxSpendsFixture(
   options?: {
     account?: Account
     expiration?: number
+    restore?: boolean
   },
 ): Promise<{ account: Account; transaction: Transaction }> {
   const account = options?.account ?? (await useAccountFixture(node.wallet))
@@ -354,6 +359,7 @@ export async function useTxSpendsFixture(
     undefined,
     undefined,
     options?.expiration,
+    options?.restore,
   )
 
   return {

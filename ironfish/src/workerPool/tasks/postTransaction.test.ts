@@ -37,7 +37,7 @@ describe('PostTransactionRequest', () => {
       expiration: 5,
     })
 
-    const request = new PostTransactionRequest(raw)
+    const request = new PostTransactionRequest(raw, account.spendingKey)
     const buffer = request.serialize()
     const deserialized = PostTransactionRequest.deserialize(request.jobId, buffer)
 
@@ -81,7 +81,7 @@ describe('PostTransactionTask', () => {
       expiration: 9,
     })
 
-    const request = new PostTransactionRequest(raw)
+    const request = new PostTransactionRequest(raw, account.spendingKey)
     const task = new PostTransactionTask()
     const response = task.execute(request)
 

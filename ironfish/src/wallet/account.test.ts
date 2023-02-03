@@ -9,6 +9,7 @@ import {
   useAccountFixture,
   useBlockWithTx,
   useMinerBlockFixture,
+  useMintBlockFixture,
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils/async'
@@ -769,6 +770,90 @@ describe('Accounts', () => {
       await expect(accountA.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
         confirmed: 2000000000n,
         unconfirmed: 1999999998n,
+      })
+    })
+
+    it('should not subtract unconfirmed spends from confirmed balance for transactions without change', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 2000000000n,
+      })
+
+      // send 1 ORE from A to B with a fee of 1 ORE
+      const { block: block3 } = await useBlockWithTx(node, accountA, accountB, false)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      // with 0 confirmations, confirmed balance includes the transaction
+      await expect(accountB.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 1n,
+        unconfirmed: 1n,
+      })
+
+      // send 1 ORE from B to A with no fee so that B receives no change
+      const { block: block4 } = await useBlockWithTx(node, accountB, accountA, false, {
+        fee: 0,
+      })
+      await node.chain.addBlock(block4)
+      await node.wallet.updateHead()
+
+      // with 0 confirmations, confirmed balance includes the transaction
+      await expect(accountB.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 0n,
+        unconfirmed: 0n,
+      })
+
+      // with 1 confirmation, confirmed balance does not include the transaction
+      await expect(accountB.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
+        confirmed: 1n,
+        unconfirmed: 0n,
+      })
+    })
+
+    it('should calculate confirmed balance for custom assets', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 2000000000n,
+      })
+
+      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+
+      const block3 = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value: 10n,
+      })
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      // with 0 confirmations, confirmed balance includes the transaction
+      await expect(accountA.getBalance(asset.id(), 0)).resolves.toMatchObject({
+        confirmed: 10n,
+        unconfirmed: 10n,
+      })
+
+      // with 1 confirmation, confirmed balance should not include the transaction
+      await expect(accountA.getBalance(asset.id(), 1)).resolves.toMatchObject({
+        confirmed: 0n,
+        unconfirmed: 10n,
       })
     })
   })
