@@ -10,7 +10,7 @@ import { Account } from '../../wallet'
 import { AssetBalances } from '../../wallet/assetBalances'
 import { Migration } from '../migration'
 
-export class Migration017 extends Migration {
+export class Migration018 extends Migration {
   path = __filename
 
   prepare(node: IronfishNode): IDatabase {
