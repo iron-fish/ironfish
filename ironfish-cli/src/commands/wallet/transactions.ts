@@ -126,7 +126,7 @@ export class TransactionsCommand extends IronfishCommand {
           ...transaction,
           group: assetCount === 2 ? '' : '┏',
           assetId,
-          assetName,
+          assetName: BufferUtils.toHuman(Buffer.from(assetName, 'hex')),
           amount: BigInt(delta),
           feePaid,
         })

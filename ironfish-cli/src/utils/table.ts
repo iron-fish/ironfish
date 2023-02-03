@@ -88,8 +88,7 @@ const asset = <T extends Record<string, unknown>>(options?: {
         get: (row) => {
           Assert.isString(row.assetName)
           Assert.isString(row.assetId)
-          let assetName = BufferUtils.toHuman(Buffer.from(row.assetName, 'hex'))
-          assetName = truncateCol(assetName, MIN_ASSET_NAME_COLUMN_WIDTH)
+          const assetName = truncateCol(row.assetName, MIN_ASSET_NAME_COLUMN_WIDTH)
           const text = assetName.padEnd(MIN_ASSET_NAME_COLUMN_WIDTH, ' ')
           return `${text} (${row.assetId.slice(0, 5)})`
         },
