@@ -63,7 +63,7 @@ export class Mint extends IronfishCommand {
     rawTransaction: Flags.boolean({
       default: false,
       description:
-        'Return raw transaction. Use it to create a transaction but not post to the network',
+        'Return the raw transaction. Used to create a transaction but not post to the network',
     }),
   }
 
@@ -163,16 +163,24 @@ export class Mint extends IronfishCommand {
       )
     }
 
-    const mintResponse = await client.mintAsset({
-      account,
-      assetId,
-      fee: CurrencyUtils.encode(fee),
-      metadata,
-      name,
-      value: CurrencyUtils.encode(amount),
-      confirmations,
-    })
-
+    let mintResponse
+    try {
+      mintResponse = await client.mintAsset({
+        account,
+        assetId,
+        fee: CurrencyUtils.encode(fee),
+        metadata,
+        name,
+        value: CurrencyUtils.encode(amount),
+        confirmations,
+      })
+    } catch (error) {
+      if (error instanceof Error) {
+        this.error(error.message)
+      }
+      throw error
+    }
+    
     const rawTransactionBytes = Buffer.from(mintResponse.content.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
