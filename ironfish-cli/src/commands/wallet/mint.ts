@@ -180,7 +180,7 @@ export class Mint extends IronfishCommand {
       }
       throw error
     }
-    
+
     const rawTransactionBytes = Buffer.from(mintResponse.content.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
