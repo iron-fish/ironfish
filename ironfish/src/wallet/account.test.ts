@@ -8,6 +8,7 @@ import {
   createNodeTest,
   useAccountFixture,
   useBlockWithTx,
+  useBlockWithTxs,
   useMinerBlockFixture,
   useMintBlockFixture,
   useTxFixture,
@@ -491,7 +492,29 @@ describe('Accounts', () => {
       expect(sequenceIndexEntry).toBeNull()
     })
 
-    it('should set the transaction timestamp equal to the block header timestamp', async () => {
+    it('should set new transaction timestamps equal to the block header timestamp', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const { block: block3, transactions } = await useBlockWithTxs(node, 1, accountA)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      expect(transactions.length).toBe(1)
+
+      const transactionRecord = await accountA.getTransaction(transactions[0].hash())
+
+      Assert.isNotUndefined(transactionRecord)
+
+      expect(transactionRecord.timestamp).toEqual(block3.header.timestamp)
+    })
+
+    it('should set preserve pending transaction timestamps', async () => {
       const { node } = nodeTest
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
@@ -501,17 +524,23 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const transaction = await useTxFixture(node.wallet, accountA, accountA)
+
+      const pendingRecord = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(pendingRecord)
+
+      expect(pendingRecord.sequence).toBeNull()
+
       const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
         transaction,
       ])
       await node.chain.addBlock(block3)
       await node.wallet.updateHead()
 
-      const transactionRecord = await accountA.getTransaction(transaction.hash())
+      const connectedRecord = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(connectedRecord)
 
-      Assert.isNotUndefined(transactionRecord)
-
-      expect(transactionRecord.timestamp).toEqual(block3.header.timestamp)
+      expect(connectedRecord.sequence).toEqual(block3.header.sequence)
+      expect(connectedRecord.timestamp).toEqual(pendingRecord.timestamp)
     })
   })
 
