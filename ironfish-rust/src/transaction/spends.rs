@@ -29,7 +29,7 @@ use jubjub::ExtendedPoint;
 use rand::thread_rng;
 use std::io;
 
-use super::utils::verify_spend_proof;
+use super::{utils::verify_spend_proof, TRANSACTION_PUBLIC_KEY_SIZE};
 
 /// Parameters used when constructing proof that the spender owns a note with
 /// a given value.
@@ -173,7 +173,8 @@ impl UnsignedSpendDescription {
         }
 
         let mut data_to_be_signed = [0; 64];
-        data_to_be_signed[..32].copy_from_slice(&transaction_randomized_public_key.0.to_bytes());
+        data_to_be_signed[..TRANSACTION_PUBLIC_KEY_SIZE]
+            .copy_from_slice(&transaction_randomized_public_key.0.to_bytes());
         data_to_be_signed[32..].copy_from_slice(&signature_hash[..]);
 
         self.description.authorizing_signature = randomized_private_key.sign(

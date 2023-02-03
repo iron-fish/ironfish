@@ -1,0 +1,42 @@
+{
+  "": [
+    {
+      "id": "09b76093-862f-4d2b-b416-6474ec46f021",
+      "name": "existingAccount",
+      "spendingKey": "782e5cc7ffc5a255193e50a749486559f128d57d0ddadda304bd0d77c6b540b0",
+      "incomingViewKey": "7f1aaa09bf6179f6b36f7d781bfe7c04963f8163fbbd2066f0e8177ce2503607",
+      "outgoingViewKey": "9f1b3e54c5644f1f53a51d9700862dd7d8bd398302dcba3103b35683123546bd",
+      "publicAddress": "a4fcf69c060432ddb044045a47308fcc29328d9c1297e33ede01a79d4b95c33c"
+    }
+  ],
+  "Route wallet/postTransaction should accept a valid raw transaction": [
+    {
+      "id": "58277939-c4b7-457f-a436-843b1005696e",
+      "name": "existingAccount",
+      "spendingKey": "40f77ebf03b18b375a156bc2e4bd068ce6682155437d77cea52029451069e172",
+      "incomingViewKey": "479d9acccaaafa10c33d16a2241e8bae4d9dd2e8eec149605b7ff52b61622701",
+      "outgoingViewKey": "89c87c4a3e9f4aff20bc92af7f82471292b354696a4d2faf2d9fc5cc0873a1aa",
+      "publicAddress": "6ff6044b226132e1d6116bf264966720c6c703a2ed3859154793e4281b1095bb"
+    }
+  ],
+  "Route wallet/postTransaction should return an error if the transaction won't deserialize": [
+    {
+      "id": "fe4d0338-ef02-4557-b978-4c61717f83ad",
+      "name": "accountB",
+      "spendingKey": "07c94b85cd5c7c3b6bf9842e4e342d41a5ece89093627742e5717a322203f922",
+      "incomingViewKey": "7cebac4f64a2535e341f9acd079ef01923b74b0eb20612775dce768754138207",
+      "outgoingViewKey": "eab5f76772c895f7106c0b678c73ef04b5473d9a447ad420083b03fb52467fbb",
+      "publicAddress": "aef9fdc4980f3c29ba1f56f27217409f1cf4f3de4920b32b72c3edb31ffb7f6a"
+    }
+  ],
+  "Route wallet/postTransaction should post a raw transaction offline": [
+    {
+      "id": "14ff6046-900b-4130-954c-3247df22c143",
+      "name": "accountA",
+      "spendingKey": "22a8aa82b084c8b6b244efef87d11199a5fd464c7f8a11e077dfd891743a1318",
+      "incomingViewKey": "c78ea2c27ac43438e568e4eed592a355e88580a49cad2e6e40bff880584fb707",
+      "outgoingViewKey": "f9169f7772cab81c7bdc7ca40c2ace2f3eb3395fdb6064bad2f217b53fd9435b",
+      "publicAddress": "d95be43f24026bfd04f2e673307cef1d10699a4d1f6ee9f95dcdd67e355a7451"
+    }
+  ]
+}

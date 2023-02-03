@@ -5,7 +5,8 @@
 use crate::errors::IronfishError;
 
 use super::serializing::{bytes_to_hex, hex_to_bytes, read_scalar};
-use bip39::{Language, Mnemonic};
+pub use bip39::Language;
+use bip39::Mnemonic;
 use blake2b_simd::Params as Blake2b;
 use blake2s_simd::Params as Blake2s;
 use group::GroupEncoding;
@@ -29,7 +30,9 @@ pub use view_keys::*;
 mod test;
 
 const EXPANDED_SPEND_BLAKE2_KEY: &[u8; 16] = b"Iron Fish Money ";
+
 pub const SPEND_KEY_SIZE: usize = 32;
+
 /// A single private key generates multiple other key parts that can
 /// be used to allow various forms of access to a commitment note:
 ///
@@ -136,18 +139,6 @@ impl SaplingKey {
         }
     }
 
-    /// Load a key from a string of words to be decoded into bytes.
-    pub fn from_words(language_code: &str, value: String) -> Result<Self, IronfishError> {
-        let language = Language::from_language_code(language_code)
-            .ok_or(IronfishError::InvalidLanguageEncoding)?;
-        let mnemonic = Mnemonic::from_phrase(&value, language)
-            .map_err(|_| IronfishError::InvalidPaymentAddress)?;
-        let bytes = mnemonic.entropy();
-        let mut byte_arr = [0; SPEND_KEY_SIZE];
-        byte_arr.clone_from_slice(&bytes[0..SPEND_KEY_SIZE]);
-        Self::new(byte_arr)
-    }
-
     /// Generate a new random secret key.
     ///
     /// This would normally be used for a new account coming online for the
@@ -194,11 +185,20 @@ impl SaplingKey {
     /// a seed. This isn't strictly necessary for private key, but view keys
     /// will need a direct mapping. The private key could still be generated
     /// using bip-32 and bip-39 if desired.
-    pub fn words_spending_key(&self, language_code: &str) -> Result<String, IronfishError> {
-        let language = Language::from_language_code(language_code)
-            .ok_or(IronfishError::InvalidLanguageEncoding)?;
-        let mnemonic = Mnemonic::from_entropy(&self.spending_key, language).unwrap();
+    pub fn to_words(&self, language: Language) -> Result<String, IronfishError> {
+        let mnemonic = Mnemonic::from_entropy(&self.spending_key, language)
+            .map_err(|_| IronfishError::InvalidEntropy)?;
         Ok(mnemonic.phrase().to_string())
+    }
+
+    /// Takes a bip-39 phrase as a string and turns it into a SaplingKey instance
+    pub fn from_words(words: String, language: Language) -> Result<Self, IronfishError> {
+        let mnemonic = Mnemonic::from_phrase(&words, language)
+            .map_err(|_| IronfishError::InvalidPaymentAddress)?;
+        let bytes = mnemonic.entropy();
+        let mut byte_arr = [0; SPEND_KEY_SIZE];
+        byte_arr.clone_from_slice(&bytes[0..SPEND_KEY_SIZE]);
+        Self::new(byte_arr)
     }
 
     /// Retrieve the publicly visible outgoing viewing key

@@ -14,6 +14,7 @@ export interface DecryptNoteOptions {
   outgoingViewKey: string
   spendingKey: string
   currentNoteIndex: number | null
+  decryptForSpender: boolean
 }
 
 export interface DecryptedNote {
@@ -37,8 +38,10 @@ export class DecryptNotesRequest extends WorkerMessage {
 
     bw.writeU8(this.payloads.length)
     for (const payload of this.payloads) {
-      const hasCurrentNoteIndex = Number(!!payload.currentNoteIndex)
-      bw.writeU8(hasCurrentNoteIndex)
+      let flags = 0
+      flags |= Number(!!payload.currentNoteIndex) << 0
+      flags |= Number(payload.decryptForSpender) << 1
+      bw.writeU8(flags)
 
       bw.writeBytes(payload.serializedNote)
       bw.writeBytes(Buffer.from(payload.incomingViewKey, 'hex'))
@@ -59,7 +62,9 @@ export class DecryptNotesRequest extends WorkerMessage {
 
     const length = reader.readU8()
     for (let i = 0; i < length; i++) {
-      const hasCurrentNoteIndex = Boolean(reader.readU8())
+      const flags = reader.readU8()
+      const hasCurrentNoteIndex = flags & (1 << 0)
+      const decryptForSpender = Boolean(flags & (1 << 1))
       const serializedNote = reader.readBytes(ENCRYPTED_NOTE_LENGTH)
       const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
       const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
@@ -76,6 +81,7 @@ export class DecryptNotesRequest extends WorkerMessage {
         outgoingViewKey,
         spendingKey,
         currentNoteIndex,
+        decryptForSpender,
       })
     }
 
@@ -219,6 +225,7 @@ export class DecryptNotesTask extends WorkerTask {
       outgoingViewKey,
       spendingKey,
       currentNoteIndex,
+      decryptForSpender,
     } of payloads) {
       const note = new NoteEncrypted(serializedNote)
 
@@ -238,17 +245,19 @@ export class DecryptNotesTask extends WorkerTask {
         continue
       }
 
-      // Try decrypting the note as the spender
-      const spentNote = note.decryptNoteForSpender(outgoingViewKey)
-      if (spentNote && spentNote.value() !== BigInt(0)) {
-        decryptedNotes.push({
-          index: currentNoteIndex,
-          forSpender: true,
-          hash: note.hash(),
-          nullifier: null,
-          serializedNote: spentNote.serialize(),
-        })
-        continue
+      if (decryptForSpender) {
+        // Try decrypting the note as the spender
+        const spentNote = note.decryptNoteForSpender(outgoingViewKey)
+        if (spentNote && spentNote.value() !== BigInt(0)) {
+          decryptedNotes.push({
+            index: currentNoteIndex,
+            forSpender: true,
+            hash: note.hash(),
+            nullifier: null,
+            serializedNote: spentNote.serialize(),
+          })
+          continue
+        }
       }
 
       decryptedNotes.push(null)

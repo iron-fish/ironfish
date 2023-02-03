@@ -7,7 +7,7 @@ import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { Account } from '../../wallet'
 import { Migration } from '../migration'
 
-export class Migration017 extends Migration {
+export class Migration018 extends Migration {
   path = __filename
 
   prepare(node: IronfishNode): IDatabase {

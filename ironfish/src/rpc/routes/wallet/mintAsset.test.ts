@@ -62,13 +62,19 @@ describe('mint', () => {
       const account = await useAccountFixture(wallet)
 
       const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-      const value = BigInt(10)
+      const mintData = {
+        name: asset.name().toString('utf8'),
+        metadata: asset.metadata().toString('utf8'),
+        value: 10n,
+        isNewAsset: true,
+      }
+
       const mintTransaction = await useTxFixture(wallet, account, account, async () => {
-        const raw = await wallet.createTransaction(account, [], [{ asset, value }], [], {
+        const raw = await wallet.createTransaction(account, [], [mintData], [], {
           fee: 0n,
           expiration: 0,
         })
-        return wallet.postTransaction(raw, node.memPool)
+        return wallet.post(raw, node.memPool, account.spendingKey)
       })
 
       jest.spyOn(wallet, 'mint').mockResolvedValueOnce(mintTransaction)
@@ -78,7 +84,7 @@ describe('mint', () => {
         fee: '1',
         metadata: asset.metadata().toString('hex'),
         name: asset.name().toString('hex'),
-        value: CurrencyUtils.encode(value),
+        value: CurrencyUtils.encode(mintData.value),
       })
 
       expect(response.content).toEqual({

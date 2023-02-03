@@ -11,10 +11,10 @@ export class CeremonyClient {
   readonly port: number
   readonly logger: Logger
 
-  private stopPromise: Promise<{ success: boolean }> | null = null
-  private stopResolve: ((params: { success: boolean }) => void) | null = null
+  private stopPromise: Promise<{ stopRetries: boolean }> | null = null
+  private stopResolve: ((params: { stopRetries: boolean }) => void) | null = null
 
-  readonly onJoined = new Event<[{ queueLocation: number }]>()
+  readonly onJoined = new Event<[{ queueLocation: number; estimate: number }]>()
   readonly onInitiateUpload = new Event<[{ uploadLink: string }]>()
   readonly onInitiateContribution = new Event<
     [{ downloadLink: string; contributionNumber: number }]
@@ -22,6 +22,7 @@ export class CeremonyClient {
   readonly onContributionVerified = new Event<
     [{ hash: string; downloadLink: string; contributionNumber: number }]
   >()
+  readonly onStopRetry = new Event<[{ error: string }]>()
 
   constructor(options: { host: string; port: number; logger: Logger }) {
     this.host = options.host
@@ -32,35 +33,39 @@ export class CeremonyClient {
     this.socket.on('data', (data) => void this.onData(data))
   }
 
-  async start(): Promise<boolean> {
+  async start(): Promise<string | null> {
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
 
-    const connected = await connectSocket(this.socket, this.host, this.port)
-      .then(() => true)
-      .catch(() => false)
+    const error = await connectSocket(this.socket, this.host, this.port)
+      .then(() => null)
+      .catch((e) => ErrorUtils.renderError(e))
 
-    if (connected) {
+    if (error === null) {
       this.socket.on('error', this.onError)
       this.socket.on('close', this.onDisconnect)
     }
 
-    return connected
+    return error
   }
 
-  stop(success: boolean): void {
+  stop(stopRetries: boolean): void {
     this.socket.end()
-    this.stopResolve && this.stopResolve({ success })
+    this.stopResolve && this.stopResolve({ stopRetries })
     this.stopPromise = null
     this.stopResolve = null
   }
 
-  waitForStop(): Promise<{ success: boolean }> {
+  waitForStop(): Promise<{ stopRetries: boolean }> {
     Assert.isNotNull(this.stopPromise, 'Cannot wait for stop before starting')
     return this.stopPromise
   }
 
   contributionComplete(): void {
     this.send({ method: 'contribution-complete' })
+  }
+
+  join(name: string, token?: string): void {
+    this.send({ method: 'join', name, token })
   }
 
   uploadComplete(): void {
@@ -92,13 +97,18 @@ export class CeremonyClient {
     }
 
     if (parsedMessage.method === 'joined') {
-      this.onJoined.emit({ queueLocation: parsedMessage.queueLocation })
+      this.onJoined.emit({
+        queueLocation: parsedMessage.queueLocation,
+        estimate: parsedMessage.estimate,
+      })
     } else if (parsedMessage.method === 'initiate-upload') {
       this.onInitiateUpload.emit({ uploadLink: parsedMessage.uploadLink })
     } else if (parsedMessage.method === 'initiate-contribution') {
       this.onInitiateContribution.emit(parsedMessage)
     } else if (parsedMessage.method === 'contribution-verified') {
       this.onContributionVerified.emit(parsedMessage)
+    } else if (parsedMessage.method === 'disconnect') {
+      this.onStopRetry.emit({ error: parsedMessage.error })
     } else {
       this.logger.info(`Received message: ${message}`)
     }

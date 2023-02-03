@@ -75,12 +75,18 @@ describe('Verifier', () => {
     it('returns false on transactions containing invalid mints', async () => {
       const account = await useAccountFixture(nodeTest.node.wallet)
       const asset = new Asset(account.spendingKey, 'testcoin', '')
+      const mintData = {
+        name: asset.name().toString('utf8'),
+        metadata: asset.metadata().toString('utf8'),
+        value: 5n,
+        isNewAsset: true,
+      }
 
       const transaction = await usePostTxFixture({
         node: nodeTest.node,
         wallet: nodeTest.wallet,
         from: account,
-        mints: [{ asset, value: BigInt(5) }],
+        mints: [mintData],
       })
 
       jest.spyOn(transaction.mints[0].asset, 'name').mockReturnValue(Buffer.alloc(32, 0))

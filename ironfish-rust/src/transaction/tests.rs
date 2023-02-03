@@ -10,6 +10,7 @@ use crate::{
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
     test_util::make_fake_witness,
+    transaction::{TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE},
 };
 
 use ironfish_zkp::redjubjub::Signature;
@@ -103,6 +104,14 @@ fn test_transaction() {
         Transaction::read(&mut serialized_transaction[..].as_ref())
             .expect("should be able to deserialize valid transaction");
 
+    assert_eq!(
+        read_back_transaction.expiration.to_le_bytes().len(),
+        TRANSACTION_EXPIRATION_SIZE
+    );
+    assert_eq!(
+        read_back_transaction.fee.to_le_bytes().len(),
+        TRANSACTION_FEE_SIZE
+    );
     assert_eq!(public_transaction.fee, read_back_transaction.fee);
     assert_eq!(
         public_transaction.spends.len(),
@@ -249,7 +258,7 @@ fn test_transaction_signature() {
         .binding_signature()
         .write(&mut serialized_signature)
         .unwrap();
-    assert_eq!(serialized_signature.len(), 64);
+    assert_eq!(serialized_signature.len(), TRANSACTION_SIGNATURE_SIZE);
     Signature::read(&mut serialized_signature[..].as_ref())
         .expect("Can deserialize back into a valid Signature");
 }

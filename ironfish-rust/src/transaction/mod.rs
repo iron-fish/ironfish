@@ -56,6 +56,10 @@ mod value_balances;
 const SIGNATURE_HASH_PERSONALIZATION: &[u8; 8] = b"IFsighsh";
 const TRANSACTION_SIGNATURE_VERSION: &[u8; 1] = &[0];
 pub const TRANSACTION_VERSION: u8 = 1;
+pub const TRANSACTION_SIGNATURE_SIZE: usize = 64;
+pub const TRANSACTION_PUBLIC_KEY_SIZE: usize = 32;
+pub const TRANSACTION_EXPIRATION_SIZE: usize = 4;
+pub const TRANSACTION_FEE_SIZE: usize = 8;
 
 /// A collection of spend and output proofs that can be signed and verified.
 /// In general, all the spent values should add up to all the output values.
@@ -404,9 +408,10 @@ impl ProposedTransaction {
         public_key: &PublicKey,
         transaction_signature_hash: &[u8; 32],
     ) -> Result<Signature, IronfishError> {
-        let mut data_to_be_signed = [0u8; 64];
-        data_to_be_signed[..32].copy_from_slice(&public_key.0.to_bytes());
-        data_to_be_signed[32..].copy_from_slice(transaction_signature_hash);
+        let mut data_to_be_signed = [0u8; TRANSACTION_SIGNATURE_SIZE];
+        data_to_be_signed[..TRANSACTION_PUBLIC_KEY_SIZE].copy_from_slice(&public_key.0.to_bytes());
+        data_to_be_signed[TRANSACTION_PUBLIC_KEY_SIZE..]
+            .copy_from_slice(transaction_signature_hash);
 
         Ok(private_key.sign(
             &data_to_be_signed,

@@ -9,6 +9,7 @@ export type MintAssetOptions =
       value: bigint
       expirationDelta: number
       expiration?: number
+      confirmations?: number
     }
   | {
       assetId: Buffer
@@ -16,4 +17,5 @@ export type MintAssetOptions =
       value: bigint
       expirationDelta: number
       expiration?: number
+      confirmations?: number
     }

@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
-import { createNodeTest, useAccountFixture, useMinersTxFixture } from '../../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useMinerBlockFixture,
+  useMinersTxFixture,
+  useTxFixture,
+} from '../../testUtilities'
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { DecryptNotesRequest, DecryptNotesResponse, DecryptNotesTask } from './decryptNotes'
 
@@ -16,6 +22,7 @@ describe('DecryptNotesRequest', () => {
           outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
           spendingKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
           currentNoteIndex: 2,
+          decryptForSpender: true,
         },
       ],
       0,
@@ -64,6 +71,7 @@ describe('DecryptNotesTask', () => {
           outgoingViewKey: account.outgoingViewKey,
           spendingKey: account.spendingKey,
           currentNoteIndex: 2,
+          decryptForSpender: true,
         },
       ])
       const response = task.execute(request)
@@ -79,6 +87,57 @@ describe('DecryptNotesTask', () => {
           },
         ],
       })
+    })
+
+    it('optionally decryptes notes for spender', async () => {
+      const accountA = await useAccountFixture(nodeTest.wallet, 'accountA')
+      const accountB = await useAccountFixture(nodeTest.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(nodeTest.chain, 2, accountA)
+      await expect(nodeTest.chain).toAddBlock(block2)
+      await nodeTest.wallet.updateHead()
+
+      const transaction = await useTxFixture(nodeTest.wallet, accountA, accountB)
+
+      const task = new DecryptNotesTask()
+      const index = 3
+      const requestSpender = new DecryptNotesRequest([
+        {
+          serializedNote: transaction.getNote(0).serialize(),
+          incomingViewKey: accountA.incomingViewKey,
+          outgoingViewKey: accountA.outgoingViewKey,
+          spendingKey: accountA.spendingKey,
+          currentNoteIndex: 3,
+          decryptForSpender: true,
+        },
+      ])
+      const responseSpender = task.execute(requestSpender)
+
+      expect(responseSpender).toMatchObject({
+        notes: [
+          {
+            forSpender: true,
+            index,
+            nullifier: null,
+            hash: expect.any(Buffer),
+            serializedNote: expect.any(Buffer),
+          },
+        ],
+      })
+
+      const requestNoSpender = new DecryptNotesRequest([
+        {
+          serializedNote: transaction.getNote(0).serialize(),
+          incomingViewKey: accountA.incomingViewKey,
+          outgoingViewKey: accountA.outgoingViewKey,
+          spendingKey: accountA.spendingKey,
+          currentNoteIndex: 3,
+          decryptForSpender: false,
+        },
+      ])
+      const responseNoSpender = task.execute(requestNoSpender)
+
+      expect(responseNoSpender).toMatchObject({ notes: [null] })
     })
   })
 })

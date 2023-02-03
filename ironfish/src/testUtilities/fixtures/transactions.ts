@@ -5,7 +5,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../../assert'
 import { IronfishNode } from '../../node'
 import { BurnDescription } from '../../primitives/burnDescription'
-import { MintDescription } from '../../primitives/mintDescription'
+import { MintData } from '../../primitives/rawTransaction'
 import { SerializedTransaction, Transaction } from '../../primitives/transaction'
 import { Account, Wallet } from '../../wallet'
 import { createRawTransaction } from '../helpers/transaction'
@@ -34,12 +34,12 @@ export async function usePostTxFixture(options: {
     memo: string
     assetId: Buffer
   }[]
-  mints?: MintDescription[]
+  mints?: MintData[]
   burns?: BurnDescription[]
 }): Promise<Transaction> {
   return useTxFixture(options.wallet, options.from, options.from, async () => {
     const raw = await createRawTransaction(options)
-    return options.node.workerPool.postTransaction(raw)
+    return options.node.workerPool.postTransaction(raw, options.from.spendingKey)
   })
 }
 
@@ -73,7 +73,7 @@ export async function useTxFixture(
         },
       )
 
-      return await wallet.workerPool.postTransaction(raw)
+      return await wallet.workerPool.postTransaction(raw, from.spendingKey)
     })
 
   return useFixture(generate, {
