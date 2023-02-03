@@ -1,8 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils } from '@ironfish/sdk'
+import {
+  CreateTransactionRequest,
+  CreateTransactionResponse,
+  CurrencyUtils,
+  RawTransactionSerde,
+  RpcResponseEnded,
+  Transaction,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
 import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -47,6 +55,16 @@ export class Burn extends IronfishCommand {
       description:
         'Minimum number of block confirmations needed to include a note. Set to 0 to include all blocks.',
       required: false,
+    }),
+    rawTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return raw transaction. Use it to create a transaction but not post to the network',
+    }),
+    expiration: Flags.integer({
+      char: 'e',
+      description:
+        'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
     }),
   }
 
@@ -108,21 +126,83 @@ export class Burn extends IronfishCommand {
     }
 
     let fee
+    let rawTransactionResponse: string
     if (flags.fee) {
-      fee = flags.fee
+      fee = CurrencyUtils.encode(flags.fee)
+      const createResponse = await client.createTransaction({
+        sender: account,
+        receives: [],
+        burns: [
+          {
+            assetId,
+            value: CurrencyUtils.encode(amount),
+          },
+        ],
+        fee: fee,
+        expiration: flags.expiration,
+        confirmations: confirmations,
+      })
+      rawTransactionResponse = createResponse.content.transaction
     } else {
-      const input = await CliUx.ux.prompt(
-        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)})`,
-        {
-          default: CurrencyUtils.renderIron(1n),
-          required: true,
-        },
-      )
+      const feeRatesResponse = await client.estimateFeeRates()
+      const feeRates = new Set([
+        feeRatesResponse.content.low ?? '1',
+        feeRatesResponse.content.medium ?? '1',
+        feeRatesResponse.content.high ?? '1',
+      ])
 
-      fee = await parseIron(input, { largerThan: 0n, flagName: 'fee' }).catch((error: Error) =>
-        this.error(error.message),
-      )
+      const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
+
+      const feeRateOptions: { value: number; name: string }[] = []
+
+      const createTransactionRequest: CreateTransactionRequest = {
+        sender: account,
+        receives: [],
+        burns: [
+          {
+            assetId,
+            value: CurrencyUtils.encode(amount),
+          },
+        ],
+        expiration: flags.expiration,
+        confirmations: confirmations,
+      }
+
+      const allPromises: Promise<RpcResponseEnded<CreateTransactionResponse>>[] = []
+      feeRates.forEach((feeRate) => {
+        allPromises.push(
+          client.createTransaction({
+            ...createTransactionRequest,
+            feeRate: feeRate,
+          }),
+        )
+      })
+
+      const createResponses = await Promise.all(allPromises)
+      createResponses.forEach((createResponse, index) => {
+        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
+        const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+        feeRateOptions.push({
+          value: index,
+          name: `${feeRateNames[index]}: ${CurrencyUtils.renderIron(rawTransaction.fee)} IRON`,
+        })
+      })
+
+      const input: { selection: number } = await inquirer.prompt<{ selection: number }>([
+        {
+          name: 'selection',
+          message: `Select the fee you wish to use for this transaction`,
+          type: 'list',
+          choices: feeRateOptions,
+        },
+      ])
+
+      rawTransactionResponse = createResponses[input.selection].content.transaction
     }
+
+    const rawTransactionBytes = Buffer.from(rawTransactionResponse, 'hex')
+    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
     if (!flags.confirm) {
       this.log(`
@@ -131,16 +211,27 @@ ${CurrencyUtils.renderIron(
   amount,
   true,
   assetId,
-)} plus a transaction fee of ${CurrencyUtils.renderIron(fee, true)} with the account ${account}
-
-* This action is NOT reversible *
+)} plus a transaction fee of ${CurrencyUtils.renderIron(
+        rawTransaction.fee,
+        true,
+      )} with the account ${account}
 `)
+
+      if (!flags.rawTransaction) {
+        this.log(`* This action is NOT reversible *\n`)
+      }
 
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirm) {
         this.log('Transaction aborted.')
         this.exit(0)
       }
+    }
+
+    if (flags.rawTransaction) {
+      this.log(`Raw transaction: ${rawTransactionResponse}`)
+      this.log(`\nRun "ironfish wallet:post" to post the raw transaction. `)
+      this.exit(0)
     }
 
     const bar = CliUx.ux.progress({
@@ -166,27 +257,30 @@ ${CurrencyUtils.renderIron(
       bar.stop()
     }
 
+    let transaction
+
     try {
-      const result = await client.burnAsset({
-        account,
-        assetId,
-        fee: CurrencyUtils.encode(fee),
-        value: CurrencyUtils.encode(amount),
-        confirmations,
+      const result = await client.postTransaction({
+        transaction: rawTransactionResponse,
+        sender: account,
       })
 
       stopProgressBar()
 
-      const response = result.content
+      const transactionBytes = Buffer.from(result.content.transaction, 'hex')
+      transaction = new Transaction(transactionBytes)
+
       this.log(`
-Burned asset ${response.assetId} from ${account}
-Value: ${CurrencyUtils.renderIron(response.value)}
+Burned asset ${assetId} from ${account}
+Value: ${CurrencyUtils.renderIron(amount)}
 
-Transaction Hash: ${response.hash}
+Transaction Hash: ${transaction.hash().toString('hex')}
 
-Find the transaction on https://explorer.ironfish.network/transaction/${
-        response.hash
-      } (it can take a few minutes before the transaction appears in the Explorer)`)
+Find the transaction on https://explorer.ironfish.network/transaction/${transaction
+        .hash()
+        .toString(
+          'hex',
+        )}(it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while burning the asset.`)
