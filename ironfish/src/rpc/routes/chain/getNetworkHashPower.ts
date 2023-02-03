@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { BigIntUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
@@ -33,17 +34,8 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
   `${ApiNamespace.chain}/getNetworkHashPower`,
   GetNetworkHashPowerRequestSchema,
   async (request, node): Promise<void> => {
-    // default values for lookup and height
-    let lookup = 120
-    let height = -1
-
-    if (request.data?.lookup) {
-      lookup = request.data.lookup
-    }
-
-    if (request.data?.height) {
-      height = request.data.height
-    }
+    let lookup = request.data?.lookup ?? 120
+    const height = request.data?.height ?? -1
 
     /*
       For bitcoin, a negative lookup specifies using all blocks since the last difficulty change.
@@ -85,10 +77,11 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
       return
     }
 
-    const workDifference = Number(endBlock.work - startBlock.work)
-    const timeDifference = (endTime - startTime) / 1000 // in seconds
+    const workDifference = endBlock.work - startBlock.work
+    const timeDifference = BigInt(endTime - startTime) // in milliseconds
 
-    const hashesPerSecond = workDifference / timeDifference
+    const hashesPerSecond = BigIntUtils.divide(workDifference, timeDifference) * 1000
+
     request.end({
       hashesPerSecond,
     })
