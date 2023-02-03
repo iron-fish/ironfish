@@ -19,6 +19,7 @@ export const LANGUAGES = {
 type LanguageKey = keyof typeof LANGUAGES
 
 export const LANGUAGE_KEYS = Object.keys(LANGUAGES) as Array<LanguageKey>
+export const LANGUAGE_VALUES = Object.values(LANGUAGES) as Array<LanguageCode>
 
 export async function selectLanguage(): Promise<LanguageCode> {
   const response = await inquirer.prompt<{

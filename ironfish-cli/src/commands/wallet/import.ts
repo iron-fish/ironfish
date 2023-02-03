@@ -1,11 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { wordsToSpendingKey } from '@ironfish/rust-nodejs'
 import { AccountImport, JSONUtils, PromiseUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { bech32m } from 'bech32'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { LANGUAGE_VALUES } from '../../utils/language'
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
@@ -37,6 +39,26 @@ export class ImportCommand extends IronfishCommand {
     } catch (e) {
       return null
     }
+  }
+
+  static mnemonicWordsToKey(mnemonic: string): string | null {
+    let spendingKey: string | null = null
+    // There is no way to export size from MnemonicType in Rust (imperative)
+    if (mnemonic.trim().split(/\s+/).length !== 24) {
+      return null
+    }
+    for (const language of LANGUAGE_VALUES) {
+      try {
+        spendingKey = wordsToSpendingKey(mnemonic.trim(), language)
+        return spendingKey
+      } catch (e) {
+        continue
+      }
+    }
+    CliUx.ux.error(
+      `Detected mnemonic input, but the import failed. 
+      Please verify the input text or use a different method to import wallet`,
+    )
   }
 
   async start(): Promise<void> {
@@ -73,15 +95,31 @@ export class ImportCommand extends IronfishCommand {
       this.log(`Run "ironfish wallet:use ${name}" to set the account as default`)
     }
   }
+  async stringToAccountImport(data: string): Promise<AccountImport> {
+    // try bech32 first
+    const bech32 = ImportCommand.bech32ToJSON(data)
+    if (bech32) {
+      return JSONUtils.parse<AccountImport>(bech32)
+    }
+    // then try mnemonic
+    const spendingKey = ImportCommand.mnemonicWordsToKey(data)
+    if (spendingKey) {
+      const name = await CliUx.ux.prompt('Enter the account name', {
+        required: true,
+      })
+      return {
+        name,
+        spendingKey,
+      }
+    }
+    // last to attempt is JSON
+    return JSONUtils.parse<AccountImport>(data)
+  }
 
   async importFile(path: string): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    try {
-      return JSONUtils.parse<AccountImport>(ImportCommand.bech32ToJSON(data) ?? data)
-    } catch (e) {
-      CliUx.ux.error(`Failed to decode the account from the provided file: ${path}`)
-    }
+    return this.stringToAccountImport(data)
   }
 
   async importPipe(): Promise<AccountImport> {
@@ -100,11 +138,7 @@ export class ImportCommand extends IronfishCommand {
 
     process.stdin.off('data', onData)
 
-    try {
-      return JSONUtils.parse<AccountImport>(ImportCommand.bech32ToJSON(data) ?? data)
-    } catch (e) {
-      CliUx.ux.error(`Failed to decode the account from the provided input`)
-    }
+    return this.stringToAccountImport(data)
   }
 
   async importTTY(): Promise<AccountImport> {
@@ -112,10 +146,7 @@ export class ImportCommand extends IronfishCommand {
       required: true,
     })
     try {
-      const retData = JSONUtils.parse<AccountImport>(
-        ImportCommand.bech32ToJSON(userInput) ?? userInput,
-      )
-      return retData
+      return this.stringToAccountImport(userInput)
     } catch (e) {
       CliUx.ux.error(
         'Failed to decode the account from the provided input, please continue with the manual input below',
