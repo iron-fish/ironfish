@@ -68,8 +68,6 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         throw new ValidationError(`Invalid transaction fee, ${fee}`)
       }
     } else {
-      let feeRate
-
       if (request.data.feeRate) {
         feeRate = CurrencyUtils.decode(request.data.feeRate)
 
@@ -113,6 +111,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         expirationDelta,
         value,
         confirmations: request.data.confirmations,
+        feeRate: feeRate,
       }
     }
 
