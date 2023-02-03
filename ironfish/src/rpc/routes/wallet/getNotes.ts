@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Assert } from '../../../assert'
 import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
@@ -45,25 +44,30 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
 
-    for await (const { note, spent, transactionHash } of account.getNotes()) {
+    for await (const transaction of account.getTransactionsByTime()) {
       if (request.closed) {
         break
       }
 
-      const transaction = await account.getTransaction(transactionHash)
-      Assert.isNotUndefined(transaction)
+      const notes = await account.getTransactionNotes(transaction.transaction)
 
-      const asset = await node.chain.getAssetById(note.assetId())
+      for (const { note, spent } of notes) {
+        if (request.closed) {
+          break
+        }
 
-      request.stream({
-        value: CurrencyUtils.encode(note.value()),
-        assetId: note.assetId().toString('hex'),
-        assetName: asset?.name.toString('hex') || '',
-        memo: note.memo(),
-        sender: note.sender(),
-        transactionHash: transaction.transaction.hash().toString('hex'),
-        spent,
-      })
+        const asset = await node.chain.getAssetById(note.assetId())
+
+        request.stream({
+          value: CurrencyUtils.encode(note.value()),
+          assetId: note.assetId().toString('hex'),
+          assetName: asset?.name.toString('hex') || '',
+          memo: note.memo(),
+          sender: note.sender(),
+          transactionHash: transaction.transaction.hash().toString('hex'),
+          spent,
+        })
+      }
     }
 
     request.end()
