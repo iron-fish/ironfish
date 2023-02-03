@@ -6,6 +6,7 @@ import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 
 const KEY_LENGTH = 32
+const VERSION_LENGTH = 2
 
 export interface AccountValue {
   id: string
@@ -63,7 +64,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
-    size += 2 // version
+    size += VERSION_LENGTH
 
     return size
   }
