@@ -652,10 +652,7 @@ export class Wallet {
     return this.post(raw, memPool, sender.spendingKey)
   }
 
-  async mint(
-    account: Account,
-    options: MintAssetOptions,
-  ): Promise<RawTransaction> {
+  async mint(account: Account, options: MintAssetOptions): Promise<RawTransaction> {
     let mintData: MintData
 
     if ('assetId' in options) {

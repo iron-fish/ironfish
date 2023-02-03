@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { CurrencyUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
 import { ValidationError } from '../../adapters'
@@ -21,10 +22,9 @@ export interface MintAssetRequest {
 }
 
 export interface MintAssetResponse {
-  assetId: string
-  hash: string
   name: string
   value: string
+  transaction: string
 }
 
 export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
@@ -44,9 +44,9 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
 export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> = yup
   .object({
     assetId: yup.string().required(),
-    hash: yup.string().required(),
     name: yup.string().required(),
     value: yup.string().required(),
+    transaction: yup.string().required(),
   })
   .defined()
 
@@ -98,15 +98,16 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       }
     }
 
-    const transaction = await node.wallet.mint(node.memPool, account, options)
-    Assert.isEqual(transaction.mints.length, 1)
-    const mint = transaction.mints[0]
+    const raw = await node.wallet.mint(account, options)
+    const rawTransactionBytes = RawTransactionSerde.serialize(raw)
+
+    Assert.isEqual(raw.mints.length, 1)
+    const mint = raw.mints[0]
 
     request.end({
-      assetId: mint.asset.id().toString('hex'),
-      hash: transaction.hash().toString('hex'),
-      name: mint.asset.name().toString('utf8'),
+      name: mint.name,
       value: mint.value.toString(),
+      transaction: rawTransactionBytes.toString('hex'),
     })
   },
 )

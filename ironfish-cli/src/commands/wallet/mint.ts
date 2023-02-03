@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils } from '@ironfish/sdk'
+import { CurrencyUtils, RawTransactionSerde, Transaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { IronFlag, parseIron, RemoteFlags } from '../../flags'
@@ -158,12 +158,25 @@ export class Mint extends IronfishCommand {
       )
     }
 
+    const mintResponse = await client.mintAsset({
+      account,
+      assetId,
+      fee: CurrencyUtils.encode(fee),
+      metadata,
+      name,
+      value: CurrencyUtils.encode(amount),
+      confirmations,
+    })
+
+    const rawTransactionBytes = Buffer.from(mintResponse.content.transaction, 'hex')
+    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
     if (!flags.confirm) {
       const nameString = name ? `Name: ${name}` : ''
       const metadataString = metadata ? `Metadata: ${metadata}` : ''
       const includeTicker = !!assetId
       const amountString = CurrencyUtils.renderIron(amount, includeTicker, assetId)
-      const feeString = CurrencyUtils.renderIron(fee, true)
+      const feeString = CurrencyUtils.renderIron(rawTransaction.fee, true)
       this.log(`
 You are about to mint ${nameString} ${metadataString}
 ${amountString} plus a transaction fee of ${feeString} with the account ${account}
@@ -201,30 +214,32 @@ ${amountString} plus a transaction fee of ${feeString} with the account ${accoun
       bar.stop()
     }
 
+    let transaction
     try {
-      const result = await client.mintAsset({
-        account,
-        assetId,
-        fee: CurrencyUtils.encode(fee),
-        metadata,
-        name,
-        value: CurrencyUtils.encode(amount),
-        confirmations,
+      const result = await client.postTransaction({
+        transaction: mintResponse.content.transaction,
+        sender: account,
       })
 
       stopProgressBar()
 
-      const response = result.content
+      const transactionBytes = Buffer.from(result.content.transaction, 'hex')
+      transaction = new Transaction(transactionBytes)
+
+      const minted = transaction.mints[0]
+
       this.log(`
-Minted asset ${response.name} from ${account}
-Asset Identifier: ${response.assetId}
-Value: ${CurrencyUtils.renderIron(response.value)}
+Minted asset ${minted.asset.name().toString('hex')} from ${account}
+Asset Identifier: ${minted.asset.id().toString('hex')}
+Value: ${CurrencyUtils.renderIron(minted.value, true, minted.asset.id().toString('hex'))}
 
-Transaction Hash: ${response.hash}
+Transaction Hash: ${transaction.hash().toString('hex')}
 
-Find the transaction on https://explorer.ironfish.network/transaction/${
-        response.hash
-      } (it can take a few minutes before the transaction appears in the Explorer)`)
+Find the transaction on https://explorer.ironfish.network/transaction/${transaction
+        .hash()
+        .toString(
+          'hex',
+        )} (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while minting the asset.`)

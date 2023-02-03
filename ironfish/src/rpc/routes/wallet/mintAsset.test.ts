@@ -76,8 +76,12 @@ describe('mint', () => {
         })
         return wallet.post(raw, node.memPool, account.spendingKey)
       })
+      const raw = await wallet.createTransaction(account, [], [mintData], [], {
+        fee: 0n,
+        expiration: 0,
+      })
 
-      jest.spyOn(wallet, 'mint').mockResolvedValueOnce(mintTransaction)
+      jest.spyOn(wallet, 'mint').mockResolvedValueOnce(raw)
 
       const response = await routeTest.client.mintAsset({
         account: account.name,
@@ -87,12 +91,9 @@ describe('mint', () => {
         value: CurrencyUtils.encode(mintData.value),
       })
 
-      expect(response.content).toEqual({
-        assetId: asset.id().toString('hex'),
-        hash: mintTransaction.hash().toString('hex'),
-        name: asset.name().toString('utf8'),
-        value: mintTransaction.mints[0].value.toString(),
-      })
+      expect(response.content.name).toEqual(asset.name().toString('utf8'))
+      expect(response.content.value).toEqual(mintTransaction.mints[0].value.toString())
+      expect(response.content.transaction).toBeDefined()
     })
   })
 })
