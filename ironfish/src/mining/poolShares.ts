@@ -276,5 +276,21 @@ export class MiningPoolShares {
     }
 
     await this.db.updateTransactionStatus(transaction.id, confirmed, expired)
+
+    if (expired && !confirmed) {
+      await this.db.markSharesUnpaid(transaction.id)
+    }
+  }
+
+  // TODO: This function is a rough shell, will be filled out with logic in follow-up PR
+  async createNewPayout(): Promise<void> {
+    const payoutPeriod = await this.db.earliestOutstandingPayoutPeriod()
+
+    if (!payoutPeriod) {
+      this.logger.debug('No outstanding shares, skipping payout')
+      return
+    }
+
+    // TODO: Rest of logic will go here
   }
 }

@@ -8,6 +8,8 @@ import { NodeFileProvider } from '../../fileSystems/nodeFileSystem'
 import { Logger } from '../../logger'
 import { Migrator } from './migrator'
 
+const MAX_ADDRESSES_PER_PAYOUT = 250
+
 export class PoolDatabase {
   private readonly db: Database
   private readonly config: Config
@@ -55,7 +57,18 @@ export class PoolDatabase {
   }
 
   async newShare(publicAddress: string): Promise<void> {
+    // Old share
     await this.db.run('INSERT INTO share (publicAddress) VALUES (?)', publicAddress)
+
+    // New share
+    const sql = `
+      INSERT INTO payoutShare (payoutPeriodId, publicAddress)
+      VALUES (
+        (SELECT id FROM payoutPeriod WHERE end IS NULL),
+        ?
+      )
+    `
+    await this.db.run(sql, publicAddress)
   }
 
   async getSharesForPayout(timestamp: number): Promise<DatabaseShare[]> {
@@ -217,8 +230,74 @@ export class PoolDatabase {
       transactionId,
     )
   }
+
+  // Returns a capped number of unique public addresses and the amount of shares
+  // they earned for a specific payout period
+  async payoutAddresses(
+    payoutPeriodId: number,
+  ): Promise<{ publicAddress: string; shareCount: number }[]> {
+    // TODO(mat): This query is very similar to `markSharesPaid`, and if one changes,
+    // the other must change. Consider a way to de-dupe this logic.
+    const sql = `
+      SELECT publicAddress, COUNT(id) shareCount
+      FROM payoutShare
+      WHERE
+        payoutPeriodId = ?
+        AND payoutTransactionId IS NULL
+      GROUP BY publicAddress
+      LIMIT ?
+    `
+    return await this.db.all<{ publicAddress: string; shareCount: number }[]>(
+      sql,
+      payoutPeriodId,
+      MAX_ADDRESSES_PER_PAYOUT,
+    )
+  }
+
+  async markSharesPaid(payoutPeriodId: number, payoutTransactionId: number): Promise<void> {
+    const sql = `
+      UPDATE payoutShare
+      SET payoutTransactionId = ?
+      WHERE
+        payoutPeriodId = ?
+        AND publicAddress IN (
+          SELECT publicAddress
+          FROM payoutShare
+          WHERE
+            payoutPeriodId = ?
+            AND payoutTransactionId IS NULL
+          GROUP BY publicAddress
+          LIMIT ?
+        )
+    `
+
+    await this.db.run(
+      sql,
+      payoutTransactionId,
+      payoutPeriodId,
+      payoutPeriodId,
+      MAX_ADDRESSES_PER_PAYOUT,
+    )
+  }
+
+  async markSharesUnpaid(transactionId: number): Promise<void> {
+    await this.db.run(
+      'UPDATE payoutShare SET payoutTransactionId = NULL WHERE payoutTransactionId = ?',
+      transactionId,
+    )
+  }
+
+  async earliestOutstandingPayoutPeriod(): Promise<DatabasePayoutPeriod | undefined> {
+    const sql = `
+      SELECT * FROM payoutPeriod WHERE id = (
+        SELECT payoutPeriodId FROM payoutShare WHERE payoutTransactionId IS NULL ORDER BY id LIMIT 1
+      )
+    `
+    return await this.db.get<DatabasePayoutPeriod>(sql)
+  }
 }
 
+// Old share
 export type DatabaseShare = {
   id: number
   publicAddress: string
