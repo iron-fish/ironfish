@@ -38,6 +38,8 @@ import {
   GetFundsRequest,
   GetFundsResponse,
   GetLogStreamResponse,
+  GetNetworkHashPowerRequest,
+  GetNetworkHashPowerResponse,
   GetNodeStatusRequest,
   GetNodeStatusResponse,
   GetPeersRequest,
@@ -447,6 +449,15 @@ export abstract class RpcClient {
   ): Promise<RpcResponseEnded<GetDifficultyResponse>> {
     return this.request<GetDifficultyResponse>(
       `${ApiNamespace.chain}/getDifficulty`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getNetworkHashPower(
+    params: GetNetworkHashPowerRequest,
+  ): Promise<RpcResponseEnded<GetNetworkHashPowerResponse>> {
+    return this.request<GetNetworkHashPowerResponse>(
+      `${ApiNamespace.chain}/getNetworkHashPower`,
       params,
     ).waitForEnd()
   }
