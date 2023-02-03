@@ -112,8 +112,14 @@ export class ImportCommand extends IronfishCommand {
         spendingKey,
       }
     }
-    // last to attempt is JSON
-    return JSONUtils.parse<AccountImport>(data)
+    // last try json
+    try {
+      return JSONUtils.parse<AccountImport>(data)
+    } catch (e) {
+      throw new Error(
+        'Could not detect a valid account format, please verify your account info input',
+      )
+    }
   }
 
   async importFile(path: string): Promise<AccountImport> {
@@ -126,7 +132,7 @@ export class ImportCommand extends IronfishCommand {
     let data = ''
 
     const onData = (dataIn: string): void => {
-      data += dataIn
+      data += dataIn.trim()
     }
 
     process.stdin.setEncoding('utf8')

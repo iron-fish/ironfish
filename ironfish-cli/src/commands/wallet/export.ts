@@ -72,7 +72,9 @@ export class ExportCommand extends IronfishCommand {
       const language = await selectLanguage()
       output = spendingKeyToWords(response.content.account.spendingKey, language)
     } else if (flags.json) {
-      output = responseJSONString
+      output = exportPath
+        ? JSON.stringify(response.content.account, undefined, '    ')
+        : responseJSONString
     } else {
       const responseBytes = Buffer.from(responseJSONString)
       const lengthLimit = 1023
