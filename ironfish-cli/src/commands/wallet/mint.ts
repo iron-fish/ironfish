@@ -1,8 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, RawTransactionSerde, Transaction } from '@ironfish/sdk'
+import {
+  CurrencyUtils,
+  MintAssetRequest,
+  MintAssetResponse,
+  RawTransactionSerde,
+  RpcResponseEnded,
+  Transaction,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
+import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
 import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -64,6 +72,11 @@ export class Mint extends IronfishCommand {
       default: false,
       description:
         'Return the raw transaction. Used to create a transaction but not post to the network',
+    }),
+    expiration: Flags.integer({
+      char: 'e',
+      description:
+        'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
     }),
   }
 
@@ -147,33 +160,78 @@ export class Mint extends IronfishCommand {
     }
 
     let fee
-    if (flags.fee) {
-      fee = flags.fee
-    } else {
-      const input = await CliUx.ux.prompt(
-        `Enter the fee amount in $IRON (min: ${CurrencyUtils.renderIron(1n)})`,
-        {
-          default: CurrencyUtils.renderIron(1n),
-          required: true,
-        },
-      )
+    let rawTransactionResponse: string
 
-      fee = await parseIron(input, { largerThan: 0n, flagName: 'fee' }).catch((error: Error) =>
-        this.error(error.message),
-      )
-    }
-
-    let mintResponse
     try {
-      mintResponse = await client.mintAsset({
-        account,
-        assetId,
-        fee: CurrencyUtils.encode(fee),
-        metadata,
-        name,
-        value: CurrencyUtils.encode(amount),
-        confirmations,
-      })
+      if (flags.fee) {
+        fee = flags.fee
+
+        const mintResponse = await client.mintAsset({
+          account,
+          assetId,
+          fee: CurrencyUtils.encode(fee),
+          metadata,
+          name,
+          value: CurrencyUtils.encode(amount),
+          confirmations,
+        })
+
+        rawTransactionResponse = mintResponse.content.transaction
+      } else {
+        const feeRatesResponse = await client.estimateFeeRates()
+        const feeRates = new Set([
+          feeRatesResponse.content.low ?? '1',
+          feeRatesResponse.content.medium ?? '1',
+          feeRatesResponse.content.high ?? '1',
+        ])
+
+        const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
+
+        const feeRateOptions: { value: number; name: string }[] = []
+
+        const mintRequest: MintAssetRequest = {
+          account,
+          assetId,
+          metadata,
+          name,
+          value: CurrencyUtils.encode(amount),
+          confirmations,
+        }
+
+        const allPromises: Promise<RpcResponseEnded<MintAssetResponse>>[] = []
+        feeRates.forEach((feeRate) => {
+          allPromises.push(
+            client.mintAsset({
+              ...mintRequest,
+              feeRate: feeRate,
+            }),
+          )
+        })
+
+        const mintResponses = await Promise.all(allPromises)
+        mintResponses.forEach((mintResponse, index) => {
+          const rawTransactionBytes = Buffer.from(mintResponse.content.transaction, 'hex')
+          const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+          feeRateOptions.push({
+            value: index,
+            name: `${feeRateNames[index]}: ${CurrencyUtils.renderIron(
+              rawTransaction.fee,
+            )} IRON`,
+          })
+        })
+
+        const input: { selection: number } = await inquirer.prompt<{ selection: number }>([
+          {
+            name: 'selection',
+            message: `Select the fee you wish to use for this transaction`,
+            type: 'list',
+            choices: feeRateOptions,
+          },
+        ])
+
+        rawTransactionResponse = mintResponses[input.selection].content.transaction
+      }
     } catch (error) {
       if (error instanceof Error) {
         this.error(error.message)
@@ -181,7 +239,7 @@ export class Mint extends IronfishCommand {
       throw error
     }
 
-    const rawTransactionBytes = Buffer.from(mintResponse.content.transaction, 'hex')
+    const rawTransactionBytes = Buffer.from(rawTransactionResponse, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
     if (!flags.confirm) {
@@ -207,7 +265,7 @@ ${amountString} plus a transaction fee of ${feeString} with the account ${accoun
     }
 
     if (flags.rawTransaction) {
-      this.log(`Raw transaction: ${mintResponse.content.transaction}`)
+      this.log(`Raw transaction: ${rawTransactionResponse}`)
       this.log(`\nRun "ironfish wallet:post" to post the raw transaction. `)
       this.exit(0)
     }
@@ -238,7 +296,7 @@ ${amountString} plus a transaction fee of ${feeString} with the account ${accoun
     let transaction
     try {
       const result = await client.postTransaction({
-        transaction: mintResponse.content.transaction,
+        transaction: rawTransactionResponse,
         sender: account,
       })
 

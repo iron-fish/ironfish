@@ -3,19 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export type MintAssetOptions =
   | {
-      fee: bigint
+      fee?: bigint
       metadata: string
       name: string
       value: bigint
       expirationDelta: number
       expiration?: number
       confirmations?: number
+      feeRate?: bigint
     }
   | {
       assetId: Buffer
-      fee: bigint
+      fee?: bigint
       value: bigint
       expirationDelta: number
       expiration?: number
       confirmations?: number
+      feeRate?: bigint
     }

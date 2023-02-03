@@ -11,7 +11,7 @@ import { ApiNamespace, router } from '../router'
 
 export interface MintAssetRequest {
   account: string
-  fee: string
+  fee?: string
   value: string
   assetId?: string
   expiration?: number
@@ -19,6 +19,7 @@ export interface MintAssetRequest {
   confirmations?: number
   metadata?: string
   name?: string
+  feeRate?: string
 }
 
 export interface MintAssetResponse {
@@ -30,7 +31,7 @@ export interface MintAssetResponse {
 export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
   .object({
     account: yup.string().required(),
-    fee: yup.string().required(),
+    fee: yup.string().optional(),
     value: yup.string().required(),
     assetId: yup.string().optional(),
     expiration: yup.number().optional(),
@@ -38,6 +39,7 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
     confirmations: yup.number().optional(),
     metadata: yup.string().optional(),
     name: yup.string().optional(),
+    feeRate: yup.string().optional(),
   })
   .defined()
 
@@ -58,9 +60,25 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       throw new ValidationError(`No account found with name ${request.data.account}`)
     }
 
-    const fee = CurrencyUtils.decode(request.data.fee)
-    if (fee < 1n) {
-      throw new ValidationError(`Invalid transaction fee, ${fee}`)
+    let feeRate
+    let fee
+    if (request.data.fee) {
+      fee = CurrencyUtils.decode(request.data.fee)
+      if (fee < 1n) {
+        throw new ValidationError(`Invalid transaction fee, ${fee}`)
+      }
+    } else {
+      let feeRate
+
+      if (request.data.feeRate) {
+        feeRate = CurrencyUtils.decode(request.data.feeRate)
+
+        if (feeRate < 1n) {
+          throw new ValidationError(`Invalid transaction fee rate, ${request.data.feeRate}`)
+        }
+      } else {
+        feeRate = node.memPool.feeEstimator.estimateFeeRate('medium')
+      }
     }
 
     const value = CurrencyUtils.decode(request.data.value)
@@ -76,10 +94,11 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       options = {
         assetId: Buffer.from(request.data.assetId, 'hex'),
         expiration: request.data.expiration,
-        fee,
+        fee: fee,
         expirationDelta,
         value,
         confirmations: request.data.confirmations,
+        feeRate: feeRate,
       }
     } else {
       Assert.isNotUndefined(request.data.name, 'Must provide name or identifier to mint')

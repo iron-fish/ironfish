@@ -681,6 +681,7 @@ export class Wallet {
       expirationDelta: options.expirationDelta,
       expiration: options.expiration,
       confirmations: options.confirmations,
+      feeRate: options.feeRate,
     })
   }
 
