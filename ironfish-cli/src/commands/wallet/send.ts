@@ -82,6 +82,11 @@ export class Send extends IronfishCommand {
       char: 'i',
       description: 'The identifier for the asset to use when sending',
     }),
+    rawTransaction: Flags.boolean({
+      default: false,
+      description:
+        'Return raw transaction. Use it to create a transaction but not post to the network',
+    }),
   }
 
   async start(): Promise<void> {
@@ -262,7 +267,7 @@ export class Send extends IronfishCommand {
 
     if (!flags.confirm) {
       this.log(`
-You are about to send:
+You are about to create a transaction:
 ${CurrencyUtils.renderIron(
   amount,
   true,
@@ -271,15 +276,22 @@ ${CurrencyUtils.renderIron(
         rawTransaction.fee,
         true,
       )} to ${to} from the account ${from}
-
-* This action is NOT reversible *
 `)
+      if (!flags.rawTransaction) {
+        this.log(`* This action is NOT reversible *\n`)
+      }
 
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirm) {
         this.log('Transaction aborted.')
         this.exit(0)
       }
+    }
+
+    if (flags.rawTransaction) {
+      this.log(`Raw transaction: ${rawTransactionResponse}`)
+      this.log(`\nRun "ironfish wallet:post" to post the raw transaction. `)
+      this.exit(0)
     }
 
     // Run the progress bar for about 2 minutes
