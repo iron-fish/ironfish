@@ -14,6 +14,7 @@ import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetIntervalToken, SetTimeoutToken } from '../utils/types'
+import { TransactionStatus } from '../wallet'
 import { MiningPoolShares } from './poolShares'
 import { MiningStatusMessage } from './stratum/messages'
 import { StratumServer } from './stratum/stratumServer'
@@ -214,6 +215,7 @@ export class MiningPool {
 
     await this.shares.rolloverPayoutPeriod()
     await this.updateUnconfirmedBlocks()
+    await this.updateUnconfirmedPayoutTransactions()
 
     if (this.nextPayoutAttempt <= new Date().getTime()) {
       this.nextPayoutAttempt = new Date().getTime() + this.attemptPayoutInterval * 1000
@@ -539,6 +541,27 @@ export class MiningPool {
 
       const { main, confirmed } = blockInfoResp.content.metadata
       await this.shares.updateBlockStatus(block, main, confirmed)
+    }
+  }
+
+  async updateUnconfirmedPayoutTransactions(): Promise<void> {
+    const unconfirmedTransactions = await this.shares.unconfirmedPayoutTransactions()
+
+    for (const transaction of unconfirmedTransactions) {
+      const transactionInfoResp = await this.rpc.getAccountTransaction({
+        hash: transaction.transactionHash,
+        confirmations: this.config.get('confirmations'),
+      })
+
+      const transactionInfo = transactionInfoResp.content.transaction
+      if (!transactionInfo) {
+        this.logger.debug(`Transaction ${transaction.transactionHash} not found.`)
+        continue
+      }
+
+      const confirmed = transactionInfo.status === TransactionStatus.CONFIRMED
+      const expired = transactionInfo.status === TransactionStatus.EXPIRED
+      await this.shares.updatePayoutTransactionStatus(transaction, confirmed, expired)
     }
   }
 }

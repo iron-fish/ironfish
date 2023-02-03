@@ -8,7 +8,7 @@ import { Config } from '../../fileStores'
 import { NodeFileProvider } from '../../fileSystems'
 import { createRootLogger } from '../../logger'
 import { getUniqueTestDataDir } from '../../testUtilities/utils'
-import { PoolDatabase, RawDatabaseBlock } from './database'
+import { PoolDatabase, RawDatabaseBlock, RawDatabasePayoutTransaction } from './database'
 
 describe('poolDatabase', () => {
   let db: PoolDatabase
@@ -126,5 +126,67 @@ describe('poolDatabase', () => {
     expect(blocks.length).toEqual(2)
     expect(blocks[0].id).toEqual(block3Id)
     expect(blocks[1].id).toEqual(block4Id)
+  })
+
+  it('transactions', async () => {
+    const getTransaction = async (id: number): Promise<RawDatabasePayoutTransaction> => {
+      const result = await db['db'].get<RawDatabasePayoutTransaction>(
+        'SELECT * FROM payoutTransaction WHERE id = ?',
+        id,
+      )
+      Assert.isNotUndefined(result)
+      return result
+    }
+
+    await db.rolloverPayoutPeriod(new Date().getTime())
+
+    const payoutPeriod = await db.getCurrentPayoutPeriod()
+    Assert.isNotUndefined(payoutPeriod)
+
+    // Transaction 1: confirmed, unexpired
+    const hash1 = 'hash1'
+    const transaction1Id = await db.newTransaction(hash1, payoutPeriod.id)
+    Assert.isNotUndefined(transaction1Id)
+    await db.updateTransactionStatus(transaction1Id, true, false)
+
+    await expect(getTransaction(transaction1Id)).resolves.toMatchObject({
+      payoutPeriodId: payoutPeriod.id,
+      id: transaction1Id,
+      transactionHash: hash1,
+      confirmed: 1,
+      expired: 0,
+    })
+
+    // Transaction 2: unconfirmed, expired
+    const hash2 = 'hash2'
+    const transaction2Id = await db.newTransaction(hash2, payoutPeriod.id)
+    Assert.isNotUndefined(transaction2Id)
+    await db.updateTransactionStatus(transaction2Id, false, true)
+
+    await expect(getTransaction(transaction2Id)).resolves.toMatchObject({
+      payoutPeriodId: payoutPeriod.id,
+      id: transaction2Id,
+      transactionHash: hash2,
+      confirmed: 0,
+      expired: 1,
+    })
+
+    // Transaction 3: unconfirmed, unexpired
+    const hash3 = 'hash3'
+    const transaction3Id = await db.newTransaction(hash3, payoutPeriod.id)
+    Assert.isNotUndefined(transaction3Id)
+    await db.updateTransactionStatus(transaction3Id, false, false)
+
+    await expect(getTransaction(transaction3Id)).resolves.toMatchObject({
+      payoutPeriodId: payoutPeriod.id,
+      id: transaction3Id,
+      transactionHash: hash3,
+      confirmed: 0,
+      expired: 0,
+    })
+
+    const transactions = await db.unconfirmedTransactions()
+    expect(transactions.length).toEqual(1)
+    expect(transactions[0].id).toEqual(transaction3Id)
   })
 })

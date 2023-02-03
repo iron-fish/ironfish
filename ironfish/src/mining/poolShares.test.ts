@@ -97,4 +97,33 @@ describe('poolShares', () => {
       minerReward: reward,
     })
   })
+
+  it('transactions', async () => {
+    await shares.rolloverPayoutPeriod()
+
+    const payoutPeriod = await shares['db'].getCurrentPayoutPeriod()
+    Assert.isNotUndefined(payoutPeriod)
+
+    await shares['db'].newTransaction('hash1', payoutPeriod.id)
+    await shares['db'].newTransaction('hash2', payoutPeriod.id)
+
+    const unconfirmedTransactions1 = await shares.unconfirmedPayoutTransactions()
+    expect(unconfirmedTransactions1.length).toEqual(2)
+
+    // This should be a no-op
+    await shares.updatePayoutTransactionStatus(unconfirmedTransactions1[0], false, false)
+
+    const unconfirmedTransactions2 = await shares.unconfirmedPayoutTransactions()
+    expect(unconfirmedTransactions2.length).toEqual(2)
+
+    await shares.updatePayoutTransactionStatus(unconfirmedTransactions1[0], true, false)
+
+    const unconfirmedTransactions3 = await shares.unconfirmedPayoutTransactions()
+    expect(unconfirmedTransactions3.length).toEqual(1)
+
+    await shares.updatePayoutTransactionStatus(unconfirmedTransactions1[1], false, true)
+
+    const unconfirmedTransactions4 = await shares.unconfirmedPayoutTransactions()
+    expect(unconfirmedTransactions4.length).toEqual(0)
+  })
 })
