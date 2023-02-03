@@ -14,6 +14,7 @@ export type GetAccountTransactionsRequest = {
   account?: string
   hash?: string
   limit?: number
+  offset?: number
   confirmations?: number
 }
 
@@ -37,6 +38,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
       account: yup.string().strip(true),
       hash: yup.string().notRequired(),
       limit: yup.number().notRequired(),
+      offset: yup.number().notRequired(),
       confirmations: yup.number().notRequired(),
     })
     .defined()
@@ -94,10 +96,16 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
     }
 
     let count = 0
+    let offset = 0
 
     for await (const transaction of account.getTransactionsByTime()) {
       if (request.closed) {
         break
+      }
+
+      if (request.data.offset && offset < request.data.offset) {
+        offset++
+        continue
       }
 
       if (request.data.limit && count === request.data.limit) {

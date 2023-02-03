@@ -31,6 +31,9 @@ export class TransactionsCommand extends IronfishCommand {
     limit: Flags.integer({
       description: 'Number of latest transactions to get details for',
     }),
+    offset: Flags.integer({
+      description: 'Number of latest transactions to skip',
+    }),
     confirmations: Flags.integer({
       description: 'Number of block confirmations needed to confirm a transaction',
     }),
@@ -54,6 +57,7 @@ export class TransactionsCommand extends IronfishCommand {
       account,
       hash: flags.hash,
       limit: flags.limit,
+      offset: flags.offset,
       confirmations: flags.confirmations,
     })
 
