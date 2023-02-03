@@ -276,9 +276,10 @@ ${CurrencyUtils.renderIron(
         rawTransaction.fee,
         true,
       )} to ${to} from the account ${from}
-
-* This action is NOT reversible *
 `)
+      if (!flags.rawTransaction) {
+        this.log(`* This action is NOT reversible *\n`)
+      }
 
       const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
       if (!confirm) {
