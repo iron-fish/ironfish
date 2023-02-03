@@ -30,7 +30,6 @@ export const GENERATOR_LENGTH: number
 export const AMOUNT_VALUE_LENGTH: number
 export const DECRYPTED_NOTE_LENGTH: number
 export interface NativeSpendDescription {
-  treeSize: number
   rootHash: Buffer
   nullifier: Buffer
 }

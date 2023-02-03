@@ -15,7 +15,6 @@ use crate::{
 use bellman::gadgets::multipack;
 use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::PrimeField;
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
