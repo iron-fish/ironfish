@@ -514,12 +514,14 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(mintBlock)
       await node.wallet.updateHead()
 
-      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toMatchObject({
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual({
+        blockHash: mintBlock.header.hash,
         createdTransactionHash: mintBlock.transactions[1].hash(),
         id: asset.id(),
         metadata: asset.metadata(),
         name: asset.name(),
         owner: asset.owner(),
+        sequence: mintBlock.header.sequence,
         supply: value,
       })
 
@@ -545,7 +547,8 @@ describe('Accounts', () => {
       })
       const firstMintTransaction = firstMintBlock.transactions[1]
 
-      expect(await account['walletDb'].getAsset(account, asset.id())).toMatchObject({
+      // Verify block fields are empty since this has not been connected yet
+      expect(await account['walletDb'].getAsset(account, asset.id())).toEqual({
         blockHash: null,
         createdTransactionHash: firstMintTransaction.hash(),
         id: asset.id(),
@@ -568,7 +571,8 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(secondMintBlock)
       await node.wallet.updateHead()
 
-      expect(await account['walletDb'].getAsset(account, asset.id())).toMatchObject({
+      // Verify block fields are for the second block since that was connected
+      expect(await account['walletDb'].getAsset(account, asset.id())).toEqual({
         blockHash: secondMintBlock.header.hash,
         createdTransactionHash: secondMintTransaction.hash(),
         id: asset.id(),
@@ -613,12 +617,14 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(burnBlock)
       await node.wallet.updateHead()
 
-      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toMatchObject({
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual({
+        blockHash: mintBlock.header.hash,
         createdTransactionHash: mintBlock.transactions[1].hash(),
         id: asset.id(),
         metadata: asset.metadata(),
         name: asset.name(),
         owner: asset.owner(),
+        sequence: mintBlock.header.sequence,
         supply: mintValue - burnValue,
       })
       expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
@@ -830,12 +836,15 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(secondMintBlock)
       await node.wallet.updateHead()
 
-      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toMatchObject({
+      // Check the aggregate from both mints
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual({
+        blockHash: firstMintBlock.header.hash,
         createdTransactionHash: firstMintBlock.transactions[1].hash(),
         id: asset.id(),
         metadata: asset.metadata(),
         name: asset.name(),
         owner: asset.owner(),
+        sequence: firstMintBlock.header.sequence,
         supply: firstMintValue + secondMintValue,
       })
 
@@ -843,12 +852,14 @@ describe('Accounts', () => {
         secondMintBlock.header,
         secondMintBlock.transactions[1],
       )
-      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toMatchObject({
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual({
+        blockHash: firstMintBlock.header.hash,
         createdTransactionHash: firstMintBlock.transactions[1].hash(),
         id: asset.id(),
         metadata: asset.metadata(),
         name: asset.name(),
         owner: asset.owner(),
+        sequence: firstMintBlock.header.sequence,
         supply: firstMintValue,
       })
       expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
@@ -857,6 +868,19 @@ describe('Accounts', () => {
         firstMintBlock.header,
         firstMintBlock.transactions[1],
       )
+      // Verify the block fields are null after a disconnect
+      expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toEqual({
+        blockHash: null,
+        createdTransactionHash: firstMintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        sequence: null,
+        supply: null,
+      })
+
+      // Expiration of the first mint will delete the record
       await accountA.expireTransaction(firstMintBlock.transactions[1])
       expect(await accountA['walletDb'].getAsset(accountA, asset.id())).toBeUndefined()
       expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()

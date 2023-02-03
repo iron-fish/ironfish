@@ -240,8 +240,7 @@ export class Account {
         continue
       }
 
-      const assetId = asset.id()
-      const existingAsset = await this.walletDb.getAsset(this, assetId, tx)
+      const existingAsset = await this.walletDb.getAsset(this, asset.id(), tx)
 
       let createdTransactionHash = transaction.hash()
       let supply = BigInt(0)
@@ -264,11 +263,11 @@ export class Account {
 
       await this.walletDb.putAsset(
         this,
-        assetId,
+        asset.id(),
         {
           blockHash,
           createdTransactionHash,
-          id: assetId,
+          id: asset.id(),
           metadata: asset.metadata(),
           name: asset.name(),
           owner: asset.owner(),
@@ -367,8 +366,7 @@ export class Account {
         continue
       }
 
-      const assetId = asset.id()
-      const existingAsset = await this.walletDb.getAsset(this, assetId, tx)
+      const existingAsset = await this.walletDb.getAsset(this, asset.id(), tx)
       Assert.isNotUndefined(existingAsset)
       Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
 
@@ -378,6 +376,8 @@ export class Account {
 
       let blockHash = existingAsset.blockHash
       let sequence = existingAsset.sequence
+      // Mark this asset as pending if the block hash matches the hash on the
+      // disconnected header
       if (blockHash && blockHash.equals(blockHeader.hash)) {
         blockHash = null
         sequence = null
@@ -385,7 +385,7 @@ export class Account {
 
       await this.walletDb.putAsset(
         this,
-        assetId,
+        asset.id(),
         {
           blockHash,
           createdTransactionHash: existingAsset.createdTransactionHash,
