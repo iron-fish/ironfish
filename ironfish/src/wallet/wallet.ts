@@ -652,7 +652,11 @@ export class Wallet {
     return this.post(raw, memPool, sender.spendingKey)
   }
 
-  async mint(account: Account, options: MintAssetOptions): Promise<RawTransaction> {
+  async mint(
+    memPool: MemPool,
+    account: Account,
+    options: MintAssetOptions,
+  ): Promise<Transaction> {
     let mintData: MintData
 
     if ('assetId' in options) {
@@ -676,13 +680,14 @@ export class Wallet {
       }
     }
 
-    return this.createTransaction(account, [], [mintData], [], {
+    const raw = await this.createTransaction(account, [], [mintData], [], {
       fee: options.fee,
       expirationDelta: options.expirationDelta,
       expiration: options.expiration,
       confirmations: options.confirmations,
-      feeRate: options.feeRate,
     })
+
+    return this.post(raw, memPool, account.spendingKey)
   }
 
   async burn(

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { useAccountFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
@@ -57,7 +56,7 @@ describe('mint', () => {
   })
 
   describe('with valid parameters', () => {
-    it('returns a raw transaction', async () => {
+    it('returns the asset identifier and transaction hash', async () => {
       const node = routeTest.node
       const wallet = node.wallet
       const account = await useAccountFixture(wallet)
@@ -77,12 +76,8 @@ describe('mint', () => {
         })
         return wallet.post(raw, node.memPool, account.spendingKey)
       })
-      const raw = await wallet.createTransaction(account, [], [mintData], [], {
-        fee: 0n,
-        expiration: 0,
-      })
 
-      jest.spyOn(wallet, 'mint').mockResolvedValueOnce(raw)
+      jest.spyOn(wallet, 'mint').mockResolvedValueOnce(mintTransaction)
 
       const response = await routeTest.client.mintAsset({
         account: account.name,
@@ -92,13 +87,12 @@ describe('mint', () => {
         value: CurrencyUtils.encode(mintData.value),
       })
 
-      expect(response.content.name).toEqual(asset.name().toString('utf8'))
-      expect(response.content.value).toEqual(mintTransaction.mints[0].value.toString())
-      expect(response.content.transaction).toBeDefined()
-
-      const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
-      const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-      expect(rawTransaction.mints.length).toEqual(1)
+      expect(response.content).toEqual({
+        assetId: asset.id().toString('hex'),
+        hash: mintTransaction.hash().toString('hex'),
+        name: asset.name().toString('utf8'),
+        value: mintTransaction.mints[0].value.toString(),
+      })
     })
   })
 })

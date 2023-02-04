@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  CreateTransactionRequest,
+  CreateTransactionResponse,
   CurrencyUtils,
-  MintAssetRequest,
-  MintAssetResponse,
   RawTransactionSerde,
   RpcResponseEnded,
   Transaction,
@@ -76,7 +76,7 @@ export class Mint extends IronfishCommand {
     expiration: Flags.integer({
       char: 'e',
       description:
-        'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
+        'The block sequence that the transaction can not be mined after. Set to 0 for no expiration.',
     }),
   }
 
@@ -112,6 +112,13 @@ export class Mint extends IronfishCommand {
     let name = flags.name
 
     const confirmations = flags.confirmations
+
+    const expiration = flags.expiration
+
+    if (expiration !== undefined && expiration < 0) {
+      this.log('Expiration sequence must be non-negative')
+      this.exit(1)
+    }
 
     // We can assume the prompt can be skipped if at least one of metadata or
     // name is provided
@@ -166,17 +173,22 @@ export class Mint extends IronfishCommand {
       if (flags.fee) {
         fee = flags.fee
 
-        const mintResponse = await client.mintAsset({
-          account,
-          assetId,
+        const createResponse = await client.createTransaction({
+          sender: account,
+          receives: [],
+          mints: [
+            {
+              assetId,
+              name,
+              metadata,
+              value: CurrencyUtils.encode(amount),
+            },
+          ],
           fee: CurrencyUtils.encode(fee),
-          metadata,
-          name,
-          value: CurrencyUtils.encode(amount),
-          confirmations,
+          expiration: expiration,
+          confirmations: confirmations,
         })
-
-        rawTransactionResponse = mintResponse.content.transaction
+        rawTransactionResponse = createResponse.content.transaction
       } else {
         const feeRatesResponse = await client.estimateFeeRates()
         const feeRates = new Set([
@@ -189,28 +201,34 @@ export class Mint extends IronfishCommand {
 
         const feeRateOptions: { value: number; name: string }[] = []
 
-        const mintRequest: MintAssetRequest = {
-          account,
-          assetId,
-          metadata,
-          name,
-          value: CurrencyUtils.encode(amount),
-          confirmations,
+        const createTransactionRequest: CreateTransactionRequest = {
+          sender: account,
+          receives: [],
+          mints: [
+            {
+              assetId,
+              name,
+              metadata,
+              value: CurrencyUtils.encode(amount),
+            },
+          ],
+          expiration: expiration,
+          confirmations: confirmations,
         }
 
-        const allPromises: Promise<RpcResponseEnded<MintAssetResponse>>[] = []
+        const allPromises: Promise<RpcResponseEnded<CreateTransactionResponse>>[] = []
         feeRates.forEach((feeRate) => {
           allPromises.push(
-            client.mintAsset({
-              ...mintRequest,
+            client.createTransaction({
+              ...createTransactionRequest,
               feeRate: feeRate,
             }),
           )
         })
 
-        const mintResponses = await Promise.all(allPromises)
-        mintResponses.forEach((mintResponse, index) => {
-          const rawTransactionBytes = Buffer.from(mintResponse.content.transaction, 'hex')
+        const createResponses = await Promise.all(allPromises)
+        createResponses.forEach((createResponse, index) => {
+          const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
           const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
           feeRateOptions.push({
@@ -230,7 +248,7 @@ export class Mint extends IronfishCommand {
           },
         ])
 
-        rawTransactionResponse = mintResponses[input.selection].content.transaction
+        rawTransactionResponse = createResponses[input.selection].content.transaction
       }
     } catch (error) {
       if (error instanceof Error) {

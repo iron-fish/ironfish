@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { CurrencyUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
 import { ValidationError } from '../../adapters'
@@ -11,7 +10,7 @@ import { ApiNamespace, router } from '../router'
 
 export interface MintAssetRequest {
   account: string
-  fee?: string
+  fee: string
   value: string
   assetId?: string
   expiration?: number
@@ -19,19 +18,19 @@ export interface MintAssetRequest {
   confirmations?: number
   metadata?: string
   name?: string
-  feeRate?: string
 }
 
 export interface MintAssetResponse {
+  assetId: string
+  hash: string
   name: string
   value: string
-  transaction: string
 }
 
 export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
   .object({
     account: yup.string().required(),
-    fee: yup.string().optional(),
+    fee: yup.string().required(),
     value: yup.string().required(),
     assetId: yup.string().optional(),
     expiration: yup.number().optional(),
@@ -39,15 +38,15 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
     confirmations: yup.number().optional(),
     metadata: yup.string().optional(),
     name: yup.string().optional(),
-    feeRate: yup.string().optional(),
   })
   .defined()
 
 export const MintAssetResponseSchema: yup.ObjectSchema<MintAssetResponse> = yup
   .object({
+    assetId: yup.string().required(),
+    hash: yup.string().required(),
     name: yup.string().required(),
     value: yup.string().required(),
-    transaction: yup.string().required(),
   })
   .defined()
 
@@ -60,23 +59,9 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       throw new ValidationError(`No account found with name ${request.data.account}`)
     }
 
-    let feeRate
-    let fee
-    if (request.data.fee) {
-      fee = CurrencyUtils.decode(request.data.fee)
-      if (fee < 1n) {
-        throw new ValidationError(`Invalid transaction fee, ${fee}`)
-      }
-    } else {
-      if (request.data.feeRate) {
-        feeRate = CurrencyUtils.decode(request.data.feeRate)
-
-        if (feeRate < 1n) {
-          throw new ValidationError(`Invalid transaction fee rate, ${request.data.feeRate}`)
-        }
-      } else {
-        feeRate = node.memPool.feeEstimator.estimateFeeRate('medium')
-      }
+    const fee = CurrencyUtils.decode(request.data.fee)
+    if (fee < 1n) {
+      throw new ValidationError(`Invalid transaction fee, ${fee}`)
     }
 
     const value = CurrencyUtils.decode(request.data.value)
@@ -92,11 +77,10 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       options = {
         assetId: Buffer.from(request.data.assetId, 'hex'),
         expiration: request.data.expiration,
-        fee: fee,
+        fee,
         expirationDelta,
         value,
         confirmations: request.data.confirmations,
-        feeRate: feeRate,
       }
     } else {
       Assert.isNotUndefined(request.data.name, 'Must provide name or identifier to mint')
@@ -111,20 +95,18 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
         expirationDelta,
         value,
         confirmations: request.data.confirmations,
-        feeRate: feeRate,
       }
     }
 
-    const raw = await node.wallet.mint(account, options)
-    const rawTransactionBytes = RawTransactionSerde.serialize(raw)
-
-    Assert.isEqual(raw.mints.length, 1)
-    const mint = raw.mints[0]
+    const transaction = await node.wallet.mint(node.memPool, account, options)
+    Assert.isEqual(transaction.mints.length, 1)
+    const mint = transaction.mints[0]
 
     request.end({
-      name: mint.name.toString(),
+      assetId: mint.asset.id().toString('hex'),
+      hash: transaction.hash().toString('hex'),
+      name: mint.asset.name().toString('utf8'),
       value: mint.value.toString(),
-      transaction: rawTransactionBytes.toString('hex'),
     })
   },
 )
