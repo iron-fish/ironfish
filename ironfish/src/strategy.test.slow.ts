@@ -98,7 +98,7 @@ describe('Demonstrate the Sapling API', () => {
       minerNote = new NativeNote(owner, BigInt(42), '', Asset.nativeId(), owner)
 
       const transaction = new NativeTransaction(spenderKey.spending_key)
-      transaction.receive(minerNote)
+      transaction.output(minerNote)
       minerTransaction = new NativeTransactionPosted(transaction.post_miners_fee())
       expect(minerTransaction).toBeTruthy()
       expect(minerTransaction.notesLength()).toEqual(1)
@@ -143,7 +143,7 @@ describe('Demonstrate the Sapling API', () => {
         Asset.nativeId(),
         minerNote.owner(),
       )
-      transaction.receive(outputNote)
+      transaction.output(outputNote)
 
       publicTransaction = new NativeTransactionPosted(transaction.post(null, BigInt(0)))
       expect(publicTransaction).toBeTruthy()
@@ -296,8 +296,8 @@ describe('Demonstrate the Sapling API', () => {
         receiverAddress,
       )
 
-      transaction.receive(noteForSpender)
-      transaction.receive(receiverNoteToSelf)
+      transaction.output(noteForSpender)
+      transaction.output(receiverNoteToSelf)
 
       const postedTransaction = new NativeTransactionPosted(
         transaction.post(undefined, BigInt(1)),

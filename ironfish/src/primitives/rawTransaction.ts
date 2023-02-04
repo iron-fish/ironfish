@@ -54,7 +54,7 @@ export class RawTransaction {
     }
 
     for (const receive of this.receives) {
-      builder.receive(receive.note.takeReference())
+      builder.output(receive.note.takeReference())
       receive.note.returnReference()
     }
 

@@ -184,7 +184,7 @@ impl NativeTransaction {
 
     /// Create a proof of a new note owned by the recipient in this transaction.
     #[napi]
-    pub fn receive(&mut self, note: &NativeNote) -> Result<()> {
+    pub fn output(&mut self, note: &NativeNote) -> Result<()> {
         self.transaction
             .add_output(note.note.clone())
             .map_err(to_napi_err)?;
