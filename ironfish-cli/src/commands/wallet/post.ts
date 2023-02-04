@@ -5,6 +5,7 @@ import { CurrencyUtils, RawTransaction, RawTransactionSerde, Transaction } from 
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { ProgressBar } from '../../types'
 
 export class PostCommand extends IronfishCommand {
   static summary = 'Post a raw transaction'
@@ -70,14 +71,36 @@ export class PostCommand extends IronfishCommand {
       }
     }
 
-    CliUx.ux.action.start(`Posting transaction`)
+    const bar = CliUx.ux.progress({
+      barCompleteChar: '\u2588',
+      barIncompleteChar: '\u2591',
+      format: 'Posting the transaction: [{bar}] {percentage}% | ETA: {eta}s',
+    }) as ProgressBar
+
+    bar.start()
+
+    let value = 0
+    const timer = setInterval(() => {
+      value++
+      bar.update(value)
+      if (value >= bar.getTotal()) {
+        bar.stop()
+      }
+    }, 1000)
+
+    const stopProgressBar = () => {
+      clearInterval(timer)
+      bar.update(100)
+      bar.stop()
+    }
 
     const response = await client.postTransaction({
       transaction,
       sender: flags.account,
       offline: flags.offline,
     })
-    CliUx.ux.action.stop()
+
+    stopProgressBar()
 
     const posted = new Transaction(Buffer.from(response.content.transaction, 'hex'))
 
