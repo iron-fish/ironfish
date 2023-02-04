@@ -169,92 +169,83 @@ export class Mint extends IronfishCommand {
     let fee
     let rawTransactionResponse: string
 
-    try {
-      if (flags.fee) {
-        fee = flags.fee
+    if (flags.fee) {
+      fee = flags.fee
 
-        const createResponse = await client.createTransaction({
-          sender: account,
-          receives: [],
-          mints: [
-            {
-              assetId,
-              name,
-              metadata,
-              value: CurrencyUtils.encode(amount),
-            },
-          ],
-          fee: CurrencyUtils.encode(fee),
-          expiration: expiration,
-          confirmations: confirmations,
-        })
-        rawTransactionResponse = createResponse.content.transaction
-      } else {
-        const feeRatesResponse = await client.estimateFeeRates()
-        const feeRates = new Set([
-          feeRatesResponse.content.low ?? '1',
-          feeRatesResponse.content.medium ?? '1',
-          feeRatesResponse.content.high ?? '1',
-        ])
-
-        const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
-
-        const feeRateOptions: { value: number; name: string }[] = []
-
-        const createTransactionRequest: CreateTransactionRequest = {
-          sender: account,
-          receives: [],
-          mints: [
-            {
-              assetId,
-              name,
-              metadata,
-              value: CurrencyUtils.encode(amount),
-            },
-          ],
-          expiration: expiration,
-          confirmations: confirmations,
-        }
-
-        const allPromises: Promise<RpcResponseEnded<CreateTransactionResponse>>[] = []
-        feeRates.forEach((feeRate) => {
-          allPromises.push(
-            client.createTransaction({
-              ...createTransactionRequest,
-              feeRate: feeRate,
-            }),
-          )
-        })
-
-        const createResponses = await Promise.all(allPromises)
-        createResponses.forEach((createResponse, index) => {
-          const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
-          const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-
-          feeRateOptions.push({
-            value: index,
-            name: `${feeRateNames[index]}: ${CurrencyUtils.renderIron(
-              rawTransaction.fee,
-            )} IRON`,
-          })
-        })
-
-        const input: { selection: number } = await inquirer.prompt<{ selection: number }>([
+      const createResponse = await client.createTransaction({
+        sender: account,
+        receives: [],
+        mints: [
           {
-            name: 'selection',
-            message: `Select the fee you wish to use for this transaction`,
-            type: 'list',
-            choices: feeRateOptions,
+            assetId,
+            name,
+            metadata,
+            value: CurrencyUtils.encode(amount),
           },
-        ])
+        ],
+        fee: CurrencyUtils.encode(fee),
+        expiration: expiration,
+        confirmations: confirmations,
+      })
+      rawTransactionResponse = createResponse.content.transaction
+    } else {
+      const feeRatesResponse = await client.estimateFeeRates()
+      const feeRates = new Set([
+        feeRatesResponse.content.low ?? '1',
+        feeRatesResponse.content.medium ?? '1',
+        feeRatesResponse.content.high ?? '1',
+      ])
 
-        rawTransactionResponse = createResponses[input.selection].content.transaction
+      const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
+
+      const feeRateOptions: { value: number; name: string }[] = []
+
+      const createTransactionRequest: CreateTransactionRequest = {
+        sender: account,
+        receives: [],
+        mints: [
+          {
+            assetId,
+            name,
+            metadata,
+            value: CurrencyUtils.encode(amount),
+          },
+        ],
+        expiration: expiration,
+        confirmations: confirmations,
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        this.error(error.message)
-      }
-      throw error
+
+      const allPromises: Promise<RpcResponseEnded<CreateTransactionResponse>>[] = []
+      feeRates.forEach((feeRate) => {
+        allPromises.push(
+          client.createTransaction({
+            ...createTransactionRequest,
+            feeRate: feeRate,
+          }),
+        )
+      })
+
+      const createResponses = await Promise.all(allPromises)
+      createResponses.forEach((createResponse, index) => {
+        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
+        const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+        feeRateOptions.push({
+          value: index,
+          name: `${feeRateNames[index]}: ${CurrencyUtils.renderIron(rawTransaction.fee)} IRON`,
+        })
+      })
+
+      const input: { selection: number } = await inquirer.prompt<{ selection: number }>([
+        {
+          name: 'selection',
+          message: `Select the fee you wish to use for this transaction`,
+          type: 'list',
+          choices: feeRateOptions,
+        },
+      ])
+
+      rawTransactionResponse = createResponses[input.selection].content.transaction
     }
 
     const rawTransactionBytes = Buffer.from(rawTransactionResponse, 'hex')
