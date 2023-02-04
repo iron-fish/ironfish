@@ -245,7 +245,7 @@ export class CeremonyServer {
 
   private onError(client: CeremonyServerClient, e: Error): void {
     this.closeClient(client, e)
-    this.queue = this.queue.filter((c) => client.id === c.id)
+    this.queue = this.queue.filter((c) => client.id !== c.id)
     client.logger.info(
       `Disconnected with error '${ErrorUtils.renderError(e)}'. (${this.queue.length} total)`,
     )
