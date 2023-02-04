@@ -30,18 +30,20 @@ describe('Route chain/getNetworkHashPower', () => {
     expect(response.content).toEqual(
       expect.objectContaining({
         hashesPerSecond: expect.any(Number),
+        blocks: expect.any(Number),
+        sequence: expect.any(Number),
       }),
     )
   })
 
-  it('should fail with a negative lookup value', async () => {
+  it('should fail with a negative [blocks] value', async () => {
     await expect(
       routeTest.client.getNetworkHashPower({
-        lookup: -1,
+        blocks: -1,
       }),
     ).rejects.toThrow(
       expect.objectContaining({
-        message: expect.stringContaining('Lookup value must be greater than 0'),
+        message: expect.stringContaining('[blocks] value must be greater than 0'),
         status: 400,
         code: ERROR_CODES.VALIDATION,
       }),
@@ -50,13 +52,15 @@ describe('Route chain/getNetworkHashPower', () => {
 
   it('should return 0 network hash power if start block == end block', async () => {
     const response = await routeTest.client.getNetworkHashPower({
-      lookup: 1,
-      height: 1,
+      blocks: 1,
+      sequence: 1,
     })
 
     expect(response.content).toEqual(
       expect.objectContaining({
         hashesPerSecond: 0,
+        blocks: 0,
+        sequence: 1,
       }),
     )
   })
