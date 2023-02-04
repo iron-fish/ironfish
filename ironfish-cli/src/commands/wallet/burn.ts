@@ -64,7 +64,7 @@ export class Burn extends IronfishCommand {
     expiration: Flags.integer({
       char: 'e',
       description:
-        'The block sequence after which the transaction will be removed from the mempool. Set to 0 for no expiration.',
+        'The block sequence that the transaction can not be mined after. Set to 0 for no expiration.',
     }),
   }
 
