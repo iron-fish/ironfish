@@ -26,6 +26,7 @@ export type PeerResponse = {
   connectionWebRTCError: string
   networkId: number | null
   genesisBlockHash: string | null
+  banned: boolean
 }
 
 export type GetPeersRequest =
@@ -69,6 +70,7 @@ export const GetPeersResponseSchema: yup.ObjectSchema<GetPeersResponse> = yup
             connectionWebRTCError: yup.string().defined(),
             networkId: yup.number().nullable().defined(),
             genesisBlockHash: yup.string().nullable().defined(),
+            banned: yup.boolean().defined(),
           })
           .defined(),
       )
@@ -155,6 +157,7 @@ function getPeers(network: PeerNetwork): PeerResponse[] {
       connectionWebRTCError: connectionWebRTCError,
       networkId: peer.networkId,
       genesisBlockHash: peer.genesisBlockHash?.toString('hex') || null,
+      banned: peer.state.identity ? network.peerManager.banned.has(peer.state.identity) : false,
     })
   }
 

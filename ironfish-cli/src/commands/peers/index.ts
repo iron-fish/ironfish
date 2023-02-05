@@ -29,6 +29,10 @@ export class ListCommand extends IronfishCommand {
       default: false,
       description: 'Show all peers, not just connected peers',
     }),
+    banned: Flags.boolean({
+      default: false,
+      description: 'Show only banned peers',
+    }),
     agents: Flags.boolean({
       char: 'a',
       default: false,
@@ -43,6 +47,12 @@ export class ListCommand extends IronfishCommand {
       char: 'n',
       default: false,
       description: 'Display node names',
+      hidden: true,
+    }),
+    showBanned: Flags.boolean({
+      char: 'X',
+      default: false,
+      description: 'Display peer banned status',
       hidden: true,
     }),
   }
@@ -129,6 +139,16 @@ function renderTable(
     }
   }
 
+  if (flags.showBanned) {
+    columns['banned'] = {
+      header: 'BANNED',
+      minWidth: 5,
+      get: (row: GetPeerResponsePeer) => {
+        return row.banned ? 't' : 'f'
+      },
+    }
+  }
+
   columns = {
     ...columns,
     state: {
@@ -182,6 +202,10 @@ function renderTable(
 
   if (!flags.all) {
     peers = peers.filter((p) => p.state === 'CONNECTED')
+  }
+
+  if (flags.banned) {
+    peers = peers.filter((p) => p.banned)
   }
 
   let result = ''

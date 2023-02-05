@@ -46,6 +46,7 @@ export const GetPeerResponseSchema: yup.ObjectSchema<GetPeerResponse> = yup
         connectionWebRTCError: yup.string().defined(),
         networkId: yup.number().nullable().defined(),
         genesisBlockHash: yup.string().nullable().defined(),
+        banned: yup.boolean().defined(),
       })
       .defined(),
   })
@@ -129,6 +130,9 @@ function getPeer(network: PeerNetwork, identity: string): PeerResponse | null {
         connectionWebRTCError: connectionWebRTCError,
         networkId: peer.networkId,
         genesisBlockHash: peer.genesisBlockHash?.toString('hex') || null,
+        banned: peer.state.identity
+          ? network.peerManager.banned.has(peer.state.identity)
+          : false,
       }
     }
   }
