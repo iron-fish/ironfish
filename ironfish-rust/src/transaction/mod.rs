@@ -202,7 +202,7 @@ impl ProposedTransaction {
                 let change_address =
                     change_goes_to.unwrap_or_else(|| self.spender_key.public_address());
                 let asset_generator = SubgroupPoint::from_bytes(asset_id).unwrap();
-                let change_note_amounts = self._change_note_amounts(asset_id, change_amount);
+                let change_note_amounts = self._change_note_amounts(asset_id, &change_amount);
                 for change_note_amount in change_note_amounts {
                     let change_note = Note::new(
                         change_address,
@@ -223,7 +223,7 @@ impl ProposedTransaction {
         self._partial_post()
     }
 
-    fn _change_note_amounts(&self, asset_id: &[u8; 32], change_amount: i64) -> Vec<i64> {
+    fn _change_note_amounts(&self, asset_id: &[u8; 32], change_amount: &i64) -> Vec<i64> {
         let valid_spends = self
             .spends
             .iter()
@@ -234,13 +234,15 @@ impl ProposedTransaction {
         // deliver change in two notes, one for 2/3 the amount and one for 1/3 of the amount, integer rounded.
         // corner case: change can be greater than full_amount of all the spends if we are spending minted assets from this tx.
         // Bail in that case - not really worth it to parse out mints and burns
-        return match change_amount * 2 > full_amount && full_amount > change_amount {
-            true => vec![
-                (change_amount * 2 / 3),
-                (change_amount - (change_amount * 2 / 3)),
-            ],
-            false => vec![change_amount],
-        };
+        match *change_amount * 2 > full_amount && full_amount > *change_amount {
+            true => {
+                vec![
+                    (*change_amount * 2 / 3),
+                    (*change_amount - (*change_amount * 2 / 3)),
+                ]
+            }
+            false => vec![*change_amount],
+        }
     }
 
     /// Special case for posting a miners fee transaction. Miner fee transactions
