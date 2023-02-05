@@ -16,7 +16,7 @@ use crate::{
 use ironfish_zkp::redjubjub::Signature;
 
 #[test]
-fn test_transaction() {
+fn test_transaction_mixed() {
     let spender_key = SaplingKey::generate_key();
     let receiver_key = SaplingKey::generate_key();
     let sender_key = SaplingKey::generate_key();
@@ -188,6 +188,61 @@ fn test_transaction_simple() {
         .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
         .unwrap();
     assert_eq!(received_note.sender, spender_key_clone.public_address());
+}
+
+#[test]
+fn test_transaction_multi_change() {
+    let spender_key = SaplingKey::generate_key();
+    let receiver_key = SaplingKey::generate_key();
+    let sender_key = SaplingKey::generate_key();
+    let spender_key_clone = spender_key.clone();
+
+    let in_note = Note::new(
+        spender_key.public_address(),
+        42,
+        "",
+        NATIVE_ASSET_GENERATOR,
+        sender_key.public_address(),
+    );
+    let out_note = Note::new(
+        receiver_key.public_address(),
+        2,
+        "",
+        NATIVE_ASSET_GENERATOR,
+        spender_key.public_address(),
+    );
+    let witness = make_fake_witness(&in_note);
+
+    let mut transaction = ProposedTransaction::new(spender_key);
+    transaction.add_spend(in_note, &witness).unwrap();
+    assert_eq!(transaction.spends.len(), 1);
+    transaction.add_output(out_note).unwrap();
+    assert_eq!(transaction.outputs.len(), 1);
+
+    let public_transaction = transaction
+        .post(None, 1)
+        .expect("should be able to post transaction");
+    public_transaction
+        .verify()
+        .expect("Should be able to verify transaction");
+    assert_eq!(public_transaction.fee(), 1);
+
+    // A change note was created
+    assert_eq!(public_transaction.outputs.len(), 3);
+    assert_eq!(public_transaction.spends.len(), 1);
+    assert_eq!(public_transaction.mints.len(), 0);
+    assert_eq!(public_transaction.burns.len(), 0);
+
+    let change_note_one = public_transaction.outputs[1]
+        .merkle_note()
+        .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
+        .unwrap();
+    let change_note_two = public_transaction.outputs[2]
+        .merkle_note()
+        .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
+        .unwrap();
+    assert_eq!(change_note_one.value, 26); // (42-3) * 2 / 3
+    assert_eq!(change_note_two.value, 13); // the rest of the change
 }
 
 #[test]

@@ -201,15 +201,18 @@ impl ProposedTransaction {
             if change_amount > 0 {
                 let change_address =
                     change_goes_to.unwrap_or_else(|| self.spender_key.public_address());
-                let change_note = Note::new(
-                    change_address,
-                    change_amount as u64, // we checked it was positive
-                    "",
-                    SubgroupPoint::from_bytes(asset_id).unwrap(),
-                    self.spender_key.public_address(),
-                );
-
-                change_notes.push(change_note);
+                let asset_generator = SubgroupPoint::from_bytes(asset_id).unwrap();
+                let change_note_amounts = self._change_note_amounts(asset_id, change_amount);
+                for change_note_amount in change_note_amounts {
+                    let change_note = Note::new(
+                        change_address,
+                        change_note_amount as u64, // we checked it was positive
+                        "",
+                        asset_generator,
+                        self.spender_key.public_address(),
+                    );
+                    change_notes.push(change_note);
+                }
             }
         }
 
@@ -218,6 +221,27 @@ impl ProposedTransaction {
         }
 
         self._partial_post()
+    }
+
+    fn _change_note_amounts(&self, asset_id: &[u8; 32], change_amount: i64) -> Vec<i64> {
+        let valid_spends = self
+            .spends
+            .iter()
+            .filter(|spend| spend.note.asset_id() == *asset_id);
+        let full_amount_u64: u64 = valid_spends.map(|spend| spend.note.value).sum();
+        let full_amount = full_amount_u64 as i64;
+        let spent_amount: i64 = full_amount - change_amount;
+        // If the amount we're spending is less than half of the full note we're using,
+        // deliver change in two notes, one for 2/3 the amount and one for 1/3 of the amount, integer rounded.
+        // corner case: spent_amount can be < 0 here if we are spending assets minted in this tx.
+        // Bail in that case, we don't need to split change.
+        return match full_amount > spent_amount * 2 && spent_amount > 0 {
+            true => vec![
+                (change_amount * 2 / 3),
+                (change_amount - (change_amount * 2 / 3)),
+            ],
+            false => vec![change_amount],
+        };
     }
 
     /// Special case for posting a miners fee transaction. Miner fee transactions
