@@ -157,7 +157,7 @@ function getPeers(network: PeerNetwork): PeerResponse[] {
       connectionWebRTCError: connectionWebRTCError,
       networkId: peer.networkId,
       genesisBlockHash: peer.genesisBlockHash?.toString('hex') || null,
-      banned: peer.state.identity ? network.peerManager.banned.has(peer.state.identity) : false,
+      banned: network.peerManager.isBanned(peer),
     })
   }
 

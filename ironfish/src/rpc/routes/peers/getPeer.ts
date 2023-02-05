@@ -130,9 +130,7 @@ function getPeer(network: PeerNetwork, identity: string): PeerResponse | null {
         connectionWebRTCError: connectionWebRTCError,
         networkId: peer.networkId,
         genesisBlockHash: peer.genesisBlockHash?.toString('hex') || null,
-        banned: peer.state.identity
-          ? network.peerManager.banned.has(peer.state.identity)
-          : false,
+        banned: network.peerManager.isBanned(peer),
       }
     }
   }
