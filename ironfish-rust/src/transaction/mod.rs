@@ -230,12 +230,11 @@ impl ProposedTransaction {
             .filter(|spend| spend.note.asset_id() == *asset_id);
         let full_amount_u64: u64 = valid_spends.map(|spend| spend.note.value).sum();
         let full_amount = full_amount_u64 as i64;
-        let spent_amount: i64 = full_amount - change_amount;
         // If the amount we're spending is less than half of the full note we're using,
         // deliver change in two notes, one for 2/3 the amount and one for 1/3 of the amount, integer rounded.
-        // corner case: spent_amount can be < 0 here if we are spending assets minted in this tx.
-        // Bail in that case, we don't need to split change.
-        return match full_amount > spent_amount * 2 && spent_amount > 0 {
+        // corner case: change can be greater than full_amount of all the spends if we are spending minted assets from this tx.
+        // Bail in that case - not really worth it to parse out mints and burns
+        return match change_amount * 2 > full_amount && full_amount > change_amount {
             true => vec![
                 (change_amount * 2 / 3),
                 (change_amount - (change_amount * 2 / 3)),
