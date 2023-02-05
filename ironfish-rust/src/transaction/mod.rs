@@ -230,7 +230,7 @@ impl ProposedTransaction {
             .filter(|spend| spend.note.asset_id() == *asset_id);
         let full_amount_u64: u64 = valid_spends.map(|spend| spend.note.value).sum();
         let full_amount = full_amount_u64 as i64;
-        // If the amount we're spending is less than half of the full note we're using,
+        // If the amount we're spending is less than half of the full spend we're doing,
         // deliver change in two notes, one for 2/3 the amount and one for 1/3 of the amount, integer rounded.
         // corner case: change can be greater than full_amount of all the spends if we are spending minted assets from this tx.
         // Bail in that case - not really worth it to parse out mints and burns
