@@ -210,21 +210,47 @@ export class Account {
     metadata: Buffer,
     name: Buffer,
     owner: Buffer,
+    blockHeader?: { hash: Buffer | null; sequence: number | null },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.walletDb.putAsset(
       this,
       id,
       {
+        blockHash: blockHeader?.hash ?? null,
         createdTransactionHash,
         id,
         metadata,
         name,
         owner,
-        // These fields are used for assets the account owns
-        blockHash: null,
-        sequence: null,
+        sequence: blockHeader?.sequence ?? null,
         supply: null,
+      },
+      tx,
+    )
+  }
+
+  async updateAssetWithBlockHeader(
+    assetValue: AssetValue,
+    blockHeader: { hash: Buffer; sequence: number },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    if (assetValue.blockHash && assetValue.blockHash.equals(blockHeader.hash)) {
+      return
+    }
+
+    await this.walletDb.putAsset(
+      this,
+      assetValue.id,
+      {
+        blockHash: blockHeader.hash,
+        createdTransactionHash: assetValue.createdTransactionHash,
+        id: assetValue.id,
+        metadata: assetValue.metadata,
+        name: assetValue.name,
+        owner: assetValue.owner,
+        sequence: blockHeader.sequence,
+        supply: assetValue.supply,
       },
       tx,
     )

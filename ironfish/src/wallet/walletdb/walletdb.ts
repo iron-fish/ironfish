@@ -34,7 +34,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 18
+export const VERSION_DATABASE_ACCOUNTS = 19
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -957,7 +957,9 @@ export class WalletDB {
     assetValue: AssetValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    await this.assets.put([account.prefix, assetId], assetValue, tx)
+    if (!assetId.equals(Asset.nativeId())) {
+      await this.assets.put([account.prefix, assetId], assetValue, tx)
+    }
   }
 
   async getAsset(
