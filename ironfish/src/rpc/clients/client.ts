@@ -92,6 +92,7 @@ import {
   CreateTransactionResponse,
 } from '../routes/wallet/createTransaction'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
+import { GetAssetsRequest, GetAssetsResponse } from '../routes/wallet/getAssets'
 import { GetBalancesRequest, GetBalancesResponse } from '../routes/wallet/getBalances'
 import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/wallet/importAccount'
@@ -517,6 +518,10 @@ export abstract class RpcClient {
 
   async getAsset(params: GetAssetRequest): Promise<RpcResponseEnded<GetAssetResponse>> {
     return this.request<GetAssetResponse>(`${ApiNamespace.chain}/getAsset`, params).waitForEnd()
+  }
+
+  getAssets(params: GetAssetsRequest): RpcResponse<void, GetAssetsResponse> {
+    return this.request<void, GetAssetsResponse>(`${ApiNamespace.wallet}/getAssets`, params)
   }
 
   async postTransaction(
