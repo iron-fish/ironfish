@@ -198,8 +198,8 @@ describe('Verifier', () => {
             owner,
           )
           const transaction = new NativeTransaction(key.spending_key)
-          transaction.receive(minerNote1)
-          transaction.receive(minerNote2)
+          transaction.output(minerNote1)
+          transaction.output(minerNote2)
           return new Transaction(transaction._postMinersFeeUnchecked())
         },
         {

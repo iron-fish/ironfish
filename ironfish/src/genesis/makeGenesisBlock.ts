@@ -78,7 +78,7 @@ export async function makeGenesisBlock(
   )
 
   const minersFeeTransaction = new NativeTransaction(minersFeeKey.spending_key)
-  minersFeeTransaction.receive(note)
+  minersFeeTransaction.output(note)
   const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
 
   /**
@@ -91,7 +91,7 @@ export async function makeGenesisBlock(
   const initialTransaction = new NativeTransaction(genesisKey.spending_key)
 
   logger.info('  Generating the output...')
-  initialTransaction.receive(genesisNote)
+  initialTransaction.output(genesisNote)
 
   logger.info('  Posting the initial transaction...')
   const postedInitialTransaction = new Transaction(initialTransaction.post_miners_fee())
@@ -141,7 +141,7 @@ export async function makeGenesisBlock(
       Asset.nativeId(),
       genesisNote.owner(),
     )
-    transaction.receive(note)
+    transaction.output(note)
   }
 
   logger.info('  Posting the transaction...')
