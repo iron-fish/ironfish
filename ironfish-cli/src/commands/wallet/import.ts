@@ -95,7 +95,7 @@ export class ImportCommand extends IronfishCommand {
       this.log(`Run "ironfish wallet:use ${name}" to set the account as default`)
     }
   }
-  async stringToAccountImport(data: string): Promise<AccountImport> {
+  async stringToAccountImport(data: string): Promise<AccountImport | null> {
     // try bech32 first
     const bech32 = ImportCommand.bech32ToJSON(data)
     if (bech32) {
@@ -116,19 +116,17 @@ export class ImportCommand extends IronfishCommand {
     try {
       return JSONUtils.parse<AccountImport>(data)
     } catch (e) {
-      throw new Error(
-        'Could not detect a valid account format, please verify your account info input',
-      )
+      return null // this will be caught in the calling function
     }
   }
 
-  async importFile(path: string): Promise<AccountImport> {
+  async importFile(path: string): Promise<AccountImport | null> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
     return this.stringToAccountImport(data)
   }
 
-  async importPipe(): Promise<AccountImport> {
+  async importPipe(): Promise<AccountImport | null> {
     let data = ''
 
     const onData = (dataIn: string): void => {
@@ -151,15 +149,18 @@ export class ImportCommand extends IronfishCommand {
     const userInput = await CliUx.ux.prompt('Paste the output of wallet:export', {
       required: true,
     })
-    try {
-      return this.stringToAccountImport(userInput)
-    } catch (e) {
+
+    const output = await this.stringToAccountImport(userInput)
+
+    if (output === null) {
       CliUx.ux.error(
         'Failed to decode the account from the provided input, please continue with the manual input below',
         {
           exit: false,
         },
       )
+    } else {
+      return output
     }
 
     const accountName = await CliUx.ux.prompt('Enter the account name', {
