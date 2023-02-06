@@ -180,8 +180,6 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       }
     })
 
-    // TODO(IRO-289) We need a better way to either serialize directly to buffer or use CBOR
-
     request.end({
       blockIdentifier: {
         index: block.header.sequence.toString(),
