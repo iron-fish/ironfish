@@ -7,19 +7,21 @@ import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
 export type GetNetworkHashPowerRequest = {
-  lookup?: number // number of blocks to lookup
-  height?: number // estimate network speed at the time of the given height
+  blocks?: number | null // number of blocks to look back
+  sequence?: number | null // the sequence of the latest block from when to estimate the network speed
 }
 
 export type GetNetworkHashPowerResponse = {
   hashesPerSecond: number
+  blocks: number // The actual number of blocks used in the hash rate calculation
+  sequence: number // The actual sequence of the latest block used in hash rate calculation
 }
 
 export const GetNetworkHashPowerRequestSchema: yup.ObjectSchema<GetNetworkHashPowerRequest> =
   yup
     .object({
-      lookup: yup.number().optional(),
-      height: yup.number().optional(),
+      blocks: yup.number().nullable().optional(),
+      sequence: yup.number().nullable().optional(),
     })
     .defined()
 
@@ -27,6 +29,8 @@ export const GetNetworkHashPowerResponseSchema: yup.ObjectSchema<GetNetworkHashP
   yup
     .object({
       hashesPerSecond: yup.number().defined(),
+      blocks: yup.number().defined(),
+      sequence: yup.number().defined(),
     })
     .defined()
 
@@ -34,36 +38,38 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
   `${ApiNamespace.chain}/getNetworkHashPower`,
   GetNetworkHashPowerRequestSchema,
   async (request, node): Promise<void> => {
-    let lookup = request.data?.lookup ?? 120
-    const height = request.data?.height ?? -1
+    let blocks = request.data?.blocks ?? 120
+    let sequence = request.data?.sequence ?? -1
 
-    /*
-      For bitcoin, a negative lookup specifies using all blocks since the last difficulty change.
-      For ironfish, the difficulty changes for every block, so this isn't supported.
-    */
-    if (lookup < 0) {
-      throw new ValidationError('Lookup value must be greater than 0')
+    if (blocks < 0) {
+      throw new ValidationError('[blocks] value must be greater than 0')
     }
 
     let endBlock = node.chain.head
 
-    // estimate network hps at specified height
-    if (height > 0 && height < node.chain.head.sequence) {
-      const blockAtHeight = await node.chain.getHeaderAtSequence(height)
-      if (!blockAtHeight) {
-        throw new Error(`No end block found at height ${height}`)
+    // If sequence is negative, it's relative to the head
+    if (sequence < 0 && Math.abs(sequence) < node.chain.head.sequence) {
+      sequence = node.chain.head.sequence + sequence
+    }
+
+    // estimate network hps at specified sequence
+    // if the sequence is out of bounds, use the head as the last block
+    if (sequence > 0 && sequence < node.chain.head.sequence) {
+      const blockAtSequence = await node.chain.getHeaderAtSequence(sequence)
+      if (!blockAtSequence) {
+        throw new Error(`No end block found at sequence ${sequence}`)
       }
-      endBlock = blockAtHeight
+      endBlock = blockAtSequence
     }
 
-    // Genesis block has sequence 1 - clamp lookup to prevent going out-of-bounds
-    if (lookup >= endBlock.sequence) {
-      lookup = endBlock.sequence - 1
+    // Genesis block has sequence 1 - clamp blocks to prevent going out-of-bounds
+    if (blocks >= endBlock.sequence) {
+      blocks = endBlock.sequence - 1
     }
 
-    const startBlock = await node.chain.getHeaderAtSequence(endBlock.sequence - lookup)
+    const startBlock = await node.chain.getHeaderAtSequence(endBlock.sequence - blocks)
     if (!startBlock) {
-      throw new Error(`Failure to find start block ${endBlock.sequence - lookup}`)
+      throw new Error(`Failure to find start block ${endBlock.sequence - blocks}`)
     }
 
     const startTime = startBlock.timestamp.getTime()
@@ -73,6 +79,8 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
     if (startTime === endTime) {
       request.end({
         hashesPerSecond: 0,
+        blocks: blocks,
+        sequence: endBlock.sequence,
       })
       return
     }
@@ -84,6 +92,8 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
 
     request.end({
       hashesPerSecond,
+      blocks,
+      sequence: endBlock.sequence,
     })
   },
 )
