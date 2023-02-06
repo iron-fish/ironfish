@@ -18,7 +18,7 @@ jest.mock('@ironfish/rust-nodejs', () => {
     ...module,
     Transaction: jest.fn().mockImplementation(() => ({
       post_miners_fee: postMinersFee,
-      receive: jest.fn(),
+      output: jest.fn(),
     })),
   }
 })
