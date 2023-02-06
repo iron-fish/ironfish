@@ -41,7 +41,7 @@ export async function selectAsset(
       const displayName = BufferUtils.toHuman(Buffer.from(assetResponse.content.name, 'hex'))
       assetOptions.push({
         value: assetId,
-        name: `${assetId} (${displayName}) - ${CurrencyUtils.renderIron(confirmed)}`,
+        name: `${assetId} (${displayName}) (${CurrencyUtils.renderIron(confirmed)})`,
       })
     }
   }
