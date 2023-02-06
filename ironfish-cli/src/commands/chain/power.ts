@@ -41,18 +41,11 @@ export default class Power extends IronfishCommand {
       sequence: inputSequence,
     })
 
-    const headSequence = (await this.sdk.client.getChainInfo()).content.currentBlockIdentifier
-      .index
-
     const { hashesPerSecond, blocks, sequence } = data.content
     const formattedHashesPerSecond = FileUtils.formatHashRate(hashesPerSecond)
 
-    const distanceFromHead = Number(headSequence) - sequence
-
     this.log(
-      `The network is operating at ${formattedHashesPerSecond} over the last ${blocks} blocks ending at block ${sequence} ${
-        distanceFromHead !== 0 ? `(head - ${distanceFromHead})` : '(head)'
-      }.`,
+      `The network power for block ${sequence} was ${formattedHashesPerSecond} averaged over ${blocks} previous blocks.`,
     )
   }
 }
