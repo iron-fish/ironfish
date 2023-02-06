@@ -7,8 +7,8 @@ import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
 export type GetNetworkHashPowerRequest = {
-  blocks?: number // number of blocks to look back
-  sequence?: number // the sequence of the latest block from when to estimate the network speed
+  blocks?: number | null // number of blocks to look back
+  sequence?: number | null // the sequence of the latest block from when to estimate the network speed
 }
 
 export type GetNetworkHashPowerResponse = {
@@ -20,8 +20,8 @@ export type GetNetworkHashPowerResponse = {
 export const GetNetworkHashPowerRequestSchema: yup.ObjectSchema<GetNetworkHashPowerRequest> =
   yup
     .object({
-      blocks: yup.number().optional(),
-      sequence: yup.number().optional(),
+      blocks: yup.number().nullable().optional(),
+      sequence: yup.number().nullable().optional(),
     })
     .defined()
 

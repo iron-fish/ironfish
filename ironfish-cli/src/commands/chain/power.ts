@@ -31,8 +31,8 @@ export default class Power extends IronfishCommand {
 
   async start(): Promise<void> {
     const { args } = await this.parse(Power)
-    const inputBlocks = args.blocks as number | undefined
-    const inputSequence = args.sequence as number | undefined
+    const inputBlocks = args.blocks as number | null | undefined
+    const inputSequence = args.sequence as number | null | undefined
 
     await this.sdk.client.connect()
 
