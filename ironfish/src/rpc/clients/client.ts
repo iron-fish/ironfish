@@ -520,8 +520,8 @@ export abstract class RpcClient {
     return this.request<GetAssetResponse>(`${ApiNamespace.chain}/getAsset`, params).waitForEnd()
   }
 
-  getAssets(params: GetAssetsRequest): RpcResponse<GetAssetsResponse> {
-    return this.request<GetAssetsResponse>(`${ApiNamespace.wallet}/getAssets`, params)
+  getAssets(params: GetAssetsRequest): RpcResponse<void, GetAssetsResponse> {
+    return this.request<void, GetAssetsResponse>(`${ApiNamespace.wallet}/getAssets`, params)
   }
 
   async postTransaction(
