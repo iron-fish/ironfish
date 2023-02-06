@@ -116,9 +116,7 @@ export class ImportCommand extends IronfishCommand {
     try {
       return JSONUtils.parse<AccountImport>(data)
     } catch (e) {
-      throw new Error(
-        'Could not detect a valid account format, please verify your account info input',
-      )
+      return null as any // this will be caught in the calling function
     }
   }
 
@@ -151,16 +149,20 @@ export class ImportCommand extends IronfishCommand {
     const userInput = await CliUx.ux.prompt('Paste the output of wallet:export', {
       required: true,
     })
-    try {
-      return this.stringToAccountImport(userInput)
-    } catch (e) {
+
+    const output = this.stringToAccountImport(userInput)
+    
+    if (output === null) {
       CliUx.ux.error(
         'Failed to decode the account from the provided input, please continue with the manual input below',
         {
           exit: false,
         },
       )
+    } else {
+      return output
     }
+
 
     const accountName = await CliUx.ux.prompt('Enter the account name', {
       required: true,
