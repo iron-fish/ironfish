@@ -981,7 +981,9 @@ export class WalletDB {
   }
 
   async *loadAssets(account: Account, tx?: IDatabaseTransaction): AsyncGenerator<AssetValue> {
-    for await (const asset of this.assets.getAllValuesIter(tx, account.prefixRange)) {
+    for await (const asset of this.assets.getAllValuesIter(tx, account.prefixRange, {
+      ordered: true,
+    })) {
       yield asset
     }
   }
