@@ -1072,7 +1072,11 @@ describe('Accounts', () => {
 
         const mintBlock = await node.chain.newBlock(
           [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 4, generateKey().spending_key),
+          await node.strategy.createMinersFee(
+            transaction.fee(),
+            4,
+            generateKey().public_address,
+          ),
         )
         await expect(node.chain).toAddBlock(mintBlock)
         await node.wallet.updateHead()

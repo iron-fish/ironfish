@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, generateKeyFromPrivateKey, Note, Transaction } from '@ironfish/rust-nodejs'
+import { Asset, generateKey, Note, Transaction } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { BigIntUtils } from '../../utils'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
@@ -10,20 +10,20 @@ import { WorkerTask } from './workerTask'
 export class CreateMinersFeeRequest extends WorkerMessage {
   readonly amount: bigint
   readonly memo: string
-  readonly spendKey: string
+  readonly publicAddress: string
 
-  constructor(amount: bigint, memo: string, spendKey: string, jobId?: number) {
+  constructor(amount: bigint, memo: string, publicAddress: string, jobId?: number) {
     super(WorkerMessageType.CreateMinersFee, jobId)
     this.amount = amount
     this.memo = memo
-    this.spendKey = spendKey
+    this.publicAddress = publicAddress
   }
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
     bw.writeVarBytes(BigIntUtils.toBytesBE(this.amount))
     bw.writeVarString(this.memo, 'utf8')
-    bw.writeVarString(this.spendKey, 'utf8')
+    bw.writeVarString(this.publicAddress, 'utf8')
     return bw.render()
   }
 
@@ -39,7 +39,7 @@ export class CreateMinersFeeRequest extends WorkerMessage {
     return (
       bufio.sizeVarBytes(BigIntUtils.toBytesBE(this.amount)) +
       bufio.sizeVarString(this.memo, 'utf8') +
-      bufio.sizeVarString(this.spendKey, 'utf8')
+      bufio.sizeVarString(this.publicAddress, 'utf8')
     )
   }
 }
@@ -75,18 +75,16 @@ export class CreateMinersFeeTask extends WorkerTask {
     return CreateMinersFeeTask.instance
   }
 
-  execute({ amount, memo, spendKey, jobId }: CreateMinersFeeRequest): CreateMinersFeeResponse {
+  execute({
+    amount,
+    memo,
+    publicAddress,
+    jobId,
+  }: CreateMinersFeeRequest): CreateMinersFeeResponse {
     // Generate a public address from the miner's spending key
-    const minerPublicAddress = generateKeyFromPrivateKey(spendKey).public_address
-    const minerNote = new Note(
-      minerPublicAddress,
-      amount,
-      memo,
-      Asset.nativeId(),
-      minerPublicAddress,
-    )
-
-    const transaction = new Transaction(spendKey)
+    const minerNote = new Note(publicAddress, amount, memo, Asset.nativeId(), publicAddress)
+    const key = generateKey()
+    const transaction = new Transaction(key.spending_key)
     transaction.receive(minerNote)
 
     const serializedTransactionPosted = transaction.post_miners_fee()

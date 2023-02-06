@@ -50,8 +50,7 @@ describe('CreateMinersFeeTask', () => {
 
       const task = new CreateMinersFeeTask()
       const memo = 'memo'
-      const spendingKey = account.spendingKey
-      const request = new CreateMinersFeeRequest(BigInt(0), memo, spendingKey)
+      const request = new CreateMinersFeeRequest(BigInt(0), memo, account.publicAddress)
       const response = task.execute(request)
 
       expect(postMinersFee).toHaveBeenCalled()
