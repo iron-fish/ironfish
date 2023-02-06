@@ -386,7 +386,7 @@ export class WalletDB {
     await this.nonChainNoteHashes.clear(tx, account.prefixRange)
   }
 
-  async *loadSequenceToTransactionHashes(
+  async *getTransactionHashesBySequence(
     account: Account,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<{ sequence: number; hash: Buffer }> {

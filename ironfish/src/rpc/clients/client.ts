@@ -38,6 +38,8 @@ import {
   GetFundsRequest,
   GetFundsResponse,
   GetLogStreamResponse,
+  GetNetworkHashPowerRequest,
+  GetNetworkHashPowerResponse,
   GetNodeStatusRequest,
   GetNodeStatusResponse,
   GetPeersRequest,
@@ -83,6 +85,7 @@ import {
   GetPeerMessagesResponse,
 } from '../routes/peers/getPeerMessages'
 import { GetRpcStatusRequest, GetRpcStatusResponse } from '../routes/rpc/getStatus'
+import { AddTransactionRequest, AddTransactionResponse } from '../routes/wallet/addTransaction'
 import { BurnAssetRequest, BurnAssetResponse } from '../routes/wallet/burnAsset'
 import {
   CreateTransactionRequest,
@@ -451,6 +454,15 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
+  async getNetworkHashPower(
+    params: GetNetworkHashPowerRequest,
+  ): Promise<RpcResponseEnded<GetNetworkHashPowerResponse>> {
+    return this.request<GetNetworkHashPowerResponse>(
+      `${ApiNamespace.chain}/getNetworkHashPower`,
+      params,
+    ).waitForEnd()
+  }
+
   async showChain(
     params: ShowChainRequest = undefined,
   ): Promise<RpcResponseEnded<ShowChainResponse>> {
@@ -512,6 +524,15 @@ export abstract class RpcClient {
   ): Promise<RpcResponseEnded<PostTransactionResponse>> {
     return this.request<PostTransactionResponse>(
       `${ApiNamespace.wallet}/postTransaction`,
+      params,
+    ).waitForEnd()
+  }
+
+  async addTransaction(
+    params: AddTransactionRequest,
+  ): Promise<RpcResponseEnded<AddTransactionResponse>> {
+    return this.request<AddTransactionResponse>(
+      `${ApiNamespace.wallet}/addTransaction`,
       params,
     ).waitForEnd()
   }

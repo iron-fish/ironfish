@@ -10,7 +10,13 @@ import jsonColorizer from 'json-colorizer'
 import path from 'path'
 import { IronfishCommand } from '../../command'
 import { ColorFlag, ColorFlagKey, RemoteFlags } from '../../flags'
-import { LANGUAGE_KEYS, LANGUAGES, selectLanguage } from '../../utils/language'
+import {
+  inferLanguageCode,
+  LANGUAGE_KEYS,
+  languageCodeToKey,
+  LANGUAGES,
+  selectLanguage,
+} from '../../utils/language'
 
 export class ExportCommand extends IronfishCommand {
   static description = `Export an account`
@@ -69,10 +75,18 @@ export class ExportCommand extends IronfishCommand {
         LANGUAGES[flags.language],
       )
     } else if (flags.mnemonic) {
-      const language = await selectLanguage()
-      output = spendingKeyToWords(response.content.account.spendingKey, language)
+      let languageCode = inferLanguageCode()
+      if (languageCode !== null) {
+        CliUx.ux.info(`Detected Language as '${languageCodeToKey(languageCode)}', exporting:`)
+      } else {
+        CliUx.ux.info(`Could not detect your language, please select language for export`)
+        languageCode = await selectLanguage()
+      }
+      output = spendingKeyToWords(response.content.account.spendingKey, languageCode)
     } else if (flags.json) {
-      output = responseJSONString
+      output = exportPath
+        ? JSON.stringify(response.content.account, undefined, '    ')
+        : responseJSONString
     } else {
       const responseBytes = Buffer.from(responseJSONString)
       const lengthLimit = 1023

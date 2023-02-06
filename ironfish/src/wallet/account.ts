@@ -138,7 +138,7 @@ export class Account {
     const sequence = blockHeader.sequence
     const assetBalanceDeltas = new AssetBalances()
     let submittedSequence = sequence
-    let timestamp = new Date()
+    let timestamp = blockHeader.timestamp
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       let transactionValue = await this.getTransaction(transaction.hash(), tx)
@@ -624,7 +624,7 @@ export class Account {
   async *getTransactionsOrderedBySequence(
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<Readonly<TransactionValue>> {
-    for await (const { hash } of this.walletDb.loadSequenceToTransactionHashes(this, tx)) {
+    for await (const { hash } of this.walletDb.getTransactionHashesBySequence(this, tx)) {
       const transaction = await this.getTransaction(hash, tx)
       Assert.isNotUndefined(transaction)
       yield transaction

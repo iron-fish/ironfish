@@ -1,6 +1,6 @@
 {
   "name": "ironfish",
-  "version": "0.1.63",
+  "version": "0.1.65",
   "description": "CLI for running and interacting with an Iron Fish node",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -59,8 +59,8 @@
     "@aws-sdk/s3-request-presigner": "3.127.0",
     "@aws-sdk/client-cognito-identity": "3.215.0",
     "@aws-sdk/client-s3": "3.127.0",
-    "@ironfish/rust-nodejs": "0.1.24",
-    "@ironfish/sdk": "0.0.40",
+    "@ironfish/rust-nodejs": "0.1.25",
+    "@ironfish/sdk": "0.0.42",
     "@oclif/core": "1.23.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",
