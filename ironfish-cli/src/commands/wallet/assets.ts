@@ -1,10 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import {
+  ASSET_ID_LENGTH,
+  ASSET_NAME_LENGTH,
+  PUBLIC_ADDRESS_LENGTH,
+} from '@ironfish/rust-nodejs'
 import { BufferUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+
+const MAX_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH + 1
+const MIN_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH / 2 + 1
 
 export class AssetsCommand extends IronfishCommand {
   static description = `Display the wallet's assets`
@@ -32,6 +40,9 @@ export class AssetsCommand extends IronfishCommand {
       account,
     })
 
+    const assetNameWidth = flags.extended
+      ? MAX_ASSET_NAME_COLUMN_WIDTH
+      : MIN_ASSET_NAME_COLUMN_WIDTH
     let showHeader = true
 
     for await (const asset of response.contentStream()) {
@@ -40,15 +51,20 @@ export class AssetsCommand extends IronfishCommand {
         {
           name: {
             header: 'Name',
-            minWidth: 16,
+            minWidth: assetNameWidth,
             get: (row) => BufferUtils.toHuman(Buffer.from(row.name, 'hex')),
           },
           id: {
             header: 'ID',
+            minWidth: ASSET_ID_LENGTH + 1,
           },
           metadata: {
             header: 'Metadata',
             get: (row) => BufferUtils.toHuman(Buffer.from(row.metadata, 'hex')),
+          },
+          status: {
+            header: 'Status',
+            minWidth: 12,
           },
           supply: {
             header: 'Supply',
@@ -57,11 +73,7 @@ export class AssetsCommand extends IronfishCommand {
           },
           owner: {
             header: 'Owner',
-            get: (row) => (row.owner ? `✔` : `x`),
-          },
-          pending: {
-            header: 'Pending',
-            get: (row) => (row.pending ? `✔` : `x`),
+            minWidth: PUBLIC_ADDRESS_LENGTH + 1,
           },
         },
         {
