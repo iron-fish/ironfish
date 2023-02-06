@@ -39,19 +39,21 @@ router.register<typeof GetNetworkHashPowerRequestSchema, GetNetworkHashPowerResp
   GetNetworkHashPowerRequestSchema,
   async (request, node): Promise<void> => {
     let blocks = request.data?.blocks ?? 120
-    const sequence = request.data?.sequence ?? -1
+    let sequence = request.data?.sequence ?? -1
 
-    /*
-      For bitcoin, a negative blocks specifies using all blocks since the last difficulty change.
-      For ironfish, the difficulty changes for every block, so this isn't supported.
-    */
     if (blocks < 0) {
       throw new ValidationError('[blocks] value must be greater than 0')
     }
 
     let endBlock = node.chain.head
 
+    // If sequence is negative, it's relative to the head
+    if (sequence < 0 && Math.abs(sequence) < node.chain.head.sequence) {
+      sequence = node.chain.head.sequence + sequence
+    }
+
     // estimate network hps at specified sequence
+    // if the sequence is out of bounds, use the head as the last block
     if (sequence > 0 && sequence < node.chain.head.sequence) {
       const blockAtSequence = await node.chain.getHeaderAtSequence(sequence)
       if (!blockAtSequence) {

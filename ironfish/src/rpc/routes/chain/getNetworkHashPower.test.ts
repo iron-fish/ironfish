@@ -36,6 +36,37 @@ describe('Route chain/getNetworkHashPower', () => {
     )
   })
 
+  it('should succeed with valid negative sequence value', async () => {
+    for (let i = 0; i < 5; ++i) {
+      const block = await useMinerBlockFixture(
+        routeTest.chain,
+        undefined,
+        sender,
+        routeTest.node.wallet,
+      )
+
+      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await Promise.all([routeTest.node.wallet.updateHead()])
+    }
+
+    const offset = -3
+
+    const response = await routeTest.client.getNetworkHashPower({
+      blocks: 100,
+      sequence: offset,
+    })
+
+    const expectedSequence = routeTest.node.chain.head.sequence + offset
+
+    expect(response.content).toEqual(
+      expect.objectContaining({
+        hashesPerSecond: expect.any(Number),
+        sequence: expectedSequence,
+        blocks: expectedSequence - 1,
+      }),
+    )
+  })
+
   it('should fail with a negative [blocks] value', async () => {
     await expect(
       routeTest.client.getNetworkHashPower({
