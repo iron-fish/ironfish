@@ -8,6 +8,7 @@ import { getAccount } from './utils'
 
 export type GetAssetsRequest = {
   account?: string
+  confirmations?: number
 }
 
 export type GetAssetsResponse = {
@@ -24,6 +25,7 @@ export const GetAssetsRequestSchema: yup.ObjectSchema<GetAssetsRequest> = yup
   .object()
   .shape({
     account: yup.string(),
+    confirmations: yup.number().optional(),
   })
   .defined()
 
@@ -56,7 +58,9 @@ router.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
         metadata: asset.metadata.toString('hex'),
         name: asset.name.toString('hex'),
         owner: asset.owner.toString('hex'),
-        status: await node.wallet.getAssetStatus(account, asset),
+        status: await node.wallet.getAssetStatus(account, asset, {
+          confirmations: request.data.confirmations,
+        }),
         supply: asset.supply ? CurrencyUtils.encode(asset.supply) : undefined,
       })
     }
