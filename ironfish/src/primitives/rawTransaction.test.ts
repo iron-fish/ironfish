@@ -15,6 +15,7 @@ import {
 } from '../testUtilities/fixtures'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
+import { AsyncUtils } from '../utils/async'
 import { Note } from './note'
 import { MintData, RawTransaction, RawTransactionSerde } from './rawTransaction'
 
@@ -61,7 +62,7 @@ describe('RawTransaction', () => {
     expect(posted.takeReference().verify()).toBe(true)
     expect(posted.fee()).toEqual(5n)
     expect(posted.expiration()).toEqual(10)
-    expect(posted.notes.length).toEqual(3)
+    expect(posted.notes.length).toEqual(4)
     expect(posted.spends.length).toEqual(1)
     expect(posted.mints.length).toEqual(1)
     expect(posted.burns.length).toEqual(1)
