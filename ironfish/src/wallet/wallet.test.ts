@@ -19,6 +19,7 @@ import {
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
 import { TransactionStatus, TransactionType } from '../wallet'
+import { AssetStatus } from './wallet'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -411,7 +412,7 @@ describe('Accounts', () => {
         unconfirmed: BigInt(10),
         unconfirmedCount: 0,
       })
-    }, 100000)
+    })
   })
 
   describe('getBalance', () => {
@@ -1709,6 +1710,48 @@ describe('Accounts', () => {
       await node2.wallet.updateHead()
 
       await expect(accountAImport.hasTransaction(transaction.hash())).resolves.toBe(true)
+    })
+  })
+
+  describe('getAssetStatus', () => {
+    it('should return the correct status for assets', async () => {
+      const { node } = await nodeTest.createSetup()
+      const account = await useAccountFixture(node.wallet)
+
+      const mined = await useMinerBlockFixture(node.chain, 2, account)
+      await expect(node.chain).toAddBlock(mined)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(account.spendingKey, 'asset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account,
+        asset,
+        value,
+      })
+
+      let assetValue = await node.wallet.walletDb.getAsset(account, asset.id())
+      Assert.isNotUndefined(assetValue)
+
+      // Check status before added to a block
+      expect(await node.wallet.getAssetStatus(account, assetValue)).toEqual(AssetStatus.PENDING)
+
+      // Add to a block and check different confirmation ranges
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+      assetValue = await node.wallet.walletDb.getAsset(account, asset.id())
+      Assert.isNotUndefined(assetValue)
+      expect(await node.wallet.getAssetStatus(account, assetValue)).toEqual(
+        AssetStatus.CONFIRMED,
+      )
+      expect(
+        await node.wallet.getAssetStatus(account, assetValue, { confirmations: 2 }),
+      ).toEqual(AssetStatus.UNCONFIRMED)
+
+      // Remove the head and check status
+      jest.spyOn(account, 'getHead').mockResolvedValueOnce(Promise.resolve(null))
+      expect(await node.wallet.getAssetStatus(account, assetValue)).toEqual(AssetStatus.UNKNOWN)
     })
   })
 

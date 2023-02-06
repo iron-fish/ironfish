@@ -12,6 +12,7 @@ import {
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { AsyncUtils } from '../../../utils'
+import { AssetStatus } from '../../../wallet'
 
 describe('wallet/getAssets', () => {
   const routeTest = createRouteTest()
@@ -52,8 +53,8 @@ describe('wallet/getAssets', () => {
         id: pendingAsset.id().toString('hex'),
         metadata: pendingAsset.metadata().toString('hex'),
         name: pendingAsset.name().toString('hex'),
-        owner: true,
-        pending: true,
+        owner: account.publicAddress,
+        status: AssetStatus.PENDING,
         supply: undefined,
       },
       {
@@ -61,10 +62,10 @@ describe('wallet/getAssets', () => {
         id: asset.id().toString('hex'),
         metadata: asset.metadata().toString('hex'),
         name: asset.name().toString('hex'),
-        owner: true,
-        pending: false,
+        owner: account.publicAddress,
+        status: AssetStatus.CONFIRMED,
         supply: value.toString(),
       },
     ])
-  }, 1000000)
+  })
 })

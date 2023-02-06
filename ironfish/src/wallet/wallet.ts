@@ -46,11 +46,19 @@ import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
+import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
 const noteHasher = new NoteHasher()
+
+export enum AssetStatus {
+  CONFIRMED = 'confirmed',
+  PENDING = 'pending',
+  UNCONFIRMED = 'unconfirmed',
+  UNKNOWN = 'unknown',
+}
 
 export enum TransactionStatus {
   CONFIRMED = 'confirmed',
@@ -1186,6 +1194,29 @@ export class Wallet {
 
       return isExpired ? TransactionStatus.EXPIRED : TransactionStatus.PENDING
     }
+  }
+
+  async getAssetStatus(
+    account: Account,
+    assetValue: AssetValue,
+    options?: {
+      headSequence?: number | null
+      confirmations?: number
+    },
+  ): Promise<AssetStatus> {
+    const confirmations = options?.confirmations ?? this.config.get('confirmations')
+
+    const headSequence = options?.headSequence ?? (await account.getHead())?.sequence
+    if (!headSequence) {
+      return AssetStatus.UNKNOWN
+    }
+
+    if (assetValue.sequence) {
+      const confirmed = headSequence - assetValue.sequence >= confirmations
+      return confirmed ? AssetStatus.CONFIRMED : AssetStatus.UNCONFIRMED
+    }
+
+    return AssetStatus.PENDING
   }
 
   async getTransactionType(
