@@ -4,7 +4,6 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import {
   Assert,
-  BufferUtils,
   CurrencyUtils,
   GetAccountTransactionsResponse,
   PartialRecursive,
@@ -105,7 +104,7 @@ export class TransactionsCommand extends IronfishCommand {
         ...transaction,
         group: isGroup ? '┏' : '',
         assetId: nativeAssetId,
-        assetName: '$IRON',
+        assetName: Buffer.from('$IRON').toString('hex'),
         amount,
         feePaid,
       })
@@ -126,7 +125,7 @@ export class TransactionsCommand extends IronfishCommand {
           ...transaction,
           group: assetCount === 2 ? '' : '┏',
           assetId,
-          assetName: BufferUtils.toHuman(Buffer.from(assetName, 'hex')),
+          assetName,
           amount: BigInt(delta),
           feePaid,
         })
@@ -134,7 +133,7 @@ export class TransactionsCommand extends IronfishCommand {
         transactionRows.push({
           group: index === assetCount - 1 ? '┗' : '┣',
           assetId,
-          assetName: BufferUtils.toHuman(Buffer.from(assetName, 'hex')),
+          assetName,
           amount: BigInt(delta),
         })
       }

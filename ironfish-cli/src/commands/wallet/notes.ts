@@ -36,7 +36,7 @@ export class NotesCommand extends IronfishCommand {
 
     for await (const note of response.contentStream()) {
       CliUx.ux.table(
-        [{ ...note, assetName: BufferUtils.toHuman(Buffer.from(note.assetName, 'hex')) }],
+        [note],
         {
           memo: {
             header: 'Memo',
@@ -49,12 +49,6 @@ export class NotesCommand extends IronfishCommand {
           transactionHash: {
             header: 'From Transaction',
           },
-          ...TableCols.asset({ extended: flags.extended }),
-          value: {
-            header: 'Amount',
-            get: (row) => CurrencyUtils.renderIron(row.value),
-            minWidth: 16,
-          },
           isSpent: {
             header: 'Spent',
             get: (row) => {
@@ -64,6 +58,12 @@ export class NotesCommand extends IronfishCommand {
                 return row.spent ? `✔` : ``
               }
             },
+          },
+          ...TableCols.asset({ extended: flags.extended }),
+          value: {
+            header: 'Amount',
+            get: (row) => CurrencyUtils.renderIron(row.value),
+            minWidth: 16,
           },
         },
         { ...flags, 'no-header': !showHeader },
