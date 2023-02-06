@@ -150,7 +150,7 @@ export class ImportCommand extends IronfishCommand {
       required: true,
     })
 
-    const output = this.stringToAccountImport(userInput)
+    const output = await this.stringToAccountImport(userInput)
     
     if (output === null) {
       CliUx.ux.error(
