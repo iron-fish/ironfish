@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { BlockSerde, GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
+import { getBlockSize, getTransactionSize } from '../../../network/utils/serializers'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives/block'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
@@ -165,8 +166,6 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
         nullifier: BlockHashSerdeInstance.serialize(spend.nullifier),
       }))
 
-      const transactionBuffer = Buffer.from(JSON.stringify(transaction.serialize()))
-
       return {
         transaction_id: {
           hash: BlockHashSerdeInstance.serialize(transaction.hash()),
@@ -175,14 +174,11 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
         metadata: {
           notes,
           spends,
-          size: transactionBuffer.byteLength,
+          size: getTransactionSize(transaction),
           fee: Number(transaction.fee()),
         },
       }
     })
-
-    // TODO(IRO-289) We need a better way to either serialize directly to buffer or use CBOR
-    const blockBuffer = Buffer.from(JSON.stringify(BlockSerde.serialize(block)))
 
     request.end({
       blockIdentifier: {
@@ -196,7 +192,7 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       timestamp: block.header.timestamp.getTime(),
       transactions,
       metadata: {
-        size: blockBuffer.byteLength,
+        size: getBlockSize(block),
         difficulty: block.header.target.toDifficulty().toString(),
       },
     })
