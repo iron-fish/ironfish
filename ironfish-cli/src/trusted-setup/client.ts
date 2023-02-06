@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, ErrorUtils, Event, Logger } from '@ironfish/sdk'
+import { Assert, ErrorUtils, Event, Logger, MessageBuffer } from '@ironfish/sdk'
 import net from 'net'
 import { CeremonyClientMessage, CeremonyServerMessage } from './schema'
 
@@ -10,6 +10,7 @@ export class CeremonyClient {
   readonly host: string
   readonly port: number
   readonly logger: Logger
+  readonly messageBuffer: MessageBuffer
 
   private stopPromise: Promise<{ stopRetries: boolean }> | null = null
   private stopResolve: ((params: { stopRetries: boolean }) => void) | null = null
@@ -28,6 +29,7 @@ export class CeremonyClient {
     this.host = options.host
     this.port = options.port
     this.logger = options.logger
+    this.messageBuffer = new MessageBuffer('\n')
 
     this.socket = new net.Socket()
     this.socket.on('data', (data) => void this.onData(data))
@@ -87,30 +89,33 @@ export class CeremonyClient {
   }
 
   private onData(data: Buffer): void {
-    const message = data.toString('utf-8')
-    let parsedMessage
-    try {
-      parsedMessage = JSON.parse(message) as CeremonyServerMessage
-    } catch {
-      this.logger.debug(`Received unknown message: ${message}`)
-      return
-    }
+    this.messageBuffer.write(data)
 
-    if (parsedMessage.method === 'joined') {
-      this.onJoined.emit({
-        queueLocation: parsedMessage.queueLocation,
-        estimate: parsedMessage.estimate,
-      })
-    } else if (parsedMessage.method === 'initiate-upload') {
-      this.onInitiateUpload.emit({ uploadLink: parsedMessage.uploadLink })
-    } else if (parsedMessage.method === 'initiate-contribution') {
-      this.onInitiateContribution.emit(parsedMessage)
-    } else if (parsedMessage.method === 'contribution-verified') {
-      this.onContributionVerified.emit(parsedMessage)
-    } else if (parsedMessage.method === 'disconnect') {
-      this.onStopRetry.emit({ error: parsedMessage.error })
-    } else {
-      this.logger.info(`Received message: ${message}`)
+    for (const message of this.messageBuffer.readMessages()) {
+      let parsedMessage
+      try {
+        parsedMessage = JSON.parse(message) as CeremonyServerMessage
+      } catch {
+        this.logger.debug(`Received unknown message: ${message}`)
+        return
+      }
+
+      if (parsedMessage.method === 'joined') {
+        this.onJoined.emit({
+          queueLocation: parsedMessage.queueLocation,
+          estimate: parsedMessage.estimate,
+        })
+      } else if (parsedMessage.method === 'initiate-upload') {
+        this.onInitiateUpload.emit({ uploadLink: parsedMessage.uploadLink })
+      } else if (parsedMessage.method === 'initiate-contribution') {
+        this.onInitiateContribution.emit(parsedMessage)
+      } else if (parsedMessage.method === 'contribution-verified') {
+        this.onContributionVerified.emit(parsedMessage)
+      } else if (parsedMessage.method === 'disconnect') {
+        this.onStopRetry.emit({ error: parsedMessage.error })
+      } else {
+        this.logger.info(`Received message: ${message}`)
+      }
     }
   }
 }
