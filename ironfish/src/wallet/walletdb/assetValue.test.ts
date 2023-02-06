@@ -14,11 +14,13 @@ describe('AssetValueEncoding', () => {
     const encoder = new AssetValueEncoding()
 
     const value: AssetValue = {
+      blockHash: null,
       createdTransactionHash: Buffer.alloc(32, 0),
       id: asset.id(),
       metadata: asset.metadata(),
       name: asset.name(),
       owner: asset.owner(),
+      sequence: null,
       supply: BigInt(100),
     }
     const buffer = encoder.serialize(value)

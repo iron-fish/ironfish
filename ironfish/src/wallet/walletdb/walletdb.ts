@@ -6,6 +6,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../../assert'
 import { FileSystem } from '../../fileSystems'
+import { GENESIS_BLOCK_PREVIOUS } from '../../primitives/block'
 import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
 import { TransactionHash } from '../../primitives/transaction'
@@ -33,7 +34,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 17
+export const VERSION_DATABASE_ACCOUNTS = 18
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -383,6 +384,19 @@ export class WalletDB {
 
   async clearNonChainNoteHashes(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.nonChainNoteHashes.clear(tx, account.prefixRange)
+  }
+
+  async *getTransactionHashesBySequence(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<{ sequence: number; hash: Buffer }> {
+    for await (const [, [sequence, hash]] of this.sequenceToTransactionHash.getAllKeysIter(
+      tx,
+      account.prefixRange,
+      { ordered: true },
+    )) {
+      yield { sequence, hash }
+    }
   }
 
   async *loadTransactions(
@@ -935,5 +949,48 @@ export class WalletDB {
 
       yield transaction
     }
+  }
+
+  async putAsset(
+    account: Account,
+    assetId: Buffer,
+    assetValue: AssetValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.assets.put([account.prefix, assetId], assetValue, tx)
+  }
+
+  async getAsset(
+    account: Account,
+    assetId: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<AssetValue | undefined> {
+    if (assetId.equals(Asset.nativeId())) {
+      return {
+        createdTransactionHash: GENESIS_BLOCK_PREVIOUS,
+        id: Asset.nativeId(),
+        metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
+        name: Buffer.from('$IRON', 'utf8'),
+        owner: Buffer.from('Iron Fish', 'utf8'),
+        blockHash: null,
+        sequence: null,
+        supply: null,
+      }
+    }
+    return this.assets.get([account.prefix, assetId], tx)
+  }
+
+  async *loadAssets(account: Account, tx?: IDatabaseTransaction): AsyncGenerator<AssetValue> {
+    for await (const asset of this.assets.getAllValuesIter(tx, account.prefixRange)) {
+      yield asset
+    }
+  }
+
+  async deleteAsset(
+    account: Account,
+    assetId: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.assets.del([account.prefix, assetId], tx)
   }
 }

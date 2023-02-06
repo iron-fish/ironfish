@@ -413,6 +413,7 @@ export class Wallet {
 
           assetBalanceDeltas.update(transactionDeltas)
 
+          await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, tx)
           scan?.signal(blockHeader.sequence)
         }
 
@@ -425,6 +426,30 @@ export class Wallet {
 
         await account.updateHead({ hash: blockHeader.hash, sequence: blockHeader.sequence }, tx)
       })
+    }
+  }
+
+  private async upsertAssetsFromDecryptedNotes(
+    account: Account,
+    decryptedNotes: DecryptedNote[],
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { serializedNote } of decryptedNotes) {
+      const note = new Note(serializedNote)
+      const asset = await this.walletDb.getAsset(account, note.assetId(), tx)
+
+      if (!asset) {
+        const chainAsset = await this.chain.getAssetById(note.assetId())
+        Assert.isNotNull(chainAsset, 'Asset must be non-null in the chain')
+        await account.saveAssetFromChain(
+          chainAsset.createdTransactionHash,
+          chainAsset.id,
+          chainAsset.metadata,
+          chainAsset.name,
+          chainAsset.owner,
+          tx,
+        )
+      }
     }
   }
 
@@ -491,6 +516,7 @@ export class Wallet {
       }
 
       await account.addPendingTransaction(transaction, decryptedNotes, this.chain.head.sequence)
+      await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes)
     }
   }
 
