@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { S3Client } from '@aws-sdk/client-s3'
 import { verifyTransform } from '@ironfish/rust-nodejs'
-import { ErrorUtils, Logger, SetTimeoutToken, YupUtils } from '@ironfish/sdk'
+import { ErrorUtils, Logger, MessageBuffer, SetTimeoutToken, YupUtils } from '@ironfish/sdk'
 import fsAsync from 'fs/promises'
 import net from 'net'
 import path from 'path'
@@ -71,6 +71,7 @@ class CeremonyServerClient {
 export class CeremonyServer {
   readonly server: net.Server
   readonly logger: Logger
+  readonly messageBuffer: MessageBuffer
 
   private stopPromise: Promise<void> | null = null
   private stopResolve: (() => void) | null = null
@@ -112,6 +113,7 @@ export class CeremonyServer {
   }) {
     this.logger = options.logger
     this.queue = []
+    this.messageBuffer = new MessageBuffer('\n')
 
     this.host = options.host
     this.port = options.port
@@ -252,53 +254,55 @@ export class CeremonyServer {
   }
 
   private async onData(client: CeremonyServerClient, data: Buffer): Promise<void> {
-    const message = data.toString('utf-8')
+    this.messageBuffer.write(data)
 
-    const result = await YupUtils.tryValidate(CeremonyClientMessageSchema, message)
-    if (result.error) {
-      client.logger.error(`Could not parse client message: ${message}`)
-      this.closeClient(client, new Error(`Could not parse message`), true)
-      return
-    }
-
-    const parsedMessage = result.result
-
-    client.logger.info(`Message Received: ${parsedMessage.method}`)
-
-    if (parsedMessage.method === 'join' && !client.joined) {
-      if (Date.now() < this.startDate && parsedMessage.token !== this.token) {
-        this.closeClient(
-          client,
-          new Error(
-            `The ceremony does not start until ${new Date(this.startDate).toUTCString()}`,
-          ),
-          true,
-        )
+    for (const message of this.messageBuffer.readMessages()) {
+      const result = await YupUtils.tryValidate(CeremonyClientMessageSchema, message)
+      if (result.error) {
+        client.logger.error(`Could not parse client message: ${message}`)
+        this.closeClient(client, new Error(`Could not parse message`), true)
         return
       }
 
-      this.queue.push(client)
-      const estimate = this.queue.length * (this.contributionTimeoutMs + this.uploadTimeoutMs)
-      client.join(parsedMessage.name)
-      client.send({ method: 'joined', queueLocation: this.queue.length, estimate })
+      const parsedMessage = result.result
 
-      client.logger.info(`Connected ${this.queue.length} total`)
-      void this.startNextContributor()
-    } else if (parsedMessage.method === 'contribution-complete') {
-      await this.handleContributionComplete(client).catch((e) => {
-        client.logger.error(
-          `Error handling contribution-complete: ${ErrorUtils.renderError(e)}`,
-        )
-        this.closeClient(client, new Error(`Error generating upload url`))
-      })
-    } else if (parsedMessage.method === 'upload-complete') {
-      await this.handleUploadComplete(client).catch((e) => {
-        client.logger.error(`Error handling upload-complete: ${ErrorUtils.renderError(e)}`)
-        this.closeClient(client, new Error(`Error verifying contribution`))
-      })
-    } else {
-      client.logger.error(`Unknown method received: ${message}`)
-      this.closeClient(client, new Error(`Unknown method received`))
+      client.logger.info(`Message Received: ${parsedMessage.method}`)
+
+      if (parsedMessage.method === 'join' && !client.joined) {
+        if (Date.now() < this.startDate && parsedMessage.token !== this.token) {
+          this.closeClient(
+            client,
+            new Error(
+              `The ceremony does not start until ${new Date(this.startDate).toUTCString()}`,
+            ),
+            true,
+          )
+          return
+        }
+
+        this.queue.push(client)
+        const estimate = this.queue.length * (this.contributionTimeoutMs + this.uploadTimeoutMs)
+        client.join(parsedMessage.name)
+        client.send({ method: 'joined', queueLocation: this.queue.length, estimate })
+
+        client.logger.info(`Connected ${this.queue.length} total`)
+        void this.startNextContributor()
+      } else if (parsedMessage.method === 'contribution-complete') {
+        await this.handleContributionComplete(client).catch((e) => {
+          client.logger.error(
+            `Error handling contribution-complete: ${ErrorUtils.renderError(e)}`,
+          )
+          this.closeClient(client, new Error(`Error generating upload url`))
+        })
+      } else if (parsedMessage.method === 'upload-complete') {
+        await this.handleUploadComplete(client).catch((e) => {
+          client.logger.error(`Error handling upload-complete: ${ErrorUtils.renderError(e)}`)
+          this.closeClient(client, new Error(`Error verifying contribution`))
+        })
+      } else {
+        client.logger.error(`Unknown method received: ${message}`)
+        this.closeClient(client, new Error(`Unknown method received`))
+      }
     }
   }
 
