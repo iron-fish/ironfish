@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { createRootLogger } from '../logger'
 import { createRouteTest } from '../testUtilities/routeTest'
@@ -155,5 +156,87 @@ describe('poolShares', () => {
       const outstandingPeriod2 = await shares['db'].earliestOutstandingPayoutPeriod()
       expect(outstandingPeriod2).toBeDefined()
     })
+  })
+
+  it('createNewPayout', async () => {
+    jest.useFakeTimers({ legacyFakeTimers: false })
+
+    const now = new Date(2020, 1, 1).getTime()
+    jest.setSystemTime(now)
+
+    const publicAddress1 = 'testPublicAddress1'
+    const publicAddress2 = 'testPublicAddress2'
+
+    await shares.rolloverPayoutPeriod()
+
+    const payoutPeriod1 = await shares['db'].getCurrentPayoutPeriod()
+    Assert.isNotUndefined(payoutPeriod1)
+
+    // Setup some shares to be paid out
+    await shares.submitShare(publicAddress1)
+    await shares.submitShare(publicAddress2)
+    await shares.submitShare(publicAddress2)
+
+    // Setup a block for some reward to pay out
+    await shares.submitBlock(1, 'blockHash1', BigInt(102))
+    const blocks = await shares.unconfirmedBlocks()
+    expect(blocks.length).toEqual(1)
+    await shares.updateBlockStatus(blocks[0], true, true)
+
+    // Move the clock forward the amount of time needed to trigger a new payout rollover
+    jest.setSystemTime(now + shares.config.get('poolPayoutPeriodDuration') * 1000)
+
+    // Setup some shares to not be paid out since they are in a separate period
+    await shares.rolloverPayoutPeriod()
+    const payoutPeriod2 = await shares['db'].getCurrentPayoutPeriod()
+    Assert.isNotUndefined(payoutPeriod2)
+
+    await shares.submitShare(publicAddress1)
+    await shares.submitShare(publicAddress2)
+
+    const hasBalanceSpy = jest.spyOn(shares, 'hasConfirmedBalance').mockResolvedValueOnce(true)
+    const sendTransactionSpy = jest
+      .spyOn(shares, 'sendTransaction')
+      .mockResolvedValueOnce('testTransactionHash')
+
+    // Create payout
+    await shares.createNewPayout()
+
+    // The expected reward total breakdown should be as follows:
+    // - 1 period (to simplify the calculation, we're not including any past periods)
+    // - 1 block reward of 102
+    // - Since this block was found in this period, the total reward amount is 102 * 50% = 51
+    // - 2 recipients, so we subtract the naive fee of 1 ORE per recipient to
+    //    calculate the reward per share = 49
+    // - 3 shares total, so 48 / 3 = 16 reward per share (truncate decimals because ORE is indivisable)
+    // - 16 reward per share * 3 shares + fee of 2 = 50
+    expect(hasBalanceSpy).toHaveBeenCalledWith(BigInt(50))
+    const assetId = Asset.nativeId().toString('hex')
+    expect(sendTransactionSpy).toHaveBeenCalledWith([
+      // Address 1 had 1 share, with 16 reward per share = 16 amount
+      {
+        publicAddress: publicAddress1,
+        amount: '16',
+        memo: 'Iron Fish Pool payout',
+        assetId,
+      },
+      // Address 2 had 2 shares, with 16 reward per share = 32 amount
+      {
+        publicAddress: publicAddress2,
+        amount: '32',
+        memo: 'Iron Fish Pool payout',
+        assetId,
+      },
+    ])
+
+    const transactions = await shares.unconfirmedPayoutTransactions()
+    expect(transactions.length).toEqual(1)
+
+    await expect(shares['db'].payoutAddresses(payoutPeriod1.id)).resolves.toEqual([])
+
+    const unpaidShares = await shares['db'].payoutAddresses(payoutPeriod2.id)
+    expect(unpaidShares.length).toEqual(2)
+
+    jest.useRealTimers()
   })
 })

@@ -216,11 +216,13 @@ export class MiningPool {
     await this.shares.rolloverPayoutPeriod()
     await this.updateUnconfirmedBlocks()
     await this.updateUnconfirmedPayoutTransactions()
+    await this.shares.createNewPayout()
 
-    if (this.nextPayoutAttempt <= new Date().getTime()) {
-      this.nextPayoutAttempt = new Date().getTime() + this.attemptPayoutInterval * 1000
-      await this.shares.createPayout()
-    }
+    // TODO: Disable old payout logic, to be removed in next PR
+    // if (this.nextPayoutAttempt <= new Date().getTime()) {
+    //   this.nextPayoutAttempt = new Date().getTime() + this.attemptPayoutInterval * 1000
+    //   await this.shares.createPayout()
+    // }
 
     const eventLoopEndTime = new Date().getTime()
     const eventLoopDuration = eventLoopEndTime - eventLoopStartTime

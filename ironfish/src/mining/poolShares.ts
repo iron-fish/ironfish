@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../assert'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { RpcClient } from '../rpc/clients/client'
@@ -282,8 +283,8 @@ export class MiningPoolShares {
     }
   }
 
-  // TODO: This function is a rough shell, will be filled out with logic in follow-up PR
   async createNewPayout(): Promise<void> {
+    // Get the earliest payout the has shares that have not yet been paid out
     const payoutPeriod = await this.db.earliestOutstandingPayoutPeriod()
 
     if (!payoutPeriod) {
@@ -291,6 +292,100 @@ export class MiningPoolShares {
       return
     }
 
-    // TODO: Rest of logic will go here
+    // Ensure all of the blocks submitted during the related periods are
+    // confirmed so that we are not sending out payouts of incorrect or changing
+    // amounts
+    const blocksConfirmed = await this.db.payoutPeriodBlocksConfirmed(payoutPeriod.id)
+    if (!blocksConfirmed) {
+      return
+    }
+
+    // Get the batch of addresses to be paid out and their associated share count
+    const payoutAddresses = await this.db.payoutAddresses(payoutPeriod.id)
+
+    // Get the total amount earned during the payout (and associated previous payouts)
+    const totalPayoutReward = await this.db.getPayoutReward(payoutPeriod.id)
+
+    // Subtract the amount of recipients since that's how we estimate a
+    // transaction fee right now. If we move to use the fee estimator, we will
+    // need to update this logic as well.
+    // It is worth noting that this leads to slightly inconsistent payout
+    // amounts, since 1 payout may have 250 recipients and another may have 5,
+    // but considering 1 block reward is 2 billion ORE, it is a trivial
+    // difference.
+    const feeAmount = BigInt(payoutAddresses.length)
+    const totalPayoutAmount = totalPayoutReward - feeAmount
+
+    // Get the total amount of shares submitted during the period
+    const totalShareCount = await this.db.payoutPeriodShareCount(payoutPeriod.id)
+
+    // Get the amount that each share earned during this period
+    // (total reward - fee) / total share count
+    const amountPerShare = totalPayoutAmount / BigInt(totalShareCount)
+
+    // The total balance required to send this payout
+    // (total shares * amount per share) + fee
+    const totalRequired = amountPerShare * BigInt(totalShareCount) + feeAmount
+
+    // Sanity assertion to make sure the pool is not overpaying
+    Assert.isTrue(
+      totalPayoutReward >= totalRequired,
+      'Payout total must be less than the total reward amount',
+    )
+
+    const hasEnoughBalance = await this.hasConfirmedBalance(totalRequired)
+    if (!hasEnoughBalance) {
+      this.logger.info('Insufficient funds for payout, skipping.')
+      return
+    }
+
+    const assetId = Asset.nativeId().toString('hex')
+    const outputs = []
+    for (const payout of payoutAddresses) {
+      const amount = amountPerShare * BigInt(payout.shareCount)
+      outputs.push({
+        publicAddress: payout.publicAddress,
+        amount: amount.toString(),
+        memo: `${this.poolName} payout`,
+        assetId,
+      })
+    }
+
+    try {
+      const transactionHash = await this.sendTransaction(outputs)
+
+      const transactionId = await this.db.newTransaction(transactionHash, payoutPeriod.id)
+      Assert.isNotUndefined(transactionId)
+
+      const addressesPaidOut = payoutAddresses.map((p) => p.publicAddress)
+      await this.db.markSharesPaid(payoutPeriod.id, transactionId, addressesPaidOut)
+    } catch (e) {
+      this.logger.error(`There was an error with the transaction ${ErrorUtils.renderError(e)}`)
+      this.webhooks.map((w) => w.poolPayoutError(e))
+    }
+  }
+
+  async hasConfirmedBalance(amount: bigint): Promise<boolean> {
+    const balance = await this.rpc.getAccountBalance({ account: this.accountName })
+    const confirmedBalance = BigInt(balance.content.confirmed)
+
+    return confirmedBalance >= amount
+  }
+
+  async sendTransaction(
+    outputs: {
+      publicAddress: string
+      amount: string
+      memo: string
+      assetId: string
+    }[],
+  ): Promise<string> {
+    const transaction = await this.rpc.sendTransaction({
+      fromAccountName: this.accountName,
+      outputs,
+      fee: outputs.length.toString(),
+    })
+
+    return transaction.content.hash
   }
 }

@@ -352,5 +352,169 @@ describe('poolDatabase', () => {
       Assert.isNotUndefined(earliest2)
       expect(earliest2.id).toEqual(payoutPeriod2.id)
     })
+
+    it('payoutPeriodShareCount', async () => {
+      const payoutPeriod1 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod1)
+
+      const shareCount1 = await db.payoutPeriodShareCount(payoutPeriod1.id)
+      expect(shareCount1).toEqual(0)
+
+      await db.newShare('addr1')
+      await db.newShare('addr1')
+      await db.newShare('addr2')
+
+      const shareCount2 = await db.payoutPeriodShareCount(payoutPeriod1.id)
+      expect(shareCount2).toEqual(3)
+
+      await db.rolloverPayoutPeriod(new Date().getTime() + 100)
+
+      // Shares goes into other payout period, count should be unchanged
+      await db.newShare('addr1')
+      await db.newShare('addr3')
+
+      const shareCount3 = await db.payoutPeriodShareCount(payoutPeriod1.id)
+      expect(shareCount3).toEqual(3)
+    })
+
+    it('getPayoutReward', async () => {
+      const payoutPeriod1 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod1)
+
+      // Sanity check
+      await expect(db.getPayoutReward(payoutPeriod1.id)).resolves.toEqual(0n)
+
+      // Period 1
+      const block1Id = await db.newBlock(1, 'hash1', '100')
+      Assert.isNotUndefined(block1Id)
+      const block2Id = await db.newBlock(1, 'hash2', '100')
+      Assert.isNotUndefined(block2Id)
+
+      await db.updateBlockStatus(block1Id, true, true)
+      await db.updateBlockStatus(block2Id, false, true)
+
+      // Period 1 reward: 50% of period 1. No previous periods to accumulate value
+      await expect(db.getPayoutReward(payoutPeriod1.id)).resolves.toEqual(50n)
+
+      // Period 2
+      await db.rolloverPayoutPeriod(new Date().getTime() + 100)
+      const payoutPeriod2 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod2)
+
+      const block3Id = await db.newBlock(3, 'hash3', '50')
+      Assert.isNotUndefined(block3Id)
+      const block4Id = await db.newBlock(4, 'hash4', '50')
+      Assert.isNotUndefined(block4Id)
+
+      await db.updateBlockStatus(block3Id, true, true)
+      await db.updateBlockStatus(block4Id, true, true)
+
+      // Period 2 reward: 50% of period 2 + 25% of period 1
+      await expect(db.getPayoutReward(payoutPeriod2.id)).resolves.toEqual(75n)
+
+      // Period 3
+      await db.rolloverPayoutPeriod(new Date().getTime() + 200)
+      const payoutPeriod3 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod3)
+
+      const block5Id = await db.newBlock(5, 'hash5', '100')
+      Assert.isNotUndefined(block5Id)
+
+      await db.updateBlockStatus(block5Id, true, true)
+
+      // Period 3 reward: 50% of period 3 + 25% of period 2 + 15% of period 1
+      await expect(db.getPayoutReward(payoutPeriod3.id)).resolves.toEqual(90n)
+
+      // Period 4
+      await db.rolloverPayoutPeriod(new Date().getTime() + 300)
+      const payoutPeriod4 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod4)
+
+      const block6Id = await db.newBlock(6, 'hash6', '100')
+      Assert.isNotUndefined(block6Id)
+
+      await db.updateBlockStatus(block6Id, true, true)
+
+      // Period 4 reward: 50% of period 4 + 25% of period 3 + 15% of period 2 + 10% of period 1
+      await expect(db.getPayoutReward(payoutPeriod4.id)).resolves.toEqual(100n)
+
+      // Period 5 - sanity check that period 1 is not included
+      await db.rolloverPayoutPeriod(new Date().getTime() + 400)
+      const payoutPeriod5 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod5)
+
+      const block7Id = await db.newBlock(7, 'hash7', '100')
+      Assert.isNotUndefined(block7Id)
+
+      await db.updateBlockStatus(block7Id, true, true)
+
+      // Period 5 reward: 50% of period 5 + 25% of period 4 + 15% of period 3 + 10% of period 2 + 0% of period 1
+      await expect(db.getPayoutReward(payoutPeriod5.id)).resolves.toEqual(100n)
+    })
+
+    it('payoutPeriodBlocksConfirmed', async () => {
+      const payoutPeriod1 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod1)
+
+      // Sanity check
+      await expect(db.payoutPeriodBlocksConfirmed(payoutPeriod1.id)).resolves.toEqual(true)
+
+      // Period 1
+      const block1Id = await db.newBlock(1, 'hash1', '100')
+      Assert.isNotUndefined(block1Id)
+      const block2Id = await db.newBlock(1, 'hash3', '100')
+      Assert.isNotUndefined(block2Id)
+
+      await db.updateBlockStatus(block1Id, true, true)
+      await db.updateBlockStatus(block2Id, false, true)
+
+      await expect(db.payoutPeriodBlocksConfirmed(payoutPeriod1.id)).resolves.toEqual(true)
+
+      await db.updateBlockStatus(block2Id, true, false)
+
+      await expect(db.payoutPeriodBlocksConfirmed(payoutPeriod1.id)).resolves.toEqual(false)
+
+      // Period 2
+      await db.rolloverPayoutPeriod(new Date().getTime() + 100)
+      const payoutPeriod2 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod2)
+
+      const block3Id = await db.newBlock(3, 'hash3', '100')
+      Assert.isNotUndefined(block3Id)
+      await db.updateBlockStatus(block3Id, true, true)
+
+      await expect(db.payoutPeriodBlocksConfirmed(payoutPeriod2.id)).resolves.toEqual(false)
+
+      await db.updateBlockStatus(block2Id, false, true)
+
+      await expect(db.payoutPeriodBlocksConfirmed(payoutPeriod2.id)).resolves.toEqual(true)
+
+      // Period 3 - no blocks
+      await db.rolloverPayoutPeriod(new Date().getTime() + 200)
+      const payoutPeriod3 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod3)
+
+      await expect(db.payoutPeriodBlocksConfirmed(payoutPeriod3.id)).resolves.toEqual(true)
+
+      // Period 4
+      await db.rolloverPayoutPeriod(new Date().getTime() + 300)
+      const payoutPeriod4 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod4)
+
+      const block4Id = await db.newBlock(4, 'hash4', '100')
+      Assert.isNotUndefined(block4Id)
+      await db.updateBlockStatus(block4Id, true, true)
+
+      await expect(db.payoutPeriodBlocksConfirmed(payoutPeriod4.id)).resolves.toEqual(true)
+
+      // Period 5 - does not include blocks from period 1
+      await db.rolloverPayoutPeriod(new Date().getTime() + 400)
+      const payoutPeriod5 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod5)
+
+      await db.updateBlockStatus(block1Id, true, false)
+
+      await expect(db.payoutPeriodBlocksConfirmed(payoutPeriod5.id)).resolves.toEqual(true)
+    })
   })
 })

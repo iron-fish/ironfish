@@ -9,6 +9,7 @@ import { NodeFileProvider } from '../../fileSystems/nodeFileSystem'
 import { Logger } from '../../logger'
 import { Migrator } from './migrator'
 
+const PREVIOUS_PAYOUT_PERIODS = 3
 const MAX_ADDRESSES_PER_PAYOUT = 250
 
 export class PoolDatabase {
@@ -289,6 +290,86 @@ export class PoolDatabase {
       )
     `
     return await this.db.get<DatabasePayoutPeriod>(sql)
+  }
+
+  async payoutPeriodShareCount(payoutPeriodId: number): Promise<number> {
+    const result = await this.db.get<{ count: number }>(
+      'SELECT COUNT(*) AS count FROM payoutShare WHERE payoutPeriodId = ?',
+      payoutPeriodId,
+    )
+    if (result === undefined) {
+      return 0
+    }
+
+    return result.count
+  }
+
+  // Returns the total payout reward for a specific payout period
+  async getPayoutReward(payoutPeriodId: number): Promise<bigint> {
+    const sql = `
+      SELECT
+        *,
+        (SELECT SUM(minerReward) FROM block
+          WHERE
+            payoutPeriodId = payoutPeriod.id
+            AND confirmed = TRUE
+            AND main = TRUE
+        ) reward
+      FROM payoutPeriod
+      WHERE id BETWEEN ? AND ?
+    `
+
+    const results = await this.db.all<Array<DatabasePayoutPeriod & { reward: string | null }>>(
+      sql,
+      payoutPeriodId - PREVIOUS_PAYOUT_PERIODS,
+      payoutPeriodId,
+    )
+
+    const percentAmount = {
+      [payoutPeriodId]: BigInt(50), // 50% of payout period x
+      [payoutPeriodId - 1]: BigInt(25), // 25% of payout period x-1
+      [payoutPeriodId - 2]: BigInt(15), // 15% of payout period x-2
+      [payoutPeriodId - 3]: BigInt(10), // 10% of payout period x-3
+    }
+
+    // Safety check in case the associated const is changed
+    Assert.isEqual(
+      PREVIOUS_PAYOUT_PERIODS + 1,
+      Object.keys(percentAmount).length,
+      'Payout period percent amount needs to have a value for each period',
+    )
+
+    let totalReward = BigInt(0)
+    for (const result of results) {
+      const reward = BigInt(result.reward || '0')
+      const amount = (reward * percentAmount[result.id]) / BigInt(100)
+      totalReward += amount
+    }
+
+    return totalReward
+  }
+
+  // Checks the related payouts (the given payout period and the payouts within
+  // PREVIOUS_PAYOUT_PERIODS) to see if any of them have unconfirmed blocks
+  async payoutPeriodBlocksConfirmed(payoutPeriodId: number): Promise<boolean> {
+    const sql = `
+      SELECT *
+      FROM block
+      WHERE
+        payoutPeriodId BETWEEN ? AND ?
+        AND confirmed = FALSE
+    `
+    const results = await this.db.all<DatabasePayoutPeriod[]>(
+      sql,
+      payoutPeriodId - PREVIOUS_PAYOUT_PERIODS,
+      payoutPeriodId,
+    )
+
+    if (results.length > 0) {
+      return false
+    }
+
+    return true
   }
 }
 
