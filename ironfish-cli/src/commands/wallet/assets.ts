@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   ASSET_ID_LENGTH,
+  ASSET_METADATA_LENGTH,
   ASSET_NAME_LENGTH,
   PUBLIC_ADDRESS_LENGTH,
 } from '@ironfish/rust-nodejs'
@@ -10,6 +11,10 @@ import { BufferUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { truncateCol } from '../../utils/table'
+
+const MAX_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH + 1
+const MIN_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH / 2 + 1
 
 const MAX_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH + 1
 const MIN_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH / 2 + 1
@@ -40,6 +45,9 @@ export class AssetsCommand extends IronfishCommand {
       account,
     })
 
+    const assetMetadataWidth = flags.extended
+      ? MAX_ASSET_METADATA_COLUMN_WIDTH
+      : MIN_ASSET_METADATA_COLUMN_WIDTH
     const assetNameWidth = flags.extended
       ? MAX_ASSET_NAME_COLUMN_WIDTH
       : MIN_ASSET_NAME_COLUMN_WIDTH
@@ -52,7 +60,8 @@ export class AssetsCommand extends IronfishCommand {
           name: {
             header: 'Name',
             minWidth: assetNameWidth,
-            get: (row) => BufferUtils.toHuman(Buffer.from(row.name, 'hex')),
+            get: (row) =>
+              truncateCol(BufferUtils.toHuman(Buffer.from(row.name, 'hex')), assetNameWidth),
           },
           id: {
             header: 'ID',
@@ -60,7 +69,12 @@ export class AssetsCommand extends IronfishCommand {
           },
           metadata: {
             header: 'Metadata',
-            get: (row) => BufferUtils.toHuman(Buffer.from(row.metadata, 'hex')),
+            minWidth: assetMetadataWidth,
+            get: (row) =>
+              truncateCol(
+                BufferUtils.toHuman(Buffer.from(row.metadata, 'hex')),
+                assetMetadataWidth,
+              ),
           },
           status: {
             header: 'Status',
