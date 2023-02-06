@@ -15,7 +15,6 @@ import {
 } from '../testUtilities/fixtures'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
-import { AsyncUtils } from '../utils/async'
 import { Note } from './note'
 import { MintData, RawTransaction, RawTransactionSerde } from './rawTransaction'
 
