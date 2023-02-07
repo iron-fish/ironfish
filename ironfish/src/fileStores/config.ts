@@ -186,6 +186,12 @@ export type ConfigOptions = {
   poolRecentShareCutoff: number
 
   /**
+   * The length of time in seconds for each payout period. This is used to
+   * calculate the number of shares and how much they earn per period.
+   */
+  poolPayoutPeriodDuration: number
+
+  /**
    * The discord webhook URL to post pool critical pool information to
    */
   poolDiscordWebhook: ''
@@ -375,6 +381,7 @@ export class Config extends KeyStore<ConfigOptions> {
       poolSuccessfulPayoutInterval: 2 * 60 * 60, // 2 hours
       poolStatusNotificationInterval: 30 * 60, // 30 minutes
       poolRecentShareCutoff: 2 * 60 * 60, // 2 hours
+      poolPayoutPeriodDuration: 2 * 60 * 60, // 2 hours
       poolDiscordWebhook: '',
       poolMaxConnectionsPerIp: 0,
       poolLarkWebhook: '',
