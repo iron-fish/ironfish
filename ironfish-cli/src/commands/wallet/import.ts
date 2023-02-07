@@ -23,10 +23,10 @@ export class ImportCommand extends IronfishCommand {
 
   static args = [
     {
-      name: 'path',
+      name: 'blob',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'The path to import the account from',
+      description: 'The copy-pasted output of wallet:export',
     },
   ]
 
@@ -63,12 +63,14 @@ export class ImportCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ImportCommand)
-    const importPath = args.path as string | undefined
+    const blob = args.blob as string | undefined
 
     const client = await this.sdk.connectRpc()
 
     let account: AccountImport | null = null
-    if (importPath) {
+    if (blob) {
+      account = await this.stringToAccountImport(blob)
+    } else if (importPath) {
       account = await this.importFile(importPath)
     } else if (process.stdin.isTTY) {
       account = await this.importTTY()
