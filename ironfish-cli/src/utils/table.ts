@@ -102,7 +102,20 @@ const asset = <T extends Record<string, unknown>>(options?: {
   }
 }
 
-export function truncateCol(value: string, maxWidth: number | null): string {
+const fixedWidth = <T extends Record<string, unknown>>(options: {
+  width: number
+  get: (row: T) => string
+  header?: string
+  extended?: boolean
+}): Partial<table.Column<T>> => {
+  return {
+    ...options,
+    get: (row) => truncateCol(options.get(row), options.width),
+    minWidth: options.width,
+  }
+}
+
+function truncateCol(value: string, maxWidth: number | null): string {
   if (maxWidth === null || value.length <= maxWidth) {
     return value
   }
@@ -110,4 +123,4 @@ export function truncateCol(value: string, maxWidth: number | null): string {
   return value.slice(0, maxWidth - 1) + '…'
 }
 
-export const TableCols = { timestamp, asset }
+export const TableCols = { timestamp, asset, fixedWidth }
