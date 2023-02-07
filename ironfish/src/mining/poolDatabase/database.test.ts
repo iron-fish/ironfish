@@ -189,4 +189,168 @@ describe('poolDatabase', () => {
     expect(transactions.length).toEqual(1)
     expect(transactions[0].id).toEqual(transaction3Id)
   })
+
+  describe('shares', () => {
+    beforeEach(async () => {
+      await db.rolloverPayoutPeriod(new Date().getTime())
+    })
+
+    const getShares = () => {
+      return db['db'].all('SELECT * FROM payoutShare')
+    }
+
+    it('inserts new shares', async () => {
+      const address1 = 'testPublicAddress1'
+      const address2 = 'testPublicAddress2'
+
+      const payoutPeriod1 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod1)
+
+      await db.newShare(address1)
+      await db.newShare(address1)
+
+      await db.rolloverPayoutPeriod(new Date().getTime() + 1_000_000)
+      const payoutPeriod2 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod2)
+
+      await db.newShare(address2)
+
+      const shares = await getShares()
+      expect(shares.length).toEqual(3)
+      expect(shares[0]).toMatchObject({
+        publicAddress: address1,
+        payoutTransactionId: null,
+        payoutPeriodId: payoutPeriod1.id,
+      })
+      expect(shares[1]).toMatchObject({
+        publicAddress: address1,
+        payoutTransactionId: null,
+        payoutPeriodId: payoutPeriod1.id,
+      })
+      expect(shares[2]).toMatchObject({
+        publicAddress: address2,
+        payoutTransactionId: null,
+        payoutPeriodId: payoutPeriod2.id,
+      })
+    })
+
+    it('marks shares paid', async () => {
+      const address = 'testPublicAddress'
+
+      const payoutPeriod1 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod1)
+
+      await db.newShare(address)
+
+      await db.rolloverPayoutPeriod(new Date().getTime() + 1_000_000)
+
+      const payoutPeriod2 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod2)
+
+      await db.newShare(address)
+
+      const transactionId = await db.newTransaction('txHash1', payoutPeriod1.id)
+      Assert.isNotUndefined(transactionId)
+
+      await db.markSharesPaid(payoutPeriod1.id, transactionId, [address])
+
+      const shares = await getShares()
+      expect(shares.length).toEqual(2)
+      expect(shares[0]).toMatchObject({
+        payoutPeriodId: payoutPeriod1.id,
+        payoutTransactionId: transactionId,
+      })
+      expect(shares[1]).toMatchObject({
+        payoutPeriodId: payoutPeriod2.id,
+        payoutTransactionId: null,
+      })
+    })
+
+    it('marks shares unpaid', async () => {
+      const address = 'testPublicAddress'
+
+      const payoutPeriod1 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod1)
+
+      await db.newShare(address)
+
+      const transactionId = await db.newTransaction('txHash1', payoutPeriod1.id)
+      Assert.isNotUndefined(transactionId)
+
+      await db.markSharesPaid(payoutPeriod1.id, transactionId, [address])
+
+      const paidShares = await getShares()
+      expect(paidShares.length).toEqual(1)
+      expect(paidShares[0].payoutTransactionId).toEqual(transactionId)
+
+      await db.markSharesUnpaid(transactionId)
+
+      const unpaidShares = await getShares()
+      expect(unpaidShares.length).toEqual(1)
+      expect(unpaidShares[0].payoutTransactionId).toBeNull()
+    })
+
+    it('payoutAddresses', async () => {
+      const address1 = 'testPublicAddress1'
+      const address2 = 'testPublicAddress2'
+      const address3 = 'testPublicAddress3'
+
+      const payoutPeriod1 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod1)
+
+      // Address 1: 2 shares
+      await db.newShare(address1)
+      await db.newShare(address1)
+      // Address 2: 3  shares
+      await db.newShare(address2)
+      await db.newShare(address2)
+      await db.newShare(address2)
+      // Address 3: 0 shares
+
+      await db.rolloverPayoutPeriod(new Date().getTime() + 100)
+
+      await db.newShare(address1)
+      await db.newShare(address2)
+      await db.newShare(address3)
+
+      const addresses = await db.payoutAddresses(payoutPeriod1.id)
+      expect(addresses.length).toEqual(2)
+      expect(addresses[0]).toMatchObject({
+        publicAddress: address1,
+        shareCount: 2,
+      })
+      expect(addresses[1]).toMatchObject({
+        publicAddress: address2,
+        shareCount: 3,
+      })
+    })
+
+    it('earliestOutstandingPayoutPeriod', async () => {
+      const address = 'testPublicAddress'
+
+      const payoutPeriod1 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod1)
+
+      await db.newShare(address)
+
+      await db.rolloverPayoutPeriod(new Date().getTime() + 100)
+
+      await db.newShare(address)
+
+      const payoutPeriod2 = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod2)
+
+      await db.rolloverPayoutPeriod(new Date().getTime() + 200)
+
+      const earliest1 = await db.earliestOutstandingPayoutPeriod()
+      Assert.isNotUndefined(earliest1)
+      expect(earliest1.id).toEqual(payoutPeriod1.id)
+
+      await db.markSharesPaid(payoutPeriod1.id, 1, [address])
+
+      const earliest2 = await db.earliestOutstandingPayoutPeriod()
+      Assert.isNotUndefined(earliest2)
+      expect(earliest2.id).toEqual(payoutPeriod2.id)
+    })
+  })
 })
