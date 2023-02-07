@@ -133,6 +133,19 @@ export class PoolDatabase {
 
     return result.count
   }
+
+  async getCurrentPayoutPeriod(): Promise<DatabasePayoutPeriod | undefined> {
+    return await this.db.get<DatabasePayoutPeriod>(
+      'SELECT * FROM payoutPeriod WHERE end is null',
+    )
+  }
+
+  async rolloverPayoutPeriod(timestamp: number): Promise<void> {
+    await this.db.run('BEGIN')
+    await this.db.run('UPDATE payoutPeriod SET end = ? WHERE end IS NULL', timestamp - 1)
+    await this.db.run('INSERT INTO payoutPeriod (start) VALUES (?)', timestamp)
+    await this.db.run('COMMIT')
+  }
 }
 
 export type DatabaseShare = {
@@ -140,4 +153,12 @@ export type DatabaseShare = {
   publicAddress: string
   createdAt: Date
   payoutId: number | null
+}
+
+export type DatabasePayoutPeriod = {
+  id: number
+  // TODO(mat): Look into why this creates a string instead of a timestamp like start and end
+  createdAt: string
+  start: number
+  end: number | null
 }
