@@ -304,6 +304,22 @@ export class PoolDatabase {
     return result.count
   }
 
+  // Returns the shares that have not been paid out independent of payout period
+  async pendingShareCount(publicAddress?: string): Promise<number> {
+    let sql = 'SELECT COUNT(*) AS count FROM payoutShare WHERE payoutTransactionId IS NULL'
+
+    if (publicAddress) {
+      sql += ' AND publicAddress = ?'
+    }
+
+    const result = await this.db.get<{ count: number }>(sql, publicAddress)
+
+    if (result === undefined) {
+      return 0
+    }
+    return result.count
+  }
+
   // Returns the total payout reward for a specific payout period
   async getPayoutReward(payoutPeriodId: number): Promise<bigint> {
     const sql = `

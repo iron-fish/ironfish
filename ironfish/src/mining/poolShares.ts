@@ -221,7 +221,7 @@ export class MiningPoolShares {
   }
 
   async sharesPendingPayout(publicAddress?: string): Promise<number> {
-    return await this.db.getSharesCountForPayout(publicAddress)
+    return await this.db.pendingShareCount(publicAddress)
   }
 
   async rolloverPayoutPeriod(): Promise<void> {
@@ -286,7 +286,6 @@ export class MiningPoolShares {
   async createNewPayout(): Promise<void> {
     // Get the earliest payout the has shares that have not yet been paid out
     const payoutPeriod = await this.db.earliestOutstandingPayoutPeriod()
-
     if (!payoutPeriod) {
       this.logger.debug('No outstanding shares, skipping payout')
       return
@@ -297,6 +296,9 @@ export class MiningPoolShares {
     // amounts
     const blocksConfirmed = await this.db.payoutPeriodBlocksConfirmed(payoutPeriod.id)
     if (!blocksConfirmed) {
+      this.logger.debug(
+        `Payout period ${payoutPeriod.id} has unconfirmed blocks, skipping payout`,
+      )
       return
     }
 
@@ -330,7 +332,7 @@ export class MiningPoolShares {
     // Sanity assertion to make sure the pool is not overpaying
     Assert.isTrue(
       totalPayoutReward >= totalRequired,
-      'Payout total must be less than the total reward amount',
+      'Payout total must be less than or equal to the total reward amount',
     )
 
     const hasEnoughBalance = await this.hasConfirmedBalance(totalRequired)
@@ -339,9 +341,17 @@ export class MiningPoolShares {
       return
     }
 
+    let sharesInPayout = 0
+
     const assetId = Asset.nativeId().toString('hex')
-    const outputs = []
+    const outputs: {
+      publicAddress: string
+      amount: string
+      memo: string
+      assetId: string
+    }[] = []
     for (const payout of payoutAddresses) {
+      sharesInPayout += payout.shareCount
       const amount = amountPerShare * BigInt(payout.shareCount)
       outputs.push({
         publicAddress: payout.publicAddress,
@@ -352,6 +362,11 @@ export class MiningPoolShares {
     }
 
     try {
+      this.logger.debug(
+        `Creating payout for payout period ${payoutPeriod.id}, shares: ${totalShareCount}, outputs: ${outputs.length}`,
+      )
+      this.webhooks.map((w) => w.poolPayoutStarted(payoutPeriod.id, outputs, sharesInPayout))
+
       const transactionHash = await this.sendTransaction(outputs)
 
       const transactionId = await this.db.newTransaction(transactionHash, payoutPeriod.id)
@@ -359,6 +374,11 @@ export class MiningPoolShares {
 
       const addressesPaidOut = payoutAddresses.map((p) => p.publicAddress)
       await this.db.markSharesPaid(payoutPeriod.id, transactionId, addressesPaidOut)
+
+      this.logger.debug(`Payout succeeded with transaction hash ${transactionHash}`)
+      this.webhooks.map((w) =>
+        w.poolPayoutSuccess(payoutPeriod.id, transactionHash, outputs, sharesInPayout),
+      )
     } catch (e) {
       this.logger.error(`There was an error with the transaction ${ErrorUtils.renderError(e)}`)
       this.webhooks.map((w) => w.poolPayoutError(e))
