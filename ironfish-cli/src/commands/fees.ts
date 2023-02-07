@@ -51,7 +51,7 @@ export class FeeCommand extends IronfishCommand {
     this.log('The low, medium, and high rates each come from a percentile in the distribution:')
     this.log(`slow:    ${slow}th`)
     this.log(`average: ${average}th`)
-    this.log(`fast:   ${fast}th`)
+    this.log(`fast:    ${fast}th`)
     this.log('')
   }
 }
