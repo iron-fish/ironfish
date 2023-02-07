@@ -141,8 +141,10 @@ export class PoolDatabase {
   }
 
   async rolloverPayoutPeriod(timestamp: number): Promise<void> {
+    await this.db.run('BEGIN')
     await this.db.run('UPDATE payoutPeriod SET end = ? WHERE end IS NULL', timestamp - 1)
     await this.db.run('INSERT INTO payoutPeriod (start) VALUES (?)', timestamp)
+    await this.db.run('COMMIT')
   }
 }
 
