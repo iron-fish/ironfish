@@ -58,4 +58,43 @@ describe('poolShares', () => {
 
     jest.useRealTimers()
   })
+
+  it('blocks', async () => {
+    await shares.rolloverPayoutPeriod()
+
+    const reward = BigInt(200000)
+    await shares.submitBlock(1, 'hash1', reward)
+    await shares.submitBlock(2, 'hash2', reward * BigInt(-1))
+
+    const unconfirmedBlocks1 = await shares.unconfirmedBlocks()
+    expect(unconfirmedBlocks1.length).toEqual(2)
+
+    // This should be a no-op
+    await shares.updateBlockStatus(unconfirmedBlocks1[0], true, false)
+
+    const unconfirmedBlocks2 = await shares.unconfirmedBlocks()
+    expect(unconfirmedBlocks2.length).toEqual(2)
+
+    // This should update the 'main' boolean, but the block should still show up
+    await shares.updateBlockStatus(unconfirmedBlocks2[0], false, false)
+
+    const unconfirmedBlocks3 = await shares.unconfirmedBlocks()
+    expect(unconfirmedBlocks3.length).toEqual(2)
+    expect(unconfirmedBlocks3[0]).toMatchObject({
+      blockSequence: 1,
+      blockHash: 'hash1',
+      minerReward: reward,
+      main: false,
+    })
+
+    await shares.updateBlockStatus(unconfirmedBlocks3[0], false, true)
+
+    const unconfirmedBlocks4 = await shares.unconfirmedBlocks()
+    expect(unconfirmedBlocks4.length).toEqual(1)
+    expect(unconfirmedBlocks4[0]).toMatchObject({
+      blockSequence: 2,
+      blockHash: 'hash2',
+      minerReward: reward,
+    })
+  })
 })
