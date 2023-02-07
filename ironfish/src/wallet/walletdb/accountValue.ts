@@ -21,29 +21,26 @@ export interface AccountValue {
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
+    bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
     bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
-    bw.writeU16(value.version)
 
     return bw.render()
   }
 
   deserialize(buffer: Buffer): AccountValue {
     const reader = bufio.read(buffer, true)
+    const version = reader.readU16()
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
-    let version = 1
-    if (reader.left() !== 0) {
-      version = reader.readU16()
-    }
 
     return {
       id,
@@ -58,13 +55,13 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
   getSize(value: AccountValue): number {
     let size = 0
+    size += VERSION_LENGTH
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
-    size += VERSION_LENGTH
 
     return size
   }
