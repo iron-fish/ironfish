@@ -146,10 +146,10 @@ export class StartPool extends IronfishCommand {
       webhooks: webhooks,
       host: host,
       port: port,
-      tlsOptions: tlsOptions,
       balancePercentPayoutFlag: flags.balancePercentPayout,
       banning: flags.banning,
       enableTls: flags.enableTls,
+      tlsOptions: tlsOptions,
     })
 
     await this.pool.start()
