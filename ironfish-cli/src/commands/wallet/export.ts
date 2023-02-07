@@ -63,26 +63,38 @@ export class ExportCommand extends IronfishCommand {
     const account = args.account as string
     const exportPath = args.path as string | undefined
 
+    if (flags.language) {
+      flags.mnemonic = true
+    }
+
     const client = await this.sdk.connectRpc(local)
     const response = await client.exportAccount({ account })
 
     let output
-    if (flags.language) {
-      output = spendingKeyToWords(
-        response.content.account.spendingKey,
-        LANGUAGES[flags.language],
-      )
-    } else if (flags.mnemonic) {
-      let languageCode = inferLanguageCode()
-      if (languageCode !== null) {
-        CliUx.ux.info(`Detected Language as '${languageCodeToKey(languageCode)}', exporting:`)
-      } else {
+
+    if (flags.mnemonic) {
+      let languageCode = flags.language ? LANGUAGES[flags.language] : null
+
+      if (languageCode == null) {
+        languageCode = inferLanguageCode()
+
+        if (languageCode !== null) {
+          CliUx.ux.info(`Detected Language as '${languageCodeToKey(languageCode)}', exporting:`)
+        }
+      }
+
+      if (languageCode == null) {
         CliUx.ux.info(`Could not detect your language, please select language for export`)
         languageCode = await selectLanguage()
       }
+
       output = spendingKeyToWords(response.content.account.spendingKey, languageCode)
     } else if (flags.json) {
       output = JSON.stringify(response.content.account, undefined, '    ')
+
+      if (color && flags.json && !exportPath) {
+        output = jsonColorizer(output)
+      }
     } else {
       output = Bech32m.encode(JSON.stringify(response.content.account), 'ironfishaccount00000')
     }
@@ -123,9 +135,6 @@ export class ExportCommand extends IronfishCommand {
       return
     }
 
-    if (color && flags.json) {
-      output = jsonColorizer(output)
-    }
     this.log(output)
   }
 }
