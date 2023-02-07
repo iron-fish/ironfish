@@ -48,14 +48,15 @@ export class Migration019 extends Migration {
     for (const account of accounts) {
       logger.info('')
       logger.info(`  Backfilling assets for account ${account.name}`)
-      
+
       for await (const { note, sequence, blockHash: hash } of account.getNotes()) {
         const asset = await node.wallet.walletDb.getAsset(account, note.assetId(), tx)
 
         if (!asset) {
           const chainAsset = await chainAssets.get(note.assetId())
           Assert.isNotUndefined(chainAsset, 'Asset must be non-null in the chain')
-          console.log(chainAsset)
+
+          logger.info(`    Backfilling ${chainAsset.name.toString('utf8')} from chain`)
           await account.saveAssetFromChain(
             chainAsset.createdTransactionHash,
             chainAsset.id,
@@ -75,7 +76,6 @@ export class Migration019 extends Migration {
     logger.info('')
   }
 
-  async backward(node: IronfishNode): Promise<void> {
-    await node.wallet.walletDb.assets.clear()
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  async backward(): Promise<void> {}
 }

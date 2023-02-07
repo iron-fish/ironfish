@@ -149,7 +149,7 @@ export type NativeTransaction = Transaction
 export class Transaction {
   constructor(spenderHexKey: string)
   /** Create a proof of a new note owned by the recipient in this transaction. */
-  receive(note: Note): void
+  output(note: Note): void
   /** Spend the note owned by spender_hex_key at the given witness location. */
   spend(note: Note, witness: object): void
   /** Mint a new asset with a given value as part of this transaction. */

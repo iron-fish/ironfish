@@ -194,7 +194,7 @@ export class Peer {
   /**
    * Fired when the peer should be banned
    */
-  readonly onBanned: Event<[]> = new Event()
+  readonly onBanned: Event<[string]> = new Event()
 
   /**
    * Event fired when the peer changes state. The event may fire when connections change, even if the
@@ -704,7 +704,7 @@ export class Peer {
     }
 
     this.logger.info(`Peer ${this.displayName} has been banned: ${reason || 'UNKNOWN'}`)
-    this.onBanned.emit()
+    this.onBanned.emit(reason || 'UNKNOWN')
     this.close(new Error(`BANNED: ${reason || 'UNKNOWN'}`))
     return true
   }

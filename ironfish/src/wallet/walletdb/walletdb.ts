@@ -957,9 +957,7 @@ export class WalletDB {
     assetValue: AssetValue,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
-    if (!assetId.equals(Asset.nativeId())) {
-      await this.assets.put([account.prefix, assetId], assetValue, tx)
-    }
+    await this.assets.put([account.prefix, assetId], assetValue, tx)
   }
 
   async getAsset(

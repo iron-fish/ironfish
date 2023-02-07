@@ -79,6 +79,7 @@ import {
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
+import { GetBannedPeersRequest, GetBannedPeersResponse } from '../routes/peers/getBannedPeers'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
 import {
   GetPeerMessagesRequest,
@@ -267,6 +268,24 @@ export abstract class RpcClient {
       `${ApiNamespace.wallet}/getAccountTransactions`,
       params,
     )
+  }
+
+  async getBannedPeers(
+    params: GetBannedPeersRequest = undefined,
+  ): Promise<RpcResponseEnded<GetBannedPeersResponse>> {
+    return this.request<GetBannedPeersResponse>(
+      `${ApiNamespace.peer}/getBannedPeers`,
+      params,
+    ).waitForEnd()
+  }
+
+  getBannedPeersStream(
+    params: GetBannedPeersRequest = undefined,
+  ): RpcResponse<void, GetBannedPeersResponse> {
+    return this.request<void, GetBannedPeersResponse>(`${ApiNamespace.peer}/getBannedPeers`, {
+      ...params,
+      stream: true,
+    })
   }
 
   async getPeers(

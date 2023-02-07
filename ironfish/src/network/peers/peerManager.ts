@@ -66,7 +66,8 @@ export class PeerManager {
    */
   readonly identifiedPeers: Map<Identity, Peer> = new Map<Identity, Peer>()
 
-  readonly banned = new Set<Identity>()
+  // Mapping of peer identity with reason they were banned
+  readonly banned = new Map<Identity, string>()
 
   /**
    * List of all peers, including both unidentified and identified.
@@ -785,16 +786,16 @@ export class PeerManager {
       }
     })
 
-    peer.onBanned.on(() => this.banPeer(peer))
+    peer.onBanned.on((reason) => this.banPeer(peer, reason))
 
     return peer
   }
 
-  banPeer(peer: Peer): void {
+  banPeer(peer: Peer, reason: string): void {
     const identity = peer.state.identity
 
     if (identity) {
-      this.banned.add(identity)
+      this.banned.set(identity, reason)
     }
 
     peer.close()
