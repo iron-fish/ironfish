@@ -226,7 +226,7 @@ describe('PeerManager', () => {
 
       const { peer } = getConnectedPeer(peers)
 
-      peers.banPeer(peer)
+      peers.banPeer(peer, 'UNKNOWN')
 
       expect(peers.banned.has(peer.getIdentityOrThrow())).toBe(true)
     })
