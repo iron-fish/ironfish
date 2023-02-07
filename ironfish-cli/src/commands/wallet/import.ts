@@ -19,10 +19,9 @@ export class ImportCommand extends IronfishCommand {
       default: true,
       description: 'Rescan the blockchain once the account is imported',
     }),
-    importPath: Flags.string({
-      char: 'p',
+    path: Flags.string({
       description: 'the path to the file containing the account to import',
-      flagName: 'import path',
+      flagName: 'path',
     }),
   }
 
@@ -75,8 +74,8 @@ export class ImportCommand extends IronfishCommand {
     let account: AccountImport | null = null
     if (blob) {
       account = await this.stringToAccountImport(blob)
-    } else if (flags.importPath) {
-      account = await this.importFile(flags.importPath)
+    } else if (flags.path) {
+      account = await this.importFile(flags.path)
     } else if (process.stdin.isTTY) {
       account = await this.importTTY()
     } else if (!process.stdin.isTTY) {
