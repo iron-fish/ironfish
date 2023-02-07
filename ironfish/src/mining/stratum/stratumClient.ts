@@ -4,7 +4,6 @@
 import net from 'net'
 import { Event } from '../../event'
 import { Logger } from '../../logger'
-import { MessageBuffer } from '../../rpc/messageBuffer'
 import { ErrorUtils } from '../../utils'
 import { SetTimeoutToken } from '../../utils/types'
 import { YupUtils } from '../../utils/yup'
@@ -43,7 +42,7 @@ export class StratumClient {
   private connectWarned: boolean
   private connectTimeout: SetTimeoutToken | null
   private nextMessageId: number
-  private readonly messageBuffer = new MessageBuffer('\n')
+  private messageBuffer = ''
 
   private disconnectReason: string | null = null
   private disconnectUntil: number | null = null
@@ -173,7 +172,7 @@ export class StratumClient {
 
   private onDisconnect = (): void => {
     this.connected = false
-    this.messageBuffer.clear()
+    this.messageBuffer = ''
     this.socket.off('error', this.onError)
     this.socket.off('close', this.onDisconnect)
 
@@ -207,10 +206,13 @@ export class StratumClient {
   }
 
   private async onData(data: Buffer): Promise<void> {
-    this.messageBuffer.write(data)
+    this.messageBuffer += data.toString('utf-8')
+    const lastDelimiterIndex = this.messageBuffer.lastIndexOf('\n')
+    const splits = this.messageBuffer.substring(0, lastDelimiterIndex).trim().split('\n')
+    this.messageBuffer = this.messageBuffer.substring(lastDelimiterIndex + 1)
 
-    for (const message of this.messageBuffer.readMessages()) {
-      const payload: unknown = JSON.parse(message)
+    for (const split of splits) {
+      const payload: unknown = JSON.parse(split)
 
       const header = await YupUtils.tryValidate(StratumMessageSchema, payload)
 
