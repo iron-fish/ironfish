@@ -181,6 +181,42 @@ export class PoolDatabase {
       blockId,
     )
   }
+
+  async newTransaction(hash: string, payoutPeriodId: number): Promise<number | undefined> {
+    const result = await this.db.run(
+      'INSERT INTO payoutTransaction (transactionHash, payoutPeriodId) VALUES (?, ?)',
+      hash,
+      payoutPeriodId,
+    )
+
+    return result.lastID
+  }
+
+  async unconfirmedTransactions(): Promise<DatabasePayoutTransaction[]> {
+    const rows = await this.db.all<RawDatabasePayoutTransaction[]>(
+      'SELECT * FROM payoutTransaction WHERE confirmed = FALSE AND expired = FALSE',
+    )
+
+    const result: DatabasePayoutTransaction[] = []
+    for (const row of rows) {
+      result.push(parseDatabasePayoutTransaction(row))
+    }
+
+    return result
+  }
+
+  async updateTransactionStatus(
+    transactionId: number,
+    confirmed: boolean,
+    expired: boolean,
+  ): Promise<void> {
+    await this.db.run(
+      'UPDATE payoutTransaction SET confirmed = ?, expired = ? WHERE id = ?',
+      confirmed,
+      expired,
+      transactionId,
+    )
+  }
 }
 
 export type DatabaseShare = {
@@ -230,5 +266,34 @@ function parseDatabaseBlock(rawBlock: RawDatabaseBlock): DatabaseBlock {
     confirmed: Boolean(rawBlock.confirmed),
     main: Boolean(rawBlock.main),
     payoutPeriodId: rawBlock.payoutPeriodId,
+  }
+}
+
+export type DatabasePayoutTransaction = {
+  id: number
+  createdAt: Date
+  transactionHash: string
+  confirmed: boolean
+  expired: boolean
+  payoutPeriodId: number
+}
+
+export interface RawDatabasePayoutTransaction {
+  id: number
+  createdAt: string
+  transactionHash: string
+  confirmed: number
+  expired: number
+  payoutPeriodId: number
+}
+
+function parseDatabasePayoutTransaction(rawTransaction: RawDatabasePayoutTransaction) {
+  return {
+    id: rawTransaction.id,
+    createdAt: new Date(rawTransaction.createdAt),
+    transactionHash: rawTransaction.transactionHash,
+    confirmed: Boolean(rawTransaction.confirmed),
+    expired: Boolean(rawTransaction.expired),
+    payoutPeriodId: rawTransaction.payoutPeriodId,
   }
 }
