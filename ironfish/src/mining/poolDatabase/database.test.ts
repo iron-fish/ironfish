@@ -252,7 +252,7 @@ describe('poolDatabase', () => {
       const transactionId = await db.newTransaction('txHash1', payoutPeriod1.id)
       Assert.isNotUndefined(transactionId)
 
-      await db.markSharesPaid(payoutPeriod1.id, transactionId)
+      await db.markSharesPaid(payoutPeriod1.id, transactionId, [address])
 
       const shares = await getShares()
       expect(shares.length).toEqual(2)
@@ -277,7 +277,7 @@ describe('poolDatabase', () => {
       const transactionId = await db.newTransaction('txHash1', payoutPeriod1.id)
       Assert.isNotUndefined(transactionId)
 
-      await db.markSharesPaid(payoutPeriod1.id, transactionId)
+      await db.markSharesPaid(payoutPeriod1.id, transactionId, [address])
 
       const paidShares = await getShares()
       expect(paidShares.length).toEqual(1)
@@ -346,7 +346,7 @@ describe('poolDatabase', () => {
       Assert.isNotUndefined(earliest1)
       expect(earliest1.id).toEqual(payoutPeriod1.id)
 
-      await db.markSharesPaid(payoutPeriod1.id, 1)
+      await db.markSharesPaid(payoutPeriod1.id, 1, [address])
 
       const earliest2 = await db.earliestOutstandingPayoutPeriod()
       Assert.isNotUndefined(earliest2)

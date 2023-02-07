@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Database, open } from 'sqlite'
 import sqlite3 from 'sqlite3'
+import { Assert } from '../../assert'
 import { Config } from '../../fileStores/config'
 import { NodeFileProvider } from '../../fileSystems/nodeFileSystem'
 import { Logger } from '../../logger'
@@ -236,8 +237,6 @@ export class PoolDatabase {
   async payoutAddresses(
     payoutPeriodId: number,
   ): Promise<{ publicAddress: string; shareCount: number }[]> {
-    // TODO(mat): This query is very similar to `markSharesPaid`, and if one changes,
-    // the other must change. Consider a way to de-dupe this logic.
     const sql = `
       SELECT publicAddress, COUNT(id) shareCount
       FROM payoutShare
@@ -254,30 +253,26 @@ export class PoolDatabase {
     )
   }
 
-  async markSharesPaid(payoutPeriodId: number, payoutTransactionId: number): Promise<void> {
+  async markSharesPaid(
+    payoutPeriodId: number,
+    payoutTransactionId: number,
+    publicAddresses: string[],
+  ): Promise<void> {
+    Assert.isGreaterThan(
+      publicAddresses.length,
+      0,
+      'markSharesPaid must be called with at least 1 address',
+    )
+
     const sql = `
       UPDATE payoutShare
       SET payoutTransactionId = ?
       WHERE
         payoutPeriodId = ?
-        AND publicAddress IN (
-          SELECT publicAddress
-          FROM payoutShare
-          WHERE
-            payoutPeriodId = ?
-            AND payoutTransactionId IS NULL
-          GROUP BY publicAddress
-          LIMIT ?
-        )
+        AND publicAddress IN ('${publicAddresses.join("','")}')
     `
 
-    await this.db.run(
-      sql,
-      payoutTransactionId,
-      payoutPeriodId,
-      payoutPeriodId,
-      MAX_ADDRESSES_PER_PAYOUT,
-    )
+    await this.db.run(sql, payoutTransactionId, payoutPeriodId)
   }
 
   async markSharesUnpaid(transactionId: number): Promise<void> {

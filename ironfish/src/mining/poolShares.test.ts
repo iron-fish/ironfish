@@ -134,10 +134,12 @@ describe('poolShares', () => {
       const payoutPeriod = await shares['db'].getCurrentPayoutPeriod()
       Assert.isNotUndefined(payoutPeriod)
 
-      await shares['db'].newShare('testPublicAddress')
+      const address = 'testPublicAddress'
+
+      await shares['db'].newShare(address)
       const transactionId = await shares['db'].newTransaction('hash1', payoutPeriod.id)
       Assert.isNotUndefined(transactionId)
-      await shares['db'].markSharesPaid(payoutPeriod.id, transactionId)
+      await shares['db'].markSharesPaid(payoutPeriod.id, transactionId, [address])
 
       // All shares paid out, so there should be no outstanding payout periods
       const outstandingPeriod1 = await shares['db'].earliestOutstandingPayoutPeriod()
