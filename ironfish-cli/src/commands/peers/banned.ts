@@ -64,12 +64,14 @@ export class BannedCommand extends IronfishCommand {
 function renderTable(content: GetBannedPeersResponse): string {
   const columns: CliUx.Table.table.Columns<BannedPeerResponse> = {
     identity: {
+      minWidth: 45,
       header: 'IDENTITY',
       get: (row) => {
         return row.identity
       },
     },
     reason: {
+      minWidth: 15,
       header: 'BAN REASON',
       get: (row) => {
         return row.reason
