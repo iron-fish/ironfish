@@ -211,7 +211,9 @@ export class MiningPool {
 
     const eventLoopStartTime = new Date().getTime()
 
-    if (this.nextPayoutAttempt <= eventLoopStartTime) {
+    await this.shares.rolloverPayoutPeriod()
+
+    if (this.nextPayoutAttempt <= new Date().getTime()) {
       this.nextPayoutAttempt = new Date().getTime() + this.attemptPayoutInterval * 1000
       await this.shares.createPayout()
     }
