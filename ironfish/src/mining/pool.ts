@@ -112,10 +112,10 @@ export class MiningPool {
     enablePayouts?: boolean
     host: string
     port: number
-    tlsOptions?: tls.TlsOptions
     balancePercentPayoutFlag?: number
     banning?: boolean
     enableTls?: boolean
+    tlsOptions?: tls.TlsOptions
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
       rpc: options.rpc,
