@@ -8,6 +8,7 @@ import Migration003 from './003-add-transaction-hash'
 import Migration004 from './004-add-shares-address-index'
 import Migration005 from './005-add-payout-period-table'
 import Migration006 from './006-add-block-table'
+import Migration007 from './007-add-payout-transaction-table'
 
 export const MIGRATIONS = [
   Migration001,
@@ -16,4 +17,5 @@ export const MIGRATIONS = [
   Migration004,
   Migration005,
   Migration006,
+  Migration007,
 ]
