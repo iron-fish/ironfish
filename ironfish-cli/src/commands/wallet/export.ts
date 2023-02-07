@@ -40,6 +40,10 @@ export class ExportCommand extends IronfishCommand {
       default: false,
       description: 'Output the account as JSON, rather than the default bech32',
     }),
+    path: Flags.string({
+      description: 'The path to export the account to',
+      required: false,
+    }),
   }
 
   static args = [
@@ -49,19 +53,13 @@ export class ExportCommand extends IronfishCommand {
       required: false,
       description: 'Name of the account to export',
     },
-    {
-      name: 'path',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
-      required: false,
-      description: 'The path to export the account to',
-    },
   ]
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ExportCommand)
     const { color, local } = flags
     const account = args.account as string
-    const exportPath = args.path as string | undefined
+    const exportPath = flags.path
 
     if (flags.language) {
       flags.mnemonic = true
