@@ -30,14 +30,18 @@ export class Migration017 extends Migration {
   ): Promise<void> {
     // TODO something that does the migration
     const accounts = []
+    // TODO: does this serialize/deserialize correctly?
     for await (const accountValue of node.wallet.walletDb.loadAccounts()) {
       accounts.push(
         new Account({
           ...accountValue,
-          version: 1
+          walletDb: node.wallet.walletDb,
+          version: 1 
         }),
       )
-    }  
+    } 
+    
+    // TODO: somehow save the accounts
   }
 
   async backward(node: IronfishNode, db: IDatabase): Promise<void> {
