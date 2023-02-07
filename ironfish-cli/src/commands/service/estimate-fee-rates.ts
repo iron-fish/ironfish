@@ -62,12 +62,12 @@ export default class EstimateFees extends IronfishCommand {
 
       const response = await this.sdk.client.estimateFeeRates()
 
-      if (!(response.content.slow && response.content.average && response.content.fast)) {
+      if (!(response.content.low && response.content.medium && response.content.high)) {
         this.log('Unexpected response')
       } else {
-        const feeRateSlow = Number(CurrencyUtils.decode(response.content.slow))
-        const feeRateAverage = Number(CurrencyUtils.decode(response.content.average))
-        const feeRateFast = Number(CurrencyUtils.decode(response.content.fast))
+        const feeRateLow = Number(CurrencyUtils.decode(response.content.low))
+        const feeRateMedium = Number(CurrencyUtils.decode(response.content.medium))
+        const feeRateHigh = Number(CurrencyUtils.decode(response.content.high))
 
         await api.submitTelemetry({
           points: [
@@ -76,19 +76,19 @@ export default class EstimateFees extends IronfishCommand {
               timestamp: new Date(),
               fields: [
                 {
-                  name: `fee_rate_slow`,
+                  name: `fee_rate_low`,
                   type: 'integer',
-                  value: feeRateSlow,
+                  value: feeRateLow,
                 },
                 {
-                  name: `fee_rate_average`,
+                  name: `fee_rate_medium`,
                   type: 'integer',
-                  value: feeRateAverage,
+                  value: feeRateMedium,
                 },
                 {
-                  name: `fee_rate_fast`,
+                  name: `fee_rate_high`,
                   type: 'integer',
-                  value: feeRateFast,
+                  value: feeRateHigh,
                 },
               ],
               tags: [{ name: 'version', value: IronfishCliPKG.version }],

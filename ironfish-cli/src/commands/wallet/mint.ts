@@ -190,11 +190,11 @@ export class Mint extends IronfishCommand {
       rawTransactionResponse = createResponse.content.transaction
     } else {
       const feeRatesResponse = await client.estimateFeeRates()
-      const feeRates = [
-        feeRatesResponse.content.slow ?? '1',
-        feeRatesResponse.content.average ?? '1',
-        feeRatesResponse.content.fast ?? '1',
-      ]
+      const feeRates = new Set([
+        feeRatesResponse.content.low ?? '1',
+        feeRatesResponse.content.medium ?? '1',
+        feeRatesResponse.content.high ?? '1',
+      ])
 
       const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
 
