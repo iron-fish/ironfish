@@ -44,7 +44,7 @@ export class ExportCommand extends IronfishCommand {
     path: Flags.string({
       description: 'The path to export the account to',
       required: false,
-    })
+    }),
   }
 
   static args = [
