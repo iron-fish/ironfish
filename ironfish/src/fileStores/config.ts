@@ -13,16 +13,9 @@ export const DEFAULT_DISCORD_INVITE = 'https://discord.ironfish.network'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_USE_RPC_TLS = true
-export const DEFAULT_NETWORK_ID = 0
 export const DEFAULT_POOL_HOST = '0.0.0.0'
 export const DEFAULT_POOL_PORT = 9034
-export const DEFAULT_POOL_TLS_HOST = '0.0.0.0'
-export const DEFAULT_POOL_TLS_PORT = 9035
-export const DEFAULT_POOL_DIFFICULTY = '15000000000'
-export const DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL = 15 * 60 // 15 minutes
-export const DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL = 2 * 60 * 60 // 2 hours
-export const DEFAULT_POOL_STATUS_NOTIFICATION_INTERVAL = 30 * 60 // 30 minutes
-export const DEFAULT_POOL_RECENT_SHARE_CUTOFF = 2 * 60 * 60 // 2 hours
+export const DEFAULT_NETWORK_ID = 0
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
@@ -377,11 +370,11 @@ export class Config extends KeyStore<ConfigOptions> {
       poolBalancePercentPayout: 10,
       poolHost: DEFAULT_POOL_HOST,
       poolPort: DEFAULT_POOL_PORT,
-      poolDifficulty: DEFAULT_POOL_DIFFICULTY,
-      poolAttemptPayoutInterval: DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL,
-      poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,
-      poolStatusNotificationInterval: DEFAULT_POOL_STATUS_NOTIFICATION_INTERVAL,
-      poolRecentShareCutoff: DEFAULT_POOL_RECENT_SHARE_CUTOFF,
+      poolDifficulty: '15000000000',
+      poolAttemptPayoutInterval: 15 * 60, // 15 minutes
+      poolSuccessfulPayoutInterval: 2 * 60 * 60, // 2 hours
+      poolStatusNotificationInterval: 30 * 60, // 30 minutes
+      poolRecentShareCutoff: 2 * 60 * 60, // 2 hours
       poolDiscordWebhook: '',
       poolMaxConnectionsPerIp: 0,
       poolLarkWebhook: '',
