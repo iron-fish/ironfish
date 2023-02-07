@@ -14,17 +14,11 @@ const MAX_ADDRESSES_PER_PAYOUT = 250
 
 export class PoolDatabase {
   private readonly db: Database
-  private readonly config: Config
   private readonly migrations: Migrator
-  private readonly attemptPayoutInterval: number
-  private readonly successfulPayoutInterval: number
 
   constructor(options: { db: Database; config: Config; logger: Logger }) {
     this.db = options.db
-    this.config = options.config
     this.migrations = new Migrator({ db: options.db, logger: options.logger })
-    this.attemptPayoutInterval = this.config.get('poolAttemptPayoutInterval')
-    this.successfulPayoutInterval = this.config.get('poolSuccessfulPayoutInterval')
   }
 
   static async init(options: {
@@ -59,10 +53,6 @@ export class PoolDatabase {
   }
 
   async newShare(publicAddress: string): Promise<void> {
-    // Old share
-    await this.db.run('INSERT INTO share (publicAddress) VALUES (?)', publicAddress)
-
-    // New share
     const sql = `
       INSERT INTO payoutShare (payoutPeriodId, publicAddress)
       VALUES (
@@ -73,75 +63,18 @@ export class PoolDatabase {
     await this.db.run(sql, publicAddress)
   }
 
-  async getSharesForPayout(timestamp: number): Promise<DatabaseShare[]> {
-    return await this.db.all(
-      "SELECT * FROM share WHERE payoutId IS NULL AND createdAt < datetime(?, 'unixepoch')",
-      timestamp,
-    )
-  }
-
-  async getSharesCountForPayout(publicAddress?: string): Promise<number> {
-    let sql = 'SELECT COUNT(*) AS count from share WHERE payoutId IS NULL'
-
-    if (publicAddress) {
-      sql += ' AND publicAddress = ?'
-    }
-
-    const result = await this.db.get<{ count: number }>(sql, publicAddress)
-    if (result === undefined) {
-      return 0
-    }
-
-    return result.count
-  }
-
-  async newPayout(timestamp: number): Promise<number | null> {
-    // Create a payout row if the most recent successful payout was greater than the payout interval
-    // and the most recent payout was greater than the attempt interval, in case of failed or long
-    // running payouts.
-    const successfulPayoutCutoff = timestamp - this.successfulPayoutInterval
-    const attemptPayoutCutoff = timestamp - this.attemptPayoutInterval
-
-    const query = `
-       INSERT INTO payout (succeeded)
-         SELECT FALSE WHERE
-           NOT EXISTS (SELECT * FROM payout WHERE createdAt > datetime(?, 'unixepoch') AND succeeded = TRUE)
-           AND NOT EXISTS (SELECT * FROM payout WHERE createdAt > datetime(?, 'unixepoch'))
-     `
-
-    const result = await this.db.run(query, successfulPayoutCutoff, attemptPayoutCutoff)
-    if (result.changes !== 0 && result.lastID != null) {
-      return result.lastID
-    }
-
-    return null
-  }
-
-  async markPayoutSuccess(
-    id: number,
-    timestamp: number,
-    transactionHash: string,
-  ): Promise<void> {
-    await this.db.run(
-      'UPDATE payout SET succeeded = TRUE, transactionHash = ? WHERE id = ?',
-      id,
-      transactionHash,
-    )
-    await this.db.run(
-      "UPDATE share SET payoutId = ? WHERE payoutId IS NULL AND createdAt < datetime(?, 'unixepoch')",
-      id,
-      timestamp,
-    )
-  }
-
   async shareCountSince(timestamp: number, publicAddress?: string): Promise<number> {
-    let sql = "SELECT COUNT(id) AS count FROM share WHERE createdAt > datetime(?, 'unixepoch')"
+    // JS timestamps have millisecond resolution, sqlite timestamps have second resolution
+    const sqlTimestamp = Math.floor(timestamp / 1000)
+
+    let sql =
+      "SELECT COUNT(id) AS count FROM payoutShare WHERE createdAt > datetime(?, 'unixepoch')"
 
     if (publicAddress) {
       sql += ' AND publicAddress = ?'
     }
 
-    const result = await this.db.get<{ count: number }>(sql, timestamp, publicAddress)
+    const result = await this.db.get<{ count: number }>(sql, sqlTimestamp, publicAddress)
     if (result === undefined) {
       return 0
     }
@@ -387,14 +320,6 @@ export class PoolDatabase {
 
     return true
   }
-}
-
-// Old share
-export type DatabaseShare = {
-  id: number
-  publicAddress: string
-  createdAt: Date
-  payoutId: number | null
 }
 
 export type DatabasePayoutPeriod = {

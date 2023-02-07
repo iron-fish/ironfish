@@ -17,7 +17,7 @@ describe('poolShares', () => {
       rpc: routeTest.client,
       config: routeTest.sdk.config,
       logger: createRootLogger().withTag('test'),
-      enablePayouts: false,
+      enablePayouts: true,
       dbPath: ':memory:',
     })
 
@@ -26,6 +26,31 @@ describe('poolShares', () => {
 
   afterEach(async () => {
     await shares.stop()
+  })
+
+  it('shareRate', async () => {
+    jest.useFakeTimers({ legacyFakeTimers: false })
+
+    const now = new Date(2020, 1, 1).getTime()
+    jest.setSystemTime(now)
+
+    await shares.rolloverPayoutPeriod()
+
+    const publicAddress1 = 'publicAddress1'
+    const publicAddress2 = 'publicAddress2'
+
+    await shares.submitShare(publicAddress1)
+    await shares.submitShare(publicAddress2)
+
+    shares['recentShareCutoff'] = 2
+
+    const shareRate = await shares.shareRate()
+    const shareRateAddress = await shares.shareRate(publicAddress1)
+
+    expect(shareRate).toEqual(1)
+    expect(shareRateAddress).toEqual(0.5)
+
+    jest.useRealTimers()
   })
 
   it('rolloverPayoutPeriod', async () => {
