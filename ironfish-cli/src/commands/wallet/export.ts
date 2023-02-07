@@ -85,14 +85,7 @@ export class ExportCommand extends IronfishCommand {
     } else if (flags.json) {
       output = JSON.stringify(response.content.account, undefined, '    ')
     } else {
-      const [encoded, error] = Bech32m.encode(
-        JSON.stringify(response.content.account),
-        'ironfishaccount00000',
-      )
-      if (error) {
-        throw error
-      }
-      output = encoded
+      output = Bech32m.encode(JSON.stringify(response.content.account), 'ironfishaccount00000')
     }
 
     if (exportPath) {
