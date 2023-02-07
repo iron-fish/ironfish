@@ -8,6 +8,7 @@ import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { BUFFER_ENCODING, IDatabase, IDatabaseStore, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
+import { BufferUtils } from '../../utils'
 import { Account } from '../../wallet'
 import { Migration } from '../migration'
 
@@ -56,7 +57,7 @@ export class Migration019 extends Migration {
           const chainAsset = await chainAssets.get(note.assetId())
           Assert.isNotUndefined(chainAsset, 'Asset must be non-null in the chain')
 
-          logger.info(`    Backfilling ${chainAsset.name.toString('utf8')} from chain`)
+          logger.info(`    Backfilling ${BufferUtils.toHuman(chainAsset.name)} from chain`)
           await account.saveAssetFromChain(
             chainAsset.createdTransactionHash,
             chainAsset.id,
