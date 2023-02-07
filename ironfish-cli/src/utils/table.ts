@@ -102,7 +102,7 @@ const asset = <T extends Record<string, unknown>>(options?: {
   }
 }
 
-function truncateCol(value: string, maxWidth: number | null): string {
+export function truncateCol(value: string, maxWidth: number | null): string {
   if (maxWidth === null || value.length <= maxWidth) {
     return value
   }
