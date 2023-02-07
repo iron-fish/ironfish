@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { spendingKeyToWords } from '@ironfish/rust-nodejs'
-import { ErrorUtils } from '@ironfish/sdk'
+import { Bech32m, ErrorUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { bech32m } from 'bech32'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
@@ -66,7 +65,6 @@ export class ExportCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc(local)
     const response = await client.exportAccount({ account })
-    const responseJSONString = JSON.stringify(response.content.account)
 
     let output
     if (flags.language) {
@@ -84,17 +82,9 @@ export class ExportCommand extends IronfishCommand {
       }
       output = spendingKeyToWords(response.content.account.spendingKey, languageCode)
     } else if (flags.json) {
-      output = exportPath
-        ? JSON.stringify(response.content.account, undefined, '    ')
-        : responseJSONString
+      output = JSON.stringify(response.content.account, undefined, '    ')
     } else {
-      const responseBytes = Buffer.from(responseJSONString)
-      const lengthLimit = 1023
-      output = bech32m.encode(
-        'ironfishaccount00000',
-        bech32m.toWords(responseBytes),
-        lengthLimit,
-      )
+      output = Bech32m.encode(JSON.stringify(response.content.account), 'ironfishaccount00000')
     }
 
     if (exportPath) {
