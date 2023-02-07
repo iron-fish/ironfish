@@ -7,7 +7,7 @@ import { Logger } from '../../../logger'
 import { StratumTcpAdapter } from './tcpAdapter'
 
 export class StratumTlsAdapter extends StratumTcpAdapter {
-  private tlsOptions: tls.TlsOptions | null = null
+  readonly tlsOptions: tls.TlsOptions
 
   constructor(options: {
     logger: Logger
@@ -17,18 +17,14 @@ export class StratumTlsAdapter extends StratumTcpAdapter {
   }) {
     super(options)
 
-    this.tlsOptions = options.tlsOptions ?? null
+    this.tlsOptions = options.tlsOptions
   }
 
   protected createServer(): net.Server {
     this.logger.info(`Hosting Stratum via TLS on ${this.host}:${this.port}`)
 
-    if (this.tlsOptions) {
-      return tls.createServer(this.tlsOptions, (socket) =>
-        this.stratumServer?.onConnection(socket),
-      )
-    } else {
-      return tls.createServer((socket) => this.stratumServer?.onConnection(socket))
-    }
+    return tls.createServer(this.tlsOptions, (socket) =>
+      this.stratumServer?.onConnection(socket),
+    )
   }
 }
