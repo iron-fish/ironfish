@@ -137,30 +137,33 @@ export class MiningPoolShares {
       return
     }
 
-    const transactionOutputs = MapUtils.map(shareCounts.shares, (shareCount, publicAddress) => {
-      const payoutPercentage = shareCount / shareCounts.totalShares
-      const amt = Math.floor(payoutPercentage * payoutAmount)
+    const transactionReceives = MapUtils.map(
+      shareCounts.shares,
+      (shareCount, publicAddress) => {
+        const payoutPercentage = shareCount / shareCounts.totalShares
+        const amt = Math.floor(payoutPercentage * payoutAmount)
 
-      return {
-        publicAddress,
-        amount: amt.toString(),
-        memo: `${this.poolName} payout ${shareCutoff.toUTCString()}`,
-        assetId: Asset.nativeId().toString('hex'),
-      }
-    })
+        return {
+          publicAddress,
+          amount: amt.toString(),
+          memo: `${this.poolName} payout ${shareCutoff.toUTCString()}`,
+          assetId: Asset.nativeId().toString('hex'),
+        }
+      },
+    )
 
     try {
       this.logger.debug(
-        `Creating payout ${payoutId}, shares: ${shareCounts.totalShares}, outputs: ${transactionOutputs.length}`,
+        `Creating payout ${payoutId}, shares: ${shareCounts.totalShares}, outputs: ${transactionReceives.length}`,
       )
       this.webhooks.map((w) =>
-        w.poolPayoutStarted(payoutId, transactionOutputs, shareCounts.totalShares),
+        w.poolPayoutStarted(payoutId, transactionReceives, shareCounts.totalShares),
       )
 
       const transaction = await this.rpc.sendTransaction({
         fromAccountName: this.accountName,
-        outputs: transactionOutputs,
-        fee: transactionOutputs.length.toString(),
+        receives: transactionReceives,
+        fee: transactionReceives.length.toString(),
       })
 
       await this.db.markPayoutSuccess(payoutId, timestamp, transaction.content.hash)
@@ -170,7 +173,7 @@ export class MiningPoolShares {
         w.poolPayoutSuccess(
           payoutId,
           transaction.content.hash,
-          transactionOutputs,
+          transactionReceives,
           shareCounts.totalShares,
         ),
       )
