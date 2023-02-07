@@ -7,9 +7,9 @@ import { ApiNamespace, router } from '../router'
 
 export type EstimateFeeRatesRequest = { priority?: PriorityLevel } | undefined
 export type EstimateFeeRatesResponse = {
-  low?: string
-  medium?: string
-  high?: string
+  slow?: string
+  average?: string
+  fast?: string
 }
 
 export const EstimateFeeRatesRequestSchema: yup.ObjectSchema<EstimateFeeRatesRequest> = yup
@@ -20,9 +20,9 @@ export const EstimateFeeRatesRequestSchema: yup.ObjectSchema<EstimateFeeRatesReq
 
 export const EstimateFeeRatesResponseSchema: yup.ObjectSchema<EstimateFeeRatesResponse> = yup
   .object({
-    low: yup.string(),
-    medium: yup.string(),
-    high: yup.string(),
+    slow: yup.string(),
+    average: yup.string(),
+    fast: yup.string(),
   })
   .defined()
 
@@ -44,9 +44,9 @@ router.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
       const feeRates = feeEstimator.estimateFeeRates()
 
       request.end({
-        low: feeRates.low > 0 ? feeRates.low.toString() : '1',
-        medium: feeRates.medium > 0 ? feeRates.medium.toString() : '1',
-        high: feeRates.high > 0 ? feeRates.high.toString() : '1',
+        slow: feeRates.low > 0 ? feeRates.low.toString() : '1',
+        average: feeRates.medium > 0 ? feeRates.medium.toString() : '1',
+        fast: feeRates.high > 0 ? feeRates.high.toString() : '1',
       })
     }
   },
