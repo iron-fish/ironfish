@@ -185,7 +185,7 @@
       ]
     }
   ],
-  "Route wallet/createTransaction should generate a valid transaction with multiple receives": [
+  "Route wallet/createTransaction should generate a valid transaction with multiple outputs": [
     {
       "header": {
         "sequence": 5,

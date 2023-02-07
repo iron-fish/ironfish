@@ -10,7 +10,7 @@ import { ERROR_CODES } from '../../adapters'
 
 const TEST_PARAMS = {
   fromAccountName: 'existingAccount',
-  receives: [
+  outputs: [
     {
       publicAddress: 'test2',
       amount: BigInt(10).toString(),
@@ -23,7 +23,7 @@ const TEST_PARAMS = {
 
 const TEST_PARAMS_MULTI = {
   fromAccountName: 'existingAccount',
-  receives: [
+  outputs: [
     {
       publicAddress: 'test2',
       amount: BigInt(10).toString(),

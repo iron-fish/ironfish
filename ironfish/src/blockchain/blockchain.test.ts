@@ -1404,7 +1404,7 @@ describe('Blockchain', () => {
 
           const rawSend = new RawTransaction()
           rawSend.spends = [{ note: note.note, witness }]
-          rawSend.receives = [
+          rawSend.outputs = [
             {
               note: new Note(
                 new NativeNote(

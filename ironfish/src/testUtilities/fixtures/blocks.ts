@@ -147,7 +147,7 @@ export async function useBlockWithRawTxFixture(
   pool: WorkerPool,
   sender: Account,
   notesToSpend: NoteEncrypted[],
-  receives: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[],
+  outputs: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[],
   mints: MintData[],
   burns: BurnDescription[],
   sequence: number,
@@ -176,16 +176,16 @@ export async function useBlockWithRawTxFixture(
     raw.fee = BigInt(0)
     raw.spends = spends
 
-    for (const receive of receives) {
+    for (const output of outputs) {
       const note = new NativeNote(
-        receive.publicAddress,
-        receive.amount,
-        receive.memo,
-        receive.assetId,
+        output.publicAddress,
+        output.amount,
+        output.memo,
+        output.assetId,
         sender.publicAddress,
       )
 
-      raw.receives.push({ note: new Note(note.serialize()) })
+      raw.outputs.push({ note: new Note(note.serialize()) })
     }
 
     const transaction = await pool.postTransaction(raw, sender.spendingKey)

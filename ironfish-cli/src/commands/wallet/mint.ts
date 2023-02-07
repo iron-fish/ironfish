@@ -174,7 +174,7 @@ export class Mint extends IronfishCommand {
 
       const createResponse = await client.createTransaction({
         sender: account,
-        receives: [],
+        outputs: [],
         mints: [
           {
             assetId,
@@ -202,7 +202,7 @@ export class Mint extends IronfishCommand {
 
       const createTransactionRequest: CreateTransactionRequest = {
         sender: account,
-        receives: [],
+        outputs: [],
         mints: [
           {
             assetId,

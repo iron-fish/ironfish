@@ -13,7 +13,7 @@ import { ApiNamespace, router } from '../router'
 
 export type CreateTransactionRequest = {
   sender: string
-  receives: {
+  outputs: {
     publicAddress: string
     amount: string
     memo: string
@@ -43,7 +43,7 @@ export type CreateTransactionResponse = {
 export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionRequest> = yup
   .object({
     sender: yup.string().defined(),
-    receives: yup
+    outputs: yup
       .array(
         yup
           .object({
@@ -126,13 +126,13 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       totalByAssetIdentifier.set(Asset.nativeId(), fee)
     }
 
-    const receives = data.receives.map((receive) => {
+    const outputs = data.outputs.map((output) => {
       let assetId = Asset.nativeId()
-      if (receive.assetId) {
-        assetId = Buffer.from(receive.assetId, 'hex')
+      if (output.assetId) {
+        assetId = Buffer.from(output.assetId, 'hex')
       }
 
-      const amount = CurrencyUtils.decode(receive.amount)
+      const amount = CurrencyUtils.decode(output.amount)
       if (amount <= 0) {
         throw new ValidationError(`Invalid transaction amount ${amount}.`)
       }
@@ -141,9 +141,9 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       totalByAssetIdentifier.set(assetId, sum + amount)
 
       return {
-        publicAddress: receive.publicAddress,
+        publicAddress: output.publicAddress,
         amount: amount,
-        memo: receive.memo,
+        memo: output.memo,
         assetId,
       }
     })
@@ -211,7 +211,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
 
     try {
       if (data.fee) {
-        rawTransaction = await node.wallet.createTransaction(account, receives, mints, burns, {
+        rawTransaction = await node.wallet.createTransaction(account, outputs, mints, burns, {
           fee: CurrencyUtils.decode(data.fee),
           expirationDelta:
             data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
@@ -231,7 +231,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           feeRate = node.memPool.feeEstimator.estimateFeeRate('medium')
         }
 
-        rawTransaction = await node.wallet.createTransaction(account, receives, mints, burns, {
+        rawTransaction = await node.wallet.createTransaction(account, outputs, mints, burns, {
           expirationDelta:
             data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
           expiration: data.expiration,
