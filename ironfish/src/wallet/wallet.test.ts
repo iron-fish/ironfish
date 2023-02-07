@@ -1658,13 +1658,13 @@ describe('Accounts', () => {
         supply: value,
       })
       expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toEqual({
-        blockHash: null,
+        blockHash: block.header.hash,
         createdTransactionHash: mintBlock.transactions[1].hash(),
         id: asset.id(),
         metadata: asset.metadata(),
         name: asset.name(),
         owner: Buffer.from(accountA.publicAddress, 'hex'),
-        sequence: null,
+        sequence: block.header.sequence,
         supply: null,
       })
     })
