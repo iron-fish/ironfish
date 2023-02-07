@@ -3,10 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Database, open } from 'sqlite'
 import sqlite3 from 'sqlite3'
+import { Assert } from '../../assert'
 import { Config } from '../../fileStores/config'
 import { NodeFileProvider } from '../../fileSystems/nodeFileSystem'
 import { Logger } from '../../logger'
 import { Migrator } from './migrator'
+
+const MAX_ADDRESSES_PER_PAYOUT = 250
 
 export class PoolDatabase {
   private readonly db: Database
@@ -55,7 +58,18 @@ export class PoolDatabase {
   }
 
   async newShare(publicAddress: string): Promise<void> {
+    // Old share
     await this.db.run('INSERT INTO share (publicAddress) VALUES (?)', publicAddress)
+
+    // New share
+    const sql = `
+      INSERT INTO payoutShare (payoutPeriodId, publicAddress)
+      VALUES (
+        (SELECT id FROM payoutPeriod WHERE end IS NULL),
+        ?
+      )
+    `
+    await this.db.run(sql, publicAddress)
   }
 
   async getSharesForPayout(timestamp: number): Promise<DatabaseShare[]> {
@@ -217,8 +231,68 @@ export class PoolDatabase {
       transactionId,
     )
   }
+
+  // Returns a capped number of unique public addresses and the amount of shares
+  // they earned for a specific payout period
+  async payoutAddresses(
+    payoutPeriodId: number,
+  ): Promise<{ publicAddress: string; shareCount: number }[]> {
+    const sql = `
+      SELECT publicAddress, COUNT(id) shareCount
+      FROM payoutShare
+      WHERE
+        payoutPeriodId = ?
+        AND payoutTransactionId IS NULL
+      GROUP BY publicAddress
+      LIMIT ?
+    `
+    return await this.db.all<{ publicAddress: string; shareCount: number }[]>(
+      sql,
+      payoutPeriodId,
+      MAX_ADDRESSES_PER_PAYOUT,
+    )
+  }
+
+  async markSharesPaid(
+    payoutPeriodId: number,
+    payoutTransactionId: number,
+    publicAddresses: string[],
+  ): Promise<void> {
+    Assert.isGreaterThan(
+      publicAddresses.length,
+      0,
+      'markSharesPaid must be called with at least 1 address',
+    )
+
+    const sql = `
+      UPDATE payoutShare
+      SET payoutTransactionId = ?
+      WHERE
+        payoutPeriodId = ?
+        AND publicAddress IN ('${publicAddresses.join("','")}')
+    `
+
+    await this.db.run(sql, payoutTransactionId, payoutPeriodId)
+  }
+
+  async markSharesUnpaid(transactionId: number): Promise<void> {
+    await this.db.run(
+      'UPDATE payoutShare SET payoutTransactionId = NULL WHERE payoutTransactionId = ?',
+      transactionId,
+    )
+  }
+
+  async earliestOutstandingPayoutPeriod(): Promise<DatabasePayoutPeriod | undefined> {
+    const sql = `
+      SELECT * FROM payoutPeriod WHERE id = (
+        SELECT payoutPeriodId FROM payoutShare WHERE payoutTransactionId IS NULL ORDER BY id LIMIT 1
+      )
+    `
+    return await this.db.get<DatabasePayoutPeriod>(sql)
+  }
 }
 
+// Old share
 export type DatabaseShare = {
   id: number
   publicAddress: string
