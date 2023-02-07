@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { BufferUtils, CurrencyUtils } from '../../../utils'
+import { CurrencyUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
@@ -64,15 +64,14 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
       throw new ValidationError('Invalid burn amount')
     }
 
-    const assetBuffer = Buffer.from(request.data.assetId, 'hex')
-
-    const assetResponse = await node.chain.getAssetById(assetBuffer)
-    Assert.isNotNull(assetResponse)
+    const assetId = Buffer.from(request.data.assetId, 'hex')
+    const asset = await node.chain.getAssetById(assetId)
+    Assert.isNotNull(asset)
 
     const transaction = await node.wallet.burn(
       node.memPool,
       account,
-      assetBuffer,
+      assetId,
       value,
       fee,
       request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
@@ -85,7 +84,7 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     request.end({
       assetId: burn.assetId.toString('hex'),
       hash: transaction.hash().toString('hex'),
-      name: BufferUtils.toHuman(assetResponse.name),
+      name: asset.name.toString('hex'),
       value: CurrencyUtils.encode(burn.value),
     })
   },
