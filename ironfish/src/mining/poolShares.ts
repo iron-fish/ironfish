@@ -9,7 +9,7 @@ import { ErrorUtils } from '../utils'
 import { BigIntUtils } from '../utils/bigint'
 import { MapUtils } from '../utils/map'
 import { DatabaseShare, PoolDatabase } from './poolDatabase'
-import { DatabaseBlock } from './poolDatabase/database'
+import { DatabaseBlock, DatabasePayoutTransaction } from './poolDatabase/database'
 import { WebhookNotifier } from './webhooks'
 
 export class MiningPoolShares {
@@ -260,5 +260,21 @@ export class MiningPoolShares {
     }
 
     await this.db.updateBlockStatus(block.id, main, confirmed)
+  }
+
+  async unconfirmedPayoutTransactions(): Promise<DatabasePayoutTransaction[]> {
+    return await this.db.unconfirmedTransactions()
+  }
+
+  async updatePayoutTransactionStatus(
+    transaction: DatabasePayoutTransaction,
+    confirmed: boolean,
+    expired: boolean,
+  ): Promise<void> {
+    if (confirmed === transaction.confirmed && expired === transaction.expired) {
+      return
+    }
+
+    await this.db.updateTransactionStatus(transaction.id, confirmed, expired)
   }
 }
