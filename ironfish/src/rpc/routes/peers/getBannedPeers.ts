@@ -48,11 +48,6 @@ router.register<typeof GetBannedPeersRequestSchema, GetBannedPeersResponse>(
   (request, node): void => {
     const peerNetwork = node.peerNetwork
 
-    if (!peerNetwork) {
-      request.end({ peers: [] })
-      return
-    }
-
     const peers = getPeers(peerNetwork)
 
     if (!request.data?.stream) {
