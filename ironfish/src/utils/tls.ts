@@ -5,16 +5,22 @@
 import { pki } from 'node-forge'
 import tls from 'tls'
 import { FileSystem } from '../fileSystems'
+import { Logger } from '../logger'
 
 async function getTlsOptions(
   fileSystem: FileSystem,
   nodeKeyPath: string,
   nodeCertPath: string,
+  logger: Logger,
 ): Promise<tls.TlsOptions> {
   const nodeKeyExists = await fileSystem.exists(nodeKeyPath)
   const nodeCertExists = await fileSystem.exists(nodeCertPath)
 
   if (!nodeKeyExists || !nodeCertExists) {
+    logger.debug(
+      `Missing TLS key and/or cert files at ${nodeKeyPath} and ${nodeCertPath}. Automatically generating key and self-signed cert`,
+    )
+
     return await generateTlsCerts(fileSystem, nodeKeyPath, nodeCertPath)
   }
 
@@ -49,4 +55,4 @@ async function generateTlsCerts(
   return { key: nodeKeyPem, cert: nodeCertPem }
 }
 
-export const TlsUtils = { getTlsOptions }
+export const TlsUtils = { generateTlsCerts, getTlsOptions }

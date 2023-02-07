@@ -167,16 +167,6 @@ export type ConfigOptions = {
   poolPort: number
 
   /**
-   * The tls host that the pool is listening for miner connections on.
-   */
-  poolTlsHost: string
-
-  /**
-   * The tls port that the pool is listening for miner connections on.
-   */
-  poolTlsPort: number
-
-  /**
    * The pool difficulty, which determines how often miners submit shares.
    */
   poolDifficulty: string
@@ -305,8 +295,6 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     poolBalancePercentPayout: YupUtils.isPercent,
     poolHost: yup.string().trim(),
     poolPort: YupUtils.isPort,
-    poolTlsHost: yup.string().trim(),
-    poolTlsPort: YupUtils.isPort,
     poolDifficulty: yup.string(),
     poolAttemptPayoutInterval: YupUtils.isPositiveInteger,
     poolSuccessfulPayoutInterval: YupUtils.isPositiveInteger,
@@ -389,8 +377,6 @@ export class Config extends KeyStore<ConfigOptions> {
       poolBalancePercentPayout: 10,
       poolHost: DEFAULT_POOL_HOST,
       poolPort: DEFAULT_POOL_PORT,
-      poolTlsHost: DEFAULT_POOL_TLS_HOST,
-      poolTlsPort: DEFAULT_POOL_TLS_PORT,
       poolDifficulty: DEFAULT_POOL_DIFFICULTY,
       poolAttemptPayoutInterval: DEFAULT_POOL_ATTEMPT_PAYOUT_INTERVAL,
       poolSuccessfulPayoutInterval: DEFAULT_POOL_SUCCESSFUL_PAYOUT_INTERVAL,

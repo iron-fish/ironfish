@@ -15,6 +15,7 @@ import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetIntervalToken, SetTimeoutToken } from '../utils/types'
 import { MiningPoolShares } from './poolShares'
+import { StratumTcpAdapter, StratumTlsAdapter } from './stratum/adapters'
 import { MiningStatusMessage } from './stratum/messages'
 import { StratumServer } from './stratum/stratumServer'
 import { StratumServerClient } from './stratum/stratumServerClient'
@@ -65,13 +66,7 @@ export class MiningPool {
     config: Config
     logger: Logger
     webhooks?: WebhookNotifier[]
-    host?: string
-    port?: number
-    tlsHost?: string
-    tlsPort?: number
-    tlsOptions?: tls.TlsOptions
     banning?: boolean
-    enableTls?: boolean
   }) {
     this.rpc = options.rpc
     this.logger = options.logger
@@ -80,13 +75,7 @@ export class MiningPool {
       pool: this,
       config: options.config,
       logger: this.logger,
-      host: options.host,
-      port: options.port,
-      tlsHost: options.tlsHost,
-      tlsPort: options.tlsPort,
-      tlsOptions: options.tlsOptions,
       banning: options.banning,
-      enableTlsPool: options.enableTls,
     })
     this.config = options.config
     this.shares = options.shares
@@ -121,10 +110,8 @@ export class MiningPool {
     logger: Logger
     webhooks?: WebhookNotifier[]
     enablePayouts?: boolean
-    host?: string
-    port?: number
-    tlsHost?: string
-    tlsPort?: number
+    host: string
+    port: number
     tlsOptions?: tls.TlsOptions
     balancePercentPayoutFlag?: number
     banning?: boolean
@@ -139,20 +126,36 @@ export class MiningPool {
       balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
 
-    return new MiningPool({
+    const pool = new MiningPool({
       rpc: options.rpc,
       logger: options.logger,
       config: options.config,
       webhooks: options.webhooks,
-      host: options.host,
-      port: options.port,
-      tlsHost: options.tlsHost,
-      tlsPort: options.tlsPort,
-      tlsOptions: options.tlsOptions,
       shares,
       banning: options.banning,
-      enableTls: options.enableTls,
     })
+
+    if (options.enableTls) {
+      Assert.isNotUndefined(options.tlsOptions)
+      pool.stratum.mount(
+        new StratumTlsAdapter({
+          logger: options.logger,
+          host: options.host,
+          port: options.port,
+          tlsOptions: options.tlsOptions,
+        }),
+      )
+    } else {
+      pool.stratum.mount(
+        new StratumTcpAdapter({
+          logger: options.logger,
+          host: options.host,
+          port: options.port,
+        }),
+      )
+    }
+
+    return pool
   }
 
   async start(): Promise<void> {
@@ -164,21 +167,8 @@ export class MiningPool {
     this.started = true
     await this.shares.start()
 
-    this.logger.info(
-      `Starting stratum server v${String(this.stratum.version)} on ${this.stratum.host}:${
-        this.stratum.port
-      }`,
-    )
-    if (this.stratum.enableTlsPool) {
-      Assert.isNotNull(this.stratum.tlsHost)
-      Assert.isNotNull(this.stratum.tlsPort)
-      this.logger.info(
-        `Starting tls stratum server v${String(this.stratum.version)} on ${
-          this.stratum.tlsHost
-        }:${this.stratum.tlsPort}`,
-      )
-    }
-    this.stratum.start()
+    this.logger.info(`Starting stratum server v${String(this.stratum.version)}`)
+    await this.stratum.start()
 
     this.logger.info('Connecting to node...')
     this.rpc.onClose.on(this.onDisconnectRpc)
@@ -205,7 +195,7 @@ export class MiningPool {
     this.started = false
     this.rpc.onClose.off(this.onDisconnectRpc)
     this.rpc.close()
-    this.stratum.stop()
+    await this.stratum.stop()
 
     await this.shares.stop()
 

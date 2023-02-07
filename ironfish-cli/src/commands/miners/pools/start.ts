@@ -4,8 +4,6 @@
 import {
   DEFAULT_POOL_HOST,
   DEFAULT_POOL_PORT,
-  DEFAULT_POOL_TLS_HOST,
-  DEFAULT_POOL_TLS_PORT,
   Discord,
   Lark,
   MiningPool,
@@ -35,11 +33,6 @@ export class StartPool extends IronfishCommand {
       char: 'h',
       description: `A host:port listen for stratum connections: ${DEFAULT_POOL_HOST}:${String(
         DEFAULT_POOL_PORT,
-      )}`,
-    }),
-    tlsHost: Flags.string({
-      description: `A host:port listen for stratum connections over tls: ${DEFAULT_POOL_TLS_HOST}:${String(
-        DEFAULT_POOL_TLS_PORT,
       )}`,
     }),
     payouts: Flags.boolean({
@@ -124,20 +117,12 @@ export class StartPool extends IronfishCommand {
       }
     }
 
-    let tlsHost = undefined
-    let tlsPort = undefined
+    if (!host) {
+      host = this.sdk.config.get('poolHost')
+    }
 
-    if (flags.tlsHost) {
-      const parsed = parseUrl(flags.tlsHost)
-
-      if (parsed.hostname) {
-        const resolved = await dns.promises.lookup(parsed.hostname)
-        tlsHost = resolved.address
-      }
-
-      if (parsed.port) {
-        tlsPort = parsed.port
-      }
+    if (!port) {
+      port = this.sdk.config.get('poolPort')
     }
 
     let tlsOptions = undefined
@@ -145,7 +130,12 @@ export class StartPool extends IronfishCommand {
       const fileSystem = this.sdk.fileSystem
       const nodeKeyPath = this.sdk.config.get('tlsKeyPath')
       const nodeCertPath = this.sdk.config.get('tlsCertPath')
-      tlsOptions = await TlsUtils.getTlsOptions(fileSystem, nodeKeyPath, nodeCertPath)
+      tlsOptions = await TlsUtils.getTlsOptions(
+        fileSystem,
+        nodeKeyPath,
+        nodeCertPath,
+        this.logger,
+      )
     }
 
     this.pool = await MiningPool.init({
@@ -156,8 +146,6 @@ export class StartPool extends IronfishCommand {
       webhooks: webhooks,
       host: host,
       port: port,
-      tlsHost: tlsHost,
-      tlsPort: tlsPort,
       tlsOptions: tlsOptions,
       balancePercentPayoutFlag: flags.balancePercentPayout,
       banning: flags.banning,

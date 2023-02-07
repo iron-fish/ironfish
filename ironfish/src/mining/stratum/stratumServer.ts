@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import net from 'net'
-import tls from 'tls'
 import { Assert } from '../../assert'
 import { Config } from '../../fileStores/config'
 import { Logger } from '../../logger'
@@ -14,6 +13,7 @@ import { YupUtils } from '../../utils/yup'
 import { isValidPublicAddress } from '../../wallet/validator'
 import { MiningPool } from '../pool'
 import { mineableHeaderString } from '../utils'
+import { IStratumAdapter } from './adapters'
 import { DisconnectReason } from './constants'
 import { ClientMessageMalformedError } from './errors'
 import {
@@ -35,18 +35,11 @@ import { VERSION_PROTOCOL_STRATUM, VERSION_PROTOCOL_STRATUM_MIN } from './versio
 const FIVE_MINUTES_MS = 5 * 60 * 1000
 
 export class StratumServer {
-  readonly server: net.Server
-  readonly tlsServer: tls.Server | null = null
   readonly pool: MiningPool
   readonly config: Config
   readonly logger: Logger
   readonly peers: StratumPeers
-
-  readonly port: number
-  readonly host: string
-  readonly tlsPort: number | null = null
-  readonly tlsHost: string | null = null
-  readonly enableTlsPool: boolean | undefined = false
+  readonly adapters: IStratumAdapter[] = []
 
   clients: Map<number, StratumServerClient>
   nextMinerId: number
@@ -58,36 +51,21 @@ export class StratumServer {
   readonly version: number
   readonly versionMin: number
 
+  private _isRunning = false
+  private _startPromise: Promise<unknown> | null = null
+
   constructor(options: {
     pool: MiningPool
     config: Config
     logger: Logger
-    port?: number
-    host?: string
-    tlsPort?: number
-    tlsHost?: string
-    tlsOptions?: tls.TlsOptions
     banning?: boolean
-    enableTlsPool?: boolean
   }) {
     this.pool = options.pool
     this.config = options.config
     this.logger = options.logger
-    this.enableTlsPool = options.enableTlsPool
 
     this.version = VERSION_PROTOCOL_STRATUM
     this.versionMin = VERSION_PROTOCOL_STRATUM_MIN
-
-    this.host = options.host ?? this.config.get('poolHost')
-    this.port = options.port ?? this.config.get('poolPort')
-
-    if (options.enableTlsPool && options.tlsOptions) {
-      this.tlsHost = options.tlsHost ?? this.config.get('poolTlsHost')
-      this.tlsPort = options.tlsPort ?? this.config.get('poolTlsPort')
-      this.tlsServer = tls.createServer(options.tlsOptions, (socket) =>
-        this.onConnection(socket),
-      )
-    }
 
     this.clients = new Map()
     this.nextMinerId = 1
@@ -99,24 +77,55 @@ export class StratumServer {
       server: this,
       banning: options.banning,
     })
-
-    this.server = net.createServer((s) => this.onConnection(s))
   }
 
-  start(): void {
-    this.peers.start()
-    this.server.listen(this.port, this.host)
-    if (this.tlsServer) {
-      Assert.isNotNull(this.tlsPort)
-      Assert.isNotNull(this.tlsHost)
-      this.tlsServer.listen(this.tlsPort, this.tlsHost)
+  get isRunning(): boolean {
+    return this._isRunning
+  }
+
+  /** Starts the Stratum server and tells any attached adapters to start serving requests */
+  async start(): Promise<void> {
+    if (this._isRunning) {
+      return
     }
+
+    this.peers.start()
+
+    this._startPromise = Promise.all(this.adapters.map((a) => a.start()))
+    this._isRunning = true
+    await this._startPromise
   }
 
-  stop(): void {
-    this.peers.stop()
-    this.server.close()
-    this.tlsServer?.close()
+  /** Stops the Stratum server and tells any attached adapters to stop serving requests */
+  async stop(): Promise<void> {
+    if (!this._isRunning) {
+      return
+    }
+
+    if (this._startPromise) {
+      await this._startPromise
+    }
+
+    await Promise.all(this.adapters.map((a) => a.stop()))
+    this._isRunning = false
+  }
+
+  /** Adds an adapter to the Stratum server and starts it if the server has already been started */
+  mount(adapter: IStratumAdapter): void {
+    this.adapters.push(adapter)
+    adapter.attach(this)
+
+    if (this._isRunning) {
+      let promise: Promise<unknown> = adapter.start()
+
+      if (this._startPromise) {
+        // Attach this promise to the start promise chain
+        // in case we call stop while were still starting up
+        promise = Promise.all([this._startPromise, promise])
+      }
+
+      this._startPromise = promise
+    }
   }
 
   newWork(miningRequestId: number, block: SerializedBlockTemplate): void {
@@ -140,7 +149,7 @@ export class StratumServer {
     return this.currentWork != null
   }
 
-  private onConnection(socket: net.Socket): void {
+  onConnection(socket: net.Socket): void {
     if (!this.peers.isAllowed(socket)) {
       if (this.peers.isBanned(socket)) {
         this.peers.sendBanMessage(socket)
