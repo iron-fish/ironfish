@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
@@ -210,21 +211,52 @@ export class Account {
     metadata: Buffer,
     name: Buffer,
     owner: Buffer,
+    blockHeader?: { hash: Buffer | null; sequence: number | null },
     tx?: IDatabaseTransaction,
   ): Promise<void> {
+    if (id.equals(Asset.nativeId())) {
+      return
+    }
+
     await this.walletDb.putAsset(
       this,
       id,
       {
+        blockHash: blockHeader?.hash ?? null,
         createdTransactionHash,
         id,
         metadata,
         name,
         owner,
-        // These fields are used for assets the account owns
-        blockHash: null,
-        sequence: null,
+        sequence: blockHeader?.sequence ?? null,
         supply: null,
+      },
+      tx,
+    )
+  }
+
+  async updateAssetWithBlockHeader(
+    assetValue: AssetValue,
+    blockHeader: { hash: Buffer; sequence: number },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    // Don't update for the native asset or if previously confirmed
+    if (assetValue.id.equals(Asset.nativeId()) || assetValue.blockHash) {
+      return
+    }
+
+    await this.walletDb.putAsset(
+      this,
+      assetValue.id,
+      {
+        blockHash: blockHeader.hash,
+        createdTransactionHash: assetValue.createdTransactionHash,
+        id: assetValue.id,
+        metadata: assetValue.metadata,
+        name: assetValue.name,
+        owner: assetValue.owner,
+        sequence: blockHeader.sequence,
+        supply: assetValue.supply,
       },
       tx,
     )

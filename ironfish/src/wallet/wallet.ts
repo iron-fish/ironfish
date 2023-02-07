@@ -421,7 +421,7 @@ export class Wallet {
 
           assetBalanceDeltas.update(transactionDeltas)
 
-          await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, tx)
+          await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, blockHeader, tx)
           scan?.signal(blockHeader.sequence)
         }
 
@@ -440,6 +440,7 @@ export class Wallet {
   private async upsertAssetsFromDecryptedNotes(
     account: Account,
     decryptedNotes: DecryptedNote[],
+    blockHeader?: BlockHeader,
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     for (const { serializedNote } of decryptedNotes) {
@@ -455,6 +456,13 @@ export class Wallet {
           chainAsset.metadata,
           chainAsset.name,
           chainAsset.owner,
+          blockHeader,
+          tx,
+        )
+      } else if (blockHeader) {
+        await account.updateAssetWithBlockHeader(
+          asset,
+          { hash: blockHeader.hash, sequence: blockHeader.sequence },
           tx,
         )
       }
