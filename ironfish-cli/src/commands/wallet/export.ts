@@ -4,7 +4,6 @@
 import { spendingKeyToWords } from '@ironfish/rust-nodejs'
 import { Bech32m, ErrorUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { bech32m } from 'bech32'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
