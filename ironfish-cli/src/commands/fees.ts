@@ -31,7 +31,7 @@ export class FeeCommand extends IronfishCommand {
     this.log('Fee Rates ($ORE/kB)')
     this.log(`slow:    ${feeRates.content.slow || ''}`)
     this.log(`average: ${feeRates.content.average || ''}`)
-    this.log(`fast:   ${feeRates.content.fast || ''}`)
+    this.log(`fast:    ${feeRates.content.fast || ''}`)
   }
 
   async explainFeeRates(client: RpcClient): Promise<void> {
