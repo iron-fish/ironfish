@@ -1,10 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset, ASSET_NAME_LENGTH } from '@ironfish/rust-nodejs'
+import { Asset } from '@ironfish/rust-nodejs'
 import {
   Assert,
-  BufferUtils,
   CurrencyUtils,
   GetAccountTransactionsResponse,
   PartialRecursive,
@@ -13,10 +12,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { TableCols, truncateCol } from '../../utils/table'
-
-const MAX_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH + 1
-const MIN_ASSET_NAME_COLUMN_WIDTH = ASSET_NAME_LENGTH / 2 + 1
+import { TableCols } from '../../utils/table'
 
 export class TransactionsCommand extends IronfishCommand {
   static description = `Display the account transactions`
@@ -108,7 +104,7 @@ export class TransactionsCommand extends IronfishCommand {
         ...transaction,
         group: isGroup ? '┏' : '',
         assetId: nativeAssetId,
-        assetName: '$IRON',
+        assetName: Buffer.from('$IRON').toString('hex'),
         amount,
         feePaid,
       })
@@ -128,8 +124,8 @@ export class TransactionsCommand extends IronfishCommand {
         transactionRows.push({
           ...transaction,
           group: assetCount === 2 ? '' : '┏',
-          assetId: assetId,
-          assetName: BufferUtils.toHuman(Buffer.from(assetName, 'hex')),
+          assetId,
+          assetName,
           amount: BigInt(delta),
           feePaid,
         })
@@ -137,7 +133,7 @@ export class TransactionsCommand extends IronfishCommand {
         transactionRows.push({
           group: index === assetCount - 1 ? '┗' : '┣',
           assetId,
-          assetName: BufferUtils.toHuman(Buffer.from(assetName, 'hex')),
+          assetName,
           amount: BigInt(delta),
         })
       }
@@ -147,9 +143,7 @@ export class TransactionsCommand extends IronfishCommand {
   }
 
   getColumns(extended: boolean): CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> {
-    const assetNameWidth = extended ? MAX_ASSET_NAME_COLUMN_WIDTH : MIN_ASSET_NAME_COLUMN_WIDTH
-
-    let columns: CliUx.Table.table.Columns<TransactionRow> = {
+    return {
       group: {
         header: '',
         minWidth: 3,
@@ -197,44 +191,7 @@ export class TransactionsCommand extends IronfishCommand {
         get: (row) =>
           row.feePaid && row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : '',
       },
-    }
-
-    if (extended) {
-      columns = {
-        ...columns,
-        assetId: {
-          header: 'Asset ID',
-          extended: true,
-        },
-        assetName: {
-          header: 'Asset Name',
-          get: (row) => {
-            Assert.isNotUndefined(row.assetName)
-            return truncateCol(row.assetName, assetNameWidth)
-          },
-          minWidth: assetNameWidth,
-          extended: true,
-        },
-      }
-    } else {
-      columns = {
-        ...columns,
-        asset: {
-          header: 'Asset',
-          get: (row) => {
-            Assert.isNotUndefined(row.assetName)
-            Assert.isNotUndefined(row.assetId)
-            const assetName = truncateCol(row.assetName, assetNameWidth)
-            const text = assetName.padEnd(assetNameWidth, ' ')
-            return `${text} (${row.assetId.slice(0, 5)})`
-          },
-          minWidth: assetNameWidth,
-        },
-      }
-    }
-
-    return {
-      ...columns,
+      ...TableCols.asset({ extended }),
       amount: {
         header: 'Net Amount',
         get: (row) => {
