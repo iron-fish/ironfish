@@ -42,9 +42,6 @@ export class MiningPool {
 
   private eventLoopTimeout: SetTimeoutToken | null
 
-  private attemptPayoutInterval: number
-  private nextPayoutAttempt: number
-
   name: string
 
   nextMiningRequestId: number
@@ -101,9 +98,6 @@ export class MiningPool {
 
     this.eventLoopTimeout = null
 
-    this.attemptPayoutInterval = this.config.get('poolAttemptPayoutInterval')
-    this.nextPayoutAttempt = new Date().getTime()
-
     this.recalculateTargetInterval = null
     this.notifyStatusInterval = null
   }
@@ -116,7 +110,6 @@ export class MiningPool {
     enablePayouts?: boolean
     host?: string
     port?: number
-    balancePercentPayoutFlag?: number
     banning?: boolean
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
@@ -125,7 +118,6 @@ export class MiningPool {
       logger: options.logger,
       webhooks: options.webhooks,
       enablePayouts: options.enablePayouts,
-      balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
 
     return new MiningPool({
@@ -217,12 +209,6 @@ export class MiningPool {
     await this.updateUnconfirmedBlocks()
     await this.updateUnconfirmedPayoutTransactions()
     await this.shares.createNewPayout()
-
-    // TODO: Disable old payout logic, to be removed in next PR
-    // if (this.nextPayoutAttempt <= new Date().getTime()) {
-    //   this.nextPayoutAttempt = new Date().getTime() + this.attemptPayoutInterval * 1000
-    //   await this.shares.createPayout()
-    // }
 
     const eventLoopEndTime = new Date().getTime()
     const eventLoopDuration = eventLoopEndTime - eventLoopStartTime

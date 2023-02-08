@@ -6,7 +6,7 @@ import { Database } from 'sqlite'
 import { Migration } from '../migration'
 
 export default class Migration007 extends Migration {
-  name = '006-add-payout-transaction-table'
+  name = '007-add-payout-transaction-table'
 
   async forward(db: Database): Promise<void> {
     await db.run(`
