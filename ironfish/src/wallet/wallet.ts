@@ -40,7 +40,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
-import { Account, AccountImport } from './account'
+import { Account, AccountImport, SpendingAccount } from './account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
@@ -672,7 +672,7 @@ export class Wallet {
 
   async send(
     memPool: MemPool,
-    sender: Account,
+    sender: SpendingAccount,
     outputs: {
       publicAddress: string
       amount: bigint
@@ -690,13 +690,12 @@ export class Wallet {
       expiration: expiration ?? undefined,
       confirmations: confirmations ?? undefined,
     })
-
     return this.post(raw, memPool, sender.spendingKey)
   }
 
   async mint(
     memPool: MemPool,
-    account: Account,
+    account: SpendingAccount,
     options: MintAssetOptions,
   ): Promise<Transaction> {
     let mintData: MintData
@@ -728,13 +727,12 @@ export class Wallet {
       expiration: options.expiration,
       confirmations: options.confirmations,
     })
-
     return this.post(raw, memPool, account.spendingKey)
   }
 
   async burn(
     memPool: MemPool,
-    account: Account,
+    account: SpendingAccount,
     assetId: Buffer,
     value: bigint,
     fee: bigint,
@@ -748,7 +746,6 @@ export class Wallet {
       expiration: expiration,
       confirmations: confirmations,
     })
-
     return this.post(raw, memPool, account.spendingKey)
   }
 

@@ -9,7 +9,7 @@ export type ExportAccountRequest = { account?: string }
 export type ExportAccountResponse = {
   account: {
     name: string
-    spendingKey: string
+    spendingKey?: string
     incomingViewKey: string
     outgoingViewKey: string
     publicAddress: string
@@ -27,7 +27,7 @@ export const ExportAccountResponseSchema: yup.ObjectSchema<ExportAccountResponse
     account: yup
       .object({
         name: yup.string().defined(),
-        spendingKey: yup.string().defined(),
+        spendingKey: yup.string(),
         incomingViewKey: yup.string().defined(),
         outgoingViewKey: yup.string().defined(),
         publicAddress: yup.string().defined(),

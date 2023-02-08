@@ -10,6 +10,7 @@ import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { Note } from '../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../storage'
 import { StorageUtils } from '../storage/database/utils'
+import { WithRequired } from '../utils'
 import { DecryptedNote } from '../workerPool/tasks/decryptNotes'
 import { AssetBalances } from './assetBalances'
 import { AccountValue } from './walletdb/accountValue'
@@ -24,13 +25,15 @@ export const ACCOUNT_KEY_LENGTH = 32
 
 export type AccountImport = { name: string; spendingKey: string }
 
+export type SpendingAccount = WithRequired<Account, 'spendingKey'>
+
 export class Account {
   private readonly walletDb: WalletDB
 
   readonly id: string
   readonly displayName: string
   name: string
-  readonly spendingKey: string
+  readonly spendingKey?: string
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
   publicAddress: string
@@ -40,20 +43,12 @@ export class Account {
   constructor({
     id,
     name,
+    publicAddress,
+    walletDb,
     spendingKey,
     incomingViewKey,
     outgoingViewKey,
-    publicAddress,
-    walletDb,
-  }: {
-    id: string
-    name: string
-    spendingKey: string
-    incomingViewKey: string
-    outgoingViewKey: string
-    publicAddress: string
-    walletDb: WalletDB
-  }) {
+  }: AccountValue & { walletDb: WalletDB }) {
     this.id = id
     this.name = name
     this.spendingKey = spendingKey
@@ -582,6 +577,10 @@ export class Account {
     })
 
     return assetBalanceDeltas
+  }
+  spendingAccount(): SpendingAccount {
+    Assert.isTruthy(this.spendingKey, 'The provided account is not a spending account')
+    return this as SpendingAccount
   }
 
   async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {

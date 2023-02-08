@@ -22,7 +22,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
-import { Account } from '../wallet'
+import { SpendingAccount } from '../wallet'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
@@ -901,7 +901,7 @@ describe('Blockchain', () => {
   describe('asset updates', () => {
     async function burnAsset(
       node: IronfishNode,
-      account: Account,
+      account: SpendingAccount,
       sequence: number,
       asset: Asset,
       value: bigint,

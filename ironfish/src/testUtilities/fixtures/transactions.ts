@@ -7,7 +7,7 @@ import { IronfishNode } from '../../node'
 import { BurnDescription } from '../../primitives/burnDescription'
 import { MintData } from '../../primitives/rawTransaction'
 import { SerializedTransaction, Transaction } from '../../primitives/transaction'
-import { Account, Wallet } from '../../wallet'
+import { Account, SpendingAccount, Wallet } from '../../wallet'
 import { createRawTransaction } from '../helpers/transaction'
 import { useAccountFixture } from './account'
 import { FixtureGenerate, useFixture } from './fixture'
@@ -22,7 +22,7 @@ export async function restoreTransactionFixtureToAccounts(
 export async function usePostTxFixture(options: {
   node: IronfishNode
   wallet: Wallet
-  from: Account
+  from: SpendingAccount
   to?: Account
   fee?: bigint
   amount?: bigint
@@ -54,7 +54,7 @@ export async function usePostTxFixture(options: {
 
 export async function useTxFixture(
   wallet: Wallet,
-  from: Account,
+  from: SpendingAccount,
   to: Account,
   generate?: FixtureGenerate<Transaction>,
   fee?: bigint,
@@ -82,7 +82,6 @@ export async function useTxFixture(
           expirationDelta: 0,
         },
       )
-
       return await wallet.workerPool.postTransaction(raw, from.spendingKey)
     })
 
@@ -103,7 +102,7 @@ export async function useTxFixture(
 
 export async function useMinersTxFixture(
   wallet: Wallet,
-  to?: Account,
+  to?: SpendingAccount,
   sequence?: number,
   amount = 0,
 ): Promise<Transaction> {
@@ -113,7 +112,6 @@ export async function useMinersTxFixture(
 
   return useTxFixture(wallet, to, to, () => {
     Assert.isNotUndefined(to)
-
     return wallet.chain.strategy.createMinersFee(
       BigInt(amount),
       sequence || wallet.chain.head.sequence + 1,

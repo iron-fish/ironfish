@@ -51,3 +51,8 @@ export type Constructor<T> = new (...args: any[]) => T
 export function HasOwnProperty<X extends {}, Y extends PropertyKey>(obj: X, prop: Y): boolean {
   return Object.hasOwnProperty.call(obj, prop)
 }
+
+// When used, this type will require a value to be set and non-null
+// ie Account.spendingKey? is optional
+// with WithRequired<Account, 'spendingKey'>, the return type has Account.spendingKey (non optional)
+export type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] }
