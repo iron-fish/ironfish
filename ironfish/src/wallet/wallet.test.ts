@@ -789,7 +789,7 @@ describe('Accounts', () => {
         },
       )
 
-      expect(rawTransaction.receives.length).toBe(1)
+      expect(rawTransaction.outputs.length).toBe(1)
       expect(rawTransaction.expiration).toBeDefined()
       expect(rawTransaction.burns.length).toBe(0)
       expect(rawTransaction.mints.length).toBe(0)

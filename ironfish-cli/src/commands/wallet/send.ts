@@ -200,7 +200,7 @@ export class Send extends IronfishCommand {
 
       const createTransactionRequest: CreateTransactionRequest = {
         sender: from,
-        receives: [
+        outputs: [
           {
             publicAddress: to,
             amount: CurrencyUtils.encode(amount),
@@ -246,7 +246,7 @@ export class Send extends IronfishCommand {
     } else {
       const createResponse = await client.createTransaction({
         sender: from,
-        receives: [
+        outputs: [
           {
             publicAddress: to,
             amount: CurrencyUtils.encode(amount),

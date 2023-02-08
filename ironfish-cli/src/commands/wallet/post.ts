@@ -114,8 +114,8 @@ export class PostCommand extends IronfishCommand {
 
   confirm(raw: RawTransaction, account: string): Promise<boolean> {
     let spending = 0n
-    for (const recieve of raw.receives) {
-      spending += recieve.note.value()
+    for (const output of raw.outputs) {
+      spending += output.note.value()
     }
 
     this.log(

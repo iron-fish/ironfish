@@ -185,7 +185,7 @@ export default class Faucet extends IronfishCommand {
       await api.startFaucetTransaction(faucetTransaction.id)
     }
 
-    const receives = faucetTransactions.map((ft) => {
+    const outputs = faucetTransactions.map((ft) => {
       return {
         publicAddress: ft.public_key,
         amount: BigInt(FAUCET_AMOUNT).toString(),
@@ -196,7 +196,7 @@ export default class Faucet extends IronfishCommand {
 
     const tx = await client.sendTransaction({
       fromAccountName: account,
-      receives,
+      outputs,
       fee: BigInt(faucetTransactions.length * FAUCET_FEE).toString(),
     })
 

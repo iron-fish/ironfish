@@ -33,7 +33,7 @@ export class RawTransaction {
   fee = 0n
   mints: MintData[] = []
   burns: BurnDescription[] = []
-  receives: { note: Note }[] = []
+  outputs: { note: Note }[] = []
 
   spends: {
     note: Note
@@ -53,9 +53,9 @@ export class RawTransaction {
       spend.note.returnReference()
     }
 
-    for (const receive of this.receives) {
-      builder.output(receive.note.takeReference())
-      receive.note.returnReference()
+    for (const output of this.outputs) {
+      builder.output(output.note.takeReference())
+      output.note.returnReference()
     }
 
     for (const mint of this.mints) {
@@ -113,9 +113,9 @@ export class RawTransactionSerde {
       }
     }
 
-    bw.writeU64(raw.receives.length)
-    for (const receive of raw.receives) {
-      bw.writeVarBytes(receive.note.serialize())
+    bw.writeU64(raw.outputs.length)
+    for (const output of raw.outputs) {
+      bw.writeVarBytes(output.note.serialize())
     }
 
     bw.writeU64(raw.mints.length)
@@ -164,10 +164,10 @@ export class RawTransactionSerde {
       raw.spends.push({ note, witness })
     }
 
-    const receivesLength = reader.readU64()
-    for (let i = 0; i < receivesLength; i++) {
+    const outputsLength = reader.readU64()
+    for (let i = 0; i < outputsLength; i++) {
       const note = new Note(reader.readVarBytes())
-      raw.receives.push({ note })
+      raw.outputs.push({ note })
     }
 
     const mintsLength = reader.readU64()
@@ -211,9 +211,9 @@ export class RawTransactionSerde {
       }
     }
 
-    size += 8 // raw.receives.length
-    for (const receive of raw.receives) {
-      size += bufio.sizeVarBytes(receive.note.serialize())
+    size += 8 // raw.outputs.length
+    for (const output of raw.outputs) {
+      size += bufio.sizeVarBytes(output.note.serialize())
     }
 
     size += 8 // raw.mints.length

@@ -673,7 +673,7 @@ export class Wallet {
   async send(
     memPool: MemPool,
     sender: Account,
-    receives: {
+    outputs: {
       publicAddress: string
       amount: bigint
       memo: string
@@ -684,7 +684,7 @@ export class Wallet {
     expiration?: number | null,
     confirmations?: number | null,
   ): Promise<Transaction> {
-    const raw = await this.createTransaction(sender, receives, [], [], {
+    const raw = await this.createTransaction(sender, outputs, [], [], {
       fee,
       expirationDelta,
       expiration: expiration ?? undefined,
@@ -754,7 +754,7 @@ export class Wallet {
 
   async createTransaction(
     sender: Account,
-    receives: {
+    outputs: {
       publicAddress: string
       amount: bigint
       memo: string
@@ -804,16 +804,16 @@ export class Wallet {
       raw.mints = mints
       raw.burns = burns
 
-      for (const receive of receives) {
+      for (const output of outputs) {
         const note = new NativeNote(
-          receive.publicAddress,
-          receive.amount,
-          receive.memo,
-          receive.assetId,
+          output.publicAddress,
+          output.amount,
+          output.memo,
+          output.assetId,
           sender.publicAddress,
         )
 
-        raw.receives.push({ note: new Note(note.serialize()) })
+        raw.outputs.push({ note: new Note(note.serialize()) })
       }
 
       if (options.fee) {
@@ -828,7 +828,7 @@ export class Wallet {
         size += 4 // expiration
         size += 64 // signature
 
-        size += raw.receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
+        size += raw.outputs.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
 
         size += raw.mints.length * (ASSET_LENGTH + 8)
 
@@ -919,9 +919,9 @@ export class Wallet {
     const amountsNeeded = new BufferMap<bigint>()
     amountsNeeded.set(Asset.nativeId(), options.fee)
 
-    for (const receive of raw.receives) {
-      const currentAmount = amountsNeeded.get(receive.note.assetId()) ?? BigInt(0)
-      amountsNeeded.set(receive.note.assetId(), currentAmount + receive.note.value())
+    for (const output of raw.outputs) {
+      const currentAmount = amountsNeeded.get(output.note.assetId()) ?? BigInt(0)
+      amountsNeeded.set(output.note.assetId(), currentAmount + output.note.value())
     }
 
     for (const burn of raw.burns) {

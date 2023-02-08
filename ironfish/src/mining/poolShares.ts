@@ -162,7 +162,7 @@ export class MiningPoolShares {
 
       const transaction = await this.rpc.sendTransaction({
         fromAccountName: this.accountName,
-        receives: transactionReceives,
+        outputs: transactionReceives,
         fee: transactionReceives.length.toString(),
       })
 
