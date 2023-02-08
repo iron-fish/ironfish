@@ -1292,18 +1292,29 @@ export class Wallet {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
 
-    if (this.listAccounts().find((a) => toImport.spendingKey === a.spendingKey)) {
+    if (toImport.spendingKey && this.listAccounts().find((a) => toImport.spendingKey === a.spendingKey)) {
       throw new Error(`Account already exists with provided spending key`)
     }
 
-    const key = generateKeyFromPrivateKey(toImport.spendingKey)
 
-    const accountValue: AccountValue = {
-      ...toImport,
-      id: uuid(),
-      incomingViewKey: key.incoming_view_key,
-      outgoingViewKey: key.outgoing_view_key,
-      publicAddress: key.public_address,
+    let accountValue: AccountValue
+    if (toImport.spendingKey) {
+      // if spending key is provided, derive everything from that, even if view keys were also provided.
+      const key = generateKeyFromPrivateKey(toImport.spendingKey)
+      accountValue = {
+        ...toImport,
+        id: uuid(),
+        incomingViewKey: key.incoming_view_key,
+        outgoingViewKey: key.outgoing_view_key,
+        publicAddress: key.public_address,
+      }
+    } else { 
+      // if spending key is not provided, use the provided view keys
+      accountValue = {
+        ...toImport,
+        id: uuid(),
+        // TODO BREADCRUMB: how to get public address without a spending key? should accountValues be changed to not need it? should it be required to import?
+      }
     }
 
     validateAccount(accountValue)
