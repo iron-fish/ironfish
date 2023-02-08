@@ -5,7 +5,7 @@ import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { BlockSerde, SerializedBlock } from '../primitives/block'
 import { Target } from '../primitives/target'
 import { IJSON } from '../serde'
-import { createNodeTest } from '../testUtilities'
+import { createNodeTest, useAccountFixture } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
 import { GenesisBlockInfo, makeGenesisBlock } from './makeGenesisBlock'
 
@@ -63,7 +63,7 @@ describe('Create genesis block', () => {
     const amountBigint = BigInt(amountNumber)
 
     // Construct parameters for the genesis block
-    const account = await node.wallet.createAccount('test', true)
+    const account = await useAccountFixture(node.wallet, 'test', true)
     const info: GenesisBlockInfo = {
       timestamp: Date.now(),
       target: Target.maxTarget(),
