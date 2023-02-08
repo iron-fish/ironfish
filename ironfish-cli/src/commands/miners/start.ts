@@ -9,6 +9,8 @@ import {
   MiningSoloMiner,
   parseUrl,
   SetIntervalToken,
+  StratumTcpClient,
+  StratumTlsClient,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import dns from 'dns'
@@ -103,15 +105,20 @@ export class Miner extends IronfishCommand {
         `Starting to mine with public address: ${publicAddress} at pool ${host}:${port}${nameInfo}`,
       )
 
+      let stratum
+      if (flags.tls) {
+        stratum = new StratumTlsClient({ host, port, logger: this.logger })
+      } else {
+        stratum = new StratumTcpClient({ host, port, logger: this.logger })
+      }
+
       const miner = new MiningPoolMiner({
         threadCount: flags.threads,
         publicAddress,
         logger: this.logger,
         batchSize,
-        host: host,
-        port: port,
+        stratum,
         name: flags.name,
-        tlsEnabled: flags.tls,
       })
 
       miner.start()

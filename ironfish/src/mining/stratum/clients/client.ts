@@ -1,15 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import net from 'net'
-import tls from 'tls'
-import { Event } from '../../event'
-import { Logger } from '../../logger'
-import { ErrorUtils } from '../../utils'
-import { SetTimeoutToken } from '../../utils/types'
-import { YupUtils } from '../../utils/yup'
-import { DisconnectReason } from './constants'
-import { ServerMessageMalformedError } from './errors'
+import { Event } from '../../../event'
+import { Logger } from '../../../logger'
+import { MessageBuffer } from '../../../rpc'
+import { ErrorUtils } from '../../../utils'
+import { SetTimeoutToken } from '../../../utils/types'
+import { YupUtils } from '../../../utils/yup'
+import { DisconnectReason } from '../constants'
+import { ServerMessageMalformedError } from '../errors'
 import {
   MiningDisconnectMessageSchema,
   MiningGetStatusMessage,
@@ -27,16 +26,12 @@ import {
   MiningWaitForWorkSchema,
   StratumMessage,
   StratumMessageSchema,
-} from './messages'
-import { VERSION_PROTOCOL_STRATUM } from './version'
+} from '../messages'
+import { VERSION_PROTOCOL_STRATUM } from '../version'
 
-export class StratumClient {
-  socket: net.Socket
-  readonly host: string
-  readonly port: number
+export abstract class StratumClient {
   readonly logger: Logger
   readonly version: number
-  readonly tlsEnabled: boolean
 
   private started: boolean
   private id: number | null
@@ -44,7 +39,7 @@ export class StratumClient {
   private connectWarned: boolean
   private connectTimeout: SetTimeoutToken | null
   private nextMessageId: number
-  private messageBuffer = ''
+  private readonly messageBuffer = new MessageBuffer('\n')
 
   private disconnectReason: string | null = null
   private disconnectUntil: number | null = null
@@ -58,12 +53,9 @@ export class StratumClient {
   readonly onWaitForWork = new Event<[MiningWaitForWorkMessage]>()
   readonly onStatus = new Event<[MiningStatusMessage]>()
 
-  constructor(options: { host: string; port: number; tlsEnabled?: boolean; logger: Logger }) {
-    this.host = options.host
-    this.port = options.port
+  constructor(options: { logger: Logger }) {
     this.logger = options.logger
     this.version = VERSION_PROTOCOL_STRATUM
-    this.tlsEnabled = options.tlsEnabled ?? false
 
     this.started = false
     this.id = null
@@ -71,9 +63,11 @@ export class StratumClient {
     this.connected = false
     this.connectWarned = false
     this.connectTimeout = null
-
-    this.socket = new net.Socket()
   }
+
+  protected abstract connect(): Promise<void>
+  protected abstract writeData(data: string): void
+  protected abstract close(): Promise<void>
 
   start(): void {
     if (this.started) {
@@ -90,17 +84,10 @@ export class StratumClient {
       this.connectTimeout = setTimeout(() => void this.startConnecting(), 60 * 1000)
       return
     }
-    let connected
-    if (this.tlsEnabled) {
-      connected = await this.connectTlsSocket()
-        .then(() => true)
-        .catch(() => false)
-    } else {
-      connected = await connectSocket(this.socket, this.host, this.port)
-        .then(() => true)
-        .catch(() => false)
-    }
-    this.socket.on('data', (data) => void this.onData(data).catch((e) => this.onError(e)))
+
+    const connected = await this.connect()
+      .then(() => true)
+      .catch(() => false)
 
     if (!this.started) {
       return
@@ -108,7 +95,7 @@ export class StratumClient {
 
     if (!connected) {
       if (!this.connectWarned) {
-        this.logger.warn(`Failed to connect to pool at ${this.host}:${this.port}, retrying...`)
+        this.logger.warn(`Failed to connect to pool, retrying...`)
         this.connectWarned = true
       }
 
@@ -122,7 +109,7 @@ export class StratumClient {
   }
 
   stop(): void {
-    this.socket.end()
+    void this.close()
 
     if (this.connectTimeout) {
       clearTimeout(this.connectTimeout)
@@ -168,22 +155,18 @@ export class StratumClient {
       body: body,
     }
 
-    this.socket.write(JSON.stringify(message) + '\n')
+    this.writeData(JSON.stringify(message) + '\n')
   }
 
-  private onConnect(): void {
+  protected onConnect(): void {
     this.connected = true
-    this.socket.on('error', this.onError)
-    this.socket.on('close', this.onDisconnect)
 
     this.logger.info('Successfully connected to pool')
   }
 
-  private onDisconnect = (): void => {
+  protected onDisconnect = (): void => {
     this.connected = false
-    this.messageBuffer = ''
-    this.socket.off('error', this.onError)
-    this.socket.off('close', this.onDisconnect)
+    this.messageBuffer.clear()
 
     this.onWaitForWork.emit(undefined)
 
@@ -210,42 +193,15 @@ export class StratumClient {
     this.connectTimeout = setTimeout(() => void this.startConnecting(), 5000)
   }
 
-  private onError = (error: unknown): void => {
+  protected onError = (error: unknown): void => {
     this.logger.error(`Stratum Error ${ErrorUtils.renderError(error)}`)
   }
 
-  private connectTlsSocket(): Promise<void> {
-    return new Promise((resolve, reject): void => {
-      const onSecureConnect = () => {
-        socket.off('secureConnection', onSecureConnect)
-        socket.off('error', onError)
-        resolve()
-      }
+  protected async onData(data: Buffer): Promise<void> {
+    this.messageBuffer.write(data)
 
-      const onError = (error: unknown) => {
-        socket.off('secureConnection', onSecureConnect)
-        socket.off('error', onError)
-        reject(error)
-      }
-
-      const options = {
-        rejectUnauthorized: false,
-      }
-
-      const socket = tls.connect(this.port, this.host, options, onSecureConnect)
-      socket.on('error', onError)
-      this.socket = socket
-    })
-  }
-
-  private async onData(data: Buffer): Promise<void> {
-    this.messageBuffer += data.toString('utf-8')
-    const lastDelimiterIndex = this.messageBuffer.lastIndexOf('\n')
-    const splits = this.messageBuffer.substring(0, lastDelimiterIndex).trim().split('\n')
-    this.messageBuffer = this.messageBuffer.substring(lastDelimiterIndex + 1)
-
-    for (const split of splits) {
-      const payload: unknown = JSON.parse(split)
+    for (const message of this.messageBuffer.readMessages()) {
+      const payload: unknown = JSON.parse(message)
 
       const header = await YupUtils.tryValidate(StratumMessageSchema, payload)
 
@@ -267,7 +223,7 @@ export class StratumClient {
           this.disconnectUntil = body.result?.bannedUntil ?? null
           this.disconnectMessage = body.result?.message ?? null
 
-          this.socket.destroy()
+          this.stop()
           break
         }
 
@@ -332,25 +288,4 @@ export class StratumClient {
       }
     }
   }
-}
-
-// Transform net.Socket.connect() callback into a nicer promise style interface
-function connectSocket(socket: net.Socket, host: string, port: number): Promise<void> {
-  return new Promise((resolve, reject): void => {
-    const onConnect = () => {
-      socket.off('connect', onConnect)
-      socket.off('error', onError)
-      resolve()
-    }
-
-    const onError = (error: unknown) => {
-      socket.off('connect', onConnect)
-      socket.off('error', onError)
-      reject(error)
-    }
-
-    socket.on('error', onError)
-    socket.on('connect', onConnect)
-    socket.connect(port, host)
-  })
 }
