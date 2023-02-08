@@ -11,7 +11,7 @@ import { BufferUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { truncateCol } from '../../utils/table'
+import { TableCols } from '../../utils/table'
 
 const MAX_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH + 1
 const MIN_ASSET_METADATA_COLUMN_WIDTH = ASSET_METADATA_LENGTH / 2 + 1
@@ -57,25 +57,20 @@ export class AssetsCommand extends IronfishCommand {
       CliUx.ux.table(
         [asset],
         {
-          name: {
+          name: TableCols.fixedWidth({
             header: 'Name',
-            minWidth: assetNameWidth,
-            get: (row) =>
-              truncateCol(BufferUtils.toHuman(Buffer.from(row.name, 'hex')), assetNameWidth),
-          },
+            width: assetNameWidth,
+            get: (row) => BufferUtils.toHuman(Buffer.from(row.name, 'hex')),
+          }),
           id: {
             header: 'ID',
             minWidth: ASSET_ID_LENGTH + 1,
           },
-          metadata: {
+          metadata: TableCols.fixedWidth({
             header: 'Metadata',
-            minWidth: assetMetadataWidth,
-            get: (row) =>
-              truncateCol(
-                BufferUtils.toHuman(Buffer.from(row.metadata, 'hex')),
-                assetMetadataWidth,
-              ),
-          },
+            width: assetMetadataWidth,
+            get: (row) => BufferUtils.toHuman(Buffer.from(row.metadata, 'hex')),
+          }),
           status: {
             header: 'Status',
             minWidth: 12,
