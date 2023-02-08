@@ -37,6 +37,17 @@ export type FollowChainStreamResponse = {
       fee: number
       notes: Array<{ commitment: string }>
       spends: Array<{ nullifier: string }>
+      mints: Array<{
+        id: string
+        metadata: string
+        name: string
+        owner: string
+        value: string
+      }>
+      burns: Array<{
+        id: string
+        value: string
+      }>
     }>
   }
 }
@@ -91,6 +102,29 @@ export const FollowChainStreamResponseSchema: yup.ObjectSchema<FollowChainStream
                       .defined(),
                   )
                   .defined(),
+                mints: yup
+                  .array(
+                    yup
+                      .object({
+                        id: yup.string().defined(),
+                        metadata: yup.string().defined(),
+                        name: yup.string().defined(),
+                        owner: yup.string().defined(),
+                        value: yup.string().defined(),
+                      })
+                      .defined(),
+                  )
+                  .defined(),
+                burns: yup
+                  .array(
+                    yup
+                      .object({
+                        id: yup.string().defined(),
+                        value: yup.string().defined(),
+                      })
+                      .defined(),
+                  )
+                  .defined(),
               })
               .defined(),
           )
@@ -124,6 +158,17 @@ router.register<typeof FollowChainStreamRequestSchema, FollowChainStreamResponse
             })),
             spends: transaction.spends.map((spend) => ({
               nullifier: spend.nullifier.toString('hex'),
+            })),
+            mints: transaction.mints.map((mint) => ({
+              id: mint.asset.id().toString('hex'),
+              metadata: BufferUtils.toHuman(mint.asset.metadata()),
+              name: BufferUtils.toHuman(mint.asset.name()),
+              owner: mint.asset.owner().toString('hex'),
+              value: mint.value.toString(),
+            })),
+            burns: transaction.burns.map((burn) => ({
+              id: burn.assetId.toString('hex'),
+              value: burn.value.toString(),
             })),
           }
         })
