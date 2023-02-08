@@ -10,6 +10,7 @@ import Migration005 from './005-add-payout-period-table'
 import Migration006 from './006-add-block-table'
 import Migration007 from './007-add-payout-transaction-table'
 import Migration008 from './008-add-payout-share-table'
+import Migration009 from './009-remove-old-tables'
 
 export const MIGRATIONS = [
   Migration001,
@@ -20,4 +21,5 @@ export const MIGRATIONS = [
   Migration006,
   Migration007,
   Migration008,
+  Migration009,
 ]

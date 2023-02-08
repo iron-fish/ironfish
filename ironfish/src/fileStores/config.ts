@@ -145,11 +145,6 @@ export type ConfigOptions = {
   poolBanning: boolean
 
   /**
-   * The percent of the confirmed balance of the pool's account that it will payout
-   */
-  poolBalancePercentPayout: number
-
-  /**
    * The host that the pool is listening for miner connections on.
    */
   poolHost: string
@@ -163,16 +158,6 @@ export type ConfigOptions = {
    * The pool difficulty, which determines how often miners submit shares.
    */
   poolDifficulty: string
-
-  /**
-   * The length of time in seconds that the pool will wait between checking if it is time to make a payout.
-   */
-  poolAttemptPayoutInterval: number
-
-  /**
-   * The length of time in seconds that the pool will wait between successful payouts.
-   */
-  poolSuccessfulPayoutInterval: number
 
   /**
    * The length of time in seconds that the pool will wait between status
@@ -291,12 +276,9 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     poolName: yup.string(),
     poolAccountName: yup.string(),
     poolBanning: yup.boolean(),
-    poolBalancePercentPayout: YupUtils.isPercent,
     poolHost: yup.string().trim(),
     poolPort: YupUtils.isPort,
     poolDifficulty: yup.string(),
-    poolAttemptPayoutInterval: YupUtils.isPositiveInteger,
-    poolSuccessfulPayoutInterval: YupUtils.isPositiveInteger,
     poolStatusNotificationInterval: YupUtils.isPositiveInteger,
     poolRecentShareCutoff: YupUtils.isPositiveInteger,
     poolDiscordWebhook: yup.string(),
@@ -373,12 +355,9 @@ export class Config extends KeyStore<ConfigOptions> {
       poolName: 'Iron Fish Pool',
       poolAccountName: 'default',
       poolBanning: true,
-      poolBalancePercentPayout: 10,
       poolHost: DEFAULT_POOL_HOST,
       poolPort: DEFAULT_POOL_PORT,
       poolDifficulty: '15000000000',
-      poolAttemptPayoutInterval: 15 * 60, // 15 minutes
-      poolSuccessfulPayoutInterval: 2 * 60 * 60, // 2 hours
       poolStatusNotificationInterval: 30 * 60, // 30 minutes
       poolRecentShareCutoff: 2 * 60 * 60, // 2 hours
       poolPayoutPeriodDuration: 2 * 60 * 60, // 2 hours

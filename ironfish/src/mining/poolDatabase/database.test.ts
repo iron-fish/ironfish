@@ -234,6 +234,24 @@ describe('poolDatabase', () => {
       })
     })
 
+    it('shareCountSince', async () => {
+      const address1 = 'publicAddress1'
+      const address2 = 'publicAddress2'
+
+      const before = new Date().getTime() - 10 * 1000 // 10 seconds in the past
+
+      await db.newShare(address1)
+      await db.newShare(address2)
+
+      const after = new Date().getTime() + 10 * 1000 // 10 seconds in the future
+
+      await expect(db.shareCountSince(before)).resolves.toEqual(2)
+      await expect(db.shareCountSince(after)).resolves.toEqual(0)
+
+      await expect(db.shareCountSince(before, address1)).resolves.toEqual(1)
+      await expect(db.shareCountSince(after, address1)).resolves.toEqual(0)
+    })
+
     it('marks shares paid', async () => {
       const address = 'testPublicAddress'
 
