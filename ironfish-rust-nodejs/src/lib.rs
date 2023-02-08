@@ -102,12 +102,12 @@ pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
     })
 }
 
-#[napi] // TODO this macro expansion is an error?
-pub fn generate_public_address_from_incoming_view_key(view_key: String) -> Result<PublicAddress> {
+#[napi]
+pub fn generate_public_address_from_incoming_view_key(view_key: String) -> Result<String> {
     let sapling_view_key = IncomingViewKey::from_hex(&view_key).map_err(to_napi_err)?;
     let sapling_public_address = PublicAddress::from_view_key(&sapling_view_key);
 
-    Ok(sapling_public_address)
+    Ok(sapling_public_address.hex_public_address())
 }
 
 #[napi]
