@@ -377,6 +377,33 @@ describe('poolDatabase', () => {
       expect(shareCount3).toEqual(3)
     })
 
+    it('pendingShareCount', async () => {
+      const payoutPeriod = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod)
+
+      const publicAddress1 = 'publicAddress1'
+      const publicAddress2 = 'publicAddress2'
+
+      // 1 share each that is paid out
+      await db.newShare(publicAddress1)
+      await db.newShare(publicAddress2)
+
+      await db.markSharesPaid(payoutPeriod.id, 1, [publicAddress1, publicAddress2])
+
+      // 1 share each that is not paid out
+      await db.newShare(publicAddress1)
+      await db.newShare(publicAddress2)
+
+      await db.rolloverPayoutPeriod(new Date().getTime() + 100)
+
+      // 1 share each that is not paid out in another payout period
+      await db.newShare(publicAddress1)
+      await db.newShare(publicAddress2)
+
+      await expect(db.pendingShareCount()).resolves.toEqual(4)
+      await expect(db.pendingShareCount(publicAddress1)).resolves.toEqual(2)
+    })
+
     it('getPayoutReward', async () => {
       const payoutPeriod1 = await db.getCurrentPayoutPeriod()
       Assert.isNotUndefined(payoutPeriod1)
