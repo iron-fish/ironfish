@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
+import { LogLevel } from 'consola'
 import { Assert } from '../assert'
 import { createRootLogger } from '../logger'
 import { createRouteTest } from '../testUtilities/routeTest'
@@ -13,10 +14,12 @@ describe('poolShares', () => {
   let shares: MiningPoolShares
 
   beforeEach(async () => {
+    const logger = createRootLogger().withTag('test')
+    logger.level = LogLevel.Silent
     shares = await MiningPoolShares.init({
       rpc: routeTest.client,
       config: routeTest.sdk.config,
-      logger: createRootLogger().withTag('test'),
+      logger,
       enablePayouts: true,
       dbPath: ':memory:',
     })
