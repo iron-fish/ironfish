@@ -7,6 +7,8 @@ import {
   ASSET_LENGTH,
   generateKey,
   generateKeyFromPrivateKey,
+  generatePublicAddressFromIncomingViewKey,
+  GENERATOR_LENGTH,
   Note as NativeNote,
 } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
@@ -1297,7 +1299,7 @@ export class Wallet {
     }
 
 
-    let accountValue: AccountValue
+    let accountValue: AccountValue = {} as AccountValue 
     if (toImport.spendingKey) {
       // if spending key is provided, derive everything from that, even if view keys were also provided.
       const key = generateKeyFromPrivateKey(toImport.spendingKey)
@@ -1308,12 +1310,15 @@ export class Wallet {
         outgoingViewKey: key.outgoing_view_key,
         publicAddress: key.public_address,
       }
-    } else { 
+    } else if (toImport.incomingViewKey && toImport.outgoingViewKey) { 
       // if spending key is not provided, use the provided view keys
+      const publicAddress = generatePublicAddressFromIncomingViewKey(toImport.incomingViewKey as string)
       accountValue = {
         ...toImport,
         id: uuid(),
-        // TODO BREADCRUMB: how to get public address without a spending key? should accountValues be changed to not need it? should it be required to import?
+        incomingViewKey: toImport.incomingViewKey,
+        outgoingViewKey: toImport.outgoingViewKey,
+        publicAddress: publicAddress,
       }
     }
 
