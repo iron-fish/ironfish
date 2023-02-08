@@ -57,7 +57,7 @@ export class AssetsCommand extends IronfishCommand {
       CliUx.ux.table(
         [asset],
         {
-          name: TableCols.fixedWidth<GetAssetsResponse>({
+          name: TableCols.fixedWidth({
             header: 'Name',
             width: assetNameWidth,
             get: (row) => BufferUtils.toHuman(Buffer.from(row.name, 'hex')),
@@ -66,7 +66,7 @@ export class AssetsCommand extends IronfishCommand {
             header: 'ID',
             minWidth: ASSET_ID_LENGTH + 1,
           },
-          metadata: TableCols.fixedWidth<GetAssetsResponse>({
+          metadata: TableCols.fixedWidth({
             header: 'Metadata',
             width: assetMetadataWidth,
             get: (row) => BufferUtils.toHuman(Buffer.from(row.metadata, 'hex')),
