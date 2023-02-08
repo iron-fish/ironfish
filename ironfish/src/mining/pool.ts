@@ -114,7 +114,7 @@ export class MiningPool {
     port: number
     balancePercentPayoutFlag?: number
     banning?: boolean
-    enableTls?: boolean
+    tls?: boolean
     tlsOptions?: tls.TlsOptions
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
@@ -135,7 +135,7 @@ export class MiningPool {
       banning: options.banning,
     })
 
-    if (options.enableTls) {
+    if (options.tls) {
       Assert.isNotUndefined(options.tlsOptions)
       pool.stratum.mount(
         new StratumTlsAdapter({

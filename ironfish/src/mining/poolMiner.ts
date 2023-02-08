@@ -9,7 +9,7 @@ import { FileUtils } from '../utils/file'
 import { GraffitiUtils } from '../utils/graffiti'
 import { PromiseUtils } from '../utils/promise'
 import { isValidPublicAddress } from '../wallet/validator'
-import { StratumClient } from './stratum/stratumClient'
+import { StratumClient } from './stratum/clients/client'
 import { MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET } from './utils'
 
 export class MiningPoolMiner {
@@ -35,8 +35,7 @@ export class MiningPoolMiner {
     batchSize: number
     logger: Logger
     publicAddress: string
-    host: string
-    port: number
+    stratum: StratumClient
     name?: string
   }) {
     this.logger = options.logger
@@ -50,11 +49,7 @@ export class MiningPoolMiner {
     const threadCount = options.threadCount ?? 1
     this.threadPool = new ThreadPoolHandler(threadCount, options.batchSize, false)
 
-    this.stratum = new StratumClient({
-      host: options.host,
-      port: options.port,
-      logger: options.logger,
-    })
+    this.stratum = options.stratum
     this.stratum.onConnected.on(() => this.stratum.subscribe(this.publicAddress, this.name))
     this.stratum.onSubscribed.on((m) => this.setGraffiti(GraffitiUtils.fromString(m.graffiti)))
     this.stratum.onSetTarget.on((m) => this.setTarget(m.target))
