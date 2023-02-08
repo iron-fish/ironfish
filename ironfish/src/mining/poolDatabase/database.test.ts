@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { LogLevel } from 'consola'
 import { Assert } from '../../assert'
 import { Config } from '../../fileStores'
 import { NodeFileProvider } from '../../fileSystems'
@@ -15,6 +16,7 @@ describe('poolDatabase', () => {
 
   beforeEach(async () => {
     const logger = createRootLogger().withTag('test')
+    logger.level = LogLevel.Silent
     const dataDir = getUniqueTestDataDir()
     const fileSystem = new NodeFileProvider()
     await fileSystem.init()
