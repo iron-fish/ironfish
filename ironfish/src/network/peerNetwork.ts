@@ -1362,32 +1362,35 @@ export class PeerNetwork {
     // Let the fetcher know that a transaction was received and we no longer have to query it
     this.transactionFetcher.receivedTransaction(hash)
 
-    if (this.shouldProcessTransactions() && !this.alreadyHaveTransaction(hash)) {
-      // Check that the transaction is valid
-      const { valid, reason } = await this.chain.verifier.verifyNewTransaction(transaction)
-
-      if (!valid) {
-        Assert.isNotUndefined(reason)
-        // Logging hash because unsignedHash is slow
-        this.logger.debug(`Invalid transaction '${hash.toString('hex')}': ${reason}`)
-        this.transactionFetcher.removeTransaction(hash)
-        return
-      }
-
-      if (this.node.memPool.acceptTransaction(transaction)) {
-        this.onTransactionAccepted.emit(transaction, received)
-      }
-
-      // Check 'exists' rather than 'accepted' to allow for rebroadcasting to nodes that
-      // may not have seen the transaction yet
-      if (this.node.memPool.exists(transaction.hash())) {
-        this.broadcastTransaction(transaction)
-      }
-
-      // Sync every transaction to the wallet, since senders and recipients may want to know
-      // about pending transactions even if they're not accepted to the mempool.
-      await this.node.wallet.addPendingTransaction(transaction)
+    if (!this.shouldProcessTransactions() || this.alreadyHaveTransaction(hash)) {
+      this.transactionFetcher.removeTransaction(hash)
+      return
     }
+
+    // Check that the transaction is valid
+    const { valid, reason } = await this.chain.verifier.verifyNewTransaction(transaction)
+
+    if (!valid) {
+      Assert.isNotUndefined(reason)
+      // Logging hash because unsignedHash is slow
+      this.logger.debug(`Invalid transaction '${hash.toString('hex')}': ${reason}`)
+      this.transactionFetcher.removeTransaction(hash)
+      return
+    }
+
+    if (this.node.memPool.acceptTransaction(transaction)) {
+      this.onTransactionAccepted.emit(transaction, received)
+    }
+
+    // Check 'exists' rather than 'accepted' to allow for rebroadcasting to nodes that
+    // may not have seen the transaction yet
+    if (this.node.memPool.exists(transaction.hash())) {
+      this.broadcastTransaction(transaction)
+    }
+
+    // Sync every transaction to the wallet, since senders and recipients may want to know
+    // about pending transactions even if they're not accepted to the mempool.
+    await this.node.wallet.addPendingTransaction(transaction)
 
     this.transactionFetcher.removeTransaction(hash)
   }
