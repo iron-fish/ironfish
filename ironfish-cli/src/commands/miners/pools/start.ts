@@ -9,6 +9,7 @@ import {
   MiningPool,
   parseUrl,
   StringUtils,
+  TlsUtils,
   WebhookNotifier,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
@@ -44,6 +45,10 @@ export class StartPool extends IronfishCommand {
     }),
     banning: Flags.boolean({
       description: 'Whether the pool should ban peers for errors or bad behavior',
+      allowNo: true,
+    }),
+    enableTls: Flags.boolean({
+      description: 'Whether the pool should listen for connections over tls',
       allowNo: true,
     }),
   }
@@ -112,6 +117,27 @@ export class StartPool extends IronfishCommand {
       }
     }
 
+    if (!host) {
+      host = this.sdk.config.get('poolHost')
+    }
+
+    if (!port) {
+      port = this.sdk.config.get('poolPort')
+    }
+
+    let tlsOptions = undefined
+    if (flags.enableTls) {
+      const fileSystem = this.sdk.fileSystem
+      const nodeKeyPath = this.sdk.config.get('tlsKeyPath')
+      const nodeCertPath = this.sdk.config.get('tlsCertPath')
+      tlsOptions = await TlsUtils.getTlsOptions(
+        fileSystem,
+        nodeKeyPath,
+        nodeCertPath,
+        this.logger,
+      )
+    }
+
     this.pool = await MiningPool.init({
       config: this.sdk.config,
       logger: this.logger,
@@ -122,6 +148,8 @@ export class StartPool extends IronfishCommand {
       port: port,
       balancePercentPayoutFlag: flags.balancePercentPayout,
       banning: flags.banning,
+      enableTls: flags.enableTls,
+      tlsOptions: tlsOptions,
     })
 
     await this.pool.start()
