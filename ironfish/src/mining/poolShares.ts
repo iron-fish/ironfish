@@ -179,6 +179,12 @@ export class MiningPoolShares {
     // Get the total amount earned during the payout (and associated previous payouts)
     const totalPayoutReward = await this.db.getPayoutReward(payoutPeriod.id)
 
+    if (totalPayoutReward === 0n) {
+      // The shares in this period cannot be paid out since no reward exists
+      await this.db.deleteUnpayableShares(payoutPeriod.id)
+      return
+    }
+
     // Subtract the amount of recipients since that's how we estimate a
     // transaction fee right now. If we move to use the fee estimator, we will
     // need to update this logic as well.
