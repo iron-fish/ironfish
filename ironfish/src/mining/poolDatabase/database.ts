@@ -216,6 +216,10 @@ export class PoolDatabase {
     )
   }
 
+  async deleteUnpayableShares(payoutPeriodId: number): Promise<void> {
+    await this.db.run('DELETE FROM payoutShare WHERE payoutPeriodId = ?', payoutPeriodId)
+  }
+
   async earliestOutstandingPayoutPeriod(): Promise<DatabasePayoutPeriod | undefined> {
     const sql = `
       SELECT * FROM payoutPeriod WHERE id = (

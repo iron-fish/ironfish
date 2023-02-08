@@ -310,6 +310,20 @@ describe('poolDatabase', () => {
       expect(unpaidShares[0].payoutTransactionId).toBeNull()
     })
 
+    it('deletes unpayable shares', async () => {
+      const payoutPeriod = await db.getCurrentPayoutPeriod()
+      Assert.isNotUndefined(payoutPeriod)
+
+      await db.newShare('publicAddress1')
+
+      // Sanity check
+      await expect(db.payoutPeriodShareCount(payoutPeriod.id)).resolves.toEqual(1)
+
+      await db.deleteUnpayableShares(payoutPeriod.id)
+
+      await expect(db.payoutPeriodShareCount(payoutPeriod.id)).resolves.toEqual(0)
+    })
+
     it('payoutAddresses', async () => {
       const address1 = 'testPublicAddress1'
       const address2 = 'testPublicAddress2'
