@@ -27,9 +27,6 @@ export type AccountImport = { name: string; spendingKey?: string; incomingViewKe
 
 export type SpendingAccount = WithRequired<Account, 'spendingKey'>
 
-export type ViewingAccount = WithRequired<WithRequired<AccountImport, 'incomingViewKey'>, 'outgoingViewKey'>
-
-
 export class Account {
   private readonly walletDb: WalletDB
 
