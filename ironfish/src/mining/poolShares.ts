@@ -384,6 +384,7 @@ export class MiningPoolShares {
       fromAccountName: this.accountName,
       outputs,
       fee: outputs.length.toString(),
+      expirationDelta: this.config.get('transactionExpirationDelta'),
     })
 
     return transaction.content.hash
