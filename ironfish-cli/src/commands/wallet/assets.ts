@@ -7,7 +7,7 @@ import {
   ASSET_NAME_LENGTH,
   PUBLIC_ADDRESS_LENGTH,
 } from '@ironfish/rust-nodejs'
-import { BufferUtils, GetAssetsResponse } from '@ironfish/sdk'
+import { BufferUtils } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
