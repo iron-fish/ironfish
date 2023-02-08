@@ -9,7 +9,7 @@ export type ExportAccountRequest = { account?: string }
 export type ExportAccountResponse = {
   account: {
     name: string
-    spendingKey: string
+    spendingKey: string | null
     incomingViewKey: string
     outgoingViewKey: string
     publicAddress: string

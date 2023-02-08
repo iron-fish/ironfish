@@ -4,6 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { CurrencyUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
@@ -82,10 +83,12 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     const transaction = request.data
 
     const account = node.wallet.getAccountByName(transaction.fromAccountName)
-
-    if (!account) {
-      throw new ValidationError(`No account found with name ${transaction.fromAccountName}`)
-    }
+    Assert.isNotNull(account, `No account found with name ${transaction.fromAccountName}`)
+    const { spendingKey } = account
+    Assert.isNotNull(
+      spendingKey,
+      'Account must have spending key in order to send a transaction',
+    )
 
     // The node must be connected to the network first
     if (!node.peerNetwork.isReady) {
