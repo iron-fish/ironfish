@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
 import { Transaction } from '../../../primitives'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { ApiNamespace, router } from '../router'
@@ -36,18 +37,16 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   PostTransactionRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.sender)
+    const { spendingKey } = account
+    Assert.isNotNull(spendingKey, 'Account must have spending key to post a transaction')
 
     const rawTransactionBytes = Buffer.from(request.data.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
     let postedTransaction: Transaction
     if (request.data.offline === true) {
-      postedTransaction = await node.wallet.postTransaction(rawTransaction, account.spendingKey)
+      postedTransaction = await node.wallet.postTransaction(rawTransaction, spendingKey)
     } else {
-      postedTransaction = await node.wallet.post(
-        rawTransaction,
-        node.memPool,
-        account.spendingKey,
-      )
+      postedTransaction = await node.wallet.post(rawTransaction, node.memPool, spendingKey)
     }
 
     const postedTransactionBytes = postedTransaction.serialize()
