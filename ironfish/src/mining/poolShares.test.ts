@@ -217,14 +217,14 @@ describe('poolShares', () => {
       {
         publicAddress: publicAddress1,
         amount: '16',
-        memo: 'Iron Fish Pool payout',
+        memo: `Iron Fish Pool payout ${payoutPeriod1.id}`,
         assetId,
       },
       // Address 2 had 2 shares, with 16 reward per share = 32 amount
       {
         publicAddress: publicAddress2,
         amount: '32',
-        memo: 'Iron Fish Pool payout',
+        memo: `Iron Fish Pool payout ${payoutPeriod1.id}`,
         assetId,
       },
     ])
