@@ -576,6 +576,10 @@ export class Account {
 
     return assetBalanceDeltas
   }
+  spendingAccount(): SpendingAccount {
+    Assert.isNotUndefined(this.spendingKey, 'The provided account is not a spending account')
+    return this as SpendingAccount
+  }
 
   async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
