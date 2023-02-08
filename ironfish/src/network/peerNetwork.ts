@@ -403,6 +403,11 @@ export class PeerNetwork {
     }
   }
 
+  /**
+   * Send out the transaction only to peers that have not yet heard about it.
+   * The full transaction will be sent to a subset of sqrt(num_peers)
+   * and the rest of the peers will receive the transaction hash
+   */
   private broadcastTransaction(transaction: Transaction): void {
     const hash = transaction.hash()
 
@@ -960,9 +965,10 @@ export class PeerNetwork {
     for (const hash of message.hashes) {
       peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
 
-      // If the transaction is already in the mempool the only thing we have to do is broadcast
+      // If the transaction is already in the mempool we don't need to request
+      // the full transaction. Just broadcast it
       const transaction = this.node.memPool.get(hash)
-      if (transaction && !this.alreadyHaveTransaction(hash)) {
+      if (transaction) {
         this.broadcastTransaction(transaction)
       } else {
         this.transactionFetcher.hashReceived(hash, peer)
