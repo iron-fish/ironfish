@@ -4,6 +4,7 @@
 
 use std::fmt::Display;
 
+use ironfish_rust::IncomingViewKey;
 use ironfish_rust::keys::Language;
 use ironfish_rust::PublicAddress;
 use ironfish_rust::SaplingKey;
@@ -99,6 +100,14 @@ pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
         public_address: sapling_key.public_address().hex_public_address(),
     })
+}
+
+#[napi] // TODO this macro expansion is an error?
+pub fn generate_public_address_from_incoming_view_key(view_key: String) -> Result<PublicAddress> {
+    let sapling_view_key = IncomingViewKey::from_hex(&view_key).map_err(to_napi_err)?;
+    let sapling_public_address = PublicAddress::from_view_key(&sapling_view_key);
+
+    Ok(sapling_public_address)
 }
 
 #[napi]
