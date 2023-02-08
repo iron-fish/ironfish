@@ -80,7 +80,8 @@ pub fn generate_key() -> Key {
 #[napi]
 pub fn spending_key_to_words(private_key: String, language_code: LanguageCode) -> Result<String> {
     let key = SaplingKey::from_hex(&private_key).map_err(to_napi_err)?;
-    key.to_words(language_code.into()).map_err(to_napi_err)
+    let mnemonic = key.to_words(language_code.into()).map_err(to_napi_err)?;
+    Ok(mnemonic.into_phrase())
 }
 
 #[napi]
