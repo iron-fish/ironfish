@@ -1294,14 +1294,14 @@ export class Wallet {
     }
 
     if (
-      toImport.spendingKey &&
+      'spendingKey' in toImport &&
       this.listAccounts().find((a) => toImport.spendingKey === a.spendingKey)
     ) {
       throw new Error(`Account already exists with provided spending key`)
     }
 
     let accountValue: AccountValue = {} as AccountValue
-    if (toImport.spendingKey) {
+    if ('spendingKey' in toImport) {
       // if spending key is provided, derive everything from that, even if view keys were also provided.
       const key = generateKeyFromPrivateKey(toImport.spendingKey)
       accountValue = {
