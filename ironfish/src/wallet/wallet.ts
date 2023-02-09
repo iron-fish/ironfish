@@ -1317,8 +1317,6 @@ export class Wallet {
       accountValue = {
         ...toImport,
         id: uuid(),
-        incomingViewKey: toImport.incomingViewKey,
-        outgoingViewKey: toImport.outgoingViewKey,
         publicAddress: publicAddress,
       }
     }
