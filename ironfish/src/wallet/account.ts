@@ -627,6 +627,13 @@ export class Account {
     return await this.walletDb.loadTransaction(this, hash, tx)
   }
 
+  async getAsset(
+    id: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<Readonly<AssetValue> | undefined> {
+    return this.walletDb.getAsset(this, id, tx)
+  }
+
   async hasTransaction(hash: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
     return this.walletDb.hasTransaction(this, hash, tx)
   }
