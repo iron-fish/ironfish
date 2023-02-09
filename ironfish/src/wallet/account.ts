@@ -27,6 +27,8 @@ export type AccountImport = { name: string; spendingKey?: string; incomingViewKe
 
 export type SpendingAccount = WithRequired<Account, 'spendingKey'>
 
+export type SpendingAccount = WithRequired<Account, 'spendingKey'>
+
 export class Account {
   private readonly walletDb: WalletDB
 
@@ -579,7 +581,7 @@ export class Account {
     return assetBalanceDeltas
   }
   spendingAccount(): SpendingAccount {
-    Assert.isTruthy(this.spendingKey, 'The provided account is not a spending account')
+    Assert.isNotUndefined(this.spendingKey, 'The provided account is not a spending account')
     return this as SpendingAccount
   }
 

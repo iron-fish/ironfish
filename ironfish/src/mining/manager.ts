@@ -132,7 +132,8 @@ export class MiningManager {
     const startTime = BenchUtils.start()
 
     const account = this.node.wallet.getDefaultAccount()?.spendingAccount()
-    Assert.isTruthy(account, 'Cannot mine without an account')
+    
+    Assert.isNotUndefined(account, 'Cannot mine without an account')
 
     const newBlockSequence = currentBlock.header.sequence + 1
 
