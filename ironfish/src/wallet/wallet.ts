@@ -8,7 +8,6 @@ import {
   generateKey,
   generateKeyFromPrivateKey,
   generatePublicAddressFromIncomingViewKey,
-  GENERATOR_LENGTH,
   Note as NativeNote,
 } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
@@ -1294,12 +1293,14 @@ export class Wallet {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
 
-    if (toImport.spendingKey && this.listAccounts().find((a) => toImport.spendingKey === a.spendingKey)) {
+    if (
+      toImport.spendingKey &&
+      this.listAccounts().find((a) => toImport.spendingKey === a.spendingKey)
+    ) {
       throw new Error(`Account already exists with provided spending key`)
     }
 
-
-    let accountValue: AccountValue = {} as AccountValue 
+    let accountValue: AccountValue = {} as AccountValue
     if (toImport.spendingKey) {
       // if spending key is provided, derive everything from that, even if view keys were also provided.
       const key = generateKeyFromPrivateKey(toImport.spendingKey)
@@ -1310,9 +1311,9 @@ export class Wallet {
         outgoingViewKey: key.outgoing_view_key,
         publicAddress: key.public_address,
       }
-    } else if (toImport.incomingViewKey && toImport.outgoingViewKey) { 
+    } else if (toImport.incomingViewKey && toImport.outgoingViewKey) {
       // if spending key is not provided, use the provided view keys
-      const publicAddress = generatePublicAddressFromIncomingViewKey(toImport.incomingViewKey as string)
+      const publicAddress = generatePublicAddressFromIncomingViewKey(toImport.incomingViewKey)
       accountValue = {
         ...toImport,
         id: uuid(),

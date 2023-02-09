@@ -23,7 +23,12 @@ import { WalletDB } from './walletdb/walletdb'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
-export type AccountImport = { name: string; spendingKey?: string; incomingViewKey?: string; outgoingViewKey?: string }
+export type AccountImport = {
+  name: string
+  spendingKey?: string
+  incomingViewKey?: string
+  outgoingViewKey?: string
+}
 
 export type SpendingAccount = WithRequired<Account, 'spendingKey'>
 
