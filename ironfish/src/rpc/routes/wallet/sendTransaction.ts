@@ -83,7 +83,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     const transaction = request.data
 
     const account = node.wallet.getAccountByName(transaction.fromAccountName)?.spendingAccount()
-    Assert.isTruthy(account, `No account found with name ${transaction.fromAccountName}`)
+    Assert.isNotUndefined(account, `No account found with name ${transaction.fromAccountName}`)
 
     // The node must be connected to the network first
     if (!node.peerNetwork.isReady) {

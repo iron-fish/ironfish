@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
 import { WithRequired } from '../../utils'
-import { Account, AccountValue, SpendingAccount, Wallet } from '../../wallet'
+import { AccountValue, SpendingAccount, Wallet } from '../../wallet'
 import { FixtureGenerate, useFixture } from './fixture'
 
 type SpendingAccountValue = WithRequired<AccountValue & { default: boolean }, 'spendingKey'>
@@ -21,7 +21,7 @@ export function useAccountFixture(
   return useFixture(generate, {
     serialize: (account: SpendingAccount): SpendingAccountValue => {
       const serializedAccount = account.serialize()
-      Assert.isTruthy(serializedAccount.spendingKey)
+      Assert.isNotUndefined(serializedAccount.spendingKey)
       return { ...serializedAccount, default: setDefault } as SpendingAccountValue
     },
 
@@ -40,7 +40,7 @@ export function useAccountFixture(
           await account.updateHead(null)
         }
       }
-      return account as WithRequired<Account, 'spendingKey'>
+      return account as SpendingAccount
     },
   })
 }
