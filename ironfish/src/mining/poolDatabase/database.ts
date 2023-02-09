@@ -224,7 +224,7 @@ export class PoolDatabase {
     const sql = `
       SELECT * FROM payoutPeriod WHERE id = (
         SELECT payoutPeriodId FROM payoutShare WHERE payoutTransactionId IS NULL ORDER BY id LIMIT 1
-      )
+      ) AND end IS NOT NULL
     `
     return await this.db.get<DatabasePayoutPeriod>(sql)
   }
