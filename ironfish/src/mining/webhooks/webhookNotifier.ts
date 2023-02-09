@@ -52,20 +52,20 @@ export abstract class WebhookNotifier {
   }
 
   poolPayoutSuccess(
-    payoutId: number,
+    payoutPeriodId: number,
     transactionHashHex: string,
-    receives: { publicAddress: string; amount: string; memo: string }[],
-    totalShareCount: number,
+    outputs: { publicAddress: string; amount: string; memo: string }[],
+    shareCount: number,
   ): void {
-    const total = receives.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
+    const total = outputs.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
 
     this.sendText(
-      `Successfully created payout of ${totalShareCount} shares to ${
-        receives.length
+      `Successfully created payout of ${shareCount} shares to ${
+        outputs.length
       } users for ${CurrencyUtils.renderIron(total, true)} in transaction ${this.renderHashHex(
         transactionHashHex,
         this.explorerTransactionsUrl,
-      )}. Transaction pending (${payoutId})`,
+      )}. Transaction pending (${payoutPeriodId})`,
     )
   }
 
@@ -76,16 +76,16 @@ export abstract class WebhookNotifier {
   }
 
   poolPayoutStarted(
-    payoutId: number,
-    receives: { publicAddress: string; amount: string; memo: string }[],
-    totalShareCount: number,
+    payoutPeriodId: number,
+    outputs: { publicAddress: string; amount: string; memo: string }[],
+    shareCount: number,
   ): void {
-    const total = receives.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
+    const total = outputs.reduce((m, c) => BigInt(c.amount) + m, BigInt(0))
 
     this.sendText(
-      `Creating payout of ${totalShareCount} shares to ${
-        receives.length
-      } users for ${CurrencyUtils.renderIron(total, true)} (${payoutId})`,
+      `Creating payout of ${shareCount} shares to ${
+        outputs.length
+      } users for ${CurrencyUtils.renderIron(total, true)} (${payoutPeriodId})`,
     )
   }
 

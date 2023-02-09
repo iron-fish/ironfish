@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import MurmurHash3 from 'imurmurhash'
 import { Assert } from '../assert'
@@ -12,6 +13,7 @@ import { StorageUtils } from '../storage/database/utils'
 import { DecryptedNote } from '../workerPool/tasks/decryptNotes'
 import { AssetBalances } from './assetBalances'
 import { AccountValue } from './walletdb/accountValue'
+import { AssetValue } from './walletdb/assetValue'
 import { BalanceValue } from './walletdb/balanceValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
@@ -140,7 +142,7 @@ export class Account {
     let timestamp = blockHeader.timestamp
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
-      const transactionValue = await this.getTransaction(transaction.hash(), tx)
+      let transactionValue = await this.getTransaction(transaction.hash(), tx)
       if (transactionValue) {
         submittedSequence = transactionValue.submittedSequence
         timestamp = transactionValue.timestamp
@@ -185,22 +187,250 @@ export class Account {
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
       }
 
-      await this.walletDb.saveTransaction(
-        this,
-        transaction.hash(),
-        {
-          transaction,
-          blockHash,
-          sequence,
-          submittedSequence,
-          timestamp,
-          assetBalanceDeltas,
-        },
-        tx,
-      )
+      transactionValue = {
+        transaction,
+        blockHash,
+        sequence,
+        submittedSequence,
+        timestamp,
+        assetBalanceDeltas,
+      }
+
+      await this.saveMintsToAssetsStore(transactionValue, tx)
+      await this.saveConnectedBurnsToAssetsStore(transactionValue.transaction, tx)
+
+      await this.walletDb.saveTransaction(this, transaction.hash(), transactionValue, tx)
     })
 
     return assetBalanceDeltas
+  }
+
+  async saveAssetFromChain(
+    createdTransactionHash: Buffer,
+    id: Buffer,
+    metadata: Buffer,
+    name: Buffer,
+    owner: Buffer,
+    blockHeader?: { hash: Buffer | null; sequence: number | null },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    if (id.equals(Asset.nativeId())) {
+      return
+    }
+
+    await this.walletDb.putAsset(
+      this,
+      id,
+      {
+        blockHash: blockHeader?.hash ?? null,
+        createdTransactionHash,
+        id,
+        metadata,
+        name,
+        owner,
+        sequence: blockHeader?.sequence ?? null,
+        supply: null,
+      },
+      tx,
+    )
+  }
+
+  async updateAssetWithBlockHeader(
+    assetValue: AssetValue,
+    blockHeader: { hash: Buffer; sequence: number },
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    // Don't update for the native asset or if previously confirmed
+    if (assetValue.id.equals(Asset.nativeId()) || assetValue.blockHash) {
+      return
+    }
+
+    await this.walletDb.putAsset(
+      this,
+      assetValue.id,
+      {
+        blockHash: blockHeader.hash,
+        createdTransactionHash: assetValue.createdTransactionHash,
+        id: assetValue.id,
+        metadata: assetValue.metadata,
+        name: assetValue.name,
+        owner: assetValue.owner,
+        sequence: blockHeader.sequence,
+        supply: assetValue.supply,
+      },
+      tx,
+    )
+  }
+
+  async saveMintsToAssetsStore(
+    { blockHash, sequence, transaction }: TransactionValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { asset, value } of transaction.mints) {
+      // Only store the asset for the owner
+      if (asset.owner().toString('hex') !== this.publicAddress) {
+        continue
+      }
+
+      const existingAsset = await this.walletDb.getAsset(this, asset.id(), tx)
+
+      let createdTransactionHash = transaction.hash()
+      let supply = BigInt(0)
+
+      // Adjust supply if this transaction is connected on a block.
+      if (blockHash && sequence) {
+        supply += value
+      }
+
+      // If the asset has been previously confirmed on a block, use the existing
+      // block hash, created transaction hash, and sequence for the database
+      // upsert. Adjust supply from the current record.
+      if (existingAsset && existingAsset.blockHash && existingAsset.sequence) {
+        Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
+        blockHash = existingAsset.blockHash
+        createdTransactionHash = existingAsset.createdTransactionHash
+        sequence = existingAsset.sequence
+        supply += existingAsset.supply
+      }
+
+      await this.walletDb.putAsset(
+        this,
+        asset.id(),
+        {
+          blockHash,
+          createdTransactionHash,
+          id: asset.id(),
+          metadata: asset.metadata(),
+          name: asset.name(),
+          owner: asset.owner(),
+          sequence,
+          supply,
+        },
+        tx,
+      )
+    }
+  }
+
+  async saveConnectedBurnsToAssetsStore(
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { assetId, value } of transaction.burns) {
+      const existingAsset = await this.walletDb.getAsset(this, assetId, tx)
+      if (!existingAsset) {
+        continue
+      }
+      // Verify the owner matches before processing a burn
+      Assert.isEqual(
+        existingAsset.owner.toString('hex'),
+        this.publicAddress,
+        'Existing asset owner should match public address',
+      )
+      Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
+
+      const supply = existingAsset.supply - value
+      Assert.isTrue(supply >= BigInt(0), 'Invalid burn value')
+
+      await this.walletDb.putAsset(
+        this,
+        assetId,
+        {
+          blockHash: existingAsset.blockHash,
+          createdTransactionHash: existingAsset.createdTransactionHash,
+          id: existingAsset.id,
+          metadata: existingAsset.metadata,
+          name: existingAsset.name,
+          owner: existingAsset.owner,
+          sequence: existingAsset.sequence,
+          supply,
+        },
+        tx,
+      )
+    }
+  }
+
+  private async deleteDisconnectedBurnsFromAssetsStore(
+    transaction: Transaction,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { assetId, value } of transaction.burns.slice().reverse()) {
+      const existingAsset = await this.walletDb.getAsset(this, assetId, tx)
+      if (!existingAsset) {
+        continue
+      }
+      // Verify the owner matches before processing a burn
+      Assert.isEqual(
+        existingAsset.owner.toString('hex'),
+        this.publicAddress,
+        'Existing asset owner should match public address',
+      )
+      Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
+
+      const existingSupply = existingAsset.supply
+      const supply = existingSupply + value
+
+      await this.walletDb.putAsset(
+        this,
+        assetId,
+        {
+          blockHash: existingAsset.blockHash,
+          createdTransactionHash: existingAsset.createdTransactionHash,
+          id: existingAsset.id,
+          metadata: existingAsset.metadata,
+          name: existingAsset.name,
+          owner: existingAsset.owner,
+          sequence: existingAsset.sequence,
+          supply,
+        },
+        tx,
+      )
+    }
+  }
+
+  private async deleteDisconnectedMintsFromAssetsStore(
+    blockHeader: BlockHeader,
+    transaction: Transaction,
+    tx: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { asset, value } of transaction.mints.slice().reverse()) {
+      // Only update the mint for the owner
+      if (asset.owner().toString('hex') !== this.publicAddress) {
+        continue
+      }
+
+      const existingAsset = await this.walletDb.getAsset(this, asset.id(), tx)
+      Assert.isNotUndefined(existingAsset)
+      Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
+
+      const existingSupply = existingAsset.supply
+      const supply = existingSupply - value
+      Assert.isTrue(supply >= BigInt(0))
+
+      let blockHash = existingAsset.blockHash
+      let sequence = existingAsset.sequence
+      // Mark this asset as pending if the block hash matches the hash on the
+      // disconnected header
+      if (blockHash && blockHash.equals(blockHeader.hash)) {
+        blockHash = null
+        sequence = null
+      }
+
+      await this.walletDb.putAsset(
+        this,
+        asset.id(),
+        {
+          blockHash,
+          createdTransactionHash: existingAsset.createdTransactionHash,
+          id: asset.id(),
+          metadata: asset.metadata(),
+          name: asset.name(),
+          owner: asset.owner(),
+          sequence,
+          supply,
+        },
+        tx,
+      )
+    }
   }
 
   async addPendingTransaction(
@@ -253,19 +483,18 @@ export class Account {
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
       }
 
-      await this.walletDb.saveTransaction(
-        this,
-        transaction.hash(),
-        {
-          transaction,
-          blockHash: null,
-          sequence: null,
-          submittedSequence,
-          timestamp: new Date(),
-          assetBalanceDeltas,
-        },
-        tx,
-      )
+      const transactionValue = {
+        transaction,
+        blockHash: null,
+        sequence: null,
+        submittedSequence,
+        timestamp: new Date(),
+        assetBalanceDeltas,
+      }
+
+      await this.saveMintsToAssetsStore(transactionValue, tx)
+
+      await this.walletDb.saveTransaction(this, transaction.hash(), transactionValue, tx)
     })
   }
 
@@ -328,6 +557,8 @@ export class Account {
         assetBalanceDeltas.increment(spentNote.note.assetId(), spentNote.note.value())
       }
 
+      await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
+      await this.deleteDisconnectedMintsFromAssetsStore(blockHeader, transaction, tx)
       await this.walletDb.deleteSequenceToTransactionHash(
         this,
         blockHeader.sequence,
@@ -396,6 +627,13 @@ export class Account {
     return await this.walletDb.loadTransaction(this, hash, tx)
   }
 
+  async getAsset(
+    id: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<Readonly<AssetValue> | undefined> {
+    return this.walletDb.getAsset(this, id, tx)
+  }
+
   async hasTransaction(hash: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
     return this.walletDb.hasTransaction(this, hash, tx)
   }
@@ -420,6 +658,16 @@ export class Account {
 
   getTransactionsByTime(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
     return this.walletDb.loadTransactionsByTime(this, tx)
+  }
+
+  async *getTransactionsOrderedBySequence(
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Readonly<TransactionValue>> {
+    for await (const { hash } of this.walletDb.getTransactionHashesBySequence(this, tx)) {
+      const transaction = await this.getTransaction(hash, tx)
+      Assert.isNotUndefined(transaction)
+      yield transaction
+    }
   }
 
   getPendingTransactions(
@@ -466,6 +714,7 @@ export class Account {
         }
       }
 
+      await this.deleteCreatedAssetsFromTransaction(transaction, tx)
       await this.walletDb.deletePendingTransactionHash(
         this,
         transaction.expiration(),
@@ -473,6 +722,31 @@ export class Account {
         tx,
       )
     })
+  }
+
+  private async deleteCreatedAssetsFromTransaction(
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { asset } of transaction.mints.slice().reverse()) {
+      // Only update the mint for the owner
+      if (asset.owner().toString('hex') !== this.publicAddress) {
+        continue
+      }
+
+      const existingAsset = await this.walletDb.getAsset(this, asset.id(), tx)
+      Assert.isNotUndefined(existingAsset)
+
+      // If we are reverting the transaction which matches the created at
+      // hash of the asset, delete the record from the store
+      if (transaction.hash().equals(existingAsset.createdTransactionHash)) {
+        await this.walletDb.deleteAsset(this, asset.id(), tx)
+      }
+    }
+  }
+
+  getAssets(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<AssetValue>> {
+    return this.walletDb.loadAssets(this, tx)
   }
 
   async *getBalances(

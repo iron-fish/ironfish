@@ -32,7 +32,7 @@ export async function createRawTransaction(options: {
   amount?: bigint
   expiration?: number
   assetId?: Buffer
-  receives?: {
+  outputs?: {
     publicAddress: string
     amount: bigint
     memo: string
@@ -41,10 +41,10 @@ export async function createRawTransaction(options: {
   mints?: MintData[]
   burns?: BurnDescription[]
 }): Promise<RawTransaction> {
-  const receives = options.receives ?? []
+  const outputs = options.outputs ?? []
 
   if (options.to) {
-    receives.push({
+    outputs.push({
       publicAddress: options.to.publicAddress,
       amount: options.amount ?? 1n,
       memo: '',
@@ -54,7 +54,7 @@ export async function createRawTransaction(options: {
 
   return await options.wallet.createTransaction(
     options.from,
-    receives,
+    outputs,
     options.mints ?? [],
     options.burns ?? [],
     {

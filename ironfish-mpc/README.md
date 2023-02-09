@@ -2,6 +2,10 @@
 
 Much of the code in this folder was originally forked from https://github.com/zcash-hackworks/sapling-mpc. The original licenses and copyright are retained in this folder.
 
+## Beacon
+
+Our final contribution will be seeded using the randomness generated from [The League of Entropy's drand network](https://drand.love/) in round #2759370.
+
 ## License
 
 Licensed under either of

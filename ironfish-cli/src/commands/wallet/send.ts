@@ -188,11 +188,11 @@ export class Send extends IronfishCommand {
     let rawTransactionResponse: string
     if (fee === null && feeRate === null) {
       const feeRatesResponse = await client.estimateFeeRates()
-      const feeRates = new Set([
-        feeRatesResponse.content.low ?? '1',
-        feeRatesResponse.content.medium ?? '1',
-        feeRatesResponse.content.high ?? '1',
-      ])
+      const feeRates = [
+        feeRatesResponse.content.slow ?? '1',
+        feeRatesResponse.content.average ?? '1',
+        feeRatesResponse.content.fast ?? '1',
+      ]
 
       const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
 
@@ -200,7 +200,7 @@ export class Send extends IronfishCommand {
 
       const createTransactionRequest: CreateTransactionRequest = {
         sender: from,
-        receives: [
+        outputs: [
           {
             publicAddress: to,
             amount: CurrencyUtils.encode(amount),
@@ -246,7 +246,7 @@ export class Send extends IronfishCommand {
     } else {
       const createResponse = await client.createTransaction({
         sender: from,
-        receives: [
+        outputs: [
           {
             publicAddress: to,
             amount: CurrencyUtils.encode(amount),

@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { spendingKeyToWords } from '@ironfish/rust-nodejs'
-import { ErrorUtils } from '@ironfish/sdk'
+import { Bech32m, ErrorUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import { bech32m } from 'bech32'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
 import path from 'path'
@@ -41,6 +40,10 @@ export class ExportCommand extends IronfishCommand {
       default: false,
       description: 'Output the account as JSON, rather than the default bech32',
     }),
+    path: Flags.string({
+      description: 'The path to export the account to',
+      required: false,
+    }),
   }
 
   static args = [
@@ -50,51 +53,48 @@ export class ExportCommand extends IronfishCommand {
       required: false,
       description: 'Name of the account to export',
     },
-    {
-      name: 'path',
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
-      required: false,
-      description: 'The path to export the account to',
-    },
   ]
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ExportCommand)
     const { color, local } = flags
     const account = args.account as string
-    const exportPath = args.path as string | undefined
+    const exportPath = flags.path
+
+    if (flags.language) {
+      flags.mnemonic = true
+    }
 
     const client = await this.sdk.connectRpc(local)
     const response = await client.exportAccount({ account })
-    const responseJSONString = JSON.stringify(response.content.account)
 
     let output
-    if (flags.language) {
-      output = spendingKeyToWords(
-        response.content.account.spendingKey,
-        LANGUAGES[flags.language],
-      )
-    } else if (flags.mnemonic) {
-      let languageCode = inferLanguageCode()
-      if (languageCode !== null) {
-        CliUx.ux.info(`Detected Language as '${languageCodeToKey(languageCode)}', exporting:`)
-      } else {
+
+    if (flags.mnemonic) {
+      let languageCode = flags.language ? LANGUAGES[flags.language] : null
+
+      if (languageCode == null) {
+        languageCode = inferLanguageCode()
+
+        if (languageCode !== null) {
+          CliUx.ux.info(`Detected Language as '${languageCodeToKey(languageCode)}', exporting:`)
+        }
+      }
+
+      if (languageCode == null) {
         CliUx.ux.info(`Could not detect your language, please select language for export`)
         languageCode = await selectLanguage()
       }
+
       output = spendingKeyToWords(response.content.account.spendingKey, languageCode)
     } else if (flags.json) {
-      output = exportPath
-        ? JSON.stringify(response.content.account, undefined, '    ')
-        : responseJSONString
+      output = JSON.stringify(response.content.account, undefined, '    ')
+
+      if (color && flags.json && !exportPath) {
+        output = jsonColorizer(output)
+      }
     } else {
-      const responseBytes = Buffer.from(responseJSONString)
-      const lengthLimit = 1023
-      output = bech32m.encode(
-        'ironfishaccount00000',
-        bech32m.toWords(responseBytes),
-        lengthLimit,
-      )
+      output = Bech32m.encode(JSON.stringify(response.content.account), 'ironfishaccount00000')
     }
 
     if (exportPath) {
@@ -133,9 +133,6 @@ export class ExportCommand extends IronfishCommand {
       return
     }
 
-    if (color && flags.json) {
-      output = jsonColorizer(output)
-    }
     this.log(output)
   }
 }

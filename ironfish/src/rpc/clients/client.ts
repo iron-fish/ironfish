@@ -79,6 +79,7 @@ import {
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
+import { GetBannedPeersRequest, GetBannedPeersResponse } from '../routes/peers/getBannedPeers'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
 import {
   GetPeerMessagesRequest,
@@ -92,6 +93,7 @@ import {
   CreateTransactionResponse,
 } from '../routes/wallet/createTransaction'
 import { ExportAccountRequest, ExportAccountResponse } from '../routes/wallet/exportAccount'
+import { GetAssetsRequest, GetAssetsResponse } from '../routes/wallet/getAssets'
 import { GetBalancesRequest, GetBalancesResponse } from '../routes/wallet/getBalances'
 import { GetAccountStatusRequest, GetAccountStatusResponse } from '../routes/wallet/getStatus'
 import { ImportAccountRequest, ImportAccountResponse } from '../routes/wallet/importAccount'
@@ -266,6 +268,24 @@ export abstract class RpcClient {
       `${ApiNamespace.wallet}/getAccountTransactions`,
       params,
     )
+  }
+
+  async getBannedPeers(
+    params: GetBannedPeersRequest = undefined,
+  ): Promise<RpcResponseEnded<GetBannedPeersResponse>> {
+    return this.request<GetBannedPeersResponse>(
+      `${ApiNamespace.peer}/getBannedPeers`,
+      params,
+    ).waitForEnd()
+  }
+
+  getBannedPeersStream(
+    params: GetBannedPeersRequest = undefined,
+  ): RpcResponse<void, GetBannedPeersResponse> {
+    return this.request<void, GetBannedPeersResponse>(`${ApiNamespace.peer}/getBannedPeers`, {
+      ...params,
+      stream: true,
+    })
   }
 
   async getPeers(
@@ -517,6 +537,10 @@ export abstract class RpcClient {
 
   async getAsset(params: GetAssetRequest): Promise<RpcResponseEnded<GetAssetResponse>> {
     return this.request<GetAssetResponse>(`${ApiNamespace.chain}/getAsset`, params).waitForEnd()
+  }
+
+  getAssets(params: GetAssetsRequest): RpcResponse<void, GetAssetsResponse> {
+    return this.request<void, GetAssetsResponse>(`${ApiNamespace.wallet}/getAssets`, params)
   }
 
   async postTransaction(

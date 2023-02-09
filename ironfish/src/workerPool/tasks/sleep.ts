@@ -21,14 +21,14 @@ export class SleepRequest extends WorkerMessage {
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
     bw.writeDouble(this.sleep)
-    bw.writeVarString(this.error)
+    bw.writeVarString(this.error, 'utf8')
     return bw.render()
   }
 
   static deserialize(jobId: number, buffer: Buffer): SleepRequest {
     const reader = bufio.read(buffer, true)
     const sleep = reader.readDouble()
-    const error = reader.readVarString()
+    const error = reader.readVarString('utf8')
     return new SleepRequest(sleep, error, jobId)
   }
 

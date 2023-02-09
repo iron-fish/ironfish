@@ -185,16 +185,15 @@ impl SaplingKey {
     /// a seed. This isn't strictly necessary for private key, but view keys
     /// will need a direct mapping. The private key could still be generated
     /// using bip-32 and bip-39 if desired.
-    pub fn to_words(&self, language: Language) -> Result<String, IronfishError> {
-        let mnemonic = Mnemonic::from_entropy(&self.spending_key, language)
-            .map_err(|_| IronfishError::InvalidEntropy)?;
-        Ok(mnemonic.phrase().to_string())
+    pub fn to_words(&self, language: Language) -> Result<Mnemonic, IronfishError> {
+        Mnemonic::from_entropy(&self.spending_key, language)
+            .map_err(|_| IronfishError::InvalidEntropy)
     }
 
     /// Takes a bip-39 phrase as a string and turns it into a SaplingKey instance
     pub fn from_words(words: String, language: Language) -> Result<Self, IronfishError> {
         let mnemonic = Mnemonic::from_phrase(&words, language)
-            .map_err(|_| IronfishError::InvalidPaymentAddress)?;
+            .map_err(|_| IronfishError::InvalidMnemonicString)?;
         let bytes = mnemonic.entropy();
         let mut byte_arr = [0; SPEND_KEY_SIZE];
         byte_arr.clone_from_slice(&bytes[0..SPEND_KEY_SIZE]);

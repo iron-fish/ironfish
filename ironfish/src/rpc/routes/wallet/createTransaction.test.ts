@@ -11,7 +11,7 @@ import { ERROR_CODES } from '../../adapters/errors'
 
 const REQUEST_PARAMS = {
   sender: 'existingAccount',
-  receives: [
+  outputs: [
     {
       publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
       amount: BigInt(10).toString(),
@@ -24,7 +24,7 @@ const REQUEST_PARAMS = {
 
 const REQUEST_PARAMS_WITH_MULTIPLE_RECIPIENTS = {
   sender: 'existingAccount',
-  receives: [
+  outputs: [
     {
       publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
       amount: BigInt(10).toString(),
@@ -107,7 +107,7 @@ describe('Route wallet/createTransaction', () => {
     const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
-    expect(rawTransaction.receives.length).toBe(1)
+    expect(rawTransaction.outputs.length).toBe(1)
     expect(rawTransaction.expiration).toBeDefined()
     expect(rawTransaction.burns.length).toBe(0)
     expect(rawTransaction.mints.length).toBe(0)
@@ -115,7 +115,7 @@ describe('Route wallet/createTransaction', () => {
     expect(rawTransaction.fee).toBe(1n)
   })
 
-  it('should generate a valid transaction with multiple receives', async () => {
+  it('should generate a valid transaction with multiple outputs', async () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
@@ -142,7 +142,7 @@ describe('Route wallet/createTransaction', () => {
     const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
-    expect(rawTransaction.receives.length).toBe(2)
+    expect(rawTransaction.outputs.length).toBe(2)
     expect(rawTransaction.expiration).toBeDefined()
     expect(rawTransaction.burns.length).toBe(0)
     expect(rawTransaction.mints.length).toBe(0)
@@ -169,7 +169,7 @@ describe('Route wallet/createTransaction', () => {
 
     const response = await routeTest.client.createTransaction({
       sender: 'existingAccount',
-      receives: [
+      outputs: [
         {
           publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
           amount: BigInt(10).toString(),
@@ -187,7 +187,7 @@ describe('Route wallet/createTransaction', () => {
     const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
-    expect(rawTransaction.receives.length).toBe(1)
+    expect(rawTransaction.outputs.length).toBe(1)
     expect(rawTransaction.expiration).toBeDefined()
     expect(rawTransaction.burns.length).toBe(0)
     expect(rawTransaction.mints.length).toBe(0)
@@ -214,7 +214,7 @@ describe('Route wallet/createTransaction', () => {
 
     const response = await routeTest.client.createTransaction({
       sender: 'existingAccount',
-      receives: [
+      outputs: [
         {
           publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
           amount: BigInt(10).toString(),
@@ -231,7 +231,7 @@ describe('Route wallet/createTransaction', () => {
     const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
-    expect(rawTransaction.receives.length).toBe(1)
+    expect(rawTransaction.outputs.length).toBe(1)
     expect(rawTransaction.expiration).toBeDefined()
     expect(rawTransaction.burns.length).toBe(0)
     expect(rawTransaction.mints.length).toBe(0)
@@ -260,7 +260,7 @@ describe('Route wallet/createTransaction', () => {
 
     const response = await routeTest.client.createTransaction({
       sender: 'existingAccount',
-      receives: [
+      outputs: [
         {
           publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
           amount: BigInt(10).toString(),
@@ -285,7 +285,7 @@ describe('Route wallet/createTransaction', () => {
     const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
-    expect(rawTransaction.receives.length).toBe(1)
+    expect(rawTransaction.outputs.length).toBe(1)
     expect(rawTransaction.expiration).toBeDefined()
     expect(rawTransaction.burns.length).toBe(0)
     expect(rawTransaction.mints.length).toBe(1)
@@ -315,7 +315,7 @@ describe('Route wallet/createTransaction', () => {
     await expect(
       routeTest.client.createTransaction({
         sender: 'existingAccount',
-        receives: [
+        outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: BigInt(10).toString(),
@@ -356,7 +356,7 @@ describe('Route wallet/createTransaction', () => {
     await expect(
       routeTest.client.createTransaction({
         sender: 'existingAccount',
-        receives: [
+        outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: BigInt(10).toString(),
@@ -393,7 +393,7 @@ describe('Route wallet/createTransaction', () => {
     await expect(
       routeTest.client.createTransaction({
         sender: 'existingAccount',
-        receives: [
+        outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: BigInt(10).toString(),

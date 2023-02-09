@@ -11,7 +11,7 @@ import { ApiNamespace, router } from '../router'
 
 export type SendTransactionRequest = {
   fromAccountName: string
-  receives: {
+  outputs: {
     publicAddress: string
     amount: string
     memo: string
@@ -24,7 +24,7 @@ export type SendTransactionRequest = {
 }
 
 export type SendTransactionResponse = {
-  receives: {
+  outputs: {
     publicAddress: string
     amount: string
     memo: string
@@ -37,7 +37,7 @@ export type SendTransactionResponse = {
 export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionRequest> = yup
   .object({
     fromAccountName: yup.string().defined(),
-    receives: yup
+    outputs: yup
       .array(
         yup
           .object({
@@ -58,7 +58,7 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
 
 export const SendTransactionResponseSchema: yup.ObjectSchema<SendTransactionResponse> = yup
   .object({
-    receives: yup
+    outputs: yup
       .array(
         yup
           .object({
@@ -100,16 +100,16 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
     }
 
-    const receives = transaction.receives.map((receive) => {
+    const outputs = transaction.outputs.map((output) => {
       let assetId = Asset.nativeId()
-      if (receive.assetId) {
-        assetId = Buffer.from(receive.assetId, 'hex')
+      if (output.assetId) {
+        assetId = Buffer.from(output.assetId, 'hex')
       }
 
       return {
-        publicAddress: receive.publicAddress,
-        amount: CurrencyUtils.decode(receive.amount),
-        memo: receive.memo,
+        publicAddress: output.publicAddress,
+        amount: CurrencyUtils.decode(output.amount),
+        memo: output.memo,
         assetId,
       }
     })
@@ -121,7 +121,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
 
     const totalByAssetIdentifier = new BufferMap<bigint>()
     totalByAssetIdentifier.set(Asset.nativeId(), fee)
-    for (const { assetId, amount } of receives) {
+    for (const { assetId, amount } of outputs) {
       if (amount < 0) {
         throw new ValidationError(`Invalid transaction amount ${amount}.`)
       }
@@ -147,7 +147,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       const transactionPosted = await node.wallet.send(
         node.memPool,
         account,
-        receives,
+        outputs,
         BigInt(transaction.fee),
         transaction.expirationDelta ?? node.config.get('transactionExpirationDelta'),
         transaction.expiration,
@@ -155,7 +155,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
 
       request.end({
-        receives: transaction.receives,
+        outputs: transaction.outputs,
         fromAccountName: account.name,
         hash: transactionPosted.hash().toString('hex'),
       })

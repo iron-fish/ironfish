@@ -46,11 +46,19 @@ import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
 import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
+import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
 const noteHasher = new NoteHasher()
+
+export enum AssetStatus {
+  CONFIRMED = 'confirmed',
+  PENDING = 'pending',
+  UNCONFIRMED = 'unconfirmed',
+  UNKNOWN = 'unknown',
+}
 
 export enum TransactionStatus {
   CONFIRMED = 'confirmed',
@@ -413,6 +421,7 @@ export class Wallet {
 
           assetBalanceDeltas.update(transactionDeltas)
 
+          await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, blockHeader, tx)
           scan?.signal(blockHeader.sequence)
         }
 
@@ -425,6 +434,38 @@ export class Wallet {
 
         await account.updateHead({ hash: blockHeader.hash, sequence: blockHeader.sequence }, tx)
       })
+    }
+  }
+
+  private async upsertAssetsFromDecryptedNotes(
+    account: Account,
+    decryptedNotes: DecryptedNote[],
+    blockHeader?: BlockHeader,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    for (const { serializedNote } of decryptedNotes) {
+      const note = new Note(serializedNote)
+      const asset = await this.walletDb.getAsset(account, note.assetId(), tx)
+
+      if (!asset) {
+        const chainAsset = await this.chain.getAssetById(note.assetId())
+        Assert.isNotNull(chainAsset, 'Asset must be non-null in the chain')
+        await account.saveAssetFromChain(
+          chainAsset.createdTransactionHash,
+          chainAsset.id,
+          chainAsset.metadata,
+          chainAsset.name,
+          chainAsset.owner,
+          blockHeader,
+          tx,
+        )
+      } else if (blockHeader) {
+        await account.updateAssetWithBlockHeader(
+          asset,
+          { hash: blockHeader.hash, sequence: blockHeader.sequence },
+          tx,
+        )
+      }
     }
   }
 
@@ -491,6 +532,7 @@ export class Wallet {
       }
 
       await account.addPendingTransaction(transaction, decryptedNotes, this.chain.head.sequence)
+      await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes)
     }
   }
 
@@ -631,7 +673,7 @@ export class Wallet {
   async send(
     memPool: MemPool,
     sender: Account,
-    receives: {
+    outputs: {
       publicAddress: string
       amount: bigint
       memo: string
@@ -642,7 +684,7 @@ export class Wallet {
     expiration?: number | null,
     confirmations?: number | null,
   ): Promise<Transaction> {
-    const raw = await this.createTransaction(sender, receives, [], [], {
+    const raw = await this.createTransaction(sender, outputs, [], [], {
       fee,
       expirationDelta,
       expiration: expiration ?? undefined,
@@ -712,7 +754,7 @@ export class Wallet {
 
   async createTransaction(
     sender: Account,
-    receives: {
+    outputs: {
       publicAddress: string
       amount: bigint
       memo: string
@@ -762,16 +804,16 @@ export class Wallet {
       raw.mints = mints
       raw.burns = burns
 
-      for (const receive of receives) {
+      for (const output of outputs) {
         const note = new NativeNote(
-          receive.publicAddress,
-          receive.amount,
-          receive.memo,
-          receive.assetId,
+          output.publicAddress,
+          output.amount,
+          output.memo,
+          output.assetId,
           sender.publicAddress,
         )
 
-        raw.receives.push({ note: new Note(note.serialize()) })
+        raw.outputs.push({ note: new Note(note.serialize()) })
       }
 
       if (options.fee) {
@@ -786,7 +828,7 @@ export class Wallet {
         size += 4 // expiration
         size += 64 // signature
 
-        size += raw.receives.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
+        size += raw.outputs.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
 
         size += raw.mints.length * (ASSET_LENGTH + 8)
 
@@ -877,9 +919,9 @@ export class Wallet {
     const amountsNeeded = new BufferMap<bigint>()
     amountsNeeded.set(Asset.nativeId(), options.fee)
 
-    for (const receive of raw.receives) {
-      const currentAmount = amountsNeeded.get(receive.note.assetId()) ?? BigInt(0)
-      amountsNeeded.set(receive.note.assetId(), currentAmount + receive.note.value())
+    for (const output of raw.outputs) {
+      const currentAmount = amountsNeeded.get(output.note.assetId()) ?? BigInt(0)
+      amountsNeeded.set(output.note.assetId(), currentAmount + output.note.value())
     }
 
     for (const burn of raw.burns) {
@@ -1160,6 +1202,29 @@ export class Wallet {
 
       return isExpired ? TransactionStatus.EXPIRED : TransactionStatus.PENDING
     }
+  }
+
+  async getAssetStatus(
+    account: Account,
+    assetValue: AssetValue,
+    options?: {
+      headSequence?: number | null
+      confirmations?: number
+    },
+  ): Promise<AssetStatus> {
+    const confirmations = options?.confirmations ?? this.config.get('confirmations')
+
+    const headSequence = options?.headSequence ?? (await account.getHead())?.sequence
+    if (!headSequence) {
+      return AssetStatus.UNKNOWN
+    }
+
+    if (assetValue.sequence) {
+      const confirmed = headSequence - assetValue.sequence >= confirmations
+      return confirmed ? AssetStatus.CONFIRMED : AssetStatus.UNCONFIRMED
+    }
+
+    return AssetStatus.PENDING
   }
 
   async getTransactionType(

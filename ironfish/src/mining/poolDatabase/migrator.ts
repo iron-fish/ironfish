@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
+import { LogLevel } from 'consola'
 import { Database } from 'sqlite'
 import { Logger } from '../../logger'
 import { Migration } from './migration'
@@ -52,17 +53,17 @@ export class Migrator {
       this.logger.info('Running migrations:')
 
       for (const migration of unapplied) {
-        process.stdout.write(`  Applying ${migration.name}...`)
+        this.write(`  Applying ${migration.name}...`)
 
         try {
           await migration.forward(this.db)
           await this.db.run(`PRAGMA user_version = ${migration.id};`)
         } catch (e) {
-          process.stdout.write(` ERROR\n`)
+          this.write(` ERROR\n`)
           console.error(e)
           throw e
         }
-        process.stdout.write(` OK\n`)
+        this.write(` OK\n`)
       }
 
       await this.db.run('COMMIT;')
@@ -72,6 +73,12 @@ export class Migrator {
         /* do nothing */
       })
       throw e
+    }
+  }
+
+  write(output: string): void {
+    if (this.logger.level >= LogLevel.Info) {
+      process.stdout.write(output)
     }
   }
 }

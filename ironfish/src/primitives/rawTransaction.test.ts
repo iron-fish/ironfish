@@ -229,7 +229,7 @@ describe('RawTransactionSerde', () => {
       },
     ]
 
-    raw.receives = [
+    raw.outputs = [
       {
         note: note,
       },
@@ -246,7 +246,7 @@ describe('RawTransactionSerde', () => {
     })
 
     expect(RawTransactionSerde.serialize(deserialized).equals(serialized)).toBe(true)
-    expect(deserialized.receives[0].note).toEqual(raw.receives[0].note)
+    expect(deserialized.outputs[0].note).toEqual(raw.outputs[0].note)
     expect(deserialized.burns[0].assetId).toEqual(asset.id())
     expect(deserialized.burns[0].value).toEqual(5n)
     expect(deserialized.mints[0].name).toEqual(assetName)

@@ -53,7 +53,7 @@ describe('Demonstrate the Sapling API', () => {
 
     const transaction = new Transaction(key.spending_key)
     const note = new Note(key.public_address, BigInt(20), 'test', Asset.nativeId(), key.public_address)
-    transaction.receive(note)
+    transaction.output(note)
 
     const serializedPostedTransaction = transaction.post_miners_fee()
     const postedTransaction = new TransactionPosted(serializedPostedTransaction)
@@ -90,7 +90,7 @@ describe('Demonstrate the Sapling API', () => {
 
     const minersFeeTransaction = new Transaction(key.spending_key)
     const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner', Asset.nativeId(), key.public_address)
-    minersFeeTransaction.receive(minersFeeNote)
+    minersFeeTransaction.output(minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
 
@@ -119,7 +119,7 @@ describe('Demonstrate the Sapling API', () => {
     }
 
     transaction.spend(decryptedNote, witness)
-    transaction.receive(newNote)
+    transaction.output(newNote)
 
     const postedTransaction = new TransactionPosted(transaction.post(key.public_address, BigInt(5)))
 

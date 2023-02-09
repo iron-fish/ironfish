@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
-  createRootLogger,
   FileUtils,
   isValidPublicAddress,
   MiningStatusMessage,
   parseUrl,
   PromiseUtils,
   StratumClient,
+  StratumTcpClient,
+  StratumTlsClient,
   waitForEmit,
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
@@ -32,6 +33,10 @@ export class PoolStatus extends IronfishCommand {
       char: 'f',
       default: false,
       description: 'Follow the status of the mining pool',
+    }),
+    tls: Flags.boolean({
+      description: 'Connect to pool over tls',
+      allowNo: true,
     }),
   }
 
@@ -57,11 +62,12 @@ export class PoolStatus extends IronfishCommand {
       }
     }
 
-    const stratum = new StratumClient({
-      host: host,
-      port: port,
-      logger: createRootLogger(),
-    })
+    let stratum: StratumClient
+    if (flags.tls) {
+      stratum = new StratumTlsClient({ host, port, logger: this.logger })
+    } else {
+      stratum = new StratumTcpClient({ host, port, logger: this.logger })
+    }
 
     if (!flags.follow) {
       stratum.onConnected.on(() => stratum.getStatus(flags.address))
