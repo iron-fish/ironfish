@@ -32,8 +32,6 @@ export type AccountImport = {
 
 export type SpendingAccount = WithRequired<Account, 'spendingKey'>
 
-export type SpendingAccount = WithRequired<Account, 'spendingKey'>
-
 export class Account {
   private readonly walletDb: WalletDB
 
