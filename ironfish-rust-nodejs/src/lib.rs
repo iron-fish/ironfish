@@ -103,7 +103,7 @@ pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
 }
 
 #[napi]
-pub fn generate_public_address_from_incoming_view_key(view_key: String) -> Result<String> {
+pub fn incoming_view_key_to_public_address(view_key: String) -> Result<String> {
     let sapling_view_key = IncomingViewKey::from_hex(&view_key).map_err(to_napi_err)?;
     let sapling_public_address = PublicAddress::from_view_key(&sapling_view_key);
 

@@ -61,7 +61,7 @@ export function generateKey(): Key
 export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
 export function wordsToSpendingKey(words: string, languageCode: LanguageCode): string
 export function generateKeyFromPrivateKey(privateKey: string): Key
-export function generatePublicAddressFromIncomingViewKey(incomingViewKey: string): string
+export function incomingViewKeyToPublicAddress(incomingViewKey: string): string
 export function initializeSapling(): void
 export function isValidPublicAddress(hexAddress: string): boolean
 export class BoxKeyPair {
