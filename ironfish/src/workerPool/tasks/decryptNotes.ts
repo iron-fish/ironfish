@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH, KEY_LENGTH } from '@ironfish/rust-nodejs'
+import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
@@ -26,7 +26,6 @@ export interface DecryptedNote {
 }
 
 export class DecryptNotesRequest extends WorkerMessage {
-  static nullValue = '0'.repeat(KEY_LENGTH)
   readonly payloads: Array<DecryptNoteOptions>
 
   constructor(payloads: Array<DecryptNoteOptions>, jobId?: number) {

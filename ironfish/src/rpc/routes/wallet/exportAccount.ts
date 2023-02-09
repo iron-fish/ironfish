@@ -27,7 +27,7 @@ export const ExportAccountResponseSchema: yup.ObjectSchema<ExportAccountResponse
     account: yup
       .object({
         name: yup.string().defined(),
-        spendingKey: yup.string(),
+        spendingKey: yup.string().defined(),
         incomingViewKey: yup.string().defined(),
         outgoingViewKey: yup.string().defined(),
         publicAddress: yup.string().defined(),

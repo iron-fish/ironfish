@@ -49,7 +49,7 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
   `${ApiNamespace.wallet}/burnAsset`,
   BurnAssetRequestSchema,
   async (request, node): Promise<void> => {
-    const account = node.wallet.getAccountByName(request.data.account)?.spendingAccount()
+    const account = node.wallet.getAccountByName(request.data.account)
     if (!account) {
       throw new ValidationError(`No account found with name ${request.data.account}`)
     }
