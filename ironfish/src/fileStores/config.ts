@@ -13,7 +13,7 @@ export const DEFAULT_DISCORD_INVITE = 'https://discord.ironfish.network'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_USE_RPC_TLS = true
-export const DEFAULT_POOL_HOST = '0.0.0.0'
+export const DEFAULT_POOL_HOST = '::'
 export const DEFAULT_POOL_PORT = 9034
 export const DEFAULT_NETWORK_ID = 0
 
