@@ -4,8 +4,8 @@
 
 use std::fmt::Display;
 
-use ironfish_rust::IncomingViewKey;
 use ironfish_rust::keys::Language;
+use ironfish_rust::IncomingViewKey;
 use ironfish_rust::PublicAddress;
 use ironfish_rust::SaplingKey;
 use napi::bindgen_prelude::*;
