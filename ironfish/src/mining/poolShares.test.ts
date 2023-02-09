@@ -170,6 +170,8 @@ describe('poolShares', () => {
       Assert.isNotUndefined(transactionId)
       await shares['db'].markSharesPaid(payoutPeriod.id, transactionId, [address])
 
+      await shares['db'].rolloverPayoutPeriod(new Date().getTime() + 10 * 1000)
+
       // All shares paid out, so there should be no outstanding payout periods
       const outstandingPeriod1 = await shares['db'].earliestOutstandingPayoutPeriod()
       expect(outstandingPeriod1).toBeUndefined()
@@ -183,6 +185,8 @@ describe('poolShares', () => {
       // Share has been marked unpaid, so the payout period should be outstanding again
       const outstandingPeriod2 = await shares['db'].earliestOutstandingPayoutPeriod()
       expect(outstandingPeriod2).toBeDefined()
+
+      jest.useRealTimers()
     })
   })
 
