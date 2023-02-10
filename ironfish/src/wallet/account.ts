@@ -10,7 +10,6 @@ import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
 import { Note } from '../primitives/note'
 import { DatabaseKeyRange, IDatabaseTransaction } from '../storage'
 import { StorageUtils } from '../storage/database/utils'
-import { WithRequired } from '../utils'
 import { DecryptedNote } from '../workerPool/tasks/decryptNotes'
 import { AssetBalances } from './assetBalances'
 import { AccountValue } from './walletdb/accountValue'
@@ -578,10 +577,7 @@ export class Account {
 
     return assetBalanceDeltas
   }
-  spendingAccount(): SpendingAccount {
-    Assert.isNotUndefined(this.spendingKey, 'The provided account is not a spending account')
-    return this as SpendingAccount
-  }
+  
 
   async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
