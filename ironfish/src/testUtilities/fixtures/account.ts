@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../../assert'
-import { WithRequired } from '../../utils'
-import { AccountValue, SpendingAccount, Wallet } from '../../wallet'
+
+import { WithNonNull } from '../../utils'
+import { Account, AccountValue, Wallet } from '../../wallet'
 import { FixtureGenerate, useFixture } from './fixture'
 
-type SpendingAccountValue = WithRequired<AccountValue & { default: boolean }, 'spendingKey'>
+type SpendingAccountValue = WithNonNull<AccountValue & { default: boolean }, 'spendingKey'>
+export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
 
 export function useAccountFixture(
   wallet: Wallet,
@@ -21,8 +23,9 @@ export function useAccountFixture(
   return useFixture(generate, {
     serialize: (account: SpendingAccount): SpendingAccountValue => {
       const serializedAccount = account.serialize()
-      Assert.isNotUndefined(serializedAccount.spendingKey)
-      return { ...serializedAccount, default: setDefault } as SpendingAccountValue
+      const { spendingKey } = serializedAccount
+      Assert.isNotNull(spendingKey)
+      return { ...serializedAccount, default: setDefault, spendingKey }
     },
 
     deserialize: async (accountData: SpendingAccountValue): Promise<SpendingAccount> => {

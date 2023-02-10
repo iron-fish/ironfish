@@ -27,15 +27,13 @@ export type AccountImport =
   | { name: string; spendingKey: string }
   | { name: string; incomingViewKey: string; outgoingViewKey: string }
 
-export type SpendingAccount = WithRequired<Account, 'spendingKey'>
-
 export class Account {
   private readonly walletDb: WalletDB
 
   readonly id: string
   readonly displayName: string
   name: string
-  readonly spendingKey?: string
+  readonly spendingKey: string | null
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
   publicAddress: string

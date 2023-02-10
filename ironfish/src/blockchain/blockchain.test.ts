@@ -11,6 +11,7 @@ import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { RawTransaction } from '../primitives/rawTransaction'
 import {
   createNodeTest,
+  SpendingAccount,
   useAccountFixture,
   useBlockFixture,
   useBlockWithRawTxFixture,

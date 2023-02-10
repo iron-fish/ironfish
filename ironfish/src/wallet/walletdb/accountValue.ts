@@ -10,7 +10,7 @@ const KEY_LENGTH = 32
 export interface AccountValue {
   id: string
   name: string
-  spendingKey?: string
+  spendingKey: string | null
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
@@ -45,7 +45,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       publicAddress,
       incomingViewKey,
       outgoingViewKey,
-      ...(spendingKey === this.nullValue ? {} : { spendingKey }),
+      spendingKey: spendingKey === this.nullValue ? null : spendingKey,
     }
   }
 

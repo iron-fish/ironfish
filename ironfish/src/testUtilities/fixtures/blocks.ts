@@ -13,7 +13,7 @@ import { MintData, RawTransaction } from '../../primitives/rawTransaction'
 import { Transaction } from '../../primitives/transaction'
 import { Account, SpendingAccount, Wallet } from '../../wallet'
 import { WorkerPool } from '../../workerPool/pool'
-import { useAccountFixture } from './account'
+import { SpendingAccount, useAccountFixture } from './account'
 import { FixtureGenerate, useFixture } from './fixture'
 import {
   restoreTransactionFixtureToAccounts,

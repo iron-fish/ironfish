@@ -4,9 +4,12 @@
 
 import { Asset } from '@ironfish/rust-nodejs'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
+import {
+  SpendingAccount,
+  useAccountFixture,
+  useMinerBlockFixture,
+} from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { SpendingAccount } from '../../../wallet'
 import { ERROR_CODES } from '../../adapters/errors'
 
 const REQUEST_PARAMS = {

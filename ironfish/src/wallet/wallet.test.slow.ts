@@ -786,7 +786,7 @@ describe('Accounts', () => {
             expiration: 0,
           },
         )
-        Assert.isNotUndefined(accountANodeB.spendingKey)
+        Assert.isNotNull(accountANodeB.spendingKey)
         const transaction = await nodeB.wallet.post(
           raw,
           nodeB.memPool,

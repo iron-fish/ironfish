@@ -9,7 +9,7 @@ import { MintData } from '../../primitives/rawTransaction'
 import { SerializedTransaction, Transaction } from '../../primitives/transaction'
 import { Account, SpendingAccount, Wallet } from '../../wallet'
 import { createRawTransaction } from '../helpers/transaction'
-import { useAccountFixture } from './account'
+import { SpendingAccount, useAccountFixture } from './account'
 import { FixtureGenerate, useFixture } from './fixture'
 
 export async function restoreTransactionFixtureToAccounts(

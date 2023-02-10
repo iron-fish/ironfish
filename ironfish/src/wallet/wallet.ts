@@ -691,7 +691,12 @@ export class Wallet {
       expiration: expiration ?? undefined,
       confirmations: confirmations ?? undefined,
     })
-    return this.post(raw, memPool, sender.spendingKey)
+    const { spendingKey } = sender
+    Assert.isNotNull(
+      spendingKey,
+      "The provided account doesn't have a spending key, cannot send transaction",
+    )
+    return this.post(raw, memPool, spendingKey)
   }
 
   async mint(
@@ -728,7 +733,12 @@ export class Wallet {
       expiration: options.expiration,
       confirmations: options.confirmations,
     })
-    return this.post(raw, memPool, account.spendingKey)
+    const { spendingKey } = account
+    Assert.isNotNull(
+      spendingKey,
+      "The provided account doesn't have a spending key, cannot mint assets",
+    )
+    return this.post(raw, memPool, spendingKey)
   }
 
   async burn(
@@ -747,7 +757,12 @@ export class Wallet {
       expiration: expiration,
       confirmations: confirmations,
     })
-    return this.post(raw, memPool, account.spendingKey)
+    const { spendingKey } = account
+    Assert.isNotNull(
+      spendingKey,
+      "The provided account doesn't have a spending key, cannot burn assets",
+    )
+    return this.post(raw, memPool, spendingKey)
   }
 
   async createTransaction(
@@ -1289,7 +1304,8 @@ export class Wallet {
   }
 
   async importAccount(toImport: AccountImport): Promise<Account> {
-    if (toImport.name && this.getAccountByName(toImport.name)) {
+    const { name, spendingKey } = toImport
+    if (name && this.getAccountByName(name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
 

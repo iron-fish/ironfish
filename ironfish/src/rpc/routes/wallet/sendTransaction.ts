@@ -82,8 +82,13 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
   async (request, node): Promise<void> => {
     const transaction = request.data
 
-    const account = node.wallet.getAccountByName(transaction.fromAccountName)?.spendingAccount()
-    Assert.isNotUndefined(account, `No account found with name ${transaction.fromAccountName}`)
+    const account = node.wallet.getAccountByName(transaction.fromAccountName)
+    Assert.isNotNull(account, `No account found with name ${transaction.fromAccountName}`)
+    const { spendingKey } = account
+    Assert.isNotNull(
+      spendingKey,
+      'Account must have spending key in order to send a transaction',
+    )
 
     // The node must be connected to the network first
     if (!node.peerNetwork.isReady) {

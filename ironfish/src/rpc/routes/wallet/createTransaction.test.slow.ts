@@ -3,9 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
+import {
+  SpendingAccount,
+  useAccountFixture,
+  useMinerBlockFixture,
+  useTxFixture,
+} from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { SpendingAccount } from '../../../wallet'
 
 describe('Route wallet/createTransaction', () => {
   const routeTest = createRouteTest(true)
