@@ -73,15 +73,10 @@ export class DecryptNotesRequest extends WorkerMessage {
       const serializedNote = reader.readBytes(ENCRYPTED_NOTE_LENGTH)
       const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
       const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-      let spendingKey = null
-      if (hasSpendingKey) {
-        spendingKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-      }
-
-      let currentNoteIndex = null
-      if (hasCurrentNoteIndex) {
-        currentNoteIndex = reader.readU32()
-      }
+      const spendingKey = hasSpendingKey
+        ? reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
+        : null
+      const currentNoteIndex = hasCurrentNoteIndex ? reader.readU32() : null
 
       payloads.push({
         serializedNote,
