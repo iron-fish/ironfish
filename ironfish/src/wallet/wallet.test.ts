@@ -547,11 +547,17 @@ describe('Accounts', () => {
       const { node } = nodeTest
       const account = await useAccountFixture(node.wallet, 'accountA')
       expect(node.wallet.accountExists(account.name)).toEqual(true)
-      // const clone = { ...account }
-      // clone.name = 'Different name'
-      // await expect(node.wallet.importAccount(clone)).rejects.toThrow(
-      //   'Account already exists with provided spending key',
-      // )
+      const viewonlyImportRequest = {
+        name: account.name + ' viewonly',
+        incomingViewKey: account.incomingViewKey,
+        outgoingViewKey: account.outgoingViewKey,
+      }
+      const viewonlyAccount = await node.wallet.importAccount(viewonlyImportRequest)
+      expect(viewonlyAccount.name).toEqual(viewonlyImportRequest.name)
+      expect(viewonlyAccount.incomingViewKey).toEqual(account.incomingViewKey)
+      expect(viewonlyAccount.outgoingViewKey).toEqual(account.outgoingViewKey)
+      expect(viewonlyAccount.spendingKey).toBeNull()
+      expect(viewonlyAccount.publicAddress).toEqual(account.publicAddress)
     })
   })
 
