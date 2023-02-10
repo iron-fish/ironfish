@@ -32,7 +32,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     let flags = 0
     flags |= Number(!!value.blockHash) << 0
     flags |= Number(!!value.sequence) << 1
-    flags |= Number(!!value.supply) << 2
+    flags |= Number(value.supply !== null) << 2
     bw.writeU8(flags)
 
     if (value.blockHash) {
@@ -43,7 +43,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
       bw.writeU32(value.sequence)
     }
 
-    if (value.supply) {
+    if (value.supply !== null) {
       bw.writeVarBytes(BigIntUtils.toBytesLE(value.supply))
     }
 
@@ -98,7 +98,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
       size += 4
     }
 
-    if (value.supply) {
+    if (value.supply !== null) {
       size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(value.supply))
     }
 
