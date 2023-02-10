@@ -12,6 +12,7 @@ import {
   useBurnBlockFixture,
   useMinerBlockFixture,
   useMintBlockFixture,
+  usePostTxFixture,
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils/async'
@@ -680,6 +681,42 @@ describe('Accounts', () => {
         supply: mintValue - burnValue,
       })
       expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
+
+      // Send some of Account A coins to Account B
+      const transfer = await usePostTxFixture({
+        node,
+        wallet: node.wallet,
+        from: accountA,
+        to: accountB,
+        assetId: asset.id(),
+        amount: BigInt(1n),
+      })
+      const block = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [
+        transfer,
+      ])
+      await expect(node.chain).toAddBlock(block)
+      await node.wallet.updateHead()
+
+      // Account B should be able to burn the received asset
+      const burnBlockFromAccountB = await useBurnBlockFixture({
+        node,
+        account: accountB,
+        asset,
+        value: BigInt(1),
+      })
+      await expect(node.chain).toAddBlock(burnBlockFromAccountB)
+      await node.wallet.updateHead()
+
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toEqual({
+        blockHash: block.header.hash,
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        sequence: block.header.sequence,
+        supply: null,
+      })
     })
   })
 

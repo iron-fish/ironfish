@@ -320,12 +320,13 @@ export class Account {
       if (!existingAsset) {
         continue
       }
-      // Verify the owner matches before processing a burn
-      Assert.isEqual(
-        existingAsset.owner.toString('hex'),
-        this.publicAddress,
-        'Existing asset owner should match public address',
-      )
+
+      // Verify the owner matches before processing a burn since an account can
+      // burn assets it does not own
+      if (existingAsset.owner.toString('hex') !== this.publicAddress) {
+        continue
+      }
+
       Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
 
       const supply = existingAsset.supply - value
