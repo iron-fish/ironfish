@@ -4,10 +4,11 @@
 import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
+import { BufferUtils } from '../../utils'
 import { Account } from '../../wallet'
 import { Migration } from '../migration'
 
-export class Migration018 extends Migration {
+export class Migration020 extends Migration {
   path = __filename
 
   prepare(node: IronfishNode): IDatabase {
@@ -20,10 +21,6 @@ export class Migration018 extends Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    // Ensure there are no corrupted records for users who might have failed
-    // running this migration
-    await node.wallet.walletDb.assets.clear()
-
     const accounts = []
     for await (const accountValue of node.wallet.walletDb.loadAccounts(tx)) {
       accounts.push(
@@ -38,26 +35,31 @@ export class Migration018 extends Migration {
 
     for (const account of accounts) {
       logger.info('')
-      logger.info(`  Backfilling assets for account ${account.name}`)
+
+      let assetCount = 0
+      logger.info(`  Clearing assets for account ${account.name}`)
+      for await (const asset of account.getAssets(tx)) {
+        if (asset.owner.toString('hex') !== account.publicAddress) {
+          continue
+        }
+
+        logger.info(`  Re-syncing asset ${BufferUtils.toHuman(asset.name)}`)
+        await node.wallet.walletDb.deleteAsset(account, asset.id, tx)
+        assetCount++
+      }
 
       for await (const transactionValue of account.getTransactionsOrderedBySequence(tx)) {
         await account.saveMintsToAssetsStore(transactionValue, tx)
         await account.saveConnectedBurnsToAssetsStore(transactionValue.transaction, tx)
       }
 
-      let assetCount = 0
-      for await (const _ of account.getAssets(tx)) {
-        assetCount++
-      }
-
-      const assetsString = assetCount === 1 ? `${assetCount} asset` : `${assetCount} : assets`
+      const assetsString = assetCount === 1 ? `${assetCount} asset` : `${assetCount} assets`
       logger.info(`  Completed backfilling ${assetsString} for account ${account.name}`)
     }
 
     logger.info('')
   }
 
-  async backward(node: IronfishNode): Promise<void> {
-    await node.wallet.walletDb.assets.clear()
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  async backward(): Promise<void> {}
 }

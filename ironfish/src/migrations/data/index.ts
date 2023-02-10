@@ -8,6 +8,7 @@ import { Migration016 } from './016-sequence-to-tx'
 import { Migration017 } from './017-sequence-encoding'
 import { Migration018 } from './018-backfill-wallet-assets'
 import { Migration019 } from './019-backfill-wallet-assets-from-chain'
+import { Migration020 } from './020-backfill-null-asset-supplies'
 
 export const MIGRATIONS = [
   Migration014,
@@ -16,4 +17,5 @@ export const MIGRATIONS = [
   Migration017,
   Migration018,
   Migration019,
+  Migration020,
 ]

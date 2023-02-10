@@ -55,7 +55,7 @@ describe('wallet/getAssets', () => {
         name: pendingAsset.name().toString('hex'),
         owner: account.publicAddress,
         status: AssetStatus.PENDING,
-        supply: undefined,
+        supply: '0',
       },
       {
         createdTransactionHash: mintBlock.transactions[1].hash().toString('hex'),

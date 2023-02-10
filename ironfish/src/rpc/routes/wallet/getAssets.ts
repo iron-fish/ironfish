@@ -61,7 +61,7 @@ router.register<typeof GetAssetsRequestSchema, GetAssetsResponse>(
         status: await node.wallet.getAssetStatus(account, asset, {
           confirmations: request.data.confirmations,
         }),
-        supply: asset.supply ? CurrencyUtils.encode(asset.supply) : undefined,
+        supply: asset.supply !== null ? CurrencyUtils.encode(asset.supply) : undefined,
       })
     }
 
