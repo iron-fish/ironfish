@@ -542,6 +542,21 @@ describe('Accounts', () => {
         'Account already exists with provided spending key',
       )
     })
+
+    it('should be able to import an account from solely its view keys', async () => {
+      // const { node } = nodeTest
+
+      // const account = await useAccountFixture(node.wallet, 'accountA')
+
+      // expect(node.wallet.accountExists(account.name)).toEqual(true)
+
+      // const clone = { ...account }
+      // clone.name = 'Different name'
+
+      // await expect(node.wallet.importAccount(clone)).rejects.toThrow(
+      //   'Account already exists with provided spending key',
+      )
+    })
   })
 
   describe('expireTransactions', () => {
