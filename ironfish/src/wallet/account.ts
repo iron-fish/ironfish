@@ -577,7 +577,6 @@ export class Account {
 
     return assetBalanceDeltas
   }
-  
 
   async deleteTransaction(transaction: Transaction, tx?: IDatabaseTransaction): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {

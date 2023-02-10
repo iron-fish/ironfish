@@ -131,7 +131,6 @@ export class MiningManager {
   async createNewBlockTemplate(currentBlock: Block): Promise<SerializedBlockTemplate> {
     const startTime = BenchUtils.start()
 
-
     const account = this.node.wallet.getDefaultAccount()
     Assert.isNotNull(account, 'Cannot mine without an account')
     const { spendingKey } = account

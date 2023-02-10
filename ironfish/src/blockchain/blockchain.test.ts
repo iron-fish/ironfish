@@ -23,7 +23,6 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
-import { SpendingAccount } from '../wallet'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()

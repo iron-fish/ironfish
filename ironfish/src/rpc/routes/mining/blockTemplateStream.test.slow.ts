@@ -4,6 +4,7 @@
 
 import {
   createNodeTest,
+  SpendingAccount,
   useAccountFixture,
   useMinerBlockFixture,
   useTxFixture,
@@ -11,7 +12,6 @@ import {
 import { flushTimeout } from '../../../testUtilities/helpers/tests'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { PromiseUtils } from '../../../utils'
-import { SpendingAccount } from '../../../wallet'
 
 describe('Block template stream', () => {
   const routeTest = createRouteTest()
