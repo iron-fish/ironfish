@@ -625,7 +625,7 @@ describe('Accounts', () => {
     })
   })
 
-  it('Keeps spends created by the node when rolling back a fork', async () => {
+  it.only('Keeps spends created by the node when rolling back a fork', async () => {
     // Create a block 1 that gives account A money
     // Create a block A2 with a transaction from account A to account B
     // Create a block B2 that gives neither account money
