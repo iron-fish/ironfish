@@ -101,12 +101,14 @@ export class Burn extends IronfishCommand {
     let assetId = flags.assetId
 
     if (assetId == null) {
-      assetId = await selectAsset(client, account, {
+      const asset = await selectAsset(client, account, {
         action: 'burn',
         showNativeAsset: false,
         showSingleAssetChoice: true,
         confirmations,
       })
+
+      assetId = asset?.id
     }
 
     if (assetId == null) {

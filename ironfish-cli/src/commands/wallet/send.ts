@@ -112,12 +112,14 @@ export class Send extends IronfishCommand {
     }
 
     if (assetId == null) {
-      assetId = await selectAsset(client, from, {
+      const asset = await selectAsset(client, from, {
         action: 'send',
         showNativeAsset: true,
         showSingleAssetChoice: false,
         confirmations: confirmations,
       })
+
+      assetId = asset?.id
     }
 
     if (!assetId) {
