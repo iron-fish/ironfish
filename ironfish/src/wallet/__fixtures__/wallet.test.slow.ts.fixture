@@ -428,5 +428,75 @@
         }
       ]
     }
+  ],
+  "Accounts Returns the correct balance when an account receives a miners fee": [
+    {
+      "id": "20f9ba45-76b0-49d9-a747-0fb3fb6554a3",
+      "name": "test",
+      "spendingKey": "bbc265a83562835e7a18114b128f2847d5d75f787dfa33e86449df9a9d2cd37d",
+      "incomingViewKey": "b6a0a771d754912e9f41be3873996a3d7838fe66673530109a59432dca1d7805",
+      "outgoingViewKey": "95f38e4960993968b47b161f8d882566bfa89b82e4dcd9e38f36c45b3f732f34",
+      "publicAddress": "7255b0ca5f124dbbf6e3a4309d8cf1710a05068ed5f6eccaae2fa99ad068afce"
+    }
+  ],
+  "Accounts Lowers the balance after using send to spend a note": [
+    {
+      "id": "db43ab3c-8fc3-42e8-96a8-de7eff1e4f8a",
+      "name": "test",
+      "spendingKey": "195c85f4aafe4aab03aae9db7c8923a320e86e9aa5ee9d153d1da9a0ca4373f7",
+      "incomingViewKey": "ab3dd5e2f4c6bc3c8f7bc2ac09d2cbfb6f206d9152b0d5699c3f2c3992320903",
+      "outgoingViewKey": "f4a79668c4f0ff79fc75aecf8da716d3e9ef457342d62bbec3d0a94dbb2b8bae",
+      "publicAddress": "9f4458c82076c6dd0bd3b0a84a218bf4cf873754a51ec701b2ecf5b908ad474b"
+    }
+  ],
+  "Accounts Creates valid transactions when the worker pool is enabled": [
+    {
+      "id": "b7272d2d-7e56-4208-86c0-d921f3b73d60",
+      "name": "test",
+      "spendingKey": "727a6869dbe667bcb1e7c12b64b0093e01e557087ff131f8332c3b891820dc2e",
+      "incomingViewKey": "56cca3ca3b8d08f36747139b45957575bcb52ed6027b061b844aba578d121b02",
+      "outgoingViewKey": "e9b506379baa4993f6b2a750fdf86ec9ec1dfae512e37479c1666d66d5140de7",
+      "publicAddress": "b4107d185003533ed604001ec0a8bc55bf2b4d6b9a85ccfa4a0025a96c83aba9"
+    }
+  ],
+  "Accounts creates valid transactions with multiple outputs": [
+    {
+      "id": "c1d879b3-dfa1-4cfa-9548-a37c425092c6",
+      "name": "test",
+      "spendingKey": "bf09ca1eaf6adc13a29142ad7cf49294165773ed1097d53e08750e545894a9bc",
+      "incomingViewKey": "97dbd34b2ece06d7cc9ddf1e70a5bfe9837ec47102d6db094c12bad675dba707",
+      "outgoingViewKey": "cb00c0ba187cf6a19430afb265d462ef4a91265dbdfe3193a60ccceb497f4222",
+      "publicAddress": "cc316233e8a8caeb0e73c4e6f98819bc9c7138c6fe3ef73db5f48effeae9a1b9"
+    }
+  ],
+  "Accounts throws a ValidationError with an invalid expiration sequence": [
+    {
+      "id": "7b0ddd35-007b-4596-bc56-6ee17f64e38e",
+      "name": "test",
+      "spendingKey": "eed77a32a9ce97954a27042d407a29b59dca440ecb340331b1104b9170d0cb77",
+      "incomingViewKey": "3f53dffa597667c71a89412923c71fcd4d316c67515c9225e8ccc7aa729d0e02",
+      "outgoingViewKey": "6bb0017a7ef833823ae51dc6f92ca6a5aa0d4f1bead18e306de807d25c77d5e1",
+      "publicAddress": "a22bfe8effd9c15e72d4759f312473b087e1dbe3a4996af9be0bd9285aac0829"
+    }
+  ],
+  "Accounts Expires transactions when calling expireTransactions": [
+    {
+      "id": "362ab68f-72aa-40c1-9017-4eadcde70e6b",
+      "name": "test",
+      "spendingKey": "cb8cd2990da8c18f4c7d2da68cd0f9e742a03b76fed5a3c3321f1e7845323930",
+      "incomingViewKey": "4bbd02039f59a9f9c16f57bc27393347622ce90256f586094ec61ffdcbda6704",
+      "outgoingViewKey": "0ace94f01a4a94ffcea210326cca1a7c4703c5c1805a3fef98cd5bbaa8b0ea15",
+      "publicAddress": "dffdfd5a3ec431f9bef7dca2ce7bf4fe3511203c10d86812008f8cf711bfbe26"
+    }
+  ],
+  "Accounts Expires transactions when calling expireTransactions with restarts": [
+    {
+      "id": "8a36f27e-511c-4719-bbee-303ac41639eb",
+      "name": "test",
+      "spendingKey": "083f9e3b9401894a3b657418821457c7ab5ba7174761fdb997336d8dbf969a91",
+      "incomingViewKey": "85d93de271ec06a1d1575d6fb6b248daf0d89c0c81fe921a79e458986f38e202",
+      "outgoingViewKey": "0db3b400108b1ee0f5020bcf3abcd7b60808a44043e20a7f4654bfa0c62340cf",
+      "publicAddress": "117c74f302ba2dd8dd58ca34749680eae8ff27ced1d93fa561b6f5b3432d4596"
+    }
   ]
 }

@@ -18,7 +18,8 @@ describe('Mining manager', () => {
   it('creates a new block template', async () => {
     const { chain, miningManager } = nodeTest.node
 
-    const account = await nodeTest.node.wallet.createAccount('account', true)
+    const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+    await nodeTest.node.wallet.setDefaultAccount(account.name)
 
     const block = await useMinerBlockFixture(chain, 2)
     await expect(chain).toAddBlock(block)
@@ -39,7 +40,8 @@ describe('Mining manager', () => {
     const { node, chain } = nodeTest
     const { miningManager } = node
 
-    const account = await nodeTest.node.wallet.createAccount('account', true)
+    const account = await useAccountFixture(nodeTest.node.wallet, 'account')
+    await nodeTest.node.wallet.setDefaultAccount(account.name)
 
     const previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
     await expect(chain).toAddBlock(previous)
