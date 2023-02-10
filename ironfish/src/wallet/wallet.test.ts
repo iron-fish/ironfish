@@ -555,7 +555,7 @@ describe('Accounts', () => {
 
       // await expect(node.wallet.importAccount(clone)).rejects.toThrow(
       //   'Account already exists with provided spending key',
-      )
+      // )
     })
   })
 
