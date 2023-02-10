@@ -690,7 +690,10 @@ export class Wallet {
       expiration: expiration ?? undefined,
       confirmations: confirmations ?? undefined,
     })
-
+    Assert.isNotNull(
+      sender.spendingKey,
+      "The provided account doesn't have a spending key, cannot send transaction",
+    )
     return this.post(raw, memPool, sender.spendingKey)
   }
 
@@ -728,7 +731,10 @@ export class Wallet {
       expiration: options.expiration,
       confirmations: options.confirmations,
     })
-
+    Assert.isNotNull(
+      account.spendingKey,
+      "The provided account doesn't have a spending key, cannot mint assets",
+    )
     return this.post(raw, memPool, account.spendingKey)
   }
 
@@ -748,7 +754,10 @@ export class Wallet {
       expiration: expiration,
       confirmations: confirmations,
     })
-
+    Assert.isNotNull(
+      account.spendingKey,
+      "The provided account doesn't have a spending key, cannot burn assets",
+    )
     return this.post(raw, memPool, account.spendingKey)
   }
 
@@ -1298,7 +1307,8 @@ export class Wallet {
     if (this.listAccounts().find((a) => toImport.spendingKey === a.spendingKey)) {
       throw new Error(`Account already exists with provided spending key`)
     }
-
+    // TODO(evan): upon adding multiple account import types, handle this error
+    Assert.isNotNull(toImport.spendingKey, 'Spending key is required for importing account')
     const key = generateKeyFromPrivateKey(toImport.spendingKey)
 
     const accountValue: AccountValue = {

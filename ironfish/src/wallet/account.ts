@@ -22,7 +22,7 @@ import { WalletDB } from './walletdb/walletdb'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
-export type AccountImport = { name: string; spendingKey: string }
+export type AccountImport = { name: string; spendingKey: string | null }
 
 export class Account {
   private readonly walletDb: WalletDB
@@ -30,7 +30,7 @@ export class Account {
   readonly id: string
   readonly displayName: string
   name: string
-  readonly spendingKey: string
+  readonly spendingKey: string | null
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
   publicAddress: string
@@ -40,14 +40,12 @@ export class Account {
   constructor({
     id,
     name,
+    publicAddress,
+    walletDb,
     spendingKey,
     incomingViewKey,
     outgoingViewKey,
-    publicAddress,
-    walletDb,
-  }: AccountValue & {
-    walletDb: WalletDB
-  }) {
+  }: AccountValue & { walletDb: WalletDB }) {
     this.id = id
     this.name = name
     this.spendingKey = spendingKey
