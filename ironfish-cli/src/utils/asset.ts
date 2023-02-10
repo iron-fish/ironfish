@@ -15,48 +15,63 @@ export async function selectAsset(
     showSingleAssetChoice: boolean
     confirmations?: number
   },
-): Promise<string | undefined> {
+): Promise<
+  | {
+      id: string
+      name: string
+    }
+  | undefined
+> {
   const balancesResponse = await client.getAccountBalances({
     account: account,
     confirmations: options.confirmations,
   })
-  const assetOptions = []
 
   let balances = balancesResponse.content.balances
 
   if (!options.showNativeAsset) {
-    balances = balances.filter(
-      (balance) => balance.assetId !== Asset.nativeId().toString('hex'),
-    )
+    balances = balances.filter((b) => b.assetId !== Asset.nativeId().toString('hex'))
   }
 
   if (balances.length === 0) {
     return undefined
-  } else if (balances.length === 1 && !options.showSingleAssetChoice) {
-    // If there's only one available asset, showing the choices is unnecessary
-    return balances[0].assetId
   }
 
-  // Get the asset name from the chain DB to populate the display choices
-  for (const { assetId, confirmed } of balances) {
-    const assetResponse = await client.getAsset({ id: assetId })
-
-    if (assetResponse.content.name) {
-      const displayName = BufferUtils.toHuman(Buffer.from(assetResponse.content.name, 'hex'))
-      assetOptions.push({
-        value: assetId,
-        name: `${assetId} (${displayName}) (${CurrencyUtils.renderIron(confirmed)})`,
-      })
+  if (balances.length === 1 && !options.showSingleAssetChoice) {
+    // If there's only one available asset, showing the choices is unnecessary
+    return {
+      id: balances[0].assetId,
+      name: balances[0].assetName,
     }
   }
 
-  const response: { assetId: string } = await inquirer.prompt<{ assetId: string }>([
+  const choices = balances.map((balance) => {
+    const assetName = BufferUtils.toHuman(Buffer.from(balance.assetName, 'hex'))
+    const name = `${balance.assetId} (${assetName}) (${CurrencyUtils.renderIron(
+      balance.confirmed,
+    )})`
+
+    const value = {
+      id: balance.assetId,
+      name: balance.assetName,
+    }
+
+    return { value, name }
+  })
+
+  const response = await inquirer.prompt<{
+    asset: {
+      id: string
+      name: string
+    }
+  }>([
     {
-      name: 'assetId',
+      name: 'asset',
       message: `Select the asset you wish to ${options.action}`,
       type: 'list',
-      choices: assetOptions,
+      choices,
     },
   ])
-  return response.assetId
+
+  return response.asset
 }
