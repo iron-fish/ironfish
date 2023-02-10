@@ -69,7 +69,7 @@ export async function selectAsset(
       name: 'asset',
       message: `Select the asset you wish to ${options.action}`,
       type: 'list',
-      choices: choices,
+      choices,
     },
   ])
 
