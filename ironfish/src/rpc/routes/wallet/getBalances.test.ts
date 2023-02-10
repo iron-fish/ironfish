@@ -30,20 +30,22 @@ describe('getBalances', () => {
 
       const mockBalances = [
         {
-          assetId: Asset.nativeId(),
-          confirmed: BigInt(2000000000),
-          unconfirmed: BigInt(2000000000),
-          pending: BigInt(2000000000),
+          assetId,
+          assetName: asset.name(),
+          confirmed: BigInt(8),
+          unconfirmed: BigInt(8),
+          pending: BigInt(8),
           unconfirmedCount: 0,
           pendingCount: 0,
           blockHash: null,
           sequence: null,
         },
         {
-          assetId,
-          confirmed: BigInt(8),
-          unconfirmed: BigInt(8),
-          pending: BigInt(8),
+          assetId: Asset.nativeId(),
+          assetName: Buffer.from('$IRON', 'utf8'),
+          confirmed: BigInt(2000000000),
+          unconfirmed: BigInt(2000000000),
+          pending: BigInt(2000000000),
           unconfirmedCount: 0,
           pendingCount: 0,
           blockHash: null,
@@ -60,6 +62,19 @@ describe('getBalances', () => {
           }
         })
 
+      jest.spyOn(account, 'getAsset').mockImplementationOnce(() =>
+        Promise.resolve({
+          id: asset.id(),
+          metadata: asset.metadata(),
+          name: asset.name(),
+          owner: asset.owner(),
+          createdTransactionHash: Buffer.alloc(32),
+          blockHash: Buffer.alloc(32),
+          sequence: null,
+          supply: null,
+        }),
+      )
+
       const response = await routeTest.client.getAccountBalances({
         account: account.name,
       })
@@ -69,6 +84,7 @@ describe('getBalances', () => {
         mockBalances.map((mockBalance) => ({
           ...mockBalance,
           assetId: mockBalance.assetId.toString('hex'),
+          assetName: mockBalance.assetName.toString('hex'),
           confirmed: mockBalance.confirmed.toString(),
           unconfirmed: mockBalance.unconfirmed.toString(),
           pending: mockBalance.pending.toString(),

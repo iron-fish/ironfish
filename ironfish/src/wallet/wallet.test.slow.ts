@@ -38,7 +38,7 @@ describe('Accounts', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
-    const account = await node.wallet.createAccount('test', true)
+    const account = await useAccountFixture(node.wallet, 'test')
     await node.wallet.updateHead()
 
     // Initial balance should be 0
@@ -76,7 +76,7 @@ describe('Accounts', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
-    const account = await node.wallet.createAccount('test', true)
+    const account = await useAccountFixture(node.wallet, 'test')
 
     // Initial balance should be 0
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
@@ -145,7 +145,7 @@ describe('Accounts', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
-    const account = await node.wallet.createAccount('test', true)
+    const account = await useAccountFixture(node.wallet, 'test')
 
     // Initial balance should be 0
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
@@ -217,7 +217,7 @@ describe('Accounts', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
-    const account = await node.wallet.createAccount('test', true)
+    const account = await useAccountFixture(node.wallet, 'test')
 
     // Initial balance should be 0
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
@@ -296,7 +296,7 @@ describe('Accounts', () => {
 
   it('throws a ValidationError with an invalid expiration sequence', async () => {
     const node = nodeTest.node
-    const account = await node.wallet.createAccount('test', true)
+    const account = await useAccountFixture(node.wallet, 'test')
 
     // Spend the balance with an invalid expiration
     await expect(
@@ -324,7 +324,7 @@ describe('Accounts', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
-    const account = await node.wallet.createAccount('test', true)
+    const account = await useAccountFixture(node.wallet, 'test')
 
     // Mock that accounts is started for the purposes of the test
     node.wallet['isStarted'] = true
@@ -412,7 +412,7 @@ describe('Accounts', () => {
     // // Mock that accounts is started for the purposes of the test
     node.wallet['isStarted'] = true
 
-    const account = await node.wallet.createAccount('test', true)
+    const account = await useAccountFixture(node.wallet, 'test')
 
     // Create a second account
     await node.wallet.createAccount('test2')

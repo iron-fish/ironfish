@@ -12,6 +12,7 @@ import {
   useBurnBlockFixture,
   useMinerBlockFixture,
   useMintBlockFixture,
+  usePostTxFixture,
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils/async'
@@ -608,7 +609,7 @@ describe('Accounts', () => {
         name: asset.name(),
         owner: asset.owner(),
         sequence: null,
-        supply: null,
+        supply: BigInt(0),
       })
 
       const secondMintValue = BigInt(42)
@@ -680,6 +681,42 @@ describe('Accounts', () => {
         supply: mintValue - burnValue,
       })
       expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
+
+      // Send some of Account A coins to Account B
+      const transfer = await usePostTxFixture({
+        node,
+        wallet: node.wallet,
+        from: accountA,
+        to: accountB,
+        assetId: asset.id(),
+        amount: BigInt(1n),
+      })
+      const block = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [
+        transfer,
+      ])
+      await expect(node.chain).toAddBlock(block)
+      await node.wallet.updateHead()
+
+      // Account B should be able to burn the received asset
+      const burnBlockFromAccountB = await useBurnBlockFixture({
+        node,
+        account: accountB,
+        asset,
+        value: BigInt(1),
+      })
+      await expect(node.chain).toAddBlock(burnBlockFromAccountB)
+      await node.wallet.updateHead()
+
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toEqual({
+        blockHash: block.header.hash,
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        sequence: block.header.sequence,
+        supply: null,
+      })
     })
   })
 
@@ -929,7 +966,7 @@ describe('Accounts', () => {
         name: asset.name(),
         owner: asset.owner(),
         sequence: null,
-        supply: null,
+        supply: BigInt(0),
       })
 
       // Expiration of the first mint will delete the record
@@ -955,9 +992,23 @@ describe('Accounts', () => {
         account: accountA,
         asset,
         value: mintValue,
-        sequence: 3,
       })
       await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      // Send some of Account A coins to Account B
+      const transfer = await usePostTxFixture({
+        node,
+        wallet: node.wallet,
+        from: accountA,
+        to: accountB,
+        assetId: asset.id(),
+        amount: BigInt(1n),
+      })
+      const block = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [
+        transfer,
+      ])
+      await expect(node.chain).toAddBlock(block)
       await node.wallet.updateHead()
 
       const burnValue = BigInt(1)
@@ -966,7 +1017,6 @@ describe('Accounts', () => {
         account: accountA,
         asset,
         value: burnValue,
-        sequence: 4,
       })
       await expect(node.chain).toAddBlock(burnBlock)
       await node.wallet.updateHead()
@@ -989,7 +1039,34 @@ describe('Accounts', () => {
         owner: asset.owner(),
         supply: mintValue,
       })
-      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toBeUndefined()
+
+      // Account B should be able to burn the received asset
+      const burnBlockFromAccountB = await useBurnBlockFixture({
+        node,
+        account: accountB,
+        asset,
+        value: BigInt(1),
+      })
+      await expect(node.chain).toAddBlock(burnBlockFromAccountB)
+      await node.wallet.updateHead()
+      // Verify Account B has the asset
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).not.toBeUndefined()
+
+      // Disconnect the burn from Account B
+      await accountB.disconnectTransaction(
+        burnBlockFromAccountB.header,
+        burnBlockFromAccountB.transactions[1],
+      )
+      expect(await accountB['walletDb'].getAsset(accountB, asset.id())).toEqual({
+        blockHash: block.header.hash,
+        createdTransactionHash: mintBlock.transactions[1].hash(),
+        id: asset.id(),
+        metadata: asset.metadata(),
+        name: asset.name(),
+        owner: asset.owner(),
+        sequence: block.header.sequence,
+        supply: null,
+      })
     })
   })
 

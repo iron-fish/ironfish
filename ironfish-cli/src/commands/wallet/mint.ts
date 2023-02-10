@@ -141,16 +141,18 @@ export class Mint extends IronfishCommand {
         })
       }
     } else if (!assetId) {
-      assetId = await selectAsset(client, account, {
+      const asset = await selectAsset(client, account, {
         action: 'mint',
         showNativeAsset: false,
         showSingleAssetChoice: true,
         confirmations: confirmations,
       })
 
-      if (!assetId) {
+      if (!asset) {
         this.error(`You must have an existing asset. Try creating a new one.`)
       }
+
+      assetId = asset.id
     }
 
     let amount
