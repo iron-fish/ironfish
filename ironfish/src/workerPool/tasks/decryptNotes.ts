@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH, KEY_LENGTH } from '@ironfish/rust-nodejs'
+import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
@@ -12,7 +12,7 @@ export interface DecryptNoteOptions {
   serializedNote: Buffer
   incomingViewKey: string
   outgoingViewKey: string
-  spendingKey?: string
+  spendingKey: string | null
   currentNoteIndex: number | null
   decryptForSpender: boolean
 }
@@ -26,7 +26,6 @@ export interface DecryptedNote {
 }
 
 export class DecryptNotesRequest extends WorkerMessage {
-  static nullValue = '0'.repeat(KEY_LENGTH)
   readonly payloads: Array<DecryptNoteOptions>
 
   constructor(payloads: Array<DecryptNoteOptions>, jobId?: number) {
@@ -42,12 +41,15 @@ export class DecryptNotesRequest extends WorkerMessage {
       let flags = 0
       flags |= Number(!!payload.currentNoteIndex) << 0
       flags |= Number(payload.decryptForSpender) << 1
+      flags |= Number(!!payload.spendingKey) << 2
       bw.writeU8(flags)
 
       bw.writeBytes(payload.serializedNote)
       bw.writeBytes(Buffer.from(payload.incomingViewKey, 'hex'))
       bw.writeBytes(Buffer.from(payload.outgoingViewKey, 'hex'))
-      bw.writeBytes(Buffer.from(payload.spendingKey || DecryptNotesRequest.nullValue, 'hex'))
+      if (payload.spendingKey) {
+        bw.writeBytes(Buffer.from(payload.spendingKey, 'hex'))
+      }
 
       if (payload.currentNoteIndex) {
         bw.writeU32(payload.currentNoteIndex)
@@ -66,15 +68,14 @@ export class DecryptNotesRequest extends WorkerMessage {
       const flags = reader.readU8()
       const hasCurrentNoteIndex = flags & (1 << 0)
       const decryptForSpender = Boolean(flags & (1 << 1))
+      const hasSpendingKey = Boolean(flags & (1 << 2))
       const serializedNote = reader.readBytes(ENCRYPTED_NOTE_LENGTH)
       const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
       const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-      const spendingKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-
-      let currentNoteIndex = null
-      if (hasCurrentNoteIndex) {
-        currentNoteIndex = reader.readU32()
-      }
+      const spendingKey = hasSpendingKey
+        ? reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
+        : null
+      const currentNoteIndex = hasCurrentNoteIndex ? reader.readU32() : null
 
       payloads.push({
         serializedNote,
@@ -82,7 +83,7 @@ export class DecryptNotesRequest extends WorkerMessage {
         outgoingViewKey,
         currentNoteIndex,
         decryptForSpender,
-        ...(spendingKey === DecryptNotesRequest.nullValue ? {} : { spendingKey }),
+        spendingKey,
       })
     }
 
@@ -96,7 +97,7 @@ export class DecryptNotesRequest extends WorkerMessage {
       size += ENCRYPTED_NOTE_LENGTH
       size += ACCOUNT_KEY_LENGTH
       size += ACCOUNT_KEY_LENGTH
-      size += +ACCOUNT_KEY_LENGTH
+      size += ACCOUNT_KEY_LENGTH
       if (payload.currentNoteIndex) {
         size += 4
       }
