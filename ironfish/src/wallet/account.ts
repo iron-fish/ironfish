@@ -155,10 +155,12 @@ export class Account {
 
         const pendingNote = await this.getDecryptedNote(decryptedNote.hash, tx)
 
+        const spent = pendingNote?.spent ?? false
+
         const note = {
           accountId: this.id,
           note: new Note(decryptedNote.serializedNote),
-          spent: pendingNote?.spent ?? false,
+          spent,
           transactionHash: transaction.hash(),
           nullifier: decryptedNote.nullifier,
           index: decryptedNote.index,
@@ -169,6 +171,10 @@ export class Account {
         assetBalanceDeltas.increment(note.note.assetId(), note.note.value())
 
         await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
+
+        if (!spent) {
+          await this.walletDb.addUnspentNoteHash(this, decryptedNote.hash, note, tx)
+        }
       }
 
       for (const spend of transaction.spends) {
@@ -185,6 +191,7 @@ export class Account {
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
+        await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
       transactionValue = {
@@ -483,6 +490,7 @@ export class Account {
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
+        await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
       const transactionValue = {
@@ -544,6 +552,7 @@ export class Account {
           },
           tx,
         )
+        await this.walletDb.deleteUnspentNoteHash(this, noteHash, decryptedNoteValue, tx)
       }
 
       for (const spend of transaction.spends) {
@@ -714,6 +723,7 @@ export class Account {
             },
             tx,
           )
+          await this.walletDb.addUnspentNoteHash(this, noteHash, decryptedNote, tx)
         }
       }
 

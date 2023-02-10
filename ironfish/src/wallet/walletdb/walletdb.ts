@@ -11,6 +11,7 @@ import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
 import { TransactionHash } from '../../primitives/transaction'
 import {
+  BigIntBEEncoding,
   BUFFER_ENCODING,
   BufferEncoding,
   IDatabase,
@@ -22,7 +23,7 @@ import {
   U32_ENCODING_BE,
   U64_ENCODING,
 } from '../../storage'
-import { StorageUtils } from '../../storage/database/utils'
+import { getPrefixKeyRange, StorageUtils } from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account'
@@ -111,6 +112,11 @@ export class WalletDB {
   assets: IDatabaseStore<{
     key: [Account['prefix'], Buffer]
     value: AssetValue
+  }>
+
+  unspentNoteHashes: IDatabaseStore<{
+    key: [Account['prefix'], [Buffer, [number, [bigint, Buffer]]]]
+    value: null
   }>
 
   constructor({
@@ -224,6 +230,28 @@ export class WalletDB {
       name: 'as',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new AssetValueEncoding(),
+    })
+
+    this.unspentNoteHashes = this.db.addStore({
+      name: 'un',
+      keyEncoding: new PrefixEncoding(
+        new BufferEncoding(), // account prefix
+        new PrefixEncoding(
+          new BufferEncoding(), // asset ID
+          new PrefixEncoding(
+            U32_ENCODING_BE, // sequence
+            new PrefixEncoding(
+              new BigIntBEEncoding(), // value
+              new BufferEncoding(), // note hash
+              8,
+            ),
+            4,
+          ),
+          32,
+        ),
+        4,
+      ),
+      valueEncoding: NULL_ENCODING,
     })
   }
 
@@ -500,6 +528,60 @@ export class WalletDB {
     )
 
     await this.sequenceToNoteHash.clear(tx, keyRange)
+  }
+
+  async addUnspentNoteHash(
+    account: Account,
+    noteHash: Buffer,
+    decryptedNote: DecryptedNoteValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const sequence = decryptedNote.sequence
+
+    if (sequence === null) {
+      return
+    }
+
+    const assetId = decryptedNote.note.assetId()
+    const value = decryptedNote.note.value()
+
+    await this.unspentNoteHashes.put(
+      [account.prefix, [assetId, [sequence, [value, noteHash]]]],
+      null,
+      tx,
+    )
+  }
+
+  async deleteUnspentNoteHash(
+    account: Account,
+    noteHash: Buffer,
+    decryptedNote: DecryptedNoteValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const assetId = decryptedNote.note.assetId()
+    const sequence = decryptedNote.sequence
+    const value = decryptedNote.note.value()
+
+    Assert.isNotNull(sequence, 'Cannot spend a note that is not on the chain.')
+
+    await this.unspentNoteHashes.del(
+      [account.prefix, [assetId, [sequence, [value, noteHash]]]],
+      tx,
+    )
+  }
+
+  async *loadUnspentNoteHashes(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Buffer> {
+    const range = getPrefixKeyRange(account.prefix)
+
+    for await (const [, [, [, [, noteHash]]]] of this.unspentNoteHashes.getAllKeysIter(
+      tx,
+      range,
+    )) {
+      yield noteHash
+    }
   }
 
   async loadNoteHash(
