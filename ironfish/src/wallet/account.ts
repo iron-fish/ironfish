@@ -45,13 +45,7 @@ export class Account {
     outgoingViewKey,
     publicAddress,
     walletDb,
-  }: {
-    id: string
-    name: string
-    spendingKey: string
-    incomingViewKey: string
-    outgoingViewKey: string
-    publicAddress: string
+  }: AccountValue & {
     walletDb: WalletDB
   }) {
     this.id = id
