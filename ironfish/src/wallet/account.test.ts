@@ -609,7 +609,7 @@ describe('Accounts', () => {
         name: asset.name(),
         owner: asset.owner(),
         sequence: null,
-        supply: null,
+        supply: BigInt(0),
       })
 
       const secondMintValue = BigInt(42)
@@ -966,7 +966,7 @@ describe('Accounts', () => {
         name: asset.name(),
         owner: asset.owner(),
         sequence: null,
-        supply: null,
+        supply: BigInt(0),
       })
 
       // Expiration of the first mint will delete the record
