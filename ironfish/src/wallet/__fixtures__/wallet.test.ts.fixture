@@ -4616,5 +4616,16 @@
         }
       ]
     }
+  ],
+  "Accounts importAccount should be able to import an account from solely its view keys": [
+    {
+      "id": "aff8ba00-b81a-4814-8516-a13beae5ddf8",
+      "name": "accountA",
+      "spendingKey": "4d35370ac55bb35927922401146bee96b67479bd22ec49c5135519eaf7247f1b",
+      "incomingViewKey": "4d1fa3b87a0b00461490ec930bfb2a7dfe9b8da3e9117b19f89ccc54c9ed3200",
+      "outgoingViewKey": "67e45b759a43a0814e8d6102549423dbf678110da78912de9031e483f9b8e3fb",
+      "publicAddress": "3a7918c52feb13e59434bb10aa45f713aee849e547ce1cc649166ae9d66991bf",
+      "default": false
+    }
   ]
 }

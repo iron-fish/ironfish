@@ -246,7 +246,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { contribute, verifyTransform, KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_ID_LENGTH, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_OWNER_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, PROOF_LENGTH, TRANSACTION_SIGNATURE_LENGTH, TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH, TRANSACTION_EXPIRATION_LENGTH, TRANSACTION_FEE_LENGTH, TRANSACTION_VERSION, Transaction, verifyTransactions, LanguageCode, generateKey, spendingKeyToWords, wordsToSpendingKey, generateKeyFromPrivateKey, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
+const { contribute, verifyTransform, KEY_LENGTH, NONCE_LENGTH, BoxKeyPair, randomBytes, boxMessage, unboxMessage, RollingFilter, ASSET_ID_LENGTH, ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH, ASSET_OWNER_LENGTH, ASSET_LENGTH, Asset, NOTE_ENCRYPTION_KEY_LENGTH, MAC_LENGTH, ENCRYPTED_NOTE_PLAINTEXT_LENGTH, ENCRYPTED_NOTE_LENGTH, NoteEncrypted, PUBLIC_ADDRESS_LENGTH, RANDOMNESS_LENGTH, MEMO_LENGTH, GENERATOR_LENGTH, AMOUNT_VALUE_LENGTH, DECRYPTED_NOTE_LENGTH, Note, TransactionPosted, PROOF_LENGTH, TRANSACTION_SIGNATURE_LENGTH, TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH, TRANSACTION_EXPIRATION_LENGTH, TRANSACTION_FEE_LENGTH, TRANSACTION_VERSION, Transaction, verifyTransactions, LanguageCode, generateKey, spendingKeyToWords, wordsToSpendingKey, generateKeyFromPrivateKey, incomingViewKeyToPublicAddress, initializeSapling, FoundBlockResult, ThreadPoolHandler, isValidPublicAddress } = nativeBinding
 
 module.exports.contribute = contribute
 module.exports.verifyTransform = verifyTransform
@@ -289,6 +289,7 @@ module.exports.generateKey = generateKey
 module.exports.spendingKeyToWords = spendingKeyToWords
 module.exports.wordsToSpendingKey = wordsToSpendingKey
 module.exports.generateKeyFromPrivateKey = generateKeyFromPrivateKey
+module.exports.incomingViewKeyToPublicAddress = incomingViewKeyToPublicAddress
 module.exports.initializeSapling = initializeSapling
 module.exports.FoundBlockResult = FoundBlockResult
 module.exports.ThreadPoolHandler = ThreadPoolHandler
