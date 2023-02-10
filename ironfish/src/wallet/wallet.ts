@@ -1304,8 +1304,7 @@ export class Wallet {
   }
 
   async importAccount(toImport: AccountImport): Promise<Account> {
-    const { name, spendingKey } = toImport
-    if (name && this.getAccountByName(name)) {
+    if (toImport.name && this.accountExists(toImport.name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
 
