@@ -42,7 +42,7 @@ export class DecryptNotesRequest extends WorkerMessage {
       let flags = 0
       flags |= Number(!!payload.currentNoteIndex) << 0
       flags |= Number(payload.decryptForSpender) << 1
-      flags |= Number(payload.spendingKey) << 2
+      flags |= Number(!!payload.spendingKey) << 2
       bw.writeU8(flags)
 
       bw.writeBytes(payload.serializedNote)
