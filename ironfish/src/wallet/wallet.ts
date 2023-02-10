@@ -1332,6 +1332,7 @@ export class Wallet {
       accountValue = {
         ...toImport,
         id: uuid(),
+        spendingKey: null,
         publicAddress: publicAddress,
       }
     }
