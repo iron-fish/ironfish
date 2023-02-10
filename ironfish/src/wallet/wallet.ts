@@ -673,7 +673,7 @@ export class Wallet {
 
   async send(
     memPool: MemPool,
-    sender: SpendingAccount,
+    sender: Account,
     outputs: {
       publicAddress: string
       amount: bigint
@@ -701,7 +701,7 @@ export class Wallet {
 
   async mint(
     memPool: MemPool,
-    account: SpendingAccount,
+    account: Account,
     options: MintAssetOptions,
   ): Promise<Transaction> {
     let mintData: MintData
@@ -743,7 +743,7 @@ export class Wallet {
 
   async burn(
     memPool: MemPool,
-    account: SpendingAccount,
+    account: Account,
     assetId: Buffer,
     value: bigint,
     fee: bigint,
