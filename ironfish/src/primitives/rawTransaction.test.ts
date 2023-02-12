@@ -118,7 +118,7 @@ describe('RawTransaction', () => {
     })
 
     expect(() => raw.post(account.spendingKey)).toThrow(
-      'Cannot post transaction. Mint value exceededs maximum',
+      /Cannot post transaction. Mint value *.* exceededs maximum *.*/,
     )
   })
 
@@ -170,7 +170,7 @@ describe('RawTransaction', () => {
     })
 
     expect(() => raw.post(account.spendingKey)).toThrow(
-      'Cannot post transaction. Burn value exceededs maximum',
+      /Cannot post transaction. Burn value *.* exceededs maximum *.*/,
     )
   })
 })

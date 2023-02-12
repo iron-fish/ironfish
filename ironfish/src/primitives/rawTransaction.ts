@@ -13,6 +13,7 @@ import bufio from 'bufio'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
+import { CurrencyUtils } from '../utils/currency'
 import { BurnDescription } from './burnDescription'
 import { Note } from './note'
 import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
@@ -60,7 +61,11 @@ export class RawTransaction {
 
     for (const mint of this.mints) {
       if (mint.value > MAX_MINT_OR_BURN_VALUE) {
-        throw new Error('Cannot post transaction. Mint value exceededs maximum')
+        throw new Error(
+          `Cannot post transaction. Mint value ${CurrencyUtils.renderIron(
+            mint.value,
+          )} exceededs maximum ${CurrencyUtils.renderIron(MAX_MINT_OR_BURN_VALUE)}. `,
+        )
       }
 
       const asset = new Asset(spendingKey, mint.name, mint.metadata)
@@ -70,7 +75,11 @@ export class RawTransaction {
 
     for (const burn of this.burns) {
       if (burn.value > MAX_MINT_OR_BURN_VALUE) {
-        throw new Error('Cannot post transaction. Burn value exceededs maximum')
+        throw new Error(
+          `Cannot post transaction. Burn value ${CurrencyUtils.renderIron(
+            burn.value,
+          )} exceededs maximum ${CurrencyUtils.renderIron(MAX_MINT_OR_BURN_VALUE)}`,
+        )
       }
 
       builder.burn(burn.assetId, burn.value)
