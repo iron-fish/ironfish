@@ -667,7 +667,7 @@ describe('Accounts', () => {
           [],
           [],
           {
-            fee: 1n,
+            fee: 0n,
             expiration: 0,
           },
         )
