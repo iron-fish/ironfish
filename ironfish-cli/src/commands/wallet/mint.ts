@@ -41,7 +41,7 @@ export class Mint extends IronfishCommand {
     }),
     amount: IronFlag({
       char: 'a',
-      description: 'Amount of coins to send',
+      description: 'Amount of coins to mint in IRON',
       flagName: 'amount',
     }),
     assetId: Flags.string({
