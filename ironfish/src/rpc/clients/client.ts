@@ -21,8 +21,8 @@ import {
   GetAssetResponse,
   GetBalanceRequest,
   GetBalanceResponse,
-  GetBlockInfoRequest,
-  GetBlockInfoResponse,
+  GetBlockRequest,
+  GetBlockResponse,
   GetChainInfoRequest,
   GetChainInfoResponse,
   GetConfigRequest,
@@ -450,13 +450,8 @@ export abstract class RpcClient {
     )
   }
 
-  async getBlockInfo(
-    params: GetBlockInfoRequest,
-  ): Promise<RpcResponseEnded<GetBlockInfoResponse>> {
-    return this.request<GetBlockInfoResponse>(
-      `${ApiNamespace.chain}/getBlockInfo`,
-      params,
-    ).waitForEnd()
+  async getBlock(params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> {
+    return this.request<GetBlockResponse>(`${ApiNamespace.chain}/getBlock`, params).waitForEnd()
   }
 
   async getDifficulty(

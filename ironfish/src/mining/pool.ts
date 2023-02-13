@@ -538,7 +538,7 @@ export class MiningPool {
     const unconfirmedBlocks = await this.shares.unconfirmedBlocks()
 
     for (const block of unconfirmedBlocks) {
-      const blockInfoResp = await this.rpc.getBlockInfo({
+      const blockInfoResp = await this.rpc.getBlock({
         hash: block.blockHash,
         confirmations: this.config.get('confirmations'),
       })

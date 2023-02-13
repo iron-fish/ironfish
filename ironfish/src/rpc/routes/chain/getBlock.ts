@@ -8,14 +8,14 @@ import { BufferUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
-export type GetBlockInfoRequest = {
+export type GetBlockRequest = {
   search?: string
   hash?: string
   sequence?: number
   confirmations?: number
 }
 
-export type GetBlockInfoResponse = {
+export type GetBlockResponse = {
   block: {
     graffiti: string
     difficulty: string
@@ -37,7 +37,7 @@ export type GetBlockInfoResponse = {
   }
 }
 
-export const GetBlockInfoRequestSchema: yup.ObjectSchema<GetBlockInfoRequest> = yup
+export const GetBlockRequestSchema: yup.ObjectSchema<GetBlockRequest> = yup
   .object()
   .shape({
     search: yup.string(),
@@ -47,7 +47,7 @@ export const GetBlockInfoRequestSchema: yup.ObjectSchema<GetBlockInfoRequest> = 
   })
   .defined()
 
-export const GetBlockInfoResponseSchema: yup.ObjectSchema<GetBlockInfoResponse> = yup
+export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
   .object({
     block: yup
       .object({
@@ -81,9 +81,9 @@ export const GetBlockInfoResponseSchema: yup.ObjectSchema<GetBlockInfoResponse> 
   })
   .defined()
 
-router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
-  `${ApiNamespace.chain}/getBlockInfo`,
-  GetBlockInfoRequestSchema,
+router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
+  `${ApiNamespace.chain}/getBlock`,
+  GetBlockRequestSchema,
   async (request, node): Promise<void> => {
     let header: BlockHeader | null = null
     let error = ''
@@ -129,7 +129,7 @@ router.register<typeof GetBlockInfoRequestSchema, GetBlockInfoResponse>(
       throw new ValidationError(`No block with header ${header.hash.toString('hex')}`)
     }
 
-    const transactions: GetBlockInfoResponse['block']['transactions'] = []
+    const transactions: GetBlockResponse['block']['transactions'] = []
 
     for (const tx of block.transactions) {
       const fee = tx.fee()

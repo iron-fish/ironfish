@@ -95,8 +95,8 @@ export default class SyncMultiAsset extends IronfishCommand {
 
     let lastCountedSequence: number
     if (head) {
-      const blockInfo = await client.getBlockInfo({ hash: head })
-      lastCountedSequence = blockInfo.content.block.sequence
+      const block = await client.getBlock({ hash: head })
+      lastCountedSequence = block.content.block.sequence
     } else {
       lastCountedSequence = GENESIS_BLOCK_SEQUENCE
     }

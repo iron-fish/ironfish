@@ -5,9 +5,9 @@ import { useBlockWithTx, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { ERROR_CODES } from '../../adapters'
 import { RpcRequestError } from '../../clients/errors'
-import { GetBlockInfoResponse } from './getBlockInfo'
+import { GetBlockResponse } from './getBlock'
 
-describe('Route chain/getBlockInfo', () => {
+describe('Route chain/getBlock', () => {
   const routeTest = createRouteTest()
 
   it('Processes hash and sequence inputs', async () => {
@@ -27,7 +27,7 @@ describe('Route chain/getBlockInfo', () => {
 
     // Find block matching hash
     let response = await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: hash2 })
+      .request<GetBlockResponse>('chain/getBlock', { search: hash2 })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
@@ -40,7 +40,7 @@ describe('Route chain/getBlockInfo', () => {
     // Now miss on a hash check
     try {
       await routeTest.client
-        .request<GetBlockInfoResponse>('chain/getBlockInfo', {
+        .request<GetBlockResponse>('chain/getBlock', {
           search: '123405c7492bd000d6a8312f7592737e869967c890aac22247ede00678d4a2b2',
         })
         .waitForEnd()
@@ -55,7 +55,7 @@ describe('Route chain/getBlockInfo', () => {
 
     // Find block matching sequence
     response = await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '2' })
+      .request<GetBlockResponse>('chain/getBlock', { search: '2' })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
@@ -67,7 +67,7 @@ describe('Route chain/getBlockInfo', () => {
 
     // Find block matching sequence
     response = await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '-1' })
+      .request<GetBlockResponse>('chain/getBlock', { search: '-1' })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
@@ -80,7 +80,7 @@ describe('Route chain/getBlockInfo', () => {
     // Now miss on a sequence check
     try {
       await routeTest.client
-        .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '1234' })
+        .request<GetBlockResponse>('chain/getBlock', { search: '1234' })
         .waitForEnd()
     } catch (e: unknown) {
       if (!(e instanceof RpcRequestError)) {
@@ -96,7 +96,7 @@ describe('Route chain/getBlockInfo', () => {
 
     try {
       await routeTest.client
-        .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: hash0 })
+        .request<GetBlockResponse>('chain/getBlock', { search: hash0 })
         .waitForEnd()
     } catch (e: unknown) {
       if (!(e instanceof RpcRequestError)) {
@@ -117,7 +117,7 @@ describe('Route chain/getBlockInfo', () => {
     const hash = block.header.hash.toString('hex')
 
     const response = await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '3' })
+      .request<GetBlockResponse>('chain/getBlock', { search: '3' })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
@@ -138,7 +138,7 @@ describe('Route chain/getBlockInfo', () => {
     const hash = block.header.hash.toString('hex')
 
     const response = await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '3' })
+      .request<GetBlockResponse>('chain/getBlock', { search: '3' })
       .waitForEnd()
 
     expect(response.content).toMatchObject({
@@ -152,7 +152,7 @@ describe('Route chain/getBlockInfo', () => {
     })
 
     const unconfirmedResponse = await routeTest.client
-      .request<GetBlockInfoResponse>('chain/getBlockInfo', { search: '3', confirmations: 10 })
+      .request<GetBlockResponse>('chain/getBlock', { search: '3', confirmations: 10 })
       .waitForEnd()
 
     expect(unconfirmedResponse.content).toMatchObject({
