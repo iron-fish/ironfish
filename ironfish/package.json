@@ -47,6 +47,7 @@
   "scripts": {
     "build": "tsc -b",
     "build:watch": "tsc -b -w",
+    "testy": "tsc -b && tsc -b tsconfig.test.json && cross-env TEST_INIT_RUST=true jest --testPathIgnorePatterns --testTimeout=${JEST_TIMEOUT:-60000} src/wallet/wallet.test.slow.ts",
     "build:tests": "tsc -b tsconfig.test.json",
     "lint": "tsc -b && tsc -b tsconfig.test.json && eslint --ext .ts,.tsx,.js,.jsx src/",
     "lint:fix": "tsc -b && tsc -b tsconfig.test.json && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",

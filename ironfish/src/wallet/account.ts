@@ -143,10 +143,6 @@ export class Account {
       }
 
       for (const decryptedNote of decryptedNotes) {
-        if (decryptedNote.forSpender) {
-          continue
-        }
-
         const pendingNote = await this.getDecryptedNote(decryptedNote.hash, tx)
 
         const note = {
@@ -159,26 +155,16 @@ export class Account {
           blockHash,
           sequence,
         }
-
-        assetBalanceDeltas.increment(note.note.assetId(), note.note.value())
-
-        await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
-      }
-
-      for (const spend of transaction.spends) {
-        const spentNoteHash = await this.getNoteHash(spend.nullifier, tx)
-        if (!spentNoteHash) {
-          continue
+        // miners fee has miner public address both as note owner and sender
+        if (this.publicAddress === note.note.sender() && !transaction.isMinersFee()) {
+          assetBalanceDeltas.increment(note.note.assetId(), -note.note.value())
+          note.spent = true
+        }
+        if (this.publicAddress === note.note.owner()) {
+          assetBalanceDeltas.increment(note.note.assetId(), note.note.value())
         }
 
-        const note = await this.getDecryptedNote(spentNoteHash, tx)
-
-        Assert.isNotUndefined(note)
-
-        assetBalanceDeltas.increment(note.note.assetId(), -note.note.value())
-
-        const spentNote = { ...note, spent: true }
-        await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
+        await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
       }
 
       transactionValue = {

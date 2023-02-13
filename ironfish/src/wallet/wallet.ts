@@ -316,7 +316,6 @@ export class Wallet {
         this.listAccounts(),
         async (a) => await this.isAccountUpToDate(a),
       ))
-
     const decryptedNotesByAccountId = new Map<string, Array<DecryptedNote>>()
 
     const batchSize = 20
@@ -402,7 +401,7 @@ export class Wallet {
           const decryptedNotesByAccountId = await this.decryptNotes(
             transaction,
             initialNoteIndex,
-            false,
+            true,
             [account],
           )
 
@@ -420,7 +419,6 @@ export class Wallet {
           )
 
           assetBalanceDeltas.update(transactionDeltas)
-
           await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, blockHeader, tx)
           scan?.signal(blockHeader.sequence)
         }

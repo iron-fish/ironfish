@@ -10,6 +10,7 @@ import {
   useMinerBlockFixture,
 } from '../testUtilities'
 import { acceptsAllTarget } from '../testUtilities/helpers/blockchain'
+import { Account } from './account'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
