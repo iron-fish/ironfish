@@ -201,7 +201,7 @@ impl Circuit<bls12_381::Scalar> for Spend {
             256 + // asset generator
             64 + // value
             256 + // pk_d owner
-            256 // pk_d sender (this is added to match requirments for `Output` circuit)
+            256 // pk_d sender (this is added to match requirements for `Output` circuit)
         );
 
         // Compute the hash of the note contents

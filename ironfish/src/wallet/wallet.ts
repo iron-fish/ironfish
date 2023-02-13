@@ -1019,7 +1019,7 @@ export class Wallet {
    * Checks if a note is already on the chain when trying to spend it
    *
    * This function should be deleted once the wallet is detached from the chain,
-   * either way. It shouldn't be neccessary. It's just a hold over function to
+   * either way. It shouldn't be necessary. It's just a hold over function to
    * sanity check from wallet 1.0.
    *
    * @returns true if the note is on the chain already

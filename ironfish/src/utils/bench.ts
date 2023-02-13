@@ -47,7 +47,7 @@ function getSegment(): Segment {
 
   if (global.gc) {
     // Need to mark and sweep multiple times to try to collect all of it. You
-    // could also just continue to do this until memory stabilizies but this
+    // could also just continue to do this until memory stabilizes but this
     // is good enough.
     for (let i = 0; i < 5; ++i) {
       global.gc()
@@ -77,7 +77,7 @@ function endSegment(start: Segment): SegmentResults {
   }
 }
 
-function renderSegment(segment: SegmentResults, title = 'Benchmark', delimeter = ', '): string {
+function renderSegment(segment: SegmentResults, title = 'Benchmark', delimiter = ', '): string {
   const result = []
 
   result.push(`Time: ${TimeUtils.renderSpan(segment.time)}`)
@@ -85,7 +85,7 @@ function renderSegment(segment: SegmentResults, title = 'Benchmark', delimeter =
   result.push(`RSS: ${FileUtils.formatMemorySize(segment.rss)}`)
   result.push(`Mem: ${FileUtils.formatMemorySize(segment.mem)}`)
 
-  let rendered = result.join(delimeter)
+  let rendered = result.join(delimiter)
 
   if (title) {
     rendered = `${title} - ` + rendered
