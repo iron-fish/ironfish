@@ -84,7 +84,7 @@ export class PeerConnectionManager {
 
     let connectAttempts = 0
     const shuffledPeerCandidates = ArrayUtils.shuffle([
-      ...this.peerManager.peerCandidateMap.keys(),
+      ...this.peerManager.peerCandidates.keys(),
     ])
 
     for (const peerCandidateIdentity of shuffledPeerCandidates) {
@@ -93,7 +93,7 @@ export class PeerConnectionManager {
       }
 
       if (!this.peerManager.identifiedPeers.has(peerCandidateIdentity)) {
-        const val = this.peerManager.peerCandidateMap.get(peerCandidateIdentity)
+        const val = this.peerManager.peerCandidates.get(peerCandidateIdentity)
         if (val) {
           const peer = this.peerManager.getOrCreatePeer(peerCandidateIdentity)
           peer.name = val.name ?? null

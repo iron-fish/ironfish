@@ -46,7 +46,7 @@ describe('connectToDisconnectedPeers', () => {
     peer.setWebSocketAddress('testuri.com', 9033)
     pm['tryDisposePeer'](peer)
 
-    pm.peerCandidateMap.set(peer.getWebSocketAddress(), {
+    pm.peerCandidates.set(peer.getWebSocketAddress(), {
       address: 'testuri.com',
       port: 9033,
       neighbors: new Set(),
@@ -72,7 +72,7 @@ describe('connectToDisconnectedPeers', () => {
     const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
 
     const identity = mockIdentity('peer')
-    pm.peerCandidateMap.set(identity, {
+    pm.peerCandidates.set(identity, {
       address: 'testuri.com',
       port: 9033,
       neighbors: new Set(),
@@ -106,7 +106,7 @@ describe('connectToDisconnectedPeers', () => {
     const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
 
     const identity = mockIdentity('peer')
-    peers.peerCandidateMap.set(identity, {
+    peers.peerCandidates.set(identity, {
       address: 'testuri.com',
       port: 9033,
       neighbors: new Set(),
@@ -141,7 +141,7 @@ describe('connectToDisconnectedPeers', () => {
     )
     const { peer: brokeringPeer } = getConnectedPeer(pm, 'brokering')
     // Link the peers
-    pm.peerCandidateMap.set(brokeringPeer.getIdentityOrThrow(), {
+    pm.peerCandidates.set(brokeringPeer.getIdentityOrThrow(), {
       address: null,
       port: null,
       neighbors: new Set([peerIdentity]),
@@ -150,7 +150,7 @@ describe('connectToDisconnectedPeers', () => {
       localRequestedDisconnectUntil: null,
       peerRequestedDisconnectUntil: null,
     })
-    pm.peerCandidateMap.set(peerIdentity, {
+    pm.peerCandidates.set(peerIdentity, {
       address: null,
       port: null,
       neighbors: new Set([brokeringPeer.getIdentityOrThrow()]),

@@ -308,7 +308,7 @@ describe('PeerManager', () => {
       const peer2 = pm.getOrCreatePeer(peer2Identity)
 
       // Link the peers
-      pm.peerCandidateMap.set(peer1Identity, {
+      pm.peerCandidates.set(peer1Identity, {
         address: null,
         port: null,
         neighbors: new Set([peer2Identity]),
@@ -317,7 +317,7 @@ describe('PeerManager', () => {
         localRequestedDisconnectUntil: null,
         peerRequestedDisconnectUntil: null,
       })
-      pm.peerCandidateMap.set(peer2Identity, {
+      pm.peerCandidates.set(peer2Identity, {
         address: null,
         port: null,
         neighbors: new Set([peer1Identity]),
@@ -355,7 +355,7 @@ describe('PeerManager', () => {
       expect(targetPeer.state.type).toEqual('DISCONNECTED')
 
       // Link the peers
-      peers.peerCandidateMap.set(brokeringPeer.getIdentityOrThrow(), {
+      peers.peerCandidates.set(brokeringPeer.getIdentityOrThrow(), {
         address: null,
         port: null,
         neighbors: new Set([targetPeer.getIdentityOrThrow()]),
@@ -364,7 +364,7 @@ describe('PeerManager', () => {
         localRequestedDisconnectUntil: null,
         peerRequestedDisconnectUntil: null,
       })
-      peers.peerCandidateMap.set(targetPeer.getIdentityOrThrow(), {
+      peers.peerCandidates.set(targetPeer.getIdentityOrThrow(), {
         address: null,
         port: null,
         neighbors: new Set([brokeringPeer.getIdentityOrThrow()]),
@@ -448,7 +448,7 @@ describe('PeerManager', () => {
       expect(targetPeer.state.type).toEqual('DISCONNECTED')
 
       // Link the peers
-      peers.peerCandidateMap.set(brokeringPeer.getIdentityOrThrow(), {
+      peers.peerCandidates.set(brokeringPeer.getIdentityOrThrow(), {
         address: null,
         port: null,
         neighbors: new Set([targetPeer.getIdentityOrThrow()]),
@@ -457,7 +457,7 @@ describe('PeerManager', () => {
         localRequestedDisconnectUntil: null,
         peerRequestedDisconnectUntil: null,
       })
-      peers.peerCandidateMap.set(targetPeer.getIdentityOrThrow(), {
+      peers.peerCandidates.set(targetPeer.getIdentityOrThrow(), {
         address: null,
         port: null,
         neighbors: new Set([brokeringPeer.getIdentityOrThrow()]),
@@ -501,7 +501,7 @@ describe('PeerManager', () => {
 
       // Set disconnectUntil and verify that we can't create a connection
       Assert.isNotNull(peer.state.identity)
-      pm.peerCandidateMap.set(peer.state.identity, {
+      pm.peerCandidates.set(peer.state.identity, {
         address: null,
         port: null,
         neighbors: new Set(),
@@ -520,7 +520,7 @@ describe('PeerManager', () => {
       peer.close()
 
       // Try websockets first
-      pm.peerCandidateMap.set(peer.getIdentityOrThrow(), {
+      pm.peerCandidates.set(peer.getIdentityOrThrow(), {
         address: null,
         port: null,
         neighbors: new Set(),
@@ -532,7 +532,7 @@ describe('PeerManager', () => {
 
       pm.connectToWebSocket(peer)
       expect(peer.state.type).toBe('CONNECTING')
-      const candidate = pm.peerCandidateMap.get(peer.getIdentityOrThrow())
+      const candidate = pm.peerCandidates.get(peer.getIdentityOrThrow())
       Assert.isNotUndefined(candidate)
       expect(candidate.peerRequestedDisconnectUntil).toBeNull()
 
@@ -937,7 +937,7 @@ describe('PeerManager', () => {
       peer.close()
       expect(peer.state).toEqual({ type: 'DISCONNECTED', identity: peerIdentity })
 
-      pm.peerCandidateMap.set(peerIdentity, {
+      pm.peerCandidates.set(peerIdentity, {
         address: null,
         port: null,
         neighbors: new Set(),
@@ -964,7 +964,7 @@ describe('PeerManager', () => {
       connection.onMessage.emit(id)
 
       const localRequestedDisconnectUntil =
-        pm.peerCandidateMap.get(peerIdentity)?.localRequestedDisconnectUntil
+        pm.peerCandidates.get(peerIdentity)?.localRequestedDisconnectUntil
       Assert.isNotUndefined(localRequestedDisconnectUntil)
       Assert.isNotNull(localRequestedDisconnectUntil)
 
@@ -1437,7 +1437,7 @@ describe('PeerManager', () => {
         },
       ])
       peer.onMessage.emit(peerList, connection)
-      expect(pm.peerCandidateMap.has(privateIdentityToIdentity(localIdentity))).toBe(false)
+      expect(pm.peerCandidates.has(privateIdentityToIdentity(localIdentity))).toBe(false)
     })
 
     it('Links peers when adding a new known peer', () => {
@@ -1450,7 +1450,7 @@ describe('PeerManager', () => {
 
       expect(pm.peers.length).toBe(1)
       expect(pm.identifiedPeers.size).toBe(1)
-      expect(pm.peerCandidateMap.get(peer.getIdentityOrThrow())).toBeUndefined()
+      expect(pm.peerCandidates.get(peer.getIdentityOrThrow())).toBeUndefined()
 
       const peerList = new PeerListMessage([
         {
@@ -1466,8 +1466,8 @@ describe('PeerManager', () => {
       expect(pm.identifiedPeers.get(peerIdentity)).toBe(peer)
       expect(pm.identifiedPeers.get(newPeerIdentity)).toBeUndefined()
 
-      expect(pm.peerCandidateMap.get(newPeerIdentity)?.neighbors.size).toBe(1)
-      expect(pm.peerCandidateMap.get(newPeerIdentity)?.neighbors.has(peerIdentity)).toBe(true)
+      expect(pm.peerCandidates.get(newPeerIdentity)?.neighbors.size).toBe(1)
+      expect(pm.peerCandidates.get(newPeerIdentity)?.neighbors.has(peerIdentity)).toBe(true)
     })
   })
 
@@ -1520,7 +1520,7 @@ describe('PeerManager', () => {
 
       expect(peer.state.type).toEqual('DISCONNECTED')
       expect(
-        pm.peerCandidateMap.get(webRtcCanInitiateIdentity())?.peerRequestedDisconnectUntil,
+        pm.peerCandidates.get(webRtcCanInitiateIdentity())?.peerRequestedDisconnectUntil,
       ).toEqual(Number.MAX_SAFE_INTEGER)
       expect(brokeringPeer.state.type).toEqual('CONNECTED')
     })
@@ -1532,7 +1532,7 @@ describe('PeerManager', () => {
       const { peer, connection } = getConnectedPeer(pm, peerIdentity)
 
       Assert.isNotNull(peer.state.identity)
-      pm.peerCandidateMap.set(peer.state.identity, {
+      pm.peerCandidates.set(peer.state.identity, {
         address: null,
         port: null,
         neighbors: new Set(),
@@ -1551,7 +1551,7 @@ describe('PeerManager', () => {
 
       connection.onMessage.emit(disconnectMessage)
 
-      const peerRequestedDisconnectUntil = pm.peerCandidateMap.get(
+      const peerRequestedDisconnectUntil = pm.peerCandidates.get(
         peer.state.identity,
       )?.peerRequestedDisconnectUntil
 

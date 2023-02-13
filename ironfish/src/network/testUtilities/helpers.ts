@@ -154,11 +154,11 @@ export function getSignalingWebRtcPeer(
 
   // We don't expect this function to be called multiple times, so make sure
   // we're not resetting pre-existing peer candidate data.
-  Assert.isFalse(pm.peerCandidateMap.has(brokeringPeerIdentity))
-  Assert.isFalse(pm.peerCandidateMap.has(peerIdentity))
+  Assert.isFalse(pm.peerCandidates.has(brokeringPeerIdentity))
+  Assert.isFalse(pm.peerCandidates.has(peerIdentity))
 
   // Link the peers
-  pm.peerCandidateMap.set(brokeringPeerIdentity, {
+  pm.peerCandidates.set(brokeringPeerIdentity, {
     address: brokeringPeer.address,
     port: brokeringPeer.port,
     neighbors: new Set([peerIdentity]),
@@ -167,7 +167,7 @@ export function getSignalingWebRtcPeer(
     peerRequestedDisconnectUntil: null,
     localRequestedDisconnectUntil: null,
   })
-  pm.peerCandidateMap.set(peerIdentity, {
+  pm.peerCandidates.set(peerIdentity, {
     address: peer.address,
     port: peer.port,
     neighbors: new Set([brokeringPeerIdentity]),
