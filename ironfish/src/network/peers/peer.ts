@@ -171,6 +171,11 @@ export class Peer {
   /** how many outbound connections does the peer have */
   pendingRPC = 0
 
+  /**
+   * True if the peer is a known honest peer.
+   */
+  isWhitelisted = false
+
   shouldLogMessages = false
 
   loggedMessages: Array<LoggedMessage> = []

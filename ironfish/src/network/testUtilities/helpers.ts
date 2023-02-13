@@ -8,7 +8,6 @@ import { Identity, isIdentity } from '../identity'
 import { GetBlockTransactionsResponse } from '../messages/getBlockTransactions'
 import { GetCompactBlockResponse } from '../messages/getCompactBlock'
 import { IncomingPeerMessage, NetworkMessage } from '../messages/networkMessage'
-import { ConnectionRetry } from '../peers/connectionRetry'
 import {
   Connection,
   ConnectionDirection,
@@ -158,23 +157,15 @@ export function getSignalingWebRtcPeer(
   Assert.isFalse(pm.peerCandidates.has(peerIdentity))
 
   // Link the peers
-  pm.peerCandidates.set(brokeringPeerIdentity, {
+  pm.peerCandidates.addFromPeerList(peerIdentity, {
     address: brokeringPeer.address,
     port: brokeringPeer.port,
-    neighbors: new Set([peerIdentity]),
-    webRtcRetry: new ConnectionRetry(),
-    websocketRetry: new ConnectionRetry(),
-    peerRequestedDisconnectUntil: null,
-    localRequestedDisconnectUntil: null,
+    identity: Buffer.from(brokeringPeerIdentity, 'base64'),
   })
-  pm.peerCandidates.set(peerIdentity, {
+  pm.peerCandidates.addFromPeerList(brokeringPeerIdentity, {
     address: peer.address,
     port: peer.port,
-    neighbors: new Set([brokeringPeerIdentity]),
-    webRtcRetry: new ConnectionRetry(),
-    websocketRetry: new ConnectionRetry(),
-    peerRequestedDisconnectUntil: null,
-    localRequestedDisconnectUntil: null,
+    identity: Buffer.from(peerIdentity, 'base64'),
   })
 
   // Verify peer2 is not connected

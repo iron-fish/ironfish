@@ -4,7 +4,7 @@
 
 import type { Peer } from './peer'
 import { createRootLogger, Logger } from '../../logger'
-import { ArrayUtils, SetTimeoutToken } from '../../utils'
+import { SetTimeoutToken } from '../../utils'
 import { PeerManager } from './peerManager'
 
 /**
@@ -83,11 +83,8 @@ export class PeerConnectionManager {
     }
 
     let connectAttempts = 0
-    const shuffledPeerCandidates = ArrayUtils.shuffle([
-      ...this.peerManager.peerCandidates.keys(),
-    ])
 
-    for (const peerCandidateIdentity of shuffledPeerCandidates) {
+    for (const peerCandidateIdentity of this.peerManager.peerCandidates.shufflePeerCandidates()) {
       if (connectAttempts >= CONNECT_ATTEMPTS_MAX) {
         break
       }

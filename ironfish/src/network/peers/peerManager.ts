@@ -170,20 +170,9 @@ export class PeerManager {
 
     const peer = this.getOrCreatePeer(null)
     peer.setWebSocketAddress(url.hostname, url.port)
+    peer.isWhitelisted = isWhitelisted
 
-    const address = peer.getWebSocketAddress()
-    const peerCandidate = this.peerCandidates.get(address)
-    if (!peerCandidate) {
-      this.peerCandidates.set(address, {
-        address: url.hostname,
-        port: url.port,
-        neighbors: new Set(),
-        webRtcRetry: new ConnectionRetry(isWhitelisted),
-        websocketRetry: new ConnectionRetry(isWhitelisted),
-        localRequestedDisconnectUntil: null,
-        peerRequestedDisconnectUntil: null,
-      })
-    }
+    this.peerCandidates.addFromPeer(peer)
 
     this.connectToWebSocket(peer)
     return peer
@@ -749,6 +738,7 @@ export class PeerManager {
 
     peer.onStateChanged.on(({ prevState }) => {
       if (prevState.type !== 'CONNECTED' && peer.state.type === 'CONNECTED') {
+        this.peerCandidates.addFromPeer(peer)
         this.onConnect.emit(peer)
         this.onConnectedPeersChanged.emit()
       }
@@ -1546,22 +1536,7 @@ export class PeerManager {
         continue
       }
 
-      const peerCandidateValue = this.peerCandidates.get(identity)
-
-      if (peerCandidateValue) {
-        peerCandidateValue.neighbors.add(peer.state.identity)
-      } else {
-        this.peerCandidates.set(identity, {
-          name: connectedPeer.name,
-          address: connectedPeer.address,
-          port: connectedPeer.port,
-          neighbors: new Set([peer.state.identity]),
-          webRtcRetry: new ConnectionRetry(),
-          websocketRetry: new ConnectionRetry(),
-          peerRequestedDisconnectUntil: null,
-          localRequestedDisconnectUntil: null,
-        })
-      }
+      this.peerCandidates.addFromPeerList(identity, connectedPeer)
     }
   }
 }
