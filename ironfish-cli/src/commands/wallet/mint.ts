@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  BufferUtils,
   CreateTransactionRequest,
   CreateTransactionResponse,
   CurrencyUtils,
@@ -319,7 +320,7 @@ ${amountString} plus a transaction fee of ${feeString} with the account ${accoun
       const minted = transaction.mints[0]
 
       this.log(`
-Minted asset ${minted.asset.name().toString('hex')} from ${account}
+Minted asset ${BufferUtils.toHuman(minted.asset.name())} from ${account}
 Asset Identifier: ${minted.asset.id().toString('hex')}
 Value: ${CurrencyUtils.renderIron(minted.value, true, minted.asset.id().toString('hex'))}
 
