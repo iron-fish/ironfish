@@ -66,7 +66,7 @@ describe('Demonstrate the Sapling API', () => {
     expect(postedTransaction.verify()).toBe(true)
 
     const encryptedNote = new NoteEncrypted(postedTransaction.getNote(0))
-    expect(encryptedNote.merkleHash().byteLength).toBe(32)
+    expect(encryptedNote.hash().byteLength).toBe(32)
     expect(encryptedNote.equals(encryptedNote)).toBe(true)
 
     const decryptedNoteBuffer = encryptedNote.decryptNoteForOwner(key.incoming_view_key)
@@ -100,7 +100,7 @@ describe('Demonstrate the Sapling API', () => {
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key)!)
     const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive', Asset.nativeId(), minersFeeNote.owner())
 
-    let currentHash = encryptedNote.merkleHash()
+    let currentHash = encryptedNote.hash()
     let authPath = Array.from({ length: 32 }, (_, depth) => {
       const tempHash = currentHash
       const witnessNode = {
