@@ -27,6 +27,11 @@ export default class PruneCommand extends IronfishCommand {
     CliUx.ux.action.start(`Opening node`)
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
+<<<<<<< HEAD
+=======
+    await node.wallet.open()
+    await node.wallet.walletDb.open()
+>>>>>>> 2ffa2eed (Create wallet:prune)
     CliUx.ux.action.stop('Done.')
 
     if (flags.compact) {
@@ -35,6 +40,11 @@ export default class PruneCommand extends IronfishCommand {
       CliUx.ux.action.stop()
     }
 
+<<<<<<< HEAD
     await node.closeDB()
+=======
+    await node.wallet.walletDb.close()
+    await node.wallet.close()
+>>>>>>> 2ffa2eed (Create wallet:prune)
   }
 }
