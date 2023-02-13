@@ -99,6 +99,13 @@ impl NativeNote {
         Ok(Buffer::from(arr))
     }
 
+    /// The commitment hash of the note
+    /// This hash is what gets used for the leaf nodes in a Merkle Tree.
+    #[napi]
+    pub fn hash(&self) -> Buffer {
+        Buffer::from(&self.note.commitment()[..])
+    }
+
     /// Value this note represents.
     #[napi]
     pub fn value(&self) -> u64 {
