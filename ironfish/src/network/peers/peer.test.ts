@@ -346,10 +346,10 @@ describe('punish', () => {
       connections: { webSocket: connection },
     })
 
-    const onBannedHander = jest.fn()
-    peer.onBanned.on(onBannedHander)
+    const onBannedHandler = jest.fn()
+    peer.onBanned.on(onBannedHandler)
     peer.punish(BAN_SCORE.MAX, 'TESTING')
 
-    expect(onBannedHander).toHaveBeenCalled()
+    expect(onBannedHandler).toHaveBeenCalled()
   })
 })

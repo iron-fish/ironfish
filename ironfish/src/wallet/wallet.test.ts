@@ -702,7 +702,7 @@ describe('Accounts', () => {
 
       expect(node.wallet.getAccountByName(account.name)).toBeNull()
 
-      // It should not be cleand yet
+      // It should not be cleaned yet
       await expect(
         node.wallet.walletDb.loadTransaction(account, tx.hash()),
       ).resolves.not.toBeUndefined()
@@ -1805,9 +1805,9 @@ describe('Accounts', () => {
 
       await node.wallet.updateHead()
 
-      let accoundAHead = await accountA.getHead()
+      let accountAHead = await accountA.getHead()
 
-      expect(accoundAHead?.hash).toEqualHash(blockA2.header.hash)
+      expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
 
       await node.chain.db.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)
@@ -1815,9 +1815,9 @@ describe('Accounts', () => {
 
       await node.wallet.updateHead()
 
-      accoundAHead = await accountA.getHead()
+      accountAHead = await accountA.getHead()
 
-      expect(accoundAHead?.hash).toEqualHash(blockA2.header.previousBlockHash)
+      expect(accountAHead?.hash).toEqualHash(blockA2.header.previousBlockHash)
     })
 
     it('should update the account unconfirmed balance', async () => {

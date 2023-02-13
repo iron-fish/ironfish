@@ -580,7 +580,7 @@ impl MPCParameters {
             &mut ic,
         );
 
-        // Evaluate for auxillary variables.
+        // Evaluate for auxiliary variables.
         eval(
             &coeffs_g1,
             &coeffs_g2,
