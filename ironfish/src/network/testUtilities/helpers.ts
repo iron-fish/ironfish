@@ -153,15 +153,9 @@ export function getSignalingWebRtcPeer(
 
   // We don't expect this function to be called multiple times, so make sure
   // we're not resetting pre-existing peer candidate data.
-  Assert.isFalse(pm.peerCandidates.has(brokeringPeerIdentity))
   Assert.isFalse(pm.peerCandidates.has(peerIdentity))
 
   // Link the peers
-  pm.peerCandidates.addFromPeerList(peerIdentity, {
-    address: brokeringPeer.address,
-    port: brokeringPeer.port,
-    identity: Buffer.from(brokeringPeerIdentity, 'base64'),
-  })
   pm.peerCandidates.addFromPeerList(brokeringPeerIdentity, {
     address: peer.address,
     port: peer.port,

@@ -1536,7 +1536,7 @@ export class PeerManager {
         continue
       }
 
-      this.peerCandidates.addFromPeerList(identity, connectedPeer)
+      this.peerCandidates.addFromPeerList(peer.state.identity, connectedPeer)
     }
   }
 }

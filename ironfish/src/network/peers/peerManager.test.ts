@@ -191,9 +191,7 @@ describe('PeerManager', () => {
       // Create a connected peer
       const { peer: connectedPeer, connection } = getConnectedPeer(peers, connectedPeerIdentity)
 
-      peers['handleMessage'](
-        connectedPeer,
-        connection,
+      connectedPeer.onMessage.emit(
         new PeerListMessage([
           {
             address: 'testuri',
@@ -201,6 +199,7 @@ describe('PeerManager', () => {
             identity: Buffer.from(peerIdentity, 'base64'),
           },
         ]),
+        connection,
       )
 
       expect(peers.peerCandidates.size).toBe(2)
@@ -1461,7 +1460,6 @@ describe('PeerManager', () => {
 
       expect(pm.peers.length).toBe(1)
       expect(pm.identifiedPeers.size).toBe(1)
-      expect(pm.peerCandidates.get(peer.getIdentityOrThrow())).toBeUndefined()
 
       const peerList = new PeerListMessage([
         {
