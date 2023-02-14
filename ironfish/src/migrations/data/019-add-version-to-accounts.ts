@@ -26,26 +26,34 @@ export class Migration017 extends Migration {
 
   async forward(
     node: IronfishNode,
+    _db: IDatabase,
+    _tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    // TODO something that does the migration
     const accounts = []
-    // TODO: does this serialize/deserialize correctly?
+    // TODO: does this serialize/deserialize correctly? it assumes Version already exists when it in fact does not.
+    logger.debug(`Loading accounts from wallet db...`)
     for await (const accountValue of node.wallet.walletDb.loadAccounts()) {
       accounts.push(
         new Account({
           ...accountValue,
           walletDb: node.wallet.walletDb,
-          version: 1 
+          version: 1,
         }),
       )
     } 
     
-    // TODO: somehow save the accounts
+    logger.debug(`Clearing old accounts from wallet db...`)
+    await node.wallet.walletDb.accounts.clear()
+
+    logger.debug(`Saving updated accounts to wallet db...`)
+    for (const account of accounts) {
+      node.wallet.accounts.set(account.id, account) // TODO this is an illegal access of accounts
+    }
   }
 
   async backward(node: IronfishNode, db: IDatabase): Promise<void> {
-    // TODO something that undoes the migration
+    // TODO something that undoes the migration? Some migrations don't implement this though?
     throw new Error('Not implemented')
   }
 
