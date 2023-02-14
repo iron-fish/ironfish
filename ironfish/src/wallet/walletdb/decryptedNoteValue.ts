@@ -32,7 +32,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
     flags |= Number(!!sequence) << 4
     bw.writeU8(flags)
 
-    bw.writeVarString(accountId)
+    bw.writeVarString(accountId, 'utf8')
     bw.writeBytes(note.serialize())
     bw.writeHash(transactionHash)
 
@@ -62,7 +62,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
     const hasBlockHash = flags & (1 << 3)
     const hasSequence = flags & (1 << 4)
 
-    const accountId = reader.readVarString()
+    const accountId = reader.readVarString('utf8')
     const serializedNote = reader.readBytes(DECRYPTED_NOTE_LENGTH)
     const transactionHash = reader.readHash()
 

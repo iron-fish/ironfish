@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  BufferUtils,
   CreateTransactionRequest,
   CreateTransactionResponse,
   CurrencyUtils,
@@ -100,12 +101,14 @@ export class Burn extends IronfishCommand {
     let assetId = flags.assetId
 
     if (assetId == null) {
-      assetId = await selectAsset(client, account, {
+      const asset = await selectAsset(client, account, {
         action: 'burn',
         showNativeAsset: false,
         showSingleAssetChoice: true,
         confirmations,
       })
+
+      assetId = asset?.id
     }
 
     if (assetId == null) {
@@ -270,8 +273,12 @@ ${CurrencyUtils.renderIron(
       const transactionBytes = Buffer.from(result.content.transaction, 'hex')
       transaction = new Transaction(transactionBytes)
 
+      const assetResponse = await client.getAsset({ id: assetId })
+      const assetName = BufferUtils.toHuman(Buffer.from(assetResponse.content.name, 'hex'))
+
       this.log(`
-Burned asset ${assetId} from ${account}
+Burned asset ${assetName} from ${account}
+Asset Identifier: ${assetId}
 Value: ${CurrencyUtils.renderIron(amount)}
 
 Transaction Hash: ${transaction.hash().toString('hex')}

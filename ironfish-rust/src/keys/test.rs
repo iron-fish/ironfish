@@ -123,9 +123,10 @@ fn test_from_and_to_words() {
 
     // Convert to words
     let key = SaplingKey::new(key_bytes).expect("Key should be created");
-    let words = key
+    let mnemonic = key
         .to_words(bip39::Language::English)
         .expect("Should return words");
+    let words = mnemonic.into_phrase();
     assert_eq!(words_for_bytes, words);
 
     // Convert from words

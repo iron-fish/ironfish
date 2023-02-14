@@ -133,8 +133,7 @@ export class MiningManager {
 
     const account = this.node.wallet.getDefaultAccount()
     Assert.isNotNull(account, 'Cannot mine without an account')
-    const { spendingKey } = account
-    Assert.isNotNull(spendingKey, 'Account must have spending key in order to mine')
+    Assert.isNotNull(account.spendingKey, 'Account must have spending key in order to mine')
 
     const newBlockSequence = currentBlock.header.sequence + 1
 

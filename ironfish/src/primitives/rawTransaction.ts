@@ -120,8 +120,8 @@ export class RawTransactionSerde {
 
     bw.writeU64(raw.mints.length)
     for (const mint of raw.mints) {
-      bw.writeVarString(mint.name)
-      bw.writeVarString(mint.metadata)
+      bw.writeVarString(mint.name, 'utf8')
+      bw.writeVarString(mint.metadata, 'utf8')
       bw.writeBigU64(mint.value)
     }
 
@@ -172,8 +172,8 @@ export class RawTransactionSerde {
 
     const mintsLength = reader.readU64()
     for (let i = 0; i < mintsLength; i++) {
-      const name = reader.readVarString()
-      const metadata = reader.readVarString()
+      const name = reader.readVarString('utf8')
+      const metadata = reader.readVarString('utf8')
       const value = reader.readBigU64()
       raw.mints.push({ name, metadata, value })
     }

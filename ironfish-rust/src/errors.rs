@@ -29,6 +29,7 @@ pub enum IronfishError {
     InvalidEntropy,
     InvalidLanguageEncoding,
     InvalidMinersFeeTransaction,
+    InvalidMnemonicString,
     InvalidNonceLength,
     InvalidPaymentAddress,
     InvalidPublicAddress,

@@ -19,7 +19,7 @@ class StructureLeafEncoding implements IDatabaseEncoding<StructureLeafValue> {
   serialize(value: StructureLeafValue): Buffer {
     const bw = bufio.write()
 
-    bw.writeVarString(value.merkleHash)
+    bw.writeVarString(value.merkleHash, 'utf8')
     bw.writeU32(value.parentIndex)
 
     return bw.render()
@@ -28,7 +28,7 @@ class StructureLeafEncoding implements IDatabaseEncoding<StructureLeafValue> {
   deserialize(buffer: Buffer): StructureLeafValue {
     const bw = bufio.read(buffer, true)
 
-    const merkleHash = bw.readVarString()
+    const merkleHash = bw.readVarString('utf8')
     const parentIndex = bw.readU32()
 
     return {
@@ -42,7 +42,7 @@ class StructureNodeEncoding implements IDatabaseEncoding<NodeValue<string>> {
   serialize(value: NodeValue<string>): Buffer {
     const bw = bufio.write()
 
-    bw.writeVarString(value.hashOfSibling)
+    bw.writeVarString(value.hashOfSibling, 'utf8')
 
     if (value.side === Side.Left) {
       bw.writeU8(0)
@@ -58,7 +58,7 @@ class StructureNodeEncoding implements IDatabaseEncoding<NodeValue<string>> {
   deserialize(buffer: Buffer): NodeValue<string> {
     const reader = bufio.read(buffer, true)
 
-    const hashOfSibling = reader.readVarString()
+    const hashOfSibling = reader.readVarString('utf8')
 
     const sideNumber = reader.readU8()
     const side = sideNumber === 0 ? Side.Left : Side.Right

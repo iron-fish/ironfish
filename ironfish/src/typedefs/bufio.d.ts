@@ -20,8 +20,8 @@ declare module 'bufio' {
     writeBigU256(value: bigint): StaticWriter
     writeBigU256BE(value: bigint): StaticWriter
     writeVarint(value: number): StaticWriter
-    writeString(value: string, enc?: BufferEncoding | null): StaticWriter
-    writeVarString(value: string, enc?: BufferEncoding | null): StaticWriter
+    writeString(value: string, enc: BufferEncoding | null): StaticWriter
+    writeVarString(value: string, enc: BufferEncoding | null): StaticWriter
     writeVarBytes(value: Buffer): StaticWriter
     writeBytes(value: Buffer): StaticWriter
     writeHash(value: Buffer | string): StaticWriter
@@ -77,8 +77,8 @@ declare module 'bufio' {
     readDoubleBE(): number
     readDouble(): number
     readVarint(): number
-    readString(size: number, enc?: BufferEncoding | null): string
-    readVarString(enc?: BufferEncoding | null, limit?: number): string
+    readString(size: number, enc: BufferEncoding | null): string
+    readVarString(enc: BufferEncoding | null, limit?: number): string
     readBytes(size: number, zeroCopy?: boolean): Buffer
     readVarBytes(): Buffer
 

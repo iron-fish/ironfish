@@ -6,11 +6,6 @@ import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-// TODO(rohanjadvani): Remove this after assets are added to the wallet
-type Balance = GetBalancesResponse['balances'][number] & {
-  name: string
-}
-
 export class BalancesCommand extends IronfishCommand {
   static description = `Display the account's balances for all assets`
 
@@ -47,9 +42,10 @@ export class BalancesCommand extends IronfishCommand {
     })
     this.log(`Account: ${response.content.account}`)
 
-    let columns: CliUx.Table.table.Columns<Balance> = {
-      name: {
+    let columns: CliUx.Table.table.Columns<GetBalancesResponse['balances'][number]> = {
+      assetName: {
         header: 'Asset Name',
+        get: (row) => BufferUtils.toHuman(Buffer.from(row.assetName, 'hex')),
       },
       assetId: {
         header: 'Asset Id',
@@ -82,16 +78,6 @@ export class BalancesCommand extends IronfishCommand {
       }
     }
 
-    const balancesWithNames = []
-    // TODO(rohanjadvani) We currently fetch the asset from the blockchain to
-    // populate the name when rendering balance. This can be refactored once
-    // the wallet persists assets.
-    for (const balance of response.content.balances) {
-      const assetResponse = await client.getAsset({ id: balance.assetId })
-      const name = BufferUtils.toHuman(Buffer.from(assetResponse.content.name, 'hex'))
-      balancesWithNames.push({ ...balance, name })
-    }
-
-    CliUx.ux.table(balancesWithNames, columns)
+    CliUx.ux.table(response.content.balances, columns)
   }
 }

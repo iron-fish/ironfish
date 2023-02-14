@@ -37,8 +37,10 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   PostTransactionRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.sender)
-    const { spendingKey } = account
-    Assert.isNotNull(spendingKey, 'Account must have spending key to post a transaction')
+    Assert.isNotNull(
+      account.spendingKey,
+      'Account must have spending key to post a transaction',
+    )
 
     const rawTransactionBytes = Buffer.from(request.data.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)

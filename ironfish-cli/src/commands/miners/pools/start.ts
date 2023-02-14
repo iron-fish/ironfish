@@ -40,14 +40,11 @@ export class StartPool extends IronfishCommand {
       allowNo: true,
       description: 'Whether the pool should payout or not. Useful for solo miners',
     }),
-    balancePercentPayout: Flags.integer({
-      description: 'Whether the pool should payout or not. Useful for solo miners',
-    }),
     banning: Flags.boolean({
       description: 'Whether the pool should ban peers for errors or bad behavior',
       allowNo: true,
     }),
-    enableTls: Flags.boolean({
+    tls: Flags.boolean({
       description: 'Whether the pool should listen for connections over tls',
       allowNo: true,
     }),
@@ -126,7 +123,7 @@ export class StartPool extends IronfishCommand {
     }
 
     let tlsOptions = undefined
-    if (flags.enableTls) {
+    if (flags.tls) {
       const fileSystem = this.sdk.fileSystem
       const nodeKeyPath = this.sdk.config.get('tlsKeyPath')
       const nodeCertPath = this.sdk.config.get('tlsCertPath')
@@ -146,9 +143,8 @@ export class StartPool extends IronfishCommand {
       webhooks: webhooks,
       host: host,
       port: port,
-      balancePercentPayoutFlag: flags.balancePercentPayout,
       banning: flags.banning,
-      enableTls: flags.enableTls,
+      tls: flags.tls,
       tlsOptions: tlsOptions,
     })
 

@@ -8,12 +8,14 @@ import { Assert } from '../assert'
 import { Config } from '../fileStores/config'
 import { Logger } from '../logger'
 import { Target } from '../primitives/target'
+import { Transaction } from '../primitives/transaction'
 import { RpcSocketClient } from '../rpc/clients'
 import { SerializedBlockTemplate } from '../serde/BlockTemplateSerde'
 import { BigIntUtils } from '../utils/bigint'
 import { ErrorUtils } from '../utils/error'
 import { FileUtils } from '../utils/file'
 import { SetIntervalToken, SetTimeoutToken } from '../utils/types'
+import { TransactionStatus } from '../wallet'
 import { MiningPoolShares } from './poolShares'
 import { StratumTcpAdapter, StratumTlsAdapter } from './stratum/adapters'
 import { MiningStatusMessage } from './stratum/messages'
@@ -41,9 +43,6 @@ export class MiningPool {
   private connectTimeout: SetTimeoutToken | null
 
   private eventLoopTimeout: SetTimeoutToken | null
-
-  private attemptPayoutInterval: number
-  private nextPayoutAttempt: number
 
   name: string
 
@@ -97,9 +96,6 @@ export class MiningPool {
 
     this.eventLoopTimeout = null
 
-    this.attemptPayoutInterval = this.config.get('poolAttemptPayoutInterval')
-    this.nextPayoutAttempt = new Date().getTime()
-
     this.recalculateTargetInterval = null
     this.notifyStatusInterval = null
   }
@@ -112,9 +108,8 @@ export class MiningPool {
     enablePayouts?: boolean
     host: string
     port: number
-    balancePercentPayoutFlag?: number
     banning?: boolean
-    enableTls?: boolean
+    tls?: boolean
     tlsOptions?: tls.TlsOptions
   }): Promise<MiningPool> {
     const shares = await MiningPoolShares.init({
@@ -123,7 +118,6 @@ export class MiningPool {
       logger: options.logger,
       webhooks: options.webhooks,
       enablePayouts: options.enablePayouts,
-      balancePercentPayoutFlag: options.balancePercentPayoutFlag,
     })
 
     const pool = new MiningPool({
@@ -135,7 +129,7 @@ export class MiningPool {
       banning: options.banning,
     })
 
-    if (options.enableTls) {
+    if (options.tls) {
       Assert.isNotUndefined(options.tlsOptions)
       pool.stratum.mount(
         new StratumTlsAdapter({
@@ -227,10 +221,10 @@ export class MiningPool {
 
     const eventLoopStartTime = new Date().getTime()
 
-    if (this.nextPayoutAttempt <= eventLoopStartTime) {
-      this.nextPayoutAttempt = new Date().getTime() + this.attemptPayoutInterval * 1000
-      await this.shares.createPayout()
-    }
+    await this.shares.rolloverPayoutPeriod()
+    await this.updateUnconfirmedBlocks()
+    await this.updateUnconfirmedPayoutTransactions()
+    await this.shares.createNewPayout()
 
     const eventLoopEndTime = new Date().getTime()
     const eventLoopDuration = eventLoopEndTime - eventLoopStartTime
@@ -305,6 +299,12 @@ export class MiningPool {
       if (result.content.added) {
         const hashRate = await this.estimateHashRate()
         const hashedHeaderHex = hashedHeader.toString('hex')
+
+        const minersFee = new Transaction(
+          Buffer.from(blockTemplate.transactions[0], 'hex'),
+        ).fee()
+
+        await this.shares.submitBlock(blockTemplate.header.sequence, hashedHeaderHex, minersFee)
 
         this.logger.info(
           `Block ${hashedHeaderHex} submitted successfully! ${FileUtils.formatHashRate(
@@ -532,5 +532,40 @@ export class MiningPool {
     }
 
     return status
+  }
+
+  async updateUnconfirmedBlocks(): Promise<void> {
+    const unconfirmedBlocks = await this.shares.unconfirmedBlocks()
+
+    for (const block of unconfirmedBlocks) {
+      const blockInfoResp = await this.rpc.getBlockInfo({
+        hash: block.blockHash,
+        confirmations: this.config.get('confirmations'),
+      })
+
+      const { main, confirmed } = blockInfoResp.content.metadata
+      await this.shares.updateBlockStatus(block, main, confirmed)
+    }
+  }
+
+  async updateUnconfirmedPayoutTransactions(): Promise<void> {
+    const unconfirmedTransactions = await this.shares.unconfirmedPayoutTransactions()
+
+    for (const transaction of unconfirmedTransactions) {
+      const transactionInfoResp = await this.rpc.getAccountTransaction({
+        hash: transaction.transactionHash,
+        confirmations: this.config.get('confirmations'),
+      })
+
+      const transactionInfo = transactionInfoResp.content.transaction
+      if (!transactionInfo) {
+        this.logger.debug(`Transaction ${transaction.transactionHash} not found.`)
+        continue
+      }
+
+      const confirmed = transactionInfo.status === TransactionStatus.CONFIRMED
+      const expired = transactionInfo.status === TransactionStatus.EXPIRED
+      await this.shares.updatePayoutTransactionStatus(transaction, confirmed, expired)
+    }
   }
 }

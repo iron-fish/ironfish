@@ -84,9 +84,8 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
 
     const account = node.wallet.getAccountByName(transaction.fromAccountName)
     Assert.isNotNull(account, `No account found with name ${transaction.fromAccountName}`)
-    const { spendingKey } = account
     Assert.isNotNull(
-      spendingKey,
+      account.spendingKey,
       'Account must have spending key in order to send a transaction',
     )
 

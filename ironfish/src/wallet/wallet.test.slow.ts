@@ -626,6 +626,92 @@ describe('Accounts', () => {
     })
   })
 
+  it('View only accounts can observe received and spent notes', async () => {
+    // Initialize the database and chain
+    const strategy = nodeTest.strategy
+    const node = nodeTest.node
+    const chain = nodeTest.chain
+
+    const account = await useAccountFixture(node.wallet, 'test')
+    const accountValue = {
+      id: 'abc123',
+      name: 'viewonly',
+      spendingKey: null,
+      publicAddress: account.publicAddress,
+      outgoingViewKey: account.outgoingViewKey,
+      incomingViewKey: account.incomingViewKey,
+    }
+    const viewOnlyAccount = new Account({
+      ...accountValue,
+      walletDb: node.wallet.walletDb,
+    })
+
+    await node.wallet.walletDb.db.transaction(async (tx) => {
+      await node.wallet.walletDb.setAccount(viewOnlyAccount, tx)
+      await node.wallet.skipRescan(viewOnlyAccount, tx)
+    })
+    node.wallet.accounts.set(viewOnlyAccount.id, viewOnlyAccount)
+
+    // Create a block with a miner's fee
+    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const newBlock = await chain.newBlock([], minersfee)
+    const addResult = await chain.addBlock(newBlock)
+    expect(addResult.isAdded).toBeTruthy()
+
+    // Account should now have a balance of 2000000000 after adding the miner's fee
+    await node.wallet.updateHead()
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
+      confirmed: BigInt(2000000000),
+      unconfirmed: BigInt(2000000000),
+    })
+    await expect(
+      node.wallet.getBalance(viewOnlyAccount, Asset.nativeId()),
+    ).resolves.toMatchObject({
+      confirmed: BigInt(2000000000),
+      unconfirmed: BigInt(2000000000),
+    })
+
+    // Spend the balance
+    const transaction = await node.wallet.send(
+      node.memPool,
+      account,
+      [
+        {
+          publicAddress: generateKey().public_address,
+          amount: BigInt(2),
+          memo: '',
+          assetId: Asset.nativeId(),
+        },
+      ],
+      BigInt(0),
+      node.config.get('transactionExpirationDelta'),
+      0,
+    )
+
+    // Create a block with a miner's fee
+    const minersfee2 = await strategy.createMinersFee(
+      transaction.fee(),
+      newBlock.header.sequence + 1,
+      generateKey().spending_key,
+    )
+    const newBlock2 = await chain.newBlock([transaction], minersfee2)
+    const addResult2 = await chain.addBlock(newBlock2)
+    expect(addResult2.isAdded).toBeTruthy()
+
+    // Balance after adding the transaction that spends 2 should be 1999999998
+    await node.wallet.updateHead()
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
+      confirmed: BigInt(1999999998),
+      unconfirmed: BigInt(1999999998),
+    })
+    await expect(
+      node.wallet.getBalance(viewOnlyAccount, Asset.nativeId()),
+    ).resolves.toMatchObject({
+      confirmed: BigInt(1999999998),
+      unconfirmed: BigInt(1999999998),
+    })
+  })
+
   it('Keeps spends created by the node when rolling back a fork', async () => {
     // Create a block 1 that gives account A money
     // Create a block A2 with a transaction from account A to account B

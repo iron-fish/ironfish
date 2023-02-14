@@ -691,12 +691,11 @@ export class Wallet {
       expiration: expiration ?? undefined,
       confirmations: confirmations ?? undefined,
     })
-    const { spendingKey } = sender
     Assert.isNotNull(
-      spendingKey,
+      sender.spendingKey,
       "The provided account doesn't have a spending key, cannot send transaction",
     )
-    return this.post(raw, memPool, spendingKey)
+    return this.post(raw, memPool, sender.spendingKey)
   }
 
   async mint(
@@ -733,12 +732,11 @@ export class Wallet {
       expiration: options.expiration,
       confirmations: options.confirmations,
     })
-    const { spendingKey } = account
     Assert.isNotNull(
-      spendingKey,
+      account.spendingKey,
       "The provided account doesn't have a spending key, cannot mint assets",
     )
-    return this.post(raw, memPool, spendingKey)
+    return this.post(raw, memPool, account.spendingKey)
   }
 
   async burn(
@@ -757,12 +755,11 @@ export class Wallet {
       expiration: expiration,
       confirmations: confirmations,
     })
-    const { spendingKey } = account
     Assert.isNotNull(
-      spendingKey,
+      account.spendingKey,
       "The provided account doesn't have a spending key, cannot burn assets",
     )
-    return this.post(raw, memPool, spendingKey)
+    return this.post(raw, memPool, account.spendingKey)
   }
 
   async createTransaction(
