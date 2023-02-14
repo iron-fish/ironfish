@@ -52,11 +52,6 @@ export class ImportCommand extends IronfishCommand {
       CliUx.ux.error(`Invalid import type`)
     }
 
-    if (account.version === 0) {
-      // legacy account that has no version. update it to version 1, where we started tracking account versions
-      account.version = 1
-    }
-
     const result = await client.importAccount({
       account,
       rescan: flags.rescan,
@@ -115,7 +110,7 @@ export class ImportCommand extends IronfishCommand {
       const name = await CliUx.ux.prompt('Enter a new account name', {
         required: true,
       })
-      return { name, spendingKey }
+      return { name, spendingKey, version: 1 }
     }
 
     // raw json
@@ -156,19 +151,6 @@ export class ImportCommand extends IronfishCommand {
       required: true,
     })
 
-<<<<<<< HEAD
     return await this.stringToAccountImport(userInput)
-=======
-    const spendingKey = await CliUx.ux.prompt('Enter the account spending key', {
-      required: true,
-    })
-
-    return {
-      name: accountName,
-      spendingKey: spendingKey,
-      // the user doesn't know about versions, so provide none
-      version: 0,
-    }
->>>>>>> b5b719b4 (init)
   }
 }

@@ -1263,6 +1263,7 @@ export class Wallet {
       publicAddress: key.public_address,
       spendingKey: key.spending_key,
       walletDb: this.walletDb,
+      version: 1,
     })
 
     await this.walletDb.db.transaction(async (tx) => {
