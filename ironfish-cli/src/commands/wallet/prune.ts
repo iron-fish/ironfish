@@ -31,11 +31,6 @@ export default class PruneCommand extends IronfishCommand {
     CliUx.ux.action.start(`Opening node`)
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
-<<<<<<< HEAD
-=======
-    await node.wallet.open()
-    await node.wallet.walletDb.open()
->>>>>>> 2ffa2eed (Create wallet:prune)
     CliUx.ux.action.stop('Done.')
 
     if (!node.chain.synced) {
@@ -73,6 +68,7 @@ export default class PruneCommand extends IronfishCommand {
         )
         if (flags.dryrun === false) {
           await account.deleteTransaction(transaction)
+          this.log(`Deleted expired transaction.`)
         }
       }
 
