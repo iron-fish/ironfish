@@ -45,13 +45,15 @@ export default class PruneCommand extends IronfishCommand {
       this.exit(1)
     }
 
-    if (node.wallet.chainProcessor.hash === null) {
-      this.log(`Failed to get chain header hash.`)
+    const walletHeadHash = await node.wallet.getLatestHeadHash()
+
+    if (walletHeadHash === null) {
+      this.log(`Failed to get latest head hash.`)
       this.exit(1)
       return
     }
 
-    const head = await node.chain.getHeader(node.wallet.chainProcessor.hash)
+    const head = await node.chain.getHeader(walletHeadHash)
 
     if (head === null) {
       this.log(`Failed to get chain header.`)
