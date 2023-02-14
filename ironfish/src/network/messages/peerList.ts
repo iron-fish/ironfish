@@ -7,7 +7,7 @@ import { identityLength } from '../identity'
 import { NetworkMessageType } from '../types'
 import { NetworkMessage } from './networkMessage'
 
-interface Peer {
+export interface Peer {
   identity: Buffer
   name?: string
   address: string | null
