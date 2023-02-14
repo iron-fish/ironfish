@@ -9,13 +9,13 @@ const KEY_LENGTH = 32
 const VERSION_LENGTH = 2
 
 export interface AccountValue {
+  version: number
   id: string
   name: string
   spendingKey: string
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  version: number
 }
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
@@ -43,13 +43,13 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
 
     return {
+      version,
       id,
       name,
       spendingKey,
       incomingViewKey,
       outgoingViewKey,
       publicAddress,
-      version,
     }
   }
 

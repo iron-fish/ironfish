@@ -75,13 +75,13 @@ export class Account {
 
   serialize(): AccountValue {
     return {
+      version: this.version,
       id: this.id,
       name: this.name,
       spendingKey: this.spendingKey,
       incomingViewKey: this.incomingViewKey,
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
-      version: this.version,
     }
   }
 
