@@ -12,7 +12,7 @@ import { Account } from '../../wallet'
 import { AccountImport} from '../../wallet/account'
 import { Migration } from '../migration'
 
-export class Migration017 extends Migration {
+export class Migration021 extends Migration {
   path = __filename
 
   prepare(node: IronfishNode): IDatabase {
