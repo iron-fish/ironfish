@@ -4,6 +4,7 @@
 import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { Target } from '../primitives/target'
+import { Account } from './account'
 import {
   createNodeTest,
   useAccountFixture,
