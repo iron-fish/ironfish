@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { CurrencyUtils } from '../../../utils'
+import { CurrencyUtils, YupUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
@@ -30,8 +30,8 @@ export interface MintAssetResponse {
 export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
   .object({
     account: yup.string().required(),
-    fee: yup.string().required(),
-    value: yup.string().required(),
+    fee: YupUtils.currency({ min: 1n }).defined(),
+    value: YupUtils.currency({ min: 1n }).defined(),
     assetId: yup.string().optional(),
     expiration: yup.number().optional(),
     expirationDelta: yup.number().optional(),
@@ -60,14 +60,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
     }
 
     const fee = CurrencyUtils.decode(request.data.fee)
-    if (fee < 1n) {
-      throw new ValidationError(`Invalid transaction fee, ${fee}`)
-    }
-
     const value = CurrencyUtils.decode(request.data.value)
-    if (value <= 0) {
-      throw new ValidationError('Invalid mint amount')
-    }
 
     const expirationDelta =
       request.data.expirationDelta ?? node.config.get('transactionExpirationDelta')
