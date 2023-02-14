@@ -4,7 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import * as yup from 'yup'
-import { CurrencyUtils } from '../../../utils'
+import { CurrencyUtils, YupUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
@@ -38,14 +38,14 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
         yup
           .object({
             publicAddress: yup.string().defined(),
-            amount: yup.string().defined(),
+            amount: YupUtils.currency({ min: 0n }).defined(),
             memo: yup.string().defined(),
             assetId: yup.string().optional(),
           })
           .defined(),
       )
       .defined(),
-    fee: yup.string().defined(),
+    fee: YupUtils.currency({ min: 1n }).defined(),
     expiration: yup.number().nullable().optional(),
     expirationDelta: yup.number().nullable().optional(),
     confirmations: yup.number().nullable().optional(),
@@ -86,18 +86,11 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }))
 
     const fee = CurrencyUtils.decode(request.data.fee)
-    if (fee < 1n) {
-      throw new ValidationError(`Invalid transaction fee, ${request.data.fee}`)
-    }
 
     const totalByAssetId = new BufferMap<bigint>()
     totalByAssetId.set(Asset.nativeId(), fee)
 
     for (const { assetId, amount } of outputs) {
-      if (amount < 0) {
-        throw new ValidationError(`Invalid transaction amount ${amount}.`)
-      }
-
       const sum = totalByAssetId.get(assetId) ?? 0n
       totalByAssetId.set(assetId, sum + amount)
     }

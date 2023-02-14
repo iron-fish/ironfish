@@ -6,7 +6,7 @@ import { BufferMap } from 'buffer-map'
 import * as yup from 'yup'
 import { BurnDescription } from '../../../primitives/burnDescription'
 import { MintData, RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { CurrencyUtils } from '../../../utils'
+import { CurrencyUtils, YupUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
@@ -48,7 +48,7 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
         yup
           .object({
             publicAddress: yup.string().defined(),
-            amount: yup.string().defined(),
+            amount: YupUtils.currency({ min: 1n }).defined(),
             memo: yup.string().defined(),
             assetId: yup.string().optional(),
           })
@@ -62,7 +62,7 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
             assetId: yup.string().optional(),
             name: yup.string().optional(),
             metadata: yup.string().optional(),
-            value: yup.string().defined(),
+            value: YupUtils.currency({ min: 1n }).defined(),
           })
           .defined(),
       )
@@ -72,13 +72,13 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
         yup
           .object({
             assetId: yup.string().defined(),
-            value: yup.string().defined(),
+            value: YupUtils.currency({ min: 1n }).defined(),
           })
           .defined(),
       )
       .optional(),
-    fee: yup.string().nullable().optional(),
-    feeRate: yup.string().nullable().optional(),
+    fee: YupUtils.currency({ min: 1n }).nullable().optional(),
+    feeRate: YupUtils.currency({ min: 1n }).nullable().optional(),
     expiration: yup.number().optional(),
     expirationDelta: yup.number().optional(),
     confirmations: yup.number().optional(),
@@ -117,12 +117,8 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
     }
 
     const totalByAssetIdentifier = new BufferMap<bigint>()
-    if (data.fee) {
+    if (data.fee != null) {
       const fee = CurrencyUtils.decode(data.fee)
-      if (fee < 1n) {
-        throw new ValidationError(`Invalid transaction fee, ${data.fee}`)
-      }
-
       totalByAssetIdentifier.set(Asset.nativeId(), fee)
     }
 
@@ -133,9 +129,6 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       }
 
       const amount = CurrencyUtils.decode(output.amount)
-      if (amount <= 0) {
-        throw new ValidationError(`Invalid transaction amount ${amount}.`)
-      }
 
       const sum = totalByAssetIdentifier.get(assetId) ?? 0n
       totalByAssetIdentifier.set(assetId, sum + amount)
@@ -223,10 +216,6 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
 
         if (data.feeRate) {
           feeRate = CurrencyUtils.decode(data.feeRate)
-
-          if (feeRate < 1n) {
-            throw new ValidationError(`Invalid transaction fee rate, ${data.feeRate}`)
-          }
         } else {
           feeRate = node.memPool.feeEstimator.estimateFeeRate('medium')
         }
