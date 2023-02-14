@@ -5,16 +5,11 @@
 import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import {
-  BufferEncoding,
-  DatabaseSchema,
   IDatabase,
-  IDatabaseStore,
   IDatabaseTransaction,
-  NULL_ENCODING,
-  PrefixEncoding,
-  U32_ENCODING_BE,
 } from '../../storage'
 import { Account } from '../../wallet'
+import { AccountImport} from '../../wallet/account'
 import { Migration } from '../migration'
 
 export class Migration017 extends Migration {
@@ -48,7 +43,12 @@ export class Migration017 extends Migration {
 
     logger.debug(`Saving updated accounts to wallet db...`)
     for (const account of accounts) {
-      node.wallet.accounts.set(account.id, account) // TODO this is an illegal access of accounts
+      const importRequest = {
+        name: account.name,
+        spendingKey: account.spendingKey,
+        version: account.version,
+      }
+      await node.wallet.importAccount(importRequest as AccountImport)
     }
   }
 
