@@ -53,7 +53,6 @@ export class Migration021 extends Migration {
   }
 
   async backward(node: IronfishNode, db: IDatabase): Promise<void> {
-    // TODO something that undoes the migration? Some migrations don't implement this though?
     throw new Error('Not implemented')
   }
 
