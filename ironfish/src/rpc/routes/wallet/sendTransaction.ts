@@ -86,7 +86,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }))
 
     const fee = CurrencyUtils.decode(request.data.fee)
-    if (fee < 0n) {
+    if (fee < 1n) {
       throw new ValidationError(`Invalid transaction fee, ${request.data.fee}`)
     }
 
