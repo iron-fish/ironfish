@@ -411,8 +411,6 @@ describe('PeerNetwork', () => {
         sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
         response,
       )
-
-      expect(true).toBe(true)
     })
 
     it('should respond to GetBlockHeadersRequest with skip', async () => {
@@ -451,8 +449,6 @@ describe('PeerNetwork', () => {
         sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
         response,
       )
-
-      expect(true).toBe(true)
     })
 
     it('should respond to GetBlockHeadersRequest with reverse', async () => {
@@ -483,8 +479,6 @@ describe('PeerNetwork', () => {
         sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
         response,
       )
-
-      expect(true).toBe(true)
     })
 
     it('should respond to GetBlockHeadersRequest with reverse and skip', async () => {
@@ -512,8 +506,6 @@ describe('PeerNetwork', () => {
         sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
         response,
       )
-
-      expect(true).toBe(true)
     })
 
     it('should respond to GetBlockHeadersRequest with reverse, skip and start as buffer', async () => {
@@ -541,8 +533,6 @@ describe('PeerNetwork', () => {
         sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
         response,
       )
-
-      expect(true).toBe(true)
     })
   })
 
