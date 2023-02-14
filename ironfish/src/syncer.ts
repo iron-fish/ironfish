@@ -19,6 +19,7 @@ import { ArrayUtils } from './utils/array'
 const SYNCER_TICK_MS = 10 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
 const REQUEST_BLOCKS_PER_MESSAGE = 20
+const BLOCK_HEADERS_MIN_VERSION = 20
 
 class AbortSyncingError extends Error {
   name = this.constructor.name
@@ -258,12 +259,22 @@ export class Syncer {
       requests++
 
       const needle = start - i * 2
-      const { hashes } = await this.peerNetwork.getBlockHashes(peer, needle, 1)
-      if (!hashes.length) {
-        continue
+
+      let hash
+      if (peer.version && peer.version >= BLOCK_HEADERS_MIN_VERSION) {
+        const { headers } = await this.peerNetwork.getBlockHeaders(peer, needle, 1)
+        if (!headers.length) {
+          continue
+        }
+        hash = headers[0].hash
+      } else {
+        const { hashes } = await this.peerNetwork.getBlockHashes(peer, needle, 1)
+        if (!hashes.length) {
+          continue
+        }
+        hash = hashes[0]
       }
 
-      const hash = hashes[0]
       const { found, local } = await hasHash(hash)
 
       if (!found) {
@@ -300,8 +311,18 @@ export class Syncer {
       requests++
 
       const needle = Math.floor((lower + upper) / 2)
-      const { hashes, time } = await this.peerNetwork.getBlockHashes(peer, needle, 1)
-      const remote = hashes.length === 1 ? hashes[0] : null
+
+      let remote
+      let reportedTime
+      if (peer.version && peer.version >= BLOCK_HEADERS_MIN_VERSION) {
+        const { headers, time } = await this.peerNetwork.getBlockHeaders(peer, needle, 1)
+        remote = headers.length === 1 ? headers[0].hash : null
+        reportedTime = time
+      } else {
+        const { hashes, time } = await this.peerNetwork.getBlockHashes(peer, needle, 1)
+        remote = hashes.length === 1 ? hashes[0] : null
+        reportedTime = time
+      }
 
       const { found, local } = await hasHash(remote)
 
@@ -310,7 +331,7 @@ export class Syncer {
           peer.displayName
         }, needle: ${needle}, lower: ${lower}, upper: ${upper}, hash: ${HashUtils.renderHash(
           remote,
-        )}, time: ${time.toFixed(2)}ms: ${found ? 'HIT' : 'MISS'}`,
+        )}, time: ${reportedTime.toFixed(2)}ms: ${found ? 'HIT' : 'MISS'}`,
       )
 
       if (!found) {
