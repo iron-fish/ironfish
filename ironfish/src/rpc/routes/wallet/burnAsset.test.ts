@@ -39,7 +39,7 @@ describe('burnAsset', () => {
           fee: '0',
           value: '100',
         }),
-      ).rejects.toThrow('Invalid transaction fee')
+      ).rejects.toThrow('value must be equal to or greater than 1')
     })
   })
 
@@ -52,7 +52,7 @@ describe('burnAsset', () => {
           fee: '1',
           value: '-1',
         }),
-      ).rejects.toThrow('Invalid burn amount')
+      ).rejects.toThrow('value must be equal to or greater than 1')
     })
   })
 
