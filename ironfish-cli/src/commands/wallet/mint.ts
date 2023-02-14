@@ -352,12 +352,12 @@ Find the transaction on https://explorer.ironfish.network/transaction/${transact
     } else {
       if (!user.is_verified) {
         this.log(
-          `WARNING: You do not have a verified email on the account for graffiti ${graffiti}. You will need this to claim testnet rewards. Visit https://ironfish.network and click "Log In" to verify.`,
+          `WARNING: No verified email on account for graffiti ${graffiti}. You need this email to claim testnet rewards. Visit https://ironfish.network and click "Log In" to verify.`,
         )
       }
       if (user.node_uptime_score < 14) {
         this.log(
-          `WARNING: You must have one week (168 hours) of hosting a node to qualify for Phase 3 points. You currently have ${
+          `WARNING: One week (168 hours) of hosting a node is needed to qualify for Phase 3 points. You currently have ${
             user.node_uptime_score * 12
           } hours.`,
         )
