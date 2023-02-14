@@ -515,6 +515,35 @@ describe('PeerNetwork', () => {
 
       expect(true).toBe(true)
     })
+
+    it('should respond to GetBlockHeadersRequest with reverse, skip and start as buffer', async () => {
+      const { node, peerNetwork } = nodeTest
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlockHeadersRequest(block4.header.hash, 2, 1, true, rpcId)
+      const response = new GetBlockHeadersResponse([block4.header, block2.header], rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
+      expectGetBlockHeadersResponseToMatch(
+        sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
+        response,
+      )
+
+      expect(true).toBe(true)
+    })
   })
 
   describe('when enable syncing is true', () => {

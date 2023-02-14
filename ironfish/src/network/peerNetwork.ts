@@ -586,7 +586,7 @@ export class PeerNetwork {
 
   async getBlockHeaders(
     peer: Peer,
-    start: number,
+    start: number | Buffer,
     limit: number,
     skip = 0,
     reverse = false,
