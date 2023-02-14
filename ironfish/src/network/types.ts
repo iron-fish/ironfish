@@ -26,6 +26,8 @@ export enum NetworkMessageType {
   GetBlockTransactionsResponse = 18,
   GetCompactBlockRequest = 19,
   GetCompactBlockResponse = 20,
+  GetBlockHeadersRequest = 21,
+  GetBlockHeadersResponse = 22,
 }
 
 export type IsomorphicWebSocketConstructor = typeof WebSocket | typeof WSWebSocket

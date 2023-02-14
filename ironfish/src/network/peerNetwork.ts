@@ -27,6 +27,7 @@ import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
+import { GetBlockHeadersRequest, GetBlockHeadersResponse } from './messages/getBlockHeaders'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import {
   GetBlockTransactionsRequest,
@@ -583,6 +584,28 @@ export class PeerNetwork {
     return { hashes: response.message.hashes, time: BenchUtils.end(begin) }
   }
 
+  async getBlockHeaders(
+    peer: Peer,
+    start: number,
+    limit: number,
+    skip = 0,
+    reverse = false,
+  ): Promise<{ headers: BlockHeader[]; time: number }> {
+    const begin = BenchUtils.start()
+
+    const message = new GetBlockHeadersRequest(start, limit, skip, reverse)
+    const response = await this.requestFrom(peer, message)
+
+    if (!(response.message instanceof GetBlockHeadersResponse)) {
+      // TODO jspafford: disconnect peer, or handle it more properly
+      throw new Error(
+        `Invalid GetBlockHeadersResponse: ${displayNetworkMessageType(message.type)}`,
+      )
+    }
+
+    return { headers: response.message.headers, time: BenchUtils.end(begin) }
+  }
+
   async getBlocks(
     peer: Peer,
     start: Buffer,
@@ -647,6 +670,11 @@ export class PeerNetwork {
       try {
         if (rpcMessage instanceof GetBlockHashesRequest) {
           responseMessage = await this.onGetBlockHashesRequest({
+            peerIdentity,
+            message: rpcMessage,
+          })
+        } else if (rpcMessage instanceof GetBlockHeadersRequest) {
+          responseMessage = await this.onGetBlockHeadersRequest({
             peerIdentity,
             message: rpcMessage,
           })
@@ -991,6 +1019,69 @@ export class PeerNetwork {
     }
 
     return await this.chain.getHeaderAtSequence(start)
+  }
+
+  private async onGetBlockHeadersRequest(
+    request: IncomingPeerMessage<GetBlockHeadersRequest>,
+  ): Promise<GetBlockHeadersResponse> {
+    const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
+    const rpcId = request.message.rpcId
+
+    if (request.message.limit === 0) {
+      peer.punish(
+        BAN_SCORE.LOW,
+        `Peer sent GetBlockHeaders with limit of ${request.message.limit}`,
+      )
+      return new GetBlockHeadersResponse([], rpcId)
+    }
+
+    if (request.message.limit > MAX_REQUESTED_BLOCKS) {
+      peer.punish(
+        BAN_SCORE.MAX,
+        `Peer sent GetBlockHeaders with limit of ${request.message.limit}`,
+      )
+      const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
+      throw error
+    }
+
+    const message = request.message
+    const start = message.start
+    const limit = message.limit
+    const skip = message.skip
+    const reverse = message.reverse
+
+    const from = await this.resolveSequenceOrHash(start)
+    if (!from) {
+      return new GetBlockHeadersResponse([], rpcId)
+    }
+
+    const headers = []
+    let skipCounter = skip
+
+    // If `reverse` is true, we iterate in descending order, using `start` as the
+    // highest sequence.  Otherwise, we iterate in ascending order, using
+    // `start` as the lowest sequence.
+    const iterationFunction = reverse
+      ? (from: BlockHeader) => this.chain.iterateFrom(from)
+      : (from: BlockHeader) => this.chain.iterateTo(from)
+
+    for await (const header of iterationFunction(from)) {
+      if (skip) {
+        if (skipCounter < skip) {
+          skipCounter += 1
+          continue
+        } else if (skipCounter === skip) {
+          skipCounter = 0
+        }
+      }
+
+      headers.push(header)
+      if (headers.length === limit) {
+        break
+      }
+    }
+
+    return new GetBlockHeadersResponse(headers, rpcId)
   }
 
   private async onGetBlockHashesRequest(
