@@ -229,20 +229,20 @@ export class Syncer {
       }
     }
 
-    const hasHash = async (
-      hash: Buffer | null,
+    const hasHeader = async (
+      header: BlockHeader | null,
     ): Promise<{ found: boolean; local: BlockHeader | null }> => {
-      if (hash === null) {
+      if (header === null) {
         return { found: false, local: null }
       }
 
-      const header = await this.chain.getHeader(hash)
-      if (!header) {
+      const localHeader = await this.chain.getHeader(header.hash)
+      if (!localHeader) {
         return { found: false, local: null }
       }
 
-      const found = await this.chain.isHeadChain(header)
-      return { found: found, local: header }
+      const found = await this.chain.isHeadChain(localHeader)
+      return { found: found, local: localHeader }
     }
 
     // First we search linearly backwards in case we are on the main chain already
@@ -258,13 +258,13 @@ export class Syncer {
       requests++
 
       const needle = start - i * 2
-      const { hashes } = await this.peerNetwork.getBlockHashes(peer, needle, 1)
-      if (!hashes.length) {
+      const { headers } = await this.peerNetwork.getBlockHeaders(peer, needle, 1)
+      if (!headers.length) {
         continue
       }
 
-      const hash = hashes[0]
-      const { found, local } = await hasHash(hash)
+      const header = headers[0]
+      const { found, local } = await hasHeader(header)
 
       if (!found) {
         continue
@@ -281,12 +281,12 @@ export class Syncer {
 
       return {
         sequence: needle,
-        ancestor: hash,
+        ancestor: header.hash,
         requests: requests,
       }
     }
 
-    // Then we try a binary search to fine the forking point between us and peer
+    // Then we try a binary search to find the forking point between us and peer
     let ancestorHash: Buffer | null = null
     let ancestorSequence: number | null = null
     let lower = Number(GENESIS_BLOCK_SEQUENCE)
@@ -300,16 +300,16 @@ export class Syncer {
       requests++
 
       const needle = Math.floor((lower + upper) / 2)
-      const { hashes, time } = await this.peerNetwork.getBlockHashes(peer, needle, 1)
-      const remote = hashes.length === 1 ? hashes[0] : null
+      const { headers, time } = await this.peerNetwork.getBlockHeaders(peer, needle, 1)
+      const remote = headers.length === 1 ? headers[0] : null
 
-      const { found, local } = await hasHash(remote)
+      const { found, local } = await hasHeader(remote)
 
       this.logger.info(
         `Searched for ancestor from ${
           peer.displayName
         }, needle: ${needle}, lower: ${lower}, upper: ${upper}, hash: ${HashUtils.renderHash(
-          remote,
+          remote?.hash,
         )}, time: ${time.toFixed(2)}ms: ${found ? 'HIT' : 'MISS'}`,
       )
 
@@ -334,7 +334,7 @@ export class Syncer {
         this.abort(peer)
       }
 
-      ancestorHash = remote
+      ancestorHash = remote ? remote.hash : null
       ancestorSequence = needle
 
       lower = needle + 1

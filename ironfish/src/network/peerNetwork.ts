@@ -26,7 +26,6 @@ import { BlockFetcher } from './blockFetcher'
 import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
-import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
 import { GetBlockHeadersRequest, GetBlockHeadersResponse } from './messages/getBlockHeaders'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import {
@@ -564,26 +563,6 @@ export class PeerNetwork {
     })
   }
 
-  async getBlockHashes(
-    peer: Peer,
-    start: number,
-    limit: number,
-  ): Promise<{ hashes: Buffer[]; time: number }> {
-    const begin = BenchUtils.start()
-
-    const message = new GetBlockHashesRequest(start, limit)
-    const response = await this.requestFrom(peer, message)
-
-    if (!(response.message instanceof GetBlockHashesResponse)) {
-      // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(
-        `Invalid GetBlockHashesResponse: ${displayNetworkMessageType(message.type)}`,
-      )
-    }
-
-    return { hashes: response.message.hashes, time: BenchUtils.end(begin) }
-  }
-
   async getBlockHeaders(
     peer: Peer,
     start: number | Buffer,
@@ -668,12 +647,7 @@ export class PeerNetwork {
     if (rpcMessage.direction === Direction.Request) {
       let responseMessage: RpcNetworkMessage
       try {
-        if (rpcMessage instanceof GetBlockHashesRequest) {
-          responseMessage = await this.onGetBlockHashesRequest({
-            peerIdentity,
-            message: rpcMessage,
-          })
-        } else if (rpcMessage instanceof GetBlockHeadersRequest) {
+        if (rpcMessage instanceof GetBlockHeadersRequest) {
           responseMessage = await this.onGetBlockHeadersRequest({
             peerIdentity,
             message: rpcMessage,
@@ -1082,50 +1056,6 @@ export class PeerNetwork {
     }
 
     return new GetBlockHeadersResponse(headers, rpcId)
-  }
-
-  private async onGetBlockHashesRequest(
-    request: IncomingPeerMessage<GetBlockHashesRequest>,
-  ): Promise<GetBlockHashesResponse> {
-    const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
-    const rpcId = request.message.rpcId
-
-    if (request.message.limit <= 0) {
-      peer.punish(
-        BAN_SCORE.LOW,
-        `Peer sent GetBlockHashes with limit of ${request.message.limit}`,
-      )
-      return new GetBlockHashesResponse([], rpcId)
-    }
-
-    if (request.message.limit > MAX_REQUESTED_BLOCKS) {
-      peer.punish(
-        BAN_SCORE.MAX,
-        `Peer sent GetBlockHashes with limit of ${request.message.limit}`,
-      )
-      const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
-      throw error
-    }
-
-    const message = request.message
-    const start = message.start
-    const limit = message.limit
-
-    const from = await this.resolveSequenceOrHash(start)
-    if (!from) {
-      return new GetBlockHashesResponse([], rpcId)
-    }
-
-    const hashes = []
-
-    for await (const hash of this.chain.iterateToHashes(from)) {
-      hashes.push(hash)
-      if (hashes.length === limit) {
-        break
-      }
-    }
-
-    return new GetBlockHashesResponse(hashes, rpcId)
   }
 
   private async onGetBlocksRequest(
