@@ -19,7 +19,7 @@ pub mod transaction;
 pub mod util;
 pub mod witness;
 pub use {
-    keys::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKeys},
+    keys::{IncomingViewKey, OutgoingViewKey, PublicAddress, SaplingKey, ViewKey},
     merkle_note::MerkleNote,
     merkle_note_hash::MerkleNoteHash,
     note::Note,
