@@ -13,6 +13,10 @@ export default class PruneCommand extends IronfishCommand {
 
   static flags = {
     ...LocalFlags,
+    dryrun: Flags.boolean({
+      default: false,
+      description: 'Dry run prune first',
+    }),
     compact: Flags.boolean({
       char: 'c',
       default: true,
@@ -34,17 +38,53 @@ export default class PruneCommand extends IronfishCommand {
 >>>>>>> 2ffa2eed (Create wallet:prune)
     CliUx.ux.action.stop('Done.')
 
+    if (!node.chain.synced) {
+      this.log(
+        `Your node must be synced with the Iron Fish network to prune wallet transactions. Please try again later`,
+      )
+      this.exit(1)
+    }
+
+    if (node.wallet.chainProcessor.hash === null) {
+      this.log(`Failed to get chain header hash.`)
+      this.exit(1)
+      return
+    }
+
+    const head = await node.chain.getHeader(node.wallet.chainProcessor.hash)
+
+    if (head === null) {
+      this.log(`Failed to get chain header.`)
+      this.exit(1)
+      return
+    }
+
+    for (const account of node.wallet.listAccounts()) {
+      let count = 0
+
+      for await (const { transaction } of account.getExpiredTransactions(head.sequence)) {
+        count = +1
+        this.log(
+          `Account ${account.displayName} has expired transaction with hash ${transaction
+            .hash()
+            .toString('hex')}`,
+        )
+        if (flags.dryrun === false) {
+          await account.deleteTransaction(transaction)
+        }
+      }
+
+      if (count > 0) {
+        this.log(`Account ${account.displayName} has ${count} expired transactions`)
+      }
+    }
+
     if (flags.compact) {
       CliUx.ux.action.start(`Compacting wallet database`)
       await node.wallet.walletDb.db.compact()
       CliUx.ux.action.stop()
     }
 
-<<<<<<< HEAD
     await node.closeDB()
-=======
-    await node.wallet.walletDb.close()
-    await node.wallet.close()
->>>>>>> 2ffa2eed (Create wallet:prune)
   }
 }
