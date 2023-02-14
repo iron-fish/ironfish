@@ -8,9 +8,10 @@ import { CurrencyUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
+import { getAccount } from './utils'
 
 export type SendTransactionRequest = {
-  fromAccountName: string
+  account: string
   outputs: {
     publicAddress: string
     amount: string
@@ -24,19 +25,14 @@ export type SendTransactionRequest = {
 }
 
 export type SendTransactionResponse = {
-  outputs: {
-    publicAddress: string
-    amount: string
-    memo: string
-    assetId?: string
-  }[]
-  fromAccountName: string
+  account: string
   hash: string
+  transaction: string
 }
 
 export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionRequest> = yup
   .object({
-    fromAccountName: yup.string().defined(),
+    account: yup.string().defined(),
     outputs: yup
       .array(
         yup
@@ -58,20 +54,9 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
 
 export const SendTransactionResponseSchema: yup.ObjectSchema<SendTransactionResponse> = yup
   .object({
-    outputs: yup
-      .array(
-        yup
-          .object({
-            publicAddress: yup.string().defined(),
-            amount: yup.string().defined(),
-            memo: yup.string().defined(),
-            assetId: yup.string().optional(),
-          })
-          .defined(),
-      )
-      .defined(),
-    fromAccountName: yup.string().defined(),
+    account: yup.string().defined(),
     hash: yup.string().defined(),
+    transaction: yup.string().defined(),
   })
   .defined()
 
@@ -79,15 +64,8 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
   `${ApiNamespace.wallet}/sendTransaction`,
   SendTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    const transaction = request.data
+    const account = getAccount(node, request.data.account)
 
-    const account = node.wallet.getAccountByName(transaction.fromAccountName)
-
-    if (!account) {
-      throw new ValidationError(`No account found with name ${transaction.fromAccountName}`)
-    }
-
-    // The node must be connected to the network first
     if (!node.peerNetwork.isReady) {
       throw new ValidationError(
         `Your node must be connected to the Iron Fish network to send a transaction`,
@@ -100,38 +78,32 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       )
     }
 
-    const outputs = transaction.outputs.map((output) => {
-      let assetId = Asset.nativeId()
-      if (output.assetId) {
-        assetId = Buffer.from(output.assetId, 'hex')
-      }
+    const outputs = request.data.outputs.map((output) => ({
+      publicAddress: output.publicAddress,
+      amount: CurrencyUtils.decode(output.amount),
+      memo: output.memo,
+      assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),
+    }))
 
-      return {
-        publicAddress: output.publicAddress,
-        amount: CurrencyUtils.decode(output.amount),
-        memo: output.memo,
-        assetId,
-      }
-    })
-
-    const fee = CurrencyUtils.decode(transaction.fee)
+    const fee = CurrencyUtils.decode(request.data.fee)
     if (fee < 1n) {
-      throw new ValidationError(`Invalid transaction fee, ${transaction.fee}`)
+      throw new ValidationError(`Invalid transaction fee, ${request.data.fee}`)
     }
 
-    const totalByAssetIdentifier = new BufferMap<bigint>()
-    totalByAssetIdentifier.set(Asset.nativeId(), fee)
+    const totalByAssetId = new BufferMap<bigint>()
+    totalByAssetId.set(Asset.nativeId(), fee)
+
     for (const { assetId, amount } of outputs) {
       if (amount < 0) {
         throw new ValidationError(`Invalid transaction amount ${amount}.`)
       }
 
-      const sum = totalByAssetIdentifier.get(assetId) ?? BigInt(0)
-      totalByAssetIdentifier.set(assetId, sum + amount)
+      const sum = totalByAssetId.get(assetId) ?? 0n
+      totalByAssetId.set(assetId, sum + amount)
     }
 
-    // Check that the node account is updated
-    for (const [assetId, sum] of totalByAssetIdentifier) {
+    // Check that the node has enough balance
+    for (const [assetId, sum] of totalByAssetId) {
       const balance = await node.wallet.getBalance(account, assetId)
 
       if (balance.confirmed < sum) {
@@ -144,20 +116,20 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     try {
-      const transactionPosted = await node.wallet.send(
+      const transaction = await node.wallet.send(
         node.memPool,
         account,
         outputs,
-        BigInt(transaction.fee),
-        transaction.expirationDelta ?? node.config.get('transactionExpirationDelta'),
-        transaction.expiration,
-        transaction.confirmations,
+        fee,
+        request.data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
+        request.data.expiration,
+        request.data.confirmations,
       )
 
       request.end({
-        outputs: transaction.outputs,
-        fromAccountName: account.name,
-        hash: transactionPosted.hash().toString('hex'),
+        account: account.name,
+        transaction: transaction.serialize().toString('hex'),
+        hash: transaction.hash().toString('hex'),
       })
     } catch (e) {
       if (e instanceof NotEnoughFundsError) {

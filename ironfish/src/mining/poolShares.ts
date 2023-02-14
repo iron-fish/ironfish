@@ -278,7 +278,7 @@ export class MiningPoolShares {
     }[],
   ): Promise<string> {
     const transaction = await this.rpc.sendTransaction({
-      fromAccountName: this.accountName,
+      account: this.accountName,
       outputs,
       fee: outputs.length.toString(),
       expirationDelta: this.config.get('transactionExpirationDelta'),
