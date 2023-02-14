@@ -8,6 +8,7 @@ import {
   RawTransactionSerde,
   RpcResponseEnded,
   Transaction,
+  WebApi,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import inquirer from 'inquirer'
@@ -106,6 +107,8 @@ export class Mint extends IronfishCommand {
 
       account = defaultAccount.name
     }
+
+    await this.doElegibilityCheck()
 
     let assetId = flags.assetId
     let metadata = flags.metadata
@@ -337,6 +340,28 @@ Find the transaction on https://explorer.ironfish.network/transaction/${transact
         this.error(error.message)
       }
       this.exit(2)
+    }
+  }
+
+  async doElegibilityCheck(): Promise<void> {
+    const api = new WebApi()
+    const graffiti = this.sdk.config.get('blockGraffiti')
+    const user = await api.findUser({ graffiti: graffiti })
+    if (!user) {
+      this.log(`WARNING: Could not find a user with graffiti ${graffiti}`)
+    } else {
+      if (!user.is_verified) {
+        this.log(
+          `WARNING: You do not have a verified email on the account for graffiti ${graffiti}. You will need this to claim testnet rewards. Visit https://ironfish.network and click "Log In" to verify.`,
+        )
+      }
+      if (user.node_uptime_score < 14) {
+        this.log(
+          `WARNING: You must have one week (168 hours) of hosting a node to qualify for Phase 3 points. You currently have ${
+            user.node_uptime_score * 12
+          } hours.`,
+        )
+      }
     }
   }
 }

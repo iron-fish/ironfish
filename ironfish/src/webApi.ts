@@ -43,6 +43,8 @@ type ApiUser = {
   id: number
   country_code: string
   graffiti: string
+  is_verified: boolean
+  node_uptime_score: number
   total_points: number
   rank: number
 }
