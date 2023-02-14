@@ -148,7 +148,7 @@ export class MiningManager {
     const minersFee = await this.node.strategy.createMinersFee(
       totalFees,
       newBlockSequence,
-      spendingKey,
+      account.spendingKey,
     )
     this.node.logger.debug(
       `Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
