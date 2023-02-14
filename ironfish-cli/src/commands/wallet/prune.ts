@@ -35,7 +35,6 @@ export default class PruneCommand extends IronfishCommand {
       CliUx.ux.action.stop()
     }
 
-    await node.wallet.walletDb.close()
-    await node.wallet.close()
+    await node.closeDB()
   }
 }
