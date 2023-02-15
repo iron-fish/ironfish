@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { NodeUtils } from '@ironfish/sdk'
+import { NodeUtils, TransactionStatus } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
@@ -16,6 +16,12 @@ export default class PruneCommand extends IronfishCommand {
     dryrun: Flags.boolean({
       default: false,
       description: 'Dry run prune first',
+    }),
+    expire: Flags.boolean({
+      char: 'e',
+      default: true,
+      allowNo: true,
+      description: 'Delete expired transactions from the wallet',
     }),
     compact: Flags.boolean({
       char: 'c',
@@ -33,23 +39,27 @@ export default class PruneCommand extends IronfishCommand {
     await NodeUtils.waitForOpen(node)
     CliUx.ux.action.stop('Done.')
 
-    for (const account of node.wallet.listAccounts()) {
-      this.log(`Process Account ${account.displayName}.`)
+    if (flags.expire) {
+      for (const account of node.wallet.listAccounts()) {
+        const head = await account.getHead()
 
-      const head = await account.getHead()
-      if (head !== null) {
-        let count = 0
+        if (head !== null) {
+          this.log(`Process Account ${account.displayName}.`)
 
-        for await (const transactionValue of account.getExpiredTransactions(head.sequence)) {
-          count = +1
-          this.log(`transaction ${transactionValue.transaction.hash().toString('hex')}.`)
+          let count = 0
 
-          if (flags.dryrun === false) {
-            await account.deleteTransaction(transactionValue.transaction)
+          for await (const transactionValue of account.getTransactions()) {
+            const status = await node.wallet.getTransactionStatus(account, transactionValue)
+
+            if (status === TransactionStatus.EXPIRED) {
+              count = +1
+
+              if (flags.dryrun === false) {
+                await account.deleteTransaction(transactionValue.transaction)
+              }
+            }
           }
-        }
 
-        if (count > 0) {
           this.log(`Account ${account.displayName} has ${count} expired transactions`)
         }
       }
