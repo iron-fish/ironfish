@@ -700,16 +700,16 @@ export class Wallet {
     let mintData: MintData
 
     if ('assetId' in options) {
-      const record = await this.chain.getAssetById(options.assetId)
-      if (!record) {
+      const asset = await this.chain.getAssetById(options.assetId)
+      if (!asset) {
         throw new Error(
           `Asset not found. Cannot mint for identifier '${options.assetId.toString('hex')}'`,
         )
       }
 
       mintData = {
-        name: record.name.toString('utf8'),
-        metadata: record.metadata.toString('utf8'),
+        name: asset.name.toString('utf8'),
+        metadata: asset.metadata.toString('utf8'),
         value: options.value,
       }
     } else {
