@@ -126,11 +126,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
       })
     } catch (e) {
       if (e instanceof NotEnoughFundsError) {
-        throw new ValidationError(
-          `Not enough unspent notes available to fund the transaction. Please wait for any pending transactions to be confirmed.`,
-          400,
-          ERROR_CODES.INSUFFICIENT_BALANCE,
-        )
+        throw new ValidationError(e.message, 400, ERROR_CODES.INSUFFICIENT_BALANCE)
       }
       throw e
     }
