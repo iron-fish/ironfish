@@ -64,9 +64,9 @@ export async function useTxFixture(
   generate =
     generate ||
     (async () => {
-      const raw = await wallet.createTransaction(
-        from,
-        [
+      const raw = await wallet.createTransaction({
+        account: from,
+        outputs: [
           {
             publicAddress: to.publicAddress,
             amount: BigInt(1),
@@ -74,14 +74,10 @@ export async function useTxFixture(
             assetId: Asset.nativeId(),
           },
         ],
-        [],
-        [],
-        {
-          fee: fee ?? 0n,
-          expiration: expiration ?? 0,
-          expirationDelta: 0,
-        },
-      )
+        fee: fee ?? 0n,
+        expiration: expiration ?? 0,
+        expirationDelta: 0,
+      })
 
       return await wallet.workerPool.postTransaction(raw, from.spendingKey)
     })

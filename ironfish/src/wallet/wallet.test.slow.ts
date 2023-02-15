@@ -506,9 +506,9 @@ describe('Accounts', () => {
 
     const block2 = await useBlockFixture(nodeA.chain, async () => {
       // Generate a transaction from account A to account B
-      const raw = await nodeA.wallet.createTransaction(
-        accountA,
-        [
+      const raw = await nodeA.wallet.createTransaction({
+        account: accountA,
+        outputs: [
           {
             publicAddress: accountB.publicAddress,
             amount: BigInt(1),
@@ -516,13 +516,9 @@ describe('Accounts', () => {
             assetId: Asset.nativeId(),
           },
         ],
-        [],
-        [],
-        {
-          fee: 1n,
-          expiration: 0,
-        },
-      )
+        fee: 1n,
+        expiration: 0,
+      })
 
       const transaction = await nodeA.wallet.post(raw, nodeA.memPool, accountA.spendingKey)
 
@@ -539,9 +535,9 @@ describe('Accounts', () => {
     // Attempting to create another transaction for account A
     // to account C should not throw an error
     await expect(
-      nodeA.wallet.createTransaction(
-        accountA,
-        [
+      nodeA.wallet.createTransaction({
+        account: accountA,
+        outputs: [
           {
             publicAddress: accountC.publicAddress,
             amount: BigInt(1),
@@ -549,13 +545,9 @@ describe('Accounts', () => {
             assetId: Asset.nativeId(),
           },
         ],
-        [],
-        [],
-        {
-          fee: 1n,
-          expiration: 0,
-        },
-      ),
+        fee: 1n,
+        expiration: 0,
+      }),
     ).resolves.toBeTruthy()
   })
 
@@ -654,9 +646,9 @@ describe('Accounts', () => {
       nodeA.chain,
       async () => {
         // Generate a transaction from account A to account B
-        const raw = await nodeA.wallet.createTransaction(
-          accountA,
-          [
+        const raw = await nodeA.wallet.createTransaction({
+          account: accountA,
+          outputs: [
             {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
@@ -664,13 +656,9 @@ describe('Accounts', () => {
               assetId: Asset.nativeId(),
             },
           ],
-          [],
-          [],
-          {
-            fee: 0n,
-            expiration: 0,
-          },
-        )
+          fee: 0n,
+          expiration: 0,
+        })
 
         const transaction = await nodeA.wallet.post(raw, nodeA.memPool, accountA.spendingKey)
 
@@ -768,9 +756,9 @@ describe('Accounts', () => {
       nodeB.chain,
       async () => {
         // Generate a transaction from account A to account B
-        const raw = await nodeB.wallet.createTransaction(
-          accountANodeB,
-          [
+        const raw = await nodeB.wallet.createTransaction({
+          account: accountANodeB,
+          outputs: [
             {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
@@ -778,13 +766,9 @@ describe('Accounts', () => {
               assetId: Asset.nativeId(),
             },
           ],
-          [],
-          [],
-          {
-            fee: 0n,
-            expiration: 0,
-          },
-        )
+          fee: 0n,
+          expiration: 0,
+        })
 
         const transaction = await nodeB.wallet.post(
           raw,

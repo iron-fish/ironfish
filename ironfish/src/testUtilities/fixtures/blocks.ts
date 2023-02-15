@@ -239,9 +239,9 @@ export async function useBlockWithTx(
     Assert.isNotUndefined(from)
     Assert.isNotUndefined(to)
 
-    const raw = await node.wallet.createTransaction(
-      from,
-      [
+    const raw = await node.wallet.createTransaction({
+      account: from,
+      outputs: [
         {
           publicAddress: to.publicAddress,
           amount: BigInt(1),
@@ -249,14 +249,10 @@ export async function useBlockWithTx(
           assetId: Asset.nativeId(),
         },
       ],
-      [],
-      [],
-      {
-        fee: BigInt(options.fee ?? 1n),
-        expiration: options.expiration ?? 0,
-        expirationDelta: 0,
-      },
-    )
+      fee: BigInt(options.fee ?? 1n),
+      expiration: options.expiration ?? 0,
+      expirationDelta: 0,
+    })
 
     const transaction = await node.wallet.post(raw, node.memPool, from.spendingKey)
 
@@ -299,9 +295,9 @@ export async function useBlockWithTxs(
     for (let i = 0; i < numTransactions; i++) {
       Assert.isNotUndefined(from)
 
-      const raw = await node.wallet.createTransaction(
-        from,
-        [
+      const raw = await node.wallet.createTransaction({
+        account: from,
+        outputs: [
           {
             publicAddress: to.publicAddress,
             amount: BigInt(1),
@@ -309,14 +305,10 @@ export async function useBlockWithTxs(
             assetId: Asset.nativeId(),
           },
         ],
-        [],
-        [],
-        {
-          fee: 1n,
-          expiration: 0,
-          expirationDelta: 0,
-        },
-      )
+        fee: 1n,
+        expiration: 0,
+        expirationDelta: 0,
+      })
 
       const transaction = await node.wallet.post(raw, node.memPool, from.spendingKey)
 

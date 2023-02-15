@@ -65,9 +65,9 @@ describe('Accounts', () => {
     headhash[0] = 0
     await accountA.updateHead({ hash: headhash, sequence: 2 })
 
-    const response = nodeA.wallet.createTransaction(
-      accountA,
-      [
+    const response = nodeA.wallet.createTransaction({
+      account: accountA,
+      outputs: [
         {
           publicAddress: accountB.publicAddress,
           amount: BigInt(1),
@@ -75,13 +75,9 @@ describe('Accounts', () => {
           assetId: Asset.nativeId(),
         },
       ],
-      [],
-      [],
-      {
-        fee: 1n,
-        expiration: 0,
-      },
-    )
+      fee: 1n,
+      expiration: 0,
+    })
     await expect(response).rejects.toThrow(Error)
   })
 
@@ -97,9 +93,9 @@ describe('Accounts', () => {
     await nodeA.chain.addBlock(block1)
     await nodeA.wallet.updateHead()
 
-    const raw = await nodeA.wallet.createTransaction(
-      accountA,
-      [
+    const raw = await nodeA.wallet.createTransaction({
+      account: accountA,
+      outputs: [
         {
           publicAddress: accountB.publicAddress,
           amount: BigInt(1),
@@ -107,13 +103,9 @@ describe('Accounts', () => {
           assetId: Asset.nativeId(),
         },
       ],
-      [],
-      [],
-      {
-        fee: 1n,
-        expiration: 0,
-      },
-    )
+      fee: 1n,
+      expiration: 0,
+    })
 
     const transaction = await nodeA.wallet.post(raw, nodeA.memPool, accountA.spendingKey)
 

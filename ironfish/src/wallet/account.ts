@@ -588,6 +588,7 @@ export class Account {
 
       // expiring transaction deletes output notes and sets spent notes to unspent
       await this.expireTransaction(transaction, tx)
+
       await this.walletDb.deleteTransaction(this, transaction.hash(), tx)
     })
   }

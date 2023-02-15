@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   Asset,
-  ASSET_ID_LENGTH,
-  ASSET_LENGTH,
   generateKey,
   generateKeyFromPrivateKey,
   Note as NativeNote,
@@ -26,9 +24,7 @@ import { Mutex } from '../mutex'
 import { BlockHeader } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
 import { Note } from '../primitives/note'
-import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
-import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
@@ -672,7 +668,7 @@ export class Wallet {
 
   async send(
     memPool: MemPool,
-    sender: Account,
+    account: Account,
     outputs: {
       publicAddress: string
       amount: bigint
@@ -684,14 +680,16 @@ export class Wallet {
     expiration?: number | null,
     confirmations?: number | null,
   ): Promise<Transaction> {
-    const raw = await this.createTransaction(sender, outputs, [], [], {
+    const raw = await this.createTransaction({
+      account,
+      outputs,
       fee,
       expirationDelta,
       expiration: expiration ?? undefined,
       confirmations: confirmations ?? undefined,
     })
 
-    return this.post(raw, memPool, sender.spendingKey)
+    return this.post(raw, memPool, account.spendingKey)
   }
 
   async mint(
@@ -722,7 +720,9 @@ export class Wallet {
       }
     }
 
-    const raw = await this.createTransaction(account, [], [mintData], [], {
+    const raw = await this.createTransaction({
+      account,
+      mints: [mintData],
       fee: options.fee,
       expirationDelta: options.expirationDelta,
       expiration: options.expiration,
@@ -742,34 +742,34 @@ export class Wallet {
     expiration?: number,
     confirmations?: number,
   ): Promise<Transaction> {
-    const raw = await this.createTransaction(account, [], [], [{ assetId, value }], {
-      fee: fee,
-      expirationDelta: expirationDelta,
-      expiration: expiration,
-      confirmations: confirmations,
+    const raw = await this.createTransaction({
+      account,
+      burns: [{ assetId, value }],
+      fee,
+      expirationDelta,
+      expiration,
+      confirmations,
     })
 
     return this.post(raw, memPool, account.spendingKey)
   }
 
-  async createTransaction(
-    sender: Account,
-    outputs: {
+  async createTransaction(options: {
+    account: Account
+    outputs?: {
       publicAddress: string
       amount: bigint
       memo: string
       assetId: Buffer
-    }[],
-    mints: MintData[],
-    burns: BurnDescription[],
-    options: {
-      fee?: bigint
-      feeRate?: bigint
-      expiration?: number
-      expirationDelta?: number
-      confirmations?: number
-    },
-  ): Promise<RawTransaction> {
+    }[]
+    mints?: MintData[]
+    burns?: BurnDescription[]
+    fee?: bigint
+    feeRate?: bigint
+    expiration?: number
+    expirationDelta?: number
+    confirmations?: number
+  }): Promise<RawTransaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
       throw new Error('You must have a genesis block to create a transaction')
@@ -793,64 +793,58 @@ export class Wallet {
     const unlock = await this.createTransactionMutex.lock()
 
     try {
-      this.assertHasAccount(sender)
+      this.assertHasAccount(options.account)
 
-      if (!(await this.isAccountUpToDate(sender))) {
+      if (!(await this.isAccountUpToDate(options.account))) {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
       const raw = new RawTransaction()
       raw.expiration = expiration
-      raw.mints = mints
-      raw.burns = burns
 
-      for (const output of outputs) {
-        const note = new NativeNote(
-          output.publicAddress,
-          output.amount,
-          output.memo,
-          output.assetId,
-          sender.publicAddress,
-        )
-
-        raw.outputs.push({ note: new Note(note.serialize()) })
+      if (options.mints) {
+        raw.mints = options.mints
       }
 
-      if (options.fee) {
+      if (options.burns) {
+        raw.burns = options.burns
+      }
+
+      if (options.outputs) {
+        for (const output of options.outputs) {
+          const note = new NativeNote(
+            output.publicAddress,
+            output.amount,
+            output.memo,
+            output.assetId,
+            options.account.publicAddress,
+          )
+
+          raw.outputs.push({ note: new Note(note.serialize()) })
+        }
+      }
+
+      if (options.fee != null) {
         raw.fee = options.fee
       }
 
-      let size = 0
       if (options.feeRate) {
-        size += 8 // spends length
-        size += 8 // notes length
-        size += 8 // fee
-        size += 4 // expiration
-        size += 64 // signature
-
-        size += raw.outputs.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
-
-        size += raw.mints.length * (ASSET_LENGTH + 8)
-
-        size += raw.burns.length * (ASSET_ID_LENGTH + 8)
-
-        raw.fee = getFee(options.feeRate, size)
+        raw.fee = getFee(options.feeRate, raw.size())
       }
 
       await this.fund(raw, {
         fee: raw.fee,
-        account: sender,
+        account: options.account,
         confirmations: confirmations,
       })
 
       if (options.feeRate) {
-        size += raw.spends.length * SPEND_SERIALIZED_SIZE_IN_BYTE
-        raw.fee = getFee(options.feeRate, size)
+        raw.fee = getFee(options.feeRate, raw.size())
         raw.spends = []
 
         await this.fund(raw, {
           fee: raw.fee,
-          account: sender,
+          account: options.account,
           confirmations: confirmations,
         })
       }

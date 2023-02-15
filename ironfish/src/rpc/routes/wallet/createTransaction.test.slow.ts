@@ -32,7 +32,9 @@ describe('Route wallet/createTransaction', () => {
       sender,
       sender,
       async () => {
-        const raw = await routeTest.node.wallet.createTransaction(sender, [], [mintData], [], {
+        const raw = await routeTest.node.wallet.createTransaction({
+          account: sender,
+          mints: [mintData],
           fee: 0n,
           expiration: 0,
         })
