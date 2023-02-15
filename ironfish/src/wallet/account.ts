@@ -22,7 +22,9 @@ import { WalletDB } from './walletdb/walletdb'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
-export type AccountImport = { name: string; spendingKey: string }
+export const ACCOUNT_SCHEMA_VERSION = 1
+
+export type AccountImport = { name: string; spendingKey: string; version: number }
 
 export class Account {
   private readonly walletDb: WalletDB
@@ -33,6 +35,7 @@ export class Account {
   readonly spendingKey: string
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
+  readonly version: number
   publicAddress: string
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
@@ -45,8 +48,16 @@ export class Account {
     outgoingViewKey,
     publicAddress,
     walletDb,
-  }: AccountValue & {
+    version,
+  }: {
+    id: string
+    name: string
+    spendingKey: string
+    incomingViewKey: string
+    outgoingViewKey: string
+    publicAddress: string
     walletDb: WalletDB
+    version: number | undefined
   }) {
     this.id = id
     this.name = name
@@ -61,10 +72,12 @@ export class Account {
     this.displayName = `${name} (${id.slice(0, 7)})`
 
     this.walletDb = walletDb
+    this.version = version ?? 1
   }
 
   serialize(): AccountValue {
     return {
+      version: this.version,
       id: this.id,
       name: this.name,
       spendingKey: this.spendingKey,

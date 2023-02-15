@@ -36,7 +36,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
-import { Account, AccountImport } from './account'
+import { Account, ACCOUNT_SCHEMA_VERSION, AccountImport } from './account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
@@ -1250,6 +1250,7 @@ export class Wallet {
     const key = generateKey()
 
     const account = new Account({
+      version: ACCOUNT_SCHEMA_VERSION,
       id: uuid(),
       name,
       incomingViewKey: key.incoming_view_key,
@@ -1297,6 +1298,7 @@ export class Wallet {
 
     const accountValue: AccountValue = {
       ...toImport,
+      version: ACCOUNT_SCHEMA_VERSION,
       id: uuid(),
       incomingViewKey: key.incoming_view_key,
       outgoingViewKey: key.outgoing_view_key,
