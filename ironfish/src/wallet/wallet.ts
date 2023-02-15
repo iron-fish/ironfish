@@ -700,16 +700,16 @@ export class Wallet {
     let mintData: MintData
 
     if ('assetId' in options) {
-      const record = await this.chain.getAssetById(options.assetId)
-      if (!record) {
+      const asset = await this.chain.getAssetById(options.assetId)
+      if (!asset) {
         throw new Error(
           `Asset not found. Cannot mint for identifier '${options.assetId.toString('hex')}'`,
         )
       }
 
       mintData = {
-        name: record.name.toString('utf8'),
-        metadata: record.metadata.toString('utf8'),
+        name: asset.name.toString('utf8'),
+        metadata: asset.metadata.toString('utf8'),
         value: options.value,
       }
     } else {
@@ -781,13 +781,15 @@ export class Wallet {
 
     const confirmations = options.confirmations ?? this.config.get('confirmations')
 
-    let expiration = options.expiration
-    if (expiration === undefined && options.expirationDelta) {
-      expiration = heaviestHead.sequence + options.expirationDelta
-    }
+    const expirationDelta =
+      options.expirationDelta ?? this.config.get('transactionExpirationDelta')
 
-    if (expiration === undefined || isExpiredSequence(expiration, this.chain.head.sequence)) {
-      throw new Error('Invalid expiration sequence for transaction')
+    const expiration = options.expiration ?? heaviestHead.sequence + expirationDelta
+
+    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
+      throw new Error(
+        `Invalid expiration sequence for transaction ${expiration} vs ${this.chain.head.sequence}`,
+      )
     }
 
     const unlock = await this.createTransactionMutex.lock()
