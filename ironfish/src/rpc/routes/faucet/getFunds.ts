@@ -5,15 +5,16 @@ import { AxiosError } from 'axios'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { WebApi } from '../../../webApi'
-import { ERROR_CODES, ResponseError, ValidationError } from '../../adapters'
+import { ERROR_CODES, ResponseError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
+import { getAccount } from '../wallet/utils'
 
-export type GetFundsRequest = { accountName: string; email?: string }
+export type GetFundsRequest = { account?: string; email?: string }
 export type GetFundsResponse = { id: string }
 
 export const GetFundsRequestSchema: yup.ObjectSchema<GetFundsRequest> = yup
   .object({
-    accountName: yup.string().required(),
+    account: yup.string(),
     email: yup.string().strip(true),
   })
   .defined()
@@ -28,10 +29,7 @@ router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
   `${ApiNamespace.faucet}/getFunds`,
   GetFundsRequestSchema,
   async (request, node): Promise<void> => {
-    const account = node.wallet.getAccountByName(request.data.accountName)
-    if (!account) {
-      throw new ValidationError(`Account ${request.data.accountName} could not be found`)
-    }
+    const account = getAccount(node, request.data.account)
 
     const api = new WebApi({
       getFundsEndpoint: node.config.get('getFundsApi'),

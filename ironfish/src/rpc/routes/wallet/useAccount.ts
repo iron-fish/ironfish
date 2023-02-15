@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
+import { getAccount } from './utils'
 
-export type UseAccountRequest = { name: string }
+export type UseAccountRequest = { account: string }
 export type UseAccountResponse = undefined
 
 export const UseAccountRequestSchema: yup.ObjectSchema<UseAccountRequest> = yup
   .object({
-    name: yup.string().defined(),
+    account: yup.string().defined(),
   })
   .defined()
 
@@ -22,19 +22,7 @@ router.register<typeof UseAccountRequestSchema, UseAccountResponse>(
   `${ApiNamespace.wallet}/use`,
   UseAccountRequestSchema,
   async (request, node): Promise<void> => {
-    const name = request.data.name
-    const account = node.wallet.getAccountByName(name)
-
-    if (!account) {
-      throw new ValidationError(
-        `There is no account with the name ${name}. Options are:\n` +
-          node.wallet
-            .listAccounts()
-            .map((a) => a.name)
-            .join('\n'),
-      )
-    }
-
+    const account = getAccount(node, request.data.account)
     await node.wallet.setDefaultAccount(account.name)
     request.end()
   },

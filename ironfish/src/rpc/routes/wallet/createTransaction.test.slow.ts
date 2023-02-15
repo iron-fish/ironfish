@@ -56,7 +56,7 @@ describe('Route wallet/createTransaction', () => {
     }
 
     const response = await routeTest.client.createTransaction({
-      sender: 'existingAccount',
+      account: 'existingAccount',
       outputs: [
         {
           publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',

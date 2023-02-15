@@ -41,8 +41,7 @@ router.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   ExportAccountRequestSchema,
   (request, node): void => {
     const account = getAccount(node, request.data.account)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...accountInfo } = account.serialize()
+    const { id: _, ...accountInfo } = account.serialize()
     request.end({ account: accountInfo })
   },
 )

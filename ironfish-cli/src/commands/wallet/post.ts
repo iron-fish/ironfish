@@ -96,7 +96,7 @@ export class PostCommand extends IronfishCommand {
 
     const response = await client.postTransaction({
       transaction,
-      sender: flags.account,
+      account: flags.account,
       offline: flags.offline,
     })
 
