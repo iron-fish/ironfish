@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKeyFromPrivateKey, wordsToSpendingKey } from '@ironfish/rust-nodejs'
-import { AccountImport, ACCOUNT_SCHEMA_VERSION, Bech32m, JSONUtils, PromiseUtils } from '@ironfish/sdk'
+import {
+  ACCOUNT_SCHEMA_VERSION,
+  AccountImport,
+  Bech32m,
+  JSONUtils,
+  PromiseUtils,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
