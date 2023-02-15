@@ -31,13 +31,12 @@ export class GetBlockHeadersRequest extends RpcNetworkMessage {
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
 
-    const isBuffer = Buffer.isBuffer(this.start)
-    bw.writeU8(Number(isBuffer))
-
-    if (isBuffer) {
-      bw.writeHash(this.start as Buffer)
+    if (Buffer.isBuffer(this.start)) {
+      bw.writeU8(1)
+      bw.writeHash(this.start)
     } else {
-      bw.writeU32(this.start as number)
+      bw.writeU8(0)
+      bw.writeU32(this.start)
     }
 
     bw.writeU16(this.limit)
