@@ -1071,10 +1071,10 @@ export class PeerNetwork {
       : (from: BlockHeader) => this.chain.iterateTo(from)
 
     for await (const header of iterationFunction(from)) {
-      remainingLookups -= 1
       if (remainingLookups === 0) {
         break
       }
+      remainingLookups -= 1
 
       if (skip) {
         if (skipCounter < skip) {
