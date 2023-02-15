@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import { BufferMap } from 'buffer-map'
 import * as yup from 'yup'
-import { BurnDescription } from '../../../primitives/burnDescription'
-import { MintData, RawTransactionSerde } from '../../../primitives/rawTransaction'
+import { Assert } from '../../../assert'
+import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { CurrencyUtils, YupUtils } from '../../../utils'
+import { Wallet } from '../../../wallet'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
@@ -96,155 +96,91 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
   `${ApiNamespace.wallet}/createTransaction`,
   CreateTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    const data = request.data
-
     const account = getAccount(node, request.data.account)
 
-    // The node must be connected to the network first
-    if (!node.peerNetwork.isReady) {
-      throw new ValidationError(
-        `Your node must be connected to the Iron Fish network to send a transaction`,
-      )
+    const params: Parameters<Wallet['createTransaction']>[0] = {
+      account: account,
+      confirmations: request.data.confirmations,
+      expiration: request.data.expiration,
+      expirationDelta: request.data.expirationDelta,
     }
 
-    if (!node.chain.synced) {
-      throw new ValidationError(
-        `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
-      )
-    }
+    if (request.data.outputs) {
+      params.outputs = []
 
-    const totalByAssetIdentifier = new BufferMap<bigint>()
-    if (data.fee != null) {
-      const fee = CurrencyUtils.decode(data.fee)
-      totalByAssetIdentifier.set(Asset.nativeId(), fee)
-    }
-
-    const outputs = data.outputs.map((output) => {
-      let assetId = Asset.nativeId()
-      if (output.assetId) {
-        assetId = Buffer.from(output.assetId, 'hex')
+      for (const output of request.data.outputs) {
+        params.outputs.push({
+          publicAddress: output.publicAddress,
+          amount: CurrencyUtils.decode(output.amount),
+          memo: output.memo,
+          assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),
+        })
       }
+    }
 
-      const amount = CurrencyUtils.decode(output.amount)
+    if (request.data.mints) {
+      params.mints = []
 
-      const sum = totalByAssetIdentifier.get(assetId) ?? 0n
-      totalByAssetIdentifier.set(assetId, sum + amount)
+      for (const mint of request.data.mints) {
+        if (mint.assetId == null && mint.name == null) {
+          throw new ValidationError('Must provide name or identifier to mint')
+        }
 
-      return {
-        publicAddress: output.publicAddress,
-        amount: amount,
-        memo: output.memo,
-        assetId,
-      }
-    })
+        let name = mint.name
+        let metadata = mint.metadata ?? ''
 
-    const mints: MintData[] = []
-    if (data.mints) {
-      for (const mint of data.mints) {
-        let mintData: MintData
         if (mint.assetId) {
-          const record = await node.chain.getAssetById(Buffer.from(mint.assetId, 'hex'))
+          const assetId = Buffer.from(mint.assetId, 'hex')
+          const record = await account.getAsset(assetId)
+
           if (!record) {
-            throw new ValidationError(
-              `Asset not found. Cannot mint for identifier '${mint.assetId}'`,
-            )
+            throw new ValidationError(`Error minting: Asset ${mint.assetId} not found.`)
           }
 
-          mintData = {
-            name: record.name.toString('utf8'),
-            metadata: record.metadata.toString('utf8'),
-            value: CurrencyUtils.decode(mint.value),
-          }
-        } else {
-          if (mint.name === undefined) {
-            throw new ValidationError('Must provide name or identifier to mint')
-          }
-          mintData = {
-            name: mint.name,
-            metadata: mint.metadata ?? '',
-            value: CurrencyUtils.decode(mint.value),
-          }
+          name = record.name.toString('utf8')
+          metadata = record.metadata.toString('utf8')
         }
 
-        mints.push(mintData)
+        Assert.isNotUndefined(name)
+        Assert.isNotUndefined(metadata)
+
+        params.mints.push({
+          name,
+          metadata,
+          value: CurrencyUtils.decode(mint.value),
+        })
       }
     }
 
-    const burns: BurnDescription[] = []
-    if (data.burns) {
-      data.burns.map((burn) => {
-        let assetId = Asset.nativeId()
-        if (burn.assetId) {
-          assetId = Buffer.from(burn.assetId, 'hex')
-        }
-        burns.push({
-          assetId: assetId,
+    if (request.data.burns) {
+      params.burns = []
+
+      for (const burn of request.data.burns) {
+        params.burns.push({
+          assetId: burn.assetId ? Buffer.from(burn.assetId, 'hex') : Asset.nativeId(),
           value: CurrencyUtils.decode(burn.value),
         })
-      })
-    }
-
-    // Check that the node account is updated
-    for (const [assetId, sum] of totalByAssetIdentifier) {
-      const balance = await node.wallet.getBalance(account, assetId)
-
-      if (balance.confirmed < sum) {
-        throw new ValidationError(
-          `Your balance is too low. Add funds to your account first`,
-          undefined,
-          ERROR_CODES.INSUFFICIENT_BALANCE,
-        )
       }
     }
 
-    let rawTransaction
+    if (request.data.fee) {
+      params.fee = CurrencyUtils.decode(request.data.fee)
+    } else if (request.data.feeRate) {
+      params.feeRate = CurrencyUtils.decode(request.data.feeRate)
+    } else {
+      params.feeRate = node.memPool.feeEstimator.estimateFeeRate('medium')
+    }
 
     try {
-      if (data.fee) {
-        rawTransaction = await node.wallet.createTransaction({
-          account,
-          outputs,
-          mints,
-          burns,
-          fee: CurrencyUtils.decode(data.fee),
-          expirationDelta:
-            data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
-          expiration: data.expiration,
-          confirmations: data.confirmations,
-        })
-      } else {
-        let feeRate
+      const transaction = await node.wallet.createTransaction(params)
+      const serialized = RawTransactionSerde.serialize(transaction)
 
-        if (data.feeRate) {
-          feeRate = CurrencyUtils.decode(data.feeRate)
-        } else {
-          feeRate = node.memPool.feeEstimator.estimateFeeRate('medium')
-        }
-
-        rawTransaction = await node.wallet.createTransaction({
-          account,
-          outputs,
-          mints,
-          burns,
-          expirationDelta:
-            data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
-          expiration: data.expiration,
-          confirmations: data.confirmations,
-          feeRate: feeRate,
-        })
-      }
-
-      const rawTransactionBytes = RawTransactionSerde.serialize(rawTransaction)
       request.end({
-        transaction: rawTransactionBytes.toString('hex'),
+        transaction: serialized.toString('hex'),
       })
     } catch (e) {
       if (e instanceof NotEnoughFundsError) {
-        throw new ValidationError(
-          `Not enough unspent notes available to fund the transaction. Please wait for any pending transactions to be confirmed.`,
-          400,
-          ERROR_CODES.INSUFFICIENT_BALANCE,
-        )
+        throw new ValidationError(e.message, 400, ERROR_CODES.INSUFFICIENT_BALANCE)
       }
       throw e
     }

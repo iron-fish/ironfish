@@ -781,13 +781,15 @@ export class Wallet {
 
     const confirmations = options.confirmations ?? this.config.get('confirmations')
 
-    let expiration = options.expiration
-    if (expiration === undefined && options.expirationDelta) {
-      expiration = heaviestHead.sequence + options.expirationDelta
-    }
+    const expirationDelta =
+      options.expirationDelta ?? this.config.get('transactionExpirationDelta')
 
-    if (expiration === undefined || isExpiredSequence(expiration, this.chain.head.sequence)) {
-      throw new Error('Invalid expiration sequence for transaction')
+    const expiration = options.expiration ?? heaviestHead.sequence + expirationDelta
+
+    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
+      throw new Error(
+        `Invalid expiration sequence for transaction ${expiration} vs ${this.chain.head.sequence}`,
+      )
     }
 
     const unlock = await this.createTransactionMutex.lock()
