@@ -115,7 +115,9 @@ impl SpendBuilder {
 
         // Bytes to be placed into the nullifier set to verify whether this note
         // has been previously spent.
-        let nullifier = self.note.nullifier(spender_key, self.witness_position);
+        let nullifier = self
+            .note
+            .nullifier(&spender_key.view_key, self.witness_position);
 
         let blank_signature = {
             let buf = [0u8; 64];

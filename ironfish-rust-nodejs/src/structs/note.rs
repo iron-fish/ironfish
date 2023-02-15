@@ -150,7 +150,7 @@ impl NativeNote {
 
         let private_key = SaplingKey::from_hex(&owner_private_key).map_err(to_napi_err)?;
 
-        let nullifier: &[u8] = &self.note.nullifier(&private_key, position_u64).0;
+        let nullifier: &[u8] = &self.note.nullifier(private_key.view_key(), position_u64).0;
 
         Ok(Buffer::from(nullifier))
     }
