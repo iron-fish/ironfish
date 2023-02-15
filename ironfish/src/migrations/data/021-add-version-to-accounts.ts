@@ -34,7 +34,7 @@ export class Migration021 extends Migration {
         new Account({
           ...accountValue,
           walletDb: node.wallet.walletDb,
-          version: ACCOUNT_SCHEMA_VERSION,
+          version: 1, // this migration was applied at version 1, use literal 1, not ACCOUNT_SCHEMA_VERSION
         }),
       )
     }
