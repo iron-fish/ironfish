@@ -95,9 +95,9 @@ describe('Route wallet/createTransaction', () => {
 
       block.transactions[0].notes[0].decryptNoteForOwner(sender.incomingViewKey)
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
     const response = await routeTest.client.createTransaction(REQUEST_PARAMS)
 
@@ -127,9 +127,9 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     const response = await routeTest.client.createTransaction(
@@ -162,9 +162,9 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     const response = await routeTest.client.createTransaction({
@@ -207,9 +207,9 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     const response = await routeTest.client.createTransaction({
@@ -251,9 +251,9 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     const asset = new Asset(sender.spendingKey, 'mint-asset', 'metadata')
@@ -307,9 +307,9 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     await expect(
@@ -348,9 +348,9 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     await expect(
