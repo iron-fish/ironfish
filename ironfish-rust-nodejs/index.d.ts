@@ -53,6 +53,7 @@ export const enum LanguageCode {
 }
 export interface Key {
   spending_key: string
+  view_key: string
   incoming_view_key: string
   outgoing_view_key: string
   public_address: string

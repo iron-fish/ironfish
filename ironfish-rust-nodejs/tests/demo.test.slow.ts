@@ -38,6 +38,13 @@ describe('Demonstrate the Sapling API', () => {
     expect(hexKeyGenerated).toEqual(hexKey)
   })
 
+  it('ViewKey concatenated key should be generated from spending key deterministically', () => {
+    const hexSpendingKey = 'd96dc74bbca05dffb14a5631024588364b0cc9f583b5c11908b6ea98a2b778f7'
+    const key = generateKeyFromPrivateKey(hexSpendingKey)
+    // concatenated bytes of authorizing_key and nullifier_deriving_key
+    expect(key.view_key).toEqual('498b5103a72c41237c3f2bca96f20100f5a3a8a17c6b8366a485fd16e8931a5d2ff2eb8f991032c815414ff0ae2d8bc3ea3b56bffc481db3f28e800050244463')
+  })
+
   it('Should generate a new public address given a spending key', () => {
     const key = generateKey()
     const newKey = generateKeyFromPrivateKey(key.spending_key)
