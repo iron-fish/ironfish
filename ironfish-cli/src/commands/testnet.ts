@@ -106,7 +106,7 @@ export default class Testnet extends IronfishCommand {
         return this.exit(1)
       }
 
-      if (!user.is_verified) {
+      if (!user.verified) {
         this.log(
           `ERROR: You must verify your Iron Fish email. Visit https://ironfish.network and click "Log In" to do so.`,
         )

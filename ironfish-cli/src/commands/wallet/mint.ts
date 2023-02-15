@@ -350,7 +350,7 @@ Find the transaction on https://explorer.ironfish.network/transaction/${transact
     if (!user) {
       this.log(`WARNING: Could not find a user with graffiti ${graffiti}`)
     } else {
-      if (!user.is_verified) {
+      if (!user.verified) {
         this.log(
           `WARNING: No verified email on account for graffiti ${graffiti}. You need this email to claim testnet rewards. Visit https://ironfish.network and click "Log In" to verify.`,
         )
