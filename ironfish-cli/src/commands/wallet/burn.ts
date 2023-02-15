@@ -133,7 +133,7 @@ export class Burn extends IronfishCommand {
     if (flags.fee) {
       fee = CurrencyUtils.encode(flags.fee)
       const createResponse = await client.createTransaction({
-        sender: account,
+        account,
         outputs: [],
         burns: [
           {
@@ -159,7 +159,7 @@ export class Burn extends IronfishCommand {
       const feeRateOptions: { value: number; name: string }[] = []
 
       const createTransactionRequest: CreateTransactionRequest = {
-        sender: account,
+        account,
         outputs: [],
         burns: [
           {
@@ -265,7 +265,7 @@ ${CurrencyUtils.renderIron(
     try {
       const result = await client.postTransaction({
         transaction: rawTransactionResponse,
-        sender: account,
+        account,
       })
 
       stopProgressBar()

@@ -13,20 +13,6 @@ describe('mint', () => {
     await routeTest.node.wallet.createAccount('account', true)
   })
 
-  describe('with no default account', () => {
-    it('throws a validation error', async () => {
-      await expect(
-        routeTest.client.mintAsset({
-          account: 'fake-account',
-          fee: '1',
-          metadata: '{ url: hello }',
-          name: 'fake-coin',
-          value: '1',
-        }),
-      ).rejects.toThrow('No account found with name fake-account')
-    })
-  })
-
   describe('with an invalid fee', () => {
     it('throws a validation error', async () => {
       await expect(

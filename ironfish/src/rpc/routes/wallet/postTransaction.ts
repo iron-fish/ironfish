@@ -8,7 +8,7 @@ import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
 export type PostTransactionRequest = {
-  sender?: string
+  account?: string
   transaction: string
   offline?: boolean
 }
@@ -19,7 +19,7 @@ export type PostTransactionResponse = {
 
 export const PostTransactionRequestSchema: yup.ObjectSchema<PostTransactionRequest> = yup
   .object({
-    sender: yup.string().strip(true),
+    account: yup.string().strip(true),
     transaction: yup.string().defined(),
     offline: yup.boolean().optional(),
   })
@@ -35,7 +35,7 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   `${ApiNamespace.wallet}/postTransaction`,
   PostTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.sender)
+    const account = getAccount(node, request.data.account)
 
     const rawTransactionBytes = Buffer.from(request.data.transaction, 'hex')
     const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)

@@ -201,7 +201,7 @@ export class Send extends IronfishCommand {
       const feeRateOptions: { value: number; name: string }[] = []
 
       const createTransactionRequest: CreateTransactionRequest = {
-        sender: from,
+        account: from,
         outputs: [
           {
             publicAddress: to,
@@ -247,7 +247,7 @@ export class Send extends IronfishCommand {
       rawTransactionResponse = createResponses[input.selection].content.transaction
     } else {
       const createResponse = await client.createTransaction({
-        sender: from,
+        account: from,
         outputs: [
           {
             publicAddress: to,
@@ -326,7 +326,7 @@ ${CurrencyUtils.renderIron(
     try {
       const result = await client.postTransaction({
         transaction: rawTransactionResponse,
-        sender: from,
+        account: from,
       })
 
       stopProgressBar()

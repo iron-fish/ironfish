@@ -5,8 +5,8 @@ import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { MintAssetOptions } from '../../../wallet/interfaces/mintAssetOptions'
-import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
+import { getAccount } from './utils'
 
 export interface MintAssetRequest {
   account: string
@@ -54,10 +54,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
   `${ApiNamespace.wallet}/mintAsset`,
   MintAssetRequestSchema,
   async (request, node): Promise<void> => {
-    const account = node.wallet.getAccountByName(request.data.account)
-    if (!account) {
-      throw new ValidationError(`No account found with name ${request.data.account}`)
-    }
+    const account = getAccount(node, request.data.account)
 
     const fee = CurrencyUtils.decode(request.data.fee)
     const value = CurrencyUtils.decode(request.data.value)

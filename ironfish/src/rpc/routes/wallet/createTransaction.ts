@@ -10,9 +10,10 @@ import { CurrencyUtils, YupUtils } from '../../../utils'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
+import { getAccount } from './utils'
 
 export type CreateTransactionRequest = {
-  sender: string
+  account: string
   outputs: {
     publicAddress: string
     amount: string
@@ -42,7 +43,7 @@ export type CreateTransactionResponse = {
 
 export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionRequest> = yup
   .object({
-    sender: yup.string().defined(),
+    account: yup.string().defined(),
     outputs: yup
       .array(
         yup
@@ -97,11 +98,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
   async (request, node): Promise<void> => {
     const data = request.data
 
-    const account = node.wallet.getAccountByName(data.sender)
-
-    if (!account) {
-      throw new ValidationError(`No account found with name ${data.sender}`)
-    }
+    const account = getAccount(node, request.data.account)
 
     // The node must be connected to the network first
     if (!node.peerNetwork.isReady) {

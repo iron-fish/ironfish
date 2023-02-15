@@ -176,7 +176,7 @@ export class Mint extends IronfishCommand {
       fee = flags.fee
 
       const createResponse = await client.createTransaction({
-        sender: account,
+        account,
         outputs: [],
         mints: [
           {
@@ -204,7 +204,7 @@ export class Mint extends IronfishCommand {
       const feeRateOptions: { value: number; name: string }[] = []
 
       const createTransactionRequest: CreateTransactionRequest = {
-        sender: account,
+        account,
         outputs: [],
         mints: [
           {
@@ -309,7 +309,7 @@ ${amountString} plus a transaction fee of ${feeString} with the account ${accoun
     try {
       const result = await client.postTransaction({
         transaction: rawTransactionResponse,
-        sender: account,
+        account,
       })
 
       stopProgressBar()
