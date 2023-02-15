@@ -131,14 +131,14 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
 
         if (mint.assetId) {
           const assetId = Buffer.from(mint.assetId, 'hex')
-          const record = await account.getAsset(assetId)
+          const asset = await account.getAsset(assetId)
 
-          if (!record) {
+          if (!asset) {
             throw new ValidationError(`Error minting: Asset ${mint.assetId} not found.`)
           }
 
-          name = record.name.toString('utf8')
-          metadata = record.metadata.toString('utf8')
+          name = asset.name.toString('utf8')
+          metadata = asset.metadata.toString('utf8')
         }
 
         Assert.isNotUndefined(name)
