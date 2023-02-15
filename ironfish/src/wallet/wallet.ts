@@ -40,7 +40,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
-import { Account, AccountImport, ACCOUNT_SCHEMA_VERSION } from './account'
+import { Account, ACCOUNT_SCHEMA_VERSION, AccountImport } from './account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
