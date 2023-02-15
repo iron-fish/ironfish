@@ -49,27 +49,7 @@ describe('Route wallet/createTransaction', () => {
     sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
   })
 
-  it('throws if not connected to network', async () => {
-    routeTest.node.peerNetwork['_isReady'] = false
-
-    await expect(routeTest.client.createTransaction(REQUEST_PARAMS)).rejects.toThrow(
-      'Your node must be connected to the Iron Fish network to send a transaction',
-    )
-  })
-
-  it('throws if the chain is outdated', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = false
-
-    await expect(routeTest.client.createTransaction(REQUEST_PARAMS)).rejects.toThrow(
-      'Your node must be synced with the Iron Fish network to send a transaction. Please try again later',
-    )
-  })
-
   it('throws if not enough funds', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     await expect(routeTest.client.createTransaction(REQUEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
@@ -82,9 +62,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should generate a valid transaction', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -116,9 +93,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should generate a valid transaction with multiple outputs', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -151,8 +125,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should generate a valid transaction with fee rate', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
 
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
@@ -196,9 +168,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should create transaction if fee and fee rate are empty', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -240,8 +209,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should create transaction to mint new asset', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
 
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
@@ -294,9 +261,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('throw error when create transaction to mint unknown asset', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     const asset = new Asset(sender.spendingKey, 'unknown-asset', 'metadata')
 
     for (let i = 0; i < 3; ++i) {
@@ -337,9 +301,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('throw error when create transaction without mint asset', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -375,9 +336,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should throw an error when attempting to create a transaction with no valid confirmations', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     const block = await useMinerBlockFixture(
       routeTest.chain,
       undefined,

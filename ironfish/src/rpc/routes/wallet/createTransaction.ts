@@ -96,19 +96,20 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
   `${ApiNamespace.wallet}/createTransaction`,
   CreateTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    const data = request.data
-
     const account = getAccount(node, request.data.account)
 
-    const options: Parameters<Wallet['createTransaction']>[0] = {
+    const params: Parameters<Wallet['createTransaction']>[0] = {
       account: account,
+      confirmations: request.data.confirmations,
+      expiration: request.data.expiration,
+      expirationDelta: request.data.expirationDelta,
     }
 
     if (request.data.outputs) {
-      options.outputs = []
+      params.outputs = []
 
-      for (const output of data.outputs) {
-        options.outputs.push({
+      for (const output of request.data.outputs) {
+        params.outputs.push({
           publicAddress: output.publicAddress,
           amount: CurrencyUtils.decode(output.amount),
           memo: output.memo,
@@ -117,10 +118,10 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       }
     }
 
-    if (data.mints) {
-      options.mints = []
+    if (request.data.mints) {
+      params.mints = []
 
-      for (const mint of data.mints) {
+      for (const mint of request.data.mints) {
         if (mint.assetId == null && mint.name == null) {
           throw new ValidationError('Must provide name or identifier to mint')
         }
@@ -143,7 +144,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
         Assert.isNotUndefined(name)
         Assert.isNotUndefined(metadata)
 
-        options.mints.push({
+        params.mints.push({
           name,
           metadata,
           value: CurrencyUtils.decode(mint.value),
@@ -151,27 +152,27 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       }
     }
 
-    if (data.burns) {
-      options.burns = []
+    if (request.data.burns) {
+      params.burns = []
 
-      for (const burn of data.burns) {
-        options.burns.push({
+      for (const burn of request.data.burns) {
+        params.burns.push({
           assetId: burn.assetId ? Buffer.from(burn.assetId, 'hex') : Asset.nativeId(),
           value: CurrencyUtils.decode(burn.value),
         })
       }
     }
 
-    if (data.fee) {
-      options.fee = CurrencyUtils.decode(data.fee)
-    } else if (data.feeRate) {
-      options.feeRate = CurrencyUtils.decode(data.feeRate)
+    if (request.data.fee) {
+      params.fee = CurrencyUtils.decode(request.data.fee)
+    } else if (request.data.feeRate) {
+      params.feeRate = CurrencyUtils.decode(request.data.feeRate)
     } else {
-      options.feeRate = node.memPool.feeEstimator.estimateFeeRate('medium')
+      params.feeRate = node.memPool.feeEstimator.estimateFeeRate('medium')
     }
 
     try {
-      const transaction = await node.wallet.createTransaction(options)
+      const transaction = await node.wallet.createTransaction(params)
       const serialized = RawTransactionSerde.serialize(transaction)
 
       request.end({

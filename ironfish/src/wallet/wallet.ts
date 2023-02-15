@@ -781,12 +781,14 @@ export class Wallet {
 
     const confirmations = options.confirmations ?? this.config.get('confirmations')
 
-    let expiration = options.expiration
-    if (expiration === undefined && options.expirationDelta) {
-      expiration = heaviestHead.sequence + options.expirationDelta
+    if (options.expiration === undefined && options.expirationDelta) {
+      options.expiration = heaviestHead.sequence + options.expirationDelta
     }
 
-    if (expiration === undefined || isExpiredSequence(expiration, this.chain.head.sequence)) {
+    if (
+      options.expiration === undefined ||
+      isExpiredSequence(options.expiration, this.chain.head.sequence)
+    ) {
       throw new Error('Invalid expiration sequence for transaction')
     }
 
@@ -800,7 +802,7 @@ export class Wallet {
       }
 
       const raw = new RawTransaction()
-      raw.expiration = expiration
+      raw.expiration = options.expiration
 
       if (options.mints) {
         raw.mints = options.mints
