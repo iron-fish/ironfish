@@ -207,11 +207,6 @@ impl SaplingKey {
         &self.incoming_viewing_key
     }
 
-    /// Retrieve the publicly visible view key
-    pub fn view_key(&self) -> &ViewKey {
-        &self.view_key
-    }
-
     /// Adapter to convert this key to a proof generation key for use in
     /// sapling functions
     pub(crate) fn sapling_proof_generation_key(&self) -> ProofGenerationKey {
