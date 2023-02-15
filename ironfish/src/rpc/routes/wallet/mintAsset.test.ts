@@ -56,7 +56,9 @@ describe('mint', () => {
       }
 
       const mintTransaction = await useTxFixture(wallet, account, account, async () => {
-        const raw = await wallet.createTransaction(account, [], [mintData], [], {
+        const raw = await wallet.createTransaction({
+          account,
+          mints: [mintData],
           fee: 0n,
           expiration: 0,
         })

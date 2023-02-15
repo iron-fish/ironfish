@@ -201,7 +201,11 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
 
     try {
       if (data.fee) {
-        rawTransaction = await node.wallet.createTransaction(account, outputs, mints, burns, {
+        rawTransaction = await node.wallet.createTransaction({
+          account,
+          outputs,
+          mints,
+          burns,
           fee: CurrencyUtils.decode(data.fee),
           expirationDelta:
             data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
@@ -217,7 +221,11 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           feeRate = node.memPool.feeEstimator.estimateFeeRate('medium')
         }
 
-        rawTransaction = await node.wallet.createTransaction(account, outputs, mints, burns, {
+        rawTransaction = await node.wallet.createTransaction({
+          account,
+          outputs,
+          mints,
+          burns,
           expirationDelta:
             data.expirationDelta ?? node.config.get('transactionExpirationDelta'),
           expiration: data.expiration,

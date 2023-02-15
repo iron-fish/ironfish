@@ -52,15 +52,13 @@ export async function createRawTransaction(options: {
     })
   }
 
-  return await options.wallet.createTransaction(
-    options.from,
+  return await options.wallet.createTransaction({
+    account: options.from,
     outputs,
-    options.mints ?? [],
-    options.burns ?? [],
-    {
-      fee: options.fee ?? 0n,
-      expiration: options.expiration ?? 0,
-      expirationDelta: 0,
-    },
-  )
+    mints: options.mints,
+    burns: options.burns,
+    fee: options.fee ?? 0n,
+    expiration: options.expiration ?? 0,
+    expirationDelta: 0,
+  })
 }

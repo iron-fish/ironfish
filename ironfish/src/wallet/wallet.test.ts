@@ -733,9 +733,9 @@ describe('Accounts', () => {
       Assert.isNotUndefined(transactionValue)
       Assert.isNotNull(transactionValue.sequence)
 
-      const rawTransaction = node.wallet.createTransaction(
-        accountA,
-        [
+      const rawTransaction = node.wallet.createTransaction({
+        account: accountA,
+        outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 10n,
@@ -743,12 +743,8 @@ describe('Accounts', () => {
             assetId: Asset.nativeId(),
           },
         ],
-        [],
-        [],
-        {
-          expiration: 0,
-        },
-      )
+        expiration: 0,
+      })
 
       await expect(rawTransaction).rejects.toThrow(
         'Fee or FeeRate is required to create a transaction',
@@ -771,9 +767,9 @@ describe('Accounts', () => {
       Assert.isNotUndefined(transactionValue)
       Assert.isNotNull(transactionValue.sequence)
 
-      const rawTransaction = await node.wallet.createTransaction(
-        accountA,
-        [
+      const rawTransaction = await node.wallet.createTransaction({
+        account: accountA,
+        outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 10n,
@@ -781,13 +777,9 @@ describe('Accounts', () => {
             assetId: Asset.nativeId(),
           },
         ],
-        [],
-        [],
-        {
-          expiration: 0,
-          feeRate: 200n,
-        },
-      )
+        expiration: 0,
+        feeRate: 200n,
+      })
 
       expect(rawTransaction.outputs.length).toBe(1)
       expect(rawTransaction.expiration).toBeDefined()
@@ -1224,7 +1216,9 @@ describe('Accounts', () => {
 
       // Mint some coins
       const blockB = await useBlockFixture(node.chain, async () => {
-        const raw = await node.wallet.createTransaction(account, [], [mintData], [], {
+        const raw = await node.wallet.createTransaction({
+          account,
+          mints: [mintData],
           fee: 0n,
           expiration: 0,
         })
