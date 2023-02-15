@@ -210,21 +210,20 @@ impl SaplingKey {
         &self.incoming_viewing_key
     }
 
-    /// Retrieve both the view keys. These would normally used for third-party audits
+    /// Retrieve the sapling_representation of the ViewKey. These would normally used for third-party audits
     /// or for light clients.
-    pub fn view_keys(&self) -> ViewKeys {
-        ViewKeys {
-            incoming: self.incoming_view_key().clone(),
-            outgoing: self.outgoing_view_key().clone(),
-        }
-    }
-
     /// Adapter to convert this key to a viewing key for use in sapling
     /// functions.
     pub(crate) fn sapling_viewing_key(&self) -> ViewingKey {
         ViewingKey {
             ak: self.authorizing_key,
             nk: self.nullifier_deriving_key,
+        }
+    }
+    pub fn view_key(&self) -> ViewKey {
+        ViewKey {
+            authorizing_key: self.authorizing_key,
+            nullifier_deriving_key: self.nullifier_deriving_key,
         }
     }
 
