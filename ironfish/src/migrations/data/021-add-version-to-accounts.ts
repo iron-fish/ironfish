@@ -8,7 +8,7 @@ import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { IDatabaseEncoding, IDatabaseStore, StringEncoding } from '../../storage'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { Account } from '../../wallet'
+import { Account, ACCOUNT_SCHEMA_VERSION } from '../../wallet'
 import { Migration } from '../migration'
 
 export class Migration021 extends Migration {
@@ -34,7 +34,7 @@ export class Migration021 extends Migration {
         new Account({
           ...accountValue,
           walletDb: node.wallet.walletDb,
-          version: 1,
+          version: ACCOUNT_SCHEMA_VERSION,
         }),
       )
     }
