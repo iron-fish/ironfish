@@ -64,13 +64,14 @@ export class ExportCommand extends IronfishCommand {
     const { color, local } = flags
     const account = args.account as string
     const exportPath = flags.path
+    const viewOnly = flags.viewonly
 
     if (flags.language) {
       flags.mnemonic = true
     }
 
     const client = await this.sdk.connectRpc(local)
-    const response = await client.exportAccount({ account, flags.viewonly })
+    const response = await client.exportAccount({ account: account, viewonly: viewOnly })
 
     let output
 

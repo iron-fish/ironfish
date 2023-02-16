@@ -208,7 +208,7 @@ export abstract class RpcClient {
   }
 
   async exportAccount(
-    params: ExportAccountRequest = {},
+    params: ExportAccountRequest,
   ): Promise<RpcResponseEnded<ExportAccountResponse>> {
     return this.request<ExportAccountResponse>(
       `${ApiNamespace.wallet}/exportAccount`,
