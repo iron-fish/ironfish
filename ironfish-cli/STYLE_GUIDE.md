@@ -5,7 +5,7 @@ The Iron Fish CLI is for humans before machines. The primary goal of anyone deve
 Based on https://devcenter.heroku.com/articles/cli-style-guide
 
 ## Naming the command
-The CLi is made up of topics and commands. For the command ironfish migrations:start, migrations is the topic and start is the command.
+The CLI is made up of topics and commands. For the command `ironfish migrations:start`, migrations is the topic and start is the command.
 
 Generally topics are plural nouns and commands are verbs.
 
