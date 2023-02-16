@@ -43,7 +43,7 @@ Ensure that descriptions are provided for all flags, that the descriptions are i
 ### Arguments
 Arguments are the basic way to provide input for a command. While flags are generally preferred, they are sometimes unnecessary in cases where there is only 1 argument, or the arguments are obvious and in an obvious order.
 
-In the case of `ironfish chain:power`, we can specify the account we want to give access to with an argument.
+In the case of `ironfish chain:power`, we can specify the block sequence we want to determine the network mining power  with an argument. We can also specify how many blocks back to look to average the mining power with a flag.
 
 ```bash
 ironfish chain:power 5432 --blocks 20
