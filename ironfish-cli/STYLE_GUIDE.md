@@ -46,7 +46,7 @@ Arguments are the basic way to provide input for a command. While flags are gene
 In the case of `ironfish chain:power`, we can specify the block sequence we want to determine the network mining power  with an argument. We can also specify how many blocks back to look to average the mining power with a flag.
 
 ```bash
-ironfish chain:power 5432 --blocks 20
+ironfish chain:power 5432 --history 20
 ```
 
 If this was done with only arguments, it wouldn’t be clear if the sequence should go before or after the number of blocks to use to sample the network mining power. Using a required flag instead allows the user to specify it either way.
