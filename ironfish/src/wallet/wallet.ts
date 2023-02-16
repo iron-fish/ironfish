@@ -1259,6 +1259,7 @@ export class Wallet {
       outgoingViewKey: key.outgoing_view_key,
       publicAddress: key.public_address,
       spendingKey: key.spending_key,
+      viewKey: key.view_key,
       walletDb: this.walletDb,
     })
 
@@ -1302,6 +1303,7 @@ export class Wallet {
       ...toImport,
       version: ACCOUNT_SCHEMA_VERSION,
       id: uuid(),
+      viewKey: key.view_key,
       incomingViewKey: key.incoming_view_key,
       outgoingViewKey: key.outgoing_view_key,
       publicAddress: key.public_address,

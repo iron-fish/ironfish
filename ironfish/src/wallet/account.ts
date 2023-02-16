@@ -33,6 +33,7 @@ export class Account {
   readonly displayName: string
   name: string
   readonly spendingKey: string
+  readonly viewKey: string
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
   readonly version: number
@@ -44,6 +45,7 @@ export class Account {
     id,
     name,
     spendingKey,
+    viewKey,
     incomingViewKey,
     outgoingViewKey,
     publicAddress,
@@ -53,6 +55,7 @@ export class Account {
     id: string
     name: string
     spendingKey: string
+    viewKey: string
     incomingViewKey: string
     outgoingViewKey: string
     publicAddress: string
@@ -62,6 +65,7 @@ export class Account {
     this.id = id
     this.name = name
     this.spendingKey = spendingKey
+    this.viewKey = viewKey
     this.incomingViewKey = incomingViewKey
     this.outgoingViewKey = outgoingViewKey
     this.publicAddress = publicAddress
@@ -81,6 +85,7 @@ export class Account {
       id: this.id,
       name: this.name,
       spendingKey: this.spendingKey,
+      viewKey: this.viewKey,
       incomingViewKey: this.incomingViewKey,
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,

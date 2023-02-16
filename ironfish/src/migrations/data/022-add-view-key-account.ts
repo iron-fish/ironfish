@@ -1,17 +1,21 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
-import { KEY_LENGTH, PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
+import {
+  generateKeyFromPrivateKey,
+  KEY_LENGTH,
+  PUBLIC_ADDRESS_LENGTH,
+} from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { IDatabaseEncoding, IDatabaseStore, StringEncoding } from '../../storage'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { Account } from '../../wallet'
+import { Account, VERSION_DATABASE_ACCOUNTS } from '../../wallet'
+import { VERSION_LENGTH } from '../../wallet/walletdb/accountValue'
 import { Migration } from '../migration'
 
-export class Migration021 extends Migration {
+export class Migration022 extends Migration {
   path = __filename
 
   prepare(node: IronfishNode): IDatabase {
@@ -24,45 +28,47 @@ export class Migration021 extends Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    logger.debug(`Loading accounts from wallet db...`)
+    const { walletDb } = node.wallet
     const accounts: Account[] = []
 
-    const oldAccountStore = this.getOldAccountStore(db)
+    const previousAccountStore = this.getPreviousAccountStore(db)
     logger.info(`Gathering accounts for migration`)
-    for await (const accountValue of oldAccountStore.getAllValuesIter(tx)) {
+    for await (const accountValue of previousAccountStore.getAllValuesIter(tx)) {
+      const generatedKey = generateKeyFromPrivateKey(accountValue.spendingKey)
+      const accountValueWithViewKey = {
+        ...accountValue,
+        viewKey: generatedKey.view_key,
+      }
       accounts.push(
         new Account({
-          ...accountValue,
-          // added this so that future migration (022) can have updated constructor for Account
-          viewKey: '',
+          ...accountValueWithViewKey,
           walletDb: node.wallet.walletDb,
-          version: 1, // this migration was applied at version 1, use literal 1, not ACCOUNT_SCHEMA_VERSION
         }),
       )
     }
 
-    logger.debug(`Saving updated accounts to wallet db...`)
-    await node.wallet.walletDb.db.transaction(async (tx) => {
+    logger.info(`Making wallet compatible with view only accounts`)
+    await walletDb.db.transaction(async (tx) => {
       for (const account of accounts) {
         logger.info('')
         logger.info(`  Migrating account ${account.name}`)
         // reserialization of existing wallet will occur in here
-        await node.wallet.walletDb.setAccount(account, tx)
+        await walletDb.setAccount(account, tx)
         logger.info(`  Completed migration for account ${account.name}`)
       }
     })
 
-    await oldAccountStore.clear(tx)
+    await previousAccountStore.clear(tx)
   }
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   async backward(): Promise<void> {}
 
-  getOldAccountStore(
+  getPreviousAccountStore(
     db: IDatabase,
   ): IDatabaseStore<{ key: string; value: PreMigrationAccountValue }> {
     return db.addStore({
-      name: 'a',
+      name: 'a' + (VERSION_DATABASE_ACCOUNTS - 1).toString(),
       keyEncoding: new StringEncoding(),
       valueEncoding: new PreMigrationAccountValueEncoding(),
     })
@@ -70,6 +76,7 @@ export class Migration021 extends Migration {
 }
 
 interface PreMigrationAccountValue {
+  version: number
   id: string
   name: string
   spendingKey: string
@@ -81,6 +88,7 @@ interface PreMigrationAccountValue {
 class PreMigrationAccountValueEncoding implements IDatabaseEncoding<PreMigrationAccountValue> {
   serialize(value: PreMigrationAccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
+    bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
     bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
@@ -93,6 +101,7 @@ class PreMigrationAccountValueEncoding implements IDatabaseEncoding<PreMigration
 
   deserialize(buffer: Buffer): PreMigrationAccountValue {
     const reader = bufio.read(buffer, true)
+    const version = reader.readU16()
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = reader.readBytes(KEY_LENGTH).toString('hex')
@@ -101,6 +110,7 @@ class PreMigrationAccountValueEncoding implements IDatabaseEncoding<PreMigration
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
 
     return {
+      version,
       id,
       name,
       spendingKey,
@@ -112,6 +122,7 @@ class PreMigrationAccountValueEncoding implements IDatabaseEncoding<PreMigration
 
   getSize(value: PreMigrationAccountValue): number {
     let size = 0
+    size += VERSION_LENGTH
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
     size += KEY_LENGTH

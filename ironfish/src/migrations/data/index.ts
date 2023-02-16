@@ -10,6 +10,7 @@ import { Migration018 } from './018-backfill-wallet-assets'
 import { Migration019 } from './019-backfill-wallet-assets-from-chain'
 import { Migration020 } from './020-backfill-null-asset-supplies'
 import { Migration021 } from './021-add-version-to-accounts'
+import { Migration022 } from './022-add-view-key-account'
 
 export const MIGRATIONS = [
   Migration014,
@@ -20,4 +21,5 @@ export const MIGRATIONS = [
   Migration019,
   Migration020,
   Migration021,
+  Migration022,
 ]
