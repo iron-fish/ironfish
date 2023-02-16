@@ -23,7 +23,7 @@ Input to commands is typically provided by flags and args. Stdin can also be use
 
 Flags are preferred to args when there are many inputs, particularly inputs of the same type. They involve a bit more typing, but make the use of the CLI clearer. For example, `ironfish wallet:send` used to accept an argument for the account to use, as well as --to flag to specify the account to send to.
 
-So using heroku fork used to work like this:
+So using `ironfish wallet:send` used to work like this:
 
 ```bash
 $ ironfish wallet:send source_account --to dest_account
@@ -32,7 +32,7 @@ $ ironfish wallet:send source_account --to dest_account
 This is confusing to the user since it isn’t clear which account they are sending from and which one they are sending to. By switching to required flags, we instead expect input in this form:
 
 ```bash
-ironfish wallet:send --account source_account --to dest_account
+ironfish wallet:send --from source_account --to dest_account
 ```
 
 This also allows the user to specify the flags in any order, and gives them the confidence that they are running the command correctly. It also allows us to show better error messages.
