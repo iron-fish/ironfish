@@ -30,14 +30,13 @@ export default class Power extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(Power)
-    const history = flags.history as number | null | undefined
     const block = args.block as number | null | undefined
 
     const client = await this.sdk.connectRpc()
 
     const data = await client.getNetworkHashPower({
       sequence: block,
-      blocks: history,
+      blocks: flags.history,
     })
 
     const formattedHashesPerSecond = FileUtils.formatHashRate(data.content.hashesPerSecond)
