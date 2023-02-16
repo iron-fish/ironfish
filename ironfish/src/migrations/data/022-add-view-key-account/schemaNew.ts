@@ -6,6 +6,7 @@ import bufio from 'bufio'
 import { IDatabase, IDatabaseEncoding, IDatabaseStore, StringEncoding } from '../../../storage'
 
 const KEY_LENGTH = 32
+const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
 export interface AccountValue {
@@ -39,8 +40,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = reader.readBytes(KEY_LENGTH).toString('hex')
-    // view key is authorizing_key contactenated with nullifier_deriving_key
-    const viewKey = reader.readBytes(KEY_LENGTH * 2).toString('hex')
+    const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
@@ -63,8 +63,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
     size += KEY_LENGTH
-    // view key is authorizing_key contactenated with nullifier_deriving_key
-    size += KEY_LENGTH * 2
+    size += VIEW_KEY_LENGTH
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
