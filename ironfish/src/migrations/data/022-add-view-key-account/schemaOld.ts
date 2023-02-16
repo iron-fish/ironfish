@@ -3,10 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
+import { IDatabase, IDatabaseEncoding, IDatabaseStore, StringEncoding } from '../../../storage'
 
 const KEY_LENGTH = 32
-const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
 export interface AccountValue {
@@ -14,7 +13,6 @@ export interface AccountValue {
   id: string
   name: string
   spendingKey: string
-  viewKey: string
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
@@ -27,10 +25,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
     bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
-    bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
+
     return bw.render()
   }
 
@@ -40,7 +38,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = reader.readBytes(KEY_LENGTH).toString('hex')
-    const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
@@ -50,7 +47,6 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       id,
       name,
       spendingKey,
-      viewKey,
       incomingViewKey,
       outgoingViewKey,
       publicAddress,
@@ -63,11 +59,25 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
     size += KEY_LENGTH
-    size += VIEW_KEY_LENGTH
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
 
     return size
   }
+}
+
+export function GetOldStores(db: IDatabase): {
+  accounts: IDatabaseStore<{ key: string; value: AccountValue }>
+} {
+  const accounts: IDatabaseStore<{ key: string; value: AccountValue }> = db.addStore(
+    {
+      name: 'a21',
+      keyEncoding: new StringEncoding(),
+      valueEncoding: new AccountValueEncoding(),
+    },
+    false,
+  )
+
+  return { accounts }
 }

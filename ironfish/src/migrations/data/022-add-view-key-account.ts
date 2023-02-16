@@ -1,14 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { Migration } from '../migration'
-import { GetNewStores } from './021-add-version-to-accounts/schemaNew'
-import { GetOldStores } from './021-add-version-to-accounts/schemaOld'
+import { GetNewStores } from './022-add-view-key-account/schemaNew'
+import { GetOldStores } from './022-add-view-key-account/schemaOld'
 
-export class Migration021 extends Migration {
+export class Migration022 extends Migration {
   path = __filename
 
   prepare(node: IronfishNode): IDatabase {
@@ -29,9 +30,11 @@ export class Migration021 extends Migration {
     for await (const account of stores.old.accounts.getAllValuesIter(tx)) {
       logger.info(`  Migrating account ${account.name}`)
 
+      const key = generateKeyFromPrivateKey(account.spendingKey)
+
       const migrated = {
         ...account,
-        version: 1,
+        viewKey: key.view_key,
       }
 
       await stores.new.accounts.put(account.id, migrated, tx)
