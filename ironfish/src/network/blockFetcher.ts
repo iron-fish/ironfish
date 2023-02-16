@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BufferMap } from 'buffer-map'
+import { Transaction } from '../primitives'
 import { Block, CompactBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { ArrayUtils } from '../utils/array'
@@ -285,7 +286,7 @@ export class BlockFetcher {
     this.cleanupCallbacks(currentState)
 
     // Check if we're still missing transactions
-    const assembleResult = this.peerNetwork.assembleBlockFromResponse(
+    const assembleResult = this.assembleBlockFromResponse(
       currentState.partialTransactions,
       message.transactions,
     )
@@ -399,6 +400,33 @@ export class BlockFetcher {
     for (const [hash] of this.pending) {
       this.removeBlock(hash)
     }
+  }
+
+  private assembleBlockFromResponse(
+    partialTransactions: TransactionOrHash[],
+    responseTransactions: readonly Transaction[],
+  ): { ok: false } | { ok: true; transactions: Transaction[] } {
+    const transactions: Transaction[] = []
+    let currResponseIndex = 0
+
+    for (const partial of partialTransactions) {
+      if (partial.type === 'FULL') {
+        transactions.push(partial.value)
+      } else if (currResponseIndex >= responseTransactions.length) {
+        // did not respond with enough transactions
+        return { ok: false }
+      } else {
+        const next = responseTransactions[currResponseIndex]
+        if (!next.hash().equals(partial.value)) {
+          // hashes are mismatched
+          return { ok: false }
+        }
+        transactions.push(next)
+        currResponseIndex++
+      }
+    }
+
+    return { ok: true, transactions }
   }
 
   // Get the next peer to request from. Returns peers that have sent compact blocks first

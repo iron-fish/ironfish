@@ -835,33 +835,6 @@ export class PeerNetwork {
     }
   }
 
-  assembleBlockFromResponse(
-    partialTransactions: TransactionOrHash[],
-    responseTransactions: readonly Transaction[],
-  ): { ok: false } | { ok: true; transactions: Transaction[] } {
-    const transactions: Transaction[] = []
-    let currResponseIndex = 0
-
-    for (const partial of partialTransactions) {
-      if (partial.type === 'FULL') {
-        transactions.push(partial.value)
-      } else if (currResponseIndex >= responseTransactions.length) {
-        // did not respond with enough transactions
-        return { ok: false }
-      } else {
-        const next = responseTransactions[currResponseIndex]
-        if (!next.hash().equals(partial.value)) {
-          // hashes are mismatched
-          return { ok: false }
-        }
-        transactions.push(next)
-        currResponseIndex++
-      }
-    }
-
-    return { ok: true, transactions }
-  }
-
   private async onNewBlockTransactions(peer: Peer, message: GetBlockTransactionsResponse) {
     const block = this.blockFetcher.receivedBlockTransactions(message)
 
