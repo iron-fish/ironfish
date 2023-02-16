@@ -13,7 +13,7 @@ use group::GroupEncoding;
 use ironfish_zkp::constants::{
     CRH_IVK_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
 };
-use ironfish_zkp::{ProofGenerationKey, ViewingKey};
+use ironfish_zkp::ProofGenerationKey;
 use jubjub::SubgroupPoint;
 use rand::prelude::*;
 
@@ -62,21 +62,15 @@ pub struct SaplingKey {
     /// keys needed to decrypt the note's contents.
     pub(crate) outgoing_viewing_key: OutgoingViewKey,
 
-    /// Part of the full viewing key. Generally referred to as
-    /// `ak` in the literature. Derived from spend_authorizing_key using scalar
-    /// multiplication in Sapling. Used to construct incoming viewing key.
-    pub(crate) authorizing_key: SubgroupPoint,
-
-    /// Part of the full viewing key. Generally referred to as
-    /// `nk` in the literature. Derived from proof_authorizing_key using scalar
-    /// multiplication. Used to construct incoming viewing key.
-    pub(crate) nullifier_deriving_key: SubgroupPoint,
+    /// Part of the full viewing key. Contains ak/nk from literature, used for deriving nullifiers
+    /// and therefore spends
+    pub(crate) view_key: ViewKey,
 
     /// Part of the payment_address. Generally referred to as
     /// `ivk` in the literature. Derived from authorizing key and
     /// nullifier deriving key. Used to construct payment address and
     /// transmission key. This key allows the receiver of a note to decrypt its
-    /// contents.
+    /// contents. Derived from view_key contents, this is materialized for convenience
     pub(crate) incoming_viewing_key: IncomingViewKey,
 }
 
@@ -101,6 +95,10 @@ impl SaplingKey {
         };
         let authorizing_key = SPENDING_KEY_GENERATOR * spend_authorizing_key;
         let nullifier_deriving_key = PROOF_GENERATION_KEY_GENERATOR * proof_authorizing_key;
+        let view_key = ViewKey {
+            authorizing_key,
+            nullifier_deriving_key,
+        };
         let incoming_viewing_key = IncomingViewKey {
             view_key: Self::hash_viewing_key(&authorizing_key, &nullifier_deriving_key)?,
         };
@@ -110,8 +108,7 @@ impl SaplingKey {
             spend_authorizing_key,
             proof_authorizing_key,
             outgoing_viewing_key,
-            authorizing_key,
-            nullifier_deriving_key,
+            view_key,
             incoming_viewing_key,
         })
     }
@@ -210,28 +207,16 @@ impl SaplingKey {
         &self.incoming_viewing_key
     }
 
-    /// Retrieve the sapling_representation of the ViewKey. These would normally used for third-party audits
-    /// or for light clients.
-    /// Adapter to convert this key to a viewing key for use in sapling
-    /// functions.
-    pub(crate) fn sapling_viewing_key(&self) -> ViewingKey {
-        ViewingKey {
-            ak: self.authorizing_key,
-            nk: self.nullifier_deriving_key,
-        }
-    }
-    pub fn view_key(&self) -> ViewKey {
-        ViewKey {
-            authorizing_key: self.authorizing_key,
-            nullifier_deriving_key: self.nullifier_deriving_key,
-        }
+    /// Retrieve the publicly visible view key
+    pub fn view_key(&self) -> &ViewKey {
+        &self.view_key
     }
 
     /// Adapter to convert this key to a proof generation key for use in
     /// sapling functions
     pub(crate) fn sapling_proof_generation_key(&self) -> ProofGenerationKey {
         ProofGenerationKey {
-            ak: self.authorizing_key,
+            ak: self.view_key.authorizing_key,
             nsk: self.proof_authorizing_key,
         }
     }

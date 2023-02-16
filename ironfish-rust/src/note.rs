@@ -298,7 +298,7 @@ impl<'a> Note {
                 .hash_length(32)
                 .personal(PRF_NF_PERSONALIZATION)
                 .to_state()
-                .update(&private_key.sapling_viewing_key().nk.to_bytes())
+                .update(&private_key.view_key.nullifier_deriving_key.to_bytes())
                 .update(&rho.to_bytes())
                 .finalize()
                 .as_bytes(),

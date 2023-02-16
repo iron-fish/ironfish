@@ -234,8 +234,9 @@ mod test {
     fn test_output_miners_fee() {
         let spender_key = SaplingKey::generate_key();
         let public_key_randomness = jubjub::Fr::random(thread_rng());
-        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+        let randomized_public_key =
+            redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
+                .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let note = Note::new(
             spender_key.public_address(),
@@ -263,8 +264,9 @@ mod test {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
         let public_key_randomness = jubjub::Fr::random(thread_rng());
-        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+        let randomized_public_key =
+            redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
+                .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let note = Note::new(
             receiver_key.public_address(),
@@ -290,8 +292,9 @@ mod test {
         let spender_key = SaplingKey::generate_key();
         let receiver_key = SaplingKey::generate_key();
         let public_key_randomness = jubjub::Fr::random(thread_rng());
-        let randomized_public_key = redjubjub::PublicKey(spender_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+        let randomized_public_key =
+            redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
+                .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let note = Note::new(
             receiver_key.public_address(),
