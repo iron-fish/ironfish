@@ -57,6 +57,11 @@ export class TransactionsCommand extends IronfishCommand {
     maxPosition: Flags.integer({
       description: 'Only return transactions with a lower position in the mempool queue',
     }),
+    serializedData: Flags.boolean({
+      default: false,
+      description:
+        'Output the entire serialized transaction data. Best used with the --csv flag',
+    }),
   }
 
   async start(): Promise<void> {
@@ -125,6 +130,7 @@ type TransactionRow = {
   expiration: number
   fee: bigint
   position: number
+  serialized: string
 }
 
 function renderTable(
@@ -161,6 +167,16 @@ function renderTable(
     },
   }
 
+  if (flags.serializedData) {
+    columns['serialized'] = {
+      header: 'SERIALIZED',
+      minWidth: 2,
+      get: (row: TransactionRow) => {
+        return row.serialized
+      },
+    }
+  }
+
   let result = ''
 
   CliUx.ux.table(getRows(response, flags.limit), columns, {
@@ -181,6 +197,7 @@ function getRows(response: GetMempoolTransactionsResponse, limit: number): Trans
       feeRate: getFeeRate(transaction),
       expiration: transaction.expiration(),
       fee: transaction.fee(),
+      serialized: serializedTransaction,
       position,
     }
   })
