@@ -1,19 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  generateKeyFromPrivateKey,
-  KEY_LENGTH,
-  PUBLIC_ADDRESS_LENGTH,
-} from '@ironfish/rust-nodejs'
-import bufio from 'bufio'
+import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
-import { IDatabaseEncoding, IDatabaseStore, StringEncoding } from '../../storage'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { Account, VERSION_DATABASE_ACCOUNTS } from '../../wallet'
-import { VERSION_LENGTH } from '../../wallet/walletdb/accountValue'
 import { Migration } from '../migration'
+import { GetNewStores } from './022-add-view-key-account/schemaNew'
+import { GetOldStores } from './022-add-view-key-account/schemaOld'
 
 export class Migration022 extends Migration {
   path = __filename
@@ -28,108 +22,43 @@ export class Migration022 extends Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    const { walletDb } = node.wallet
-    const accounts: Account[] = []
-
-    const previousAccountStore = this.getPreviousAccountStore(db)
-    logger.info(`Gathering accounts for migration`)
-    for await (const accountValue of previousAccountStore.getAllValuesIter(tx)) {
-      const generatedKey = generateKeyFromPrivateKey(accountValue.spendingKey)
-      const accountValueWithViewKey = {
-        ...accountValue,
-        viewKey: generatedKey.view_key,
-      }
-      accounts.push(
-        new Account({
-          ...accountValueWithViewKey,
-          walletDb: node.wallet.walletDb,
-        }),
-      )
+    const stores = {
+      old: GetOldStores(db),
+      new: GetNewStores(db),
     }
 
-    logger.info(`Making wallet compatible with view only accounts`)
-    await walletDb.db.transaction(async (tx) => {
-      for (const account of accounts) {
-        logger.info('')
-        logger.info(`  Migrating account ${account.name}`)
-        // reserialization of existing wallet will occur in here
-        await walletDb.setAccount(account, tx)
-        logger.info(`  Completed migration for account ${account.name}`)
-      }
-    })
+    for await (const account of stores.old.accounts.getAllValuesIter(tx)) {
+      logger.info(`  Migrating account ${account.name}`)
 
-    await previousAccountStore.clear(tx)
+      const key = generateKeyFromPrivateKey(account.spendingKey)
+
+      const migrated = {
+        ...account,
+        viewKey: key.view_key,
+      }
+
+      await stores.new.accounts.put(account.id, migrated, tx)
+    }
+
+    await stores.old.accounts.clear()
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  async backward(): Promise<void> {}
-
-  getPreviousAccountStore(
+  async backward(
+    node: IronfishNode,
     db: IDatabase,
-  ): IDatabaseStore<{ key: string; value: PreMigrationAccountValue }> {
-    return db.addStore({
-      name: 'a' + (VERSION_DATABASE_ACCOUNTS - 1).toString(),
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new PreMigrationAccountValueEncoding(),
-    })
-  }
-}
-
-interface PreMigrationAccountValue {
-  version: number
-  id: string
-  name: string
-  spendingKey: string
-  incomingViewKey: string
-  outgoingViewKey: string
-  publicAddress: string
-}
-
-class PreMigrationAccountValueEncoding implements IDatabaseEncoding<PreMigrationAccountValue> {
-  serialize(value: PreMigrationAccountValue): Buffer {
-    const bw = bufio.write(this.getSize(value))
-    bw.writeU16(value.version)
-    bw.writeVarString(value.id, 'utf8')
-    bw.writeVarString(value.name, 'utf8')
-    bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
-    bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
-    bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
-    bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
-
-    return bw.render()
-  }
-
-  deserialize(buffer: Buffer): PreMigrationAccountValue {
-    const reader = bufio.read(buffer, true)
-    const version = reader.readU16()
-    const id = reader.readVarString('utf8')
-    const name = reader.readVarString('utf8')
-    const spendingKey = reader.readBytes(KEY_LENGTH).toString('hex')
-    const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
-    const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
-    const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
-
-    return {
-      version,
-      id,
-      name,
-      spendingKey,
-      incomingViewKey,
-      outgoingViewKey,
-      publicAddress,
+    tx: IDatabaseTransaction | undefined,
+    logger: Logger,
+  ): Promise<void> {
+    const stores = {
+      old: GetOldStores(db),
+      new: GetNewStores(db),
     }
-  }
 
-  getSize(value: PreMigrationAccountValue): number {
-    let size = 0
-    size += VERSION_LENGTH
-    size += bufio.sizeVarString(value.id, 'utf8')
-    size += bufio.sizeVarString(value.name, 'utf8')
-    size += KEY_LENGTH
-    size += KEY_LENGTH
-    size += KEY_LENGTH
-    size += PUBLIC_ADDRESS_LENGTH
+    for await (const account of stores.new.accounts.getAllValuesIter(tx)) {
+      logger.info(`  Migrating account ${account.name}`)
+      await stores.old.accounts.put(account.id, account, tx)
+    }
 
-    return size
+    await stores.new.accounts.clear()
   }
 }

@@ -34,7 +34,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-export const VERSION_DATABASE_ACCOUNTS = 22
+const VERSION_DATABASE_ACCOUNTS = 22
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -143,7 +143,7 @@ export class WalletDB {
     })
 
     this.accounts = this.db.addStore({
-      name: 'a' + VERSION_DATABASE_ACCOUNTS.toString(),
+      name: 'a',
       keyEncoding: new StringEncoding(),
       valueEncoding: new AccountValueEncoding(),
     })
