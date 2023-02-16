@@ -37,7 +37,7 @@ export class Migration021 extends Migration {
       await stores.new.accounts.put(account.id, migrated, tx)
     }
 
-    await stores.old.accounts.clear()
+    await stores.old.accounts.clear(tx)
   }
 
   async backward(
@@ -56,6 +56,6 @@ export class Migration021 extends Migration {
       await stores.old.accounts.put(account.id, account, tx)
     }
 
-    await stores.new.accounts.clear()
+    await stores.new.accounts.clear(tx)
   }
 }

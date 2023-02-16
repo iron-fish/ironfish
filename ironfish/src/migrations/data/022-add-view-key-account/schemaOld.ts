@@ -72,7 +72,7 @@ export function GetOldStores(db: IDatabase): {
 } {
   const accounts: IDatabaseStore<{ key: string; value: AccountValue }> = db.addStore(
     {
-      name: 'a',
+      name: 'a21',
       keyEncoding: new StringEncoding(),
       valueEncoding: new AccountValueEncoding(),
     },
