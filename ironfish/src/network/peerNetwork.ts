@@ -21,7 +21,7 @@ import { Block, CompactBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { TransactionHash } from '../primitives/transaction'
 import { Telemetry } from '../telemetry'
-import { ArrayUtils, BenchUtils, HRTime } from '../utils'
+import { ArrayUtils, BenchUtils, BlockchainUtils, HRTime } from '../utils'
 import { BlockFetcher } from './blockFetcher'
 import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
@@ -1013,14 +1013,6 @@ export class PeerNetwork {
     }
   }
 
-  private async resolveSequenceOrHash(start: Buffer | number): Promise<BlockHeader | null> {
-    if (Buffer.isBuffer(start)) {
-      return await this.chain.getHeader(start)
-    }
-
-    return await this.chain.getHeaderAtSequence(start)
-  }
-
   private async onGetBlockHeadersRequest(
     request: IncomingPeerMessage<GetBlockHeadersRequest>,
   ): Promise<GetBlockHeadersResponse> {
@@ -1050,7 +1042,7 @@ export class PeerNetwork {
     const skip = message.skip
     const reverse = message.reverse
 
-    const from = await this.resolveSequenceOrHash(start)
+    const from = await BlockchainUtils.blockHeaderBySequenceOrHash(this.chain, start)
     if (!from) {
       return new GetBlockHeadersResponse([], rpcId)
     }
@@ -1111,7 +1103,7 @@ export class PeerNetwork {
     const start = message.start
     const limit = message.limit
 
-    const from = await this.resolveSequenceOrHash(start)
+    const from = await BlockchainUtils.blockHeaderBySequenceOrHash(this.chain, start)
     if (!from) {
       return new GetBlockHashesResponse([], rpcId)
     }
@@ -1149,7 +1141,7 @@ export class PeerNetwork {
     const start = message.start
     const limit = message.limit
 
-    const from = await this.resolveSequenceOrHash(start)
+    const from = await BlockchainUtils.blockHeaderBySequenceOrHash(this.chain, start)
     if (!from) {
       return new GetBlocksResponse([], rpcId)
     }
