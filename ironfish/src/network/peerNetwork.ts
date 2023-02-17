@@ -65,7 +65,12 @@ import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
 import { parseUrl } from './utils/parseUrl'
-import { MAX_REQUESTED_BLOCKS, VERSION_PROTOCOL } from './version'
+import {
+  MAX_HEADER_LOOKUPS,
+  MAX_REQUESTED_BLOCKS,
+  MAX_REQUESTED_HEADERS,
+  VERSION_PROTOCOL,
+} from './version'
 import { WebSocketServer } from './webSocketServer'
 
 /**
@@ -1027,12 +1032,14 @@ export class PeerNetwork {
       return new GetBlockHeadersResponse([], rpcId)
     }
 
-    if (request.message.limit > MAX_REQUESTED_BLOCKS) {
+    if (request.message.limit > MAX_REQUESTED_HEADERS) {
       peer.punish(
         BAN_SCORE.MAX,
         `Peer sent GetBlockHeaders with limit of ${request.message.limit}`,
       )
-      const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
+      const error = new CannotSatisfyRequestError(
+        `Requested more than ${MAX_REQUESTED_HEADERS}`,
+      )
       throw error
     }
 
@@ -1050,6 +1057,9 @@ export class PeerNetwork {
     const headers = []
     let skipCounter = skip
 
+    // Limit the total number of lookups to avoid excessive disk usage
+    let remainingLookups = MAX_HEADER_LOOKUPS
+
     // If `reverse` is true, we iterate in descending order, using `start` as the
     // highest sequence.  Otherwise, we iterate in ascending order, using
     // `start` as the lowest sequence.
@@ -1058,6 +1068,11 @@ export class PeerNetwork {
       : (from: BlockHeader) => this.chain.iterateTo(from)
 
     for await (const header of iterationFunction(from)) {
+      if (remainingLookups === 0) {
+        break
+      }
+      remainingLookups -= 1
+
       if (skip) {
         if (skipCounter < skip) {
           skipCounter += 1
