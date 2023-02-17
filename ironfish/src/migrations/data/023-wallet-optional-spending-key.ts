@@ -25,6 +25,8 @@ export class Migration023 extends Migration {
       logger.info(`  Migrating account ${account.name}`)
       await stores.new.accounts.put(account.id, account, tx)
     }
+
+    await stores.old.accounts.clear(tx)
   }
 
   backward(

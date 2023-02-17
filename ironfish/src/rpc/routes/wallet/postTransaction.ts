@@ -36,7 +36,7 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   `${ApiNamespace.wallet}/postTransaction`,
   PostTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.sender)
+    const account = getAccount(node, request.data.account)
     Assert.isNotNull(
       account.spendingKey,
       'Account must have spending key to post a transaction',
