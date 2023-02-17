@@ -88,7 +88,7 @@ describe('Demonstrate the Sapling API', () => {
     // Null characters are included in the memo string
     expect(decryptedNote.memo().replace(/\0/g, '')).toEqual('test')
     expect(decryptedNote.value()).toEqual(BigInt(20))
-    expect(decryptedNote.nullifier(key.spending_key, BigInt(0)).byteLength).toBeGreaterThan(BigInt(0))
+    expect(decryptedNote.nullifier(key.view_key, BigInt(0)).byteLength).toBeGreaterThan(BigInt(0))
   })
 
   it(`Should create a standard transaction`, () => {

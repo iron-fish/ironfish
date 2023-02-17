@@ -6,7 +6,7 @@ import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 
 const KEY_LENGTH = 32
-const VIEW_KEY_LENGTH = 64
+export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
 export interface AccountValue {

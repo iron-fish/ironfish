@@ -10,6 +10,7 @@ import {
   useTxFixture,
 } from '../../testUtilities'
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
+import { VIEW_KEY_LENGTH } from '../../wallet/walletdb/accountValue'
 import { DecryptNotesRequest, DecryptNotesResponse, DecryptNotesTask } from './decryptNotes'
 
 describe('DecryptNotesRequest', () => {
@@ -20,7 +21,7 @@ describe('DecryptNotesRequest', () => {
           serializedNote: Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
           incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
           outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
-          spendingKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
+          viewKey: Buffer.alloc(VIEW_KEY_LENGTH, 1).toString('hex'),
           currentNoteIndex: 2,
           decryptForSpender: true,
         },
@@ -69,7 +70,7 @@ describe('DecryptNotesTask', () => {
           serializedNote: transaction.getNote(0).serialize(),
           incomingViewKey: account.incomingViewKey,
           outgoingViewKey: account.outgoingViewKey,
-          spendingKey: account.spendingKey,
+          viewKey: account.viewKey,
           currentNoteIndex: 2,
           decryptForSpender: true,
         },
@@ -106,7 +107,7 @@ describe('DecryptNotesTask', () => {
           serializedNote: transaction.getNote(0).serialize(),
           incomingViewKey: accountA.incomingViewKey,
           outgoingViewKey: accountA.outgoingViewKey,
-          spendingKey: accountA.spendingKey,
+          viewKey: accountA.viewKey,
           currentNoteIndex: 3,
           decryptForSpender: true,
         },
@@ -130,7 +131,7 @@ describe('DecryptNotesTask', () => {
           serializedNote: transaction.getNote(0).serialize(),
           incomingViewKey: accountA.incomingViewKey,
           outgoingViewKey: accountA.outgoingViewKey,
-          spendingKey: accountA.spendingKey,
+          viewKey: accountA.viewKey,
           currentNoteIndex: 3,
           decryptForSpender: false,
         },

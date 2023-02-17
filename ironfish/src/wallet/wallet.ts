@@ -326,7 +326,7 @@ export class Wallet {
           serializedNote: note.serialize(),
           incomingViewKey: account.incomingViewKey,
           outgoingViewKey: account.outgoingViewKey,
-          spendingKey: account.spendingKey,
+          viewKey: account.viewKey,
           currentNoteIndex,
           decryptForSpender,
         })
