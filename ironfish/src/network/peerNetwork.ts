@@ -65,7 +65,12 @@ import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
 import { parseUrl } from './utils/parseUrl'
-import { MAX_REQUESTED_BLOCKS, MAX_REQUESTED_HEADERS, VERSION_PROTOCOL } from './version'
+import {
+  MAX_HEADER_LOOKUPS,
+  MAX_REQUESTED_BLOCKS,
+  MAX_REQUESTED_HEADERS,
+  VERSION_PROTOCOL,
+} from './version'
 import { WebSocketServer } from './webSocketServer'
 
 /**
@@ -1061,7 +1066,7 @@ export class PeerNetwork {
     let skipCounter = skip
 
     // Limit the total number of lookups to avoid excessive disk usage
-    let remainingLookups = MAX_REQUESTED_HEADERS * 2
+    let remainingLookups = MAX_HEADER_LOOKUPS
 
     // If `reverse` is true, we iterate in descending order, using `start` as the
     // highest sequence.  Otherwise, we iterate in ascending order, using

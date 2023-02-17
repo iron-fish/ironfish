@@ -58,6 +58,7 @@ jest.mock('./version', () => {
   return {
     ...moduleMock,
     MAX_REQUESTED_HEADERS: 4,
+    MAX_HEADER_LOOKUPS: 8,
   }
 })
 
