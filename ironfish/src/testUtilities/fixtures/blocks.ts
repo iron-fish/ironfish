@@ -72,7 +72,7 @@ export async function useMinerBlockFixture(
   addTransactionsTo?: Wallet,
   transactions: Transaction[] = [],
 ): Promise<Block> {
-  const spendingKey = account ? account.spendingKey : generateKey().spending_key
+  const spendingKey = account ? account.spendingKey : generateKey().spendingKey
   const transactionFees = transactions.reduce((a, t) => a + t.fee(), BigInt(0))
 
   return await useBlockFixture(
@@ -261,7 +261,7 @@ export async function useBlockWithTx(
 
     return node.chain.newBlock(
       [transaction],
-      await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
+      await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spendingKey),
     )
   })
 
@@ -328,7 +328,7 @@ export async function useBlockWithTxs(
 
     return node.chain.newBlock(
       transactions,
-      await node.strategy.createMinersFee(transactionFees, 3, generateKey().spending_key),
+      await node.strategy.createMinersFee(transactionFees, 3, generateKey().spendingKey),
     )
   })
 

@@ -186,7 +186,7 @@ describe('RawTransactionSerde', () => {
 
     const note = new Note(
       new NativeNote(
-        generateKey().public_address,
+        generateKey().publicAddress,
         5n,
         'memo',
         asset.id(),

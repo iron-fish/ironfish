@@ -1065,7 +1065,7 @@ describe('Accounts', () => {
 
         const mintBlock = await node.chain.newBlock(
           [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 4, generateKey().spending_key),
+          await node.strategy.createMinersFee(transaction.fee(), 4, generateKey().spendingKey),
         )
         await expect(node.chain).toAddBlock(mintBlock)
         await node.wallet.updateHead()
@@ -1230,7 +1230,7 @@ describe('Accounts', () => {
 
         return node.chain.newBlock(
           [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
+          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spendingKey),
         )
       })
       await expect(node.chain).toAddBlock(blockB)

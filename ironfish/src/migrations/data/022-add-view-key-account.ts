@@ -34,7 +34,7 @@ export class Migration022 extends Migration {
 
       const migrated = {
         ...account,
-        viewKey: key.view_key,
+        viewKey: key.viewKey,
       }
 
       await stores.new.accounts.put(account.id, migrated, tx)

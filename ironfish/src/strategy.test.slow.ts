@@ -93,11 +93,11 @@ describe('Demonstrate the Sapling API', () => {
 
   describe('Can transact between two accounts', () => {
     it('Can create a miner reward', () => {
-      const owner = generateKeyFromPrivateKey(spenderKey.spending_key).public_address
+      const owner = generateKeyFromPrivateKey(spenderKey.spendingKey).publicAddress
 
       minerNote = new NativeNote(owner, BigInt(42), '', Asset.nativeId(), owner)
 
-      const transaction = new NativeTransaction(spenderKey.spending_key)
+      const transaction = new NativeTransaction(spenderKey.spendingKey)
       transaction.output(minerNote)
       minerTransaction = new NativeTransactionPosted(transaction.post_miners_fee())
       expect(minerTransaction).toBeTruthy()
@@ -123,7 +123,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Can create a simple transaction', () => {
-      transaction = new NativeTransaction(spenderKey.spending_key)
+      transaction = new NativeTransaction(spenderKey.spendingKey)
       expect(transaction).toBeTruthy()
     })
 
@@ -137,7 +137,7 @@ describe('Demonstrate the Sapling API', () => {
       // Add an output to the transaction
       receiverKey = generateKey()
       const outputNote = new NativeNote(
-        receiverKey.public_address,
+        receiverKey.publicAddress,
         BigInt(40),
         '',
         Asset.nativeId(),
@@ -175,7 +175,7 @@ describe('Demonstrate the Sapling API', () => {
         workerPool,
         consensus: new TestnetConsensus(consensusParameters),
       })
-      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
+      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spendingKey)
 
       expect(minersFee['transactionPosted']).toBeNull()
       expect(await workerPool.verify(minersFee, { verifyFees: false })).toEqual({ valid: true })
@@ -189,7 +189,7 @@ describe('Demonstrate the Sapling API', () => {
         consensus: new TestnetConsensus(consensusParameters),
       })
 
-      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
+      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spendingKey)
 
       await minersFee.withReference(async () => {
         expect(minersFee['transactionPosted']).not.toBeNull()
@@ -212,7 +212,7 @@ describe('Demonstrate the Sapling API', () => {
         workerPool: new WorkerPool(),
         consensus: new TestnetConsensus(consensusParameters),
       })
-      const minersFee = await strategy.createMinersFee(BigInt(0), 0, key.spending_key)
+      const minersFee = await strategy.createMinersFee(BigInt(0), 0, key.spendingKey)
 
       expect(minersFee['transactionPosted']).toBeNull()
 
@@ -223,7 +223,7 @@ describe('Demonstrate the Sapling API', () => {
       }
 
       expect(note['noteEncrypted']).toBeNull()
-      const decryptedNote = note.decryptNoteForOwner(key.incoming_view_key)
+      const decryptedNote = note.decryptNoteForOwner(key.incomingViewKey)
       expect(decryptedNote).toBeDefined()
       expect(note['noteEncrypted']).toBeNull()
 
@@ -249,7 +249,7 @@ describe('Demonstrate the Sapling API', () => {
       expect(leaf.merkleHash.equals(latestNote.hash())).toBe(true)
 
       // We should be able to decrypt the note as owned by the receiver
-      const decryptedNote = latestNote.decryptNoteForOwner(receiverKey.incoming_view_key)
+      const decryptedNote = latestNote.decryptNoteForOwner(receiverKey.incomingViewKey)
       expect(decryptedNote).toBeTruthy()
       if (!decryptedNote) {
         throw new Error('DecryptedNote should be truthy')
@@ -257,17 +257,17 @@ describe('Demonstrate the Sapling API', () => {
       receiverNote = decryptedNote
 
       // If we can decrypt a note as owned by the receiver, the spender should not be able to decrypt it as owned
-      expect(latestNote.decryptNoteForOwner(spenderKey.incoming_view_key)).toBeUndefined()
+      expect(latestNote.decryptNoteForOwner(spenderKey.incomingViewKey)).toBeUndefined()
 
       // Nor should the receiver be able to decrypt it as spent
-      expect(latestNote.decryptNoteForSpender(receiverKey.outgoing_view_key)).toBeUndefined()
+      expect(latestNote.decryptNoteForSpender(receiverKey.outgoingViewKey)).toBeUndefined()
 
       // However, the spender should be able to decrypt it as spent
-      expect(latestNote.decryptNoteForSpender(spenderKey.outgoing_view_key)).toBeTruthy()
+      expect(latestNote.decryptNoteForSpender(spenderKey.outgoingViewKey)).toBeTruthy()
     })
 
     it('Can create and post a transaction', async () => {
-      transaction = new NativeTransaction(receiverKey.spending_key)
+      transaction = new NativeTransaction(receiverKey.spendingKey)
 
       const witness = await tree.witness(receiverWitnessIndex)
       if (witness === null) {
@@ -280,9 +280,9 @@ describe('Demonstrate the Sapling API', () => {
       transaction.spend(note, witness)
       receiverNote.returnReference()
 
-      const receiverAddress = receiverKey.public_address
+      const receiverAddress = receiverKey.publicAddress
       const noteForSpender = new NativeNote(
-        spenderKey.public_address,
+        spenderKey.publicAddress,
         BigInt(10),
         '',
         Asset.nativeId(),

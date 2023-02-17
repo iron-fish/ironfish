@@ -12,11 +12,11 @@ describe('AccountValueEncoding', () => {
     const value: AccountValue = {
       id: 'id',
       name: 'foobar👁️🏃🐟',
-      incomingViewKey: key.incoming_view_key,
-      outgoingViewKey: key.outgoing_view_key,
-      publicAddress: key.public_address,
-      spendingKey: key.spending_key,
-      viewKey: key.view_key,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
+      spendingKey: key.spendingKey,
+      viewKey: key.viewKey,
       version: 1,
     }
     const buffer = encoder.serialize(value)
