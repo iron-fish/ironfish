@@ -139,7 +139,7 @@ export class Note {
    * only at the time the note is spent. This key is collected in a massive
    * 'nullifier set', preventing double-spend.
    */
-  nullifier(ownerPrivateKey: string, position: bigint): Buffer
+  nullifier(ownerViewKey: string, position: bigint): Buffer
 }
 export type NativeTransactionPosted = TransactionPosted
 export class TransactionPosted {

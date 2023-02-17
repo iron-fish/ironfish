@@ -5,6 +5,7 @@ import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nod
 import bufio from 'bufio'
 import { NoteEncrypted } from '../../primitives/noteEncrypted'
 import { ACCOUNT_KEY_LENGTH } from '../../wallet'
+import { VIEW_KEY_LENGTH } from '../../wallet/walletdb/accountValue'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
@@ -12,7 +13,7 @@ export interface DecryptNoteOptions {
   serializedNote: Buffer
   incomingViewKey: string
   outgoingViewKey: string
-  spendingKey: string
+  viewKey: string
   currentNoteIndex: number | null
   decryptForSpender: boolean
 }
@@ -46,7 +47,7 @@ export class DecryptNotesRequest extends WorkerMessage {
       bw.writeBytes(payload.serializedNote)
       bw.writeBytes(Buffer.from(payload.incomingViewKey, 'hex'))
       bw.writeBytes(Buffer.from(payload.outgoingViewKey, 'hex'))
-      bw.writeBytes(Buffer.from(payload.spendingKey, 'hex'))
+      bw.writeBytes(Buffer.from(payload.viewKey, 'hex'))
 
       if (payload.currentNoteIndex) {
         bw.writeU32(payload.currentNoteIndex)
@@ -68,20 +69,16 @@ export class DecryptNotesRequest extends WorkerMessage {
       const serializedNote = reader.readBytes(ENCRYPTED_NOTE_LENGTH)
       const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
       const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-      const spendingKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-
-      let currentNoteIndex = null
-      if (hasCurrentNoteIndex) {
-        currentNoteIndex = reader.readU32()
-      }
+      const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
+      const currentNoteIndex = hasCurrentNoteIndex ? reader.readU32() : null
 
       payloads.push({
         serializedNote,
         incomingViewKey,
         outgoingViewKey,
-        spendingKey,
         currentNoteIndex,
         decryptForSpender,
+        viewKey,
       })
     }
 
@@ -95,7 +92,7 @@ export class DecryptNotesRequest extends WorkerMessage {
       size += ENCRYPTED_NOTE_LENGTH
       size += ACCOUNT_KEY_LENGTH
       size += ACCOUNT_KEY_LENGTH
-      size += +ACCOUNT_KEY_LENGTH
+      size += VIEW_KEY_LENGTH
       if (payload.currentNoteIndex) {
         size += 4
       }
@@ -223,7 +220,7 @@ export class DecryptNotesTask extends WorkerTask {
       serializedNote,
       incomingViewKey,
       outgoingViewKey,
-      spendingKey,
+      viewKey,
       currentNoteIndex,
       decryptForSpender,
     } of payloads) {
@@ -238,7 +235,7 @@ export class DecryptNotesTask extends WorkerTask {
           hash: note.hash(),
           nullifier:
             currentNoteIndex !== null
-              ? receivedNote.nullifier(spendingKey, BigInt(currentNoteIndex))
+              ? receivedNote.nullifier(viewKey, BigInt(currentNoteIndex))
               : null,
           serializedNote: receivedNote.serialize(),
         })
