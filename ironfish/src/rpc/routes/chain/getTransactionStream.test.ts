@@ -4,6 +4,7 @@
 
 import '../../../testUtilities/matchers'
 import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
 import { BlockHashSerdeInstance } from '../../../serde'
 import {
   useAccountFixture,
@@ -11,6 +12,7 @@ import {
   useMintBlockFixture,
 } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { MemoryResponse } from '../../adapters'
 
 describe('Route chain.getTransactionStream', () => {
   const routeTest = createRouteTest()
@@ -39,6 +41,7 @@ describe('Route chain.getTransactionStream', () => {
     const response = routeTest.client.getTransactionStream({
       incomingViewKey: account.incomingViewKey,
     })
+    Assert.isInstanceOf(response, MemoryResponse)
     await response.contentStream().next()
     // Mint so we have an existing asset
     const mintValue = BigInt(10)
@@ -49,9 +52,10 @@ describe('Route chain.getTransactionStream', () => {
       asset,
       value: mintValue,
     })
+
     await expect(routeTest.node.chain).toAddBlock(mintBlock)
     // validate mint block
-    expect(await (await response.contentStream().next()).value).toEqual(
+    expect((await response.contentStream().next()).value).toEqual(
       expect.objectContaining({
         transactions: expect.arrayContaining([
           expect.objectContaining({
@@ -72,8 +76,9 @@ describe('Route chain.getTransactionStream', () => {
       value: mintValue,
     })
     await expect(routeTest.node.chain).toAddBlock(burnBlock)
+
     // validate burn block
-    expect(await (await response.contentStream().next()).value).toEqual(
+    expect((await response.contentStream().next()).value).toEqual(
       expect.objectContaining({
         transactions: expect.arrayContaining([
           expect.objectContaining({
