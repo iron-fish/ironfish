@@ -5,7 +5,7 @@ import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
-export class SetCommand extends IronfishCommand {
+export class UnsetCommand extends IronfishCommand {
   static description = `Unset a value in the config and fall back to default`
 
   static args = [
@@ -28,7 +28,7 @@ export class SetCommand extends IronfishCommand {
   static examples = ['$ ironfish config:unset blockGraffiti']
 
   async start(): Promise<void> {
-    const { args, flags } = await this.parse(SetCommand)
+    const { args, flags } = await this.parse(UnsetCommand)
     const name = args.name as string
 
     const client = await this.sdk.connectRpc(flags.local)
