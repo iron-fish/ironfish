@@ -514,7 +514,10 @@ describe('Accounts', () => {
         expiration: 0,
       })
 
-      const transaction = await nodeA.wallet.post(raw, accountA.spendingKey)
+      const transaction = await nodeA.wallet.post({
+        transaction: raw,
+        account: accountA,
+      })
 
       // Create block 2
       return nodeA.chain.newBlock(
@@ -654,7 +657,10 @@ describe('Accounts', () => {
           expiration: 0,
         })
 
-        const transaction = await nodeA.wallet.post(raw, accountA.spendingKey)
+        const transaction = await nodeA.wallet.post({
+          transaction: raw,
+          account: accountA,
+        })
 
         // Create block A2
         return nodeA.chain.newBlock(
@@ -764,7 +770,10 @@ describe('Accounts', () => {
           expiration: 0,
         })
 
-        const transaction = await nodeB.wallet.post(raw, accountANodeB.spendingKey)
+        const transaction = await nodeB.wallet.post({
+          transaction: raw,
+          account: accountANodeB,
+        })
 
         // Create block A2
         return nodeA.chain.newBlock(

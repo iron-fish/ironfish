@@ -692,7 +692,10 @@ export class Wallet {
       confirmations: confirmations ?? undefined,
     })
 
-    return this.post(raw, account.spendingKey)
+    return this.post({
+      transaction: raw,
+      account,
+    })
   }
 
   async mint(account: Account, options: MintAssetOptions): Promise<Transaction> {
@@ -728,7 +731,10 @@ export class Wallet {
       confirmations: options.confirmations,
     })
 
-    return this.post(raw, account.spendingKey)
+    return this.post({
+      transaction: raw,
+      account,
+    })
   }
 
   async burn(
@@ -749,7 +755,10 @@ export class Wallet {
       confirmations,
     })
 
-    return this.post(raw, account.spendingKey)
+    return this.post({
+      transaction: raw,
+      account,
+    })
   }
 
   async createTransaction(options: {
@@ -855,8 +864,15 @@ export class Wallet {
     }
   }
 
-  async post(raw: RawTransaction, spendingKey: string): Promise<Transaction> {
-    const transaction = await this.postTransaction(raw, spendingKey)
+  async post(options: {
+    transaction: RawTransaction
+    spendingKey?: string
+    account?: Account
+  }): Promise<Transaction> {
+    const spendingKey = options.account?.spendingKey ?? options.spendingKey
+    Assert.isTruthy(spendingKey, `Spending key is required to post transaction`)
+
+    const transaction = await this.postTransaction(options.transaction, spendingKey)
 
     const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
