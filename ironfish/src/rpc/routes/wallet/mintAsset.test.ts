@@ -62,7 +62,7 @@ describe('mint', () => {
           fee: 0n,
           expiration: 0,
         })
-        return wallet.post(raw, node.memPool, account.spendingKey)
+        return wallet.post(raw, account.spendingKey)
       })
 
       jest.spyOn(wallet, 'mint').mockResolvedValueOnce(mintTransaction)

@@ -88,7 +88,7 @@ router.register<typeof MintAssetRequestSchema, MintAssetResponse>(
       }
     }
 
-    const transaction = await node.wallet.mint(node.memPool, account, options)
+    const transaction = await node.wallet.mint(account, options)
     Assert.isEqual(transaction.mints.length, 1)
     const mint = transaction.mints[0]
 

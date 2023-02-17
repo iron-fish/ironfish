@@ -106,7 +106,6 @@ describe('Accounts', () => {
 
     // Spend the balance
     const transaction = await node.wallet.send(
-      node.memPool,
       account,
       [
         {
@@ -175,7 +174,6 @@ describe('Accounts', () => {
 
     // Spend the balance
     const transaction = await node.wallet.send(
-      node.memPool,
       account,
       [
         {
@@ -246,7 +244,6 @@ describe('Accounts', () => {
     })
 
     const transaction = await node.wallet.send(
-      node.memPool,
       account,
       [
         {
@@ -301,7 +298,6 @@ describe('Accounts', () => {
     // Spend the balance with an invalid expiration
     await expect(
       node.wallet.send(
-        node.memPool,
         account,
         [
           {
@@ -357,7 +353,6 @@ describe('Accounts', () => {
 
     // Spend the balance, setting expiry soon
     const transaction = await node.wallet.send(
-      node.memPool,
       account,
       [
         {
@@ -444,7 +439,6 @@ describe('Accounts', () => {
 
     // Spend the balance, setting expiry soon
     const transaction = await node.wallet.send(
-      node.memPool,
       account,
       [
         {
@@ -520,7 +514,7 @@ describe('Accounts', () => {
         expiration: 0,
       })
 
-      const transaction = await nodeA.wallet.post(raw, nodeA.memPool, accountA.spendingKey)
+      const transaction = await nodeA.wallet.post(raw, accountA.spendingKey)
 
       // Create block 2
       return nodeA.chain.newBlock(
@@ -660,7 +654,7 @@ describe('Accounts', () => {
           expiration: 0,
         })
 
-        const transaction = await nodeA.wallet.post(raw, nodeA.memPool, accountA.spendingKey)
+        const transaction = await nodeA.wallet.post(raw, accountA.spendingKey)
 
         // Create block A2
         return nodeA.chain.newBlock(
@@ -770,11 +764,7 @@ describe('Accounts', () => {
           expiration: 0,
         })
 
-        const transaction = await nodeB.wallet.post(
-          raw,
-          nodeB.memPool,
-          accountANodeB.spendingKey,
-        )
+        const transaction = await nodeB.wallet.post(raw, accountANodeB.spendingKey)
 
         // Create block A2
         return nodeA.chain.newBlock(

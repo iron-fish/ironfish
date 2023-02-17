@@ -37,21 +37,17 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
 
-    const rawTransactionBytes = Buffer.from(request.data.transaction, 'hex')
-    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+    const bytes = Buffer.from(request.data.transaction, 'hex')
+    const raw = RawTransactionSerde.deserialize(bytes)
+
     let postedTransaction: Transaction
     if (request.data.offline === true) {
-      postedTransaction = await node.wallet.postTransaction(rawTransaction, account.spendingKey)
+      postedTransaction = await node.wallet.postTransaction(raw, account.spendingKey)
     } else {
-      postedTransaction = await node.wallet.post(
-        rawTransaction,
-        node.memPool,
-        account.spendingKey,
-      )
+      postedTransaction = await node.wallet.post(raw, account.spendingKey)
     }
 
-    const postedTransactionBytes = postedTransaction.serialize()
-
-    request.end({ transaction: postedTransactionBytes.toString('hex') })
+    const serialized = postedTransaction.serialize()
+    request.end({ transaction: serialized.toString('hex') })
   },
 )

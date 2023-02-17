@@ -245,19 +245,6 @@ export class IronfishNode {
       config,
     })
 
-    const walletDB = new WalletDB({
-      location: config.walletDatabasePath,
-      workerPool,
-      files,
-    })
-
-    const wallet = new Wallet({
-      chain,
-      config,
-      database: walletDB,
-      workerPool,
-    })
-
     const feeEstimator = new FeeEstimator({
       maxBlockHistory: config.get('feeEstimatorMaxBlockHistory'),
       percentiles: {
@@ -268,6 +255,20 @@ export class IronfishNode {
     })
 
     const memPool = new MemPool({ chain, feeEstimator, metrics, logger })
+
+    const walletDB = new WalletDB({
+      location: config.walletDatabasePath,
+      workerPool,
+      files,
+    })
+
+    const wallet = new Wallet({
+      chain,
+      config,
+      memPool,
+      database: walletDB,
+      workerPool,
+    })
 
     return new IronfishNode({
       pkg,

@@ -59,7 +59,6 @@ router.register<typeof BurnAssetRequestSchema, BurnAssetResponse>(
     Assert.isNotNull(asset)
 
     const transaction = await node.wallet.burn(
-      node.memPool,
       account,
       assetId,
       value,
