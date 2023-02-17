@@ -59,9 +59,9 @@ describe('Route faucet.getFunds', () => {
           },
         }
       })
-      await expect(
-        routeTest.client.request('faucet/getFunds', { accountName, email }).waitForEnd(),
-      ).rejects.toThrow(RpcRequestError)
+      await expect(routeTest.client.getFunds({ account: accountName, email })).rejects.toThrow(
+        RpcRequestError,
+      )
     })
   })
 
@@ -69,9 +69,9 @@ describe('Route faucet.getFunds', () => {
     it('throws an error', async () => {
       const apiResponse = new Error('API failure') as AxiosError
       axios.post = jest.fn().mockRejectedValueOnce(apiResponse)
-      await expect(
-        routeTest.client.request('faucet/getFunds', { accountName, email }).waitForEnd(),
-      ).rejects.toThrow('API failure')
+      await expect(routeTest.client.getFunds({ account: accountName, email })).rejects.toThrow(
+        'API failure',
+      )
     })
   })
 })
