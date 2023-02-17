@@ -1019,7 +1019,7 @@ describe('Accounts', () => {
 
         const assetId = Buffer.from('thisisafakeidentifier', 'hex')
         await expect(
-          node.wallet.mint(node.memPool, account, {
+          node.wallet.mint(account, {
             assetId,
             fee: BigInt(0),
             expirationDelta: node.config.get('transactionExpirationDelta'),
@@ -1055,7 +1055,7 @@ describe('Accounts', () => {
 
         const mintValueB = BigInt(10)
         const transaction = await useTxFixture(node.wallet, account, account, () => {
-          return node.wallet.mint(node.memPool, account, {
+          return node.wallet.mint(account, {
             assetId: asset.id(),
             fee: BigInt(0),
             expirationDelta: node.config.get('transactionExpirationDelta'),
@@ -1223,7 +1223,7 @@ describe('Accounts', () => {
           expiration: 0,
         })
 
-        const transaction = await node.wallet.post(raw, node.memPool, account.spendingKey)
+        const transaction = await node.wallet.post(raw, account.spendingKey)
 
         return node.chain.newBlock(
           [transaction],

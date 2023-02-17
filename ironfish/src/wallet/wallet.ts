@@ -85,6 +85,7 @@ export class Wallet {
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
   readonly chainProcessor: ChainProcessor
+  readonly memPool: MemPool
   private readonly config: Config
 
   protected rebroadcastAfter: number
@@ -100,6 +101,7 @@ export class Wallet {
   constructor({
     chain,
     config,
+    memPool,
     database,
     logger = createRootLogger(),
     rebroadcastAfter,
@@ -108,6 +110,7 @@ export class Wallet {
     chain: Blockchain
     config: Config
     database: WalletDB
+    memPool: MemPool
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
@@ -115,6 +118,7 @@ export class Wallet {
     this.chain = chain
     this.config = config
     this.logger = logger.withTag('accounts')
+    this.memPool = memPool
     this.walletDb = database
     this.workerPool = workerPool
     this.rebroadcastAfter = rebroadcastAfter ?? 10
@@ -667,7 +671,6 @@ export class Wallet {
   }
 
   async send(
-    memPool: MemPool,
     account: Account,
     outputs: {
       publicAddress: string
@@ -689,14 +692,10 @@ export class Wallet {
       confirmations: confirmations ?? undefined,
     })
 
-    return this.post(raw, memPool, account.spendingKey)
+    return this.post(raw, account.spendingKey)
   }
 
-  async mint(
-    memPool: MemPool,
-    account: Account,
-    options: MintAssetOptions,
-  ): Promise<Transaction> {
+  async mint(account: Account, options: MintAssetOptions): Promise<Transaction> {
     let mintData: MintData
 
     if ('assetId' in options) {
@@ -729,11 +728,10 @@ export class Wallet {
       confirmations: options.confirmations,
     })
 
-    return this.post(raw, memPool, account.spendingKey)
+    return this.post(raw, account.spendingKey)
   }
 
   async burn(
-    memPool: MemPool,
     account: Account,
     assetId: Buffer,
     value: bigint,
@@ -751,7 +749,7 @@ export class Wallet {
       confirmations,
     })
 
-    return this.post(raw, memPool, account.spendingKey)
+    return this.post(raw, account.spendingKey)
   }
 
   async createTransaction(options: {
@@ -857,7 +855,7 @@ export class Wallet {
     }
   }
 
-  async post(raw: RawTransaction, memPool: MemPool, spendingKey: string): Promise<Transaction> {
+  async post(raw: RawTransaction, spendingKey: string): Promise<Transaction> {
     const transaction = await this.postTransaction(raw, spendingKey)
 
     const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
@@ -866,7 +864,7 @@ export class Wallet {
     }
 
     await this.addPendingTransaction(transaction)
-    memPool.acceptTransaction(transaction)
+    this.memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
     this.onTransactionCreated.emit(transaction)
 
