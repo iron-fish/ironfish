@@ -47,6 +47,11 @@ export default class CreateSnapshot extends IronfishCommand {
       required: false,
       description: 'Webhook to notify on successful snapshot upload',
     }),
+    r2: Flags.boolean({
+      default: false,
+      allowNo: true,
+      description: 'Upload the snapshot to Cloudflare R2.',
+    }),
   }
 
   async start(): Promise<void> {
@@ -99,7 +104,19 @@ export default class CreateSnapshot extends IronfishCommand {
       const snapshotBaseName = path.basename(SNAPSHOT_FILE_NAME, '.tar.gz')
       const snapshotKeyName = `${snapshotBaseName}_${timestamp}.tar.gz`
 
-      const s3 = new S3Client({})
+      let s3: S3Client
+      if (flags.r2) {
+        s3 = new S3Client({
+          region: 'auto',
+          endpoint: `https://098597f948037fe5f5ad128211603f63.r2.cloudflarestorage.com`,
+          credentials: {
+            accessKeyId: '1403b039cc8e4a36e64da704843447ca',
+            secretAccessKey: 'e46487a0edf8927b6b61702a83c0abc9036bbc42b4505179512756936f2ea792',
+          },
+        })
+      } else {
+        s3 = new S3Client({})
+      }
 
       CliUx.ux.action.start(`Uploading to ${bucket}`)
       await S3Utils.uploadToBucket(
