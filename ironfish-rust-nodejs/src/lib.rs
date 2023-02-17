@@ -55,15 +55,10 @@ impl From<LanguageCode> for Language {
 
 #[napi(object)]
 pub struct Key {
-    #[napi(js_name = "spending_key")]
     pub spending_key: String,
-    #[napi(js_name = "view_key")]
     pub view_key: String,
-    #[napi(js_name = "incoming_view_key")]
     pub incoming_view_key: String,
-    #[napi(js_name = "outgoing_view_key")]
     pub outgoing_view_key: String,
-    #[napi(js_name = "public_address")]
     pub public_address: String,
 }
 

@@ -1269,11 +1269,11 @@ export class Wallet {
       version: ACCOUNT_SCHEMA_VERSION,
       id: uuid(),
       name,
-      incomingViewKey: key.incoming_view_key,
-      outgoingViewKey: key.outgoing_view_key,
-      publicAddress: key.public_address,
-      spendingKey: key.spending_key,
-      viewKey: key.view_key,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
+      spendingKey: key.spendingKey,
+      viewKey: key.viewKey,
       walletDb: this.walletDb,
     })
 
@@ -1317,10 +1317,10 @@ export class Wallet {
       ...toImport,
       version: ACCOUNT_SCHEMA_VERSION,
       id: uuid(),
-      viewKey: key.view_key,
-      incomingViewKey: key.incoming_view_key,
-      outgoingViewKey: key.outgoing_view_key,
-      publicAddress: key.public_address,
+      viewKey: key.viewKey,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
     }
 
     validateAccount(accountValue)

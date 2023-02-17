@@ -52,11 +52,11 @@ export const enum LanguageCode {
   Spanish = 7
 }
 export interface Key {
-  spending_key: string
-  view_key: string
-  incoming_view_key: string
-  outgoing_view_key: string
-  public_address: string
+  spendingKey: string
+  viewKey: string
+  incomingViewKey: string
+  outgoingViewKey: string
+  publicAddress: string
 }
 export function generateKey(): Key
 export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
