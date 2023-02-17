@@ -3,10 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Blockchain } from '../blockchain'
-import { Block, BlockHeader } from '../primitives'
+import { BlockHeader } from '../primitives'
 import { GENESIS_BLOCK_SEQUENCE } from '../primitives/block'
-import { isTransactionMine } from '../testUtilities/helpers/transaction'
-import { Account } from '../wallet'
 
 export function getBlockRange(
   chain: Blockchain,
@@ -40,10 +38,6 @@ export function getBlockRange(
   return { start, stop }
 }
 
-export function isBlockMine(block: Block, account: Account): boolean {
-  return isTransactionMine(block.minersFee, account)
-}
-
 // Returns the block header at the given sequence or hash
 async function blockHeaderBySequenceOrHash(
   chain: Blockchain,
@@ -56,4 +50,4 @@ async function blockHeaderBySequenceOrHash(
   return await chain.getHeaderAtSequence(start)
 }
 
-export const BlockchainUtils = { isBlockMine, getBlockRange, blockHeaderBySequenceOrHash }
+export const BlockchainUtils = { getBlockRange, blockHeaderBySequenceOrHash }
