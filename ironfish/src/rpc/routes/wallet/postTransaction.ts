@@ -44,7 +44,10 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
     if (request.data.offline === true) {
       postedTransaction = await node.wallet.postTransaction(raw, account.spendingKey)
     } else {
-      postedTransaction = await node.wallet.post(raw, account.spendingKey)
+      postedTransaction = await node.wallet.post({
+        transaction: raw,
+        account,
+      })
     }
 
     const serialized = postedTransaction.serialize()

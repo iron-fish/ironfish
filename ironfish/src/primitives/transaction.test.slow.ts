@@ -107,7 +107,10 @@ describe('Accounts', () => {
       expiration: 0,
     })
 
-    const transaction = await nodeA.wallet.post(raw, accountA.spendingKey)
+    const transaction = await nodeA.wallet.post({
+      transaction: raw,
+      account: accountA,
+    })
 
     expect(transaction.isMinersFee()).toBe(false)
   })
