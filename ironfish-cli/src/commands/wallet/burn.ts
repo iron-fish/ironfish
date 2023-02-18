@@ -16,6 +16,7 @@ import { IronfishCommand } from '../../command'
 import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
+import { doEligibilityCheck } from '../../utils/testnet'
 
 export class Burn extends IronfishCommand {
   static description = 'Burn tokens and decrease supply for a given asset'
@@ -67,11 +68,20 @@ export class Burn extends IronfishCommand {
       description:
         'The block sequence that the transaction can not be mined after. Set to 0 for no expiration.',
     }),
+    eligibility: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'check testnet eligibility',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Burn)
     const client = await this.sdk.connectRpc(false, true)
+
+    if (flags.eligibility) {
+      await doEligibilityCheck(client, this.logger)
+    }
 
     const status = await client.getNodeStatus()
     if (!status.content.blockchain.synced) {

@@ -9,7 +9,6 @@ import {
   RawTransactionSerde,
   RpcResponseEnded,
   Transaction,
-  WebApi,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import inquirer from 'inquirer'
@@ -17,6 +16,7 @@ import { IronfishCommand } from '../../command'
 import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
+import { doEligibilityCheck } from '../../utils/testnet'
 
 export class Mint extends IronfishCommand {
   static description = 'Mint tokens and increase supply for a given asset'
@@ -80,11 +80,20 @@ export class Mint extends IronfishCommand {
       description:
         'The block sequence that the transaction can not be mined after. Set to 0 for no expiration.',
     }),
+    eligibility: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'check testnet eligibility',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Mint)
     const client = await this.sdk.connectRpc(false, true)
+
+    if (flags.eligibility) {
+      await doEligibilityCheck(client, this.logger)
+    }
 
     const status = await client.getNodeStatus()
     if (!status.content.blockchain.synced) {
@@ -108,8 +117,6 @@ export class Mint extends IronfishCommand {
 
       account = defaultAccount.name
     }
-
-    await this.doElegibilityCheck()
 
     let assetId = flags.assetId
     let metadata = flags.metadata
@@ -341,37 +348,6 @@ Find the transaction on https://explorer.ironfish.network/transaction/${transact
         this.error(error.message)
       }
       this.exit(2)
-    }
-  }
-
-  async doElegibilityCheck(): Promise<void> {
-    const api = new WebApi()
-    // Connect to node
-    const node = await this.sdk.connectRpc()
-    const graffiti = (await node.getConfig({ name: 'blockGraffiti' })).content.blockGraffiti
-    if (graffiti) {
-      const user = await api.findUser({ graffiti: graffiti })
-      if (!user) {
-        this.log(`WARNING: Could not find a user with graffiti ${graffiti}`)
-      } else {
-        if (!user.verified) {
-          this.log(
-            `WARNING: No verified email on account for graffiti ${graffiti}. You need this email to claim testnet rewards. Visit https://testnet.ironfish.network/login to verify.`,
-          )
-        }
-        if (user.node_uptime_count < user.node_uptime_threshold) {
-          const threshold_days = user.node_uptime_threshold / 2
-          this.log(
-            `WARNING: ${threshold_days} days (${
-              threshold_days * 24
-            } hours) of hosting a node is needed to qualify for Phase 3 points. You currently have ${
-              user.node_uptime_count * 12
-            } hours.`,
-          )
-        }
-      }
-    } else {
-      this.log(`WARNING: Graffiti not set. Testnet points will not be recorded.`)
     }
   }
 }
