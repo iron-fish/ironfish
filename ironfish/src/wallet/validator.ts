@@ -60,11 +60,7 @@ export function validateAccount(toImport: Partial<AccountValue>): void {
     throw new Error(`Provided incoming view key ${toImport.incomingViewKey} is invalid`)
   }
 
-  if (!toImport.spendingKey) {
-    throw new Error(`Imported account has no spending key`)
-  }
-
-  if (!isValidSpendingKey(toImport.spendingKey)) {
+  if (toImport.spendingKey && !isValidSpendingKey(toImport.spendingKey)) {
     throw new Error(`Provided spending key ${toImport.spendingKey} is invalid`)
   }
 }
