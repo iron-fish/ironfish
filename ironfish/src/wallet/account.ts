@@ -24,8 +24,6 @@ export const ACCOUNT_KEY_LENGTH = 32
 
 export const ACCOUNT_SCHEMA_VERSION = 1
 
-export type AccountImport = { name: string; spendingKey: string; version: number }
-
 export class Account {
   private readonly walletDb: WalletDB
 

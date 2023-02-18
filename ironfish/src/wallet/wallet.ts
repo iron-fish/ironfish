@@ -36,7 +36,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
-import { Account, ACCOUNT_SCHEMA_VERSION, AccountImport } from './account'
+import { Account, ACCOUNT_SCHEMA_VERSION } from './account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
@@ -1302,7 +1302,7 @@ export class Wallet {
     }
   }
 
-  async importAccount(toImport: AccountImport): Promise<Account> {
+  async importAccount(toImport: AccountValue): Promise<Account> {
     if (toImport.name && this.getAccountByName(toImport.name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
