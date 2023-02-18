@@ -17,6 +17,7 @@ import { IronfishCommand } from '../../command'
 import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
+import { doEligibilityCheck } from '../../utils/testnet'
 import { watchTransaction } from '../../utils/transaction'
 
 export class Send extends IronfishCommand {
@@ -87,6 +88,11 @@ export class Send extends IronfishCommand {
       description:
         'Return raw transaction. Use it to create a transaction but not post to the network',
     }),
+    eligibility: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'check testnet eligibility',
+    }),
   }
 
   async start(): Promise<void> {
@@ -102,6 +108,10 @@ export class Send extends IronfishCommand {
     const memo = flags.memo || ''
 
     const client = await this.sdk.connectRpc(false, true)
+
+    if (flags.eligibility) {
+      await doEligibilityCheck(client, this.logger)
+    }
 
     const status = await client.getNodeStatus()
     if (!status.content.blockchain.synced) {
