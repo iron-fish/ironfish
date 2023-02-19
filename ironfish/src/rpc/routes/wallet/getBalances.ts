@@ -9,6 +9,7 @@ import { getAccount } from './utils'
 export interface GetBalancesRequest {
   account?: string
   confirmations?: number
+  ownerOnly?: boolean
 }
 
 export interface GetBalancesResponse {
@@ -31,6 +32,7 @@ export const GetBalancesRequestSchema: yup.ObjectSchema<GetBalancesRequest> = yu
   .object({
     account: yup.string().optional(),
     confirmations: yup.number().min(0).optional(),
+    ownerOnly: yup.boolean().optional(),
   })
   .defined()
 
@@ -73,6 +75,10 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
       }
 
       const asset = await account.getAsset(balance.assetId)
+
+      if (request.data.ownerOnly && asset?.owner.toString('hex') !== account.publicAddress) {
+        continue
+      }
 
       balances.push({
         assetId: balance.assetId.toString('hex'),
