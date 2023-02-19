@@ -161,6 +161,7 @@ export class Mint extends IronfishCommand {
         action: 'mint',
         showNativeAsset: false,
         showSingleAssetChoice: true,
+        showAssetOwnerOnly: true,
         confirmations: flags.confirmations,
       })
 

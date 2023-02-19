@@ -13,6 +13,7 @@ export async function selectAsset(
     action: string
     showNativeAsset: boolean
     showSingleAssetChoice: boolean
+    showAssetOwnerOnly?: boolean
     confirmations?: number
   },
 ): Promise<
@@ -25,6 +26,7 @@ export async function selectAsset(
   const balancesResponse = await client.getAccountBalances({
     account: account,
     confirmations: options.confirmations,
+    ownerOnly: options.showAssetOwnerOnly,
   })
 
   let balances = balancesResponse.content.balances
