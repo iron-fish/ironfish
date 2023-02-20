@@ -1,9 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
+import { generateKeyFromPrivateKey, PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabase, IDatabaseEncoding, IDatabaseStore, StringEncoding } from '../../../storage'
+import { IronfishNode } from '../../../node'
+import {
+  IDatabase,
+  IDatabaseEncoding,
+  IDatabaseStore,
+  IDatabaseTransaction,
+  StringEncoding,
+} from '../../../storage'
+import { Account } from '../../../wallet'
 
 const KEY_LENGTH = 32
 
@@ -74,4 +82,28 @@ export function GetOldStores(db: IDatabase): {
   )
 
   return { accounts }
+}
+
+export async function GetOldAccounts(
+  node: IronfishNode,
+  db: IDatabase,
+  tx?: IDatabaseTransaction,
+): Promise<Account[]> {
+  const accounts = []
+  const oldStores = GetOldStores(db)
+
+  for await (const account of oldStores.accounts.getAllValuesIter(tx)) {
+    const key = generateKeyFromPrivateKey(account.spendingKey)
+
+    accounts.push(
+      new Account({
+        ...account,
+        version: undefined,
+        viewKey: key.viewKey,
+        walletDb: node.wallet.walletDb,
+      }),
+    )
+  }
+
+  return accounts
 }

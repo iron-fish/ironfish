@@ -5,8 +5,8 @@
 import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { Account } from '../../wallet'
 import { Migration } from '../migration'
+import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration016 extends Migration {
   path = __filename
@@ -21,16 +21,7 @@ export class Migration016 extends Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    const accounts = []
-
-    for await (const accountValue of node.wallet.walletDb.loadAccounts()) {
-      accounts.push(
-        new Account({
-          ...accountValue,
-          walletDb: node.wallet.walletDb,
-        }),
-      )
-    }
+    const accounts = await GetOldAccounts(node, db, tx)
 
     logger.info(`Indexing on-chain transactions for ${accounts.length} accounts`)
 

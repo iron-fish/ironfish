@@ -14,8 +14,8 @@ import {
   PrefixEncoding,
   U32_ENCODING_BE,
 } from '../../storage'
-import { Account } from '../../wallet'
 import { Migration } from '../migration'
+import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration017 extends Migration {
   path = __filename
@@ -30,7 +30,7 @@ export class Migration017 extends Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    const accounts = await this.getAccounts(node)
+    const accounts = await GetOldAccounts(node, db, tx)
 
     logger.info(`Re-indexing transactions for ${accounts.length} accounts`)
     logger.info('')
@@ -63,7 +63,7 @@ export class Migration017 extends Migration {
   }
 
   async backward(node: IronfishNode, db: IDatabase): Promise<void> {
-    const accounts = await this.getAccounts(node)
+    const accounts = await GetOldAccounts(node, db)
 
     const { sequenceToNoteHash, sequenceToTransactionHash, pendingTransactionHashes } =
       this.getOldStores(db)
@@ -101,21 +101,6 @@ export class Migration017 extends Migration {
     await node.wallet.walletDb.sequenceToNoteHash.clear()
     await node.wallet.walletDb.sequenceToTransactionHash.clear()
     await node.wallet.walletDb.pendingTransactionHashes.clear()
-  }
-
-  async getAccounts(node: IronfishNode): Promise<Account[]> {
-    const accounts = []
-
-    for await (const accountValue of node.wallet.walletDb.loadAccounts()) {
-      accounts.push(
-        new Account({
-          ...accountValue,
-          walletDb: node.wallet.walletDb,
-        }),
-      )
-    }
-
-    return accounts
   }
 
   getOldStores(db: IDatabase): {
