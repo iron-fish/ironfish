@@ -1249,7 +1249,7 @@ export class Wallet {
     let send = false
 
     for (const spend of transaction.transaction.spends) {
-      if ((await account.getNoteHash(spend.nullifier, tx)) !== null) {
+      if ((await account.getNoteHash(spend.nullifier, tx)) !== undefined) {
         send = true
         break
       }

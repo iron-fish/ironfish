@@ -243,8 +243,8 @@ describe('Accounts', () => {
     const forkSpendNullifier = forkSpendTx.spends[0].nullifier
     const forkSpendNoteHash = await accountA.getNoteHash(forkSpendNullifier)
 
-    // nullifier should be non-null
-    Assert.isNotNull(forkSpendNoteHash)
+    // nullifier should be defined
+    Assert.isNotUndefined(forkSpendNoteHash)
 
     // re-org
     await expect(nodeA.chain).toAddBlock(blockB1)
@@ -258,7 +258,7 @@ describe('Accounts', () => {
     expect(forkSpendNote?.nullifier).toBeNull()
 
     // nullifier should have been removed from nullifierToNote
-    expect(await accountA.getNoteHash(forkSpendNullifier)).toBeNull()
+    expect(await accountA.getNoteHash(forkSpendNullifier)).toBeUndefined()
   })
 
   describe('scanTransactions', () => {

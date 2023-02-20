@@ -506,9 +506,8 @@ export class WalletDB {
     account: Account,
     nullifier: Buffer,
     tx?: IDatabaseTransaction,
-  ): Promise<Buffer | null> {
-    const noteHash = await this.nullifierToNoteHash.get([account.prefix, nullifier], tx)
-    return noteHash || null
+  ): Promise<Buffer | undefined> {
+    return this.nullifierToNoteHash.get([account.prefix, nullifier], tx)
   }
 
   async saveNullifierNoteHash(

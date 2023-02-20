@@ -326,7 +326,7 @@ describe('Accounts', () => {
       for (const spend of transaction.spends) {
         const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
 
-        Assert.isNotNull(spentNoteHash)
+        Assert.isNotUndefined(spentNoteHash)
 
         const spentNote = await accountA.getDecryptedNote(spentNoteHash)
 
@@ -428,7 +428,7 @@ describe('Accounts', () => {
       for (const spend of transaction.spends) {
         const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
 
-        Assert.isNotNull(spentNoteHash)
+        Assert.isNotUndefined(spentNoteHash)
 
         const spentNote = await accountA.getDecryptedNote(spentNoteHash)
 
@@ -798,7 +798,7 @@ describe('Accounts', () => {
       for (const spend of transaction.spends) {
         const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
 
-        Assert.isNotNull(spentNoteHash)
+        Assert.isNotUndefined(spentNoteHash)
 
         const spentNote = await accountA.getDecryptedNote(spentNoteHash)
 
@@ -813,7 +813,7 @@ describe('Accounts', () => {
       for (const spend of transaction.spends) {
         const spentNoteHash = await accountA.getNoteHash(spend.nullifier)
 
-        Assert.isNotNull(spentNoteHash)
+        Assert.isNotUndefined(spentNoteHash)
 
         const spentNote = await accountA.getDecryptedNote(spentNoteHash)
 
@@ -1135,7 +1135,7 @@ describe('Accounts', () => {
       expect(notes.length).toEqual(0)
 
       // nullifierToNoteHash entry removed
-      await expect(accountA.getNoteHash(nullifier)).resolves.toBeNull()
+      await expect(accountA.getNoteHash(nullifier)).resolves.toBeUndefined()
 
       // the note is not stored in sequenceToNoteHash or nonChainNoteHashes
       await expect(accountHasSequenceToNoteHash(accountA, 2, noteHash)).resolves.toBe(false)
