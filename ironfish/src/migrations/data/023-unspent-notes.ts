@@ -5,6 +5,7 @@
 import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
+import { createDB } from '../../storage/utils'
 import { Account } from '../../wallet'
 import { Migration } from '../migration'
 import { GetNewStores } from './023-unspent-notes/schemaNew'
@@ -14,7 +15,7 @@ export class Migration023 extends Migration {
   path = __filename
 
   prepare(node: IronfishNode): IDatabase {
-    return node.wallet.walletDb.db
+    return createDB({ location: node.config.walletDatabasePath })
   }
 
   async forward(
