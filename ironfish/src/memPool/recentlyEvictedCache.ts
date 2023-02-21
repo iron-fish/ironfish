@@ -7,52 +7,87 @@ import { MetricsMonitor } from '../metrics'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { PriorityQueue } from './priorityQueue'
 
+/**
+ * An entry in the eviction queue.
+ * Entries are sorted based on `feeRate` descending.
+ */
 interface EvictionEntry {
   hash: TransactionHash
   feeRate: bigint
 }
 
+/**
+ * An entry in the insertedAt queue.
+ * Entries are sorted based on the sequence when they were inserted.
+ */
 interface InsertedAtEntry {
   hash: TransactionHash
   insertedAtSequence: number
 }
 
+/**
+ * A cache to track transactions that have recently been evicted from the mempool.
+ *
+ * This is primarily a mechanism to prevent transactions from being re-added to the mempool
+ * within a reasonable duration if for some reason they are evicted (i.e. due to underpricing).
+ *
+ * This cache also performs a secondary feature of improving the performance of the mempool
+ * by skipping validation for transactions that would not be accepted into the mempool.
+ *
+ * Transactions are routinely evicted from the cache after they have spent `maxJailTime` in the cache.
+ * This is to prevent transactions from being permanently stuck in the cache.
+ *
+ * When full, transactions are evicted in order of `feeRate` descending to make room for the
+ * new transaction. This order is chosen because these transactions most likely to be successfully
+ * re-introduced into the mempool
+ */
 export class RecentlyEvictedCache {
   private readonly metrics: MetricsMonitor
   private readonly logger?: Logger
 
-  private readonly defaultCapacity: number = 1000 // TODO: fix this default initialization
-  private readonly defaultMaxJailTime: number = 10 // TODO: fix -> this is max duration txns exist in cache
+  /**
+   * The default capacity of the cache. This is used if no capacity is provided in the constructor.
+   *
+   *  This value is determined based on the default size of the mempool.
+   * If the size of the mempool is changed, the capacity of the cache should be adjusted accordingly.
+   */
+  private readonly defaultCapacity: number = 1000 // TODO: Set a proper default capacity
+
+  private readonly defaultMaxJailTime: number = 10 // TODO: Set a proper default maximum jail time
 
   private readonly capacity: number
   private readonly maxJailTime: number
 
+  /**
+   * Maintains a set of all transaction hashes in the cache
+   */
   private readonly transactions = new Set<TransactionHash>()
 
+  /**
+   * Tracks the sequence number of the last block added to the chain.
+   * This is used to determine when a transaction has spent `maxJailTime` in the cache.
+   */
   private currentSequence = 0
 
   /**
-   * A priority queue of transactions to evict from this cache when full.
-   *
-   * Transactions are evicted in order of `feeRate` descending because
-   * they are most likely to be re-included into the mempool
+   * A priority queue of transaction hashes ordered by `feeRate` descending.
+   * This is the eviction order for the cache when full.
    */
   private readonly evictionQueue: PriorityQueue<EvictionEntry>
 
   /**
-   * A priority queue to track the order in which transactions were inserted into the cache.
+   * A priority queue of transaction hashes ordered by the sequence when they were inserted into the cache.
    */
   // TODO: this can just be a normal queue because if y is inserted after x, it cannot have a lower sequence #
   private readonly insertedAtQueue: PriorityQueue<InsertedAtEntry>
 
   /**
-   * Creates a new cache to track transactions that have recently been evicted.
+   * Creates a new RecentlyEvictedCache.
+   * Transactions that are evicted from the mempool should be added here.
    *
-   * Transactions are routinely evicted from the cache after they have spent `maxJailTime` in the cache.
-   *
-   * When full, transactions are evicted in order of `feeRate` descending to
-   * make room for the new transaction.
-   * @param options
+   * @constructor
+   * @param {number} options.capacity the maximum number of hashes to store in the cache
+   * @param {number} options.maxJailTime the maximum number of blocks a hash can spend in the cache
    */
   constructor(options: {
     metrics: MetricsMonitor
@@ -80,7 +115,7 @@ export class RecentlyEvictedCache {
   }
 
   /**
-   * Remove the transaction from the cache and the eviction + insertion queues
+   * Removes the hash from the cache and eviction + insertion queues
    *
    * @param hash the hash of the transaction to remove
    * @returns true if the hash was removed, false if it was not present in the cache
@@ -94,7 +129,7 @@ export class RecentlyEvictedCache {
 
     this.transactions.delete(hash)
 
-    // keep the 2 helper queues consistently in sync
+    // keep the items in the two priority queues consistently in sync
     this.insertedAtQueue.remove(hash.toString('hex'))
     this.evictionQueue.remove(hash.toString('hex'))
 
@@ -102,48 +137,43 @@ export class RecentlyEvictedCache {
   }
 
   /**
-   * Removes the transaction with the highest fee rate from the cache.
+   * Pops the transaction with the highest fee rate from the cache.
    *
-   * If the transaction cache and eviction queue are out of sync, this method
-   * lazily pops from the eviction queue until it finds a transaction that is
-   * present in the cache
+   * The eviction and insertion queues will still be in sync after calling this method.
    *
-   * @returns the transaction that was evicted, or undefined if the cache is empty
+   * @returns the transaction hash that was evicted, or undefined if the cache is empty
    */
   private poll(): TransactionHash | undefined {
-    let hashToRemove: Buffer | undefined
+    const toEvict = this.evictionQueue.poll()
 
-    while (!this.isEmpty() && this.evictionQueue.size() > 0) {
-      const toEvict = this.evictionQueue.poll()
-
-      Assert.isNotUndefined(toEvict)
-
-      // lazy deletion
-      if (!this.has(toEvict.hash)) {
-        continue
-      }
-
-      hashToRemove = toEvict.hash
-      break
-    }
-
-    if (!hashToRemove) {
+    if (!toEvict) {
       return
     }
+
+    const hashToRemove = toEvict.hash
 
     this.remove(hashToRemove)
 
     return hashToRemove
   }
 
+  /**
+   * @returns the number of transactions in the cache
+   */
   count(): number {
     return this.transactions.size
   }
 
+  /**
+   * @returns true if the cache is full, false otherwise
+   */
   isFull(): boolean {
     return this.count() >= this.capacity
   }
 
+  /**
+   * @returns true if the cache is empty, false otherwise
+   */
   isEmpty(): boolean {
     return this.count() === 0
   }
@@ -152,16 +182,19 @@ export class RecentlyEvictedCache {
    * Adds a new transaction to the recently evicted cache.
    * If the cache is full, the transaction with the highest fee rate will be evicted.
    *
-   * Note that the
+   * Note that the cache is resized after the transaction is added. Thus, if the new transaction
+   * has the highest fee rate in the cache, then it will immediately be evicted.
    */
   add(transaction: Transaction): void {
     const hash = transaction.hash()
 
     if (this.has(hash)) {
+      // add to metrics that a duplicate was attempted to be added
       return
     }
 
     this.transactions.add(hash)
+
     this.evictionQueue.add({
       hash,
       feeRate: transaction.fee(),
@@ -184,31 +217,32 @@ export class RecentlyEvictedCache {
   }
 
   /**
-   * Sets the latest sequence. This will flush the cache of any transactions that have expired
+   * Sets the latest sequence.
+   * This flushes the cache of any transactions that have expired
    */
   setSequence(sequence: number): void {
     this.currentSequence = sequence
-    this.flush()
+    this.flush(sequence)
   }
 
   /**
-   * Flushes the cache of any transactions that have exceeded the maximum jail time.
+   * Flushes the cache of any transactions have been present in beyond maximum jail time.
    * These transactions are now eligable for re-entry into the mempool.
+   *
+   * @param maxSequence the maximum sequence number that a transaction can have to be flushed
    */
-  private flush(): void {
+  private flush(maxSequence: number): void {
     let flushCount = 0
+
     while (!this.isEmpty() && this.insertedAtQueue.size() > 0) {
       let toFlush = this.insertedAtQueue.peek()
-      if (!toFlush || toFlush.insertedAtSequence + this.maxJailTime > this.currentSequence) {
+      if (!toFlush || toFlush.insertedAtSequence + this.maxJailTime > maxSequence) {
         break
       }
 
       toFlush = this.insertedAtQueue.poll()
+      // This element has been peeked so it should not be undefined
       Assert.isNotUndefined(toFlush)
-
-      if (!this.has(toFlush.hash)) {
-        continue
-      }
 
       this.remove(toFlush.hash)
       flushCount++
