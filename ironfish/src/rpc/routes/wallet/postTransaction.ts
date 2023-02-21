@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { Transaction } from '../../../primitives'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
@@ -35,7 +36,7 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   `${ApiNamespace.wallet}/postTransaction`,
   PostTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node, request.data.sender)
     Assert.isNotNull(
       account.spendingKey,
       'Account must have spending key to post a transaction',
