@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { createNodeTest, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
+import {
+  createNodeTest,
+  SpendingAccount,
+  useAccountFixture,
+  useMinerBlockFixture,
+  useTxFixture,
+} from '../../../testUtilities'
 import { flushTimeout } from '../../../testUtilities/helpers/tests'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { PromiseUtils } from '../../../utils'
@@ -41,12 +47,12 @@ describe('Block template stream', () => {
     const { chain } = routeTest.node
     routeTest.node.config.set('miningForce', true)
 
-    const account = await node.wallet.createAccount('testAccount', true)
+    const account = await useAccountFixture(node.wallet, 'testAccount', true)
 
     // Create another node
     const nodeTest = createNodeTest()
     await nodeTest.setup()
-    const importedAccount = await nodeTest.wallet.importAccount(account)
+    const importedAccount = (await nodeTest.wallet.importAccount(account)) as SpendingAccount
     await nodeTest.wallet.setDefaultAccount(account.name)
 
     // Generate a block
@@ -70,7 +76,12 @@ describe('Block template stream', () => {
     )
 
     // Generate another block
-    const block3 = await useMinerBlockFixture(nodeTest.chain, 3, account, nodeTest.wallet)
+    const block3 = await useMinerBlockFixture(
+      nodeTest.chain,
+      3,
+      importedAccount,
+      nodeTest.wallet,
+    )
 
     // Done with the first node, we can take it down
     await nodeTest.teardownEach()

@@ -1,12 +1,12 @@
 {
   "Create genesis block Can generate a valid genesis block": [
     {
-      "id": "1cefb303-7565-40a7-a1db-962186fa8170",
+      "id": "72f1e37f-1966-4829-89e1-e51509dae96b",
       "name": "test",
-      "spendingKey": "6e6df28f097908c071657bc98c04ad74254069b1cb14005ad62474cdd8bc6f48",
-      "incomingViewKey": "3d94de8f3864e0c48e52069e93e20d856bbbe3b6787f7411500c847d006c4e00",
-      "outgoingViewKey": "81e80cc79ea8c2c866177eeabeb1d8c894279cbcfa5c700e6040b2d25bc43cd3",
-      "publicAddress": "babb76a29b30928c61d7984479ace53bf4739a02628c82f792f2cd9b6deca957"
+      "spendingKey": "f65942498ee7b2ddbc701904542c11b81fc630764e9352980af6b480fa6cdd51",
+      "incomingViewKey": "52f39fa896f8c82bb2a0a2bcda818527cdd6df6a46bdd5781f018ecd47765603",
+      "outgoingViewKey": "0d04b063acfed6eecc1c6c940f021058ab29acbe20ea3fefbc1227def0e51efe",
+      "publicAddress": "4c44244204511406192b66d80ea3ae70514fcb24d5252a952a0458570582631e"
     }
   ]
 }
