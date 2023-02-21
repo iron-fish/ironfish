@@ -4,11 +4,11 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import {
   CreateTransactionRequest,
-  CreateTransactionResponse,
   CurrencyUtils,
+  ERROR_CODES,
   isValidPublicAddress,
   RawTransactionSerde,
-  RpcResponseEnded,
+  RpcRequestError,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
@@ -208,7 +208,7 @@ export class Send extends IronfishCommand {
 
       const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
 
-      const feeRateOptions: { value: number; name: string }[] = []
+      const feeRateOptions: { value: string | RpcRequestError; name: string }[] = []
 
       const createTransactionRequest: CreateTransactionRequest = {
         account: from,
@@ -224,28 +224,37 @@ export class Send extends IronfishCommand {
         confirmations: confirmations,
       }
 
-      const allPromises: Promise<RpcResponseEnded<CreateTransactionResponse>>[] = []
-      feeRates.forEach((feeRate) => {
-        allPromises.push(
-          client.createTransaction({
+      for (const [index, feeRate] of feeRates.entries()) {
+        try {
+          const response = await client.createTransaction({
             ...createTransactionRequest,
-            feeRate: feeRate,
-          }),
-        )
-      })
+            feeRate,
+          })
 
-      const createResponses = await Promise.all(allPromises)
-      createResponses.forEach((createResponse, index) => {
-        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
-        const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+          const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
+          const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
 
-        feeRateOptions.push({
-          value: index,
-          name: `${feeRateNames[index]}: ${CurrencyUtils.renderIron(rawTransaction.fee)} IRON`,
-        })
-      })
+          feeRateOptions.push({
+            value: response.content.transaction,
+            name: `${feeRateNames[index]}: ${CurrencyUtils.renderIron(
+              rawTransaction.fee,
+            )} IRON`,
+          })
+        } catch (e) {
+          if (e instanceof RpcRequestError && e.code === ERROR_CODES.INSUFFICIENT_BALANCE) {
+            feeRateOptions.push({
+              value: e,
+              name: `${feeRateNames[index]}: Insufficient funds`,
+            })
+          } else {
+            throw e
+          }
+        }
+      }
 
-      const input: { selection: number } = await inquirer.prompt<{ selection: number }>([
+      const input = await inquirer.prompt<{
+        selection: string | RpcRequestError
+      }>([
         {
           name: 'selection',
           message: `Select the fee you wish to use for this transaction`,
@@ -254,7 +263,11 @@ export class Send extends IronfishCommand {
         },
       ])
 
-      rawTransactionResponse = createResponses[input.selection].content.transaction
+      if (input.selection instanceof RpcRequestError) {
+        throw input.selection
+      }
+
+      rawTransactionResponse = input.selection
     } else {
       const createResponse = await client.createTransaction({
         account: from,
