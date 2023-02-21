@@ -2,24 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '../assert'
-import { createRootLogger, Logger } from '../logger'
-import { MetricsMonitor } from '../metrics'
-import { Transaction, TransactionHash } from '../primitives/transaction'
+import { Logger } from '../logger'
+import { TransactionHash } from '../primitives/transaction'
 import { PriorityQueue } from './priorityQueue'
 
-/**
- * An entry in the eviction queue.
- * Entries are sorted based on `feeRate` descending.
- */
 interface EvictionEntry {
   hash: TransactionHash
   feeRate: bigint
 }
 
-/**
- * An entry in the insertedAt queue.
- * Entries are sorted based on the sequence when they were inserted.
- */
 interface InsertedAtEntry {
   hash: TransactionHash
   insertedAtSequence: number
@@ -29,45 +20,26 @@ interface InsertedAtEntry {
  * A cache to track transactions that have recently been evicted from the mempool.
  *
  * This is primarily a mechanism to prevent transactions from being re-added to the mempool
- * within a reasonable duration if for some reason they are evicted (i.e. due to underpricing).
- *
- * This cache also performs a secondary feature of improving the performance of the mempool
- * by skipping validation for transactions that would not be accepted into the mempool.
+ * within a reasonable duration if for some reason they are evicted (i.e. the mempool is full
+ * and the transaction is underpriced).
  *
  * Transactions are routinely evicted from the cache after they have spent `maxJailTime` in the cache.
- * This is to prevent transactions from being permanently stuck in the cache.
+ * This is to prevent transactions from being permanently stuck in the cache and never getting a chance
+ * to make it back into the mempool. `maxJailTime` is defined as the number of blocks a transactions
+ * can remain in the cache for.
  *
  * When full, transactions are evicted in order of `feeRate` descending to make room for the
  * new transaction. This order is chosen because these transactions most likely to be successfully
  * re-introduced into the mempool
  */
 export class RecentlyEvictedCache {
-  private readonly metrics: MetricsMonitor
   private readonly logger?: Logger
 
   /**
-   * The default capacity of the cache. This is used if no capacity is provided in the constructor.
-   *
-   *  This value is determined based on the default size of the mempool.
-   * If the size of the mempool is changed, the capacity of the cache should be adjusted accordingly.
+   * The maximum capacity of the cache in number of transactions.
    */
-  private readonly defaultCapacity: number = 1000 // TODO: Set a proper default capacity
-
-  private readonly defaultMaxJailTime: number = 10 // TODO: Set a proper default maximum jail time
-
   private readonly capacity: number
   private readonly maxJailTime: number
-
-  /**
-   * Maintains a set of all transaction hashes in the cache
-   */
-  private readonly transactions = new Set<TransactionHash>()
-
-  /**
-   * Tracks the sequence number of the last block added to the chain.
-   * This is used to determine when a transaction has spent `maxJailTime` in the cache.
-   */
-  private currentSequence = 0
 
   /**
    * A priority queue of transaction hashes ordered by `feeRate` descending.
@@ -89,19 +61,13 @@ export class RecentlyEvictedCache {
    * @param {number} options.capacity the maximum number of hashes to store in the cache
    * @param {number} options.maxJailTime the maximum number of blocks a hash can spend in the cache
    */
-  constructor(options: {
-    metrics: MetricsMonitor
-    logger?: Logger
-    capacity?: number
-    maxJailTime?: number
-  }) {
-    this.capacity = options.capacity || this.defaultCapacity
-    this.maxJailTime = options.maxJailTime || this.defaultMaxJailTime
+  constructor(options: { logger: Logger; capacity: number; maxJailTime: number }) {
+    this.capacity = options.capacity
+    this.maxJailTime = options.maxJailTime
 
-    const logger = options.logger || createRootLogger()
+    const logger = options.logger
 
-    this.metrics = options.metrics
-    this.logger = logger.withTag('RecentlyEvictedCache')
+    this.logger = logger //.withTag('RecentlyEvictedCache')
 
     this.evictionQueue = new PriorityQueue<EvictionEntry>(
       (t1, t2) => t1.feeRate > t2.feeRate,
@@ -121,17 +87,15 @@ export class RecentlyEvictedCache {
    * @returns true if the hash was removed, false if it was not present in the cache
    */
   private remove(hash: TransactionHash): boolean {
-    const hashExists = this.has(hash)
+    const stringHash = hash.toString('hex')
 
-    if (!hashExists) {
+    if (!this.has(stringHash)) {
       return false
     }
 
-    this.transactions.delete(hash)
-
     // keep the items in the two priority queues consistently in sync
-    this.insertedAtQueue.remove(hash.toString('hex'))
-    this.evictionQueue.remove(hash.toString('hex'))
+    this.insertedAtQueue.remove(stringHash)
+    this.evictionQueue.remove(stringHash)
 
     return true
   }
@@ -160,22 +124,22 @@ export class RecentlyEvictedCache {
   /**
    * @returns the number of transactions in the cache
    */
-  count(): number {
-    return this.transactions.size
+  size(): number {
+    return this.insertedAtQueue.size()
   }
 
   /**
    * @returns true if the cache is full, false otherwise
    */
   isFull(): boolean {
-    return this.count() >= this.capacity
+    return this.size() >= this.capacity
   }
 
   /**
    * @returns true if the cache is empty, false otherwise
    */
   isEmpty(): boolean {
-    return this.count() === 0
+    return this.size() === 0
   }
 
   /**
@@ -185,44 +149,32 @@ export class RecentlyEvictedCache {
    * Note that the cache is resized after the transaction is added. Thus, if the new transaction
    * has the highest fee rate in the cache, then it will immediately be evicted.
    */
-  add(transaction: Transaction): void {
-    const hash = transaction.hash()
-
-    if (this.has(hash)) {
+  add(transactionHash: Buffer, feeRate: bigint, currentBlockSequence: number): boolean {
+    console.log('add', transactionHash.toString('hex'), feeRate, currentBlockSequence)
+    if (this.has(transactionHash.toString('hex'))) {
       // add to metrics that a duplicate was attempted to be added
-      return
+      return false
     }
 
-    this.transactions.add(hash)
-
     this.evictionQueue.add({
-      hash,
-      feeRate: transaction.fee(),
+      hash: transactionHash,
+      feeRate,
     })
 
     this.insertedAtQueue.add({
-      hash,
-      insertedAtSequence: this.currentSequence,
+      hash: transactionHash,
+      insertedAtSequence: currentBlockSequence,
     })
 
-    if (this.isFull()) {
+    while (this.size() > this.capacity) {
       this.poll()
     }
 
-    return
+    return true
   }
 
-  has(hash: TransactionHash): boolean {
-    return this.transactions.has(hash)
-  }
-
-  /**
-   * Sets the latest sequence.
-   * This flushes the cache of any transactions that have expired
-   */
-  setSequence(sequence: number): void {
-    this.currentSequence = sequence
-    this.flush(sequence)
+  has(hash: string): boolean {
+    return this.insertedAtQueue.has(hash)
   }
 
   /**
@@ -231,7 +183,7 @@ export class RecentlyEvictedCache {
    *
    * @param maxSequence the maximum sequence number that a transaction can have to be flushed
    */
-  private flush(maxSequence: number): void {
+  flush(maxSequence: number): void {
     let flushCount = 0
 
     while (!this.isEmpty() && this.insertedAtQueue.size() > 0) {
@@ -248,26 +200,10 @@ export class RecentlyEvictedCache {
       flushCount++
     }
 
-    this.logger?.info(
-      `Flushed ${flushCount} transactions from RecentlyEvictedCache after block ${this.currentSequence} added`,
+    this.logger?.debug(
+      `Flushed ${flushCount} transactions from RecentlyEvictedCache after block ${maxSequence} added`,
     )
 
     return
-  }
-
-  /**
-   * Clears the cache and helper queues. The cache will be reset to the intiail state.
-   */
-  clear(): void {
-    this.transactions.clear()
-
-    // TODO: is there an easier way to clear these 2 pqs?
-    while (this.evictionQueue.size() > 0) {
-      this.evictionQueue.poll()
-    }
-
-    while (this.insertedAtQueue.size() > 0) {
-      this.insertedAtQueue.poll()
-    }
   }
 }
