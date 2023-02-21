@@ -14,7 +14,7 @@ export class Migration000 extends Migration {
   path = __filename
 
   prepare(node: IronfishNode): IDatabase {
-    /* replace with node.chain.location if applying migration to the blockchain
+    /* replace line below with node.chain.location if applying migration to the blockchain
      * database
      */
     return createDB({ location: node.config.walletDatabasePath })
