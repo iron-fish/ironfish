@@ -1283,7 +1283,7 @@ describe('Accounts', () => {
       // TODO(mat): This test is flaky. The order of notes may change, so if
       // this is failing, change this to `getNote(1)`. There's a ticket to
       // resolve this, but trying to focus on phase 3 first.
-      const outputNote = blockB.transactions[1].getNote(0)
+      const outputNote = blockB.transactions[1].getNote(1)
       const note = outputNote.decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(note)
 

@@ -1303,11 +1303,14 @@ export class Wallet {
       throw new Error(`Account already exists with the name ${accountValue.name}`)
     }
     const accounts = this.listAccounts()
-    if (accounts.find((a) => accountValue.spendingKey === a.spendingKey)) {
+    if (
+      accountValue.spendingKey &&
+      accounts.find((a) => accountValue.spendingKey === a.spendingKey)
+    ) {
       throw new Error(`Account already exists with provided spending key`)
     }
     if (accounts.find((a) => accountValue.viewKey === a.viewKey)) {
-      throw new Error(`Account already exists with provided view key`)
+      throw new Error(`Account already exists with provided view key(s)`)
     }
 
     validateAccount(accountValue)
