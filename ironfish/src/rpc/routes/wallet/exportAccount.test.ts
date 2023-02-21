@@ -26,7 +26,8 @@ describe('Route wallet/exportAccount', () => {
         name: account.name,
         spendingKey: account.spendingKey,
         viewKey: account.viewKey,
-        outgoingViewKey: account.incomingViewKey,
+        incomingViewKey: account.incomingViewKey,
+        outgoingViewKey: account.outgoingViewKey,
         publicAddress: account.publicAddress,
         version: account.version,
       },
@@ -38,7 +39,7 @@ describe('Route wallet/exportAccount', () => {
     const response = await routeTest.client
       .request<any>('wallet/exportAccount', {
         account: account.name,
-        viewOnly: false,
+        viewOnly: true,
       })
       .waitForEnd()
 
@@ -48,7 +49,8 @@ describe('Route wallet/exportAccount', () => {
         name: account.name,
         spendingKey: null,
         viewKey: account.viewKey,
-        outgoingViewKey: account.incomingViewKey,
+        incomingViewKey: account.incomingViewKey,
+        outgoingViewKey: account.outgoingViewKey,
         publicAddress: account.publicAddress,
         version: account.version,
       },
