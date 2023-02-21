@@ -66,3 +66,18 @@ $ ironfish wallet:use
 > ℹ️ Use [inquirer](https://github.com/sboudrias/Inquirer.js) to show prompts like this.
 
 However, if prompting is required to complete a command, this means the user will not be able to script the command. Ensure that args or flags can always be provided to bypass the prompt. In this case, `ironfish wallet:use` can take in an argument for the account to set as default to skip the prompt.
+
+## Output
+
+### Progress
+
+Many commands need to run long running operations. The CLI should not look like it's unresponsive. For example, `ironfish wallet:post` posts a transaction and optionally sends it to the network:
+
+```
+ironfish wallet:post 403662343137346
+Posting the transaction... done
+```
+
+Use cli.action() from cli-ux to show this output. Using this component ensures that warnings and errors from the RPC are properly displayed, the spinner is displayed correctly when it is a tty, alternative output is used when not a tty, and that the spinner will work on the right platform.
+
+Actions are displayed on stderr because they are out-of-band information on a running task.
