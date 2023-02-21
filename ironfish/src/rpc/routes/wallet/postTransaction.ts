@@ -39,13 +39,13 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
     const bytes = Buffer.from(request.data.transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(bytes)
 
-    const postedTransaction = await node.wallet.post({
+    const transaction = await node.wallet.post({
       transaction: raw,
       account,
       broadcast: request.data.broadcast,
     })
 
-    const serialized = postedTransaction.serialize()
+    const serialized = transaction.serialize()
     request.end({ transaction: serialized.toString('hex') })
   },
 )

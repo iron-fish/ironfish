@@ -870,6 +870,8 @@ export class Wallet {
     account?: Account
     broadcast?: boolean
   }): Promise<Transaction> {
+    const broadcast = options.broadcast ?? true
+
     const spendingKey = options.account?.spendingKey ?? options.spendingKey
     Assert.isTruthy(spendingKey, `Spending key is required to post transaction`)
 
@@ -880,7 +882,7 @@ export class Wallet {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
-    if (options.broadcast) {
+    if (broadcast) {
       await this.addPendingTransaction(transaction)
       this.memPool.acceptTransaction(transaction)
       this.broadcastTransaction(transaction)
