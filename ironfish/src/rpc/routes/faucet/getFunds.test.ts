@@ -10,82 +10,68 @@ jest.mock('axios')
 describe('Route faucet.getFunds', () => {
   const routeTest = createRouteTest()
 
-  describe('if the account does not exist in the DB', () => {
-    it('should fail', async () => {
-      await expect(
-        routeTest.client
-          .request('faucet/getFunds', { accountName: 'test-notfound' })
-          .waitForEnd(),
-      ).rejects.toThrow('Account test-notfound could not be found')
+  let accountName = 'test' + Math.random().toString()
+  const email = 'test@test.com'
+  let publicAddress = ''
+
+  beforeEach(async () => {
+    accountName = 'test' + Math.random().toString()
+    const account = await routeTest.node.wallet.createAccount(accountName, true)
+    publicAddress = account.publicAddress
+  })
+
+  describe('when the API request succeeds', () => {
+    it('returns a 200 status code', async () => {
+      routeTest.node.config.set('getFundsApi', 'foo.com')
+
+      axios.post = jest.fn().mockImplementationOnce(() => Promise.resolve({ data: { id: 5 } }))
+
+      const response = await routeTest.client
+        .request('faucet/getFunds', {
+          accountName,
+          email,
+        })
+        .waitForEnd()
+
+      // Response gives back string for ID
+      expect(response).toMatchObject({ status: 200, content: { id: '5' } })
+
+      expect(axios.post).toHaveBeenCalledWith(
+        'foo.com',
+        {
+          email,
+          public_key: publicAddress,
+        },
+        expect.anything(),
+      )
     })
   })
 
-  describe('With a default account and the db', () => {
-    let accountName = 'test' + Math.random().toString()
-    const email = 'test@test.com'
-    let publicAddress = ''
-
-    beforeEach(async () => {
-      accountName = 'test' + Math.random().toString()
-      const account = await routeTest.node.wallet.createAccount(accountName, true)
-      publicAddress = account.publicAddress
-    })
-
-    describe('when the API request succeeds', () => {
-      it('returns a 200 status code', async () => {
-        routeTest.node.config.set('getFundsApi', 'foo.com')
-
-        axios.post = jest
-          .fn()
-          .mockImplementationOnce(() => Promise.resolve({ data: { id: 5 } }))
-
-        const response = await routeTest.client
-          .request('faucet/getFunds', {
-            accountName,
-            email,
-          })
-          .waitForEnd()
-
-        // Response gives back string for ID
-        expect(response).toMatchObject({ status: 200, content: { id: '5' } })
-
-        expect(axios.post).toHaveBeenCalledWith(
-          'foo.com',
-          {
-            email,
-            public_key: publicAddress,
-          },
-          expect.anything(),
-        )
-      })
-    })
-
-    describe('when too many faucet requests have been made', () => {
-      it('throws an error', async () => {
-        axios.post = jest.fn().mockImplementationOnce(() => {
-          throw {
-            response: {
-              data: {
-                code: 'faucet_max_requests_reached',
-                message: 'Too many faucet requests',
-              },
+  describe('when too many faucet requests have been made', () => {
+    it('throws an error', async () => {
+      axios.post = jest.fn().mockImplementationOnce(() => {
+        throw {
+          response: {
+            data: {
+              code: 'faucet_max_requests_reached',
+              message: 'Too many faucet requests',
             },
-          }
-        })
-        await expect(
-          routeTest.client.request('faucet/getFunds', { accountName, email }).waitForEnd(),
-        ).rejects.toThrow(RpcRequestError)
+          },
+        }
       })
+      await expect(routeTest.client.getFunds({ account: accountName, email })).rejects.toThrow(
+        RpcRequestError,
+      )
     })
+  })
 
-    describe('when the API request fails', () => {
-      it('throws an error', async () => {
-        const apiResponse = new Error('API failure') as AxiosError
-        axios.post = jest.fn().mockRejectedValueOnce(apiResponse)
-        await expect(
-          routeTest.client.request('faucet/getFunds', { accountName, email }).waitForEnd(),
-        ).rejects.toThrow('API failure')
-      })
+  describe('when the API request fails', () => {
+    it('throws an error', async () => {
+      const apiResponse = new Error('API failure') as AxiosError
+      axios.post = jest.fn().mockRejectedValueOnce(apiResponse)
+      await expect(routeTest.client.getFunds({ account: accountName, email })).rejects.toThrow(
+        'API failure',
+      )
     })
   })
 })

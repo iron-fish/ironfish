@@ -63,8 +63,10 @@ impl NativeNoteEncrypted {
         self.note.eq(&other.note)
     }
 
+    /// The commitment hash of the note
+    /// This hash is what gets used for the leaf nodes in a Merkle Tree.
     #[napi]
-    pub fn merkle_hash(&self) -> Result<Buffer> {
+    pub fn hash(&self) -> Result<Buffer> {
         let mut vec: Vec<u8> = Vec::with_capacity(32);
         self.note
             .merkle_hash()

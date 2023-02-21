@@ -7,7 +7,7 @@ describe('Route node/getStatus', () => {
   const routeTest = createRouteTest()
 
   it('should get status', async () => {
-    const response = await routeTest.client.request('node/getStatus').waitForEnd()
+    const response = await routeTest.client.getNodeStatus()
 
     expect(response.status).toBe(200)
 

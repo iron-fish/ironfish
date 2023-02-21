@@ -17,7 +17,7 @@ pub const PUBLIC_ADDRESS_SIZE: usize = 32;
 
 /// The address to which funds can be sent, stored as a public
 /// transmission key. Using the incoming_viewing_key allows
-/// the creation of a unqiue public addresses without revealing the viewing key.
+/// the creation of a unique public addresses without revealing the viewing key.
 #[derive(Clone, Copy)]
 pub struct PublicAddress {
     /// The transmission key is the result of combining the diversifier with the

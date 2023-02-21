@@ -17,19 +17,6 @@ describe('burnAsset', () => {
     await routeTest.node.wallet.createAccount('account', true)
   })
 
-  describe('with no default account', () => {
-    it('throws a validation error', async () => {
-      await expect(
-        routeTest.client.burnAsset({
-          account: 'fake-account',
-          assetId: '{ url: hello }',
-          fee: '1',
-          value: '1',
-        }),
-      ).rejects.toThrow('No account found with name fake-account')
-    })
-  })
-
   describe('with an invalid fee', () => {
     it('throws a validation error', async () => {
       await expect(
@@ -39,7 +26,7 @@ describe('burnAsset', () => {
           fee: '0',
           value: '100',
         }),
-      ).rejects.toThrow('Invalid transaction fee')
+      ).rejects.toThrow('value must be equal to or greater than 1')
     })
   })
 
@@ -52,7 +39,7 @@ describe('burnAsset', () => {
           fee: '1',
           value: '-1',
         }),
-      ).rejects.toThrow('Invalid burn amount')
+      ).rejects.toThrow('value must be equal to or greater than 1')
     })
   })
 

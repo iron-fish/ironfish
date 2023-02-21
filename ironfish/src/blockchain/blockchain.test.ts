@@ -1430,7 +1430,7 @@ describe('Blockchain', () => {
 
           return node.chain.newBlock(
             [burnTransaction, spendTransaction],
-            await node.strategy.createMinersFee(fee, 3, generateKey().spending_key),
+            await node.strategy.createMinersFee(fee, 3, generateKey().spendingKey),
           )
         })
 

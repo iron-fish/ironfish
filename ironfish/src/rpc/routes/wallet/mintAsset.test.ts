@@ -13,20 +13,6 @@ describe('mint', () => {
     await routeTest.node.wallet.createAccount('account', true)
   })
 
-  describe('with no default account', () => {
-    it('throws a validation error', async () => {
-      await expect(
-        routeTest.client.mintAsset({
-          account: 'fake-account',
-          fee: '1',
-          metadata: '{ url: hello }',
-          name: 'fake-coin',
-          value: '1',
-        }),
-      ).rejects.toThrow('No account found with name fake-account')
-    })
-  })
-
   describe('with an invalid fee', () => {
     it('throws a validation error', async () => {
       await expect(
@@ -37,7 +23,7 @@ describe('mint', () => {
           name: 'fake-coin',
           value: '100',
         }),
-      ).rejects.toThrow('Invalid transaction fee')
+      ).rejects.toThrow('value must be equal to or greater than 1')
     })
   })
 
@@ -51,7 +37,7 @@ describe('mint', () => {
           name: 'fake-coin',
           value: '-1',
         }),
-      ).rejects.toThrow('Invalid mint amount')
+      ).rejects.toThrow('value must be equal to or greater than 1')
     })
   })
 
@@ -70,11 +56,16 @@ describe('mint', () => {
       }
 
       const mintTransaction = await useTxFixture(wallet, account, account, async () => {
-        const raw = await wallet.createTransaction(account, [], [mintData], [], {
+        const raw = await wallet.createTransaction({
+          account,
+          mints: [mintData],
           fee: 0n,
           expiration: 0,
         })
-        return wallet.post(raw, node.memPool, account.spendingKey)
+        return wallet.post({
+          transaction: raw,
+          account,
+        })
       })
 
       jest.spyOn(wallet, 'mint').mockResolvedValueOnce(mintTransaction)

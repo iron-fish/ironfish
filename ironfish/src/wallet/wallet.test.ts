@@ -702,7 +702,7 @@ describe('Accounts', () => {
 
       expect(node.wallet.getAccountByName(account.name)).toBeNull()
 
-      // It should not be cleand yet
+      // It should not be cleaned yet
       await expect(
         node.wallet.walletDb.loadTransaction(account, tx.hash()),
       ).resolves.not.toBeUndefined()
@@ -733,9 +733,9 @@ describe('Accounts', () => {
       Assert.isNotUndefined(transactionValue)
       Assert.isNotNull(transactionValue.sequence)
 
-      const rawTransaction = node.wallet.createTransaction(
-        accountA,
-        [
+      const rawTransaction = node.wallet.createTransaction({
+        account: accountA,
+        outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 10n,
@@ -743,12 +743,8 @@ describe('Accounts', () => {
             assetId: Asset.nativeId(),
           },
         ],
-        [],
-        [],
-        {
-          expiration: 0,
-        },
-      )
+        expiration: 0,
+      })
 
       await expect(rawTransaction).rejects.toThrow(
         'Fee or FeeRate is required to create a transaction',
@@ -771,9 +767,9 @@ describe('Accounts', () => {
       Assert.isNotUndefined(transactionValue)
       Assert.isNotNull(transactionValue.sequence)
 
-      const rawTransaction = await node.wallet.createTransaction(
-        accountA,
-        [
+      const rawTransaction = await node.wallet.createTransaction({
+        account: accountA,
+        outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 10n,
@@ -781,13 +777,9 @@ describe('Accounts', () => {
             assetId: Asset.nativeId(),
           },
         ],
-        [],
-        [],
-        {
-          expiration: 0,
-          feeRate: 200n,
-        },
-      )
+        expiration: 0,
+        feeRate: 200n,
+      })
 
       expect(rawTransaction.outputs.length).toBe(1)
       expect(rawTransaction.expiration).toBeDefined()
@@ -1027,7 +1019,7 @@ describe('Accounts', () => {
 
         const assetId = Buffer.from('thisisafakeidentifier', 'hex')
         await expect(
-          node.wallet.mint(node.memPool, account, {
+          node.wallet.mint(account, {
             assetId,
             fee: BigInt(0),
             expirationDelta: node.config.get('transactionExpirationDelta'),
@@ -1063,7 +1055,7 @@ describe('Accounts', () => {
 
         const mintValueB = BigInt(10)
         const transaction = await useTxFixture(node.wallet, account, account, () => {
-          return node.wallet.mint(node.memPool, account, {
+          return node.wallet.mint(account, {
             assetId: asset.id(),
             fee: BigInt(0),
             expirationDelta: node.config.get('transactionExpirationDelta'),
@@ -1073,7 +1065,7 @@ describe('Accounts', () => {
 
         const mintBlock = await node.chain.newBlock(
           [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 4, generateKey().spending_key),
+          await node.strategy.createMinersFee(transaction.fee(), 4, generateKey().spendingKey),
         )
         await expect(node.chain).toAddBlock(mintBlock)
         await node.wallet.updateHead()
@@ -1224,16 +1216,21 @@ describe('Accounts', () => {
 
       // Mint some coins
       const blockB = await useBlockFixture(node.chain, async () => {
-        const raw = await node.wallet.createTransaction(account, [], [mintData], [], {
+        const raw = await node.wallet.createTransaction({
+          account,
+          mints: [mintData],
           fee: 0n,
           expiration: 0,
         })
 
-        const transaction = await node.wallet.post(raw, node.memPool, account.spendingKey)
+        const transaction = await node.wallet.post({
+          transaction: raw,
+          account,
+        })
 
         return node.chain.newBlock(
           [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
+          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spendingKey),
         )
       })
       await expect(node.chain).toAddBlock(blockB)
@@ -1805,9 +1802,9 @@ describe('Accounts', () => {
 
       await node.wallet.updateHead()
 
-      let accoundAHead = await accountA.getHead()
+      let accountAHead = await accountA.getHead()
 
-      expect(accoundAHead?.hash).toEqualHash(blockA2.header.hash)
+      expect(accountAHead?.hash).toEqualHash(blockA2.header.hash)
 
       await node.chain.db.transaction(async (tx) => {
         await node.chain.disconnect(blockA2, tx)
@@ -1815,9 +1812,9 @@ describe('Accounts', () => {
 
       await node.wallet.updateHead()
 
-      accoundAHead = await accountA.getHead()
+      accountAHead = await accountA.getHead()
 
-      expect(accoundAHead?.hash).toEqualHash(blockA2.header.previousBlockHash)
+      expect(accountAHead?.hash).toEqualHash(blockA2.header.previousBlockHash)
     })
 
     it('should update the account unconfirmed balance', async () => {

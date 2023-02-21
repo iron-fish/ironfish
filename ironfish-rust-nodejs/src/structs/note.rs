@@ -5,11 +5,12 @@
 use ironfish_rust::{
     assets::asset::{asset_generator_from_id, ID_LENGTH as ASSET_ID_LENGTH},
     note::{AMOUNT_VALUE_SIZE, GENERATOR_SIZE, MEMO_SIZE, SCALAR_SIZE},
+    ViewKey,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
 use napi_derive::napi;
 
-use ironfish_rust::{Note, SaplingKey};
+use ironfish_rust::Note;
 
 use ironfish_rust::keys::PUBLIC_ADDRESS_SIZE;
 
@@ -99,6 +100,13 @@ impl NativeNote {
         Ok(Buffer::from(arr))
     }
 
+    /// The commitment hash of the note
+    /// This hash is what gets used for the leaf nodes in a Merkle Tree.
+    #[napi]
+    pub fn hash(&self) -> Buffer {
+        Buffer::from(&self.note.commitment()[..])
+    }
+
     /// Value this note represents.
     #[napi]
     pub fn value(&self) -> u64 {
@@ -138,12 +146,12 @@ impl NativeNote {
     /// only at the time the note is spent. This key is collected in a massive
     /// 'nullifier set', preventing double-spend.
     #[napi]
-    pub fn nullifier(&self, owner_private_key: String, position: BigInt) -> Result<Buffer> {
+    pub fn nullifier(&self, owner_view_key: String, position: BigInt) -> Result<Buffer> {
         let position_u64 = position.get_u64().1;
 
-        let private_key = SaplingKey::from_hex(&owner_private_key).map_err(to_napi_err)?;
+        let view_key = ViewKey::from_hex(&owner_view_key).map_err(to_napi_err)?;
 
-        let nullifier: &[u8] = &self.note.nullifier(&private_key, position_u64).0;
+        let nullifier: &[u8] = &self.note.nullifier(&view_key, position_u64).0;
 
         Ok(Buffer::from(nullifier))
     }

@@ -5,10 +5,10 @@
 import ws from 'ws'
 import { Assert } from '../../assert'
 import { Identity, isIdentity } from '../identity'
+import { GetBlockHeadersResponse } from '../messages/getBlockHeaders'
 import { GetBlockTransactionsResponse } from '../messages/getBlockTransactions'
 import { GetCompactBlockResponse } from '../messages/getCompactBlock'
 import { IncomingPeerMessage, NetworkMessage } from '../messages/networkMessage'
-import { ConnectionRetry } from '../peers/connectionRetry'
 import {
   Connection,
   ConnectionDirection,
@@ -154,27 +154,13 @@ export function getSignalingWebRtcPeer(
 
   // We don't expect this function to be called multiple times, so make sure
   // we're not resetting pre-existing peer candidate data.
-  Assert.isFalse(pm.peerCandidateMap.has(brokeringPeerIdentity))
-  Assert.isFalse(pm.peerCandidateMap.has(peerIdentity))
+  Assert.isFalse(pm.peerCandidates.has(peerIdentity))
 
   // Link the peers
-  pm.peerCandidateMap.set(brokeringPeerIdentity, {
-    address: brokeringPeer.address,
-    port: brokeringPeer.port,
-    neighbors: new Set([peerIdentity]),
-    webRtcRetry: new ConnectionRetry(),
-    websocketRetry: new ConnectionRetry(),
-    peerRequestedDisconnectUntil: null,
-    localRequestedDisconnectUntil: null,
-  })
-  pm.peerCandidateMap.set(peerIdentity, {
+  pm.peerCandidates.addFromPeerList(brokeringPeerIdentity, {
     address: peer.address,
     port: peer.port,
-    neighbors: new Set([brokeringPeerIdentity]),
-    webRtcRetry: new ConnectionRetry(),
-    websocketRetry: new ConnectionRetry(),
-    peerRequestedDisconnectUntil: null,
-    localRequestedDisconnectUntil: null,
+    identity: Buffer.from(peerIdentity, 'base64'),
   })
 
   // Verify peer2 is not connected
@@ -247,4 +233,18 @@ export function expectGetBlockTransactionsResponseToMatch(
   })
 
   expect({ ...a, transactions: undefined }).toMatchObject({ ...b, transactions: undefined })
+}
+
+export function expectGetBlockHeadersResponseToMatch(
+  a: GetBlockHeadersResponse,
+  b: GetBlockHeadersResponse,
+): void {
+  expect(a.headers.length).toEqual(b.headers.length)
+  a.headers.forEach((headerA, headerIndexA) => {
+    const headerB = b.headers[headerIndexA]
+
+    expect(headerA.hash).toEqual(headerB.hash)
+  })
+
+  expect({ ...a, headers: undefined }).toMatchObject({ ...b, headers: undefined })
 }

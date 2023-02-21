@@ -24,6 +24,7 @@ import { createNodeTest } from '../testUtilities/nodeTest'
 import { parseNetworkMessage } from './messageRegistry'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
+import { GetBlockHeadersRequest, GetBlockHeadersResponse } from './messages/getBlockHeaders'
 import {
   GetBlockTransactionsRequest,
   GetBlockTransactionsResponse,
@@ -40,6 +41,7 @@ import {
 } from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
 import {
+  expectGetBlockHeadersResponseToMatch,
   expectGetBlockTransactionsResponseToMatch,
   expectGetCompactBlockResponseToMatch,
   getConnectedPeer,
@@ -50,6 +52,15 @@ import {
 } from './testUtilities'
 import { NetworkMessageType } from './types'
 import { VERSION_PROTOCOL } from './version'
+
+jest.mock('./version', () => {
+  const moduleMock = jest.requireActual<typeof import('./version')>('./version')
+  return {
+    ...moduleMock,
+    MAX_REQUESTED_HEADERS: 4,
+    MAX_HEADER_LOOKUPS: 8,
+  }
+})
 
 jest.useFakeTimers()
 
@@ -373,6 +384,267 @@ describe('PeerNetwork', () => {
       await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
 
       expect(sendSpy).toHaveBeenCalledWith(response)
+    })
+  })
+
+  describe('handles requests for block headers', () => {
+    const nodeTest = createNodeTest()
+
+    it('should respond to GetBlockHeadersRequest', async () => {
+      const { node, peerNetwork } = nodeTest
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+      const block5 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block5)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlockHeadersRequest(2, 3, 0, false, rpcId)
+      const response = new GetBlockHeadersResponse(
+        [block2.header, block3.header, block4.header],
+        rpcId,
+      )
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
+      expectGetBlockHeadersResponseToMatch(
+        sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
+        response,
+      )
+    })
+
+    it('should respond to GetBlockHeadersRequest with skip', async () => {
+      const { node, peerNetwork } = nodeTest
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+      const block5 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block5)
+      const block6 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block6)
+      const block7 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block7)
+      const block8 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block8)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlockHeadersRequest(2, 3, 2, false, rpcId)
+      const response = new GetBlockHeadersResponse(
+        [block2.header, block5.header, block8.header],
+        rpcId,
+      )
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
+      expectGetBlockHeadersResponseToMatch(
+        sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
+        response,
+      )
+    })
+
+    it('should respond to GetBlockHeadersRequest with reverse', async () => {
+      const { node, peerNetwork } = nodeTest
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlockHeadersRequest(4, 3, 0, true, rpcId)
+      const response = new GetBlockHeadersResponse(
+        [block4.header, block3.header, block2.header],
+        rpcId,
+      )
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
+      expectGetBlockHeadersResponseToMatch(
+        sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
+        response,
+      )
+    })
+
+    it('should respond to GetBlockHeadersRequest with reverse and skip', async () => {
+      const { node, peerNetwork } = nodeTest
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlockHeadersRequest(4, 2, 1, true, rpcId)
+      const response = new GetBlockHeadersResponse([block4.header, block2.header], rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
+      expectGetBlockHeadersResponseToMatch(
+        sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
+        response,
+      )
+    })
+
+    it('should respond to GetBlockHeadersRequest with reverse, skip and start as buffer', async () => {
+      const { node, peerNetwork } = nodeTest
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlockHeadersRequest(block4.header.hash, 2, 1, true, rpcId)
+      const response = new GetBlockHeadersResponse([block4.header, block2.header], rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
+      expectGetBlockHeadersResponseToMatch(
+        sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
+        response,
+      )
+    })
+
+    it('responds with CannotSatisfy when requesting too many headers', async () => {
+      const { node, peerNetwork } = nodeTest
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+      const peerIdentity = peer.getIdentityOrThrow()
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlockHeadersRequest(block2.header.hash, 5, 1, false, rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(CannotSatisfyRequest)
+    })
+
+    describe('lookup limit', () => {
+      it('includes headers within the limit', async () => {
+        const { node, peerNetwork } = nodeTest
+        const block2 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block2)
+        const block3 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block3)
+        const block4 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block4)
+        const block5 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block5)
+        const block6 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block6)
+        const block7 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block7)
+        const block8 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block8)
+        const block9 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block9)
+        const block10 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block10)
+
+        const { peer } = getConnectedPeer(peerNetwork.peerManager)
+        const peerIdentity = peer.getIdentityOrThrow()
+
+        const sendSpy = jest.spyOn(peer, 'send')
+
+        const rpcId = 432
+        const message = new GetBlockHeadersRequest(block2.header.sequence, 4, 6, false, rpcId)
+        // The start header, block2, is the first lookup. Then we skip 6,
+        // resulting in 7 lookups. The 8th and final lookup is block9.
+        const response = new GetBlockHeadersResponse([block2.header, block9.header], rpcId)
+
+        await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+        expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
+        expectGetBlockHeadersResponseToMatch(
+          sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
+          response,
+        )
+      })
+
+      it('does not include headers beyond the limit', async () => {
+        const { node, peerNetwork } = nodeTest
+        const block2 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block2)
+        const block3 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block3)
+        const block4 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block4)
+        const block5 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block5)
+        const block6 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block6)
+        const block7 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block7)
+        const block8 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block8)
+        const block9 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block9)
+        const block10 = await useMinerBlockFixture(node.chain)
+        await expect(node.chain).toAddBlock(block10)
+
+        const { peer } = getConnectedPeer(peerNetwork.peerManager)
+        const peerIdentity = peer.getIdentityOrThrow()
+
+        const sendSpy = jest.spyOn(peer, 'send')
+
+        const rpcId = 432
+        const message = new GetBlockHeadersRequest(block2.header.sequence, 4, 7, false, rpcId)
+        // The start header, block2, is the first lookup. Then we skip 7,
+        // resulting in 8 lookups. Thus, the header from block10 is not included
+        // since it would be the 9th lookup.
+        const response = new GetBlockHeadersResponse([block2.header], rpcId)
+
+        await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+
+        expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
+        expectGetBlockHeadersResponseToMatch(
+          sendSpy.mock.calls[0][0] as GetBlockHeadersResponse,
+          response,
+        )
+      })
     })
   })
 

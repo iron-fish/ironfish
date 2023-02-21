@@ -28,23 +28,23 @@ export class DeleteCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { args, flags } = await this.parse(DeleteCommand)
     const confirm = flags.confirm
-    const name = args.account as string
+    const account = args.account as string
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.removeAccount({ name, confirm })
+    const response = await client.removeAccount({ account, confirm })
 
     if (response.content.needsConfirm) {
-      const value = await CliUx.ux.prompt(`Are you sure? Type ${name} to confirm`)
+      const value = await CliUx.ux.prompt(`Are you sure? Type ${account} to confirm`)
 
-      if (value !== name) {
-        this.log(`Aborting: ${value} did not match ${name}`)
+      if (value !== account) {
+        this.log(`Aborting: ${value} did not match ${account}`)
         this.exit(1)
       }
 
-      await client.removeAccount({ name, confirm: true })
+      await client.removeAccount({ account, confirm: true })
     }
 
-    this.log(`Account '${name}' successfully deleted.`)
+    this.log(`Account '${account}' successfully deleted.`)
   }
 }

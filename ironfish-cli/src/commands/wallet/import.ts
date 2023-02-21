@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKeyFromPrivateKey, wordsToSpendingKey } from '@ironfish/rust-nodejs'
-import { AccountImport, Bech32m, JSONUtils, PromiseUtils } from '@ironfish/sdk'
+import {
+  ACCOUNT_SCHEMA_VERSION,
+  AccountImport,
+  Bech32m,
+  JSONUtils,
+  PromiseUtils,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -52,6 +58,10 @@ export class ImportCommand extends IronfishCommand {
       CliUx.ux.error(`Invalid import type`)
     }
 
+    if (!account.version) {
+      account.version = ACCOUNT_SCHEMA_VERSION as number
+    }
+
     const result = await client.importAccount({
       account,
       rescan: flags.rescan,
@@ -89,7 +99,7 @@ export class ImportCommand extends IronfishCommand {
 
   static verifySpendingKey(spendingKey: string): string | null {
     try {
-      return generateKeyFromPrivateKey(spendingKey)?.spending_key
+      return generateKeyFromPrivateKey(spendingKey)?.spendingKey
     } catch (e) {
       return null
     }
@@ -110,7 +120,7 @@ export class ImportCommand extends IronfishCommand {
       const name = await CliUx.ux.prompt('Enter a new account name', {
         required: true,
       })
-      return { name, spendingKey }
+      return { name, spendingKey, version: ACCOUNT_SCHEMA_VERSION as number }
     }
 
     // raw json

@@ -11,6 +11,7 @@ import {
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { BufferUtils } from '../utils/buffer'
+import { NoteEncryptedHash } from './noteEncrypted'
 
 export class Note {
   private readonly noteSerialized: Buffer
@@ -62,6 +63,12 @@ export class Note {
     }
   }
 
+  hash(): NoteEncryptedHash {
+    const hash = this.takeReference().hash()
+    this.returnReference()
+    return hash
+  }
+
   value(): bigint {
     return this._value
   }
@@ -82,8 +89,8 @@ export class Note {
     return this._assetId
   }
 
-  nullifier(ownerPrivateKey: string, position: bigint): Buffer {
-    const buf = this.takeReference().nullifier(ownerPrivateKey, position)
+  nullifier(ownerViewKey: string, position: bigint): Buffer {
+    const buf = this.takeReference().nullifier(ownerViewKey, position)
     this.returnReference()
     return buf
   }

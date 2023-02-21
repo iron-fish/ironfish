@@ -70,7 +70,7 @@ export class FaucetCommand extends IronfishCommand {
 
     try {
       await client.getFunds({
-        accountName,
+        account: accountName,
         email,
       })
     } catch (error: unknown) {

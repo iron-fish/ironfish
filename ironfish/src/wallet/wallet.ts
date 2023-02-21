@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   Asset,
-  ASSET_ID_LENGTH,
-  ASSET_LENGTH,
   generateKey,
   generateKeyFromPrivateKey,
   Note as NativeNote,
@@ -26,9 +24,7 @@ import { Mutex } from '../mutex'
 import { BlockHeader } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
 import { Note } from '../primitives/note'
-import { NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
-import { SPEND_SERIALIZED_SIZE_IN_BYTE } from '../primitives/spend'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
 import {
@@ -40,7 +36,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
-import { Account, AccountImport } from './account'
+import { Account, ACCOUNT_SCHEMA_VERSION } from './account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
@@ -89,6 +85,7 @@ export class Wallet {
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
   readonly chainProcessor: ChainProcessor
+  readonly memPool: MemPool
   private readonly config: Config
 
   protected rebroadcastAfter: number
@@ -104,6 +101,7 @@ export class Wallet {
   constructor({
     chain,
     config,
+    memPool,
     database,
     logger = createRootLogger(),
     rebroadcastAfter,
@@ -112,6 +110,7 @@ export class Wallet {
     chain: Blockchain
     config: Config
     database: WalletDB
+    memPool: MemPool
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
@@ -119,6 +118,7 @@ export class Wallet {
     this.chain = chain
     this.config = config
     this.logger = logger.withTag('accounts')
+    this.memPool = memPool
     this.walletDb = database
     this.workerPool = workerPool
     this.rebroadcastAfter = rebroadcastAfter ?? 10
@@ -330,7 +330,7 @@ export class Wallet {
           serializedNote: note.serialize(),
           incomingViewKey: account.incomingViewKey,
           outgoingViewKey: account.outgoingViewKey,
-          spendingKey: account.spendingKey,
+          viewKey: account.viewKey,
           currentNoteIndex,
           decryptForSpender,
         })
@@ -671,8 +671,7 @@ export class Wallet {
   }
 
   async send(
-    memPool: MemPool,
-    sender: Account,
+    account: Account,
     outputs: {
       publicAddress: string
       amount: bigint
@@ -684,34 +683,35 @@ export class Wallet {
     expiration?: number | null,
     confirmations?: number | null,
   ): Promise<Transaction> {
-    const raw = await this.createTransaction(sender, outputs, [], [], {
+    const raw = await this.createTransaction({
+      account,
+      outputs,
       fee,
       expirationDelta,
       expiration: expiration ?? undefined,
       confirmations: confirmations ?? undefined,
     })
 
-    return this.post(raw, memPool, sender.spendingKey)
+    return this.post({
+      transaction: raw,
+      account,
+    })
   }
 
-  async mint(
-    memPool: MemPool,
-    account: Account,
-    options: MintAssetOptions,
-  ): Promise<Transaction> {
+  async mint(account: Account, options: MintAssetOptions): Promise<Transaction> {
     let mintData: MintData
 
     if ('assetId' in options) {
-      const record = await this.chain.getAssetById(options.assetId)
-      if (!record) {
+      const asset = await this.chain.getAssetById(options.assetId)
+      if (!asset) {
         throw new Error(
           `Asset not found. Cannot mint for identifier '${options.assetId.toString('hex')}'`,
         )
       }
 
       mintData = {
-        name: record.name.toString('utf8'),
-        metadata: record.metadata.toString('utf8'),
+        name: asset.name.toString('utf8'),
+        metadata: asset.metadata.toString('utf8'),
         value: options.value,
       }
     } else {
@@ -722,18 +722,22 @@ export class Wallet {
       }
     }
 
-    const raw = await this.createTransaction(account, [], [mintData], [], {
+    const raw = await this.createTransaction({
+      account,
+      mints: [mintData],
       fee: options.fee,
       expirationDelta: options.expirationDelta,
       expiration: options.expiration,
       confirmations: options.confirmations,
     })
 
-    return this.post(raw, memPool, account.spendingKey)
+    return this.post({
+      transaction: raw,
+      account,
+    })
   }
 
   async burn(
-    memPool: MemPool,
     account: Account,
     assetId: Buffer,
     value: bigint,
@@ -742,34 +746,37 @@ export class Wallet {
     expiration?: number,
     confirmations?: number,
   ): Promise<Transaction> {
-    const raw = await this.createTransaction(account, [], [], [{ assetId, value }], {
-      fee: fee,
-      expirationDelta: expirationDelta,
-      expiration: expiration,
-      confirmations: confirmations,
+    const raw = await this.createTransaction({
+      account,
+      burns: [{ assetId, value }],
+      fee,
+      expirationDelta,
+      expiration,
+      confirmations,
     })
 
-    return this.post(raw, memPool, account.spendingKey)
+    return this.post({
+      transaction: raw,
+      account,
+    })
   }
 
-  async createTransaction(
-    sender: Account,
-    outputs: {
+  async createTransaction(options: {
+    account: Account
+    outputs?: {
       publicAddress: string
       amount: bigint
       memo: string
       assetId: Buffer
-    }[],
-    mints: MintData[],
-    burns: BurnDescription[],
-    options: {
-      fee?: bigint
-      feeRate?: bigint
-      expiration?: number
-      expirationDelta?: number
-      confirmations?: number
-    },
-  ): Promise<RawTransaction> {
+    }[]
+    mints?: MintData[]
+    burns?: BurnDescription[]
+    fee?: bigint
+    feeRate?: bigint
+    expiration?: number
+    expirationDelta?: number
+    confirmations?: number
+  }): Promise<RawTransaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
       throw new Error('You must have a genesis block to create a transaction')
@@ -781,76 +788,72 @@ export class Wallet {
 
     const confirmations = options.confirmations ?? this.config.get('confirmations')
 
-    let expiration = options.expiration
-    if (expiration === undefined && options.expirationDelta) {
-      expiration = heaviestHead.sequence + options.expirationDelta
-    }
+    const expirationDelta =
+      options.expirationDelta ?? this.config.get('transactionExpirationDelta')
 
-    if (expiration === undefined || isExpiredSequence(expiration, this.chain.head.sequence)) {
-      throw new Error('Invalid expiration sequence for transaction')
+    const expiration = options.expiration ?? heaviestHead.sequence + expirationDelta
+
+    if (isExpiredSequence(expiration, this.chain.head.sequence)) {
+      throw new Error(
+        `Invalid expiration sequence for transaction ${expiration} vs ${this.chain.head.sequence}`,
+      )
     }
 
     const unlock = await this.createTransactionMutex.lock()
 
     try {
-      this.assertHasAccount(sender)
+      this.assertHasAccount(options.account)
 
-      if (!(await this.isAccountUpToDate(sender))) {
+      if (!(await this.isAccountUpToDate(options.account))) {
         throw new Error('Your account must finish scanning before sending a transaction.')
       }
 
       const raw = new RawTransaction()
       raw.expiration = expiration
-      raw.mints = mints
-      raw.burns = burns
 
-      for (const output of outputs) {
-        const note = new NativeNote(
-          output.publicAddress,
-          output.amount,
-          output.memo,
-          output.assetId,
-          sender.publicAddress,
-        )
-
-        raw.outputs.push({ note: new Note(note.serialize()) })
+      if (options.mints) {
+        raw.mints = options.mints
       }
 
-      if (options.fee) {
+      if (options.burns) {
+        raw.burns = options.burns
+      }
+
+      if (options.outputs) {
+        for (const output of options.outputs) {
+          const note = new NativeNote(
+            output.publicAddress,
+            output.amount,
+            output.memo,
+            output.assetId,
+            options.account.publicAddress,
+          )
+
+          raw.outputs.push({ note: new Note(note.serialize()) })
+        }
+      }
+
+      if (options.fee != null) {
         raw.fee = options.fee
       }
 
-      let size = 0
       if (options.feeRate) {
-        size += 8 // spends length
-        size += 8 // notes length
-        size += 8 // fee
-        size += 4 // expiration
-        size += 64 // signature
-
-        size += raw.outputs.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
-
-        size += raw.mints.length * (ASSET_LENGTH + 8)
-
-        size += raw.burns.length * (ASSET_ID_LENGTH + 8)
-
-        raw.fee = getFee(options.feeRate, size)
+        raw.fee = getFee(options.feeRate, raw.size())
       }
 
       await this.fund(raw, {
         fee: raw.fee,
-        account: sender,
+        account: options.account,
         confirmations: confirmations,
       })
 
       if (options.feeRate) {
-        size += raw.spends.length * SPEND_SERIALIZED_SIZE_IN_BYTE
-        raw.fee = getFee(options.feeRate, size)
+        raw.fee = getFee(options.feeRate, raw.size())
         raw.spends = []
 
         await this.fund(raw, {
           fee: raw.fee,
-          account: sender,
+          account: options.account,
           confirmations: confirmations,
         })
       }
@@ -861,8 +864,15 @@ export class Wallet {
     }
   }
 
-  async post(raw: RawTransaction, memPool: MemPool, spendingKey: string): Promise<Transaction> {
-    const transaction = await this.postTransaction(raw, spendingKey)
+  async post(options: {
+    transaction: RawTransaction
+    spendingKey?: string
+    account?: Account
+  }): Promise<Transaction> {
+    const spendingKey = options.account?.spendingKey ?? options.spendingKey
+    Assert.isTruthy(spendingKey, `Spending key is required to post transaction`)
+
+    const transaction = await this.postTransaction(options.transaction, spendingKey)
 
     const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
@@ -870,7 +880,7 @@ export class Wallet {
     }
 
     await this.addPendingTransaction(transaction)
-    memPool.acceptTransaction(transaction)
+    this.memPool.acceptTransaction(transaction)
     this.broadcastTransaction(transaction)
     this.onTransactionCreated.emit(transaction)
 
@@ -1019,7 +1029,7 @@ export class Wallet {
    * Checks if a note is already on the chain when trying to spend it
    *
    * This function should be deleted once the wallet is detached from the chain,
-   * either way. It shouldn't be neccessary. It's just a hold over function to
+   * either way. It shouldn't be necessary. It's just a hold over function to
    * sanity check from wallet 1.0.
    *
    * @returns true if the note is on the chain already
@@ -1256,12 +1266,14 @@ export class Wallet {
     const key = generateKey()
 
     const account = new Account({
+      version: ACCOUNT_SCHEMA_VERSION,
       id: uuid(),
       name,
-      incomingViewKey: key.incoming_view_key,
-      outgoingViewKey: key.outgoing_view_key,
-      publicAddress: key.public_address,
-      spendingKey: key.spending_key,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
+      spendingKey: key.spendingKey,
+      viewKey: key.viewKey,
       walletDb: this.walletDb,
     })
 
@@ -1290,7 +1302,7 @@ export class Wallet {
     }
   }
 
-  async importAccount(toImport: AccountImport): Promise<Account> {
+  async importAccount(toImport: AccountValue): Promise<Account> {
     if (toImport.name && this.getAccountByName(toImport.name)) {
       throw new Error(`Account already exists with the name ${toImport.name}`)
     }
@@ -1303,10 +1315,12 @@ export class Wallet {
 
     const accountValue: AccountValue = {
       ...toImport,
+      version: ACCOUNT_SCHEMA_VERSION,
       id: uuid(),
-      incomingViewKey: key.incoming_view_key,
-      outgoingViewKey: key.outgoing_view_key,
-      publicAddress: key.public_address,
+      viewKey: key.viewKey,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
     }
 
     validateAccount(accountValue)

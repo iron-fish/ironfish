@@ -106,11 +106,10 @@ describe('Accounts', () => {
 
     // Spend the balance
     const transaction = await node.wallet.send(
-      node.memPool,
       account,
       [
         {
-          publicAddress: generateKey().public_address,
+          publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
           memo: '',
           assetId: Asset.nativeId(),
@@ -125,7 +124,7 @@ describe('Accounts', () => {
     const minersfee2 = await strategy.createMinersFee(
       transaction.fee(),
       newBlock.header.sequence + 1,
-      generateKey().spending_key,
+      generateKey().spendingKey,
     )
     const newBlock2 = await chain.newBlock([transaction], minersfee2)
     const addResult2 = await chain.addBlock(newBlock2)
@@ -175,11 +174,10 @@ describe('Accounts', () => {
 
     // Spend the balance
     const transaction = await node.wallet.send(
-      node.memPool,
       account,
       [
         {
-          publicAddress: generateKey().public_address,
+          publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
           memo: '',
           assetId: Asset.nativeId(),
@@ -197,7 +195,7 @@ describe('Accounts', () => {
     const minersfee2 = await strategy.createMinersFee(
       transaction.fee(),
       newBlock.header.sequence + 1,
-      generateKey().spending_key,
+      generateKey().spendingKey,
     )
     const newBlock2 = await chain.newBlock([transaction], minersfee2)
     const addResult2 = await chain.addBlock(newBlock2)
@@ -246,23 +244,22 @@ describe('Accounts', () => {
     })
 
     const transaction = await node.wallet.send(
-      node.memPool,
       account,
       [
         {
-          publicAddress: generateKey().public_address,
+          publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
           memo: 'recipient 1',
           assetId: Asset.nativeId(),
         },
         {
-          publicAddress: generateKey().public_address,
+          publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
           memo: 'recipient 2',
           assetId: Asset.nativeId(),
         },
         {
-          publicAddress: generateKey().public_address,
+          publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
           memo: 'recipient 3',
           assetId: Asset.nativeId(),
@@ -280,7 +277,7 @@ describe('Accounts', () => {
     const minersfee2 = await strategy.createMinersFee(
       transaction.fee(),
       newBlock.header.sequence + 1,
-      generateKey().spending_key,
+      generateKey().spendingKey,
     )
     const newBlock2 = await chain.newBlock([transaction], minersfee2)
     const addResult2 = await chain.addBlock(newBlock2)
@@ -301,11 +298,10 @@ describe('Accounts', () => {
     // Spend the balance with an invalid expiration
     await expect(
       node.wallet.send(
-        node.memPool,
         account,
         [
           {
-            publicAddress: generateKey().public_address,
+            publicAddress: generateKey().publicAddress,
             amount: BigInt(2),
             memo: '',
             assetId: Asset.nativeId(),
@@ -357,11 +353,10 @@ describe('Accounts', () => {
 
     // Spend the balance, setting expiry soon
     const transaction = await node.wallet.send(
-      node.memPool,
       account,
       [
         {
-          publicAddress: generateKey().public_address,
+          publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
           memo: '',
           assetId: Asset.nativeId(),
@@ -388,7 +383,7 @@ describe('Accounts', () => {
     const minersfee2 = await strategy.createMinersFee(
       transaction.fee(),
       newBlock.header.sequence + 1,
-      generateKey().spending_key,
+      generateKey().spendingKey,
     )
     const newBlock2 = await chain.newBlock([], minersfee2)
     const addResult2 = await chain.addBlock(newBlock2)
@@ -444,11 +439,10 @@ describe('Accounts', () => {
 
     // Spend the balance, setting expiry soon
     const transaction = await node.wallet.send(
-      node.memPool,
       account,
       [
         {
-          publicAddress: generateKey().public_address,
+          publicAddress: generateKey().publicAddress,
           amount: BigInt(2),
           memo: '',
           assetId: Asset.nativeId(),
@@ -472,7 +466,7 @@ describe('Accounts', () => {
     const minersfee2 = await strategy.createMinersFee(
       transaction.fee(),
       newBlock.header.sequence + 1,
-      generateKey().spending_key,
+      generateKey().spendingKey,
     )
     const newBlock2 = await chain.newBlock([], minersfee2)
     const addResult2 = await chain.addBlock(newBlock2)
@@ -506,9 +500,9 @@ describe('Accounts', () => {
 
     const block2 = await useBlockFixture(nodeA.chain, async () => {
       // Generate a transaction from account A to account B
-      const raw = await nodeA.wallet.createTransaction(
-        accountA,
-        [
+      const raw = await nodeA.wallet.createTransaction({
+        account: accountA,
+        outputs: [
           {
             publicAddress: accountB.publicAddress,
             amount: BigInt(1),
@@ -516,20 +510,19 @@ describe('Accounts', () => {
             assetId: Asset.nativeId(),
           },
         ],
-        [],
-        [],
-        {
-          fee: 1n,
-          expiration: 0,
-        },
-      )
+        fee: 1n,
+        expiration: 0,
+      })
 
-      const transaction = await nodeA.wallet.post(raw, nodeA.memPool, accountA.spendingKey)
+      const transaction = await nodeA.wallet.post({
+        transaction: raw,
+        account: accountA,
+      })
 
       // Create block 2
       return nodeA.chain.newBlock(
         [transaction],
-        await nodeA.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
+        await nodeA.strategy.createMinersFee(transaction.fee(), 3, generateKey().spendingKey),
       )
     })
 
@@ -539,9 +532,9 @@ describe('Accounts', () => {
     // Attempting to create another transaction for account A
     // to account C should not throw an error
     await expect(
-      nodeA.wallet.createTransaction(
-        accountA,
-        [
+      nodeA.wallet.createTransaction({
+        account: accountA,
+        outputs: [
           {
             publicAddress: accountC.publicAddress,
             amount: BigInt(1),
@@ -549,13 +542,9 @@ describe('Accounts', () => {
             assetId: Asset.nativeId(),
           },
         ],
-        [],
-        [],
-        {
-          fee: 1n,
-          expiration: 0,
-        },
-      ),
+        fee: 1n,
+        expiration: 0,
+      }),
     ).resolves.toBeTruthy()
   })
 
@@ -654,9 +643,9 @@ describe('Accounts', () => {
       nodeA.chain,
       async () => {
         // Generate a transaction from account A to account B
-        const raw = await nodeA.wallet.createTransaction(
-          accountA,
-          [
+        const raw = await nodeA.wallet.createTransaction({
+          account: accountA,
+          outputs: [
             {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
@@ -664,20 +653,19 @@ describe('Accounts', () => {
               assetId: Asset.nativeId(),
             },
           ],
-          [],
-          [],
-          {
-            fee: 1n,
-            expiration: 0,
-          },
-        )
+          fee: 0n,
+          expiration: 0,
+        })
 
-        const transaction = await nodeA.wallet.post(raw, nodeA.memPool, accountA.spendingKey)
+        const transaction = await nodeA.wallet.post({
+          transaction: raw,
+          account: accountA,
+        })
 
         // Create block A2
         return nodeA.chain.newBlock(
           [transaction],
-          await nodeA.strategy.createMinersFee(BigInt(0), 3, generateKey().spending_key),
+          await nodeA.strategy.createMinersFee(BigInt(0), 3, generateKey().spendingKey),
         )
       },
       nodeA.wallet,
@@ -768,9 +756,9 @@ describe('Accounts', () => {
       nodeB.chain,
       async () => {
         // Generate a transaction from account A to account B
-        const raw = await nodeB.wallet.createTransaction(
-          accountANodeB,
-          [
+        const raw = await nodeB.wallet.createTransaction({
+          account: accountANodeB,
+          outputs: [
             {
               publicAddress: accountB.publicAddress,
               amount: BigInt(2),
@@ -778,24 +766,19 @@ describe('Accounts', () => {
               assetId: Asset.nativeId(),
             },
           ],
-          [],
-          [],
-          {
-            fee: 0n,
-            expiration: 0,
-          },
-        )
+          fee: 0n,
+          expiration: 0,
+        })
 
-        const transaction = await nodeB.wallet.post(
-          raw,
-          nodeB.memPool,
-          accountANodeB.spendingKey,
-        )
+        const transaction = await nodeB.wallet.post({
+          transaction: raw,
+          account: accountANodeB,
+        })
 
         // Create block A2
         return nodeA.chain.newBlock(
           [transaction],
-          await nodeA.strategy.createMinersFee(BigInt(0), 3, generateKey().spending_key),
+          await nodeA.strategy.createMinersFee(BigInt(0), 3, generateKey().spendingKey),
         )
       },
       nodeB.wallet,
@@ -808,7 +791,7 @@ describe('Accounts', () => {
     const blockB2 = await useBlockFixture(nodeB.chain, async () =>
       nodeB.chain.newBlock(
         [],
-        await nodeB.strategy.createMinersFee(BigInt(0), 3, generateKey().spending_key),
+        await nodeB.strategy.createMinersFee(BigInt(0), 3, generateKey().spendingKey),
       ),
     )
     addedBlock = await nodeB.chain.addBlock(blockB2)
@@ -818,7 +801,7 @@ describe('Accounts', () => {
     const blockB3 = await useBlockFixture(nodeB.chain, async () =>
       nodeB.chain.newBlock(
         [],
-        await nodeB.strategy.createMinersFee(BigInt(0), 4, generateKey().spending_key),
+        await nodeB.strategy.createMinersFee(BigInt(0), 4, generateKey().spendingKey),
       ),
     )
     addedBlock = await nodeB.chain.addBlock(blockB3)

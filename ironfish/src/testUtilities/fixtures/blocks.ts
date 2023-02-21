@@ -72,7 +72,7 @@ export async function useMinerBlockFixture(
   addTransactionsTo?: Wallet,
   transactions: Transaction[] = [],
 ): Promise<Block> {
-  const spendingKey = account ? account.spendingKey : generateKey().spending_key
+  const spendingKey = account ? account.spendingKey : generateKey().spendingKey
   const transactionFees = transactions.reduce((a, t) => a + t.fee(), BigInt(0))
 
   return await useBlockFixture(
@@ -239,9 +239,9 @@ export async function useBlockWithTx(
     Assert.isNotUndefined(from)
     Assert.isNotUndefined(to)
 
-    const raw = await node.wallet.createTransaction(
-      from,
-      [
+    const raw = await node.wallet.createTransaction({
+      account: from,
+      outputs: [
         {
           publicAddress: to.publicAddress,
           amount: BigInt(1),
@@ -249,20 +249,19 @@ export async function useBlockWithTx(
           assetId: Asset.nativeId(),
         },
       ],
-      [],
-      [],
-      {
-        fee: BigInt(options.fee ?? 1n),
-        expiration: options.expiration ?? 0,
-        expirationDelta: 0,
-      },
-    )
+      fee: BigInt(options.fee ?? 1n),
+      expiration: options.expiration ?? 0,
+      expirationDelta: 0,
+    })
 
-    const transaction = await node.wallet.post(raw, node.memPool, from.spendingKey)
+    const transaction = await node.wallet.post({
+      transaction: raw,
+      account: from,
+    })
 
     return node.chain.newBlock(
       [transaction],
-      await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
+      await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spendingKey),
     )
   })
 
@@ -299,9 +298,9 @@ export async function useBlockWithTxs(
     for (let i = 0; i < numTransactions; i++) {
       Assert.isNotUndefined(from)
 
-      const raw = await node.wallet.createTransaction(
-        from,
-        [
+      const raw = await node.wallet.createTransaction({
+        account: from,
+        outputs: [
           {
             publicAddress: to.publicAddress,
             amount: BigInt(1),
@@ -309,16 +308,15 @@ export async function useBlockWithTxs(
             assetId: Asset.nativeId(),
           },
         ],
-        [],
-        [],
-        {
-          fee: 1n,
-          expiration: 0,
-          expirationDelta: 0,
-        },
-      )
+        fee: 1n,
+        expiration: 0,
+        expirationDelta: 0,
+      })
 
-      const transaction = await node.wallet.post(raw, node.memPool, from.spendingKey)
+      const transaction = await node.wallet.post({
+        transaction: raw,
+        account: from,
+      })
 
       await node.wallet.addPendingTransaction(transaction)
       transactions.push(transaction)
@@ -330,7 +328,7 @@ export async function useBlockWithTxs(
 
     return node.chain.newBlock(
       transactions,
-      await node.strategy.createMinersFee(transactionFees, 3, generateKey().spending_key),
+      await node.strategy.createMinersFee(transactionFees, 3, generateKey().spendingKey),
     )
   })
 

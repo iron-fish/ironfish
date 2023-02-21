@@ -4,6 +4,7 @@
 
 import {
   AMOUNT_VALUE_LENGTH,
+  ASSET_LENGTH,
   Transaction as NativeTransaction,
   TRANSACTION_EXPIRATION_LENGTH,
   TRANSACTION_FEE_LENGTH,
@@ -13,9 +14,16 @@ import bufio from 'bufio'
 import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
+import { CurrencyUtils } from '../utils/currency'
 import { BurnDescription } from './burnDescription'
 import { Note } from './note'
-import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
+import {
+  NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE,
+  NoteEncrypted,
+  NoteEncryptedHash,
+  SerializedNoteEncryptedHash,
+} from './noteEncrypted'
+import { SPEND_SERIALIZED_SIZE_IN_BYTE } from './spend'
 import { Transaction } from './transaction'
 
 // Needed for constructing a witness when creating transactions
@@ -45,6 +53,20 @@ export class RawTransaction {
     >
   }[] = []
 
+  size(): number {
+    let size = 0
+    size += 8 // spends length
+    size += 8 // notes length
+    size += 8 // fee
+    size += 4 // expiration
+    size += 64 // signature
+    size += this.outputs.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
+    size += this.mints.length * (ASSET_LENGTH + 8)
+    size += this.burns.length * (ASSET_ID_LENGTH + 8)
+    size += this.spends.length * SPEND_SERIALIZED_SIZE_IN_BYTE
+    return size
+  }
+
   post(spendingKey: string): Transaction {
     const builder = new NativeTransaction(spendingKey)
 
@@ -60,7 +82,11 @@ export class RawTransaction {
 
     for (const mint of this.mints) {
       if (mint.value > MAX_MINT_OR_BURN_VALUE) {
-        throw new Error('Cannot post transaction. Mint value exceededs maximum')
+        throw new Error(
+          `Cannot post transaction. Mint value ${CurrencyUtils.renderIron(
+            mint.value,
+          )} exceededs maximum ${CurrencyUtils.renderIron(MAX_MINT_OR_BURN_VALUE)}. `,
+        )
       }
 
       const asset = new Asset(spendingKey, mint.name, mint.metadata)
@@ -70,7 +96,11 @@ export class RawTransaction {
 
     for (const burn of this.burns) {
       if (burn.value > MAX_MINT_OR_BURN_VALUE) {
-        throw new Error('Cannot post transaction. Burn value exceededs maximum')
+        throw new Error(
+          `Cannot post transaction. Burn value ${CurrencyUtils.renderIron(
+            burn.value,
+          )} exceededs maximum ${CurrencyUtils.renderIron(MAX_MINT_OR_BURN_VALUE)}`,
+        )
       }
 
       builder.burn(burn.assetId, burn.value)

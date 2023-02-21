@@ -7,9 +7,7 @@ describe('Route config/getConfig', () => {
   const routeTest = createRouteTest()
 
   it('should error if the config name does not exist', async () => {
-    await expect(
-      routeTest.client.request('config/getConfig', { name: 'asdf' }).waitForEnd(),
-    ).rejects.toThrow()
+    await expect(routeTest.client.getConfig({ name: 'asdf' })).rejects.toThrow()
   })
 
   it('returns value of the requested ConfigOptions', async () => {

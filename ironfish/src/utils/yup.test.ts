@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { CurrencyUtils } from './currency'
 import { YupUtils } from './yup'
 
 describe('YupUtils', () => {
@@ -29,6 +30,13 @@ describe('YupUtils', () => {
       expect(YupUtils.isPort.isValidSync(1)).toBe(true)
       expect(YupUtils.isPort.isValidSync(65535)).toBe(true)
       expect(YupUtils.isPort.isValidSync(-1)).toBe(false)
+    })
+
+    it('currency', () => {
+      expect(YupUtils.currency().isValidSync(CurrencyUtils.encode(6n))).toBe(true)
+      expect(YupUtils.currency({ min: 0n }).isValidSync(CurrencyUtils.encode(-1n))).toBe(false)
+      expect(YupUtils.currency().isValidSync('hello world')).toBe(false)
+      expect(YupUtils.currency().isValidSync(0.00046)).toBe(false)
     })
   })
 })

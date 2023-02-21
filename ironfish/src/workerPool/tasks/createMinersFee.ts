@@ -77,7 +77,7 @@ export class CreateMinersFeeTask extends WorkerTask {
 
   execute({ amount, memo, spendKey, jobId }: CreateMinersFeeRequest): CreateMinersFeeResponse {
     // Generate a public address from the miner's spending key
-    const minerPublicAddress = generateKeyFromPrivateKey(spendKey).public_address
+    const minerPublicAddress = generateKeyFromPrivateKey(spendKey).publicAddress
     const minerNote = new Note(
       minerPublicAddress,
       amount,

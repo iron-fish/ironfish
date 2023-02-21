@@ -21,8 +21,6 @@ import {
   GetAssetResponse,
   GetBalanceRequest,
   GetBalanceResponse,
-  GetBlockInfoRequest,
-  GetBlockInfoResponse,
   GetBlockRequest,
   GetBlockResponse,
   GetChainInfoRequest,
@@ -78,6 +76,7 @@ import {
   FollowChainStreamRequest,
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
+import { UnsetConfigRequest, UnsetConfigResponse } from '../routes/config/unsetConfig'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import { GetBannedPeersRequest, GetBannedPeersResponse } from '../routes/peers/getBannedPeers'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
@@ -425,10 +424,6 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  async getBlock(params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> {
-    return this.request<GetBlockResponse>(`${ApiNamespace.chain}/getBlock`, params).waitForEnd()
-  }
-
   async getChainInfo(
     params: GetChainInfoRequest = undefined,
   ): Promise<RpcResponseEnded<GetChainInfoResponse>> {
@@ -456,13 +451,8 @@ export abstract class RpcClient {
     )
   }
 
-  async getBlockInfo(
-    params: GetBlockInfoRequest,
-  ): Promise<RpcResponseEnded<GetBlockInfoResponse>> {
-    return this.request<GetBlockInfoResponse>(
-      `${ApiNamespace.chain}/getBlockInfo`,
-      params,
-    ).waitForEnd()
+  async getBlock(params: GetBlockRequest): Promise<RpcResponseEnded<GetBlockResponse>> {
+    return this.request<GetBlockResponse>(`${ApiNamespace.chain}/getBlock`, params).waitForEnd()
   }
 
   async getDifficulty(
@@ -513,6 +503,15 @@ export abstract class RpcClient {
   async setConfig(params: SetConfigRequest): Promise<RpcResponseEnded<SetConfigResponse>> {
     return this.request<SetConfigResponse>(
       `${ApiNamespace.config}/setConfig`,
+      params,
+    ).waitForEnd()
+  }
+
+  async unsetConfig(
+    params: UnsetConfigRequest,
+  ): Promise<RpcResponseEnded<UnsetConfigResponse>> {
+    return this.request<UnsetConfigResponse>(
+      `${ApiNamespace.config}/unsetConfig`,
       params,
     ).waitForEnd()
   }

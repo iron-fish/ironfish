@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  BufferUtils,
   CreateTransactionRequest,
   CreateTransactionResponse,
   CurrencyUtils,
@@ -15,6 +16,7 @@ import { IronfishCommand } from '../../command'
 import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
+import { doEligibilityCheck } from '../../utils/testnet'
 
 export class Mint extends IronfishCommand {
   static description = 'Mint tokens and increase supply for a given asset'
@@ -40,7 +42,7 @@ export class Mint extends IronfishCommand {
     }),
     amount: IronFlag({
       char: 'a',
-      description: 'Amount of coins to send',
+      description: 'Amount of coins to mint in IRON',
       flagName: 'amount',
     }),
     assetId: Flags.string({
@@ -78,11 +80,20 @@ export class Mint extends IronfishCommand {
       description:
         'The block sequence that the transaction can not be mined after. Set to 0 for no expiration.',
     }),
+    eligibility: Flags.boolean({
+      default: true,
+      allowNo: true,
+      description: 'check testnet eligibility',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Mint)
     const client = await this.sdk.connectRpc(false, true)
+
+    if (flags.eligibility) {
+      await doEligibilityCheck(client, this.logger)
+    }
 
     const status = await client.getNodeStatus()
     if (!status.content.blockchain.synced) {
@@ -175,7 +186,7 @@ export class Mint extends IronfishCommand {
       fee = flags.fee
 
       const createResponse = await client.createTransaction({
-        sender: account,
+        account,
         outputs: [],
         mints: [
           {
@@ -203,7 +214,7 @@ export class Mint extends IronfishCommand {
       const feeRateOptions: { value: number; name: string }[] = []
 
       const createTransactionRequest: CreateTransactionRequest = {
-        sender: account,
+        account,
         outputs: [],
         mints: [
           {
@@ -308,7 +319,7 @@ ${amountString} plus a transaction fee of ${feeString} with the account ${accoun
     try {
       const result = await client.postTransaction({
         transaction: rawTransactionResponse,
-        sender: account,
+        account,
       })
 
       stopProgressBar()
@@ -319,7 +330,7 @@ ${amountString} plus a transaction fee of ${feeString} with the account ${accoun
       const minted = transaction.mints[0]
 
       this.log(`
-Minted asset ${minted.asset.name().toString('hex')} from ${account}
+Minted asset ${BufferUtils.toHuman(minted.asset.name())} from ${account}
 Asset Identifier: ${minted.asset.id().toString('hex')}
 Value: ${CurrencyUtils.renderIron(minted.value, true, minted.asset.id().toString('hex'))}
 

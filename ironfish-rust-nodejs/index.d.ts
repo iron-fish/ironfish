@@ -52,10 +52,11 @@ export const enum LanguageCode {
   Spanish = 7
 }
 export interface Key {
-  spending_key: string
-  incoming_view_key: string
-  outgoing_view_key: string
-  public_address: string
+  spendingKey: string
+  viewKey: string
+  incomingViewKey: string
+  outgoingViewKey: string
+  publicAddress: string
 }
 export function generateKey(): Key
 export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
@@ -91,7 +92,11 @@ export class NoteEncrypted {
   constructor(jsBytes: Buffer)
   serialize(): Buffer
   equals(other: NoteEncrypted): boolean
-  merkleHash(): Buffer
+  /**
+   * The commitment hash of the note
+   * This hash is what gets used for the leaf nodes in a Merkle Tree.
+   */
+  hash(): Buffer
   /**
    * Hash two child hashes together to calculate the hash of the
    * new parent
@@ -107,6 +112,11 @@ export class Note {
   constructor(owner: string, value: bigint, memo: string, assetId: Buffer, sender: string)
   static deserialize(jsBytes: Buffer): NativeNote
   serialize(): Buffer
+  /**
+   * The commitment hash of the note
+   * This hash is what gets used for the leaf nodes in a Merkle Tree.
+   */
+  hash(): Buffer
   /** Value this note represents. */
   value(): bigint
   /**
@@ -129,7 +139,7 @@ export class Note {
    * only at the time the note is spent. This key is collected in a massive
    * 'nullifier set', preventing double-spend.
    */
-  nullifier(ownerPrivateKey: string, position: bigint): Buffer
+  nullifier(ownerViewKey: string, position: bigint): Buffer
 }
 export type NativeTransactionPosted = TransactionPosted
 export class TransactionPosted {

@@ -22,7 +22,7 @@ import { WalletDB } from './walletdb/walletdb'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
-export type AccountImport = { name: string; spendingKey: string }
+export const ACCOUNT_SCHEMA_VERSION = 1
 
 export class Account {
   private readonly walletDb: WalletDB
@@ -31,8 +31,10 @@ export class Account {
   readonly displayName: string
   name: string
   readonly spendingKey: string
+  readonly viewKey: string
   readonly incomingViewKey: string
   readonly outgoingViewKey: string
+  readonly version: number
   publicAddress: string
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
@@ -41,16 +43,27 @@ export class Account {
     id,
     name,
     spendingKey,
+    viewKey,
     incomingViewKey,
     outgoingViewKey,
     publicAddress,
     walletDb,
-  }: AccountValue & {
+    version,
+  }: {
+    id: string
+    name: string
+    spendingKey: string
+    viewKey: string
+    incomingViewKey: string
+    outgoingViewKey: string
+    publicAddress: string
     walletDb: WalletDB
+    version: number | undefined
   }) {
     this.id = id
     this.name = name
     this.spendingKey = spendingKey
+    this.viewKey = viewKey
     this.incomingViewKey = incomingViewKey
     this.outgoingViewKey = outgoingViewKey
     this.publicAddress = publicAddress
@@ -61,13 +74,16 @@ export class Account {
     this.displayName = `${name} (${id.slice(0, 7)})`
 
     this.walletDb = walletDb
+    this.version = version ?? 1
   }
 
   serialize(): AccountValue {
     return {
+      version: this.version,
       id: this.id,
       name: this.name,
       spendingKey: this.spendingKey,
+      viewKey: this.viewKey,
       incomingViewKey: this.incomingViewKey,
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
@@ -588,6 +604,7 @@ export class Account {
 
       // expiring transaction deletes output notes and sets spent notes to unspent
       await this.expireTransaction(transaction, tx)
+
       await this.walletDb.deleteTransaction(this, transaction.hash(), tx)
     })
   }

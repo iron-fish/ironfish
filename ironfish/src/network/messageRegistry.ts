@@ -5,6 +5,7 @@
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from './messages/disconnecting'
 import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
+import { GetBlockHeadersRequest, GetBlockHeadersResponse } from './messages/getBlockHeaders'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import {
   GetBlockTransactionsRequest,
@@ -51,6 +52,8 @@ export const isRpcNetworkMessageType = (type: NetworkMessageType): boolean => {
     NetworkMessageType.GetBlockTransactionsResponse,
     NetworkMessageType.GetCompactBlockRequest,
     NetworkMessageType.GetCompactBlockResponse,
+    NetworkMessageType.GetBlockHeadersRequest,
+    NetworkMessageType.GetBlockHeadersResponse,
   ].includes(type)
 }
 
@@ -83,6 +86,10 @@ const parseRpcNetworkMessage = (
       return GetCompactBlockRequest.deserialize(body, rpcId)
     case NetworkMessageType.GetCompactBlockResponse:
       return GetCompactBlockResponse.deserialize(body, rpcId)
+    case NetworkMessageType.GetBlockHeadersRequest:
+      return GetBlockHeadersRequest.deserialize(body, rpcId)
+    case NetworkMessageType.GetBlockHeadersResponse:
+      return GetBlockHeadersResponse.deserialize(body, rpcId)
     default:
       throw new Error(`Unknown RPC network message type: ${type}`)
   }

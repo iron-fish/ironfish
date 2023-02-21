@@ -184,6 +184,8 @@ export class StratumServer {
     this.clients.delete(client.id)
     this.peers.removeConnectionCount(client)
     client.close()
+    client.socket.removeAllListeners('close')
+    client.socket.removeAllListeners('error')
   }
 
   private async onData(client: StratumServerClient, data: Buffer): Promise<void> {

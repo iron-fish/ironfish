@@ -37,7 +37,6 @@ export class StratumServerClient {
 
     this.messageBuffer = ''
     this.connected = false
-    this.socket.removeAllListeners()
     this.socket.destroy(error)
   }
 }

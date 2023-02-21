@@ -96,6 +96,22 @@ export class KeyStore<TSchema extends Record<string, unknown>> {
     await this.storage.save(save)
   }
 
+  clear<T extends keyof TSchema>(key: T): void {
+    const previousValue = this.config[key]
+
+    delete this.loaded[key]
+    this.keysLoaded.delete(key)
+
+    if (Object.prototype.hasOwnProperty.call(this.overrides, key)) {
+      delete this.overrides[key]
+    }
+
+    const newValue = this.get(key)
+    if (previousValue !== newValue) {
+      this.onConfigChange.emit(key, newValue)
+    }
+  }
+
   set<T extends keyof TSchema>(key: T, value: TSchema[T]): void {
     const schema = this.schema?.fields[key]
 

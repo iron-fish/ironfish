@@ -9,7 +9,7 @@ import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES } from '../../adapters'
 
 const TEST_PARAMS = {
-  fromAccountName: 'existingAccount',
+  account: 'existingAccount',
   outputs: [
     {
       publicAddress: 'test2',
@@ -22,7 +22,7 @@ const TEST_PARAMS = {
 }
 
 const TEST_PARAMS_MULTI = {
-  fromAccountName: 'existingAccount',
+  account: 'existingAccount',
   outputs: [
     {
       publicAddress: 'test2',
@@ -51,9 +51,9 @@ describe('Transactions sendTransaction', () => {
     await expect(
       routeTest.client.sendTransaction({
         ...TEST_PARAMS,
-        fromAccountName: 'AccountDoesNotExist',
+        account: 'AccountDoesNotExist',
       }),
-    ).rejects.toThrow('No account found with name AccountDoesNotExist')
+    ).rejects.toThrow('No account with name AccountDoesNotExist')
   })
 
   it('throws if not connected to network', async () => {
@@ -239,7 +239,6 @@ describe('Transactions sendTransaction', () => {
       expect.anything(),
       expect.anything(),
       expect.anything(),
-      expect.anything(),
       routeTest.node.config.get('transactionExpirationDelta'),
       undefined,
       undefined,
@@ -253,7 +252,6 @@ describe('Transactions sendTransaction', () => {
     })
 
     expect(sendSpy).toHaveBeenCalledWith(
-      expect.anything(),
       expect.anything(),
       expect.anything(),
       expect.anything(),

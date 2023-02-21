@@ -37,7 +37,7 @@ export async function watchTransaction(options: {
   const startTime = lastTime
 
   if (last.content.transaction == null) {
-    logger.log(`Tried to watch tranaction ${options.hash} but it's missing.`)
+    logger.log(`Tried to watch transaction ${options.hash} but it's missing.`)
     return
   }
 

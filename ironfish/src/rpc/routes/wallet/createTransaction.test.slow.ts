@@ -32,12 +32,17 @@ describe('Route wallet/createTransaction', () => {
       sender,
       sender,
       async () => {
-        const raw = await routeTest.node.wallet.createTransaction(sender, [], [mintData], [], {
+        const raw = await routeTest.node.wallet.createTransaction({
+          account: sender,
+          mints: [mintData],
           fee: 0n,
           expiration: 0,
         })
 
-        return routeTest.node.wallet.post(raw, routeTest.node.memPool, sender.spendingKey)
+        return routeTest.node.wallet.post({
+          transaction: raw,
+          account: sender,
+        })
       },
     )
 
@@ -56,7 +61,7 @@ describe('Route wallet/createTransaction', () => {
     }
 
     const response = await routeTest.client.createTransaction({
-      sender: 'existingAccount',
+      account: 'existingAccount',
       outputs: [
         {
           publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',

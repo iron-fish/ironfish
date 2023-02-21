@@ -31,7 +31,7 @@ describe('Read genesis block', () => {
     const minersfee = await nodeTest.strategy.createMinersFee(
       BigInt(0),
       nodeTest.chain.head.sequence + 1,
-      generateKey().spending_key,
+      generateKey().spendingKey,
     )
     const newBlock = await nodeTest.chain.newBlock([], minersfee)
     expect(newBlock).toBeTruthy()
@@ -106,7 +106,7 @@ describe('Create genesis block', () => {
     const minersfee = await strategy.createMinersFee(
       BigInt(0),
       block.header.sequence + 1,
-      generateKey().spending_key,
+      generateKey().spendingKey,
     )
     const additionalBlock = await chain.newBlock([], minersfee)
     expect(additionalBlock).toBeTruthy()
@@ -144,7 +144,7 @@ describe('Create genesis block', () => {
     const newMinersfee = await strategy.createMinersFee(
       BigInt(0),
       deserializedBlock.header.sequence + 1,
-      generateKey().spending_key,
+      generateKey().spendingKey,
     )
     const newBlock = await newChain.newBlock([], newMinersfee)
     expect(newBlock).toBeTruthy()

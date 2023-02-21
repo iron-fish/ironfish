@@ -92,6 +92,59 @@ impl IncomingViewKey {
     }
 }
 
+/// Contains two keys that are required (along with outgoing view key)
+/// to have full view access to an account.
+/// Referred to as `ViewingKey` in the literature.
+#[derive(Clone)]
+pub struct ViewKey {
+    /// Part of the full viewing key. Generally referred to as
+    /// `ak` in the literature. Derived from spend_authorizing_key using scalar
+    /// multiplication in Sapling. Used to construct incoming viewing key.
+    pub authorizing_key: jubjub::SubgroupPoint,
+    /// Part of the full viewing key. Generally referred to as
+    /// `nk` in the literature. Derived from proof_authorizing_key using scalar
+    /// multiplication. Used to construct incoming viewing key.
+    pub nullifier_deriving_key: jubjub::SubgroupPoint,
+}
+
+impl ViewKey {
+    /// Load a key from a string of hexadecimal digits
+    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
+        let bytes = hex_to_bytes(value)?;
+        if bytes.len() != 64 {
+            return Err(IronfishError::InvalidViewingKey);
+        }
+        let mut authorizing_key_bytes = [0; 32];
+        let mut nullifier_deriving_key_bytes = [0; 32];
+
+        authorizing_key_bytes.clone_from_slice(&bytes[..32]);
+        nullifier_deriving_key_bytes.clone_from_slice(&bytes[32..]);
+
+        let authorizing_key = Option::from(SubgroupPoint::from_bytes(&authorizing_key_bytes))
+            .ok_or(IronfishError::InvalidAuthorizingKey)?;
+        let nullifier_deriving_key =
+            Option::from(SubgroupPoint::from_bytes(&nullifier_deriving_key_bytes))
+                .ok_or(IronfishError::InvalidNullifierDerivingKey)?;
+
+        Ok(Self {
+            authorizing_key,
+            nullifier_deriving_key,
+        })
+    }
+
+    /// Viewing key as hexadecimal, for readability.
+    pub fn hex_key(&self) -> String {
+        bytes_to_hex(&self.to_bytes())
+    }
+
+    pub fn to_bytes(&self) -> [u8; 64] {
+        let mut result = [0; 64];
+        result[..32].copy_from_slice(&self.authorizing_key.to_bytes());
+        result[32..].copy_from_slice(&self.nullifier_deriving_key.to_bytes());
+        result
+    }
+}
+
 /// Key that allows someone to view a transaction that you have spent.
 ///
 /// Referred to as `ovk` in the literature.
@@ -143,14 +196,6 @@ impl OutgoingViewKey {
     }
 }
 
-/// Pair of outgoing and incoming view keys for a complete audit
-/// of spends and outputs
-#[derive(Clone)]
-pub struct ViewKeys {
-    pub incoming: IncomingViewKey,
-    pub outgoing: OutgoingViewKey,
-}
-
 /// Derive a shared secret key from a secret key and the other person's public
 /// key.
 ///
@@ -193,4 +238,27 @@ pub(crate) fn shared_secret(
     let mut hash_result = [0; 32];
     hash_result[..].clone_from_slice(hasher.finalize().as_ref());
     hash_result
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{SaplingKey, ViewKey};
+
+    #[test]
+    fn test_view_key() {
+        let key = SaplingKey::from_hex(
+            "d96dc74bbca05dffb14a5631024588364b0cc9f583b5c11908b6ea98a2b778f7",
+        )
+        .expect("Key should be generated");
+        let view_key_hex = key.view_key.hex_key();
+        assert_eq!(view_key_hex, "498b5103a72c41237c3f2bca96f20100f5a3a8a17c6b8366a485fd16e8931a5d2ff2eb8f991032c815414ff0ae2d8bc3ea3b56bffc481db3f28e800050244463");
+
+        let recreated_key =
+            ViewKey::from_hex(&view_key_hex).expect("Key should be created from hex");
+        assert_eq!(key.view_key.authorizing_key, recreated_key.authorizing_key);
+        assert_eq!(
+            key.view_key.nullifier_deriving_key,
+            recreated_key.nullifier_deriving_key
+        );
+    }
 }

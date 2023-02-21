@@ -21,7 +21,7 @@ describe('Route wallet/postTransaction', () => {
     const rawTransaction = await createRawTransaction(options)
     const response = await routeTest.client.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
-      sender: account.name,
+      account: account.name,
       offline: true,
     })
 
@@ -41,7 +41,7 @@ describe('Route wallet/postTransaction', () => {
     const rawTransaction = await createRawTransaction(options)
     const response = await routeTest.client.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
-      sender: account.name,
+      account: account.name,
     })
 
     expect(addSpy).toHaveBeenCalledTimes(1)
@@ -55,7 +55,7 @@ describe('Route wallet/postTransaction', () => {
     await expect(
       routeTest.client.postTransaction({
         transaction: '0xdeadbeef',
-        sender: account.name,
+        account: account.name,
       }),
     ).rejects.toThrow('Out of bounds read (offset=0).')
   })

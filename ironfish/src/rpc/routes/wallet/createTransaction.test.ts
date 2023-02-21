@@ -10,7 +10,7 @@ import { Account } from '../../../wallet'
 import { ERROR_CODES } from '../../adapters/errors'
 
 const REQUEST_PARAMS = {
-  sender: 'existingAccount',
+  account: 'existingAccount',
   outputs: [
     {
       publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
@@ -23,7 +23,7 @@ const REQUEST_PARAMS = {
 }
 
 const REQUEST_PARAMS_WITH_MULTIPLE_RECIPIENTS = {
-  sender: 'existingAccount',
+  account: 'existingAccount',
   outputs: [
     {
       publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
@@ -49,32 +49,10 @@ describe('Route wallet/createTransaction', () => {
     sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
   })
 
-  it('throws if not connected to network', async () => {
-    routeTest.node.peerNetwork['_isReady'] = false
-
-    await expect(routeTest.client.createTransaction(REQUEST_PARAMS)).rejects.toThrow(
-      'Your node must be connected to the Iron Fish network to send a transaction',
-    )
-  })
-
-  it('throws if the chain is outdated', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = false
-
-    await expect(routeTest.client.createTransaction(REQUEST_PARAMS)).rejects.toThrow(
-      'Your node must be synced with the Iron Fish network to send a transaction. Please try again later',
-    )
-  })
-
   it('throws if not enough funds', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     await expect(routeTest.client.createTransaction(REQUEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
-        message: expect.stringContaining(
-          `Your balance is too low. Add funds to your account first`,
-        ),
+        message: expect.any(String),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
       }),
@@ -82,9 +60,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should generate a valid transaction', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -95,9 +70,9 @@ describe('Route wallet/createTransaction', () => {
 
       block.transactions[0].notes[0].decryptNoteForOwner(sender.incomingViewKey)
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
     const response = await routeTest.client.createTransaction(REQUEST_PARAMS)
 
@@ -116,9 +91,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should generate a valid transaction with multiple outputs', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -127,9 +99,9 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     const response = await routeTest.client.createTransaction(
@@ -151,9 +123,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should generate a valid transaction with fee rate', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -162,13 +131,13 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     const response = await routeTest.client.createTransaction({
-      sender: 'existingAccount',
+      account: 'existingAccount',
       outputs: [
         {
           publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
@@ -196,9 +165,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should create transaction if fee and fee rate are empty', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -207,13 +173,13 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     const response = await routeTest.client.createTransaction({
-      sender: 'existingAccount',
+      account: 'existingAccount',
       outputs: [
         {
           publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
@@ -240,9 +206,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should create transaction to mint new asset', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -251,15 +214,15 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     const asset = new Asset(sender.spendingKey, 'mint-asset', 'metadata')
 
     const response = await routeTest.client.createTransaction({
-      sender: 'existingAccount',
+      account: 'existingAccount',
       outputs: [
         {
           publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
@@ -294,9 +257,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('throw error when create transaction to mint unknown asset', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     const asset = new Asset(sender.spendingKey, 'unknown-asset', 'metadata')
 
     for (let i = 0; i < 3; ++i) {
@@ -307,14 +267,14 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     await expect(
       routeTest.client.createTransaction({
-        sender: 'existingAccount',
+        account: 'existingAccount',
         outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
@@ -331,15 +291,10 @@ describe('Route wallet/createTransaction', () => {
         ],
         fee: BigInt(1).toString(),
       }),
-    ).rejects.toThrow(
-      `Asset not found. Cannot mint for identifier '${asset.id().toString('hex')}'`,
-    )
+    ).rejects.toThrow(`${asset.id().toString('hex')} not found`)
   })
 
   it('throw error when create transaction without mint asset', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -348,14 +303,14 @@ describe('Route wallet/createTransaction', () => {
         routeTest.node.wallet,
       )
 
-      await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
+      await expect(routeTest.node.chain).toAddBlock(block)
 
-      await Promise.all([routeTest.node.wallet.updateHead()])
+      await routeTest.node.wallet.updateHead()
     }
 
     await expect(
       routeTest.client.createTransaction({
-        sender: 'existingAccount',
+        account: 'existingAccount',
         outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
@@ -375,9 +330,6 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should throw an error when attempting to create a transaction with no valid confirmations', async () => {
-    routeTest.node.peerNetwork['_isReady'] = true
-    routeTest.chain.synced = true
-
     const block = await useMinerBlockFixture(
       routeTest.chain,
       undefined,
@@ -392,7 +344,7 @@ describe('Route wallet/createTransaction', () => {
 
     await expect(
       routeTest.client.createTransaction({
-        sender: 'existingAccount',
+        account: 'existingAccount',
         outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
@@ -413,9 +365,7 @@ describe('Route wallet/createTransaction', () => {
       }),
     ).rejects.toThrow(
       expect.objectContaining({
-        message: expect.stringContaining(
-          `Not enough unspent notes available to fund the transaction.`,
-        ),
+        message: expect.any(String),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
       }),

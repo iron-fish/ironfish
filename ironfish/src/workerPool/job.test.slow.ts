@@ -16,7 +16,7 @@ describe('Worker Pool', () => {
     expect(workerPool.workers.length).toBe(1)
     expect(workerPool.completed).toBe(0)
 
-    const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spending_key)
+    const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spendingKey)
     expect(minersFee.serialize()).toBeInstanceOf(Buffer)
 
     expect(workerPool.completed).toBe(1)

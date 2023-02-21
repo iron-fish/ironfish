@@ -21,38 +21,45 @@ describe('Demonstrate the Sapling API', () => {
 
   it('Should generate a key', () => {
     const key = generateKey()
-    expect(typeof key.incoming_view_key).toBe('string')
-    expect(typeof key.outgoing_view_key).toBe('string')
-    expect(typeof key.public_address).toBe('string')
-    expect(typeof key.spending_key).toBe('string')
+    expect(typeof key.incomingViewKey).toBe('string')
+    expect(typeof key.outgoingViewKey).toBe('string')
+    expect(typeof key.publicAddress).toBe('string')
+    expect(typeof key.spendingKey).toBe('string')
   })
 
   it('Should be able to convert hex key to words, and reverse', () => {
     const hexKey = 'd56b241ca965b3997485ccf06421740c1d61163922ad1c02ee69fbe09253daf7'
     const hexKeyWords = 'step float already fan forest smile spirit ridge vacant canal fringe blouse stock mention tonight fiber bright blast omit water ankle clarify hint turn'
     const key = generateKeyFromPrivateKey(hexKey)
-    const words = spendingKeyToWords(key.spending_key, LanguageCode.English);
+    const words = spendingKeyToWords(key.spendingKey, LanguageCode.English);
     expect(words).toEqual(hexKeyWords)
 
     const hexKeyGenerated = wordsToSpendingKey(words, LanguageCode.English);
     expect(hexKeyGenerated).toEqual(hexKey)
   })
 
+  it('ViewKey concatenated key should be generated from spending key deterministically', () => {
+    const hexSpendingKey = 'd96dc74bbca05dffb14a5631024588364b0cc9f583b5c11908b6ea98a2b778f7'
+    const key = generateKeyFromPrivateKey(hexSpendingKey)
+    // concatenated bytes of authorizing_key and nullifier_deriving_key
+    expect(key.viewKey).toEqual('498b5103a72c41237c3f2bca96f20100f5a3a8a17c6b8366a485fd16e8931a5d2ff2eb8f991032c815414ff0ae2d8bc3ea3b56bffc481db3f28e800050244463')
+  })
+
   it('Should generate a new public address given a spending key', () => {
     const key = generateKey()
-    const newKey = generateKeyFromPrivateKey(key.spending_key)
+    const newKey = generateKeyFromPrivateKey(key.spendingKey)
 
-    expect(key.incoming_view_key).toEqual(newKey.incoming_view_key)
-    expect(key.outgoing_view_key).toEqual(newKey.outgoing_view_key)
-    expect(typeof newKey.public_address).toBe('string')
-    expect(key.spending_key).toEqual(newKey.spending_key)
+    expect(key.incomingViewKey).toEqual(newKey.incomingViewKey)
+    expect(key.outgoingViewKey).toEqual(newKey.outgoingViewKey)
+    expect(typeof newKey.publicAddress).toBe('string')
+    expect(key.spendingKey).toEqual(newKey.spendingKey)
   })
 
   it(`Should create a miner's fee transaction`, () => {
     const key = generateKey()
 
-    const transaction = new Transaction(key.spending_key)
-    const note = new Note(key.public_address, BigInt(20), 'test', Asset.nativeId(), key.public_address)
+    const transaction = new Transaction(key.spendingKey)
+    const note = new Note(key.publicAddress, BigInt(20), 'test', Asset.nativeId(), key.publicAddress)
     transaction.output(note)
 
     const serializedPostedTransaction = transaction.post_miners_fee()
@@ -66,14 +73,14 @@ describe('Demonstrate the Sapling API', () => {
     expect(postedTransaction.verify()).toBe(true)
 
     const encryptedNote = new NoteEncrypted(postedTransaction.getNote(0))
-    expect(encryptedNote.merkleHash().byteLength).toBe(32)
+    expect(encryptedNote.hash().byteLength).toBe(32)
     expect(encryptedNote.equals(encryptedNote)).toBe(true)
 
-    const decryptedNoteBuffer = encryptedNote.decryptNoteForOwner(key.incoming_view_key)
+    const decryptedNoteBuffer = encryptedNote.decryptNoteForOwner(key.incomingViewKey)
     expect(decryptedNoteBuffer).toBeInstanceOf(Buffer)
     expect(decryptedNoteBuffer!.byteLength).toBe(DECRYPTED_NOTE_LENGTH)
 
-    const decryptedSpenderNote = encryptedNote.decryptNoteForSpender(key.outgoing_view_key)
+    const decryptedSpenderNote = encryptedNote.decryptNoteForSpender(key.outgoingViewKey)
     expect(decryptedSpenderNote).toBe(null)
 
     const decryptedNote = Note.deserialize(decryptedNoteBuffer!)
@@ -81,26 +88,26 @@ describe('Demonstrate the Sapling API', () => {
     // Null characters are included in the memo string
     expect(decryptedNote.memo().replace(/\0/g, '')).toEqual('test')
     expect(decryptedNote.value()).toEqual(BigInt(20))
-    expect(decryptedNote.nullifier(key.spending_key, BigInt(0)).byteLength).toBeGreaterThan(BigInt(0))
+    expect(decryptedNote.nullifier(key.viewKey, BigInt(0)).byteLength).toBeGreaterThan(BigInt(0))
   })
 
   it(`Should create a standard transaction`, () => {
     const key = generateKey()
     const recipientKey = generateKey()
 
-    const minersFeeTransaction = new Transaction(key.spending_key)
-    const minersFeeNote = new Note(key.public_address, BigInt(20), 'miner', Asset.nativeId(), key.public_address)
+    const minersFeeTransaction = new Transaction(key.spendingKey)
+    const minersFeeNote = new Note(key.publicAddress, BigInt(20), 'miner', Asset.nativeId(), key.publicAddress)
     minersFeeTransaction.output(minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
 
-    const transaction = new Transaction(key.spending_key)
+    const transaction = new Transaction(key.spendingKey)
     transaction.setExpiration(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
-    const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incoming_view_key)!)
-    const newNote = new Note(recipientKey.public_address, BigInt(15), 'receive', Asset.nativeId(), minersFeeNote.owner())
+    const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incomingViewKey)!)
+    const newNote = new Note(recipientKey.publicAddress, BigInt(15), 'receive', Asset.nativeId(), minersFeeNote.owner())
 
-    let currentHash = encryptedNote.merkleHash()
+    let currentHash = encryptedNote.hash()
     let authPath = Array.from({ length: 32 }, (_, depth) => {
       const tempHash = currentHash
       const witnessNode = {
@@ -121,7 +128,7 @@ describe('Demonstrate the Sapling API', () => {
     transaction.spend(decryptedNote, witness)
     transaction.output(newNote)
 
-    const postedTransaction = new TransactionPosted(transaction.post(key.public_address, BigInt(5)))
+    const postedTransaction = new TransactionPosted(transaction.post(key.publicAddress, BigInt(5)))
 
     expect(postedTransaction.expiration()).toEqual(10)
     expect(postedTransaction.fee()).toEqual(BigInt(5))
