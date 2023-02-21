@@ -127,8 +127,7 @@ export class ImportCommand extends IronfishCommand {
 
   static verifySpendingKey(spendingKey: string): string | null {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return generateKeyFromPrivateKey(spendingKey)?.spendingKey
+      return generateKeyFromPrivateKey(spendingKey)?.spendingKey ?? null
     } catch (e) {
       return null
     }
