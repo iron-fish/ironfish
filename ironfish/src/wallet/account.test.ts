@@ -234,7 +234,11 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       // create expired transaction
-      await useTxFixture(node.wallet, account, account, undefined, undefined, 1)
+      await useTxFixture(node.wallet, account, account, undefined, undefined, 3)
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
 
       const pendingTransactions = await AsyncUtils.materialize(
         account.getPendingTransactions(node.chain.head.sequence),
