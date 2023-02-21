@@ -67,7 +67,5 @@ export class Migration000 extends Migration {
       await stores.old.accounts.put(account.id, account, tx)
     }
 
-    // and clears data from new stores
-    await stores.new.accounts.clear(tx)
   }
 }
