@@ -22,7 +22,7 @@ describe('Route wallet/postTransaction', () => {
     const response = await routeTest.client.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
       account: account.name,
-      offline: true,
+      broadcast: true,
     })
 
     expect(addSpy).toHaveBeenCalledTimes(0)
