@@ -142,24 +142,6 @@ export class MemPool {
       return false
     }
 
-    for (const spend of transaction.spends) {
-      if (this.nullifiers.has(spend.nullifier)) {
-        const existingTransactionHash = this.nullifiers.get(spend.nullifier)
-        Assert.isNotUndefined(existingTransactionHash)
-
-        const existingTransaction = this.transactions.get(existingTransactionHash)
-        if (!existingTransaction) {
-          continue
-        }
-
-        if (transaction.fee() > existingTransaction.fee()) {
-          this.deleteTransaction(existingTransaction)
-        } else {
-          return false
-        }
-      }
-    }
-
     this.addTransaction(transaction)
 
     this.logger.debug(`Accepted tx ${hash}, poolsize ${this.count()}`)
@@ -222,6 +204,25 @@ export class MemPool {
 
     if (this.transactions.has(hash)) {
       return false
+    }
+
+    // Don't allow transactions with duplicate nullifiers
+    for (const spend of transaction.spends) {
+      if (this.nullifiers.has(spend.nullifier)) {
+        const existingTransactionHash = this.nullifiers.get(spend.nullifier)
+        Assert.isNotUndefined(existingTransactionHash)
+
+        const existingTransaction = this.transactions.get(existingTransactionHash)
+        if (!existingTransaction) {
+          continue
+        }
+
+        if (transaction.fee() > existingTransaction.fee()) {
+          this.deleteTransaction(existingTransaction)
+        } else {
+          return false
+        }
+      }
     }
 
     this.transactions.set(hash, transaction)
