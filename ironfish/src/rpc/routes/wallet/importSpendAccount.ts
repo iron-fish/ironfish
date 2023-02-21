@@ -5,6 +5,7 @@ import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
+import { importAccount } from './utils'
 
 export type SpendingAccountImport = { name: string; spendingKey: string; version: number }
 
@@ -48,18 +49,11 @@ router.register<typeof ImportSpendAccountRequestSchema, ImportSpendAccountRespon
       ...request.data.account,
       ...generateKeyFromPrivateKey(request.data.account.spendingKey),
     }
-    const account = await node.wallet.importAccount(accountValue)
-    if (request.data.rescan) {
-      void node.wallet.scanTransactions()
-    } else {
-      await node.wallet.skipRescan(account)
-    }
-
-    let isDefaultAccount = false
-    if (!node.wallet.hasDefaultAccount) {
-      await node.wallet.setDefaultAccount(account.name)
-      isDefaultAccount = true
-    }
+    const { account, isDefaultAccount } = await importAccount(
+      node,
+      accountValue,
+      request.data.rescan,
+    )
 
     request.end({
       name: account.name,
