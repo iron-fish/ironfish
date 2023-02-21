@@ -142,7 +142,11 @@ export class MemPool {
       return false
     }
 
-    this.addTransaction(transaction)
+    const added = this.addTransaction(transaction)
+
+    if (!added) {
+      return false
+    }
 
     this.logger.debug(`Accepted tx ${hash}, poolsize ${this.count()}`)
     return true
