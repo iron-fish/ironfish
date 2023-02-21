@@ -4,8 +4,8 @@
 import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
-import { Account } from '../../wallet'
 import { Migration } from '../migration'
+import { GetOldAccounts } from './021-add-version-to-accounts/schemaOld'
 
 export class Migration018 extends Migration {
   path = __filename
@@ -24,15 +24,7 @@ export class Migration018 extends Migration {
     // running this migration
     await node.wallet.walletDb.assets.clear()
 
-    const accounts = []
-    for await (const accountValue of node.wallet.walletDb.loadAccounts(tx)) {
-      accounts.push(
-        new Account({
-          ...accountValue,
-          walletDb: node.wallet.walletDb,
-        }),
-      )
-    }
+    const accounts = await GetOldAccounts(node, _db, tx)
 
     logger.info(`Backfilling assets for ${accounts.length} accounts`)
 
