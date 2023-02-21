@@ -17,7 +17,7 @@ const RESCAN_MESSAGE = 'Account must be rescanned using `wallet:rescan --reset`.
 export default class Repair extends IronfishCommand {
   static hidden = false
 
-  static description = `Repairs wallet database stores`
+  static description = `Repair wallet database stores`
 
   static flags = {
     ...LocalFlags,

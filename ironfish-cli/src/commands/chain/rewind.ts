@@ -17,7 +17,7 @@ import { ProgressBar } from '../../types'
 
 export default class Rewind extends IronfishCommand {
   static description =
-    'Rewinds the chain database to the given sequence by deleting all blocks with greater sequences'
+    'Rewind the chain database to the given sequence by deleting all blocks with greater sequences'
 
   static args = [
     {
