@@ -4,15 +4,25 @@
 import { generateKeyFromPrivateKey, wordsToSpendingKey } from '@ironfish/rust-nodejs'
 import {
   ACCOUNT_SCHEMA_VERSION,
-  AccountImport,
   Bech32m,
   JSONUtils,
   PromiseUtils,
+  RpcResponseEnded,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { LANGUAGE_VALUES } from '../../utils/language'
+
+type AccountImport = {
+  name: string
+  spendingKey?: string
+  viewKey?: string
+  publicAddress?: string
+  incomingViewKey?: string
+  outgoingViewKey?: string
+  version: number
+}
 
 export class ImportCommand extends IronfishCommand {
   static description = `Import an account`
@@ -62,11 +72,29 @@ export class ImportCommand extends IronfishCommand {
       account.version = ACCOUNT_SCHEMA_VERSION as number
     }
 
-    const result = await client.importAccount({
-      account,
-      rescan: flags.rescan,
-    })
-
+    let result: RpcResponseEnded<{ name: string; isDefaultAccount: boolean }>
+    if ('spendingKey' in account && account.spendingKey) {
+      result = await client.importSpendAccount({
+        account: {
+          name: account.name,
+          spendingKey: account.spendingKey,
+          version: account.version,
+        },
+        rescan: flags.rescan,
+      })
+    } else {
+      result = await client.importViewAccount({
+        account: {
+          name: account.name,
+          viewKey: account.viewKey ?? '',
+          publicAddress: account.publicAddress ?? '',
+          incomingViewKey: account.incomingViewKey ?? '',
+          outgoingViewKey: account.outgoingViewKey ?? '',
+          version: account.version,
+        },
+        rescan: flags.rescan,
+      })
+    }
     const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)
 
@@ -99,6 +127,7 @@ export class ImportCommand extends IronfishCommand {
 
   static verifySpendingKey(spendingKey: string): string | null {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return generateKeyFromPrivateKey(spendingKey)?.spendingKey
     } catch (e) {
       return null
