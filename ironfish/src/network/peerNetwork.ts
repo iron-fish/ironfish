@@ -21,7 +21,7 @@ import { Block, CompactBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { TransactionHash } from '../primitives/transaction'
 import { Telemetry } from '../telemetry'
-import { ArrayUtils, BenchUtils, BlockchainUtils, HRTime } from '../utils'
+import { ArrayUtils, BenchUtils, BlockchainUtils, HRTime, MemPoolUtils } from '../utils'
 import { BlockFetcher } from './blockFetcher'
 import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
@@ -96,10 +96,6 @@ type RpcRequest = {
 export type TransactionOrHash =
   | { type: 'FULL'; value: Transaction }
   | { type: 'HASH'; value: TransactionHash }
-
-interface Indexable {
-  index: number
-}
 
 /**
  * Entry point for the peer-to-peer network. Manages connections to other peers on the network
@@ -763,83 +759,6 @@ export class PeerNetwork {
     }
   }
 
-  private *fromDifferentialIndex<T extends Indexable>(list: T[]): Generator<T> {
-    let previousPos = -1
-    for (const elem of list) {
-      const absolutePos = previousPos + elem.index + 1
-      yield { ...elem, index: absolutePos }
-      previousPos = absolutePos
-    }
-  }
-
-  private toDifferentialIndex(list: number[]): number[] {
-    return list.map((val, i) => {
-      return i === 0 ? val : val - list[i - 1] - 1
-    })
-  }
-
-  private assembleTransactionsFromMempool(block: CompactBlock):
-    | {
-        ok: true
-        partialTransactions: TransactionOrHash[]
-        missingTransactions: number[]
-      }
-    | { ok: false } {
-    const absoluteIndexTransactions = this.fromDifferentialIndex(block.transactions)
-
-    const numHashes = block.transactionHashes.length
-    let hashesConsumed = 0
-    let fullTransactionsConsumed = 0
-    let nextFullTransaction = absoluteIndexTransactions.next()
-
-    const partialTransactions: TransactionOrHash[] = []
-    const absoluteMissingTransactions: number[] = []
-
-    while (hashesConsumed < numHashes || !nextFullTransaction.done) {
-      const currPosition = hashesConsumed + fullTransactionsConsumed
-
-      // If we have no more full transactions or a transaction doesn't belong in this position
-      if (nextFullTransaction.done || currPosition !== nextFullTransaction.value.index) {
-        if (hashesConsumed === numHashes) {
-          // We ran out of hashes to populate
-          return { ok: false }
-        }
-
-        const hash = block.transactionHashes[hashesConsumed]
-        const transaction = this.node.memPool.get(hash)
-        const resolved: TransactionOrHash = transaction
-          ? {
-              type: 'FULL',
-              value: transaction,
-            }
-          : {
-              type: 'HASH',
-              value: hash,
-            }
-        if (resolved.type === 'HASH') {
-          absoluteMissingTransactions.push(currPosition)
-        }
-
-        partialTransactions.push(resolved)
-        hashesConsumed++
-        continue
-      }
-
-      partialTransactions.push({
-        type: 'FULL',
-        value: nextFullTransaction.value.transaction,
-      })
-      nextFullTransaction = absoluteIndexTransactions.next()
-      fullTransactionsConsumed++
-    }
-
-    return {
-      ok: true,
-      partialTransactions,
-      missingTransactions: this.toDifferentialIndex(absoluteMissingTransactions),
-    }
-  }
-
   assembleBlockFromResponse(
     partialTransactions: TransactionOrHash[],
     responseTransactions: readonly Transaction[],
@@ -953,7 +872,7 @@ export class PeerNetwork {
     }
 
     // check if we're missing transactions
-    const result = this.assembleTransactionsFromMempool(compactBlock)
+    const result = MemPoolUtils.assembleTransactions(this.node.memPool, compactBlock)
 
     if (!result.ok) {
       peer.punish(BAN_SCORE.MAX)
