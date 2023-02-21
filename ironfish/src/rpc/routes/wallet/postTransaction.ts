@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Transaction } from '../../../primitives'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
@@ -10,7 +9,7 @@ import { getAccount } from './utils'
 export type PostTransactionRequest = {
   account?: string
   transaction: string
-  offline?: boolean
+  broadcast?: boolean
 }
 
 export type PostTransactionResponse = {
@@ -21,7 +20,7 @@ export const PostTransactionRequestSchema: yup.ObjectSchema<PostTransactionReque
   .object({
     account: yup.string().strip(true),
     transaction: yup.string().defined(),
-    offline: yup.boolean().optional(),
+    broadcast: yup.boolean().optional(),
   })
   .defined()
 
@@ -40,15 +39,11 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
     const bytes = Buffer.from(request.data.transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(bytes)
 
-    let postedTransaction: Transaction
-    if (request.data.offline === true) {
-      postedTransaction = await node.wallet.postTransaction(raw, account.spendingKey)
-    } else {
-      postedTransaction = await node.wallet.post({
-        transaction: raw,
-        account,
-      })
-    }
+    const postedTransaction = await node.wallet.post({
+      transaction: raw,
+      account,
+      broadcast: request.data.broadcast,
+    })
 
     const serialized = postedTransaction.serialize()
     request.end({ transaction: serialized.toString('hex') })

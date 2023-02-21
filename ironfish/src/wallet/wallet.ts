@@ -868,27 +868,27 @@ export class Wallet {
     transaction: RawTransaction
     spendingKey?: string
     account?: Account
+    broadcast?: boolean
   }): Promise<Transaction> {
     const spendingKey = options.account?.spendingKey ?? options.spendingKey
     Assert.isTruthy(spendingKey, `Spending key is required to post transaction`)
 
-    const transaction = await this.postTransaction(options.transaction, spendingKey)
+    const transaction = await this.workerPool.postTransaction(options.transaction, spendingKey)
 
     const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
+    if (options.broadcast) {
+      await this.addPendingTransaction(transaction)
+      this.memPool.acceptTransaction(transaction)
+      this.broadcastTransaction(transaction)
+    }
+
     await this.addPendingTransaction(transaction)
-    this.memPool.acceptTransaction(transaction)
-    this.broadcastTransaction(transaction)
-    this.onTransactionCreated.emit(transaction)
 
     return transaction
-  }
-
-  async postTransaction(raw: RawTransaction, spendingKey: string): Promise<Transaction> {
-    return await this.workerPool.postTransaction(raw, spendingKey)
   }
 
   async fund(

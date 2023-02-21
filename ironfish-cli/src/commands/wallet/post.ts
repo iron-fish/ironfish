@@ -27,9 +27,9 @@ export class PostCommand extends IronfishCommand {
       default: false,
       description: 'Confirm without asking',
     }),
-    offline: Flags.boolean({
-      default: false,
-      description: 'Post transaction offline',
+    broadcast: Flags.boolean({
+      default: true,
+      description: 'Broadcast the transaction after posting',
     }),
   }
 
@@ -97,7 +97,7 @@ export class PostCommand extends IronfishCommand {
     const response = await client.postTransaction({
       transaction,
       account: flags.account,
-      offline: flags.offline,
+      broadcast: flags.broadcast,
     })
 
     stopProgressBar()
