@@ -14,20 +14,17 @@ describe('Route wallet/importSpendAccount', () => {
   it('should import a spending account', async () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), true)
 
-    const importRequest = {
-      account: {
-        name: account.name,
-        spendingKey: account.spendingKey,
-        version: account.version,
-      },
-      rescan: false,
-    }
     // delete the account or else the import will fail
     await routeTest.node.wallet.removeAccount(account)
 
     const response = await routeTest.client
       .request<any>('wallet/importSpendAccount', {
-        importRequest,
+        account: {
+          name: account.name,
+          spendingKey: account.spendingKey,
+          version: account.version,
+        },
+        rescan: false,
       })
       .waitForEnd()
 

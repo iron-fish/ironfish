@@ -14,23 +14,20 @@ describe('Route wallet/importViewAccount', () => {
   it('should import a view only account that has no spending key', async () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), true)
 
-    const importRequest = {
-      account: {
-        name: account.name,
-        viewKey: account.viewKey,
-        publicAddress: account.publicAddress,
-        incomingViewKey: account.incomingViewKey,
-        outgoingViewKey: account.outgoingViewKey,
-        version: account.version,
-      },
-      rescan: false,
-    }
     // delete the account or else the import will fail
     await routeTest.node.wallet.removeAccount(account)
 
     const response = await routeTest.client
       .request<any>('wallet/importViewAccount', {
-        importRequest,
+        account: {
+          name: account.name,
+          viewKey: account.viewKey,
+          publicAddress: account.publicAddress,
+          incomingViewKey: account.incomingViewKey,
+          outgoingViewKey: account.outgoingViewKey,
+          version: account.version,
+        },
+        rescan: false,
       })
       .waitForEnd()
 
