@@ -53,10 +53,7 @@ export async function selectFee(options: {
   ]
 
   const result = await inquirer.prompt<{
-    selection: {
-      transaction: RawTransaction | null
-      fee: bigint
-    } | null
+    selection: RawTransaction | null
   }>([
     {
       name: 'selection',
@@ -81,11 +78,23 @@ export async function selectFee(options: {
       },
     )
 
-    throw new Error('Not implemented yet')
+    const [fee, error] = CurrencyUtils.decodeTry(input)
+    if (error) {
+      throw error
+    }
+
+    Assert.isNotNull(fee)
+    const custom = await options.client.createTransaction({
+      ...options.transaction,
+      fee: CurrencyUtils.encode(fee),
+    })
+
+    const bytes = Buffer.from(custom.content.transaction, 'hex')
+    return RawTransactionSerde.deserialize(bytes)
   }
 
-  Assert.isNotNull(result.selection.transaction)
-  return result.selection.transaction
+  Assert.isInstanceOf(result.selection, RawTransaction)
+  return result.selection
 }
 
 async function getTxWithFee(
@@ -105,10 +114,6 @@ async function getTxWithFee(
       throw e
     }
   })
-
-  if (Math.random() < 1) {
-    return null
-  }
 
   if (response === null) {
     return null
