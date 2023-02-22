@@ -10,20 +10,18 @@ import {
   useBlockWithTx,
   useBlockWithTxs,
 } from '../testUtilities'
-import { BigIntUtils } from '../utils'
 import { FeeEstimator, FeeRateEntry, getFeeRate, PRIORITY_LEVELS } from './feeEstimator'
 
 function getEstimateFeeRate(
   block: Block,
   transaction: Transaction,
   maxBlockSize: number,
-  feeEstimator: FeeEstimator,
 ): bigint {
   const blockSize = getBlockSize(block)
   const blockSizeRatio = BigInt(Math.round((blockSize / maxBlockSize) * 100))
   let feeRate = getFeeRate(transaction)
   feeRate = (feeRate * blockSizeRatio) / 100n
-  return BigIntUtils.max(feeRate, feeEstimator.minFeeRate)
+  return feeRate
 }
 
 describe('FeeEstimator', () => {
@@ -48,9 +46,7 @@ describe('FeeEstimator', () => {
         block,
         transaction,
         node.chain.consensus.parameters.maxBlockSizeBytes,
-        feeEstimator,
       )
-
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(feeRate)
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(feeRate)
@@ -93,7 +89,6 @@ describe('FeeEstimator', () => {
         block,
         transaction2,
         node.chain.consensus.parameters.maxBlockSizeBytes,
-        feeEstimator,
       )
 
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
@@ -138,7 +133,7 @@ describe('FeeEstimator', () => {
       expect(feeEstimator.size(PRIORITY_LEVELS[1])).toBe(2)
       expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(2)
       let queue: FeeRateEntry[] | undefined
-      Assert.isNotUndefined((queue = feeEstimator['queues']['low']))
+      Assert.isNotUndefined((queue = feeEstimator['queues']['slow']))
       expect(queue[0].feeRate).toEqual(getFeeRate(transaction))
       expect(queue[1].feeRate).toEqual(getFeeRate(transaction2))
     })
@@ -173,7 +168,6 @@ describe('FeeEstimator', () => {
         block,
         transaction,
         node.chain.consensus.parameters.maxBlockSizeBytes,
-        feeEstimator,
       )
 
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
@@ -251,7 +245,6 @@ describe('FeeEstimator', () => {
         block,
         transaction2,
         node.chain.consensus.parameters.maxBlockSizeBytes,
-        feeEstimator,
       )
 
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
@@ -339,7 +332,7 @@ describe('FeeEstimator', () => {
       expect(feeEstimator.size(PRIORITY_LEVELS[2])).toBe(2)
 
       // transaction from first block is still in the cache
-      expect(feeEstimator['queues']['low'].at(0)?.blockHash).toEqualHash(block.header.hash)
+      expect(feeEstimator['queues']['slow'].at(0)?.blockHash).toEqualHash(block.header.hash)
     })
   })
 

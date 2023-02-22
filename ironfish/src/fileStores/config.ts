@@ -209,9 +209,9 @@ export type ConfigOptions = {
   explorerTransactionsUrl: string
 
   feeEstimatorMaxBlockHistory: number
-  feeEstimatorPercentileLow: number
-  feeEstimatorPercentileMedium: number
-  feeEstimatorPercentileHigh: number
+  feeEstimatorPercentileSlow: number
+  feeEstimatorPercentileAverage: number
+  feeEstimatorPercentileFast: number
 
   /**
    * Network ID of an official Iron Fish network
@@ -368,9 +368,9 @@ export class Config extends KeyStore<ConfigOptions> {
       explorerBlocksUrl: 'https://explorer.ironfish.network/blocks/',
       explorerTransactionsUrl: 'https://explorer.ironfish.network/transaction/',
       feeEstimatorMaxBlockHistory: 10,
-      feeEstimatorPercentileLow: 10,
-      feeEstimatorPercentileMedium: 20,
-      feeEstimatorPercentileHigh: 30,
+      feeEstimatorPercentileSlow: 10,
+      feeEstimatorPercentileAverage: 20,
+      feeEstimatorPercentileFast: 30,
       networkId: DEFAULT_NETWORK_ID,
       customNetwork: '',
       maxSyncedAgeBlocks: 60,

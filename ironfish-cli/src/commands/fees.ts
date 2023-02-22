@@ -37,9 +37,9 @@ export class FeeCommand extends IronfishCommand {
   async explainFeeRates(client: RpcClient): Promise<void> {
     const config = await client.getConfig()
 
-    const slow = config.content['feeEstimatorPercentileLow'] || '10'
-    const average = config.content['feeEstimatorPercentileMedium'] || '20'
-    const fast = config.content['feeEstimatorPercentileHigh'] || '30'
+    const slow = config.content['feeEstimatorPercentileSlow'] || '10'
+    const average = config.content['feeEstimatorPercentileAverage'] || '20'
+    const fast = config.content['feeEstimatorPercentileFast'] || '30'
     const numBlocks = config.content['feeEstimatorMaxBlockHistory'] || '10'
 
     this.log(
@@ -48,7 +48,9 @@ export class FeeCommand extends IronfishCommand {
     this.log(
       'The fee rate for each transaction is computed by dividing the transaction fee in $ORE by the size of the transaction in kB.\n',
     )
-    this.log('The low, medium, and high rates each come from a percentile in the distribution:')
+    this.log(
+      'The slow, average, and fast rates each come from a percentile in the distribution:',
+    )
     this.log(`slow:    ${slow}th`)
     this.log(`average: ${average}th`)
     this.log(`fast:    ${fast}th`)

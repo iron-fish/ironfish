@@ -8,9 +8,9 @@ describe('Route chain/estimateFeeRates', () => {
 
   it('estimates fee rates', async () => {
     jest.spyOn(routeTest.node.memPool.feeEstimator, 'estimateFeeRates').mockReturnValueOnce({
-      low: 1n,
-      medium: 2n,
-      high: 3n,
+      slow: 1n,
+      average: 2n,
+      fast: 3n,
     })
 
     const response = await routeTest.client.estimateFeeRates()

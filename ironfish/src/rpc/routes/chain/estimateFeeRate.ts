@@ -28,7 +28,7 @@ router.register<typeof EstimateFeeRateRequestSchema, EstimateFeeRateResponse>(
   `${ApiNamespace.chain}/estimateFeeRate`,
   EstimateFeeRateRequestSchema,
   (request, node): void => {
-    const priority = request.data?.priority ?? 'medium'
+    const priority = request.data?.priority ?? 'average'
     const rate = node.memPool.feeEstimator.estimateFeeRate(priority)
     request.end({ rate: CurrencyUtils.encode(rate) })
   },

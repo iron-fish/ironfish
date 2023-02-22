@@ -21,17 +21,17 @@ export interface BlockSizeEntry {
 }
 
 export type PriorityLevel = typeof PRIORITY_LEVELS[number]
-export type PriorityLevelPercentiles = { low: number; medium: number; high: number }
+export type PriorityLevelPercentiles = { slow: number; average: number; fast: number }
 
-export const PRIORITY_LEVELS = ['low', 'medium', 'high'] as const
+export const PRIORITY_LEVELS = ['slow', 'average', 'fast'] as const
 export const BLOCK_SIZE = 'blockSize' as const
-const DEFAULT_PRIORITY_LEVEL_PERCENTILES = { low: 10, medium: 20, high: 30 }
+const DEFAULT_PRIORITY_LEVEL_PERCENTILES = { slow: 10, average: 20, fast: 30 }
 
 export class FeeEstimator {
   private queues: {
-    low: FeeRateEntry[]
-    medium: FeeRateEntry[]
-    high: FeeRateEntry[]
+    slow: FeeRateEntry[]
+    average: FeeRateEntry[]
+    fast: FeeRateEntry[]
     blockSize: BlockSizeEntry[]
   }
   private percentiles: PriorityLevelPercentiles
@@ -52,7 +52,7 @@ export class FeeEstimator {
 
     this.minFeeRate = options.minFeeRate ?? 1n
 
-    this.queues = { low: [], medium: [], high: [], blockSize: [] }
+    this.queues = { slow: [], average: [], fast: [], blockSize: [] }
     this.percentiles = options.percentiles ?? DEFAULT_PRIORITY_LEVEL_PERCENTILES
   }
 
@@ -168,11 +168,11 @@ export class FeeEstimator {
     return feeRates.sort((a, b) => (a > b ? 1 : -1))
   }
 
-  estimateFeeRates(): { low: bigint; medium: bigint; high: bigint } {
+  estimateFeeRates(): { slow: bigint; average: bigint; fast: bigint } {
     return {
-      low: this.estimateFeeRate('low'),
-      medium: this.estimateFeeRate('medium'),
-      high: this.estimateFeeRate('high'),
+      slow: this.estimateFeeRate('slow'),
+      average: this.estimateFeeRate('average'),
+      fast: this.estimateFeeRate('fast'),
     }
   }
 

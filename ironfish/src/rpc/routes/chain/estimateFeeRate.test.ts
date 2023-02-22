@@ -11,17 +11,17 @@ describe('Route chain/estimateFeeRates', () => {
       .spyOn(routeTest.node.memPool.feeEstimator, 'estimateFeeRate')
       .mockReturnValueOnce(7n)
 
-    const response = await routeTest.client.estimateFeeRate({ priority: 'low' })
+    const response = await routeTest.client.estimateFeeRate({ priority: 'slow' })
     expect(response.content).toMatchObject({ rate: '7' })
-    expect(estimateSpy).toHaveBeenCalledWith('low')
+    expect(estimateSpy).toHaveBeenCalledWith('slow')
   })
 
-  it('default rate is medium', async () => {
+  it('default rate is average', async () => {
     const estimateSpy = jest
       .spyOn(routeTest.node.memPool.feeEstimator, 'estimateFeeRate')
       .mockReturnValueOnce(1n)
 
     await routeTest.client.estimateFeeRate()
-    expect(estimateSpy).toHaveBeenCalledWith('medium')
+    expect(estimateSpy).toHaveBeenCalledWith('average')
   })
 })
