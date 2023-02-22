@@ -25,7 +25,8 @@ export class Migration000 extends Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    // use GetOldStores and GetNewStores to attach datastores with the old and new schemas to the database
+    // use GetStores to attach datastores with the old and new schemas to the
+    // database
     const stores = GetStores(db)
 
     // forward migration inserts from old stores into new stores
@@ -42,14 +43,23 @@ export class Migration000 extends Migration {
 
       await stores.new.accounts.put(account.id, migrated, tx)
     }
+
+    // Because we changed the table name, we should clear the old table
+    // but you don't need this if you use the same table
+    await stores.old.accounts.clear(tx)
   }
 
+  /**
+   * Writing a backwards migration is optional but suggested
+   */
   async backward(
     node: IronfishNode,
     db: IDatabase,
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
+    // use GetStores to attach datastores with the old and new schemas to the
+    // database
     const stores = GetStores(db)
 
     // backward migration re-inserts data from new stores into old stores
@@ -57,5 +67,9 @@ export class Migration000 extends Migration {
       logger.info(`  Migrating account ${account.name}`)
       await stores.old.accounts.put(account.id, account, tx)
     }
+
+    // Because we changed the table name, we should clear the old table
+    // but you don't need this if you use the same table
+    await stores.new.accounts.clear(tx)
   }
 }

@@ -12,10 +12,15 @@ export function GetNewStores(db: IDatabase): {
 } {
   const accounts: IDatabaseStore<{ key: string; value: AccountValue }> = db.addStore(
     {
-      name: 'a', // the name of the datastore must change if a new datastore is created
+      // You can use a new table name when you are writing a migration
+      // if you want, just be sure to delete the old table when you are
+      // done.
+      name: 'new',
       keyEncoding: new StringEncoding(),
       valueEncoding: new AccountValueEncoding(),
     },
+    // you need to pass false if you plan on mounting a table with the same name
+    // in both the old and new schema
     false,
   )
 

@@ -18,10 +18,12 @@ export function GetOldStores(db: IDatabase): {
 } {
   const accounts: IDatabaseStore<{ key: string; value: AccountValue }> = db.addStore(
     {
-      name: 'a',
+      name: 'old',
       keyEncoding: new StringEncoding(),
       valueEncoding: new AccountValueEncoding(),
     },
+    // you need to pass false if you plan on mounting a table with the same name
+    // in both the old and new schema
     false,
   )
 
