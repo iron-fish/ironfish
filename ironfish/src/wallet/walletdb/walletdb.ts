@@ -23,7 +23,11 @@ import {
   U32_ENCODING_BE,
   U64_ENCODING,
 } from '../../storage'
-import { getPrefixKeyRange, StorageUtils } from '../../storage/database/utils'
+import {
+  getPrefixesKeyRange,
+  getPrefixKeyRange,
+  StorageUtils,
+} from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account'
@@ -581,6 +585,33 @@ export class WalletDB {
       range,
     )) {
       yield noteHash
+    }
+  }
+
+  async *loadUnspentNoteValues(
+    account: Account,
+    assetId: Buffer,
+    sequence?: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<bigint> {
+    const encoding = new PrefixEncoding(
+      BUFFER_ENCODING,
+      new PrefixEncoding(BUFFER_ENCODING, U32_ENCODING_BE, 32),
+      4,
+    )
+
+    const maxConfirmedSequence = sequence ?? 2 ** 32 - 1
+
+    const range = getPrefixesKeyRange(
+      encoding.serialize([account.prefix, [assetId, 1]]),
+      encoding.serialize([account.prefix, [assetId, maxConfirmedSequence]]),
+    )
+
+    for await (const [, [, [, [value, _]]]] of this.unspentNoteHashes.getAllKeysIter(
+      tx,
+      range,
+    )) {
+      yield value
     }
   }
 
