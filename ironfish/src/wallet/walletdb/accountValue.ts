@@ -22,7 +22,6 @@ export interface AccountValue {
 }
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
-  nullValue = '0'.repeat(KEY_LENGTH)
   serialize(value: AccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
     let flags = 0
@@ -77,6 +76,9 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       size += KEY_LENGTH
     }
     size += VIEW_KEY_LENGTH
+    if (value.spendingKey) {
+      size += KEY_LENGTH
+    }
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
