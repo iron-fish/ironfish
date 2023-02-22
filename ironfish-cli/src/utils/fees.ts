@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Asset } from '@ironfish/rust-nodejs'
 import {
   Assert,
   CreateTransactionRequest,
@@ -12,6 +13,7 @@ import {
   RpcClient,
   RpcRequestError,
 } from '@ironfish/sdk'
+import { CliUx } from '@oclif/core'
 import inquirer from 'inquirer'
 
 export async function selectFee(options: {
@@ -24,7 +26,7 @@ export async function selectFee(options: {
     feeRate: bigint,
   ): Promise<{
     transaction: RawTransaction | null
-    fee: bigint
+    fee: bigint | null
   }> => {
     const promise = options.client.createTransaction({
       ...options.transaction,
@@ -42,7 +44,7 @@ export async function selectFee(options: {
     if (response === null) {
       return {
         transaction: null,
-        fee: feeRate,
+        fee: null,
       }
     }
 
@@ -65,19 +67,23 @@ export async function selectFee(options: {
 
   const choices: {
     name: string
-    disabled?: string
+    disabled?: string | boolean
     value: {
       transaction: RawTransaction | null
       fee: bigint
-    }
+    } | null
   }[] = [
     {
-      name: 'slow',
-      disabled: 'disabled',
+      name: `Slow ${CurrencyUtils.renderIron(slow.fee)}`,
+      disabled: 'Not enough $IRON',
       value: {
         transaction: slow.transaction,
         fee: slow.fee,
       },
+    },
+    {
+      name: 'Enter your own',
+      value: null,
     },
   ]
 
@@ -85,7 +91,7 @@ export async function selectFee(options: {
     selection: {
       transaction: RawTransaction | null
       fee: bigint
-    }
+    } | null
   }>([
     {
       name: 'selection',
@@ -94,6 +100,24 @@ export async function selectFee(options: {
       choices,
     },
   ])
+
+  if (result.selection == null) {
+    const response = await options.client.getAccountBalance({
+      assetId: Asset.nativeId().toString('hex'),
+      confirmations: options.confirmations,
+    })
+
+    const input = await CliUx.ux.prompt(
+      `Enter the fee amount in $IRON (blance: ${CurrencyUtils.renderIron(
+        response.content.confirmed,
+      )})`,
+      {
+        required: true,
+      },
+    )
+
+    throw new Error('Not implemented yet')
+  }
 
   Assert.isNotNull(result.selection.transaction)
   return result.selection.transaction
