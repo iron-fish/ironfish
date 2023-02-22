@@ -3,11 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account'
+import { IDatabase, IDatabaseEncoding, IDatabaseStore, StringEncoding } from '../../../storage'
 
-const KEY_LENGTH = ACCOUNT_KEY_LENGTH
-export const VIEW_KEY_LENGTH = 64
+const KEY_LENGTH = 32
+const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
 export interface AccountValue {
@@ -82,4 +81,19 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
     return size
   }
+}
+
+export function GetNewStores(db: IDatabase): {
+  accounts: IDatabaseStore<{ key: string; value: AccountValue }>
+} {
+  const accounts: IDatabaseStore<{ key: string; value: AccountValue }> = db.addStore(
+    {
+      name: 'a',
+      keyEncoding: new StringEncoding(),
+      valueEncoding: new AccountValueEncoding(),
+    },
+    false,
+  )
+
+  return { accounts }
 }
