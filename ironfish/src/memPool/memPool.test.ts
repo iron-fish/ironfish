@@ -5,7 +5,13 @@ import { Assert } from '../assert'
 import * as ConsensusUtils from '../consensus/utils'
 import { getTransactionSize } from '../network/utils/serializers'
 import { Transaction } from '../primitives'
-import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useBlockWithTx,
+  useMinerBlockFixture,
+  useTxFixture,
+} from '../testUtilities'
 import { getFeeRate } from './feeEstimator'
 
 describe('MemPool', () => {
@@ -440,6 +446,104 @@ describe('MemPool', () => {
 
       expect(memPool.exists(minersFee.hash())).toBe(false)
       expect([...memPool.orderedTransactions()]).not.toContainEqual(minersFee)
+    })
+
+    it('does not add back in transactions with overlapping nullifiers if fee is smaller', async () => {
+      const { node, chain } = nodeTest
+      const { wallet, memPool } = node
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
+
+      const minersBlock = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(minersBlock)
+      await node.wallet.updateHead()
+
+      const transaction1 = await useTxFixture(
+        node.wallet,
+        accountA,
+        accountB,
+        undefined,
+        1n,
+        undefined,
+        false,
+      )
+
+      const transaction2 = await useTxFixture(
+        node.wallet,
+        accountA,
+        accountB,
+        undefined,
+        2n,
+        undefined,
+        false,
+      )
+
+      expect(transaction1.spends[0].nullifier.equals(transaction2.spends[0].nullifier)).toBe(
+        true,
+      )
+      expect(transaction1.hash().equals(transaction2.hash())).toBe(false)
+
+      const block = await useMinerBlockFixture(node.chain, undefined, accountA, undefined, [
+        transaction1,
+      ])
+
+      await chain.addBlock(block)
+
+      memPool.acceptTransaction(transaction2)
+
+      await chain.removeBlock(block.header.hash)
+
+      expect(memPool.exists(transaction1.hash())).toBe(false)
+      expect(memPool.exists(transaction2.hash())).toBe(true)
+    })
+
+    it('adds back in transactions with overlapping nullifiers if fee is greater', async () => {
+      const { node, chain } = nodeTest
+      const { wallet, memPool } = node
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
+
+      const minersBlock = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(minersBlock)
+      await node.wallet.updateHead()
+
+      const transaction1 = await useTxFixture(
+        node.wallet,
+        accountA,
+        accountB,
+        undefined,
+        2n,
+        undefined,
+        false,
+      )
+
+      const transaction2 = await useTxFixture(
+        node.wallet,
+        accountA,
+        accountB,
+        undefined,
+        1n,
+        undefined,
+        false,
+      )
+
+      expect(transaction1.spends[0].nullifier.equals(transaction2.spends[0].nullifier)).toBe(
+        true,
+      )
+      expect(transaction1.hash().equals(transaction2.hash())).toBe(false)
+
+      const block = await useMinerBlockFixture(node.chain, undefined, accountA, undefined, [
+        transaction1,
+      ])
+
+      await chain.addBlock(block)
+
+      memPool.acceptTransaction(transaction2)
+
+      await chain.removeBlock(block.header.hash)
+
+      expect(memPool.exists(transaction1.hash())).toBe(true)
+      expect(memPool.exists(transaction2.hash())).toBe(false)
     })
   })
 })
