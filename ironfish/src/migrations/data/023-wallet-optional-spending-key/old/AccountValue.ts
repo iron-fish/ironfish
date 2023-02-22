@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabase, IDatabaseEncoding, IDatabaseStore, StringEncoding } from '../../../storage'
+import { IDatabaseEncoding } from '../../../../storage'
 
 const KEY_LENGTH = 32
 const VIEW_KEY_LENGTH = 64

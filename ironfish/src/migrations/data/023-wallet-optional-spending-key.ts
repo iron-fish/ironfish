@@ -5,8 +5,6 @@ import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { Migration } from '../migration'
-import { GetNewStores } from './023-wallet-optional-spending-key/schemaNew'
-import { GetOldStores } from './023-wallet-optional-spending-key/schemaOld'
 import { GetStores } from './023-wallet-optional-spending-key/stores'
 export class Migration023 extends Migration {
   path = __filename
