@@ -9,7 +9,7 @@ import { FileSystem } from '../../fileSystems'
 import { GENESIS_BLOCK_PREVIOUS } from '../../primitives/block'
 import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
-import { TransactionHash } from '../../primitives/transaction'
+import { Transaction, TransactionHash } from '../../primitives/transaction'
 import {
   BUFFER_ENCODING,
   BufferEncoding,
@@ -1004,5 +1004,34 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.assets.del([account.prefix, assetId], tx)
+  }
+
+  async getTransactionHashFromNullifier(
+    account: Account,
+    nullifier: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<Buffer | undefined> {
+    return this.nullifierToTransactionHash.get([account.prefix, nullifier], tx)
+  }
+
+  async saveNullifierToTransactionHash(
+    account: Account,
+    nullifier: Buffer,
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.nullifierToTransactionHash.put(
+      [account.prefix, nullifier],
+      transaction.hash(),
+      tx,
+    )
+  }
+
+  async deleteNullifierToTransactionHash(
+    account: Account,
+    nullifier: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.nullifierToTransactionHash.del([account.prefix, nullifier], tx)
   }
 }
