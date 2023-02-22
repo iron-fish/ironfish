@@ -35,7 +35,6 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   PostTransactionRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
-
     const bytes = Buffer.from(request.data.transaction, 'hex')
     const raw = RawTransactionSerde.deserialize(bytes)
 

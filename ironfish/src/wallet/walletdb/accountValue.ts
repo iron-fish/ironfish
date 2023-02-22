@@ -13,7 +13,7 @@ export interface AccountValue {
   version: number
   id: string
   name: string
-  spendingKey: string
+  spendingKey: string | null
   viewKey: string
   incomingViewKey: string
   outgoingViewKey: string
@@ -21,12 +21,13 @@ export interface AccountValue {
 }
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
+  nullValue = '0'.repeat(KEY_LENGTH)
   serialize(value: AccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
-    bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
+    bw.writeBytes(Buffer.from(value.spendingKey || this.nullValue, 'hex'))
     bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
@@ -49,10 +50,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       version,
       id,
       name,
-      spendingKey,
       viewKey,
       incomingViewKey,
       outgoingViewKey,
+      spendingKey: spendingKey === this.nullValue ? null : spendingKey,
       publicAddress,
     }
   }
