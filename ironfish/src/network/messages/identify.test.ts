@@ -17,6 +17,7 @@ describe('IdentifyMessage', () => {
       work: BigInt('123'),
       networkId: 0,
       genesisBlockHash: Buffer.alloc(32, 0),
+      subProtocols: new Map(),
     })
 
     const buffer = message.serialize()

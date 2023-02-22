@@ -24,6 +24,7 @@ describe('messageRegistry', () => {
           work: BigInt(0),
           networkId: 0,
           genesisBlockHash: Buffer.alloc(32, 0),
+          subProtocols: new Map(),
         })
         jest.spyOn(message, 'serialize').mockImplementationOnce(() => Buffer.from('adsf'))
 
@@ -43,6 +44,7 @@ describe('messageRegistry', () => {
           work: BigInt(0),
           networkId: 0,
           genesisBlockHash: Buffer.alloc(32, 0),
+          subProtocols: new Map(),
         })
 
         expect(parseNetworkMessage(message.serializeWithMetadata())).toEqual(message)

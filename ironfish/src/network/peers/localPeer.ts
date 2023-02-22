@@ -71,6 +71,7 @@ export class LocalPeer {
       work: this.chain.head.work,
       networkId: this.networkId,
       genesisBlockHash: this.chain.genesis.hash,
+      subProtocols: new Map(),
     })
   }
 

@@ -74,6 +74,7 @@ describe('PeerManager', () => {
       work: BigInt(0),
       networkId: localPeer.networkId,
       genesisBlockHash: localPeer.chain.genesis.hash,
+      subProtocols: new Map(),
     })
 
     // Identify peerOut
@@ -760,6 +761,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        subProtocols: new Map(),
       })
       peer.onMessage.emit(identify, connection)
 
@@ -795,6 +797,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        subProtocols: new Map(),
       })
       peer.onMessage.emit(identify, connection)
 
@@ -821,6 +824,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        subProtocols: new Map(),
       })
       peer.onMessage.emit(identify, connection)
       expect(closeSpy).toHaveBeenCalled()
@@ -847,6 +851,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        subProtocols: new Map(),
       })
       connection.onMessage.emit(identify)
 
@@ -881,6 +886,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        subProtocols: new Map(),
       })
       connection.onMessage.emit(identify)
 
@@ -921,6 +927,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        subProtocols: new Map(),
       })
       connection.onMessage.emit(identify)
 
@@ -970,6 +977,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        subProtocols: new Map(),
       })
       connection.onMessage.emit(id)
 
@@ -1010,6 +1018,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId + 1,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        subProtocols: new Map(),
       })
       peer.onMessage.emit(identify, connection)
 
@@ -1037,6 +1046,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: Buffer.alloc(32, 1),
+        subProtocols: new Map(),
       })
       Assert.isFalse(identify.genesisBlockHash.equals(localPeer.chain.genesis.hash))
       peer.onMessage.emit(identify, connection)

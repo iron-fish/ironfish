@@ -34,6 +34,7 @@ describe('WebSocketConnection', () => {
           work: BigInt(0),
           networkId: 0,
           genesisBlockHash: Buffer.alloc(32, 0),
+          subProtocols: new Map(),
         })
 
         expect(connection.send(message)).toBe(true)
