@@ -88,7 +88,7 @@ export class WebSocketConnection extends Connection {
       let message
 
       try {
-        message = parseNetworkMessage(event.data)
+        message = parseNetworkMessage(event.data, this.supportsSubprotocols)
 
         this.metrics?.p2p_InboundTrafficByMessage.get(message.type)?.add(event.data.byteLength)
       } catch (error) {
@@ -122,7 +122,7 @@ export class WebSocketConnection extends Connection {
       )
     }
 
-    const data = message.serializeWithMetadata()
+    const data = message.serializeWithMetadata(this.supportsSubprotocols)
     this.socket.send(data)
 
     const byteCount = data.byteLength

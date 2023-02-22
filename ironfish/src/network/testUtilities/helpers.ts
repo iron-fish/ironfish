@@ -117,7 +117,7 @@ export function getConnectedPeer(
     identity = mockIdentity(identity)
   }
 
-  connection.setState({ type: 'CONNECTED', identity })
+  connection.setState({ type: 'CONNECTED', identity, supportsSubprotocols: true })
 
   return { peer, connection: connection }
 }

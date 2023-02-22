@@ -103,7 +103,11 @@ it('Times out WebRTC handshake', () => {
   expect(connection.state.type).toEqual('WAITING_FOR_IDENTITY')
   peer.setWebRtcConnection(connection)
   expect(peer.state.type).toEqual('CONNECTING')
-  connection.setState({ type: 'CONNECTED', identity: mockIdentity('peer') })
+  connection.setState({
+    type: 'CONNECTED',
+    identity: mockIdentity('peer'),
+    supportsSubprotocols: true,
+  })
   jest.runOnlyPendingTimers()
   expect(connection.state.type).toEqual('CONNECTED')
   expect(peer.state.type).toEqual('CONNECTED')
@@ -117,7 +121,11 @@ describe('Handles WebRTC message send failure', () => {
     const peer = new Peer(null)
 
     // Time out requesting signaling
-    connection.setState({ type: 'CONNECTED', identity: mockIdentity('peer') })
+    connection.setState({
+      type: 'CONNECTED',
+      identity: mockIdentity('peer'),
+      supportsSubprotocols: true,
+    })
     peer.setWebRtcConnection(connection)
     if (!connection['datachannel']) {
       throw new Error('Should have datachannel')
@@ -144,8 +152,16 @@ describe('Handles WebRTC message send failure', () => {
     const peer = new Peer(null)
 
     // Time out requesting signaling
-    wsConnection.setState({ type: 'CONNECTED', identity: mockIdentity('peer') })
-    wrtcConnection.setState({ type: 'CONNECTED', identity: mockIdentity('peer') })
+    wsConnection.setState({
+      type: 'CONNECTED',
+      identity: mockIdentity('peer'),
+      supportsSubprotocols: true,
+    })
+    wrtcConnection.setState({
+      type: 'CONNECTED',
+      identity: mockIdentity('peer'),
+      supportsSubprotocols: true,
+    })
     peer.setWebRtcConnection(wrtcConnection)
     peer.setWebSocketConnection(wsConnection)
 
@@ -204,7 +220,7 @@ it('Transitions to CONNECTED when a connection receives an identity', () => {
     connections: { webSocket: connection },
   })
 
-  connection.setState({ type: 'CONNECTED', identity })
+  connection.setState({ type: 'CONNECTED', identity, supportsSubprotocols: true })
 
   expect(peer.state).toEqual({
     type: 'CONNECTED',
@@ -224,6 +240,7 @@ it('Transitions to CONNECTED when adding a connection with state CONNECTED', () 
   connection.setState({
     type: 'CONNECTED',
     identity,
+    supportsSubprotocols: true,
   })
 
   peer.setWebSocketConnection(connection)
@@ -250,7 +267,7 @@ it('Stays in CONNECTED when adding an additional connection', () => {
     connections: { webSocket: connection },
   })
 
-  connection.setState({ type: 'CONNECTED', identity })
+  connection.setState({ type: 'CONNECTED', identity, supportsSubprotocols: true })
 
   // Add in an additional connection
   const wrtcConnection = new WebRtcConnection(true, createRootLogger())
@@ -276,12 +293,12 @@ describe('Stays in CONNECTED when one connection disconnects', () => {
       createRootLogger(),
     )
     peer.setWebSocketConnection(connection)
-    connection.setState({ type: 'CONNECTED', identity })
+    connection.setState({ type: 'CONNECTED', identity, supportsSubprotocols: true })
 
     // Add a CONNECTED WebRTC connection
     const wrtcConnection = new WebRtcConnection(true, createRootLogger())
     peer.setWebRtcConnection(wrtcConnection)
-    wrtcConnection.setState({ type: 'CONNECTED', identity })
+    wrtcConnection.setState({ type: 'CONNECTED', identity, supportsSubprotocols: true })
 
     expect(peer.state.type).toBe('CONNECTED')
 
@@ -305,12 +322,12 @@ describe('Stays in CONNECTED when one connection disconnects', () => {
       createRootLogger(),
     )
     peer.setWebSocketConnection(connection)
-    connection.setState({ type: 'CONNECTED', identity })
+    connection.setState({ type: 'CONNECTED', identity, supportsSubprotocols: true })
 
     // Add a CONNECTED WebRTC connection
     const wrtcConnection = new WebRtcConnection(true, createRootLogger())
     peer.setWebRtcConnection(wrtcConnection)
-    wrtcConnection.setState({ type: 'CONNECTED', identity })
+    wrtcConnection.setState({ type: 'CONNECTED', identity, supportsSubprotocols: true })
 
     expect(peer.state.type).toBe('CONNECTED')
 
@@ -336,6 +353,7 @@ describe('punish', () => {
     connection.setState({
       type: 'CONNECTED',
       identity,
+      supportsSubprotocols: true,
     })
 
     peer.setWebSocketConnection(connection)

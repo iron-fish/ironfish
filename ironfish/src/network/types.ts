@@ -4,6 +4,44 @@
 import type { ErrorEvent as WSErrorEvent } from 'ws'
 import { WebSocketClient } from './webSocketClient'
 
+export enum SubProtocolType {
+  Internal = 0,
+  PeerDiscovery = 1,
+  Sync = 2,
+}
+
+export enum InternalSubProtocolMessageType {
+  Identify = 0,
+  Disconnecting = 1,
+  SignalRequest = 2,
+  Signal = 2,
+}
+
+export enum PeerDiscoverySubProtocolMessageType {
+  PeerListRequest = 0,
+  PeerList = 1,
+}
+
+export enum SyncSubProtocolMessageType {
+  CannotSatisfyRequest = 0,
+  GetBlockHashesRequest = 1,
+  GetBlockHashesResponse = 2,
+  GetBlocksRequest = 3,
+  GetBlocksResponse = 4,
+  PooledTransactionsRequest = 5,
+  PooledTransactionsResponse = 6,
+  NewPooledTransactionHashes = 7,
+  NewTransactions = 8,
+  NewBlockHashes = 9,
+  NewCompactBlock = 10,
+  GetBlockTransactionsRequest = 11,
+  GetBlockTransactionsResponse = 12,
+  GetCompactBlockRequest = 13,
+  GetCompactBlockResponse = 14,
+  GetBlockHeadersRequest = 15,
+  GetBlockHeadersResponse = 16,
+}
+
 export enum NetworkMessageType {
   Disconnecting = 0,
   CannotSatisfyRequest = 1,

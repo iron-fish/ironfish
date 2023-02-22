@@ -172,7 +172,11 @@ describe('PeerManager', () => {
       const connection = peer.state.connections.webSocket
       Assert.isNotUndefined(connection)
 
-      connection.setState({ type: 'CONNECTED', identity: peerIdentity })
+      connection.setState({
+        type: 'CONNECTED',
+        identity: peerIdentity,
+        supportsSubprotocols: true,
+      })
 
       expect(peers.peerCandidates.size).toBe(1)
       const pc = peers.peerCandidates.get(peerIdentity)
@@ -620,6 +624,7 @@ describe('PeerManager', () => {
       webRtcConnection.setState({
         type: 'CONNECTED',
         identity: peerIdentity,
+        supportsSubprotocols: true,
       })
       expect(closeSpy).toHaveBeenCalledTimes(1)
 
@@ -642,6 +647,7 @@ describe('PeerManager', () => {
       unidentifiedConnection.setState({
         type: 'CONNECTED',
         identity: peerIdentity,
+        supportsSubprotocols: true,
       })
 
       expect(pm.peers.length).toBe(2)
@@ -704,6 +710,7 @@ describe('PeerManager', () => {
       unidentifiedConnection.setState({
         type: 'CONNECTED',
         identity: peerIdentity,
+        supportsSubprotocols: true,
       })
 
       expect(pm.peers.length).toBe(1)

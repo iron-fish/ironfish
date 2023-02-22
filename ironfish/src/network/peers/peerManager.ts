@@ -15,7 +15,7 @@ import {
   isIdentity,
 } from '../identity'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
-import { IdentifyMessage } from '../messages/identify'
+import { IdentifyMessage, SUB_PROTOCOLS_MIN_VERSION } from '../messages/identify'
 import {
   displayNetworkMessageType,
   IncomingPeerMessage,
@@ -1255,7 +1255,11 @@ export class PeerManager {
     }
 
     // Identity has been successfully validated, update the peer's state
-    connection.setState({ type: 'CONNECTED', identity: identity })
+    connection.setState({
+      type: 'CONNECTED',
+      identity: identity,
+      supportsSubprotocols: message.version >= SUB_PROTOCOLS_MIN_VERSION,
+    })
   }
 
   /**

@@ -144,7 +144,7 @@ export class WebRtcConnection extends Connection {
 
       let message
       try {
-        message = parseNetworkMessage(bufferData)
+        message = parseNetworkMessage(bufferData, this.supportsSubprotocols)
       } catch (error) {
         this.logger.warn(`Unable to parse webrtc message`)
         this.close(error)
@@ -216,7 +216,7 @@ export class WebRtcConnection extends Connection {
       return false
     }
 
-    const data = message.serializeWithMetadata()
+    const data = message.serializeWithMetadata(this.supportsSubprotocols)
     try {
       this.datachannel.sendMessageBinary(data)
     } catch (e) {

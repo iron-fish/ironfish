@@ -29,8 +29,11 @@ import { SignalMessage } from './messages/signal'
 import { SignalRequestMessage } from './messages/signalRequest'
 import { NetworkMessageType } from './types'
 
-export const parseNetworkMessage = (buffer: Buffer): NetworkMessage => {
-  const { type, remaining: body } = NetworkMessage.deserializeType(buffer)
+export const parseNetworkMessage = (
+  buffer: Buffer,
+  supportsSubprotocols: boolean,
+): NetworkMessage => {
+  const { type, remaining: body } = NetworkMessage.deserializeType(buffer, supportsSubprotocols)
 
   if (isRpcNetworkMessageType(type)) {
     return parseRpcNetworkMessage(type, body)

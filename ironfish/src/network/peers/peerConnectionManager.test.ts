@@ -164,6 +164,7 @@ describe('maintainOneConnectionPerPeer', () => {
     peer.state.connections.webSocket?.setState({
       type: 'CONNECTED',
       identity: identity,
+      supportsSubprotocols: true,
     })
 
     pm.connectToWebRTC(peer)
@@ -213,6 +214,7 @@ describe('maintainOneConnectionPerPeer', () => {
     peer.state.connections.webSocket?.setState({
       type: 'CONNECTED',
       identity: identity,
+      supportsSubprotocols: true,
     })
 
     pm.connectToWebRTC(peer)
@@ -223,6 +225,7 @@ describe('maintainOneConnectionPerPeer', () => {
     peer.state.connections.webRtc.setState({
       type: 'CONNECTED',
       identity: identity,
+      supportsSubprotocols: true,
     })
 
     expect(peer.state).toEqual({
@@ -264,6 +267,7 @@ describe('attemptToEstablishWebRtcConnectionsToWSPeers', () => {
     peer.state.connections.webSocket?.setState({
       type: 'CONNECTED',
       identity: identity,
+      supportsSubprotocols: true,
     })
 
     expect(peer.state).toEqual({

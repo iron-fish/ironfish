@@ -35,7 +35,7 @@ type ConnectionState =
   /* A WebRTC-exclusive state that requires an identity */
   | { type: 'SIGNALING' }
   | { type: 'WAITING_FOR_IDENTITY' }
-  | { type: 'CONNECTED'; identity: Identity }
+  | { type: 'CONNECTED'; identity: Identity; supportsSubprotocols: boolean }
 
 /**
  * Model any connection that can send and receive messages.
@@ -76,6 +76,10 @@ export abstract class Connection {
     const name =
       this.state.type === 'CONNECTED' ? this.state.identity.slice(0, 7) : 'unidentified'
     return `${this.type} ${name}`
+  }
+
+  get supportsSubprotocols(): boolean {
+    return this.state.type === 'CONNECTED' ? this.state.supportsSubprotocols : false
   }
 
   /**

@@ -51,7 +51,7 @@ describe('WebRtcConnection', () => {
         })
 
         expect(connection.send(message)).toBe(true)
-        expect(sendMessageBinary).toHaveBeenCalledWith(message.serializeWithMetadata())
+        expect(sendMessageBinary).toHaveBeenCalledWith(message.serializeWithMetadata(false))
         connection.close()
       })
     })

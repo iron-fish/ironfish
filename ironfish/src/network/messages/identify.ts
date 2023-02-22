@@ -7,7 +7,7 @@ import { Identity, identityLength } from '../identity'
 import { NetworkMessageType } from '../types'
 import { NetworkMessage } from './networkMessage'
 
-const SUB_PROTOCOLS_MIN_VERSION = 21
+export const SUB_PROTOCOLS_MIN_VERSION = 21
 
 interface CreateIdentifyMessageOptions {
   agent: string
