@@ -102,7 +102,7 @@ export class DecryptedNoteValueEncoding implements IDatabaseEncoding<DecryptedNo
 
   getSize(value: DecryptedNoteValue): number {
     let size = 1
-    size += bufio.sizeVarString(value.accountId)
+    size += bufio.sizeVarString(value.accountId, 'utf8')
     size += DECRYPTED_NOTE_LENGTH
 
     // transaction hash

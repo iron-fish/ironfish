@@ -33,7 +33,7 @@ export class SleepRequest extends WorkerMessage {
   }
 
   getSize(): number {
-    return 8 + bufio.sizeVarString(this.error)
+    return 8 + bufio.sizeVarString(this.error, 'utf8')
   }
 }
 

@@ -120,16 +120,16 @@ export class SubmitTelemetryRequest extends WorkerMessage {
   getSize(): number {
     let size = 8 + bufio.sizeVarBytes(this.graffiti)
     for (const point of this.points) {
-      size += bufio.sizeVarString(point.measurement)
-      size += bufio.sizeVarString(point.timestamp.toISOString())
+      size += bufio.sizeVarString(point.measurement, 'utf8')
+      size += bufio.sizeVarString(point.timestamp.toISOString(), 'utf8')
 
       size += 8
       for (const field of point.fields) {
-        size += bufio.sizeVarString(field.name)
-        size += bufio.sizeVarString(field.type)
+        size += bufio.sizeVarString(field.name, 'utf8')
+        size += bufio.sizeVarString(field.type, 'utf8')
         switch (field.type) {
           case 'string':
-            size += bufio.sizeVarString(field.value)
+            size += bufio.sizeVarString(field.value, 'utf8')
             break
           case 'boolean':
             size += 1
@@ -145,8 +145,8 @@ export class SubmitTelemetryRequest extends WorkerMessage {
       if (tags) {
         size += 8
         for (const tag of tags) {
-          size += bufio.sizeVarString(tag.name)
-          size += bufio.sizeVarString(tag.value)
+          size += bufio.sizeVarString(tag.name, 'utf8')
+          size += bufio.sizeVarString(tag.value, 'utf8')
         }
       }
     }

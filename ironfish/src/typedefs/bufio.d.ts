@@ -46,8 +46,8 @@ declare module 'bufio' {
     writeI64(value: number): BufferWriter
     writeBigI64(value: bigint): BufferWriter
     writeVarint(value: number): BufferWriter
-    writeString(value: string, enc?: BufferEncoding | null): BufferWriter
-    writeVarString(value: string, enc?: BufferEncoding | null): BufferWriter
+    writeString(value: string, enc: BufferEncoding | null): BufferWriter
+    writeVarString(value: string, enc: BufferEncoding | null): BufferWriter
     writeVarBytes(value: Buffer): BufferWriter
     writeBytes(value: Buffer): BufferWriter
     writeHash(value: Buffer | string): BufferWriter
@@ -91,5 +91,5 @@ declare module 'bufio' {
 
   export function sizeVarint(value: number): number
   export function sizeVarBytes(value: Buffer): number
-  export function sizeVarString(value: string, enc?: BufferEncoding): number
+  export function sizeVarString(value: string, enc: BufferEncoding): number
 }
