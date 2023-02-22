@@ -113,6 +113,11 @@ export class WalletDB {
     value: AssetValue
   }>
 
+  nullifierToTransactionHash: IDatabaseStore<{
+    key: [Account['prefix'], Buffer]
+    value: TransactionHash
+  }>
+
   constructor({
     files,
     location,
@@ -224,6 +229,12 @@ export class WalletDB {
       name: 'as',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new AssetValueEncoding(),
+    })
+
+    this.nullifierToTransactionHash = this.db.addStore({
+      name: 'nt',
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+      valueEncoding: new BufferEncoding(),
     })
   }
 
