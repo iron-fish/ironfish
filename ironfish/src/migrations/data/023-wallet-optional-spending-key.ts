@@ -7,6 +7,7 @@ import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { Migration } from '../migration'
 import { GetNewStores } from './023-wallet-optional-spending-key/schemaNew'
 import { GetOldStores } from './023-wallet-optional-spending-key/schemaOld'
+import { GetStores } from './023-wallet-optional-spending-key/stores'
 export class Migration023 extends Migration {
   path = __filename
 
@@ -20,10 +21,7 @@ export class Migration023 extends Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    const stores = {
-      old: GetOldStores(db),
-      new: GetNewStores(db),
-    }
+    const stores = GetStores(db)
 
     for await (const account of stores.old.accounts.getAllValuesIter(tx)) {
       logger.info(`  Migrating account ${account.name}`)
