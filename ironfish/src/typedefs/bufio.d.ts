@@ -91,5 +91,5 @@ declare module 'bufio' {
 
   export function sizeVarint(value: number): number
   export function sizeVarBytes(value: Buffer): number
-  export function sizeVarString(value: string, enc?: BufferEncoding): number
+  export function sizeVarString(value: string, enc: BufferEncoding): number
 }
