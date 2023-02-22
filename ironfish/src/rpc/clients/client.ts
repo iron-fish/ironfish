@@ -84,10 +84,7 @@ import {
 } from '../routes/chain/followChain'
 import { UnsetConfigRequest, UnsetConfigResponse } from '../routes/config/unsetConfig'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
-import {
-  GetMempoolTransactionsRequest,
-  GetMempoolTransactionsResponse,
-} from '../routes/mempool'
+import { GetMempoolTransactionResponse, GetMempoolTransactionsRequest } from '../routes/mempool'
 import { GetBannedPeersRequest, GetBannedPeersResponse } from '../routes/peers/getBannedPeers'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
 import {
@@ -276,24 +273,12 @@ export abstract class RpcClient {
     )
   }
 
-  async getMempoolTransactions(
-    params: GetMempoolTransactionsRequest,
-  ): Promise<RpcResponseEnded<GetMempoolTransactionsResponse>> {
-    return this.request<GetMempoolTransactionsResponse>(
-      `${ApiNamespace.mempool}/getTransactions`,
-      params,
-    ).waitForEnd()
-  }
-
   getMempoolTransactionsStream(
     params: GetMempoolTransactionsRequest,
-  ): RpcResponse<void, GetMempoolTransactionsResponse> {
-    return this.request<void, GetMempoolTransactionsResponse>(
+  ): RpcResponse<void, GetMempoolTransactionResponse> {
+    return this.request<void, GetMempoolTransactionResponse>(
       `${ApiNamespace.mempool}/getTransactions`,
-      {
-        ...params,
-        stream: true,
-      },
+      { ...params },
     )
   }
 

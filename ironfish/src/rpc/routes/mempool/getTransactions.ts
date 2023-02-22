@@ -17,16 +17,11 @@ export type GetMempoolTransactionsRequest = {
   fee?: MinMax
   expiration?: MinMax
   position?: MinMax
-  stream?: boolean
 }
 
 export type GetMempoolTransactionResponse = {
   serializedTransaction: string
   position: number
-}
-
-export type GetMempoolTransactionsResponse = {
-  transactions: GetMempoolTransactionResponse[]
 }
 
 const minMaxSchema = yup.object({
@@ -47,53 +42,30 @@ export const MempoolTransactionsRequestSchema: yup.ObjectSchema<GetMempoolTransa
     .required()
     .defined()
 
-export const MempoolTransactionsResponseSchema: yup.ObjectSchema<GetMempoolTransactionsResponse> =
+export const MempoolTransactionResponseSchema: yup.ObjectSchema<GetMempoolTransactionResponse> =
   yup
     .object({
-      transactions: yup
-        .array()
-        .of(
-          yup
-            .object({
-              serializedTransaction: yup.string().defined(),
-              position: yup.number().defined(),
-            })
-            .defined(),
-        )
-        .defined(),
+      serializedTransaction: yup.string().defined(),
+      position: yup.number().defined(),
     })
     .defined()
 
-router.register<typeof MempoolTransactionsRequestSchema, GetMempoolTransactionsResponse>(
+router.register<typeof MempoolTransactionsRequestSchema, GetMempoolTransactionResponse>(
   `${ApiNamespace.mempool}/getTransactions`,
   MempoolTransactionsRequestSchema,
   (request, node): void => {
-    if (!request.data.stream) {
-      request.end({ transactions: getTransactions(node.memPool, request.data) })
-      return
+    for (const transaction of getTransactions(node.memPool, request.data)) {
+      request.stream(transaction)
     }
 
-    request.stream({
-      transactions: getTransactions(node.memPool, request.data),
-    })
-
-    const interval = setInterval(() => {
-      request.stream({
-        transactions: getTransactions(node.memPool, request.data),
-      })
-    }, 5000)
-
-    request.onClose.on(() => {
-      clearInterval(interval)
-    })
-
-    request.end({
-      transactions: getTransactions(node.memPool, request.data),
-    })
+    request.end()
   },
 )
 
-function getTransactions(memPool: MemPool, request: GetMempoolTransactionsRequest) {
+function* getTransactions(
+  memPool: MemPool,
+  request: GetMempoolTransactionsRequest,
+): Generator<GetMempoolTransactionResponse> {
   const serializedTransactions: GetMempoolTransactionResponse[] = []
 
   let position = 0
@@ -103,10 +75,10 @@ function getTransactions(memPool: MemPool, request: GetMempoolTransactionsReques
     }
 
     if (includeTransaction(transaction, position, request)) {
-      serializedTransactions.push({
+      yield {
         serializedTransaction: transaction.serialize().toString('hex'),
         position,
-      })
+      }
     }
 
     position++

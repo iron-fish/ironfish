@@ -1,14 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  getFeeRate,
-  GetMempoolTransactionsResponse,
-  PromiseUtils,
-  Transaction,
-} from '@ironfish/sdk'
+import { getFeeRate, GetMempoolTransactionResponse, Transaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 import { CommandFlags } from '../../types'
@@ -21,11 +15,6 @@ export class TransactionsCommand extends IronfishCommand {
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
-    follow: Flags.boolean({
-      char: 'f',
-      default: false,
-      description: 'Follow the transactions list live',
-    }),
     limit: Flags.integer({
       default: 30,
       description: 'Number of transactions to display on the console',
@@ -87,40 +76,17 @@ export class TransactionsCommand extends IronfishCommand {
       },
     }
 
-    if (!flags.follow) {
-      await this.sdk.client.connect()
-      const response = await this.sdk.client.getMempoolTransactions(request)
+    await this.sdk.client.connect()
 
-      this.log(renderTable(response.content, flags))
-      this.exit(0)
+    const response = this.sdk.client.getMempoolTransactionsStream(request)
+
+    const transactions: GetMempoolTransactionResponse[] = []
+    for await (const transaction of response.contentStream()) {
+      transactions.push(transaction)
     }
 
-    // Console log will create display issues with Blessed
-    this.logger.pauseLogs()
-
-    const screen = blessed.screen({ smartCSR: true, fullUnicode: true })
-    const text = blessed.text()
-    screen.append(text)
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const connected = await this.sdk.client.tryConnect()
-      if (!connected) {
-        text.clearBaseLine(0)
-        text.setContent('Connecting...')
-        screen.render()
-        await PromiseUtils.sleep(1000)
-        continue
-      }
-
-      const response = this.sdk.client.getMempoolTransactionsStream(request)
-
-      for await (const value of response.contentStream()) {
-        text.clearBaseLine(0)
-        text.setContent(renderTable(value, flags))
-        screen.render()
-      }
-    }
+    this.log(renderTable(transactions, flags))
+    this.exit(0)
   }
 }
 
@@ -134,7 +100,7 @@ type TransactionRow = {
 }
 
 function renderTable(
-  response: GetMempoolTransactionsResponse,
+  response: GetMempoolTransactionResponse[],
   flags: CommandFlags<typeof TransactionsCommand>,
 ): string {
   const columns: CliUx.Table.table.Columns<TransactionRow> = {
@@ -187,8 +153,8 @@ function renderTable(
   return result
 }
 
-function getRows(response: GetMempoolTransactionsResponse, limit: number): TransactionRow[] {
-  const transactions = limit > 0 ? response.transactions.slice(0, limit) : response.transactions
+function getRows(response: GetMempoolTransactionResponse[], limit: number): TransactionRow[] {
+  const transactions = limit > 0 ? response.slice(0, limit) : response
   return transactions.map(({ serializedTransaction, position }) => {
     const transaction = new Transaction(Buffer.from(serializedTransaction, 'hex'))
 
