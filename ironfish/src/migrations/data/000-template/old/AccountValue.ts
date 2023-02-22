@@ -5,11 +5,13 @@ import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../../../storage'
 
-/* The schemaOld.ts file must define the value schema and database encoding for
- * ALL datastores that the migration reads from. Even if the migration does not
- * modify a datastore _A_, if the migration needs to read data from _A_ in order
- * to write to another datastore _B_, then the schema and encoding for _A_ must
- * be defined in schemaOld.ts.
+/* This file must define the value schema and database encoding for the old copy
+ * of the schema migration, this is the schema of the data in the DB at the time
+ * the migration is run.
+ *
+ * Even if the migration does not modify a datastore _A_, if the migration needs
+ * to read data from _A_ in order to write to another datastore _B_, then the
+ * schema and encoding for _A_ must be defined in schemaOld.ts.
  *
  * The example below is taken from Migration022, which added the viewKey field
  * to the AccountValue schema. */

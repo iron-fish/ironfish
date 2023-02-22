@@ -5,8 +5,9 @@ import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../../../storage'
 
-/* The schemaNew.ts file must define the value schema and database encoding for
- * ALL datastores that the migration modifies.
+/* This file must define the value schema and database encoding for
+ * the store the migration is modifying. This is a copy of the source
+ * code of the desired schema state.
  *
  * The example below is taken from Migration022, which added the viewKey field
  * to the AccountValue schema. */
