@@ -10,18 +10,20 @@ import {
   useBlockWithTx,
   useBlockWithTxs,
 } from '../testUtilities'
+import { BigIntUtils } from '../utils'
 import { FeeEstimator, FeeRateEntry, getFeeRate, PRIORITY_LEVELS } from './feeEstimator'
 
 function getEstimateFeeRate(
   block: Block,
   transaction: Transaction,
   maxBlockSize: number,
+  feeEstimator: FeeEstimator,
 ): bigint {
   const blockSize = getBlockSize(block)
   const blockSizeRatio = BigInt(Math.round((blockSize / maxBlockSize) * 100))
   let feeRate = getFeeRate(transaction)
   feeRate = (feeRate * blockSizeRatio) / 100n
-  return feeRate
+  return BigIntUtils.max(feeRate, feeEstimator.minFeeRate)
 }
 
 describe('FeeEstimator', () => {
@@ -46,7 +48,9 @@ describe('FeeEstimator', () => {
         block,
         transaction,
         node.chain.consensus.parameters.maxBlockSizeBytes,
+        feeEstimator,
       )
+
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[1])).toBe(feeRate)
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[2])).toBe(feeRate)
@@ -89,6 +93,7 @@ describe('FeeEstimator', () => {
         block,
         transaction2,
         node.chain.consensus.parameters.maxBlockSizeBytes,
+        feeEstimator,
       )
 
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
@@ -168,6 +173,7 @@ describe('FeeEstimator', () => {
         block,
         transaction,
         node.chain.consensus.parameters.maxBlockSizeBytes,
+        feeEstimator,
       )
 
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)
@@ -245,6 +251,7 @@ describe('FeeEstimator', () => {
         block,
         transaction2,
         node.chain.consensus.parameters.maxBlockSizeBytes,
+        feeEstimator,
       )
 
       expect(feeEstimator.estimateFeeRate(PRIORITY_LEVELS[0])).toBe(feeRate)

@@ -65,6 +65,10 @@ import {
   UseAccountResponse,
 } from '../routes'
 import {
+  EstimateFeeRateRequest,
+  EstimateFeeRateResponse,
+} from '../routes/chain/estimateFeeRate'
+import {
   EstimateFeeRatesRequest,
   EstimateFeeRatesResponse,
 } from '../routes/chain/estimateFeeRates'
@@ -420,6 +424,15 @@ export abstract class RpcClient {
   ): Promise<RpcResponseEnded<EstimateFeeRatesResponse>> {
     return this.request<EstimateFeeRatesResponse>(
       `${ApiNamespace.chain}/estimateFeeRates`,
+      params,
+    ).waitForEnd()
+  }
+
+  async estimateFeeRate(
+    params?: EstimateFeeRateRequest,
+  ): Promise<RpcResponseEnded<EstimateFeeRateResponse>> {
+    return this.request<EstimateFeeRateResponse>(
+      `${ApiNamespace.chain}/estimateFeeRate`,
       params,
     ).waitForEnd()
   }
