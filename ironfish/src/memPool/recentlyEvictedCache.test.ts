@@ -4,13 +4,15 @@
 
 import { randomBytes } from 'crypto'
 import { createRootLogger } from '../logger'
-import { mockLogger } from '../testUtilities/mocks'
 import { RecentlyEvictedCache } from './recentlyEvictedCache'
 
 describe('RecentlyEvictedCache', () => {
   const logger = createRootLogger()
 
-  const transactions = [...new Array(20)].map((_, i) => {
+  /**
+   * orderedTransactions[i] has feeRate = i, sequence = i
+   */
+  const orderedTransactions = [...new Array(20)].map((_, i) => {
     const hash = randomBytes(32)
     return {
       hash: hash,
@@ -20,11 +22,11 @@ describe('RecentlyEvictedCache', () => {
     }
   })
 
-  const feeRates = [
+  const randomFeeRates = [
     58, 70, 88, 89, 54, 57, 26, 94, 34, 53, 35, 14, 19, 59, 4, 75, 3, 85, 19, 84,
   ]
 
-  const sequences = [
+  const randomSequences = [
     87, 80, 73, 72, 52, 42, 19, 61, 34, 20, 49, 22, 15, 96, 14, 9, 43, 39, 33, 10,
   ]
 
@@ -32,8 +34,8 @@ describe('RecentlyEvictedCache', () => {
     const hash = randomBytes(32)
     return {
       hash: hash,
-      feeRate: BigInt(feeRates[i]),
-      sequence: sequences[i],
+      feeRate: BigInt(randomFeeRates[i]),
+      sequence: randomSequences[i],
       hashAsString: hash.toString('hex'),
     }
   })
@@ -43,50 +45,73 @@ describe('RecentlyEvictedCache', () => {
       const testCache = new RecentlyEvictedCache({
         capacity: 10,
         logger,
+        maxAge: 5,
       })
 
-      for (const transaction of transactions) {
+      for (const transaction of orderedTransactions) {
         testCache.add(transaction.hash, transaction.feeRate, transaction.sequence)
       }
 
       expect(testCache.size()).toEqual(10)
     })
 
-    it('should evict proper txn when full and new txn comes in', () => {
+    it('should evict the proper transaction when full and a new transaction comes in [ORDERED]', () => {
       const testCache = new RecentlyEvictedCache({
         capacity: 2,
+        maxAge: 5,
         logger,
       })
 
-      testCache.add(transactions[5].hash, transactions[5].feeRate, transactions[5].sequence)
-      testCache.add(transactions[7].hash, transactions[7].feeRate, transactions[7].sequence)
+      testCache.add(
+        orderedTransactions[5].hash,
+        orderedTransactions[5].feeRate,
+        orderedTransactions[5].sequence,
+      )
+      testCache.add(
+        orderedTransactions[7].hash,
+        orderedTransactions[7].feeRate,
+        orderedTransactions[7].sequence,
+      )
       // cache: fees = [5, 7]
 
       // adding feeRate = 6 should evict feeRate = 7
-      testCache.add(transactions[6].hash, transactions[6].feeRate, transactions[6].sequence)
-      expect(testCache.has(transactions[7].hashAsString)).toEqual(false)
-      expect(testCache.has(transactions[5].hashAsString)).toEqual(true)
-      expect(testCache.has(transactions[6].hashAsString)).toEqual(true)
+      testCache.add(
+        orderedTransactions[6].hash,
+        orderedTransactions[6].feeRate,
+        orderedTransactions[6].sequence,
+      )
+      expect(testCache.has(orderedTransactions[7].hashAsString)).toEqual(false)
+      expect(testCache.has(orderedTransactions[5].hashAsString)).toEqual(true)
+      expect(testCache.has(orderedTransactions[6].hashAsString)).toEqual(true)
 
       // cache: fees = [5, 6]
       // adding feeRate = 4 should evict feeRate = 6
-      testCache.add(transactions[4].hash, transactions[4].feeRate, transactions[4].sequence)
-      expect(testCache.has(transactions[6].hashAsString)).toEqual(false)
-      expect(testCache.has(transactions[5].hashAsString)).toEqual(true)
-      expect(testCache.has(transactions[4].hashAsString)).toEqual(true)
+      testCache.add(
+        orderedTransactions[4].hash,
+        orderedTransactions[4].feeRate,
+        orderedTransactions[4].sequence,
+      )
+      expect(testCache.has(orderedTransactions[6].hashAsString)).toEqual(false)
+      expect(testCache.has(orderedTransactions[5].hashAsString)).toEqual(true)
+      expect(testCache.has(orderedTransactions[4].hashAsString)).toEqual(true)
 
       // cache: fees = [4, 5]
       // adding feeRate = 10 should not evict anything
-      testCache.add(transactions[10].hash, transactions[10].feeRate, transactions[10].sequence)
-      expect(testCache.has(transactions[10].hashAsString)).toEqual(false)
-      expect(testCache.has(transactions[4].hashAsString)).toEqual(true)
-      expect(testCache.has(transactions[5].hashAsString)).toEqual(true)
+      testCache.add(
+        orderedTransactions[10].hash,
+        orderedTransactions[10].feeRate,
+        orderedTransactions[10].sequence,
+      )
+      expect(testCache.has(orderedTransactions[10].hashAsString)).toEqual(false)
+      expect(testCache.has(orderedTransactions[4].hashAsString)).toEqual(true)
+      expect(testCache.has(orderedTransactions[5].hashAsString)).toEqual(true)
     })
 
-    it('should evict proper txn when full and new txn comes in [RANDOM]', () => {
+    it('should evict the proper transaction when full and a new transaction comes in [RANDOM]', () => {
       const testCache = new RecentlyEvictedCache({
         capacity: 5,
         logger,
+        maxAge: 5,
       })
 
       const added: typeof randomTransactions = []
@@ -105,41 +130,46 @@ describe('RecentlyEvictedCache', () => {
   })
 
   describe('flush', () => {
-    // transactions[i] has fee rate [i]
-    const transactions = [...new Array(10)].map((_, i) => {
-      const hash = randomBytes(32)
-      return { hash, feeRate: BigInt(i), sequence: i, hashAsString: hash.toString('hex') }
-    })
-
-    it('should flush if new block connects that pushes out old transactions', () => {
+    it('should flush transactions beyond the max age when a new block connects [ORDERED]', () => {
+      const maxAge = 5
       const testCache = new RecentlyEvictedCache({
-        capacity: 20,
         logger,
+        capacity: 20,
+        maxAge: maxAge,
       })
 
-      for (const { hash, feeRate, sequence } of transactions) {
+      for (const { hash, feeRate, sequence } of orderedTransactions) {
         testCache.add(hash, feeRate, sequence)
       }
 
-      expect(testCache.size()).toEqual(10)
+      expect(testCache.size()).toEqual(20)
 
-      testCache.flush(5)
+      /**
+       * all blocks before this should be evicted
+       */
+      const minSequence = 5
 
-      expect(testCache.size()).toEqual(5)
+      testCache.onConnectBlock(minSequence + maxAge)
 
-      for (const { hashAsString } of transactions.filter(({ sequence }) => sequence < 5)) {
+      for (const { hashAsString } of orderedTransactions.filter(
+        ({ sequence }) => sequence < minSequence,
+      )) {
         expect(testCache.has(hashAsString)).toBe(false)
       }
 
-      for (const { hashAsString } of transactions.filter(({ sequence }) => sequence >= 5)) {
+      for (const { hashAsString } of orderedTransactions.filter(
+        ({ sequence }) => sequence >= minSequence,
+      )) {
         expect(testCache.has(hashAsString)).toBe(true)
       }
     })
 
-    it('should flush if new block connects that pushes out old transactions [RANDOM]', () => {
+    it('should flush transactions beyond the max age when a new block connects [RANDOM]', () => {
+      const maxAge = 10
       const testCache = new RecentlyEvictedCache({
-        capacity: 5,
         logger,
+        capacity: 5,
+        maxAge: maxAge,
       })
 
       const added: typeof randomTransactions = []
@@ -148,12 +178,17 @@ describe('RecentlyEvictedCache', () => {
         added.push({ hash, feeRate, sequence, hashAsString })
       }
 
-      testCache.flush(30)
+      /**
+       * all blocks before this should be evicted
+       */
+      let minSequence = 30
+
+      testCache.onConnectBlock(minSequence + maxAge)
 
       let expected = added
         .sort((t1, t2) => Number(t1.feeRate - t2.feeRate))
         .slice(0, 5)
-        .filter(({ sequence }) => sequence > 30)
+        .filter(({ sequence }) => sequence > minSequence)
 
       let notExpected = added.filter((t) => !expected.includes(t))
 
@@ -170,12 +205,14 @@ describe('RecentlyEvictedCache', () => {
         added.push({ hash, feeRate, sequence, hashAsString })
       }
 
-      testCache.flush(35)
+      // all blocks before this should be evicted
+      minSequence = 35
+      testCache.onConnectBlock(minSequence + maxAge)
 
       expected = added
         .sort((t1, t2) => Number(t1.feeRate - t2.feeRate))
         .slice(0, 5)
-        .filter(({ sequence }) => sequence > 35)
+        .filter(({ sequence }) => sequence > minSequence)
 
       notExpected = added.filter((t) => !expected.includes(t))
 

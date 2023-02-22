@@ -89,6 +89,7 @@ export class MemPool {
     this.recentlyEvictedCache = new RecentlyEvictedCache({
       logger: this.logger,
       capacity: 50000,
+      maxAge: 10,
     })
   }
 
@@ -203,7 +204,7 @@ export class MemPool {
       this.logger.debug(`Deleted ${deletedTransactions} transactions`)
     }
     this.head = block.header
-    this.recentlyEvictedCache.flush(this.head.sequence)
+    this.recentlyEvictedCache.onConnectBlock(this.head.sequence)
   }
 
   async onDisconnectBlock(block: Block): Promise<void> {

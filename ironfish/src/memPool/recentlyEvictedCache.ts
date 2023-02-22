@@ -5,12 +5,12 @@ import { Logger } from '../logger'
 import { TransactionHash } from '../primitives/transaction'
 import { PriorityQueue } from './priorityQueue'
 
-interface EvictionEntry {
+interface EvictionQueueEntry {
   hash: TransactionHash
   feeRate: bigint
 }
 
-interface InsertedAtEntry {
+interface InsertedAtQueueEntry {
   hash: TransactionHash
   insertedAtSequence: number
 }
@@ -35,38 +35,44 @@ export class RecentlyEvictedCache {
   private readonly capacity: number
 
   /**
+   * The maxmimum amount of time, in number of blocks, that a transaction can spend in the cache.
+   */
+  private readonly maxAge: number
+
+  /**
    * A priority queue of transaction hashes ordered by `feeRate` descending.
    * This is the eviction order for the cache when full.
    */
-  private readonly evictionQueue: PriorityQueue<EvictionEntry>
+  private readonly evictionQueue: PriorityQueue<EvictionQueueEntry>
 
   /**
    * A priority queue of transaction hashes ordered by the sequence when they were inserted into the cache.
    */
   // TODO: this can just be a normal queue because if y is inserted after x, it cannot have a lower sequence #
-  private readonly insertedAtQueue: PriorityQueue<InsertedAtEntry>
+  private readonly insertedAtQueue: PriorityQueue<InsertedAtQueueEntry>
 
   /**
    * Creates a new RecentlyEvictedCache.
    * Transactions that are evicted from the mempool should be added here.
    *
    * @constructor
-   * @param {number} options.capacity the maximum number of hashes to store in the cache
-   * @param {number} options.maxJailTime the maximum number of blocks a hash can spend in the cache
+   * @param options.capacity the maximum number of hashes to store in the cache
+   * @param options.maxAge the maximum number of blocks a hash can spend in the cache
    */
-  constructor(options: { logger: Logger; capacity: number }) {
+  constructor(options: { logger: Logger; capacity: number; maxAge: number }) {
     this.capacity = options.capacity
+    this.maxAge = options.maxAge
 
     const logger = options.logger
 
     this.logger = logger.withTag('RecentlyEvictedCache')
 
-    this.evictionQueue = new PriorityQueue<EvictionEntry>(
+    this.evictionQueue = new PriorityQueue<EvictionQueueEntry>(
       (t1, t2) => t1.feeRate > t2.feeRate,
       (t) => t.hash.toString('hex'),
     )
 
-    this.insertedAtQueue = new PriorityQueue<InsertedAtEntry>(
+    this.insertedAtQueue = new PriorityQueue<InsertedAtQueueEntry>(
       (t1, t2) => t1.insertedAtSequence < t2.insertedAtSequence,
       (t) => t.hash.toString('hex'),
     )
@@ -76,11 +82,11 @@ export class RecentlyEvictedCache {
    * Removes the hash from the cache and eviction + insertion queues
    *
    * @param hash the hash of the transaction to remove
+   *
    * @returns true if the hash was removed, false if it was not present in the cache
    */
   private remove(hash: TransactionHash): boolean {
     const stringHash = hash.toString('hex')
-
     if (!this.has(stringHash)) {
       return false
     }
@@ -101,13 +107,11 @@ export class RecentlyEvictedCache {
    */
   private poll(): TransactionHash | undefined {
     const toEvict = this.evictionQueue.poll()
-
     if (!toEvict) {
       return
     }
 
     const hashToRemove = toEvict.hash
-
     this.remove(hashToRemove)
 
     return hashToRemove
@@ -126,6 +130,12 @@ export class RecentlyEvictedCache {
    *
    * Note that the cache is resized after the transaction is added. Thus, if the new transaction
    * has the highest fee rate in the cache, then it will immediately be evicted.
+   *
+   * @param transactionHash the hash of the transaction to add
+   * @param feeRate the fee/byte rate of the transaction
+   * @param currentBlockSequence the current block sequence when the transaction was added
+   *
+   * @returns true if the transaction was successfully added to the cache, false if it was already present
    */
   add(
     transactionHash: TransactionHash,
@@ -147,6 +157,7 @@ export class RecentlyEvictedCache {
       insertedAtSequence: currentBlockSequence,
     })
 
+    // keep the cache under max capacity
     while (this.size() > this.capacity) {
       this.poll()
     }
@@ -154,16 +165,33 @@ export class RecentlyEvictedCache {
     return true
   }
 
+  /**
+   * Checks if the cache contains a transaction with the given hash.
+   *
+   * @returns true if the hash exists in the cache
+   */
   has(hash: string): boolean {
     return this.insertedAtQueue.has(hash)
   }
 
   /**
-   * Flushes the cache of any transactions have were added before minSequence
+   * Called when a new block is added to the blockchain.
+   * This flushes all transactions that have been in the cache for longer than `maxAge` blocks.
+   *
+   * @param newSequence - the new head block sequence
+   */
+  onConnectBlock(newSequence: number): void {
+    // transactions that were added before this sequence will be flushed
+    const minSequence = newSequence - this.maxAge
+    this.flush(minSequence)
+  }
+
+  /**
+   * Flushes the cache of any transactions have were added before `minSequence`
    *
    * @param minSequence all transactions added before this sequence will be flushed
    */
-  flush(minSequence: number): void {
+  private flush(minSequence: number): void {
     let flushCount = 0
 
     let toFlush = this.insertedAtQueue.peek()
@@ -174,7 +202,7 @@ export class RecentlyEvictedCache {
     }
 
     this.logger?.debug(
-      `Flushed ${flushCount} transactions from RecentlyEvictedCache added before block ${minSequence}`,
+      `Flushed ${flushCount} transactions from RecentlyEvictedCache after adding block ${minSequence}`,
     )
 
     return
