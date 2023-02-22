@@ -1,7 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RpcClient } from '@ironfish/sdk'
+import {
+  DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY,
+  DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE,
+  DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST,
+  DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW,
+  RpcClient,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
@@ -37,10 +43,15 @@ export class FeeCommand extends IronfishCommand {
   async explainFeeRates(client: RpcClient): Promise<void> {
     const config = await client.getConfig()
 
-    const slow = config.content['feeEstimatorPercentileSlow'] || '10'
-    const average = config.content['feeEstimatorPercentileAverage'] || '20'
-    const fast = config.content['feeEstimatorPercentileFast'] || '30'
-    const numBlocks = config.content['feeEstimatorMaxBlockHistory'] || '10'
+    const slow =
+      config.content['feeEstimatorPercentileSlow'] || DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW
+    const average =
+      config.content['feeEstimatorPercentileAverage'] ||
+      DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE
+    const fast =
+      config.content['feeEstimatorPercentileFast'] || DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST
+    const numBlocks =
+      config.content['feeEstimatorMaxBlockHistory'] || DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY
 
     this.log(
       `Fee rates are estimated from the distribution of transaction fees over the last ${numBlocks} blocks.\n`,
