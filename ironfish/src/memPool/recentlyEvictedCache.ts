@@ -10,9 +10,9 @@ interface EvictionQueueEntry {
   feeRate: bigint
 }
 
-interface InsertedAtQueueEntry {
+interface ExpireAtQueueEntry {
   hash: TransactionHash
-  insertedAtSequence: number
+  expireAtSequence: number
 }
 
 /**
@@ -46,10 +46,10 @@ export class RecentlyEvictedCache {
   private readonly evictionQueue: PriorityQueue<EvictionQueueEntry>
 
   /**
-   * A priority queue of transaction hashes ordered by the sequence when they were inserted into the cache.
+   * A priority queue of transaction hashes ordered by their expiration sequence.
    */
-  // TODO: this can just be a normal queue because if y is inserted after x, it cannot have a lower sequence #
-  private readonly insertedAtQueue: PriorityQueue<InsertedAtQueueEntry>
+  // TODO: this can just be a normal queue because if y is inserted after x, y cannot expire before x
+  private readonly expireAtQueue: PriorityQueue<ExpireAtQueueEntry>
 
   /**
    * Creates a new RecentlyEvictedCache.
@@ -72,8 +72,8 @@ export class RecentlyEvictedCache {
       (t) => t.hash.toString('hex'),
     )
 
-    this.insertedAtQueue = new PriorityQueue<InsertedAtQueueEntry>(
-      (t1, t2) => t1.insertedAtSequence < t2.insertedAtSequence,
+    this.expireAtQueue = new PriorityQueue<ExpireAtQueueEntry>(
+      (t1, t2) => t1.expireAtSequence < t2.expireAtSequence,
       (t) => t.hash.toString('hex'),
     )
   }
@@ -92,7 +92,7 @@ export class RecentlyEvictedCache {
     }
 
     // keep the items in the two priority queues consistently in sync
-    this.insertedAtQueue.remove(stringHash)
+    this.expireAtQueue.remove(stringHash)
     this.evictionQueue.remove(stringHash)
 
     return true
@@ -121,7 +121,7 @@ export class RecentlyEvictedCache {
    * @returns the number of transactions in the cache
    */
   size(): number {
-    return this.insertedAtQueue.size()
+    return this.expireAtQueue.size()
   }
 
   /**
@@ -152,9 +152,9 @@ export class RecentlyEvictedCache {
       feeRate,
     })
 
-    this.insertedAtQueue.add({
+    this.expireAtQueue.add({
       hash: transactionHash,
-      insertedAtSequence: currentBlockSequence,
+      expireAtSequence: currentBlockSequence + this.maxAge,
     })
 
     // keep the cache under max capacity
@@ -171,38 +171,26 @@ export class RecentlyEvictedCache {
    * @returns true if the hash exists in the cache
    */
   has(hash: string): boolean {
-    return this.insertedAtQueue.has(hash)
+    return this.expireAtQueue.has(hash)
   }
 
   /**
-   * Called when a new block is added to the blockchain.
-   * This flushes all transactions that have been in the cache for longer than `maxAge` blocks.
+   * Flushes the cache of any transactions that will expire after adding the given block sequence.
    *
-   * @param newSequence - the new head block sequence
+   * @param maxSequence All transactions with an expiration sequence <= `maxSequence` will be flushed.
    */
-  onConnectBlock(newSequence: number): void {
-    // transactions that were added before this sequence will be flushed
-    const minSequence = newSequence - this.maxAge
-    this.flush(minSequence)
-  }
-
-  /**
-   * Flushes the cache of any transactions have were added before `minSequence`
-   *
-   * @param minSequence all transactions added before this sequence will be flushed
-   */
-  private flush(minSequence: number): void {
+  flush(maxSequence: number): void {
     let flushCount = 0
 
-    let toFlush = this.insertedAtQueue.peek()
-    while (toFlush && toFlush.insertedAtSequence < minSequence) {
+    let toFlush = this.expireAtQueue.peek()
+    while (toFlush && toFlush.expireAtSequence <= maxSequence) {
       this.remove(toFlush.hash)
       flushCount++
-      toFlush = this.insertedAtQueue.peek()
+      toFlush = this.expireAtQueue.peek()
     }
 
     this.logger?.debug(
-      `Flushed ${flushCount} transactions from RecentlyEvictedCache after adding block ${minSequence}`,
+      `Flushed ${flushCount} transactions from RecentlyEvictedCache after adding block ${maxSequence}`,
     )
 
     return

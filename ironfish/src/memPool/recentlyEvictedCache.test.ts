@@ -145,20 +145,28 @@ describe('RecentlyEvictedCache', () => {
       expect(testCache.size()).toEqual(20)
 
       /**
-       * all blocks before this should be evicted
+       * all txns with exiration blocks before this should be evicted
        */
-      const minSequence = 5
+      const minSequence = 10
 
-      testCache.onConnectBlock(minSequence + maxAge)
+      testCache.flush(minSequence)
 
-      for (const { hashAsString } of orderedTransactions.filter(
-        ({ sequence }) => sequence < minSequence,
-      )) {
+      const expected = orderedTransactions.filter(
+        ({ sequence }) => sequence > minSequence - maxAge,
+      )
+
+      const notExpected = orderedTransactions.filter((t) => !expected.includes(t))
+
+      for (const { hashAsString } of expected) {
+        expect(testCache.has(hashAsString)).toBe(true)
+      }
+
+      for (const { hashAsString } of notExpected) {
         expect(testCache.has(hashAsString)).toBe(false)
       }
 
       for (const { hashAsString } of orderedTransactions.filter(
-        ({ sequence }) => sequence >= minSequence,
+        ({ sequence }) => sequence > minSequence - maxAge,
       )) {
         expect(testCache.has(hashAsString)).toBe(true)
       }
@@ -183,12 +191,12 @@ describe('RecentlyEvictedCache', () => {
        */
       let minSequence = 30
 
-      testCache.onConnectBlock(minSequence + maxAge)
+      testCache.flush(minSequence)
 
       let expected = added
         .sort((t1, t2) => Number(t1.feeRate - t2.feeRate))
         .slice(0, 5)
-        .filter(({ sequence }) => sequence > minSequence)
+        .filter(({ sequence }) => sequence > minSequence - maxAge)
 
       let notExpected = added.filter((t) => !expected.includes(t))
 
@@ -207,12 +215,12 @@ describe('RecentlyEvictedCache', () => {
 
       // all blocks before this should be evicted
       minSequence = 35
-      testCache.onConnectBlock(minSequence + maxAge)
+      testCache.flush(minSequence)
 
       expected = added
         .sort((t1, t2) => Number(t1.feeRate - t2.feeRate))
         .slice(0, 5)
-        .filter(({ sequence }) => sequence > minSequence)
+        .filter(({ sequence }) => sequence > minSequence - maxAge)
 
       notExpected = added.filter((t) => !expected.includes(t))
 
