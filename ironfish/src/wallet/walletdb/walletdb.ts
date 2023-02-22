@@ -11,7 +11,7 @@ import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
 import { TransactionHash } from '../../primitives/transaction'
 import {
-  BigIntBEEncoding,
+  BigU64BEEncoding,
   BUFFER_ENCODING,
   BufferEncoding,
   IDatabase,
@@ -35,7 +35,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-const VERSION_DATABASE_ACCOUNTS = 22
+const VERSION_DATABASE_ACCOUNTS = 23
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -241,7 +241,7 @@ export class WalletDB {
           new PrefixEncoding(
             U32_ENCODING_BE, // sequence
             new PrefixEncoding(
-              new BigIntBEEncoding(), // value
+              new BigU64BEEncoding(), // value
               new BufferEncoding(), // note hash
               8,
             ),

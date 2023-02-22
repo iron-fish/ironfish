@@ -172,7 +172,7 @@ export class BigIntLEEncoding implements IDatabaseEncoding<BigInt> {
   }
 }
 
-export class BigIntBEEncoding implements IDatabaseEncoding<BigInt> {
+export class BigU64BEEncoding implements IDatabaseEncoding<BigInt> {
   serialize(value: bigint): Buffer {
     const buffer = bufio.write(8)
     buffer.writeBigU64BE(value)
