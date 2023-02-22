@@ -151,6 +151,7 @@ describe('RecentlyEvictedCache', () => {
 
       testCache.flush(minSequence)
 
+      // only txns with expiration sequences after the min sequence should remain in the cache
       const expected = orderedTransactions.filter(
         ({ sequence }) => sequence > minSequence - maxAge,
       )
@@ -164,12 +165,6 @@ describe('RecentlyEvictedCache', () => {
       for (const { hashAsString } of notExpected) {
         expect(testCache.has(hashAsString)).toBe(false)
       }
-
-      for (const { hashAsString } of orderedTransactions.filter(
-        ({ sequence }) => sequence > minSequence - maxAge,
-      )) {
-        expect(testCache.has(hashAsString)).toBe(true)
-      }
     })
 
     it('should flush transactions beyond the max age when a new block connects [RANDOM]', () => {
@@ -181,18 +176,21 @@ describe('RecentlyEvictedCache', () => {
       })
 
       const added: typeof randomTransactions = []
+
+      // add the first 10 elements
       for (const { hash, feeRate, sequence, hashAsString } of randomTransactions.slice(0, 10)) {
         testCache.add(hash, feeRate, sequence)
         added.push({ hash, feeRate, sequence, hashAsString })
       }
 
       /**
-       * all blocks before this should be evicted
+       * all txns with exiration blocks before this should be evicted
        */
-      let minSequence = 30
+      const minSequence = 30
 
       testCache.flush(minSequence)
 
+      // only txns with expiration sequences after the min sequence should remain in the cache
       let expected = added
         .sort((t1, t2) => Number(t1.feeRate - t2.feeRate))
         .slice(0, 5)
@@ -208,13 +206,12 @@ describe('RecentlyEvictedCache', () => {
         expect(testCache.has(hashAsString)).toBe(false)
       }
 
+      // add the next 10 elements
       for (const { hash, feeRate, sequence, hashAsString } of randomTransactions.slice(10)) {
         testCache.add(hash, feeRate, sequence)
         added.push({ hash, feeRate, sequence, hashAsString })
       }
 
-      // all blocks before this should be evicted
-      minSequence = 35
       testCache.flush(minSequence)
 
       expected = added
