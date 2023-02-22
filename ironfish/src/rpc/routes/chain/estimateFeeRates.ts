@@ -31,9 +31,9 @@ router.register<typeof EstimateFeeRatesRequestSchema, EstimateFeeRatesResponse>(
     const rates = node.memPool.feeEstimator.estimateFeeRates()
 
     request.end({
-      slow: CurrencyUtils.encode(rates.low),
-      average: CurrencyUtils.encode(rates.medium),
-      fast: CurrencyUtils.encode(rates.high),
+      slow: CurrencyUtils.encode(rates.slow),
+      average: CurrencyUtils.encode(rates.average),
+      fast: CurrencyUtils.encode(rates.fast),
     })
   },
 )
