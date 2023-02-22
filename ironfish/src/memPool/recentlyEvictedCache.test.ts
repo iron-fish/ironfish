@@ -3,37 +3,46 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { randomBytes } from 'crypto'
+import { createRootLogger } from '../logger'
 import { mockLogger } from '../testUtilities/mocks'
-import { PriorityQueue } from './priorityQueue'
 import { RecentlyEvictedCache } from './recentlyEvictedCache'
 
-function* consume<T>(queue: PriorityQueue<T>): Generator<T, void, unknown> {
-  const clone = queue.clone()
-
-  while (clone.size() > 0) {
-    const item = clone.poll()
-
-    if (item === undefined) {
-      continue
-    }
-
-    yield item
-  }
-}
-
 describe('RecentlyEvictedCache', () => {
-  describe('add', () => {
-    // transactions[i] has fee rate = i and sequence = i
-    const transactions = [...new Array(21)].map((_, i) => {
-      const hash = randomBytes(32)
-      return { hash: hash, feeRate: BigInt(i), sequence: i, hashAsString: hash.toString('hex') }
-    })
+  const logger = createRootLogger()
 
+  const transactions = [...new Array(20)].map((_, i) => {
+    const hash = randomBytes(32)
+    return {
+      hash: hash,
+      feeRate: BigInt(i),
+      sequence: i,
+      hashAsString: hash.toString('hex'),
+    }
+  })
+
+  const feeRates = [
+    58, 70, 88, 89, 54, 57, 26, 94, 34, 53, 35, 14, 19, 59, 4, 75, 3, 85, 19, 84,
+  ]
+
+  const sequences = [
+    87, 80, 73, 72, 52, 42, 19, 61, 34, 20, 49, 22, 15, 96, 14, 9, 43, 39, 33, 10,
+  ]
+
+  const randomTransactions = [...new Array(20)].map((_, i) => {
+    const hash = randomBytes(32)
+    return {
+      hash: hash,
+      feeRate: BigInt(feeRates[i]),
+      sequence: sequences[i],
+      hashAsString: hash.toString('hex'),
+    }
+  })
+
+  describe('add', () => {
     it('should not exceed maximum capacity', () => {
       const testCache = new RecentlyEvictedCache({
-        logger: mockLogger(),
         capacity: 10,
-        maxJailTime: 10,
+        logger,
       })
 
       for (const transaction of transactions) {
@@ -45,9 +54,8 @@ describe('RecentlyEvictedCache', () => {
 
     it('should evict proper txn when full and new txn comes in', () => {
       const testCache = new RecentlyEvictedCache({
-        logger: mockLogger(),
         capacity: 2,
-        maxJailTime: 10,
+        logger,
       })
 
       testCache.add(transactions[5].hash, transactions[5].feeRate, transactions[5].sequence)
@@ -74,62 +82,110 @@ describe('RecentlyEvictedCache', () => {
       expect(testCache.has(transactions[4].hashAsString)).toEqual(true)
       expect(testCache.has(transactions[5].hashAsString)).toEqual(true)
     })
+
+    it('should evict proper txn when full and new txn comes in [RANDOM]', () => {
+      const testCache = new RecentlyEvictedCache({
+        capacity: 5,
+        logger,
+      })
+
+      const added: typeof randomTransactions = []
+      for (const { hash, feeRate, sequence, hashAsString } of randomTransactions) {
+        testCache.add(hash, feeRate, sequence)
+        added.push({ hash, feeRate, sequence, hashAsString })
+        expect(testCache.size()).toEqual(Math.min(added.length, 5))
+
+        const expected = added.sort((t1, t2) => Number(t1.feeRate - t2.feeRate)).slice(0, 5)
+
+        for (const { hashAsString } of expected) {
+          expect(testCache.has(hashAsString)).toEqual(true)
+        }
+      }
+    })
   })
 
   describe('flush', () => {
     // transactions[i] has fee rate [i]
     const transactions = [...new Array(10)].map((_, i) => {
       const hash = randomBytes(32)
-      return { hash: hash, feeRate: BigInt(i), sequence: i, hashAsString: hash.toString('hex') }
+      return { hash, feeRate: BigInt(i), sequence: i, hashAsString: hash.toString('hex') }
     })
+
     it('should flush if new block connects that pushes out old transactions', () => {
       const testCache = new RecentlyEvictedCache({
-        logger: mockLogger(),
         capacity: 20,
-        maxJailTime: 5,
+        logger,
       })
 
-      for (let i = 0; i < transactions.length; ++i) {
-        testCache.add(transactions[i].hash, transactions[i].feeRate, transactions[i].sequence)
+      for (const { hash, feeRate, sequence } of transactions) {
+        testCache.add(hash, feeRate, sequence)
       }
+
       expect(testCache.size()).toEqual(10)
-      let clone = testCache['evictionQueue'].clone()
-      while (clone.size()) {
-        const next = clone.poll()
-        next && console.log(next.hash.toString('hex'), next.feeRate)
+
+      testCache.flush(5)
+
+      expect(testCache.size()).toEqual(5)
+
+      for (const { hashAsString } of transactions.filter(({ sequence }) => sequence < 5)) {
+        expect(testCache.has(hashAsString)).toBe(false)
       }
-      // remove all transactions with sequence + max jail time < 5
-      testCache.flush(10)
-      clone = testCache['evictionQueue'].clone()
-      while (clone.size()) {
-        const next = clone.poll()
-        next && console.log(next.hash.toString('hex'), next.feeRate)
+
+      for (const { hashAsString } of transactions.filter(({ sequence }) => sequence >= 5)) {
+        expect(testCache.has(hashAsString)).toBe(true)
       }
-      expect(testCache.size()).toEqual(4)
+    })
+
+    it('should flush if new block connects that pushes out old transactions [RANDOM]', () => {
+      const testCache = new RecentlyEvictedCache({
+        capacity: 5,
+        logger,
+      })
+
+      const added: typeof randomTransactions = []
+      for (const { hash, feeRate, sequence, hashAsString } of randomTransactions.slice(0, 10)) {
+        testCache.add(hash, feeRate, sequence)
+        added.push({ hash, feeRate, sequence, hashAsString })
+      }
+
+      testCache.flush(30)
+
+      let expected = added
+        .sort((t1, t2) => Number(t1.feeRate - t2.feeRate))
+        .slice(0, 5)
+        .filter(({ sequence }) => sequence > 30)
+
+      let notExpected = added.filter((t) => !expected.includes(t))
+
+      for (const { hashAsString } of expected) {
+        expect(testCache.has(hashAsString)).toBe(true)
+      }
+
+      for (const { hashAsString } of notExpected) {
+        expect(testCache.has(hashAsString)).toBe(false)
+      }
+
+      for (const { hash, feeRate, sequence, hashAsString } of randomTransactions.slice(10)) {
+        testCache.add(hash, feeRate, sequence)
+        added.push({ hash, feeRate, sequence, hashAsString })
+      }
+
+      testCache.flush(35)
+
+      expected = added
+        .sort((t1, t2) => Number(t1.feeRate - t2.feeRate))
+        .slice(0, 5)
+        .filter(({ sequence }) => sequence > 35)
+
+      notExpected = added.filter((t) => !expected.includes(t))
+
+      for (const { hashAsString } of expected) {
+        expect(testCache.has(hashAsString)).toBe(true)
+      }
+
+      for (const { hashAsString } of notExpected) {
+        expect(testCache.has(hashAsString)).toBe(false)
+      }
     })
   })
-
-  describe('helper methods', () => {
-    it('has', () => {
-      expect(true).toEqual(true)
-    })
-    it('isEmpty', () => {
-      expect(true).toEqual(true)
-    })
-    it('isFull', () => {
-      expect(true).toEqual(true)
-    })
-    it('size', () => {
-      expect(true).toEqual(true)
-    })
-  })
-
-  /*
-  add
-  - don't go over max capacity
-  - should evict proper txn when full and new txn comes in
-  flush
-  - should flush if new block connects that pushes out old transactions
-  helper methods
-  */
 })

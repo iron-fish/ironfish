@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '../assert'
 import { Logger } from '../logger'
 import { TransactionHash } from '../primitives/transaction'
 import { PriorityQueue } from './priorityQueue'
@@ -23,11 +22,6 @@ interface InsertedAtEntry {
  * within a reasonable duration if for some reason they are evicted (i.e. the mempool is full
  * and the transaction is underpriced).
  *
- * Transactions are routinely evicted from the cache after they have spent `maxJailTime` in the cache.
- * This is to prevent transactions from being permanently stuck in the cache and never getting a chance
- * to make it back into the mempool. `maxJailTime` is defined as the number of blocks a transactions
- * can remain in the cache for.
- *
  * When full, transactions are evicted in order of `feeRate` descending to make room for the
  * new transaction. This order is chosen because these transactions most likely to be successfully
  * re-introduced into the mempool
@@ -39,7 +33,6 @@ export class RecentlyEvictedCache {
    * The maximum capacity of the cache in number of transactions.
    */
   private readonly capacity: number
-  private readonly maxJailTime: number
 
   /**
    * A priority queue of transaction hashes ordered by `feeRate` descending.
@@ -61,13 +54,12 @@ export class RecentlyEvictedCache {
    * @param {number} options.capacity the maximum number of hashes to store in the cache
    * @param {number} options.maxJailTime the maximum number of blocks a hash can spend in the cache
    */
-  constructor(options: { logger: Logger; capacity: number; maxJailTime: number }) {
+  constructor(options: { logger: Logger; capacity: number }) {
     this.capacity = options.capacity
-    this.maxJailTime = options.maxJailTime
 
     const logger = options.logger
 
-    this.logger = logger //.withTag('RecentlyEvictedCache')
+    this.logger = logger.withTag('RecentlyEvictedCache')
 
     this.evictionQueue = new PriorityQueue<EvictionEntry>(
       (t1, t2) => t1.feeRate > t2.feeRate,
@@ -129,28 +121,17 @@ export class RecentlyEvictedCache {
   }
 
   /**
-   * @returns true if the cache is full, false otherwise
-   */
-  isFull(): boolean {
-    return this.size() >= this.capacity
-  }
-
-  /**
-   * @returns true if the cache is empty, false otherwise
-   */
-  isEmpty(): boolean {
-    return this.size() === 0
-  }
-
-  /**
    * Adds a new transaction to the recently evicted cache.
    * If the cache is full, the transaction with the highest fee rate will be evicted.
    *
    * Note that the cache is resized after the transaction is added. Thus, if the new transaction
    * has the highest fee rate in the cache, then it will immediately be evicted.
    */
-  add(transactionHash: Buffer, feeRate: bigint, currentBlockSequence: number): boolean {
-    console.log('add', transactionHash.toString('hex'), feeRate, currentBlockSequence)
+  add(
+    transactionHash: TransactionHash,
+    feeRate: bigint,
+    currentBlockSequence: number,
+  ): boolean {
     if (this.has(transactionHash.toString('hex'))) {
       // add to metrics that a duplicate was attempted to be added
       return false
@@ -178,30 +159,22 @@ export class RecentlyEvictedCache {
   }
 
   /**
-   * Flushes the cache of any transactions have been present in beyond maximum jail time.
-   * These transactions are now eligable for re-entry into the mempool.
+   * Flushes the cache of any transactions have were added before minSequence
    *
-   * @param maxSequence the maximum sequence number that a transaction can have to be flushed
+   * @param minSequence all transactions added before this sequence will be flushed
    */
-  flush(maxSequence: number): void {
+  flush(minSequence: number): void {
     let flushCount = 0
 
-    while (!this.isEmpty() && this.insertedAtQueue.size() > 0) {
-      let toFlush = this.insertedAtQueue.peek()
-      if (!toFlush || toFlush.insertedAtSequence + this.maxJailTime > maxSequence) {
-        break
-      }
-
-      toFlush = this.insertedAtQueue.poll()
-      // This element has been peeked so it should not be undefined
-      Assert.isNotUndefined(toFlush)
-
+    let toFlush = this.insertedAtQueue.peek()
+    while (toFlush && toFlush.insertedAtSequence < minSequence) {
       this.remove(toFlush.hash)
       flushCount++
+      toFlush = this.insertedAtQueue.peek()
     }
 
     this.logger?.debug(
-      `Flushed ${flushCount} transactions from RecentlyEvictedCache after block ${maxSequence} added`,
+      `Flushed ${flushCount} transactions from RecentlyEvictedCache added before block ${minSequence}`,
     )
 
     return
