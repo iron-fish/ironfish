@@ -11,7 +11,7 @@ import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
 import { TransactionHash } from '../../primitives/transaction'
 import {
-  BigIntBEEncoding,
+  BigU64BEEncoding,
   BUFFER_ENCODING,
   BufferEncoding,
   IDatabase,
@@ -241,7 +241,7 @@ export class WalletDB {
           new PrefixEncoding(
             U32_ENCODING_BE, // sequence
             new PrefixEncoding(
-              new BigIntBEEncoding(), // value
+              new BigU64BEEncoding(), // value
               new BufferEncoding(), // note hash
               8,
             ),
