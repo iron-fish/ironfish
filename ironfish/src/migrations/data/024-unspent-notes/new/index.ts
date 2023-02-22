@@ -9,8 +9,8 @@ import {
   NULL_ENCODING,
   PrefixEncoding,
   U32_ENCODING_BE,
-} from '../../../storage'
-import { Account } from '../../../wallet'
+} from '../../../../storage'
+import { Account } from '../../../../wallet'
 
 export function GetNewStores(db: IDatabase): {
   unspentNoteHashes: IDatabaseStore<{

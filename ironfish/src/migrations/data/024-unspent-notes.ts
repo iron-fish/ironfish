@@ -8,10 +8,9 @@ import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { Account } from '../../wallet'
 import { Migration } from '../migration'
-import { GetNewStores } from './023-unspent-notes/schemaNew'
-import { GetOldStores } from './023-unspent-notes/schemaOld'
+import { GetStores } from './024-unspent-notes/stores'
 
-export class Migration023 extends Migration {
+export class Migration024 extends Migration {
   path = __filename
 
   prepare(node: IronfishNode): IDatabase {
@@ -24,10 +23,7 @@ export class Migration023 extends Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    const stores = {
-      old: GetOldStores(db),
-      new: GetNewStores(db),
-    }
+    const stores = GetStores(db)
 
     const accounts = []
 
@@ -69,9 +65,7 @@ export class Migration023 extends Migration {
   }
 
   async backward(node: IronfishNode, db: IDatabase): Promise<void> {
-    const stores = {
-      new: GetNewStores(db),
-    }
+    const stores = GetStores(db)
 
     await stores.new.unspentNoteHashes.clear()
   }

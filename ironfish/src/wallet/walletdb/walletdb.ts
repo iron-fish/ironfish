@@ -39,7 +39,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-const VERSION_DATABASE_ACCOUNTS = 23
+const VERSION_DATABASE_ACCOUNTS = 24
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
