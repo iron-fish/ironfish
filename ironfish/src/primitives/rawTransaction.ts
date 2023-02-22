@@ -248,8 +248,8 @@ export class RawTransactionSerde {
 
     size += 8 // raw.mints.length
     for (const mint of raw.mints) {
-      size += bufio.sizeVarString(mint.name)
-      size += bufio.sizeVarString(mint.metadata)
+      size += bufio.sizeVarString(mint.name, 'utf8')
+      size += bufio.sizeVarString(mint.metadata, 'utf8')
       size += AMOUNT_VALUE_LENGTH // mint.value
     }
 
