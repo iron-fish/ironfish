@@ -14,7 +14,7 @@ export interface Queue<T> {
 }
 
 // Create a very simple queue implementation that is slow but adds and removes
-// elements in a predicatable fashion. Used to test the moer complicated queue
+// elements in a predicatable fashion. Used to test the more complicated queue
 // implementation against
 export class SimpleQueue<T> implements Queue<T> {
   private _map: { [key: string]: T } = {}
