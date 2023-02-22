@@ -175,7 +175,7 @@ export class Migrator {
     this.logger.info('Checking migrations:')
 
     for (const migration of this.migrations) {
-      process.stdout.write(`  Checking ${migration.name}...`.padEnd(50, ' '))
+      process.stdout.write(`  Checking ${migration.name.slice(0, 35)}...`.padEnd(50, ' '))
 
       try {
         const applied = await this.isApplied(migration)

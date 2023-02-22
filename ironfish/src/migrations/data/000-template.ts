@@ -7,8 +7,7 @@ import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
 import { Migration } from '../migration'
-import { GetNewStores } from './000-template/schemaNew'
-import { GetOldStores } from './000-template/schemaOld'
+import { GetStores } from './000-template/stores'
 
 export class Migration000 extends Migration {
   path = __filename
@@ -27,10 +26,7 @@ export class Migration000 extends Migration {
     logger: Logger,
   ): Promise<void> {
     // use GetOldStores and GetNewStores to attach datastores with the old and new schemas to the database
-    const stores = {
-      old: GetOldStores(db),
-      new: GetNewStores(db),
-    }
+    const stores = GetStores(db)
 
     // forward migration inserts from old stores into new stores
     for await (const account of stores.old.accounts.getAllValuesIter(tx)) {
@@ -46,7 +42,6 @@ export class Migration000 extends Migration {
 
       await stores.new.accounts.put(account.id, migrated, tx)
     }
-
   }
 
   async backward(
@@ -55,17 +50,12 @@ export class Migration000 extends Migration {
     tx: IDatabaseTransaction | undefined,
     logger: Logger,
   ): Promise<void> {
-    // use GetOldStores and GetNewStores to attach datastores with the old and new schemas to the database
-    const stores = {
-      old: GetOldStores(db),
-      new: GetNewStores(db),
-    }
+    const stores = GetStores(db)
 
     // backward migration re-inserts data from new stores into old stores
     for await (const account of stores.new.accounts.getAllValuesIter(tx)) {
       logger.info(`  Migrating account ${account.name}`)
       await stores.old.accounts.put(account.id, account, tx)
     }
-
   }
 }

@@ -3,18 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabase, IDatabaseEncoding, IDatabaseStore, StringEncoding } from '../../../storage'
+import { IDatabaseEncoding } from '../../../../storage'
 
-/* The schemaOld.ts file must define the value schema and database encoding for
- * ALL datastores that the migration reads from. Even if the migration does not
- * modify a datastore _A_, if the migration needs to read data from _A_ in order
- * to write to another datastore _B_, then the schema and encoding for _A_ must
- * be defined in schemaOld.ts.
+/* The schemaNew.ts file must define the value schema and database encoding for
+ * ALL datastores that the migration modifies.
  *
  * The example below is taken from Migration022, which added the viewKey field
  * to the AccountValue schema. */
 
 const KEY_LENGTH = 32
+const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
 export interface AccountValue {
@@ -22,6 +20,7 @@ export interface AccountValue {
   id: string
   name: string
   spendingKey: string
+  viewKey: string
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
@@ -34,10 +33,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
     bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
+    bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
-
     return bw.render()
   }
 
@@ -47,6 +46,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
     const spendingKey = reader.readBytes(KEY_LENGTH).toString('hex')
+    const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
@@ -56,6 +56,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       id,
       name,
       spendingKey,
+      viewKey,
       incomingViewKey,
       outgoingViewKey,
       publicAddress,
@@ -68,25 +69,11 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
     size += KEY_LENGTH
+    size += VIEW_KEY_LENGTH
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
 
     return size
   }
-}
-
-export function GetOldStores(db: IDatabase): {
-  accounts: IDatabaseStore<{ key: string; value: AccountValue }>
-} {
-  const accounts: IDatabaseStore<{ key: string; value: AccountValue }> = db.addStore(
-    {
-      name: 'a',
-      keyEncoding: new StringEncoding(),
-      valueEncoding: new AccountValueEncoding(),
-    },
-    false,
-  )
-
-  return { accounts }
 }
