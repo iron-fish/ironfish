@@ -782,6 +782,7 @@ export class Account {
     confirmed: bigint
     pending: bigint
     pendingCount: number
+    available: bigint
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -807,6 +808,13 @@ export class Account {
         tx,
       )
 
+      const available = await this.calculateAvailableBalance(
+        head.sequence,
+        assetId,
+        confirmations,
+        tx,
+      )
+
       yield {
         assetId,
         unconfirmed: balance.unconfirmed,
@@ -814,6 +822,7 @@ export class Account {
         confirmed,
         pending,
         pendingCount,
+        available,
         blockHash: balance.blockHash,
         sequence: balance.sequence,
       }
@@ -835,6 +844,7 @@ export class Account {
     confirmed: bigint
     pending: bigint
     pendingCount: number
+    available: bigint
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -844,6 +854,7 @@ export class Account {
         unconfirmed: 0n,
         confirmed: 0n,
         pending: 0n,
+        available: 0n,
         unconfirmedCount: 0,
         pendingCount: 0,
         blockHash: null,
@@ -869,11 +880,19 @@ export class Account {
       tx,
     )
 
+    const available = await this.calculateAvailableBalance(
+      head.sequence,
+      assetId,
+      confirmations,
+      tx,
+    )
+
     return {
       unconfirmed: balance.unconfirmed,
       unconfirmedCount,
       confirmed,
       pending,
+      available,
       pendingCount,
       blockHash: balance.blockHash,
       sequence: balance.sequence,
@@ -942,6 +961,26 @@ export class Account {
       confirmed,
       unconfirmedCount,
     }
+  }
+
+  async calculateAvailableBalance(
+    headSequence: number,
+    assetId: Buffer,
+    confirmations: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<bigint> {
+    let available = 0n
+
+    for await (const value of this.walletDb.loadUnspentNoteValues(
+      this,
+      assetId,
+      headSequence - confirmations,
+      tx,
+    )) {
+      available += value
+    }
+
+    return available
   }
 
   async getUnconfirmedBalances(tx?: IDatabaseTransaction): Promise<BufferMap<BalanceValue>> {
