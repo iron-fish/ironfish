@@ -629,8 +629,8 @@ export class Account {
     })
   }
 
-  async getNoteHash(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<Buffer | null> {
-    return await this.walletDb.loadNoteHash(this, nullifier, tx)
+  async getNoteHash(nullifier: Buffer, tx?: IDatabaseTransaction): Promise<Buffer | undefined> {
+    return this.walletDb.loadNoteHash(this, nullifier, tx)
   }
 
   async getTransaction(
@@ -657,7 +657,7 @@ export class Account {
 
   async hasSpend(transaction: Transaction, tx?: IDatabaseTransaction): Promise<boolean> {
     for (const spend of transaction.spends) {
-      if ((await this.getNoteHash(spend.nullifier, tx)) !== null) {
+      if ((await this.getNoteHash(spend.nullifier, tx)) !== undefined) {
         return true
       }
     }
