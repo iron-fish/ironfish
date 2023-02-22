@@ -38,16 +38,19 @@ export class FeeEstimator {
   private readonly logger: Logger
   private maxBlockHistory = 10
   private defaultFeeRate = BigInt(1)
-  private minFeeRate = BigInt(1)
+  readonly minFeeRate: bigint
   private consensus: Consensus | undefined
 
   constructor(options: {
     maxBlockHistory?: number
+    minFeeRate?: bigint
     logger?: Logger
     percentiles?: PriorityLevelPercentiles
   }) {
     this.logger = options.logger || createRootLogger().withTag('recentFeeCache')
     this.maxBlockHistory = options.maxBlockHistory ?? this.maxBlockHistory
+
+    this.minFeeRate = options.minFeeRate ?? 1n
 
     this.queues = { low: [], medium: [], high: [], blockSize: [] }
     this.percentiles = options.percentiles ?? DEFAULT_PRIORITY_LEVEL_PERCENTILES
