@@ -215,6 +215,7 @@ export async function useBlockWithTx(
     expiration?: number
     fee?: number
   } = { expiration: 0 },
+  broadcast = true,
 ): Promise<{ account: Account; previous: Block; block: Block; transaction: Transaction }> {
   if (!from) {
     from = await useAccountFixture(node.wallet, () => node.wallet.createAccount('test'))
@@ -257,6 +258,7 @@ export async function useBlockWithTx(
     const transaction = await node.wallet.post({
       transaction: raw,
       account: from,
+      broadcast,
     })
 
     return node.chain.newBlock(
