@@ -50,15 +50,19 @@ export class BalancesCommand extends IronfishCommand {
       assetId: {
         header: 'Asset Id',
       },
-      confirmed: {
-        header: 'Confirmed Balance',
-        get: (row) => CurrencyUtils.renderIron(row.confirmed),
+      available: {
+        header: 'Available Balance',
+        get: (row) => CurrencyUtils.renderIron(row.available),
       },
     }
 
     if (flags.all) {
       columns = {
         ...columns,
+        confirmed: {
+          header: 'Confirmed Balance',
+          get: (row) => CurrencyUtils.renderIron(row.confirmed),
+        },
         unconfirmed: {
           header: 'Unconfirmed Balance',
           get: (row) => CurrencyUtils.renderIron(row.unconfirmed),

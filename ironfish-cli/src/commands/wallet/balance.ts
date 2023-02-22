@@ -65,6 +65,9 @@ export class BalanceCommand extends IronfishCommand {
       this.log(`Head Hash: ${response.content.blockHash || 'NULL'}`)
       this.log(`Head Sequence: ${response.content.sequence || 'NULL'}`)
       this.log(
+        `Available:   ${CurrencyUtils.renderIron(response.content.available, true, assetId)}`,
+      )
+      this.log(
         `Confirmed:   ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`,
       )
       this.log(
@@ -77,13 +80,20 @@ export class BalanceCommand extends IronfishCommand {
     }
 
     this.log(`Account: ${response.content.account}`)
-    this.log(`Balance: ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`)
+    this.log(
+      `Available Balance: ${CurrencyUtils.renderIron(
+        response.content.available,
+        true,
+        assetId,
+      )}`,
+    )
   }
 
   explainBalance(response: GetBalanceResponse, assetId: string): void {
     const unconfirmed = CurrencyUtils.decode(response.unconfirmed)
     const confirmed = CurrencyUtils.decode(response.confirmed)
     const pending = CurrencyUtils.decode(response.pending)
+    const available = CurrencyUtils.decode(response.available)
 
     const unconfirmedDelta = unconfirmed - confirmed
     const pendingDelta = pending - unconfirmed
@@ -97,7 +107,11 @@ export class BalanceCommand extends IronfishCommand {
     )
     this.log('')
 
-    this.log(`Your confirmed balance is made of notes on the chain that are safe to spend`)
+    this.log(`Your available balance is made of notes on the chain that are safe to spend`)
+    this.log(`Available: ${CurrencyUtils.renderIron(available, true, assetId)}`)
+    this.log('')
+
+    this.log('Your confirmed balance includes all notes from transactions on the chain')
     this.log(`Confirmed: ${CurrencyUtils.renderIron(confirmed, true, assetId)}`)
     this.log('')
 
