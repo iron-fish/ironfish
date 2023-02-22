@@ -725,23 +725,23 @@ export class Account {
             'nullifierToNote mappings must have a corresponding decryptedNote',
           )
 
-          await this.walletDb.saveDecryptedNote(
-            this,
-            noteHash,
-            {
-              ...decryptedNote,
-              spent: false,
-            },
-            tx,
-          )
-
           const existingTransactionHash = await this.walletDb.getTransactionHashFromNullifier(
             this,
             spend.nullifier,
             tx,
           )
+          // Remove the nullifier to transaction hash mapping and mark the note as unspent
           if (existingTransactionHash && existingTransactionHash.equals(transaction.hash())) {
             await this.walletDb.deleteNullifierToTransactionHash(this, spend.nullifier, tx)
+            await this.walletDb.saveDecryptedNote(
+              this,
+              noteHash,
+              {
+                ...decryptedNote,
+                spent: false,
+              },
+              tx,
+            )
           }
         }
       }
