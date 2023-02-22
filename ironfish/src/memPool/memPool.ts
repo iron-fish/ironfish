@@ -13,6 +13,7 @@ import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { FeeEstimator, getFeeRate } from './feeEstimator'
 import { PriorityQueue } from './priorityQueue'
+import { RecentlyEvictedCache } from './recentlyEvictedCache'
 
 interface MempoolEntry {
   hash: TransactionHash
@@ -32,6 +33,8 @@ export class MemPool {
 
   private readonly queue: PriorityQueue<MempoolEntry>
   private readonly expirationQueue: PriorityQueue<ExpirationMempoolEntry>
+
+  private readonly recentlyEvictedCache: RecentlyEvictedCache
 
   head: BlockHeader | null
 
@@ -81,6 +84,11 @@ export class MemPool {
     this.chain.onDisconnectBlock.on(async (block) => {
       this.feeEstimator.onDisconnectBlock(block)
       await this.onDisconnectBlock(block)
+    })
+
+    this.recentlyEvictedCache = new RecentlyEvictedCache({
+      logger: this.logger,
+      capacity: 50000,
     })
   }
 
@@ -180,8 +188,8 @@ export class MemPool {
     if (deletedTransactions) {
       this.logger.debug(`Deleted ${deletedTransactions} transactions`)
     }
-
     this.head = block.header
+    this.recentlyEvictedCache.flush(this.head.sequence)
   }
 
   async onDisconnectBlock(block: Block): Promise<void> {
