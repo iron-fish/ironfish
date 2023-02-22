@@ -35,11 +35,6 @@ export class RecentlyEvictedCache {
   private readonly capacity: number
 
   /**
-   * The maxmimum amount of time, in number of blocks, that a transaction can spend in the cache.
-   */
-  private readonly maxAge: number
-
-  /**
    * A priority queue of transaction hashes ordered by `feeRate` descending.
    * This is the eviction order for the cache when full.
    */
@@ -57,11 +52,9 @@ export class RecentlyEvictedCache {
    *
    * @constructor
    * @param options.capacity the maximum number of hashes to store in the cache
-   * @param options.maxAge the maximum number of blocks a hash can spend in the cache
    */
-  constructor(options: { logger: Logger; capacity: number; maxAge: number }) {
+  constructor(options: { logger: Logger; capacity: number }) {
     this.capacity = options.capacity
-    this.maxAge = options.maxAge
 
     const logger = options.logger
 
@@ -131,9 +124,10 @@ export class RecentlyEvictedCache {
    * Note that the cache is resized after the transaction is added. Thus, if the new transaction
    * has the highest fee rate in the cache, then it will immediately be evicted.
    *
-   * @param transactionHash the hash of the transaction to add
+   * @param transactionHash The hash of the transaction to add
    * @param feeRate the fee/byte rate of the transaction
    * @param currentBlockSequence the current block sequence when the transaction was added
+   * @param maxAge The maximum duration, in number of blocks, the transaction can stay in the cache
    *
    * @returns true if the transaction was successfully added to the cache, false if it was already present
    */
@@ -141,6 +135,7 @@ export class RecentlyEvictedCache {
     transactionHash: TransactionHash,
     feeRate: bigint,
     currentBlockSequence: number,
+    maxAge: number,
   ): boolean {
     if (this.has(transactionHash.toString('hex'))) {
       // add to metrics that a duplicate was attempted to be added
@@ -154,7 +149,7 @@ export class RecentlyEvictedCache {
 
     this.expireAtQueue.add({
       hash: transactionHash,
-      expireAtSequence: currentBlockSequence + this.maxAge,
+      expireAtSequence: currentBlockSequence + maxAge,
     })
 
     // keep the cache under max capacity

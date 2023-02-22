@@ -89,7 +89,6 @@ export class MemPool {
     this.recentlyEvictedCache = new RecentlyEvictedCache({
       logger: this.logger,
       capacity: 50000,
-      maxAge: 10,
     })
   }
 
