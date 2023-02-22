@@ -84,7 +84,7 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
         unconfirmedCount: balance.unconfirmedCount,
         pending: CurrencyUtils.encode(balance.pending),
         pendingCount: balance.pendingCount,
-        available: balance.available.toString(),
+        available: CurrencyUtils.encode(balance.available),
       })
     }
 
