@@ -17,6 +17,7 @@ import { IronfishCommand } from '../../command'
 import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
+import { selectFee } from '../../utils/fees'
 import { doEligibilityCheck } from '../../utils/testnet'
 import { watchTransaction } from '../../utils/transaction'
 
@@ -199,75 +200,25 @@ export class Send extends IronfishCommand {
 
     let rawTransactionResponse: string
     if (fee === null && feeRate === null) {
-      const feeRatesResponse = await client.estimateFeeRates()
-      const feeRates = [
-        feeRatesResponse.content.slow ?? '1',
-        feeRatesResponse.content.average ?? '1',
-        feeRatesResponse.content.fast ?? '1',
-      ]
-
-      const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
-
-      const feeRateOptions: { value: string | RpcRequestError; name: string }[] = []
-
-      const createTransactionRequest: CreateTransactionRequest = {
-        account: from,
-        outputs: [
-          {
-            publicAddress: to,
-            amount: CurrencyUtils.encode(amount),
-            memo,
-            assetId,
-          },
-        ],
-        expiration: expiration,
-        confirmations: confirmations,
-      }
-
-      for (const [index, feeRate] of feeRates.entries()) {
-        try {
-          const response = await client.createTransaction({
-            ...createTransactionRequest,
-            feeRate,
-          })
-
-          const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
-          const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-
-          feeRateOptions.push({
-            value: response.content.transaction,
-            name: `${feeRateNames[index]}: ${CurrencyUtils.renderIron(
-              rawTransaction.fee,
-            )} IRON`,
-          })
-        } catch (e) {
-          if (e instanceof RpcRequestError && e.code === ERROR_CODES.INSUFFICIENT_BALANCE) {
-            feeRateOptions.push({
-              value: e,
-              name: `${feeRateNames[index]}: Insufficient funds`,
-            })
-          } else {
-            throw e
-          }
-        }
-      }
-
-      const input = await inquirer.prompt<{
-        selection: string | RpcRequestError
-      }>([
-        {
-          name: 'selection',
-          message: `Select the fee you wish to use for this transaction`,
-          type: 'list',
-          choices: feeRateOptions,
+      const foo = await selectFee({
+        client,
+        account: flags.account,
+        confirmations: flags.confirmations,
+        transaction: {
+          account: from,
+          outputs: [
+            {
+              publicAddress: to,
+              amount: CurrencyUtils.encode(amount),
+              memo,
+              assetId,
+            },
+          ],
+          expiration: expiration,
+          confirmations: confirmations,
         },
-      ])
-
-      if (input.selection instanceof RpcRequestError) {
-        throw input.selection
-      }
-
-      rawTransactionResponse = input.selection
+      })
+      rawTransactionResponse = RawTransactionSerde.serialize(foo).toString('hex')
     } else {
       const createResponse = await client.createTransaction({
         account: from,
