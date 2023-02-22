@@ -1,12 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  Asset,
-  generateKey,
-  generateKeyFromPrivateKey,
-  Note as NativeNote,
-} from '@ironfish/rust-nodejs'
+import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
@@ -1303,25 +1298,19 @@ export class Wallet {
     }
   }
 
-  async importAccount(toImport: AccountValue): Promise<Account> {
-    if (toImport.name && this.getAccountByName(toImport.name)) {
-      throw new Error(`Account already exists with the name ${toImport.name}`)
+  async importAccount(accountValue: AccountValue): Promise<Account> {
+    if (accountValue.name && this.getAccountByName(accountValue.name)) {
+      throw new Error(`Account already exists with the name ${accountValue.name}`)
     }
-
-    if (this.listAccounts().find((a) => toImport.spendingKey === a.spendingKey)) {
+    const accounts = this.listAccounts()
+    if (
+      accountValue.spendingKey &&
+      accounts.find((a) => accountValue.spendingKey === a.spendingKey)
+    ) {
       throw new Error(`Account already exists with provided spending key`)
     }
-
-    const key = generateKeyFromPrivateKey(toImport.spendingKey)
-
-    const accountValue: AccountValue = {
-      ...toImport,
-      version: ACCOUNT_SCHEMA_VERSION,
-      id: uuid(),
-      viewKey: key.viewKey,
-      incomingViewKey: key.incomingViewKey,
-      outgoingViewKey: key.outgoingViewKey,
-      publicAddress: key.publicAddress,
+    if (accounts.find((a) => accountValue.viewKey === a.viewKey)) {
+      throw new Error(`Account already exists with provided view key(s)`)
     }
 
     validateAccount(accountValue)

@@ -38,7 +38,7 @@ describe('Accounts', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
-    const account = await useAccountFixture(node.wallet, 'test')
+    const account = await useAccountFixture(node.wallet, 'test', true)
     await node.wallet.updateHead()
 
     // Initial balance should be 0
@@ -76,7 +76,7 @@ describe('Accounts', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
-    const account = await useAccountFixture(node.wallet, 'test')
+    const account = await useAccountFixture(node.wallet, 'test', true)
 
     // Initial balance should be 0
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
@@ -144,7 +144,7 @@ describe('Accounts', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
-    const account = await useAccountFixture(node.wallet, 'test')
+    const account = await useAccountFixture(node.wallet, 'test', true)
 
     // Initial balance should be 0
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
@@ -215,7 +215,7 @@ describe('Accounts', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
-    const account = await useAccountFixture(node.wallet, 'test')
+    const account = await useAccountFixture(node.wallet, 'test', true)
 
     // Initial balance should be 0
     await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
@@ -293,7 +293,7 @@ describe('Accounts', () => {
 
   it('throws a ValidationError with an invalid expiration sequence', async () => {
     const node = nodeTest.node
-    const account = await useAccountFixture(node.wallet, 'test')
+    const account = await useAccountFixture(node.wallet, 'test', true)
 
     // Spend the balance with an invalid expiration
     await expect(
@@ -320,7 +320,7 @@ describe('Accounts', () => {
     const node = nodeTest.node
     const chain = nodeTest.chain
 
-    const account = await useAccountFixture(node.wallet, 'test')
+    const account = await useAccountFixture(node.wallet, 'test', true)
 
     // Mock that accounts is started for the purposes of the test
     node.wallet['isStarted'] = true
@@ -407,7 +407,7 @@ describe('Accounts', () => {
     // // Mock that accounts is started for the purposes of the test
     node.wallet['isStarted'] = true
 
-    const account = await useAccountFixture(node.wallet, 'test')
+    const account = await useAccountFixture(node.wallet, 'test', true)
 
     // Create a second account
     await node.wallet.createAccount('test2')
@@ -611,6 +611,93 @@ describe('Accounts', () => {
     ).resolves.toMatchObject({
       confirmed: BigInt(4000000000),
       unconfirmed: BigInt(4000000000),
+    })
+  })
+
+  it('View only accounts can observe received and spent notes', async () => {
+    // Initialize the database and chain
+    const strategy = nodeTest.strategy
+    const node = nodeTest.node
+    // need separate node because a node cannot have a view only wallet + spend wallet for same account
+    const { node: viewOnlyNode } = await nodeTest.createSetup()
+    const chain = nodeTest.chain
+    const viewOnlyChain = viewOnlyNode.chain
+
+    const account = await useAccountFixture(node.wallet, 'test')
+    const accountValue = {
+      id: 'abc123',
+      name: 'viewonly',
+      version: 1,
+      spendingKey: null,
+      publicAddress: account.publicAddress,
+      viewKey: account.viewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      incomingViewKey: account.incomingViewKey,
+    }
+    const viewOnlyAccount = await viewOnlyNode.wallet.importAccount(accountValue)
+
+    // Create a block with a miner's fee
+    const minersfee = await strategy.createMinersFee(BigInt(0), 2, account.spendingKey)
+    const newBlock = await chain.newBlock([], minersfee)
+    const addResult = await chain.addBlock(newBlock)
+    const addResultViewOnly = await viewOnlyChain.addBlock(newBlock)
+    expect(addResult.isAdded).toBeTruthy()
+    expect(addResultViewOnly.isAdded).toBeTruthy()
+
+    // Account should now have a balance of 2000000000 after adding the miner's fee
+    await node.wallet.updateHead()
+    await viewOnlyNode.wallet.updateHead()
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
+      confirmed: BigInt(2000000000),
+      unconfirmed: BigInt(2000000000),
+    })
+    await expect(
+      viewOnlyNode.wallet.getBalance(viewOnlyAccount, Asset.nativeId()),
+    ).resolves.toMatchObject({
+      confirmed: BigInt(2000000000),
+      unconfirmed: BigInt(2000000000),
+    })
+
+    // Spend the balance
+    const transaction = await node.wallet.send(
+      account,
+      [
+        {
+          publicAddress: generateKey().publicAddress,
+          amount: BigInt(2),
+          memo: '',
+          assetId: Asset.nativeId(),
+        },
+      ],
+      BigInt(0),
+      node.config.get('transactionExpirationDelta'),
+      0,
+    )
+
+    // Create a block with a miner's fee
+    const minersfee2 = await strategy.createMinersFee(
+      transaction.fee(),
+      newBlock.header.sequence + 1,
+      generateKey().spendingKey,
+    )
+    const newBlock2 = await chain.newBlock([transaction], minersfee2)
+    const addResult2 = await chain.addBlock(newBlock2)
+    const addResultViewOnly2 = await viewOnlyChain.addBlock(newBlock2)
+    expect(addResult2.isAdded).toBeTruthy()
+    expect(addResultViewOnly2.isAdded).toBeTruthy()
+
+    // Balance after adding the transaction that spends 2 should be 1999999998
+    await node.wallet.updateHead()
+    await viewOnlyNode.wallet.updateHead()
+    await expect(node.wallet.getBalance(account, Asset.nativeId())).resolves.toMatchObject({
+      confirmed: BigInt(1999999998),
+      unconfirmed: BigInt(1999999998),
+    })
+    await expect(
+      viewOnlyNode.wallet.getBalance(viewOnlyAccount, Asset.nativeId()),
+    ).resolves.toMatchObject({
+      confirmed: BigInt(1999999998),
+      unconfirmed: BigInt(1999999998),
     })
   })
 
