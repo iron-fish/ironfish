@@ -185,6 +185,12 @@ export class Account {
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
+        await this.walletDb.saveNullifierToTransactionHash(
+          this,
+          spend.nullifier,
+          transaction,
+          tx,
+        )
       }
 
       transactionValue = {
@@ -483,6 +489,20 @@ export class Account {
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
+
+        const existingTransactionHash = await this.walletDb.getTransactionHashFromNullifier(
+          this,
+          spend.nullifier,
+          tx,
+        )
+        if (!existingTransactionHash) {
+          await this.walletDb.saveNullifierToTransactionHash(
+            this,
+            spend.nullifier,
+            transaction,
+            tx,
+          )
+        }
       }
 
       const transactionValue = {
@@ -714,6 +734,15 @@ export class Account {
             },
             tx,
           )
+
+          const existingTransactionHash = await this.walletDb.getTransactionHashFromNullifier(
+            this,
+            spend.nullifier,
+            tx,
+          )
+          if (existingTransactionHash && existingTransactionHash.equals(transaction.hash())) {
+            await this.walletDb.deleteNullifierToTransactionHash(this, spend.nullifier, tx)
+          }
         }
       }
 
