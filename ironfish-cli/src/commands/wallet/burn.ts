@@ -297,7 +297,7 @@ Find the transaction on https://explorer.ironfish.network/transaction/${transact
         .hash()
         .toString(
           'hex',
-        )}(it can take a few minutes before the transaction appears in the Explorer)`)
+        )} (it can take a few minutes before the transaction appears in the Explorer)`)
     } catch (error: unknown) {
       stopProgressBar()
       this.log(`An error occurred while burning the asset.`)
