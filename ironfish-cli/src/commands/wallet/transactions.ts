@@ -59,7 +59,7 @@ export class TransactionsCommand extends IronfishCommand {
 
     const columns = this.getColumns(flags.extended)
 
-    let showHeader = true
+    let showHeader = !flags['no-header']
 
     for await (const transaction of response.contentStream()) {
       const transactionRows = this.getTransactionRows(transaction)

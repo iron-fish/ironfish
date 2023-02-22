@@ -32,7 +32,7 @@ export class NotesCommand extends IronfishCommand {
 
     const response = client.getAccountNotesStream({ account })
 
-    let showHeader = true
+    let showHeader = !flags['no-header']
 
     for await (const note of response.contentStream()) {
       CliUx.ux.table(
