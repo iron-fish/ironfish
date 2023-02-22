@@ -38,6 +38,7 @@ export class FeeEstimator {
   private readonly logger: Logger
   private maxBlockHistory = 10
   private defaultFeeRate = BigInt(1)
+  private minFeeRate = BigInt(1)
   private consensus: Consensus | undefined
 
   constructor(options: {
@@ -197,6 +198,10 @@ export class FeeEstimator {
 
     let feeRate = fees[Math.round((queue.length - 1) / 2)]
     feeRate = (feeRate * blockSizeRatio) / 100n
+
+    if (feeRate < this.minFeeRate) {
+      feeRate = this.minFeeRate
+    }
 
     return feeRate
   }
