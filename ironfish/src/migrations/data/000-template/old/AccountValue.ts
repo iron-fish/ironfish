@@ -9,9 +9,9 @@ import { IDatabaseEncoding } from '../../../../storage'
  * of the schema migration, this is the schema of the data in the DB at the time
  * the migration is run.
  *
- * Even if the migration does not modify a datastore _A_, if the migration needs
- * to read data from _A_ in order to write to another datastore _B_, then the
- * schema and encoding for _A_ must be defined in schemaOld.ts.
+ * Even if the migration does not modify a store, if you read or write from a
+ * store, you will need to have a copy of the schema (ex. AccountValue)
+ * and IDatabaseEncoding (ex. AccountValueEncoding) here.
  *
  * The example below is taken from Migration022, which added the viewKey field
  * to the AccountValue schema. */
