@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IDatabase, IDatabaseStore, StringEncoding } from '../../../../storage'
-import { AccountValue, AccountValueEncoding } from './AccountValue';
+import { AccountValue, AccountValueEncoding } from './AccountValue'
 
 /* The schemaOld.ts file must define the value schema and database encoding for
  * ALL datastores that the migration reads from. Even if the migration does not
