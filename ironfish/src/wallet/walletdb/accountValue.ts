@@ -7,7 +7,7 @@ import { IDatabaseEncoding } from '../../storage'
 import { ACCOUNT_KEY_LENGTH } from '../account'
 
 const KEY_LENGTH = ACCOUNT_KEY_LENGTH
-const VIEW_KEY_LENGTH = 64
+export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
 export interface AccountValue {
@@ -72,11 +72,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += VERSION_LENGTH
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
-    size += KEY_LENGTH
-    size += VIEW_KEY_LENGTH
     if (value.spendingKey) {
       size += KEY_LENGTH
     }
+    size += VIEW_KEY_LENGTH
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH

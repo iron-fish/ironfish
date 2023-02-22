@@ -1,24 +1,20 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { generateKeyFromPrivateKey, PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
+import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IronfishNode } from '../../../node'
-import {
-  IDatabase,
-  IDatabaseEncoding,
-  IDatabaseStore,
-  IDatabaseTransaction,
-  StringEncoding,
-} from '../../../storage'
-import { Account } from '../../../wallet'
+import { IDatabase, IDatabaseEncoding, IDatabaseStore, StringEncoding } from '../../../storage'
 
 const KEY_LENGTH = 32
+const VIEW_KEY_LENGTH = 64
+const VERSION_LENGTH = 2
 
 export interface AccountValue {
+  version: number
   id: string
   name: string
-  spendingKey: string
+  spendingKey: string | null
+  viewKey: string
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
@@ -27,9 +23,16 @@ export interface AccountValue {
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
+    let flags = 0
+    flags |= Number(!!value.spendingKey) << 0
+    bw.writeU8(flags)
+    bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
-    bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
+    if (value.spendingKey) {
+      bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
+    }
+    bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
@@ -39,28 +42,39 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
   deserialize(buffer: Buffer): AccountValue {
     const reader = bufio.read(buffer, true)
+    const flags = reader.readU8()
+    const version = reader.readU16()
+    const hasSpendingKey = flags & (1 << 0)
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
-    const spendingKey = reader.readBytes(KEY_LENGTH).toString('hex')
+    const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
+    const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
 
     return {
+      version,
       id,
       name,
-      spendingKey,
+      viewKey,
       incomingViewKey,
       outgoingViewKey,
+      spendingKey,
       publicAddress,
     }
   }
 
   getSize(value: AccountValue): number {
     let size = 0
+    size += 1
+    size += VERSION_LENGTH
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
-    size += KEY_LENGTH
+    if (value.spendingKey) {
+      size += KEY_LENGTH
+    }
+    size += VIEW_KEY_LENGTH
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
@@ -69,7 +83,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   }
 }
 
-export function GetOldStores(db: IDatabase): {
+export function GetNewStores(db: IDatabase): {
   accounts: IDatabaseStore<{ key: string; value: AccountValue }>
 } {
   const accounts: IDatabaseStore<{ key: string; value: AccountValue }> = db.addStore(
@@ -82,28 +96,4 @@ export function GetOldStores(db: IDatabase): {
   )
 
   return { accounts }
-}
-
-export async function GetOldAccounts(
-  node: IronfishNode,
-  db: IDatabase,
-  tx?: IDatabaseTransaction,
-): Promise<Account[]> {
-  const accounts = []
-  const oldStores = GetOldStores(db)
-
-  for await (const account of oldStores.accounts.getAllValuesIter(tx)) {
-    const key = generateKeyFromPrivateKey(account.spendingKey)
-
-    accounts.push(
-      new Account({
-        ...account,
-        version: 1,
-        viewKey: key.viewKey,
-        walletDb: node.wallet.walletDb,
-      }),
-    )
-  }
-
-  return accounts
 }
