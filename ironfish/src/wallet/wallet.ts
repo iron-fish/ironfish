@@ -1309,18 +1309,8 @@ export class Wallet {
     ) {
       throw new Error(`Account already exists with provided spending key`)
     }
-    // TODO(evan): upon adding multiple account import types, handle this error
-    Assert.isNotNull(toImport.spendingKey, 'Spending key is required for importing account')
-    const key = generateKeyFromPrivateKey(toImport.spendingKey)
-
-    const accountValue: AccountValue = {
-      ...toImport,
-      version: ACCOUNT_SCHEMA_VERSION,
-      id: uuid(),
-      viewKey: key.viewKey,
-      incomingViewKey: key.incomingViewKey,
-      outgoingViewKey: key.outgoingViewKey,
-      publicAddress: key.publicAddress,
+    if (accounts.find((a) => accountValue.viewKey === a.viewKey)) {
+      throw new Error(`Account already exists with provided view key(s)`)
     }
 
     validateAccount(accountValue)

@@ -63,7 +63,7 @@ describe('Create genesis block', () => {
     const amountBigint = BigInt(amountNumber)
 
     // Construct parameters for the genesis block
-    const account = await useAccountFixture(node.wallet, 'test', true)
+    const account = await useAccountFixture(node.wallet, 'test')
     const info: GenesisBlockInfo = {
       timestamp: Date.now(),
       target: Target.maxTarget(),

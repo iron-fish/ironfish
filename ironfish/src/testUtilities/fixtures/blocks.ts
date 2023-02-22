@@ -215,6 +215,7 @@ export async function useBlockWithTx(
     expiration?: number
     fee?: number
   } = { expiration: 0 },
+  broadcast = true,
 ): Promise<{
   account: SpendingAccount
   previous: Block
