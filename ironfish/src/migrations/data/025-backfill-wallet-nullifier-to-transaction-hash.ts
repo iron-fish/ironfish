@@ -34,7 +34,9 @@ export class Migration025 extends Migration {
       )
     }
 
-    logger.info(`Backfilling nullifier to transaction hashes for ${accounts.length} accounts`)
+    const accountsString =
+      accounts.length === 1 ? `${accounts.length} account` : `${accounts.length} accounts`
+    logger.info(`Backfilling nullifier to transaction hashes for ${accountsString}`)
 
     for (const account of accounts) {
       logger.info('')
@@ -79,7 +81,7 @@ export class Migration025 extends Migration {
       const transactionsString =
         transactionCount === 1
           ? `${transactionCount} transaction`
-          : `${transactionCount} : transactions`
+          : `${transactionCount} transactions`
       logger.info(`  Completed backfilling ${transactionsString} for account ${account.name}`)
     }
 
