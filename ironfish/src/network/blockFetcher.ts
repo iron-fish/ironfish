@@ -6,6 +6,7 @@ import { BufferMap } from 'buffer-map'
 import { Block, CompactBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { ArrayUtils } from '../utils/array'
+import { CompactBlockUtils } from '../utils/compactblock'
 import { Identity } from './identity'
 import { GetBlocksRequest } from './messages/getBlocks'
 import {
@@ -285,7 +286,7 @@ export class BlockFetcher {
     this.cleanupCallbacks(currentState)
 
     // Check if we're still missing transactions
-    const assembleResult = this.peerNetwork.assembleBlockFromResponse(
+    const assembleResult = CompactBlockUtils.assembleBlockFromResponse(
       currentState.partialTransactions,
       message.transactions,
     )
