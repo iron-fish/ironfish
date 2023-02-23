@@ -46,11 +46,11 @@ export async function promptCurrency(options: {
     return null
   }
 
-  const [fee, error] = CurrencyUtils.decodeTry(input)
+  const [amount, error] = CurrencyUtils.decodeTry(input)
 
   if (error) {
     throw error
   }
 
-  return fee
+  return amount
 }
