@@ -3,16 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
-  CreateTransactionRequest,
   CurrencyUtils,
-  ERROR_CODES,
   isValidPublicAddress,
   RawTransactionSerde,
-  RpcRequestError,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
 import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
@@ -200,7 +196,7 @@ export class Send extends IronfishCommand {
 
     let rawTransactionResponse: string
     if (fee === null && feeRate === null) {
-      const foo = await selectFee({
+      const raw = await selectFee({
         client,
         account: flags.account,
         confirmations: flags.confirmations,
@@ -218,7 +214,7 @@ export class Send extends IronfishCommand {
           confirmations: confirmations,
         },
       })
-      rawTransactionResponse = RawTransactionSerde.serialize(foo).toString('hex')
+      rawTransactionResponse = RawTransactionSerde.serialize(raw).toString('hex')
     } else {
       const createResponse = await client.createTransaction({
         account: from,

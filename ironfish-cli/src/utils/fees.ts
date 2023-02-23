@@ -13,8 +13,8 @@ import {
   RpcClient,
   RpcRequestError,
 } from '@ironfish/sdk'
-import { CliUx } from '@oclif/core'
 import inquirer from 'inquirer'
+import { promptCurrency } from './currency'
 
 export async function selectFee(options: {
   client: RpcClient
@@ -47,7 +47,7 @@ export async function selectFee(options: {
     getChoiceFromTx('Average', average),
     getChoiceFromTx('Fast', fast),
     {
-      name: 'Enter your own',
+      name: 'Enter a custom fee',
       value: null,
     },
   ]
@@ -64,26 +64,17 @@ export async function selectFee(options: {
   ])
 
   if (result.selection == null) {
-    const response = await options.client.getAccountBalance({
-      assetId: Asset.nativeId().toString('hex'),
-      confirmations: options.confirmations,
+    const fee = await promptCurrency({
+      client: options.client,
+      required: true,
+      text: 'Enter the fee amount in $IRON',
+      balance: {
+        account: options.account,
+        confirmations: options.confirmations,
+        assetId: Asset.nativeId().toString('hex'),
+      },
     })
 
-    const input = await CliUx.ux.prompt(
-      `Enter the fee amount in $IRON (balance: ${CurrencyUtils.renderIron(
-        response.content.confirmed,
-      )})`,
-      {
-        required: true,
-      },
-    )
-
-    const [fee, error] = CurrencyUtils.decodeTry(input)
-    if (error) {
-      throw error
-    }
-
-    Assert.isNotNull(fee)
     const custom = await options.client.createTransaction({
       ...options.transaction,
       fee: CurrencyUtils.encode(fee),
