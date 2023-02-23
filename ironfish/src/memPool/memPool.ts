@@ -25,7 +25,7 @@ interface ExpirationMempoolEntry {
   hash: TransactionHash
 }
 
-export function compareMempoolEntries(
+export function mempoolEntryComparator(
   firstTransaction: MempoolEntry,
   secondTransaction: MempoolEntry,
 ): boolean {
@@ -41,7 +41,7 @@ export class MemPool {
 
   private readonly nullifiers = new BufferMap<Buffer>()
 
-  private readonly queue: PriorityQueue<MempoolEntry>
+  private readonly feeRateQueue: PriorityQueue<MempoolEntry>
   private readonly evictionQueue: PriorityQueue<MempoolEntry>
   private readonly expirationQueue: PriorityQueue<ExpirationMempoolEntry>
 
@@ -75,12 +75,12 @@ export class MemPool {
     this.consensus = options.consensus
     this.head = null
 
-    this.queue = new PriorityQueue<MempoolEntry>(compareMempoolEntries, (t) =>
+    this.feeRateQueue = new PriorityQueue<MempoolEntry>(mempoolEntryComparator, (t) =>
       t.hash.toString('hex'),
     )
 
     this.evictionQueue = new PriorityQueue<MempoolEntry>(
-      (e1, e2) => !compareMempoolEntries(e1, e2),
+      (e1, e2) => !mempoolEntryComparator(e1, e2),
       (t) => t.hash.toString('hex'),
     )
 
@@ -139,7 +139,7 @@ export class MemPool {
   }
 
   *orderedTransactions(): Generator<Transaction, void, unknown> {
-    const clone = this.queue.clone()
+    const clone = this.feeRateQueue.clone()
 
     while (clone.size() > 0) {
       const feeAndHash = clone.poll()
@@ -274,7 +274,7 @@ export class MemPool {
       this.nullifiers.set(spend.nullifier, hash)
     }
 
-    this.queue.add({ hash, feeRate: getFeeRate(transaction) })
+    this.feeRateQueue.add({ hash, feeRate: getFeeRate(transaction) })
     this.evictionQueue.add({ hash, feeRate: getFeeRate(transaction) })
     this.expirationQueue.add({ hash, expiration: transaction.expiration() })
 
@@ -316,9 +316,8 @@ export class MemPool {
       const next = this.evictionQueue.peek()
 
       const transaction = next && this.transactions.get(next.hash)
-      if (!transaction) {
-        break
-      }
+      // If mempool is full, we should always have a transaction
+      Assert.isNotUndefined(transaction)
 
       this.deleteTransaction(transaction)
 
@@ -361,7 +360,7 @@ export class MemPool {
 
     const hashAsString = hash.toString('hex')
 
-    this.queue.remove(hashAsString)
+    this.feeRateQueue.remove(hashAsString)
     this.evictionQueue.remove(hashAsString)
     this.expirationQueue.remove(hashAsString)
 

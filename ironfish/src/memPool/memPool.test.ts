@@ -15,7 +15,7 @@ import {
 } from '../testUtilities'
 import { Account } from '../wallet'
 import { getFeeRate } from './feeEstimator'
-import { compareMempoolEntries } from './memPool'
+import { mempoolEntryComparator } from './memPool'
 
 // Creates transactions out of the list of fees and adds them to the wallet
 // but not the mempool
@@ -645,7 +645,7 @@ describe('MemPool', () => {
 
 function memPoolSort(transactions: Transaction[]): Transaction[] {
   return [...transactions].sort((t1, t2) => {
-    const greater = compareMempoolEntries(
+    const greater = mempoolEntryComparator(
       { hash: t1.hash(), feeRate: getFeeRate(t1) },
       { hash: t2.hash(), feeRate: getFeeRate(t2) },
     )
@@ -654,6 +654,7 @@ function memPoolSort(transactions: Transaction[]): Transaction[] {
 }
 
 // return the first transactions that fit within the target byte size
+// and return the remaining transactions that don't fit
 function takeBytes(
   targetBytes: number,
   transactions: Transaction[],
