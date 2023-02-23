@@ -16,7 +16,7 @@ export type ImportResponse = {
   isDefaultAccount: boolean
 }
 
-export const ImportViewAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> = yup
+export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> = yup
   .object({
     rescan: yup.boolean().optional().default(true),
     account: yup
@@ -33,16 +33,16 @@ export const ImportViewAccountRequestSchema: yup.ObjectSchema<ImportAccountReque
   })
   .defined()
 
-export const ImportViewAccountResponseSchema: yup.ObjectSchema<ImportResponse> = yup
+export const ImportAccountResponseSchema: yup.ObjectSchema<ImportResponse> = yup
   .object({
     name: yup.string().defined(),
     isDefaultAccount: yup.boolean().defined(),
   })
   .defined()
 
-router.register<typeof ImportViewAccountRequestSchema, ImportResponse>(
-  `${ApiNamespace.wallet}/importViewAccount`,
-  ImportViewAccountRequestSchema,
+router.register<typeof ImportAccountRequestSchema, ImportResponse>(
+  `${ApiNamespace.wallet}/importAccount`,
+  ImportAccountRequestSchema,
   async (request, node): Promise<void> => {
     const accountValue = {
       id: uuid(),
