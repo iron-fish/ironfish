@@ -106,7 +106,7 @@ export class Send extends IronfishCommand {
     let to = flags.to?.trim()
     let from = flags.account?.trim()
 
-    const client = await this.sdk.connectRpc(false, true)
+    const client = await this.sdk.connectRpc()
 
     if (flags.eligibility) {
       await doEligibilityCheck(client, this.logger)
