@@ -1418,11 +1418,23 @@ describe('Accounts', () => {
       )
       expect(transactionHash).toEqual(transaction.hash())
 
+      // Verify the note is spent before expiration
+      const noteHash = await account.getNoteHash(nullifier)
+      Assert.isNotUndefined(noteHash)
+      let decryptedNote = await account.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(decryptedNote)
+      expect(decryptedNote.spent).toBe(true)
+
       // Verify the mapping is gone after expiration
       await account.expireTransaction(transaction)
       expect(
         await account['walletDb'].getTransactionHashFromNullifier(account, nullifier),
       ).toBeUndefined()
+
+      // Verify the note is unspent after expiration
+      decryptedNote = await account.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(decryptedNote)
+      expect(decryptedNote.spent).toBe(false)
     })
 
     it('does not update the nullifier to transaction hash mapping if the hash does not match', async () => {
@@ -1452,6 +1464,13 @@ describe('Accounts', () => {
       )
       expect(transactionHash).toEqual(transactionA.hash())
 
+      // Verify the note is spent before expiration
+      const noteHash = await accountA.getNoteHash(nullifier)
+      Assert.isNotUndefined(noteHash)
+      let decryptedNote = await accountA.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(decryptedNote)
+      expect(decryptedNote.spent).toBe(true)
+
       // Expire Transaction B but ensure we still have the nullifier to transaction hash mapping
       await accountA.expireTransaction(transactionB)
       transactionHash = await accountA['walletDb'].getTransactionHashFromNullifier(
@@ -1459,6 +1478,11 @@ describe('Accounts', () => {
         nullifier,
       )
       expect(transactionHash).toEqual(transactionA.hash())
+
+      // Verify the note is still spent since we expired a different transaction
+      decryptedNote = await accountA.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(decryptedNote)
+      expect(decryptedNote.spent).toBe(true)
     })
   })
 })
