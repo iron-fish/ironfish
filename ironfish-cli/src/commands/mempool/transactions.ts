@@ -52,6 +52,7 @@ export class TransactionsCommand extends IronfishCommand {
         'Range of values for fee given as max:min e.g. `0:5`. A single number indicates equality',
     }),
     expiration: Flags.string({
+      aliases: ['exp'],
       description:
         'Range of values for expiration sequence given as max:min e.g. `0:5`. A single number indicates equality',
     }),
@@ -61,10 +62,12 @@ export class TransactionsCommand extends IronfishCommand {
         'Range of values for position in mempool sequence given as max:min e.g. `0:5`. A single number indicates equality',
     }),
     expiresIn: Flags.string({
+      aliases: ['expin'],
       description:
         'Range of values for expiration delta from head of chain given as max:min e.g. `0:5`. A single number indicates equality',
     }),
     serializedData: Flags.boolean({
+      aliases: ['full'],
       default: false,
       description:
         'Output the entire serialized transaction data. Best used with the --csv flag',
@@ -205,13 +208,14 @@ function renderTable(
 
   let result = ''
 
-  CliUx.ux.table(getRows(response, flags.show), columns, {
+  const limit = flags.csv ? 0 : flags.show
+  CliUx.ux.table(getRows(response, limit), columns, {
     printLine: (line) => (result += `${String(line)}\n`),
     ...flags,
   })
 
-  if (response.length > flags.show) {
-    result += ` ... ${response.length - flags.show} more rows\n`
+  if (limit > 0 && response.length > limit) {
+    result += ` ... ${response.length - limit} more rows\n`
   }
 
   return result
