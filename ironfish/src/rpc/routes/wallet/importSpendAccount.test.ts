@@ -18,6 +18,7 @@ describe('Route wallet/importSpendAccount', () => {
         account: {
           name: accountName,
           viewKey: key.viewKey,
+          spendingKey: key.spendingKey,
           publicAddress: key.publicAddress,
           incomingViewKey: key.incomingViewKey,
           outgoingViewKey: key.outgoingViewKey,
