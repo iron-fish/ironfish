@@ -10,10 +10,7 @@ describe('Route wallet/importViewAccount', () => {
   const routeTest = createRouteTest(true)
 
   it('should import a view only account that has no spending key', async () => {
-    const account = await routeTest.node.wallet.createAccount(uuid(), true)
-
-    // delete the account or else the import will fail
-    await routeTest.node.wallet.removeAccount(account)
+    const key = generateKey()
 
     const response = await routeTest.client
       .request<ImportResponse>('wallet/importViewAccount', {
