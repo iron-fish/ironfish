@@ -43,7 +43,7 @@ function clearConfig(config: Config): void {
 export function setUnknownConfigValue(
   config: Config,
   unknownKey: string,
-  unknownValue: unknown,
+  unknownValue?: unknown,
   ignoreUnknownKey = false,
 ): void {
   if (unknownKey && !(unknownKey in config.defaults)) {
@@ -66,6 +66,11 @@ export function setUnknownConfigValue(
   // Trim string values
   if (typeof sourceValue === 'string') {
     sourceValue = sourceValue.trim()
+  }
+
+  if (value === undefined) {
+    config.clear(sourceKey)
+    return
   }
 
   if (typeof sourceValue !== typeof targetValue) {

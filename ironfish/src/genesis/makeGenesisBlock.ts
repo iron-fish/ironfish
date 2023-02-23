@@ -54,11 +54,11 @@ export async function makeGenesisBlock(
   const genesisKey = generateKey()
   // Create a genesis note granting the genesisKey allocationSum coins.
   const genesisNote = new NativeNote(
-    genesisKey.public_address,
+    genesisKey.publicAddress,
     allocationSum,
     '',
     Asset.nativeId(),
-    genesisKey.public_address,
+    genesisKey.publicAddress,
   )
 
   // Create a miner's fee transaction for the block.
@@ -70,14 +70,14 @@ export async function makeGenesisBlock(
   logger.info(`Generating a miner's fee transaction for the block...`)
   const minersFeeKey = generateKey()
   const note = new NativeNote(
-    minersFeeKey.public_address,
+    minersFeeKey.publicAddress,
     BigInt(0),
     '',
     Asset.nativeId(),
-    minersFeeKey.public_address,
+    minersFeeKey.publicAddress,
   )
 
-  const minersFeeTransaction = new NativeTransaction(minersFeeKey.spending_key)
+  const minersFeeTransaction = new NativeTransaction(minersFeeKey.spendingKey)
   minersFeeTransaction.output(note)
   const postedMinersFeeTransaction = new Transaction(minersFeeTransaction.post_miners_fee())
 
@@ -88,7 +88,7 @@ export async function makeGenesisBlock(
    *
    */
   logger.info(`Generating an initial transaction with ${allocationSumInIron} coins...`)
-  const initialTransaction = new NativeTransaction(genesisKey.spending_key)
+  const initialTransaction = new NativeTransaction(genesisKey.spendingKey)
 
   logger.info('  Generating the output...')
   initialTransaction.output(genesisNote)
@@ -124,7 +124,7 @@ export async function makeGenesisBlock(
    *
    */
   logger.info('Generating a transaction for distributing allocations...')
-  const transaction = new NativeTransaction(genesisKey.spending_key)
+  const transaction = new NativeTransaction(genesisKey.spendingKey)
   logger.info(`  Generating a spend for ${allocationSumInIron} coins...`)
   transaction.spend(genesisNote, witness)
 

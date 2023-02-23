@@ -55,13 +55,10 @@ impl From<LanguageCode> for Language {
 
 #[napi(object)]
 pub struct Key {
-    #[napi(js_name = "spending_key")]
     pub spending_key: String,
-    #[napi(js_name = "incoming_view_key")]
+    pub view_key: String,
     pub incoming_view_key: String,
-    #[napi(js_name = "outgoing_view_key")]
     pub outgoing_view_key: String,
-    #[napi(js_name = "public_address")]
     pub public_address: String,
 }
 
@@ -71,6 +68,7 @@ pub fn generate_key() -> Key {
 
     Key {
         spending_key: sapling_key.hex_spending_key(),
+        view_key: sapling_key.view_key().hex_key(),
         incoming_view_key: sapling_key.incoming_view_key().hex_key(),
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
         public_address: sapling_key.public_address().hex_public_address(),
@@ -96,6 +94,7 @@ pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
 
     Ok(Key {
         spending_key: sapling_key.hex_spending_key(),
+        view_key: sapling_key.view_key().hex_key(),
         incoming_view_key: sapling_key.incoming_view_key().hex_key(),
         outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
         public_address: sapling_key.public_address().hex_public_address(),

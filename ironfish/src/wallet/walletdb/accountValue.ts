@@ -4,15 +4,18 @@
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
+import { ACCOUNT_KEY_LENGTH } from '../account'
 
-const KEY_LENGTH = 32
+const KEY_LENGTH = ACCOUNT_KEY_LENGTH
+export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
 export interface AccountValue {
   version: number
   id: string
   name: string
-  spendingKey: string
+  spendingKey: string | null
+  viewKey: string
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
@@ -21,10 +24,16 @@ export interface AccountValue {
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
+    let flags = 0
+    flags |= Number(!!value.spendingKey) << 0
+    bw.writeU8(flags)
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
-    bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
+    if (value.spendingKey) {
+      bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
+    }
+    bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
@@ -34,10 +43,13 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
   deserialize(buffer: Buffer): AccountValue {
     const reader = bufio.read(buffer, true)
+    const flags = reader.readU8()
     const version = reader.readU16()
+    const hasSpendingKey = flags & (1 << 0)
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
-    const spendingKey = reader.readBytes(KEY_LENGTH).toString('hex')
+    const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
+    const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
@@ -46,19 +58,24 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
       version,
       id,
       name,
-      spendingKey,
+      viewKey,
       incomingViewKey,
       outgoingViewKey,
+      spendingKey,
       publicAddress,
     }
   }
 
   getSize(value: AccountValue): number {
     let size = 0
+    size += 1
     size += VERSION_LENGTH
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
-    size += KEY_LENGTH
+    if (value.spendingKey) {
+      size += KEY_LENGTH
+    }
+    size += VIEW_KEY_LENGTH
     size += KEY_LENGTH
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH

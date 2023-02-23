@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Transaction } from '../../../primitives'
+import { Assert } from '../../../assert'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
@@ -10,7 +10,7 @@ import { getAccount } from './utils'
 export type PostTransactionRequest = {
   account?: string
   transaction: string
-  offline?: boolean
+  broadcast?: boolean
 }
 
 export type PostTransactionResponse = {
@@ -21,7 +21,7 @@ export const PostTransactionRequestSchema: yup.ObjectSchema<PostTransactionReque
   .object({
     account: yup.string().strip(true),
     transaction: yup.string().defined(),
-    offline: yup.boolean().optional(),
+    broadcast: yup.boolean().optional(),
   })
   .defined()
 
@@ -36,22 +36,21 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
   PostTransactionRequestSchema,
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
+    Assert.isNotNull(
+      account.spendingKey,
+      'Account must have spending key to post a transaction',
+    )
 
-    const rawTransactionBytes = Buffer.from(request.data.transaction, 'hex')
-    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-    let postedTransaction: Transaction
-    if (request.data.offline === true) {
-      postedTransaction = await node.wallet.postTransaction(rawTransaction, account.spendingKey)
-    } else {
-      postedTransaction = await node.wallet.post(
-        rawTransaction,
-        node.memPool,
-        account.spendingKey,
-      )
-    }
+    const bytes = Buffer.from(request.data.transaction, 'hex')
+    const raw = RawTransactionSerde.deserialize(bytes)
 
-    const postedTransactionBytes = postedTransaction.serialize()
+    const transaction = await node.wallet.post({
+      transaction: raw,
+      account,
+      broadcast: request.data.broadcast,
+    })
 
-    request.end({ transaction: postedTransactionBytes.toString('hex') })
+    const serialized = transaction.serialize()
+    request.end({ transaction: serialized.toString('hex') })
   },
 )

@@ -239,7 +239,6 @@ describe('Transactions sendTransaction', () => {
       expect.anything(),
       expect.anything(),
       expect.anything(),
-      expect.anything(),
       routeTest.node.config.get('transactionExpirationDelta'),
       undefined,
       undefined,
@@ -253,7 +252,6 @@ describe('Transactions sendTransaction', () => {
     })
 
     expect(sendSpy).toHaveBeenCalledWith(
-      expect.anything(),
       expect.anything(),
       expect.anything(),
       expect.anything(),

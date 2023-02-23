@@ -4,11 +4,11 @@
 
 use crate::{
     assets::asset::AssetIdentifier, errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE,
-    serializing::read_point, util::str_to_array,
+    serializing::read_point, util::str_to_array, ViewKey,
 };
 
 use super::{
-    keys::{IncomingViewKey, PublicAddress, SaplingKey},
+    keys::{IncomingViewKey, PublicAddress},
     serializing::{aead, read_scalar},
 };
 use blake2s_simd::Params as Blake2sParams;
@@ -282,12 +282,12 @@ impl<'a> Note {
         )
     }
 
-    /// Compute the nullifier for this note, given the private key of its owner.
+    /// Compute the nullifier for this note, given the ViewKey of its owner.
     ///
     /// The nullifier is a series of bytes that is published by the note owner
     /// only at the time the note is spent. This key is collected in a massive
     /// 'nullifier set', preventing double-spend.
-    pub fn nullifier(&self, private_key: &SaplingKey, position: u64) -> Nullifier {
+    pub fn nullifier(&self, view_key: &ViewKey, position: u64) -> Nullifier {
         // Compute rho = cm + position.G
         let rho = self.commitment_full_point()
             + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
@@ -298,7 +298,7 @@ impl<'a> Note {
                 .hash_length(32)
                 .personal(PRF_NF_PERSONALIZATION)
                 .to_state()
-                .update(&private_key.sapling_viewing_key().nk.to_bytes())
+                .update(&view_key.nullifier_deriving_key.to_bytes())
                 .update(&rho.to_bytes())
                 .finalize()
                 .as_bytes(),

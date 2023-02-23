@@ -110,7 +110,6 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
 
     try {
       const transaction = await node.wallet.send(
-        node.memPool,
         account,
         outputs,
         fee,

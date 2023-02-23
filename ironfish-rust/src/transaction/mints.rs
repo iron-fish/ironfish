@@ -98,7 +98,7 @@ impl UnsignedMintDescription {
             redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
 
         let transaction_randomized_public_key =
-            redjubjub::PublicKey(spender_key.authorizing_key.into())
+            redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
                 .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
 
         if randomized_public_key.0 != transaction_randomized_public_key.0 {
@@ -247,7 +247,7 @@ mod test {
         let value = 5;
 
         let public_key_randomness = jubjub::Fr::random(thread_rng());
-        let randomized_public_key = redjubjub::PublicKey(key.authorizing_key.into())
+        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let mint = MintBuilder::new(asset, value);
@@ -277,7 +277,7 @@ mod test {
             .verify_signature(&other_sig_hash, &randomized_public_key)
             .is_err());
 
-        let other_randomized_public_key = redjubjub::PublicKey(key.authorizing_key.into())
+        let other_randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
             .randomize(jubjub::Fr::random(thread_rng()), SPENDING_KEY_GENERATOR);
         assert!(description
             .verify_signature(&sig_hash, &other_randomized_public_key)
@@ -296,7 +296,7 @@ mod test {
         let value = 5;
 
         let public_key_randomness = jubjub::Fr::random(thread_rng());
-        let randomized_public_key = redjubjub::PublicKey(key.authorizing_key.into())
+        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
             .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
 
         let mint = MintBuilder::new(asset, value);

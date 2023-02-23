@@ -245,6 +245,17 @@ export class IronfishNode {
       config,
     })
 
+    const feeEstimator = new FeeEstimator({
+      maxBlockHistory: config.get('feeEstimatorMaxBlockHistory'),
+      percentiles: {
+        slow: config.get('feeEstimatorPercentileSlow'),
+        average: config.get('feeEstimatorPercentileAverage'),
+        fast: config.get('feeEstimatorPercentileFast'),
+      },
+    })
+
+    const memPool = new MemPool({ chain, feeEstimator, metrics, logger })
+
     const walletDB = new WalletDB({
       location: config.walletDatabasePath,
       workerPool,
@@ -254,20 +265,10 @@ export class IronfishNode {
     const wallet = new Wallet({
       chain,
       config,
+      memPool,
       database: walletDB,
       workerPool,
     })
-
-    const feeEstimator = new FeeEstimator({
-      maxBlockHistory: config.get('feeEstimatorMaxBlockHistory'),
-      percentiles: {
-        low: config.get('feeEstimatorPercentileLow'),
-        medium: config.get('feeEstimatorPercentileMedium'),
-        high: config.get('feeEstimatorPercentileHigh'),
-      },
-    })
-
-    const memPool = new MemPool({ chain, feeEstimator, metrics, logger })
 
     return new IronfishNode({
       pkg,

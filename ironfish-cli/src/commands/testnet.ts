@@ -92,7 +92,7 @@ export default class Testnet extends IronfishCommand {
     } else {
       // Fetch by graffiti
       if (!userArg || userArg.length === 0) {
-        this.log(`Could not figure out testnet user, graffiti was not provided`)
+        this.log(`ERROR: Could not figure out testnet user, graffiti was not provided`)
         return this.exit(1)
       }
 
@@ -102,7 +102,14 @@ export default class Testnet extends IronfishCommand {
       const user = await api.findUser({ graffiti: userArg })
 
       if (!user) {
-        this.log(`Could not find a user with graffiti ${userArg}`)
+        this.log(`ERROR: Could not find a user with graffiti ${userArg}`)
+        return this.exit(1)
+      }
+
+      if (!user.verified) {
+        this.log(
+          `ERROR: You must verify your Iron Fish email. Visit https://ironfish.network and click "Log In" to do so.`,
+        )
         return this.exit(1)
       }
 

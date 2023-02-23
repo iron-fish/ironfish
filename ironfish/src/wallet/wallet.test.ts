@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKey } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
+import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
 import {
@@ -243,8 +244,8 @@ describe('Accounts', () => {
     const forkSpendNullifier = forkSpendTx.spends[0].nullifier
     const forkSpendNoteHash = await accountA.getNoteHash(forkSpendNullifier)
 
-    // nullifier should be non-null
-    Assert.isNotNull(forkSpendNoteHash)
+    // nullifier should be defined
+    Assert.isNotUndefined(forkSpendNoteHash)
 
     // re-org
     await expect(nodeA.chain).toAddBlock(blockB1)
@@ -258,7 +259,7 @@ describe('Accounts', () => {
     expect(forkSpendNote?.nullifier).toBeNull()
 
     // nullifier should have been removed from nullifierToNote
-    expect(await accountA.getNoteHash(forkSpendNullifier)).toBeNull()
+    expect(await accountA.getNoteHash(forkSpendNullifier)).toBeUndefined()
   })
 
   describe('scanTransactions', () => {
@@ -540,6 +541,45 @@ describe('Accounts', () => {
 
       await expect(node.wallet.importAccount(clone)).rejects.toThrow(
         'Account already exists with provided spending key',
+      )
+    })
+
+    it('should be able to import an account from solely its view keys', async () => {
+      const { node } = nodeTest
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { spendingKey, ...key } = generateKey()
+      const accountValue = {
+        id: uuid(),
+        name: 'viewonly',
+        version: 1,
+        spendingKey: null,
+        ...key,
+      }
+      const viewonlyAccount = await node.wallet.importAccount(accountValue)
+      expect(viewonlyAccount.name).toEqual(accountValue.name)
+      expect(viewonlyAccount.viewKey).toEqual(key.viewKey)
+      expect(viewonlyAccount.incomingViewKey).toEqual(key.incomingViewKey)
+      expect(viewonlyAccount.outgoingViewKey).toEqual(key.outgoingViewKey)
+      expect(viewonlyAccount.spendingKey).toBeNull()
+      expect(viewonlyAccount.publicAddress).toEqual(key.publicAddress)
+    })
+    it('should be unable to import a viewonly account if it is a dupe', async () => {
+      const { node } = nodeTest
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { spendingKey, ...key } = generateKey()
+      const accountValue = {
+        id: uuid(),
+        name: 'viewonly',
+        version: 1,
+        spendingKey: null,
+        ...key,
+      }
+      await node.wallet.importAccount(accountValue)
+      const clone = { ...accountValue }
+      clone.name = 'Different name'
+
+      await expect(node.wallet.importAccount(clone)).rejects.toThrow(
+        'Account already exists with provided view key(s)',
       )
     })
   })
@@ -1019,7 +1059,7 @@ describe('Accounts', () => {
 
         const assetId = Buffer.from('thisisafakeidentifier', 'hex')
         await expect(
-          node.wallet.mint(node.memPool, account, {
+          node.wallet.mint(account, {
             assetId,
             fee: BigInt(0),
             expirationDelta: node.config.get('transactionExpirationDelta'),
@@ -1055,7 +1095,7 @@ describe('Accounts', () => {
 
         const mintValueB = BigInt(10)
         const transaction = await useTxFixture(node.wallet, account, account, () => {
-          return node.wallet.mint(node.memPool, account, {
+          return node.wallet.mint(account, {
             assetId: asset.id(),
             fee: BigInt(0),
             expirationDelta: node.config.get('transactionExpirationDelta'),
@@ -1065,7 +1105,7 @@ describe('Accounts', () => {
 
         const mintBlock = await node.chain.newBlock(
           [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 4, generateKey().spending_key),
+          await node.strategy.createMinersFee(transaction.fee(), 4, generateKey().spendingKey),
         )
         await expect(node.chain).toAddBlock(mintBlock)
         await node.wallet.updateHead()
@@ -1223,11 +1263,14 @@ describe('Accounts', () => {
           expiration: 0,
         })
 
-        const transaction = await node.wallet.post(raw, node.memPool, account.spendingKey)
+        const transaction = await node.wallet.post({
+          transaction: raw,
+          account,
+        })
 
         return node.chain.newBlock(
           [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spending_key),
+          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spendingKey),
         )
       })
       await expect(node.chain).toAddBlock(blockB)
@@ -1240,7 +1283,7 @@ describe('Accounts', () => {
       // TODO(mat): This test is flaky. The order of notes may change, so if
       // this is failing, change this to `getNote(1)`. There's a ticket to
       // resolve this, but trying to focus on phase 3 first.
-      const outputNote = blockB.transactions[1].getNote(0)
+      const outputNote = blockB.transactions[1].getNote(1)
       const note = outputNote.decryptNoteForOwner(account.incomingViewKey)
       Assert.isNotUndefined(note)
 

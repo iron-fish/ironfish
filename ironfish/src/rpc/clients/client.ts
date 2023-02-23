@@ -65,6 +65,10 @@ import {
   UseAccountResponse,
 } from '../routes'
 import {
+  EstimateFeeRateRequest,
+  EstimateFeeRateResponse,
+} from '../routes/chain/estimateFeeRate'
+import {
   EstimateFeeRatesRequest,
   EstimateFeeRatesResponse,
 } from '../routes/chain/estimateFeeRates'
@@ -76,6 +80,7 @@ import {
   FollowChainStreamRequest,
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
+import { UnsetConfigRequest, UnsetConfigResponse } from '../routes/config/unsetConfig'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import { GetBannedPeersRequest, GetBannedPeersResponse } from '../routes/peers/getBannedPeers'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
@@ -423,6 +428,15 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
+  async estimateFeeRate(
+    params?: EstimateFeeRateRequest,
+  ): Promise<RpcResponseEnded<EstimateFeeRateResponse>> {
+    return this.request<EstimateFeeRateResponse>(
+      `${ApiNamespace.chain}/estimateFeeRate`,
+      params,
+    ).waitForEnd()
+  }
+
   async getChainInfo(
     params: GetChainInfoRequest = undefined,
   ): Promise<RpcResponseEnded<GetChainInfoResponse>> {
@@ -502,6 +516,15 @@ export abstract class RpcClient {
   async setConfig(params: SetConfigRequest): Promise<RpcResponseEnded<SetConfigResponse>> {
     return this.request<SetConfigResponse>(
       `${ApiNamespace.config}/setConfig`,
+      params,
+    ).waitForEnd()
+  }
+
+  async unsetConfig(
+    params: UnsetConfigRequest,
+  ): Promise<RpcResponseEnded<UnsetConfigResponse>> {
+    return this.request<UnsetConfigResponse>(
+      `${ApiNamespace.config}/unsetConfig`,
       params,
     ).waitForEnd()
   }

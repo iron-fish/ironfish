@@ -182,7 +182,7 @@ describe('Verifier', () => {
         () => {
           const key = generateKey()
           const reward = nodeTest.strategy.miningReward(minersBlock.header.sequence)
-          const owner = key.public_address
+          const owner = key.publicAddress
           const minerNote1 = new NativeNote(
             owner,
             BigInt(reward / 2),
@@ -197,7 +197,7 @@ describe('Verifier', () => {
             Asset.nativeId(),
             owner,
           )
-          const transaction = new NativeTransaction(key.spending_key)
+          const transaction = new NativeTransaction(key.spendingKey)
           transaction.output(minerNote1)
           transaction.output(minerNote2)
           return new Transaction(transaction._postMinersFeeUnchecked())

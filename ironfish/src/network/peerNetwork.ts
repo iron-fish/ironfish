@@ -21,7 +21,7 @@ import { Block, CompactBlock } from '../primitives/block'
 import { BlockHash, BlockHeader } from '../primitives/blockheader'
 import { TransactionHash } from '../primitives/transaction'
 import { Telemetry } from '../telemetry'
-import { ArrayUtils, BenchUtils, HRTime } from '../utils'
+import { ArrayUtils, BenchUtils, BlockchainUtils, HRTime } from '../utils'
 import { BlockFetcher } from './blockFetcher'
 import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
@@ -65,7 +65,12 @@ import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
 import { parseUrl } from './utils/parseUrl'
-import { MAX_REQUESTED_BLOCKS, VERSION_PROTOCOL } from './version'
+import {
+  MAX_HEADER_LOOKUPS,
+  MAX_REQUESTED_BLOCKS,
+  MAX_REQUESTED_HEADERS,
+  VERSION_PROTOCOL,
+} from './version'
 import { WebSocketServer } from './webSocketServer'
 
 /**
@@ -1013,14 +1018,6 @@ export class PeerNetwork {
     }
   }
 
-  private async resolveSequenceOrHash(start: Buffer | number): Promise<BlockHeader | null> {
-    if (Buffer.isBuffer(start)) {
-      return await this.chain.getHeader(start)
-    }
-
-    return await this.chain.getHeaderAtSequence(start)
-  }
-
   private async onGetBlockHeadersRequest(
     request: IncomingPeerMessage<GetBlockHeadersRequest>,
   ): Promise<GetBlockHeadersResponse> {
@@ -1035,12 +1032,14 @@ export class PeerNetwork {
       return new GetBlockHeadersResponse([], rpcId)
     }
 
-    if (request.message.limit > MAX_REQUESTED_BLOCKS) {
+    if (request.message.limit > MAX_REQUESTED_HEADERS) {
       peer.punish(
         BAN_SCORE.MAX,
         `Peer sent GetBlockHeaders with limit of ${request.message.limit}`,
       )
-      const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
+      const error = new CannotSatisfyRequestError(
+        `Requested more than ${MAX_REQUESTED_HEADERS}`,
+      )
       throw error
     }
 
@@ -1050,13 +1049,16 @@ export class PeerNetwork {
     const skip = message.skip
     const reverse = message.reverse
 
-    const from = await this.resolveSequenceOrHash(start)
+    const from = await BlockchainUtils.blockHeaderBySequenceOrHash(this.chain, start)
     if (!from) {
       return new GetBlockHeadersResponse([], rpcId)
     }
 
     const headers = []
     let skipCounter = skip
+
+    // Limit the total number of lookups to avoid excessive disk usage
+    let remainingLookups = MAX_HEADER_LOOKUPS
 
     // If `reverse` is true, we iterate in descending order, using `start` as the
     // highest sequence.  Otherwise, we iterate in ascending order, using
@@ -1066,6 +1068,11 @@ export class PeerNetwork {
       : (from: BlockHeader) => this.chain.iterateTo(from)
 
     for await (const header of iterationFunction(from)) {
+      if (remainingLookups === 0) {
+        break
+      }
+      remainingLookups -= 1
+
       if (skip) {
         if (skipCounter < skip) {
           skipCounter += 1
@@ -1111,7 +1118,7 @@ export class PeerNetwork {
     const start = message.start
     const limit = message.limit
 
-    const from = await this.resolveSequenceOrHash(start)
+    const from = await BlockchainUtils.blockHeaderBySequenceOrHash(this.chain, start)
     if (!from) {
       return new GetBlockHashesResponse([], rpcId)
     }
@@ -1149,7 +1156,7 @@ export class PeerNetwork {
     const start = message.start
     const limit = message.limit
 
-    const from = await this.resolveSequenceOrHash(start)
+    const from = await BlockchainUtils.blockHeaderBySequenceOrHash(this.chain, start)
     if (!from) {
       return new GetBlocksResponse([], rpcId)
     }

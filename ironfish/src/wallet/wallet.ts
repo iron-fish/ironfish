@@ -1,12 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  Asset,
-  generateKey,
-  generateKeyFromPrivateKey,
-  Note as NativeNote,
-} from '@ironfish/rust-nodejs'
+import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
@@ -36,7 +31,7 @@ import {
 } from '../utils'
 import { WorkerPool } from '../workerPool'
 import { DecryptedNote, DecryptNoteOptions } from '../workerPool/tasks/decryptNotes'
-import { Account, ACCOUNT_SCHEMA_VERSION, AccountImport } from './account'
+import { Account, ACCOUNT_SCHEMA_VERSION } from './account'
 import { AssetBalances } from './assetBalances'
 import { NotEnoughFundsError } from './errors'
 import { MintAssetOptions } from './interfaces/mintAssetOptions'
@@ -85,6 +80,7 @@ export class Wallet {
   readonly workerPool: WorkerPool
   readonly chain: Blockchain
   readonly chainProcessor: ChainProcessor
+  readonly memPool: MemPool
   private readonly config: Config
 
   protected rebroadcastAfter: number
@@ -100,6 +96,7 @@ export class Wallet {
   constructor({
     chain,
     config,
+    memPool,
     database,
     logger = createRootLogger(),
     rebroadcastAfter,
@@ -108,6 +105,7 @@ export class Wallet {
     chain: Blockchain
     config: Config
     database: WalletDB
+    memPool: MemPool
     logger?: Logger
     rebroadcastAfter?: number
     workerPool: WorkerPool
@@ -115,6 +113,7 @@ export class Wallet {
     this.chain = chain
     this.config = config
     this.logger = logger.withTag('accounts')
+    this.memPool = memPool
     this.walletDb = database
     this.workerPool = workerPool
     this.rebroadcastAfter = rebroadcastAfter ?? 10
@@ -326,7 +325,7 @@ export class Wallet {
           serializedNote: note.serialize(),
           incomingViewKey: account.incomingViewKey,
           outgoingViewKey: account.outgoingViewKey,
-          spendingKey: account.spendingKey,
+          viewKey: account.viewKey,
           currentNoteIndex,
           decryptForSpender,
         })
@@ -667,7 +666,6 @@ export class Wallet {
   }
 
   async send(
-    memPool: MemPool,
     account: Account,
     outputs: {
       publicAddress: string
@@ -689,14 +687,13 @@ export class Wallet {
       confirmations: confirmations ?? undefined,
     })
 
-    return this.post(raw, memPool, account.spendingKey)
+    return this.post({
+      transaction: raw,
+      account,
+    })
   }
 
-  async mint(
-    memPool: MemPool,
-    account: Account,
-    options: MintAssetOptions,
-  ): Promise<Transaction> {
+  async mint(account: Account, options: MintAssetOptions): Promise<Transaction> {
     let mintData: MintData
 
     if ('assetId' in options) {
@@ -729,11 +726,13 @@ export class Wallet {
       confirmations: options.confirmations,
     })
 
-    return this.post(raw, memPool, account.spendingKey)
+    return this.post({
+      transaction: raw,
+      account,
+    })
   }
 
   async burn(
-    memPool: MemPool,
     account: Account,
     assetId: Buffer,
     value: bigint,
@@ -751,7 +750,10 @@ export class Wallet {
       confirmations,
     })
 
-    return this.post(raw, memPool, account.spendingKey)
+    return this.post({
+      transaction: raw,
+      account,
+    })
   }
 
   async createTransaction(options: {
@@ -857,24 +859,32 @@ export class Wallet {
     }
   }
 
-  async post(raw: RawTransaction, memPool: MemPool, spendingKey: string): Promise<Transaction> {
-    const transaction = await this.postTransaction(raw, spendingKey)
+  async post(options: {
+    transaction: RawTransaction
+    spendingKey?: string
+    account?: Account
+    broadcast?: boolean
+  }): Promise<Transaction> {
+    const broadcast = options.broadcast ?? true
+
+    const spendingKey = options.account?.spendingKey ?? options.spendingKey
+    Assert.isTruthy(spendingKey, `Spending key is required to post transaction`)
+
+    const transaction = await this.workerPool.postTransaction(options.transaction, spendingKey)
 
     const verify = this.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
       throw new Error(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
-    await this.addPendingTransaction(transaction)
-    memPool.acceptTransaction(transaction)
-    this.broadcastTransaction(transaction)
-    this.onTransactionCreated.emit(transaction)
+    if (broadcast) {
+      await this.addPendingTransaction(transaction)
+      this.memPool.acceptTransaction(transaction)
+      this.broadcastTransaction(transaction)
+      this.onTransactionCreated.emit(transaction)
+    }
 
     return transaction
-  }
-
-  async postTransaction(raw: RawTransaction, spendingKey: string): Promise<Transaction> {
-    return await this.workerPool.postTransaction(raw, spendingKey)
   }
 
   async fund(
@@ -1235,7 +1245,7 @@ export class Wallet {
     let send = false
 
     for (const spend of transaction.transaction.spends) {
-      if ((await account.getNoteHash(spend.nullifier, tx)) !== null) {
+      if ((await account.getNoteHash(spend.nullifier, tx)) !== undefined) {
         send = true
         break
       }
@@ -1255,10 +1265,11 @@ export class Wallet {
       version: ACCOUNT_SCHEMA_VERSION,
       id: uuid(),
       name,
-      incomingViewKey: key.incoming_view_key,
-      outgoingViewKey: key.outgoing_view_key,
-      publicAddress: key.public_address,
-      spendingKey: key.spending_key,
+      incomingViewKey: key.incomingViewKey,
+      outgoingViewKey: key.outgoingViewKey,
+      publicAddress: key.publicAddress,
+      spendingKey: key.spendingKey,
+      viewKey: key.viewKey,
       walletDb: this.walletDb,
     })
 
@@ -1287,24 +1298,19 @@ export class Wallet {
     }
   }
 
-  async importAccount(toImport: AccountImport): Promise<Account> {
-    if (toImport.name && this.getAccountByName(toImport.name)) {
-      throw new Error(`Account already exists with the name ${toImport.name}`)
+  async importAccount(accountValue: AccountValue): Promise<Account> {
+    if (accountValue.name && this.getAccountByName(accountValue.name)) {
+      throw new Error(`Account already exists with the name ${accountValue.name}`)
     }
-
-    if (this.listAccounts().find((a) => toImport.spendingKey === a.spendingKey)) {
+    const accounts = this.listAccounts()
+    if (
+      accountValue.spendingKey &&
+      accounts.find((a) => accountValue.spendingKey === a.spendingKey)
+    ) {
       throw new Error(`Account already exists with provided spending key`)
     }
-
-    const key = generateKeyFromPrivateKey(toImport.spendingKey)
-
-    const accountValue: AccountValue = {
-      ...toImport,
-      version: ACCOUNT_SCHEMA_VERSION,
-      id: uuid(),
-      incomingViewKey: key.incoming_view_key,
-      outgoingViewKey: key.outgoing_view_key,
-      publicAddress: key.public_address,
+    if (accounts.find((a) => accountValue.viewKey === a.viewKey)) {
+      throw new Error(`Account already exists with provided view key(s)`)
     }
 
     validateAccount(accountValue)

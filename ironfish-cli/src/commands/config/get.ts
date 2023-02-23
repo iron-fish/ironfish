@@ -33,6 +33,11 @@ export class GetCommand extends IronfishCommand {
       allowNo: true,
       description: 'Should colorize the output',
     }),
+    json: Flags.boolean({
+      default: false,
+      allowNo: true,
+      description: 'Output the config value as json',
+    }),
   }
 
   async start(): Promise<void> {
@@ -51,9 +56,16 @@ export class GetCommand extends IronfishCommand {
       this.exit(0)
     }
 
-    let output = JSON.stringify(response.content[key], undefined, '   ')
-    if (flags.color) {
-      output = jsonColorizer(output)
+    let output = ''
+
+    if (flags.json) {
+      output = JSON.stringify(response.content[key], undefined, '   ')
+
+      if (flags.color) {
+        output = jsonColorizer(output)
+      }
+    } else {
+      output = String(response.content[key])
     }
 
     this.log(output)

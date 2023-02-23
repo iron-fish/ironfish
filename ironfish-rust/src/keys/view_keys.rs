@@ -97,7 +97,13 @@ impl IncomingViewKey {
 /// Referred to as `ViewingKey` in the literature.
 #[derive(Clone)]
 pub struct ViewKey {
+    /// Part of the full viewing key. Generally referred to as
+    /// `ak` in the literature. Derived from spend_authorizing_key using scalar
+    /// multiplication in Sapling. Used to construct incoming viewing key.
     pub authorizing_key: jubjub::SubgroupPoint,
+    /// Part of the full viewing key. Generally referred to as
+    /// `nk` in the literature. Derived from proof_authorizing_key using scalar
+    /// multiplication. Used to construct incoming viewing key.
     pub nullifier_deriving_key: jubjub::SubgroupPoint,
 }
 
@@ -244,15 +250,14 @@ mod test {
             "d96dc74bbca05dffb14a5631024588364b0cc9f583b5c11908b6ea98a2b778f7",
         )
         .expect("Key should be generated");
-        let view_key = key.view_key();
-        let view_key_hex = view_key.hex_key();
+        let view_key_hex = key.view_key.hex_key();
         assert_eq!(view_key_hex, "498b5103a72c41237c3f2bca96f20100f5a3a8a17c6b8366a485fd16e8931a5d2ff2eb8f991032c815414ff0ae2d8bc3ea3b56bffc481db3f28e800050244463");
 
         let recreated_key =
             ViewKey::from_hex(&view_key_hex).expect("Key should be created from hex");
-        assert_eq!(view_key.authorizing_key, recreated_key.authorizing_key);
+        assert_eq!(key.view_key.authorizing_key, recreated_key.authorizing_key);
         assert_eq!(
-            view_key.nullifier_deriving_key,
+            key.view_key.nullifier_deriving_key,
             recreated_key.nullifier_deriving_key
         );
     }

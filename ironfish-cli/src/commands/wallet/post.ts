@@ -1,17 +1,22 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { CurrencyUtils, RawTransaction, RawTransactionSerde, Transaction } from '@ironfish/sdk'
+import {
+  CurrencyUtils,
+  RawTransaction,
+  RawTransactionSerde,
+  RpcClient,
+  Transaction,
+} from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { ProgressBar } from '../../types'
 
 export class PostCommand extends IronfishCommand {
   static summary = 'Post a raw transaction'
 
   static description = `Use this command to post a raw transaction.
-   The output is a finalized posted transaction. The transaction is also added to the wallet, and sent out to the network.`
+   The output is a finalized posted transaction.`
 
   static examples = [
     '$ ironfish wallet:post 618c098d8d008c9f78f6155947014901a019d9ec17160dc0f0d1bb1c764b29b4...',
@@ -27,9 +32,9 @@ export class PostCommand extends IronfishCommand {
       default: false,
       description: 'Confirm without asking',
     }),
-    offline: Flags.boolean({
-      default: false,
-      description: 'Post transaction offline',
+    broadcast: Flags.boolean({
+      default: true,
+      description: 'Broadcast the transaction after posting',
     }),
   }
 
@@ -52,67 +57,46 @@ export class PostCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     if (!flags.confirm) {
-      let account = flags.account
-      if (!flags.account) {
-        const response = await client.getDefaultAccount()
-
-        if (response.content.account) {
-          account = response.content.account.name
-        }
-      }
-
-      if (account === undefined) {
-        this.error('Can not find an account to confirm the transaction')
-      }
-      const confirm = await this.confirm(raw, account)
+      const confirm = await this.confirm(client, raw, flags.account)
 
       if (!confirm) {
         this.exit(0)
       }
     }
 
-    const bar = CliUx.ux.progress({
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      format: 'Posting the transaction: [{bar}] {percentage}% | ETA: {eta}s',
-    }) as ProgressBar
-
-    bar.start()
-
-    let value = 0
-    const timer = setInterval(() => {
-      value++
-      bar.update(value)
-      if (value >= bar.getTotal()) {
-        bar.stop()
-      }
-    }, 1000)
-
-    const stopProgressBar = () => {
-      clearInterval(timer)
-      bar.update(100)
-      bar.stop()
-    }
+    CliUx.ux.action.start(`Posting the transaction`)
 
     const response = await client.postTransaction({
       transaction,
       account: flags.account,
-      offline: flags.offline,
+      broadcast: flags.broadcast,
     })
 
-    stopProgressBar()
+    CliUx.ux.action.stop()
 
     const posted = new Transaction(Buffer.from(response.content.transaction, 'hex'))
 
     this.log(`Posted transaction with hash ${posted.hash().toString('hex')}\n`)
     this.log(response.content.transaction)
 
-    if (flags.offline === true) {
-      this.log(`\n Run "ironfish wallet:transaction:add" to add the transaction to your wallet`)
+    if (!flags.broadcast) {
+      this.log(`\nRun "ironfish wallet:transaction:add" to add the transaction to your wallet`)
     }
   }
 
-  confirm(raw: RawTransaction, account: string): Promise<boolean> {
+  async confirm(client: RpcClient, raw: RawTransaction, account?: string): Promise<boolean> {
+    if (!account) {
+      const response = await client.getDefaultAccount()
+
+      if (response.content.account) {
+        account = response.content.account.name
+      }
+    }
+
+    if (!account) {
+      this.error('Can not find an account to confirm the transaction')
+    }
+
     let spending = 0n
     for (const output of raw.outputs) {
       spending += output.note.value()

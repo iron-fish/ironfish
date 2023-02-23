@@ -51,7 +51,7 @@ export class AssetsCommand extends IronfishCommand {
     const assetNameWidth = flags.extended
       ? MAX_ASSET_NAME_COLUMN_WIDTH
       : MIN_ASSET_NAME_COLUMN_WIDTH
-    let showHeader = true
+    let showHeader = !flags['no-header']
 
     for await (const asset of response.contentStream()) {
       CliUx.ux.table(

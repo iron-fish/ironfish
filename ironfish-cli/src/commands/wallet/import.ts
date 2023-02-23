@@ -99,7 +99,7 @@ export class ImportCommand extends IronfishCommand {
 
   static verifySpendingKey(spendingKey: string): string | null {
     try {
-      return generateKeyFromPrivateKey(spendingKey)?.spending_key
+      return generateKeyFromPrivateKey(spendingKey)?.spendingKey
     } catch (e) {
       return null
     }

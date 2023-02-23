@@ -262,8 +262,9 @@ impl ProposedTransaction {
         // The public key after randomization has been applied. This is used
         // during signature verification. Referred to as `rk` in the literature
         // Calculated from the authorizing key and the public_key_randomness.
-        let randomized_public_key = redjubjub::PublicKey(self.spender_key.authorizing_key.into())
-            .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
+        let randomized_public_key =
+            redjubjub::PublicKey(self.spender_key.view_key.authorizing_key.into())
+                .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
 
         // Build descriptions
         let mut unsigned_spends = Vec::with_capacity(self.spends.len());
@@ -365,8 +366,9 @@ impl ProposedTransaction {
             .write_i64::<LittleEndian>(*self.value_balances.fee())
             .unwrap();
 
-        let randomized_public_key = redjubjub::PublicKey(self.spender_key.authorizing_key.into())
-            .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
+        let randomized_public_key =
+            redjubjub::PublicKey(self.spender_key.view_key.authorizing_key.into())
+                .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
 
         hasher
             .write_all(&randomized_public_key.0.to_bytes())

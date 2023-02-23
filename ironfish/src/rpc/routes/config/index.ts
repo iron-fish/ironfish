@@ -4,4 +4,5 @@
 
 export * from './getConfig'
 export * from './setConfig'
+export * from './unsetConfig'
 export * from './uploadConfig'

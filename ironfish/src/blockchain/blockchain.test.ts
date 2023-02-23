@@ -11,6 +11,7 @@ import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { RawTransaction } from '../primitives/rawTransaction'
 import {
   createNodeTest,
+  SpendingAccount,
   useAccountFixture,
   useBlockFixture,
   useBlockWithRawTxFixture,
@@ -22,7 +23,6 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
-import { Account } from '../wallet'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
@@ -901,7 +901,7 @@ describe('Blockchain', () => {
   describe('asset updates', () => {
     async function burnAsset(
       node: IronfishNode,
-      account: Account,
+      account: SpendingAccount,
       sequence: number,
       asset: Asset,
       value: bigint,
@@ -1430,7 +1430,7 @@ describe('Blockchain', () => {
 
           return node.chain.newBlock(
             [burnTransaction, spendTransaction],
-            await node.strategy.createMinersFee(fee, 3, generateKey().spending_key),
+            await node.strategy.createMinersFee(fee, 3, generateKey().spendingKey),
           )
         })
 

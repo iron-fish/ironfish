@@ -186,7 +186,7 @@ describe('RawTransactionSerde', () => {
 
     const note = new Note(
       new NativeNote(
-        generateKey().public_address,
+        generateKey().publicAddress,
         5n,
         'memo',
         asset.id(),
@@ -260,5 +260,34 @@ describe('RawTransactionSerde', () => {
     expect(deserialized.mints[0].value).toEqual(5n)
     expect(deserialized.spends[0].note).toEqual(raw.spends[0].note)
     expect(IsNoteWitnessEqual(deserialized.spends[0].witness, raw.spends[0].witness)).toBe(true)
+  })
+
+  it('serializes and deserializes a transaction with unicode characters', () => {
+    const assetName = '吉锕涩偶讷'
+    const assetMetadata = '💪💎🚀'
+
+    const raw = new RawTransaction()
+
+    raw.mints = [
+      {
+        name: assetName,
+        metadata: assetMetadata,
+        value: 5n,
+      },
+      {
+        name: assetName,
+        metadata: assetMetadata,
+        value: 4n,
+      },
+    ]
+
+    const serialized = RawTransactionSerde.serialize(raw)
+    const deserialized = RawTransactionSerde.deserialize(serialized)
+
+    expect(deserialized.mints[0].name).toEqual(assetName)
+    expect(deserialized.mints[0].metadata).toEqual(assetMetadata)
+
+    expect(deserialized.mints[1].name).toEqual(assetName)
+    expect(deserialized.mints[1].metadata).toEqual(assetMetadata)
   })
 })
