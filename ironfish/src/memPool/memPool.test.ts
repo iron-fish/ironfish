@@ -8,6 +8,7 @@ import { IronfishNode } from '../node'
 import { Transaction } from '../primitives'
 import {
   createNodeTest,
+  SpendingAccount,
   useAccountFixture,
   useBlockWithTx,
   useMinerBlockFixture,
@@ -21,7 +22,7 @@ import { mempoolEntryComparator } from './memPool'
 // but not the mempool
 async function createTransactions(
   node: IronfishNode,
-  from: Account,
+  from: SpendingAccount,
   to: Account,
   fees: number[],
 ) {
