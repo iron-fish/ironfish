@@ -15,8 +15,10 @@ import { SnapshotManifest } from '../../snapshot'
 import { S3Utils, TarUtils } from '../../utils'
 
 const SNAPSHOT_FILE_NAME = `ironfish_snapshot.tar.gz`
+const R2_SECRET_NAME = 'r2-prod-access-key'
+const R2_ENDPOINT = `https://a93bebf26da4c2fe205f71c896afcf89.r2.cloudflarestorage.com`
 
-export type R2Secrete = {
+export type R2Secret = {
   r2AccessKeyId: string
   r2SecretAccessKey: string
 }
@@ -112,33 +114,29 @@ export default class Snapshot extends IronfishCommand {
 
       let s3 = new S3Client({})
       if (flags.r2) {
-        const secret_name = 'r2-prod-access-key'
-        const client = new SecretsManagerClient({
-          region: 'us-east-1',
-        })
-        const command = new GetSecretValueCommand({ SecretId: secret_name })
+        const secretName = R2_SECRET_NAME
+        const client = new SecretsManagerClient({})
+        const command = new GetSecretValueCommand({ SecretId: secretName })
 
-        this.log('Fetching secret from AWS Secrete Store.')
+        this.log('Fetching secret from AWS Secrets Manager.')
 
         const response = await client.send(command)
 
         if (response.SecretString === undefined) {
-          this.log(`Failed to fetch R2 secrete from AWS.`)
+          this.log(`Failed to fetch R2 secret from AWS.`)
           this.exit(1)
         } else {
-          const secret = JSON.parse(response.SecretString) as R2Secrete
+          const secret = JSON.parse(response.SecretString) as R2Secret
 
           s3 = new S3Client({
             region: 'auto',
-            endpoint: `https://a93bebf26da4c2fe205f71c896afcf89.r2.cloudflarestorage.com`,
+            endpoint: R2_ENDPOINT,
             credentials: {
               accessKeyId: secret.r2AccessKeyId,
               secretAccessKey: secret.r2SecretAccessKey,
             },
           })
         }
-      } else {
-        s3 = new S3Client({})
       }
 
       CliUx.ux.action.start(`Uploading to ${bucket}`)
