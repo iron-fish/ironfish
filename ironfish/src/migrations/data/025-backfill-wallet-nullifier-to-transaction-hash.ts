@@ -40,7 +40,7 @@ export class Migration025 extends Migration {
 
     for (const account of accounts) {
       logger.info('')
-      logger.info(`  Backfilling assets for account ${account.name}`)
+      logger.info(`  Backfilling nullifier to transaction hashes for account ${account.name}`)
 
       const head = await stores.old.heads.get(account.id)
       // If the account has not scanned, we can skip the backfill
