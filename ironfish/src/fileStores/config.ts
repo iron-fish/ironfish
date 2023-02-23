@@ -21,6 +21,8 @@ export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW = 10
 export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE = 20
 export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST = 30
 
+const MEGABYTES = 1000 * 1000
+
 export type ConfigOptions = {
   bootstrapNodes: string[]
   databaseMigrate: boolean
@@ -248,6 +250,18 @@ export type ConfigOptions = {
    */
   maxSyncedAgeBlocks: number
 
+  /**
+   * Limit the number of bytes of transactions stored in the mempool. Does NOT account for the
+   * entire size of the mempool (like indices and caches)
+   */
+  memPoolMaxSizeBytes: number
+
+  /**
+   * Limit how many entries the mempool's recently evicted caches stores. This cache is used to keep
+   * track of transaction hashes recently evicted from the mempool after it exceeds mempoolMaxSizeBytes
+   */
+  memPoolRecentlyEvictedCacheSize: number
+
   networkDefinitionPath: string
 }
 
@@ -315,6 +329,11 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     networkId: yup.number().integer().min(0),
     customNetwork: yup.string().trim(),
     maxSyncedAgeBlocks: yup.number().integer().min(0),
+    mempoolMaxSizeBytes: yup
+      .number()
+      .integer()
+      .min(2 * MEGABYTES), // one blocks worth of transactions
+    memPoolRecentlyEvictedCacheSize: yup.number().integer(),
     networkDefinitionPath: yup.string().trim(),
   })
   .defined()
@@ -399,6 +418,8 @@ export class Config extends KeyStore<ConfigOptions> {
       networkId: DEFAULT_NETWORK_ID,
       customNetwork: '',
       maxSyncedAgeBlocks: 60,
+      memPoolMaxSizeBytes: 60 * MEGABYTES,
+      memPoolRecentlyEvictedCacheSize: 60000,
       networkDefinitionPath: files.resolve(files.join(dataDir, 'network.json')),
     }
   }
