@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { S3Client } from '@aws-sdk/client-s3'
+import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager'
 import { FileUtils, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
@@ -15,7 +16,12 @@ import { S3Utils, TarUtils } from '../../utils'
 
 const SNAPSHOT_FILE_NAME = `ironfish_snapshot.tar.gz`
 
-export default class CreateSnapshot extends IronfishCommand {
+export type R2Secrete = {
+  r2AccessKeyId: string
+  r2SecretAccessKey: string
+}
+
+export default class Snapshot extends IronfishCommand {
   static hidden = true
 
   static description = `Upload chain snapshot to a public bucket`
@@ -55,7 +61,7 @@ export default class CreateSnapshot extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(CreateSnapshot)
+    const { flags } = await this.parse(Snapshot)
 
     const bucket = flags.bucket
 
@@ -104,16 +110,33 @@ export default class CreateSnapshot extends IronfishCommand {
       const snapshotBaseName = path.basename(SNAPSHOT_FILE_NAME, '.tar.gz')
       const snapshotKeyName = `${snapshotBaseName}_${timestamp}.tar.gz`
 
-      let s3: S3Client
+      let s3 = new S3Client({})
       if (flags.r2) {
-        s3 = new S3Client({
-          region: 'auto',
-          endpoint: `https://098597f948037fe5f5ad128211603f63.r2.cloudflarestorage.com`,
-          credentials: {
-            accessKeyId: '1403b039cc8e4a36e64da704843447ca',
-            secretAccessKey: 'e46487a0edf8927b6b61702a83c0abc9036bbc42b4505179512756936f2ea792',
-          },
+        const secret_name = 'r2-prod-access-key'
+        const client = new SecretsManagerClient({
+          region: 'us-east-1',
         })
+        const command = new GetSecretValueCommand({ SecretId: secret_name })
+
+        this.log('Fetching secret from AWS Secrete Store.')
+
+        const response = await client.send(command)
+
+        if (response.SecretString === undefined) {
+          this.log(`Failed to fetch R2 secrete from AWS.`)
+          this.exit(1)
+        } else {
+          const secret = JSON.parse(response.SecretString) as R2Secrete
+
+          s3 = new S3Client({
+            region: 'auto',
+            endpoint: `https://a93bebf26da4c2fe205f71c896afcf89.r2.cloudflarestorage.com`,
+            credentials: {
+              accessKeyId: secret.r2AccessKeyId,
+              secretAccessKey: secret.r2SecretAccessKey,
+            },
+          })
+        }
       } else {
         s3 = new S3Client({})
       }
