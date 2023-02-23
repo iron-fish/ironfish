@@ -30,7 +30,7 @@ export class ImportCommand extends IronfishCommand {
       name: 'blob',
       parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: false,
-      description: 'The copy-pasted output of wallet:export',
+      description: 'The copy-pasted output of wallet:export; or, a raw spending key',
     },
   ]
 
@@ -150,9 +150,12 @@ export class ImportCommand extends IronfishCommand {
   }
 
   async importTTY(): Promise<AccountImport> {
-    const userInput = await CliUx.ux.prompt('Paste the output of wallet:export', {
-      required: true,
-    })
+    const userInput = await CliUx.ux.prompt(
+      'Paste the output of wallet:export, or your spending key',
+      {
+        required: true,
+      },
+    )
 
     return await this.stringToAccountImport(userInput)
   }
