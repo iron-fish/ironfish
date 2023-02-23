@@ -4,7 +4,7 @@
 
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { ImportSpendAccountResponse } from './importSpendAccount'
+import { ImportResponse } from './utils'
 
 describe('Route wallet/importSpendAccount', () => {
   const routeTest = createRouteTest(true)
@@ -16,7 +16,7 @@ describe('Route wallet/importSpendAccount', () => {
     await routeTest.node.wallet.removeAccount(account)
 
     const response = await routeTest.client
-      .request<ImportSpendAccountResponse>('wallet/importSpendAccount', {
+      .request<ImportResponse>('wallet/importSpendAccount', {
         account: {
           name: account.name,
           spendingKey: account.spendingKey,

@@ -25,6 +25,11 @@ export function getAccount(node: IronfishNode, name?: string): Account {
   )
 }
 
+export type ImportResponse = {
+  name: string
+  isDefaultAccount: boolean
+}
+
 export async function importAccount(
   node: IronfishNode,
   accountValue: AccountValue,

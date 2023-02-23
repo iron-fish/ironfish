@@ -4,7 +4,7 @@
 
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { ImportViewAccountResponse } from './importViewAccount'
+import { ImportResponse } from './utils'
 
 describe('Route wallet/importViewAccount', () => {
   const routeTest = createRouteTest(true)
@@ -16,7 +16,7 @@ describe('Route wallet/importViewAccount', () => {
     await routeTest.node.wallet.removeAccount(account)
 
     const response = await routeTest.client
-      .request<ImportViewAccountResponse>('wallet/importViewAccount', {
+      .request<ImportResponse>('wallet/importViewAccount', {
         account: {
           name: account.name,
           viewKey: account.viewKey,

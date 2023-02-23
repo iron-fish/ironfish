@@ -4,7 +4,7 @@
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
-import { importAccount } from './utils'
+import { importAccount, ImportResponse } from './utils'
 
 export type ViewAccountImport = {
   name: string
@@ -18,11 +18,6 @@ export type ViewAccountImport = {
 export type ImportViewAccountRequest = {
   account: ViewAccountImport
   rescan?: boolean
-}
-
-export type ImportViewAccountResponse = {
-  name: string
-  isDefaultAccount: boolean
 }
 
 export const ImportViewAccountRequestSchema: yup.ObjectSchema<ImportViewAccountRequest> = yup
@@ -41,14 +36,14 @@ export const ImportViewAccountRequestSchema: yup.ObjectSchema<ImportViewAccountR
   })
   .defined()
 
-export const ImportViewAccountResponseSchema: yup.ObjectSchema<ImportViewAccountResponse> = yup
+export const ImportViewAccountResponseSchema: yup.ObjectSchema<ImportResponse> = yup
   .object({
     name: yup.string().defined(),
     isDefaultAccount: yup.boolean().defined(),
   })
   .defined()
 
-router.register<typeof ImportViewAccountRequestSchema, ImportViewAccountResponse>(
+router.register<typeof ImportViewAccountRequestSchema, ImportResponse>(
   `${ApiNamespace.wallet}/importViewAccount`,
   ImportViewAccountRequestSchema,
   async (request, node): Promise<void> => {

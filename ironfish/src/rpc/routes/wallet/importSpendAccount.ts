@@ -5,18 +5,13 @@ import { generateKeyFromPrivateKey } from '@ironfish/rust-nodejs'
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
-import { importAccount } from './utils'
+import { importAccount, ImportResponse } from './utils'
 
 export type SpendingAccountImport = { name: string; spendingKey: string; version: number }
 
 export type ImportSpendAccountRequest = {
   account: SpendingAccountImport
   rescan?: boolean
-}
-
-export type ImportSpendAccountResponse = {
-  name: string
-  isDefaultAccount: boolean
 }
 
 export const ImportSpendAccountRequestSchema: yup.ObjectSchema<ImportSpendAccountRequest> = yup
@@ -32,15 +27,14 @@ export const ImportSpendAccountRequestSchema: yup.ObjectSchema<ImportSpendAccoun
   })
   .defined()
 
-export const ImportSpendAccountResponseSchema: yup.ObjectSchema<ImportSpendAccountResponse> =
-  yup
-    .object({
-      name: yup.string().defined(),
-      isDefaultAccount: yup.boolean().defined(),
-    })
-    .defined()
+export const ImportSpendAccountResponseSchema: yup.ObjectSchema<ImportResponse> = yup
+  .object({
+    name: yup.string().defined(),
+    isDefaultAccount: yup.boolean().defined(),
+  })
+  .defined()
 
-router.register<typeof ImportSpendAccountRequestSchema, ImportSpendAccountResponse>(
+router.register<typeof ImportSpendAccountRequestSchema, ImportResponse>(
   `${ApiNamespace.wallet}/importSpendAccount`,
   ImportSpendAccountRequestSchema,
   async (request, node): Promise<void> => {
