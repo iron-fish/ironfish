@@ -57,7 +57,7 @@ describe('Route wallet/importAccount', () => {
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
       name: accountName,
-      isDefaultAccount: true,
+      isDefaultAccount: false, // This is false because the default account is already imported in a previous test
     })
   })
 })
