@@ -97,7 +97,7 @@ export class Mint extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Mint)
-    const client = await this.sdk.connectRpc(false, true)
+    const client = await this.sdk.connectRpc()
 
     if (flags.eligibility) {
       await doEligibilityCheck(client, this.logger)
