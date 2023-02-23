@@ -121,8 +121,8 @@ export class RecentlyEvictedCache {
    * Adds a new transaction to the recently evicted cache.
    * If the cache is full, the transaction with the highest fee rate will be evicted.
    *
-   * Note that the cache is resized after the transaction is added. Thus, if the new transaction
-   * has the highest fee rate in the cache, then it will immediately be evicted.
+   * Note that the cache is resized after the transaction is added. Thus, if the cache is above capacity
+   * and the new transaction has the highest fee rate in the cache, it will be immediately be evicted.
    *
    * @param transactionHash The hash of the transaction to add
    * @param feeRate the fee/byte rate of the transaction
