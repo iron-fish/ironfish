@@ -43,6 +43,8 @@ export type GetNodeStatusResponse = {
   memPool: {
     size: number
     sizeBytes: number
+    maxSizeBytes: number
+    saturation: number
   }
   blockchain: {
     synced: boolean
@@ -143,6 +145,8 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
       .object({
         size: yup.number().defined(),
         sizeBytes: yup.number().defined(),
+        maxSizeBytes: yup.number().defined(),
+        saturation: yup.number().defined(),
       })
       .defined(),
     blockchain: yup
@@ -300,6 +304,8 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
     memPool: {
       size: node.metrics.memPoolSize.value,
       sizeBytes: node.memPool.sizeBytes(),
+      maxSizeBytes: node.memPool.maxSizeBytes(),
+      saturation: node.memPool.saturation(),
     },
     blockSyncer: {
       status: node.syncer.state,

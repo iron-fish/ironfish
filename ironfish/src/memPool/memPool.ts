@@ -49,7 +49,7 @@ export class MemPool {
 
   /* Keep track of number of bytes stored in the transaction map */
   private transactionsBytes = 0
-  private readonly maxSizeBytes: number
+  private readonly _maxSizeBytes: number
   private readonly consensus: Consensus
 
   head: BlockHeader | null
@@ -71,7 +71,7 @@ export class MemPool {
   }) {
     const logger = options.logger || createRootLogger()
 
-    this.maxSizeBytes = options.maxSizeBytes
+    this._maxSizeBytes = options.maxSizeBytes
     this.consensus = options.consensus
     this.head = null
 
@@ -124,6 +124,22 @@ export class MemPool {
    */
   sizeBytes(): number {
     return this.transactionsBytes
+  }
+
+  /**
+   *
+   * @returns The maximum number of bytes that can be stored in the mempool
+   */
+  maxSizeBytes(): number {
+    return this._maxSizeBytes
+  }
+
+  /**
+   *
+   * @returns The usage of the mempool, as a percentage
+   */
+  saturation(): number {
+    return (this.sizeBytes() / this.maxSizeBytes()) * 100
   }
 
   exists(hash: TransactionHash): boolean {
@@ -295,7 +311,7 @@ export class MemPool {
    * @returns true if the mempool is over capacity
    */
   full(): boolean {
-    return this.sizeBytes() >= this.maxSizeBytes
+    return this.sizeBytes() >= this._maxSizeBytes
   }
 
   /**

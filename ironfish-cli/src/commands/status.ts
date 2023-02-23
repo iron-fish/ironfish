@@ -138,7 +138,12 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
   }
 
   const memPoolStorage = FileUtils.formatMemorySize(content.memPool.sizeBytes)
-  const memPoolStatus = `Count: ${content.memPool.size} tx, Bytes: ${memPoolStorage}`
+  const memPoolMaxStorage = FileUtils.formatMemorySize(content.memPool.maxSizeBytes)
+  const memPoolStatus = `Count: ${
+    content.memPool.size
+  } tx, Bytes: ${memPoolStorage} / ${memPoolMaxStorage} (${content.memPool.saturation.toFixed(
+    2,
+  )}%)`
 
   let workersStatus = `${content.workers.started ? 'STARTED' : 'STOPPED'}`
   if (content.workers.started) {
