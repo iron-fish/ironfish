@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IronfishNode } from '../../../node'
-import { Account, AccountValue } from '../../../wallet'
+import { Account } from '../../../wallet'
 import { ValidationError } from '../../adapters'
 
 export function getAccount(node: IronfishNode, name?: string): Account {
@@ -23,34 +23,4 @@ export function getAccount(node: IronfishNode, name?: string): Account {
     `No account is currently active.\n\n` +
       `Use ironfish wallet:create <name> to first create an account`,
   )
-}
-
-export type ImportResponse = {
-  name: string
-  isDefaultAccount: boolean
-}
-
-export async function importAccount(
-  node: IronfishNode,
-  accountValue: AccountValue,
-  rescan: boolean | undefined,
-): Promise<{
-  account: Account
-  isDefaultAccount: boolean
-}> {
-  const account = await node.wallet.importAccount(accountValue)
-
-  if (rescan) {
-    void node.wallet.scanTransactions()
-  } else {
-    await node.wallet.skipRescan(account)
-  }
-
-  let isDefaultAccount = false
-  if (!node.wallet.hasDefaultAccount) {
-    await node.wallet.setDefaultAccount(account.name)
-    isDefaultAccount = true
-  }
-
-  return { account, isDefaultAccount }
 }

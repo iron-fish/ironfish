@@ -3,29 +3,26 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
+import { AccountImport } from '../../../wallet/walletdb/accountValue'
 import { ApiNamespace, router } from '../router'
-import { importAccount, ImportResponse } from './utils'
 
-export type ViewAccountImport = {
-  name: string
-  viewKey: string
-  publicAddress: string
-  incomingViewKey: string
-  outgoingViewKey: string
-  version: number
-}
-
-export type ImportViewAccountRequest = {
-  account: ViewAccountImport
+export type ImportAccountRequest = {
+  account: AccountImport
   rescan?: boolean
 }
 
-export const ImportViewAccountRequestSchema: yup.ObjectSchema<ImportViewAccountRequest> = yup
+export type ImportResponse = {
+  name: string
+  isDefaultAccount: boolean
+}
+
+export const ImportViewAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> = yup
   .object({
     rescan: yup.boolean().optional().default(true),
     account: yup
       .object({
         name: yup.string().defined(),
+        spendingKey: yup.string().nullable().defined(),
         viewKey: yup.string().defined(),
         publicAddress: yup.string().defined(),
         incomingViewKey: yup.string().defined(),
@@ -50,13 +47,20 @@ router.register<typeof ImportViewAccountRequestSchema, ImportResponse>(
     const accountValue = {
       id: uuid(),
       ...request.data.account,
-      spendingKey: null,
     }
-    const { account, isDefaultAccount } = await importAccount(
-      node,
-      accountValue,
-      request.data.rescan,
-    )
+    const account = await node.wallet.importAccount(accountValue)
+
+    if (request.data.rescan) {
+      void node.wallet.scanTransactions()
+    } else {
+      await node.wallet.skipRescan(account)
+    }
+
+    let isDefaultAccount = false
+    if (!node.wallet.hasDefaultAccount) {
+      await node.wallet.setDefaultAccount(account.name)
+      isDefaultAccount = true
+    }
 
     request.end({
       name: account.name,

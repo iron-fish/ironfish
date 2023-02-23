@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { ExportAccountResponse } from './exportAccount'
 
 describe('Route wallet/exportAccount', () => {
   const routeTest = createRouteTest(true)
@@ -14,7 +12,7 @@ describe('Route wallet/exportAccount', () => {
   it('should export a default account', async () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), true)
     const response = await routeTest.client
-      .request<any>('wallet/exportAccount', {
+      .request<ExportAccountResponse>('wallet/exportAccount', {
         account: account.name,
         viewOnly: false,
       })
@@ -37,7 +35,7 @@ describe('Route wallet/exportAccount', () => {
   it('should omit spending key when view only account is requested', async () => {
     const account = await routeTest.node.wallet.createAccount(uuid(), true)
     const response = await routeTest.client
-      .request<any>('wallet/exportAccount', {
+      .request<ExportAccountResponse>('wallet/exportAccount', {
         account: account.name,
         viewOnly: true,
       })

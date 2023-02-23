@@ -4,7 +4,7 @@
 
 import { generateKey } from '@ironfish/rust-nodejs'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { ImportResponse } from './utils'
+import { ImportResponse } from './importAccount'
 
 describe('Route wallet/importViewAccount', () => {
   const routeTest = createRouteTest(true)
@@ -14,10 +14,37 @@ describe('Route wallet/importViewAccount', () => {
 
     const accountName = 'foo'
     const response = await routeTest.client
-      .request<ImportResponse>('wallet/importViewAccount', {
+      .request<ImportResponse>('wallet/importAccount', {
         account: {
           name: accountName,
           viewKey: key.viewKey,
+          spendingKey: null,
+          publicAddress: key.publicAddress,
+          incomingViewKey: key.incomingViewKey,
+          outgoingViewKey: key.outgoingViewKey,
+          version: 1,
+        },
+        rescan: false,
+      })
+      .waitForEnd()
+
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      name: accountName,
+      isDefaultAccount: true,
+    })
+  })
+
+  it('should import a spending account', async () => {
+    const key = generateKey()
+
+    const accountName = 'foo'
+    const response = await routeTest.client
+      .request<ImportResponse>('wallet/importAccount', {
+        account: {
+          name: accountName,
+          viewKey: key.viewKey,
+          spendingKey: key.spendingKey,
           publicAddress: key.publicAddress,
           incomingViewKey: key.incomingViewKey,
           outgoingViewKey: key.outgoingViewKey,

@@ -21,6 +21,8 @@ export interface AccountValue {
   publicAddress: string
 }
 
+export type AccountImport = Omit<AccountValue, 'id'>
+
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {
     const bw = bufio.write(this.getSize(value))
