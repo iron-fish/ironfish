@@ -114,9 +114,8 @@ export default class Snapshot extends IronfishCommand {
 
       let s3 = new S3Client({})
       if (flags.r2) {
-        const secretName = R2_SECRET_NAME
         const client = new SecretsManagerClient({})
-        const command = new GetSecretValueCommand({ SecretId: secretName })
+        const command = new GetSecretValueCommand({ SecretId: R2_SECRET_NAME })
 
         this.log('Fetching secret from AWS Secrets Manager.')
 
