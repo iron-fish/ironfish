@@ -3,16 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
+  CreateTransactionRequest,
   CurrencyUtils,
   isValidPublicAddress,
+  RawTransaction,
   RawTransactionSerde,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
-import { IronFlag, parseIron, RemoteFlags } from '../../flags'
-import { ProgressBar } from '../../types'
+import { IronFlag, RemoteFlags } from '../../flags'
 import { selectAsset } from '../../utils/asset'
+import { promptCurrency } from '../../utils/currency'
 import { selectFee } from '../../utils/fees'
 import { doEligibilityCheck } from '../../utils/testnet'
 import { watchTransaction } from '../../utils/transaction'
@@ -56,6 +58,7 @@ export class Send extends IronfishCommand {
     memo: Flags.string({
       char: 'm',
       description: 'The memo of transaction',
+      default: '',
     }),
     confirm: Flags.boolean({
       default: false,
@@ -90,19 +93,18 @@ export class Send extends IronfishCommand {
       allowNo: true,
       description: 'check testnet eligibility',
     }),
+    offline: Flags.boolean({
+      default: false,
+      description: 'Allow offline transaction creation',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Send)
-    let amount = null
-    let fee = null
-    let feeRate = null
+    let amount = flags.amount
     let assetId = flags.assetId
     let to = flags.to?.trim()
     let from = flags.account?.trim()
-    const expiration = flags.expiration
-    const confirmations = flags.confirmations
-    const memo = flags.memo || ''
 
     const client = await this.sdk.connectRpc(false, true)
 
@@ -110,12 +112,14 @@ export class Send extends IronfishCommand {
       await doEligibilityCheck(client, this.logger)
     }
 
-    const status = await client.getNodeStatus()
-    if (!status.content.blockchain.synced) {
-      this.log(
-        `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
-      )
-      this.exit(1)
+    if (!flags.offline) {
+      const status = await client.getNodeStatus()
+
+      if (!status.content.blockchain.synced) {
+        this.error(
+          `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
+        )
+      }
     }
 
     if (assetId == null) {
@@ -123,65 +127,47 @@ export class Send extends IronfishCommand {
         action: 'send',
         showNativeAsset: true,
         showSingleAssetChoice: false,
-        confirmations: confirmations,
+        confirmations: flags.confirmations,
       })
 
       assetId = asset?.id
+
+      if (!assetId) {
+        assetId = Asset.nativeId().toString('hex')
+      }
     }
 
-    if (!assetId) {
-      assetId = Asset.nativeId().toString('hex')
-    }
-
-    if (flags.amount) {
-      amount = flags.amount
-    }
-
-    if (amount === null) {
-      const response = await client.getAccountBalance({ account: from, assetId, confirmations })
-
-      const input = await CliUx.ux.prompt(
-        `Enter the amount (balance: ${CurrencyUtils.renderIron(response.content.confirmed)})`,
-        {
-          required: true,
+    if (amount == null) {
+      amount = await promptCurrency({
+        client: client,
+        required: true,
+        text: 'Enter the amount',
+        minimum: 1n,
+        balance: {
+          account: from,
+          confirmations: flags.confirmations,
+          assetId,
         },
-      )
-
-      amount = await parseIron(input, { flagName: 'amount' }).catch((error: Error) =>
-        this.error(error.message),
-      )
-    }
-
-    if (flags.fee !== undefined) {
-      fee = CurrencyUtils.encode(flags.fee)
-    }
-
-    if (flags.feeRate !== undefined) {
-      feeRate = CurrencyUtils.encode(flags.feeRate)
+      })
     }
 
     if (!from) {
       const response = await client.getDefaultAccount()
-      const defaultAccount = response.content.account
 
-      if (!defaultAccount) {
+      if (!response.content.account) {
         this.error(
           `No account is currently active.
            Use ironfish wallet:create <name> to first create an account`,
         )
       }
 
-      from = defaultAccount.name
+      from = response.content.account.name
     }
 
     if (!to) {
       to = await CliUx.ux.prompt('Enter the public address of the recipient', {
         required: true,
       })
-
-      if (!isValidPublicAddress(to)) {
-        this.error(`A valid public address is required`)
-      }
     }
 
     if (!isValidPublicAddress(to)) {
@@ -189,141 +175,72 @@ export class Send extends IronfishCommand {
       this.exit(1)
     }
 
-    if (expiration !== undefined && expiration < 0) {
+    if (flags.expiration !== undefined && flags.expiration < 0) {
       this.log('Expiration sequence must be non-negative')
       this.exit(1)
     }
 
-    let rawTransactionResponse: string
-    if (fee === null && feeRate === null) {
-      const raw = await selectFee({
-        client,
-        account: flags.account,
-        confirmations: flags.confirmations,
-        transaction: {
-          account: from,
-          outputs: [
-            {
-              publicAddress: to,
-              amount: CurrencyUtils.encode(amount),
-              memo,
-              assetId,
-            },
-          ],
-          expiration: expiration,
-          confirmations: confirmations,
+    const params: CreateTransactionRequest = {
+      account: from,
+      outputs: [
+        {
+          publicAddress: to,
+          amount: CurrencyUtils.encode(amount),
+          memo: flags.memo,
+          assetId,
         },
-      })
-      rawTransactionResponse = RawTransactionSerde.serialize(raw).toString('hex')
-    } else {
-      const createResponse = await client.createTransaction({
-        account: from,
-        outputs: [
-          {
-            publicAddress: to,
-            amount: CurrencyUtils.encode(amount),
-            memo,
-            assetId,
-          },
-        ],
-        fee: fee,
-        feeRate: feeRate,
-        expiration: expiration,
-        confirmations: confirmations,
-      })
-      rawTransactionResponse = createResponse.content.transaction
+      ],
+      fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
+      feeRate: flags.feeRate ? CurrencyUtils.encode(flags.feeRate) : null,
+      expiration: flags.expiration,
+      confirmations: flags.confirmations,
     }
 
-    const rawTransactionBytes = Buffer.from(rawTransactionResponse, 'hex')
-    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-
-    if (!flags.confirm) {
-      this.log(`
-You are about to create a transaction:
-${CurrencyUtils.renderIron(
-  amount,
-  true,
-  assetId,
-)} plus a transaction fee of ${CurrencyUtils.renderIron(
-        rawTransaction.fee,
-        true,
-      )} to ${to} from the account ${from}
-`)
-      if (!flags.rawTransaction) {
-        this.log(`* This action is NOT reversible *\n`)
-      }
-
-      const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
-      if (!confirm) {
-        this.log('Transaction aborted.')
-        this.exit(0)
-      }
+    let raw: RawTransaction
+    if (params.fee === null && params.feeRate === null) {
+      raw = await selectFee({
+        client,
+        transaction: params,
+      })
+    } else {
+      const response = await client.createTransaction(params)
+      const bytes = Buffer.from(response.content.transaction, 'hex')
+      raw = RawTransactionSerde.deserialize(bytes)
     }
 
     if (flags.rawTransaction) {
-      this.log(`Raw transaction: ${rawTransactionResponse}`)
-      this.log(`\nRun "ironfish wallet:post" to post the raw transaction. `)
+      this.log('Raw Transaction')
+      this.log(RawTransactionSerde.serialize(raw).toString('hex'))
+      this.log(`Run "ironfish wallet:post" to post the raw transaction. `)
       this.exit(0)
     }
 
-    // Run the progress bar for about 2 minutes
-    // Chances are that the transaction will finish faster (error or faster computer)
-    const bar = CliUx.ux.progress({
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      format: 'Creating the transaction: [{bar}] {percentage}% | ETA: {eta}s',
-    }) as ProgressBar
-
-    bar.start()
-
-    let value = 0
-    const timer = setInterval(() => {
-      value++
-      bar.update(value)
-      if (value >= bar.getTotal()) {
-        bar.stop()
-      }
-    }, 1000)
-
-    const stopProgressBar = () => {
-      clearInterval(timer)
-      bar.update(100)
-      bar.stop()
+    if (!flags.confirm && !(await this.confirm(assetId, amount, raw.fee, from, to))) {
+      this.error('Transaction aborted.')
     }
 
-    let transaction
+    CliUx.ux.action.start('Sending the transaction')
 
-    try {
-      const result = await client.postTransaction({
-        transaction: rawTransactionResponse,
-        account: from,
-      })
+    const response = await client.postTransaction({
+      transaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      account: from,
+    })
 
-      stopProgressBar()
+    const bytes = Buffer.from(response.content.transaction, 'hex')
+    const transaction = new Transaction(bytes)
 
-      const transactionBytes = Buffer.from(result.content.transaction, 'hex')
-      transaction = new Transaction(transactionBytes)
+    CliUx.ux.action.stop()
 
-      this.log(`
-Sending ${CurrencyUtils.renderIron(amount, true, assetId)} to ${to} from ${from}
-Transaction Hash: ${transaction.hash().toString('hex')}
-Transaction fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}
-
-Find the transaction on https://explorer.ironfish.network/transaction/${transaction
+    this.log(`Sent ${CurrencyUtils.renderIron(amount, true, assetId)} to ${to} from ${from}`)
+    this.log(`Hash: ${transaction.hash().toString('hex')}`)
+    this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
+    this.log(
+      `\nIf the transaction is mined, it will appear here https://explorer.ironfish.network/transaction/${transaction
         .hash()
-        .toString(
-          'hex',
-        )} (it can take a few minutes before the transaction appears in the Explorer)`)
-    } catch (error: unknown) {
-      stopProgressBar()
-      this.log(`An error occurred while sending the transaction.`)
-      if (error instanceof Error) {
-        this.error(error.message)
-      }
-      this.exit(2)
-    }
+        .toString('hex')}`,
+    )
 
-    if (flags.watch && transaction) {
+    if (flags.watch && params) {
       this.log('')
 
       await watchTransaction({
@@ -333,5 +250,26 @@ Find the transaction on https://explorer.ironfish.network/transaction/${transact
         hash: transaction.hash().toString('hex'),
       })
     }
+  }
+
+  async confirm(
+    assetId: string,
+    amount: bigint,
+    fee: bigint,
+    from: string,
+    to: string,
+  ): Promise<boolean> {
+    this.log(
+      `You are about to send a transaction: ${CurrencyUtils.renderIron(
+        amount,
+        true,
+        assetId,
+      )} plus a transaction fee of ${CurrencyUtils.renderIron(
+        fee,
+        true,
+      )} to ${to} from the account ${from}`,
+    )
+
+    return await CliUx.ux.confirm('Do you confirm (Y/N)?')
   }
 }
