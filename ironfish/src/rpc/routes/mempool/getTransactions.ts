@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { getFeeRate, MemPool } from '../../../memPool'
+import { getFeeRate } from '../../../memPool'
 import { Transaction } from '../../../primitives'
 import { ApiNamespace, router } from '../router'
 
-type MinMax = {
+export type MinMax = {
   min?: number
   max?: number
 }
@@ -16,12 +16,14 @@ export type GetMempoolTransactionsRequest = {
   feeRate?: MinMax
   fee?: MinMax
   expiration?: MinMax
+  expiresIn?: MinMax
   position?: MinMax
 }
 
 export type GetMempoolTransactionResponse = {
   serializedTransaction: string
   position: number
+  expiresIn: number
 }
 
 const minMaxSchema = yup.object({
@@ -37,6 +39,7 @@ export const MempoolTransactionsRequestSchema: yup.ObjectSchema<GetMempoolTransa
       fee: minMaxSchema.optional(),
       expiration: minMaxSchema.optional(),
       position: minMaxSchema.optional(),
+      expiresIn: minMaxSchema.optional(),
       stream: yup.boolean().optional(),
     })
     .required()
@@ -47,6 +50,7 @@ export const MempoolTransactionResponseSchema: yup.ObjectSchema<GetMempoolTransa
     .object({
       serializedTransaction: yup.string().defined(),
       position: yup.number().defined(),
+      expiresIn: yup.number().defined(),
     })
     .defined()
 
@@ -54,42 +58,48 @@ router.register<typeof MempoolTransactionsRequestSchema, GetMempoolTransactionRe
   `${ApiNamespace.mempool}/getTransactions`,
   MempoolTransactionsRequestSchema,
   (request, node): void => {
-    for (const transaction of getTransactions(node.memPool, request.data)) {
-      request.stream(transaction)
+    let position = 0
+    let streamed = 0
+
+    const headSequence = node.chain.head.sequence
+
+    for (const transaction of node.memPool.orderedTransactions()) {
+      const overPosition =
+        request.data?.position?.max !== undefined && position > request.data.position.max
+      const underFeeRate =
+        request.data?.feeRate?.min !== undefined &&
+        getFeeRate(transaction) < request.data.feeRate.min
+      const overLimit = request.data?.limit !== undefined && request.data?.limit >= streamed
+
+      // If there are no more viable transactions to send we can just return early
+      // This makes the assumption that memPool.orderedTransactions is ordered by feeRate
+      if (overPosition || underFeeRate || overLimit) {
+        break
+      }
+
+      const expiresIn =
+        transaction.expiration() === 0 ? 0 : transaction.expiration() - headSequence
+
+      if (includeTransaction(transaction, position, expiresIn, request.data)) {
+        request.stream({
+          serializedTransaction: transaction.serialize().toString('hex'),
+          position,
+          expiresIn,
+        })
+        streamed++
+      }
+
+      position++
     }
 
     request.end()
   },
 )
 
-function* getTransactions(
-  memPool: MemPool,
-  request: GetMempoolTransactionsRequest,
-): Generator<GetMempoolTransactionResponse> {
-  const serializedTransactions: GetMempoolTransactionResponse[] = []
-
-  let position = 0
-  for (const transaction of memPool.orderedTransactions()) {
-    if (request.limit !== undefined && serializedTransactions.length >= request.limit) {
-      break
-    }
-
-    if (includeTransaction(transaction, position, request)) {
-      yield {
-        serializedTransaction: transaction.serialize().toString('hex'),
-        position,
-      }
-    }
-
-    position++
-  }
-
-  return serializedTransactions
-}
-
 function includeTransaction(
   transaction: Transaction,
   position: number,
+  expiresIn: number,
   request: GetMempoolTransactionsRequest,
 ) {
   return (
@@ -104,6 +114,8 @@ function includeTransaction(
     (request.expiration?.max === undefined ||
       transaction.expiration() <= request.expiration.max) &&
     (request.expiration?.min === undefined ||
-      transaction.expiration() >= request.expiration.min)
+      transaction.expiration() >= request.expiration.min) &&
+    (request.expiresIn?.max === undefined || expiresIn <= request.expiresIn.max) &&
+    (request.expiresIn?.min === undefined || expiresIn >= request.expiresIn.min)
   )
 }

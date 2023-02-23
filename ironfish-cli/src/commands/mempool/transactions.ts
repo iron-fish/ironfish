@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { getFeeRate, GetMempoolTransactionResponse, Transaction } from '@ironfish/sdk'
+import { getFeeRate, GetMempoolTransactionResponse, MinMax, Transaction } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -9,42 +9,60 @@ import { CommandFlags } from '../../types'
 
 const tableFlags = CliUx.ux.table.flags()
 
+const parseMinMax = (input: string): MinMax | undefined => {
+  if (input.split(':').length === 1) {
+    const parsed = parseInt(input)
+    return Number.isNaN(parsed) ? undefined : { min: parsed, max: parsed }
+  }
+
+  const values = /^([0-9]*)(:([0-9]*))?$/.exec(input)
+
+  if (!values) {
+    return undefined
+  }
+
+  const min = ['', undefined].includes(values[1]) ? undefined : parseInt(values[1])
+  const max = ['', undefined].includes(values[3]) ? undefined : parseInt(values[3])
+
+  return {
+    min,
+    max,
+  }
+}
+
 export class TransactionsCommand extends IronfishCommand {
   static description = `List transactions in the mempool`
 
   static flags = {
     ...RemoteFlags,
     ...tableFlags,
-    limit: Flags.integer({
+    show: Flags.integer({
       default: 30,
       description: 'Number of transactions to display on the console',
     }),
     queryLimit: Flags.integer({
       description: 'Number of transactions to query from the node',
     }),
-    minFeeRate: Flags.integer({
-      description: 'Only return transactions with a higher feeRate',
+    feeRate: Flags.string({
+      description:
+        'Range of values for feeRate given as max:min e.g. `0:5`. A single number indicates equality',
     }),
-    maxFeeRate: Flags.integer({
-      description: 'Only return transactions with a lower feeRate',
+    fee: Flags.string({
+      description:
+        'Range of values for fee given as max:min e.g. `0:5`. A single number indicates equality',
     }),
-    minFee: Flags.integer({
-      description: 'Only return transactions with a higher fee',
+    expiration: Flags.string({
+      description:
+        'Range of values for expiration sequence given as max:min e.g. `0:5`. A single number indicates equality',
     }),
-    maxFee: Flags.integer({
-      description: 'Only return transactions with a lower fee',
+    position: Flags.string({
+      aliases: ['pos'],
+      description:
+        'Range of values for position in mempool sequence given as max:min e.g. `0:5`. A single number indicates equality',
     }),
-    minExpiration: Flags.integer({
-      description: 'Only return transactions with a later expiration sequence',
-    }),
-    maxExpiration: Flags.integer({
-      description: 'Only return for transactions with a earlier expiration sequence',
-    }),
-    minPosition: Flags.integer({
-      description: 'Only return transactions with a higher position in the mempool queue',
-    }),
-    maxPosition: Flags.integer({
-      description: 'Only return transactions with a lower position in the mempool queue',
+    expiresIn: Flags.string({
+      description:
+        'Range of values for expiration delta from head of chain given as max:min e.g. `0:5`. A single number indicates equality',
     }),
     serializedData: Flags.boolean({
       default: false,
@@ -56,29 +74,57 @@ export class TransactionsCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(TransactionsCommand)
 
-    const request = {
-      limit: flags.queryLimit,
-      feeRate: {
-        min: flags.minFeeRate,
-        max: flags.maxFeeRate,
-      },
-      fee: {
-        min: flags.minFee,
-        max: flags.maxFee,
-      },
-      expiration: {
-        min: flags.minExpiration,
-        max: flags.maxExpiration,
-      },
-      position: {
-        min: flags.minPosition,
-        max: flags.maxPosition,
-      },
+    let feeRate: MinMax | undefined
+    let fee: MinMax | undefined
+    let expiration: MinMax | undefined
+    let position: MinMax | undefined
+    let expiresIn: MinMax | undefined
+
+    if (flags.feeRate) {
+      feeRate = parseMinMax(flags.feeRate)
+      if (feeRate === undefined) {
+        this.error('unable to parse flag --feeRate')
+      }
+    }
+
+    if (flags.fee) {
+      fee = parseMinMax(flags.fee)
+      if (fee === undefined) {
+        this.error('unable to parse flag --fee')
+      }
+    }
+
+    if (flags.expiration) {
+      expiration = parseMinMax(flags.expiration)
+      if (expiration === undefined) {
+        this.error('unable to parse flag --expiration')
+      }
+    }
+
+    if (flags.position) {
+      position = parseMinMax(flags.position)
+      if (position === undefined) {
+        this.error('unable to parse flag --position')
+      }
+    }
+
+    if (flags.expiresIn) {
+      expiresIn = parseMinMax(flags.expiresIn)
+      if (expiresIn === undefined) {
+        this.error('unable to parse flag --expiresIn')
+      }
     }
 
     await this.sdk.client.connect()
 
-    const response = this.sdk.client.getMempoolTransactionsStream(request)
+    const response = this.sdk.client.getMempoolTransactionsStream({
+      limit: flags.queryLimit,
+      feeRate,
+      fee,
+      expiration,
+      position,
+      expiresIn,
+    })
 
     const transactions: GetMempoolTransactionResponse[] = []
     for await (const transaction of response.contentStream()) {
@@ -94,6 +140,7 @@ type TransactionRow = {
   hash: string
   feeRate: bigint
   expiration: number
+  expiresIn: number
   fee: bigint
   position: number
   serialized: string
@@ -104,11 +151,11 @@ function renderTable(
   flags: CommandFlags<typeof TransactionsCommand>,
 ): string {
   const columns: CliUx.Table.table.Columns<TransactionRow> = {
-    hash: {
-      header: 'HASH',
-      minWidth: 65,
+    position: {
+      header: 'POSITION',
+      minWidth: 4,
       get: (row: TransactionRow) => {
-        return row.hash
+        return row.position
       },
     },
     feeRate: {
@@ -118,10 +165,16 @@ function renderTable(
         return row.feeRate
       },
     },
-    exipration: {
+    expiration: {
       header: 'EXPIRATION',
       get: (row: TransactionRow) => {
         return row.expiration
+      },
+    },
+    expiresIn: {
+      header: 'EXPIRES_IN',
+      get: (row: TransactionRow) => {
+        return row.expiresIn
       },
     },
     fee: {
@@ -129,6 +182,13 @@ function renderTable(
       minWidth: 7,
       get: (row: TransactionRow) => {
         return row.fee
+      },
+    },
+    hash: {
+      header: 'HASH',
+      minWidth: 65,
+      get: (row: TransactionRow) => {
+        return row.hash
       },
     },
   }
@@ -145,17 +205,21 @@ function renderTable(
 
   let result = ''
 
-  CliUx.ux.table(getRows(response, flags.limit), columns, {
+  CliUx.ux.table(getRows(response, flags.show), columns, {
     printLine: (line) => (result += `${String(line)}\n`),
     ...flags,
   })
+
+  if (response.length > flags.show) {
+    result += ` ... ${response.length - flags.show} more rows\n`
+  }
 
   return result
 }
 
 function getRows(response: GetMempoolTransactionResponse[], limit: number): TransactionRow[] {
   const transactions = limit > 0 ? response.slice(0, limit) : response
-  return transactions.map(({ serializedTransaction, position }) => {
+  return transactions.map(({ serializedTransaction, position, expiresIn }) => {
     const transaction = new Transaction(Buffer.from(serializedTransaction, 'hex'))
 
     return {
@@ -163,6 +227,7 @@ function getRows(response: GetMempoolTransactionResponse[], limit: number): Tran
       feeRate: getFeeRate(transaction),
       expiration: transaction.expiration(),
       fee: transaction.fee(),
+      expiresIn: expiresIn,
       serialized: serializedTransaction,
       position,
     }
