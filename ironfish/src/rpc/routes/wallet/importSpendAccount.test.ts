@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { ImportSpendAccountResponse } from './importSpendAccount'
 
 describe('Route wallet/importSpendAccount', () => {
   const routeTest = createRouteTest(true)
@@ -18,7 +16,7 @@ describe('Route wallet/importSpendAccount', () => {
     await routeTest.node.wallet.removeAccount(account)
 
     const response = await routeTest.client
-      .request<any>('wallet/importSpendAccount', {
+      .request<ImportSpendAccountResponse>('wallet/importSpendAccount', {
         account: {
           name: account.name,
           spendingKey: account.spendingKey,
