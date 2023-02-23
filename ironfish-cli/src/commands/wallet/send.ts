@@ -240,7 +240,7 @@ export class Send extends IronfishCommand {
         .toString('hex')}`,
     )
 
-    if (flags.watch && params) {
+    if (flags.watch) {
       this.log('')
 
       await watchTransaction({
