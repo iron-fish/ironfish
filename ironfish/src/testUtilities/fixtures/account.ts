@@ -6,17 +6,16 @@ import { WithNonNull } from '../../utils'
 import { Account, AccountValue, Wallet } from '../../wallet'
 import { FixtureGenerate, useFixture } from './fixture'
 
-type SpendingAccountValue = WithNonNull<AccountValue & { default: boolean }, 'spendingKey'>
+type SpendingAccountValue = WithNonNull<AccountValue, 'spendingKey'>
 export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
 
 export function useAccountFixture(
   wallet: Wallet,
   generate: FixtureGenerate<SpendingAccount> | string = 'test',
-  setDefault = false,
 ): Promise<SpendingAccount> {
   if (typeof generate === 'string') {
     const name = generate
-    generate = () => wallet.createAccount(name, setDefault) as Promise<SpendingAccount>
+    generate = () => wallet.createAccount(name) as Promise<SpendingAccount>
   }
 
   return useFixture(generate, {
@@ -24,14 +23,12 @@ export function useAccountFixture(
       const serializedAccount = account.serialize()
       const { spendingKey } = serializedAccount
       Assert.isNotNull(spendingKey)
-      return { ...serializedAccount, default: setDefault, spendingKey }
+      return { ...serializedAccount, spendingKey }
     },
 
     deserialize: async (accountData: SpendingAccountValue): Promise<SpendingAccount> => {
       const account = await wallet.importAccount(accountData)
-      if (accountData.default) {
-        await wallet.setDefaultAccount(account.name)
-      }
+
       if (accountData) {
         if (wallet.chainProcessor.hash && wallet.chainProcessor.sequence) {
           await account.updateHead({
@@ -42,6 +39,7 @@ export function useAccountFixture(
           await account.updateHead(null)
         }
       }
+
       return account as SpendingAccount
     },
   })

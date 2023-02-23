@@ -47,7 +47,8 @@ describe('Block template stream', () => {
     const { chain } = routeTest.node
     routeTest.node.config.set('miningForce', true)
 
-    const account = await useAccountFixture(node.wallet, 'testAccount', true)
+    const account = await useAccountFixture(node.wallet, 'testAccount')
+    await node.wallet.setDefaultAccount(account.name)
 
     // Create another node
     const nodeTest = createNodeTest()
