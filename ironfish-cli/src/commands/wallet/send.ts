@@ -3,20 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import {
-  CreateTransactionRequest,
-  CreateTransactionResponse,
   CurrencyUtils,
   isValidPublicAddress,
   RawTransactionSerde,
-  RpcResponseEnded,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
 import { IronFlag, parseIron, RemoteFlags } from '../../flags'
 import { ProgressBar } from '../../types'
 import { selectAsset } from '../../utils/asset'
+import { selectFee } from '../../utils/fees'
 import { doEligibilityCheck } from '../../utils/testnet'
 import { watchTransaction } from '../../utils/transaction'
 
@@ -199,62 +196,25 @@ export class Send extends IronfishCommand {
 
     let rawTransactionResponse: string
     if (fee === null && feeRate === null) {
-      const feeRatesResponse = await client.estimateFeeRates()
-      const feeRates = [
-        feeRatesResponse.content.slow ?? '1',
-        feeRatesResponse.content.average ?? '1',
-        feeRatesResponse.content.fast ?? '1',
-      ]
-
-      const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
-
-      const feeRateOptions: { value: number; name: string }[] = []
-
-      const createTransactionRequest: CreateTransactionRequest = {
-        account: from,
-        outputs: [
-          {
-            publicAddress: to,
-            amount: CurrencyUtils.encode(amount),
-            memo,
-            assetId,
-          },
-        ],
-        expiration: expiration,
-        confirmations: confirmations,
-      }
-
-      const allPromises: Promise<RpcResponseEnded<CreateTransactionResponse>>[] = []
-      feeRates.forEach((feeRate) => {
-        allPromises.push(
-          client.createTransaction({
-            ...createTransactionRequest,
-            feeRate: feeRate,
-          }),
-        )
-      })
-
-      const createResponses = await Promise.all(allPromises)
-      createResponses.forEach((createResponse, index) => {
-        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
-        const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-
-        feeRateOptions.push({
-          value: index,
-          name: `${feeRateNames[index]}: ${CurrencyUtils.renderIron(rawTransaction.fee)} IRON`,
-        })
-      })
-
-      const input: { selection: number } = await inquirer.prompt<{ selection: number }>([
-        {
-          name: 'selection',
-          message: `Select the fee you wish to use for this transaction`,
-          type: 'list',
-          choices: feeRateOptions,
+      const raw = await selectFee({
+        client,
+        account: flags.account,
+        confirmations: flags.confirmations,
+        transaction: {
+          account: from,
+          outputs: [
+            {
+              publicAddress: to,
+              amount: CurrencyUtils.encode(amount),
+              memo,
+              assetId,
+            },
+          ],
+          expiration: expiration,
+          confirmations: confirmations,
         },
-      ])
-
-      rawTransactionResponse = createResponses[input.selection].content.transaction
+      })
+      rawTransactionResponse = RawTransactionSerde.serialize(raw).toString('hex')
     } else {
       const createResponse = await client.createTransaction({
         account: from,

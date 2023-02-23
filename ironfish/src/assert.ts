@@ -67,7 +67,7 @@ export class Assert {
     message?: string,
   ): asserts x is T {
     if (!(x instanceof constructor)) {
-      throw new Error(message || `Expected value to be false`)
+      throw new Error(message || `Expected value to be ${constructor.name} but was ${typeof x}`)
     }
   }
 
