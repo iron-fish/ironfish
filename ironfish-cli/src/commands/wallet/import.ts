@@ -68,7 +68,7 @@ export class ImportCommand extends IronfishCommand {
     const rescan = flags.rescan
     const result =
       'spendingKey' in account && account.spendingKey
-        ? await client.importSpendAccount({ account: account, rescan })
+        ? await client.importSpendAccount({ account, rescan })
         : await client.importViewAccount({ account: account as ViewAccountImport, rescan })
     const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)
