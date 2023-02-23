@@ -3,14 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { CurrencyUtils, RpcClient } from '@ironfish/sdk'
+import { Assert, CurrencyUtils, RpcClient } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 
 export async function promptCurrency(options: {
   client: RpcClient
   text: string
   required: true
-  balance: {
+  minimum?: bigint
+  balance?: {
     account?: string
     assetId?: string
     confirmations?: number
@@ -21,7 +22,8 @@ export async function promptCurrency(options: {
   client: RpcClient
   text: string
   required?: boolean
-  balance: {
+  minimum?: bigint
+  balance?: {
     account?: string
     assetId?: string
     confirmations?: number
@@ -35,22 +37,31 @@ export async function promptCurrency(options: {
       confirmations: options.balance.confirmations,
     })
 
-    text += ` (balance: ${CurrencyUtils.renderIron(balance.content.confirmed)})`
+    text += ` (balance ${CurrencyUtils.renderIron(balance.content.confirmed)})`
   }
 
-  const input = await CliUx.ux.prompt(text, {
-    required: options.required,
-  })
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const input = await CliUx.ux.prompt(text, {
+      required: options.required,
+    })
 
-  if (!input) {
-    return null
+    if (!input) {
+      return null
+    }
+
+    const [amount, error] = CurrencyUtils.decodeTry(input)
+
+    if (error) {
+      throw error
+    }
+
+    Assert.isNotNull(amount)
+
+    if (options.minimum != null && amount < options.minimum) {
+      continue
+    }
+
+    return amount
   }
-
-  const [amount, error] = CurrencyUtils.decodeTry(input)
-
-  if (error) {
-    throw error
-  }
-
-  return amount
 }
