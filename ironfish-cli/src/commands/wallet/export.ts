@@ -44,6 +44,10 @@ export class ExportCommand extends IronfishCommand {
       description: 'The path to export the account to',
       required: false,
     }),
+    viewonly: Flags.boolean({
+      default: false,
+      description: 'Export an account as a view-only account',
+    }),
   }
 
   static args = [
@@ -60,14 +64,14 @@ export class ExportCommand extends IronfishCommand {
     const { color, local } = flags
     const account = args.account as string
     const exportPath = flags.path
+    const viewOnly = flags.viewonly
 
     if (flags.language) {
       flags.mnemonic = true
     }
 
     const client = await this.sdk.connectRpc(local)
-    const response = await client.exportAccount({ account })
-
+    const response = await client.exportAccount({ account: account, viewOnly: viewOnly })
     let output
 
     if (flags.mnemonic) {

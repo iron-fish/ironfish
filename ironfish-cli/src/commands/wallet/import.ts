@@ -2,13 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKeyFromPrivateKey, wordsToSpendingKey } from '@ironfish/rust-nodejs'
-import {
-  ACCOUNT_SCHEMA_VERSION,
-  AccountImport,
-  Bech32m,
-  JSONUtils,
-  PromiseUtils,
-} from '@ironfish/sdk'
+import { ACCOUNT_SCHEMA_VERSION, Bech32m, JSONUtils, PromiseUtils } from '@ironfish/sdk'
+import { AccountImport } from '@ironfish/sdk/src/wallet/walletdb/accountValue'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -62,11 +57,8 @@ export class ImportCommand extends IronfishCommand {
       account.version = ACCOUNT_SCHEMA_VERSION as number
     }
 
-    const result = await client.importAccount({
-      account,
-      rescan: flags.rescan,
-    })
-
+    const rescan = flags.rescan
+    const result = await client.importAccount({ account, rescan })
     const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)
 
@@ -99,7 +91,7 @@ export class ImportCommand extends IronfishCommand {
 
   static verifySpendingKey(spendingKey: string): string | null {
     try {
-      return generateKeyFromPrivateKey(spendingKey)?.spendingKey
+      return generateKeyFromPrivateKey(spendingKey)?.spendingKey ?? null
     } catch (e) {
       return null
     }
@@ -120,7 +112,8 @@ export class ImportCommand extends IronfishCommand {
       const name = await CliUx.ux.prompt('Enter a new account name', {
         required: true,
       })
-      return { name, spendingKey, version: ACCOUNT_SCHEMA_VERSION as number }
+      const key = generateKeyFromPrivateKey(spendingKey)
+      return { name, version: ACCOUNT_SCHEMA_VERSION, ...key }
     }
 
     // raw json
