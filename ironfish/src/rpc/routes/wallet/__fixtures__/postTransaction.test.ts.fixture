@@ -37,5 +37,31 @@
       "publicAddress": "f18522c1477f24616f48d73c33b0d1152d366ff67e2819708e990735b2982ae8",
       "default": false
     }
+  ],
+  "Route wallet/postTransaction should post a raw transaction and not broadcast": [
+    {
+      "version": 1,
+      "id": "d978b1bf-f13d-48ed-b977-a6898d781aeb",
+      "name": "accountA",
+      "spendingKey": "a2a43990875f42f84eac43be37812cd434ab60efc6d17229d9b537b42f1bbc03",
+      "viewKey": "f5109101da563268efd6d8b8eebbfff81b5188911c234db91388cf24983bbc20682ebf41cb92affd90cfd32cb7b02eb431e1dbdb9e3bc7b449e9cb9a43a51d21",
+      "incomingViewKey": "72cc3c3cfe31727f0a1ae797e97d55d336c2b97b8ac4846e3520ad649061d005",
+      "outgoingViewKey": "75d5c667bcbeb18e94ed7b82345cd518d671d74e3e023dcdfceac2c5e6068e05",
+      "publicAddress": "52a822c618184333ac6a1b6cbf815a0748f0dcfe0d28665ed229e3ed6ac3130c",
+      "default": false
+    }
+  ],
+  "Route wallet/postTransaction should post a raw transaction": [
+    {
+      "version": 1,
+      "id": "99c4c510-41ad-4061-b48e-56df65d92ab1",
+      "name": "existingAccount",
+      "spendingKey": "3050a70719dd5dded9506e8facba96b0a0bd397bfc0bfbe87cb5a1bdfc5a3d8c",
+      "viewKey": "ffe7f1c016f4e5a7181f7cb5d6fa54f3739278908f97bf8087b879441ec8da10a5d99825f8c5015c1247f5efe3b9f9d6e65fb3dbedd7356a330375f41752bac2",
+      "incomingViewKey": "92e13cabaf80848ea2554276069b14a88bc10ef2f457727b051a8ecabd3e1707",
+      "outgoingViewKey": "dca2ce74434b8390d6a2635bfc209e3d66c9e337dad9750e91bc9b9ee540579c",
+      "publicAddress": "beda089f47498f3855c25ebc43ecfef1a0ca7b4f49116d1806522294c8ada063",
+      "default": false
+    }
   ]
 }
