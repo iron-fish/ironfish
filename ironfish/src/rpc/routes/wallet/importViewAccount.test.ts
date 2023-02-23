@@ -15,12 +15,12 @@ describe('Route wallet/importViewAccount', () => {
     const response = await routeTest.client
       .request<ImportResponse>('wallet/importViewAccount', {
         account: {
-          name: account.name,
-          viewKey: account.viewKey,
-          publicAddress: account.publicAddress,
-          incomingViewKey: account.incomingViewKey,
-          outgoingViewKey: account.outgoingViewKey,
-          version: account.version,
+          name: 'foo',
+          viewKey: key.viewKey,
+          publicAddress: key.publicAddress,
+          incomingViewKey: key.incomingViewKey,
+          outgoingViewKey: key.outgoingViewKey,
+          version: 1,
         },
         rescan: false,
       })
