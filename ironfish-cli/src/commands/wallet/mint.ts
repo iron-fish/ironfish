@@ -103,8 +103,8 @@ export class Mint extends IronfishCommand {
       await doEligibilityCheck(client, this.logger)
     }
 
-    const status = await client.getNodeStatus()
     if (!flags.offline) {
+      const status = await client.getNodeStatus()
       if (!status.content.blockchain.synced) {
         this.log(
           `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
@@ -113,7 +113,7 @@ export class Mint extends IronfishCommand {
       }
     }
 
-    let account = flags.account?.trim()
+    let account = flags.account
     if (!account) {
       const response = await client.getDefaultAccount()
 
