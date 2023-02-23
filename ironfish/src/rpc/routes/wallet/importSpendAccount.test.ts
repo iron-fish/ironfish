@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { v4 as uuid } from 'uuid'
+import { generateKey } from '@ironfish/rust-nodejs'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { ImportResponse } from './utils'
 
@@ -10,17 +10,18 @@ describe('Route wallet/importSpendAccount', () => {
   const routeTest = createRouteTest(true)
 
   it('should import a spending account', async () => {
-    const account = await routeTest.node.wallet.createAccount(uuid(), true)
+    const key = generateKey()
 
-    // delete the account or else the import will fail
-    await routeTest.node.wallet.removeAccount(account)
-
+    const accountName = 'foo'
     const response = await routeTest.client
       .request<ImportResponse>('wallet/importSpendAccount', {
         account: {
-          name: account.name,
-          spendingKey: account.spendingKey,
-          version: account.version,
+          name: accountName,
+          viewKey: key.viewKey,
+          publicAddress: key.publicAddress,
+          incomingViewKey: key.incomingViewKey,
+          outgoingViewKey: key.outgoingViewKey,
+          version: 1,
         },
         rescan: false,
       })
@@ -28,7 +29,7 @@ describe('Route wallet/importSpendAccount', () => {
 
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
-      name: account.name,
+      name: accountName,
       isDefaultAccount: true,
     })
   })
