@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import type { SignalData } from './connections/webRtcConnection'
-import WSWebSocket from 'ws'
 import { Event } from '../../event'
 import { HostsStore } from '../../fileStores/hosts'
 import { createRootLogger, Logger } from '../../logger'
@@ -26,6 +25,7 @@ import { PeerListMessage } from '../messages/peerList'
 import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { SignalMessage } from '../messages/signal'
 import { SignalRequestMessage } from '../messages/signalRequest'
+import { IsomorphicWebSocket } from '../types'
 import { parseUrl } from '../utils'
 import { VERSION_PROTOCOL_MIN } from '../version'
 import { AddressManager } from './addressManager'
@@ -276,7 +276,7 @@ export class PeerManager {
   }
 
   createPeerFromInboundWebSocketConnection(
-    webSocket: WebSocket | WSWebSocket,
+    webSocket: IsomorphicWebSocket,
     address: string | null,
   ): Peer {
     const peer = this.getOrCreatePeer(null)
@@ -303,7 +303,7 @@ export class PeerManager {
    */
   private initWebSocketConnection(
     peer: Peer,
-    ws: WebSocket | WSWebSocket,
+    ws: IsomorphicWebSocket,
     direction: ConnectionDirection,
     hostname: string | null,
     port: number | null,

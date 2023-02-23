@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import ws from 'ws'
 import { Blockchain } from '../../blockchain'
 import { mockChain } from '../../testUtilities/mocks'
 import { PrivateIdentity } from '../identity'
 import { LocalPeer } from '../peers/localPeer'
 import { VERSION_PROTOCOL } from '../version'
+import { WebSocketClient } from '../webSocketClient'
 import { mockPrivateIdentity } from './mockPrivateIdentity'
 
 /**
@@ -24,5 +24,5 @@ export function mockLocalPeer({
   version?: number
   chain?: Blockchain
 } = {}): LocalPeer {
-  return new LocalPeer(identity, agent, version, chain || mockChain(), ws, 0)
+  return new LocalPeer(identity, agent, version, chain || mockChain(), WebSocketClient, 0)
 }
