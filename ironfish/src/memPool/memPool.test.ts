@@ -414,6 +414,51 @@ describe('MemPool', () => {
       expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionA)
       expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionB)
     })
+
+    it('removes expired transactions from the mempool even if there are 0 expiration transactions', async () => {
+      const { node, chain } = nodeTest
+      const { wallet, memPool } = node
+
+      const accountA = await useAccountFixture(wallet, 'accountA')
+      const accountB = await useAccountFixture(wallet, 'accountB')
+      const { transaction: transactionA } = await useBlockWithTx(
+        node,
+        accountA,
+        accountB,
+        true,
+        { expiration: 4 },
+        false,
+      )
+      await wallet.addPendingTransaction(transactionA)
+
+      expect(chain.head.sequence).toEqual(2)
+
+      const { transaction: transactionB } = await useBlockWithTx(
+        node,
+        accountA,
+        accountB,
+        true,
+        { expiration: 0 },
+        false,
+      )
+
+      expect(chain.head.sequence).toEqual(3)
+
+      memPool.acceptTransaction(transactionA)
+      memPool.acceptTransaction(transactionB)
+      expect(memPool.exists(transactionA.hash())).toBe(true)
+      expect(memPool.exists(transactionB.hash())).toBe(true)
+
+      const block4 = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block4)
+
+      expect(chain.head.sequence).toEqual(4)
+
+      expect(memPool.exists(transactionA.hash())).toBe(false)
+      expect(memPool.exists(transactionB.hash())).toBe(true)
+      expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionA)
+      expect([...memPool.orderedTransactions()]).toContainEqual(transactionB)
+    })
   })
 
   describe('when a block is disconnected', () => {
