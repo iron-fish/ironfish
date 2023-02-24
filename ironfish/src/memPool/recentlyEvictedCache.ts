@@ -31,10 +31,11 @@ export class RecentlyEvictedCache {
   private readonly logger: Logger
 
   private readonly metrics: MetricsMonitor
+
   /**
-   * The maximum capacity of the cache in number of transactions.
+   * The maximum size of the cache in number of transactions.
    */
-  private readonly _capacity: number
+  public readonly maxSize: number
 
   /**
    * A priority queue of transaction hashes ordered by `feeRate` descending.
@@ -55,8 +56,8 @@ export class RecentlyEvictedCache {
    * @constructor
    * @param options.capacity the maximum number of hashes to store in the cache
    */
-  constructor(options: { logger: Logger; metrics: MetricsMonitor; capacity: number }) {
-    this._capacity = options.capacity
+  constructor(options: { logger: Logger; metrics: MetricsMonitor; maxSize: number }) {
+    this.maxSize = options.maxSize
     this.metrics = options.metrics
     this.logger = options.logger.withTag('RecentlyEvictedCache')
 
@@ -122,15 +123,7 @@ export class RecentlyEvictedCache {
    * @returns the usage of the recently evicted cache
    */
   saturation(): number {
-    return this.size() / this._capacity
-  }
-
-  /**
-   *
-   * @returns the maximum capacity of the cache, in number of transactions
-   */
-  maxSize(): number {
-    return this._capacity
+    return this.size() / this.maxSize
   }
 
   /**
@@ -169,7 +162,7 @@ export class RecentlyEvictedCache {
     })
 
     // keep the cache under max capacity
-    while (this.size() > this._capacity) {
+    while (this.size() > this.maxSize) {
       this.poll()
     }
 
@@ -217,7 +210,7 @@ export class RecentlyEvictedCache {
   private updateMetrics(): void {
     // TODO(holahula): this value is only updated when the node is restarted,
     // ideally you don't send a constant value everytime
-    this.metrics.memPool_RecentlyEvictedCache_MaxSize.value = this.maxSize()
+    this.metrics.memPool_RecentlyEvictedCache_MaxSize.value = this.maxSize
     this.metrics.memPool_RecentlyEvictedCache_Size.value = this.size()
     this.metrics.memPool_RecentlyEvictedCache_Saturation.value = Math.round(
       this.saturation() * 100,

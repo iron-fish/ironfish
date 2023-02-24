@@ -45,9 +45,9 @@ describe('RecentlyEvictedCache', () => {
   })
 
   describe('add', () => {
-    it('should not exceed maximum capacity', () => {
+    it('should not exceed maximum maxSize', () => {
       const testCache = new RecentlyEvictedCache({
-        capacity: 10,
+        maxSize: 10,
         logger,
         metrics: new MetricsMonitor({ logger }),
       })
@@ -61,7 +61,7 @@ describe('RecentlyEvictedCache', () => {
 
     it('should evict the proper transaction when full and a new transaction comes in [ORDERED]', () => {
       const testCache = new RecentlyEvictedCache({
-        capacity: 2,
+        maxSize: 2,
         logger,
         metrics: new MetricsMonitor({ logger }),
       })
@@ -118,7 +118,7 @@ describe('RecentlyEvictedCache', () => {
 
     it('should evict the proper transaction when full and a new transaction comes in [RANDOM]', () => {
       const testCache = new RecentlyEvictedCache({
-        capacity: 5,
+        maxSize: 5,
         logger,
         metrics: new MetricsMonitor({ logger }),
       })
@@ -142,7 +142,7 @@ describe('RecentlyEvictedCache', () => {
     it('should flush transactions beyond the max age when a new block connects [ORDERED]', () => {
       const testCache = new RecentlyEvictedCache({
         logger,
-        capacity: 20,
+        maxSize: 20,
         metrics: new MetricsMonitor({ logger }),
       })
 
@@ -178,7 +178,7 @@ describe('RecentlyEvictedCache', () => {
     it('should flush transactions beyond the max age when a new block connects [RANDOM]', () => {
       const testCache = new RecentlyEvictedCache({
         logger,
-        capacity: 5,
+        maxSize: 5,
         metrics: new MetricsMonitor({ logger }),
       })
 

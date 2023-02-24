@@ -8,7 +8,7 @@ import { Blockchain } from '../blockchain'
 import { Consensus, isExpiredSequence } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
-import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
+import { getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { FeeEstimator, getFeeRate } from './feeEstimator'
@@ -48,8 +48,8 @@ export class MemPool {
   private readonly recentlyEvictedCache: RecentlyEvictedCache
 
   /* Keep track of number of bytes stored in the transaction map */
-  private transactionsBytes = 0
-  private readonly _maxSizeBytes: number
+  private _sizeBytes = 0
+  public readonly maxSizeBytes: number
   private readonly consensus: Consensus
 
   head: BlockHeader | null
@@ -71,7 +71,7 @@ export class MemPool {
   }) {
     const logger = options.logger || createRootLogger()
 
-    this._maxSizeBytes = options.maxSizeBytes
+    this.maxSizeBytes = options.maxSizeBytes
     this.consensus = options.consensus
     this.head = null
 
@@ -108,7 +108,7 @@ export class MemPool {
     this.recentlyEvictedCache = new RecentlyEvictedCache({
       logger: this.logger,
       metrics: this.metrics,
-      capacity: options.recentlyEvictedCacheSize,
+      maxSize: options.recentlyEvictedCacheSize,
     })
   }
 
@@ -125,34 +125,10 @@ export class MemPool {
   }
 
   /**
-   *
-   * @returns The maximum number of transactions that can be stored in the mempool.
-   *
-   * This assumes that all transactions are the maximum size, and so the true
-   * maximum in practice can be higher.
-   */
-  maxCount(): number {
-    // TODO(holahula): calculating max txn size is taken from ironfish/src/consensus/verifier.ts:260
-    // can the max txn size be retrieved from consensus?
-    const maxTransactionSize =
-      this.chain.consensus.parameters.maxBlockSizeBytes - getBlockWithMinersFeeSize()
-
-    return Math.floor(this.maxSizeBytes() / maxTransactionSize)
-  }
-
-  /**
    * @return The number of bytes stored in the mempool
    */
   sizeBytes(): number {
-    return this.transactionsBytes
-  }
-
-  /**
-   *
-   * @returns The maximum number of bytes that can be stored in the mempool
-   */
-  maxSizeBytes(): number {
-    return this._maxSizeBytes
+    return this._sizeBytes
   }
 
   /**
@@ -160,7 +136,7 @@ export class MemPool {
    * @returns The usage of the mempool, as a fraction between 0 and 1
    */
   saturation(): number {
-    return this.sizeBytes() / this.maxSizeBytes()
+    return this.sizeBytes() / this.maxSizeBytes
   }
 
   exists(hash: TransactionHash): boolean {
@@ -317,7 +293,7 @@ export class MemPool {
       this.expirationQueue.add({ expiration: transaction.expiration(), hash })
     }
 
-    this.transactionsBytes += getTransactionSize(transaction)
+    this._sizeBytes += getTransactionSize(transaction)
 
     this.updateMetrics()
 
@@ -333,7 +309,7 @@ export class MemPool {
    * @returns true if the mempool is over capacity
    */
   full(): boolean {
-    return this.sizeBytes() >= this._maxSizeBytes
+    return this.sizeBytes() >= this.maxSizeBytes
   }
 
   /**
@@ -353,7 +329,7 @@ export class MemPool {
   recentlyEvictedCacheStats(): { size: number; maxSize: number; saturation: number } {
     return {
       size: this.recentlyEvictedCache.size(),
-      maxSize: this.recentlyEvictedCache.maxSize(),
+      maxSize: this.recentlyEvictedCache.maxSize,
       saturation: Math.round(this.recentlyEvictedCache.saturation() * 100),
     }
   }
@@ -368,7 +344,7 @@ export class MemPool {
     this.metrics.memPoolSaturation.value = this.saturation()
     // TODO(holahula): this value is only updated when the node is restarted,
     // ideally you don't send a constant value everytime
-    this.metrics.memPoolMaxSizeBytes.value = this.maxSizeBytes()
+    this.metrics.memPoolMaxSizeBytes.value = this.maxSizeBytes
   }
 
   /**
@@ -420,7 +396,7 @@ export class MemPool {
       return false
     }
 
-    this.transactionsBytes -= getTransactionSize(transaction)
+    this._sizeBytes -= getTransactionSize(transaction)
 
     for (const spend of transaction.spends) {
       this.nullifiers.delete(spend.nullifier)

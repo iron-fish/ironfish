@@ -318,7 +318,7 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
     memPool: {
       size: node.metrics.memPoolSize.value,
       sizeBytes: node.memPool.sizeBytes(),
-      maxSizeBytes: node.memPool.maxSizeBytes(),
+      maxSizeBytes: node.memPool.maxSizeBytes,
       saturation: node.memPool.saturation(),
       evictions: Math.max(node.metrics.memPoolEvictions.rate5m, 0),
       recentlyEvictedCache: {
