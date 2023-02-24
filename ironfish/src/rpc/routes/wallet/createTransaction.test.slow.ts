@@ -3,23 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import {
-  SpendingAccount,
-  useAccountFixture,
-  useMinerBlockFixture,
-  useTxFixture,
-} from '../../../testUtilities'
+import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route wallet/createTransaction', () => {
   const routeTest = createRouteTest(true)
-  let sender: SpendingAccount
-
-  beforeAll(async () => {
-    sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
-  })
 
   it('should create transaction to mint existing asset', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 

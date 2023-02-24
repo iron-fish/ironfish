@@ -4,12 +4,9 @@
 
 import { Asset } from '@ironfish/rust-nodejs'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import {
-  SpendingAccount,
-  useAccountFixture,
-  useMinerBlockFixture,
-} from '../../../testUtilities'
+import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { Account } from '../../../wallet'
 import { ERROR_CODES } from '../../adapters/errors'
 
 const REQUEST_PARAMS = {
@@ -45,13 +42,11 @@ const REQUEST_PARAMS_WITH_MULTIPLE_RECIPIENTS = {
 }
 
 describe('Route wallet/createTransaction', () => {
-  const routeTest = createRouteTest(true)
-  let sender: SpendingAccount
-  beforeAll(async () => {
-    sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
-  })
+  const routeTest = createRouteTest()
 
   it('throws if not enough funds', async () => {
+    await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     await expect(routeTest.client.createTransaction(REQUEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.any(String),
@@ -62,6 +57,8 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should generate a valid transaction', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -93,6 +90,8 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should generate a valid transaction with multiple outputs', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -125,6 +124,8 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should generate a valid transaction with fee rate', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -167,6 +168,8 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should create transaction if fee and fee rate are empty', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -208,6 +211,8 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should create transaction to mint new asset', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -259,6 +264,8 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('throw error when create transaction to mint unknown asset', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     const asset = new Asset(sender.spendingKey, 'unknown-asset', 'metadata')
 
     for (let i = 0; i < 3; ++i) {
@@ -297,6 +304,8 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('throw error when create transaction without mint asset', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
         routeTest.chain,
@@ -332,6 +341,8 @@ describe('Route wallet/createTransaction', () => {
   })
 
   it('should throw an error when attempting to create a transaction with no valid confirmations', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     const block = await useMinerBlockFixture(
       routeTest.chain,
       undefined,

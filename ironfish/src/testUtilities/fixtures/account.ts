@@ -6,8 +6,11 @@ import { WithNonNull } from '../../utils'
 import { Account, AccountValue, Wallet } from '../../wallet'
 import { FixtureGenerate, useFixture } from './fixture'
 
-type SpendingAccountValue = WithNonNull<AccountValue, 'spendingKey'>
-export type SpendingAccount = WithNonNull<Account, 'spendingKey'>
+type SpendingAccount = WithNonNull<Account, 'spendingKey'>
+
+function AssertSpending(account: Account): asserts account is SpendingAccount {
+  Assert.isNotNull(account.spendingKey)
+}
 
 export function useAccountFixture(
   wallet: Wallet,
@@ -15,18 +18,20 @@ export function useAccountFixture(
 ): Promise<SpendingAccount> {
   if (typeof generate === 'string') {
     const name = generate
-    generate = () => wallet.createAccount(name) as Promise<SpendingAccount>
+
+    generate = async (): Promise<SpendingAccount> => {
+      const account = await wallet.createAccount(name)
+      AssertSpending(account)
+      return account
+    }
   }
 
   return useFixture(generate, {
-    serialize: (account: SpendingAccount): SpendingAccountValue => {
-      const serializedAccount = account.serialize()
-      const { spendingKey } = serializedAccount
-      Assert.isNotNull(spendingKey)
-      return { ...serializedAccount, spendingKey }
+    serialize: (account: SpendingAccount): AccountValue => {
+      return account.serialize()
     },
 
-    deserialize: async (accountData: SpendingAccountValue): Promise<SpendingAccount> => {
+    deserialize: async (accountData: AccountValue): Promise<SpendingAccount> => {
       const account = await wallet.importAccount(accountData)
 
       if (accountData) {
@@ -40,7 +45,8 @@ export function useAccountFixture(
         }
       }
 
-      return account as SpendingAccount
+      AssertSpending(account)
+      return account
     },
   })
 }

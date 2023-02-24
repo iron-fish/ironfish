@@ -4,7 +4,6 @@
 
 import {
   createNodeTest,
-  SpendingAccount,
   useAccountFixture,
   useMinerBlockFixture,
   useTxFixture,
@@ -53,7 +52,7 @@ describe('Block template stream', () => {
     // Create another node
     const nodeTest = createNodeTest()
     await nodeTest.setup()
-    const importedAccount = (await nodeTest.wallet.importAccount(account)) as SpendingAccount
+    const importedAccount = await nodeTest.wallet.importAccount(account)
     await nodeTest.wallet.setDefaultAccount(account.name)
 
     // Generate a block
