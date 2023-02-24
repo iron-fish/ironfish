@@ -7,7 +7,7 @@ import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route wallet/createTransaction', () => {
-  const routeTest = createRouteTest(true)
+  const routeTest = createRouteTest()
 
   it('should create transaction to mint existing asset', async () => {
     const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
