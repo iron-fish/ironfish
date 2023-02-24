@@ -362,6 +362,50 @@ describe('Accounts', () => {
 
       expect(pendingHashEntry).toBeDefined()
     })
+
+    it('should remove spent notes from unspentNoteHashes', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      let unspentA = await AsyncUtils.materialize(
+        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+      )
+
+      expect(unspentA).toHaveLength(1)
+
+      // create a pending transaction
+      await useTxFixture(node.wallet, accountA, accountB)
+
+      unspentA = await AsyncUtils.materialize(
+        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+      )
+      expect(unspentA).toHaveLength(0)
+    })
+
+    it('should not add output notes to unspentNoteHashes', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      // create a pending transaction
+      await useTxFixture(node.wallet, accountA, accountB)
+
+      const unspentB = await AsyncUtils.materialize(
+        accountB['walletDb'].loadUnspentNoteHashes(accountB),
+      )
+      expect(unspentB).toHaveLength(0)
+    })
   })
 
   describe('connectTransaction', () => {
@@ -722,6 +766,74 @@ describe('Accounts', () => {
         supply: null,
       })
     })
+
+    it('should add received notes to unspentNoteHashes', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const unspentNoteHashes = await AsyncUtils.materialize(
+        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+      )
+
+      expect(unspentNoteHashes).toHaveLength(1)
+
+      const decryptedNote = await accountA.getDecryptedNote(unspentNoteHashes[0])
+
+      expect(decryptedNote).toBeDefined()
+    })
+
+    it('should remove spent notes from unspentNoteHashes', async () => {
+      const { node: nodeA } = nodeTest
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountAnodeA = await useAccountFixture(nodeA.wallet, 'accountA')
+
+      // import account onto nodeB to simulate connecting transaction not seen as pending
+      const accountAnodeB = await nodeB.wallet.importAccount(accountAnodeA)
+
+      const block2 = await useMinerBlockFixture(
+        nodeA.chain,
+        undefined,
+        accountAnodeA,
+        nodeA.wallet,
+      )
+      await nodeA.chain.addBlock(block2)
+      await nodeA.wallet.updateHead()
+      await nodeB.chain.addBlock(block2)
+      await nodeB.wallet.updateHead()
+
+      const unspentNoteHashesBefore = await AsyncUtils.materialize(
+        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB),
+      )
+      expect(unspentNoteHashesBefore).toHaveLength(1)
+
+      const transaction = await useTxFixture(nodeA.wallet, accountAnodeA, accountAnodeA)
+
+      // transaction is pending, but nodeB hasn't seen it, so note is still unspent
+      const unspentNoteHashesPending = await AsyncUtils.materialize(
+        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB),
+      )
+      expect(unspentNoteHashesPending).toEqual(unspentNoteHashesBefore)
+
+      // mine the transaction on a block that nodeB adds
+      const block3 = await useMinerBlockFixture(nodeA.chain, 3, accountAnodeA, undefined, [
+        transaction,
+      ])
+      await nodeA.chain.addBlock(block3)
+      await nodeA.wallet.updateHead()
+      await nodeB.chain.addBlock(block3)
+      await nodeB.wallet.updateHead()
+
+      const unspentNoteHashesAfter = await AsyncUtils.materialize(
+        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB),
+      )
+      expect(unspentNoteHashesAfter).not.toEqual(unspentNoteHashesBefore)
+    })
   })
 
   describe('disconnectTransaction', () => {
@@ -1072,6 +1184,39 @@ describe('Accounts', () => {
         supply: null,
       })
     })
+
+    it('should remove disconnected output notes from unspentNoteHashes', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountB)
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA, undefined, [
+        transaction,
+      ])
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      let unspentNoteHashesB = await AsyncUtils.materialize(
+        accountB['walletDb'].loadUnspentNoteHashes(accountB),
+      )
+
+      expect(unspentNoteHashesB).toHaveLength(1)
+
+      // disconnect transaction
+      await accountB.disconnectTransaction(block3.header, transaction)
+
+      unspentNoteHashesB = await AsyncUtils.materialize(
+        accountB['walletDb'].loadUnspentNoteHashes(accountB),
+      )
+
+      expect(unspentNoteHashesB).toHaveLength(0)
+    })
   })
 
   describe('deleteTransaction', () => {
@@ -1265,6 +1410,122 @@ describe('Accounts', () => {
         unconfirmed: 10n,
       })
     })
+
+    it('should calculate available balance from pending transactions', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const balanceA = await accountA.getBalance(Asset.nativeId(), 0)
+
+      expect(balanceA).toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 2000000000n,
+        available: 2000000000n,
+      })
+
+      await useTxFixture(node.wallet, accountA, accountB)
+
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        pending: balanceA.unconfirmed - 1n,
+        pendingCount: 1,
+        available: 0n,
+      })
+    })
+
+    it('should calculate available balance from unconfirmed transactions', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 2000000000n,
+        available: 2000000000n,
+      })
+
+      const { block: block3 } = await useBlockWithTx(node, accountA, accountB, false)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      // with 0 confirmations, available balance includes the transaction
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 1999999998n,
+        unconfirmed: 1999999998n,
+        available: 1999999998n,
+      })
+
+      // with 1 confirmation, available balance should not include the spent note or change
+      await expect(accountA.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 1999999998n,
+        available: 0n,
+      })
+    })
+
+    it('should calculate available balance from pending and unconfirmed transactions', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+      const block3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 4000000000n,
+        unconfirmed: 4000000000n,
+        available: 4000000000n,
+      })
+
+      const { block: block4 } = await useBlockWithTx(node, accountA, accountB, false)
+      await node.chain.addBlock(block4)
+      await node.wallet.updateHead()
+
+      // with 0 confirmations, available balance includes the transaction
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 3999999998n,
+        unconfirmed: 3999999998n,
+        available: 3999999998n,
+      })
+
+      // with 1 confirmation, available balance should not include the spent note or change
+      await expect(accountA.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
+        confirmed: 4000000000n,
+        unconfirmed: 3999999998n,
+        available: 2000000000n,
+      })
+
+      // set confirmations to 1 so that new transaction can only spend the last note
+      node.config.set('confirmations', 1)
+
+      // create a pending transaction sending 1 $ORE from A to B
+      await useTxFixture(node.wallet, accountA, accountB)
+
+      // with 1 confirmation, all available notes have been spent in unconfirmed or pending transactions
+      await expect(accountA.getBalance(Asset.nativeId(), 1)).resolves.toMatchObject({
+        confirmed: 4000000000n,
+        unconfirmed: 3999999998n,
+        pending: 3999999997n,
+        available: 0n,
+        pendingCount: 1,
+        unconfirmedCount: 1,
+      })
+    })
   })
 
   describe('calculatePendingBalance', () => {
@@ -1306,6 +1567,39 @@ describe('Accounts', () => {
         pending: balanceA.unconfirmed - 1n,
         pendingCount: 1,
       })
+    })
+  })
+
+  describe('expireTransaction', () => {
+    it('should add spent notes back into unspentNoteHashes', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      let unspentHashes = await AsyncUtils.materialize(
+        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+      )
+      expect(unspentHashes).toHaveLength(1)
+      const unspentHash = unspentHashes[0]
+
+      const transaction = await useTxFixture(node.wallet, accountA, accountA)
+
+      unspentHashes = await AsyncUtils.materialize(
+        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+      )
+      expect(unspentHashes).toHaveLength(0)
+
+      await accountA.expireTransaction(transaction)
+
+      unspentHashes = await AsyncUtils.materialize(
+        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+      )
+      expect(unspentHashes).toHaveLength(1)
+      expect(unspentHash).toEqualBuffer(unspentHashes[0])
     })
   })
 })
