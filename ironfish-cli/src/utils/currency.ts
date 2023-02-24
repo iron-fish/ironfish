@@ -37,7 +37,7 @@ export async function promptCurrency(options: {
       confirmations: options.balance.confirmations,
     })
 
-    text += ` (balance ${CurrencyUtils.renderIron(balance.content.confirmed)})`
+    text += ` (balance ${CurrencyUtils.renderIron(balance.content.available)})`
   }
 
   // eslint-disable-next-line no-constant-condition
