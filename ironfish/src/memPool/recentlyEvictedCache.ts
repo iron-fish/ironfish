@@ -219,6 +219,8 @@ export class RecentlyEvictedCache {
     // ideally you don't send a constant value everytime
     this.metrics.memPool_RecentlyEvictedCache_MaxSize.value = this.maxSize()
     this.metrics.memPool_RecentlyEvictedCache_Size.value = this.size()
-    this.metrics.memPool_RecentlyEvictedCache_Saturation.value = this.saturation()
+    this.metrics.memPool_RecentlyEvictedCache_Saturation.value = Math.round(
+      this.saturation() * 100,
+    )
   }
 }

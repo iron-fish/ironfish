@@ -354,7 +354,7 @@ export class MemPool {
     return {
       size: this.recentlyEvictedCache.size(),
       maxSize: this.recentlyEvictedCache.maxSize(),
-      saturation: this.recentlyEvictedCache.saturation(),
+      saturation: Math.round(this.recentlyEvictedCache.saturation() * 100),
     }
   }
 
