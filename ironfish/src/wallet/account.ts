@@ -91,7 +91,7 @@ export class Account {
     options?: {
       confirmations?: number
     },
-  ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+  ): AsyncGenerator<DecryptedNoteValue> {
     const head = await this.getHead()
     if (!head) {
       return
@@ -101,23 +101,11 @@ export class Account {
 
     const maxConfirmedSequence = head.sequence - confirmations
 
-    for await (const decryptedNote of this.getNotes()) {
-      if (!decryptedNote.note.assetId().equals(assetId)) {
-        continue
-      }
-
-      if (decryptedNote.spent) {
-        continue
-      }
-
-      if (!decryptedNote.sequence) {
-        continue
-      }
-
-      if (decryptedNote.sequence > maxConfirmedSequence) {
-        continue
-      }
-
+    for await (const decryptedNote of this.walletDb.loadUnspentNotes(
+      this,
+      assetId,
+      maxConfirmedSequence,
+    )) {
       yield decryptedNote
     }
   }

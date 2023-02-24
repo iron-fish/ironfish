@@ -420,7 +420,7 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       let unspentA = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
       )
 
       expect(unspentA).toHaveLength(1)
@@ -429,7 +429,7 @@ describe('Accounts', () => {
       await useTxFixture(node.wallet, accountA, accountB)
 
       unspentA = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
       )
       expect(unspentA).toHaveLength(0)
     })
@@ -448,7 +448,7 @@ describe('Accounts', () => {
       await useTxFixture(node.wallet, accountA, accountB)
 
       const unspentB = await AsyncUtils.materialize(
-        accountB['walletDb'].loadUnspentNoteHashes(accountB),
+        accountB['walletDb'].loadUnspentNoteHashes(accountB, Asset.nativeId()),
       )
       expect(unspentB).toHaveLength(0)
     })
@@ -867,7 +867,7 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       const unspentNoteHashes = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
       )
 
       expect(unspentNoteHashes).toHaveLength(1)
@@ -898,7 +898,7 @@ describe('Accounts', () => {
       await nodeB.wallet.updateHead()
 
       const unspentNoteHashesBefore = await AsyncUtils.materialize(
-        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB),
+        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB, Asset.nativeId()),
       )
       expect(unspentNoteHashesBefore).toHaveLength(1)
 
@@ -906,7 +906,7 @@ describe('Accounts', () => {
 
       // transaction is pending, but nodeB hasn't seen it, so note is still unspent
       const unspentNoteHashesPending = await AsyncUtils.materialize(
-        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB),
+        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB, Asset.nativeId()),
       )
       expect(unspentNoteHashesPending).toEqual(unspentNoteHashesBefore)
 
@@ -920,7 +920,7 @@ describe('Accounts', () => {
       await nodeB.wallet.updateHead()
 
       const unspentNoteHashesAfter = await AsyncUtils.materialize(
-        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB),
+        accountAnodeB['walletDb'].loadUnspentNoteHashes(accountAnodeB, Asset.nativeId()),
       )
       expect(unspentNoteHashesAfter).not.toEqual(unspentNoteHashesBefore)
     })
@@ -1293,7 +1293,7 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       let unspentNoteHashesB = await AsyncUtils.materialize(
-        accountB['walletDb'].loadUnspentNoteHashes(accountB),
+        accountB['walletDb'].loadUnspentNoteHashes(accountB, Asset.nativeId()),
       )
 
       expect(unspentNoteHashesB).toHaveLength(1)
@@ -1302,7 +1302,7 @@ describe('Accounts', () => {
       await accountB.disconnectTransaction(block3.header, transaction)
 
       unspentNoteHashesB = await AsyncUtils.materialize(
-        accountB['walletDb'].loadUnspentNoteHashes(accountB),
+        accountB['walletDb'].loadUnspentNoteHashes(accountB, Asset.nativeId()),
       )
 
       expect(unspentNoteHashesB).toHaveLength(0)
@@ -1834,7 +1834,7 @@ describe('Accounts', () => {
       await node.wallet.updateHead()
 
       let unspentHashes = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
       )
       expect(unspentHashes).toHaveLength(1)
       const unspentHash = unspentHashes[0]
@@ -1842,17 +1842,60 @@ describe('Accounts', () => {
       const transaction = await useTxFixture(node.wallet, accountA, accountA)
 
       unspentHashes = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
       )
       expect(unspentHashes).toHaveLength(0)
 
       await accountA.expireTransaction(transaction)
 
       unspentHashes = await AsyncUtils.materialize(
-        accountA['walletDb'].loadUnspentNoteHashes(accountA),
+        accountA['walletDb'].loadUnspentNoteHashes(accountA, Asset.nativeId()),
       )
       expect(unspentHashes).toHaveLength(1)
       expect(unspentHash).toEqualBuffer(unspentHashes[0])
     })
+  })
+
+  describe('getUnspentNotes', () => {
+    it('loads all unspent notes with no confirmation range', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+      const block3 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      const unspentNotes = await AsyncUtils.materialize(
+        accountA.getUnspentNotes(Asset.nativeId()),
+      )
+
+      expect(unspentNotes).toHaveLength(2)
+    })
+
+    it('loads filters unspent notes by confirmation range', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      let unspentNotes = await AsyncUtils.materialize(
+        accountA.getUnspentNotes(Asset.nativeId(), { confirmations: 0 }),
+      )
+
+      expect(unspentNotes).toHaveLength(1)
+
+      unspentNotes = await AsyncUtils.materialize(
+        accountA.getUnspentNotes(Asset.nativeId(), { confirmations: 1 }),
+      )
+
+      expect(unspentNotes).toHaveLength(0)
+    }, 50000)
   })
 })
