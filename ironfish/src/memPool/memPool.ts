@@ -63,7 +63,7 @@ export class MemPool {
     )
 
     this.expirationQueue = new PriorityQueue<ExpirationMempoolEntry>(
-      (t1, t2) => t1.expiration < t2.expiration,
+      (t1, t2) => (t1.expiration === 0 ? false : t1.expiration < t2.expiration),
       (t) => t.hash.toString('hex'),
     )
 
