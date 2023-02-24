@@ -753,9 +753,8 @@ export class Account {
               },
               tx,
             )
+            await this.walletDb.addUnspentNoteHash(this, noteHash, decryptedNote, tx)
           }
-
-          await this.walletDb.addUnspentNoteHash(this, noteHash, decryptedNote, tx)
         }
       }
 
