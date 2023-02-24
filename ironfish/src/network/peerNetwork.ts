@@ -461,7 +461,7 @@ export class PeerNetwork {
     for (const p of this.peerManager.identifiedPeers.values()) {
       if (
         p.state.type === 'CONNECTED' &&
-        p.features?.enableSyncing &&
+        p.features?.syncing &&
         !this.knowsTransaction(hash, p.state.identity)
       ) {
         yield p
@@ -473,7 +473,7 @@ export class PeerNetwork {
     for (const p of this.peerManager.identifiedPeers.values()) {
       if (
         p.state.type === 'CONNECTED' &&
-        p.features?.enableSyncing &&
+        p.features?.syncing &&
         !p.knownBlockHashes.has(hash)
       ) {
         yield p

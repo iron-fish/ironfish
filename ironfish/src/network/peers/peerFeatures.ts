@@ -5,9 +5,9 @@
 export const FEATURES_MIN_VERSION = 21
 
 export interface Features {
-  enableSyncing: boolean
+  syncing: boolean
 }
 
 export const defaultFeatures = (): Features => ({
-  enableSyncing: true,
+  syncing: true,
 })

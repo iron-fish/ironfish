@@ -76,7 +76,7 @@ export class IdentifyMessage extends NetworkMessage {
     bw.writeHash(this.genesisBlockHash)
 
     let flags = 0
-    flags |= Number(this.features.enableSyncing) << 0
+    flags |= Number(this.features.syncing) << 0
     bw.writeU32(flags)
 
     return bw.render()
@@ -98,7 +98,7 @@ export class IdentifyMessage extends NetworkMessage {
     const features = defaultFeatures()
     if (version >= FEATURES_MIN_VERSION) {
       const flags = reader.readU32()
-      features.enableSyncing = Boolean(flags & (1 << 0))
+      features.syncing = Boolean(flags & (1 << 0))
     }
 
     return new IdentifyMessage({

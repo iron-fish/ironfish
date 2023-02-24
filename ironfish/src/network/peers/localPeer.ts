@@ -76,7 +76,7 @@ export class LocalPeer {
       networkId: this.networkId,
       genesisBlockHash: this.chain.genesis.hash,
       features: {
-        enableSyncing: this.enableSyncing,
+        syncing: this.enableSyncing,
       },
     })
   }
