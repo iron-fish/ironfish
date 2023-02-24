@@ -9,7 +9,6 @@ import { RecentlyEvictedCache } from './recentlyEvictedCache'
 
 describe('RecentlyEvictedCache', () => {
   const logger = createRootLogger()
-  const mockMetricsMonitor: MetricsMonitor = jest.createMockFromModule('../metrics')
   /**
    * orderedTransactions[i] has feeRate = i, sequence = i
    */
@@ -121,7 +120,7 @@ describe('RecentlyEvictedCache', () => {
       const testCache = new RecentlyEvictedCache({
         capacity: 5,
         logger,
-        metrics: mockMetricsMonitor,
+        metrics: new MetricsMonitor({ logger }),
       })
 
       const added: typeof randomTransactions = []
@@ -144,7 +143,7 @@ describe('RecentlyEvictedCache', () => {
       const testCache = new RecentlyEvictedCache({
         logger,
         capacity: 20,
-        metrics: mockMetricsMonitor,
+        metrics: new MetricsMonitor({ logger }),
       })
 
       for (const { hash, feeRate, sequence, maxAge } of orderedTransactions) {
@@ -180,7 +179,7 @@ describe('RecentlyEvictedCache', () => {
       const testCache = new RecentlyEvictedCache({
         logger,
         capacity: 5,
-        metrics: mockMetricsMonitor,
+        metrics: new MetricsMonitor({ logger }),
       })
 
       const added: typeof randomTransactions = []

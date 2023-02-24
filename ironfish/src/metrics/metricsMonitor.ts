@@ -50,6 +50,10 @@ export class MetricsMonitor {
   readonly memPoolSaturation: Gauge
   readonly memPoolEvictions: Meter
 
+  readonly memPool_RecentlyEvictedCache_Size: Gauge
+  readonly memPool_RecentlyEvictedCache_MaxSize: Gauge
+  readonly memPool_RecentlyEvictedCache_Saturation: Gauge
+
   readonly cpuCores: number
 
   private memoryInterval: SetIntervalToken | null
@@ -95,6 +99,10 @@ export class MetricsMonitor {
     this.memPoolMaxSizeBytes = new Gauge()
     this.memPoolSaturation = new Gauge()
     this.memPoolEvictions = this.addMeter()
+
+    this.memPool_RecentlyEvictedCache_Size = new Gauge()
+    this.memPool_RecentlyEvictedCache_MaxSize = new Gauge()
+    this.memPool_RecentlyEvictedCache_Saturation = new Gauge()
 
     this.heapMax = getHeapStatistics().total_available_size
 

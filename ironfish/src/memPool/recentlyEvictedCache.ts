@@ -173,6 +173,8 @@ export class RecentlyEvictedCache {
       this.poll()
     }
 
+    this.updateMetrics()
+
     return true
   }
 
@@ -204,6 +206,19 @@ export class RecentlyEvictedCache {
       `Flushed ${flushCount} transactions from RecentlyEvictedCache after adding block ${maxSequence}`,
     )
 
+    this.updateMetrics()
+
     return
+  }
+
+  /**
+   * Updates the metrics for the cache. This should be called whenever the cache is modified.
+   */
+  private updateMetrics(): void {
+    // TODO(holahula): this value is only updated when the node is restarted,
+    // ideally you don't send a constant value everytime
+    this.metrics.memPool_RecentlyEvictedCache_MaxSize.value = this.maxSize()
+    this.metrics.memPool_RecentlyEvictedCache_Size.value = this.size()
+    this.metrics.memPool_RecentlyEvictedCache_Saturation.value = this.saturation()
   }
 }

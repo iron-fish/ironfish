@@ -343,6 +343,13 @@ export class MemPool {
     return this.recentlyEvictedCache.has(hash.toString('hex'))
   }
 
+  /**
+   * Get relevant stats about the current state of the recently evicted cache.
+   *
+   * @returns size - the number of transactions in the mempool
+   * @returns maxSize - the maximum number of transactions the mempool can hold
+   * @returns saturation - the percentage of the mempool that is full
+   */
   recentlyEvictedCacheStats(): { size: number; maxSize: number; saturation: number } {
     return {
       size: this.recentlyEvictedCache.size(),
@@ -360,7 +367,7 @@ export class MemPool {
     this.metrics.memPoolSizeBytes.value = this.sizeBytes()
     this.metrics.memPoolSaturation.value = this.saturation()
     // TODO(holahula): this value is only updated when the node is restarted,
-    // don't need to send a constant value everytime
+    // ideally you don't send a constant value everytime
     this.metrics.memPoolMaxSizeBytes.value = this.maxSizeBytes()
   }
 
