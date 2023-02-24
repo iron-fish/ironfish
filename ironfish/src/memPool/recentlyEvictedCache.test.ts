@@ -4,11 +4,12 @@
 
 import { randomBytes } from 'crypto'
 import { createRootLogger } from '../logger'
+import { MetricsMonitor } from '../metrics'
 import { RecentlyEvictedCache } from './recentlyEvictedCache'
 
 describe('RecentlyEvictedCache', () => {
   const logger = createRootLogger()
-
+  const mockMetricsMonitor: MetricsMonitor = jest.createMockFromModule('../metrics')
   /**
    * orderedTransactions[i] has feeRate = i, sequence = i
    */
@@ -49,6 +50,7 @@ describe('RecentlyEvictedCache', () => {
       const testCache = new RecentlyEvictedCache({
         capacity: 10,
         logger,
+        metrics: new MetricsMonitor({ logger }),
       })
 
       for (const { hash, feeRate, sequence, maxAge } of orderedTransactions) {
@@ -62,6 +64,7 @@ describe('RecentlyEvictedCache', () => {
       const testCache = new RecentlyEvictedCache({
         capacity: 2,
         logger,
+        metrics: new MetricsMonitor({ logger }),
       })
 
       testCache.add(
@@ -118,6 +121,7 @@ describe('RecentlyEvictedCache', () => {
       const testCache = new RecentlyEvictedCache({
         capacity: 5,
         logger,
+        metrics: mockMetricsMonitor,
       })
 
       const added: typeof randomTransactions = []
@@ -140,6 +144,7 @@ describe('RecentlyEvictedCache', () => {
       const testCache = new RecentlyEvictedCache({
         logger,
         capacity: 20,
+        metrics: mockMetricsMonitor,
       })
 
       for (const { hash, feeRate, sequence, maxAge } of orderedTransactions) {
@@ -175,6 +180,7 @@ describe('RecentlyEvictedCache', () => {
       const testCache = new RecentlyEvictedCache({
         logger,
         capacity: 5,
+        metrics: mockMetricsMonitor,
       })
 
       const added: typeof randomTransactions = []

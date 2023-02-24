@@ -45,6 +45,12 @@ export type GetNodeStatusResponse = {
     sizeBytes: number
     maxSizeBytes: number
     saturation: number
+    evictions: number
+    recentlyEvictedCache: {
+      size: number
+      maxSize: number
+      saturation: number
+    }
   }
   blockchain: {
     synced: boolean
@@ -147,6 +153,14 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
         sizeBytes: yup.number().defined(),
         maxSizeBytes: yup.number().defined(),
         saturation: yup.number().defined(),
+        evictions: yup.number().defined(),
+        recentlyEvictedCache: yup
+          .object({
+            size: yup.number().defined(),
+            maxSize: yup.number().defined(),
+            saturation: yup.number().defined(),
+          })
+          .defined(),
       })
       .defined(),
     blockchain: yup
@@ -306,6 +320,12 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
       sizeBytes: node.memPool.sizeBytes(),
       maxSizeBytes: node.memPool.maxSizeBytes(),
       saturation: node.memPool.saturation(),
+      evictions: Math.max(node.metrics.memPoolEvictions.rate5m, 0),
+      recentlyEvictedCache: {
+        size: node.memPool.recentlyEvictedCacheStats().size,
+        maxSize: node.memPool.recentlyEvictedCacheStats().maxSize,
+        saturation: node.memPool.recentlyEvictedCacheStats().saturation,
+      },
     },
     blockSyncer: {
       status: node.syncer.state,

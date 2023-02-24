@@ -8,7 +8,7 @@ import { Blockchain } from '../blockchain'
 import { Consensus, isExpiredSequence } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
-import { getTransactionSize } from '../network/utils/serializers'
+import { getBlockWithMinersFeeSize, getTransactionSize } from '../network/utils/serializers'
 import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { FeeEstimator, getFeeRate } from './feeEstimator'
@@ -107,6 +107,7 @@ export class MemPool {
 
     this.recentlyEvictedCache = new RecentlyEvictedCache({
       logger: this.logger,
+      metrics: this.metrics,
       capacity: options.recentlyEvictedCacheSize,
     })
   }
@@ -115,8 +116,28 @@ export class MemPool {
     await this.feeEstimator.init(this.chain)
   }
 
+  /**
+   *
+   * @returns The number of transactions in the mempool
+   */
   count(): number {
     return this.transactions.size
+  }
+
+  /**
+   *
+   * @returns The maximum number of transactions that can be stored in the mempool.
+   *
+   * This assumes that all transactions are the maximum size, and so the true
+   * maximum in practice can be higher.
+   */
+  maxCount(): number {
+    // TODO(holahula): calculating max txn size is taken from ironfish/src/consensus/verifier.ts:260
+    // can the max txn size be retrieved from consensus?
+    const maxTransactionSize =
+      this.chain.consensus.parameters.maxBlockSizeBytes - getBlockWithMinersFeeSize()
+
+    return Math.floor(this.maxSizeBytes() / maxTransactionSize)
   }
 
   /**
@@ -136,10 +157,10 @@ export class MemPool {
 
   /**
    *
-   * @returns The usage of the mempool, as a percentage
+   * @returns The usage of the mempool, as a fraction between 0 and 1
    */
   saturation(): number {
-    return (this.sizeBytes() / this.maxSizeBytes()) * 100
+    return this.sizeBytes() / this.maxSizeBytes()
   }
 
   exists(hash: TransactionHash): boolean {
@@ -297,11 +318,12 @@ export class MemPool {
     }
 
     this.transactionsBytes += getTransactionSize(transaction)
-    this.metrics.memPoolSize.value = this.count()
 
-    // TODO: Add telemetry for evictions
+    this.updateMetrics()
+
     if (this.full()) {
-      this.evictTransactions()
+      const evicted = this.evictTransactions()
+      this.metrics.memPoolEvictions.add(evicted.length)
     }
 
     return this.transactions.has(hash)
@@ -319,6 +341,27 @@ export class MemPool {
    */
   recentlyEvicted(hash: TransactionHash): boolean {
     return this.recentlyEvictedCache.has(hash.toString('hex'))
+  }
+
+  recentlyEvictedCacheStats(): { size: number; maxSize: number; saturation: number } {
+    return {
+      size: this.recentlyEvictedCache.size(),
+      maxSize: this.recentlyEvictedCache.maxSize(),
+      saturation: this.recentlyEvictedCache.saturation(),
+    }
+  }
+
+  /**
+   * Updates all relevent telemetry metrics.
+   * This should be called after any additions / deletions from the mempool.
+   */
+  private updateMetrics(): void {
+    this.metrics.memPoolSize.value = this.count()
+    this.metrics.memPoolSizeBytes.value = this.sizeBytes()
+    this.metrics.memPoolSaturation.value = this.saturation()
+    // TODO(holahula): this value is only updated when the node is restarted,
+    // don't need to send a constant value everytime
+    this.metrics.memPoolMaxSizeBytes.value = this.maxSizeBytes()
   }
 
   /**
@@ -382,7 +425,8 @@ export class MemPool {
     this.evictionQueue.remove(hashAsString)
     this.expirationQueue.remove(hashAsString)
 
-    this.metrics.memPoolSize.value = this.count()
+    this.updateMetrics()
+
     return true
   }
 }

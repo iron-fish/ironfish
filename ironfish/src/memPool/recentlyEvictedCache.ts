@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '../logger'
+import { MetricsMonitor } from '../metrics'
 import { TransactionHash } from '../primitives/transaction'
 import { PriorityQueue } from './priorityQueue'
 
@@ -27,12 +28,13 @@ interface ExpireAtQueueEntry {
  * re-introduced into the mempool
  */
 export class RecentlyEvictedCache {
-  private readonly logger?: Logger
+  private readonly logger: Logger
 
+  private readonly metrics: MetricsMonitor
   /**
    * The maximum capacity of the cache in number of transactions.
    */
-  private readonly capacity: number
+  private readonly _capacity: number
 
   /**
    * A priority queue of transaction hashes ordered by `feeRate` descending.
@@ -43,7 +45,7 @@ export class RecentlyEvictedCache {
   /**
    * A priority queue of transaction hashes ordered by their expiration sequence.
    */
-  // TODO: this can just be a normal queue because if y is inserted after x, y cannot expire before x
+  // TODO(holahula): this can just be a normal queue because if y is inserted after x, y cannot expire before x
   private readonly expireAtQueue: PriorityQueue<ExpireAtQueueEntry>
 
   /**
@@ -53,12 +55,10 @@ export class RecentlyEvictedCache {
    * @constructor
    * @param options.capacity the maximum number of hashes to store in the cache
    */
-  constructor(options: { logger: Logger; capacity: number }) {
-    this.capacity = options.capacity
-
-    const logger = options.logger
-
-    this.logger = logger.withTag('RecentlyEvictedCache')
+  constructor(options: { logger: Logger; metrics: MetricsMonitor; capacity: number }) {
+    this._capacity = options.capacity
+    this.metrics = options.metrics
+    this.logger = options.logger.withTag('RecentlyEvictedCache')
 
     this.evictionQueue = new PriorityQueue<EvictionQueueEntry>(
       (t1, t2) => t1.feeRate > t2.feeRate,
@@ -118,6 +118,22 @@ export class RecentlyEvictedCache {
   }
 
   /**
+   *
+   * @returns the usage of the recently evicted cache
+   */
+  saturation(): number {
+    return this.size() / this._capacity
+  }
+
+  /**
+   *
+   * @returns the maximum capacity of the cache, in number of transactions
+   */
+  maxSize(): number {
+    return this._capacity
+  }
+
+  /**
    * Adds a new transaction to the recently evicted cache.
    * If the cache is full, the transaction with the highest fee rate will be evicted.
    *
@@ -153,7 +169,7 @@ export class RecentlyEvictedCache {
     })
 
     // keep the cache under max capacity
-    while (this.size() > this.capacity) {
+    while (this.size() > this._capacity) {
       this.poll()
     }
 

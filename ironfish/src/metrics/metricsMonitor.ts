@@ -38,11 +38,17 @@ export class MetricsMonitor {
 
   readonly heapTotal: Gauge
   readonly heapUsed: Gauge
-  readonly memPoolSize: Gauge
   readonly rss: Gauge
   readonly memFree: Gauge
   readonly memTotal: number
   readonly heapMax: number
+
+  // Mempool metrics
+  readonly memPoolSize: Gauge
+  readonly memPoolSizeBytes: Gauge
+  readonly memPoolMaxSizeBytes: Gauge
+  readonly memPoolSaturation: Gauge
+  readonly memPoolEvictions: Meter
 
   readonly cpuCores: number
 
@@ -81,8 +87,14 @@ export class MetricsMonitor {
     this.rss = new Gauge()
     this.memFree = new Gauge()
     this.memTotal = os.totalmem()
-    this.memPoolSize = new Gauge()
     this.memoryInterval = null
+
+    // mempool metrics
+    this.memPoolSize = new Gauge()
+    this.memPoolSizeBytes = new Gauge()
+    this.memPoolMaxSizeBytes = new Gauge()
+    this.memPoolSaturation = new Gauge()
+    this.memPoolEvictions = this.addMeter()
 
     this.heapMax = getHeapStatistics().total_available_size
 
