@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import ws from 'ws'
 import { Assert } from '../../assert'
 import { Identity, isIdentity } from '../identity'
 import { GetBlockHeadersResponse } from '../messages/getBlockHeaders'
@@ -17,6 +16,7 @@ import {
 } from '../peers/connections'
 import { Peer } from '../peers/peer'
 import { PeerManager } from '../peers/peerManager'
+import { WebSocketClient } from '../webSocketClient'
 import { mockIdentity } from './mockIdentity'
 
 export function getConnectingPeer(
@@ -32,7 +32,7 @@ export function getConnectingPeer(
     peer = pm.getOrCreatePeer(identity ?? null)
 
     const connection = new WebSocketConnection(
-      new ws(''),
+      new WebSocketClient(''),
       ConnectionDirection.Inbound,
       peer.logger,
     )

@@ -240,7 +240,10 @@ export class MemPool {
     }
 
     this.queue.add({ hash, feeRate: getFeeRate(transaction) })
-    this.expirationQueue.add({ expiration: transaction.expiration(), hash })
+    // 0 expiration transactions cannot expire so don't add them to the expiration queue
+    if (transaction.expiration() > 0) {
+      this.expirationQueue.add({ expiration: transaction.expiration(), hash })
+    }
     this.metrics.memPoolSize.value = this.count()
     return true
   }

@@ -4,19 +4,19 @@
 import {
   BufferUtils,
   CreateTransactionRequest,
-  CreateTransactionResponse,
   CurrencyUtils,
+  RawTransaction,
   RawTransactionSerde,
-  RpcResponseEnded,
   Transaction,
 } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
-import inquirer from 'inquirer'
 import { IronfishCommand } from '../../command'
-import { IronFlag, parseIron, RemoteFlags } from '../../flags'
-import { ProgressBar } from '../../types'
+import { IronFlag, RemoteFlags } from '../../flags'
 import { selectAsset } from '../../utils/asset'
+import { promptCurrency } from '../../utils/currency'
+import { selectFee } from '../../utils/fees'
 import { doEligibilityCheck } from '../../utils/testnet'
+import { watchTransaction } from '../../utils/transaction'
 
 export class Mint extends IronfishCommand {
   static description = 'Mint tokens and increase supply for a given asset'
@@ -85,55 +85,60 @@ export class Mint extends IronfishCommand {
       allowNo: true,
       description: 'check testnet eligibility',
     }),
+    offline: Flags.boolean({
+      default: false,
+      description: 'Allow offline transaction creation',
+    }),
+    watch: Flags.boolean({
+      default: false,
+      description: 'Wait for the transaction to be confirmed',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Mint)
-    const client = await this.sdk.connectRpc(false, true)
+    const client = await this.sdk.connectRpc()
 
     if (flags.eligibility) {
       await doEligibilityCheck(client, this.logger)
     }
 
-    const status = await client.getNodeStatus()
-    if (!status.content.blockchain.synced) {
-      this.log(
-        `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
-      )
-      this.exit(1)
+    if (!flags.offline) {
+      const status = await client.getNodeStatus()
+      if (!status.content.blockchain.synced) {
+        this.log(
+          `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
+        )
+        this.exit(1)
+      }
     }
 
-    let account = flags.account?.trim()
+    let account = flags.account
     if (!account) {
       const response = await client.getDefaultAccount()
-      const defaultAccount = response.content.account
 
-      if (!defaultAccount) {
+      if (!response.content.account) {
         this.error(
           `No account is currently active.
            Use ironfish wallet:create <name> to first create an account`,
         )
       }
 
-      account = defaultAccount.name
+      account = response.content.account.name
+    }
+
+    if (flags.expiration !== undefined && flags.expiration < 0) {
+      this.log('Expiration sequence must be non-negative')
+      this.exit(1)
     }
 
     let assetId = flags.assetId
     let metadata = flags.metadata
     let name = flags.name
 
-    const confirmations = flags.confirmations
-
-    const expiration = flags.expiration
-
-    if (expiration !== undefined && expiration < 0) {
-      this.log('Expiration sequence must be non-negative')
-      this.exit(1)
-    }
-
     // We can assume the prompt can be skipped if at least one of metadata or
     // name is provided
-    let isMintingNewAsset = Boolean(metadata || name)
+    let isMintingNewAsset = Boolean(name || metadata)
     if (!assetId && !metadata && !name) {
       isMintingNewAsset = await CliUx.ux.confirm('Do you want to create a new asset (Y/N)?')
     }
@@ -156,7 +161,7 @@ export class Mint extends IronfishCommand {
         action: 'mint',
         showNativeAsset: false,
         showSingleAssetChoice: true,
-        confirmations: confirmations,
+        confirmations: flags.confirmations,
       })
 
       if (!asset) {
@@ -166,188 +171,118 @@ export class Mint extends IronfishCommand {
       assetId = asset.id
     }
 
-    let amount
-    if (flags.amount) {
-      amount = flags.amount
-    } else {
-      const input = await CliUx.ux.prompt('Enter the amount to mint in the custom asset', {
+    let amount = flags.amount
+    if (!amount) {
+      amount = await promptCurrency({
+        client: client,
         required: true,
+        text: 'Enter the amount',
+        minimum: 1n,
       })
-
-      amount = await parseIron(input, { flagName: 'amount' }).catch((error: Error) =>
-        this.error(error.message),
-      )
     }
 
-    let fee
-    let rawTransactionResponse: string
-
-    if (flags.fee) {
-      fee = flags.fee
-
-      const createResponse = await client.createTransaction({
-        account,
-        outputs: [],
-        mints: [
-          {
-            assetId,
-            name,
-            metadata,
-            value: CurrencyUtils.encode(amount),
-          },
-        ],
-        fee: CurrencyUtils.encode(fee),
-        expiration: expiration,
-        confirmations: confirmations,
-      })
-      rawTransactionResponse = createResponse.content.transaction
-    } else {
-      const feeRatesResponse = await client.estimateFeeRates()
-      const feeRates = [
-        feeRatesResponse.content.slow ?? '1',
-        feeRatesResponse.content.average ?? '1',
-        feeRatesResponse.content.fast ?? '1',
-      ]
-
-      const feeRateNames = Object.getOwnPropertyNames(feeRatesResponse.content)
-
-      const feeRateOptions: { value: number; name: string }[] = []
-
-      const createTransactionRequest: CreateTransactionRequest = {
-        account,
-        outputs: [],
-        mints: [
-          {
-            assetId,
-            name,
-            metadata,
-            value: CurrencyUtils.encode(amount),
-          },
-        ],
-        expiration: expiration,
-        confirmations: confirmations,
-      }
-
-      const allPromises: Promise<RpcResponseEnded<CreateTransactionResponse>>[] = []
-      feeRates.forEach((feeRate) => {
-        allPromises.push(
-          client.createTransaction({
-            ...createTransactionRequest,
-            feeRate: feeRate,
-          }),
-        )
-      })
-
-      const createResponses = await Promise.all(allPromises)
-      createResponses.forEach((createResponse, index) => {
-        const rawTransactionBytes = Buffer.from(createResponse.content.transaction, 'hex')
-        const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
-
-        feeRateOptions.push({
-          value: index,
-          name: `${feeRateNames[index]}: ${CurrencyUtils.renderIron(rawTransaction.fee)} IRON`,
-        })
-      })
-
-      const input: { selection: number } = await inquirer.prompt<{ selection: number }>([
+    const params: CreateTransactionRequest = {
+      account,
+      outputs: [],
+      mints: [
         {
-          name: 'selection',
-          message: `Select the fee you wish to use for this transaction`,
-          type: 'list',
-          choices: feeRateOptions,
+          assetId,
+          name,
+          metadata,
+          value: CurrencyUtils.encode(amount),
         },
-      ])
-
-      rawTransactionResponse = createResponses[input.selection].content.transaction
+      ],
+      fee: flags.fee ? CurrencyUtils.encode(flags.fee) : null,
+      expiration: flags.expiration,
+      confirmations: flags.confirmations,
     }
 
-    const rawTransactionBytes = Buffer.from(rawTransactionResponse, 'hex')
-    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+    let raw: RawTransaction
 
-    if (!flags.confirm) {
-      const nameString = name ? `Name: ${name}` : ''
-      const metadataString = metadata ? `Metadata: ${metadata}` : ''
-      const includeTicker = !!assetId
-      const amountString = CurrencyUtils.renderIron(amount, includeTicker, assetId)
-      const feeString = CurrencyUtils.renderIron(rawTransaction.fee, true)
-      this.log(`
-You are about to mint ${nameString} ${metadataString}
-${amountString} plus a transaction fee of ${feeString} with the account ${account}
-`)
-
-      if (!flags.rawTransaction) {
-        this.log(`* This action is NOT reversible *\n`)
-      }
-
-      const confirm = await CliUx.ux.confirm('Do you confirm (Y/N)?')
-      if (!confirm) {
-        this.log('Transaction aborted.')
-        this.exit(0)
-      }
+    if (params.fee === null) {
+      raw = await selectFee({
+        client,
+        transaction: params,
+      })
+    } else {
+      const response = await client.createTransaction(params)
+      const bytes = Buffer.from(response.content.transaction, 'hex')
+      raw = RawTransactionSerde.deserialize(bytes)
     }
 
     if (flags.rawTransaction) {
-      this.log(`Raw transaction: ${rawTransactionResponse}`)
-      this.log(`\nRun "ironfish wallet:post" to post the raw transaction. `)
+      this.log('Raw Transaction')
+      this.log(RawTransactionSerde.serialize(raw).toString('hex'))
+      this.log(`Run "ironfish wallet:post" to post the raw transaction. `)
       this.exit(0)
     }
 
-    const bar = CliUx.ux.progress({
-      barCompleteChar: '\u2588',
-      barIncompleteChar: '\u2591',
-      format: 'Creating the transaction: [{bar}] {percentage}% | ETA: {eta}s',
-    }) as ProgressBar
-
-    bar.start()
-
-    let value = 0
-    const timer = setInterval(() => {
-      value++
-      bar.update(value)
-      if (value >= bar.getTotal()) {
-        bar.stop()
-      }
-    }, 1000)
-
-    const stopProgressBar = () => {
-      clearInterval(timer)
-      bar.update(100)
-      bar.stop()
+    if (
+      !flags.confirm &&
+      !(await this.confirm(account, amount, raw.fee, assetId, name, metadata))
+    ) {
+      this.error('Transaction aborted.')
     }
 
-    let transaction
-    try {
-      const result = await client.postTransaction({
-        transaction: rawTransactionResponse,
-        account,
-      })
+    CliUx.ux.action.start('Sending the transaction')
 
-      stopProgressBar()
+    const response = await client.postTransaction({
+      transaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      account,
+    })
 
-      const transactionBytes = Buffer.from(result.content.transaction, 'hex')
-      transaction = new Transaction(transactionBytes)
+    const bytes = Buffer.from(response.content.transaction, 'hex')
+    const transaction = new Transaction(bytes)
 
-      const minted = transaction.mints[0]
+    CliUx.ux.action.stop()
 
-      this.log(`
-Minted asset ${BufferUtils.toHuman(minted.asset.name())} from ${account}
-Asset Identifier: ${minted.asset.id().toString('hex')}
-Value: ${CurrencyUtils.renderIron(minted.value, true, minted.asset.id().toString('hex'))}
+    const minted = transaction.mints[0]
 
-Transaction Hash: ${transaction.hash().toString('hex')}
-
-Find the transaction on https://explorer.ironfish.network/transaction/${transaction
+    this.log(`Minted asset ${BufferUtils.toHuman(minted.asset.name())} from ${account}`)
+    this.log(`Asset Identifier: ${minted.asset.id().toString('hex')}`)
+    this.log(
+      `Value: ${CurrencyUtils.renderIron(
+        minted.value,
+        true,
+        minted.asset.id().toString('hex'),
+      )}`,
+    )
+    this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
+    this.log(`Hash: ${transaction.hash().toString('hex')}`)
+    this.log(
+      `\nIf the transaction is mined, it will appear here https://explorer.ironfish.network/transaction/${transaction
         .hash()
-        .toString(
-          'hex',
-        )} (it can take a few minutes before the transaction appears in the Explorer)`)
-    } catch (error: unknown) {
-      stopProgressBar()
-      this.log(`An error occurred while minting the asset.`)
-      if (error instanceof Error) {
-        this.error(error.message)
-      }
-      this.exit(2)
+        .toString('hex')}`,
+    )
+
+    if (flags.watch) {
+      this.log('')
+
+      await watchTransaction({
+        client,
+        logger: this.logger,
+        account,
+        hash: transaction.hash().toString('hex'),
+      })
     }
+  }
+
+  async confirm(
+    account: string,
+    amount: bigint,
+    fee: bigint,
+    assetId?: string,
+    name?: string,
+    metadata?: string,
+  ): Promise<boolean> {
+    const nameString = name ? `\nName: ${name}` : ''
+    const metadataString = metadata ? `\nMetadata: ${metadata}` : ''
+    this.log(
+      `You are about to mint an asset with the account ${account}:${nameString}${metadataString}`,
+    )
+    this.log(`Amount: ${CurrencyUtils.renderIron(amount, !!assetId, assetId)}`)
+    this.log(`Fee: ${CurrencyUtils.renderIron(fee, true)}`)
+
+    return CliUx.ux.confirm('Do you confirm (Y/N)?')
   }
 }

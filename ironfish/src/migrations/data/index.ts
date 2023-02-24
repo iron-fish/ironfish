@@ -12,6 +12,7 @@ import { Migration020 } from './020-backfill-null-asset-supplies'
 import { Migration021 } from './021-add-version-to-accounts'
 import { Migration022 } from './022-add-view-key-account'
 import { Migration023 } from './023-wallet-optional-spending-key'
+import { Migration024 } from './024-unspent-notes'
 import { Migration025 } from './025-backfill-wallet-nullifier-to-transaction-hash'
 
 export const MIGRATIONS = [
@@ -25,5 +26,6 @@ export const MIGRATIONS = [
   Migration021,
   Migration022,
   Migration023,
+  Migration024,
   Migration025,
 ]

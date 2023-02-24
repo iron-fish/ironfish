@@ -88,9 +88,6 @@ export class Migration025 extends Migration {
     logger.info('')
   }
 
-  /**
-   * Writing a backwards migration is optional but suggested
-   */
   async backward(
     _node: IronfishNode,
     db: IDatabase,

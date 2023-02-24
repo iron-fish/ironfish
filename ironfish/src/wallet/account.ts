@@ -155,10 +155,12 @@ export class Account {
 
         const pendingNote = await this.getDecryptedNote(decryptedNote.hash, tx)
 
+        const spent = pendingNote?.spent ?? false
+
         const note = {
           accountId: this.id,
           note: new Note(decryptedNote.serializedNote),
-          spent: pendingNote?.spent ?? false,
+          spent,
           transactionHash: transaction.hash(),
           nullifier: decryptedNote.nullifier,
           index: decryptedNote.index,
@@ -169,6 +171,10 @@ export class Account {
         assetBalanceDeltas.increment(note.note.assetId(), note.note.value())
 
         await this.walletDb.saveDecryptedNote(this, decryptedNote.hash, note, tx)
+
+        if (!spent) {
+          await this.walletDb.addUnspentNoteHash(this, decryptedNote.hash, note, tx)
+        }
       }
 
       for (const spend of transaction.spends) {
@@ -191,6 +197,8 @@ export class Account {
           transaction,
           tx,
         )
+
+        await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
       transactionValue = {
@@ -503,6 +511,8 @@ export class Account {
             tx,
           )
         }
+
+        await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
       const transactionValue = {
@@ -564,6 +574,7 @@ export class Account {
           },
           tx,
         )
+        await this.walletDb.deleteUnspentNoteHash(this, noteHash, decryptedNoteValue, tx)
       }
 
       for (const spend of transaction.spends) {
@@ -743,6 +754,8 @@ export class Account {
               tx,
             )
           }
+
+          await this.walletDb.addUnspentNoteHash(this, noteHash, decryptedNote, tx)
         }
       }
 
@@ -791,6 +804,7 @@ export class Account {
     confirmed: bigint
     pending: bigint
     pendingCount: number
+    available: bigint
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -816,6 +830,13 @@ export class Account {
         tx,
       )
 
+      const available = await this.calculateAvailableBalance(
+        head.sequence,
+        assetId,
+        confirmations,
+        tx,
+      )
+
       yield {
         assetId,
         unconfirmed: balance.unconfirmed,
@@ -823,6 +844,7 @@ export class Account {
         confirmed,
         pending,
         pendingCount,
+        available,
         blockHash: balance.blockHash,
         sequence: balance.sequence,
       }
@@ -844,6 +866,7 @@ export class Account {
     confirmed: bigint
     pending: bigint
     pendingCount: number
+    available: bigint
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -853,6 +876,7 @@ export class Account {
         unconfirmed: 0n,
         confirmed: 0n,
         pending: 0n,
+        available: 0n,
         unconfirmedCount: 0,
         pendingCount: 0,
         blockHash: null,
@@ -878,11 +902,19 @@ export class Account {
       tx,
     )
 
+    const available = await this.calculateAvailableBalance(
+      head.sequence,
+      assetId,
+      confirmations,
+      tx,
+    )
+
     return {
       unconfirmed: balance.unconfirmed,
       unconfirmedCount,
       confirmed,
       pending,
+      available,
       pendingCount,
       blockHash: balance.blockHash,
       sequence: balance.sequence,
@@ -951,6 +983,26 @@ export class Account {
       confirmed,
       unconfirmedCount,
     }
+  }
+
+  async calculateAvailableBalance(
+    headSequence: number,
+    assetId: Buffer,
+    confirmations: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<bigint> {
+    let available = 0n
+
+    for await (const value of this.walletDb.loadUnspentNoteValues(
+      this,
+      assetId,
+      headSequence - confirmations,
+      tx,
+    )) {
+      available += value
+    }
+
+    return available
   }
 
   async getUnconfirmedBalances(tx?: IDatabaseTransaction): Promise<BufferMap<BalanceValue>> {

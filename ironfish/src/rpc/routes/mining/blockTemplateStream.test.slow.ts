@@ -4,7 +4,6 @@
 
 import {
   createNodeTest,
-  SpendingAccount,
   useAccountFixture,
   useMinerBlockFixture,
   useTxFixture,
@@ -47,12 +46,13 @@ describe('Block template stream', () => {
     const { chain } = routeTest.node
     routeTest.node.config.set('miningForce', true)
 
-    const account = await useAccountFixture(node.wallet, 'testAccount', true)
+    const account = await useAccountFixture(node.wallet, 'testAccount')
+    await node.wallet.setDefaultAccount(account.name)
 
     // Create another node
     const nodeTest = createNodeTest()
     await nodeTest.setup()
-    const importedAccount = (await nodeTest.wallet.importAccount(account)) as SpendingAccount
+    const importedAccount = await nodeTest.wallet.importAccount(account)
     await nodeTest.wallet.setDefaultAccount(account.name)
 
     // Generate a block
