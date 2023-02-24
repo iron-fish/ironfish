@@ -128,6 +128,7 @@ export class IdentifyMessage extends NetworkMessage {
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(this.work))
     size += 2 // network ID
     size += 32 // genesis block hash
+    size += 4 // features
     return size
   }
 }
