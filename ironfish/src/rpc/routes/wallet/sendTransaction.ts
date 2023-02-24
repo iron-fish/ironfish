@@ -99,7 +99,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     for (const [assetId, sum] of totalByAssetId) {
       const balance = await node.wallet.getBalance(account, assetId)
 
-      if (balance.confirmed < sum) {
+      if (balance.available < sum) {
         throw new ValidationError(
           `Your balance is too low. Add funds to your account first`,
           undefined,
