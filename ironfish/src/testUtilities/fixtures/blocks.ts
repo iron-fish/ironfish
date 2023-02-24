@@ -13,7 +13,7 @@ import { MintData, RawTransaction } from '../../primitives/rawTransaction'
 import { Transaction } from '../../primitives/transaction'
 import { Account, Wallet } from '../../wallet'
 import { WorkerPool } from '../../workerPool/pool'
-import { SpendingAccount, useAccountFixture } from './account'
+import { useAccountFixture } from './account'
 import { FixtureGenerate, useFixture } from './fixture'
 import {
   restoreTransactionFixtureToAccounts,
@@ -92,7 +92,7 @@ export async function useMinerBlockFixture(
 
 export async function useMintBlockFixture(options: {
   node: IronfishNode
-  account: SpendingAccount
+  account: Account
   asset: Asset
   value: bigint
   sequence?: number
@@ -121,7 +121,7 @@ export async function useMintBlockFixture(options: {
 
 export async function useBurnBlockFixture(options: {
   node: IronfishNode
-  account: SpendingAccount
+  account: Account
   asset: Asset
   value: bigint
   sequence?: number
@@ -145,7 +145,7 @@ export async function useBurnBlockFixture(options: {
 export async function useBlockWithRawTxFixture(
   chain: Blockchain,
   pool: WorkerPool,
-  sender: SpendingAccount,
+  sender: Account,
   notesToSpend: NoteEncrypted[],
   outputs: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[],
   mints: MintData[],
@@ -188,6 +188,7 @@ export async function useBlockWithRawTxFixture(
       raw.outputs.push({ note: new Note(note.serialize()) })
     }
 
+    Assert.isNotNull(sender.spendingKey)
     const transaction = await pool.postTransaction(raw, sender.spendingKey)
 
     return chain.newBlock(
@@ -208,7 +209,7 @@ export async function useBlockWithRawTxFixture(
  */
 export async function useBlockWithTx(
   node: IronfishNode,
-  from?: SpendingAccount,
+  from?: Account,
   to?: Account,
   useFee = true,
   options: {
@@ -217,7 +218,7 @@ export async function useBlockWithTx(
   } = { expiration: 0 },
   broadcast = true,
 ): Promise<{
-  account: SpendingAccount
+  account: Account
   previous: Block
   block: Block
   transaction: Transaction
@@ -285,9 +286,9 @@ export async function useBlockWithTx(
 export async function useBlockWithTxs(
   node: IronfishNode,
   numTransactions: number,
-  from?: SpendingAccount,
+  from?: Account,
 ): Promise<{
-  account: SpendingAccount
+  account: Account
   block: Block
   transactions: Transaction[]
 }> {
@@ -349,11 +350,11 @@ export async function useBlockWithTxs(
 export async function useTxSpendsFixture(
   node: IronfishNode,
   options?: {
-    account?: SpendingAccount
+    account?: Account
     expiration?: number
     restore?: boolean
   },
-): Promise<{ account: SpendingAccount; transaction: Transaction }> {
+): Promise<{ account: Account; transaction: Transaction }> {
   const account = options?.account ?? (await useAccountFixture(node.wallet))
 
   const block = await useMinerBlockFixture(node.chain, 2, account, node.wallet)
