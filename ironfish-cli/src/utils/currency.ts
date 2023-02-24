@@ -59,6 +59,7 @@ export async function promptCurrency(options: {
     Assert.isNotNull(amount)
 
     if (options.minimum != null && amount < options.minimum) {
+      console.log("Please enter an amount greater than 0")
       continue
     }
 
