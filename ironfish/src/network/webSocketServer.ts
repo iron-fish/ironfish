@@ -6,12 +6,20 @@ import http from 'http'
 import WSWebSocket from 'ws'
 import { MAX_MESSAGE_SIZE } from './version'
 
+export const WEBSOCKET_OPTIONS = {
+  maxPayload: MAX_MESSAGE_SIZE,
+}
+
 export class WebSocketServer {
   // The server instance
   readonly server: WSWebSocket.Server
 
   constructor(ctor: typeof WSWebSocket.Server, port: number) {
-    this.server = new ctor({ port, maxPayload: MAX_MESSAGE_SIZE })
+    const opts = {
+      ...WEBSOCKET_OPTIONS,
+      port,
+    }
+    this.server = new ctor(opts)
   }
 
   /**

@@ -34,7 +34,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-const VERSION_DATABASE_ACCOUNTS = 22
+const VERSION_DATABASE_ACCOUNTS = 23
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -506,9 +506,8 @@ export class WalletDB {
     account: Account,
     nullifier: Buffer,
     tx?: IDatabaseTransaction,
-  ): Promise<Buffer | null> {
-    const noteHash = await this.nullifierToNoteHash.get([account.prefix, nullifier], tx)
-    return noteHash || null
+  ): Promise<Buffer | undefined> {
+    return this.nullifierToNoteHash.get([account.prefix, nullifier], tx)
   }
 
   async saveNullifierNoteHash(

@@ -1,7 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { RpcClient } from '@ironfish/sdk'
+import {
+  DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY,
+  DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE,
+  DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST,
+  DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW,
+  RpcClient,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
@@ -37,10 +43,15 @@ export class FeeCommand extends IronfishCommand {
   async explainFeeRates(client: RpcClient): Promise<void> {
     const config = await client.getConfig()
 
-    const slow = config.content['feeEstimatorPercentileLow'] || '10'
-    const average = config.content['feeEstimatorPercentileMedium'] || '20'
-    const fast = config.content['feeEstimatorPercentileHigh'] || '30'
-    const numBlocks = config.content['feeEstimatorMaxBlockHistory'] || '10'
+    const slow =
+      config.content['feeEstimatorPercentileSlow'] || DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW
+    const average =
+      config.content['feeEstimatorPercentileAverage'] ||
+      DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE
+    const fast =
+      config.content['feeEstimatorPercentileFast'] || DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST
+    const numBlocks =
+      config.content['feeEstimatorMaxBlockHistory'] || DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY
 
     this.log(
       `Fee rates are estimated from the distribution of transaction fees over the last ${numBlocks} blocks.\n`,
@@ -48,7 +59,9 @@ export class FeeCommand extends IronfishCommand {
     this.log(
       'The fee rate for each transaction is computed by dividing the transaction fee in $ORE by the size of the transaction in kB.\n',
     )
-    this.log('The low, medium, and high rates each come from a percentile in the distribution:')
+    this.log(
+      'The slow, average, and fast rates each come from a percentile in the distribution:',
+    )
     this.log(`slow:    ${slow}th`)
     this.log(`average: ${average}th`)
     this.log(`fast:    ${fast}th`)

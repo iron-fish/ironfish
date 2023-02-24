@@ -44,6 +44,7 @@ export async function usePostTxFixture(options: {
     options.from,
     async () => {
       const raw = await createRawTransaction(options)
+      Assert.isNotNull(options.from.spendingKey)
       return options.node.workerPool.postTransaction(raw, options.from.spendingKey)
     },
     undefined,
@@ -79,6 +80,7 @@ export async function useTxFixture(
         expirationDelta: 0,
       })
 
+      Assert.isNotNull(from.spendingKey)
       return await wallet.workerPool.postTransaction(raw, from.spendingKey)
     })
 
@@ -109,6 +111,7 @@ export async function useMinersTxFixture(
 
   return useTxFixture(wallet, to, to, () => {
     Assert.isNotUndefined(to)
+    Assert.isNotNull(to.spendingKey)
 
     return wallet.chain.strategy.createMinersFee(
       BigInt(amount),

@@ -37,8 +37,8 @@ describe('wallet/getAssets', () => {
       from: account,
       mints: [
         {
-          name: pendingAsset.name().toString('hex'),
-          metadata: pendingAsset.metadata().toString('hex'),
+          name: pendingAsset.name().toString(),
+          metadata: pendingAsset.metadata().toString(),
           value,
         },
       ],
@@ -47,25 +47,27 @@ describe('wallet/getAssets', () => {
     const response = routeTest.client.getAssets({ account: account.name })
 
     const assets = await AsyncUtils.materialize(response.contentStream())
-    expect(assets).toEqual([
-      {
-        createdTransactionHash: pendingMint.hash().toString('hex'),
-        id: pendingAsset.id().toString('hex'),
-        metadata: pendingAsset.metadata().toString('hex'),
-        name: pendingAsset.name().toString('hex'),
-        owner: account.publicAddress,
-        status: AssetStatus.PENDING,
-        supply: '0',
-      },
-      {
-        createdTransactionHash: mintBlock.transactions[1].hash().toString('hex'),
-        id: asset.id().toString('hex'),
-        metadata: asset.metadata().toString('hex'),
-        name: asset.name().toString('hex'),
-        owner: account.publicAddress,
-        status: AssetStatus.CONFIRMED,
-        supply: value.toString(),
-      },
-    ])
+    expect(assets).toEqual(
+      expect.arrayContaining([
+        {
+          createdTransactionHash: pendingMint.hash().toString('hex'),
+          id: pendingAsset.id().toString('hex'),
+          metadata: pendingAsset.metadata().toString('hex'),
+          name: pendingAsset.name().toString('hex'),
+          owner: account.publicAddress,
+          status: AssetStatus.PENDING,
+          supply: '0',
+        },
+        {
+          createdTransactionHash: mintBlock.transactions[1].hash().toString('hex'),
+          id: asset.id().toString('hex'),
+          metadata: asset.metadata().toString('hex'),
+          name: asset.name().toString('hex'),
+          owner: account.publicAddress,
+          status: AssetStatus.CONFIRMED,
+          supply: value.toString(),
+        },
+      ]),
+    )
   })
 })

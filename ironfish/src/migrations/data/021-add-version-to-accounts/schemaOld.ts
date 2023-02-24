@@ -98,7 +98,7 @@ export async function GetOldAccounts(
     accounts.push(
       new Account({
         ...account,
-        version: undefined,
+        version: 1,
         viewKey: key.viewKey,
         walletDb: node.wallet.walletDb,
       }),

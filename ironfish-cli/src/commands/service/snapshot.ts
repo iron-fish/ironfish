@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { S3Client } from '@aws-sdk/client-s3'
+import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager'
 import { FileUtils, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
@@ -14,8 +15,15 @@ import { SnapshotManifest } from '../../snapshot'
 import { S3Utils, TarUtils } from '../../utils'
 
 const SNAPSHOT_FILE_NAME = `ironfish_snapshot.tar.gz`
+const R2_SECRET_NAME = 'r2-prod-access-key'
+const R2_ENDPOINT = `https://a93bebf26da4c2fe205f71c896afcf89.r2.cloudflarestorage.com`
 
-export default class CreateSnapshot extends IronfishCommand {
+export type R2Secret = {
+  r2AccessKeyId: string
+  r2SecretAccessKey: string
+}
+
+export default class Snapshot extends IronfishCommand {
   static hidden = true
 
   static description = `Upload chain snapshot to a public bucket`
@@ -47,10 +55,15 @@ export default class CreateSnapshot extends IronfishCommand {
       required: false,
       description: 'Webhook to notify on successful snapshot upload',
     }),
+    r2: Flags.boolean({
+      default: false,
+      allowNo: true,
+      description: 'Upload the snapshot to Cloudflare R2.',
+    }),
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(CreateSnapshot)
+    const { flags } = await this.parse(Snapshot)
 
     const bucket = flags.bucket
 
@@ -99,7 +112,31 @@ export default class CreateSnapshot extends IronfishCommand {
       const snapshotBaseName = path.basename(SNAPSHOT_FILE_NAME, '.tar.gz')
       const snapshotKeyName = `${snapshotBaseName}_${timestamp}.tar.gz`
 
-      const s3 = new S3Client({})
+      let s3 = new S3Client({})
+      if (flags.r2) {
+        const client = new SecretsManagerClient({})
+        const command = new GetSecretValueCommand({ SecretId: R2_SECRET_NAME })
+
+        this.log('Fetching secret from AWS Secrets Manager.')
+
+        const response = await client.send(command)
+
+        if (response.SecretString === undefined) {
+          this.log(`Failed to fetch R2 secret from AWS.`)
+          this.exit(1)
+        } else {
+          const secret = JSON.parse(response.SecretString) as R2Secret
+
+          s3 = new S3Client({
+            region: 'auto',
+            endpoint: R2_ENDPOINT,
+            credentials: {
+              accessKeyId: secret.r2AccessKeyId,
+              secretAccessKey: secret.r2SecretAccessKey,
+            },
+          })
+        }
+      }
 
       CliUx.ux.action.start(`Uploading to ${bucket}`)
       await S3Utils.uploadToBucket(

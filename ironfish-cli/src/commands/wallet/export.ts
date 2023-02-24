@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { spendingKeyToWords } from '@ironfish/rust-nodejs'
-import { Bech32m, ErrorUtils } from '@ironfish/sdk'
+import { Assert, Bech32m, ErrorUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fs from 'fs'
 import jsonColorizer from 'json-colorizer'
@@ -44,6 +44,10 @@ export class ExportCommand extends IronfishCommand {
       description: 'The path to export the account to',
       required: false,
     }),
+    viewonly: Flags.boolean({
+      default: false,
+      description: 'Export an account as a view-only account',
+    }),
   }
 
   static args = [
@@ -60,14 +64,14 @@ export class ExportCommand extends IronfishCommand {
     const { color, local } = flags
     const account = args.account as string
     const exportPath = flags.path
+    const viewOnly = flags.viewonly
 
     if (flags.language) {
       flags.mnemonic = true
     }
 
     const client = await this.sdk.connectRpc(local)
-    const response = await client.exportAccount({ account })
-
+    const response = await client.exportAccount({ account: account, viewOnly: viewOnly })
     let output
 
     if (flags.mnemonic) {
@@ -85,7 +89,10 @@ export class ExportCommand extends IronfishCommand {
         CliUx.ux.info(`Could not detect your language, please select language for export`)
         languageCode = await selectLanguage()
       }
-
+      Assert.isTruthy(
+        response.content.account.spendingKey,
+        'The account you are trying to export does not have a spending key, therefore a mnemonic cannot be generated for it',
+      )
       output = spendingKeyToWords(response.content.account.spendingKey, languageCode)
     } else if (flags.json) {
       output = JSON.stringify(response.content.account, undefined, '    ')

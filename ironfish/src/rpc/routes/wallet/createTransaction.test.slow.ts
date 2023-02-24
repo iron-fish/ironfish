@@ -5,17 +5,13 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { Account } from '../../../wallet'
 
 describe('Route wallet/createTransaction', () => {
-  const routeTest = createRouteTest(true)
-  let sender: Account
-
-  beforeAll(async () => {
-    sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
-  })
+  const routeTest = createRouteTest()
 
   it('should create transaction to mint existing asset', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 

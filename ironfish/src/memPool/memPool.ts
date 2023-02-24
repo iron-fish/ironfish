@@ -142,25 +142,11 @@ export class MemPool {
       return false
     }
 
-    for (const spend of transaction.spends) {
-      if (this.nullifiers.has(spend.nullifier)) {
-        const existingTransactionHash = this.nullifiers.get(spend.nullifier)
-        Assert.isNotUndefined(existingTransactionHash)
+    const added = this.addTransaction(transaction)
 
-        const existingTransaction = this.transactions.get(existingTransactionHash)
-        if (!existingTransaction) {
-          continue
-        }
-
-        if (transaction.fee() > existingTransaction.fee()) {
-          this.deleteTransaction(existingTransaction)
-        } else {
-          return false
-        }
-      }
+    if (!added) {
+      return false
     }
-
-    this.addTransaction(transaction)
 
     this.logger.debug(`Accepted tx ${hash}, poolsize ${this.count()}`)
     return true
@@ -224,6 +210,25 @@ export class MemPool {
       return false
     }
 
+    // Don't allow transactions with duplicate nullifiers
+    for (const spend of transaction.spends) {
+      if (this.nullifiers.has(spend.nullifier)) {
+        const existingTransactionHash = this.nullifiers.get(spend.nullifier)
+        Assert.isNotUndefined(existingTransactionHash)
+
+        const existingTransaction = this.transactions.get(existingTransactionHash)
+        if (!existingTransaction) {
+          continue
+        }
+
+        if (transaction.fee() > existingTransaction.fee()) {
+          this.deleteTransaction(existingTransaction)
+        } else {
+          return false
+        }
+      }
+    }
+
     this.transactions.set(hash, transaction)
 
     this.transactionsBytes += getTransactionSize(transaction)
@@ -235,7 +240,10 @@ export class MemPool {
     }
 
     this.queue.add({ hash, feeRate: getFeeRate(transaction) })
-    this.expirationQueue.add({ expiration: transaction.expiration(), hash })
+    // 0 expiration transactions cannot expire so don't add them to the expiration queue
+    if (transaction.expiration() > 0) {
+      this.expirationQueue.add({ expiration: transaction.expiration(), hash })
+    }
     this.metrics.memPoolSize.value = this.count()
     return true
   }

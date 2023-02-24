@@ -16,6 +16,10 @@ export const DEFAULT_USE_RPC_TLS = true
 export const DEFAULT_POOL_HOST = '::'
 export const DEFAULT_POOL_PORT = 9034
 export const DEFAULT_NETWORK_ID = 0
+export const DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY = 10
+export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW = 10
+export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE = 20
+export const DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST = 30
 
 export type ConfigOptions = {
   bootstrapNodes: string[]
@@ -208,10 +212,26 @@ export type ConfigOptions = {
    */
   explorerTransactionsUrl: string
 
+  /**
+   * How many blocks back from the head of the chain to use to calculate the fee
+   * estimate
+   */
   feeEstimatorMaxBlockHistory: number
-  feeEstimatorPercentileLow: number
-  feeEstimatorPercentileMedium: number
-  feeEstimatorPercentileHigh: number
+
+  /**
+   * The percentile to use as an estimate for a slow transaction
+   */
+  feeEstimatorPercentileSlow: number
+
+  /**
+   * The percentile to use as an estimate for an average transaction
+   */
+  feeEstimatorPercentileAverage: number
+
+  /**
+   * The percentile to use as an estimate for a fast transaction
+   */
+  feeEstimatorPercentileFast: number
 
   /**
    * Network ID of an official Iron Fish network
@@ -281,12 +301,17 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     poolDifficulty: yup.string(),
     poolStatusNotificationInterval: YupUtils.isPositiveInteger,
     poolRecentShareCutoff: YupUtils.isPositiveInteger,
+    poolPayoutPeriodDuration: YupUtils.isPositiveInteger,
     poolDiscordWebhook: yup.string(),
     poolMaxConnectionsPerIp: YupUtils.isPositiveInteger,
     poolLarkWebhook: yup.string(),
     jsonLogs: yup.boolean(),
     explorerBlocksUrl: YupUtils.isUrl,
     explorerTransactionsUrl: YupUtils.isUrl,
+    feeEstimatorMaxBlockHistory: YupUtils.isPositiveInteger,
+    feeEstimatorPercentileSlow: YupUtils.isPositiveInteger,
+    feeEstimatorPercentileAverage: YupUtils.isPositiveInteger,
+    feeEstimatorPercentileFast: YupUtils.isPositiveInteger,
     networkId: yup.number().integer().min(0),
     customNetwork: yup.string().trim(),
     maxSyncedAgeBlocks: yup.number().integer().min(0),
@@ -367,10 +392,10 @@ export class Config extends KeyStore<ConfigOptions> {
       jsonLogs: false,
       explorerBlocksUrl: 'https://explorer.ironfish.network/blocks/',
       explorerTransactionsUrl: 'https://explorer.ironfish.network/transaction/',
-      feeEstimatorMaxBlockHistory: 10,
-      feeEstimatorPercentileLow: 10,
-      feeEstimatorPercentileMedium: 20,
-      feeEstimatorPercentileHigh: 30,
+      feeEstimatorMaxBlockHistory: DEFAULT_FEE_ESTIMATOR_MAX_BLOCK_HISTORY,
+      feeEstimatorPercentileSlow: DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW,
+      feeEstimatorPercentileAverage: DEFAULT_FEE_ESTIMATOR_PERCENTILE_AVERAGE,
+      feeEstimatorPercentileFast: DEFAULT_FEE_ESTIMATOR_PERCENTILE_FAST,
       networkId: DEFAULT_NETWORK_ID,
       customNetwork: '',
       maxSyncedAgeBlocks: 60,

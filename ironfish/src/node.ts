@@ -248,9 +248,9 @@ export class IronfishNode {
     const feeEstimator = new FeeEstimator({
       maxBlockHistory: config.get('feeEstimatorMaxBlockHistory'),
       percentiles: {
-        low: config.get('feeEstimatorPercentileLow'),
-        medium: config.get('feeEstimatorPercentileMedium'),
-        high: config.get('feeEstimatorPercentileHigh'),
+        slow: config.get('feeEstimatorPercentileSlow'),
+        average: config.get('feeEstimatorPercentileAverage'),
+        fast: config.get('feeEstimatorPercentileFast'),
       },
     })
 

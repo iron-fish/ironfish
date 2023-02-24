@@ -1,12 +1,15 @@
 {
   "Create genesis block Can generate a valid genesis block": [
     {
-      "id": "1cefb303-7565-40a7-a1db-962186fa8170",
+      "version": 1,
+      "id": "08e294ed-33dd-4f92-9ad1-c8db09cee085",
       "name": "test",
-      "spendingKey": "6e6df28f097908c071657bc98c04ad74254069b1cb14005ad62474cdd8bc6f48",
-      "incomingViewKey": "3d94de8f3864e0c48e52069e93e20d856bbbe3b6787f7411500c847d006c4e00",
-      "outgoingViewKey": "81e80cc79ea8c2c866177eeabeb1d8c894279cbcfa5c700e6040b2d25bc43cd3",
-      "publicAddress": "babb76a29b30928c61d7984479ace53bf4739a02628c82f792f2cd9b6deca957"
+      "spendingKey": "3c7d55ecc2465bb2b36bb250725696f25827b8517f261a62c0987b1120bfdbb3",
+      "viewKey": "f29c6622e37d64a60f4ed3274ac0e37250cae8d69b1cc696c20ce34620f99634420e2f2298af3ab631f82d1c23b4febef95e172a00891ca1c666d9838581dcca",
+      "incomingViewKey": "b2eab5aa9aa7143c7bc239cf0649c5302464ac80e058d00897887510c667b402",
+      "outgoingViewKey": "8ef363d20fd70308023d6ad83e15434e35364f1e68f1b4332455e0ab123084e5",
+      "publicAddress": "2aac6cc46e0515f22eb46be7971cd6e4c6518934f309df3577052a4d0dbe76b3",
+      "default": true
     }
   ]
 }
