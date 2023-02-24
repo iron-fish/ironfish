@@ -98,7 +98,7 @@ describe('Transactions sendTransaction', () => {
     )
   })
 
-  it('throws if the confirmed balance is too low', async () => {
+  it('throws if the available balance is too low', async () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
