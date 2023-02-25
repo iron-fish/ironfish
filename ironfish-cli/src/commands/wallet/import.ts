@@ -127,7 +127,7 @@ export class ImportCommand extends IronfishCommand {
   async importFile(path: string): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    return this.stringToAccountImport(data)
+    return this.stringToAccountImport(data.trim())
   }
 
   async importPipe(): Promise<AccountImport> {
