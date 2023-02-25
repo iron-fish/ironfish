@@ -5,6 +5,8 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import { Assert, CurrencyUtils, RpcClient } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
+import {createRootLogger, Logger} from '@ironfish/sdk'
+
 
 export async function promptCurrency(options: {
   client: RpcClient
@@ -16,6 +18,7 @@ export async function promptCurrency(options: {
     assetId?: string
     confirmations?: number
   }
+  logger?: Logger
 }): Promise<bigint>
 
 export async function promptCurrency(options: {
@@ -28,9 +31,10 @@ export async function promptCurrency(options: {
     assetId?: string
     confirmations?: number
   }
+  logger?: Logger
 }): Promise<bigint | null> {
   let text = options.text
-
+  const logger = options.logger ?? createRootLogger()
   if (options.balance) {
     const balance = await options.client.getAccountBalance({
       assetId: options.balance.assetId ?? Asset.nativeId().toString('hex'),
@@ -57,9 +61,8 @@ export async function promptCurrency(options: {
     }
 
     Assert.isNotNull(amount)
-
     if (options.minimum != null && amount < options.minimum) {
-      console.log("Please enter an amount greater than 0")
+      logger.log("Please enter an amount greater than 0")
       continue
     }
 
