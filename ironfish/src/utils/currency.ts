@@ -18,7 +18,7 @@ export class CurrencyUtils {
   }
 
   /**
-   * Parses iron as ore
+   * Parses iron into ore
    */
   static decodeIron(amount: string | number): bigint {
     return parseFixed(amount.toString(), 8).toBigInt()

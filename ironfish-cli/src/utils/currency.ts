@@ -50,13 +50,7 @@ export async function promptCurrency(options: {
       return null
     }
 
-    const [amount, error] = CurrencyUtils.decodeTry(input)
-
-    if (error) {
-      throw error
-    }
-
-    Assert.isNotNull(amount)
+    const amount = CurrencyUtils.decodeIron(input)
 
     if (options.minimum != null && amount < options.minimum) {
       continue
