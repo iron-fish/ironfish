@@ -122,7 +122,7 @@ export class Syncer {
     // Find all allowed peers that have more work than we have
     const peers = this.peerNetwork.peerManager
       .getConnectedPeers()
-      .filter((peer) => peer.work && peer.work > head.work)
+      .filter((peer) => peer.features?.syncing && peer.work && peer.work > head.work)
 
     // Get a random peer with higher work. We do this to encourage
     // peer diversity so the highest work peer isn't overwhelmed

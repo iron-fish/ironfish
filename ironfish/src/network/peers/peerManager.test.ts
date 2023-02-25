@@ -35,6 +35,7 @@ import {
   WebSocketConnection,
 } from './connections'
 import { BAN_SCORE } from './peer'
+import { defaultFeatures } from './peerFeatures'
 import { PeerManager } from './peerManager'
 
 jest.useFakeTimers()
@@ -74,6 +75,7 @@ describe('PeerManager', () => {
       work: BigInt(0),
       networkId: localPeer.networkId,
       genesisBlockHash: localPeer.chain.genesis.hash,
+      features: defaultFeatures(),
     })
 
     // Identify peerOut
@@ -760,6 +762,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        features: defaultFeatures(),
       })
       peer.onMessage.emit(identify, connection)
 
@@ -795,6 +798,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        features: defaultFeatures(),
       })
       peer.onMessage.emit(identify, connection)
 
@@ -821,6 +825,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        features: defaultFeatures(),
       })
       peer.onMessage.emit(identify, connection)
       expect(closeSpy).toHaveBeenCalled()
@@ -847,6 +852,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        features: defaultFeatures(),
       })
       connection.onMessage.emit(identify)
 
@@ -881,6 +887,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        features: defaultFeatures(),
       })
       connection.onMessage.emit(identify)
 
@@ -921,6 +928,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        features: defaultFeatures(),
       })
       connection.onMessage.emit(identify)
 
@@ -970,6 +978,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        features: defaultFeatures(),
       })
       connection.onMessage.emit(id)
 
@@ -1010,6 +1019,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId + 1,
         genesisBlockHash: localPeer.chain.genesis.hash,
+        features: defaultFeatures(),
       })
       peer.onMessage.emit(identify, connection)
 
@@ -1037,6 +1047,7 @@ describe('PeerManager', () => {
         work: BigInt(0),
         networkId: localPeer.networkId,
         genesisBlockHash: Buffer.alloc(32, 1),
+        features: defaultFeatures(),
       })
       Assert.isFalse(identify.genesisBlockHash.equals(localPeer.chain.genesis.hash))
       peer.onMessage.emit(identify, connection)

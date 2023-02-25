@@ -4,6 +4,7 @@
 import bufio from 'bufio'
 import { BigIntUtils } from '../../utils/bigint'
 import { Identity, identityLength } from '../identity'
+import { defaultFeatures, Features, FEATURES_MIN_VERSION } from '../peers/peerFeatures'
 import { NetworkMessageType } from '../types'
 import { NetworkMessage } from './networkMessage'
 
@@ -18,6 +19,7 @@ interface CreateIdentifyMessageOptions {
   work: bigint
   networkId: number
   genesisBlockHash: Buffer
+  features: Features
 }
 
 export class IdentifyMessage extends NetworkMessage {
@@ -31,6 +33,7 @@ export class IdentifyMessage extends NetworkMessage {
   readonly work: bigint
   readonly networkId: number
   readonly genesisBlockHash: Buffer
+  readonly features: Features
 
   constructor({
     agent,
@@ -43,6 +46,7 @@ export class IdentifyMessage extends NetworkMessage {
     work,
     networkId,
     genesisBlockHash,
+    features,
   }: CreateIdentifyMessageOptions) {
     super(NetworkMessageType.Identify)
     this.agent = agent
@@ -55,6 +59,7 @@ export class IdentifyMessage extends NetworkMessage {
     this.work = work
     this.networkId = networkId
     this.genesisBlockHash = genesisBlockHash
+    this.features = features
   }
 
   serialize(): Buffer {
@@ -69,6 +74,11 @@ export class IdentifyMessage extends NetworkMessage {
     bw.writeVarBytes(BigIntUtils.toBytesLE(this.work))
     bw.writeU16(this.networkId)
     bw.writeHash(this.genesisBlockHash)
+
+    let flags = 0
+    flags |= Number(this.features.syncing) << 0
+    bw.writeU32(flags)
+
     return bw.render()
   }
 
@@ -84,6 +94,13 @@ export class IdentifyMessage extends NetworkMessage {
     const work = BigIntUtils.fromBytesLE(reader.readVarBytes())
     const networkId = reader.readU16()
     const genesisBlockHash = reader.readHash()
+
+    const features = defaultFeatures()
+    if (version >= FEATURES_MIN_VERSION) {
+      const flags = reader.readU32()
+      features.syncing = Boolean(flags & (1 << 0))
+    }
+
     return new IdentifyMessage({
       agent,
       head,
@@ -95,6 +112,7 @@ export class IdentifyMessage extends NetworkMessage {
       work,
       networkId,
       genesisBlockHash,
+      features,
     })
   }
 
@@ -110,6 +128,7 @@ export class IdentifyMessage extends NetworkMessage {
     size += bufio.sizeVarBytes(BigIntUtils.toBytesLE(this.work))
     size += 2 // network ID
     size += 32 // genesis block hash
+    size += 4 // features
     return size
   }
 }

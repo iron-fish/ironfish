@@ -4,6 +4,7 @@
 import ws from 'ws'
 import { createRootLogger } from '../../../logger'
 import { IdentifyMessage } from '../../messages/identify'
+import { defaultFeatures } from '../peerFeatures'
 import { ConnectionDirection } from './connection'
 import { WebSocketConnection } from './webSocketConnection'
 
@@ -34,6 +35,7 @@ describe('WebSocketConnection', () => {
           work: BigInt(0),
           networkId: 0,
           genesisBlockHash: Buffer.alloc(32, 0),
+          features: defaultFeatures(),
         })
 
         expect(connection.send(message)).toBe(true)
