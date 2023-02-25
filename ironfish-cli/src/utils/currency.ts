@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { Assert, CurrencyUtils, RpcClient } from '@ironfish/sdk'
+import { CurrencyUtils, RpcClient } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 
 export async function promptCurrency(options: {
