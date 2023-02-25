@@ -11,6 +11,7 @@ import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
 import { TransactionHash } from '../../primitives/transaction'
 import {
+  BigU64BEEncoding,
   BUFFER_ENCODING,
   BufferEncoding,
   IDatabase,
@@ -22,7 +23,11 @@ import {
   U32_ENCODING_BE,
   U64_ENCODING,
 } from '../../storage'
-import { StorageUtils } from '../../storage/database/utils'
+import {
+  getPrefixesKeyRange,
+  getPrefixKeyRange,
+  StorageUtils,
+} from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account'
@@ -34,7 +39,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-const VERSION_DATABASE_ACCOUNTS = 23
+const VERSION_DATABASE_ACCOUNTS = 24
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -111,6 +116,11 @@ export class WalletDB {
   assets: IDatabaseStore<{
     key: [Account['prefix'], Buffer]
     value: AssetValue
+  }>
+
+  unspentNoteHashes: IDatabaseStore<{
+    key: [Account['prefix'], [Buffer, [number, [bigint, Buffer]]]]
+    value: null
   }>
 
   constructor({
@@ -224,6 +234,28 @@ export class WalletDB {
       name: 'as',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new AssetValueEncoding(),
+    })
+
+    this.unspentNoteHashes = this.db.addStore({
+      name: 'un',
+      keyEncoding: new PrefixEncoding(
+        new BufferEncoding(), // account prefix
+        new PrefixEncoding(
+          new BufferEncoding(), // asset ID
+          new PrefixEncoding(
+            U32_ENCODING_BE, // sequence
+            new PrefixEncoding(
+              new BigU64BEEncoding(), // value
+              new BufferEncoding(), // note hash
+              8,
+            ),
+            4,
+          ),
+          32,
+        ),
+        4,
+      ),
+      valueEncoding: NULL_ENCODING,
     })
   }
 
@@ -500,6 +532,87 @@ export class WalletDB {
     )
 
     await this.sequenceToNoteHash.clear(tx, keyRange)
+  }
+
+  async addUnspentNoteHash(
+    account: Account,
+    noteHash: Buffer,
+    decryptedNote: DecryptedNoteValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const sequence = decryptedNote.sequence
+
+    if (sequence === null) {
+      return
+    }
+
+    const assetId = decryptedNote.note.assetId()
+    const value = decryptedNote.note.value()
+
+    await this.unspentNoteHashes.put(
+      [account.prefix, [assetId, [sequence, [value, noteHash]]]],
+      null,
+      tx,
+    )
+  }
+
+  async deleteUnspentNoteHash(
+    account: Account,
+    noteHash: Buffer,
+    decryptedNote: DecryptedNoteValue,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    const assetId = decryptedNote.note.assetId()
+    const sequence = decryptedNote.sequence
+    const value = decryptedNote.note.value()
+
+    Assert.isNotNull(sequence, 'Cannot spend a note that is not on the chain.')
+
+    await this.unspentNoteHashes.del(
+      [account.prefix, [assetId, [sequence, [value, noteHash]]]],
+      tx,
+    )
+  }
+
+  async *loadUnspentNoteHashes(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Buffer> {
+    const range = getPrefixKeyRange(account.prefix)
+
+    for await (const [, [, [, [, noteHash]]]] of this.unspentNoteHashes.getAllKeysIter(
+      tx,
+      range,
+    )) {
+      yield noteHash
+    }
+  }
+
+  async *loadUnspentNoteValues(
+    account: Account,
+    assetId: Buffer,
+    sequence?: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<bigint> {
+    const encoding = new PrefixEncoding(
+      BUFFER_ENCODING,
+      new PrefixEncoding(BUFFER_ENCODING, U32_ENCODING_BE, 32),
+      4,
+    )
+
+    const maxConfirmedSequence = sequence ?? 2 ** 32 - 1
+
+    const range = getPrefixesKeyRange(
+      encoding.serialize([account.prefix, [assetId, 1]]),
+      encoding.serialize([account.prefix, [assetId, maxConfirmedSequence]]),
+    )
+
+    for await (const [, [, [, [value, _]]]] of this.unspentNoteHashes.getAllKeysIter(
+      tx,
+      range,
+    )) {
+      yield value
+    }
   }
 
   async loadNoteHash(

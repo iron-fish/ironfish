@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { Assert, CurrencyUtils, RpcClient } from '@ironfish/sdk'
+import { CurrencyUtils, RpcClient } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 
 export async function promptCurrency(options: {
@@ -37,7 +37,7 @@ export async function promptCurrency(options: {
       confirmations: options.balance.confirmations,
     })
 
-    text += ` (balance ${CurrencyUtils.renderIron(balance.content.confirmed)})`
+    text += ` (balance ${CurrencyUtils.renderIron(balance.content.available)})`
   }
 
   // eslint-disable-next-line no-constant-condition
@@ -50,13 +50,7 @@ export async function promptCurrency(options: {
       return null
     }
 
-    const [amount, error] = CurrencyUtils.decodeTry(input)
-
-    if (error) {
-      throw error
-    }
-
-    Assert.isNotNull(amount)
+    const amount = CurrencyUtils.decodeIron(input)
 
     if (options.minimum != null && amount < options.minimum) {
       continue

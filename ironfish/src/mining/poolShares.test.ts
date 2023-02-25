@@ -226,7 +226,7 @@ describe('poolShares', () => {
     await shares.submitShare(publicAddress1)
     await shares.submitShare(publicAddress2)
 
-    const hasBalanceSpy = jest.spyOn(shares, 'hasConfirmedBalance').mockResolvedValueOnce(true)
+    const hasBalanceSpy = jest.spyOn(shares, 'hasAvailableBalance').mockResolvedValueOnce(true)
     const sendTransactionSpy = jest
       .spyOn(shares, 'sendTransaction')
       .mockResolvedValueOnce('testTransactionHash')

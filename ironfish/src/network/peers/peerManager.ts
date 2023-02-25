@@ -1231,6 +1231,7 @@ export class PeerManager {
     peer.work = message.work
     peer.networkId = message.networkId
     peer.genesisBlockHash = message.genesisBlockHash
+    peer.features = message.features
 
     // If we've told the peer to stay disconnected, repeat
     // the disconnection time before closing the connection

@@ -26,6 +26,8 @@ export class LocalPeer {
   readonly webSocket: IsomorphicWebSocketConstructor
   // the unique ID number of the network
   readonly networkId: number
+  // true if the peer supports syncing and gossip messages
+  readonly enableSyncing: boolean
 
   // optional port the local peer is listening on
   port: number | null
@@ -41,6 +43,7 @@ export class LocalPeer {
     chain: Blockchain,
     webSocket: IsomorphicWebSocketConstructor,
     networkId: number,
+    enableSyncing: boolean,
   ) {
     this.privateIdentity = identity
     this.publicIdentity = privateIdentityToIdentity(identity)
@@ -48,6 +51,7 @@ export class LocalPeer {
     this.agent = agent
     this.version = version
     this.networkId = networkId
+    this.enableSyncing = enableSyncing
 
     this.webSocket = webSocket
     this.port = null
@@ -71,6 +75,9 @@ export class LocalPeer {
       work: this.chain.head.work,
       networkId: this.networkId,
       genesisBlockHash: this.chain.genesis.hash,
+      features: {
+        syncing: this.enableSyncing,
+      },
     })
   }
 

@@ -15,6 +15,7 @@ import {
   WebSocketConnection,
 } from '../peers/connections'
 import { Peer } from '../peers/peer'
+import { defaultFeatures } from '../peers/peerFeatures'
 import { PeerManager } from '../peers/peerManager'
 import { WebSocketClient } from '../webSocketClient'
 import { mockIdentity } from './mockIdentity'
@@ -118,6 +119,8 @@ export function getConnectedPeer(
   }
 
   connection.setState({ type: 'CONNECTED', identity })
+
+  peer.features = defaultFeatures()
 
   return { peer, connection: connection }
 }

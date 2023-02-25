@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { parseNetworkMessage } from './messageRegistry'
 import { IdentifyMessage } from './messages/identify'
+import { defaultFeatures } from './peers/peerFeatures'
 
 describe('messageRegistry', () => {
   describe('parseNetworkMessage', () => {
@@ -24,6 +25,7 @@ describe('messageRegistry', () => {
           work: BigInt(0),
           networkId: 0,
           genesisBlockHash: Buffer.alloc(32, 0),
+          features: defaultFeatures(),
         })
         jest.spyOn(message, 'serialize').mockImplementationOnce(() => Buffer.from('adsf'))
 
@@ -43,6 +45,7 @@ describe('messageRegistry', () => {
           work: BigInt(0),
           networkId: 0,
           genesisBlockHash: Buffer.alloc(32, 0),
+          features: defaultFeatures(),
         })
 
         expect(parseNetworkMessage(message.serializeWithMetadata())).toEqual(message)

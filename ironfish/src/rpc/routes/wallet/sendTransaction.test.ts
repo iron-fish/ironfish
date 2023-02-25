@@ -98,7 +98,7 @@ describe('Transactions sendTransaction', () => {
     )
   })
 
-  it('throws if the confirmed balance is too low', async () => {
+  it('throws if the available balance is too low', async () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
@@ -106,6 +106,7 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(11),
       confirmed: BigInt(0),
       pending: BigInt(11),
+      available: BigInt(0),
       unconfirmedCount: 0,
       pendingCount: 0,
       blockHash: null,
@@ -126,6 +127,7 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(21),
       confirmed: BigInt(0),
       pending: BigInt(21),
+      available: BigInt(0),
       unconfirmedCount: 0,
       pendingCount: 0,
       blockHash: null,
@@ -156,6 +158,7 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
       pending: BigInt(11),
+      available: BigInt(11),
       unconfirmedCount: 0,
       pendingCount: 0,
       blockHash: null,
@@ -182,6 +185,7 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(11),
       confirmed: BigInt(11),
       pending: BigInt(11),
+      available: BigInt(11),
       unconfirmedCount: 0,
       pendingCount: 0,
       blockHash: null,
@@ -204,6 +208,7 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(21),
       confirmed: BigInt(21),
       pending: BigInt(21),
+      available: BigInt(21),
       unconfirmedCount: 0,
       pendingCount: 0,
       blockHash: null,
@@ -225,6 +230,7 @@ describe('Transactions sendTransaction', () => {
       unconfirmed: BigInt(100000),
       pending: BigInt(100000),
       confirmed: BigInt(100000),
+      available: BigInt(100000),
       unconfirmedCount: 0,
       pendingCount: 0,
       blockHash: null,

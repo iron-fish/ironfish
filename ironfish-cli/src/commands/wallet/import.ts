@@ -84,7 +84,7 @@ export class ImportCommand extends IronfishCommand {
       }
     }
     CliUx.ux.error(
-      `Detected mnemonic input, but the import failed. 
+      `Detected mnemonic input, but the import failed.
       Please verify the input text or use a different method to import wallet`,
     )
   }
@@ -101,7 +101,16 @@ export class ImportCommand extends IronfishCommand {
     // bech32 encoded json
     const [decoded, _] = Bech32m.decode(data)
     if (decoded) {
-      return JSONUtils.parse<AccountImport>(decoded)
+      let data = JSONUtils.parse<AccountImport>(decoded)
+
+      if (data.spendingKey) {
+        data = {
+          ...data,
+          ...generateKeyFromPrivateKey(data.spendingKey),
+        }
+      }
+
+      return data
     }
 
     // mnemonic or explicit spending key
@@ -118,7 +127,16 @@ export class ImportCommand extends IronfishCommand {
 
     // raw json
     try {
-      return JSONUtils.parse<AccountImport>(data)
+      let json = JSONUtils.parse<AccountImport>(data)
+
+      if (json.spendingKey) {
+        json = {
+          ...json,
+          ...generateKeyFromPrivateKey(json.spendingKey),
+        }
+      }
+
+      return json
     } catch (e) {
       CliUx.ux.error(`Import failed for the given input: ${data}`)
     }
@@ -127,7 +145,7 @@ export class ImportCommand extends IronfishCommand {
   async importFile(path: string): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    return this.stringToAccountImport(data)
+    return this.stringToAccountImport(data.trim())
   }
 
   async importPipe(): Promise<AccountImport> {
