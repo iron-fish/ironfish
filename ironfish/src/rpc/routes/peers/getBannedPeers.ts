@@ -6,7 +6,7 @@ import { PeerNetwork } from '../../../network'
 import { ApiNamespace, router } from '../router'
 
 export type BannedPeerResponse = {
-  identity: string
+  address: string
   reason: string
 }
 
@@ -33,7 +33,7 @@ export const GetBannedPeersResponseSchema: yup.ObjectSchema<GetBannedPeersRespon
       .array(
         yup
           .object({
-            identity: yup.string().defined(),
+            address: yup.string().defined(),
             reason: yup.string().defined(),
           })
           .defined(),
@@ -69,7 +69,7 @@ router.register<typeof GetBannedPeersRequestSchema, GetBannedPeersResponse>(
 )
 
 function getPeers(network: PeerNetwork): BannedPeerResponse[] {
-  return [...network.peerManager.banned.entries()].map(([identity, reason]) => {
-    return { identity, reason }
+  return [...network.peerManager.banned.entries()].map(([address, reason]) => {
+    return { address, reason }
   })
 }

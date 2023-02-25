@@ -67,8 +67,8 @@ export class PeerManager {
    */
   readonly identifiedPeers: Map<Identity, Peer> = new Map<Identity, Peer>()
 
-  // Mapping of peer identity with reason they were banned
-  readonly banned = new Map<Identity, string>()
+  // Map of peer address to the reason they were banned
+  readonly banned = new Map<string, string>()
 
   /**
    * List of all peers, including both unidentified and identified.
@@ -763,17 +763,15 @@ export class PeerManager {
   }
 
   banPeer(peer: Peer, reason: string): void {
-    const identity = peer.state.identity
-
-    if (identity) {
-      this.banned.set(identity, reason)
+    if (peer.address) {
+      this.banned.set(peer.address, reason)
     }
 
     peer.close()
   }
 
   isBanned(peer: Peer): boolean {
-    return !!peer.state.identity && this.banned.has(peer.state.identity)
+    return !!peer.address && this.banned.has(peer.address)
   }
 
   start(): void {
@@ -1082,7 +1080,7 @@ export class PeerManager {
       return
     }
 
-    if (this.banned.has(identity)) {
+    if (this.isBanned(peer)) {
       this.getConnectionRetry(
         identity,
         connection.type,
@@ -1533,7 +1531,7 @@ export class PeerManager {
       }
 
       // Don't include banned peers
-      if (this.banned.has(identity)) {
+      if (connectedPeer.address && this.banned.has(connectedPeer.address)) {
         continue
       }
 

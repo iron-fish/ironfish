@@ -65,9 +65,9 @@ function renderTable(content: GetBannedPeersResponse): string {
   const columns: CliUx.Table.table.Columns<BannedPeerResponse> = {
     identity: {
       minWidth: 45,
-      header: 'IDENTITY',
+      header: 'ADDRESS',
       get: (row) => {
-        return row.identity
+        return row.address
       },
     },
     reason: {

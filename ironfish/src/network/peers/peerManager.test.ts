@@ -274,26 +274,50 @@ describe('PeerManager', () => {
   })
 
   describe('banning', () => {
-    it('Should add the peer identity to PeerManager.banned when banPeer is called', () => {
+    it('Should add the peer address to PeerManager.banned when banPeer is called', () => {
       const localPeer = mockLocalPeer()
       const peers = new PeerManager(localPeer, mockHostsStore())
 
       const { peer } = getConnectedPeer(peers)
+      peer.setWebSocketAddress('test.com', 9033)
+
+      expect(peers.isBanned(peer)).toBe(false)
 
       peers.banPeer(peer, 'UNKNOWN')
 
-      expect(peers.banned.has(peer.getIdentityOrThrow())).toBe(true)
+      expect(peers.isBanned(peer)).toBe(true)
     })
 
-    it('Should add the peer identity to PeerManager.banned when punished with BAN_SCORE.MAX', () => {
+    it('Should ignore the peer port when banning peers', () => {
+      const localPeer = mockLocalPeer()
+      const peers = new PeerManager(localPeer, mockHostsStore())
+
+      const { peer: peer1 } = getConnectedPeer(peers)
+      peer1.setWebSocketAddress('test.com', 9033)
+      const { peer: peer2 } = getConnectedPeer(peers)
+      peer2.setWebSocketAddress('test.com', 9034)
+
+      expect(peers.isBanned(peer1)).toBe(false)
+      expect(peers.isBanned(peer2)).toBe(false)
+
+      peers.banPeer(peer1, 'UNKNOWN')
+
+      expect(peers.isBanned(peer1)).toBe(true)
+      expect(peers.isBanned(peer2)).toBe(true)
+    })
+
+    it('Should add the peer address to PeerManager.banned when punished with BAN_SCORE.MAX', () => {
       const localPeer = mockLocalPeer()
       const peers = new PeerManager(localPeer, mockHostsStore())
 
       const { peer } = getConnectedPeer(peers)
+      peer.setWebSocketAddress('test.com', 9033)
+
+      expect(peers.isBanned(peer)).toBe(false)
 
       peer.punish(BAN_SCORE.MAX, 'TESTING')
 
-      expect(peers.banned.has(peer.getIdentityOrThrow())).toBe(true)
+      expect(peers.isBanned(peer)).toBe(true)
     })
   })
 
