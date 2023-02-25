@@ -84,7 +84,7 @@ export class ImportCommand extends IronfishCommand {
       }
     }
     CliUx.ux.error(
-      `Detected mnemonic input, but the import failed. 
+      `Detected mnemonic input, but the import failed.
       Please verify the input text or use a different method to import wallet`,
     )
   }
@@ -101,7 +101,16 @@ export class ImportCommand extends IronfishCommand {
     // bech32 encoded json
     const [decoded, _] = Bech32m.decode(data)
     if (decoded) {
-      return JSONUtils.parse<AccountImport>(decoded)
+      let data = JSONUtils.parse<AccountImport>(decoded)
+
+      if (data.spendingKey) {
+        data = {
+          ...data,
+          ...generateKeyFromPrivateKey(data.spendingKey),
+        }
+      }
+
+      return data
     }
 
     // mnemonic or explicit spending key
