@@ -16,11 +16,7 @@ import {
 } from '../identity'
 import { DisconnectingMessage, DisconnectingReason } from '../messages/disconnecting'
 import { IdentifyMessage } from '../messages/identify'
-import {
-  displayNetworkMessageType,
-  IncomingPeerMessage,
-  NetworkMessage,
-} from '../messages/networkMessage'
+import { displayNetworkMessageType, NetworkMessage } from '../messages/networkMessage'
 import { PeerListMessage } from '../messages/peerList'
 import { PeerListRequestMessage } from '../messages/peerListRequest'
 import { SignalMessage } from '../messages/signal'
@@ -117,7 +113,7 @@ export class PeerManager {
    * Note that the `Peer` is the peer that sent it to us,
    * not necessarily the original source.
    */
-  readonly onMessage: Event<[Peer, IncomingPeerMessage<NetworkMessage>]> = new Event()
+  readonly onMessage: Event<[Peer, NetworkMessage]> = new Event()
 
   /**
    * Event fired when a peer enters or leaves the CONNECTED state.
@@ -876,12 +872,6 @@ export class PeerManager {
 
   /**
    * Handler fired whenever we receive any message from a peer.
-   *
-   * If it is a signal message we need to forward it to the appropriate
-   * webrtc peer.
-   *
-   * Note that the identity on IncomingPeerMessage is the identity of the
-   * peer that sent it to us, not the original source.
    */
   private handleMessage(peer: Peer, connection: Connection, message: NetworkMessage) {
     if (connection.state.type === 'WAITING_FOR_IDENTITY') {
@@ -908,7 +898,7 @@ export class PeerManager {
         peer.close()
         return
       }
-      this.onMessage.emit(peer, { peerIdentity: peer.state.identity, message: message })
+      this.onMessage.emit(peer, message)
     }
   }
 
