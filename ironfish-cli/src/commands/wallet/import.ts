@@ -127,7 +127,16 @@ export class ImportCommand extends IronfishCommand {
 
     // raw json
     try {
-      return JSONUtils.parse<AccountImport>(data)
+      let json = JSONUtils.parse<AccountImport>(data)
+
+      if (json.spendingKey) {
+        json = {
+          ...json,
+          ...generateKeyFromPrivateKey(json.spendingKey),
+        }
+      }
+
+      return json
     } catch (e) {
       CliUx.ux.error(`Import failed for the given input: ${data}`)
     }
