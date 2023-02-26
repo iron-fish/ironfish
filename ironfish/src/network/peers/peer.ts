@@ -14,6 +14,7 @@ import { displayNetworkMessageType, NetworkMessage } from '../messages/networkMe
 import { NetworkMessageType } from '../types'
 import { NetworkError, WebRtcConnection, WebSocketConnection } from './connections'
 import { Connection, ConnectionType } from './connections/connection'
+import { Features } from './peerFeatures'
 
 export enum BAN_SCORE {
   NO = 0,
@@ -135,6 +136,11 @@ export class Peer {
    * The peer's genesis block hash
    */
   genesisBlockHash: Buffer | null = null
+
+  /**
+   * Features supported by the peer
+   */
+  features: Features | null = null
 
   /**
    * The loggable name of the peer. For a more specific value,

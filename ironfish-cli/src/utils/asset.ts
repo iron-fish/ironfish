@@ -48,7 +48,7 @@ export async function selectAsset(
   const choices = balances.map((balance) => {
     const assetName = BufferUtils.toHuman(Buffer.from(balance.assetName, 'hex'))
     const name = `${balance.assetId} (${assetName}) (${CurrencyUtils.renderIron(
-      balance.confirmed,
+      balance.available,
     )})`
 
     const value = {

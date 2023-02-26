@@ -212,7 +212,7 @@ export class MiningPoolShares {
       'Payout total must be less than or equal to the total reward amount',
     )
 
-    const hasEnoughBalance = await this.hasConfirmedBalance(totalRequired)
+    const hasEnoughBalance = await this.hasAvailableBalance(totalRequired)
     if (!hasEnoughBalance) {
       this.logger.info('Insufficient funds for payout, skipping.')
       return
@@ -262,11 +262,11 @@ export class MiningPoolShares {
     }
   }
 
-  async hasConfirmedBalance(amount: bigint): Promise<boolean> {
+  async hasAvailableBalance(amount: bigint): Promise<boolean> {
     const balance = await this.rpc.getAccountBalance({ account: this.accountName })
-    const confirmedBalance = BigInt(balance.content.confirmed)
+    const availableBalance = BigInt(balance.content.available)
 
-    return confirmedBalance >= amount
+    return availableBalance >= amount
   }
 
   async sendTransaction(

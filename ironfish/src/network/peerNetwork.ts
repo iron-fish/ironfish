@@ -61,6 +61,7 @@ import {
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, KnownBlockHashesValue, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
+import { FEATURES_MIN_VERSION } from './peers/peerFeatures'
 import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
@@ -190,6 +191,7 @@ export class PeerNetwork {
       options.chain,
       options.webSocket,
       options.networkId,
+      this.enableSyncing,
     )
 
     this.localPeer.port = options.port === undefined ? null : options.port
@@ -457,7 +459,11 @@ export class PeerNetwork {
 
   private *connectedPeersWithoutTransaction(hash: TransactionHash): Generator<Peer> {
     for (const p of this.peerManager.identifiedPeers.values()) {
-      if (p.state.type === 'CONNECTED' && !this.knowsTransaction(hash, p.state.identity)) {
+      if (
+        p.state.type === 'CONNECTED' &&
+        p.features?.syncing &&
+        !this.knowsTransaction(hash, p.state.identity)
+      ) {
         yield p
       }
     }
@@ -465,7 +471,11 @@ export class PeerNetwork {
 
   private *connectedPeersWithoutBlock(hash: BlockHash): Generator<Peer> {
     for (const p of this.peerManager.identifiedPeers.values()) {
-      if (p.state.type === 'CONNECTED' && !p.knownBlockHashes.has(hash)) {
+      if (
+        p.state.type === 'CONNECTED' &&
+        p.features?.syncing &&
+        !p.knownBlockHashes.has(hash)
+      ) {
         yield p
       }
     }
@@ -630,6 +640,15 @@ export class PeerNetwork {
     incomingMessage: IncomingPeerMessage<NetworkMessage>,
   ): Promise<void> {
     const { message } = incomingMessage
+
+    if (
+      !this.localPeer.enableSyncing &&
+      peer.version !== null &&
+      peer.version >= FEATURES_MIN_VERSION
+    ) {
+      peer.punish(BAN_SCORE.MAX)
+      return
+    }
 
     if (message instanceof RpcNetworkMessage) {
       await this.handleRpcMessage(peer, message)
