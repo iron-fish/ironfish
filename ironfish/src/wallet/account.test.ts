@@ -1704,6 +1704,41 @@ describe('Accounts', () => {
     })
   })
 
+  describe('getUnconfirmedDeltas', () => {
+    it('should calculate deltas from unconfirmed transactions for all assets', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const balanceA = await accountA.getBalance(Asset.nativeId(), 0)
+
+      expect(balanceA).toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 2000000000n,
+      })
+
+      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+
+      const block3 = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value: 10n,
+      })
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      const unconfirmedDeltas = await accountA['getUnconfirmedDeltas'](3, 1)
+
+      expect(unconfirmedDeltas.get(Asset.nativeId())).toMatchObject({ delta: 0n, count: 1 })
+      expect(unconfirmedDeltas.get(asset.id())).toMatchObject({ delta: 10n, count: 1 })
+    })
+  })
+
   describe('expireTransaction', () => {
     it('removes the nullifier to transaction hash if we are expiring the matching hash', async () => {
       const { node } = nodeTest
