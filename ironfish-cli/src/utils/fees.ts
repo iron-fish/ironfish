@@ -8,6 +8,7 @@ import {
   CreateTransactionRequest,
   CurrencyUtils,
   ERROR_CODES,
+  Logger,
   RawTransaction,
   RawTransactionSerde,
   RpcClient,
@@ -21,6 +22,7 @@ export async function selectFee(options: {
   transaction: CreateTransactionRequest
   account?: string
   confirmations?: number
+  logger: Logger
 }): Promise<RawTransaction> {
   const feeRates = await options.client.estimateFeeRates()
 
@@ -68,6 +70,7 @@ export async function selectFee(options: {
       client: options.client,
       required: true,
       text: 'Enter the fee amount in $IRON',
+      logger: options.logger,
       balance: {
         account: options.account,
         confirmations: options.confirmations,

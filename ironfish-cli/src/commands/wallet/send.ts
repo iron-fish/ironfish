@@ -143,6 +143,7 @@ export class Send extends IronfishCommand {
         required: true,
         text: 'Enter the amount',
         minimum: 1n,
+        logger: this.logger,
         balance: {
           account: from,
           confirmations: flags.confirmations,
@@ -201,6 +202,7 @@ export class Send extends IronfishCommand {
       raw = await selectFee({
         client,
         transaction: params,
+        logger: this.logger,
       })
     } else {
       const response = await client.createTransaction(params)

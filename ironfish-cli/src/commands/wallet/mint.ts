@@ -178,6 +178,7 @@ export class Mint extends IronfishCommand {
         required: true,
         text: 'Enter the amount',
         minimum: 1n,
+        logger: this.logger,
       })
     }
 
@@ -203,6 +204,7 @@ export class Mint extends IronfishCommand {
       raw = await selectFee({
         client,
         transaction: params,
+        logger: this.logger,
       })
     } else {
       const response = await client.createTransaction(params)

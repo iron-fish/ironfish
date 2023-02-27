@@ -139,6 +139,7 @@ export class Burn extends IronfishCommand {
         required: true,
         text: 'Enter the amount of the custom asset to burn',
         minimum: 1n,
+        logger: this.logger,
         balance: {
           account,
           confirmations: flags.confirmations,
@@ -166,6 +167,7 @@ export class Burn extends IronfishCommand {
       raw = await selectFee({
         client,
         transaction: params,
+        logger: this.logger,
       })
     } else {
       const response = await client.createTransaction(params)

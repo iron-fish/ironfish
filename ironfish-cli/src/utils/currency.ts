@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
-import { CurrencyUtils, RpcClient } from '@ironfish/sdk'
+import { Assert, CurrencyUtils, Logger, RpcClient } from '@ironfish/sdk'
 import { CliUx } from '@oclif/core'
 
 export async function promptCurrency(options: {
   client: RpcClient
   text: string
+  logger: Logger
   required: true
   minimum?: bigint
   balance?: {
@@ -21,6 +22,7 @@ export async function promptCurrency(options: {
 export async function promptCurrency(options: {
   client: RpcClient
   text: string
+  logger: Logger
   required?: boolean
   minimum?: bigint
   balance?: {
@@ -50,9 +52,17 @@ export async function promptCurrency(options: {
       return null
     }
 
-    const amount = CurrencyUtils.decodeIron(input)
+    const [amount, error] = CurrencyUtils.decodeIronTry(input)
+
+    if (error) {
+      options.logger.error(`Error: ${error.reason}`)
+      continue
+    }
+
+    Assert.isNotNull(amount)
 
     if (options.minimum != null && amount < options.minimum) {
+      options.logger.error(`Error: Minimum is ${CurrencyUtils.renderIron(options.minimum)}`)
       continue
     }
 
