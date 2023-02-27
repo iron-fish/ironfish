@@ -191,6 +191,13 @@ export class Account {
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
+        await this.walletDb.saveNullifierToTransactionHash(
+          this,
+          spend.nullifier,
+          transaction,
+          tx,
+        )
+
         await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
@@ -490,6 +497,21 @@ export class Account {
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
+
+        const existingTransactionHash = await this.walletDb.getTransactionHashFromNullifier(
+          this,
+          spend.nullifier,
+          tx,
+        )
+        if (!existingTransactionHash) {
+          await this.walletDb.saveNullifierToTransactionHash(
+            this,
+            spend.nullifier,
+            transaction,
+            tx,
+          )
+        }
+
         await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
@@ -714,16 +736,25 @@ export class Account {
             'nullifierToNote mappings must have a corresponding decryptedNote',
           )
 
-          await this.walletDb.saveDecryptedNote(
+          const existingTransactionHash = await this.walletDb.getTransactionHashFromNullifier(
             this,
-            noteHash,
-            {
-              ...decryptedNote,
-              spent: false,
-            },
+            spend.nullifier,
             tx,
           )
-          await this.walletDb.addUnspentNoteHash(this, noteHash, decryptedNote, tx)
+          // Remove the nullifier to transaction hash mapping and mark the note as unspent
+          if (existingTransactionHash && existingTransactionHash.equals(transaction.hash())) {
+            await this.walletDb.deleteNullifierToTransactionHash(this, spend.nullifier, tx)
+            await this.walletDb.saveDecryptedNote(
+              this,
+              noteHash,
+              {
+                ...decryptedNote,
+                spent: false,
+              },
+              tx,
+            )
+            await this.walletDb.addUnspentNoteHash(this, noteHash, decryptedNote, tx)
+          }
         }
       }
 

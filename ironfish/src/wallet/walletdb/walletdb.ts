@@ -9,7 +9,7 @@ import { FileSystem } from '../../fileSystems'
 import { GENESIS_BLOCK_PREVIOUS } from '../../primitives/block'
 import { NoteEncryptedHash } from '../../primitives/noteEncrypted'
 import { Nullifier } from '../../primitives/nullifier'
-import { TransactionHash } from '../../primitives/transaction'
+import { Transaction, TransactionHash } from '../../primitives/transaction'
 import {
   BigU64BEEncoding,
   BUFFER_ENCODING,
@@ -39,7 +39,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-const VERSION_DATABASE_ACCOUNTS = 24
+const VERSION_DATABASE_ACCOUNTS = 25
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -116,6 +116,11 @@ export class WalletDB {
   assets: IDatabaseStore<{
     key: [Account['prefix'], Buffer]
     value: AssetValue
+  }>
+
+  nullifierToTransactionHash: IDatabaseStore<{
+    key: [Account['prefix'], Buffer]
+    value: TransactionHash
   }>
 
   unspentNoteHashes: IDatabaseStore<{
@@ -234,6 +239,12 @@ export class WalletDB {
       name: 'as',
       keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
       valueEncoding: new AssetValueEncoding(),
+    })
+
+    this.nullifierToTransactionHash = this.db.addStore({
+      name: 'nt',
+      keyEncoding: new PrefixEncoding(new BufferEncoding(), new BufferEncoding(), 4),
+      valueEncoding: new BufferEncoding(),
     })
 
     this.unspentNoteHashes = this.db.addStore({
@@ -1106,5 +1117,34 @@ export class WalletDB {
     tx?: IDatabaseTransaction,
   ): Promise<void> {
     await this.assets.del([account.prefix, assetId], tx)
+  }
+
+  async getTransactionHashFromNullifier(
+    account: Account,
+    nullifier: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<Buffer | undefined> {
+    return this.nullifierToTransactionHash.get([account.prefix, nullifier], tx)
+  }
+
+  async saveNullifierToTransactionHash(
+    account: Account,
+    nullifier: Buffer,
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.nullifierToTransactionHash.put(
+      [account.prefix, nullifier],
+      transaction.hash(),
+      tx,
+    )
+  }
+
+  async deleteNullifierToTransactionHash(
+    account: Account,
+    nullifier: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    await this.nullifierToTransactionHash.del([account.prefix, nullifier], tx)
   }
 }

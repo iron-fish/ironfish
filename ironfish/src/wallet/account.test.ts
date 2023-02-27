@@ -363,6 +363,52 @@ describe('Accounts', () => {
       expect(pendingHashEntry).toBeDefined()
     })
 
+    it('should save the transaction hash for a nullifier if it does not already exist', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet)
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      // Add a pending transaction and check the nullifier
+      const transaction = await useTxFixture(node.wallet, account, account)
+      const nullifier = transaction.getSpend(0).nullifier
+      const transactionHash = await account['walletDb'].getTransactionHashFromNullifier(
+        account,
+        nullifier,
+      )
+      expect(transactionHash).toEqual(transaction.hash())
+    })
+
+    it('should not overwrite the transaction hash for a nullifier if it already exists', async () => {
+      const { node: nodeA } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+      const accountB = await nodeB.wallet.importAccount(accountA)
+
+      // Ensure both nodes for the same account have the same note
+      const block = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
+      await nodeA.chain.addBlock(block)
+      await nodeA.wallet.updateHead()
+      await nodeB.chain.addBlock(block)
+      await nodeB.wallet.updateHead()
+
+      // Spend the same note in both nodes
+      const transactionA = await useTxFixture(nodeA.wallet, accountA, accountA)
+      const transactionB = await useTxFixture(nodeB.wallet, accountB, accountB)
+
+      // Add the pending transaction from Node B but ensure we have the original hash
+      await nodeA.wallet.addPendingTransaction(transactionB)
+      const nullifier = transactionB.getSpend(0).nullifier
+      const transactionHash = await accountA['walletDb'].getTransactionHashFromNullifier(
+        accountA,
+        nullifier,
+      )
+      expect(transactionHash).toEqual(transactionA.hash())
+    })
+
     it('should remove spent notes from unspentNoteHashes', async () => {
       const { node } = nodeTest
 
@@ -765,6 +811,50 @@ describe('Accounts', () => {
         sequence: block.header.sequence,
         supply: null,
       })
+    })
+
+    it('should overwrite the transaction hash for a nullifier if connected on a block', async () => {
+      const { node: nodeA } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+      const accountB = await nodeB.wallet.importAccount(accountA)
+
+      // Ensure both nodes for the same account have the same note
+      const block1 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
+      await nodeA.chain.addBlock(block1)
+      await nodeA.wallet.updateHead()
+      await nodeB.chain.addBlock(block1)
+      await nodeB.wallet.updateHead()
+
+      // Spend the same note in both nodes
+      const transactionA = await useTxFixture(nodeA.wallet, accountA, accountA)
+      const transactionB = await useTxFixture(nodeB.wallet, accountB, accountB)
+
+      // Verify the existing record has the Transaction A Hash
+      const nullifier = transactionA.getSpend(0).nullifier
+      let transactionHash = await accountA['walletDb'].getTransactionHashFromNullifier(
+        accountA,
+        nullifier,
+      )
+      expect(transactionHash).toEqual(transactionA.hash())
+
+      const block2 = await useMinerBlockFixture(
+        nodeB.chain,
+        undefined,
+        accountB,
+        nodeB.wallet,
+        [transactionB],
+      )
+      await nodeA.chain.addBlock(block2)
+      await nodeA.wallet.updateHead()
+
+      // Verify the transaction hash for the nullifier has been overwritten
+      transactionHash = await accountA['walletDb'].getTransactionHashFromNullifier(
+        accountA,
+        nullifier,
+      )
+      expect(transactionHash).toEqual(transactionB.hash())
     })
 
     it('should add received notes to unspentNoteHashes', async () => {
@@ -1571,6 +1661,90 @@ describe('Accounts', () => {
   })
 
   describe('expireTransaction', () => {
+    it('removes the nullifier to transaction hash if we are expiring the matching hash', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet)
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      // Add a pending transaction and check the nullifier
+      const transaction = await useTxFixture(node.wallet, account, account)
+      const nullifier = transaction.getSpend(0).nullifier
+      const transactionHash = await account['walletDb'].getTransactionHashFromNullifier(
+        account,
+        nullifier,
+      )
+      expect(transactionHash).toEqual(transaction.hash())
+
+      // Verify the note is spent before expiration
+      const noteHash = await account.getNoteHash(nullifier)
+      Assert.isNotUndefined(noteHash)
+      let decryptedNote = await account.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(decryptedNote)
+      expect(decryptedNote.spent).toBe(true)
+
+      // Verify the mapping is gone after expiration
+      await account.expireTransaction(transaction)
+      expect(
+        await account['walletDb'].getTransactionHashFromNullifier(account, nullifier),
+      ).toBeUndefined()
+
+      // Verify the note is unspent after expiration
+      decryptedNote = await account.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(decryptedNote)
+      expect(decryptedNote.spent).toBe(false)
+    })
+
+    it('does not update the nullifier to transaction hash mapping if the hash does not match', async () => {
+      const { node: nodeA } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+      const accountB = await nodeB.wallet.importAccount(accountA)
+
+      // Ensure both nodes for the same account have the same note
+      const block = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
+      await nodeA.chain.addBlock(block)
+      await nodeA.wallet.updateHead()
+      await nodeB.chain.addBlock(block)
+      await nodeB.wallet.updateHead()
+
+      // Spend the same note in both nodes
+      const transactionA = await useTxFixture(nodeA.wallet, accountA, accountA)
+      const transactionB = await useTxFixture(nodeB.wallet, accountB, accountB)
+
+      // Add the pending transaction from Node B but ensure we have the original hash
+      await nodeA.wallet.addPendingTransaction(transactionB)
+      const nullifier = transactionB.getSpend(0).nullifier
+      let transactionHash = await accountA['walletDb'].getTransactionHashFromNullifier(
+        accountA,
+        nullifier,
+      )
+      expect(transactionHash).toEqual(transactionA.hash())
+
+      // Verify the note is spent before expiration
+      const noteHash = await accountA.getNoteHash(nullifier)
+      Assert.isNotUndefined(noteHash)
+      let decryptedNote = await accountA.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(decryptedNote)
+      expect(decryptedNote.spent).toBe(true)
+
+      // Expire Transaction B but ensure we still have the nullifier to transaction hash mapping
+      await accountA.expireTransaction(transactionB)
+      transactionHash = await accountA['walletDb'].getTransactionHashFromNullifier(
+        accountA,
+        nullifier,
+      )
+      expect(transactionHash).toEqual(transactionA.hash())
+
+      // Verify the note is still spent since we expired a different transaction
+      decryptedNote = await accountA.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(decryptedNote)
+      expect(decryptedNote.spent).toBe(true)
+    })
+
     it('should add spent notes back into unspentNoteHashes', async () => {
       const { node } = nodeTest
 
