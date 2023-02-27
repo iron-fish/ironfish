@@ -170,6 +170,7 @@ describe('PeerNetwork', () => {
       // Check that the disconnect message was serialized properly
       const args = sendSpy.mock.calls[0][0]
       expect(Buffer.isBuffer(args)).toBe(true)
+      Assert.isInstanceOf(args, Buffer)
       const message = parseNetworkMessage(args)
       expect(message.type).toEqual(NetworkMessageType.Disconnecting)
       Assert.isInstanceOf(message, DisconnectingMessage)
