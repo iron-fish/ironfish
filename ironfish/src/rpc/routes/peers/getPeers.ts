@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { Connection, PeerNetwork } from '../../../network'
+import { Features } from '../../../network/peers/peerFeatures'
 import { ApiNamespace, router } from '../router'
 
 type ConnectionState = Connection['state']['type'] | ''
@@ -26,6 +27,7 @@ export type PeerResponse = {
   connectionWebRTCError: string
   networkId: number | null
   genesisBlockHash: string | null
+  features: Features | null
 }
 
 export type GetPeersRequest =
@@ -69,6 +71,12 @@ export const GetPeersResponseSchema: yup.ObjectSchema<GetPeersResponse> = yup
             connectionWebRTCError: yup.string().defined(),
             networkId: yup.number().nullable().defined(),
             genesisBlockHash: yup.string().nullable().defined(),
+            features: yup
+              .object({
+                syncing: yup.boolean().defined(),
+              })
+              .nullable()
+              .defined(),
           })
           .defined(),
       )
@@ -155,6 +163,7 @@ function getPeers(network: PeerNetwork): PeerResponse[] {
       connectionWebRTCError: connectionWebRTCError,
       networkId: peer.networkId,
       genesisBlockHash: peer.genesisBlockHash?.toString('hex') || null,
+      features: peer.features,
     })
   }
 
