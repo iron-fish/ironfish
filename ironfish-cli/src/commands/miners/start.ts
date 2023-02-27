@@ -52,10 +52,17 @@ export class Miner extends IronfishCommand {
       description: 'Connect to pool over tls',
       allowNo: true,
     }),
+    jsonLogs: Flags.boolean({
+      description: 'Output log lines in json format',
+    }),
   }
 
   async start(): Promise<void> {
     const { flags } = await this.parse(Miner)
+
+    if (flags.jsonLogs) {
+      this.sdk.config.setOverride('jsonLogs', true)
+    }
 
     if (flags.threads === 0 || flags.threads < -1) {
       throw new Error('--threads must be a positive integer or -1.')

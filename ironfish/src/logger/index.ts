@@ -14,7 +14,7 @@ export * from './reporters/intercept'
  * logs has a lot of benefits so going outside this interface. Update this
  * interface if something with a different structure needs to be logged.
  */
-type Loggable = string | number | boolean
+export type Loggable = string | number | boolean | null | undefined
 export interface Logger extends Consola {
   info(message: string, args?: Record<string, Loggable>): void
   log(message: string, args?: Record<string, Loggable>): void
