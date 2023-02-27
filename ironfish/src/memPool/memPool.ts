@@ -91,7 +91,9 @@ export class MemPool {
 
     this.chain = options.chain
     this.logger = logger.withTag('mempool')
+
     this.metrics = options.metrics
+    this.metrics.memPoolMaxSizeBytes.value = this.maxSizeBytes
 
     this.feeEstimator = options.feeEstimator
 
@@ -262,7 +264,7 @@ export class MemPool {
   private addTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
 
-    if (this.transactions.has(hash)) {
+    if (this.transactions.has(hash) || this.recentlyEvictedCache.has(hash.toString('hex'))) {
       return false
     }
 
@@ -342,9 +344,6 @@ export class MemPool {
     this.metrics.memPoolSize.value = this.count()
     this.metrics.memPoolSizeBytes.value = this.sizeBytes()
     this.metrics.memPoolSaturation.value = this.saturation()
-    // TODO(holahula): this value is only updated when the node is restarted,
-    // ideally you don't send a constant value everytime
-    this.metrics.memPoolMaxSizeBytes.value = this.maxSizeBytes
   }
 
   /**
