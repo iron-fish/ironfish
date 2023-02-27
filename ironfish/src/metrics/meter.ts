@@ -5,6 +5,13 @@ import { SetIntervalToken } from '../utils'
 import { EwmAverage } from './ewmAverage'
 import { RollingAverage } from './rollingAverage'
 
+export type newMeterOptions = {
+  /**
+   * The maximum number of samples to keep in the rolling average
+   */
+  maxRollingAverageSamples?: number
+}
+
 /**
  * A metric type useful for recording metered things like
  *  * blocks per second
@@ -31,7 +38,7 @@ export class Meter {
   private _intervalMs: number
   private _intervalLastMs: number | null = null
 
-  constructor() {
+  constructor(options?: newMeterOptions) {
     this._intervalMs = 1000
 
     this._rate1s = new EwmAverage(1000 / this._intervalMs)
@@ -39,7 +46,9 @@ export class Meter {
     this._rate1m = new EwmAverage((1 * 60 * 1000) / this._intervalMs)
     this._rate5m = new EwmAverage((5 * 60 * 1000) / this._intervalMs)
 
-    this._average = new RollingAverage(1000)
+    const numSamples = options?.maxRollingAverageSamples ?? 1000
+
+    this._average = new RollingAverage(numSamples)
 
     this._rollingRate1s = new RollingAverage(1000 / this._intervalMs)
     this._rollingRate5s = new RollingAverage(5000 / this._intervalMs)
