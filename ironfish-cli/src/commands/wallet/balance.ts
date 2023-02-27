@@ -56,7 +56,7 @@ export class BalanceCommand extends IronfishCommand {
     const assetId = response.content.assetId
 
     if (flags.explain) {
-      this.explainBalance(response.content, assetId)
+      this.explainBalance(response.content)
       return
     }
 
