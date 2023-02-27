@@ -8,7 +8,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
+        Thanks for taking the time to fill out this bug report! 
+        If you are experiencing an issue after upgrading to a new version. Please make sure you restart Iron Fish node after upgrade. You can check this by running `ironfish status` and `ironfish debug`, compare the Iron Fish version in both output, they should match.
   - type: textarea
     id: what-happened
     attributes:
@@ -34,7 +35,7 @@ body:
     id: logs
     attributes:
       label: Relevant log output
-      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      description: Please copy and paste any relevant log output, eg. the command line when error happends and full stack trace of error output. This will be automatically formatted into code, so no need for backticks.
       render: shell
   - type: input
     id: graffiti
