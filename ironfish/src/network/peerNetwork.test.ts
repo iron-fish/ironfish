@@ -40,6 +40,7 @@ import {
   PooledTransactionsResponse,
 } from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
+import { Peer } from './peers/peer'
 import {
   expectGetBlockHeadersResponseToMatch,
   expectGetBlockTransactionsResponseToMatch,
@@ -739,7 +740,14 @@ describe('PeerNetwork', () => {
 
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+        const { transaction } = await useBlockWithTx(
+          node,
+          accountA,
+          accountB,
+          true,
+          undefined,
+          false,
+        )
 
         Object.defineProperty(workerPool, 'saturated', { get: () => true })
 
@@ -767,7 +775,14 @@ describe('PeerNetwork', () => {
         const { wallet, memPool, chain } = node
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(node, accountA, accountB)
+        const { transaction } = await useBlockWithTx(
+          node,
+          accountA,
+          accountB,
+          true,
+          undefined,
+          false,
+        )
 
         chain.synced = false
 
@@ -867,7 +882,14 @@ describe('PeerNetwork', () => {
 
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
+        const { block, transaction } = await useBlockWithTx(
+          node,
+          accountA,
+          accountB,
+          true,
+          undefined,
+          false,
+        )
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
         await node.chain.nullifiers.connectBlock(block)
@@ -956,10 +978,7 @@ describe('PeerNetwork', () => {
         )
 
         expect(fetcherHashReceived).toHaveBeenCalledTimes(1)
-        const receivedCall = fetcherHashReceived.mock.calls.at(0)
-        const [hashCall, peerCall] = receivedCall ? receivedCall : [undefined, undefined]
-        expect(hashCall?.equals(transaction.hash())).toBe(true)
-        expect(peerCall?.state?.identity).toBe(peer.state.identity)
+        expect(fetcherHashReceived).toHaveBeenCalledWith(transaction.hash(), expect.any(Peer))
 
         expect(sendSpy).not.toHaveBeenCalled()
 
