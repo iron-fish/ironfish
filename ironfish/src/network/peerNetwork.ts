@@ -232,6 +232,7 @@ export class PeerNetwork {
     this.chain.onConnectBlock.on((block) => {
       this.blockFetcher.removeBlock(block.header.hash)
       for (const transaction of block.transactions) {
+        this.transactionFetcher.removeTransaction(transaction.hash())
         this.recentlyAddedToChain.set(transaction.hash(), true)
       }
     })
@@ -893,6 +894,11 @@ export class PeerNetwork {
     for (const hash of message.hashes) {
       peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
 
+      // If the transaction is already on chain we will get it through a block
+      if (this.recentlyAddedToChain.has(hash)) {
+        continue
+      }
+
       // If the transaction is already in the mempool we don't need to request
       // the full transaction. Just broadcast it
       const transaction = this.node.memPool.get(hash)
@@ -1300,23 +1306,6 @@ export class PeerNetwork {
     return true
   }
 
-  alreadyHaveTransaction(hash: TransactionHash): boolean {
-    /*
-     * When we receive a new transaction we want to test if we have already processed it yet
-     * meaning we have it in the mempool or we have it on a block. */
-
-    let peersToSendTo = false
-    for (const _ of this.connectedPeersWithoutTransaction(hash)) {
-      peersToSendTo = true
-      break
-    }
-
-    return (
-      this.recentlyAddedToChain.has(hash) || (this.node.memPool.exists(hash) && !peersToSendTo)
-      // && TODO(daniel): also filter recently rejected (expired or invalid) transactions
-    )
-  }
-
   async alreadyHaveBlock(headerOrHash: BlockHeader | BlockHash): Promise<boolean> {
     const hash = Buffer.isBuffer(headerOrHash) ? headerOrHash : headerOrHash.hash
     if (this.chain.isInvalid(headerOrHash)) {
@@ -1340,7 +1329,23 @@ export class PeerNetwork {
     // Let the fetcher know that a transaction was received and we no longer have to query it
     this.transactionFetcher.receivedTransaction(hash)
 
-    if (!this.shouldProcessTransactions() || this.alreadyHaveTransaction(hash)) {
+    if (!this.shouldProcessTransactions()) {
+      this.transactionFetcher.removeTransaction(hash)
+      return
+    }
+
+    if (this.recentlyAddedToChain.has(hash)) {
+      this.transactionFetcher.removeTransaction(hash)
+      return
+    }
+
+    let peersToSendTo = false
+    for (const _ of this.connectedPeersWithoutTransaction(hash)) {
+      peersToSendTo = true
+      break
+    }
+
+    if (this.node.memPool.exists(hash) && !peersToSendTo) {
       this.transactionFetcher.removeTransaction(hash)
       return
     }
