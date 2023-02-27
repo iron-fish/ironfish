@@ -812,6 +812,8 @@ export class Account {
       return
     }
 
+    const pendingByAsset = await this.getPendingDeltas(head.sequence, tx)
+
     for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
       const { confirmed, unconfirmedCount } =
         await this.calculateUnconfirmedCountAndConfirmedBalance(
@@ -822,12 +824,10 @@ export class Account {
           tx,
         )
 
-      const { pending, pendingCount } = await this.calculatePendingBalance(
-        head.sequence,
-        assetId,
-        balance.unconfirmed,
-        tx,
-      )
+      const { delta: pendingDelta, count: pendingCount } = pendingByAsset.get(assetId) ?? {
+        delta: 0n,
+        count: 0,
+      }
 
       const available = await this.calculateAvailableBalance(
         head.sequence,
@@ -841,7 +841,7 @@ export class Account {
         unconfirmed: balance.unconfirmed,
         unconfirmedCount,
         confirmed,
-        pending,
+        pending: balance.unconfirmed + pendingDelta,
         pendingCount,
         available,
         blockHash: balance.blockHash,
@@ -894,10 +894,9 @@ export class Account {
         tx,
       )
 
-    const { pending, pendingCount } = await this.calculatePendingBalance(
+    const { delta: pendingDelta, count: pendingCount } = await this.getPendingDelta(
       head.sequence,
       assetId,
-      balance.unconfirmed,
       tx,
     )
 
@@ -912,7 +911,7 @@ export class Account {
       unconfirmed: balance.unconfirmed,
       unconfirmedCount,
       confirmed,
-      pending,
+      pending: balance.unconfirmed + pendingDelta,
       available,
       pendingCount,
       blockHash: balance.blockHash,
@@ -920,14 +919,13 @@ export class Account {
     }
   }
 
-  private async calculatePendingBalance(
+  private async getPendingDelta(
     headSequence: number,
     assetId: Buffer,
-    unconfirmed: bigint,
     tx?: IDatabaseTransaction,
-  ): Promise<{ pending: bigint; pendingCount: number }> {
-    let pending = unconfirmed
-    let pendingCount = 0
+  ): Promise<{ delta: bigint; count: number }> {
+    let delta = 0n
+    let count = 0
 
     for await (const transaction of this.getPendingTransactions(headSequence, tx)) {
       const balanceDelta = transaction.assetBalanceDeltas.get(assetId)
@@ -936,11 +934,28 @@ export class Account {
         continue
       }
 
-      pending += balanceDelta
-      pendingCount++
+      delta += balanceDelta
+      count++
     }
 
-    return { pending, pendingCount }
+    return { delta, count }
+  }
+
+  private async getPendingDeltas(
+    headSequence: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<BufferMap<{ delta: bigint; count: number }>> {
+    const pendingByAsset = new BufferMap<{ delta: bigint; count: number }>()
+
+    for await (const transaction of this.getPendingTransactions(headSequence, tx)) {
+      for (const [assetId, assetDelta] of transaction.assetBalanceDeltas.entries()) {
+        const { delta, count } = pendingByAsset.get(assetId) ?? { delta: 0n, count: 0 }
+
+        pendingByAsset.set(assetId, { delta: delta + assetDelta, count: count + 1 })
+      }
+    }
+
+    return pendingByAsset
   }
 
   private async calculateUnconfirmedCountAndConfirmedBalance(
