@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import bufio from 'bufio'
 import { Serializable } from '../../common/serializable'
-import { Identity } from '../identity'
 import { NetworkMessageType } from '../types'
 
 export function displayNetworkMessageType(type: NetworkMessageType): string {
@@ -33,13 +32,4 @@ export abstract class NetworkMessage implements Serializable {
     bw.writeBytes(this.serialize())
     return bw.render()
   }
-}
-
-/**
- * A message that we have received from a peer, identified by that peer's
- * identity.
- */
-export interface IncomingPeerMessage<M extends NetworkMessage> {
-  peerIdentity: Identity
-  message: M
 }

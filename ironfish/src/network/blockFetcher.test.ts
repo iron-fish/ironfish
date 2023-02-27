@@ -131,10 +131,7 @@ describe('BlockFetcher', () => {
     const sentMessage = sentPeers[0].sendSpy.mock.calls[0][0]
     expect(sentMessage).toBeInstanceOf(GetCompactBlockRequest)
     const rpcId = (sentMessage as GetCompactBlockRequest).rpcId
-    const message = {
-      peerIdentity: sentPeer.getIdentityOrThrow(),
-      message: new GetCompactBlockResponse(block.toCompactBlock(), rpcId),
-    }
+    const message = new GetCompactBlockResponse(block.toCompactBlock(), rpcId)
 
     await expect(chain.hasBlock(block.header.hash)).resolves.toBe(false)
 
