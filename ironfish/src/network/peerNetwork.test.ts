@@ -40,7 +40,6 @@ import {
   PooledTransactionsResponse,
 } from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
-import { Peer } from './peers/peer'
 import {
   expectGetBlockHeadersResponseToMatch,
   expectGetBlockTransactionsResponseToMatch,
