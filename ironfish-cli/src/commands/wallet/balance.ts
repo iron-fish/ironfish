@@ -61,32 +61,17 @@ export class BalanceCommand extends IronfishCommand {
     }
 
     if (flags.all) {
-      this.log(`Account: ${response.content.account}`)
-      this.log(`Head Hash: ${response.content.blockHash || 'NULL'}`)
-      this.log(`Head Sequence: ${response.content.sequence || 'NULL'}`)
-      this.log(
-        `Available:   ${CurrencyUtils.renderIron(response.content.available, true, assetId)}`,
-      )
-      this.log(
-        `Confirmed:   ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`,
-      )
-      this.log(
-        `Unconfirmed: ${CurrencyUtils.renderIron(response.content.unconfirmed, true, assetId)}`,
-      )
-      this.log(
-        `Pending:     ${CurrencyUtils.renderIron(response.content.pending, true, assetId)}`,
-      )
-      return
+      this.log(`Account: ${response.content.account}`);
+      this.log(`Head Hash: ${response.content.blockHash || 'NULL'}`);
+      this.log(`Head Sequence: ${response.content.sequence || 'NULL'}`);
+      this.log(`Available: ${CurrencyUtils.renderIron(response.content.available, true, assetId)}`);
+      this.log(`Confirmed: ${CurrencyUtils.renderIron(response.content.confirmed, true, assetId)}`);
+      this.log(`Unconfirmed: ${CurrencyUtils.renderIron(response.content.unconfirmed, true, assetId)}`);
+      this.log(`Pending: ${CurrencyUtils.renderIron(response.content.pending, true, assetId)}`);
+    } else {
+      this.log(`Account: ${response.content.account}`);
+      this.log(`Available Balance: ${CurrencyUtils.renderIron(response.content.available, true, assetId)}`);
     }
-
-    this.log(`Account: ${response.content.account}`)
-    this.log(
-      `Available Balance: ${CurrencyUtils.renderIron(
-        response.content.available,
-        true,
-        assetId,
-      )}`,
-    )
   }
 
   explainBalance(response: GetBalanceResponse, assetId: string): void {
