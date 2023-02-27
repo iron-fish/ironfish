@@ -185,6 +185,41 @@ export class Telemetry {
         value: this.metrics.memPoolSize.value,
       },
       {
+        name: 'mempool_size_bytes',
+        type: 'integer',
+        value: this.metrics.memPoolSizeBytes.value,
+      },
+      {
+        name: 'mempool_max_size_bytes',
+        type: 'integer',
+        value: this.metrics.memPoolMaxSizeBytes.value,
+      },
+      {
+        name: 'mempool_saturation',
+        type: 'integer',
+        value: this.metrics.memPoolSaturation.value,
+      },
+      {
+        name: 'mempool_evictions',
+        type: 'integer',
+        value: this.metrics.memPoolEvictions.rate5m,
+      },
+      {
+        name: 'mempool_recently_evicted_cache_size',
+        type: 'integer',
+        value: this.metrics.memPool_RecentlyEvictedCache_Size.value,
+      },
+      {
+        name: 'mempool_recently_evicted_cache_max_size',
+        type: 'integer',
+        value: this.metrics.memPool_RecentlyEvictedCache_MaxSize.value,
+      },
+      {
+        name: 'mempool_recently_evicted_cache_saturation',
+        type: 'integer',
+        value: this.metrics.memPool_RecentlyEvictedCache_Saturation.value,
+      },
+      {
         name: 'head_sequence',
         type: 'integer',
         value: this.chain.head.sequence,

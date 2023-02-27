@@ -48,8 +48,8 @@ export class MemPool {
   private readonly recentlyEvictedCache: RecentlyEvictedCache
 
   /* Keep track of number of bytes stored in the transaction map */
-  private transactionsBytes = 0
-  private readonly maxSizeBytes: number
+  private _sizeBytes = 0
+  public readonly maxSizeBytes: number
   private readonly consensus: Consensus
 
   head: BlockHeader | null
@@ -91,7 +91,9 @@ export class MemPool {
 
     this.chain = options.chain
     this.logger = logger.withTag('mempool')
+
     this.metrics = options.metrics
+    this.metrics.memPoolMaxSizeBytes.value = this.maxSizeBytes
 
     this.feeEstimator = options.feeEstimator
 
@@ -107,7 +109,8 @@ export class MemPool {
 
     this.recentlyEvictedCache = new RecentlyEvictedCache({
       logger: this.logger,
-      capacity: options.recentlyEvictedCacheSize,
+      metrics: this.metrics,
+      maxSize: options.recentlyEvictedCacheSize,
     })
   }
 
@@ -115,6 +118,10 @@ export class MemPool {
     await this.feeEstimator.init(this.chain)
   }
 
+  /**
+   *
+   * @returns The number of transactions in the mempool
+   */
   count(): number {
     return this.transactions.size
   }
@@ -123,7 +130,15 @@ export class MemPool {
    * @return The number of bytes stored in the mempool
    */
   sizeBytes(): number {
-    return this.transactionsBytes
+    return this._sizeBytes
+  }
+
+  /**
+   *
+   * @returns The usage of the mempool, as a fraction between 0 and 1
+   */
+  saturation(): number {
+    return this.sizeBytes() / this.maxSizeBytes
   }
 
   exists(hash: TransactionHash): boolean {
@@ -249,7 +264,7 @@ export class MemPool {
   private addTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
 
-    if (this.transactions.has(hash)) {
+    if (this.transactions.has(hash) || this.recentlyEvictedCache.has(hash.toString('hex'))) {
       return false
     }
 
@@ -280,12 +295,13 @@ export class MemPool {
       this.expirationQueue.add({ expiration: transaction.expiration(), hash })
     }
 
-    this.transactionsBytes += getTransactionSize(transaction)
-    this.metrics.memPoolSize.value = this.count()
+    this._sizeBytes += getTransactionSize(transaction)
 
-    // TODO: Add telemetry for evictions
+    this.updateMetrics()
+
     if (this.full()) {
-      this.evictTransactions()
+      const evicted = this.evictTransactions()
+      this.metrics.memPoolEvictions.add(evicted.length)
     }
 
     return this.transactions.has(hash)
@@ -303,6 +319,31 @@ export class MemPool {
    */
   recentlyEvicted(hash: TransactionHash): boolean {
     return this.recentlyEvictedCache.has(hash.toString('hex'))
+  }
+
+  /**
+   * Get relevant stats about the current state of the recently evicted cache.
+   *
+   * @returns size - the number of transactions in the mempool
+   * @returns maxSize - the maximum number of transactions the mempool can hold
+   * @returns saturation - the percentage of the mempool that is full
+   */
+  recentlyEvictedCacheStats(): { size: number; maxSize: number; saturation: number } {
+    return {
+      size: this.recentlyEvictedCache.size(),
+      maxSize: this.recentlyEvictedCache.maxSize,
+      saturation: Math.round(this.recentlyEvictedCache.saturation() * 100),
+    }
+  }
+
+  /**
+   * Updates all relevent telemetry metrics.
+   * This should be called after any additions / deletions from the mempool.
+   */
+  private updateMetrics(): void {
+    this.metrics.memPoolSize.value = this.count()
+    this.metrics.memPoolSizeBytes.value = this.sizeBytes()
+    this.metrics.memPoolSaturation.value = this.saturation()
   }
 
   /**
@@ -354,7 +395,7 @@ export class MemPool {
       return false
     }
 
-    this.transactionsBytes -= getTransactionSize(transaction)
+    this._sizeBytes -= getTransactionSize(transaction)
 
     for (const spend of transaction.spends) {
       this.nullifiers.delete(spend.nullifier)
@@ -366,7 +407,8 @@ export class MemPool {
     this.evictionQueue.remove(hashAsString)
     this.expirationQueue.remove(hashAsString)
 
-    this.metrics.memPoolSize.value = this.count()
+    this.updateMetrics()
+
     return true
   }
 }
