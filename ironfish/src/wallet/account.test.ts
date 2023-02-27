@@ -1618,8 +1618,8 @@ describe('Accounts', () => {
     })
   })
 
-  describe('calculatePendingBalance', () => {
-    it('should calculate pending balance from unconfirmed balance and pending transactions', async () => {
+  describe('getPendingDelta', () => {
+    it('should calculate pending delta from pending transactions', async () => {
       const { node } = nodeTest
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
@@ -1648,15 +1648,59 @@ describe('Accounts', () => {
       await useTxFixture(node.wallet, accountA, accountB)
 
       await expect(
-        accountA['calculatePendingBalance'](
-          headA?.sequence,
-          Asset.nativeId(),
-          balanceA.unconfirmed,
-        ),
+        accountA['getPendingDelta'](headA?.sequence, Asset.nativeId()),
       ).resolves.toMatchObject({
-        pending: balanceA.unconfirmed - 1n,
-        pendingCount: 1,
+        delta: -1n,
+        count: 1,
       })
+    })
+  })
+
+  describe('getPendingDeltas', () => {
+    it('should calculate pending deltas from pending transactions for all assets', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+      const block3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      const balanceA = await accountA.getBalance(Asset.nativeId(), 0)
+
+      expect(balanceA).toMatchObject({
+        confirmed: 4000000000n,
+        unconfirmed: 4000000000n,
+      })
+
+      const headA = await accountA.getHead()
+
+      Assert.isNotNull(headA)
+
+      expect(headA).toMatchObject({
+        hash: block3.header.hash,
+        sequence: block3.header.sequence,
+      })
+
+      await useTxFixture(node.wallet, accountA, accountB)
+
+      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+
+      await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value: 10n,
+      })
+
+      const pendingDeltas = await accountA['getPendingDeltas'](headA?.sequence)
+
+      expect(pendingDeltas.get(Asset.nativeId())).toMatchObject({ delta: -1n, count: 2 })
+      expect(pendingDeltas.get(asset.id())).toMatchObject({ delta: 10n, count: 1 })
     })
   })
 
