@@ -40,6 +40,7 @@ import {
   PooledTransactionsResponse,
 } from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
+import { Peer } from './peers/peer'
 import {
   expectGetBlockHeadersResponseToMatch,
   expectGetBlockTransactionsResponseToMatch,
@@ -919,6 +920,63 @@ describe('PeerNetwork', () => {
               peerWithTransaction.state.identity,
             ),
           ).toBe(true)
+      })
+
+      it('cancels request for transactions if the transaction is added to a block', async () => {
+        const { peerNetwork, node } = nodeTest
+        const { wallet, chain } = node
+
+        chain.synced = true
+
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
+        const { block, transaction } = await useBlockWithTx(
+          node,
+          accountA,
+          accountB,
+          true,
+          undefined,
+          false,
+        )
+
+        const [{ peer, sendSpy }] = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)
+
+        const fetcherHashReceived = jest.spyOn(
+          peerNetwork['transactionFetcher'],
+          'hashReceived',
+        )
+
+        const fetcherHashRemoved = jest.spyOn(
+          peerNetwork['transactionFetcher'],
+          'removeTransaction',
+        )
+
+        await peerNetwork.peerManager.onMessage.emitAsync(
+          peer,
+          new NewPooledTransactionHashes([transaction.hash()]),
+        )
+
+        expect(fetcherHashReceived).toHaveBeenCalledTimes(1)
+        const receivedCall = fetcherHashReceived.mock.calls.at(0)
+        const [hashCall, peerCall] = receivedCall ? receivedCall : [undefined, undefined]
+        expect(hashCall?.equals(transaction.hash())).toBe(true)
+        expect(peerCall?.state?.identity).toBe(peer.state.identity)
+
+        expect(sendSpy).not.toHaveBeenCalled()
+
+        // Should be removed from the fetcher here
+        await expect(chain).toAddBlock(block)
+
+        expect(fetcherHashRemoved).toHaveBeenCalledTimes(block.transactions.length)
+        expect(fetcherHashRemoved).toHaveBeenNthCalledWith(
+          block.transactions.findIndex((t) => t.hash().equals(transaction.hash())) + 1,
+          transaction.hash(),
+        )
+
+        // We wait 500ms and then send the request for the transaction to a random peer
+        jest.runOnlyPendingTimers()
+
+        expect(sendSpy).not.toHaveBeenCalled()
       })
 
       it('syncs transactions if the spends reference a larger tree size', async () => {
