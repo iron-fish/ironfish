@@ -10,7 +10,7 @@ import { NetworkMessageType } from '../network/types'
 import { NumberEnumUtils, SetIntervalToken } from '../utils'
 import { CPUMeter } from './cpuMeter'
 import { Gauge } from './gauge'
-import { Meter, newMeterOptions } from './meter'
+import { Meter } from './meter'
 
 export class MetricsMonitor {
   private _started = false
@@ -111,7 +111,7 @@ export class MetricsMonitor {
     }
   }
 
-  addMeter(options?: newMeterOptions): Meter {
+  addMeter(options?: { maxRollingAverageSamples?: number }): Meter {
     const meter = new Meter(options)
     this._meters.push(meter)
     if (this._started) {
