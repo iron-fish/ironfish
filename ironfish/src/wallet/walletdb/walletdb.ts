@@ -23,11 +23,7 @@ import {
   U32_ENCODING_BE,
   U64_ENCODING,
 } from '../../storage'
-import {
-  getPrefixesKeyRange,
-  getPrefixKeyRange,
-  StorageUtils,
-} from '../../storage/database/utils'
+import { getPrefixesKeyRange, StorageUtils } from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account'
