@@ -7,8 +7,6 @@ import { WebSocketClient } from './webSocketClient'
 export enum NetworkMessageType {
   Disconnecting = 0,
   CannotSatisfyRequest = 1,
-  GetBlockHashesRequest = 2,
-  GetBlockHashesResponse = 3,
   GetBlocksRequest = 4,
   GetBlocksResponse = 5,
   Identify = 6,

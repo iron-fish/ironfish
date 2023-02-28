@@ -19,7 +19,6 @@ import { ArrayUtils } from './utils/array'
 const SYNCER_TICK_MS = 10 * 1000
 const LINEAR_ANCESTOR_SEARCH = 3
 const REQUEST_BLOCKS_PER_MESSAGE = 20
-const BLOCK_HEADERS_MIN_VERSION = 20
 
 class AbortSyncingError extends Error {
   name = this.constructor.name
@@ -260,20 +259,11 @@ export class Syncer {
 
       const needle = start - i * 2
 
-      let hash
-      if (peer.version && peer.version >= BLOCK_HEADERS_MIN_VERSION) {
-        const { headers } = await this.peerNetwork.getBlockHeaders(peer, needle, 1)
-        if (!headers.length) {
-          continue
-        }
-        hash = headers[0].hash
-      } else {
-        const { hashes } = await this.peerNetwork.getBlockHashes(peer, needle, 1)
-        if (!hashes.length) {
-          continue
-        }
-        hash = hashes[0]
+      const { headers } = await this.peerNetwork.getBlockHeaders(peer, needle, 1)
+      if (!headers.length) {
+        continue
       }
+      const hash = headers[0].hash
 
       const { found, local } = await hasHash(hash)
 
@@ -312,17 +302,9 @@ export class Syncer {
 
       const needle = Math.floor((lower + upper) / 2)
 
-      let remote
-      let reportedTime
-      if (peer.version && peer.version >= BLOCK_HEADERS_MIN_VERSION) {
-        const { headers, time } = await this.peerNetwork.getBlockHeaders(peer, needle, 1)
-        remote = headers.length === 1 ? headers[0].hash : null
-        reportedTime = time
-      } else {
-        const { hashes, time } = await this.peerNetwork.getBlockHashes(peer, needle, 1)
-        remote = hashes.length === 1 ? hashes[0] : null
-        reportedTime = time
-      }
+      const { headers, time } = await this.peerNetwork.getBlockHeaders(peer, needle, 1)
+      const remote = headers.length === 1 ? headers[0].hash : null
+      const reportedTime = time
 
       const { found, local } = await hasHash(remote)
 
