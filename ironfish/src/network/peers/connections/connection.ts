@@ -211,7 +211,7 @@ export abstract class Connection {
     if (!this.simulateLatency) {
       return
     }
-    const originalSend = this.send
+    const originalSend = this.send.bind(this)
 
     const wrapper = (
       ...args: Parameters<typeof originalSend>
