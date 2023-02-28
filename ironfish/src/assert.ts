@@ -5,8 +5,8 @@
 import { Constructor } from './utils/types'
 
 export class Assert {
-  static isUnreachable(x: never): never {
-    throw new Error(x)
+  static isUnreachable(x: never, message?: string): never {
+    throw new Error(message || `Expected ${String(x)} to be unreachable`)
   }
 
   static isUndefined<T>(x: undefined | T, message?: string): asserts x is undefined {

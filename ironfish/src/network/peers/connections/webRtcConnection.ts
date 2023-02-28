@@ -10,7 +10,7 @@ import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { ErrorUtils } from '../../../utils'
 import { parseNetworkMessage } from '../../messageRegistry'
-import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
+import { displayNetworkMessageType } from '../../messages/networkMessage'
 import { MAX_MESSAGE_SIZE } from '../../version'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
@@ -197,17 +197,9 @@ export class WebRtcConnection extends Connection {
     }
   }
 
-  send = (message: NetworkMessage): boolean => {
+  _send = (data: Buffer): boolean => {
     if (!this.datachannel) {
       return false
-    }
-
-    if (this.shouldLogMessageType(message.type)) {
-      this.logger.debug(
-        `${colors.yellow('SEND')} ${this.displayName}: ${displayNetworkMessageType(
-          message.type,
-        )}`,
-      )
     }
 
     if (!this.datachannel.isOpen()) {
@@ -216,23 +208,7 @@ export class WebRtcConnection extends Connection {
       return false
     }
 
-    const data = message.serializeWithMetadata()
-    try {
-      this.datachannel.sendMessageBinary(data)
-    } catch (e) {
-      this.logger.debug(
-        `Error occurred while sending ${displayNetworkMessageType(
-          message.type,
-        )} message in state ${this.state.type} ${ErrorUtils.renderError(e)}`,
-      )
-      this.close(e)
-      return false
-    }
-
-    const byteCount = data.byteLength
-    this.metrics?.p2p_OutboundTraffic.add(byteCount)
-    this.metrics?.p2p_OutboundTraffic_WebRTC.add(byteCount)
-    this.metrics?.p2p_OutboundTrafficByMessage.get(message.type)?.add(byteCount)
+    this.datachannel.sendMessageBinary(data)
 
     return true
   }
