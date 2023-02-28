@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
-export type RemoveAccountRequest = { account: string; confirm?: boolean, wait?: boolean }
+export type RemoveAccountRequest = { account: string; confirm?: boolean; wait?: boolean }
 export type RemoveAccountResponse = { needsConfirm?: boolean }
 
 export const RemoveAccountRequestSchema: yup.ObjectSchema<RemoveAccountRequest> = yup
@@ -40,8 +40,9 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
     }
     if (request.data.wait) {
       await node.wallet.removeAccountByNameSynchronous(account.name)
+    } else {
+      await node.wallet.removeAccountByName(account.name)
     }
-    await node.wallet.removeAccountByName(account.name)
     request.end({})
   },
 )
