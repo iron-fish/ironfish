@@ -358,7 +358,9 @@ export class Syncer {
     sequence: number,
     start: Buffer,
     limit: number,
-  ): Promise<{ ok: true; blocks: Block[]; time: number } | { ok: false }> {
+  ): Promise<
+    { ok: true; blocks: Block[]; time: number; isMessageFull: boolean } | { ok: false }
+  > {
     this.logger.info(
       `Requesting ${limit - 1} blocks starting at ${HashUtils.renderHash(
         start,
@@ -367,8 +369,8 @@ export class Syncer {
 
     return this.peerNetwork
       .getBlocks(peer, start, limit)
-      .then((result): { ok: true; blocks: Block[]; time: number } => {
-        return { ok: true, blocks: result.blocks, time: result.time }
+      .then((result): { ok: true; blocks: Block[]; time: number; isMessageFull: boolean } => {
+        return { ok: true, ...result }
       })
       .catch((e) => {
         this.logger.warn(
@@ -400,6 +402,7 @@ export class Syncer {
 
       const {
         blocks: [headBlock, ...blocks],
+        isMessageFull,
         time,
       } = blocksResult
 
@@ -413,7 +416,7 @@ export class Syncer {
 
       // If they sent a full message they have more blocks so
       // optimistically request the next batch
-      if (blocks.length >= this.blocksPerMessage) {
+      if (isMessageFull) {
         const block = blocks.at(-1) || headBlock
 
         blocksPromise = this.getBlocks(
@@ -450,7 +453,7 @@ export class Syncer {
       }
 
       // They didn't send a full message so they have no more blocks
-      if (blocks.length < this.blocksPerMessage) {
+      if (!isMessageFull) {
         break
       }
 
