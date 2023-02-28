@@ -149,7 +149,6 @@ export abstract class Connection {
 
     if (sendResult) {
       this.metrics?.p2p_OutboundTraffic.add(byteCount)
-      this.metrics?.p2p_OutboundTraffic_WebRTC.add(byteCount)
       this.metrics?.p2p_OutboundTrafficByMessage.get(object.type)?.add(byteCount)
     }
 
