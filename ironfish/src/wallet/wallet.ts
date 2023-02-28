@@ -1380,7 +1380,6 @@ export class Wallet {
 
     await this.removeAccountSynchronous(account)
   }
-  
 
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
