@@ -231,7 +231,7 @@ export class Telemetry {
       fields.push({
         name: 'create_new_block_template_duration',
         type: 'float',
-        value: this.metrics.mining_newBlockTemplate.rate5m,
+        value: this.metrics.mining_newBlockTemplate.avg,
       })
     }
 

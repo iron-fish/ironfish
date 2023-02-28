@@ -56,7 +56,7 @@ export class MetricsMonitor {
 
     this.mining_newBlockTemplate = this.addMeter()
     this.chain_newBlock = this.addMeter()
-    this.mining_newBlockTransactions = this.addMeter()
+    this.mining_newBlockTransactions = this.addMeter({ maxRollingAverageSamples: 100 })
 
     this.p2p_InboundTraffic = this.addMeter()
     this.p2p_InboundTraffic_WS = this.addMeter()
@@ -111,8 +111,8 @@ export class MetricsMonitor {
     }
   }
 
-  addMeter(): Meter {
-    const meter = new Meter()
+  addMeter(options?: { maxRollingAverageSamples?: number }): Meter {
+    const meter = new Meter(options)
     this._meters.push(meter)
     if (this._started) {
       meter.start()
