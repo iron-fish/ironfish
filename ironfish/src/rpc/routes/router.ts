@@ -21,6 +21,7 @@ export enum ApiNamespace {
   wallet = 'wallet',
   worker = 'worker',
   rpc = 'rpc',
+  mempool = 'mempool',
 }
 
 export const ALL_API_NAMESPACES = StrEnumUtils.getValues(ApiNamespace)
