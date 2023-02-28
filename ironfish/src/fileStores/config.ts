@@ -394,7 +394,7 @@ export class Config extends KeyStore<ConfigOptions> {
       targetPeers: 50,
       telemetryApi: 'https://api.ironfish.network/telemetry',
       generateNewIdentity: false,
-      blocksPerMessage: 5,
+      blocksPerMessage: 25,
       minerBatchSize: 25000,
       poolName: 'Iron Fish Pool',
       poolAccountName: 'default',
