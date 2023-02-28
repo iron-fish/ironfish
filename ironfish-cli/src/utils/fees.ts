@@ -17,6 +17,34 @@ import {
 import inquirer from 'inquirer'
 import { promptCurrency } from './currency'
 
+export async function validateBalance(options: {
+  client: RpcClient
+  transaction: CreateTransactionRequest
+  account?: string
+  confirmations?: number
+  logger: Logger
+}): Promise<boolean> {
+  // check balance is sufficient for the minimal fee
+  const balanceRequest = await options.client.getAccountBalance({
+    confirmations: options.confirmations,
+  })
+
+  const balanceInOre = CurrencyUtils.decode(balanceRequest.content.available)
+  const currentAmountInOre = options.transaction.outputs.reduce(
+    (a, b) => a + CurrencyUtils.decode(b.amount),
+    0n,
+  )
+
+  if (balanceInOre <= 0 || balanceInOre <= currentAmountInOre) {
+    options.logger.log(
+      'Insufficient funds available for the transaction. Require a minimal transaction fee of 1 ore.',
+    )
+    return false
+  }
+
+  return true
+}
+
 export async function selectFee(options: {
   client: RpcClient
   transaction: CreateTransactionRequest
