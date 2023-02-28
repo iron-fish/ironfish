@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
+import { Assert } from '../../../assert'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
 import { ErrorUtils, SetTimeoutToken } from '../../../utils'
@@ -150,6 +151,14 @@ export abstract class Connection {
     if (sendResult) {
       this.metrics?.p2p_OutboundTraffic.add(byteCount)
       this.metrics?.p2p_OutboundTrafficByMessage.get(object.type)?.add(byteCount)
+
+      if (this.type === ConnectionType.WebRtc) {
+        this.metrics?.p2p_OutboundTraffic_WebRTC.add(data.byteLength)
+      } else if (this.type === ConnectionType.WebSocket) {
+        this.metrics?.p2p_OutboundTraffic_WS.add(data.byteLength)
+      } else {
+        Assert.isUnreachable(this.type)
+      }
     }
 
     return sendResult

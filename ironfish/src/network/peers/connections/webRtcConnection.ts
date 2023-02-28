@@ -210,8 +210,6 @@ export class WebRtcConnection extends Connection {
 
     this.datachannel.sendMessageBinary(data)
 
-    this.metrics?.p2p_OutboundTraffic_WebRTC.add(data.byteLength)
-
     return true
   }
 

@@ -116,8 +116,6 @@ export class WebSocketConnection extends Connection {
   _send = (data: Buffer): boolean => {
     this.socket.send(data)
 
-    this.metrics?.p2p_OutboundTraffic_WS.add(data.byteLength)
-
     return true
   }
 
