@@ -4,7 +4,6 @@
 
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage } from './messages/disconnecting'
-import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
 import { GetBlockHeadersRequest, GetBlockHeadersResponse } from './messages/getBlockHeaders'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import {
@@ -42,8 +41,6 @@ export const parseNetworkMessage = (buffer: Buffer): NetworkMessage => {
 export const isRpcNetworkMessageType = (type: NetworkMessageType): boolean => {
   return [
     NetworkMessageType.CannotSatisfyRequest,
-    NetworkMessageType.GetBlockHashesRequest,
-    NetworkMessageType.GetBlockHashesResponse,
     NetworkMessageType.GetBlocksRequest,
     NetworkMessageType.GetBlocksResponse,
     NetworkMessageType.PooledTransactionsRequest,
@@ -66,10 +63,6 @@ const parseRpcNetworkMessage = (
   switch (type) {
     case NetworkMessageType.CannotSatisfyRequest:
       return CannotSatisfyRequest.deserialize(rpcId)
-    case NetworkMessageType.GetBlockHashesRequest:
-      return GetBlockHashesRequest.deserialize(body, rpcId)
-    case NetworkMessageType.GetBlockHashesResponse:
-      return GetBlockHashesResponse.deserialize(body, rpcId)
     case NetworkMessageType.GetBlocksRequest:
       return GetBlocksRequest.deserialize(body, rpcId)
     case NetworkMessageType.GetBlocksResponse:
