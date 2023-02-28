@@ -7,7 +7,7 @@ import LRU from 'blru'
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { VerificationResultReason } from '../consensus'
+import { isExpiredSequence, VerificationResultReason } from '../consensus'
 import { Event } from '../event'
 import { DEFAULT_WEBSOCKET_PORT } from '../fileStores/config'
 import { HostsStore } from '../fileStores/hosts'
@@ -1321,13 +1321,13 @@ export class PeerNetwork {
 
   private async onNewTransaction(peer: Peer, transaction: Transaction): Promise<void> {
     const received = new Date()
+    const hash = transaction.hash()
+
+    // Let the fetcher know that a transaction was received so it no longer queries for it
+    this.transactionFetcher.receivedTransaction(hash)
 
     // Mark the peer as knowing about the transaction
-    const hash = transaction.hash()
     peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
-
-    // Let the fetcher know that a transaction was received and we no longer have to query it
-    this.transactionFetcher.receivedTransaction(hash)
 
     if (!this.shouldProcessTransactions()) {
       this.transactionFetcher.removeTransaction(hash)
@@ -1339,13 +1339,10 @@ export class PeerNetwork {
       return
     }
 
-    let peersToSendTo = false
-    for (const _ of this.connectedPeersWithoutTransaction(hash)) {
-      peersToSendTo = true
-      break
-    }
-
-    if (this.node.memPool.exists(hash) && !peersToSendTo) {
+    // If transaction is already in mempool that means it's been synced to the
+    // wallet and the mempool so all that is left is to broadcast
+    if (this.node.memPool.exists(hash)) {
+      this.broadcastTransaction(transaction)
       this.transactionFetcher.removeTransaction(hash)
       return
     }
@@ -1361,13 +1358,14 @@ export class PeerNetwork {
       return
     }
 
-    if (this.node.memPool.acceptTransaction(transaction)) {
-      this.onTransactionAccepted.emit(transaction, received)
-    }
+    this.onTransactionAccepted.emit(transaction, received)
 
-    // Check 'exists' rather than 'accepted' to allow for rebroadcasting to nodes that
-    // may not have seen the transaction yet
-    if (this.node.memPool.exists(transaction.hash())) {
+    // TODO(daniel): could combine this with the check in memPool.acceptTransaction somehow
+    // It is added here to not gossip expired transactions
+    if (isExpiredSequence(transaction.expiration(), this.chain.head.sequence)) {
+      // At this point the transaction is valid and has not yet been seen so sync to the
+      // mempool, and broadcast to all peers
+      this.node.memPool.acceptTransaction(transaction)
       this.broadcastTransaction(transaction)
     }
 
