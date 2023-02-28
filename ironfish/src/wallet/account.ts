@@ -813,16 +813,15 @@ export class Account {
     }
 
     const pendingByAsset = await this.getPendingDeltas(head.sequence, tx)
+    const unconfirmedByAsset = await this.getUnconfirmedDeltas(head.sequence, confirmations, tx)
 
     for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
-      const { confirmed, unconfirmedCount } =
-        await this.calculateUnconfirmedCountAndConfirmedBalance(
-          head.sequence,
-          assetId,
-          confirmations,
-          balance.unconfirmed,
-          tx,
-        )
+      const { delta: unconfirmedDelta, count: unconfirmedCount } = unconfirmedByAsset.get(
+        assetId,
+      ) ?? {
+        delta: 0n,
+        count: 0,
+      }
 
       const { delta: pendingDelta, count: pendingCount } = pendingByAsset.get(assetId) ?? {
         delta: 0n,
@@ -840,7 +839,7 @@ export class Account {
         assetId,
         unconfirmed: balance.unconfirmed,
         unconfirmedCount,
-        confirmed,
+        confirmed: balance.unconfirmed - unconfirmedDelta,
         pending: balance.unconfirmed + pendingDelta,
         pendingCount,
         available,
@@ -885,14 +884,12 @@ export class Account {
 
     const balance = await this.getUnconfirmedBalance(assetId, tx)
 
-    const { confirmed, unconfirmedCount } =
-      await this.calculateUnconfirmedCountAndConfirmedBalance(
-        head.sequence,
-        assetId,
-        confirmations,
-        balance.unconfirmed,
-        tx,
-      )
+    const { delta: unconfirmedDelta, count: unconfirmedCount } = await this.getUnconfirmedDelta(
+      head.sequence,
+      confirmations,
+      assetId,
+      tx,
+    )
 
     const { delta: pendingDelta, count: pendingCount } = await this.getPendingDelta(
       head.sequence,
@@ -910,7 +907,7 @@ export class Account {
     return {
       unconfirmed: balance.unconfirmed,
       unconfirmedCount,
-      confirmed,
+      confirmed: balance.unconfirmed - unconfirmedDelta,
       pending: balance.unconfirmed + pendingDelta,
       available,
       pendingCount,
@@ -958,16 +955,15 @@ export class Account {
     return pendingByAsset
   }
 
-  private async calculateUnconfirmedCountAndConfirmedBalance(
+  private async getUnconfirmedDelta(
     headSequence: number,
-    assetId: Buffer,
     confirmations: number,
-    unconfirmed: bigint,
+    assetId: Buffer,
     tx?: IDatabaseTransaction,
-  ): Promise<{ confirmed: bigint; unconfirmedCount: number }> {
-    let unconfirmedCount = 0
+  ): Promise<{ delta: bigint; count: number }> {
+    let delta = 0n
+    let count = 0
 
-    let confirmed = unconfirmed
     if (confirmations > 0) {
       const unconfirmedSequenceEnd = headSequence
 
@@ -988,15 +984,47 @@ export class Account {
           continue
         }
 
-        unconfirmedCount++
-        confirmed -= balanceDelta
+        count++
+        delta += balanceDelta
       }
     }
 
     return {
-      confirmed,
-      unconfirmedCount,
+      delta,
+      count,
     }
+  }
+
+  private async getUnconfirmedDeltas(
+    headSequence: number,
+    confirmations: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<BufferMap<{ delta: bigint; count: number }>> {
+    const unconfirmedByAsset = new BufferMap<{ delta: bigint; count: number }>()
+
+    if (confirmations > 0) {
+      const unconfirmedSequenceEnd = headSequence
+
+      const unconfirmedSequenceStart = Math.max(
+        unconfirmedSequenceEnd - confirmations + 1,
+        GENESIS_BLOCK_SEQUENCE,
+      )
+
+      for await (const transaction of this.walletDb.loadTransactionsInSequenceRange(
+        this,
+        unconfirmedSequenceStart,
+        unconfirmedSequenceEnd,
+        tx,
+      )) {
+        for (const [assetId, assetDelta] of transaction.assetBalanceDeltas.entries()) {
+          const { delta, count } = unconfirmedByAsset.get(assetId) ?? { delta: 0n, count: 0 }
+
+          unconfirmedByAsset.set(assetId, { delta: delta + assetDelta, count: count + 1 })
+        }
+      }
+    }
+
+    return unconfirmedByAsset
   }
 
   async calculateAvailableBalance(
