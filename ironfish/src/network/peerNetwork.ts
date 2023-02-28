@@ -1358,13 +1358,12 @@ export class PeerNetwork {
       return
     }
 
-    this.onTransactionAccepted.emit(transaction, received)
-
     const accepted = this.node.memPool.acceptTransaction(transaction)
 
     // At this point the only reasons a transaction is not accepted would be
     // overlapping nullifiers or it's expired. In both cases don't broadcast
     if (accepted) {
+      this.onTransactionAccepted.emit(transaction, received)
       this.broadcastTransaction(transaction)
     }
 
