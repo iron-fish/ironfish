@@ -15,7 +15,7 @@ describe('WebRtcConnection', () => {
         const message = new IdentifyMessage({
           agent: '',
           head: Buffer.alloc(32, 0),
-          identity: 'identity',
+          identity: Buffer.alloc(32, 'identity').toString('base64'),
           port: 9033,
           sequence: 1,
           version: 0,
