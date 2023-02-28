@@ -46,6 +46,7 @@ router.register<typeof ImportAccountRequestSchema, ImportResponse>(
   async (request, node): Promise<void> => {
     const accountValue = {
       id: uuid(),
+      createdAt: null,
       ...request.data.account,
     }
     const account = await node.wallet.importAccount(accountValue)

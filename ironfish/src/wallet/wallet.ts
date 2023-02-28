@@ -1272,6 +1272,7 @@ export class Wallet {
       publicAddress: key.publicAddress,
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,
+      createdAt: new Date(),
       walletDb: this.walletDb,
     })
 
