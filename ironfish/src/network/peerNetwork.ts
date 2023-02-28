@@ -1362,7 +1362,7 @@ export class PeerNetwork {
 
     // TODO(daniel): could combine this with the check in memPool.acceptTransaction somehow
     // It is added here to not gossip expired transactions
-    if (isExpiredSequence(transaction.expiration(), this.chain.head.sequence)) {
+    if (!isExpiredSequence(transaction.expiration(), this.chain.head.sequence)) {
       // At this point the transaction is valid and has not yet been seen so sync to the
       // mempool, and broadcast to all peers
       this.node.memPool.acceptTransaction(transaction)
