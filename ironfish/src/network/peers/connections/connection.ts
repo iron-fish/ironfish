@@ -3,13 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
+import { Assert } from '../../../assert'
 import { Event } from '../../../event'
 import { MetricsMonitor } from '../../../metrics'
-import { SetTimeoutToken } from '../../../utils'
+import { ErrorUtils, SetTimeoutToken } from '../../../utils'
 import { Identity } from '../../identity'
-import { NetworkMessage } from '../../messages/networkMessage'
+import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
 import { RPC_TIMEOUT_MILLIS } from '../../messages/rpcNetworkMessage'
 import { NetworkMessageType } from '../../types'
+import { MAX_MESSAGE_SIZE } from '../../version'
 import { HandshakeTimeoutError } from './errors'
 
 /**
@@ -91,7 +93,7 @@ export abstract class Connection {
   /**
    * Send a message into this connection.
    */
-  abstract send: (object: NetworkMessage) => boolean
+  abstract _send: (data: Buffer) => boolean
 
   /**
    * Shutdown the connection, if possible
@@ -112,6 +114,54 @@ export abstract class Connection {
     this._error = null
     this.simulateLatency = options.simulateLatency || 0
     this.simulateLatencyQueue = []
+  }
+
+  send(object: NetworkMessage): boolean {
+    const data = object.serializeWithMetadata()
+    const byteCount = data.byteLength
+
+    if (byteCount >= MAX_MESSAGE_SIZE) {
+      this.logger.warn(
+        `Attempted to send a message that exceeds the maximum size. ${object.type} (${byteCount})`,
+      )
+      return false
+    }
+
+    if (this.shouldLogMessageType(object.type)) {
+      this.logger.debug(
+        `${colors.yellow('SEND')} ${this.displayName}: ${displayNetworkMessageType(
+          object.type,
+        )}`,
+      )
+    }
+
+    let sendResult
+    try {
+      sendResult = this._send(data)
+    } catch (e) {
+      this.logger.debug(
+        `Error occurred while sending ${displayNetworkMessageType(
+          object.type,
+        )} message in state ${this.state.type} ${ErrorUtils.renderError(e)}`,
+      )
+      this.close(e)
+      return false
+    }
+
+    if (sendResult) {
+      this.metrics?.p2p_OutboundTraffic.add(byteCount)
+      this.metrics?.p2p_OutboundTrafficByMessage.get(object.type)?.add(byteCount)
+
+      if (this.type === ConnectionType.WebRtc) {
+        this.metrics?.p2p_OutboundTraffic_WebRTC.add(byteCount)
+      } else if (this.type === ConnectionType.WebSocket) {
+        this.metrics?.p2p_OutboundTraffic_WS.add(byteCount)
+      } else {
+        Assert.isUnreachable(this.type)
+      }
+    }
+
+    return sendResult
   }
 
   setState(state: Readonly<ConnectionState>): void {
@@ -161,7 +211,7 @@ export abstract class Connection {
     if (!this.simulateLatency) {
       return
     }
-    const originalSend = this.send
+    const originalSend = this.send.bind(this)
 
     const wrapper = (
       ...args: Parameters<typeof originalSend>

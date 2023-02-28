@@ -6,7 +6,7 @@ import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import { MetricsMonitor } from '../../../metrics'
 import { parseNetworkMessage } from '../../messageRegistry'
-import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
+import { displayNetworkMessageType } from '../../messages/networkMessage'
 import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
@@ -113,22 +113,8 @@ export class WebSocketConnection extends Connection {
     }
   }
 
-  send = (message: NetworkMessage): boolean => {
-    if (this.shouldLogMessageType(message.type)) {
-      this.logger.debug(
-        `${colors.yellow('SEND')} ${this.displayName}: ${displayNetworkMessageType(
-          message.type,
-        )}`,
-      )
-    }
-
-    const data = message.serializeWithMetadata()
+  _send = (data: Buffer): boolean => {
     this.socket.send(data)
-
-    const byteCount = data.byteLength
-    this.metrics?.p2p_OutboundTraffic.add(byteCount)
-    this.metrics?.p2p_OutboundTraffic_WS.add(byteCount)
-    this.metrics?.p2p_OutboundTrafficByMessage.get(message.type)?.add(byteCount)
 
     return true
   }
