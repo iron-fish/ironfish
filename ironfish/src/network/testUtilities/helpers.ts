@@ -5,6 +5,7 @@
 import { Assert } from '../../assert'
 import { Identity, isIdentity } from '../identity'
 import { GetBlockHeadersResponse } from '../messages/getBlockHeaders'
+import { GetBlocksResponse } from '../messages/getBlocks'
 import { GetBlockTransactionsResponse } from '../messages/getBlockTransactions'
 import { GetCompactBlockResponse } from '../messages/getCompactBlock'
 import { NetworkMessage } from '../messages/networkMessage'
@@ -241,4 +242,18 @@ export function expectGetBlockHeadersResponseToMatch(
   })
 
   expect({ ...a, headers: undefined }).toMatchObject({ ...b, headers: undefined })
+}
+
+export function expectGetBlocksResponseToMatch(
+  a: GetBlocksResponse,
+  b: GetBlocksResponse,
+): void {
+  expect(a.blocks.length).toEqual(b.blocks.length)
+  a.blocks.forEach((blockA, blockIndexA) => {
+    const blockB = b.blocks[blockIndexA]
+
+    expect(blockA.equals(blockB)).toBe(true)
+  })
+
+  expect({ ...a, blocks: undefined }).toMatchObject({ ...b, blocks: undefined })
 }
