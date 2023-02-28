@@ -61,10 +61,12 @@ import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
 import { parseUrl } from './utils/parseUrl'
+import { getBlockSize } from './utils/serializers'
 import {
   MAX_HEADER_LOOKUPS,
   MAX_REQUESTED_BLOCKS,
   MAX_REQUESTED_HEADERS,
+  SOFT_MAX_MESSAGE_SIZE,
   VERSION_PROTOCOL,
 } from './version'
 import { WebSocketServer } from './webSocketServer'
@@ -594,7 +596,7 @@ export class PeerNetwork {
     peer: Peer,
     start: Buffer,
     limit: number,
-  ): Promise<{ blocks: Block[]; time: number }> {
+  ): Promise<{ blocks: Block[]; time: number; isMessageFull: boolean }> {
     const begin = BenchUtils.start()
 
     const message = new GetBlocksRequest(start, limit)
@@ -605,7 +607,9 @@ export class PeerNetwork {
       throw new Error(`Invalid GetBlocksResponse: ${displayNetworkMessageType(message.type)}`)
     }
 
-    return { blocks: response.blocks, time: BenchUtils.end(begin) }
+    const exceededSoftLimit = response.getSize() >= SOFT_MAX_MESSAGE_SIZE
+    const isMessageFull = exceededSoftLimit || response.blocks.length >= limit
+    return { blocks: response.blocks, time: BenchUtils.end(begin), isMessageFull }
   }
 
   private async handleMessage(peer: Peer, message: NetworkMessage): Promise<void> {
@@ -987,22 +991,21 @@ export class PeerNetwork {
       return new GetBlocksResponse([], rpcId)
     }
 
-    const hashes = []
+    let totalSize = 0
+    const blocks = []
+
     for await (const hash of this.chain.iterateToHashes(from)) {
-      hashes.push(hash)
-      if (hashes.length === limit) {
+      const block = await this.chain.getBlock(hash)
+      Assert.isNotNull(block)
+      totalSize += getBlockSize(block)
+      blocks.push(block)
+
+      if (blocks.length === limit || totalSize >= SOFT_MAX_MESSAGE_SIZE) {
         break
       }
     }
 
-    const blocks = await Promise.all(hashes.map((hash) => this.chain.getBlock(hash)))
-
-    const notNullBlocks = blocks.map((block) => {
-      Assert.isNotNull(block)
-      return block
-    })
-
-    return new GetBlocksResponse(notNullBlocks, rpcId)
+    return new GetBlocksResponse(blocks, rpcId)
   }
 
   private onPooledTransactionsRequest(

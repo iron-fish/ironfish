@@ -25,6 +25,7 @@ import { parseNetworkMessage } from './messageRegistry'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import { GetBlockHeadersRequest, GetBlockHeadersResponse } from './messages/getBlockHeaders'
+import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import {
   GetBlockTransactionsRequest,
   GetBlockTransactionsResponse,
@@ -43,6 +44,7 @@ import { PeerNetwork } from './peerNetwork'
 import { Peer } from './peers/peer'
 import {
   expectGetBlockHeadersResponseToMatch,
+  expectGetBlocksResponseToMatch,
   expectGetBlockTransactionsResponseToMatch,
   expectGetCompactBlockResponseToMatch,
   getConnectedPeer,
@@ -52,6 +54,7 @@ import {
   peerMessage,
 } from './testUtilities'
 import { NetworkMessageType } from './types'
+import * as serializer from './utils/serializers'
 import { VERSION_PROTOCOL } from './version'
 
 jest.mock('./version', () => {
@@ -626,6 +629,59 @@ describe('PeerNetwork', () => {
           response,
         )
       })
+    })
+  })
+
+  describe('handles requests for block', () => {
+    const nodeTest = createNodeTest()
+
+    it('should respond to GetBlocksRequest', async () => {
+      const { node, peerNetwork } = nodeTest
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlocksRequest(block2.header.hash, 2, rpcId)
+      const response = new GetBlocksResponse([block2, block3], rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlocksResponse)
+      expectGetBlocksResponseToMatch(sendSpy.mock.calls[0][0] as GetBlocksResponse, response)
+    })
+
+    it('should respect the soft max message size', async () => {
+      const { node, peerNetwork } = nodeTest
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+
+      const sendSpy = jest.spyOn(peer, 'send')
+      const getSizeSpy = jest.spyOn(serializer, 'getBlockSize').mockReturnValue(7 * 1024 * 1024)
+
+      const rpcId = 432
+      const message = new GetBlocksRequest(block2.header.hash, 3, rpcId)
+      const response = new GetBlocksResponse([block2, block3], rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlocksResponse)
+      expectGetBlocksResponseToMatch(sendSpy.mock.calls[0][0] as GetBlocksResponse, response)
+
+      getSizeSpy.mockRestore()
     })
   })
 
