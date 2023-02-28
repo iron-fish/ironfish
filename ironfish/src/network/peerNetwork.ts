@@ -56,7 +56,6 @@ import {
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, KnownBlockHashesValue, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
-import { FEATURES_MIN_VERSION } from './peers/peerFeatures'
 import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
@@ -612,11 +611,7 @@ export class PeerNetwork {
   }
 
   private async handleMessage(peer: Peer, message: NetworkMessage): Promise<void> {
-    if (
-      !this.localPeer.enableSyncing &&
-      peer.version !== null &&
-      peer.version >= FEATURES_MIN_VERSION
-    ) {
+    if (!this.localPeer.enableSyncing) {
       peer.punish(BAN_SCORE.MAX)
       return
     }
