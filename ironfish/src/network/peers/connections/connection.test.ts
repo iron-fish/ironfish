@@ -24,6 +24,33 @@ describe('Connection', () => {
   })
 
   describe('send', () => {
+    it('should send a message that is an acceptable size', () => {
+      const connection = new WebSocketConnection(
+        new ws(''),
+        ConnectionDirection.Outbound,
+        createRootLogger(),
+      )
+
+      const message = new IdentifyMessage({
+        agent: '',
+        head: Buffer.alloc(32, 0),
+        identity: Buffer.alloc(32, 'identity').toString('base64'),
+        port: 9033,
+        sequence: 1,
+        version: 0,
+        work: BigInt(0),
+        networkId: 0,
+        genesisBlockHash: Buffer.alloc(32, 0),
+        features: defaultFeatures(),
+      })
+
+      const _sendSpy = jest.spyOn(connection, '_send').mockImplementationOnce(() => true)
+
+      expect(connection.send(message)).toBe(true)
+      expect(_sendSpy).toHaveBeenCalled()
+      connection.close()
+    })
+
     it('should not send a message that exceeds the maximum size', () => {
       const connection = new WebSocketConnection(
         new ws(''),

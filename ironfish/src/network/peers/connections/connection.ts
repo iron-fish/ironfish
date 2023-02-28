@@ -153,9 +153,9 @@ export abstract class Connection {
       this.metrics?.p2p_OutboundTrafficByMessage.get(object.type)?.add(byteCount)
 
       if (this.type === ConnectionType.WebRtc) {
-        this.metrics?.p2p_OutboundTraffic_WebRTC.add(data.byteLength)
+        this.metrics?.p2p_OutboundTraffic_WebRTC.add(byteCount)
       } else if (this.type === ConnectionType.WebSocket) {
-        this.metrics?.p2p_OutboundTraffic_WS.add(data.byteLength)
+        this.metrics?.p2p_OutboundTraffic_WS.add(byteCount)
       } else {
         Assert.isUnreachable(this.type)
       }
