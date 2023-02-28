@@ -62,8 +62,8 @@ import { IsomorphicWebSocketConstructor } from './types'
 import { parseUrl } from './utils/parseUrl'
 import { getBlockSize } from './utils/serializers'
 import {
+  MAX_BLOCK_LOOKUPS,
   MAX_HEADER_LOOKUPS,
-  MAX_REQUESTED_BLOCKS,
   MAX_REQUESTED_HEADERS,
   SOFT_MAX_MESSAGE_SIZE,
   VERSION_PROTOCOL,
@@ -972,12 +972,6 @@ export class PeerNetwork {
       return new GetBlocksResponse([], rpcId)
     }
 
-    if (request.limit > MAX_REQUESTED_BLOCKS) {
-      peer.punish(BAN_SCORE.MAX, `Peer sent GetBlocks with limit of ${request.limit}`)
-      const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
-      throw error
-    }
-
     const start = request.start
     const limit = request.limit
 
@@ -986,16 +980,23 @@ export class PeerNetwork {
       return new GetBlocksResponse([], rpcId)
     }
 
+    let remainingLookups = MAX_BLOCK_LOOKUPS
     let totalSize = 0
     const blocks = []
 
     for await (const hash of this.chain.iterateToHashes(from)) {
+      remainingLookups -= 1
+
       const block = await this.chain.getBlock(hash)
       Assert.isNotNull(block)
       totalSize += getBlockSize(block)
       blocks.push(block)
 
-      if (blocks.length === limit || totalSize >= SOFT_MAX_MESSAGE_SIZE) {
+      if (
+        blocks.length === limit ||
+        totalSize >= SOFT_MAX_MESSAGE_SIZE ||
+        remainingLookups === 0
+      ) {
         break
       }
     }

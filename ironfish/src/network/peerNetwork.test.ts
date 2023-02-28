@@ -63,6 +63,7 @@ jest.mock('./version', () => {
     ...moduleMock,
     MAX_REQUESTED_HEADERS: 4,
     MAX_HEADER_LOOKUPS: 8,
+    MAX_BLOCK_LOOKUPS: 4,
   }
 })
 
@@ -682,6 +683,34 @@ describe('PeerNetwork', () => {
       expectGetBlocksResponseToMatch(sendSpy.mock.calls[0][0] as GetBlocksResponse, response)
 
       getSizeSpy.mockRestore()
+    })
+
+    it('should respect the lookup limit', async () => {
+      const { node, peerNetwork } = nodeTest
+
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+      const block5 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block5)
+      const block6 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block6)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlocksRequest(block2.header.hash, 10, rpcId)
+      const response = new GetBlocksResponse([block2, block3, block4, block5], rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlocksResponse)
+      expectGetBlocksResponseToMatch(sendSpy.mock.calls[0][0] as GetBlocksResponse, response)
     })
   })
 
