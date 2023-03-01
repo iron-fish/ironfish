@@ -332,7 +332,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     mempoolMaxSizeBytes: yup
       .number()
       .integer()
-      .min(2 * MEGABYTES), // one blocks worth of transactions
+      .min(20 * MEGABYTES),
     memPoolRecentlyEvictedCacheSize: yup.number().integer(),
     networkDefinitionPath: yup.string().trim(),
   })
