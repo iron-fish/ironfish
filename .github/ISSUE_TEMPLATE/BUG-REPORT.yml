@@ -35,7 +35,7 @@ body:
     id: logs
     attributes:
       label: Relevant log output
-      description: Please copy and paste any relevant log output, eg. the command line when error happends and full stack trace of error output. This will be automatically formatted into code, so no need for backticks.
+      description: Please copy and paste any relevant log output, like the command you entered and the logs leading up to the error. This will be automatically formatted into code, so no need for backticks.
       render: shell
   - type: input
     id: graffiti
