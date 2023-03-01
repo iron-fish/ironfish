@@ -553,6 +553,7 @@ describe('Accounts', () => {
         name: 'viewonly',
         version: 1,
         spendingKey: null,
+        createdAt: null,
         ...key,
       }
       const viewonlyAccount = await node.wallet.importAccount(accountValue)
@@ -572,6 +573,7 @@ describe('Accounts', () => {
         name: 'viewonly',
         version: 1,
         spendingKey: null,
+        createdAt: null,
         ...key,
       }
       await node.wallet.importAccount(accountValue)

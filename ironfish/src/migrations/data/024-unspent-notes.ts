@@ -31,6 +31,7 @@ export class Migration024 extends Migration {
       accounts.push(
         new Account({
           ...accountValue,
+          createdAt: null,
           walletDb: node.wallet.walletDb,
         }),
       )

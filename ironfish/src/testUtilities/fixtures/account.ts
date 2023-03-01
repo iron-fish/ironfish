@@ -32,7 +32,8 @@ export function useAccountFixture(
     },
 
     deserialize: async (accountData: AccountValue): Promise<SpendingAccount> => {
-      const account = await wallet.importAccount(accountData)
+      const createdAt = accountData.createdAt ? new Date(accountData.createdAt) : null
+      const account = await wallet.importAccount({ ...accountData, createdAt })
 
       if (accountData) {
         if (wallet.chainProcessor.hash && wallet.chainProcessor.sequence) {
