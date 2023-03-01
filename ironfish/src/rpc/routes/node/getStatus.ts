@@ -44,7 +44,6 @@ export type GetNodeStatusResponse = {
     size: number
     sizeBytes: number
     maxSizeBytes: number
-    saturation: number
     evictions: number
     recentlyEvictedCache: {
       size: number
@@ -317,7 +316,6 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
       size: node.metrics.memPoolSize.value,
       sizeBytes: node.memPool.sizeBytes(),
       maxSizeBytes: node.memPool.maxSizeBytes,
-      saturation: node.memPool.saturation(),
       evictions: Math.max(node.metrics.memPoolEvictions.rate5m, 0),
       recentlyEvictedCache: {
         size: node.memPool.recentlyEvictedCacheStats().size,
