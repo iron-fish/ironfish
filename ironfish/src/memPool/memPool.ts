@@ -111,6 +111,7 @@ export class MemPool {
       logger: this.logger,
       metrics: this.metrics,
       maxSize: options.recentlyEvictedCacheSize,
+      sortFunction: mempoolEntryComparator,
     })
   }
 

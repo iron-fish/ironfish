@@ -5,6 +5,7 @@
 import { randomBytes } from 'crypto'
 import { createRootLogger } from '../logger'
 import { MetricsMonitor } from '../metrics'
+import { mempoolEntryComparator } from './memPool'
 import { RecentlyEvictedCache } from './recentlyEvictedCache'
 
 describe('RecentlyEvictedCache', () => {
@@ -50,6 +51,7 @@ describe('RecentlyEvictedCache', () => {
         maxSize: 10,
         logger,
         metrics: new MetricsMonitor({ logger }),
+        sortFunction: mempoolEntryComparator,
       })
 
       for (const { hash, feeRate, sequence, maxAge } of orderedTransactions) {
@@ -64,6 +66,7 @@ describe('RecentlyEvictedCache', () => {
         maxSize: 2,
         logger,
         metrics: new MetricsMonitor({ logger }),
+        sortFunction: mempoolEntryComparator,
       })
 
       testCache.add(
@@ -121,6 +124,7 @@ describe('RecentlyEvictedCache', () => {
         maxSize: 5,
         logger,
         metrics: new MetricsMonitor({ logger }),
+        sortFunction: mempoolEntryComparator,
       })
 
       const added: typeof randomTransactions = []
@@ -144,6 +148,7 @@ describe('RecentlyEvictedCache', () => {
         logger,
         maxSize: 20,
         metrics: new MetricsMonitor({ logger }),
+        sortFunction: mempoolEntryComparator,
       })
 
       for (const { hash, feeRate, sequence, maxAge } of orderedTransactions) {
@@ -180,6 +185,7 @@ describe('RecentlyEvictedCache', () => {
         logger,
         maxSize: 5,
         metrics: new MetricsMonitor({ logger }),
+        sortFunction: mempoolEntryComparator,
       })
 
       const added: typeof randomTransactions = []

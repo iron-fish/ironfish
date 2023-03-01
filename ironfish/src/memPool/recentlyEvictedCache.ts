@@ -57,16 +57,20 @@ export class RecentlyEvictedCache {
    * @constructor
    * @param options.maxSize the maximum number of hashes to store in the cache
    */
-  constructor(options: { logger: Logger; metrics: MetricsMonitor; maxSize: number }) {
+  constructor(options: {
+    logger: Logger
+    metrics: MetricsMonitor
+    maxSize: number
+    sortFunction: (t1: EvictionQueueEntry, t2: EvictionQueueEntry) => boolean
+  }) {
     this.maxSize = options.maxSize
     this.metrics = options.metrics
     this.logger = options.logger.withTag('RecentlyEvictedCache')
 
     this.metrics.memPool_RecentlyEvictedCache_MaxSize.value = this.maxSize
 
-    this.evictionQueue = new PriorityQueue<EvictionQueueEntry>(
-      (t1, t2) => t1.feeRate > t2.feeRate,
-      (t) => t.hash.toString('hex'),
+    this.evictionQueue = new PriorityQueue<EvictionQueueEntry>(options.sortFunction, (t) =>
+      t.hash.toString('hex'),
     )
 
     this.removeAtSequenceQueue = new PriorityQueue<RemoveAtSequenceQueueEntry>(
