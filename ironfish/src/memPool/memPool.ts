@@ -142,16 +142,16 @@ export class MemPool {
   }
 
   /**
-   * @returns true if the transacition is either in the mempool or in the
+   * @returns true if the transaction is either in the mempool or in the
    * recently evicted cache. This does NOT indicate whether the full transaction
-   * is stored in the mempool or not
+   * is stored in the mempool
    */
   exists(hash: TransactionHash): boolean {
     return this.transactions.has(hash) || this.recentlyEvicted(hash)
   }
 
   /*
-   * Returns a transaction if the transaction with that hash exists in the mempool
+   * Returns a transaction if a full transaction with that hash exists in the mempool
    * Otherwise, returns undefined
    */
   get(hash: TransactionHash): Transaction | undefined {
