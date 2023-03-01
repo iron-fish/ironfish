@@ -1396,7 +1396,8 @@ export class Wallet {
     this.onAccountRemoved.emit(account)
   }
 
-  async removeAccountSynchronous(account: Account): Promise<void> {
+  async removeAccountSynchronous(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.removeAccount(account, tx)
     await this.walletDb.deleteAccount(account)
   }
 
