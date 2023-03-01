@@ -11,9 +11,9 @@ interface EvictionQueueEntry {
   feeRate: bigint
 }
 
-interface ExpireAtQueueEntry {
+interface RemoveAtSequenceQueueEntry {
   hash: TransactionHash
-  expireAtSequence: number
+  removeAtSequence: number
 }
 
 /**
@@ -23,9 +23,9 @@ interface ExpireAtQueueEntry {
  * within a reasonable duration if for some reason they are evicted (i.e. the mempool is full
  * and the transaction is underpriced).
  *
- * When full, transactions are evicted in order of `feeRate` descending to make room for the
- * new transaction. This order is chosen because these transactions most likely to be successfully
- * re-introduced into the mempool
+ * When the cache is full, the transaction with the highest fee rate is removed to make room
+ * for the new transaction. This transaction is most likely to be re-introduced into the mempool,
+ * so by removing it, we allow it to be re-fetched.
  */
 export class RecentlyEvictedCache {
   private readonly logger: Logger
@@ -44,17 +44,18 @@ export class RecentlyEvictedCache {
   private readonly evictionQueue: PriorityQueue<EvictionQueueEntry>
 
   /**
-   * A priority queue of transaction hashes ordered by their expiration sequence.
+   * A priority queue of transaction hashes ordered by their sequence # when they should be
+   * removed from the recently evicted cache.
    */
   // TODO(holahula): this can just be a normal queue because if y is inserted after x, y cannot expire before x
-  private readonly expireAtQueue: PriorityQueue<ExpireAtQueueEntry>
+  private readonly removeAtSequenceQueue: PriorityQueue<RemoveAtSequenceQueueEntry>
 
   /**
    * Creates a new RecentlyEvictedCache.
    * Transactions that are evicted from the mempool should be added here.
    *
    * @constructor
-   * @param options.capacity the maximum number of hashes to store in the cache
+   * @param options.maxSize the maximum number of hashes to store in the cache
    */
   constructor(options: { logger: Logger; metrics: MetricsMonitor; maxSize: number }) {
     this.maxSize = options.maxSize
@@ -68,8 +69,8 @@ export class RecentlyEvictedCache {
       (t) => t.hash.toString('hex'),
     )
 
-    this.expireAtQueue = new PriorityQueue<ExpireAtQueueEntry>(
-      (t1, t2) => t1.expireAtSequence < t2.expireAtSequence,
+    this.removeAtSequenceQueue = new PriorityQueue<RemoveAtSequenceQueueEntry>(
+      (t1, t2) => t1.removeAtSequence < t2.removeAtSequence,
       (t) => t.hash.toString('hex'),
     )
   }
@@ -88,7 +89,7 @@ export class RecentlyEvictedCache {
     }
 
     // keep the items in the two priority queues consistently in sync
-    this.expireAtQueue.remove(stringHash)
+    this.removeAtSequenceQueue.remove(stringHash)
     this.evictionQueue.remove(stringHash)
 
     return true
@@ -117,7 +118,7 @@ export class RecentlyEvictedCache {
    * @returns the number of transactions in the cache
    */
   size(): number {
-    return this.expireAtQueue.size()
+    return this.removeAtSequenceQueue.size()
   }
 
   /**
@@ -158,9 +159,9 @@ export class RecentlyEvictedCache {
       feeRate,
     })
 
-    this.expireAtQueue.add({
+    this.removeAtSequenceQueue.add({
       hash: transactionHash,
-      expireAtSequence: currentBlockSequence + maxAge,
+      removeAtSequence: currentBlockSequence + maxAge,
     })
 
     // keep the cache under max capacity
@@ -179,26 +180,26 @@ export class RecentlyEvictedCache {
    * @returns true if the hash exists in the cache
    */
   has(hash: string): boolean {
-    return this.expireAtQueue.has(hash)
+    return this.removeAtSequenceQueue.has(hash)
   }
 
   /**
    * Flushes the cache of any transactions that will expire after adding the given block sequence.
    *
-   * @param maxSequence All transactions with an expiration sequence <= `maxSequence` will be flushed.
+   * @param sequence All transactions with an expiration sequence <= `sequence` will be flushed.
    */
-  flush(maxSequence: number): void {
+  flush(sequence: number): void {
     let flushCount = 0
 
-    let toFlush = this.expireAtQueue.peek()
-    while (toFlush && toFlush.expireAtSequence <= maxSequence) {
+    let toFlush = this.removeAtSequenceQueue.peek()
+    while (toFlush && toFlush.removeAtSequence <= sequence) {
       this.remove(toFlush.hash)
       flushCount++
-      toFlush = this.expireAtQueue.peek()
+      toFlush = this.removeAtSequenceQueue.peek()
     }
 
     this.logger?.debug(
-      `Flushed ${flushCount} transactions from RecentlyEvictedCache after adding block ${maxSequence}`,
+      `Flushed ${flushCount} transactions from RecentlyEvictedCache after adding block ${sequence}`,
     )
 
     this.updateMetrics()

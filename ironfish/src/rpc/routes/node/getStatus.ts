@@ -150,7 +150,6 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
         size: yup.number().defined(),
         sizeBytes: yup.number().defined(),
         maxSizeBytes: yup.number().defined(),
-        saturation: yup.number().defined(),
         evictions: yup.number().defined(),
         recentlyEvictedCache: yup
           .object({
