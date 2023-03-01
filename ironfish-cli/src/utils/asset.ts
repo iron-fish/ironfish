@@ -12,7 +12,7 @@ export async function selectAsset(
   options: {
     action: string
     showNativeAsset: boolean
-    showNonOwnerAsset?: boolean
+    showNonOwnerAsset: boolean
     showSingleAssetChoice: boolean
     confirmations?: number
   },
