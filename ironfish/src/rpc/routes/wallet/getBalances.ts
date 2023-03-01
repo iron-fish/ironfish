@@ -9,7 +9,6 @@ import { getAccount } from './utils'
 export interface GetBalancesRequest {
   account?: string
   confirmations?: number
-  ownerOnly?: boolean
 }
 
 export interface GetBalancesResponse {
@@ -17,6 +16,7 @@ export interface GetBalancesResponse {
   balances: {
     assetId: string
     assetName: string
+    assetOwner: string
     confirmed: string
     unconfirmed: string
     unconfirmedCount: number
@@ -32,7 +32,6 @@ export const GetBalancesRequestSchema: yup.ObjectSchema<GetBalancesRequest> = yu
   .object({
     account: yup.string().optional(),
     confirmations: yup.number().min(0).optional(),
-    ownerOnly: yup.boolean().optional(),
   })
   .defined()
 
@@ -47,6 +46,7 @@ export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = 
           .shape({
             assetId: yup.string().defined(),
             assetName: yup.string().defined(),
+            assetOwner: yup.string().defined(),
             unconfirmed: yup.string().defined(),
             unconfirmedCount: yup.number().defined(),
             pending: yup.string().defined(),
@@ -76,13 +76,10 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
 
       const asset = await account.getAsset(balance.assetId)
 
-      if (request.data.ownerOnly && asset?.owner.toString('hex') !== account.publicAddress) {
-        continue
-      }
-
       balances.push({
         assetId: balance.assetId.toString('hex'),
         assetName: asset?.name.toString('hex') ?? '',
+        assetOwner: asset?.owner.toString('hex') ?? '',
         blockHash: balance.blockHash?.toString('hex') ?? null,
         confirmed: CurrencyUtils.encode(balance.confirmed),
         sequence: balance.sequence,

@@ -32,6 +32,7 @@ describe('getBalances', () => {
         {
           assetId,
           assetName: asset.name(),
+          assetOwner: asset.owner(),
           confirmed: BigInt(8),
           unconfirmed: BigInt(8),
           pending: BigInt(8),
@@ -44,6 +45,7 @@ describe('getBalances', () => {
         {
           assetId: Asset.nativeId(),
           assetName: Buffer.from('$IRON', 'utf8'),
+          assetOwner: Buffer.from('Iron Fish', 'utf8'),
           confirmed: BigInt(2000000000),
           unconfirmed: BigInt(2000000000),
           pending: BigInt(2000000000),
@@ -87,6 +89,7 @@ describe('getBalances', () => {
           ...mockBalance,
           assetId: mockBalance.assetId.toString('hex'),
           assetName: mockBalance.assetName.toString('hex'),
+          assetOwner: mockBalance.assetOwner.toString('hex'),
           confirmed: mockBalance.confirmed.toString(),
           unconfirmed: mockBalance.unconfirmed.toString(),
           pending: mockBalance.pending.toString(),
