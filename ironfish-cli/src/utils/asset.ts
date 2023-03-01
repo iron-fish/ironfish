@@ -12,8 +12,8 @@ export async function selectAsset(
   options: {
     action: string
     showNativeAsset: boolean
+    showNonOwnerAsset?: boolean
     showSingleAssetChoice: boolean
-    showAssetOwnerOnly?: boolean
     confirmations?: number
   },
 ): Promise<
@@ -26,13 +26,20 @@ export async function selectAsset(
   const balancesResponse = await client.getAccountBalances({
     account: account,
     confirmations: options.confirmations,
-    ownerOnly: options.showAssetOwnerOnly,
   })
 
   let balances = balancesResponse.content.balances
 
   if (!options.showNativeAsset) {
     balances = balances.filter((b) => b.assetId !== Asset.nativeId().toString('hex'))
+  }
+
+  if (!options.showNonOwnerAsset) {
+    const accountResponse = await client.getAccountPublicKey({
+      account: account,
+    })
+
+    balances = balances.filter((b) => b.assetOwner === accountResponse.content.publicKey)
   }
 
   if (balances.length === 0) {

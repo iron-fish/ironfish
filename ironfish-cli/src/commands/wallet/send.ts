@@ -126,6 +126,7 @@ export class Send extends IronfishCommand {
       const asset = await selectAsset(client, from, {
         action: 'send',
         showNativeAsset: true,
+        showNonOwnerAsset: true,
         showSingleAssetChoice: false,
         confirmations: flags.confirmations,
       })
