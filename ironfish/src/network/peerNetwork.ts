@@ -1321,13 +1321,13 @@ export class PeerNetwork {
 
   private async onNewTransaction(peer: Peer, transaction: Transaction): Promise<void> {
     const received = new Date()
+    const hash = transaction.hash()
+
+    // Let the fetcher know that a transaction was received so it no longer queries for it
+    this.transactionFetcher.receivedTransaction(hash)
 
     // Mark the peer as knowing about the transaction
-    const hash = transaction.hash()
     peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
-
-    // Let the fetcher know that a transaction was received and we no longer have to query it
-    this.transactionFetcher.receivedTransaction(hash)
 
     if (!this.shouldProcessTransactions()) {
       this.transactionFetcher.removeTransaction(hash)
@@ -1339,13 +1339,10 @@ export class PeerNetwork {
       return
     }
 
-    let peersToSendTo = false
-    for (const _ of this.connectedPeersWithoutTransaction(hash)) {
-      peersToSendTo = true
-      break
-    }
-
-    if (this.node.memPool.exists(hash) && !peersToSendTo) {
+    // If transaction is already in mempool that means it's been synced to the
+    // wallet and the mempool so all that is left is to broadcast
+    if (this.node.memPool.exists(hash)) {
+      this.broadcastTransaction(transaction)
       this.transactionFetcher.removeTransaction(hash)
       return
     }
@@ -1361,13 +1358,12 @@ export class PeerNetwork {
       return
     }
 
-    if (this.node.memPool.acceptTransaction(transaction)) {
-      this.onTransactionAccepted.emit(transaction, received)
-    }
+    const accepted = this.node.memPool.acceptTransaction(transaction)
 
-    // Check 'exists' rather than 'accepted' to allow for rebroadcasting to nodes that
-    // may not have seen the transaction yet
-    if (this.node.memPool.exists(transaction.hash())) {
+    // At this point the only reasons a transaction is not accepted would be
+    // overlapping nullifiers or it's expired. In both cases don't broadcast
+    if (accepted) {
+      this.onTransactionAccepted.emit(transaction, received)
       this.broadcastTransaction(transaction)
     }
 

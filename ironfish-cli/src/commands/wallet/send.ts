@@ -16,7 +16,6 @@ import { IronFlag, RemoteFlags } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { selectFee, validateBalance } from '../../utils/fees'
-import { doEligibilityCheck } from '../../utils/testnet'
 import { watchTransaction } from '../../utils/transaction'
 
 export class Send extends IronfishCommand {
@@ -88,11 +87,6 @@ export class Send extends IronfishCommand {
       description:
         'Return raw transaction. Use it to create a transaction but not post to the network',
     }),
-    eligibility: Flags.boolean({
-      default: true,
-      allowNo: true,
-      description: 'check testnet eligibility',
-    }),
     offline: Flags.boolean({
       default: false,
       description: 'Allow offline transaction creation',
@@ -107,10 +101,6 @@ export class Send extends IronfishCommand {
     let from = flags.account?.trim()
 
     const client = await this.sdk.connectRpc()
-
-    if (flags.eligibility) {
-      await doEligibilityCheck(client, this.logger)
-    }
 
     if (!flags.offline) {
       const status = await client.getNodeStatus()

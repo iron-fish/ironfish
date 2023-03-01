@@ -15,7 +15,6 @@ import { IronFlag, RemoteFlags } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { selectFee, validateBalance } from '../../utils/fees'
-import { doEligibilityCheck } from '../../utils/testnet'
 import { watchTransaction } from '../../utils/transaction'
 
 export class Burn extends IronfishCommand {
@@ -68,11 +67,6 @@ export class Burn extends IronfishCommand {
       description:
         'The block sequence that the transaction can not be mined after. Set to 0 for no expiration.',
     }),
-    eligibility: Flags.boolean({
-      default: true,
-      allowNo: true,
-      description: 'check testnet eligibility',
-    }),
     offline: Flags.boolean({
       default: false,
       description: 'Allow offline transaction creation',
@@ -86,10 +80,6 @@ export class Burn extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(Burn)
     const client = await this.sdk.connectRpc()
-
-    if (flags.eligibility) {
-      await doEligibilityCheck(client, this.logger)
-    }
 
     if (!flags.offline) {
       const status = await client.getNodeStatus()
