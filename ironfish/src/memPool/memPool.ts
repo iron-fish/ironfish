@@ -141,8 +141,13 @@ export class MemPool {
     return this.sizeBytes() / this.maxSizeBytes
   }
 
+  /**
+   * @returns true if the transacition is either in the mempool or in the
+   * recently evicted cache. This does NOT indicate whether the full transaction
+   * is stored in the mempool or not
+   */
   exists(hash: TransactionHash): boolean {
-    return this.transactions.has(hash)
+    return this.transactions.has(hash) || this.recentlyEvicted(hash)
   }
 
   /*
@@ -176,14 +181,12 @@ export class MemPool {
    * Accepts a transaction from the network.
    * This does not guarantee that the transaction will be added to the mempool.
    *
-   * @returns true if the transaction was added to the mempool
+   * @returns true if the transaction was added to the mempool as a full transaction
+   * or just added to a cache like recentlyEvictedCache
    */
   acceptTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash().toString('hex')
     const sequence = transaction.expiration()
-    if (this.exists(transaction.hash())) {
-      return false
-    }
 
     if (isExpiredSequence(sequence, this.chain.head.sequence)) {
       this.logger.debug(`Invalid transaction '${hash}': expired sequence ${sequence}`)
@@ -233,20 +236,13 @@ export class MemPool {
   }
 
   async onDisconnectBlock(block: Block): Promise<void> {
-    let addedTransactions = 0
-
     for (const transaction of block.transactions) {
       if (transaction.isMinersFee()) {
         continue
       }
 
-      const added = this.addTransaction(transaction)
-      if (added) {
-        addedTransactions++
-      }
+      this.addTransaction(transaction)
     }
-
-    this.logger.debug(`Added ${addedTransactions} transactions`)
 
     this.head = await this.chain.getHeader(block.header.previousBlockHash)
   }
@@ -259,12 +255,13 @@ export class MemPool {
    *
    * @param transaction the transaction to add
    *
-   * @returns true if the transaction was added, false if it was rejected
+   * @returns true if the transaction is valid to be added. This will STILL return true
+   * even if the transaction doesn't make it into the mempool because of size constraints
    */
   private addTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
 
-    if (this.transactions.has(hash) || this.recentlyEvictedCache.has(hash.toString('hex'))) {
+    if (this.exists(hash)) {
       return false
     }
 
@@ -304,7 +301,7 @@ export class MemPool {
       this.metrics.memPoolEvictions.add(evicted.length)
     }
 
-    return this.transactions.has(hash)
+    return true
   }
 
   /**

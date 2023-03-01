@@ -899,6 +899,14 @@ export class PeerNetwork {
         continue
       }
 
+      // Recently evicted means the transaction is relatively low feeRate
+      // mempool + wallet have already processed it. It could stil be download
+      // and forward to other peers but since it is a low feeRate and
+      // other peer mempools are likely at capacity, just drop it
+      if (this.node.memPool.recentlyEvicted(hash)) {
+        continue
+      }
+
       // If the transaction is already in the mempool we don't need to request
       // the full transaction. Just broadcast it
       const transaction = this.node.memPool.get(hash)
@@ -1334,6 +1342,7 @@ export class PeerNetwork {
       return
     }
 
+    // TODO(daniel): Could combine with double spend check in verifyNewTransaction
     if (this.recentlyAddedToChain.has(hash)) {
       this.transactionFetcher.removeTransaction(hash)
       return

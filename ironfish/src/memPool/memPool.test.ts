@@ -150,7 +150,9 @@ describe('MemPool', () => {
           false,
         )
 
-        expect(memPool.exists(transaction.hash())).toBe(false)
+        memPool.acceptTransaction(transaction)
+
+        expect(memPool.exists(transaction.hash())).toBe(true)
       })
     })
   })
@@ -424,8 +426,8 @@ describe('MemPool', () => {
 
       memPool.acceptTransaction(transactionA)
       memPool.acceptTransaction(transactionB)
-      expect(memPool.exists(transactionA.hash())).toBe(true)
-      expect(memPool.exists(transactionB.hash())).toBe(true)
+      expect(memPool.get(transactionA.hash())).toBeDefined()
+      expect(memPool.get(transactionB.hash())).toBeDefined()
 
       await chain.addBlock(block)
 
@@ -468,8 +470,8 @@ describe('MemPool', () => {
 
       memPool.acceptTransaction(transactionA)
       memPool.acceptTransaction(transactionB)
-      expect(memPool.exists(transactionA.hash())).toBe(true)
-      expect(memPool.exists(transactionB.hash())).toBe(true)
+      expect(memPool.get(transactionA.hash())).toBeDefined()
+      expect(memPool.get(transactionB.hash())).toBeDefined()
 
       const block4 = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(block4)
@@ -477,7 +479,7 @@ describe('MemPool', () => {
       expect(chain.head.sequence).toEqual(4)
 
       expect(memPool.exists(transactionA.hash())).toBe(false)
-      expect(memPool.exists(transactionB.hash())).toBe(true)
+      expect(memPool.get(transactionB.hash())).toBeDefined()
       expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionA)
       expect([...memPool.orderedTransactions()]).toContainEqual(transactionB)
     })
@@ -508,7 +510,7 @@ describe('MemPool', () => {
 
       await chain.removeBlock(block.header.hash)
 
-      expect(memPool.exists(transaction.hash())).toBe(true)
+      expect(memPool.get(transaction.hash())).toBeDefined()
       expect([...memPool.orderedTransactions()]).toContainEqual(transaction)
 
       expect(memPool.exists(minersFee.hash())).toBe(false)
@@ -561,7 +563,7 @@ describe('MemPool', () => {
       await chain.removeBlock(block.header.hash)
 
       expect(memPool.exists(transaction1.hash())).toBe(false)
-      expect(memPool.exists(transaction2.hash())).toBe(true)
+      expect(memPool.get(transaction2.hash())).toBeDefined()
     })
 
     it('adds back in transactions with overlapping nullifiers if fee is greater', async () => {
@@ -609,7 +611,7 @@ describe('MemPool', () => {
 
       await chain.removeBlock(block.header.hash)
 
-      expect(memPool.exists(transaction1.hash())).toBe(true)
+      expect(memPool.get(transaction1.hash())).toBeDefined()
       expect(memPool.exists(transaction2.hash())).toBe(false)
     })
   })
@@ -650,19 +652,20 @@ describe('MemPool', () => {
 
       // Highest value transactions under limit should still be in mempool
       for (const transaction of underLimit) {
-        expect(memPool.exists(transaction.hash())).toBe(true)
+        expect(memPool.get(transaction.hash())).toBeDefined()
         expect(memPool.recentlyEvicted(transaction.hash())).toBe(false)
       }
 
       // Transactions over limit should be in cache
       for (const transaction of inRecentlyEvicted) {
         expect(memPool.recentlyEvicted(transaction.hash())).toBe(true)
-        expect(memPool.exists(transaction.hash())).toBe(false)
+        expect(memPool.get(transaction.hash())).toBeUndefined()
       }
 
       // Transactions over limit that did not fit in cache either should be dropped
       for (const transaction of droppedFromRecentlyEvicted) {
         expect(memPool.recentlyEvicted(transaction.hash())).toBe(false)
+        expect(memPool.get(transaction.hash())).toBeUndefined()
         expect(memPool.exists(transaction.hash())).toBe(false)
       }
 
@@ -683,6 +686,7 @@ describe('MemPool', () => {
 
       for (const transaction of inRecentlyEvicted) {
         expect(memPool.recentlyEvicted(transaction.hash())).toBe(false)
+        expect(memPool.exists(transaction.hash())).toBe(false)
       }
     })
   })

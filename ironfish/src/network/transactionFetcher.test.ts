@@ -125,7 +125,7 @@ describe('TransactionFetcher', () => {
 
     await peerNetwork.peerManager.onMessage.emitAsync(sentPeer, message)
 
-    expect(node.memPool.exists(transaction.hash())).toBe(true)
+    expect(node.memPool.get(transaction.hash())).toBeDefined()
 
     // The timeout for the original request ends. This should not affect anything
     // since we've already received the response
