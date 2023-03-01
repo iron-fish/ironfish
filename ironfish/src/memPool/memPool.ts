@@ -272,12 +272,14 @@ export class MemPool {
       const existingHash = this.nullifiers.get(spend.nullifier)
       const existingTransaction = existingHash && this.transactions.get(existingHash)
 
-      if (existingTransaction) {
-        if (transaction.fee() > existingTransaction.fee()) {
-          this.deleteTransaction(existingTransaction)
-        } else {
-          return false
-        }
+      if (!existingTransaction) {
+        continue
+      }
+
+      if (transaction.fee() > existingTransaction.fee()) {
+        this.deleteTransaction(existingTransaction)
+      } else {
+        return false
       }
     }
 
