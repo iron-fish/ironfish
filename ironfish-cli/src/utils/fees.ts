@@ -54,23 +54,23 @@ export async function selectFee(options: {
 }): Promise<RawTransaction> {
   const feeRates = await options.client.estimateFeeRates()
 
-  const [slow, average, fast] = await Promise.all([
-    getTxWithFee(
+  const [slow, average, fast] = [
+    await getTxWithFee(
       options.client,
       options.transaction,
       CurrencyUtils.decode(feeRates.content.slow),
     ),
-    getTxWithFee(
+    await getTxWithFee(
       options.client,
       options.transaction,
       CurrencyUtils.decode(feeRates.content.average),
     ),
-    getTxWithFee(
+    await getTxWithFee(
       options.client,
       options.transaction,
       CurrencyUtils.decode(feeRates.content.fast),
     ),
-  ])
+  ]
 
   const choices = [
     getChoiceFromTx('Slow', slow),
