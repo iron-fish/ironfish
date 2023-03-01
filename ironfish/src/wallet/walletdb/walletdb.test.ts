@@ -1,7 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useAccountFixture } from '../../testUtilities'
+import { Assert } from '../../assert'
+import {
+  createNodeTest,
+  useAccountFixture,
+  useMinerBlockFixture,
+  useTxFixture,
+} from '../../testUtilities'
 import { AsyncUtils } from '../../utils'
 
 describe('WalletDB', () => {
@@ -175,6 +181,50 @@ describe('WalletDB', () => {
       expect(transactionHashes).toHaveLength(2)
       expect(transactionHashes[0]).toEqualBuffer(Buffer.from('0', 'hex'))
       expect(transactionHashes[1]).toEqualBuffer(Buffer.from('40000', 'hex'))
+    })
+  })
+
+  describe('getEarliestTransactionTimestamp', () => {
+    it('should return null if the account has no transactions', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const walletDb = node.wallet.walletDb
+
+      const account = await useAccountFixture(node.wallet)
+
+      await expect(walletDb.getEarliestTransactionTimestamp(account)).resolves.toBeNull()
+    })
+
+    it('should return the timestamp of the earliest transaction for an account', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const walletDb = node.wallet.walletDb
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+      const block3 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      const transaction1 = block2.transactions[0]
+      const transaction2 = await useTxFixture(node.wallet, accountA, accountB)
+
+      const transaction1Record = await accountA.getTransaction(transaction1.hash())
+      const transaction2Record = await accountB.getTransaction(transaction2.hash())
+
+      Assert.isNotUndefined(transaction1Record)
+      Assert.isNotUndefined(transaction2Record)
+
+      await expect(walletDb.getEarliestTransactionTimestamp(accountA)).resolves.toEqual(
+        transaction1Record.timestamp,
+      )
+      await expect(walletDb.getEarliestTransactionTimestamp(accountB)).resolves.toEqual(
+        transaction2Record.timestamp,
+      )
     })
   })
 })

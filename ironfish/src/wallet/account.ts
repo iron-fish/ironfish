@@ -36,7 +36,7 @@ export class Account {
   readonly outgoingViewKey: string
   readonly version: number
   publicAddress: string
-  readonly createdAt: Date | null
+  createdAt: Date | null
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
 
@@ -663,6 +663,10 @@ export class Account {
     tx?: IDatabaseTransaction,
   ): Promise<Readonly<TransactionValue> | undefined> {
     return await this.walletDb.loadTransaction(this, hash, tx)
+  }
+
+  async getEarliestTransactionTimestamp(tx?: IDatabaseTransaction): Promise<Date | null> {
+    return this.walletDb.getEarliestTransactionTimestamp(this, tx)
   }
 
   async getAsset(

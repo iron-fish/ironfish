@@ -428,6 +428,10 @@ export class Wallet {
         )
 
         await account.updateHead({ hash: blockHeader.hash, sequence: blockHeader.sequence }, tx)
+
+        if (assetBalanceDeltas.size > 0) {
+          await this.setAccountCreatedAt(account, blockHeader, tx)
+        }
       })
     }
   }
@@ -498,6 +502,10 @@ export class Wallet {
           { hash: header.previousBlockHash, sequence: header.sequence - 1 },
           tx,
         )
+
+        if (assetBalanceDeltas.size > 0) {
+          await this.setAccountCreatedAt(account, header, tx)
+        }
       })
     }
   }
@@ -1340,6 +1348,30 @@ export class Wallet {
 
   accountExists(name: string): boolean {
     return this.getAccountByName(name) !== null
+  }
+
+  async updateAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+    await this.walletDb.setAccount(account, tx)
+    this.accounts.set(account.id, account)
+  }
+
+  async setAccountCreatedAt(
+    account: Account,
+    blockHeader: BlockHeader,
+    tx?: IDatabaseTransaction,
+  ): Promise<void> {
+    if (account.createdAt !== null && account.createdAt < blockHeader.timestamp) {
+      return
+    }
+
+    const earliestTransactionTimestamp = await account.getEarliestTransactionTimestamp(tx)
+
+    if (earliestTransactionTimestamp === null) {
+      return
+    }
+
+    account.createdAt = earliestTransactionTimestamp
+    await this.updateAccount(account, tx)
   }
 
   async resetAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {

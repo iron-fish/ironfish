@@ -1074,6 +1074,23 @@ export class WalletDB {
     }
   }
 
+  async getEarliestTransactionTimestamp(
+    account: Account,
+    tx?: IDatabaseTransaction,
+  ): Promise<Date | null> {
+    for await (const [_, timestamp] of this.timestampToTransactionHash.getAllKeysIter(
+      tx,
+      account.prefixRange,
+      {
+        ordered: true,
+      },
+    )) {
+      return new Date(timestamp)
+    }
+
+    return null
+  }
+
   async putAsset(
     account: Account,
     assetId: Buffer,
