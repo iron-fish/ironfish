@@ -1372,15 +1372,6 @@ export class Wallet {
     await this.removeAccount(account)
   }
 
-  async removeAccountByNameSynchronous(name: string): Promise<void> {
-    const account = this.getAccountByName(name)
-    if (!account) {
-      return
-    }
-
-    await this.removeAccountSynchronous(account)
-  }
-
   async removeAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.walletDb.db.withTransaction(tx, async (tx) => {
       if (account.id === this.defaultAccount) {
@@ -1396,8 +1387,7 @@ export class Wallet {
     this.onAccountRemoved.emit(account)
   }
 
-  async removeAccountSynchronous(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.removeAccount(account, tx)
+  async forceDeletedAccountCleanup(): Promise<void> {
     await this.walletDb.cleanupAllAccountsNow(this.eventLoopAbortController.signal)
   }
 
