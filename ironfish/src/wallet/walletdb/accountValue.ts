@@ -22,7 +22,7 @@ export interface AccountValue {
   createdAt: Date | null
 }
 
-export type AccountImport = Omit<AccountValue, 'id' | 'createdAt'>
+export type AccountImport = Omit<AccountValue, 'id'>
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {

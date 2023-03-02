@@ -23,6 +23,7 @@ describe('Route wallet/importAccount', () => {
           incomingViewKey: key.incomingViewKey,
           outgoingViewKey: key.outgoingViewKey,
           version: 1,
+          createdAt: null,
         },
         rescan: false,
       })
@@ -49,6 +50,7 @@ describe('Route wallet/importAccount', () => {
           incomingViewKey: key.incomingViewKey,
           outgoingViewKey: key.outgoingViewKey,
           version: 1,
+          createdAt: null,
         },
         rescan: false,
       })

@@ -28,6 +28,7 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
         incomingViewKey: yup.string().defined(),
         outgoingViewKey: yup.string().defined(),
         version: yup.number().defined(),
+        createdAt: yup.date().nullable().defined(),
       })
       .defined(),
   })
@@ -46,7 +47,6 @@ router.register<typeof ImportAccountRequestSchema, ImportResponse>(
   async (request, node): Promise<void> => {
     const accountValue = {
       id: uuid(),
-      createdAt: null,
       ...request.data.account,
     }
     const account = await node.wallet.importAccount(accountValue)
