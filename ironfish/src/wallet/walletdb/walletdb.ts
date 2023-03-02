@@ -1023,7 +1023,7 @@ export class WalletDB {
     await this.pendingTransactionHashes.clear(tx, account.prefixRange)
   }
 
-  async cleanupAllAccountsNow(signal?: AbortSignal): Promise<void> {
+  async forceDeletedAccountCleanup(signal?: AbortSignal): Promise<void> {
     return this.cleanupDeletedAccounts(Number.MAX_SAFE_INTEGER, signal)
   }
 
