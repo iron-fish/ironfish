@@ -1397,8 +1397,17 @@ export class Wallet {
   }
 
   async removeAccountSynchronous(account: Account, tx?: IDatabaseTransaction): Promise<void> {
-    await this.removeAccount(account, tx)
-    await this.walletDb.deleteAccount(account)
+    await this.walletDb.db.withTransaction(tx, async (tx) => {
+      if (account.id === this.defaultAccount) {
+        await this.walletDb.setDefaultAccount(null, tx)
+        this.defaultAccount = null
+      }
+      // no this.walletDb.removeAccount(account, tx) - we don't want to add the account to cleanup list
+      await this.walletDb.removeHead(account, tx)
+      this.accounts.delete(account.id)
+      await this.walletDb.deleteAccount(account, tx)
+      this.onAccountRemoved.emit(account)
+    })
   }
 
   async cleanupDeletedAccounts(): Promise<void> {

@@ -1023,7 +1023,7 @@ export class WalletDB {
     await this.pendingTransactionHashes.clear(tx, account.prefixRange)
   }
 
-  async deleteAccount(account: Account): Promise<void> {
+  async deleteAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     const stores: IDatabaseStore<{
       key: Readonly<unknown>
       value: unknown
@@ -1035,7 +1035,11 @@ export class WalletDB {
       this.pendingTransactionHashes,
       this.decryptedNotes,
       this.timestampToTransactionHash,
+      this.accounts,
     ]
+
+    await this.clearBalance(account, tx)
+
     const prefix = calculateAccountPrefix(account.id)
     const range = StorageUtils.getPrefixKeyRange(prefix)
 
