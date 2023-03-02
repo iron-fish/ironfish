@@ -589,7 +589,8 @@ describe('Accounts', () => {
     })
 
     it('should set new transaction timestamps equal to the block header timestamp', async () => {
-      const { node } = nodeTest
+      const { node } = await nodeTest.createSetup()
+      const { node: freshNode } = await nodeTest.createSetup()
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
 
@@ -599,11 +600,23 @@ describe('Accounts', () => {
 
       const { block: block3, transactions } = await useBlockWithTxs(node, 1, accountA)
       await node.chain.addBlock(block3)
-      await node.wallet.updateHead()
-
       expect(transactions.length).toBe(1)
 
-      const transactionRecord = await accountA.getTransaction(transactions[0].hash())
+      // Create a fresh node and import the account so that the transactions
+      // are synced to the wallet through the block and not through transaction creation
+      const freshAccountA = await freshNode.wallet.importAccount(accountA)
+      for await (const header of node.chain.iterateTo(node.chain.genesis)) {
+        if (header.sequence === 1) {
+          continue
+        }
+        const block = await node.chain.getBlock(header)
+        Assert.isNotNull(block)
+        await expect(freshNode.chain).toAddBlock(block)
+      }
+
+      await freshNode.wallet.updateHead()
+
+      const transactionRecord = await freshAccountA.getTransaction(transactions[0].hash())
 
       Assert.isNotUndefined(transactionRecord)
 
