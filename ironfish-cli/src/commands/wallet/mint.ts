@@ -14,7 +14,7 @@ import { IronfishCommand } from '../../command'
 import { IronFlag, RemoteFlags } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
-import { selectFee, validateBalance } from '../../utils/fees'
+import { selectFee } from '../../utils/fees'
 import { watchTransaction } from '../../utils/transaction'
 
 export class Mint extends IronfishCommand {
@@ -170,6 +170,10 @@ export class Mint extends IronfishCommand {
         minimum: 1n,
         logger: this.logger,
       })
+
+      if (amount == null) {
+        this.exit(1)
+      }
     }
 
     const params: CreateTransactionRequest = {
@@ -191,16 +195,6 @@ export class Mint extends IronfishCommand {
     let raw: RawTransaction
 
     if (params.fee === null) {
-      const hasSufficientBalance = await validateBalance({
-        client,
-        transaction: params,
-        logger: this.logger,
-      })
-
-      if (hasSufficientBalance === false) {
-        this.exit(1)
-      }
-
       raw = await selectFee({
         client,
         transaction: params,
