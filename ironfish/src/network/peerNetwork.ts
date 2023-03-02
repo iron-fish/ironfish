@@ -898,10 +898,11 @@ export class PeerNetwork {
         continue
       }
 
-      // Recently evicted means the transaction is relatively low feeRate and the
-      // mempool + wallet have already processed it. It could still be downloaded
-      // and forwarded to other peers, but since it is a low feeRate and
-      // other peer mempools are likely at capacity, just drop it
+      // Recently evicted means the transaction is relatively low feeRate, the
+      // mempool + wallet have already processed it and its already been gossiped
+      // once. It could still be downloaded and forwarded to peers who have joined
+      // since that initial gossip, but since it is a low feeRate and
+      // other peer mempools are likely at capacity too, just drop it
       if (this.node.memPool.recentlyEvicted(hash)) {
         continue
       }
