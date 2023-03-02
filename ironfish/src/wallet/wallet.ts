@@ -1398,7 +1398,7 @@ export class Wallet {
 
   async removeAccountSynchronous(account: Account, tx?: IDatabaseTransaction): Promise<void> {
     await this.removeAccount(account, tx)
-    await this.walletDb.cleanupAllAccountsNow()
+    await this.walletDb.cleanupAllAccountsNow(this.eventLoopAbortController.signal)
   }
 
   async cleanupDeletedAccounts(): Promise<void> {
