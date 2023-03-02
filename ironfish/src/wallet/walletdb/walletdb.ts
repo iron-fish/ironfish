@@ -1044,9 +1044,7 @@ export class WalletDB {
     const range = StorageUtils.getPrefixKeyRange(prefix)
 
     for (const store of stores) {
-      for await (const key of store.getAllKeysIter(undefined, range)) {
-        await store.del(key)
-      }
+      await store.clear(tx, range)
     }
   }
 
