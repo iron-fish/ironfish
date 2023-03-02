@@ -64,6 +64,7 @@ describe('FeeEstimator', () => {
         undefined,
         true,
         { fee: 10 },
+        false,
       )
 
       await node.chain.addBlock(block)
@@ -75,6 +76,7 @@ describe('FeeEstimator', () => {
         account,
         true,
         { fee },
+        false,
       )
 
       await node.chain.addBlock(block2)
@@ -111,6 +113,7 @@ describe('FeeEstimator', () => {
         {
           fee: 10,
         },
+        false,
       )
 
       await node.chain.addBlock(block)
@@ -124,6 +127,7 @@ describe('FeeEstimator', () => {
         {
           fee: 20,
         },
+        false,
       )
 
       await node.chain.addBlock(block2)
@@ -147,9 +151,16 @@ describe('FeeEstimator', () => {
   describe('onConnectBlock', () => {
     it('should add all transactions from a block that are in the mempool', async () => {
       const node = nodeTest.node
-      const { block, transaction } = await useBlockWithTx(node, undefined, undefined, true, {
-        fee: 10,
-      })
+      const { block, transaction } = await useBlockWithTx(
+        node,
+        undefined,
+        undefined,
+        true,
+        {
+          fee: 10,
+        },
+        false,
+      )
 
       await node.chain.addBlock(block)
 
@@ -183,9 +194,16 @@ describe('FeeEstimator', () => {
 
     it('should exclude transactions from a block that are not in the mempool', async () => {
       const node = nodeTest.node
-      const { block, transaction } = await useBlockWithTx(node, undefined, undefined, true, {
-        fee: 10,
-      })
+      const { block, transaction } = await useBlockWithTx(
+        node,
+        undefined,
+        undefined,
+        true,
+        {
+          fee: 10,
+        },
+        false,
+      )
 
       await node.chain.addBlock(block)
 
@@ -216,9 +234,16 @@ describe('FeeEstimator', () => {
       const account1 = await useAccountFixture(node.wallet, 'account1')
       const account2 = await useAccountFixture(node.wallet, 'account2')
 
-      const { block, transaction } = await useBlockWithTx(node, account1, account2, true, {
-        fee: 10,
-      })
+      const { block, transaction } = await useBlockWithTx(
+        node,
+        account1,
+        account2,
+        true,
+        {
+          fee: 10,
+        },
+        false,
+      )
 
       expect(node.memPool.acceptTransaction(transaction)).toBe(true)
 
@@ -237,6 +262,7 @@ describe('FeeEstimator', () => {
         {
           fee,
         },
+        false,
       )
 
       expect(node.memPool.acceptTransaction(transaction2)).toBe(true)
@@ -268,9 +294,16 @@ describe('FeeEstimator', () => {
 
       const account1 = await useAccountFixture(node.wallet, 'account1')
       const account2 = await useAccountFixture(node.wallet, 'account2')
-      const { block, transaction } = await useBlockWithTx(node, account1, account2, true, {
-        fee: 10,
-      })
+      const { block, transaction } = await useBlockWithTx(
+        node,
+        account1,
+        account2,
+        true,
+        {
+          fee: 10,
+        },
+        false,
+      )
 
       const result = node.memPool.acceptTransaction(transaction)
       expect(result).toBe(true)
@@ -290,6 +323,7 @@ describe('FeeEstimator', () => {
         {
           fee,
         },
+        false,
       )
 
       expect(node.memPool.acceptTransaction(transaction2)).toBe(true)
@@ -311,9 +345,16 @@ describe('FeeEstimator', () => {
       const account1 = await useAccountFixture(node.wallet, 'account1')
       const account2 = await useAccountFixture(node.wallet, 'account2')
 
-      const { block, transaction } = await useBlockWithTx(node, account1, account2, true, {
-        fee: 10,
-      })
+      const { block, transaction } = await useBlockWithTx(
+        node,
+        account1,
+        account2,
+        true,
+        {
+          fee: 10,
+        },
+        false,
+      )
 
       expect(node.memPool.acceptTransaction(transaction)).toBe(true)
 
@@ -351,7 +392,14 @@ describe('FeeEstimator', () => {
         maxBlockHistory: 2,
       })
 
-      const { block, transaction } = await useBlockWithTx(node, undefined, undefined, true)
+      const { block, transaction } = await useBlockWithTx(
+        node,
+        undefined,
+        undefined,
+        true,
+        undefined,
+        false,
+      )
 
       expect(node.memPool.acceptTransaction(transaction)).toBe(true)
 
@@ -378,9 +426,16 @@ describe('FeeEstimator', () => {
       const account1 = await useAccountFixture(node.wallet, 'account1')
       const account2 = await useAccountFixture(node.wallet, 'account2')
 
-      const { block, transaction } = await useBlockWithTx(node, account1, account2, true, {
-        fee: 10,
-      })
+      const { block, transaction } = await useBlockWithTx(
+        node,
+        account1,
+        account2,
+        true,
+        {
+          fee: 10,
+        },
+        false,
+      )
 
       expect(node.memPool.acceptTransaction(transaction)).toBe(true)
 
@@ -395,6 +450,7 @@ describe('FeeEstimator', () => {
         {
           fee,
         },
+        false,
       )
 
       expect(node.memPool.acceptTransaction(transaction2)).toBe(true)
