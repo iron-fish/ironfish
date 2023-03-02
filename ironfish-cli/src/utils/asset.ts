@@ -12,6 +12,7 @@ export async function selectAsset(
   options: {
     action: string
     showNativeAsset: boolean
+    showNonOwnerAsset: boolean
     showSingleAssetChoice: boolean
     confirmations?: number
   },
@@ -31,6 +32,14 @@ export async function selectAsset(
 
   if (!options.showNativeAsset) {
     balances = balances.filter((b) => b.assetId !== Asset.nativeId().toString('hex'))
+  }
+
+  if (!options.showNonOwnerAsset) {
+    const accountResponse = await client.getAccountPublicKey({
+      account: account,
+    })
+
+    balances = balances.filter((b) => b.assetOwner === accountResponse.content.publicKey)
   }
 
   if (balances.length === 0) {

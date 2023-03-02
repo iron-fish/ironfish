@@ -150,6 +150,7 @@ export class Mint extends IronfishCommand {
       const asset = await selectAsset(client, account, {
         action: 'mint',
         showNativeAsset: false,
+        showNonOwnerAsset: false,
         showSingleAssetChoice: true,
         confirmations: flags.confirmations,
       })
