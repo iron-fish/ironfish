@@ -57,6 +57,10 @@ export class ImportCommand extends IronfishCommand {
       account.version = ACCOUNT_SCHEMA_VERSION as number
     }
 
+    if (!account.createdAt) {
+      account.createdAt = null
+    }
+
     const rescan = flags.rescan
     const result = await client.importAccount({ account, rescan })
     const { name, isDefaultAccount } = result.content
@@ -122,7 +126,7 @@ export class ImportCommand extends IronfishCommand {
         required: true,
       })
       const key = generateKeyFromPrivateKey(spendingKey)
-      return { name, version: ACCOUNT_SCHEMA_VERSION, ...key }
+      return { name, version: ACCOUNT_SCHEMA_VERSION, createdAt: null, ...key }
     }
 
     // raw json

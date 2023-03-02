@@ -1320,6 +1320,7 @@ export class Wallet {
 
     const account = new Account({
       ...accountValue,
+      createdAt: accountValue.createdAt ? new Date(accountValue.createdAt) : null,
       walletDb: this.walletDb,
     })
 
