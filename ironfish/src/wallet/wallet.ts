@@ -1400,7 +1400,11 @@ export class Wallet {
       return
     }
 
-    await this.walletDb.cleanupDeletedAccounts(1000, this.eventLoopAbortController.signal)
+    const recordsToCleanup = 1000
+    await this.walletDb.cleanupDeletedAccounts(
+      recordsToCleanup,
+      this.eventLoopAbortController.signal,
+    )
   }
 
   get hasDefaultAccount(): boolean {
