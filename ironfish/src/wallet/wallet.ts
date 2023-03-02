@@ -1404,10 +1404,10 @@ export class Wallet {
       }
       // no this.walletDb.removeAccount(account, tx) - we don't want to add the account to cleanup list
       await this.walletDb.removeHead(account, tx)
-      this.accounts.delete(account.id)
       await this.walletDb.deleteAccount(account, tx)
-      this.onAccountRemoved.emit(account)
     })
+    this.accounts.delete(account.id)
+    this.onAccountRemoved.emit(account)
   }
 
   async cleanupDeletedAccounts(): Promise<void> {
