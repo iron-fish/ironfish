@@ -108,8 +108,9 @@ export async function promptCurrency(options: {
       options.balance.assetId === Asset.nativeId().toString('hex') &&
       options.balance.minimalBalance &&
       options.balance.minimalBalance > 1n &&
-      amount === balanceInOre
+      amount >= balanceInOre
     ) {
+      // this is the case when user enter native asset amount for transaction
       options.logger.error(
         `Insufficient funds available for the transaction. Require a minimal transaction fee of 1 ore.`,
       )
@@ -121,6 +122,7 @@ export async function promptCurrency(options: {
       options.balance.assetId !== Asset.nativeId().toString('hex') &&
       amount > balance
     ) {
+      // this is the case when user enter non native asset amount for transaction
       options.logger.error(`Insufficient funds available for the transaction.`)
       continue
     }
