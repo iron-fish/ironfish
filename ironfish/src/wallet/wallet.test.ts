@@ -6,6 +6,7 @@ import { BufferMap } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
+import { Note } from '../primitives'
 import {
   createNodeTest,
   useAccountFixture,
@@ -1281,13 +1282,21 @@ describe('Accounts', () => {
         confirmed: mintValue,
       })
 
+      // transaction should have two notes: one in the custom asset and one in IRON
       expect(blockB.transactions[1].notes.length).toBe(2)
-      // TODO(mat): This test is flaky. The order of notes may change, so if
-      // this is failing, change this to `getNote(1)`. There's a ticket to
-      // resolve this, but trying to focus on phase 3 first.
-      const outputNote = blockB.transactions[1].getNote(1)
-      const note = outputNote.decryptNoteForOwner(account.incomingViewKey)
-      Assert.isNotUndefined(note)
+
+      // find the custom asset note to spend
+      let noteToSpend: Note | null = null
+      for (const outputNote of blockB.transactions[1].notes) {
+        const decryptedNote = outputNote.decryptNoteForOwner(account.incomingViewKey)
+        Assert.isNotUndefined(decryptedNote)
+
+        if (decryptedNote.assetId().equals(assetId)) {
+          noteToSpend = decryptedNote
+          break
+        }
+      }
+      Assert.isNotNull(noteToSpend)
 
       // Check what notes would be spent
       const { amount, notes } = await node.wallet.createSpendsForAsset(
@@ -1299,7 +1308,7 @@ describe('Accounts', () => {
 
       expect(amount).toEqual(mintValue)
       expect(notes).toHaveLength(1)
-      expect(notes[0].note).toMatchObject(note)
+      expect(notes[0].note).toMatchObject(noteToSpend)
     })
 
     it('should return spendable notes dependant on confirmations', async () => {
