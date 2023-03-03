@@ -126,8 +126,7 @@ export class PeerNetwork {
   private readonly transactionFetcher: TransactionFetcher
 
   // A cache that keeps track of transactions that are a part of recently confirmed blocks
-  // TODO(daniel): Consider replacing this with a nullifier check. This would filter out transactions
-  // that have overlapping nullifiers in the chain so we don't process those invalid transactions
+  // This is useful for filtering out downloading of transaction hashes that were recently added
   private readonly recentlyAddedToChain: LRU<TransactionHash, boolean> = new LRU<
     TransactionHash,
     boolean
@@ -135,7 +134,7 @@ export class PeerNetwork {
 
   // A cache that keeps track of which peers have seen which transactions. This allows
   // us to not send the same transaction to a peer more than once. TODO(daniel): We want to
-  // change this to use an RLU cache so that we don't get false positives
+  // change this to use an LRU cache so that we don't get false positives
   private readonly knownTransactionFilter: RollingFilter = new RollingFilter(
     GOSSIP_FILTER_SIZE * 50,
     GOSSIP_FILTER_FP_RATE,
@@ -899,6 +898,15 @@ export class PeerNetwork {
         continue
       }
 
+      // Recently evicted means the transaction is relatively low feeRate, the
+      // mempool + wallet have already processed it and its already been gossiped
+      // once. It could still be downloaded and forwarded to peers who have joined
+      // since that initial gossip, but since it is a low feeRate and
+      // other peer mempools are likely at capacity too, just drop it
+      if (this.node.memPool.recentlyEvicted(hash)) {
+        continue
+      }
+
       // If the transaction is already in the mempool we don't need to request
       // the full transaction. Just broadcast it
       const transaction = this.node.memPool.get(hash)
@@ -1334,6 +1342,8 @@ export class PeerNetwork {
       return
     }
 
+    // TODO(daniel): This is used to quickly filter double spend transactions and save on
+    // verification. Could be combined with double spend check in verifyNewTransaction
     if (this.recentlyAddedToChain.has(hash)) {
       this.transactionFetcher.removeTransaction(hash)
       return

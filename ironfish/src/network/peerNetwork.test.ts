@@ -838,7 +838,7 @@ describe('PeerNetwork', () => {
 
         expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
 
-        expect(memPool.exists(transaction.hash())).toBe(true)
+        expect(memPool.get(transaction.hash())).toBeDefined()
 
         expect(addPendingTransaction).toHaveBeenCalledTimes(1)
 
@@ -869,7 +869,7 @@ describe('PeerNetwork', () => {
 
         expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
 
-        expect(memPool.exists(transaction.hash())).toBe(true)
+        expect(memPool.get(transaction.hash())).toBeDefined()
 
         expect(addPendingTransaction).toHaveBeenCalledTimes(1)
       })
@@ -1033,7 +1033,7 @@ describe('PeerNetwork', () => {
           valid: true,
         })
 
-        expect(memPool.exists(transaction.hash())).toBe(true)
+        expect(memPool.get(transaction.hash())).toBeDefined()
         expect(addPendingTransaction).toHaveBeenCalledTimes(1)
         for (const { sendSpy } of peersWithoutTransaction) {
           const transactionMessages = sendSpy.mock.calls.filter(([message]) => {
