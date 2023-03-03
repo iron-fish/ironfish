@@ -66,6 +66,7 @@ const consensusParameters: ConsensusParameters = {
   targetBlockTimeInSeconds: 60,
   targetBucketTimeInSeconds: 10,
   maxBlockSizeBytes: 2000000,
+  minFee: 1,
 }
 
 /**
