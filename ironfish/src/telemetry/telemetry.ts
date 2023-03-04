@@ -187,22 +187,22 @@ export class Telemetry {
       {
         name: 'mempool_size_bytes',
         type: 'integer',
-        value: this.metrics.memPoolSizeBytes.value,
+        value: Math.round(this.metrics.memPoolSizeBytes.value),
       },
       {
         name: 'mempool_max_size_bytes',
         type: 'integer',
-        value: this.metrics.memPoolMaxSizeBytes.value,
+        value: Math.round(this.metrics.memPoolMaxSizeBytes.value),
       },
       {
         name: 'mempool_saturation',
         type: 'integer',
-        value: this.metrics.memPoolSaturation.value,
+        value: Math.round(this.metrics.memPoolSaturation.value * 100),
       },
       {
         name: 'mempool_evictions',
         type: 'integer',
-        value: this.metrics.memPoolEvictions.rate5m,
+        value: this.metrics.memPoolEvictions.value,
       },
       {
         name: 'mempool_recently_evicted_cache_size',

@@ -301,7 +301,7 @@ export class MemPool {
 
     if (this.full()) {
       const evicted = this.evictTransactions()
-      this.metrics.memPoolEvictions.add(evicted.length)
+      this.metrics.memPoolEvictions.value += evicted.length
     }
 
     return true

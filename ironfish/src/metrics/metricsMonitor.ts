@@ -48,7 +48,7 @@ export class MetricsMonitor {
   readonly memPoolSizeBytes: Gauge
   readonly memPoolMaxSizeBytes: Gauge
   readonly memPoolSaturation: Gauge
-  readonly memPoolEvictions: Meter
+  readonly memPoolEvictions: Gauge
 
   readonly memPool_RecentlyEvictedCache_Size: Gauge
   readonly memPool_RecentlyEvictedCache_MaxSize: Gauge
@@ -98,7 +98,7 @@ export class MetricsMonitor {
     this.memPoolSizeBytes = new Gauge()
     this.memPoolMaxSizeBytes = new Gauge()
     this.memPoolSaturation = new Gauge()
-    this.memPoolEvictions = this.addMeter()
+    this.memPoolEvictions = new Gauge()
 
     this.memPool_RecentlyEvictedCache_Size = new Gauge()
     this.memPool_RecentlyEvictedCache_MaxSize = new Gauge()
