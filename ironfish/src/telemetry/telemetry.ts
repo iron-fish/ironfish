@@ -202,7 +202,7 @@ export class Telemetry {
       {
         name: 'mempool_evictions',
         type: 'integer',
-        value: this.metrics.memPoolEvictions.rate5m,
+        value: this.metrics.memPoolEvictions.value,
       },
       {
         name: 'mempool_recently_evicted_cache_size',

@@ -85,6 +85,7 @@ import {
 import { UnsetConfigRequest, UnsetConfigResponse } from '../routes/config/unsetConfig'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import { GetMempoolTransactionResponse, GetMempoolTransactionsRequest } from '../routes/mempool'
+import { GetMempoolStatusResponse } from '../routes/mempool/getStatus'
 import { GetBannedPeersRequest, GetBannedPeersResponse } from '../routes/peers/getBannedPeers'
 import { GetPeerRequest, GetPeerResponse } from '../routes/peers/getPeer'
 import {
@@ -280,6 +281,18 @@ export abstract class RpcClient {
       `${ApiNamespace.mempool}/getTransactions`,
       { ...params },
     )
+  }
+
+  async getMempoolStatus(): Promise<RpcResponseEnded<GetMempoolStatusResponse>> {
+    return await this.request<GetMempoolStatusResponse>(
+      `${ApiNamespace.mempool}/getStatus`,
+    ).waitForEnd()
+  }
+
+  getMempoolStatusStream(): RpcResponse<void, GetMempoolStatusResponse> {
+    return this.request<void, GetMempoolStatusResponse>(`${ApiNamespace.mempool}/getStatus`, {
+      stream: true,
+    })
   }
 
   async getBannedPeers(
