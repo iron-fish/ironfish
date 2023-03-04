@@ -123,7 +123,7 @@ export class Verifier {
       if (transactionFee < this.chain.consensus.parameters.minFee) {
         return {
           valid: false,
-          reason: VerificationResultReason.MINIMUM_TRANSACTION_FEE_NOT_MET,
+          reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
         }
       }
 
@@ -278,7 +278,7 @@ export class Verifier {
     ) {
       return {
         valid: false,
-        reason: VerificationResultReason.MINIMUM_TRANSACTION_FEE_NOT_MET,
+        reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
       }
     }
 
@@ -522,7 +522,7 @@ export enum VerificationResultReason {
   MAX_BLOCK_SIZE_EXCEEDED = 'Block size exceeds maximum',
   MAX_TRANSACTION_SIZE_EXCEEDED = 'Transaction size exceeds maximum',
   MINERS_FEE_EXPECTED = 'Miners fee expected',
-  MINIMUM_TRANSACTION_FEE_NOT_MET = 'Transaction fee is below the minimum required fee',
+  MINIMUM_FEE_NOT_MET = 'Transaction fee is below the minimum required fee',
   NATIVE_BURN = 'Attempting to burn the native asset',
   NOTE_COMMITMENT = 'Note_commitment',
   NOTE_COMMITMENT_SIZE_TOO_LARGE = 'Note commitment tree is smaller than referenced by the spend',

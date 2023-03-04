@@ -1440,5 +1440,30 @@ describe('Blockchain', () => {
         })
       })
     })
+
+    it('rejects double spend transactions', async () => {
+      const { node, chain } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      const { block } = await useBlockWithTx(
+        node,
+        accountA,
+        accountB,
+        true,
+        {
+          fee: 0,
+        },
+        false,
+      )
+
+      node.chain.consensus.parameters.minFee = 1
+
+      const added = await chain.addBlock(block)
+
+      expect(added.isAdded).toBe(false)
+      expect(added.reason).toBe(VerificationResultReason.MINIMUM_FEE_NOT_MET)
+    })
   })
 })

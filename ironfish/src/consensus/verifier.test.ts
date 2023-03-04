@@ -136,7 +136,7 @@ describe('Verifier', () => {
       const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
 
       expect(result).toEqual({
-        reason: VerificationResultReason.MINIMUM_TRANSACTION_FEE_NOT_MET,
+        reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
         valid: false,
       })
     })
@@ -283,7 +283,7 @@ describe('Verifier', () => {
       nodeTest.chain.consensus.parameters.minFee = maxFee + 1
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         valid: false,
-        reason: VerificationResultReason.MINIMUM_TRANSACTION_FEE_NOT_MET,
+        reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
       })
     })
 
