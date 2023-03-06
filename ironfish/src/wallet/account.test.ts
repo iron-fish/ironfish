@@ -1629,6 +1629,43 @@ describe('Accounts', () => {
         unconfirmedCount: 1,
       })
     })
+
+    it('should calculate balances on a chain with no confirmed blocks', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      await node.wallet.updateHead()
+
+      // balances should be 0 with no blocks added after genesis block
+      // confirmations greater than chain length
+      await expect(accountA.getBalance(Asset.nativeId(), 2)).resolves.toMatchObject({
+        confirmed: 0n,
+        unconfirmed: 0n,
+        pending: 0n,
+        available: 0n,
+      })
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      // with no confirmations, balances equal to miner reward
+      await expect(accountA.getBalance(Asset.nativeId(), 0)).resolves.toMatchObject({
+        confirmed: 2000000000n,
+        unconfirmed: 2000000000n,
+        pending: 2000000000n,
+        available: 2000000000n,
+      })
+
+      // confirmed and available balances should be 0 if block is unconfirmed
+      // confirmations greater than chain length
+      await expect(accountA.getBalance(Asset.nativeId(), 3)).resolves.toMatchObject({
+        confirmed: 0n,
+        unconfirmed: 2000000000n,
+        pending: 2000000000n,
+        available: 0n,
+      })
+    })
   })
 
   describe('getPendingDelta', () => {
