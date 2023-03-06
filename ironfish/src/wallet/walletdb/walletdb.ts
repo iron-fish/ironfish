@@ -1047,9 +1047,11 @@ export class WalletDB {
     await this.pendingTransactionHashes.clear(tx, account.prefixRange)
   }
 
-  async cleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
-    let recordsToCleanup = 1000
+  async forceCleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
+    return this.cleanupDeletedAccounts(Number.POSITIVE_INFINITY, signal)
+  }
 
+  async cleanupDeletedAccounts(recordsToCleanup: number, signal?: AbortSignal): Promise<void> {
     const stores: IDatabaseStore<{
       key: Readonly<unknown>
       value: unknown

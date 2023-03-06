@@ -1389,6 +1389,10 @@ export class Wallet {
     this.onAccountRemoved.emit(account)
   }
 
+  async forceCleanupDeletedAccounts(): Promise<void> {
+    await this.walletDb.forceCleanupDeletedAccounts(this.eventLoopAbortController.signal)
+  }
+
   async cleanupDeletedAccounts(): Promise<void> {
     if (!this.isStarted) {
       return
@@ -1398,7 +1402,11 @@ export class Wallet {
       return
     }
 
-    await this.walletDb.cleanupDeletedAccounts(this.eventLoopAbortController.signal)
+    const recordsToCleanup = 1000
+    await this.walletDb.cleanupDeletedAccounts(
+      recordsToCleanup,
+      this.eventLoopAbortController.signal,
+    )
   }
 
   get hasDefaultAccount(): boolean {
