@@ -740,14 +740,7 @@ describe('PeerNetwork', () => {
 
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          undefined,
-          false,
-        )
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         Object.defineProperty(workerPool, 'saturated', { get: () => true })
 
@@ -775,14 +768,7 @@ describe('PeerNetwork', () => {
         const { wallet, memPool, chain } = node
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          undefined,
-          false,
-        )
+        const { transaction } = await useBlockWithTx(node, accountA, accountB)
 
         chain.synced = false
 
@@ -882,14 +868,7 @@ describe('PeerNetwork', () => {
 
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { block, transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          undefined,
-          false,
-        )
+        const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
         const verifyNewTransactionSpy = jest.spyOn(node.chain.verifier, 'verifyNewTransaction')
 
         await node.chain.nullifiers.connectBlock(block)
@@ -951,14 +930,7 @@ describe('PeerNetwork', () => {
 
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { block, transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          undefined,
-          false,
-        )
+        const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
 
         const [{ peer, sendSpy }] = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)
 

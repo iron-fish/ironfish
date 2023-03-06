@@ -216,7 +216,6 @@ export async function useBlockWithTx(
     expiration?: number
     fee?: number
   } = { expiration: 0 },
-  broadcast = true,
 ): Promise<{
   account: Account
   previous: Block
@@ -261,11 +260,8 @@ export async function useBlockWithTx(
       expirationDelta: 0,
     })
 
-    const transaction = await node.wallet.post({
-      transaction: raw,
-      account: from,
-      broadcast,
-    })
+    Assert.isNotNull(from.spendingKey)
+    const transaction = await node.workerPool.postTransaction(raw, from.spendingKey)
 
     return node.chain.newBlock(
       [transaction],
@@ -327,11 +323,8 @@ export async function useBlockWithTxs(
           expirationDelta: 0,
         })
 
-        const transaction = await node.wallet.post({
-          transaction: raw,
-          account: from,
-          broadcast: false,
-        })
+        Assert.isNotNull(from.spendingKey)
+        const transaction = await node.workerPool.postTransaction(raw, from.spendingKey)
 
         await node.wallet.addPendingTransaction(transaction)
         transactions.push(transaction)

@@ -1447,16 +1447,9 @@ describe('Blockchain', () => {
       const accountA = await useAccountFixture(node.wallet, 'accountA')
       const accountB = await useAccountFixture(node.wallet, 'accountB')
 
-      const { block } = await useBlockWithTx(
-        node,
-        accountA,
-        accountB,
-        true,
-        {
-          fee: 0,
-        },
-        false,
-      )
+      const { block } = await useBlockWithTx(node, accountA, accountB, true, {
+        fee: 0,
+      })
 
       node.chain.consensus.parameters.minFee = 1
 

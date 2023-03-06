@@ -271,7 +271,7 @@ describe('BlockFetcher', () => {
   it('requests full block if transaction request fails', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
-    const { block } = await useBlockWithTx(node, undefined, undefined, true, undefined, false)
+    const { block } = await useBlockWithTx(node, undefined, undefined, true, undefined)
 
     // Block should be one ahead of our current chain
     expect(block.header.sequence - chain.head.sequence).toEqual(1)
