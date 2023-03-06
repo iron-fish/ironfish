@@ -84,7 +84,7 @@ export const TESTNET = `{
       "genesisSupplyInIron": 42000000,
       "targetBlockTimeInSeconds": 60,
       "targetBucketTimeInSeconds": 10,
-      "maxBlockSizeBytes": 2000000,
+      "maxBlockSizeBytes": 524288,
       "minFee": 0
   }
 }`
@@ -99,7 +99,7 @@ export const MAINNET = `
         "genesisSupplyInIron": 42000000,
         "targetBlockTimeInSeconds": 60,
         "targetBucketTimeInSeconds": 10,
-        "maxBlockSizeBytes": 2000000,
+        "maxBlockSizeBytes": 524288,
         "minFee": 1
     }
 }`
@@ -114,7 +114,7 @@ export const DEV = `
         "genesisSupplyInIron": 42000000,
         "targetBlockTimeInSeconds": 60,
         "targetBucketTimeInSeconds": 10,
-        "maxBlockSizeBytes": 2000000,
+        "maxBlockSizeBytes": 524288,
         "minFee": 0
     }
 }`

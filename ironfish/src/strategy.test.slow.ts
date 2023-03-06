@@ -65,7 +65,7 @@ const consensusParameters: ConsensusParameters = {
   genesisSupplyInIron: 42000000,
   targetBlockTimeInSeconds: 60,
   targetBucketTimeInSeconds: 10,
-  maxBlockSizeBytes: 2000000,
+  maxBlockSizeBytes: 512 * 1024,
   minFee: 1,
 }
 

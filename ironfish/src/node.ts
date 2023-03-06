@@ -246,6 +246,7 @@ export class IronfishNode {
     })
 
     const feeEstimator = new FeeEstimator({
+      consensus,
       maxBlockHistory: config.get('feeEstimatorMaxBlockHistory'),
       percentiles: {
         slow: config.get('feeEstimatorPercentileSlow'),
