@@ -1387,8 +1387,8 @@ export class Wallet {
     this.onAccountRemoved.emit(account)
   }
 
-  async forceDeletedAccountCleanup(): Promise<void> {
-    await this.walletDb.forceDeletedAccountCleanup(this.eventLoopAbortController.signal)
+  async forceCleanupDeletedAccounts(): Promise<void> {
+    await this.walletDb.forceCleanupDeletedAccounts(this.eventLoopAbortController.signal)
   }
 
   async cleanupDeletedAccounts(): Promise<void> {

@@ -40,7 +40,7 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
     }
     await node.wallet.removeAccountByName(account.name)
     if (request.data.wait) {
-      await node.wallet.forceDeletedAccountCleanup()
+      await node.wallet.forceCleanupDeletedAccounts()
     }
     request.end({})
   },
