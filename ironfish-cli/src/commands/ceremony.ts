@@ -47,7 +47,8 @@ export default class Ceremony extends IronfishCommand {
     let refreshEtaInterval: NodeJS.Timeout | null = null
     let etaDate: Date | null = null
 
-    // Trusted setup has ended so just
+    // Trusted setup has ended but this command may still be needed in case of future
+    // setups / network upgrades. So for now, just exit the command with some information
     this.log(
       `The trusted setup ceremony was completed on Mar 3, 2023. For more information on the trusted setup process and its completion please read https://setup.ironfish.network.`,
     )
