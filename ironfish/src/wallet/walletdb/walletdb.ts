@@ -1024,7 +1024,7 @@ export class WalletDB {
   }
 
   async forceCleanupDeletedAccounts(signal?: AbortSignal): Promise<void> {
-    return this.cleanupDeletedAccounts(Number.MAX_SAFE_INTEGER, signal)
+    return this.cleanupDeletedAccounts(Number.POSITIVE_INFINITY, signal)
   }
 
   async cleanupDeletedAccounts(recordsToCleanup: number, signal?: AbortSignal): Promise<void> {
