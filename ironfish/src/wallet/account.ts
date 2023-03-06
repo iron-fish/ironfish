@@ -1039,10 +1039,12 @@ export class Account {
   ): Promise<bigint> {
     let available = 0n
 
+    const maxConfirmedSequence = Math.max(headSequence - confirmations, GENESIS_BLOCK_SEQUENCE)
+
     for await (const value of this.walletDb.loadUnspentNoteValues(
       this,
       assetId,
-      headSequence - confirmations,
+      maxConfirmedSequence,
       tx,
     )) {
       available += value
