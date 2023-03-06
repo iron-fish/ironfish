@@ -1876,7 +1876,7 @@ describe('Accounts', () => {
       expect(unspentNotes).toHaveLength(2)
     })
 
-    it('loads filters unspent notes by confirmation range', async () => {
+    it('filters unspent notes by confirmation range', async () => {
       const { node } = nodeTest
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')
@@ -1896,6 +1896,40 @@ describe('Accounts', () => {
       )
 
       expect(unspentNotes).toHaveLength(0)
-    }, 50000)
+    })
+
+    it('filters unspent notes by assetId', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const value = BigInt(10)
+      const mintBlock = await useMintBlockFixture({
+        node,
+        account: accountA,
+        asset,
+        value,
+        sequence: 3,
+      })
+      await expect(node.chain).toAddBlock(mintBlock)
+      await node.wallet.updateHead()
+
+      let unspentNotes = await AsyncUtils.materialize(
+        accountA.getUnspentNotes(Asset.nativeId(), { confirmations: 0 }),
+      )
+
+      expect(unspentNotes).toHaveLength(1)
+
+      unspentNotes = await AsyncUtils.materialize(
+        accountA.getUnspentNotes(asset.id(), { confirmations: 0 }),
+      )
+
+      expect(unspentNotes).toHaveLength(1)
+    })
   })
 })
