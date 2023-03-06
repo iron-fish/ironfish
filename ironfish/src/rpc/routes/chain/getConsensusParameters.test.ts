@@ -28,5 +28,6 @@ describe('Route chain.getConsensusParameters', () => {
     expect(response.content.maxBlockSizeBytes).toEqual(
       routeTest.chain.consensus.parameters.maxBlockSizeBytes,
     )
+    expect(response.content.minFee).toEqual(routeTest.chain.consensus.parameters.minFee)
   })
 })

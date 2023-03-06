@@ -46,6 +46,7 @@ export const networkDefinitionSchema: yup.ObjectSchema<NetworkDefinition> = yup
         targetBlockTimeInSeconds: yup.number().integer().defined(),
         targetBucketTimeInSeconds: yup.number().integer().defined(),
         maxBlockSizeBytes: yup.number().integer().defined(),
+        minFee: yup.number().integer().defined(),
       })
       .defined(),
   })
