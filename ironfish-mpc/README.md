@@ -6,7 +6,7 @@ Much of the code in this folder was originally forked from https://github.com/zc
 
 Our final contribution will be seeded using the randomness generated from [The League of Entropy's drand network](https://drand.love/) in round #2759370.
 
-Drand's round info listes below:
+The results of Drand's round 2759370 are listed below
 
 From: https://api.drand.sh/8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce/public/2759370
 ```json
