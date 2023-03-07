@@ -44,7 +44,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
     this.server = server
 
     return new Promise((resolve, reject) => {
-      const onError = (error: unknown) => {
+      const onError = (_error: unknown) => {
         server.off('onError', onError)
         server.off('listening', onListening)
       }
@@ -74,13 +74,13 @@ export class RpcHttpAdapter implements IRpcAdapter {
 
     const headers = { 'Content-Type': 'application/json' }
 
-    const url = new URL('http://localhost' + request.url || '')
+    const url = new URL(`http://localhost${request.url}` || '')
     const route = url.pathname.substring(1)
 
     const content: Record<string, string> = {}
 
     // params
-    if (url.search != '') {
+    if (url.search !== '') {
       params = {}
       for (const [key, value] of url.searchParams) {
         params[key] = value
@@ -117,7 +117,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
         response.writeHead(status, headers)
         response.write(JSON.stringify({ status: status, data: data }))
       },
-      (data: unknown) => {
+      (_data: unknown) => {
         // Not supported in HTTP
       },
     )
