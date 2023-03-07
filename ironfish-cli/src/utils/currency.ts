@@ -35,6 +35,7 @@ export async function promptCurrency(options: {
 
   if (options.balance) {
     const balance = await options.client.getAccountBalance({
+      account: options.balance.account,
       assetId: options.balance.assetId ?? Asset.nativeId().toString('hex'),
       confirmations: options.balance.confirmations,
     })
