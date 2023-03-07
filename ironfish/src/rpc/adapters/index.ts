@@ -4,6 +4,7 @@
 
 export * from './adapter'
 export * from './errors'
+export * from './httpAdapter'
 export * from './ipcAdapter'
 export * from './socketAdapter'
 export * from './tcpAdapter'
