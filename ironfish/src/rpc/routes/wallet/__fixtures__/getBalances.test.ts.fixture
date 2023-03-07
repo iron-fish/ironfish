@@ -2,14 +2,14 @@
   "getBalances with a valid account streams balances for all assets owned by the account": [
     {
       "version": 1,
-      "id": "7436b231-b1cc-480c-b81f-90ea41de59d2",
+      "id": "da6edb02-706d-44fb-aa80-564415a450ca",
       "name": "test",
-      "spendingKey": "e6ecafb8679ba660d1c47dae93f6635664569d12a82f8b62bf49e9f5b563728e",
-      "viewKey": "ceba108721346e9ddaf762d03b82f203b3e1e6a607985eee8f403be2037e5cb363753ed6365529e6fb617546d2e56e1768e7067b3800ac901b0148c9515d4dde",
-      "incomingViewKey": "bf0c53ed4dc398084cfb001c94997c1887e3951789c06793718126091b8bdb03",
-      "outgoingViewKey": "26f5e49f1f3d7bb6750406c63876839ba751e5d3a32ee15be7bd10eee3864ae5",
-      "publicAddress": "fffd31713d910a991b771421e4211288198c12991bc7622f482628839b19083f",
-      "createdAt": "2023-03-06T18:48:39.658Z"
+      "spendingKey": "a1299f808d163154b88a5e725481d806d624c422b3444a81acb182ad43031f2d",
+      "viewKey": "6ea97d62e0e1a5a986e8dac0c7b0061e9f8764a27660f5391e11e8ee24a78007294af35cac5cf93d4719b0a5c8e017335585d35e4b9840b0667143792b38f5db",
+      "incomingViewKey": "3705e979f96c2bca4bf553df546ef52c330d69a2ded596b6b4b75e712dd4f005",
+      "outgoingViewKey": "ba5372c47fbf2bb79ef3580f6afe5c04a19854b0f125289bdf25c5fbed673428",
+      "publicAddress": "2ab5685ca47bb95385559f15ddaa21bc0081ace7260d5674392ba8715a5eef59",
+      "createdAt": "2023-03-07T20:00:35.076Z"
     }
   ]
 }
