@@ -2,20 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { generateKeyFromPrivateKey, wordsToSpendingKey } from '@ironfish/rust-nodejs'
-import {
-  ACCOUNT_SCHEMA_VERSION,
-  Bech32m,
-  ERROR_CODES,
-  ImportResponse,
-  JSONUtils,
-  PromiseUtils,
-  RpcResponseEnded,
-} from '@ironfish/sdk'
+import { ACCOUNT_SCHEMA_VERSION, Bech32m, JSONUtils, PromiseUtils } from '@ironfish/sdk'
 import { AccountImport } from '@ironfish/sdk/src/wallet/walletdb/accountValue'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { hasUserResponseError } from '../../utils'
 import { LANGUAGE_VALUES } from '../../utils/language'
 
 export class ImportCommand extends IronfishCommand {
@@ -70,30 +61,27 @@ export class ImportCommand extends IronfishCommand {
       account.createdAt = null
     }
 
-    const rescan = flags.rescan
+    const accountsResponse = await client.getAccounts()
+    const duplicateAccount = accountsResponse.content.accounts.find(
+      (accountName) => accountName === account.name,
+    )
+    // Offer the user to use a different name if a duplicate is found
+    if (duplicateAccount) {
+      this.log()
+      this.log(`Found existing account with name '${account.name}'`)
 
-    let result: RpcResponseEnded<ImportResponse>
-    try {
-      result = await client.importAccount({ account, rescan })
-    } catch (error: unknown) {
-      // Offer the user to use a different name if a duplicate is found
-      if (hasUserResponseError(error) && error.code === ERROR_CODES.ACCOUNT_EXISTS) {
-        this.log()
-        this.log(`Found existing account with name '${account.name}'`)
-
-        const name = await CliUx.ux.prompt('Enter a different name for the account', {
-          required: true,
-        })
-        if (name === account.name) {
-          this.error(`Entered the same name: '${name}'`)
-        }
-
-        account.name = name
-        result = await client.importAccount({ account, rescan })
-      } else {
-        throw error
+      const name = await CliUx.ux.prompt('Enter a different name for the account', {
+        required: true,
+      })
+      if (name === account.name) {
+        this.error(`Entered the same name: '${name}'`)
       }
+
+      account.name = name
     }
+
+    const rescan = flags.rescan
+    const result = await client.importAccount({ account, rescan })
 
     const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)

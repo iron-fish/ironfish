@@ -4,7 +4,6 @@
 import { v4 as uuid } from 'uuid'
 import * as yup from 'yup'
 import { AccountImport } from '../../../wallet/walletdb/accountValue'
-import { ERROR_CODES, ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
 export type ImportAccountRequest = {
@@ -50,15 +49,6 @@ router.register<typeof ImportAccountRequestSchema, ImportResponse>(
       id: uuid(),
       ...request.data.account,
     }
-
-    if (node.wallet.accountExists(request.data.account.name)) {
-      throw new ValidationError(
-        `There is already an account with the name ${request.data.account.name}`,
-        400,
-        ERROR_CODES.ACCOUNT_EXISTS,
-      )
-    }
-
     const account = await node.wallet.importAccount(accountValue)
 
     if (request.data.rescan) {
