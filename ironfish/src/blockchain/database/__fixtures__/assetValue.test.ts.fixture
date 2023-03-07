@@ -2,14 +2,14 @@
   "AssetValueEncoding serializes the value into a buffer and deserializes to the original value": [
     {
       "version": 1,
-      "id": "8df07372-52ae-426c-83f7-2f76f7b0445e",
+      "id": "91a28d21-b8df-4e2d-8b25-c7873cce6987",
       "name": "test",
-      "spendingKey": "6c4523fb6441909c4c2d54fd175b5610ea08447b2fae3f1f5431f5ad5c05caa1",
-      "viewKey": "aa96b4e1fd9aeba64cf6fc44b99659ede294b5a98916015a5bec0ad4a759e739fc19b482a76426da966c5e6b085bc4af54e09a9008fb3485283f0356bb5f3688",
-      "incomingViewKey": "0eadd3f43729ec095fd744eadafebafd8cf2c64d6a87283128cc27ea3a4a8f05",
-      "outgoingViewKey": "44f489ac7f6f2636fec9a537dc99402afd370430e7e135874b973110dd632d2d",
-      "publicAddress": "7c510c3f52e93aacc919bb51250d3d4b25191edf1d04eaf0bb0ae7f3cd739e0a",
-      "createdAt": "2023-03-06T18:48:47.173Z"
+      "spendingKey": "86cf33af4be7fec1669e51f1aa511545ce453b9f152e0958855aa26e0eef3abf",
+      "viewKey": "35b3a6fa506f4dac24144e403aef7fd438b0b0528bb41aae5341a83dd2f8433171de85a4d6c115eda2b110b10d21f4b91cf5a55166bf59f282baee9be74d782b",
+      "incomingViewKey": "ab9840f3ef1049451f809a09ba3e0c12fcae2ebfee8501ef161fc517538eb804",
+      "outgoingViewKey": "de29f4ce1b32f2285a293b91607d0352b4baaac82f479e725a79bf53d6943d76",
+      "publicAddress": "f3b811c03166cc893e5c653cb523d6521b4c2213a60ee942cfabebebdf6e0ca1",
+      "createdAt": "2023-03-07T20:00:42.052Z"
     }
   ]
 }
