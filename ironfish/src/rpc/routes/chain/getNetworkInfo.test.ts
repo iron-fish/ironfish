@@ -8,35 +8,10 @@ import { GetNetworkInfoResponse } from './getNetworkInfo'
 describe('Route chain.getNetworkInfo', () => {
   const routeTest = createRouteTest()
 
-  it('returns the network info', async () => {
+  it('returns the network id', async () => {
     const response = await routeTest.client
       .request<GetNetworkInfoResponse>('chain/getNetworkInfo')
       .waitForEnd()
-
-    expect(response.content.networkIdentity).toEqual(
-      routeTest.node.internal.config.networkIdentity,
-    )
-    expect(response.content.telemetryNodeId).toEqual(
-      routeTest.node.internal.config.telemetryNodeId,
-    )
-    expect(response.content.rpcAuthToken).toEqual(routeTest.node.internal.config.rpcAuthToken)
-    expect(response.content.networkId).toEqual(routeTest.node.internal.config.networkId)
-  })
-
-  it('returns the network id', async () => {
-    const response = await routeTest.client
-      .request<GetNetworkInfoResponse>('chain/getNetworkInfo', {
-        name: 'networkId',
-      })
-      .waitForEnd()
-
-    expect(response.content.isFirstRun).toBeUndefined()
-
-    expect(response.content.networkIdentity).toBeUndefined()
-
-    expect(response.content.telemetryNodeId).toBeUndefined()
-
-    expect(response.content.rpcAuthToken).toBeUndefined()
 
     expect(response.content.networkId).toEqual(routeTest.node.internal.config.networkId)
   })
