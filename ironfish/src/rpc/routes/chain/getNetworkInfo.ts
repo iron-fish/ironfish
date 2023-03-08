@@ -6,7 +6,7 @@ import { ApiNamespace, router } from '../router'
 
 export type GetNetworkInfoRequest = undefined
 export type GetNetworkInfoResponse = {
-  networkId?: number
+  networkId: number
 }
 
 export const GetNetworkInfoRequestSchema: yup.MixedSchema<GetNetworkInfoRequest> = yup
@@ -15,7 +15,7 @@ export const GetNetworkInfoRequestSchema: yup.MixedSchema<GetNetworkInfoRequest>
 
 export const GetNetworkInfoResponseSchema: yup.ObjectSchema<GetNetworkInfoResponse> = yup
   .object({
-    networkId: yup.number().optional(),
+    networkId: yup.number().defined(),
   })
   .defined()
 
