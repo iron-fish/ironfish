@@ -11,6 +11,7 @@ interface ConsensusParameters {
   targetBlockTimeInSeconds: number
   targetBucketTimeInSeconds: number
   maxBlockSizeBytes: number
+  minFee: number
 }
 
 export type GetConsensusParametersRequest = Record<string, never> | undefined
@@ -27,6 +28,7 @@ export const GetConsensusParametersResponseSchema: yup.ObjectSchema<GetConsensus
       targetBlockTimeInSeconds: yup.number().defined(),
       targetBucketTimeInSeconds: yup.number().defined(),
       maxBlockSizeBytes: yup.number().defined(),
+      minFee: yup.number().defined(),
     })
     .defined()
 
@@ -44,6 +46,7 @@ router.register<typeof GetConsensusParametersRequestSchema, GetConsensusParamete
       targetBlockTimeInSeconds: consensusParameters.targetBlockTimeInSeconds,
       targetBucketTimeInSeconds: consensusParameters.targetBucketTimeInSeconds,
       maxBlockSizeBytes: consensusParameters.maxBlockSizeBytes,
+      minFee: consensusParameters.minFee,
     })
   },
 )

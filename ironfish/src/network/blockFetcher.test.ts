@@ -131,10 +131,7 @@ describe('BlockFetcher', () => {
     const sentMessage = sentPeers[0].sendSpy.mock.calls[0][0]
     expect(sentMessage).toBeInstanceOf(GetCompactBlockRequest)
     const rpcId = (sentMessage as GetCompactBlockRequest).rpcId
-    const message = {
-      peerIdentity: sentPeer.getIdentityOrThrow(),
-      message: new GetCompactBlockResponse(block.toCompactBlock(), rpcId),
-    }
+    const message = new GetCompactBlockResponse(block.toCompactBlock(), rpcId)
 
     await expect(chain.hasBlock(block.header.hash)).resolves.toBe(false)
 
@@ -274,7 +271,7 @@ describe('BlockFetcher', () => {
   it('requests full block if transaction request fails', async () => {
     const { peerNetwork, chain, node } = nodeTest
 
-    const { block } = await useBlockWithTx(node)
+    const { block } = await useBlockWithTx(node, undefined, undefined, true, undefined)
 
     // Block should be one ahead of our current chain
     expect(block.header.sequence - chain.head.sequence).toEqual(1)

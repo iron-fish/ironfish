@@ -5,7 +5,7 @@
 import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
-import { isExpiredSequence } from '../consensus'
+import { Consensus, isExpiredSequence } from '../consensus'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { getTransactionSize } from '../network/utils/serializers'
@@ -13,6 +13,7 @@ import { Block, BlockHeader } from '../primitives'
 import { Transaction, TransactionHash } from '../primitives/transaction'
 import { FeeEstimator, getFeeRate } from './feeEstimator'
 import { PriorityQueue } from './priorityQueue'
+import { RecentlyEvictedCache } from './recentlyEvictedCache'
 
 interface MempoolEntry {
   hash: TransactionHash
@@ -24,14 +25,32 @@ interface ExpirationMempoolEntry {
   hash: TransactionHash
 }
 
+export function mempoolEntryComparator(
+  firstTransaction: MempoolEntry,
+  secondTransaction: MempoolEntry,
+): boolean {
+  if (firstTransaction.feeRate !== secondTransaction.feeRate) {
+    return firstTransaction.feeRate > secondTransaction.feeRate
+  }
+
+  return firstTransaction.hash.compare(secondTransaction.hash) > 0
+}
+
 export class MemPool {
   private readonly transactions = new BufferMap<Transaction>()
-  /* Keep track of number of bytes stored in the transaction map */
-  private transactionsBytes = 0
+
   private readonly nullifiers = new BufferMap<Buffer>()
 
-  private readonly queue: PriorityQueue<MempoolEntry>
+  private readonly feeRateQueue: PriorityQueue<MempoolEntry>
+  private readonly evictionQueue: PriorityQueue<MempoolEntry>
   private readonly expirationQueue: PriorityQueue<ExpirationMempoolEntry>
+
+  private readonly recentlyEvictedCache: RecentlyEvictedCache
+
+  /* Keep track of number of bytes stored in the transaction map */
+  private _sizeBytes = 0
+  public readonly maxSizeBytes: number
+  private readonly consensus: Consensus
 
   head: BlockHeader | null
 
@@ -43,22 +62,25 @@ export class MemPool {
 
   constructor(options: {
     chain: Blockchain
+    consensus: Consensus
     feeEstimator: FeeEstimator
     metrics: MetricsMonitor
+    maxSizeBytes: number
+    recentlyEvictedCacheSize: number
     logger?: Logger
   }) {
     const logger = options.logger || createRootLogger()
 
+    this.maxSizeBytes = options.maxSizeBytes
+    this.consensus = options.consensus
     this.head = null
 
-    this.queue = new PriorityQueue<MempoolEntry>(
-      (firstTransaction, secondTransaction) => {
-        if (firstTransaction.feeRate !== secondTransaction.feeRate) {
-          return firstTransaction.feeRate > secondTransaction.feeRate
-        }
+    this.feeRateQueue = new PriorityQueue<MempoolEntry>(mempoolEntryComparator, (t) =>
+      t.hash.toString('hex'),
+    )
 
-        return firstTransaction.hash.compare(secondTransaction.hash) > 0
-      },
+    this.evictionQueue = new PriorityQueue<MempoolEntry>(
+      (e1, e2) => !mempoolEntryComparator(e1, e2),
       (t) => t.hash.toString('hex'),
     )
 
@@ -69,7 +91,9 @@ export class MemPool {
 
     this.chain = options.chain
     this.logger = logger.withTag('mempool')
+
     this.metrics = options.metrics
+    this.metrics.memPoolMaxSizeBytes.value = this.maxSizeBytes
 
     this.feeEstimator = options.feeEstimator
 
@@ -82,26 +106,53 @@ export class MemPool {
       this.feeEstimator.onDisconnectBlock(block)
       await this.onDisconnectBlock(block)
     })
+
+    this.recentlyEvictedCache = new RecentlyEvictedCache({
+      logger: this.logger,
+      metrics: this.metrics,
+      maxSize: options.recentlyEvictedCacheSize,
+      sortFunction: mempoolEntryComparator,
+    })
   }
 
   async start(): Promise<void> {
     await this.feeEstimator.init(this.chain)
   }
 
+  /**
+   *
+   * @returns The number of transactions in the mempool
+   */
   count(): number {
     return this.transactions.size
   }
 
+  /**
+   * @return The number of bytes stored in the mempool
+   */
   sizeBytes(): number {
-    return this.transactionsBytes
+    return this._sizeBytes
   }
 
+  /**
+   *
+   * @returns The usage of the mempool, as a fraction between 0 and 1
+   */
+  saturation(): number {
+    return this.sizeBytes() / this.maxSizeBytes
+  }
+
+  /**
+   * @returns true if the transaction is either in the mempool or in the
+   * recently evicted cache. This does NOT indicate whether the full transaction
+   * is stored in the mempool
+   */
   exists(hash: TransactionHash): boolean {
-    return this.transactions.has(hash)
+    return this.transactions.has(hash) || this.recentlyEvicted(hash)
   }
 
   /*
-   * Returns a transaction if the transaction with that hash exists in the mempool
+   * Returns a transaction if a full transaction with that hash exists in the mempool
    * Otherwise, returns undefined
    */
   get(hash: TransactionHash): Transaction | undefined {
@@ -109,7 +160,7 @@ export class MemPool {
   }
 
   *orderedTransactions(): Generator<Transaction, void, unknown> {
-    const clone = this.queue.clone()
+    const clone = this.feeRateQueue.clone()
 
     while (clone.size() > 0) {
       const feeAndHash = clone.poll()
@@ -128,14 +179,15 @@ export class MemPool {
   }
 
   /**
-   * Accepts a transaction from the network
+   * Accepts a transaction from the network.
+   * This does not guarantee that the transaction will be added to the mempool.
+   *
+   * @returns true if the transaction was added to the mempool as a full transaction
+   * or just added to a cache like recentlyEvictedCache
    */
   acceptTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash().toString('hex')
     const sequence = transaction.expiration()
-    if (this.exists(transaction.hash())) {
-      return false
-    }
 
     if (isExpiredSequence(sequence, this.chain.head.sequence)) {
       this.logger.debug(`Invalid transaction '${hash}': expired sequence ${sequence}`)
@@ -180,72 +232,159 @@ export class MemPool {
     if (deletedTransactions) {
       this.logger.debug(`Deleted ${deletedTransactions} transactions`)
     }
-
     this.head = block.header
+    this.recentlyEvictedCache.flush(this.head.sequence)
   }
 
   async onDisconnectBlock(block: Block): Promise<void> {
-    let addedTransactions = 0
-
     for (const transaction of block.transactions) {
       if (transaction.isMinersFee()) {
         continue
       }
 
-      const added = this.addTransaction(transaction)
-      if (added) {
-        addedTransactions++
-      }
+      this.addTransaction(transaction)
     }
-
-    this.logger.debug(`Added ${addedTransactions} transactions`)
 
     this.head = await this.chain.getHeader(block.header.previousBlockHash)
   }
 
+  /**
+   * Add a new transaction to the mempool. If the mempool is full, the lowest feeRate transactions
+   * are evicted from the mempool.
+   *
+   * Transactions with duplicate nullifers are rejected.
+   *
+   * @param transaction the transaction to add
+   *
+   * @returns true if the transaction is valid to be added. This will STILL return true
+   * even if the transaction doesn't make it into the mempool because of size constraints
+   */
   private addTransaction(transaction: Transaction): boolean {
     const hash = transaction.hash()
 
-    if (this.transactions.has(hash)) {
+    if (this.exists(hash)) {
       return false
     }
 
     // Don't allow transactions with duplicate nullifiers
+    // TODO(daniel): Don't delete transactions if we aren't going to add the transaction anyway
     for (const spend of transaction.spends) {
-      if (this.nullifiers.has(spend.nullifier)) {
-        const existingTransactionHash = this.nullifiers.get(spend.nullifier)
-        Assert.isNotUndefined(existingTransactionHash)
+      const existingHash = this.nullifiers.get(spend.nullifier)
+      const existingTransaction = existingHash && this.transactions.get(existingHash)
 
-        const existingTransaction = this.transactions.get(existingTransactionHash)
-        if (!existingTransaction) {
-          continue
-        }
+      if (!existingTransaction) {
+        continue
+      }
 
-        if (transaction.fee() > existingTransaction.fee()) {
-          this.deleteTransaction(existingTransaction)
-        } else {
-          return false
-        }
+      if (transaction.fee() > existingTransaction.fee()) {
+        this.deleteTransaction(existingTransaction)
+      } else {
+        return false
       }
     }
 
     this.transactions.set(hash, transaction)
 
-    this.transactionsBytes += getTransactionSize(transaction)
-
     for (const spend of transaction.spends) {
-      if (!this.nullifiers.has(spend.nullifier)) {
-        this.nullifiers.set(spend.nullifier, hash)
-      }
+      this.nullifiers.set(spend.nullifier, hash)
     }
 
-    this.queue.add({ hash, feeRate: getFeeRate(transaction) })
-    // 0 expiration transactions cannot expire so don't add them to the expiration queue
+    this.feeRateQueue.add({ hash, feeRate: getFeeRate(transaction) })
+    this.evictionQueue.add({ hash, feeRate: getFeeRate(transaction) })
     if (transaction.expiration() > 0) {
       this.expirationQueue.add({ expiration: transaction.expiration(), hash })
     }
-    this.metrics.memPoolSize.value = this.count()
+
+    this._sizeBytes += getTransactionSize(transaction)
+
+    this.updateMetrics()
+
+    if (this.full()) {
+      const evicted = this.evictTransactions()
+      this.metrics.memPoolEvictions.value += evicted.length
+    }
+
     return true
+  }
+
+  /**
+   * @returns true if the mempool is over capacity
+   */
+  full(): boolean {
+    return this.sizeBytes() >= this.maxSizeBytes
+  }
+
+  /**
+   * @returns true if a transaction hash is in the recently evicted cache
+   */
+  recentlyEvicted(hash: TransactionHash): boolean {
+    return this.recentlyEvictedCache.has(hash.toString('hex'))
+  }
+
+  /**
+   * Get relevant stats about the current state of the recently evicted cache.
+   *
+   * @returns size - the number of transactions in the mempool
+   * @returns maxSize - the maximum number of transactions the mempool can hold
+   * @returns saturation - the percentage of the mempool that is full
+   */
+  recentlyEvictedCacheStats(): { size: number; maxSize: number; saturation: number } {
+    return {
+      size: this.recentlyEvictedCache.size(),
+      maxSize: this.recentlyEvictedCache.maxSize,
+      saturation: Math.round(this.recentlyEvictedCache.saturation() * 100),
+    }
+  }
+
+  /**
+   * Updates all relevent telemetry metrics.
+   * This should be called after any additions / deletions from the mempool.
+   */
+  private updateMetrics(): void {
+    this.metrics.memPoolSize.value = this.count()
+    this.metrics.memPoolSizeBytes.value = this.sizeBytes()
+    this.metrics.memPoolSaturation.value = this.saturation()
+  }
+
+  /**
+   * Evicts transactions from the mempool until it is under capacity.
+   * Transactions are evicted in order of fee rate (descending).
+   *
+   * @returns an array of the evicted transactions
+   */
+  private evictTransactions(): Transaction[] {
+    const evictedTransactions: Transaction[] = []
+
+    while (this.full()) {
+      const next = this.evictionQueue.peek()
+
+      const transaction = next && this.transactions.get(next.hash)
+      // If mempool is full, we should always have a transaction
+      Assert.isNotUndefined(transaction)
+
+      this.deleteTransaction(transaction)
+
+      // Transactions are added with a max lifespan of the current mempool size in blocks.
+      // This is because the evicted transaction has a lower fee rate than every transaction
+      // currently in the mempool.
+      this.recentlyEvictedCache.add(
+        transaction.hash(),
+        getFeeRate(transaction),
+        this.chain.head.sequence,
+        this.sizeInBlocks(),
+      )
+
+      evictedTransactions.push(transaction)
+    }
+
+    return evictedTransactions
+  }
+
+  /**
+   * @returns the current size of the mempool in blocks
+   */
+  sizeInBlocks(): number {
+    return Math.floor(this.sizeBytes() / this.consensus.parameters.maxBlockSizeBytes)
   }
 
   private deleteTransaction(transaction: Transaction): boolean {
@@ -256,16 +395,20 @@ export class MemPool {
       return false
     }
 
-    this.transactionsBytes -= getTransactionSize(transaction)
+    this._sizeBytes -= getTransactionSize(transaction)
 
     for (const spend of transaction.spends) {
       this.nullifiers.delete(spend.nullifier)
     }
 
-    this.queue.remove(hash.toString('hex'))
-    this.expirationQueue.remove(hash.toString('hex'))
+    const hashAsString = hash.toString('hex')
 
-    this.metrics.memPoolSize.value = this.count()
+    this.feeRateQueue.remove(hashAsString)
+    this.evictionQueue.remove(hashAsString)
+    this.expirationQueue.remove(hashAsString)
+
+    this.updateMetrics()
+
     return true
   }
 }

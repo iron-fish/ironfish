@@ -36,6 +36,7 @@ export class Account {
   readonly outgoingViewKey: string
   readonly version: number
   publicAddress: string
+  readonly createdAt: Date | null
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
 
@@ -49,6 +50,7 @@ export class Account {
     incomingViewKey,
     outgoingViewKey,
     version,
+    createdAt,
   }: AccountValue & { walletDb: WalletDB }) {
     this.id = id
     this.name = name
@@ -65,6 +67,7 @@ export class Account {
 
     this.walletDb = walletDb
     this.version = version ?? 1
+    this.createdAt = createdAt
   }
 
   serialize(): AccountValue {
@@ -77,6 +80,7 @@ export class Account {
       incomingViewKey: this.incomingViewKey,
       outgoingViewKey: this.outgoingViewKey,
       publicAddress: this.publicAddress,
+      createdAt: this.createdAt,
     }
   }
 
@@ -91,7 +95,7 @@ export class Account {
     options?: {
       confirmations?: number
     },
-  ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+  ): AsyncGenerator<DecryptedNoteValue> {
     const head = await this.getHead()
     if (!head) {
       return
@@ -101,23 +105,11 @@ export class Account {
 
     const maxConfirmedSequence = head.sequence - confirmations
 
-    for await (const decryptedNote of this.getNotes()) {
-      if (!decryptedNote.note.assetId().equals(assetId)) {
-        continue
-      }
-
-      if (decryptedNote.spent) {
-        continue
-      }
-
-      if (!decryptedNote.sequence) {
-        continue
-      }
-
-      if (decryptedNote.sequence > maxConfirmedSequence) {
-        continue
-      }
-
+    for await (const decryptedNote of this.walletDb.loadUnspentNotes(
+      this,
+      assetId,
+      maxConfirmedSequence,
+    )) {
       yield decryptedNote
     }
   }
@@ -191,6 +183,13 @@ export class Account {
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
+        await this.walletDb.saveNullifierToTransactionHash(
+          this,
+          spend.nullifier,
+          transaction,
+          tx,
+        )
+
         await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
@@ -490,6 +489,21 @@ export class Account {
 
         const spentNote = { ...note, spent: true }
         await this.walletDb.saveDecryptedNote(this, spentNoteHash, spentNote, tx)
+
+        const existingTransactionHash = await this.walletDb.getTransactionHashFromNullifier(
+          this,
+          spend.nullifier,
+          tx,
+        )
+        if (!existingTransactionHash) {
+          await this.walletDb.saveNullifierToTransactionHash(
+            this,
+            spend.nullifier,
+            transaction,
+            tx,
+          )
+        }
+
         await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
@@ -714,16 +728,25 @@ export class Account {
             'nullifierToNote mappings must have a corresponding decryptedNote',
           )
 
-          await this.walletDb.saveDecryptedNote(
+          const existingTransactionHash = await this.walletDb.getTransactionHashFromNullifier(
             this,
-            noteHash,
-            {
-              ...decryptedNote,
-              spent: false,
-            },
+            spend.nullifier,
             tx,
           )
-          await this.walletDb.addUnspentNoteHash(this, noteHash, decryptedNote, tx)
+          // Remove the nullifier to transaction hash mapping and mark the note as unspent
+          if (existingTransactionHash && existingTransactionHash.equals(transaction.hash())) {
+            await this.walletDb.deleteNullifierToTransactionHash(this, spend.nullifier, tx)
+            await this.walletDb.saveDecryptedNote(
+              this,
+              noteHash,
+              {
+                ...decryptedNote,
+                spent: false,
+              },
+              tx,
+            )
+            await this.walletDb.addUnspentNoteHash(this, noteHash, decryptedNote, tx)
+          }
         }
       }
 
@@ -781,22 +804,21 @@ export class Account {
       return
     }
 
-    for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
-      const { confirmed, unconfirmedCount } =
-        await this.calculateUnconfirmedCountAndConfirmedBalance(
-          head.sequence,
-          assetId,
-          confirmations,
-          balance.unconfirmed,
-          tx,
-        )
+    const pendingByAsset = await this.getPendingDeltas(head.sequence, tx)
+    const unconfirmedByAsset = await this.getUnconfirmedDeltas(head.sequence, confirmations, tx)
 
-      const { pending, pendingCount } = await this.calculatePendingBalance(
-        head.sequence,
+    for await (const { assetId, balance } of this.walletDb.getUnconfirmedBalances(this, tx)) {
+      const { delta: unconfirmedDelta, count: unconfirmedCount } = unconfirmedByAsset.get(
         assetId,
-        balance.unconfirmed,
-        tx,
-      )
+      ) ?? {
+        delta: 0n,
+        count: 0,
+      }
+
+      const { delta: pendingDelta, count: pendingCount } = pendingByAsset.get(assetId) ?? {
+        delta: 0n,
+        count: 0,
+      }
 
       const available = await this.calculateAvailableBalance(
         head.sequence,
@@ -809,8 +831,8 @@ export class Account {
         assetId,
         unconfirmed: balance.unconfirmed,
         unconfirmedCount,
-        confirmed,
-        pending,
+        confirmed: balance.unconfirmed - unconfirmedDelta,
+        pending: balance.unconfirmed + pendingDelta,
         pendingCount,
         available,
         blockHash: balance.blockHash,
@@ -854,19 +876,16 @@ export class Account {
 
     const balance = await this.getUnconfirmedBalance(assetId, tx)
 
-    const { confirmed, unconfirmedCount } =
-      await this.calculateUnconfirmedCountAndConfirmedBalance(
-        head.sequence,
-        assetId,
-        confirmations,
-        balance.unconfirmed,
-        tx,
-      )
+    const { delta: unconfirmedDelta, count: unconfirmedCount } = await this.getUnconfirmedDelta(
+      head.sequence,
+      confirmations,
+      assetId,
+      tx,
+    )
 
-    const { pending, pendingCount } = await this.calculatePendingBalance(
+    const { delta: pendingDelta, count: pendingCount } = await this.getPendingDelta(
       head.sequence,
       assetId,
-      balance.unconfirmed,
       tx,
     )
 
@@ -880,8 +899,8 @@ export class Account {
     return {
       unconfirmed: balance.unconfirmed,
       unconfirmedCount,
-      confirmed,
-      pending,
+      confirmed: balance.unconfirmed - unconfirmedDelta,
+      pending: balance.unconfirmed + pendingDelta,
       available,
       pendingCount,
       blockHash: balance.blockHash,
@@ -889,14 +908,13 @@ export class Account {
     }
   }
 
-  private async calculatePendingBalance(
+  private async getPendingDelta(
     headSequence: number,
     assetId: Buffer,
-    unconfirmed: bigint,
     tx?: IDatabaseTransaction,
-  ): Promise<{ pending: bigint; pendingCount: number }> {
-    let pending = unconfirmed
-    let pendingCount = 0
+  ): Promise<{ delta: bigint; count: number }> {
+    let delta = 0n
+    let count = 0
 
     for await (const transaction of this.getPendingTransactions(headSequence, tx)) {
       const balanceDelta = transaction.assetBalanceDeltas.get(assetId)
@@ -905,23 +923,39 @@ export class Account {
         continue
       }
 
-      pending += balanceDelta
-      pendingCount++
+      delta += balanceDelta
+      count++
     }
 
-    return { pending, pendingCount }
+    return { delta, count }
   }
 
-  private async calculateUnconfirmedCountAndConfirmedBalance(
+  private async getPendingDeltas(
     headSequence: number,
-    assetId: Buffer,
-    confirmations: number,
-    unconfirmed: bigint,
     tx?: IDatabaseTransaction,
-  ): Promise<{ confirmed: bigint; unconfirmedCount: number }> {
-    let unconfirmedCount = 0
+  ): Promise<BufferMap<{ delta: bigint; count: number }>> {
+    const pendingByAsset = new BufferMap<{ delta: bigint; count: number }>()
 
-    let confirmed = unconfirmed
+    for await (const transaction of this.getPendingTransactions(headSequence, tx)) {
+      for (const [assetId, assetDelta] of transaction.assetBalanceDeltas.entries()) {
+        const { delta, count } = pendingByAsset.get(assetId) ?? { delta: 0n, count: 0 }
+
+        pendingByAsset.set(assetId, { delta: delta + assetDelta, count: count + 1 })
+      }
+    }
+
+    return pendingByAsset
+  }
+
+  private async getUnconfirmedDelta(
+    headSequence: number,
+    confirmations: number,
+    assetId: Buffer,
+    tx?: IDatabaseTransaction,
+  ): Promise<{ delta: bigint; count: number }> {
+    let delta = 0n
+    let count = 0
+
     if (confirmations > 0) {
       const unconfirmedSequenceEnd = headSequence
 
@@ -942,15 +976,47 @@ export class Account {
           continue
         }
 
-        unconfirmedCount++
-        confirmed -= balanceDelta
+        count++
+        delta += balanceDelta
       }
     }
 
     return {
-      confirmed,
-      unconfirmedCount,
+      delta,
+      count,
     }
+  }
+
+  private async getUnconfirmedDeltas(
+    headSequence: number,
+    confirmations: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<BufferMap<{ delta: bigint; count: number }>> {
+    const unconfirmedByAsset = new BufferMap<{ delta: bigint; count: number }>()
+
+    if (confirmations > 0) {
+      const unconfirmedSequenceEnd = headSequence
+
+      const unconfirmedSequenceStart = Math.max(
+        unconfirmedSequenceEnd - confirmations + 1,
+        GENESIS_BLOCK_SEQUENCE,
+      )
+
+      for await (const transaction of this.walletDb.loadTransactionsInSequenceRange(
+        this,
+        unconfirmedSequenceStart,
+        unconfirmedSequenceEnd,
+        tx,
+      )) {
+        for (const [assetId, assetDelta] of transaction.assetBalanceDeltas.entries()) {
+          const { delta, count } = unconfirmedByAsset.get(assetId) ?? { delta: 0n, count: 0 }
+
+          unconfirmedByAsset.set(assetId, { delta: delta + assetDelta, count: count + 1 })
+        }
+      }
+    }
+
+    return unconfirmedByAsset
   }
 
   async calculateAvailableBalance(
@@ -961,10 +1027,12 @@ export class Account {
   ): Promise<bigint> {
     let available = 0n
 
+    const maxConfirmedSequence = Math.max(headSequence - confirmations, GENESIS_BLOCK_SEQUENCE)
+
     for await (const value of this.walletDb.loadUnspentNoteValues(
       this,
       assetId,
-      headSequence - confirmations,
+      maxConfirmedSequence,
       tx,
     )) {
       available += value

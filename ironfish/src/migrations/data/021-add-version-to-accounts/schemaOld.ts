@@ -100,6 +100,7 @@ export async function GetOldAccounts(
         ...account,
         version: 1,
         viewKey: key.viewKey,
+        createdAt: null,
         walletDb: node.wallet.walletDb,
       }),
     )

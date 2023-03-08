@@ -26,7 +26,6 @@ import { BlockFetcher } from './blockFetcher'
 import { Identity, PrivateIdentity } from './identity'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
-import { GetBlockHashesRequest, GetBlockHashesResponse } from './messages/getBlockHashes'
 import { GetBlockHeadersRequest, GetBlockHeadersResponse } from './messages/getBlockHeaders'
 import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import {
@@ -34,11 +33,7 @@ import {
   GetBlockTransactionsResponse,
 } from './messages/getBlockTransactions'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './messages/getCompactBlock'
-import {
-  displayNetworkMessageType,
-  IncomingPeerMessage,
-  NetworkMessage,
-} from './messages/networkMessage'
+import { displayNetworkMessageType, NetworkMessage } from './messages/networkMessage'
 import { NewBlockHashesMessage } from './messages/newBlockHashes'
 import { NewCompactBlockMessage } from './messages/newCompactBlock'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
@@ -61,15 +56,16 @@ import {
 import { LocalPeer } from './peers/localPeer'
 import { BAN_SCORE, KnownBlockHashesValue, Peer } from './peers/peer'
 import { PeerConnectionManager } from './peers/peerConnectionManager'
-import { FEATURES_MIN_VERSION } from './peers/peerFeatures'
 import { PeerManager } from './peers/peerManager'
 import { TransactionFetcher } from './transactionFetcher'
 import { IsomorphicWebSocketConstructor } from './types'
 import { parseUrl } from './utils/parseUrl'
+import { getBlockSize } from './utils/serializers'
 import {
+  MAX_BLOCK_LOOKUPS,
   MAX_HEADER_LOOKUPS,
-  MAX_REQUESTED_BLOCKS,
   MAX_REQUESTED_HEADERS,
+  SOFT_MAX_MESSAGE_SIZE,
   VERSION_PROTOCOL,
 } from './version'
 import { WebSocketServer } from './webSocketServer'
@@ -87,7 +83,7 @@ const MAX_GET_BLOCK_TRANSACTIONS_DEPTH = 10
 const MAX_GET_COMPACT_BLOCK_DEPTH = 5
 
 type RpcRequest = {
-  resolve: (value: IncomingPeerMessage<RpcNetworkMessage>) => void
+  resolve: (value: RpcNetworkMessage) => void
   reject: (e: unknown) => void
   peer: Peer
   messageType: number
@@ -130,8 +126,7 @@ export class PeerNetwork {
   private readonly transactionFetcher: TransactionFetcher
 
   // A cache that keeps track of transactions that are a part of recently confirmed blocks
-  // TODO(daniel): Consider replacing this with a nullifier check. This would filter out transactions
-  // that have overlapping nullifiers in the chain so we don't process those invalid transactions
+  // This is useful for filtering out downloading of transaction hashes that were recently added
   private readonly recentlyAddedToChain: LRU<TransactionHash, boolean> = new LRU<
     TransactionHash,
     boolean
@@ -139,7 +134,7 @@ export class PeerNetwork {
 
   // A cache that keeps track of which peers have seen which transactions. This allows
   // us to not send the same transaction to a peer more than once. TODO(daniel): We want to
-  // change this to use an RLU cache so that we don't get false positives
+  // change this to use an LRU cache so that we don't get false positives
   private readonly knownTransactionFilter: RollingFilter = new RollingFilter(
     GOSSIP_FILTER_SIZE * 50,
     GOSSIP_FILTER_FP_RATE,
@@ -236,6 +231,7 @@ export class PeerNetwork {
     this.chain.onConnectBlock.on((block) => {
       this.blockFetcher.removeBlock(block.header.hash)
       for (const transaction of block.transactions) {
+        this.transactionFetcher.removeTransaction(transaction.hash())
         this.recentlyAddedToChain.set(transaction.hash(), true)
       }
     })
@@ -486,13 +482,10 @@ export class PeerNetwork {
    * will resolve when the response is received, or will be rejected if the
    * request cannot be completed before timing out.
    */
-  private requestFrom(
-    peer: Peer,
-    message: RpcNetworkMessage,
-  ): Promise<IncomingPeerMessage<RpcNetworkMessage>> {
+  private requestFrom(peer: Peer, message: RpcNetworkMessage): Promise<RpcNetworkMessage> {
     const rpcId = message.rpcId
 
-    return new Promise<IncomingPeerMessage<RpcNetworkMessage>>((resolve, reject) => {
+    return new Promise<RpcNetworkMessage>((resolve, reject) => {
       // Reject requests if the connection becomes disconnected
       const onConnectionStateChanged = () => {
         const request = this.requests.get(rpcId)
@@ -530,7 +523,7 @@ export class PeerNetwork {
       }, RPC_TIMEOUT_MILLIS)
 
       const request: RpcRequest = {
-        resolve: (message: IncomingPeerMessage<RpcNetworkMessage>): void => {
+        resolve: (message: RpcNetworkMessage): void => {
           clearDisconnectHandler()
           peer.pendingRPC--
           this.requests.delete(rpcId)
@@ -575,26 +568,6 @@ export class PeerNetwork {
     })
   }
 
-  async getBlockHashes(
-    peer: Peer,
-    start: number,
-    limit: number,
-  ): Promise<{ hashes: Buffer[]; time: number }> {
-    const begin = BenchUtils.start()
-
-    const message = new GetBlockHashesRequest(start, limit)
-    const response = await this.requestFrom(peer, message)
-
-    if (!(response.message instanceof GetBlockHashesResponse)) {
-      // TODO jspafford: disconnect peer, or handle it more properly
-      throw new Error(
-        `Invalid GetBlockHashesResponse: ${displayNetworkMessageType(message.type)}`,
-      )
-    }
-
-    return { hashes: response.message.hashes, time: BenchUtils.end(begin) }
-  }
-
   async getBlockHeaders(
     peer: Peer,
     start: number | Buffer,
@@ -607,45 +580,38 @@ export class PeerNetwork {
     const message = new GetBlockHeadersRequest(start, limit, skip, reverse)
     const response = await this.requestFrom(peer, message)
 
-    if (!(response.message instanceof GetBlockHeadersResponse)) {
+    if (!(response instanceof GetBlockHeadersResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
       throw new Error(
         `Invalid GetBlockHeadersResponse: ${displayNetworkMessageType(message.type)}`,
       )
     }
 
-    return { headers: response.message.headers, time: BenchUtils.end(begin) }
+    return { headers: response.headers, time: BenchUtils.end(begin) }
   }
 
   async getBlocks(
     peer: Peer,
     start: Buffer,
     limit: number,
-  ): Promise<{ blocks: Block[]; time: number }> {
+  ): Promise<{ blocks: Block[]; time: number; isMessageFull: boolean }> {
     const begin = BenchUtils.start()
 
     const message = new GetBlocksRequest(start, limit)
     const response = await this.requestFrom(peer, message)
 
-    if (!(response.message instanceof GetBlocksResponse)) {
+    if (!(response instanceof GetBlocksResponse)) {
       // TODO jspafford: disconnect peer, or handle it more properly
       throw new Error(`Invalid GetBlocksResponse: ${displayNetworkMessageType(message.type)}`)
     }
 
-    return { blocks: response.message.blocks, time: BenchUtils.end(begin) }
+    const exceededSoftLimit = response.getSize() >= SOFT_MAX_MESSAGE_SIZE
+    const isMessageFull = exceededSoftLimit || response.blocks.length >= limit
+    return { blocks: response.blocks, time: BenchUtils.end(begin), isMessageFull }
   }
 
-  private async handleMessage(
-    peer: Peer,
-    incomingMessage: IncomingPeerMessage<NetworkMessage>,
-  ): Promise<void> {
-    const { message } = incomingMessage
-
-    if (
-      !this.localPeer.enableSyncing &&
-      peer.version !== null &&
-      peer.version >= FEATURES_MIN_VERSION
-    ) {
+  private async handleMessage(peer: Peer, message: NetworkMessage): Promise<void> {
+    if (!this.localPeer.enableSyncing) {
       peer.punish(BAN_SCORE.MAX)
       return
     }
@@ -665,7 +631,7 @@ export class PeerNetwork {
     } else {
       throw new Error(
         `Invalid message for handling in peer network: '${displayNetworkMessageType(
-          incomingMessage.message.type,
+          message.type,
         )}'`,
       )
     }
@@ -683,23 +649,14 @@ export class PeerNetwork {
    */
   private async handleRpcMessage(peer: Peer, rpcMessage: RpcNetworkMessage): Promise<void> {
     const rpcId = rpcMessage.rpcId
-    const peerIdentity = peer.getIdentityOrThrow()
 
     if (rpcMessage.direction === Direction.Request) {
       let responseMessage: RpcNetworkMessage
       try {
-        if (rpcMessage instanceof GetBlockHashesRequest) {
-          responseMessage = await this.onGetBlockHashesRequest({
-            peerIdentity,
-            message: rpcMessage,
-          })
-        } else if (rpcMessage instanceof GetBlockHeadersRequest) {
-          responseMessage = await this.onGetBlockHeadersRequest({
-            peerIdentity,
-            message: rpcMessage,
-          })
+        if (rpcMessage instanceof GetBlockHeadersRequest) {
+          responseMessage = await this.onGetBlockHeadersRequest(peer, rpcMessage)
         } else if (rpcMessage instanceof GetBlocksRequest) {
-          responseMessage = await this.onGetBlocksRequest({ peerIdentity, message: rpcMessage })
+          responseMessage = await this.onGetBlocksRequest(peer, rpcMessage)
         } else if (rpcMessage instanceof PooledTransactionsRequest) {
           responseMessage = this.onPooledTransactionsRequest(rpcMessage, rpcId)
         } else if (rpcMessage instanceof GetBlockTransactionsRequest) {
@@ -735,7 +692,7 @@ export class PeerNetwork {
     } else {
       const request = this.requests.get(rpcId)
       if (request) {
-        request.resolve({ peerIdentity, message: rpcMessage })
+        request.resolve(rpcMessage)
       } else if (rpcMessage instanceof PooledTransactionsResponse) {
         for (const transaction of rpcMessage.transactions) {
           await this.onNewTransaction(peer, transaction)
@@ -912,6 +869,20 @@ export class PeerNetwork {
     for (const hash of message.hashes) {
       peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
 
+      // If the transaction is already on chain we will get it through a block
+      if (this.recentlyAddedToChain.has(hash)) {
+        continue
+      }
+
+      // Recently evicted means the transaction is relatively low feeRate, the
+      // mempool + wallet have already processed it and its already been gossiped
+      // once. It could still be downloaded and forwarded to peers who have joined
+      // since that initial gossip, but since it is a low feeRate and
+      // other peer mempools are likely at capacity too, just drop it
+      if (this.node.memPool.recentlyEvicted(hash)) {
+        continue
+      }
+
       // If the transaction is already in the mempool we don't need to request
       // the full transaction. Just broadcast it
       const transaction = this.node.memPool.get(hash)
@@ -933,35 +904,28 @@ export class PeerNetwork {
   }
 
   private async onGetBlockHeadersRequest(
-    request: IncomingPeerMessage<GetBlockHeadersRequest>,
+    peer: Peer,
+    request: GetBlockHeadersRequest,
   ): Promise<GetBlockHeadersResponse> {
-    const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
-    const rpcId = request.message.rpcId
+    const rpcId = request.rpcId
 
-    if (request.message.limit === 0) {
-      peer.punish(
-        BAN_SCORE.LOW,
-        `Peer sent GetBlockHeaders with limit of ${request.message.limit}`,
-      )
+    if (request.limit === 0) {
+      peer.punish(BAN_SCORE.LOW, `Peer sent GetBlockHeaders with limit of ${request.limit}`)
       return new GetBlockHeadersResponse([], rpcId)
     }
 
-    if (request.message.limit > MAX_REQUESTED_HEADERS) {
-      peer.punish(
-        BAN_SCORE.MAX,
-        `Peer sent GetBlockHeaders with limit of ${request.message.limit}`,
-      )
+    if (request.limit > MAX_REQUESTED_HEADERS) {
+      peer.punish(BAN_SCORE.MAX, `Peer sent GetBlockHeaders with limit of ${request.limit}`)
       const error = new CannotSatisfyRequestError(
         `Requested more than ${MAX_REQUESTED_HEADERS}`,
       )
       throw error
     }
 
-    const message = request.message
-    const start = message.start
-    const limit = message.limit
-    const skip = message.skip
-    const reverse = message.reverse
+    const start = request.start
+    const limit = request.limit
+    const skip = request.skip
+    const reverse = request.reverse
 
     const from = await BlockchainUtils.blockHeaderBySequenceOrHash(this.chain, start)
     if (!from) {
@@ -1005,92 +969,47 @@ export class PeerNetwork {
     return new GetBlockHeadersResponse(headers, rpcId)
   }
 
-  private async onGetBlockHashesRequest(
-    request: IncomingPeerMessage<GetBlockHashesRequest>,
-  ): Promise<GetBlockHashesResponse> {
-    const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
-    const rpcId = request.message.rpcId
-
-    if (request.message.limit <= 0) {
-      peer.punish(
-        BAN_SCORE.LOW,
-        `Peer sent GetBlockHashes with limit of ${request.message.limit}`,
-      )
-      return new GetBlockHashesResponse([], rpcId)
-    }
-
-    if (request.message.limit > MAX_REQUESTED_BLOCKS) {
-      peer.punish(
-        BAN_SCORE.MAX,
-        `Peer sent GetBlockHashes with limit of ${request.message.limit}`,
-      )
-      const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
-      throw error
-    }
-
-    const message = request.message
-    const start = message.start
-    const limit = message.limit
-
-    const from = await BlockchainUtils.blockHeaderBySequenceOrHash(this.chain, start)
-    if (!from) {
-      return new GetBlockHashesResponse([], rpcId)
-    }
-
-    const hashes = []
-
-    for await (const hash of this.chain.iterateToHashes(from)) {
-      hashes.push(hash)
-      if (hashes.length === limit) {
-        break
-      }
-    }
-
-    return new GetBlockHashesResponse(hashes, rpcId)
-  }
-
   private async onGetBlocksRequest(
-    request: IncomingPeerMessage<GetBlocksRequest>,
+    peer: Peer,
+    request: GetBlocksRequest,
   ): Promise<GetBlocksResponse> {
-    const peer = this.peerManager.getPeerOrThrow(request.peerIdentity)
-    const rpcId = request.message.rpcId
+    const rpcId = request.rpcId
 
-    if (request.message.limit === 0) {
-      peer.punish(BAN_SCORE.LOW, `Peer sent GetBlocks with limit of ${request.message.limit}`)
+    if (request.limit === 0) {
+      peer.punish(BAN_SCORE.LOW, `Peer sent GetBlocks with limit of ${request.limit}`)
       return new GetBlocksResponse([], rpcId)
     }
 
-    if (request.message.limit > MAX_REQUESTED_BLOCKS) {
-      peer.punish(BAN_SCORE.MAX, `Peer sent GetBlocks with limit of ${request.message.limit}`)
-      const error = new CannotSatisfyRequestError(`Requested more than ${MAX_REQUESTED_BLOCKS}`)
-      throw error
-    }
-
-    const message = request.message
-    const start = message.start
-    const limit = message.limit
+    const start = request.start
+    const limit = request.limit
 
     const from = await BlockchainUtils.blockHeaderBySequenceOrHash(this.chain, start)
     if (!from) {
       return new GetBlocksResponse([], rpcId)
     }
 
-    const hashes = []
+    let remainingLookups = MAX_BLOCK_LOOKUPS
+    let totalSize = 0
+    const blocks = []
+
     for await (const hash of this.chain.iterateToHashes(from)) {
-      hashes.push(hash)
-      if (hashes.length === limit) {
+      remainingLookups -= 1
+
+      const block = await this.chain.getBlock(hash)
+      Assert.isNotNull(block)
+      totalSize += getBlockSize(block)
+      blocks.push(block)
+
+      if (
+        blocks.length === limit ||
+        totalSize >= SOFT_MAX_MESSAGE_SIZE ||
+        remainingLookups === 0
+      ) {
         break
       }
     }
 
-    const blocks = await Promise.all(hashes.map((hash) => this.chain.getBlock(hash)))
-
-    const notNullBlocks = blocks.map((block) => {
-      Assert.isNotNull(block)
-      return block
-    })
-
-    return new GetBlocksResponse(notNullBlocks, rpcId)
+    return new GetBlocksResponse(blocks, rpcId)
   }
 
   private onPooledTransactionsRequest(
@@ -1334,23 +1253,6 @@ export class PeerNetwork {
     return true
   }
 
-  alreadyHaveTransaction(hash: TransactionHash): boolean {
-    /*
-     * When we receive a new transaction we want to test if we have already processed it yet
-     * meaning we have it in the mempool or we have it on a block. */
-
-    let peersToSendTo = false
-    for (const _ of this.connectedPeersWithoutTransaction(hash)) {
-      peersToSendTo = true
-      break
-    }
-
-    return (
-      this.recentlyAddedToChain.has(hash) || (this.node.memPool.exists(hash) && !peersToSendTo)
-      // && TODO(daniel): also filter recently rejected (expired or invalid) transactions
-    )
-  }
-
   async alreadyHaveBlock(headerOrHash: BlockHeader | BlockHash): Promise<boolean> {
     const hash = Buffer.isBuffer(headerOrHash) ? headerOrHash : headerOrHash.hash
     if (this.chain.isInvalid(headerOrHash)) {
@@ -1366,15 +1268,30 @@ export class PeerNetwork {
 
   private async onNewTransaction(peer: Peer, transaction: Transaction): Promise<void> {
     const received = new Date()
-
-    // Mark the peer as knowing about the transaction
     const hash = transaction.hash()
-    peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
 
-    // Let the fetcher know that a transaction was received and we no longer have to query it
+    // Let the fetcher know that a transaction was received so it no longer queries for it
     this.transactionFetcher.receivedTransaction(hash)
 
-    if (!this.shouldProcessTransactions() || this.alreadyHaveTransaction(hash)) {
+    // Mark the peer as knowing about the transaction
+    peer.state.identity && this.markKnowsTransaction(hash, peer.state.identity)
+
+    if (!this.shouldProcessTransactions()) {
+      this.transactionFetcher.removeTransaction(hash)
+      return
+    }
+
+    // TODO(daniel): This is used to quickly filter double spend transactions and save on
+    // verification. Could be combined with double spend check in verifyNewTransaction
+    if (this.recentlyAddedToChain.has(hash)) {
+      this.transactionFetcher.removeTransaction(hash)
+      return
+    }
+
+    // If transaction is already in mempool that means it's been synced to the
+    // wallet and the mempool so all that is left is to broadcast
+    if (this.node.memPool.exists(hash)) {
+      this.broadcastTransaction(transaction)
       this.transactionFetcher.removeTransaction(hash)
       return
     }
@@ -1390,13 +1307,12 @@ export class PeerNetwork {
       return
     }
 
-    if (this.node.memPool.acceptTransaction(transaction)) {
-      this.onTransactionAccepted.emit(transaction, received)
-    }
+    const accepted = this.node.memPool.acceptTransaction(transaction)
 
-    // Check 'exists' rather than 'accepted' to allow for rebroadcasting to nodes that
-    // may not have seen the transaction yet
-    if (this.node.memPool.exists(transaction.hash())) {
+    // At this point the only reasons a transaction is not accepted would be
+    // overlapping nullifiers or it's expired. In both cases don't broadcast
+    if (accepted) {
+      this.onTransactionAccepted.emit(transaction, received)
       this.broadcastTransaction(transaction)
     }
 

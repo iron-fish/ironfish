@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import type { Features } from '../peers/peerFeatures'
 import bufio from 'bufio'
 import { BigIntUtils } from '../../utils/bigint'
 import { Identity, identityLength } from '../identity'
-import { defaultFeatures, Features, FEATURES_MIN_VERSION } from '../peers/peerFeatures'
 import { NetworkMessageType } from '../types'
 import { NetworkMessage } from './networkMessage'
 
@@ -95,11 +95,9 @@ export class IdentifyMessage extends NetworkMessage {
     const networkId = reader.readU16()
     const genesisBlockHash = reader.readHash()
 
-    const features = defaultFeatures()
-    if (version >= FEATURES_MIN_VERSION) {
-      const flags = reader.readU32()
-      features.syncing = Boolean(flags & (1 << 0))
-    }
+    const flagValue = reader.readU32()
+    const syncing = Boolean(flagValue & (1 << 0))
+    const features: Features = { syncing }
 
     return new IdentifyMessage({
       agent,

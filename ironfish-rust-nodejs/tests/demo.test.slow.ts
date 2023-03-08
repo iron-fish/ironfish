@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Asset, DECRYPTED_NOTE_LENGTH, LanguageCode, spendingKeyToWords, wordsToSpendingKey } from '..'
+import { Asset, DECRYPTED_NOTE_LENGTH, initSignalHandler, LanguageCode, spendingKeyToWords, wordsToSpendingKey } from '..'
 import {
   initializeSapling,
   generateKey,
@@ -137,5 +137,11 @@ describe('Demonstrate the Sapling API', () => {
     expect(postedTransaction.hash().byteLength).toEqual(32)
     expect(postedTransaction.transactionSignature().byteLength).toEqual(64)
     expect(postedTransaction.verify()).toBe(true)
+  })
+})
+
+describe('signal catcher', () => {
+  it('should be able to initialize the handler', () => {
+    expect(() => initSignalHandler()).not.toThrow()
   })
 })

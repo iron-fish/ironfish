@@ -120,6 +120,26 @@ describe('Verifier', () => {
         valid: false,
       })
     })
+
+    it('returns false on transactions with fees below the minimum', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const txnFee = 0
+      const transaction = await usePostTxFixture({
+        node: nodeTest.node,
+        wallet: nodeTest.wallet,
+        from: account,
+        fee: BigInt(txnFee),
+      })
+
+      nodeTest.chain.consensus.parameters.minFee = txnFee + 1
+
+      const result = nodeTest.chain.verifier.verifyCreatedTransaction(transaction)
+
+      expect(result).toEqual({
+        reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
+        valid: false,
+      })
+    })
   })
 
   describe('Block', () => {
@@ -251,6 +271,19 @@ describe('Verifier', () => {
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
         valid: false,
         reason: VerificationResultReason.MAX_BLOCK_SIZE_EXCEEDED,
+      })
+    })
+
+    it('rejects a block with a transaction with fee less than minimum', async () => {
+      const { block } = await useBlockWithTx(nodeTest.node)
+
+      const fees = block.transactions.flatMap((tx) => Number(tx.fee()))
+      const maxFee = Math.max(...fees)
+
+      nodeTest.chain.consensus.parameters.minFee = maxFee + 1
+      expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
+        valid: false,
+        reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
       })
     })
 

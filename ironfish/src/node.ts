@@ -246,6 +246,7 @@ export class IronfishNode {
     })
 
     const feeEstimator = new FeeEstimator({
+      consensus,
       maxBlockHistory: config.get('feeEstimatorMaxBlockHistory'),
       percentiles: {
         slow: config.get('feeEstimatorPercentileSlow'),
@@ -254,7 +255,15 @@ export class IronfishNode {
       },
     })
 
-    const memPool = new MemPool({ chain, feeEstimator, metrics, logger })
+    const memPool = new MemPool({
+      chain,
+      feeEstimator,
+      metrics,
+      logger,
+      consensus,
+      maxSizeBytes: config.get('memPoolMaxSizeBytes'),
+      recentlyEvictedCacheSize: config.get('memPoolRecentlyEvictedCacheSize'),
+    })
 
     const walletDB = new WalletDB({
       location: config.walletDatabasePath,

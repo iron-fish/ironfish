@@ -657,7 +657,7 @@ export class Wallet {
     options?: {
       confirmations?: number
     },
-  ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+  ): AsyncGenerator<DecryptedNoteValue> {
     const confirmations = options?.confirmations ?? this.config.get('confirmations')
 
     for await (const decryptedNote of account.getUnspentNotes(assetId, {
@@ -1006,9 +1006,9 @@ export class Wallet {
       }
 
       this.logger.debug(
-        `Accounts: spending note ${unspentNote.index} ${unspentNote.hash.toString(
-          'hex',
-        )} ${unspentNote.note.value()}`,
+        `Accounts: spending note ${unspentNote.index} ${unspentNote.note
+          .hash()
+          .toString('hex')} ${unspentNote.note.value()}`,
       )
 
       // Otherwise, push the note into the list of notes to spend
@@ -1034,7 +1034,7 @@ export class Wallet {
    */
   private async checkNoteOnChainAndRepair(
     sender: Account,
-    unspentNote: DecryptedNoteValue & { hash: Buffer },
+    unspentNote: DecryptedNoteValue,
   ): Promise<boolean> {
     if (!unspentNote.nullifier) {
       return false
@@ -1053,11 +1053,11 @@ export class Wallet {
     )
 
     // Update our map so this doesn't happen again
-    const noteMapValue = await sender.getDecryptedNote(unspentNote.hash)
+    const noteMapValue = await sender.getDecryptedNote(unspentNote.note.hash())
 
     if (noteMapValue) {
       this.logger.debug(`Unspent note has index ${String(noteMapValue.index)}`)
-      await this.walletDb.saveDecryptedNote(sender, unspentNote.hash, {
+      await this.walletDb.saveDecryptedNote(sender, unspentNote.note.hash(), {
         ...noteMapValue,
         spent: true,
       })
@@ -1272,6 +1272,7 @@ export class Wallet {
       publicAddress: key.publicAddress,
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,
+      createdAt: new Date(),
       walletDb: this.walletDb,
     })
 
@@ -1319,6 +1320,7 @@ export class Wallet {
 
     const account = new Account({
       ...accountValue,
+      createdAt: accountValue.createdAt ? new Date(accountValue.createdAt) : null,
       walletDb: this.walletDb,
     })
 
@@ -1387,6 +1389,10 @@ export class Wallet {
     this.onAccountRemoved.emit(account)
   }
 
+  async forceCleanupDeletedAccounts(): Promise<void> {
+    await this.walletDb.forceCleanupDeletedAccounts(this.eventLoopAbortController.signal)
+  }
+
   async cleanupDeletedAccounts(): Promise<void> {
     if (!this.isStarted) {
       return
@@ -1396,7 +1402,11 @@ export class Wallet {
       return
     }
 
-    await this.walletDb.cleanupDeletedAccounts(this.eventLoopAbortController.signal)
+    const recordsToCleanup = 1000
+    await this.walletDb.cleanupDeletedAccounts(
+      recordsToCleanup,
+      this.eventLoopAbortController.signal,
+    )
   }
 
   get hasDefaultAccount(): boolean {

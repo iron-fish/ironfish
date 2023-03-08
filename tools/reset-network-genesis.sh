@@ -8,10 +8,6 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 (
-    cd ..
-    echo "Deleting snapshots"
-    find . -name "__snapshots__" | xargs rm -rf
-
     echo "Deleting fixtures"
     find . -name "__fixtures__" | xargs rm -rf
 )

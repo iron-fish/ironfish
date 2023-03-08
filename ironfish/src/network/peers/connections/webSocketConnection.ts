@@ -6,7 +6,7 @@ import type { Logger } from '../../../logger'
 import colors from 'colors/safe'
 import { MetricsMonitor } from '../../../metrics'
 import { parseNetworkMessage } from '../../messageRegistry'
-import { displayNetworkMessageType, NetworkMessage } from '../../messages/networkMessage'
+import { displayNetworkMessageType } from '../../messages/networkMessage'
 import { IsomorphicWebSocket, IsomorphicWebSocketErrorEvent } from '../../types'
 import { Connection, ConnectionDirection, ConnectionType } from './connection'
 import { NetworkError } from './errors'
@@ -113,22 +113,8 @@ export class WebSocketConnection extends Connection {
     }
   }
 
-  send = (message: NetworkMessage): boolean => {
-    if (this.shouldLogMessageType(message.type)) {
-      this.logger.debug(
-        `${colors.yellow('SEND')} ${this.displayName}: ${displayNetworkMessageType(
-          message.type,
-        )}`,
-      )
-    }
-
-    const data = message.serializeWithMetadata()
+  _send = (data: Buffer): boolean => {
     this.socket.send(data)
-
-    const byteCount = data.byteLength
-    this.metrics?.p2p_OutboundTraffic.add(byteCount)
-    this.metrics?.p2p_OutboundTraffic_WS.add(byteCount)
-    this.metrics?.p2p_OutboundTrafficByMessage.get(message.type)?.add(byteCount)
 
     return true
   }
@@ -148,18 +134,12 @@ export class WebSocketConnection extends Connection {
     this.setState({ type: 'DISCONNECTED' })
 
     // Unbind event handlers, they can still fire with buffered inbound messages after
-    // the socket is closed
+    // the socket is closed. onerror is intentionally left intact, since it will
+    // trigger if a WebSocket is closed before the connection was established
     this.socket.onmessage = null
     this.socket.onclose = null
     this.socket.onopen = null
-    this.socket.onerror = null
 
-    // This can throw a "WebSocket was closed before the connection was established"
-    // error -- since we're closing the connection anyway, we can discard any error.
-    try {
-      this.socket.close()
-    } catch {
-      // Discard the errors
-    }
+    this.socket.close()
   }
 }

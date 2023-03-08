@@ -216,7 +216,6 @@ export async function useBlockWithTx(
     expiration?: number
     fee?: number
   } = { expiration: 0 },
-  broadcast = true,
 ): Promise<{
   account: Account
   previous: Block
@@ -261,11 +260,8 @@ export async function useBlockWithTx(
       expirationDelta: 0,
     })
 
-    const transaction = await node.wallet.post({
-      transaction: raw,
-      account: from,
-      broadcast,
-    })
+    Assert.isNotNull(from.spendingKey)
+    const transaction = await node.workerPool.postTransaction(raw, from.spendingKey)
 
     return node.chain.newBlock(
       [transaction],
@@ -305,44 +301,46 @@ export async function useBlockWithTxs(
 
   await node.wallet.updateHead()
 
-  const block = await useBlockFixture(node.chain, async () => {
-    const transactions: Transaction[] = []
-    for (let i = 0; i < numTransactions; i++) {
-      Assert.isNotUndefined(from)
+  const block = await useBlockFixture(
+    node.chain,
+    async () => {
+      const transactions: Transaction[] = []
+      for (let i = 0; i < numTransactions; i++) {
+        Assert.isNotUndefined(from)
 
-      const raw = await node.wallet.createTransaction({
-        account: from,
-        outputs: [
-          {
-            publicAddress: to.publicAddress,
-            amount: BigInt(1),
-            memo: '',
-            assetId: Asset.nativeId(),
-          },
-        ],
-        fee: 1n,
-        expiration: 0,
-        expirationDelta: 0,
-      })
+        const raw = await node.wallet.createTransaction({
+          account: from,
+          outputs: [
+            {
+              publicAddress: to.publicAddress,
+              amount: BigInt(1),
+              memo: '',
+              assetId: Asset.nativeId(),
+            },
+          ],
+          fee: 1n,
+          expiration: 0,
+          expirationDelta: 0,
+        })
 
-      const transaction = await node.wallet.post({
-        transaction: raw,
-        account: from,
-      })
+        Assert.isNotNull(from.spendingKey)
+        const transaction = await node.workerPool.postTransaction(raw, from.spendingKey)
 
-      await node.wallet.addPendingTransaction(transaction)
-      transactions.push(transaction)
-    }
+        await node.wallet.addPendingTransaction(transaction)
+        transactions.push(transaction)
+      }
 
-    const transactionFees: bigint = transactions.reduce((sum, t) => {
-      return BigInt(sum) + t.fee()
-    }, BigInt(0))
+      const transactionFees: bigint = transactions.reduce((sum, t) => {
+        return BigInt(sum) + t.fee()
+      }, BigInt(0))
 
-    return node.chain.newBlock(
-      transactions,
-      await node.strategy.createMinersFee(transactionFees, 3, generateKey().spendingKey),
-    )
-  })
+      return node.chain.newBlock(
+        transactions,
+        await node.strategy.createMinersFee(transactionFees, 3, generateKey().spendingKey),
+      )
+    },
+    node.wallet,
+  )
 
   return { block, account: from, transactions: block.transactions.slice(1) }
 }

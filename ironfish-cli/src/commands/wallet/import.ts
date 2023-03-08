@@ -57,8 +57,32 @@ export class ImportCommand extends IronfishCommand {
       account.version = ACCOUNT_SCHEMA_VERSION as number
     }
 
+    if (!account.createdAt) {
+      account.createdAt = null
+    }
+
+    const accountsResponse = await client.getAccounts()
+    const duplicateAccount = accountsResponse.content.accounts.find(
+      (accountName) => accountName === account.name,
+    )
+    // Offer the user to use a different name if a duplicate is found
+    if (duplicateAccount) {
+      this.log()
+      this.log(`Found existing account with name '${account.name}'`)
+
+      const name = await CliUx.ux.prompt('Enter a different name for the account', {
+        required: true,
+      })
+      if (name === account.name) {
+        this.error(`Entered the same name: '${name}'`)
+      }
+
+      account.name = name
+    }
+
     const rescan = flags.rescan
     const result = await client.importAccount({ account, rescan })
+
     const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)
 
@@ -122,7 +146,7 @@ export class ImportCommand extends IronfishCommand {
         required: true,
       })
       const key = generateKeyFromPrivateKey(spendingKey)
-      return { name, version: ACCOUNT_SCHEMA_VERSION, ...key }
+      return { name, version: ACCOUNT_SCHEMA_VERSION, createdAt: null, ...key }
     }
 
     // raw json

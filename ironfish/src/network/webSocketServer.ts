@@ -37,5 +37,8 @@ export class WebSocketServer {
 
   close(): void {
     this.server.close()
+    for (const client of this.server.clients) {
+      client.terminate()
+    }
   }
 }

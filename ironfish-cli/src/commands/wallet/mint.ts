@@ -15,7 +15,6 @@ import { IronFlag, RemoteFlags } from '../../flags'
 import { selectAsset } from '../../utils/asset'
 import { promptCurrency } from '../../utils/currency'
 import { selectFee } from '../../utils/fees'
-import { doEligibilityCheck } from '../../utils/testnet'
 import { watchTransaction } from '../../utils/transaction'
 
 export class Mint extends IronfishCommand {
@@ -80,11 +79,6 @@ export class Mint extends IronfishCommand {
       description:
         'The block sequence that the transaction can not be mined after. Set to 0 for no expiration.',
     }),
-    eligibility: Flags.boolean({
-      default: true,
-      allowNo: true,
-      description: 'check testnet eligibility',
-    }),
     offline: Flags.boolean({
       default: false,
       description: 'Allow offline transaction creation',
@@ -98,10 +92,6 @@ export class Mint extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(Mint)
     const client = await this.sdk.connectRpc()
-
-    if (flags.eligibility) {
-      await doEligibilityCheck(client, this.logger)
-    }
 
     if (!flags.offline) {
       const status = await client.getNodeStatus()
@@ -160,6 +150,7 @@ export class Mint extends IronfishCommand {
       const asset = await selectAsset(client, account, {
         action: 'mint',
         showNativeAsset: false,
+        showNonOwnerAsset: false,
         showSingleAssetChoice: true,
         confirmations: flags.confirmations,
       })
@@ -178,6 +169,7 @@ export class Mint extends IronfishCommand {
         required: true,
         text: 'Enter the amount',
         minimum: 1n,
+        logger: this.logger,
       })
     }
 
@@ -203,6 +195,7 @@ export class Mint extends IronfishCommand {
       raw = await selectFee({
         client,
         transaction: params,
+        logger: this.logger,
       })
     } else {
       const response = await client.createTransaction(params)

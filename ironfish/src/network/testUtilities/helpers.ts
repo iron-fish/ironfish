@@ -5,9 +5,10 @@
 import { Assert } from '../../assert'
 import { Identity, isIdentity } from '../identity'
 import { GetBlockHeadersResponse } from '../messages/getBlockHeaders'
+import { GetBlocksResponse } from '../messages/getBlocks'
 import { GetBlockTransactionsResponse } from '../messages/getBlockTransactions'
 import { GetCompactBlockResponse } from '../messages/getCompactBlock'
-import { IncomingPeerMessage, NetworkMessage } from '../messages/networkMessage'
+import { NetworkMessage } from '../messages/networkMessage'
 import {
   Connection,
   ConnectionDirection,
@@ -75,17 +76,8 @@ export function getWaitingForIdentityPeer(
 }
 
 /* Used for constructing stubbed messages to send to the PeerManager.onMessage */
-export function peerMessage<T extends NetworkMessage>(
-  peer: Peer,
-  message: T,
-): [Peer, IncomingPeerMessage<T>] {
-  return [
-    peer,
-    {
-      peerIdentity: peer.getIdentityOrThrow(),
-      message,
-    },
-  ]
+export function peerMessage<T extends NetworkMessage>(peer: Peer, message: T): [Peer, T] {
+  return [peer, message]
 }
 
 /* Add new peers to the PeerManager and spy on peer.send() */
@@ -250,4 +242,18 @@ export function expectGetBlockHeadersResponseToMatch(
   })
 
   expect({ ...a, headers: undefined }).toMatchObject({ ...b, headers: undefined })
+}
+
+export function expectGetBlocksResponseToMatch(
+  a: GetBlocksResponse,
+  b: GetBlocksResponse,
+): void {
+  expect(a.blocks.length).toEqual(b.blocks.length)
+  a.blocks.forEach((blockA, blockIndexA) => {
+    const blockB = b.blocks[blockIndexA]
+
+    expect(blockA.equals(blockB)).toBe(true)
+  })
+
+  expect({ ...a, blocks: undefined }).toMatchObject({ ...b, blocks: undefined })
 }

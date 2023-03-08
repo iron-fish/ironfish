@@ -5,16 +5,14 @@
 import { blake3 } from '@napi-rs/blake-hash'
 import { v4 as uuid } from 'uuid'
 import { IronfishNode } from '../node'
-import { TransactionHash } from '../primitives/transaction'
 import { createNodeTest, useAccountFixture, useBlockWithTx } from '../testUtilities'
-import { IncomingPeerMessage, NetworkMessage } from './messages/networkMessage'
+import { NetworkMessage } from './messages/networkMessage'
 import { NewPooledTransactionHashes } from './messages/newPooledTransactionHashes'
 import { NewTransactionsMessage } from './messages/newTransactions'
 import {
   PooledTransactionsRequest,
   PooledTransactionsResponse,
 } from './messages/pooledTransactions'
-import { Peer } from './peers/peer'
 import { getConnectedPeer, getConnectedPeersWithSpies } from './testUtilities'
 import { VERSION_PROTOCOL } from './version'
 
@@ -26,17 +24,6 @@ const getValidTransactionOnBlock = async (node: IronfishNode) => {
   const accountB = await useAccountFixture(node.wallet, 'accountB')
   const { transaction, block } = await useBlockWithTx(node, accountA, accountB)
   return { transaction, accountA, accountB, block }
-}
-
-const newHashMessage = (
-  peer: Peer,
-  hash: TransactionHash,
-): IncomingPeerMessage<NewPooledTransactionHashes> => {
-  const peerIdentity = peer.getIdentityOrThrow()
-  return {
-    peerIdentity,
-    message: new NewPooledTransactionHashes([hash]),
-  }
 }
 
 describe('TransactionFetcher', () => {
@@ -51,7 +38,10 @@ describe('TransactionFetcher', () => {
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
 
     for (const { peer } of peers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
+      await peerNetwork.peerManager.onMessage.emitAsync(
+        peer,
+        new NewPooledTransactionHashes([hash]),
+      )
     }
 
     jest.runOnlyPendingTimers()
@@ -79,16 +69,15 @@ describe('TransactionFetcher', () => {
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
 
     for (const { peer } of peers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
+      await peerNetwork.peerManager.onMessage.emitAsync(
+        peer,
+        new NewPooledTransactionHashes([hash]),
+      )
     }
 
     // Another peer send the full transaction
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    const peerIdentity = peer.getIdentityOrThrow()
-    const message = {
-      peerIdentity,
-      message: new NewTransactionsMessage([transaction]),
-    }
+    const message = new NewTransactionsMessage([transaction])
 
     await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
@@ -113,7 +102,10 @@ describe('TransactionFetcher', () => {
     const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
 
     for (const { peer } of peers) {
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
+      await peerNetwork.peerManager.onMessage.emitAsync(
+        peer,
+        new NewPooledTransactionHashes([hash]),
+      )
     }
 
     // We wait 500ms and then send the request for the transaction to a random peer
@@ -127,16 +119,13 @@ describe('TransactionFetcher', () => {
     const sentMessage = sentPeers[0].sendSpy.mock.calls[0][0]
     expect(sentMessage).toBeInstanceOf(PooledTransactionsRequest)
     const rpcId = (sentMessage as PooledTransactionsRequest).rpcId
-    const message = {
-      peerIdentity: sentPeer.getIdentityOrThrow(),
-      message: new PooledTransactionsResponse([transaction], rpcId),
-    }
+    const message = new PooledTransactionsResponse([transaction], rpcId)
 
     expect(node.memPool.exists(transaction.hash())).toBe(false)
 
     await peerNetwork.peerManager.onMessage.emitAsync(sentPeer, message)
 
-    expect(node.memPool.exists(transaction.hash())).toBe(true)
+    expect(node.memPool.get(transaction.hash())).toBeDefined()
 
     // The timeout for the original request ends. This should not affect anything
     // since we've already received the response
@@ -165,7 +154,10 @@ describe('TransactionFetcher', () => {
 
     expect(peerNetwork.knowsTransaction(hash, peerIdentity)).toBe(false)
 
-    await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      peer,
+      new NewPooledTransactionHashes([hash]),
+    )
 
     jest.runOnlyPendingTimers()
 
@@ -189,7 +181,10 @@ describe('TransactionFetcher', () => {
 
     expect(peerNetwork.knowsTransaction(hash, peerIdentity)).toBe(false)
 
-    await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      peer,
+      new NewPooledTransactionHashes([hash]),
+    )
 
     jest.runOnlyPendingTimers()
 
@@ -219,7 +214,10 @@ describe('TransactionFetcher', () => {
     expect(peerNetwork.knowsTransaction(hash, peerIdentity)).toBe(false)
 
     // The first peer sends us the transaction hash
-    await peerNetwork.peerManager.onMessage.emitAsync(peer, newHashMessage(peer, hash))
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      peer,
+      new NewPooledTransactionHashes([hash]),
+    )
 
     jest.runOnlyPendingTimers()
 
@@ -254,14 +252,20 @@ describe('TransactionFetcher', () => {
 
     // The first peer sends a hash message
     const peer1 = peers[0].peer
-    await peerNetwork.peerManager.onMessage.emitAsync(peer1, newHashMessage(peer1, hash))
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      peer1,
+      new NewPooledTransactionHashes([hash]),
+    )
 
     // We wait 500ms and then send the request for the transaction to a random peer
     jest.runOnlyPendingTimers()
 
     // The second peer sends a hash message
     const peer2 = peers[1].peer
-    await peerNetwork.peerManager.onMessage.emitAsync(peer2, newHashMessage(peer2, hash))
+    await peerNetwork.peerManager.onMessage.emitAsync(
+      peer2,
+      new NewPooledTransactionHashes([hash]),
+    )
 
     // Should only send a request to one peer
     const sentPeersBefore = peers.filter(({ sendSpy }) => sendSpy.mock.calls.length > 0)
@@ -290,7 +294,7 @@ describe('TransactionFetcher', () => {
     const peer1 = peers[0].peer
     await peerNetwork.peerManager.onMessage.emitAsync(
       peer1,
-      newHashMessage(peer1, transaction.hash()),
+      new NewPooledTransactionHashes([transaction.hash()]),
     )
 
     // We wait 500ms and then send the request for the transaction to a random peer
@@ -300,7 +304,7 @@ describe('TransactionFetcher', () => {
     const peer2 = peers[1].peer
     await peerNetwork.peerManager.onMessage.emitAsync(
       peer2,
-      newHashMessage(peer2, transaction.hash()),
+      new NewPooledTransactionHashes([transaction.hash()]),
     )
 
     // Should only send a request to one peer

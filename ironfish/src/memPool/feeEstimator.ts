@@ -39,9 +39,10 @@ export class FeeEstimator {
   private maxBlockHistory = 10
   private defaultFeeRate = BigInt(1)
   readonly minFeeRate: bigint
-  private consensus: Consensus | undefined
+  private consensus: Consensus
 
   constructor(options: {
+    consensus: Consensus
     maxBlockHistory?: number
     minFeeRate?: bigint
     logger?: Logger
@@ -49,6 +50,7 @@ export class FeeEstimator {
   }) {
     this.logger = options.logger || createRootLogger().withTag('recentFeeCache')
     this.maxBlockHistory = options.maxBlockHistory ?? this.maxBlockHistory
+    this.consensus = options.consensus
 
     this.minFeeRate = options.minFeeRate ?? 1n
 
@@ -62,7 +64,6 @@ export class FeeEstimator {
     }
 
     let currentBlockHash = chain.latest.hash
-    this.consensus = chain.consensus
 
     for (let i = 0; i < this.maxBlockHistory; i++) {
       const currentBlock = await chain.getBlock(currentBlockHash)
@@ -196,7 +197,7 @@ export class FeeEstimator {
       this.queues[BLOCK_SIZE].reduce((a, b) => a + b.blockSize, 0) /
       this.queues[BLOCK_SIZE].length
 
-    const maxBlockSizeBytes = this.consensus?.parameters.maxBlockSizeBytes ?? 2000000
+    const maxBlockSizeBytes = this.consensus.parameters.maxBlockSizeBytes
     const blockSizeRatio = BigInt(Math.round((averageBlockSize / maxBlockSizeBytes) * 100))
 
     let feeRate = fees[Math.round((queue.length - 1) / 2)]

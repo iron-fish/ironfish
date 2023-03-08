@@ -1,0 +1,39 @@
+name: Node.js CI Regenerate Fixtures
+
+on:
+  schedule:
+    - cron: '0 15 * * 2' # Every Tuesday 7AM PST
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+        with:
+          ref: staging
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.12.1'
+          cache: 'yarn'
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: nodejs
+
+      - name: Install packages
+        run: yarn --non-interactive --frozen-lockfile
+
+      - name: Delete fixture files
+        run: node ./tools/delete-fixtures.js
+
+      - name: Run tests
+        run: JEST_TIMEOUT=1000000000 yarn test:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
+
+      - name: Run slow tests
+        run: JEST_TIMEOUT=1000000000 yarn test:slow:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB

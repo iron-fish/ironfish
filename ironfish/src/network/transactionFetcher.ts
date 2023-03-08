@@ -54,11 +54,6 @@ export class TransactionFetcher {
    * This schedules requests for the hash to be sent out and if
    * requests are already in progress, it adds the peer as a backup source */
   hashReceived(hash: TransactionHash, peer: Peer): void {
-    if (this.peerNetwork.alreadyHaveTransaction(hash)) {
-      this.removeTransaction(hash)
-      return
-    }
-
     // If the peer is not connected or identified, don't add them as a source
     if (!peer.state.identity) {
       return
@@ -74,11 +69,6 @@ export class TransactionFetcher {
 
     if (!currentState) {
       const timeout = setTimeout(() => {
-        if (this.peerNetwork.alreadyHaveTransaction(hash)) {
-          this.removeTransaction(hash)
-          return
-        }
-
         this.requestTransaction(hash)
       }, WAIT_BEFORE_REQUEST_MS)
 
@@ -116,11 +106,6 @@ export class TransactionFetcher {
   }
 
   private requestFromNextPeer(hash: TransactionHash): void {
-    if (this.peerNetwork.alreadyHaveTransaction(hash)) {
-      this.removeTransaction(hash)
-      return
-    }
-
     // Clear the previous peer request state
     const currentState = this.pending.get(hash)
     currentState && this.cleanupCallbacks(currentState)

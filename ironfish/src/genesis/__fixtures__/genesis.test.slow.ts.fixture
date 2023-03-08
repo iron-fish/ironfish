@@ -2,14 +2,14 @@
   "Create genesis block Can generate a valid genesis block": [
     {
       "version": 1,
-      "id": "08e294ed-33dd-4f92-9ad1-c8db09cee085",
+      "id": "8105de51-3d56-4ffd-8e04-c7aba57e1b42",
       "name": "test",
-      "spendingKey": "3c7d55ecc2465bb2b36bb250725696f25827b8517f261a62c0987b1120bfdbb3",
-      "viewKey": "f29c6622e37d64a60f4ed3274ac0e37250cae8d69b1cc696c20ce34620f99634420e2f2298af3ab631f82d1c23b4febef95e172a00891ca1c666d9838581dcca",
-      "incomingViewKey": "b2eab5aa9aa7143c7bc239cf0649c5302464ac80e058d00897887510c667b402",
-      "outgoingViewKey": "8ef363d20fd70308023d6ad83e15434e35364f1e68f1b4332455e0ab123084e5",
-      "publicAddress": "2aac6cc46e0515f22eb46be7971cd6e4c6518934f309df3577052a4d0dbe76b3",
-      "default": true
+      "spendingKey": "97180c930579fcd8ccb3415456552935b028836a912e22ed186a37f6621d1b82",
+      "viewKey": "473d8cd5b0da5a73ce5427b6808577c1ed154457a9db22f78b23e8353ee4be50a6d9e6a199d0676df37eb411b3911934f99c5891bdfa73aa22c07e206fbc2113",
+      "incomingViewKey": "4eff9dfdf9901876f6fb0ac4206607b3c6aaa26ee57884e140bc6f111cde2100",
+      "outgoingViewKey": "f209f1a5436ee32bb9a8983639e06df5c98d1b9a7fd8d0825c97f0099bd32d77",
+      "publicAddress": "1dea539541b98a6936c12a6f366d21048e0c1f4f93e508b2f15063213e15b137",
+      "createdAt": "2023-03-07T20:03:11.570Z"
     }
   ]
 }

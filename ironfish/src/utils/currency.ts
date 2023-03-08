@@ -5,6 +5,7 @@
 import { formatFixed, parseFixed } from '@ethersproject/bignumber'
 import { isNativeIdentifier } from './asset'
 import { BigIntUtils } from './bigint'
+import { ErrorUtils } from './error'
 import { FixedNumberUtils } from './fixedNumber'
 
 export class CurrencyUtils {
@@ -22,6 +23,21 @@ export class CurrencyUtils {
    */
   static decodeIron(amount: string | number): bigint {
     return parseFixed(amount.toString(), 8).toBigInt()
+  }
+
+  /**
+   * Parses iron into ore but returns the error if parsing fails
+   */
+  static decodeIronTry(amount: string | number): [bigint, null] | [null, ParseFixedError] {
+    try {
+      const parsed = parseFixed(amount.toString(), 8).toBigInt()
+      return [parsed, null]
+    } catch (e) {
+      if (isParseFixedError(e)) {
+        return [null, e]
+      }
+      throw e
+    }
   }
 
   /**
@@ -83,6 +99,20 @@ export class CurrencyUtils {
 
     return ore
   }
+}
+
+export interface ParseFixedError extends Error {
+  code: 'INVALID_ARGUMENT' | 'NUMERIC_FAULT'
+  reason: string
+}
+
+export function isParseFixedError(error: unknown): error is ParseFixedError {
+  return (
+    ErrorUtils.isNodeError(error) &&
+    (error['code'] === 'INVALID_ARGUMENT' || error['code'] === 'NUMERIC_FAULT') &&
+    'reason' in error &&
+    typeof error['reason'] === 'string'
+  )
 }
 
 export const ORE_TO_IRON = 100000000

@@ -23,16 +23,23 @@ export class DeleteCommand extends IronfishCommand {
     confirm: Flags.boolean({
       description: 'Suppress the confirmation prompt',
     }),
+    wait: Flags.boolean({
+      description:
+        'Wait for the account to be deleted, rather than the default of marking the account for deletion then returning immediately',
+    }),
   }
 
   async start(): Promise<void> {
     const { args, flags } = await this.parse(DeleteCommand)
     const confirm = flags.confirm
+    const wait = flags.wait
     const account = args.account as string
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.removeAccount({ account, confirm })
+    CliUx.ux.action.start(`Deleting account '${account}'`)
+    const response = await client.removeAccount({ account, confirm, wait })
+    CliUx.ux.action.stop()
 
     if (response.content.needsConfirm) {
       const value = await CliUx.ux.prompt(`Are you sure? Type ${account} to confirm`)
@@ -42,7 +49,9 @@ export class DeleteCommand extends IronfishCommand {
         this.exit(1)
       }
 
-      await client.removeAccount({ account, confirm: true })
+      CliUx.ux.action.start(`Deleting account '${account}'`)
+      await client.removeAccount({ account, confirm: true, wait })
+      CliUx.ux.action.stop()
     }
 
     this.log(`Account '${account}' successfully deleted.`)

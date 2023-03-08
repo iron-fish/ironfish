@@ -16,6 +16,7 @@ export interface GetBalancesResponse {
   balances: {
     assetId: string
     assetName: string
+    assetOwner: string
     confirmed: string
     unconfirmed: string
     unconfirmedCount: number
@@ -45,6 +46,7 @@ export const GetBalancesResponseSchema: yup.ObjectSchema<GetBalancesResponse> = 
           .shape({
             assetId: yup.string().defined(),
             assetName: yup.string().defined(),
+            assetOwner: yup.string().defined(),
             unconfirmed: yup.string().defined(),
             unconfirmedCount: yup.number().defined(),
             pending: yup.string().defined(),
@@ -77,6 +79,7 @@ router.register<typeof GetBalancesRequestSchema, GetBalancesResponse>(
       balances.push({
         assetId: balance.assetId.toString('hex'),
         assetName: asset?.name.toString('hex') ?? '',
+        assetOwner: asset?.owner.toString('hex') ?? '',
         blockHash: balance.blockHash?.toString('hex') ?? null,
         confirmed: CurrencyUtils.encode(balance.confirmed),
         sequence: balance.sequence,

@@ -4,6 +4,7 @@
 import { Assert } from '../assert'
 import * as ConsensusUtils from '../consensus/utils'
 import { getTransactionSize } from '../network/utils/serializers'
+import { IronfishNode } from '../node'
 import { Transaction } from '../primitives'
 import {
   createNodeTest,
@@ -12,7 +13,28 @@ import {
   useMinerBlockFixture,
   useTxFixture,
 } from '../testUtilities'
+import { Account } from '../wallet'
 import { getFeeRate } from './feeEstimator'
+import { mempoolEntryComparator } from './memPool'
+
+// Creates transactions out of the list of fees and adds them to the wallet
+// but not the mempool
+async function createTransactions(
+  node: IronfishNode,
+  from: Account,
+  to: Account,
+  fees: number[],
+) {
+  const transactions: Transaction[] = []
+
+  for (const fee of fees) {
+    const { transaction } = await useBlockWithTx(node, from, to, true, { fee })
+    await node.wallet.addPendingTransaction(transaction)
+    transactions.push(transaction)
+  }
+
+  return transactions
+}
 
 describe('MemPool', () => {
   describe('size', () => {
@@ -47,7 +69,6 @@ describe('MemPool', () => {
         accountB,
         undefined,
         undefined,
-        false,
       )
       await node.wallet.addPendingTransaction(transaction)
       const { transaction: transaction2 } = await useBlockWithTx(
@@ -56,7 +77,6 @@ describe('MemPool', () => {
         accountD,
         undefined,
         undefined,
-        false,
       )
 
       memPool.acceptTransaction(transaction)
@@ -98,14 +118,7 @@ describe('MemPool', () => {
         const { wallet, memPool } = node
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          undefined,
-          false,
-        )
+        const { transaction } = await useBlockWithTx(node, accountA, accountB, true, undefined)
 
         expect(memPool.exists(transaction.hash())).toBe(false)
       })
@@ -119,16 +132,11 @@ describe('MemPool', () => {
         const { wallet, memPool } = node
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          undefined,
-          false,
-        )
+        const { transaction } = await useBlockWithTx(node, accountA, accountB, true, undefined)
 
-        expect(memPool.exists(transaction.hash())).toBe(false)
+        memPool.acceptTransaction(transaction)
+
+        expect(memPool.exists(transaction.hash())).toBe(true)
       })
     })
   })
@@ -148,6 +156,9 @@ describe('MemPool', () => {
         true,
         { fee: 10 },
       )
+      // add transaction to wallet to avoid spending same notes
+      await wallet.addPendingTransaction(transactionA)
+
       const { transaction: transactionB } = await useBlockWithTx(
         node,
         accountA,
@@ -155,6 +166,8 @@ describe('MemPool', () => {
         true,
         { fee: 5 },
       )
+      // add transaction to wallet to avoid spending same notes
+      await wallet.addPendingTransaction(transactionB)
 
       const { transaction: transactionC } = await useBlockWithTx(
         node,
@@ -163,13 +176,15 @@ describe('MemPool', () => {
         true,
         { fee: 1 },
       )
+      // add transaction to wallet to avoid spending same notes
+      await wallet.addPendingTransaction(transactionC)
 
       expect(getFeeRate(transactionA)).toBeGreaterThan(getFeeRate(transactionB))
       expect(getFeeRate(transactionB)).toBeGreaterThan(getFeeRate(transactionC))
 
-      memPool.acceptTransaction(transactionB)
-      memPool.acceptTransaction(transactionA)
-      memPool.acceptTransaction(transactionC)
+      expect(memPool.acceptTransaction(transactionB)).toBe(true)
+      expect(memPool.acceptTransaction(transactionA)).toBe(true)
+      expect(memPool.acceptTransaction(transactionC)).toBe(true)
 
       const transactions = Array.from(memPool.orderedTransactions())
       expect(transactions).toEqual([transactionA, transactionB, transactionC])
@@ -186,7 +201,6 @@ describe('MemPool', () => {
         accountB,
         true,
         { fee: 1 },
-        false,
       )
       const { transaction: transactionB } = await useBlockWithTx(
         node,
@@ -194,7 +208,6 @@ describe('MemPool', () => {
         accountB,
         true,
         { fee: 4 },
-        false,
       )
 
       memPool.acceptTransaction(transactionA)
@@ -221,14 +234,7 @@ describe('MemPool', () => {
         const { wallet, memPool } = node
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          undefined,
-          false,
-        )
+        const { transaction } = await useBlockWithTx(node, accountA, accountB, true, undefined)
 
         memPool.acceptTransaction(transaction)
 
@@ -246,14 +252,7 @@ describe('MemPool', () => {
         const { wallet, memPool } = node
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          undefined,
-          false,
-        )
+        const { transaction } = await useBlockWithTx(node, accountA, accountB, true, undefined)
 
         const isExpiredSequenceSpy = jest
           .spyOn(ConsensusUtils, 'isExpiredSequence')
@@ -273,21 +272,13 @@ describe('MemPool', () => {
         const { wallet, memPool } = node
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          undefined,
-          false,
-        )
+        const { transaction } = await useBlockWithTx(node, accountA, accountB, true, undefined)
         const { transaction: transaction2 } = await useBlockWithTx(
           node,
           accountA,
           accountB,
           false,
           undefined,
-          false,
         )
 
         expect(transaction.getSpend(0).nullifier).toEqual(transaction2.getSpend(0).nullifier)
@@ -302,21 +293,13 @@ describe('MemPool', () => {
         const { wallet, memPool } = node
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          { fee: 1 },
-          false,
-        )
+        const { transaction } = await useBlockWithTx(node, accountA, accountB, true, { fee: 1 })
         const { transaction: transaction2 } = await useBlockWithTx(
           node,
           accountA,
           accountB,
           false,
           { fee: 5 },
-          false,
         )
 
         expect(transaction.getSpend(0).nullifier).toEqual(transaction2.getSpend(0).nullifier)
@@ -335,14 +318,7 @@ describe('MemPool', () => {
         const { wallet, memPool } = node
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          undefined,
-          false,
-        )
+        const { transaction } = await useBlockWithTx(node, accountA, accountB, true, undefined)
 
         expect(memPool.acceptTransaction(transaction)).toBe(true)
       })
@@ -352,14 +328,7 @@ describe('MemPool', () => {
         const { wallet, memPool } = node
         const accountA = await useAccountFixture(wallet, 'accountA')
         const accountB = await useAccountFixture(wallet, 'accountB')
-        const { transaction } = await useBlockWithTx(
-          node,
-          accountA,
-          accountB,
-          true,
-          undefined,
-          false,
-        )
+        const { transaction } = await useBlockWithTx(node, accountA, accountB, true, undefined)
 
         memPool.acceptTransaction(transaction)
 
@@ -384,7 +353,6 @@ describe('MemPool', () => {
         accountB,
         true,
         { expiration: 4 },
-        false,
       )
 
       expect(chain.head.sequence).toEqual(2)
@@ -395,15 +363,14 @@ describe('MemPool', () => {
         accountA,
         true,
         undefined,
-        false,
       )
 
       expect(chain.head.sequence).toEqual(3)
 
       memPool.acceptTransaction(transactionA)
       memPool.acceptTransaction(transactionB)
-      expect(memPool.exists(transactionA.hash())).toBe(true)
-      expect(memPool.exists(transactionB.hash())).toBe(true)
+      expect(memPool.get(transactionA.hash())).toBeDefined()
+      expect(memPool.get(transactionB.hash())).toBeDefined()
 
       await chain.addBlock(block)
 
@@ -427,7 +394,6 @@ describe('MemPool', () => {
         accountB,
         true,
         { expiration: 4 },
-        false,
       )
       await wallet.addPendingTransaction(transactionA)
 
@@ -439,15 +405,14 @@ describe('MemPool', () => {
         accountB,
         true,
         { expiration: 0 },
-        false,
       )
 
       expect(chain.head.sequence).toEqual(3)
 
       memPool.acceptTransaction(transactionA)
       memPool.acceptTransaction(transactionB)
-      expect(memPool.exists(transactionA.hash())).toBe(true)
-      expect(memPool.exists(transactionB.hash())).toBe(true)
+      expect(memPool.get(transactionA.hash())).toBeDefined()
+      expect(memPool.get(transactionB.hash())).toBeDefined()
 
       const block4 = await useMinerBlockFixture(chain)
       await expect(chain).toAddBlock(block4)
@@ -455,7 +420,7 @@ describe('MemPool', () => {
       expect(chain.head.sequence).toEqual(4)
 
       expect(memPool.exists(transactionA.hash())).toBe(false)
-      expect(memPool.exists(transactionB.hash())).toBe(true)
+      expect(memPool.get(transactionB.hash())).toBeDefined()
       expect([...memPool.orderedTransactions()]).not.toContainEqual(transactionA)
       expect([...memPool.orderedTransactions()]).toContainEqual(transactionB)
     })
@@ -475,7 +440,6 @@ describe('MemPool', () => {
         accountB,
         true,
         undefined,
-        false,
       )
       const minersFee = block.transactions[0]
 
@@ -486,7 +450,7 @@ describe('MemPool', () => {
 
       await chain.removeBlock(block.header.hash)
 
-      expect(memPool.exists(transaction.hash())).toBe(true)
+      expect(memPool.get(transaction.hash())).toBeDefined()
       expect([...memPool.orderedTransactions()]).toContainEqual(transaction)
 
       expect(memPool.exists(minersFee.hash())).toBe(false)
@@ -539,7 +503,7 @@ describe('MemPool', () => {
       await chain.removeBlock(block.header.hash)
 
       expect(memPool.exists(transaction1.hash())).toBe(false)
-      expect(memPool.exists(transaction2.hash())).toBe(true)
+      expect(memPool.get(transaction2.hash())).toBeDefined()
     })
 
     it('adds back in transactions with overlapping nullifiers if fee is greater', async () => {
@@ -587,8 +551,116 @@ describe('MemPool', () => {
 
       await chain.removeBlock(block.header.hash)
 
-      expect(memPool.exists(transaction1.hash())).toBe(true)
+      expect(memPool.get(transaction1.hash())).toBeDefined()
       expect(memPool.exists(transaction2.hash())).toBe(false)
     })
   })
+
+  describe('when the mempool reaches capacity', () => {
+    const MAX_MEMPOOL_SIZE = 10000
+    const MAX_CACHE_SIZE = 10
+    const nodeTest = createNodeTest(false, {
+      config: {
+        memPoolMaxSizeBytes: MAX_MEMPOOL_SIZE,
+        memPoolRecentlyEvictedCacheSize: MAX_CACHE_SIZE,
+      },
+    })
+
+    it('adds low fee transactions to the recently evicted cache and flushes cache', async () => {
+      const { node } = nodeTest
+      const { wallet, memPool, chain } = node
+      const from = await useAccountFixture(wallet, 'accountA')
+      const to = await useAccountFixture(wallet, 'accountB')
+
+      // Generate 30 transactions with the following fees
+      const fees = [
+        49, 44, 88, 72, 63, 23, 94, 50, 87, 81, 49, 27, 49, 41, 67, 72, 53, 85, 64, 19, 63, 98,
+        62, 24, 57, 77, 35, 6, 32, 28,
+      ]
+      const transactions = await createTransactions(node, from, to, fees)
+
+      for (const transaction of transactions) {
+        memPool.acceptTransaction(transaction)
+      }
+
+      // Get transactions in mempool sorted order and take only those that will fit under the size
+      const highToLow = memPoolSort(transactions)
+      const [underLimit, overLimit] = takeBytes(MAX_MEMPOOL_SIZE, highToLow)
+
+      const inRecentlyEvicted = overLimit.slice(-MAX_CACHE_SIZE)
+      const droppedFromRecentlyEvicted = overLimit.slice(0, -MAX_CACHE_SIZE)
+
+      // Highest value transactions under limit should still be in mempool
+      for (const transaction of underLimit) {
+        expect(memPool.get(transaction.hash())).toBeDefined()
+        expect(memPool.recentlyEvicted(transaction.hash())).toBe(false)
+      }
+
+      // Transactions over limit should be in cache
+      for (const transaction of inRecentlyEvicted) {
+        expect(memPool.recentlyEvicted(transaction.hash())).toBe(true)
+        expect(memPool.get(transaction.hash())).toBeUndefined()
+      }
+
+      // Transactions over limit that did not fit in cache either should be dropped
+      for (const transaction of droppedFromRecentlyEvicted) {
+        expect(memPool.recentlyEvicted(transaction.hash())).toBe(false)
+        expect(memPool.get(transaction.hash())).toBeUndefined()
+        expect(memPool.exists(transaction.hash())).toBe(false)
+      }
+
+      // If we add blocks to just under the flush period transactions
+      // should still be in the recentlyEvictedCache
+      for (let i = 0; i++; i < memPool.sizeInBlocks() - 1) {
+        const block = await useMinerBlockFixture(chain)
+        await expect(chain).toAddBlock(block)
+      }
+
+      for (const transaction of inRecentlyEvicted) {
+        expect(memPool.recentlyEvicted(transaction.hash())).toBe(true)
+      }
+
+      // If we add one more block all those transactions should be flushed
+      const block = await useMinerBlockFixture(chain)
+      await expect(chain).toAddBlock(block)
+
+      for (const transaction of inRecentlyEvicted) {
+        expect(memPool.recentlyEvicted(transaction.hash())).toBe(false)
+        expect(memPool.exists(transaction.hash())).toBe(false)
+      }
+    })
+  })
 })
+
+function memPoolSort(transactions: Transaction[]): Transaction[] {
+  return [...transactions].sort((t1, t2) => {
+    const greater = mempoolEntryComparator(
+      { hash: t1.hash(), feeRate: getFeeRate(t1) },
+      { hash: t2.hash(), feeRate: getFeeRate(t2) },
+    )
+    return greater ? -1 : 1
+  })
+}
+
+// return the first transactions that fit within the target byte size
+// and return the remaining transactions that don't fit
+function takeBytes(
+  targetBytes: number,
+  transactions: Transaction[],
+): [Transaction[], Transaction[]] {
+  let totalBytes = 0
+  const underLimit: Transaction[] = []
+  const overLimit: Transaction[] = []
+
+  for (const transaction of transactions) {
+    totalBytes += getTransactionSize(transaction)
+
+    if (totalBytes <= targetBytes) {
+      underLimit.push(transaction)
+    } else {
+      overLimit.push(transaction)
+    }
+  }
+
+  return [underLimit, overLimit]
+}

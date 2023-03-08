@@ -25,6 +25,7 @@ import { parseNetworkMessage } from './messageRegistry'
 import { CannotSatisfyRequest } from './messages/cannotSatisfyRequest'
 import { DisconnectingMessage, DisconnectingReason } from './messages/disconnecting'
 import { GetBlockHeadersRequest, GetBlockHeadersResponse } from './messages/getBlockHeaders'
+import { GetBlocksRequest, GetBlocksResponse } from './messages/getBlocks'
 import {
   GetBlockTransactionsRequest,
   GetBlockTransactionsResponse,
@@ -40,8 +41,10 @@ import {
   PooledTransactionsResponse,
 } from './messages/pooledTransactions'
 import { PeerNetwork } from './peerNetwork'
+import { Peer } from './peers/peer'
 import {
   expectGetBlockHeadersResponseToMatch,
+  expectGetBlocksResponseToMatch,
   expectGetBlockTransactionsResponseToMatch,
   expectGetCompactBlockResponseToMatch,
   getConnectedPeer,
@@ -51,6 +54,7 @@ import {
   peerMessage,
 } from './testUtilities'
 import { NetworkMessageType } from './types'
+import * as serializer from './utils/serializers'
 import { VERSION_PROTOCOL } from './version'
 
 jest.mock('./version', () => {
@@ -59,6 +63,7 @@ jest.mock('./version', () => {
     ...moduleMock,
     MAX_REQUESTED_HEADERS: 4,
     MAX_HEADER_LOOKUPS: 8,
+    MAX_BLOCK_LOOKUPS: 4,
   }
 })
 
@@ -84,12 +89,7 @@ describe('PeerNetwork', () => {
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
       const message = new PeerListMessage([])
-      await expect(
-        peerNetwork['handleMessage'](peer, {
-          peerIdentity: peer.getIdentityOrThrow(),
-          message,
-        }),
-      ).rejects.not.toBeUndefined()
+      await expect(peerNetwork['handleMessage'](peer, message)).rejects.not.toBeUndefined()
       await peerNetwork.stop()
     })
   })
@@ -175,6 +175,7 @@ describe('PeerNetwork', () => {
       // Check that the disconnect message was serialized properly
       const args = sendSpy.mock.calls[0][0]
       expect(Buffer.isBuffer(args)).toBe(true)
+      Assert.isInstanceOf(args, Buffer)
       const message = parseNetworkMessage(args)
       expect(message.type).toEqual(NetworkMessageType.Disconnecting)
       Assert.isInstanceOf(message, DisconnectingMessage)
@@ -207,7 +208,6 @@ describe('PeerNetwork', () => {
       }
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -215,7 +215,7 @@ describe('PeerNetwork', () => {
       const message = new GetCompactBlockRequest(block.header.hash, rpcId)
       const response = new GetCompactBlockResponse(compactBlock, rpcId)
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetCompactBlockResponse)
       expectGetCompactBlockResponseToMatch(
@@ -234,7 +234,6 @@ describe('PeerNetwork', () => {
       }
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -242,7 +241,7 @@ describe('PeerNetwork', () => {
       const message = new GetCompactBlockRequest(node.chain.genesis.hash, rpcId)
       const response = new CannotSatisfyRequest(rpcId)
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy).toHaveBeenCalledWith(response)
     })
@@ -251,7 +250,6 @@ describe('PeerNetwork', () => {
       const { peerNetwork } = nodeTest
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -259,7 +257,7 @@ describe('PeerNetwork', () => {
       const message = new GetCompactBlockRequest(Buffer.alloc(32, 1), rpcId)
       const response = new CannotSatisfyRequest(rpcId)
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy).toHaveBeenCalledWith(response)
     })
@@ -284,7 +282,6 @@ describe('PeerNetwork', () => {
       })
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -296,7 +293,7 @@ describe('PeerNetwork', () => {
         rpcId,
       )
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockTransactionsResponse)
       expectGetBlockTransactionsResponseToMatch(
@@ -315,7 +312,6 @@ describe('PeerNetwork', () => {
       }
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -323,7 +319,7 @@ describe('PeerNetwork', () => {
       const message = new GetBlockTransactionsRequest(node.chain.genesis.hash, [0], rpcId)
       const response = new CannotSatisfyRequest(rpcId)
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy).toHaveBeenCalledWith(response)
     })
@@ -332,7 +328,6 @@ describe('PeerNetwork', () => {
       const { peerNetwork } = nodeTest
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -340,7 +335,7 @@ describe('PeerNetwork', () => {
       const message = new GetBlockTransactionsRequest(Buffer.alloc(32, 1), [0, 1], rpcId)
       const response = new CannotSatisfyRequest(rpcId)
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy).toHaveBeenCalledWith(response)
     })
@@ -349,7 +344,6 @@ describe('PeerNetwork', () => {
       const { peerNetwork, node } = nodeTest
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -364,7 +358,7 @@ describe('PeerNetwork', () => {
       )
       const response = new CannotSatisfyRequest(rpcId)
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy).toHaveBeenCalledWith(response)
     })
@@ -373,7 +367,6 @@ describe('PeerNetwork', () => {
       const { peerNetwork, node } = nodeTest
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -381,7 +374,7 @@ describe('PeerNetwork', () => {
       const message = new GetBlockTransactionsRequest(node.chain.genesis.hash, [-1], rpcId)
       const response = new CannotSatisfyRequest(rpcId)
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy).toHaveBeenCalledWith(response)
     })
@@ -402,7 +395,6 @@ describe('PeerNetwork', () => {
       await expect(node.chain).toAddBlock(block5)
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -413,7 +405,7 @@ describe('PeerNetwork', () => {
         rpcId,
       )
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
       expectGetBlockHeadersResponseToMatch(
@@ -440,7 +432,6 @@ describe('PeerNetwork', () => {
       await expect(node.chain).toAddBlock(block8)
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -451,7 +442,7 @@ describe('PeerNetwork', () => {
         rpcId,
       )
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
       expectGetBlockHeadersResponseToMatch(
@@ -470,7 +461,6 @@ describe('PeerNetwork', () => {
       await expect(node.chain).toAddBlock(block4)
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -481,7 +471,7 @@ describe('PeerNetwork', () => {
         rpcId,
       )
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
       expectGetBlockHeadersResponseToMatch(
@@ -500,7 +490,6 @@ describe('PeerNetwork', () => {
       await expect(node.chain).toAddBlock(block4)
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -508,7 +497,7 @@ describe('PeerNetwork', () => {
       const message = new GetBlockHeadersRequest(4, 2, 1, true, rpcId)
       const response = new GetBlockHeadersResponse([block4.header, block2.header], rpcId)
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
       expectGetBlockHeadersResponseToMatch(
@@ -527,7 +516,6 @@ describe('PeerNetwork', () => {
       await expect(node.chain).toAddBlock(block4)
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
@@ -535,7 +523,7 @@ describe('PeerNetwork', () => {
       const message = new GetBlockHeadersRequest(block4.header.hash, 2, 1, true, rpcId)
       const response = new GetBlockHeadersResponse([block4.header, block2.header], rpcId)
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
       expectGetBlockHeadersResponseToMatch(
@@ -550,14 +538,13 @@ describe('PeerNetwork', () => {
       await expect(node.chain).toAddBlock(block2)
 
       const { peer } = getConnectedPeer(peerNetwork.peerManager)
-      const peerIdentity = peer.getIdentityOrThrow()
 
       const sendSpy = jest.spyOn(peer, 'send')
 
       const rpcId = 432
       const message = new GetBlockHeadersRequest(block2.header.hash, 5, 1, false, rpcId)
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
       expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(CannotSatisfyRequest)
     })
@@ -585,7 +572,6 @@ describe('PeerNetwork', () => {
         await expect(node.chain).toAddBlock(block10)
 
         const { peer } = getConnectedPeer(peerNetwork.peerManager)
-        const peerIdentity = peer.getIdentityOrThrow()
 
         const sendSpy = jest.spyOn(peer, 'send')
 
@@ -595,7 +581,7 @@ describe('PeerNetwork', () => {
         // resulting in 7 lookups. The 8th and final lookup is block9.
         const response = new GetBlockHeadersResponse([block2.header, block9.header], rpcId)
 
-        await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+        await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
         expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
         expectGetBlockHeadersResponseToMatch(
@@ -626,7 +612,6 @@ describe('PeerNetwork', () => {
         await expect(node.chain).toAddBlock(block10)
 
         const { peer } = getConnectedPeer(peerNetwork.peerManager)
-        const peerIdentity = peer.getIdentityOrThrow()
 
         const sendSpy = jest.spyOn(peer, 'send')
 
@@ -637,7 +622,7 @@ describe('PeerNetwork', () => {
         // since it would be the 9th lookup.
         const response = new GetBlockHeadersResponse([block2.header], rpcId)
 
-        await peerNetwork.peerManager.onMessage.emitAsync(peer, { peerIdentity, message })
+        await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
 
         expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlockHeadersResponse)
         expectGetBlockHeadersResponseToMatch(
@@ -645,6 +630,87 @@ describe('PeerNetwork', () => {
           response,
         )
       })
+    })
+  })
+
+  describe('handles requests for block', () => {
+    const nodeTest = createNodeTest()
+
+    it('should respond to GetBlocksRequest', async () => {
+      const { node, peerNetwork } = nodeTest
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlocksRequest(block2.header.hash, 2, rpcId)
+      const response = new GetBlocksResponse([block2, block3], rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlocksResponse)
+      expectGetBlocksResponseToMatch(sendSpy.mock.calls[0][0] as GetBlocksResponse, response)
+    })
+
+    it('should respect the soft max message size', async () => {
+      const { node, peerNetwork } = nodeTest
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+
+      const sendSpy = jest.spyOn(peer, 'send')
+      const getSizeSpy = jest.spyOn(serializer, 'getBlockSize').mockReturnValue(7 * 1024 * 1024)
+
+      const rpcId = 432
+      const message = new GetBlocksRequest(block2.header.hash, 3, rpcId)
+      const response = new GetBlocksResponse([block2, block3], rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlocksResponse)
+      expectGetBlocksResponseToMatch(sendSpy.mock.calls[0][0] as GetBlocksResponse, response)
+
+      getSizeSpy.mockRestore()
+    })
+
+    it('should respect the lookup limit', async () => {
+      const { node, peerNetwork } = nodeTest
+
+      const block2 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block2)
+      const block3 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block3)
+      const block4 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block4)
+      const block5 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block5)
+      const block6 = await useMinerBlockFixture(node.chain)
+      await expect(node.chain).toAddBlock(block6)
+
+      const { peer } = getConnectedPeer(peerNetwork.peerManager)
+
+      const sendSpy = jest.spyOn(peer, 'send')
+
+      const rpcId = 432
+      const message = new GetBlocksRequest(block2.header.hash, 10, rpcId)
+      const response = new GetBlocksResponse([block2, block3, block4, block5], rpcId)
+
+      await peerNetwork.peerManager.onMessage.emitAsync(peer, message)
+
+      expect(sendSpy.mock.calls[0][0]).toBeInstanceOf(GetBlocksResponse)
+      expectGetBlocksResponseToMatch(sendSpy.mock.calls[0][0] as GetBlocksResponse, response)
     })
   })
 
@@ -746,10 +812,7 @@ describe('PeerNetwork', () => {
         const message = new PooledTransactionsRequest([transaction.hash()], rpcId)
         const response = new PooledTransactionsResponse([transaction], rpcId)
 
-        peerNetwork.peerManager.onMessage.emit(peer, {
-          peerIdentity: peer.getIdentityOrThrow(),
-          message,
-        })
+        peerNetwork.peerManager.onMessage.emit(peer, message)
 
         expect(sendSpy).toHaveBeenCalledWith(response)
       })
@@ -771,10 +834,10 @@ describe('PeerNetwork', () => {
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
 
-        await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
-          peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionsMessage([transaction]),
-        })
+        await peerNetwork.peerManager.onMessage.emitAsync(
+          peerWithTransaction,
+          new NewTransactionsMessage([transaction]),
+        )
 
         for (const { sendSpy } of peers) {
           expect(sendSpy).not.toHaveBeenCalled()
@@ -799,10 +862,10 @@ describe('PeerNetwork', () => {
         const peers = getConnectedPeersWithSpies(peerNetwork.peerManager, 5)
         const { peer: peerWithTransaction } = peers[0]
 
-        await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
-          peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionsMessage([transaction]),
-        })
+        await peerNetwork.peerManager.onMessage.emitAsync(
+          peerWithTransaction,
+          new NewTransactionsMessage([transaction]),
+        )
 
         for (const { sendSpy } of peers) {
           expect(sendSpy).not.toHaveBeenCalled()
@@ -829,10 +892,10 @@ describe('PeerNetwork', () => {
         const { peer: peerWithTransaction } = peers[0]
         const peersWithoutTransaction = peers.slice(1)
 
-        await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
-          peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionsMessage([transaction]),
-        })
+        await peerNetwork.peerManager.onMessage.emitAsync(
+          peerWithTransaction,
+          new NewTransactionsMessage([transaction]),
+        )
 
         for (const { sendSpy } of peersWithoutTransaction) {
           const transactionMessages = sendSpy.mock.calls.filter(([message]) => {
@@ -846,7 +909,7 @@ describe('PeerNetwork', () => {
 
         expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
 
-        expect(memPool.exists(transaction.hash())).toBe(true)
+        expect(memPool.get(transaction.hash())).toBeDefined()
 
         expect(addPendingTransaction).toHaveBeenCalledTimes(1)
 
@@ -859,10 +922,10 @@ describe('PeerNetwork', () => {
         }
 
         const { peer: peerWithTransaction2 } = peers[1]
-        await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction2, {
-          peerIdentity: peerWithTransaction2.getIdentityOrThrow(),
-          message: new NewTransactionsMessage([transaction]),
-        })
+        await peerNetwork.peerManager.onMessage.emitAsync(
+          peerWithTransaction2,
+          new NewTransactionsMessage([transaction]),
+        )
 
         // These functions should still only be called once
         for (const { sendSpy } of peersWithoutTransaction) {
@@ -877,7 +940,7 @@ describe('PeerNetwork', () => {
 
         expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
 
-        expect(memPool.exists(transaction.hash())).toBe(true)
+        expect(memPool.get(transaction.hash())).toBeDefined()
 
         expect(addPendingTransaction).toHaveBeenCalledTimes(1)
       })
@@ -902,10 +965,10 @@ describe('PeerNetwork', () => {
         const { peer: peerWithTransaction } = peers[0]
         const peersWithoutTransaction = peers.slice(1)
 
-        await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
-          peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionsMessage([transaction]),
-        })
+        await peerNetwork.peerManager.onMessage.emitAsync(
+          peerWithTransaction,
+          new NewTransactionsMessage([transaction]),
+        )
 
         // Peers should not be sent invalid transaction
         for (const { sendSpy } of peers) {
@@ -944,6 +1007,53 @@ describe('PeerNetwork', () => {
           ).toBe(true)
       })
 
+      it('cancels request for transactions if the transaction is added to a block', async () => {
+        const { peerNetwork, node } = nodeTest
+        const { wallet, chain } = node
+
+        chain.synced = true
+
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const accountB = await useAccountFixture(wallet, 'accountB')
+        const { block, transaction } = await useBlockWithTx(node, accountA, accountB)
+
+        const [{ peer, sendSpy }] = getConnectedPeersWithSpies(peerNetwork.peerManager, 1)
+
+        const fetcherHashReceived = jest.spyOn(
+          peerNetwork['transactionFetcher'],
+          'hashReceived',
+        )
+
+        const fetcherHashRemoved = jest.spyOn(
+          peerNetwork['transactionFetcher'],
+          'removeTransaction',
+        )
+
+        await peerNetwork.peerManager.onMessage.emitAsync(
+          peer,
+          new NewPooledTransactionHashes([transaction.hash()]),
+        )
+
+        expect(fetcherHashReceived).toHaveBeenCalledTimes(1)
+        expect(fetcherHashReceived).toHaveBeenCalledWith(transaction.hash(), expect.any(Peer))
+
+        expect(sendSpy).not.toHaveBeenCalled()
+
+        // Should be removed from the fetcher here
+        await expect(chain).toAddBlock(block)
+
+        expect(fetcherHashRemoved).toHaveBeenCalledTimes(block.transactions.length)
+        expect(fetcherHashRemoved).toHaveBeenNthCalledWith(
+          block.transactions.findIndex((t) => t.hash().equals(transaction.hash())) + 1,
+          transaction.hash(),
+        )
+
+        // We wait 500ms and then send the request for the transaction to a random peer
+        jest.runOnlyPendingTimers()
+
+        expect(sendSpy).not.toHaveBeenCalled()
+      })
+
       it('syncs transactions if the spends reference a larger tree size', async () => {
         const { peerNetwork, node } = nodeTest
         const { wallet, memPool, chain } = node
@@ -969,10 +1079,10 @@ describe('PeerNetwork', () => {
         const { peer: peerWithTransaction } = peers[0]
         const peersWithoutTransaction = peers.slice(1)
 
-        await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
-          peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionsMessage([transaction]),
-        })
+        await peerNetwork.peerManager.onMessage.emitAsync(
+          peerWithTransaction,
+          new NewTransactionsMessage([transaction]),
+        )
 
         expect(verifyNewTransactionSpy).toHaveBeenCalledTimes(1)
         const verificationResult = await verifyNewTransactionSpy.mock.results[0].value
@@ -980,7 +1090,7 @@ describe('PeerNetwork', () => {
           valid: true,
         })
 
-        expect(memPool.exists(transaction.hash())).toBe(true)
+        expect(memPool.get(transaction.hash())).toBeDefined()
         expect(addPendingTransaction).toHaveBeenCalledTimes(1)
         for (const { sendSpy } of peersWithoutTransaction) {
           const transactionMessages = sendSpy.mock.calls.filter(([message]) => {
@@ -1017,10 +1127,10 @@ describe('PeerNetwork', () => {
         const { peer: peerWithTransaction } = peers[0]
         const peersWithoutTransaction = peers.slice(1)
 
-        await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
-          peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-          message: new NewTransactionsMessage([transaction]),
-        })
+        await peerNetwork.peerManager.onMessage.emitAsync(
+          peerWithTransaction,
+          new NewTransactionsMessage([transaction]),
+        )
 
         // Peers should not be sent invalid transaction
         for (const { sendSpy } of peers) {
@@ -1132,10 +1242,10 @@ describe('PeerNetwork', () => {
       jest.spyOn(chain.verifier, 'verifyNewTransaction')
       jest.spyOn(memPool, 'acceptTransaction')
 
-      await peerNetwork.peerManager.onMessage.emitAsync(peerWithTransaction, {
-        peerIdentity: peerWithTransaction.getIdentityOrThrow(),
-        message: new NewTransactionsMessage([transaction]),
-      })
+      await peerNetwork.peerManager.onMessage.emitAsync(
+        peerWithTransaction,
+        new NewTransactionsMessage([transaction]),
+      )
 
       expect(sendSpy).not.toHaveBeenCalled()
       expect(chain.verifier.verifyNewTransaction).not.toHaveBeenCalled()

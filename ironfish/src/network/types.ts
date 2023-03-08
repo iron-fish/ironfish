@@ -5,29 +5,33 @@ import type { ErrorEvent as WSErrorEvent } from 'ws'
 import { WebSocketClient } from './webSocketClient'
 
 export enum NetworkMessageType {
-  Disconnecting = 0,
-  CannotSatisfyRequest = 1,
-  GetBlockHashesRequest = 2,
-  GetBlockHashesResponse = 3,
-  GetBlocksRequest = 4,
-  GetBlocksResponse = 5,
-  Identify = 6,
-  PeerList = 7,
-  PeerListRequest = 8,
-  Signal = 9,
-  SignalRequest = 10,
-  PooledTransactionsRequest = 11,
-  PooledTransactionsResponse = 12,
-  NewPooledTransactionHashes = 13,
-  NewTransactions = 14,
-  NewBlockHashes = 15,
-  NewCompactBlock = 16,
-  GetBlockTransactionsRequest = 17,
-  GetBlockTransactionsResponse = 18,
-  GetCompactBlockRequest = 19,
-  GetCompactBlockResponse = 20,
-  GetBlockHeadersRequest = 21,
-  GetBlockHeadersResponse = 22,
+  // Core protocol messages
+  Identify = 0,
+  Disconnecting = 1,
+  SignalRequest = 2,
+  Signal = 3,
+  CannotSatisfyRequest = 4,
+  // Peer discovery-related messages
+  PeerListRequest = 20,
+  PeerList = 21,
+  // Syncing-related messages
+  // Block syncing
+  GetBlockHeadersRequest = 40,
+  GetBlockHeadersResponse = 41,
+  GetBlocksRequest = 42,
+  GetBlocksResponse = 43,
+  // Block gossip
+  GetCompactBlockRequest = 60,
+  GetCompactBlockResponse = 61,
+  GetBlockTransactionsRequest = 62,
+  GetBlockTransactionsResponse = 63,
+  NewBlockHashes = 64,
+  NewCompactBlock = 65,
+  // Transaction gossip
+  PooledTransactionsRequest = 80,
+  PooledTransactionsResponse = 81,
+  NewPooledTransactionHashes = 82,
+  NewTransactions = 83,
 }
 
 export type IsomorphicWebSocketConstructor = typeof WebSocket | typeof WebSocketClient

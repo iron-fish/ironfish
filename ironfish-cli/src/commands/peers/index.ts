@@ -45,6 +45,10 @@ export class ListCommand extends IronfishCommand {
       description: 'Display node names',
       hidden: true,
     }),
+    features: Flags.boolean({
+      default: false,
+      description: 'Display features that the peers have enabled',
+    }),
   }
 
   async start(): Promise<void> {
@@ -125,6 +129,26 @@ function renderTable(
       minWidth: 2,
       get: (row: GetPeerResponsePeer) => {
         return row.sequence || '-'
+      },
+    }
+  }
+
+  if (flags.features) {
+    columns['features'] = {
+      header: 'FEATURES',
+      minWidth: 2,
+      get: (row: GetPeerResponsePeer) => {
+        if (!row.features) {
+          return ''
+        }
+
+        return Object.entries(row.features)
+          .map(([k, v]) => {
+            return v ? k : null
+          })
+          .filter(Boolean)
+          .sort()
+          .join(',')
       },
     }
   }

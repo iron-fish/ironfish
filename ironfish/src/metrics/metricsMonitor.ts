@@ -38,11 +38,21 @@ export class MetricsMonitor {
 
   readonly heapTotal: Gauge
   readonly heapUsed: Gauge
-  readonly memPoolSize: Gauge
   readonly rss: Gauge
   readonly memFree: Gauge
   readonly memTotal: number
   readonly heapMax: number
+
+  // Mempool metrics
+  readonly memPoolSize: Gauge
+  readonly memPoolSizeBytes: Gauge
+  readonly memPoolMaxSizeBytes: Gauge
+  readonly memPoolSaturation: Gauge
+  readonly memPoolEvictions: Gauge
+
+  readonly memPool_RecentlyEvictedCache_Size: Gauge
+  readonly memPool_RecentlyEvictedCache_MaxSize: Gauge
+  readonly memPool_RecentlyEvictedCache_Saturation: Gauge
 
   readonly cpuCores: number
 
@@ -56,7 +66,7 @@ export class MetricsMonitor {
 
     this.mining_newBlockTemplate = this.addMeter()
     this.chain_newBlock = this.addMeter()
-    this.mining_newBlockTransactions = this.addMeter()
+    this.mining_newBlockTransactions = this.addMeter({ maxRollingAverageSamples: 100 })
 
     this.p2p_InboundTraffic = this.addMeter()
     this.p2p_InboundTraffic_WS = this.addMeter()
@@ -81,8 +91,18 @@ export class MetricsMonitor {
     this.rss = new Gauge()
     this.memFree = new Gauge()
     this.memTotal = os.totalmem()
-    this.memPoolSize = new Gauge()
     this.memoryInterval = null
+
+    // mempool metrics
+    this.memPoolSize = new Gauge()
+    this.memPoolSizeBytes = new Gauge()
+    this.memPoolMaxSizeBytes = new Gauge()
+    this.memPoolSaturation = new Gauge()
+    this.memPoolEvictions = new Gauge()
+
+    this.memPool_RecentlyEvictedCache_Size = new Gauge()
+    this.memPool_RecentlyEvictedCache_MaxSize = new Gauge()
+    this.memPool_RecentlyEvictedCache_Saturation = new Gauge()
 
     this.heapMax = getHeapStatistics().total_available_size
 
@@ -111,8 +131,8 @@ export class MetricsMonitor {
     }
   }
 
-  addMeter(): Meter {
-    const meter = new Meter()
+  addMeter(options?: { maxRollingAverageSamples?: number }): Meter {
+    const meter = new Meter(options)
     this._meters.push(meter)
     if (this._started) {
       meter.start()

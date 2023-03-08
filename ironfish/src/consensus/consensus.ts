@@ -28,6 +28,11 @@ export type ConsensusParameters = {
    * Max block size
    */
   maxBlockSizeBytes: number
+
+  /**
+   * The minimum fee that a transaction must have to be accepted
+   */
+  minFee: number
 }
 
 export class Consensus {

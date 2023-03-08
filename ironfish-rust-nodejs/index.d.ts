@@ -14,6 +14,16 @@ export interface BoxedMessage {
 }
 export function boxMessage(plaintext: string, senderSecretKey: Uint8Array, recipientPublicKey: string): BoxedMessage
 export function unboxMessage(boxedMessage: string, nonce: string, senderPublicKey: string, recipientSecretKey: Uint8Array): string
+/**
+ * # Safety
+ * This is unsafe, it calls libc functions
+ */
+export function initSignalHandler(): void
+/**
+ * # Safety
+ * This is unsafe, it intentionally crashes
+ */
+export function triggerSegfault(): void
 export const ASSET_ID_LENGTH: number
 export const ASSET_METADATA_LENGTH: number
 export const ASSET_NAME_LENGTH: number

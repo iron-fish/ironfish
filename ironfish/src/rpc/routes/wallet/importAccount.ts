@@ -28,6 +28,7 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
         incomingViewKey: yup.string().defined(),
         outgoingViewKey: yup.string().defined(),
         version: yup.number().defined(),
+        createdAt: yup.date().nullable().defined(),
       })
       .defined(),
   })
