@@ -38,7 +38,7 @@ export class FaucetCommand extends IronfishCommand {
 
     if (
       networkInfoResponse.content === null ||
-      networkInfoResponse.content.networkId !== DEFAULT_NETWORK_ID
+      networkInfoResponse.content.networkId !== 0
     ) {
       // not testnet
       this.log(`The faucet is only available for testnet.`)
