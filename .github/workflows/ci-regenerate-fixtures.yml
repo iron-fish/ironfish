@@ -2,7 +2,7 @@ name: Test With Regenerate Fixtures
 
 on:
   schedule:
-    - cron: '0 15 * * 1' # Every Monday 7AM PST 
+    - cron: '0 15 * * 2' # Every Tuesday 7AM PST
 
 jobs:
   test:
