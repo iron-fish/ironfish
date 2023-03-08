@@ -10,7 +10,7 @@ import { second, sleep } from './utils'
 
 export const rootCmd = 'ironfish'
 
-type TestNodeConfig = {
+export type TestNodeConfig = {
   name: string
   graffiti: string
   port: number
@@ -175,10 +175,10 @@ export class TestNode {
    * @param proc new proc
    */
   attachListeners(p: ChildProcessWithoutNullStreams, procName: string): void {
-    p.stdout.on('data', (data) => {
-      const str = (data as Buffer).toString()
-      this.logger.log(`[${this.name}:${procName}:stdout]`, { str })
-    })
+    // p.stdout.on('data', (data) => {
+    //   const str = (data as Buffer).toString()
+    //   this.logger.log(`[${this.name}:${procName}:stdout]`, { str })
+    // })
 
     p.stderr.on('data', (data) => {
       const str = (data as Buffer).toString()
@@ -188,6 +188,10 @@ export class TestNode {
     p.on('error', (error: Error) => {
       const msg = error.message
       this.logger.log(`[${this.name}:${procName}:error]:`, { msg })
+    })
+
+    p.on('close', (code: number | null) => {
+      this.logger.log(`[${this.name}:${procName}:close]: child process exited`, { code })
     })
 
     p.on('exit', (code, signal) => {
@@ -205,10 +209,6 @@ export class TestNode {
         code,
         signal: signal?.toString(),
       })
-    })
-
-    p.on('close', (code: number | null) => {
-      this.logger.log(`[${this.name}:${procName}:close]: child process exited`, { code })
     })
 
     return

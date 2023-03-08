@@ -4,14 +4,18 @@
 import { createRootLogger } from '@ironfish/sdk'
 import { stopTestNode } from '../../automated-test-network/testnode'
 import { IronfishCommand } from '../../command'
-import { config } from './start'
+import { nodeConfig } from './start'
 
 export default class Stop extends IronfishCommand {
   static description = 'Stop all nodes in the test network'
 
   async start(): Promise<void> {
-    const nodes = config
+    const nodes = nodeConfig
     const logger = createRootLogger()
+
+    // TODO: abstract this into the orchestrator that owns the nodes
+    // external requests should not be able to access the nodes directly
+    // everything should go through the orchestrator
 
     await Promise.all(
       nodes.map(async (node) => {
