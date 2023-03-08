@@ -36,10 +36,7 @@ export class FaucetCommand extends IronfishCommand {
     const client = await this.sdk.connectRpc()
     const networkInfoResponse = await client.getNetworkInfo()
 
-    if (
-      networkInfoResponse.content === null ||
-      networkInfoResponse.content.networkId !== 0
-    ) {
+    if (networkInfoResponse.content === null || networkInfoResponse.content.networkId !== 0) {
       // not testnet
       this.log(`The faucet is only available for testnet.`)
       this.exit(1)
