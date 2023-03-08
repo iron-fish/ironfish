@@ -33,7 +33,7 @@ router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
     // check node network id
     const networkId = node.internal.get('networkId')
 
-    if (networkId !== DEFAULT_NETWORK_ID) {
+    if (networkId !== 0) {
       // not testnet
       throw new ResponseError('This endpoint is only available for testnet.', ERROR_CODES.ERROR)
     }
