@@ -1,4 +1,4 @@
-name: Test With Regenerate Fixtures
+name: Node.js CI Regenerate Fixtures
 
 on:
   schedule:
