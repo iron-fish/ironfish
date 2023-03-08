@@ -13,7 +13,7 @@ async function getDirectoriesRecursivePlusRoot(dir) {
   const subDirs = await getDirectories(dir)
 
   const list = await Promise.all(subDirs.map((subDir) => getDirectoriesRecursivePlusRoot(subDir)))
-  return [dir, ...list.reduce((a, f) => a.concat(f), [])]
+  return [dir, ...list.flat()]
 }
 
 async function run() {
