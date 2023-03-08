@@ -4,6 +4,7 @@
 import { AxiosError } from 'axios'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { DEFAULT_NETWORK_ID } from '../../../fileStores'
 import { WebApi } from '../../../webApi'
 import { ERROR_CODES, ResponseError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
@@ -29,6 +30,14 @@ router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
   `${ApiNamespace.faucet}/getFunds`,
   GetFundsRequestSchema,
   async (request, node): Promise<void> => {
+    // check node network id
+    const networkId = node.internal.get('networkId')
+
+    if (networkId !== DEFAULT_NETWORK_ID) {
+      // not testnet
+      throw new ResponseError('This endpoint is only available for testnet.', ERROR_CODES.ERROR)
+    }
+
     const account = getAccount(node, request.data.account)
 
     const api = new WebApi({
