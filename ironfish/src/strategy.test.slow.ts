@@ -96,7 +96,7 @@ describe('Demonstrate the Sapling API', () => {
     it('Can create a miner reward', () => {
       const owner = generateKeyFromPrivateKey(spenderKey.spendingKey).publicAddress
 
-      minerNote = new NativeNote(owner, BigInt(42), '', Asset.nativeId(), owner)
+      minerNote = new NativeNote(owner, 42n, '', Asset.nativeId(), owner)
 
       const transaction = new NativeTransaction(spenderKey.spendingKey)
       transaction.output(minerNote)
@@ -139,14 +139,14 @@ describe('Demonstrate the Sapling API', () => {
       receiverKey = generateKey()
       const outputNote = new NativeNote(
         receiverKey.publicAddress,
-        BigInt(40),
+        40n,
         '',
         Asset.nativeId(),
         minerNote.owner(),
       )
       transaction.output(outputNote)
 
-      publicTransaction = new NativeTransactionPosted(transaction.post(null, BigInt(0)))
+      publicTransaction = new NativeTransactionPosted(transaction.post(null, 0n))
       expect(publicTransaction).toBeTruthy()
     })
 
@@ -176,7 +176,7 @@ describe('Demonstrate the Sapling API', () => {
         workerPool,
         consensus: new TestnetConsensus(consensusParameters),
       })
-      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spendingKey)
+      const minersFee = await strategy.createMinersFee(0n, 0, generateKey().spendingKey)
 
       expect(minersFee['transactionPosted']).toBeNull()
       expect(await workerPool.verify(minersFee, { verifyFees: false })).toEqual({ valid: true })
@@ -190,7 +190,7 @@ describe('Demonstrate the Sapling API', () => {
         consensus: new TestnetConsensus(consensusParameters),
       })
 
-      const minersFee = await strategy.createMinersFee(BigInt(0), 0, generateKey().spendingKey)
+      const minersFee = await strategy.createMinersFee(0n, 0, generateKey().spendingKey)
 
       await minersFee.withReference(async () => {
         expect(minersFee['transactionPosted']).not.toBeNull()
@@ -213,7 +213,7 @@ describe('Demonstrate the Sapling API', () => {
         workerPool: new WorkerPool(),
         consensus: new TestnetConsensus(consensusParameters),
       })
-      const minersFee = await strategy.createMinersFee(BigInt(0), 0, key.spendingKey)
+      const minersFee = await strategy.createMinersFee(0, 0, key.spendingKey)
 
       expect(minersFee['transactionPosted']).toBeNull()
 
@@ -233,7 +233,7 @@ describe('Demonstrate the Sapling API', () => {
       }
 
       expect(decryptedNote['note']).toBeNull()
-      expect(decryptedNote.value()).toBe(BigInt(2000000000))
+      expect(decryptedNote.value()).toBe(2000000000n)
       expect(decryptedNote['note']).toBeNull()
     })
   })
@@ -284,14 +284,14 @@ describe('Demonstrate the Sapling API', () => {
       const receiverAddress = receiverKey.publicAddress
       const noteForSpender = new NativeNote(
         spenderKey.publicAddress,
-        BigInt(10),
+        10n,
         '',
         Asset.nativeId(),
         receiverAddress,
       )
       const receiverNoteToSelf = new NativeNote(
         receiverAddress,
-        BigInt(29),
+        29n,
         '',
         Asset.nativeId(),
         receiverAddress,
@@ -300,9 +300,7 @@ describe('Demonstrate the Sapling API', () => {
       transaction.output(noteForSpender)
       transaction.output(receiverNoteToSelf)
 
-      const postedTransaction = new NativeTransactionPosted(
-        transaction.post(undefined, BigInt(1)),
-      )
+      const postedTransaction = new NativeTransactionPosted(transaction.post(undefined, 1n))
       expect(postedTransaction).toBeTruthy()
       expect(postedTransaction.verify()).toBeTruthy()
     })

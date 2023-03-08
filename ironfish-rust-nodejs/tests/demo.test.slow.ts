@@ -59,13 +59,13 @@ describe('Demonstrate the Sapling API', () => {
     const key = generateKey()
 
     const transaction = new Transaction(key.spendingKey)
-    const note = new Note(key.publicAddress, BigInt(20), 'test', Asset.nativeId(), key.publicAddress)
+    const note = new Note(key.publicAddress, 20n, 'test', Asset.nativeId(), key.publicAddress)
     transaction.output(note)
 
     const serializedPostedTransaction = transaction.post_miners_fee()
     const postedTransaction = new TransactionPosted(serializedPostedTransaction)
 
-    expect(postedTransaction.fee()).toEqual(BigInt(-20))
+    expect(postedTransaction.fee()).toEqual(-20n)
     expect(postedTransaction.notesLength()).toBe(1)
     expect(postedTransaction.spendsLength()).toBe(0)
     expect(postedTransaction.hash().byteLength).toBe(32)
@@ -87,8 +87,8 @@ describe('Demonstrate the Sapling API', () => {
 
     // Null characters are included in the memo string
     expect(decryptedNote.memo().replace(/\0/g, '')).toEqual('test')
-    expect(decryptedNote.value()).toEqual(BigInt(20))
-    expect(decryptedNote.nullifier(key.viewKey, BigInt(0)).byteLength).toBeGreaterThan(BigInt(0))
+    expect(decryptedNote.value()).toEqual(20n)
+    expect(decryptedNote.nullifier(key.viewKey, 0n).byteLength).toBeGreaterThan(0n)
   })
 
   it(`Should create a standard transaction`, () => {
@@ -96,7 +96,7 @@ describe('Demonstrate the Sapling API', () => {
     const recipientKey = generateKey()
 
     const minersFeeTransaction = new Transaction(key.spendingKey)
-    const minersFeeNote = new Note(key.publicAddress, BigInt(20), 'miner', Asset.nativeId(), key.publicAddress)
+    const minersFeeNote = new Note(key.publicAddress, 20n, 'miner', Asset.nativeId(), key.publicAddress)
     minersFeeTransaction.output(minersFeeNote)
 
     const postedMinersFeeTransaction = new TransactionPosted(minersFeeTransaction.post_miners_fee())
@@ -105,7 +105,7 @@ describe('Demonstrate the Sapling API', () => {
     transaction.setExpiration(10)
     const encryptedNote = new NoteEncrypted(postedMinersFeeTransaction.getNote(0))
     const decryptedNote = Note.deserialize(encryptedNote.decryptNoteForOwner(key.incomingViewKey)!)
-    const newNote = new Note(recipientKey.publicAddress, BigInt(15), 'receive', Asset.nativeId(), minersFeeNote.owner())
+    const newNote = new Note(recipientKey.publicAddress, 15n, 'receive', Asset.nativeId(), minersFeeNote.owner())
 
     let currentHash = encryptedNote.hash()
     let authPath = Array.from({ length: 32 }, (_, depth) => {
@@ -128,10 +128,10 @@ describe('Demonstrate the Sapling API', () => {
     transaction.spend(decryptedNote, witness)
     transaction.output(newNote)
 
-    const postedTransaction = new TransactionPosted(transaction.post(key.publicAddress, BigInt(5)))
+    const postedTransaction = new TransactionPosted(transaction.post(key.publicAddress, 5n))
 
     expect(postedTransaction.expiration()).toEqual(10)
-    expect(postedTransaction.fee()).toEqual(BigInt(5))
+    expect(postedTransaction.fee()).toEqual(5n)
     expect(postedTransaction.notesLength()).toEqual(1)
     expect(postedTransaction.spendsLength()).toEqual(1)
     expect(postedTransaction.hash().byteLength).toEqual(32)

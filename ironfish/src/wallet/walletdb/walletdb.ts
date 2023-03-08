@@ -289,7 +289,7 @@ export class WalletDB {
           account,
           Asset.nativeId(),
           {
-            unconfirmed: BigInt(0),
+            unconfirmed: 0n,
             blockHash: null,
             sequence: null,
           },
@@ -879,7 +879,7 @@ export class WalletDB {
 
     return (
       unconfirmedBalance ?? {
-        unconfirmed: BigInt(0),
+        unconfirmed: 0n,
         blockHash: null,
         sequence: null,
       }
