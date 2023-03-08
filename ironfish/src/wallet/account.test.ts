@@ -1395,6 +1395,54 @@ describe('Accounts', () => {
       // but not nonChainNoteHashes
       await expect(accountHasNonChainNoteHash(accountA, noteHash)).resolves.toBe(false)
     })
+
+    it('should delete expired transactions that created assets', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+
+      const mintTx = await usePostTxFixture({
+        node,
+        wallet: node.wallet,
+        from: accountA,
+        mints: [
+          {
+            name: asset.name().toString('utf8'),
+            metadata: asset.metadata().toString('utf8'),
+            value: 10n,
+          },
+        ],
+        expiration: 3,
+      })
+
+      // wallet should have the new asset
+      let assets = await AsyncUtils.materialize(accountA.getAssets())
+      expect(assets).toHaveLength(1)
+      expect(assets[0].id).toEqualBuffer(asset.id())
+
+      // expire the mint transaction
+      await accountA.expireTransaction(mintTx)
+
+      // wallet should have removed the new asset from the expired mint
+      assets = await AsyncUtils.materialize(accountA.getAssets())
+      expect(assets).toHaveLength(0)
+
+      // expired mint should still be in the wallet
+      const expiredMintTx = await accountA.getTransaction(mintTx.hash())
+      Assert.isNotUndefined(expiredMintTx)
+
+      // delete the transaction
+      await accountA.deleteTransaction(expiredMintTx.transaction)
+
+      // expired mint should not be in the wallet anymore
+      await expect(accountA.getTransaction(mintTx.hash())).resolves.toBeUndefined()
+    })
   })
 
   describe('getBalance', () => {
