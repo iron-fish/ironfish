@@ -3,6 +3,7 @@
 # Iron Fish
 
 ![Node CI](https://github.com/iron-fish/ironfish/actions/workflows/ci.yml/badge.svg)
+![Node CI Regenerate Fixtures](https://github.com/iron-fish/ironfish/actions/workflows/ci-regenerate-fixtures.yml/badge.svg)
 ![Rust CI](https://github.com/iron-fish/ironfish/actions/workflows/rust_ci.yml/badge.svg)
 [![codecov](https://codecov.io/gh/iron-fish/ironfish/branch/master/graph/badge.svg?token=fOjPFN18xZ)](https://codecov.io/gh/iron-fish/ironfish)
 
