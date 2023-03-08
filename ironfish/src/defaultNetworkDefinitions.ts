@@ -78,7 +78,7 @@ const TESTNET_GENESIS = `{
 
 export const TESTNET = `{
   "id": 0,
-  "bootstrapNodes": ["test.bn1.ironfish.network"],
+  "bootstrapNodes": ["1.test.bn.ironfish.network", "2.test.bn.ironfish.network"],
   "genesis": ${TESTNET_GENESIS},
   "consensus": {
       "allowedBlockFutureSeconds": 15,
@@ -86,7 +86,7 @@ export const TESTNET = `{
       "targetBlockTimeInSeconds": 60,
       "targetBucketTimeInSeconds": 10,
       "maxBlockSizeBytes": 524288,
-      "minFee": 0
+      "minFee": 1
   }
 }`
 
