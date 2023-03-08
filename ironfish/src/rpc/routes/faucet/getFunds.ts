@@ -4,7 +4,6 @@
 import { AxiosError } from 'axios'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
-import { DEFAULT_NETWORK_ID } from '../../../fileStores'
 import { WebApi } from '../../../webApi'
 import { ERROR_CODES, ResponseError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
