@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { DEFAULT_DISCORD_INVITE, DEFAULT_NETWORK_ID, RpcRequestError } from '@ironfish/sdk'
+import { DEFAULT_DISCORD_INVITE, RpcRequestError } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
