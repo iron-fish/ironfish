@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { DEFAULT_DISCORD_INVITE, RpcRequestError } from '@ironfish/sdk'
+import { DEFAULT_DISCORD_INVITE, DEFAULT_NETWORK_ID, RpcRequestError } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
@@ -34,12 +34,13 @@ export class FaucetCommand extends IronfishCommand {
     }
 
     const client = await this.sdk.connectRpc()
+    const networkInfoResponse = await client.getNetworkInfo()
 
-    const configResponse = await client.getConfig({
-      name: 'networkId',
-    })
-
-    if (configResponse.content.networkId !== 0) {
+    if (
+      networkInfoResponse.content === null ||
+      networkInfoResponse.content.networkId !== DEFAULT_NETWORK_ID
+    ) {
+      // not testnet
       this.log(`The faucet is only available for testnet.`)
       this.exit(1)
     }
