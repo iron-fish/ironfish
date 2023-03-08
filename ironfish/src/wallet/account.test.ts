@@ -2006,4 +2006,46 @@ describe('Accounts', () => {
       expect(unspentNotes).toHaveLength(0)
     })
   })
+
+  describe('getTransactionsByTime', () => {
+    it('loads multiple transactions on a block for an account', async () => {
+      const { node: nodeA } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      // create accounts on separate nodes so that accountB doesn't see pending transactions
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+      const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
+
+      // mine two blocks to give accountA notes for two transactions
+      const block2 = await useMinerBlockFixture(nodeA.chain, 2, accountA)
+      await nodeA.chain.addBlock(block2)
+      await nodeB.chain.addBlock(block2)
+
+      const block3 = await useMinerBlockFixture(nodeA.chain, 3, accountA)
+      await nodeA.chain.addBlock(block3)
+      await nodeB.chain.addBlock(block3)
+      await nodeA.wallet.updateHead()
+      await nodeB.wallet.updateHead()
+
+      // create two transactions from A to B
+      const tx1 = await useTxFixture(nodeA.wallet, accountA, accountB)
+      const tx2 = await useTxFixture(nodeA.wallet, accountA, accountB)
+
+      // mine a block that includes both transactions
+      const block4 = await useMinerBlockFixture(nodeA.chain, 4, accountA, undefined, [tx1, tx2])
+      await nodeA.chain.addBlock(block4)
+      await nodeB.chain.addBlock(block4)
+      await nodeA.wallet.updateHead()
+      await nodeB.wallet.updateHead()
+
+      const accountATx = await AsyncUtils.materialize(accountA.getTransactionsByTime())
+      const accountBTx = await AsyncUtils.materialize(accountB.getTransactionsByTime())
+
+      // 3 block rewards plus 2 outgoing transactions
+      expect(accountATx).toHaveLength(5)
+
+      // 2 transactions from block4
+      expect(accountBTx).toHaveLength(2)
+    })
+  })
 })
