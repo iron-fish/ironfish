@@ -11,7 +11,7 @@ import { ONE_FISH_IMAGE, TWO_FISH_IMAGE } from '../images'
 const FAUCET_DISABLED = false
 
 export class FaucetCommand extends IronfishCommand {
-  static description = `Receive coins from the Iron Fish official Faucet`
+  static description = `Receive coins from the Iron Fish official testnet Faucet`
 
   static flags = {
     ...RemoteFlags,
@@ -33,10 +33,16 @@ export class FaucetCommand extends IronfishCommand {
       this.exit(1)
     }
 
-    this.log(ONE_FISH_IMAGE)
-
     const client = await this.sdk.connectRpc()
+    const networkInfoResponse = await client.getNetworkInfo()
 
+    if (networkInfoResponse.content === null || networkInfoResponse.content.networkId !== 0) {
+      // not testnet
+      this.log(`The faucet is only available for testnet.`)
+      this.exit(1)
+    }
+
+    this.log(ONE_FISH_IMAGE)
     let email = flags.email
 
     if (!email) {

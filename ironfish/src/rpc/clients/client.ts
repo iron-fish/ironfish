@@ -38,6 +38,8 @@ import {
   GetLogStreamResponse,
   GetNetworkHashPowerRequest,
   GetNetworkHashPowerResponse,
+  GetNetworkInfoRequest,
+  GetNetworkInfoResponse,
   GetNodeStatusRequest,
   GetNodeStatusResponse,
   GetPeersRequest,
@@ -600,6 +602,15 @@ export abstract class RpcClient {
   ): Promise<RpcResponseEnded<CreateTransactionResponse>> {
     return this.request<CreateTransactionResponse>(
       `${ApiNamespace.wallet}/createTransaction`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getNetworkInfo(
+    params?: GetNetworkInfoRequest,
+  ): Promise<RpcResponse<GetNetworkInfoResponse>> {
+    return this.request<GetNetworkInfoResponse>(
+      `${ApiNamespace.chain}/getNetworkInfo`,
       params,
     ).waitForEnd()
   }
