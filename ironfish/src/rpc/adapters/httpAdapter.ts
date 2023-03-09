@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import http from 'http'
 import { Assert } from '../../assert'
-import { createRootLogger, Logger } from '../../logger'
+import { Logger } from '../../logger'
+import { ErrorUtils } from '../../utils'
 import { RpcRequest } from '../request'
 import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
 import { IRpcAdapter } from './adapter'
-import { ResponseError } from './errors'
 
 export class RpcHttpAdapter implements IRpcAdapter {
   server: http.Server | null = null
@@ -20,12 +20,10 @@ export class RpcHttpAdapter implements IRpcAdapter {
   readonly namespaces: ApiNamespace[]
   readonly maxRequestSize: number
 
-  constructor(
-    host: string,
-    port: number,
-    logger: Logger = createRootLogger(),
-    namespaces: ApiNamespace[],
-  ) {
+  // TODO(daniel): keep track of ongoing requests + message ids
+  // TODO(daniel): implement basic authentication with rpcToken
+
+  constructor(host: string, port: number, logger: Logger, namespaces: ApiNamespace[]) {
     this.host = host
     this.port = port
     this.logger = logger
@@ -43,6 +41,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
     const server = http.createServer()
     this.server = server
 
+    //TODO(daniel): handle reject case here
     return new Promise((resolve, reject) => {
       const onError = (_error: unknown) => {
         server.off('onError', onError)
@@ -52,7 +51,14 @@ export class RpcHttpAdapter implements IRpcAdapter {
       const onListening = () => {
         server.off('onError', onError)
         server.off('listening', onListening)
-        server.on('request', this.onRequest)
+        server.on('request', (req, res) => {
+          this.logger.log('reqeust!')
+          void this.onRequest(req, res).catch((e) => {
+            //TODO(daniel): handle error better here
+            res.writeHead(500, ErrorUtils.renderError(e))
+            res.end()
+          })
+        })
         resolve()
       }
 
@@ -66,81 +72,66 @@ export class RpcHttpAdapter implements IRpcAdapter {
     throw new Error('Method not implemented.')
   }
 
-  onRequest = async (request: http.IncomingMessage, response: http.ServerResponse) => {
+  async onRequest(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
     const router = this.router
     Assert.isNotNull(router)
+    Assert.isNotUndefined(request.url)
 
-    this.logger.trace(`Call HTTP RPC: ${request.method} ${request.url}`)
+    this.logger.info(`Call HTTP RPC: ${request.method || 'noMethod'} ${request.url || 'noUrl'}`)
 
-    const headers = { 'Content-Type': 'application/json' }
-
-    const url = new URL(`http://localhost${request.url}` || '')
+    // TODO(daniel): better way to parse method from request here
+    const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`)
     const route = url.pathname.substring(1)
 
-    const content: Record<string, string> = {}
+    if (request.method !== 'POST') {
+      // TODO(daniel): better error here / support GET/PUT
+      response.writeHead(404, 'Route does not exist')
+      response.end()
+      return
+    }
 
-    // params
-    if (url.search !== '') {
-      params = {}
-      for (const [key, value] of url.searchParams) {
-        params[key] = value
+    // body TODO(daniel): clean up code here
+    let size = 0
+    const data: Buffer[] = []
+    let body = ''
+
+    for await (const chunk of request) {
+      Assert.isInstanceOf(chunk, Buffer)
+      size += chunk.byteLength
+      data.push(chunk)
+
+      if (size >= this.maxRequestSize) {
+        response.writeHead(400, 'Max request size exceeded')
+        return
       }
     }
 
-    // body
-    if (request.method === 'POST' || request.method === 'PUT') {
-      let size = 0
-      const data: Buffer[] = []
-
-      for await (const chunk of request) {
-        Assert.isInstanceOf(chunk, Buffer)
-        size += chunk.byteLength
-        data.push(chunk)
-
-        if (size >= this.maxRequestSize) {
-          response.writeHead(400, 'Max request size exceeded')
-          return
-        }
-      }
-
-      if (size > 0) {
-        const combined = Buffer.concat(data)
-        const parsed = JSON.parse(combined.toString('utf8'))
-        Object.assign(content, parsed)
-      }
+    if (size > 0) {
+      const combined = Buffer.concat(data)
+      // TODO(daniel): Yup validate here and respond with http error
+      body = JSON.parse(combined.toString('utf8')) as string
     }
 
     const rpcRequest = new RpcRequest(
-      content,
+      body,
       route,
       (status: number, data?: unknown) => {
-        response.writeHead(status, headers)
-        response.write(JSON.stringify({ status: status, data: data }))
+        response.writeHead(status, {
+          'Content-Type': 'application/json',
+        })
+        response.end({ status, data: JSON.stringify(data) })
       },
-      (_data: unknown) => {
-        // Not supported in HTTP
+      (data: unknown) => {
+        // TODO: see if this is correct way to implement HTTP streaming.
+        // do more headers need to be set, etc.??
+        const bufferData = Buffer.from(JSON.stringify(data))
+        response.write(bufferData)
       },
     )
 
-    try {
-      await router.route(route, rpcRequest)
-    } catch (error: unknown) {
-      if (error instanceof ResponseError) {
-        response.writeHead(error.status, headers)
-        response.write(
-          JSON.stringify({
-            code: error.code,
-            message: error.message,
-            stack: error.stack,
-          }),
-        )
-        return
-      }
+    await router.route(route, rpcRequest)
 
-      throw error
-    } finally {
-      response.end()
-      rpcRequest.close()
-    }
+    //TODO(daniel): figure out if this is correct way to handle closing reqeust
+    rpcRequest.close()
   }
 }
