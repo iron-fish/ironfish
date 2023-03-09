@@ -7,28 +7,25 @@ import { BigIntUtils } from '../utils/bigint'
 /**
  *  Minimum difficulty, which is equivalent to maximum target
  */
-const MIN_DIFFICULTY = BigInt(131072)
+const MIN_DIFFICULTY = 131072n
 
 /**
  * Maximum target, which is equivalent of minimum difficulty of 131072
  * target == 2**256 / difficulty
  */
-const MAX_TARGET = BigInt(
-  '883423532389192164791648750371459257913741948437809479060803100646309888',
-)
+const MAX_TARGET = 883423532389192164791648750371459257913741948437809479060803100646309888n
 
 /**
  *  Maximum number to represent a 256 bit number, which is 2**256 - 1
  */
-const MAX_256_BIT_NUM = BigInt(
-  '115792089237316195423570985008687907853269984665640564039457584007913129639935',
-)
+const MAX_256_BIT_NUM =
+  115792089237316195423570985008687907853269984665640564039457584007913129639935n
 
 export class Target {
   targetValue: bigint
   constructor(targetValue: bigint | Buffer | string | number | undefined = undefined) {
     if (targetValue === undefined) {
-      this.targetValue = BigInt(0)
+      this.targetValue = 0n
     } else {
       const candidate =
         targetValue instanceof Buffer
@@ -128,7 +125,7 @@ export class Target {
     bucket = Math.min(bucket, 99)
 
     const difficulty =
-      previousBlockDifficulty - (previousBlockDifficulty / BigInt(2048)) * BigInt(bucket)
+      previousBlockDifficulty - (previousBlockDifficulty / 2048n) * BigInt(bucket)
 
     return BigIntUtils.max(difficulty, Target.minDifficulty())
   }
@@ -145,17 +142,17 @@ export class Target {
    * Converts difficulty to Target
    */
   static fromDifficulty(difficulty: bigint): Target {
-    if (difficulty === BigInt(1)) {
+    if (difficulty === 1n) {
       return new Target(MAX_256_BIT_NUM)
     }
-    return new Target((BigInt(2) ** BigInt(256) / BigInt(difficulty)).valueOf())
+    return new Target((2n ** 256n / difficulty).valueOf())
   }
 
   /**
    * Return the difficulty representation as a big integer
    */
   toDifficulty(): bigint {
-    return BigInt(2) ** BigInt(256) / this.targetValue
+    return 2n ** 256n / this.targetValue
   }
 
   /**

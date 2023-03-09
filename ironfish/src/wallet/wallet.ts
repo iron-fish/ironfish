@@ -928,12 +928,12 @@ export class Wallet {
     amountsNeeded.set(Asset.nativeId(), options.fee)
 
     for (const output of raw.outputs) {
-      const currentAmount = amountsNeeded.get(output.note.assetId()) ?? BigInt(0)
+      const currentAmount = amountsNeeded.get(output.note.assetId()) ?? 0n
       amountsNeeded.set(output.note.assetId(), currentAmount + output.note.value())
     }
 
     for (const burn of raw.burns) {
-      const currentAmount = amountsNeeded.get(burn.assetId) ?? BigInt(0)
+      const currentAmount = amountsNeeded.get(burn.assetId) ?? 0n
       amountsNeeded.set(burn.assetId, currentAmount + burn.value)
     }
 
@@ -971,7 +971,7 @@ export class Wallet {
     amountNeeded: bigint,
     confirmations: number,
   ): Promise<{ amount: bigint; notes: Array<{ note: Note; witness: NoteWitness }> }> {
-    let amount = BigInt(0)
+    let amount = 0n
     const notes: Array<{ note: Note; witness: NoteWitness }> = []
 
     const head = await sender.getHead()
@@ -980,7 +980,7 @@ export class Wallet {
     }
 
     for await (const unspentNote of this.getUnspentNotes(sender, assetId)) {
-      if (unspentNote.note.value() <= BigInt(0)) {
+      if (unspentNote.note.value() <= 0n) {
         continue
       }
 

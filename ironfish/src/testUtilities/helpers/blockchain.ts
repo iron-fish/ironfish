@@ -6,5 +6,5 @@ import '../matchers/blockchain'
 import { Target } from '../../primitives/target'
 
 export function acceptsAllTarget(): Target {
-  return new Target(BigInt(2) ** BigInt(256) - BigInt(1))
+  return new Target(2n ** 256n - 1n)
 }
