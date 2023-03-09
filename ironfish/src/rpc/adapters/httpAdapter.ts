@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import http from 'http'
+import { v4 as uuid } from 'uuid'
 import { Assert } from '../../assert'
 import { Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
@@ -9,6 +10,7 @@ import { RpcRequest } from '../request'
 import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
 import { IRpcAdapter } from './adapter'
+import { ResponseError } from './errors'
 
 export class RpcHttpAdapter implements IRpcAdapter {
   server: http.Server | null = null
@@ -19,14 +21,20 @@ export class RpcHttpAdapter implements IRpcAdapter {
   readonly logger: Logger
   readonly namespaces: ApiNamespace[]
   readonly maxRequestSize: number
-
-  // TODO(daniel): implement https + basic authentication with rpcToken
+  private requests: Map<
+    string,
+    {
+      rpcRequest?: RpcRequest
+      req: http.IncomingMessage
+    }
+  >
 
   constructor(host: string, port: number, logger: Logger, namespaces: ApiNamespace[]) {
     this.host = host
     this.port = port
     this.logger = logger
     this.namespaces = namespaces
+    this.requests = new Map()
     // TODO(daniel): do we need a max message size and what should it be?
     this.maxRequestSize = 5 * 1000 * 1000
   }
@@ -52,16 +60,24 @@ export class RpcHttpAdapter implements IRpcAdapter {
         server.off('error', onError)
         server.off('listening', onListening)
 
-        // TODO(daniel): do we need to handle client error here too?
-        // server.on('error', handleError) ???
         server.on('request', (req, res) => {
-          void this.handleRequest(req, res).catch((e) => {
+          const reqId = uuid()
+          this.requests.set(reqId, { req })
+
+          req.on('close', () => {
+            this.cleanUpRequest(reqId)
+          })
+
+          void this.handleRequest(req, res, reqId).catch((e) => {
+            // TODO: handle (e instanceof ResponseError) here?
             const error = ErrorUtils.renderError(e)
             this.logger.debug(`Error in HTTP adapter: ${error}`)
             res.writeHead(500)
             res.end(JSON.stringify({ error }))
+            this.cleanUpRequest(reqId)
           })
         })
+
         resolve()
       }
 
@@ -71,19 +87,43 @@ export class RpcHttpAdapter implements IRpcAdapter {
     })
   }
 
-  stop(): Promise<void> {
-    // TODO(daniel): keep track of ongoing requests + message ids to close later
-    throw new Error('Method not implemented.')
+  async stop(): Promise<void> {
+    for (const { req, rpcRequest } of this.requests.values()) {
+      req.destroy()
+      rpcRequest?.close()
+    }
+
+    await new Promise<void>((resolve) => {
+      this.server?.close(() => resolve()) || resolve()
+    })
+  }
+
+  cleanUpRequest(requestId: string): void {
+    const request = this.requests.get(requestId)
+    if (!request) {
+      return
+    }
+
+    // TODO: req was closed but do we need to clean up here at all
+    const { req, rpcRequest } = request
+    rpcRequest?.close()
+    this.requests.delete(requestId)
   }
 
   async handleRequest(
     request: http.IncomingMessage,
     response: http.ServerResponse,
+    requestId: string,
   ): Promise<void> {
+    if (this.router === null || this.router.server === null) {
+      throw new ResponseError('Tried to connect to unmounted adapter')
+    }
+
     const router = this.router
-    // TODO(daniel): get rid of asserts here or handle better
-    Assert.isNotNull(router)
-    Assert.isNotUndefined(request.url)
+
+    if (request.url === undefined) {
+      throw new ResponseError('No request url provided')
+    }
 
     this.logger.debug(
       `Call HTTP RPC: ${request.method || 'undefined'} ${request.url || 'undefined'}`,
@@ -94,7 +134,6 @@ export class RpcHttpAdapter implements IRpcAdapter {
     const route = url.pathname.substring(1)
 
     if (request.method !== 'POST') {
-      // TODO(daniel): better error here / support GET/PUT
       response.writeHead(404, `Route does not exist, Did you mean to use POST?`)
       response.end()
       return
@@ -128,6 +167,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
           'Content-Type': 'application/json',
         })
         response.end(JSON.stringify({ status, data }))
+        this.cleanUpRequest(requestId)
       },
       (data: unknown) => {
         // TODO: see if this is correct way to implement HTTP streaming.
@@ -137,9 +177,8 @@ export class RpcHttpAdapter implements IRpcAdapter {
       },
     )
 
-    await router.route(route, rpcRequest)
+    this.requests.set(requestId, { rpcRequest, req: request })
 
-    //TODO(daniel): figure out if this is correct way to handle closing reqeust
-    rpcRequest.close()
+    await router.route(route, rpcRequest)
   }
 }
