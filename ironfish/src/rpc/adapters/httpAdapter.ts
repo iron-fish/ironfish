@@ -42,22 +42,25 @@ export class RpcHttpAdapter implements IRpcAdapter {
     const server = http.createServer()
     this.server = server
 
-    //TODO(daniel): handle reject case here
     return new Promise((resolve, reject) => {
       const onError = (err: unknown) => {
-        server.off('onError', onError)
+        server.off('error', onError)
         server.off('listening', onListening)
         reject(err)
       }
 
       const onListening = () => {
-        server.off('onError', onError)
+        server.off('error', onError)
         server.off('listening', onListening)
+
+        // TODO(daniel): do we need to handle client error here too?
+        // server.on('error', handleError) ???
         server.on('request', (req, res) => {
-          void this.onRequest(req, res).catch((e) => {
-            //TODO(daniel): handle error better here
-            res.writeHead(500, 'Server error')
-            res.end(JSON.stringify({ error: ErrorUtils.renderError(e) }))
+          void this.handleRequest(req, res).catch((e) => {
+            const error = ErrorUtils.renderError(e)
+            this.logger.debug(`Error in HTTP adapter: ${error}`)
+            res.writeHead(500)
+            res.end(JSON.stringify({ error }))
           })
         })
         resolve()
@@ -74,7 +77,10 @@ export class RpcHttpAdapter implements IRpcAdapter {
     throw new Error('Method not implemented.')
   }
 
-  async onRequest(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  async handleRequest(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+  ): Promise<void> {
     const router = this.router
     Assert.isNotNull(router)
     Assert.isNotUndefined(request.url)
