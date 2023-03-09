@@ -22,6 +22,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
 
   // TODO(daniel): keep track of ongoing requests + message ids
   // TODO(daniel): implement basic authentication with rpcToken
+  // TODO(daniel): implement https??
 
   constructor(host: string, port: number, logger: Logger, namespaces: ApiNamespace[]) {
     this.host = host
