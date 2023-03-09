@@ -115,7 +115,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
     const body = combined.length ? combined.toString('utf8') : undefined
 
     const rpcRequest = new RpcRequest(
-      body,
+      body === undefined ? undefined : JSON.parse(body),
       route,
       (status: number, data?: unknown) => {
         response.writeHead(status, {
