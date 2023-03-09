@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, Loggable, RpcTcpClient } from '@ironfish/sdk'
+import { Assert, RpcTcpClient } from '@ironfish/sdk'
 import { createRootLogger, Logger } from '@ironfish/sdk'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { exec } from 'child_process'
@@ -38,6 +38,8 @@ export class TestNode {
   bootstrap_url: string
   tcp_host: string
   tcp_port: number
+
+  defaultAccount: string | undefined
 
   shutdownPromise: Promise<void> | null = null
   shutdownResolve: (() => void) | null = null
@@ -224,6 +226,38 @@ export class TestNode {
       // TODO: handle proc.kill?
       const _ = proc.kill()
     })
+  }
+
+  getDefaultAccount(): string | undefined {
+    if (this.defaultAccount) {
+      return this.defaultAccount
+    }
+
+    this.client
+      ?.getDefaultAccount()
+      .then((resp) => {
+        this.defaultAccount = resp.content.account?.name
+      })
+      .catch((err) => {
+        console.log('error getting default account', err)
+      })
+
+    return this.defaultAccount
+  }
+
+  getDefaultAccountPublicKey(): string | undefined {
+    let publicKey: string | undefined
+
+    this.client
+      ?.getAccountPublicKey({ account: this.defaultAccount })
+      .then((resp) => {
+        publicKey = resp.content.publicKey
+      })
+      .catch((err) => {
+        console.log('error getting default account public key', err)
+      })
+
+    return publicKey
   }
 }
 

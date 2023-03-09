@@ -3,13 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createRootLogger } from '@ironfish/sdk'
 import {
-  Action,
   ActionConfig,
   ActionWorker,
-  MintAction,
   TestNode,
   TestNodeConfig,
-  TransactionAction,
 } from '../../automated-test-network'
 import { IronfishCommand } from '../../command'
 
@@ -131,8 +128,8 @@ export const nodeConfig: TestNodeConfig[] = [
 
 export const actionConfig: ActionConfig[] = [
   {
-    kind: 'transaction',
-    name: 'send 5 txns ',
+    kind: 'send',
+    name: 'send 1txn/s with random spend [0:10000] ORE from node1 to node2 ',
     from: 'node1',
     to: 'node2',
     rate: 1,

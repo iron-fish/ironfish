@@ -4,3 +4,4 @@
 export * from './actions'
 export * from './testnode'
 export * from './utils'
+export * from './action-worker'
