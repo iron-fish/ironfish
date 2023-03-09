@@ -20,8 +20,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
   readonly namespaces: ApiNamespace[]
   readonly maxRequestSize: number
 
-  // TODO(daniel): implement basic authentication with rpcToken
-  // TODO(daniel): implement https??
+  // TODO(daniel): implement https + basic authentication with rpcToken
 
   constructor(host: string, port: number, logger: Logger, namespaces: ApiNamespace[]) {
     this.host = host
@@ -82,6 +81,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
     response: http.ServerResponse,
   ): Promise<void> {
     const router = this.router
+    // TODO(daniel): get rid of asserts here or handle better
     Assert.isNotNull(router)
     Assert.isNotUndefined(request.url)
 
