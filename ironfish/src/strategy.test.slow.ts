@@ -213,7 +213,7 @@ describe('Demonstrate the Sapling API', () => {
         workerPool: new WorkerPool(),
         consensus: new TestnetConsensus(consensusParameters),
       })
-      const minersFee = await strategy.createMinersFee(0, 0, key.spendingKey)
+      const minersFee = await strategy.createMinersFee(0n, 0, key.spendingKey)
 
       expect(minersFee['transactionPosted']).toBeNull()
 
