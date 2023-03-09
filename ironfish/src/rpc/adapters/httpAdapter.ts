@@ -10,10 +10,17 @@ import { RpcRequest } from '../request'
 import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
 import { IRpcAdapter } from './adapter'
-import { ResponseError } from './errors'
+import { ERROR_CODES, ResponseError } from './errors'
 
 const MEGABYTES = 1000 * 1000
 const MAX_REQUEST_SIZE = 5 * MEGABYTES
+
+export type HttpRpcError = {
+  status: number
+  code: string
+  message: string
+  stack?: string
+}
 
 export class RpcHttpAdapter implements IRpcAdapter {
   server: http.Server | null = null
@@ -66,20 +73,35 @@ export class RpcHttpAdapter implements IRpcAdapter {
         server.off('listening', onListening)
 
         server.on('request', (req, res) => {
-          const reqId = uuid()
-          this.requests.set(reqId, { req })
+          const requestId = uuid()
+          this.requests.set(requestId, { req })
 
           req.on('close', () => {
-            this.cleanUpRequest(reqId)
+            this.cleanUpRequest(requestId)
           })
 
-          void this.handleRequest(req, res, reqId).catch((e) => {
-            // TODO: handle (e instanceof ResponseError) here?
+          void this.handleRequest(req, res, requestId).catch((e) => {
             const error = ErrorUtils.renderError(e)
             this.logger.debug(`Error in HTTP adapter: ${error}`)
-            res.writeHead(500)
-            res.end(JSON.stringify({ error }))
-            this.cleanUpRequest(reqId)
+            let errorResponse: HttpRpcError = {
+              code: ERROR_CODES.ERROR,
+              status: 500,
+              message: error,
+            }
+
+            if (e instanceof ResponseError) {
+              errorResponse = {
+                code: e.code,
+                status: e.status,
+                message: e.message,
+                stack: e.stack,
+              }
+            }
+
+            res.writeHead(errorResponse.status)
+            res.end(JSON.stringify(errorResponse))
+
+            this.cleanUpRequest(requestId)
           })
         })
 
@@ -136,9 +158,11 @@ export class RpcHttpAdapter implements IRpcAdapter {
     const route = url.pathname.substring(1)
 
     if (request.method !== 'POST') {
-      response.writeHead(404, `Route does not exist, Did you mean to use POST?`)
-      response.end()
-      return
+      throw new ResponseError(
+        `Route does not exist, Did you mean to use POST?`,
+        ERROR_CODES.ROUTE_NOT_FOUND,
+        404,
+      )
     }
 
     // TODO(daniel): clean up reading body code here a bit of possible
@@ -151,8 +175,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
       data.push(chunk)
 
       if (size >= MAX_REQUEST_SIZE) {
-        response.writeHead(400, 'Max request size exceeded')
-        return
+        throw new ResponseError('Max request size exceeded')
       }
     }
 
