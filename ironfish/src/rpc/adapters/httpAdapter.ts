@@ -20,7 +20,6 @@ export class RpcHttpAdapter implements IRpcAdapter {
   readonly namespaces: ApiNamespace[]
   readonly maxRequestSize: number
 
-  // TODO(daniel): keep track of ongoing requests + message ids
   // TODO(daniel): implement basic authentication with rpcToken
   // TODO(daniel): implement https??
 
@@ -29,6 +28,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
     this.port = port
     this.logger = logger
     this.namespaces = namespaces
+    // TODO(daniel): do we need a max message size and what should it be?
     this.maxRequestSize = 5 * 1000 * 1000
   }
 
@@ -44,16 +44,16 @@ export class RpcHttpAdapter implements IRpcAdapter {
 
     //TODO(daniel): handle reject case here
     return new Promise((resolve, reject) => {
-      const onError = (_error: unknown) => {
+      const onError = (err: unknown) => {
         server.off('onError', onError)
         server.off('listening', onListening)
+        reject(err)
       }
 
       const onListening = () => {
         server.off('onError', onError)
         server.off('listening', onListening)
         server.on('request', (req, res) => {
-          this.logger.log('reqeust!')
           void this.onRequest(req, res).catch((e) => {
             //TODO(daniel): handle error better here
             res.writeHead(500, 'Server error')
@@ -70,6 +70,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
   }
 
   stop(): Promise<void> {
+    // TODO(daniel): keep track of ongoing requests + message ids to close later
     throw new Error('Method not implemented.')
   }
 
@@ -88,15 +89,14 @@ export class RpcHttpAdapter implements IRpcAdapter {
 
     if (request.method !== 'POST') {
       // TODO(daniel): better error here / support GET/PUT
-      response.writeHead(404, 'Route does not exist')
+      response.writeHead(404, `Route does not exist, Did you mean to use POST?`)
       response.end()
       return
     }
 
-    // body TODO(daniel): clean up code here
+    // TODO(daniel): clean up reading body code here a bit of possible
     let size = 0
     const data: Buffer[] = []
-    let body = ''
 
     for await (const chunk of request) {
       Assert.isInstanceOf(chunk, Buffer)
@@ -109,11 +109,10 @@ export class RpcHttpAdapter implements IRpcAdapter {
       }
     }
 
-    if (size > 0) {
-      const combined = Buffer.concat(data)
-      // TODO(daniel): Yup validate here and respond with http error
-      body = JSON.parse(combined.toString('utf8')) as string
-    }
+    const combined = Buffer.concat(data)
+    // TODO(daniel): some routes assume that no data will be passed as undefined
+    // so keeping that convention here. Could think of a better way to handle?
+    const body = combined.length ? combined.toString('utf8') : undefined
 
     const rpcRequest = new RpcRequest(
       body,
