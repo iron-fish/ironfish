@@ -100,13 +100,10 @@ export class RpcHttpAdapter implements IRpcAdapter {
 
   cleanUpRequest(requestId: string): void {
     const request = this.requests.get(requestId)
-    if (!request) {
-      return
-    }
 
-    // TODO: req was closed but do we need to clean up here at all
-    const { req, rpcRequest } = request
-    rpcRequest?.close()
+    // TODO: request.req was is already closed at this point
+    // but do we need to clean that up here at all
+    request?.rpcRequest?.close()
     this.requests.delete(requestId)
   }
 
