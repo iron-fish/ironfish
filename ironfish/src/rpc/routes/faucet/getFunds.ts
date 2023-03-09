@@ -29,6 +29,14 @@ router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
   `${ApiNamespace.faucet}/getFunds`,
   GetFundsRequestSchema,
   async (request, node): Promise<void> => {
+    // check node network id
+    const networkId = node.internal.get('networkId')
+
+    if (networkId !== 0) {
+      // not testnet
+      throw new ResponseError('This endpoint is only available for testnet.', ERROR_CODES.ERROR)
+    }
+
     const account = getAccount(node, request.data.account)
 
     const api = new WebApi({

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import axios, { AxiosError } from 'axios'
+import { DEFAULT_NETWORK_ID } from '../../../fileStores'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RpcRequestError } from '../../clients'
 
@@ -18,6 +19,7 @@ describe('Route faucet.getFunds', () => {
     accountName = 'test' + Math.random().toString()
     const account = await routeTest.node.wallet.createAccount(accountName, true)
     publicAddress = account.publicAddress
+    routeTest.node.internal.set('networkId', DEFAULT_NETWORK_ID)
   })
 
   describe('when the API request succeeds', () => {
@@ -71,6 +73,15 @@ describe('Route faucet.getFunds', () => {
       axios.post = jest.fn().mockRejectedValueOnce(apiResponse)
       await expect(routeTest.client.getFunds({ account: accountName, email })).rejects.toThrow(
         'API failure',
+      )
+    })
+  })
+
+  describe('should fail when non testnet node', () => {
+    it('throws an error', async () => {
+      routeTest.node.internal.set('networkId', 2)
+      await expect(routeTest.client.getFunds({ account: accountName, email })).rejects.toThrow(
+        'This endpoint is only available for testnet.',
       )
     })
   })
