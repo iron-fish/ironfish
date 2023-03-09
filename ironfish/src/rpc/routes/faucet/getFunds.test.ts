@@ -80,8 +80,6 @@ describe('Route faucet.getFunds', () => {
   describe('should fail when non testnet node', () => {
     it('throws an error', async () => {
       routeTest.node.internal.set('networkId', 2)
-      //const apiResponse = new Error('API failure') as AxiosError
-      //axios.post = jest.fn().mockRejectedValueOnce(apiResponse)
       await expect(routeTest.client.getFunds({ account: accountName, email })).rejects.toThrow(
         'This endpoint is only available for testnet.',
       )
