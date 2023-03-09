@@ -56,8 +56,8 @@ export class RpcHttpAdapter implements IRpcAdapter {
           this.logger.log('reqeust!')
           void this.onRequest(req, res).catch((e) => {
             //TODO(daniel): handle error better here
-            res.writeHead(500, ErrorUtils.renderError(e))
-            res.end()
+            res.writeHead(500, 'Server error')
+            res.end(JSON.stringify({ error: ErrorUtils.renderError(e) }))
           })
         })
         resolve()
@@ -78,7 +78,9 @@ export class RpcHttpAdapter implements IRpcAdapter {
     Assert.isNotNull(router)
     Assert.isNotUndefined(request.url)
 
-    this.logger.info(`Call HTTP RPC: ${request.method || 'noMethod'} ${request.url || 'noUrl'}`)
+    this.logger.debug(
+      `Call HTTP RPC: ${request.method || 'undefined'} ${request.url || 'undefined'}`,
+    )
 
     // TODO(daniel): better way to parse method from request here
     const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`)
@@ -120,7 +122,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
         response.writeHead(status, {
           'Content-Type': 'application/json',
         })
-        response.end({ status, data: JSON.stringify(data) })
+        response.end(JSON.stringify({ status, data }))
       },
       (data: unknown) => {
         // TODO: see if this is correct way to implement HTTP streaming.
