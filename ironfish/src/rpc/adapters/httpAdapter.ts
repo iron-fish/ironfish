@@ -35,6 +35,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
     {
       rpcRequest?: RpcRequest
       req: http.IncomingMessage
+      waitForClose: Promise<void>
     }
   >
 
@@ -74,11 +75,15 @@ export class RpcHttpAdapter implements IRpcAdapter {
 
         server.on('request', (req, res) => {
           const requestId = uuid()
-          this.requests.set(requestId, { req })
 
-          req.on('close', () => {
-            this.cleanUpRequest(requestId)
+          const waitForClose = new Promise<void>((resolve) => {
+            req.on('close', () => {
+              this.cleanUpRequest(requestId)
+              resolve()
+            })
           })
+
+          this.requests.set(requestId, { req, waitForClose })
 
           void this.handleRequest(req, res, requestId).catch((e) => {
             const error = ErrorUtils.renderError(e)
@@ -123,6 +128,10 @@ export class RpcHttpAdapter implements IRpcAdapter {
     await new Promise<void>((resolve) => {
       this.server?.close(() => resolve()) || resolve()
     })
+
+    await Promise.all(
+      Array.from(this.requests.values()).map(({ waitForClose }) => waitForClose),
+    )
   }
 
   cleanUpRequest(requestId: string): void {
@@ -202,7 +211,8 @@ export class RpcHttpAdapter implements IRpcAdapter {
       },
     )
 
-    this.requests.set(requestId, { rpcRequest, req: request })
+    const currRequest = this.requests.get(requestId)
+    currRequest && this.requests.set(requestId, { ...currRequest, rpcRequest })
 
     await router.route(route, rpcRequest)
   }
