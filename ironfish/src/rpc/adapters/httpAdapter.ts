@@ -4,13 +4,16 @@
 import http from 'http'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../../assert'
-import { Logger } from '../../logger'
+import { createRootLogger, Logger } from '../../logger'
 import { ErrorUtils } from '../../utils'
 import { RpcRequest } from '../request'
 import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
 import { IRpcAdapter } from './adapter'
 import { ResponseError } from './errors'
+
+const MEGABYTES = 1000 * 1000
+const MAX_REQUEST_SIZE = 5 * MEGABYTES
 
 export class RpcHttpAdapter implements IRpcAdapter {
   server: http.Server | null = null
@@ -20,7 +23,6 @@ export class RpcHttpAdapter implements IRpcAdapter {
   readonly port: number
   readonly logger: Logger
   readonly namespaces: ApiNamespace[]
-  readonly maxRequestSize: number
   private requests: Map<
     string,
     {
@@ -29,14 +31,17 @@ export class RpcHttpAdapter implements IRpcAdapter {
     }
   >
 
-  constructor(host: string, port: number, logger: Logger, namespaces: ApiNamespace[]) {
+  constructor(
+    host: string,
+    port: number,
+    logger: Logger = createRootLogger(),
+    namespaces: ApiNamespace[],
+  ) {
     this.host = host
     this.port = port
     this.logger = logger
     this.namespaces = namespaces
     this.requests = new Map()
-    // TODO(daniel): do we need a max message size and what should it be?
-    this.maxRequestSize = 5 * 1000 * 1000
   }
 
   attach(server: RpcServer): void | Promise<void> {
@@ -145,7 +150,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
       size += chunk.byteLength
       data.push(chunk)
 
-      if (size >= this.maxRequestSize) {
+      if (size >= MAX_REQUEST_SIZE) {
         response.writeHead(400, 'Max request size exceeded')
         return
       }
