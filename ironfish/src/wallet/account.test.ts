@@ -1981,5 +1981,29 @@ describe('Accounts', () => {
 
       expect(unspentNotes).toHaveLength(1)
     })
+
+    it('should load no unspent notes with no confirmed blocks', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      let unspentNotes = await AsyncUtils.materialize(
+        accountA.getUnspentNotes(Asset.nativeId(), { confirmations: 0 }),
+      )
+
+      expect(unspentNotes).toHaveLength(1)
+
+      unspentNotes = await AsyncUtils.materialize(
+        accountA.getUnspentNotes(Asset.nativeId(), {
+          confirmations: node.chain.head.sequence + 1,
+        }),
+      )
+
+      expect(unspentNotes).toHaveLength(0)
+    })
   })
 })
