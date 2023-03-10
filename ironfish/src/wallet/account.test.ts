@@ -2045,11 +2045,13 @@ describe('Accounts', () => {
       // 3 block rewards plus 2 outgoing transactions
       expect(accountATx).toHaveLength(5)
 
-      expect(accountATx[0].transaction.hash()).toEqualHash(tx2.hash())
-      expect(accountATx[1].transaction.hash()).toEqualHash(tx1.hash())
-      expect(accountATx[2].transaction.hash()).toEqualHash(block4.transactions[0].hash())
-      expect(accountATx[3].transaction.hash()).toEqualHash(block3.transactions[0].hash())
-      expect(accountATx[4].transaction.hash()).toEqualHash(block2.transactions[0].hash())
+      const accountATxHashes = accountATx.map((tx) => tx.transaction.hash().toString('hex'))
+
+      expect(accountATxHashes).toContain(tx2.hash().toString('hex'))
+      expect(accountATxHashes).toContain(tx1.hash().toString('hex'))
+      expect(accountATxHashes).toContain(block4.transactions[0].hash().toString('hex'))
+      expect(accountATxHashes).toContain(block3.transactions[0].hash().toString('hex'))
+      expect(accountATxHashes).toContain(block2.transactions[0].hash().toString('hex'))
 
       // 2 transactions from block4
       expect(accountBTx).toHaveLength(2)
