@@ -150,11 +150,11 @@ export const nodeConfig: TestNodeConfig[] = [
 export const actionConfig: ActionConfig[] = [
   {
     kind: 'send',
-    name: 'send 1 txn/ 10s with random spend [0:5000] ORE from node1 to node2 ',
+    name: 'send 1 txn/ 10s with random spend [0:200000000] ORE from node1 to node2 ',
     from: 'node1',
     to: 'node2',
     rate: 1,
-    spendLimit: 5000,
+    spendLimit: 200000000,
     spendType: 'random',
   },
   // {
