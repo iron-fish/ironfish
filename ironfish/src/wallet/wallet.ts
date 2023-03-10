@@ -16,6 +16,7 @@ import { getFee } from '../memPool/feeEstimator'
 import { NoteHasher } from '../merkletree/hasher'
 import { NoteWitness, Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
+import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
 import { BlockHeader } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
 import { Note } from '../primitives/note'
@@ -1197,7 +1198,9 @@ export class Wallet {
     }
 
     if (transaction.sequence) {
-      const isConfirmed = headSequence - transaction.sequence >= confirmations
+      const isConfirmed =
+        transaction.sequence === GENESIS_BLOCK_SEQUENCE ||
+        headSequence - transaction.sequence >= confirmations
 
       return isConfirmed ? TransactionStatus.CONFIRMED : TransactionStatus.UNCONFIRMED
     } else {
