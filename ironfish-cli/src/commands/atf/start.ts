@@ -39,7 +39,7 @@ export default class Start extends IronfishCommand {
     const nodes: TestNode[] = []
 
     if (config.enabled.nodes) {
-      console.log('initializing nodes...')
+      logger.log('initializing nodes...')
 
       // TODO: read config from `config.json` file before using config file
       // TODO: abstract this into an orchestrator that owns the nodes
@@ -55,24 +55,24 @@ export default class Start extends IronfishCommand {
 
       logger.log('nodes initialized')
     } else {
-      console.log('skipping nodes')
+      logger.log('skipping nodes')
     }
 
     const actionWorkers: ActionWorker[] = []
 
     if (config.enabled.actions) {
       // execute actions
-      console.log('initializing action workers...')
+      logger.log('initializing action workers...')
       actionConfig.map((config) => {
-        console.log('creating action', config)
+        logger.log('creating action', config)
 
-        const worker = new ActionWorker({ actionConfig: config, nodeConfig })
+        const worker = new ActionWorker({ actionConfig: config, nodeConfig, logger })
         actionWorkers.push(worker)
       })
 
-      console.log('action workers initialized')
+      logger.log('action workers initialized')
     } else {
-      console.log('skipping actions')
+      logger.log('skipping actions')
     }
 
     //TODO: this should block at orchestrator level but there's no way to do so
@@ -80,7 +80,7 @@ export default class Start extends IronfishCommand {
     // Currently wait for the nodes to shutdown (via RPC call), then clean up actions
     // Ideally should wait on orchestrator shutdown request then action cleanup then node cleanup
 
-    console.log('starting atf, waiting for shutdown...')
+    logger.log('starting atf, waiting for shutdown...')
     // block: wait for all nodes to be stopped
     try {
       await Promise.all(
@@ -91,8 +91,8 @@ export default class Start extends IronfishCommand {
     } catch (e) {
       logger.log(`node shutdown error: ${String(e)}`)
     }
-    console.log('nodes stopped')
-    console.log('try to stop action workers')
+    logger.log('nodes stopped')
+    logger.log('try to stop action workers')
 
     // block: wait for all action workers to be stopped
     try {
@@ -105,7 +105,7 @@ export default class Start extends IronfishCommand {
       logger.log(`action worker shutdown error: ${String(e)}`)
     }
 
-    console.log('action workers stopped')
+    logger.log('action workers stopped')
 
     logger.log('cleaning up')
 
@@ -124,6 +124,8 @@ export const nodeConfig: TestNodeConfig[] = [
     bootstrap_url: "''",
     tcp_host: 'localhost',
     tcp_port: 9001,
+    http_host: 'localhost',
+    http_port: 8001,
   },
   {
     name: 'node2',
@@ -134,6 +136,8 @@ export const nodeConfig: TestNodeConfig[] = [
     bootstrap_url: 'localhost:7001',
     tcp_host: 'localhost',
     tcp_port: 9002,
+    http_host: 'localhost',
+    http_port: 8002,
   },
   {
     name: 'node3',
@@ -144,6 +148,8 @@ export const nodeConfig: TestNodeConfig[] = [
     bootstrap_url: 'localhost:7001',
     tcp_host: 'localhost',
     tcp_port: 9003,
+    http_host: 'localhost',
+    http_port: 8003,
   },
 ]
 

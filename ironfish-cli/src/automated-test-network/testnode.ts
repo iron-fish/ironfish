@@ -18,7 +18,11 @@ export type TestNodeConfig = {
   bootstrap_url: string
   tcp_host: string
   tcp_port: number
+  http_host: string
+  http_port: number
 }
+
+const globalLogger = createRootLogger()
 
 export class TestNode {
   procs = new Map<string, ChildProcessWithoutNullStreams>()
@@ -26,18 +30,7 @@ export class TestNode {
   minerProcess?: ChildProcessWithoutNullStreams
 
   client: RpcTcpClient
-
-  name: string
-  graffiti: string
-  port: number
-  data_dir: string
-  netword_id: number
-  is_miner: boolean
-  bootstrap_url: string
-  tcp_host: string
-  tcp_port: number
-
-  defaultAccount: string | undefined
+  config: TestNodeConfig
 
   shutdownPromise: Promise<void> | null = null
   shutdownResolve: (() => void) | null = null
@@ -45,15 +38,7 @@ export class TestNode {
   logger: Logger
 
   constructor(config: TestNodeConfig, client: RpcTcpClient, logger?: Logger) {
-    this.name = config.name
-    this.graffiti = config.graffiti
-    this.port = config.port
-    this.data_dir = config.data_dir
-    this.netword_id = config.netword_id
-    this.is_miner = config.is_miner || false
-    this.bootstrap_url = config.bootstrap_url
-    this.tcp_host = config.tcp_host
-    this.tcp_port = config.tcp_port
+    this.config = config
 
     this.client = client
 
@@ -62,22 +47,22 @@ export class TestNode {
     // this is gross fix this
     let args =
       'start --name ' +
-      config.name +
+      this.config.name +
       ' --graffiti ' +
-      config.graffiti +
+      this.config.graffiti +
       ' --port ' +
-      config.port.toString() +
+      this.config.port.toString() +
       ' --datadir ' +
-      config.data_dir +
+      this.config.data_dir +
       ' --networkId ' +
-      config.netword_id.toString() +
+      this.config.netword_id.toString() +
       ' --bootstrap ' +
-      config.bootstrap_url +
+      this.config.bootstrap_url +
       ' --rpc.tcp' +
       ' --rpc.tcp.host ' +
-      config.tcp_host +
+      this.config.tcp_host +
       ' --rpc.tcp.port ' +
-      config.tcp_port.toString() +
+      this.config.tcp_port.toString() +
       ' --no-rpc.tcp.tls'
     //  +' --jsonLogs'
 
@@ -91,7 +76,7 @@ export class TestNode {
 
     this.nodeProcess = this.startNodeProcess(args)
 
-    this.logger.log(`started node: ${this.name}`)
+    this.logger.log(`started node: ${this.config.name}`)
   }
 
   registerChildProcess(proc: ChildProcessWithoutNullStreams, procName: string): void {
@@ -104,14 +89,14 @@ export class TestNode {
    * attaches a miner process to the test node
    */
   attachMiner(): void {
-    this.logger.log(`attaching miner to ${this.name}...`)
+    this.logger.log(`attaching miner to ${this.config.name}...`)
 
     this.minerProcess = spawn('ironfish', [
       'miners:start',
       '-t',
       '1',
       '--datadir',
-      this.data_dir,
+      this.config.data_dir,
     ])
     this.registerChildProcess(this.minerProcess, 'miner')
 
@@ -148,9 +133,9 @@ export class TestNode {
   }
 
   async stop(): Promise<{ success: boolean; msg: string }> {
-    this.logger.log(`killing node ${this.name}...`)
+    this.logger.log(`killing node ${this.config.name}...`)
 
-    return stopTestNode(this)
+    return stopTestNode(this.config)
   }
 
   /**
@@ -184,7 +169,7 @@ export class TestNode {
       })
 
       if (log) {
-        this.logger.log(`[${this.name}:${procName}:stdout]`, { str })
+        this.logger.log(`[${this.config.name}:${procName}:stdout]`, { str })
       }
     })
 
@@ -199,17 +184,17 @@ export class TestNode {
       })
 
       if (log) {
-        this.logger.log(`[${this.name}:${procName}:stderr]`, { str })
+        this.logger.log(`[${this.config.name}:${procName}:stderr]`, { str })
       }
     })
 
     p.on('error', (error: Error) => {
       const msg = error.message
-      this.logger.log(`[${this.name}:${procName}:error]:`, { msg })
+      this.logger.log(`[${this.config.name}:${procName}:error]:`, { msg })
     })
 
     p.on('close', (code: number | null) => {
-      this.logger.log(`[${this.name}:${procName}:close]: child process exited`, { code })
+      this.logger.log(`[${this.config.name}:${procName}:close]: child process exited`, { code })
     })
 
     p.on('exit', (code, signal) => {
@@ -223,7 +208,7 @@ export class TestNode {
         this.cleanup()
       }
 
-      this.logger.log(`[${this.name}:${procName}:exit]:spawn`, {
+      this.logger.log(`[${this.config.name}:${procName}:exit]:spawn`, {
         code,
         signal: signal?.toString(),
       })
@@ -236,7 +221,7 @@ export class TestNode {
    * Kills all child processes and handles any required cleanup
    */
   cleanup(): void {
-    this.logger.log(`cleaning up ${this.name}...`)
+    this.logger.log(`cleaning up ${this.config.name}...`)
     // TODO: at this point you know the node proc is dead, should we remove from map?
     this.procs.forEach((proc) => {
       // TODO: handle proc.kill?
@@ -275,7 +260,7 @@ async function stopViaTcp(node: {
       throw new Error(`failed to connect to node ${node.name}`)
     }
   } catch (e) {
-    console.log(`error creating client to connect to node ${node.name}: ${String(e)}`)
+    globalLogger.log(`error creating client to connect to node ${node.name}: ${String(e)}`)
   }
 
   let success = true
@@ -291,7 +276,8 @@ async function stopViaTcp(node: {
     success = false
   }
 
-  console.log(node.name, success, msg)
+  globalLogger.log(node.name, { success, msg })
+
   return { success, msg }
 }
 

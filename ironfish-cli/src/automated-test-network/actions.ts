@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
-import { RpcTcpClient } from '@ironfish/sdk'
+import { Logger, RpcTcpClient } from '@ironfish/sdk'
 import { TestNodeConfig } from './testnode'
 import { second, sleep } from './utils'
 
@@ -31,13 +31,15 @@ export class SendAction implements Action {
   nodes: TestNodeConfig[]
   nodeMap: Map<string, RpcTcpClient> | null
   ready: boolean
-
+  logger: Logger
   amountSent = 0
 
-  constructor(config: ActionConfig, nodes: TestNodeConfig[]) {
+  constructor(config: ActionConfig, nodes: TestNodeConfig[], logger: Logger) {
     this.config = config as SendActionConfig
     this.nodes = nodes
     this.ready = true
+
+    this.logger = logger
 
     this.nodeMap = null
   }
@@ -54,7 +56,9 @@ export class SendAction implements Action {
               throw new Error(`failed to connect to node ${node.name}`)
             }
           } catch (e) {
-            console.log(`error creating client to connect to node ${node.name}: ${String(e)}`)
+            this.logger.log(
+              `error creating client to connect to node ${node.name}: ${String(e)}`,
+            )
             throw new Error(`${String(e)}`)
           }
 
@@ -69,12 +73,16 @@ export class SendAction implements Action {
       )
       this.nodeMap = new Map<string, RpcTcpClient>(clients.map((c) => [c.name, c.client]))
     } catch (e) {
-      console.log('error creating clients to connect to nodes:', e)
+      this.logger.log(`error creating clients to connect to nodes: ${String(e)}`)
     }
   }
 
-  static async initialize(config: ActionConfig, nodes: TestNodeConfig[]): Promise<SendAction> {
-    const sendAction = new SendAction(config, nodes)
+  static async initialize(
+    config: ActionConfig,
+    nodes: TestNodeConfig[],
+    logger: Logger,
+  ): Promise<SendAction> {
+    const sendAction = new SendAction(config, nodes, logger)
 
     await sendAction.addClients(nodes)
 
@@ -125,11 +133,16 @@ export class SendAction implements Action {
 
       const hash = txn.content.hash
 
-      console.log('txn sent', { hash, from: fromAccount, to: toPublicKey, amt: spendAmount })
+      this.logger.log('txn sent', {
+        hash,
+        from: fromAccount,
+        to: toPublicKey,
+        amt: spendAmount,
+      })
 
       return { amount: spendAmount, hash }
     } else {
-      console.log('not ready')
+      this.logger.log('not ready')
       return { amount: 0, hash: '' }
     }
   }
@@ -168,23 +181,29 @@ export class SendAction implements Action {
           }),
       )
     } else {
-      console.log('valid amount sent:', hash)
+      this.logger.log('valid amount sent:', { hash })
     }
   }
 
   start(): void {
-    console.log('[action] starting transaction action: ', this.config.kind, this.config.name)
+    this.logger.log('[action] starting transaction action: ', {
+      kind: this.config.kind,
+      name: this.config.name,
+    })
 
     // Send a transaction every 5 seconds and validate the results
     setInterval(() => {
       this.validateWrapper(() => this.sendTransaction()).catch((e) => {
-        console.log(`invalid amount sent: ${String(e)}`)
+        this.logger.log(`invalid amount sent: ${String(e)}`)
       })
     }, 10 * second)
   }
 
   stop(): void {
-    console.log('[action] stopping transaction action: ', this.config.kind, this.config.name)
+    this.logger.log('[action] stopping transaction action: ', {
+      kind: this.config.kind,
+      name: this.config.name,
+    })
     this.ready = false
   }
 }
@@ -199,10 +218,12 @@ type MintActionConfig = {
 export class MintAction implements Action {
   config: MintActionConfig
   nodes: TestNodeConfig[]
+  logger: Logger
 
-  constructor(config: ActionConfig, nodes: TestNodeConfig[]) {
+  constructor(config: ActionConfig, nodes: TestNodeConfig[], logger: Logger) {
     this.config = config as MintActionConfig
     this.nodes = nodes
+    this.logger = logger
   }
 
   start(): void {

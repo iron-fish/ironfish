@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert } from '@ironfish/sdk'
+import { Assert, createRootLogger, Logger } from '@ironfish/sdk'
 import { isMainThread, MessagePort, parentPort, Worker, workerData } from 'worker_threads'
 import { Action, ActionConfig, SendAction } from './actions'
 import { TestNodeConfig } from './testnode'
@@ -15,6 +15,7 @@ export class ActionWorker {
 
   actionConfig: ActionConfig
   nodeConfig: TestNodeConfig[]
+  logger: Logger
 
   action: Action | null = null
 
@@ -28,11 +29,13 @@ export class ActionWorker {
   constructor(options: {
     actionConfig: ActionConfig
     nodeConfig: TestNodeConfig[]
+    logger: Logger
     parent?: MessagePort
     path?: string
   }) {
     this.actionConfig = options.actionConfig
     this.nodeConfig = options.nodeConfig
+    this.logger = options.logger
 
     this.parent = options.parent ?? null
     this.path = options.path ?? __filename
@@ -70,10 +73,9 @@ export class ActionWorker {
 
     this.thread.addListener('message', (msg) => {
       if (msg === STATE_FINISHED) {
-        console.log(
+        this.logger.log(
           '[parent]: got finish msg from worker thread, stopping action worker:',
-          this.actionConfig.kind,
-          this.actionConfig.name,
+          { kind: this.actionConfig.kind, name: this.actionConfig.name },
         )
         if (this.shutdownResolve) {
           this.shutdownResolve()
@@ -87,7 +89,7 @@ export class ActionWorker {
     Assert.isNotNull(this.parent)
     this.parent.addListener('message', (msg) => {
       if (msg === STATE_CANCELLED) {
-        console.log('[worker] got msg: ', msg, 'stopping worker thread')
+        this.logger.log(`[worker] got msg: ${String(msg)} stopping worker thread`)
 
         Assert.isNotNull(this.action)
         Assert.isNotNull(this.parent)
@@ -105,10 +107,14 @@ export class ActionWorker {
   // This needs to be done in the worker thread because functions cannot be serialized
   // and so the action can't be created in the main thread and passed to the worker thread
   async setAction(): Promise<void> {
-    console.log(this.actionConfig.kind)
+    this.logger.log(this.actionConfig.kind)
     switch (this.actionConfig.kind) {
       case 'send': {
-        this.action = await SendAction.initialize(this.actionConfig, this.nodeConfig)
+        this.action = await SendAction.initialize(
+          this.actionConfig,
+          this.nodeConfig,
+          this.logger,
+        )
         break
       }
       case 'mint': {
@@ -154,11 +160,11 @@ export class ActionWorker {
     this.started = false
 
     if (this.thread) {
-      console.log('sending stop message to worker thread')
+      this.logger.log('sending stop message to worker thread')
       this.thread.postMessage(STATE_CANCELLED)
       await this.waitForShutdown()
 
-      console.log('thread shutdown, cleaning up...')
+      this.logger.log('thread shutdown, cleaning up...')
 
       this.thread.removeAllListeners()
       await this.thread.terminate()
@@ -176,6 +182,11 @@ if (parentPort !== null) {
   const nds = JSON.parse(nodes) as TestNodeConfig[]
 
   //   console.log('spawn action worker:', cfg, nds)
-  const worker = new ActionWorker({ actionConfig: cfg, nodeConfig: nds, parent: parentPort })
+  const worker = new ActionWorker({
+    actionConfig: cfg,
+    nodeConfig: nds,
+    parent: parentPort,
+    logger: createRootLogger(),
+  })
   void worker.start()
 }
