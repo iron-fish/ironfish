@@ -25,7 +25,7 @@ import { WebSocketClient } from './network/webSocketClient'
 import { IronfishNode } from './node'
 import { IronfishPKG, Package } from './package'
 import { Platform } from './platform'
-import { RpcSocketClient, RpcTlsAdapter } from './rpc'
+import { RpcHttpAdapter, RpcSocketClient, RpcTlsAdapter } from './rpc'
 import { RpcIpcAdapter } from './rpc/adapters/ipcAdapter'
 import { RpcTcpAdapter } from './rpc/adapters/tcpAdapter'
 import { RpcClient } from './rpc/clients/client'
@@ -200,10 +200,19 @@ export class IronfishSdk {
     })
 
     if (this.config.get('enableRpcIpc')) {
-      const namespaces = ALL_API_NAMESPACES
-
       await node.rpc.mount(
-        new RpcIpcAdapter(this.config.get('ipcPath'), this.logger, namespaces),
+        new RpcIpcAdapter(this.config.get('ipcPath'), this.logger, ALL_API_NAMESPACES),
+      )
+    }
+
+    if (this.config.get('enableRpcHttp')) {
+      await node.rpc.mount(
+        new RpcHttpAdapter(
+          this.config.get('rpcHttpHost'),
+          this.config.get('rpcHttpPort'),
+          this.logger,
+          ALL_API_NAMESPACES,
+        ),
       )
     }
 

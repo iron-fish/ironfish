@@ -13,6 +13,8 @@ export const DEFAULT_DISCORD_INVITE = 'https://discord.ironfish.network'
 export const DEFAULT_USE_RPC_IPC = true
 export const DEFAULT_USE_RPC_TCP = false
 export const DEFAULT_USE_RPC_TLS = true
+// TODO(daniel): Setting this to false until we can get HTTPS + basic auth
+export const DEFAULT_USE_RPC_HTTP = false
 export const DEFAULT_POOL_HOST = '::'
 export const DEFAULT_POOL_PORT = 9034
 export const DEFAULT_NETWORK_ID = 0
@@ -33,6 +35,7 @@ export type ConfigOptions = {
   enableRpcIpc: boolean
   enableRpcTcp: boolean
   enableRpcTls: boolean
+  enableRpcHttp: boolean
   enableSyncing: boolean
   enableTelemetry: boolean
   enableMetrics: boolean
@@ -93,6 +96,8 @@ export type ConfigOptions = {
   rpcTcpPort: number
   tlsKeyPath: string
   tlsCertPath: string
+  rpcHttpHost: string
+  rpcHttpPort: number
   /**
    * The maximum number of peers we can be connected to at a time. Past this number,
    * new connections will be rejected.
@@ -276,6 +281,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     enableRpcIpc: yup.boolean(),
     enableRpcTcp: yup.boolean(),
     enableRpcTls: yup.boolean(),
+    enableRpcHttp: yup.boolean(),
     enableSyncing: yup.boolean(),
     enableTelemetry: yup.boolean(),
     enableMetrics: yup.boolean(),
@@ -298,6 +304,8 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     rpcTcpPort: YupUtils.isPort,
     tlsKeyPath: yup.string().trim(),
     tlsCertPath: yup.string().trim(),
+    rpcHttpHost: yup.string().trim(),
+    rpcHttpPort: YupUtils.isPort,
     maxPeers: YupUtils.isPositiveInteger,
     minPeers: YupUtils.isPositiveInteger,
     targetPeers: yup.number().integer().min(1),
@@ -369,6 +377,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableRpcIpc: DEFAULT_USE_RPC_IPC,
       enableRpcTcp: DEFAULT_USE_RPC_TCP,
       enableRpcTls: DEFAULT_USE_RPC_TLS,
+      enableRpcHttp: DEFAULT_USE_RPC_HTTP,
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
@@ -388,6 +397,8 @@ export class Config extends KeyStore<ConfigOptions> {
       rpcTcpPort: 8020,
       tlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'node-key.pem')),
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
+      rpcHttpHost: 'localhost',
+      rpcHttpPort: 8021,
       maxPeers: 50,
       confirmations: 2,
       minPeers: 1,
