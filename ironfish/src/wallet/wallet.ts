@@ -979,7 +979,7 @@ export class Wallet {
       return { amount, notes }
     }
 
-    for await (const unspentNote of this.getUnspentNotes(sender, assetId)) {
+    for await (const unspentNote of this.getUnspentNotes(sender, assetId, { confirmations })) {
       if (unspentNote.note.value() <= 0n) {
         continue
       }
@@ -987,11 +987,6 @@ export class Wallet {
       Assert.isNotNull(unspentNote.index)
       Assert.isNotNull(unspentNote.nullifier)
       Assert.isNotNull(unspentNote.sequence)
-
-      const isConfirmed = head.sequence - unspentNote.sequence >= confirmations
-      if (!isConfirmed) {
-        continue
-      }
 
       if (await this.checkNoteOnChainAndRepair(sender, unspentNote)) {
         continue
