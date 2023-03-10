@@ -398,7 +398,7 @@ export class Config extends KeyStore<ConfigOptions> {
       tlsKeyPath: files.resolve(files.join(dataDir, 'certs', 'node-key.pem')),
       tlsCertPath: files.resolve(files.join(dataDir, 'certs', 'node-cert.pem')),
       rpcHttpHost: 'localhost',
-      rpcHttpPort: 8080,
+      rpcHttpPort: 8021,
       maxPeers: 50,
       confirmations: 2,
       minPeers: 1,
