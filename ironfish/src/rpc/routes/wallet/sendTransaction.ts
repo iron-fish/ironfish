@@ -97,7 +97,9 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
 
     // Check that the node has enough balance
     for (const [assetId, sum] of totalByAssetId) {
-      const balance = await node.wallet.getBalance(account, assetId)
+      const balance = await node.wallet.getBalance(account, assetId, {
+        confirmations: request.data.confirmations ?? undefined,
+      })
 
       if (balance.available < sum) {
         throw new ValidationError(
