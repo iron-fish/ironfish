@@ -53,7 +53,11 @@ export class ActionWorker {
   spawn(): void {
     Assert.isNull(this.parent)
 
-    console.log('spawning new worker thread for action: ', this.actionConfig)
+    // console.log(
+    //   'spawning new worker thread for action: ',
+    //   this.actionConfig.kind,
+    //   this.actionConfig.name,
+    // )
 
     Assert.isNotNull(this.actionConfig)
 
@@ -68,7 +72,8 @@ export class ActionWorker {
       if (msg === STATE_FINISHED) {
         console.log(
           '[parent]: got finish msg from worker thread, stopping action worker:',
-          this.actionConfig,
+          this.actionConfig.kind,
+          this.actionConfig.name,
         )
         if (this.shutdownResolve) {
           this.shutdownResolve()
@@ -94,8 +99,6 @@ export class ActionWorker {
         return
       }
     })
-
-    console.log('[worker] spawned from parent thread, starting action: ', this.actionConfig)
   }
 
   // Set the proper action based on the config
@@ -172,7 +175,7 @@ if (parentPort !== null) {
   const cfg = JSON.parse(config) as ActionConfig
   const nds = JSON.parse(nodes) as TestNodeConfig[]
 
-  console.log('spawn action worker:', cfg, nds)
+  //   console.log('spawn action worker:', cfg, nds)
   const worker = new ActionWorker({ actionConfig: cfg, nodeConfig: nds, parent: parentPort })
   void worker.start()
 }

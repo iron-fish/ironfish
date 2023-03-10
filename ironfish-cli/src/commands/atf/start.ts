@@ -19,13 +19,14 @@ import { IronfishCommand } from '../../command'
  */
 
 type OrchestratorConfig = {
-  nodes: boolean
-  actions: boolean
+  enabled: {
+    nodes: boolean
+    actions: boolean
+  }
 }
 
 export const config: OrchestratorConfig = {
-  nodes: true,
-  actions: false,
+  enabled: { nodes: true, actions: true },
 }
 
 export default class Start extends IronfishCommand {
@@ -37,7 +38,7 @@ export default class Start extends IronfishCommand {
 
     const nodes: TestNode[] = []
 
-    if (config.nodes) {
+    if (config.enabled.nodes) {
       console.log('initializing nodes...')
 
       // TODO: read config from `config.json` file before using config file
@@ -59,13 +60,12 @@ export default class Start extends IronfishCommand {
 
     const actionWorkers: ActionWorker[] = []
 
-    if (config.actions) {
+    if (config.enabled.actions) {
       // execute actions
       console.log('initializing action workers...')
       actionConfig.map((config) => {
         console.log('creating action', config)
 
-        console.log('e')
         const worker = new ActionWorker({ actionConfig: config, nodeConfig })
         actionWorkers.push(worker)
       })
@@ -150,7 +150,7 @@ export const nodeConfig: TestNodeConfig[] = [
 export const actionConfig: ActionConfig[] = [
   {
     kind: 'send',
-    name: 'send 1txn/s with random spend [0:5000] ORE from node1 to node2 ',
+    name: 'send 1 txn/ 10s with random spend [0:5000] ORE from node1 to node2 ',
     from: 'node1',
     to: 'node2',
     rate: 1,

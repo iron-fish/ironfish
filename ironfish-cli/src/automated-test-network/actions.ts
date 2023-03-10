@@ -5,7 +5,7 @@
 import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
 import { RpcTcpClient } from '@ironfish/sdk'
 import { TestNodeConfig } from './testnode'
-import { sleep } from './utils'
+import { second, sleep } from './utils'
 
 export interface Action {
   config: ActionConfig
@@ -31,6 +31,8 @@ export class SendAction implements Action {
   nodes: TestNodeConfig[]
   nodeMap: Map<string, RpcTcpClient> | null
   ready: boolean
+
+  amountSent = 0
 
   constructor(config: ActionConfig, nodes: TestNodeConfig[]) {
     this.config = config as SendActionConfig
@@ -79,7 +81,7 @@ export class SendAction implements Action {
     return sendAction
   }
 
-  async sendTransaction(): Promise<void> {
+  async sendTransaction(): Promise<{ amount: number; hash: string }> {
     if (this.ready) {
       const to = this.nodeMap?.get(this.config.to)
       const from = this.nodeMap?.get(this.config.from)
@@ -88,40 +90,30 @@ export class SendAction implements Action {
         throw new Error('to / from nodes not found')
       }
 
-      const spendAmount = Math.floor(
+      const spendAmount = Math.round(
         this.config.spendType === 'flat'
           ? this.config.spendLimit
           : Math.random() * this.config.spendLimit,
-      ).toString()
-
-      console.log('spend amt' + spendAmount)
+      )
 
       const fromAccount = await getDefaultAccount(from)
       const toAccount = await getDefaultAccount(to)
 
       if (!fromAccount || !toAccount) {
         throw new Error('missing account')
-        return
       }
-
-      console.log('from account: ', fromAccount)
 
       const toPublicKey = await getAccountPublicKey(to, toAccount)
       if (!isValidPublicAddress(toPublicKey)) {
         throw new Error('invalid public key')
-        return
       }
-
-      console.log('to public key: ', toPublicKey)
-
-      console.log('sending txn', { from: fromAccount, to: toPublicKey, amt: spendAmount })
 
       const txn = await from.sendTransaction({
         account: fromAccount,
         outputs: [
           {
             publicAddress: toPublicKey,
-            amount: spendAmount,
+            amount: spendAmount.toString(),
             memo: 'lol',
             assetId: Asset.nativeId().toString('hex'),
           },
@@ -129,24 +121,66 @@ export class SendAction implements Action {
         fee: BigInt(1).toString(),
       })
 
-      console.log('txn sent: ', txn.content.hash)
+      this.amountSent += spendAmount
+
+      const hash = txn.content.hash
+
+      console.log('txn sent', { hash, from: fromAccount, to: toPublicKey, amt: spendAmount })
+
+      return { amount: spendAmount, hash }
     } else {
       console.log('not ready')
-      return
+      return { amount: 0, hash: '' }
     }
+  }
 
-    return
+  // TODO: make this generic and have pre / post state with a function to validate
+  // just compare the states of pre vs post
+
+  // Wrap around a send transaction function to assert the proper amount was sent
+  async validateWrapper(fn: () => Promise<{ amount: number; hash: string }>): Promise<void> {
+    const dst = this.nodeMap?.get(this.config.to)
+    if (!dst) {
+      throw new Error('to node not found')
+    }
+    const toAccount = await getDefaultAccount(dst)
+
+    const toBalance = await getAccountBalance(dst, toAccount)
+
+    const { amount, hash } = await fn()
+
+    // TODO: the wait for the txn to be mined should be more deterministic than sleeping
+    // also need a more multi-threaded safe way to do this
+    // sleep isn't long enough half the time resulting in invalid txn amts
+    await sleep(5000)
+
+    const newToBalance = await getAccountBalance(dst, toAccount)
+
+    const valid = newToBalance === toBalance + amount
+
+    if (!valid) {
+      throw new Error(
+        'invalid amount sent' +
+          JSON.stringify({
+            hash,
+            expected: toBalance + amount,
+            actual: newToBalance,
+          }),
+      )
+    } else {
+      console.log('valid amount sent:', hash)
+    }
   }
 
   start(): void {
     console.log('[action] starting transaction action: ', this.config.kind, this.config.name)
 
+    // Send a transaction every 5 seconds and validate the results
     setInterval(() => {
-      this.sendTransaction().catch((err) => {
-        console.log('error sending transaction: ', err)
-        this.ready = false
+      this.validateWrapper(() => this.sendTransaction()).catch((e) => {
+        console.log(`invalid amount sent: ${String(e)}`)
       })
-    }, 5000)
+    }, 10 * second)
   }
 
   stop(): void {
@@ -199,4 +233,19 @@ async function getAccountPublicKey(node: RpcTcpClient, account: string): Promise
   }
 
   return publicKey
+}
+
+async function getAccountBalance(node: RpcTcpClient, account: string): Promise<number> {
+  const resp = await node.getAccountBalance({
+    account,
+    assetId: Asset.nativeId().toString('hex'),
+    confirmations: 0,
+  })
+
+  const balance = resp.content.confirmed
+  if (balance === undefined) {
+    throw new Error('balance undefined')
+  }
+
+  return parseInt(balance)
 }

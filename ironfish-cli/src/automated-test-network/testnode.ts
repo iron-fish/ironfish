@@ -160,14 +160,47 @@ export class TestNode {
    * @param proc new proc
    */
   attachListeners(p: ChildProcessWithoutNullStreams, procName: string): void {
+    const filtered = [
+      'Requesting',
+      // 'Successfully mined block',
+      'Added block',
+      'Starting sync from',
+      'Found peer',
+      'Finding ancestor',
+      'Hashrate...',
+      'Finished syncing',
+    ]
+
+    // const filtered = []
+
     p.stdout.on('data', (data) => {
       const str = (data as Buffer).toString()
-      this.logger.log(`[${this.name}:${procName}:stdout]`, { str })
+
+      let log = true
+      filtered.forEach((filter) => {
+        if (str.startsWith(filter)) {
+          log = false
+        }
+      })
+
+      if (log) {
+        this.logger.log(`[${this.name}:${procName}:stdout]`, { str })
+      }
     })
 
     p.stderr.on('data', (data) => {
       const str = (data as Buffer).toString()
-      this.logger.log(`[${this.name}:${procName}:stderr]`, { str })
+
+      let log = true
+      filtered.forEach((filter) => {
+        if (str.startsWith(filter)) {
+          log = false
+        }
+      })
+
+      if (log) {
+        this.logger.log(`[${this.name}:${procName}:stderr]`, { str })
+      }
     })
 
     p.on('error', (error: Error) => {

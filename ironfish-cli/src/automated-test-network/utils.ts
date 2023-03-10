@@ -5,6 +5,6 @@
 export const second = 1000
 
 export function sleep(ms: number): Promise<void> {
-  console.log(`sleeping...  ${ms / 1000}s`)
+  // console.log(`sleeping...  ${ms / 1000}s`)
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
