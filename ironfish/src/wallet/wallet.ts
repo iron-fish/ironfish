@@ -988,11 +988,6 @@ export class Wallet {
       Assert.isNotNull(unspentNote.nullifier)
       Assert.isNotNull(unspentNote.sequence)
 
-      const isConfirmed = head.sequence - unspentNote.sequence >= confirmations
-      if (!isConfirmed) {
-        continue
-      }
-
       if (await this.checkNoteOnChainAndRepair(sender, unspentNote)) {
         continue
       }
