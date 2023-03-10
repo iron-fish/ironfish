@@ -34,6 +34,7 @@ export class PostCommand extends IronfishCommand {
     }),
     broadcast: Flags.boolean({
       default: true,
+      allowNo: true,
       description: 'Broadcast the transaction after posting',
     }),
   }
