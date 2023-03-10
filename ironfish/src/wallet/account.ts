@@ -959,10 +959,8 @@ export class Account {
     if (confirmations > 0) {
       const unconfirmedSequenceEnd = headSequence
 
-      const unconfirmedSequenceStart = Math.max(
-        unconfirmedSequenceEnd - confirmations + 1,
-        GENESIS_BLOCK_SEQUENCE,
-      )
+      const unconfirmedSequenceStart =
+        Math.max(unconfirmedSequenceEnd - confirmations, GENESIS_BLOCK_SEQUENCE) + 1
 
       for await (const transaction of this.walletDb.loadTransactionsInSequenceRange(
         this,
