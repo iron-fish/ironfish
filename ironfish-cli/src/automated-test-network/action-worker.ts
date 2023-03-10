@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Assert } from '@ironfish/sdk'
 import { isMainThread, MessagePort, parentPort, Worker, workerData } from 'worker_threads'
-import { Action, ActionConfig, MintAction, SendAction } from './actions'
-import { TestNode } from './testnode'
+import { Action, ActionConfig, SendAction } from './actions'
+import { TestNodeConfig } from './testnode'
 
 const STATE_FINISHED = 'finished'
 const STATE_CANCELLED = 'cancelled'
@@ -13,10 +13,10 @@ export class ActionWorker {
   thread: Worker | null = null
   parent: MessagePort | null = null
 
-  config: ActionConfig
+  actionConfig: ActionConfig
+  nodeConfig: TestNodeConfig[]
+
   action: Action | null = null
-  nodes: TestNode[]
-  nodeMap: Map<string, TestNode>
 
   started: boolean
 
@@ -26,15 +26,13 @@ export class ActionWorker {
   shutdownResolve: (() => void) | null = null
 
   constructor(options: {
-    config: ActionConfig
-    nodes: TestNode[]
+    actionConfig: ActionConfig
+    nodeConfig: TestNodeConfig[]
     parent?: MessagePort
     path?: string
   }) {
-    this.config = options.config
-    this.nodes = options.nodes
-
-    this.nodeMap = new Map<string, TestNode>(options.nodes.map((node) => [node.name, node]))
+    this.actionConfig = options.actionConfig
+    this.nodeConfig = options.nodeConfig
 
     this.parent = options.parent ?? null
     this.path = options.path ?? __filename
@@ -55,19 +53,22 @@ export class ActionWorker {
   spawn(): void {
     Assert.isNull(this.parent)
 
-    console.log('spawning new worker thread for action: ', this.config)
+    console.log('spawning new worker thread for action: ', this.actionConfig)
 
-    Assert.isNotNull(this.config)
+    Assert.isNotNull(this.actionConfig)
 
     this.thread = new Worker(this.path, {
-      workerData: { config: JSON.stringify(this.config), nodes: JSON.stringify(this.nodes) },
+      workerData: {
+        config: JSON.stringify(this.actionConfig),
+        nodes: JSON.stringify(this.nodeConfig),
+      },
     })
 
     this.thread.addListener('message', (msg) => {
       if (msg === STATE_FINISHED) {
         console.log(
           '[parent]: got finish msg from worker thread, stopping action worker:',
-          this.config,
+          this.actionConfig,
         )
         if (this.shutdownResolve) {
           this.shutdownResolve()
@@ -94,43 +95,43 @@ export class ActionWorker {
       }
     })
 
-    console.log('[worker] spawned from parent thread, starting action: ', this.config)
-    // The action must be created in the child thread because functions cannot be serialized
-    this.setAction()
-    this.start()
+    console.log('[worker] spawned from parent thread, starting action: ', this.actionConfig)
   }
 
   // Set the proper action based on the config
   // This needs to be done in the worker thread because functions cannot be serialized
   // and so the action can't be created in the main thread and passed to the worker thread
-  setAction(): void {
-    let action: Action
-    switch (this.config.kind) {
+  async setAction(): Promise<void> {
+    console.log(this.actionConfig.kind)
+    switch (this.actionConfig.kind) {
       case 'send': {
-        action = new SendAction(this.config, this.nodeMap)
+        this.action = await SendAction.initialize(this.actionConfig, this.nodeConfig)
         break
       }
       case 'mint': {
-        action = new MintAction(this.config, this.nodeMap)
-        break
+        throw new Error('Mint action not implemented yet')
       }
       default: {
         throw new Error('Unknown action kind')
       }
     }
-    this.action = action
   }
 
-  private start(): void {
+  async start(): Promise<void> {
     if (isMainThread) {
       throw new Error("start() can't be called from the main thread")
     }
 
     Assert.isNotNull(this.parent, 'parent should not be null, this is a worker thread')
 
-    this.parent.postMessage('starting action: ' + this.config.name)
+    this.parent.postMessage('starting action: ' + this.actionConfig.name)
+
+    if (!this.action) {
+      await this.setAction()
+    }
 
     Assert.isNotNull(this.action)
+
     this.action.start()
   }
 
@@ -167,8 +168,11 @@ export class ActionWorker {
 if (parentPort !== null) {
   // console.log('workerdata', workerData)
   const { config, nodes } = workerData as { config: string; nodes: string }
-  const cfg = JSON.parse(config) as ActionConfig
-  const nds = JSON.parse(nodes) as TestNode[]
 
-  new ActionWorker({ config: cfg, nodes: nds, parent: parentPort })
+  const cfg = JSON.parse(config) as ActionConfig
+  const nds = JSON.parse(nodes) as TestNodeConfig[]
+
+  console.log('spawn action worker:', cfg, nds)
+  const worker = new ActionWorker({ actionConfig: cfg, nodeConfig: nds, parent: parentPort })
+  void worker.start()
 }

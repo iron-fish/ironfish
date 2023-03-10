@@ -3,11 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
-import { TestNode } from './testnode'
+import { RpcTcpClient } from '@ironfish/sdk'
+import { TestNodeConfig } from './testnode'
+import { sleep } from './utils'
 
 export interface Action {
   config: ActionConfig
-  nodes: Map<string, TestNode>
+  nodes: TestNodeConfig[]
   start: () => void
   stop: () => void
 }
@@ -26,101 +28,129 @@ type SendActionConfig = {
 
 export class SendAction implements Action {
   config: SendActionConfig
-  nodes: Map<string, TestNode>
+  nodes: TestNodeConfig[]
+  nodeMap: Map<string, RpcTcpClient> | null
   ready: boolean
 
-  constructor(config: ActionConfig, nodes: Map<string, TestNode>) {
+  constructor(config: ActionConfig, nodes: TestNodeConfig[]) {
     this.config = config as SendActionConfig
     this.nodes = nodes
     this.ready = true
+
+    this.nodeMap = null
   }
 
-  async sendTransaction(): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      const interval = setInterval(() => {
-        // TODO: hack to clear interval after stop is called, is this ok?
-        if (this.ready) {
-          console.log('sending transaction: ', this.config)
-
-          const to = this.nodes.get(this.config.to)
-          const from = this.nodes.get(this.config.from)
-
-          if (!to || !from || !to.client || !from.client) {
-            reject(new Error('to / from nodes not found'))
-            console.log('missing client, skipping txn action')
-            return
+  async addClients(nodes: TestNodeConfig[]): Promise<void> {
+    try {
+      const clients = await Promise.all(
+        nodes.map(async (node): Promise<{ name: string; client: RpcTcpClient }> => {
+          const client = new RpcTcpClient(node.tcp_host, node.tcp_port)
+          await sleep(1000)
+          try {
+            const success = await client.tryConnect()
+            if (!success) {
+              throw new Error(`failed to connect to node ${node.name}`)
+            }
+          } catch (e) {
+            console.log(`error creating client to connect to node ${node.name}: ${String(e)}`)
+            throw new Error(`${String(e)}`)
           }
 
-          const spendAmount = (
-            this.config.spendType === 'flat'
-              ? this.config.spendLimit
-              : Math.random() * this.config.spendLimit
-          ).toString()
-
-          console.log('spend amt' + spendAmount)
-
-          const fromAccount = from.getDefaultAccount()
-          const toAccount = to.getDefaultAccount()
-
-          if (!fromAccount || !toAccount) {
-            reject(new Error('missing account'))
-            return
-          }
-
-          console.log('from account: ', fromAccount)
-
-          const toPublicKey = to.getDefaultAccountPublicKey()
-          if (!toPublicKey || !isValidPublicAddress(toPublicKey)) {
-            reject(new Error('invalid public key'))
-            return
-          }
-
-          console.log('to public key: ', toPublicKey)
-
-          from.client
-            .sendTransaction({
-              account: fromAccount,
-              outputs: [
-                {
-                  publicAddress: toPublicKey,
-                  amount: spendAmount,
-                  memo: 'lol',
-                  assetId: Asset.nativeId().toString('hex'),
-                },
-              ],
-              fee: BigInt(1).toString(),
-            })
-            .then((resp) => {
-              const txn = resp.content.transaction
-              console.log('successfully sent txn: ', txn)
-            })
-            .catch((err) => {
-              reject(err)
+          return new Promise((resolve, reject) => {
+            if (!client) {
+              reject('wtf')
               return
-            })
-        } else {
-          reject(new Error('not ready'))
-          console.log('not ready')
-          clearInterval(interval)
-          return
-        }
-      }, 2000)
-    })
+            }
+            resolve({ name: node.name, client })
+          })
+        }),
+      )
+      this.nodeMap = new Map<string, RpcTcpClient>(clients.map((c) => [c.name, c.client]))
+    } catch (e) {
+      console.log('error creating clients to connect to nodes:', e)
+    }
+  }
+
+  static async initialize(config: ActionConfig, nodes: TestNodeConfig[]): Promise<SendAction> {
+    const sendAction = new SendAction(config, nodes)
+
+    await sendAction.addClients(nodes)
+
+    return sendAction
+  }
+
+  async sendTransaction(): Promise<void> {
+    if (this.ready) {
+      const to = this.nodeMap?.get(this.config.to)
+      const from = this.nodeMap?.get(this.config.from)
+
+      if (!to || !from) {
+        throw new Error('to / from nodes not found')
+      }
+
+      const spendAmount = Math.floor(
+        this.config.spendType === 'flat'
+          ? this.config.spendLimit
+          : Math.random() * this.config.spendLimit,
+      ).toString()
+
+      console.log('spend amt' + spendAmount)
+
+      const fromAccount = await getDefaultAccount(from)
+      const toAccount = await getDefaultAccount(to)
+
+      if (!fromAccount || !toAccount) {
+        throw new Error('missing account')
+        return
+      }
+
+      console.log('from account: ', fromAccount)
+
+      const toPublicKey = await getAccountPublicKey(to, toAccount)
+      if (!isValidPublicAddress(toPublicKey)) {
+        throw new Error('invalid public key')
+        return
+      }
+
+      console.log('to public key: ', toPublicKey)
+
+      console.log('sending txn', { from: fromAccount, to: toPublicKey, amt: spendAmount })
+
+      const txn = await from.sendTransaction({
+        account: fromAccount,
+        outputs: [
+          {
+            publicAddress: toPublicKey,
+            amount: spendAmount,
+            memo: 'lol',
+            assetId: Asset.nativeId().toString('hex'),
+          },
+        ],
+        fee: BigInt(1).toString(),
+      })
+
+      console.log('txn sent: ', txn.content.hash)
+    } else {
+      console.log('not ready')
+      return
+    }
+
+    return
   }
 
   start(): void {
-    console.log('[action] starting transaction action: ', this.config)
+    console.log('[action] starting transaction action: ', this.config.kind, this.config.name)
 
-    this.sendTransaction()
-      .then()
-      .catch((err) => {
-        this.ready = false
+    setInterval(() => {
+      this.sendTransaction().catch((err) => {
         console.log('error sending transaction: ', err)
+        this.ready = false
       })
+    }, 5000)
   }
 
   stop(): void {
-    console.log('[action] stopping transaction action: ', this.config)
+    console.log('[action] stopping transaction action: ', this.config.kind, this.config.name)
     this.ready = false
   }
 }
@@ -134,9 +164,9 @@ type MintActionConfig = {
 
 export class MintAction implements Action {
   config: MintActionConfig
-  nodes: Map<string, TestNode>
+  nodes: TestNodeConfig[]
 
-  constructor(config: ActionConfig, nodes: Map<string, TestNode>) {
+  constructor(config: ActionConfig, nodes: TestNodeConfig[]) {
     this.config = config as MintActionConfig
     this.nodes = nodes
   }
@@ -148,4 +178,25 @@ export class MintAction implements Action {
   stop(): void {
     throw new Error('not implemented yet!')
   }
+}
+
+async function getDefaultAccount(node: RpcTcpClient): Promise<string> {
+  const resp = await node.getDefaultAccount()
+
+  if (resp.content.account === undefined || resp.content.account?.name === undefined) {
+    throw new Error('account not found')
+  }
+
+  return resp.content.account.name
+}
+
+async function getAccountPublicKey(node: RpcTcpClient, account: string): Promise<string> {
+  const resp = await node.getAccountPublicKey({ account })
+
+  const publicKey = resp.content.publicKey
+  if (publicKey === undefined) {
+    throw new Error('public key undefined')
+  }
+
+  return publicKey
 }

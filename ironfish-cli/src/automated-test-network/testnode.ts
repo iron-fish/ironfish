@@ -1,12 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, RpcTcpClient } from '@ironfish/sdk'
+import { RpcTcpClient } from '@ironfish/sdk'
 import { createRootLogger, Logger } from '@ironfish/sdk'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
-import { exec } from 'child_process'
-import util from 'util'
-import { second, sleep } from './utils'
+import { sleep } from './utils'
 
 export const rootCmd = 'ironfish'
 
@@ -27,7 +25,7 @@ export class TestNode {
   nodeProcess: ChildProcessWithoutNullStreams
   minerProcess?: ChildProcessWithoutNullStreams
 
-  client: RpcTcpClient | null
+  client: RpcTcpClient
 
   name: string
   graffiti: string
@@ -46,7 +44,7 @@ export class TestNode {
 
   logger: Logger
 
-  constructor(config: TestNodeConfig, logger?: Logger) {
+  constructor(config: TestNodeConfig, client: RpcTcpClient, logger?: Logger) {
     this.name = config.name
     this.graffiti = config.graffiti
     this.port = config.port
@@ -57,7 +55,7 @@ export class TestNode {
     this.tcp_host = config.tcp_host
     this.tcp_port = config.tcp_port
 
-    this.client = null
+    this.client = client
 
     this.logger = logger || createRootLogger()
 
@@ -120,35 +118,20 @@ export class TestNode {
     return
   }
 
-  async attachClient(): Promise<void> {
-    this.client = new RpcTcpClient(this.tcp_host, this.tcp_port)
-    try {
-      const success = await this.client.tryConnect()
-      if (!success) {
-        throw new Error(`failed to connect to node ${this.name}`)
-      }
-    } catch (e) {
-      this.logger.log(`error creating client to connect to node ${this.name}: ${String(e)}`)
-      this.client = null
-    }
-
-    return new Promise((resolve, reject) => {
-      if (!this.client) {
-        reject()
-      }
-      resolve()
-    })
-  }
-
   static async initialize(config: TestNodeConfig, logger?: Logger): Promise<TestNode> {
-    const node = new TestNode(config, logger)
-    await sleep(3 * second)
-    await node.attachClient()
+    const client = new RpcTcpClient(config.tcp_host, config.tcp_port)
+
+    const node = new TestNode(config, client, logger)
 
     node.shutdownPromise = new Promise((resolve) => (node.shutdownResolve = resolve))
 
-    Assert.isNotNull(node.client)
-    Assert.isTrue(node.client.isConnected, 'client is not connected')
+    // TODO: slight race condition, client connect should wait until node is ready
+    await sleep(3000)
+    const success = await client.tryConnect()
+    if (!success) {
+      throw new Error(`failed to connect to node ${this.name}`)
+    }
+
     return node
   }
 
@@ -177,10 +160,10 @@ export class TestNode {
    * @param proc new proc
    */
   attachListeners(p: ChildProcessWithoutNullStreams, procName: string): void {
-    // p.stdout.on('data', (data) => {
-    //   const str = (data as Buffer).toString()
-    //   this.logger.log(`[${this.name}:${procName}:stdout]`, { str })
-    // })
+    p.stdout.on('data', (data) => {
+      const str = (data as Buffer).toString()
+      this.logger.log(`[${this.name}:${procName}:stdout]`, { str })
+    })
 
     p.stderr.on('data', (data) => {
       const str = (data as Buffer).toString()
@@ -227,38 +210,6 @@ export class TestNode {
       const _ = proc.kill()
     })
   }
-
-  getDefaultAccount(): string | undefined {
-    if (this.defaultAccount) {
-      return this.defaultAccount
-    }
-
-    this.client
-      ?.getDefaultAccount()
-      .then((resp) => {
-        this.defaultAccount = resp.content.account?.name
-      })
-      .catch((err) => {
-        console.log('error getting default account', err)
-      })
-
-    return this.defaultAccount
-  }
-
-  getDefaultAccountPublicKey(): string | undefined {
-    let publicKey: string | undefined
-
-    this.client
-      ?.getAccountPublicKey({ account: this.defaultAccount })
-      .then((resp) => {
-        publicKey = resp.content.publicKey
-      })
-      .catch((err) => {
-        console.log('error getting default account public key', err)
-      })
-
-    return publicKey
-  }
 }
 
 /**
@@ -274,30 +225,6 @@ export async function stopTestNode(node: {
   tcp_port: number
 }): Promise<{ success: boolean; msg: string }> {
   return stopViaTcp(node)
-}
-
-// option to stop via CLI instead RPC client
-async function stopViaExec(node: {
-  name: string
-  data_dir: string
-  is_miner?: boolean
-  tcp_host: string
-  tcp_port: number
-}): Promise<{ success: boolean; msg: string }> {
-  console.log(`killing node ${node.name}...`)
-
-  const execPromise = util.promisify(exec)
-
-  const { stdout, stderr } = await execPromise(`${rootCmd} stop --datadir ${node.data_dir}`)
-  let success = true
-  let msg = stdout
-
-  if (stderr) {
-    success = false
-    msg = stderr
-  }
-
-  return { success, msg }
 }
 
 async function stopViaTcp(node: {
@@ -334,3 +261,27 @@ async function stopViaTcp(node: {
   console.log(node.name, success, msg)
   return { success, msg }
 }
+
+// option to stop via CLI instead RPC client
+// async function stopViaExec(node: {
+//   name: string
+//   data_dir: string
+//   is_miner?: boolean
+//   tcp_host: string
+//   tcp_port: number
+// }): Promise<{ success: boolean; msg: string }> {
+//   console.log(`killing node ${node.name}...`)
+
+//   const execPromise = util.promisify(exec)
+
+//   const { stdout, stderr } = await execPromise(`${rootCmd} stop --datadir ${node.data_dir}`)
+//   let success = true
+//   let msg = stdout
+
+//   if (stderr) {
+//     success = false
+//     msg = stderr
+//   }
+
+//   return { success, msg }
+// }

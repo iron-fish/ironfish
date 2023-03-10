@@ -18,6 +18,16 @@ import { IronfishCommand } from '../../command'
  *   - add command to tail logs for a specific node
  */
 
+type OrchestratorConfig = {
+  nodes: boolean
+  actions: boolean
+}
+
+export const config: OrchestratorConfig = {
+  nodes: true,
+  actions: false,
+}
+
 export default class Start extends IronfishCommand {
   static description = 'Start the test network'
 
@@ -25,40 +35,51 @@ export default class Start extends IronfishCommand {
     const logger = createRootLogger()
     await this.sdk.connectRpc()
 
-    console.log('initializing nodes...')
-    // TODO: read config from `config.json` file before using config file
-    // TODO: abstract this into an orchestrator that owns the nodes
-    const nodes = await Promise.all(
-      nodeConfig.map((cfg) => {
-        const node = TestNode.initialize(cfg, logger)
+    const nodes: TestNode[] = []
 
-        return node
-      }),
-    )
-    logger.log('nodes initialized')
+    if (config.nodes) {
+      console.log('initializing nodes...')
 
-    // map from node_name => node_config
-    const nodeMap = new Map<string, TestNode>(nodes.map((node) => [node.name, node]))
-    nodeMap.forEach((node) => {
-      console.log(node.name)
-    })
+      // TODO: read config from `config.json` file before using config file
+      // TODO: abstract this into an orchestrator that owns the nodes
+      void (
+        await Promise.all(
+          nodeConfig.map((cfg) => {
+            return TestNode.initialize(cfg, logger)
+          }),
+        )
+      ).forEach((node) => {
+        nodes.push(node)
+      })
+
+      logger.log('nodes initialized')
+    } else {
+      console.log('skipping nodes')
+    }
+
     const actionWorkers: ActionWorker[] = []
-    // execute actions
-    console.log('initializing action workers...')
-    actionConfig.map((config) => {
-      console.log('creating action', config)
 
-      console.log('e')
-      const worker = new ActionWorker({ config, nodes })
-      actionWorkers.push(worker)
-    })
+    if (config.actions) {
+      // execute actions
+      console.log('initializing action workers...')
+      actionConfig.map((config) => {
+        console.log('creating action', config)
 
-    console.log('action workers initialized')
+        console.log('e')
+        const worker = new ActionWorker({ actionConfig: config, nodeConfig })
+        actionWorkers.push(worker)
+      })
+
+      console.log('action workers initialized')
+    } else {
+      console.log('skipping actions')
+    }
 
     //TODO: this should block at orchestrator level but there's no way to do so
     // without the orchestrator having an HTTP interface.
     // Currently wait for the nodes to shutdown (via RPC call), then clean up actions
     // Ideally should wait on orchestrator shutdown request then action cleanup then node cleanup
+
     console.log('starting atf, waiting for shutdown...')
     // block: wait for all nodes to be stopped
     try {
@@ -96,7 +117,7 @@ export const nodeConfig: TestNodeConfig[] = [
   {
     name: 'node1',
     graffiti: '1',
-    port: 8001,
+    port: 7001,
     data_dir: '~/.ironfish-atf/node1',
     netword_id: 2,
     is_miner: true,
@@ -107,20 +128,20 @@ export const nodeConfig: TestNodeConfig[] = [
   {
     name: 'node2',
     graffiti: '2',
-    port: 8002,
+    port: 7002,
     data_dir: '~/.ironfish-atf/node2',
     netword_id: 2,
-    bootstrap_url: 'localhost:8001',
+    bootstrap_url: 'localhost:7001',
     tcp_host: 'localhost',
     tcp_port: 9002,
   },
   {
     name: 'node3',
     graffiti: '3',
-    port: 8003,
+    port: 7003,
     data_dir: '~/.ironfish-atf/node3',
     netword_id: 2,
-    bootstrap_url: 'localhost:8001',
+    bootstrap_url: 'localhost:7001',
     tcp_host: 'localhost',
     tcp_port: 9003,
   },
@@ -129,11 +150,11 @@ export const nodeConfig: TestNodeConfig[] = [
 export const actionConfig: ActionConfig[] = [
   {
     kind: 'send',
-    name: 'send 1txn/s with random spend [0:10000] ORE from node1 to node2 ',
+    name: 'send 1txn/s with random spend [0:5000] ORE from node1 to node2 ',
     from: 'node1',
     to: 'node2',
     rate: 1,
-    spendLimit: 10000,
+    spendLimit: 5000,
     spendType: 'random',
   },
   // {
