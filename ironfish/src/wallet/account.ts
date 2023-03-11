@@ -771,7 +771,10 @@ export class Account {
       }
 
       const existingAsset = await this.walletDb.getAsset(this, asset.id(), tx)
-      Assert.isNotUndefined(existingAsset)
+
+      if (!existingAsset) {
+        return
+      }
 
       // If we are reverting the transaction which matches the created at
       // hash of the asset, delete the record from the store
