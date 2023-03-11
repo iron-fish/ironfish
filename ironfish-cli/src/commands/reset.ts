@@ -32,23 +32,9 @@ export default class Reset extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(Reset)
 
-    let confirmed = flags.confirm
-
-    const warningMessage =
-      `\n/!\\ WARNING: This will permanently delete your wallets. You can back them up by loading the previous version of ironfish and running ironfish export. /!\\\n` +
-      '\nHave you read the warning? (Y)es / (N)o'
-
-    confirmed = flags.confirm || (await CliUx.ux.confirm(warningMessage))
-
-    if (!confirmed) {
-      this.log('Reset aborted.')
-      this.exit(0)
-    }
-
     this.sdk.internal.set('networkId', this.sdk.config.defaults.networkId)
     this.sdk.internal.set('isFirstRun', true)
     await this.sdk.internal.save()
-    const walletDatabasePath = this.sdk.config.walletDatabasePath
     const chainDatabasePath = this.sdk.config.chainDatabasePath
     const hostFilePath: string = this.sdk.config.files.join(
       this.sdk.config.dataDir,
@@ -56,13 +42,13 @@ export default class Reset extends IronfishCommand {
     )
 
     const message =
-      '\nYou are about to destroy your node databases. The following directories and files will be deleted:\n' +
-      `\nWallet: ${walletDatabasePath}` +
+      '\nYou are about to destroy your local copy of the blockchain. The following directories and files will be deleted:\n' +
       `\nBlockchain: ${chainDatabasePath}` +
       `\nHosts: ${hostFilePath}` +
+      '\nYour wallet, accounts, and keys will NOT be deleted.' +
       `\n\nAre you sure? (Y)es / (N)o`
 
-    confirmed = flags.confirm || (await CliUx.ux.confirm(message))
+    const confirmed = flags.confirm || (await CliUx.ux.confirm(message))
 
     if (!confirmed) {
       this.log('Reset aborted.')
@@ -72,7 +58,6 @@ export default class Reset extends IronfishCommand {
     CliUx.ux.action.start('Deleting databases...')
 
     await Promise.all([
-      fsAsync.rm(walletDatabasePath, { recursive: true, force: true }),
       fsAsync.rm(chainDatabasePath, { recursive: true, force: true }),
       fsAsync.rm(hostFilePath, { recursive: true, force: true }),
     ])
