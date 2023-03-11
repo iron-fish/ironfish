@@ -32,9 +32,6 @@ export default class Reset extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(Reset)
 
-    this.sdk.internal.set('networkId', this.sdk.config.defaults.networkId)
-    this.sdk.internal.set('isFirstRun', true)
-    await this.sdk.internal.save()
     const chainDatabasePath = this.sdk.config.chainDatabasePath
     const hostFilePath: string = this.sdk.config.files.join(
       this.sdk.config.dataDir,
@@ -61,6 +58,10 @@ export default class Reset extends IronfishCommand {
       fsAsync.rm(chainDatabasePath, { recursive: true, force: true }),
       fsAsync.rm(hostFilePath, { recursive: true, force: true }),
     ])
+
+    this.sdk.internal.set('networkId', this.sdk.config.defaults.networkId)
+    this.sdk.internal.set('isFirstRun', true)
+    await this.sdk.internal.save()
 
     CliUx.ux.action.stop('Databases deleted successfully')
   }
