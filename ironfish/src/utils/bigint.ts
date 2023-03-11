@@ -44,7 +44,7 @@ function min(a: bigint, b: bigint): bigint {
  */
 function fromBytesBE(bytes: Buffer): bigint {
   if (bytes.length === 0) {
-    return BigInt(0)
+    return 0n
   }
 
   const hex: string[] = []

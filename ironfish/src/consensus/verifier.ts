@@ -113,7 +113,7 @@ export class Verifier {
     }
 
     // Sum the total transaction fees
-    let totalTransactionFees = BigInt(0)
+    let totalTransactionFees = 0n
     for (const transaction of otherTransactions) {
       const transactionFee = transaction.fee()
       if (transactionFee < 0) {
@@ -133,10 +133,7 @@ export class Verifier {
     // minersFee should be (negative) miningReward + totalTransactionFees
     const miningReward = this.chain.strategy.miningReward(block.header.sequence)
 
-    if (
-      minersFeeTransaction.fee() !==
-      BigInt(-1) * (BigInt(miningReward) + totalTransactionFees)
-    ) {
+    if (minersFeeTransaction.fee() !== -1n * (BigInt(miningReward) + totalTransactionFees)) {
       return { valid: false, reason: VerificationResultReason.INVALID_MINERS_FEE }
     }
 

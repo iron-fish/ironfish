@@ -16,6 +16,7 @@ import { getFee } from '../memPool/feeEstimator'
 import { NoteHasher } from '../merkletree/hasher'
 import { NoteWitness, Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
+import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
 import { BlockHeader } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
 import { Note } from '../primitives/note'
@@ -928,12 +929,12 @@ export class Wallet {
     amountsNeeded.set(Asset.nativeId(), options.fee)
 
     for (const output of raw.outputs) {
-      const currentAmount = amountsNeeded.get(output.note.assetId()) ?? BigInt(0)
+      const currentAmount = amountsNeeded.get(output.note.assetId()) ?? 0n
       amountsNeeded.set(output.note.assetId(), currentAmount + output.note.value())
     }
 
     for (const burn of raw.burns) {
-      const currentAmount = amountsNeeded.get(burn.assetId) ?? BigInt(0)
+      const currentAmount = amountsNeeded.get(burn.assetId) ?? 0n
       amountsNeeded.set(burn.assetId, currentAmount + burn.value)
     }
 
@@ -971,7 +972,7 @@ export class Wallet {
     amountNeeded: bigint,
     confirmations: number,
   ): Promise<{ amount: bigint; notes: Array<{ note: Note; witness: NoteWitness }> }> {
-    let amount = BigInt(0)
+    let amount = 0n
     const notes: Array<{ note: Note; witness: NoteWitness }> = []
 
     const head = await sender.getHead()
@@ -979,19 +980,14 @@ export class Wallet {
       return { amount, notes }
     }
 
-    for await (const unspentNote of this.getUnspentNotes(sender, assetId)) {
-      if (unspentNote.note.value() <= BigInt(0)) {
+    for await (const unspentNote of this.getUnspentNotes(sender, assetId, { confirmations })) {
+      if (unspentNote.note.value() <= 0n) {
         continue
       }
 
       Assert.isNotNull(unspentNote.index)
       Assert.isNotNull(unspentNote.nullifier)
       Assert.isNotNull(unspentNote.sequence)
-
-      const isConfirmed = head.sequence - unspentNote.sequence >= confirmations
-      if (!isConfirmed) {
-        continue
-      }
 
       if (await this.checkNoteOnChainAndRepair(sender, unspentNote)) {
         continue
@@ -1202,7 +1198,9 @@ export class Wallet {
     }
 
     if (transaction.sequence) {
-      const isConfirmed = headSequence - transaction.sequence >= confirmations
+      const isConfirmed =
+        transaction.sequence === GENESIS_BLOCK_SEQUENCE ||
+        headSequence - transaction.sequence >= confirmations
 
       return isConfirmed ? TransactionStatus.CONFIRMED : TransactionStatus.UNCONFIRMED
     } else {

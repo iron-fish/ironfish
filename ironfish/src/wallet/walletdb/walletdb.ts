@@ -35,7 +35,7 @@ import { HeadValue, NullableHeadValueEncoding } from './headValue'
 import { AccountsDBMeta, MetaValue, MetaValueEncoding } from './metaValue'
 import { TransactionValue, TransactionValueEncoding } from './transactionValue'
 
-const VERSION_DATABASE_ACCOUNTS = 25
+const VERSION_DATABASE_ACCOUNTS = 26
 
 const getAccountsDBMetaDefaults = (): AccountsDBMeta => ({
   defaultAccountId: null,
@@ -105,8 +105,8 @@ export class WalletDB {
   }>
 
   timestampToTransactionHash: IDatabaseStore<{
-    key: [Account['prefix'], number]
-    value: TransactionHash
+    key: [Account['prefix'], [number, TransactionHash]]
+    value: null
   }>
 
   assets: IDatabaseStore<{
@@ -226,9 +226,13 @@ export class WalletDB {
     })
 
     this.timestampToTransactionHash = this.db.addStore({
-      name: 'T',
-      keyEncoding: new PrefixEncoding(new BufferEncoding(), U64_ENCODING, 4),
-      valueEncoding: new BufferEncoding(),
+      name: 'TT',
+      keyEncoding: new PrefixEncoding(
+        new BufferEncoding(),
+        new PrefixEncoding(U64_ENCODING, new BufferEncoding(), 8),
+        4,
+      ),
+      valueEncoding: NULL_ENCODING,
     })
 
     this.assets = this.db.addStore({
@@ -289,7 +293,7 @@ export class WalletDB {
           account,
           Asset.nativeId(),
           {
-            unconfirmed: BigInt(0),
+            unconfirmed: 0n,
             blockHash: null,
             sequence: null,
           },
@@ -390,8 +394,8 @@ export class WalletDB {
 
       await this.transactions.put([account.prefix, transactionHash], transactionValue, tx)
       await this.timestampToTransactionHash.put(
-        [account.prefix, transactionValue.timestamp.getTime()],
-        transactionHash,
+        [account.prefix, [transactionValue.timestamp.getTime(), transactionHash]],
+        null,
         tx,
       )
     })
@@ -406,7 +410,7 @@ export class WalletDB {
     Assert.isNotUndefined(transaction)
 
     await this.timestampToTransactionHash.del(
-      [account.prefix, transaction.timestamp.getTime()],
+      [account.prefix, [transaction.timestamp.getTime(), transactionHash]],
       tx,
     )
     await this.transactions.del([account.prefix, transactionHash], tx)
@@ -879,7 +883,7 @@ export class WalletDB {
 
     return (
       unconfirmedBalance ?? {
-        unconfirmed: BigInt(0),
+        unconfirmed: 0n,
         blockHash: null,
         sequence: null,
       }
@@ -1088,10 +1092,13 @@ export class WalletDB {
     account: Account,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<TransactionValue> {
-    for await (const transactionHash of this.timestampToTransactionHash.getAllValuesIter(
+    for await (const [, [, transactionHash]] of this.timestampToTransactionHash.getAllKeysIter(
       tx,
       account.prefixRange,
-      { ordered: true, reverse: true },
+      {
+        ordered: true,
+        reverse: true,
+      },
     )) {
       const transaction = await this.loadTransaction(account, transactionHash, tx)
       Assert.isNotUndefined(transaction)

@@ -228,7 +228,7 @@ export class DecryptNotesTask extends WorkerTask {
 
       // Try decrypting the note as the owner
       const receivedNote = note.decryptNoteForOwner(incomingViewKey)
-      if (receivedNote && receivedNote.value() !== BigInt(0)) {
+      if (receivedNote && receivedNote.value() !== 0n) {
         decryptedNotes.push({
           index: currentNoteIndex,
           forSpender: false,
@@ -245,7 +245,7 @@ export class DecryptNotesTask extends WorkerTask {
       if (decryptForSpender) {
         // Try decrypting the note as the spender
         const spentNote = note.decryptNoteForSpender(outgoingViewKey)
-        if (spentNote && spentNote.value() !== BigInt(0)) {
+        if (spentNote && spentNote.value() !== 0n) {
           decryptedNotes.push({
             index: currentNoteIndex,
             forSpender: true,

@@ -103,7 +103,7 @@ export class Account {
 
     const confirmations = options?.confirmations ?? 0
 
-    const maxConfirmedSequence = head.sequence - confirmations
+    const maxConfirmedSequence = Math.max(head.sequence - confirmations, GENESIS_BLOCK_SEQUENCE)
 
     for await (const decryptedNote of this.walletDb.loadUnspentNotes(
       this,
@@ -281,7 +281,7 @@ export class Account {
       const existingAsset = await this.walletDb.getAsset(this, asset.id(), tx)
 
       let createdTransactionHash = transaction.hash()
-      let supply = BigInt(0)
+      let supply = 0n
 
       // Adjust supply if this transaction is connected on a block.
       if (blockHash && sequence) {
@@ -336,7 +336,7 @@ export class Account {
       Assert.isNotNull(existingAsset.supply, 'Supply should be non-null for asset')
 
       const supply = existingAsset.supply - value
-      Assert.isTrue(supply >= BigInt(0), 'Invalid burn value')
+      Assert.isTrue(supply >= 0n, 'Invalid burn value')
 
       await this.walletDb.putAsset(
         this,
@@ -412,7 +412,7 @@ export class Account {
 
       const existingSupply = existingAsset.supply
       const supply = existingSupply - value
-      Assert.isTrue(supply >= BigInt(0))
+      Assert.isTrue(supply >= 0n)
 
       let blockHash = existingAsset.blockHash
       let sequence = existingAsset.sequence
@@ -959,10 +959,8 @@ export class Account {
     if (confirmations > 0) {
       const unconfirmedSequenceEnd = headSequence
 
-      const unconfirmedSequenceStart = Math.max(
-        unconfirmedSequenceEnd - confirmations + 1,
-        GENESIS_BLOCK_SEQUENCE,
-      )
+      const unconfirmedSequenceStart =
+        Math.max(unconfirmedSequenceEnd - confirmations, GENESIS_BLOCK_SEQUENCE) + 1
 
       for await (const transaction of this.walletDb.loadTransactionsInSequenceRange(
         this,

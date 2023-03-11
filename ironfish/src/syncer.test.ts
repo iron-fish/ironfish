@@ -33,13 +33,13 @@ describe('Syncer', () => {
     expect(startSyncSpy).not.toHaveBeenCalled()
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    peer.work = BigInt(0)
+    peer.work = 0n
 
     // Peer does not have more work
     syncer.findPeer()
     expect(startSyncSpy).not.toHaveBeenCalled()
 
-    peer.work = chain.head.work + BigInt(1)
+    peer.work = chain.head.work + 1n
 
     // Peer should have more work than us now
     syncer.findPeer()
@@ -50,7 +50,7 @@ describe('Syncer', () => {
     const { peerNetwork, syncer } = nodeTest
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    peer.work = BigInt(1)
+    peer.work = 1n
     peer.sequence = 1
     peer.head = Buffer.from('')
 
@@ -76,7 +76,7 @@ describe('Syncer', () => {
     const { peerNetwork, syncer } = nodeTest
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    peer.work = BigInt(1)
+    peer.work = 1n
     peer.sequence = 1
     peer.head = Buffer.from('')
 
@@ -106,7 +106,7 @@ describe('Syncer', () => {
     const { peerNetwork, syncer } = nodeTest
 
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
-    peer.work = BigInt(1)
+    peer.work = 1n
     peer.sequence = 1
     peer.head = Buffer.from('')
 
@@ -156,7 +156,7 @@ describe('Syncer', () => {
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.sequence = blockA4.header.sequence
     peer.head = blockA4.header.hash
-    peer.work = BigInt(10)
+    peer.work = 10n
 
     const getBlocksSpy = jest
       .spyOn(peerNetwork, 'getBlocks')
@@ -203,7 +203,7 @@ describe('Syncer', () => {
     const { peer } = getConnectedPeer(peerNetwork.peerManager)
     peer.sequence = 2
     peer.head = Buffer.alloc(32, 1)
-    peer.work = BigInt(10)
+    peer.work = 10n
 
     const getBlocksSpy = jest
       .spyOn(peerNetwork, 'getBlocks')
