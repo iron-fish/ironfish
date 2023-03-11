@@ -418,7 +418,6 @@ export class Wallet {
           assetBalanceDeltas.update(transactionDeltas)
 
           await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, blockHeader, tx)
-          scan?.signal(blockHeader.sequence)
         }
 
         await account.updateUnconfirmedBalances(
@@ -589,6 +588,7 @@ export class Wallet {
       false,
     )) {
       await this.connectBlock(blockHeader, scan)
+      scan.signal(blockHeader.sequence)
     }
 
     if (this.chainProcessor.hash === null) {
