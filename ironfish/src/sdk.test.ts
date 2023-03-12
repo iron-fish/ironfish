@@ -56,6 +56,11 @@ describe('IronfishSdk', () => {
         configName: 'foo.config.json',
         dataDir: os.tmpdir(),
         fileSystem: fileSystem,
+        configOverrides: {
+          // TODO: It should be possible to test on the default network (mainnet)
+          // once the genesis block has been added.
+          networkId: 2,
+        },
       })
 
       const node = await sdk.node()
@@ -138,6 +143,9 @@ describe('IronfishSdk', () => {
         dataDir: os.tmpdir(),
         configOverrides: {
           enableRpcIpc: true,
+          // TODO: It should be possible to test on the default network (mainnet)
+          // once the genesis block has been added.
+          networkId: 2,
         },
       })
 
@@ -155,6 +163,9 @@ describe('IronfishSdk', () => {
         configOverrides: {
           enableRpcTcp: true,
           enableRpcTls: false,
+          // TODO: It should be possible to test on the default network (mainnet)
+          // once the genesis block has been added.
+          networkId: 2,
         },
       })
 
