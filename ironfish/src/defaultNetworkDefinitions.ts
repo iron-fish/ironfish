@@ -145,7 +145,7 @@ export const TESTNET = `{
 export const MAINNET = `
  {
     "id": 1,
-    "bootstrapNodes": [],
+    "bootstrapNodes": ["1.main.bn.ironfish.network", "2.main.bn.ironfish.network"],
     "genesis": ${MOCK_MAINNET_GENESIS},
     "consensus": {
         "allowedBlockFutureSeconds": 15,
