@@ -25,6 +25,9 @@ describe('IpcAdapter', () => {
       configOverrides: {
         enableRpc: false,
         enableRpcIpc: false,
+        // TODO: It should be possible to test on the default network (mainnet)
+        // once the genesis block has been added.
+        networkId: 2,
       },
     })
 
