@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import axios, { AxiosError } from 'axios'
-import { DEFAULT_NETWORK_ID } from '../../../fileStores'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { RpcRequestError } from '../../clients'
 
@@ -19,7 +18,7 @@ describe('Route faucet.getFunds', () => {
     accountName = 'test' + Math.random().toString()
     const account = await routeTest.node.wallet.createAccount(accountName, true)
     publicAddress = account.publicAddress
-    routeTest.node.internal.set('networkId', DEFAULT_NETWORK_ID)
+    routeTest.node.internal.set('networkId', 0)
   })
 
   describe('when the API request succeeds', () => {
