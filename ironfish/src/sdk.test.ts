@@ -78,6 +78,11 @@ describe('IronfishSdk', () => {
       const sdk = await IronfishSdk.init({
         configName: 'foo.config.json',
         fileSystem: fileSystem,
+        configOverrides: {
+          // TODO: It should be possible to test on the default network (mainnet)
+          // once the genesis block has been added.
+          networkId: 2,
+        },
       })
 
       const expectedDir = fileSystem.resolve(DEFAULT_DATA_DIR)
@@ -92,7 +97,14 @@ describe('IronfishSdk', () => {
   describe('connectRpc', () => {
     describe('when local is true', () => {
       it('returns and connects `clientMemory` to a node', async () => {
-        const sdk = await IronfishSdk.init()
+        const sdk = await IronfishSdk.init({
+          dataDir: os.tmpdir(),
+          configOverrides: {
+            // TODO: It should be possible to test on the default network (mainnet)
+            // once the genesis block has been added.
+            networkId: 2,
+          },
+        })
         const node = await sdk.node()
         const openDb = jest.spyOn(node, 'openDB').mockImplementationOnce(async () => {})
         jest.spyOn(sdk, 'node').mockResolvedValueOnce(node)
