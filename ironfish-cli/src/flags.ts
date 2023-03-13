@@ -23,6 +23,8 @@ export const RpcUseIpcFlagKey = 'rpc.ipc'
 export const RpcUseTcpFlagKey = 'rpc.tcp'
 export const RpcTcpHostFlagKey = 'rpc.tcp.host'
 export const RpcTcpPortFlagKey = 'rpc.tcp.port'
+export const RpcHttpHostFlagKey = 'rpc.http.host'
+export const RpcHttpPortFlagKey = 'rpc.http.port'
 export const RpcTcpTlsFlagKey = 'rpc.tcp.tls'
 export const RpcAuthFlagKey = 'rpc.auth'
 
@@ -68,6 +70,14 @@ export const RpcTcpPortFlag = Flags.integer({
   description: 'The TCP port to listen for connections on',
 })
 
+export const RpcHttpHostFlag = Flags.string({
+  description: 'The HTTP host to listen for connections on',
+})
+
+export const RpcHttpPortFlag = Flags.integer({
+  description: 'The HTTP port to listen for connections on',
+})
+
 export const RpcTcpTlsFlag = Flags.boolean({
   default: DEFAULT_USE_RPC_TLS,
   description: 'Encrypt TCP connection to the RPC over TLS',
@@ -97,6 +107,8 @@ remoteFlags[RpcUseTcpFlagKey] = RpcUseTcpFlag as unknown as CompletableOptionFla
 remoteFlags[RpcUseIpcFlagKey] = RpcUseIpcFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcHttpHostFlagKey] = RpcHttpHostFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcHttpPortFlagKey] = RpcHttpPortFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpTlsFlagKey] = RpcTcpTlsFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcAuthFlagKey] = RpcAuthFlag as unknown as CompletableOptionFlag
 
