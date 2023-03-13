@@ -831,3 +831,52 @@ pub fn batch_verify_transactions<'a>(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use group::Group;
+    use jubjub::SubgroupPoint;
+    use rand::thread_rng;
+
+    use crate::{test_util::make_fake_witness, Note, ProposedTransaction, SaplingKey};
+
+    #[test]
+    // TODO: Make this fail
+    fn test_malleable_asset_ids() {
+        let spender_key = SaplingKey::generate_key();
+
+        let spend_value = 100;
+        let spend_asset = SubgroupPoint::random(thread_rng());
+        let out_asset = spend_asset * jubjub::Fr::from(2);
+        let out_value = spend_value / 2;
+
+        let spend_note = Note::new(
+            spender_key.public_address(),
+            spend_value,
+            "",
+            spend_asset,
+            spender_key.public_address(),
+        );
+        let witness = make_fake_witness(&spend_note);
+
+        let out_note = Note::new(
+            spender_key.public_address(),
+            out_value,
+            "",
+            out_asset,
+            spender_key.public_address(),
+        );
+
+        let mut transaction = ProposedTransaction::new(spender_key);
+        transaction.add_spend(spend_note, &witness).unwrap();
+        transaction.add_output(out_note).unwrap();
+        assert_eq!(transaction.spends.len(), 1);
+        assert_eq!(transaction.outputs.len(), 1);
+
+        let public_transaction = transaction
+            ._partial_post()
+            .expect("should be able to post transaction");
+        let verify_result = public_transaction.verify();
+        assert!(verify_result.is_err())
+    }
+}

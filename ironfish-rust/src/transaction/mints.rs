@@ -15,7 +15,12 @@ use ironfish_zkp::{
 };
 use rand::thread_rng;
 
-use crate::{assets::asset::Asset, errors::IronfishError, sapling_bls12::SAPLING, SaplingKey};
+use crate::{
+    assets::asset::{asset_generator_from_id, Asset},
+    errors::IronfishError,
+    sapling_bls12::SAPLING,
+    SaplingKey,
+};
 
 use super::utils::verify_mint_proof;
 
@@ -43,6 +48,7 @@ impl MintBuilder {
         let circuit = MintAsset {
             name: self.asset.name,
             metadata: self.asset.metadata,
+            nonce: self.asset.nonce,
             proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
             public_key_randomness: Some(*public_key_randomness),
         };

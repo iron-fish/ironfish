@@ -1,20 +1,19 @@
 use jubjub::SubgroupPoint;
 pub use zcash_primitives::constants::{
-    CRH_IVK_PERSONALIZATION, NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
-    PRF_NF_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
-    VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-    VALUE_COMMITMENT_VALUE_GENERATOR,
+    CRH_IVK_PERSONALIZATION, GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
+    NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR,
+    SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
+    VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR,
 };
 
-use zcash_primitives::sapling::pedersen_hash;
+// use zcash_primitives::sapling::pedersen_hash;
 pub use zcash_proofs::circuit::sapling::TREE_DEPTH;
 
 /// Length in bytes of the asset identifier
 pub const ASSET_ID_LENGTH: usize = 32;
 
-// Easier to alias this instead of forking pedersen hash just to extend the Personalization enum
-pub const ASSET_ID_PERSONALIZATION: pedersen_hash::Personalization =
-    pedersen_hash::Personalization::MerkleTree(62);
+/// BLAKE2s personalization for deriving asset identifier from asset name
+pub const ASSET_ID_PERSONALIZATION: &[u8; 8] = b"ironf_A_";
 
 pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(
     bls12_381::Scalar::from_raw([
