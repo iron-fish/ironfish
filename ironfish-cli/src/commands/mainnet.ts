@@ -71,8 +71,15 @@ export default class Mainnet extends IronfishCommand {
       this.exit(1)
     }
 
+    // Reset the telemetry config to allow people to re-opt in
+    if (this.sdk.config.isSet('enableTelemetry') && this.sdk.config.get('enableTelemetry')) {
+      this.sdk.config.clear('enableTelemetry')
+      await this.sdk.config.save()
+    }
+
     this.sdk.internal.set('networkId', 1)
     this.sdk.internal.set('isFirstRun', true)
+    this.sdk.internal.clear('telemetryNodeId')
     await this.sdk.internal.save()
 
     CliUx.ux.action.stop('Data migrated successfully.')
