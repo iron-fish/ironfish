@@ -85,6 +85,9 @@ export class RpcHttpAdapter implements IRpcAdapter {
 
           this.requests.set(requestId, { req, waitForClose })
 
+          // All response bodies should be application/json
+          res.setHeader('Content-Type', 'application/json')
+
           void this.handleRequest(req, res, requestId).catch((e) => {
             const error = ErrorUtils.renderError(e)
             this.logger.debug(`Error in HTTP adapter: ${error}`)
@@ -193,21 +196,24 @@ export class RpcHttpAdapter implements IRpcAdapter {
     // so keeping that convention here. Could think of a better way to handle?
     const body = combined.length ? combined.toString('utf8') : undefined
 
+    let chunkStreamed = false
     const rpcRequest = new RpcRequest(
       body === undefined ? undefined : JSON.parse(body),
       route,
       (status: number, data?: unknown) => {
-        response.writeHead(status, {
-          'Content-Type': 'application/json',
-        })
-        response.end(JSON.stringify({ status, data }))
+        response.statusCode = status
+        const delimeter = chunkStreamed ? ',' : ''
+        response.end(delimeter + JSON.stringify({ status, data }))
         this.cleanUpRequest(requestId)
       },
       (data: unknown) => {
-        // TODO: see if this is correct way to implement HTTP streaming.
-        // do more headers need to be set, etc.??
-        const bufferData = Buffer.from(JSON.stringify(data))
-        response.write(bufferData)
+        // TODO: Most HTTP clients don't parse `Transfer-Encoding: chunked` by chunk
+        // they wait until all chunks have been received and combine them. This will
+        // stream a ',' delimitated list of JSON objects but is still probably not
+        // ideal as a response. We could find some better way to stream
+        const delimeter = chunkStreamed ? ',' : ''
+        response.write(delimeter + JSON.stringify({ data }))
+        chunkStreamed = true
       },
     )
 
