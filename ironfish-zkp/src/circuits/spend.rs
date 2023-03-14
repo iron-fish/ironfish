@@ -381,7 +381,7 @@ mod test {
         circuits::spend::Spend,
         constants::PUBLIC_KEY_GENERATOR,
         primitives::ValueCommitment,
-        util::{commitment_full_point, hash_to_point},
+        util::{asset_hash_to_point, commitment_full_point},
     };
 
     #[test]
@@ -397,7 +397,7 @@ mod test {
                 rng.fill(&mut asset_id[..]);
 
                 if let Some(point) =
-                    hash_to_point(&asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
+                    asset_hash_to_point(&asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
                 {
                     break point;
                 }
@@ -583,7 +583,7 @@ mod test {
                 rng.fill(&mut asset_id[..]);
 
                 if let Some(point) =
-                    hash_to_point(&asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
+                    asset_hash_to_point(&asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
                 {
                     break point;
                 }

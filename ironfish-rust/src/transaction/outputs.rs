@@ -86,7 +86,7 @@ impl OutputBuilder {
             payment_address: Some(self.note.owner.transmission_key),
             commitment_randomness: Some(self.note.randomness),
             esk: Some(*diffie_hellman_keys.secret()),
-            asset_generator: Some(self.note.asset_generator().into()),
+            asset_id: self.note.asset_id(),
             proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
             ar: Some(*public_key_randomness),
         };

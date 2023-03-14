@@ -1,6 +1,9 @@
 use bellman::{groth16, Circuit};
 use bls12_381::Bls12;
-use ironfish_zkp::proofs::{MintAsset, Output, Spend};
+use ironfish_zkp::{
+    constants::ASSET_ID_LENGTH,
+    proofs::{MintAsset, Output, Spend},
+};
 use rand::thread_rng;
 
 use std::{env, fs::File};
@@ -53,7 +56,7 @@ fn main() {
                 ar: None,
                 auth_path: vec![None; TREE_DEPTH],
                 anchor: None,
-                asset_id: [0; 32],
+                asset_id: [0; ASSET_ID_LENGTH],
                 sender_address: None,
             },
         );
@@ -67,7 +70,7 @@ fn main() {
                 payment_address: None,
                 commitment_randomness: None,
                 esk: None,
-                asset_generator: None,
+                asset_id: [0; ASSET_ID_LENGTH],
                 ar: None,
                 proof_generation_key: None,
             },

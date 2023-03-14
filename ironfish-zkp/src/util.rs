@@ -52,11 +52,8 @@ pub fn commitment_full_point(
     (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * rcm) + hash_of_contents
 }
 
-/// Produces a point in the Jubjub curve.
-/// The point is guaranteed to be prime order
-/// and not the identity.
 #[allow(clippy::assertions_on_constants)]
-pub fn hash_to_point(tag: &[u8], personalization: &[u8]) -> Option<jubjub::ExtendedPoint> {
+pub fn asset_hash_to_point(tag: &[u8], personalization: &[u8]) -> Option<jubjub::ExtendedPoint> {
     assert_eq!(personalization.len(), 8);
 
     // Check to see that scalar field is 255 bits

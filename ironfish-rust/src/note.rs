@@ -235,6 +235,7 @@ impl<'a> Note {
     }
 
     pub fn asset_id(&self) -> AssetIdentifier {
+        // TODO: This is incorrect
         self.asset_generator.to_bytes()
     }
 
