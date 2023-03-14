@@ -218,8 +218,10 @@ impl OutputDescription {
 mod test {
     use super::{OutputBuilder, OutputDescription};
     use crate::{
-        assets::asset::NATIVE_ASSET_GENERATOR, keys::SaplingKey,
-        merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note,
+        assets::asset::{NATIVE_ASSET},
+        keys::SaplingKey,
+        merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
+        note::Note,
         transaction::utils::verify_output_proof,
     };
     use ff::{Field, PrimeField};
@@ -242,7 +244,7 @@ mod test {
             spender_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR.into(),
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
 
@@ -272,7 +274,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR.into(),
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
 
@@ -300,7 +302,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR.into(),
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
 

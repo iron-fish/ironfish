@@ -4,7 +4,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use ff::PrimeField;
 use group::{cofactor::CofactorGroup, Group, GroupEncoding};
 use zcash_primitives::{
-    constants::{GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR},
+    constants::{NOTE_COMMITMENT_RANDOMNESS_GENERATOR},
     sapling::pedersen_hash::{pedersen_hash, Personalization},
 };
 

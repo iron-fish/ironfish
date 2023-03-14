@@ -21,7 +21,7 @@ pub const NATIVE_ASSET: AssetIdentifier = [
 
 // Uses the original value commitment generator as the native asset generator
 // TODO: This needs to be thought-through again, will probably change.
-pub const NATIVE_ASSET_GENERATOR: SubgroupPoint = VALUE_COMMITMENT_VALUE_GENERATOR;
+// pub const NATIVE_ASSET_GENERATOR: SubgroupPoint = VALUE_COMMITMENT_VALUE_GENERATOR;
 
 pub const NAME_LENGTH: usize = 32;
 pub const METADATA_LENGTH: usize = 77;
@@ -156,10 +156,11 @@ pub fn asset_generator_from_id(asset_id: &AssetIdentifier) -> Result<ExtendedPoi
 #[cfg(test)]
 mod test {
     use group::GroupEncoding;
-    use ironfish_zkp::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
+    use ironfish_zkp::constants::{NATIVE_ASSET_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR};
+    use jubjub::ExtendedPoint;
 
     use crate::{
-        assets::asset::NATIVE_ASSET_GENERATOR, util::str_to_array, PublicAddress, SaplingKey,
+        assets::asset::asset_generator_from_id, util::str_to_array, PublicAddress, SaplingKey,
     };
 
     use super::{Asset, NATIVE_ASSET};
@@ -182,8 +183,7 @@ mod test {
 
     #[test]
     fn test_asset_new_with_nonce_data() {
-        // TODO: This will probably fail until nonce is tweaked
-        let nonce = 0;
+        let nonce = 1;
         let public_address = [
             81, 229, 109, 20, 111, 174, 52, 91, 120, 215, 34, 107, 174, 123, 78, 102, 189, 188,
             226, 7, 173, 7, 76, 135, 130, 203, 71, 131, 62, 219, 240, 68,
@@ -220,6 +220,9 @@ mod test {
         // Native asset uses the original value commitment generator, no
         // particular reason other than it is easier to think about this way.
         assert_eq!(NATIVE_ASSET, VALUE_COMMITMENT_VALUE_GENERATOR.to_bytes());
-        assert_eq!(NATIVE_ASSET, NATIVE_ASSET_GENERATOR.to_bytes());
+        assert_eq!(
+            asset_generator_from_id(&NATIVE_ASSET).unwrap(),
+            ExtendedPoint::from(NATIVE_ASSET_GENERATOR)
+        );
     }
 }

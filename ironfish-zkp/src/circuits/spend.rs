@@ -212,7 +212,7 @@ impl Circuit<bls12_381::Scalar> for Spend {
             self.sender_address.map(jubjub::ExtendedPoint::from),
         )?;
 
-        // Place sender_address (pk_d) in the note
+        // Place sender_address in the note
         note_contents.extend(
             sender_address.repr(cs.namespace(|| "representation of sender_address (pk_d)"))?,
         );
@@ -369,12 +369,12 @@ mod test {
     use group::{Curve, Group, GroupEncoding};
     use rand::{rngs::StdRng, Rng, RngCore, SeedableRng};
     use zcash_primitives::{
-        constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
-        sapling::Nullifier,
+        constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
+        sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed},
     };
     use zcash_primitives::{
-        constants::{VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR},
-        sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed},
+        constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
+        sapling::Nullifier,
     };
 
     use crate::{

@@ -8,9 +8,7 @@ use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::{
-        asset_generator_from_id, Asset, AssetIdentifier, NATIVE_ASSET, NATIVE_ASSET_GENERATOR,
-    },
+    assets::asset::{asset_generator_from_id, Asset, AssetIdentifier, NATIVE_ASSET},
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,
@@ -24,11 +22,13 @@ use blake2b_simd::Params as Blake2b;
 use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
-use jubjub::{ExtendedPoint, SubgroupPoint};
+use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
-    constants::{SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR},
+    constants::{
+        NATIVE_ASSET_GENERATOR, SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+    },
     redjubjub::{self, PrivateKey, PublicKey, Signature},
 };
 
@@ -205,7 +205,7 @@ impl ProposedTransaction {
                     change_address,
                     change_amount as u64, // we checked it was positive
                     "",
-                    asset_generator_from_id(asset_id).unwrap(),
+                    *asset_id,
                     self.spender_key.public_address(),
                 );
 
@@ -841,10 +841,13 @@ pub fn batch_verify_transactions<'a>(
 #[cfg(test)]
 mod test {
     use group::Group;
-    use jubjub::{ExtendedPoint, SubgroupPoint};
+    use jubjub::ExtendedPoint;
     use rand::thread_rng;
 
-    use crate::{test_util::make_fake_witness, Note, ProposedTransaction, SaplingKey};
+    use crate::{
+        assets::asset::NATIVE_ASSET, test_util::make_fake_witness, Note, ProposedTransaction,
+        SaplingKey,
+    };
 
     #[test]
     // TODO: Make this fail
@@ -853,14 +856,15 @@ mod test {
 
         let spend_value = 100;
         let spend_asset = ExtendedPoint::random(thread_rng());
-        let out_asset = spend_asset * jubjub::Fr::from(2);
+        let _out_asset = spend_asset * jubjub::Fr::from(2);
         let out_value = spend_value / 2;
 
         let spend_note = Note::new(
             spender_key.public_address(),
             spend_value,
             "",
-            spend_asset,
+            // TODO: Think about how to make this test still workable
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
         let witness = make_fake_witness(&spend_note);
@@ -869,7 +873,7 @@ mod test {
             spender_key.public_address(),
             out_value,
             "",
-            out_asset,
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
 

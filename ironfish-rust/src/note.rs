@@ -3,8 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    assets::asset::AssetIdentifier, errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE,
-    serializing::read_point, util::str_to_array, ViewKey,
+    assets::asset::{asset_generator_from_id, AssetIdentifier},
+    errors::IronfishError,
+    keys::PUBLIC_ADDRESS_SIZE,
+    util::str_to_array,
+    ViewKey,
 };
 
 use super::{
@@ -17,25 +20,24 @@ use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
-    constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
+    constants::{ASSET_ID_LENGTH, NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
     util::commitment_full_point,
     Nullifier,
 };
-use jubjub::{ExtendedPoint, SubgroupPoint};
+use jubjub::SubgroupPoint;
 use rand::thread_rng;
 use std::{fmt, io, io::Read};
 pub const ENCRYPTED_NOTE_SIZE: usize =
-    SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SIZE + GENERATOR_SIZE + PUBLIC_ADDRESS_SIZE;
+    SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SIZE + ASSET_ID_LENGTH + PUBLIC_ADDRESS_SIZE;
 //   8  value
 // + 32 randomness
-// + 32 asset generator
+// + 32 asset id
 // + 32 memo
 // + 32 sender address
 // = 136
 pub const SCALAR_SIZE: usize = 32;
 pub const MEMO_SIZE: usize = 32;
 pub const AMOUNT_VALUE_SIZE: usize = 8;
-pub const GENERATOR_SIZE: usize = 32;
 
 /// Memo field on a Note. Used to encode transaction IDs or other information
 /// about the transaction.
@@ -72,8 +74,8 @@ impl fmt::Display for Memo {
 /// to hold those funds.
 #[derive(Debug, Clone)]
 pub struct Note {
-    /// Asset generator the note is associated with
-    pub(crate) asset_generator: jubjub::ExtendedPoint,
+    /// Asset identifier the note is associated with
+    pub(crate) asset_id: AssetIdentifier,
 
     /// A public address for the owner of the note.
     pub(crate) owner: PublicAddress,
@@ -103,14 +105,14 @@ impl<'a> Note {
         owner: PublicAddress,
         value: u64,
         memo: impl Into<Memo>,
-        asset_generator: ExtendedPoint,
+        asset_id: AssetIdentifier,
         sender: PublicAddress,
     ) -> Self {
         let randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
 
         Self {
             owner,
-            asset_generator,
+            asset_id,
             value,
             randomness,
             memo: memo.into(),
@@ -125,7 +127,8 @@ impl<'a> Note {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let owner = PublicAddress::read(&mut reader)?;
 
-        let asset_generator = read_point(&mut reader)?;
+        let mut asset_id: AssetIdentifier = [0; ASSET_ID_LENGTH];
+        reader.read_exact(&mut asset_id)?;
 
         let value = reader.read_u64::<LittleEndian>()?;
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
@@ -137,7 +140,7 @@ impl<'a> Note {
 
         Ok(Self {
             owner,
-            asset_generator,
+            asset_id,
             value,
             randomness,
             memo,
@@ -152,7 +155,7 @@ impl<'a> Note {
     /// thread boundaries.
     pub fn write<W: io::Write>(&self, mut writer: &mut W) -> Result<(), IronfishError> {
         self.owner.write(&mut writer)?;
-        writer.write_all(&self.asset_generator.to_bytes())?;
+        writer.write_all(&self.asset_id)?;
         writer.write_u64::<LittleEndian>(self.value)?;
         writer.write_all(&self.randomness.to_bytes())?;
         writer.write_all(&self.memo.0)?;
@@ -175,13 +178,13 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (randomness, asset_generator, value, memo, sender) =
+        let (randomness, asset_id, value, memo, sender) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let owner = owner_view_key.public_address();
 
         Ok(Note {
             owner,
-            asset_generator,
+            asset_id,
             value,
             randomness,
             memo,
@@ -203,14 +206,14 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (randomness, asset_generator, value, memo, sender) =
+        let (randomness, asset_id, value, memo, sender) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
 
         let owner = PublicAddress { transmission_key };
 
         Ok(Note {
             owner,
-            asset_generator,
+            asset_id,
             value,
             randomness,
             memo,
@@ -231,12 +234,12 @@ impl<'a> Note {
     }
 
     pub fn asset_generator(&self) -> jubjub::ExtendedPoint {
-        self.asset_generator
+        // TODO: Deal with this unwrap
+        asset_generator_from_id(&self.asset_id).unwrap()
     }
 
     pub fn asset_id(&self) -> AssetIdentifier {
-        // TODO: This is incorrect
-        self.asset_generator.to_bytes()
+        self.asset_id
     }
 
     pub fn sender(&self) -> PublicAddress {
@@ -263,9 +266,8 @@ impl<'a> Note {
         bytes_to_encrypt[index..(index + MEMO_SIZE)].copy_from_slice(&self.memo.0[..]);
         index += MEMO_SIZE;
 
-        bytes_to_encrypt[index..(index + GENERATOR_SIZE)]
-            .copy_from_slice(&self.asset_generator.to_bytes());
-        index += GENERATOR_SIZE;
+        bytes_to_encrypt[index..(index + ASSET_ID_LENGTH)].copy_from_slice(&self.asset_id);
+        index += ASSET_ID_LENGTH;
 
         bytes_to_encrypt[index..].copy_from_slice(&self.sender.public_address());
 
@@ -275,7 +277,8 @@ impl<'a> Note {
     /// Computes the note commitment, returning the full point.
     fn commitment_full_point(&self) -> jubjub::SubgroupPoint {
         commitment_full_point(
-            self.asset_generator,
+            // TODO: deal with this unwrap
+            asset_generator_from_id(&self.asset_id).unwrap(),
             self.value,
             self.owner.transmission_key,
             self.randomness,
@@ -339,7 +342,7 @@ impl<'a> Note {
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<(jubjub::Fr, jubjub::ExtendedPoint, u64, Memo, PublicAddress), IronfishError> {
+    ) -> Result<(jubjub::Fr, AssetIdentifier, u64, Memo, PublicAddress), IronfishError> {
         let plaintext_bytes: [u8; ENCRYPTED_NOTE_SIZE] =
             aead::decrypt(shared_secret, encrypted_bytes)?;
 
@@ -351,16 +354,11 @@ impl<'a> Note {
         let mut memo = Memo::default();
         reader.read_exact(&mut memo.0)?;
 
-        let asset_generator = {
-            let mut bytes = [0; 32];
-            reader.read_exact(&mut bytes)?;
-
-            Option::from(jubjub::ExtendedPoint::from_bytes(&bytes))
-                .ok_or(IronfishError::InvalidData)?
-        };
+        let mut asset_id = [0; 32];
+        reader.read_exact(&mut asset_id)?;
 
         let sender = PublicAddress::read(&mut reader)?;
-        Ok((randomness, asset_generator, value, memo, sender))
+        Ok((randomness, asset_id, value, memo, sender))
     }
 }
 
@@ -368,7 +366,7 @@ impl<'a> Note {
 mod test {
     use super::{Memo, Note};
     use crate::{
-        assets::asset::NATIVE_ASSET_GENERATOR,
+        assets::asset::NATIVE_ASSET,
         keys::{shared_secret, EphemeralKeyPair, SaplingKey},
     };
 
@@ -382,7 +380,7 @@ mod test {
             public_address,
             42,
             "serialize me",
-            NATIVE_ASSET_GENERATOR.into(),
+            NATIVE_ASSET,
             sender_address,
         );
         let mut serialized = Vec::new();
@@ -416,13 +414,7 @@ mod test {
 
         let public_shared_secret =
             shared_secret(dh_secret, &public_address.transmission_key, dh_public);
-        let note = Note::new(
-            public_address,
-            42,
-            "",
-            NATIVE_ASSET_GENERATOR.into(),
-            sender_address,
-        );
+        let note = Note::new(public_address, 42, "", NATIVE_ASSET, sender_address);
         let encryption_result = note.encrypt(&public_shared_secret);
 
         let private_shared_secret = owner_key.incoming_view_key().shared_secret(dh_public);
