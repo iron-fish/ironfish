@@ -80,6 +80,7 @@ export class CeremonyServer {
   readonly host: string
 
   readonly s3Bucket: string
+  readonly downloadPrefix: string
   private s3Client: S3Client
 
   readonly tempDir: string
@@ -102,6 +103,7 @@ export class CeremonyServer {
     port: number
     host: string
     s3Bucket: string
+    downloadPrefix: string
     s3Client: S3Client
     tempDir: string
     contributionTimeoutMs: number
@@ -121,6 +123,7 @@ export class CeremonyServer {
     this.tempDir = options.tempDir
 
     this.s3Bucket = options.s3Bucket
+    this.downloadPrefix = options.downloadPrefix
     this.s3Client = options.s3Client
 
     this.contributionTimeoutMs = options.contributionTimeoutMs
@@ -188,13 +191,7 @@ export class CeremonyServer {
 
     nextClient.send({
       method: 'initiate-contribution',
-      // S3Client doesn't support unauthenticated downloads, so we can build the URL to download for the client:
-      downloadLink: S3Utils.getDownloadUrl(
-        this.s3Bucket,
-        latestParamName,
-        { accelerated: true },
-        { dualStack: true },
-      ),
+      downloadLink: `${this.downloadPrefix}/${latestParamName}`,
       contributionNumber: nextParamNumber,
     })
   }

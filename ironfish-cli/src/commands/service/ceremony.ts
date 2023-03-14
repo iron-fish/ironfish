@@ -11,7 +11,7 @@ import { S3Utils } from '../../utils'
 const CONTRIBUTE_TIMEOUT_MS = 5 * 60 * 1000
 const UPLOAD_TIMEOUT_MS = 5 * 60 * 1000
 const PRESIGNED_EXPIRATION_SEC = 5 * 60
-const START_DATE = 1676318400000 // Mon Feb 13 2023 12:00:00 GMT-0800 (Pacific Standard Time)
+const START_DATE = 1681146000000 // Monday, April 10, 2023 10:00:00 AM GMT-07:00 (Pacific Daylight Time)
 
 export default class Ceremony extends IronfishCommand {
   static hidden = true
@@ -28,6 +28,13 @@ export default class Ceremony extends IronfishCommand {
       required: false,
       description: 'S3 bucket to download and upload params to',
       default: 'ironfish-contributions',
+    }),
+    downloadPrefix: Flags.string({
+      char: 'b',
+      parse: (input: string) => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Prefix for contribution download URLs',
+      default: 'https://a93bebf26da4c2fe205f71c896afcf89.r2.cloudflarestorage.com',
     }),
     contributionTimeoutMs: Flags.integer({
       required: false,
@@ -65,7 +72,15 @@ export default class Ceremony extends IronfishCommand {
     const DEFAULT_HOST = '0.0.0.0'
     const DEFAULT_PORT = 9040
 
-    const s3Client = S3Utils.getS3Client(true)
+    const r2Credentials = await S3Utils.getR2Credentials()
+
+    if (r2Credentials === undefined) {
+      this.logger.log('Failed getting R2 credentials from AWS')
+      this.exit(0)
+      return
+    }
+
+    const r2Client = S3Utils.getR2S3Client(r2Credentials)
 
     setLogPrefixFromConfig(`[%tag%]`)
 
@@ -74,7 +89,8 @@ export default class Ceremony extends IronfishCommand {
       port: DEFAULT_PORT,
       host: DEFAULT_HOST,
       s3Bucket: flags.bucket,
-      s3Client: s3Client,
+      downloadPrefix: flags.downloadPrefix,
+      s3Client: r2Client,
       tempDir: this.sdk.config.tempDir,
       contributionTimeoutMs: flags.contributionTimeoutMs,
       uploadTimeoutMs: flags.uploadTimeoutMs,
