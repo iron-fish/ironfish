@@ -517,10 +517,10 @@ mod test {
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 141553);
+                assert_eq!(cs.num_constraints(), 119651);
                 assert_eq!(
                     cs.hash(),
-                    "a23dd0c40984780492e6451d857e373c977f5632798bc23cd9e0e6f1f0539261"
+                    "54e1855af3f5db52f881b88710a4679593efb1dc377102a2184472ed5af636c6"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
@@ -708,10 +708,10 @@ mod test {
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 141553);
+                assert_eq!(cs.num_constraints(), 119651);
                 assert_eq!(
                     cs.hash(),
-                    "a23dd0c40984780492e6451d857e373c977f5632798bc23cd9e0e6f1f0539261"
+                    "54e1855af3f5db52f881b88710a4679593efb1dc377102a2184472ed5af636c6"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);

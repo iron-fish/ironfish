@@ -66,7 +66,6 @@ pub fn hash_to_point(tag: &[u8], personalization: &[u8]) -> Option<jubjub::Exten
         .hash_length(32)
         .personal(personalization)
         .to_state()
-        .update(GH_FIRST_BLOCK)
         .update(tag)
         .finalize();
 

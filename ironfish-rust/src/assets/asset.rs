@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array, PublicAddress};
 use byteorder::{ReadBytesExt, WriteBytesExt};
-use ironfish_zkp::{
-    constants::{
-        ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
-        VALUE_COMMITMENT_VALUE_GENERATOR,
-    },
-    util::hash_to_point,
+use ff::PrimeField;
+use group::{cofactor::CofactorGroup, Group, GroupEncoding};
+use ironfish_zkp::constants::{
+    ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK,
+    VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR,
 };
 use jubjub::{ExtendedPoint, SubgroupPoint};
 use std::io;
@@ -81,6 +80,7 @@ impl Asset {
             .hash_length(ASSET_ID_LENGTH)
             .personal(ASSET_ID_PERSONALIZATION)
             .to_state()
+            .update(GH_FIRST_BLOCK)
             .update(&owner.public_address())
             .update(&name)
             .update(&metadata)
@@ -146,9 +146,42 @@ impl Asset {
     }
 }
 
+/// This is a lightly modified group_hash function, for use with the asset identifier/generator flow
 pub fn asset_generator_from_id(asset_id: &AssetIdentifier) -> Result<ExtendedPoint, IronfishError> {
     hash_to_point(asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
         .ok_or(IronfishError::InvalidAssetIdentifier)
+}
+
+#[allow(clippy::assertions_on_constants)]
+fn hash_to_point(tag: &[u8], personalization: &[u8]) -> Option<jubjub::ExtendedPoint> {
+    assert_eq!(personalization.len(), 8);
+
+    // Check to see that scalar field is 255 bits
+    assert!(bls12_381::Scalar::NUM_BITS == 255);
+
+    let h = blake2s_simd::Params::new()
+        .hash_length(32)
+        .personal(personalization)
+        .to_state()
+        .update(tag)
+        .finalize();
+
+    let p = jubjub::ExtendedPoint::from_bytes(h.as_array());
+    if p.is_some().into() {
+        let p = p.unwrap();
+
+        // <ExtendedPoint as CofactorGroup>::clear_cofactor is implemented using
+        // ExtendedPoint::mul_by_cofactor in the jubjub crate.
+        let prime = CofactorGroup::clear_cofactor(&p);
+
+        if prime.is_identity().into() {
+            None
+        } else {
+            Some(p)
+        }
+    } else {
+        None
+    }
 }
 
 #[cfg(test)]

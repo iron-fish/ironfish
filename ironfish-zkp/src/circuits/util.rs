@@ -23,6 +23,13 @@ pub fn asset_id_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
 ) -> Result<Vec<boolean::Boolean>, SynthesisError> {
     let mut combined_preimage = vec![];
 
+    let gh_first_block_bits = slice_into_boolean_vec_le(
+        cs.namespace(|| "booleanize GH_FIRST_BLOCK"),
+        Some(GH_FIRST_BLOCK),
+        64,
+    )?;
+    combined_preimage.extend(gh_first_block_bits);
+
     combined_preimage
         .extend(owner_public_key.repr(cs.namespace(|| "booleanize owner_public_key"))?);
 
@@ -49,28 +56,17 @@ pub fn assert_valid_asset_generator<CS: bellman::ConstraintSystem<bls12_381::Sca
     asset_generator: &EdwardsPoint,
     asset_generator_repr: &[Boolean],
 ) -> Result<(), SynthesisError> {
-    // TODO: Figure out if we want to keep GH_FIRST_BLOCK here
-    let mut combined_preimage = vec![];
-
-    let gh_first_block_bits = slice_into_boolean_vec_le(
-        cs.namespace(|| "booleanize GH_FIRST_BLOCK"),
-        Some(GH_FIRST_BLOCK),
-        64,
-    )?;
-    combined_preimage.extend(gh_first_block_bits);
-
     // Compute the generator preimage bits
     let asset_generator_preimage = slice_into_boolean_vec_le(
         cs.namespace(|| "booleanize asset id"),
         Some(asset_id),
         ASSET_ID_LENGTH as u32,
     )?;
-    combined_preimage.extend(asset_generator_preimage);
 
     // Compute the generator bits
     let asset_generator_bits = blake2s::blake2s(
         cs.namespace(|| "computation of asset generator"),
-        &combined_preimage,
+        &asset_generator_preimage,
         VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
     )?;
 

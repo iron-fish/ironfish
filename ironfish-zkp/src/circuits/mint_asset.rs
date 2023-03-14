@@ -157,7 +157,7 @@ mod test {
     use group::{Curve, Group, GroupEncoding};
     use jubjub::ExtendedPoint;
     use rand::{rngs::StdRng, SeedableRng};
-    use zcash_primitives::sapling::ProofGenerationKey;
+    use zcash_primitives::{constants::GH_FIRST_BLOCK, sapling::ProofGenerationKey};
 
     use crate::constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, PUBLIC_KEY_GENERATOR};
 
@@ -186,6 +186,7 @@ mod test {
             .hash_length(ASSET_ID_LENGTH)
             .personal(ASSET_ID_PERSONALIZATION)
             .to_state()
+            .update(GH_FIRST_BLOCK)
             .update(&public_address.to_bytes())
             .update(&name)
             .update(&metadata)
@@ -220,7 +221,7 @@ mod test {
 
         assert!(cs.is_satisfied());
         assert!(cs.verify(&public_inputs));
-        assert_eq!(cs.num_constraints(), 90783);
+        assert_eq!(cs.num_constraints(), 112685);
 
         // Test bad inputs
         let bad_asset_info_hashed = [1u8; 32];
