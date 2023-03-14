@@ -10,7 +10,7 @@ use zcash_proofs::{
 };
 
 use crate::{
-    circuits::util::asset_info_preimage,
+    circuits::util::asset_id_preimage,
     constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_PERSONALIZATION},
 };
 
@@ -123,8 +123,8 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         )?;
 
         // Create the Asset Info pre-image
-        let asset_info_preimage = asset_info_preimage(
-            &mut cs.namespace(|| "asset info preimage"),
+        let asset_id_preimage = asset_id_preimage(
+            cs.namespace(|| "asset info preimage"),
             &owner_public_address,
             &self.name,
             &self.metadata,
@@ -134,7 +134,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         // Computed identifier bits from the given asset info
         let asset_id_bits = blake2s::blake2s(
             cs.namespace(|| "computation of asset id"),
-            &asset_info_preimage,
+            &asset_id_preimage,
             ASSET_ID_PERSONALIZATION,
         )?;
 

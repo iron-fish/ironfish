@@ -295,7 +295,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET_GENERATOR.into(),
             spender_key.public_address(),
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
@@ -321,7 +321,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET_GENERATOR.into(),
             sender_key.public_address(),
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
@@ -345,7 +345,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET_GENERATOR.into(),
             spender_key.public_address(),
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
@@ -378,7 +378,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET_GENERATOR.into(),
             spender_key.public_address(),
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
@@ -403,7 +403,7 @@ mod test {
             spender_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET_GENERATOR.into(),
             spender_key.public_address(),
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();

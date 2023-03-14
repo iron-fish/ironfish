@@ -2,6 +2,8 @@ use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use ff::PrimeField;
 use jubjub::SubgroupPoint;
 
+use crate::circuits::util::assert_valid_asset_generator;
+use crate::constants::ASSET_ID_LENGTH;
 use crate::{constants::proof::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment};
 
 use super::util::expose_value_commitment;
@@ -31,8 +33,8 @@ pub struct Spend {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
 
-    /// Asset generator derived from the hashed asset info
-    pub asset_generator: Option<jubjub::ExtendedPoint>,
+    /// Asset ID derived from the asset info
+    pub asset_id: [u8; ASSET_ID_LENGTH],
 
     /// Key required to construct proofs for spending notes
     /// for a particular spending key
@@ -154,10 +156,29 @@ impl Circuit<bls12_381::Scalar> for Spend {
         // asset generator, value (in big endian), followed by pk_d
         let mut note_contents = vec![];
 
-        let asset_generator =
-            ecc::EdwardsPoint::witness(cs.namespace(|| "asset_generator"), self.asset_generator)?;
-        note_contents
-            .extend(asset_generator.repr(cs.namespace(|| "representation of asset_generator"))?);
+        // Witness the provided asset generator
+        let asset_generator = ecc::EdwardsPoint::witness(
+            cs.namespace(|| "asset_generator"),
+            self.value_commitment.as_ref().map(|vc| vc.asset_generator),
+        )?;
+
+        let asset_generator_repr =
+            asset_generator.repr(cs.namespace(|| "asset_generation repr"))?;
+
+        assert_valid_asset_generator(
+            cs.namespace(|| "assert asset generator"),
+            &self.asset_id,
+            &asset_generator,
+            &asset_generator_repr,
+        )?;
+
+        // Clear asset generator cofactor
+        let asset_generator = asset_generator
+            .double(cs.namespace(|| "asset_generator first doubling"))?
+            .double(cs.namespace(|| "asset_generator second doubling"))?
+            .double(cs.namespace(|| "asset_generator third doubling"))?;
+
+        note_contents.extend(asset_generator_repr);
 
         // Handle the value; we'll need it later for the
         // dummy input check.
@@ -346,19 +367,21 @@ mod test {
     use blake2s_simd::Params as Blake2sParams;
     use ff::{Field, PrimeField, PrimeFieldBits};
     use group::{Curve, Group, GroupEncoding};
-    use rand::{rngs::StdRng, RngCore, SeedableRng};
-    use zcash_primitives::{
-        constants::VALUE_COMMITMENT_VALUE_GENERATOR,
-        sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed},
-    };
+    use rand::{rngs::StdRng, Rng, RngCore, SeedableRng};
     use zcash_primitives::{
         constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
         sapling::Nullifier,
     };
+    use zcash_primitives::{
+        constants::{VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR},
+        sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed},
+    };
 
     use crate::{
-        circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment,
-        util::commitment_full_point,
+        circuits::spend::Spend,
+        constants::PUBLIC_KEY_GENERATOR,
+        primitives::ValueCommitment,
+        util::{commitment_full_point, hash_to_point},
     };
 
     #[test]
@@ -369,10 +392,21 @@ mod test {
         let tree_depth = 32;
 
         for _ in 0..5 {
+            let mut asset_id = [0u8; 32];
+            let asset_generator = loop {
+                rng.fill(&mut asset_id[..]);
+
+                if let Some(point) =
+                    hash_to_point(&asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
+                {
+                    break point;
+                }
+            };
+
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: jubjub::Fr::random(&mut rng),
-                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
+                asset_generator,
             };
 
             let proof_generation_key = ProofGenerationKey {
@@ -476,17 +510,17 @@ mod test {
                     ar: Some(ar),
                     auth_path: auth_path.clone(),
                     anchor: Some(cur),
-                    asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
+                    asset_id,
                     sender_address: Some(payment_address),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 98102);
+                assert_eq!(cs.num_constraints(), 141553);
                 assert_eq!(
                     cs.hash(),
-                    "dc28ce3c5b045ee6a7cbc69e48ac7fbc33037c669717fcad5fa039197263e920"
+                    "a23dd0c40984780492e6451d857e373c977f5632798bc23cd9e0e6f1f0539261"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
@@ -544,10 +578,21 @@ mod test {
         ];
 
         for i in 0..5 {
+            let mut asset_id = [0u8; 32];
+            let asset_generator = loop {
+                rng.fill(&mut asset_id[..]);
+
+                if let Some(point) =
+                    hash_to_point(&asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
+                {
+                    break point;
+                }
+            };
+
             let value_commitment = ValueCommitment {
                 value: i,
                 randomness: jubjub::Fr::from(1000 * (i + 1)),
-                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
+                asset_generator,
             };
 
             let proof_generation_key = ProofGenerationKey {
@@ -656,17 +701,17 @@ mod test {
                     ar: Some(ar),
                     auth_path: auth_path.clone(),
                     anchor: Some(cur),
-                    asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
+                    asset_id,
                     sender_address: Some(payment_address),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 98102);
+                assert_eq!(cs.num_constraints(), 141553);
                 assert_eq!(
                     cs.hash(),
-                    "dc28ce3c5b045ee6a7cbc69e48ac7fbc33037c669717fcad5fa039197263e920"
+                    "a23dd0c40984780492e6451d857e373c977f5632798bc23cd9e0e6f1f0539261"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);

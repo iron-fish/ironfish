@@ -205,7 +205,7 @@ impl ProposedTransaction {
                     change_address,
                     change_amount as u64, // we checked it was positive
                     "",
-                    SubgroupPoint::from_bytes(asset_id).unwrap(),
+                    asset_generator_from_id(asset_id).unwrap(),
                     self.spender_key.public_address(),
                 );
 
@@ -841,7 +841,7 @@ pub fn batch_verify_transactions<'a>(
 #[cfg(test)]
 mod test {
     use group::Group;
-    use jubjub::SubgroupPoint;
+    use jubjub::{ExtendedPoint, SubgroupPoint};
     use rand::thread_rng;
 
     use crate::{test_util::make_fake_witness, Note, ProposedTransaction, SaplingKey};
@@ -852,7 +852,7 @@ mod test {
         let spender_key = SaplingKey::generate_key();
 
         let spend_value = 100;
-        let spend_asset = SubgroupPoint::random(thread_rng());
+        let spend_asset = ExtendedPoint::random(thread_rng());
         let out_asset = spend_asset * jubjub::Fr::from(2);
         let out_value = spend_value / 2;
 

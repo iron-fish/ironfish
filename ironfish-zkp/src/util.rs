@@ -1,15 +1,16 @@
 use std::io::Write;
 
 use byteorder::{LittleEndian, WriteBytesExt};
-use group::GroupEncoding;
+use ff::PrimeField;
+use group::{cofactor::CofactorGroup, Group, GroupEncoding};
 use zcash_primitives::{
-    constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
+    constants::{GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR},
     sapling::pedersen_hash::{pedersen_hash, Personalization},
 };
 
 /// Computes the note commitment with sender address, returning the full point.
 pub fn commitment_full_point(
-    asset_generator: jubjub::SubgroupPoint,
+    asset_generator: jubjub::ExtendedPoint,
     value: u64,
     pk_d: jubjub::SubgroupPoint,
     rcm: jubjub::Fr,
@@ -49,4 +50,40 @@ pub fn commitment_full_point(
 
     // Compute final commitment
     (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * rcm) + hash_of_contents
+}
+
+/// Produces a point in the Jubjub curve.
+/// The point is guaranteed to be prime order
+/// and not the identity.
+#[allow(clippy::assertions_on_constants)]
+pub fn hash_to_point(tag: &[u8], personalization: &[u8]) -> Option<jubjub::ExtendedPoint> {
+    assert_eq!(personalization.len(), 8);
+
+    // Check to see that scalar field is 255 bits
+    assert!(bls12_381::Scalar::NUM_BITS == 255);
+
+    let h = blake2s_simd::Params::new()
+        .hash_length(32)
+        .personal(personalization)
+        .to_state()
+        .update(GH_FIRST_BLOCK)
+        .update(tag)
+        .finalize();
+
+    let p = jubjub::ExtendedPoint::from_bytes(h.as_array());
+    if p.is_some().into() {
+        let p = p.unwrap();
+
+        // <ExtendedPoint as CofactorGroup>::clear_cofactor is implemented using
+        // ExtendedPoint::mul_by_cofactor in the jubjub crate.
+        let prime = CofactorGroup::clear_cofactor(&p);
+
+        if prime.is_identity().into() {
+            None
+        } else {
+            Some(p)
+        }
+    } else {
+        None
+    }
 }

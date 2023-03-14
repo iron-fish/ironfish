@@ -1,18 +1,21 @@
 use bellman::{
-    gadgets::boolean::{self, AllocatedBit, Boolean},
+    gadgets::{
+        blake2s,
+        boolean::{self, AllocatedBit, Boolean},
+    },
     ConstraintSystem, SynthesisError,
 };
 use ff::PrimeField;
+use zcash_primitives::constants::{GH_FIRST_BLOCK, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION};
 use zcash_proofs::{
     circuit::ecc::{self, EdwardsPoint},
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
-use crate::primitives::ValueCommitment;
+use crate::{constants::ASSET_ID_LENGTH, primitives::ValueCommitment};
 
-#[allow(clippy::too_many_arguments)]
-pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
-    cs: &mut CS,
+pub fn asset_id_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
+    mut cs: CS,
     owner_public_key: &EdwardsPoint,
     name: &[u8; 32],
     metadata: &[u8; 77],
@@ -38,6 +41,55 @@ pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
     combined_preimage.extend(nonce_bits);
 
     Ok(combined_preimage)
+}
+
+pub fn assert_valid_asset_generator<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
+    mut cs: CS,
+    asset_id: &[u8; ASSET_ID_LENGTH],
+    asset_generator: &EdwardsPoint,
+    asset_generator_repr: &[Boolean],
+) -> Result<(), SynthesisError> {
+    // TODO: Figure out if we want to keep GH_FIRST_BLOCK here
+    let mut combined_preimage = vec![];
+
+    let gh_first_block_bits = slice_into_boolean_vec_le(
+        cs.namespace(|| "booleanize GH_FIRST_BLOCK"),
+        Some(GH_FIRST_BLOCK),
+        64,
+    )?;
+    combined_preimage.extend(gh_first_block_bits);
+
+    // Compute the generator preimage bits
+    let asset_generator_preimage = slice_into_boolean_vec_le(
+        cs.namespace(|| "booleanize asset id"),
+        Some(asset_id),
+        ASSET_ID_LENGTH as u32,
+    )?;
+    combined_preimage.extend(asset_generator_preimage);
+
+    // Compute the generator bits
+    let asset_generator_bits = blake2s::blake2s(
+        cs.namespace(|| "computation of asset generator"),
+        &combined_preimage,
+        VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
+    )?;
+
+    asset_generator.assert_not_small_order(cs.namespace(|| "asset_generator not small order"))?;
+
+    assert_eq!(asset_generator_bits.len(), 256);
+    assert_eq!(asset_generator_repr.len(), 256);
+
+    // We assert that the asset generator for the value commitment is the one
+    // calculated from the asset identifier
+    for i in 0..256 {
+        boolean::Boolean::enforce_equal(
+            cs.namespace(|| format!("integrity of asset generator bit {}", i)),
+            &asset_generator_bits[i],
+            &asset_generator_repr[i],
+        )?;
+    }
+
+    Ok(())
 }
 
 pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(

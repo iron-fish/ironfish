@@ -242,7 +242,7 @@ mod test {
             spender_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET_GENERATOR.into(),
             spender_key.public_address(),
         );
 
@@ -272,7 +272,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET_GENERATOR.into(),
             spender_key.public_address(),
         );
 
@@ -300,7 +300,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET_GENERATOR.into(),
             spender_key.public_address(),
         );
 

@@ -21,7 +21,7 @@ use ironfish_zkp::{
     util::commitment_full_point,
     Nullifier,
 };
-use jubjub::SubgroupPoint;
+use jubjub::{ExtendedPoint, SubgroupPoint};
 use rand::thread_rng;
 use std::{fmt, io, io::Read};
 pub const ENCRYPTED_NOTE_SIZE: usize =
@@ -73,7 +73,7 @@ impl fmt::Display for Memo {
 #[derive(Debug, Clone)]
 pub struct Note {
     /// Asset generator the note is associated with
-    pub(crate) asset_generator: jubjub::SubgroupPoint,
+    pub(crate) asset_generator: jubjub::ExtendedPoint,
 
     /// A public address for the owner of the note.
     pub(crate) owner: PublicAddress,
@@ -103,7 +103,7 @@ impl<'a> Note {
         owner: PublicAddress,
         value: u64,
         memo: impl Into<Memo>,
-        asset_generator: SubgroupPoint,
+        asset_generator: ExtendedPoint,
         sender: PublicAddress,
     ) -> Self {
         let randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
@@ -230,7 +230,7 @@ impl<'a> Note {
         self.owner
     }
 
-    pub fn asset_generator(&self) -> jubjub::SubgroupPoint {
+    pub fn asset_generator(&self) -> jubjub::ExtendedPoint {
         self.asset_generator
     }
 
@@ -338,7 +338,7 @@ impl<'a> Note {
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<(jubjub::Fr, jubjub::SubgroupPoint, u64, Memo, PublicAddress), IronfishError> {
+    ) -> Result<(jubjub::Fr, jubjub::ExtendedPoint, u64, Memo, PublicAddress), IronfishError> {
         let plaintext_bytes: [u8; ENCRYPTED_NOTE_SIZE] =
             aead::decrypt(shared_secret, encrypted_bytes)?;
 
@@ -354,7 +354,7 @@ impl<'a> Note {
             let mut bytes = [0; 32];
             reader.read_exact(&mut bytes)?;
 
-            Option::from(jubjub::SubgroupPoint::from_bytes(&bytes))
+            Option::from(jubjub::ExtendedPoint::from_bytes(&bytes))
                 .ok_or(IronfishError::InvalidData)?
         };
 
@@ -381,7 +381,7 @@ mod test {
             public_address,
             42,
             "serialize me",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET_GENERATOR.into(),
             sender_address,
         );
         let mut serialized = Vec::new();
@@ -419,7 +419,7 @@ mod test {
             public_address,
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET_GENERATOR.into(),
             sender_address,
         );
         let encryption_result = note.encrypt(&public_shared_secret);

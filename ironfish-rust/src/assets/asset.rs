@@ -8,9 +8,9 @@ use ironfish_zkp::{
         ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
         VALUE_COMMITMENT_VALUE_GENERATOR,
     },
-    group_hash,
+    util::hash_to_point,
 };
-use jubjub::SubgroupPoint;
+use jubjub::{ExtendedPoint, SubgroupPoint};
 use std::io;
 
 // TODO: This needs to be thought-through again, will probably change.
@@ -77,7 +77,7 @@ impl Asset {
         nonce: u8,
     ) -> Result<Asset, IronfishError> {
         // Create the potential asset identifier from the asset info
-        let asset_id = blake2s_simd::Params::new()
+        let asset_id_hash = blake2s_simd::Params::new()
             .hash_length(ASSET_ID_LENGTH)
             .personal(ASSET_ID_PERSONALIZATION)
             .to_state()
@@ -86,19 +86,15 @@ impl Asset {
             .update(&metadata)
             .update(std::slice::from_ref(&nonce))
             .finalize();
+        let asset_id = asset_id_hash.as_array();
 
-        if group_hash(
-            asset_id.as_bytes(),
-            VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
-        )
-        .is_some()
-        {
+        if asset_generator_from_id(asset_id).is_ok() {
             Ok(Asset {
                 owner,
                 name,
                 metadata,
                 nonce,
-                id: *asset_id.as_array(),
+                id: *asset_id,
             })
         } else {
             Err(IronfishError::InvalidAssetIdentifier)
@@ -121,7 +117,7 @@ impl Asset {
         &self.id
     }
 
-    pub fn generator(&self) -> SubgroupPoint {
+    pub fn generator(&self) -> ExtendedPoint {
         asset_generator_from_id(&self.id).unwrap()
     }
 
@@ -150,8 +146,8 @@ impl Asset {
     }
 }
 
-pub fn asset_generator_from_id(asset_id: &AssetIdentifier) -> Result<SubgroupPoint, IronfishError> {
-    group_hash(asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
+pub fn asset_generator_from_id(asset_id: &AssetIdentifier) -> Result<ExtendedPoint, IronfishError> {
+    hash_to_point(asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
         .ok_or(IronfishError::InvalidAssetIdentifier)
 }
 
