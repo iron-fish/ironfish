@@ -34,7 +34,8 @@ export default class Ceremony extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'Prefix for contribution download URLs',
-      default: 'https://a93bebf26da4c2fe205f71c896afcf89.r2.cloudflarestorage.com',
+      // TODO: update this to non-dev endpoint to avoid rate limiting
+      default: 'https://pub-6a239e04e140459087cf392ffc3245b1.r2.dev',
     }),
     contributionTimeoutMs: Flags.integer({
       required: false,

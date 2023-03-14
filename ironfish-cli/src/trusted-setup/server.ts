@@ -400,6 +400,12 @@ export class CeremonyServer {
 
     client.logger.info(`Uploading verified contribution`)
     const destFile = 'params_' + nextParamNumber.toString().padStart(5, '0')
+
+    const metadata = {
+      ...(client.name && { contributorName: encodeURIComponent(client.name) }),
+      ...(client.socket.remoteAddress && { remoteAddress: client.socket.remoteAddress }),
+    }
+
     await S3Utils.uploadToBucket(
       this.s3Client,
       newParamsDownloadPath,
@@ -407,7 +413,7 @@ export class CeremonyServer {
       this.s3Bucket,
       destFile,
       client.logger,
-      client.name ? { contributorName: encodeURIComponent(client.name) } : undefined,
+      metadata,
     )
 
     client.logger.info(`Cleaning up local files`)
