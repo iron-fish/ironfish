@@ -11,6 +11,7 @@ import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
 import { IRpcAdapter } from './adapter'
 import { ERROR_CODES, ResponseError } from './errors'
+import { MESSAGE_DELIMITER } from './socketAdapter'
 
 const MEGABYTES = 1000 * 1000
 const MAX_REQUEST_SIZE = 5 * MEGABYTES
@@ -202,16 +203,16 @@ export class RpcHttpAdapter implements IRpcAdapter {
       route,
       (status: number, data?: unknown) => {
         response.statusCode = status
-        const delimeter = chunkStreamed ? ',' : ''
+        const delimeter = chunkStreamed ? MESSAGE_DELIMITER : ''
         response.end(delimeter + JSON.stringify({ status, data }))
         this.cleanUpRequest(requestId)
       },
       (data: unknown) => {
         // TODO: Most HTTP clients don't parse `Transfer-Encoding: chunked` by chunk
         // they wait until all chunks have been received and combine them. This will
-        // stream a ',' delimitated list of JSON objects but is still probably not
+        // stream a delimitated list of JSON objects but is still probably not
         // ideal as a response. We could find some better way to stream
-        const delimeter = chunkStreamed ? ',' : ''
+        const delimeter = chunkStreamed ? MESSAGE_DELIMITER : ''
         response.write(delimeter + JSON.stringify({ data }))
         chunkStreamed = true
       },
