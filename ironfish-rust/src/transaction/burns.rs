@@ -7,7 +7,10 @@ use std::io;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use ironfish_zkp::constants::ASSET_ID_LENGTH;
 
-use crate::{assets::asset::AssetIdentifier, errors::IronfishError};
+use crate::{
+    assets::asset::{asset_generator_from_id, AssetIdentifier},
+    errors::IronfishError,
+};
 
 /// Parameters used to build a burn description
 pub struct BurnBuilder {
@@ -43,6 +46,23 @@ pub struct BurnDescription {
 }
 
 impl BurnDescription {
+    /// A function to encapsulate any verification besides the proof itself.
+    /// This allows us to abstract away the details and make it easier to work
+    /// with. Note that this does not verify the proof, that happens in the
+    /// [`BurnBuilder`] build function as the prover, and in
+    /// [`super::batch_verify_transactions`] as the verifier.
+    pub fn partial_verify(&self) -> Result<(), IronfishError> {
+        self.verify_generator_point()?;
+
+        Ok(())
+    }
+
+    fn verify_generator_point(&self) -> Result<(), IronfishError> {
+        asset_generator_from_id(&self.asset_id)?;
+
+        Ok(())
+    }
+
     /// Write the signature of this proof to the provided writer.
     ///
     /// The signature is used by the transaction to calculate the signature

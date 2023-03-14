@@ -70,7 +70,7 @@ impl NativeNote {
         let asset_id_vec = buffer.as_ref();
         let mut asset_id_bytes = [0; ASSET_ID_LENGTH];
         asset_id_bytes.clone_from_slice(&asset_id_vec[0..ASSET_ID_LENGTH]);
-        let asset_generator = asset_generator_from_id(&asset_id_bytes);
+        let asset_generator = asset_generator_from_id(&asset_id_bytes).map_err(to_napi_err)?;
 
         Ok(NativeNote {
             note: Note::new(

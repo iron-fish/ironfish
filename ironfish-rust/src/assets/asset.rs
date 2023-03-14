@@ -122,7 +122,7 @@ impl Asset {
     }
 
     pub fn generator(&self) -> SubgroupPoint {
-        asset_generator_from_id(&self.id)
+        asset_generator_from_id(&self.id).unwrap()
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
@@ -150,8 +150,9 @@ impl Asset {
     }
 }
 
-pub fn asset_generator_from_id(asset_id: &AssetIdentifier) -> SubgroupPoint {
-    group_hash(asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION).unwrap()
+pub fn asset_generator_from_id(asset_id: &AssetIdentifier) -> Result<SubgroupPoint, IronfishError> {
+    group_hash(asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
+        .ok_or(IronfishError::InvalidAssetIdentifier)
 }
 
 #[cfg(test)]

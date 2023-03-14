@@ -762,7 +762,7 @@ fn calculate_value_balance(
     }
 
     for burn in burns {
-        let burn_generator = asset_generator_from_id(&burn.asset_id);
+        let burn_generator = asset_generator_from_id(&burn.asset_id)?;
         value_balance_point -= burn_generator * jubjub::Fr::from(burn.value);
     }
 
@@ -813,6 +813,8 @@ pub fn batch_verify_transactions<'a>(
         }
 
         for mint in transaction.mints.iter() {
+            mint.partial_verify()?;
+
             let public_inputs = mint.public_inputs(transaction.randomized_public_key());
             mint_verifier.queue((&mint.proof, &public_inputs[..]));
 
@@ -820,6 +822,10 @@ pub fn batch_verify_transactions<'a>(
                 &hash_to_verify_signature,
                 transaction.randomized_public_key(),
             )?;
+        }
+
+        for burn in transaction.burns.iter() {
+            burn.partial_verify()?;
         }
 
         transaction.verify_binding_signature(&binding_verification_key)?;

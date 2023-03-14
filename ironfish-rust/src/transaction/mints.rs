@@ -170,6 +170,23 @@ impl MintDescription {
         Ok(())
     }
 
+    /// A function to encapsulate any verification besides the proof itself.
+    /// This allows us to abstract away the details and make it easier to work
+    /// with. Note that this does not verify the proof, that happens in the
+    /// [`MintBuilder`] build function as the prover, and in
+    /// [`super::batch_verify_transactions`] as the verifier.
+    pub fn partial_verify(&self) -> Result<(), IronfishError> {
+        self.verify_generator_point()?;
+
+        Ok(())
+    }
+
+    fn verify_generator_point(&self) -> Result<(), IronfishError> {
+        asset_generator_from_id(self.asset.id())?;
+
+        Ok(())
+    }
+
     pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 4] {
         let mut public_inputs = [Scalar::zero(); 4];
 
