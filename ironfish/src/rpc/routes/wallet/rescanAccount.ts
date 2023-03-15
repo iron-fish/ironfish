@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
 
-export type RescanAccountRequest = { follow?: boolean; from?: number; reset?: boolean }
+export type RescanAccountRequest = { follow?: boolean; from?: number }
 export type RescanAccountResponse = { sequence: number; startedAt: number; endSequence: number }
 
 export const RescanAccountRequestSchema: yup.ObjectSchema<RescanAccountRequest> = yup
   .object({
     follow: yup.boolean().optional(),
     from: yup.number().optional(),
-    reset: yup.boolean().optional(),
   })
   .defined()
 
@@ -39,15 +39,25 @@ router.register<typeof RescanAccountRequestSchema, RescanAccountResponse>(
         await node.wallet.updateHeadState.abort()
       }
 
-      if (request.data.reset) {
-        await node.wallet.reset()
-      }
+      await node.wallet.reset()
 
       let fromHash = undefined
-      if (request.data.from) {
-        const blockHash = await node.chain.getHashAtSequence(request.data.from)
-        if (blockHash) {
-          fromHash = blockHash
+      if (request.data.from && request.data.from > GENESIS_BLOCK_SEQUENCE) {
+        const header = await node.chain.getHeaderAtSequence(request.data.from)
+
+        if (header === null) {
+          throw new ValidationError(
+            `No block header found in the chain at sequence ${request.data.from}`,
+          )
+        }
+
+        fromHash = header.hash
+
+        for (const account of node.wallet.listAccounts()) {
+          await account.updateHead({
+            hash: header.previousBlockHash,
+            sequence: header.sequence - 1,
+          })
         }
       }
 

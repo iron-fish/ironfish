@@ -6,6 +6,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { v4 as uuid } from 'uuid'
+import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account, ScanState } from '../../../wallet'
 import { RescanAccountResponse } from './rescanAccount'
@@ -92,11 +93,64 @@ describe('wallet/rescanAccount', () => {
     await routeTest.client
       .request<RescanAccountResponse>('wallet/rescanAccount', {
         follow: false,
-        reset: true,
       })
       .waitForEnd()
 
     expect(reset).toHaveBeenCalledTimes(1)
+    expect(scanTransactions).toHaveBeenCalledTimes(1)
+  })
+
+  it('sets account head to one before the request.from sequence', async () => {
+    const reset = jest.spyOn(routeTest.node.wallet, 'reset').mockReturnValue(Promise.resolve())
+
+    const chain = routeTest.node.chain
+
+    const block2 = await useMinerBlockFixture(chain, 2)
+
+    const scanTransactions = jest
+      .spyOn(routeTest.node.wallet, 'scanTransactions')
+      .mockReturnValue(Promise.resolve())
+
+    const getHeaderAtSequence = jest
+      .spyOn(routeTest.node.chain, 'getHeaderAtSequence')
+      .mockReturnValue(Promise.resolve(block2.header))
+
+    const updateHead = jest.spyOn(account, 'updateHead').mockReturnValue(Promise.resolve())
+
+    await routeTest.client
+      .request<RescanAccountResponse>('wallet/rescanAccount', {
+        follow: false,
+        from: 2,
+      })
+      .waitForEnd()
+
+    expect(reset).toHaveBeenCalledTimes(1)
+    expect(getHeaderAtSequence).toHaveBeenCalledWith(2)
+    expect(updateHead).toHaveBeenCalledWith({
+      hash: block2.header.previousBlockHash,
+      sequence: 1,
+    })
+    expect(scanTransactions).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not set account head if the request.from sequence is the genesis block', async () => {
+    const reset = jest.spyOn(routeTest.node.wallet, 'reset').mockReturnValue(Promise.resolve())
+
+    const scanTransactions = jest
+      .spyOn(routeTest.node.wallet, 'scanTransactions')
+      .mockReturnValue(Promise.resolve())
+
+    const updateHead = jest.spyOn(account, 'updateHead').mockReturnValue(Promise.resolve())
+
+    await routeTest.client
+      .request<RescanAccountResponse>('wallet/rescanAccount', {
+        follow: false,
+        from: 1,
+      })
+      .waitForEnd()
+
+    expect(reset).toHaveBeenCalledTimes(1)
+    expect(updateHead).not.toHaveBeenCalled()
     expect(scanTransactions).toHaveBeenCalledTimes(1)
   })
 })

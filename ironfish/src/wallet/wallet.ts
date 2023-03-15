@@ -577,7 +577,7 @@ export class Wallet {
     }
 
     this.logger.info(
-      `Scan starting from earliest found account head hash: ${beginHash.toString('hex')}`,
+      `Scan starting from block ${beginHash.toString('hex')} (${beginHeader.sequence})`,
     )
 
     // Go through every transaction in the chain and add notes that we can decrypt

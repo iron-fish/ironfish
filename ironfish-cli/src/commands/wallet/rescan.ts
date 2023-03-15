@@ -10,7 +10,7 @@ import { ProgressBar } from '../../types'
 import { hasUserResponseError } from '../../utils'
 
 export class RescanCommand extends IronfishCommand {
-  static description = `Rescan the blockchain for transaction`
+  static description = `Rescan the blockchain for transactions. Clears wallet disk caches before rescanning.`
 
   static flags = {
     ...RemoteFlags,
@@ -19,11 +19,6 @@ export class RescanCommand extends IronfishCommand {
       default: true,
       description: 'Follow the rescan live, or attach to an already running rescan',
       allowNo: true,
-    }),
-    reset: Flags.boolean({
-      default: false,
-      description:
-        'Clear the in-memory and disk caches before rescanning. Note that this removes all pending transactions',
     }),
     local: Flags.boolean({
       default: false,
@@ -37,14 +32,10 @@ export class RescanCommand extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(RescanCommand)
-    const { follow, reset, local, from } = flags
+    const { follow, local, from } = flags
 
     if (local && !follow) {
       this.error('You cannot pass both --local and --no-follow')
-    }
-
-    if (from && !reset) {
-      this.error('When passing --from, you must also pass --reset.')
     }
 
     const client = await this.sdk.connectRpc(local)
@@ -53,7 +44,7 @@ export class RescanCommand extends IronfishCommand {
       stdout: true,
     })
 
-    const response = client.rescanAccountStream({ reset, follow, from })
+    const response = client.rescanAccountStream({ follow, from })
 
     const speed = new Meter()
 
