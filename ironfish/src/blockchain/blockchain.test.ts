@@ -950,6 +950,7 @@ describe('Blockchain', () => {
           id: asset.id(),
           metadata: asset.metadata(),
           name: asset.name(),
+          nonce: asset.nonce(),
           owner: asset.owner(),
           supply: 10n,
         })
@@ -1027,6 +1028,7 @@ describe('Blockchain', () => {
           id: asset.id(),
           metadata: asset.metadata(),
           name: asset.name(),
+          nonce: asset.nonce(),
           owner: asset.owner(),
           supply: mintValueA + mintValueB,
         })
