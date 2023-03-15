@@ -8,7 +8,7 @@ import { sleep } from './utils'
 
 export const rootCmd = 'ironfish'
 
-export type TestNodeConfig = {
+export type SimulationNodeConfig = {
   name: string
   graffiti: string
   port: number
@@ -24,20 +24,22 @@ export type TestNodeConfig = {
 
 const globalLogger = createRootLogger()
 
-export class TestNode {
+export class SimulationNode {
   procs = new Map<string, ChildProcessWithoutNullStreams>()
   nodeProcess: ChildProcessWithoutNullStreams
   minerProcess?: ChildProcessWithoutNullStreams
 
   client: RpcTcpClient
-  config: TestNodeConfig
+  config: SimulationNodeConfig
 
   shutdownPromise: Promise<void> | null = null
   shutdownResolve: (() => void) | null = null
 
   logger: Logger
 
-  constructor(config: TestNodeConfig, client: RpcTcpClient, logger?: Logger) {
+  ready = false
+
+  constructor(config: SimulationNodeConfig, client: RpcTcpClient, logger?: Logger) {
     this.config = config
 
     this.client = client
@@ -71,7 +73,7 @@ export class TestNode {
      */
     if (config.is_miner) {
       args += ' --forceMining'
-      this.attachMiner()
+      this.startMinerProcess()
     }
 
     this.nodeProcess = this.startNodeProcess(args)
@@ -79,7 +81,7 @@ export class TestNode {
     this.logger.log(`started node: ${this.config.name}`)
   }
 
-  registerChildProcess(proc: ChildProcessWithoutNullStreams, procName: string): void {
+  private registerChildProcess(proc: ChildProcessWithoutNullStreams, procName: string): void {
     this.attachListeners(proc, procName)
     this.procs.set(procName, proc)
   }
@@ -88,7 +90,7 @@ export class TestNode {
    *
    * attaches a miner process to the test node
    */
-  attachMiner(): void {
+  private startMinerProcess(): void {
     this.logger.log(`attaching miner to ${this.config.name}...`)
 
     this.minerProcess = spawn('ironfish', [
@@ -99,33 +101,37 @@ export class TestNode {
       this.config.data_dir,
     ])
     this.registerChildProcess(this.minerProcess, 'miner')
-
-    return
   }
 
-  static async initialize(config: TestNodeConfig, logger?: Logger): Promise<TestNode> {
-    const client = new RpcTcpClient(config.tcp_host, config.tcp_port)
-
-    const node = new TestNode(config, client, logger)
-
-    node.shutdownPromise = new Promise((resolve) => (node.shutdownResolve = resolve))
-
-    // TODO: slight race condition, client connect should wait until node is ready
-    await sleep(3000)
-    const success = await client.tryConnect()
-    if (!success) {
-      throw new Error(`failed to connect to node ${this.name}`)
-    }
-
-    return node
-  }
-
-  startNodeProcess(args: string): ChildProcessWithoutNullStreams {
+  private startNodeProcess(args: string): ChildProcessWithoutNullStreams {
     this.logger.log(rootCmd + ' ' + args)
     const nodeProc = spawn(rootCmd, args.split(' '))
     this.registerChildProcess(nodeProc, 'node')
 
     return nodeProc
+  }
+
+  static async initialize(
+    config: SimulationNodeConfig,
+    logger?: Logger,
+  ): Promise<SimulationNode> {
+    const client = new RpcTcpClient(config.tcp_host, config.tcp_port)
+
+    const node = new SimulationNode(config, client, logger)
+
+    node.shutdownPromise = new Promise((resolve) => (node.shutdownResolve = resolve))
+
+    // TODO: slight race condition, client connect should wait until node process is ready
+    await sleep(3000)
+
+    const success = await client.tryConnect()
+    if (!success) {
+      throw new Error(`failed to connect to node ${this.name}`)
+    }
+
+    node.ready = true
+
+    return node
   }
 
   async waitForShutdown(): Promise<void> {
@@ -135,7 +141,7 @@ export class TestNode {
   async stop(): Promise<{ success: boolean; msg: string }> {
     this.logger.log(`killing node ${this.config.name}...`)
 
-    return stopTestNode(this.config)
+    return stopSimulationNode(this.config)
   }
 
   /**
@@ -144,7 +150,7 @@ export class TestNode {
    *
    * @param proc new proc
    */
-  attachListeners(p: ChildProcessWithoutNullStreams, procName: string): void {
+  private attachListeners(p: ChildProcessWithoutNullStreams, procName: string): void {
     const filtered = [
       'Requesting',
       // 'Successfully mined block',
@@ -220,7 +226,7 @@ export class TestNode {
   /**
    * Kills all child processes and handles any required cleanup
    */
-  cleanup(): void {
+  private cleanup(): void {
     this.logger.log(`cleaning up ${this.config.name}...`)
     // TODO: at this point you know the node proc is dead, should we remove from map?
     this.procs.forEach((proc) => {
@@ -235,17 +241,7 @@ export class TestNode {
  * this is because you can't access the actual TestNode object with the
  * running node/miner procs from other cli commands
  */
-export async function stopTestNode(node: {
-  name: string
-  data_dir: string
-  is_miner?: boolean
-  tcp_host: string
-  tcp_port: number
-}): Promise<{ success: boolean; msg: string }> {
-  return stopViaTcp(node)
-}
-
-async function stopViaTcp(node: {
+export async function stopSimulationNode(node: {
   name: string
   data_dir: string
   is_miner?: boolean
@@ -276,31 +272,5 @@ async function stopViaTcp(node: {
     success = false
   }
 
-  globalLogger.log(node.name, { success, msg })
-
   return { success, msg }
 }
-
-// option to stop via CLI instead RPC client
-// async function stopViaExec(node: {
-//   name: string
-//   data_dir: string
-//   is_miner?: boolean
-//   tcp_host: string
-//   tcp_port: number
-// }): Promise<{ success: boolean; msg: string }> {
-//   console.log(`killing node ${node.name}...`)
-
-//   const execPromise = util.promisify(exec)
-
-//   const { stdout, stderr } = await execPromise(`${rootCmd} stop --datadir ${node.data_dir}`)
-//   let success = true
-//   let msg = stdout
-
-//   if (stderr) {
-//     success = false
-//     msg = stderr
-//   }
-
-//   return { success, msg }
-// }
