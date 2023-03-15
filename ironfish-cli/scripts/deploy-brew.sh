@@ -28,7 +28,8 @@ UPLOAD_HASH=$(shasum -a 256 $SOURCE_PATH | awk '{print $1}')
 
 UPLOAD_NAME=ironfish-cli-$GIT_HASH.tar.gz
 UPLOAD_URL=s3://ironfish-cli/$UPLOAD_NAME
-PUBLIC_URL=https://ironfish-cli.s3.amazonaws.com/$UPLOAD_NAME
+S3_URL=https://ironfish-cli.s3.amazonaws.com/$UPLOAD_NAME
+PUBLIC_URL=https://releases.ironfish.network/$UPLOAD_NAME
 
 echo ""
 echo "GIT HASH:     $GIT_HASH"
@@ -39,12 +40,20 @@ echo "PUBLIC URL:   $PUBLIC_URL"
 echo ""
 
 if aws s3api head-object --bucket ironfish-cli --key $UPLOAD_NAME > /dev/null 2>&1 ; then
-    echo "Release already uploaded: $PUBLIC_URL"
+    echo "Release already uploaded: $S3_URL"
     exit 1
 fi
 
 echo "Uploading $SOURCE_NAME to $UPLOAD_URL"
 aws s3 cp $SOURCE_PATH $UPLOAD_URL
+
+echo "Configure R2 S3 client"
+aws configure set region auto
+aws configure set aws_access_key_id R2_ACCESS_KEY_ID
+aws configure set aws_secret_access_key R2_SECRET_ACCESS_KEY
+
+echo "Uploading $SOURCE_NAME to R2 $UPLOAD_URL"
+aws s3 cp $SOURCE_PATH $UPLOAD_URL --endpoint-url https://a93bebf26da4c2fe205f71c896afcf89.r2.cloudflarestorage.com
 
 echo ""
 echo "You are almost finished! To finish the process you need to update update url and sha256 in"
