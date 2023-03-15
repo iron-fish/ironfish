@@ -4,7 +4,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use ff::PrimeField;
 use group::{cofactor::CofactorGroup, Group, GroupEncoding};
 use zcash_primitives::{
-    constants::{NOTE_COMMITMENT_RANDOMNESS_GENERATOR},
+    constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
     sapling::pedersen_hash::{pedersen_hash, Personalization},
 };
 
@@ -52,6 +52,7 @@ pub fn commitment_full_point(
     (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * rcm) + hash_of_contents
 }
 
+/// This is a lightly modified group_hash function, for use with the asset identifier/generator flow
 #[allow(clippy::assertions_on_constants)]
 pub fn asset_hash_to_point(tag: &[u8], personalization: &[u8]) -> Option<jubjub::ExtendedPoint> {
     assert_eq!(personalization.len(), 8);

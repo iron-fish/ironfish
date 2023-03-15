@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array, PublicAddress};
 use byteorder::{ReadBytesExt, WriteBytesExt};
+use group::cofactor::CofactorGroup;
 use ironfish_zkp::{
     constants::{
         ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK,
@@ -10,13 +11,15 @@ use ironfish_zkp::{
     },
     util::asset_hash_to_point,
 };
-use jubjub::ExtendedPoint;
+use jubjub::{ExtendedPoint, SubgroupPoint};
 use lazy_static::lazy_static;
 use std::io;
 
 lazy_static! {
-    pub static ref NATIVE_ASSET_GENERATOR: ExtendedPoint =
-        asset_generator_from_id(&NATIVE_ASSET).unwrap();
+    pub static ref NATIVE_ASSET_VALUE_GENERATOR: SubgroupPoint =
+        asset_generator_from_id(&NATIVE_ASSET)
+            .unwrap()
+            .clear_cofactor();
 }
 
 // TODO: This needs to be thought-through again, will probably change.
@@ -116,6 +119,10 @@ impl Asset {
         &self.name
     }
 
+    pub fn nonce(&self) -> u8 {
+        self.nonce
+    }
+
     pub fn owner(&self) -> [u8; PUBLIC_ADDRESS_SIZE] {
         self.owner.public_address()
     }
@@ -153,7 +160,6 @@ impl Asset {
     }
 }
 
-/// This is a lightly modified group_hash function, for use with the asset identifier/generator flow
 pub fn asset_generator_from_id(asset_id: &AssetIdentifier) -> Result<ExtendedPoint, IronfishError> {
     asset_hash_to_point(asset_id, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION)
         .ok_or(IronfishError::InvalidAssetIdentifier)
