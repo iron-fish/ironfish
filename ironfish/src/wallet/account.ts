@@ -36,7 +36,7 @@ export class Account {
   readonly outgoingViewKey: string
   readonly version: number
   publicAddress: string
-  readonly createdAt: Date | null
+  readonly createdAt: HeadValue | null
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
 
