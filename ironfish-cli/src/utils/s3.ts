@@ -11,6 +11,8 @@ import {
   DeleteObjectCommand,
   DeleteObjectCommandOutput,
   GetObjectCommand,
+  HeadObjectCommand,
+  HeadObjectCommandOutput,
   ListObjectsCommand,
   ListObjectsCommandInput,
   PutObjectCommand,
@@ -261,6 +263,16 @@ export function getDownloadUrl(
   }
 
   return `https://${bucket}.${regionString}.amazonaws.com/${key}`
+}
+
+export async function getObjectMetadata(
+  s3: S3Client,
+  bucket: string,
+  key: string,
+): Promise<HeadObjectCommandOutput> {
+  const command = new HeadObjectCommand({ Bucket: bucket, Key: key })
+  const response = await s3.send(command)
+  return response
 }
 
 export async function getBucketObjects(s3: S3Client, bucket: string): Promise<string[]> {

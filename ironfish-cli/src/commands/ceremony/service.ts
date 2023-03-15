@@ -13,7 +13,7 @@ const UPLOAD_TIMEOUT_MS = 5 * 60 * 1000
 const PRESIGNED_EXPIRATION_SEC = 5 * 60
 const START_DATE = 1681146000000 // Monday, April 10, 2023 10:00:00 AM GMT-07:00 (Pacific Daylight Time)
 
-export default class Ceremony extends IronfishCommand {
+export default class CeremonyService extends IronfishCommand {
   static hidden = true
 
   static description = `
@@ -68,7 +68,7 @@ export default class Ceremony extends IronfishCommand {
   }
 
   async start(): Promise<void> {
-    const { flags } = await this.parse(Ceremony)
+    const { flags } = await this.parse(CeremonyService)
 
     const DEFAULT_HOST = '0.0.0.0'
     const DEFAULT_PORT = 9040
