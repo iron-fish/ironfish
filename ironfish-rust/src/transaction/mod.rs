@@ -8,7 +8,9 @@ use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::{asset_generator_from_id, Asset, AssetIdentifier, NATIVE_ASSET},
+    assets::asset::{
+        asset_generator_from_id, Asset, AssetIdentifier, NATIVE_ASSET, NATIVE_ASSET_GENERATOR,
+    },
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,
@@ -26,9 +28,7 @@ use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
-    constants::{
-        NATIVE_ASSET_GENERATOR, SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-    },
+    constants::{SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR},
     redjubjub::{self, PrivateKey, PublicKey, Signature},
 };
 
@@ -733,13 +733,13 @@ fn fee_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
         None => return Err(IronfishError::IllegalValue),
     };
 
-    let mut value_balance = NATIVE_ASSET_GENERATOR * jubjub::Fr::from(abs);
+    let mut value_balance = *NATIVE_ASSET_GENERATOR * jubjub::Fr::from(abs);
 
     if is_negative {
         value_balance = -value_balance;
     }
 
-    Ok(value_balance.into())
+    Ok(value_balance)
 }
 
 /// Calculate balance of input and output values.

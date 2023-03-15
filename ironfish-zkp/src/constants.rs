@@ -30,21 +30,6 @@ pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecke
     ]),
 );
 
-pub const NATIVE_ASSET_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(
-    bls12_381::Scalar::from_raw([
-        0xf38a_a31d_aef5_c780,
-        0xb49f_ae30_d9f7_ba98,
-        0x90f4_2798_36b5_1340,
-        0x81de_cb52_9741_7d6f,
-    ]),
-    bls12_381::Scalar::from_raw([
-        0x8e3d_8bd6_9e67_c7f2,
-        0x4d32_6181_889e_0218,
-        0x6709_4800_d969_33e5,
-        0x9cef_2754_d5e7_936e,
-    ]),
-);
-
 pub mod proof {
     use lazy_static::lazy_static;
     use zcash_proofs::constants::{generate_circuit_generator, FixedGeneratorOwned};

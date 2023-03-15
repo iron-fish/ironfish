@@ -5,22 +5,14 @@
 #[cfg(test)]
 use super::{ProposedTransaction, Transaction};
 use crate::{
-    assets::asset::{asset_generator_from_id, Asset, NATIVE_ASSET},
+    assets::asset::{Asset, NATIVE_ASSET},
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
-    serializing::bytes_to_hex,
     test_util::make_fake_witness,
     transaction::{TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE, TRANSACTION_SIGNATURE_SIZE},
 };
-
-use group::{cofactor::CofactorGroup, Curve, Group};
-use ironfish_zkp::{
-    constants::{NATIVE_ASSET_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR},
-    redjubjub::Signature,
-};
-use jubjub::{ExtendedPoint, SubgroupPoint};
-use rand::thread_rng;
+use ironfish_zkp::redjubjub::Signature;
 
 #[test]
 fn test_transaction() {
@@ -195,60 +187,6 @@ fn test_transaction_simple() {
         .decrypt_note_for_owner(&spender_key_clone.incoming_viewing_key)
         .unwrap();
     assert_eq!(received_note.sender, spender_key_clone.public_address());
-}
-
-#[test]
-fn test_foo() {
-    // let x = asset_generator_from_id(&NATIVE_ASSET).unwrap();
-    let generator = asset_generator_from_id(&NATIVE_ASSET).unwrap();
-    println!("X, {:?}", generator);
-    println!("Y, {:?}", CofactorGroup::clear_cofactor(&generator));
-    println!("Z, {:?}", NATIVE_ASSET_GENERATOR);
-    println!("A, {:?}", VALUE_COMMITMENT_VALUE_GENERATOR);
-
-    // let point = SubgroupPoint::random(&mut thread_rng());
-    let point = CofactorGroup::clear_cofactor(&generator);
-    let affine_point = ExtendedPoint::from(point).to_affine();
-    let u_bytes = affine_point.get_u().to_bytes();
-    let v_bytes = affine_point.get_v().to_bytes();
-    let u_limbs = [
-        u64::from_le_bytes(u_bytes[0..8].try_into().unwrap()),
-        u64::from_le_bytes(u_bytes[8..16].try_into().unwrap()),
-        u64::from_le_bytes(u_bytes[16..24].try_into().unwrap()),
-        u64::from_le_bytes(u_bytes[24..32].try_into().unwrap()),
-    ];
-    let v_limbs = [
-        u64::from_le_bytes(v_bytes[0..8].try_into().unwrap()),
-        u64::from_le_bytes(v_bytes[8..16].try_into().unwrap()),
-        u64::from_le_bytes(v_bytes[16..24].try_into().unwrap()),
-        u64::from_le_bytes(v_bytes[24..32].try_into().unwrap()),
-    ];
-    println!("{:?}", u_limbs);
-    for u in u_limbs {
-        println!("{:?}", bytes_to_hex(&u.to_le_bytes()))
-    }
-    println!("{:?}", v_limbs);
-    for v in v_limbs {
-        println!("{:?}", bytes_to_hex(&v.to_le_bytes()))
-    }
-
-    // let x = SubgroupPoint::from_bytes(&NATIVE_ASSET_GENERATOR.to_bytes()).unwrap();
-    assert_eq!(generator.clear_cofactor(), NATIVE_ASSET_GENERATOR);
-    // pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(
-    //     bls12_381::Scalar::from_raw([
-    //         0x01a1_dfbe_fed7_811e,
-    //         0xbff2_d637_174d_935d,
-    //         0x305a_c80e_a582_1a3e,
-    //         0x1632_069d_2401_a801,
-    //     ]),
-    //     bls12_381::Scalar::from_raw([
-    //         0xd9b4_7568_14d2_919a,
-    //         0x5a44_a47e_8a23_af30,
-    //         0x297a_2b87_6a39_7a3e,
-    //         0x5a4c_aa85_44ab_ed28,
-    //     ]),
-    // );
-    assert!(false);
 }
 
 #[test]

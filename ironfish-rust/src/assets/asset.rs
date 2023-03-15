@@ -6,12 +6,18 @@ use byteorder::{ReadBytesExt, WriteBytesExt};
 use ironfish_zkp::{
     constants::{
         ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK,
-        VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR,
+        VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
     },
     util::asset_hash_to_point,
 };
-use jubjub::{ExtendedPoint, SubgroupPoint};
+use jubjub::ExtendedPoint;
+use lazy_static::lazy_static;
 use std::io;
+
+lazy_static! {
+    pub static ref NATIVE_ASSET_GENERATOR: ExtendedPoint =
+        asset_generator_from_id(&NATIVE_ASSET).unwrap();
+}
 
 // TODO: This needs to be thought-through again, will probably change.
 pub const NATIVE_ASSET: AssetIdentifier = [
@@ -155,10 +161,6 @@ pub fn asset_generator_from_id(asset_id: &AssetIdentifier) -> Result<ExtendedPoi
 
 #[cfg(test)]
 mod test {
-    use group::GroupEncoding;
-    use ironfish_zkp::constants::{NATIVE_ASSET_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR};
-    use jubjub::ExtendedPoint;
-
     use crate::{
         assets::asset::asset_generator_from_id, util::str_to_array, PublicAddress, SaplingKey,
     };
@@ -217,12 +219,7 @@ mod test {
 
     #[test]
     fn test_asset_native_identifier() {
-        // Native asset uses the original value commitment generator, no
-        // particular reason other than it is easier to think about this way.
-        assert_eq!(NATIVE_ASSET, VALUE_COMMITMENT_VALUE_GENERATOR.to_bytes());
-        assert_eq!(
-            asset_generator_from_id(&NATIVE_ASSET).unwrap(),
-            ExtendedPoint::from(NATIVE_ASSET_GENERATOR)
-        );
+        asset_generator_from_id(&NATIVE_ASSET)
+            .expect("Native asset id should have a valid generator point");
     }
 }
