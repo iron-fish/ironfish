@@ -76,6 +76,11 @@ impl NativeAsset {
     }
 
     #[napi]
+    pub fn nonce(&self) -> u8 {
+        self.asset.nonce()
+    }
+
+    #[napi]
     pub fn serialize(&self) -> Result<Buffer> {
         let mut vec: Vec<u8> = vec![];
         self.asset.write(&mut vec).map_err(to_napi_err)?;

@@ -55,6 +55,8 @@ export class Migration019 extends Migration {
             chainAsset.id,
             chainAsset.metadata,
             chainAsset.name,
+            // TODO: solve this correctly
+            chainAsset.nonce,
             chainAsset.owner,
             { hash, sequence },
             tx,
