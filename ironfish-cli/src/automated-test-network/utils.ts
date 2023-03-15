@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export const second = 1000
+export const SECOND = 1000
+export const IRON = 100000000
 
 export function sleep(ms: number): Promise<void> {
   // console.log(`sleeping...  ${ms / 1000}s`)
