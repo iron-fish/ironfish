@@ -12,25 +12,13 @@ use ironfish_zkp::{
     util::asset_hash_to_point,
 };
 use jubjub::{ExtendedPoint, SubgroupPoint};
-use lazy_static::lazy_static;
 use std::io;
-
-lazy_static! {
-    pub static ref NATIVE_ASSET_VALUE_GENERATOR: SubgroupPoint =
-        asset_generator_from_id(&NATIVE_ASSET)
-            .unwrap()
-            .clear_cofactor();
-}
 
 // TODO: This needs to be thought-through again, will probably change.
 pub const NATIVE_ASSET: AssetIdentifier = [
     215, 200, 103, 6, 245, 129, 122, 167, 24, 205, 28, 250, 208, 50, 51, 188, 214, 74, 119, 137,
     253, 148, 34, 211, 177, 122, 246, 130, 58, 126, 106, 198,
 ];
-
-// Uses the original value commitment generator as the native asset generator
-// TODO: This needs to be thought-through again, will probably change.
-// pub const NATIVE_ASSET_GENERATOR: SubgroupPoint = VALUE_COMMITMENT_VALUE_GENERATOR;
 
 pub const NAME_LENGTH: usize = 32;
 pub const METADATA_LENGTH: usize = 77;
@@ -135,6 +123,10 @@ impl Asset {
         asset_generator_from_id(&self.id).unwrap()
     }
 
+    pub fn value_commitment_generator(&self) -> SubgroupPoint {
+        self.generator().clear_cofactor()
+    }
+
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let owner = PublicAddress::read(&mut reader)?;
 
@@ -165,8 +157,17 @@ pub fn asset_generator_from_id(asset_id: &AssetIdentifier) -> Result<ExtendedPoi
         .ok_or(IronfishError::InvalidAssetIdentifier)
 }
 
+pub fn value_commitment_generator_from_id(
+    asset_id: &AssetIdentifier,
+) -> Result<SubgroupPoint, IronfishError> {
+    Ok(asset_generator_from_id(asset_id)?.clear_cofactor())
+}
+
 #[cfg(test)]
 mod test {
+    use group::cofactor::CofactorGroup;
+    use ironfish_zkp::constants::NATIVE_VALUE_COMMITMENT_GENERATOR;
+
     use crate::{
         assets::asset::asset_generator_from_id, util::str_to_array, PublicAddress, SaplingKey,
     };
@@ -225,7 +226,12 @@ mod test {
 
     #[test]
     fn test_asset_native_identifier() {
-        asset_generator_from_id(&NATIVE_ASSET)
+        let asset_generator = asset_generator_from_id(&NATIVE_ASSET)
             .expect("Native asset id should have a valid generator point");
+
+        assert_eq!(
+            asset_generator.clear_cofactor(),
+            NATIVE_VALUE_COMMITMENT_GENERATOR
+        );
     }
 }

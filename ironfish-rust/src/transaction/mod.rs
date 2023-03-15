@@ -8,9 +8,7 @@ use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::{
-        asset_generator_from_id, Asset, AssetIdentifier, NATIVE_ASSET, NATIVE_ASSET_VALUE_GENERATOR,
-    },
+    assets::asset::{value_commitment_generator_from_id, Asset, AssetIdentifier, NATIVE_ASSET},
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,
@@ -23,12 +21,15 @@ use bellman::groth16::batch::Verifier;
 use blake2b_simd::Params as Blake2b;
 use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use group::{cofactor::CofactorGroup, GroupEncoding};
+use group::GroupEncoding;
 use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
-    constants::{SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR},
+    constants::{
+        NATIVE_VALUE_COMMITMENT_GENERATOR, SPENDING_KEY_GENERATOR,
+        VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+    },
     redjubjub::{self, PrivateKey, PublicKey, Signature},
 };
 
@@ -733,7 +734,7 @@ fn fee_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
         None => return Err(IronfishError::IllegalValue),
     };
 
-    let mut value_balance = *NATIVE_ASSET_VALUE_GENERATOR * jubjub::Fr::from(abs);
+    let mut value_balance = NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(abs);
 
     if is_negative {
         value_balance = -value_balance;
@@ -757,15 +758,13 @@ fn calculate_value_balance(
     let mut value_balance_point = binding_verification_key - fee_point;
 
     for mint in mints {
-        let mint_generator = mint.asset.generator();
-        value_balance_point +=
-            CofactorGroup::clear_cofactor(&mint_generator) * jubjub::Fr::from(mint.value);
+        let mint_value_generator = mint.asset.value_commitment_generator();
+        value_balance_point += mint_value_generator * jubjub::Fr::from(mint.value);
     }
 
     for burn in burns {
-        let burn_generator = asset_generator_from_id(&burn.asset_id)?;
-        value_balance_point -=
-            CofactorGroup::clear_cofactor(&burn_generator) * jubjub::Fr::from(burn.value);
+        let burn_value_generator = value_commitment_generator_from_id(&burn.asset_id)?;
+        value_balance_point -= burn_value_generator * jubjub::Fr::from(burn.value);
     }
 
     Ok(value_balance_point)
