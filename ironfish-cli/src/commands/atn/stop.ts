@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createRootLogger } from '@ironfish/sdk'
-import { stopTestNode } from '../../automated-test-network/testnode'
+import { stopSimulationNode } from '../../automated-test-network'
 import { IronfishCommand } from '../../command'
 import { nodeConfig } from './start'
 
@@ -19,7 +19,7 @@ export default class Stop extends IronfishCommand {
 
     await Promise.all(
       nodes.map(async (node) => {
-        const { success, msg } = await stopTestNode(node)
+        const { success, msg } = await stopSimulationNode(node)
         if (!success) {
           logger.error(`couldn't stop node ${node.name}: ${msg}`)
         } else {

@@ -8,7 +8,7 @@ import { sleep } from './utils'
 
 export const rootCmd = 'ironfish'
 
-export type TestNodeConfig = {
+export type SimulationNodeConfig = {
   name: string
   graffiti: string
   port: number
@@ -24,20 +24,34 @@ export type TestNodeConfig = {
 
 const globalLogger = createRootLogger()
 
-export class TestNode {
+/**
+ * Wrapper around an Ironfish node for use in the simulation network.
+ *
+ * This class is responsible for starting and stopping the node, and
+ * providing a client to interact with the node. If the node is a miner,
+ * it will also start and stop the miner.
+ *
+ * The node itself can be accessed via another terminal by specifying it's
+ * data_dir while it is running.
+ *
+ * This class should be instantiated with the static `intiailize` method.
+ */
+export class SimulationNode {
   procs = new Map<string, ChildProcessWithoutNullStreams>()
   nodeProcess: ChildProcessWithoutNullStreams
   minerProcess?: ChildProcessWithoutNullStreams
 
   client: RpcTcpClient
-  config: TestNodeConfig
+  config: SimulationNodeConfig
 
   shutdownPromise: Promise<void> | null = null
   shutdownResolve: (() => void) | null = null
 
   logger: Logger
 
-  constructor(config: TestNodeConfig, client: RpcTcpClient, logger?: Logger) {
+  ready = false
+
+  constructor(config: SimulationNodeConfig, client: RpcTcpClient, logger?: Logger) {
     this.config = config
 
     this.client = client
@@ -71,7 +85,7 @@ export class TestNode {
      */
     if (config.is_miner) {
       args += ' --forceMining'
-      this.attachMiner()
+      this.startMinerProcess()
     }
 
     this.nodeProcess = this.startNodeProcess(args)
@@ -79,16 +93,21 @@ export class TestNode {
     this.logger.log(`started node: ${this.config.name}`)
   }
 
-  registerChildProcess(proc: ChildProcessWithoutNullStreams, procName: string): void {
+  /**
+   *
+   * @param proc Adds a child process to the node and attaches any listeners.
+   * @param procName The name of the process, used for logging and accessing the proc.
+   */
+  private registerChildProcess(proc: ChildProcessWithoutNullStreams, procName: string): void {
     this.attachListeners(proc, procName)
     this.procs.set(procName, proc)
   }
 
   /**
    *
-   * attaches a miner process to the test node
+   * Starts and attaches a miner process to the simulation node
    */
-  attachMiner(): void {
+  private startMinerProcess(): void {
     this.logger.log(`attaching miner to ${this.config.name}...`)
 
     this.minerProcess = spawn('ironfish', [
@@ -99,33 +118,53 @@ export class TestNode {
       this.config.data_dir,
     ])
     this.registerChildProcess(this.minerProcess, 'miner')
-
-    return
   }
 
-  static async initialize(config: TestNodeConfig, logger?: Logger): Promise<TestNode> {
-    const client = new RpcTcpClient(config.tcp_host, config.tcp_port)
-
-    const node = new TestNode(config, client, logger)
-
-    node.shutdownPromise = new Promise((resolve) => (node.shutdownResolve = resolve))
-
-    // TODO: slight race condition, client connect should wait until node is ready
-    await sleep(3000)
-    const success = await client.tryConnect()
-    if (!success) {
-      throw new Error(`failed to connect to node ${this.name}`)
-    }
-
-    return node
-  }
-
-  startNodeProcess(args: string): ChildProcessWithoutNullStreams {
+  /**
+   * Starts the node process and attaches listeners to it.
+   *
+   * @param args The arguments to pass to the node process. These arguments follow
+   * the same format as the CLI.
+   *
+   * @returns The node process
+   */
+  private startNodeProcess(args: string): ChildProcessWithoutNullStreams {
     this.logger.log(rootCmd + ' ' + args)
     const nodeProc = spawn(rootCmd, args.split(' '))
     this.registerChildProcess(nodeProc, 'node')
 
     return nodeProc
+  }
+
+  /**
+   * Initializes a new SimulationNode. This should be used instead of the constructor
+   * to ensure that the node is ready to be used.
+   *
+   * @param config The config for the node
+   * @param logger The logger to use for the node
+   * @returns A new SimulationNode
+   */
+  static async initialize(
+    config: SimulationNodeConfig,
+    logger?: Logger,
+  ): Promise<SimulationNode> {
+    const client = new RpcTcpClient(config.tcp_host, config.tcp_port)
+
+    const node = new SimulationNode(config, client, logger)
+
+    node.shutdownPromise = new Promise((resolve) => (node.shutdownResolve = resolve))
+
+    // TODO: race condition, client connect should wait until node process is ready
+    await sleep(3000)
+
+    const success = await client.tryConnect()
+    if (!success) {
+      throw new Error(`failed to connect to node ${this.name}`)
+    }
+
+    node.ready = true
+
+    return node
   }
 
   async waitForShutdown(): Promise<void> {
@@ -135,16 +174,17 @@ export class TestNode {
   async stop(): Promise<{ success: boolean; msg: string }> {
     this.logger.log(`killing node ${this.config.name}...`)
 
-    return stopTestNode(this.config)
+    return stopSimulationNode(this.config)
   }
 
   /**
    * Adds listeners to the input/output streams for a new proc.
    * Currently this just connects your process to this.logger.log
    *
-   * @param proc new proc
+   * @param p The process to attach listeners to
+   * @param procName The name of the process, used for logging
    */
-  attachListeners(p: ChildProcessWithoutNullStreams, procName: string): void {
+  private attachListeners(p: ChildProcessWithoutNullStreams, procName: string): void {
     const filtered = [
       'Requesting',
       // 'Successfully mined block',
@@ -220,7 +260,7 @@ export class TestNode {
   /**
    * Kills all child processes and handles any required cleanup
    */
-  cleanup(): void {
+  private cleanup(): void {
     this.logger.log(`cleaning up ${this.config.name}...`)
     // TODO: at this point you know the node proc is dead, should we remove from map?
     this.procs.forEach((proc) => {
@@ -231,21 +271,12 @@ export class TestNode {
 }
 
 /**
- * public function to stop a node
- * this is because you can't access the actual TestNode object with the
+ * Public function to stop a node
+ *
+ * This is because you cannot access the actual SimulationNode object with the
  * running node/miner procs from other cli commands
  */
-export async function stopTestNode(node: {
-  name: string
-  data_dir: string
-  is_miner?: boolean
-  tcp_host: string
-  tcp_port: number
-}): Promise<{ success: boolean; msg: string }> {
-  return stopViaTcp(node)
-}
-
-async function stopViaTcp(node: {
+export async function stopSimulationNode(node: {
   name: string
   data_dir: string
   is_miner?: boolean
@@ -276,31 +307,5 @@ async function stopViaTcp(node: {
     success = false
   }
 
-  globalLogger.log(node.name, { success, msg })
-
   return { success, msg }
 }
-
-// option to stop via CLI instead RPC client
-// async function stopViaExec(node: {
-//   name: string
-//   data_dir: string
-//   is_miner?: boolean
-//   tcp_host: string
-//   tcp_port: number
-// }): Promise<{ success: boolean; msg: string }> {
-//   console.log(`killing node ${node.name}...`)
-
-//   const execPromise = util.promisify(exec)
-
-//   const { stdout, stderr } = await execPromise(`${rootCmd} stop --datadir ${node.data_dir}`)
-//   let success = true
-//   let msg = stdout
-
-//   if (stderr) {
-//     success = false
-//     msg = stderr
-//   }
-
-//   return { success, msg }
-// }
