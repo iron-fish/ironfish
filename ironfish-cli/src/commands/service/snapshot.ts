@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { S3Client } from '@aws-sdk/client-s3'
-import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager'
 import { FileUtils, NodeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import axios from 'axios'
@@ -15,8 +14,6 @@ import { SnapshotManifest } from '../../snapshot'
 import { S3Utils, TarUtils } from '../../utils'
 
 const SNAPSHOT_FILE_NAME = `ironfish_snapshot.tar.gz`
-const R2_SECRET_NAME = 'r2-prod-access-key'
-const R2_ENDPOINT = `https://a93bebf26da4c2fe205f71c896afcf89.r2.cloudflarestorage.com`
 
 export type R2Secret = {
   r2AccessKeyId: string
@@ -114,28 +111,15 @@ export default class Snapshot extends IronfishCommand {
 
       let s3 = new S3Client({})
       if (flags.r2) {
-        const client = new SecretsManagerClient({})
-        const command = new GetSecretValueCommand({ SecretId: R2_SECRET_NAME })
+        const r2Credentials = await S3Utils.getR2Credentials()
 
-        this.log('Fetching secret from AWS Secrets Manager.')
-
-        const response = await client.send(command)
-
-        if (response.SecretString === undefined) {
-          this.log(`Failed to fetch R2 secret from AWS.`)
+        if (r2Credentials === undefined) {
+          this.logger.log('Failed getting R2 credentials from AWS')
           this.exit(1)
-        } else {
-          const secret = JSON.parse(response.SecretString) as R2Secret
-
-          s3 = new S3Client({
-            region: 'auto',
-            endpoint: R2_ENDPOINT,
-            credentials: {
-              accessKeyId: secret.r2AccessKeyId,
-              secretAccessKey: secret.r2SecretAccessKey,
-            },
-          })
+          return
         }
+
+        s3 = S3Utils.getR2S3Client(r2Credentials)
       }
 
       CliUx.ux.action.start(`Uploading to ${bucket}`)
