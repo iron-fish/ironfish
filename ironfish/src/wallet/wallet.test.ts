@@ -565,6 +565,7 @@ describe('Accounts', () => {
       expect(viewonlyAccount.spendingKey).toBeNull()
       expect(viewonlyAccount.publicAddress).toEqual(key.publicAddress)
     })
+
     it('should be unable to import a viewonly account if it is a dupe', async () => {
       const { node } = nodeTest
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -584,6 +585,61 @@ describe('Accounts', () => {
       await expect(node.wallet.importAccount(clone)).rejects.toThrow(
         'Account already exists with provided view key(s)',
       )
+    })
+
+    it('should set createdAt if that block is in the chain', async () => {
+      const { node: nodeA } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+      expect(accountA.createdAt).toBe(null)
+
+      // create blocks and add them to both chains
+      const block2 = await useMinerBlockFixture(nodeA.chain, 2)
+      await nodeA.chain.addBlock(block2)
+      await nodeB.chain.addBlock(block2)
+      await nodeA.wallet.updateHead()
+      const block3 = await useMinerBlockFixture(nodeA.chain, 3)
+      await nodeA.chain.addBlock(block3)
+      await nodeB.chain.addBlock(block3)
+      await nodeA.wallet.updateHead()
+
+      // create an account so that createdAt will be non-null
+      const accountB = await useAccountFixture(nodeA.wallet, 'accountB')
+
+      expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
+      expect(accountB.createdAt?.sequence).toEqual(3)
+
+      const accountBImport = await nodeB.wallet.importAccount(accountB)
+
+      expect(accountBImport.createdAt?.hash).toEqualHash(block3.header.hash)
+      expect(accountBImport.createdAt?.sequence).toEqual(3)
+    })
+
+    it('should set createdAt to null if that block is not in the chain', async () => {
+      const { node: nodeA } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
+      expect(accountA.createdAt).toBe(null)
+
+      // create blocks but only add them to one chain
+      const block2 = await useMinerBlockFixture(nodeA.chain, 2)
+      await nodeA.chain.addBlock(block2)
+      await nodeA.wallet.updateHead()
+      const block3 = await useMinerBlockFixture(nodeA.chain, 3)
+      await nodeA.chain.addBlock(block3)
+      await nodeA.wallet.updateHead()
+
+      // create an account on nodeA so that createdAt will be non-null
+      const accountB = await useAccountFixture(nodeA.wallet, 'accountB')
+
+      expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
+      expect(accountB.createdAt?.sequence).toEqual(3)
+
+      const accountBImport = await nodeB.wallet.importAccount(accountB)
+
+      expect(accountBImport.createdAt).toBeNull()
     })
   })
 
