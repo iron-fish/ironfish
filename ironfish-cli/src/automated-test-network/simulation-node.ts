@@ -24,6 +24,18 @@ export type SimulationNodeConfig = {
 
 const globalLogger = createRootLogger()
 
+/**
+ * Wrapper around an Ironfish node for use in the simulation network.
+ *
+ * This class is responsible for starting and stopping the node, and
+ * providing a client to interact with the node. If the node is a miner,
+ * it will also start and stop the miner.
+ *
+ * The node itself can be accessed via another terminal by specifying it's
+ * data_dir while it is running.
+ *
+ * This class should be instantiated with the static `intiailize` method.
+ */
 export class SimulationNode {
   procs = new Map<string, ChildProcessWithoutNullStreams>()
   nodeProcess: ChildProcessWithoutNullStreams
@@ -81,6 +93,11 @@ export class SimulationNode {
     this.logger.log(`started node: ${this.config.name}`)
   }
 
+  /**
+   *
+   * @param proc Adds a child process to the node and attaches any listeners.
+   * @param procName The name of the process, used for logging and accessing the proc.
+   */
   private registerChildProcess(proc: ChildProcessWithoutNullStreams, procName: string): void {
     this.attachListeners(proc, procName)
     this.procs.set(procName, proc)
@@ -88,7 +105,7 @@ export class SimulationNode {
 
   /**
    *
-   * attaches a miner process to the test node
+   * Starts and attaches a miner process to the simulation node
    */
   private startMinerProcess(): void {
     this.logger.log(`attaching miner to ${this.config.name}...`)
@@ -103,6 +120,14 @@ export class SimulationNode {
     this.registerChildProcess(this.minerProcess, 'miner')
   }
 
+  /**
+   * Starts the node process and attaches listeners to it.
+   *
+   * @param args The arguments to pass to the node process. These arguments follow
+   * the same format as the CLI.
+   *
+   * @returns The node process
+   */
   private startNodeProcess(args: string): ChildProcessWithoutNullStreams {
     this.logger.log(rootCmd + ' ' + args)
     const nodeProc = spawn(rootCmd, args.split(' '))
@@ -111,6 +136,14 @@ export class SimulationNode {
     return nodeProc
   }
 
+  /**
+   * Initializes a new SimulationNode. This should be used instead of the constructor
+   * to ensure that the node is ready to be used.
+   *
+   * @param config The config for the node
+   * @param logger The logger to use for the node
+   * @returns A new SimulationNode
+   */
   static async initialize(
     config: SimulationNodeConfig,
     logger?: Logger,
@@ -121,7 +154,7 @@ export class SimulationNode {
 
     node.shutdownPromise = new Promise((resolve) => (node.shutdownResolve = resolve))
 
-    // TODO: slight race condition, client connect should wait until node process is ready
+    // TODO: race condition, client connect should wait until node process is ready
     await sleep(3000)
 
     const success = await client.tryConnect()
@@ -148,7 +181,8 @@ export class SimulationNode {
    * Adds listeners to the input/output streams for a new proc.
    * Currently this just connects your process to this.logger.log
    *
-   * @param proc new proc
+   * @param p The process to attach listeners to
+   * @param procName The name of the process, used for logging
    */
   private attachListeners(p: ChildProcessWithoutNullStreams, procName: string): void {
     const filtered = [
@@ -237,8 +271,9 @@ export class SimulationNode {
 }
 
 /**
- * public function to stop a node
- * this is because you can't access the actual TestNode object with the
+ * Public function to stop a node
+ *
+ * This is because you cannot access the actual SimulationNode object with the
  * running node/miner procs from other cli commands
  */
 export async function stopSimulationNode(node: {

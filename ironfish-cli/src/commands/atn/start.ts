@@ -1,10 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Assert, createRootLogger, Logger } from '@ironfish/sdk'
+import { createRootLogger, Logger } from '@ironfish/sdk'
 import {
-  getAccountBalance,
-  getDefaultAccount,
   IRON,
   SECOND,
   sendTransaction,
@@ -45,7 +43,7 @@ export default class Start extends IronfishCommand {
       const from = nodes[0]
       const to = nodes[2]
 
-      logger.log(`${count}: start send from ${from.config.name} to ${to.config.name}`)
+      logger.log(`${count} [start]: start send from ${from.config.name} to ${to.config.name}`)
       // setup
       const latestBlockHash = await getLatestBlockHash(from)
 
@@ -63,7 +61,7 @@ export default class Start extends IronfishCommand {
       })
 
       logger.log(
-        `${count}: sent ${amount} from ${from.config.name} to ${to.config.name} with hash ${hash}`,
+        `${count} [sent]: sent ${amount} from ${from.config.name} to ${to.config.name} with hash ${hash}`,
       )
 
       const block = await simulator.waitForTransactionConfirmed(from, hash, latestBlockHash)
@@ -71,7 +69,9 @@ export default class Start extends IronfishCommand {
         throw new Error('transaction not confirmed')
       }
 
-      logger.log(`${count}: transaction confirmed in block ${block.sequence} ${block.hash}`)
+      logger.log(
+        `${count} [confirmed]: transaction confirmed in block ${block.sequence} ${block.hash}`,
+      )
 
       // validation
       /**
@@ -108,7 +108,7 @@ export default class Start extends IronfishCommand {
 
     let count = 0
     let done = 0
-    setInterval(() => {
+    const interval = setInterval(() => {
       count++
       void send(count, logger)
         .catch((e) => {
@@ -118,7 +118,9 @@ export default class Start extends IronfishCommand {
           done++
           logger.log(`txns done: ${done}`)
         })
-    }, 5 * SECOND)
+    }, 3 * SECOND)
+
+    simulator.addTimer(interval)
 
     // block: wait for all nodes to be stopped
     try {

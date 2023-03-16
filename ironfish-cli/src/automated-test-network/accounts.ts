@@ -4,9 +4,17 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import { SimulationNode } from './simulation-node'
 
-// This is a utility file for the automated test network. It contains functions
+// This is a utility file for the automated simulation network. It contains functions
 // for getting information about accounts, such as their balance and public key.
 
+/**
+ *  Get the balance, of $IRON, of an account on a node.
+ *
+ * @param node the node to get the balance from
+ * @param account the account to get the balance for
+ *
+ * @returns the balance in $IRON
+ */
 export async function getAccountBalance(
   node: SimulationNode,
   account: string,
@@ -39,6 +47,9 @@ export async function getAccountPublicKey(
   return publicKey
 }
 
+/**
+ * Get the default account on a node.
+ */
 export async function getDefaultAccount(node: SimulationNode): Promise<string> {
   const resp = await node.client.getDefaultAccount()
 

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { FollowChainStreamResponse, Logger } from '@ironfish/sdk'
 import { SimulationNode, SimulationNodeConfig } from './simulation-node'
-import { sendTransaction as send } from './transactions'
 import { sleep } from './utils'
 
 export type SimulatorConfig = {
@@ -26,6 +25,8 @@ export class Simulator {
   /**
    * Adds a simulation node to the network.
    *
+   * This node runs in a separate process and is killed when the simulator is shut down.
+   *
    * @param config config of node to add to the orchestrator
    */
   async addNode(config: SimulationNodeConfig): Promise<SimulationNode> {
@@ -34,23 +35,6 @@ export class Simulator {
     this.nodes.set(config.name, node)
 
     return node
-  }
-
-  async sendTransaction(cfg: {
-    from: string
-    to: string
-    spendLimit: number // limit in ORE
-    fee: number // fee in ORE
-    spendType: 'flat' | 'random' // either spend a flat amount or a random amount from 1 to limit
-  }): Promise<{ amount: number; hash: string }> {
-    const fromNode = this.nodes.get(cfg.from)
-    const toNode = this.nodes.get(cfg.to)
-
-    if (!fromNode || !toNode) {
-      throw new Error(`Either src / dest nodes are not in the network`)
-    }
-
-    return send(fromNode, toNode, cfg)
   }
 
   async waitForTransactionConfirmed(

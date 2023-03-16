@@ -14,6 +14,11 @@ export async function getChainInfo(node: SimulationNode): Promise<ChainInfo> {
   return resp.content
 }
 
+/**
+ * Get the latest block hash that the node has seen.
+ *
+ * Calling this on different nodes can yield different hashes.
+ */
 export async function getLatestBlockHash(node: SimulationNode): Promise<string> {
   const { currentBlockIdentifier } = await getChainInfo(node)
 
