@@ -1,33 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { FollowChainStreamResponse, Logger, Stream } from '@ironfish/sdk'
-import { getLatestBlockHash } from './chain'
+import { Logger } from '@ironfish/sdk'
 import { SimulationNode, SimulationNodeConfig } from './simulation-node'
-import { waitForTransactionConfirmation } from './transactions'
 import { sleep } from './utils'
 
-export type SimulatorConfig = {
-  name: string
-}
-
 export class Simulator {
-  config: SimulatorConfig
   logger: Logger
 
   nodes: Map<string, SimulationNode> = new Map()
-
-  // map from node name to stream
-  blockStreams: Map<string, AsyncGenerator<FollowChainStreamResponse, void, unknown>> =
-    new Map()
-
-  blockStreamConsumers: Map<string, Stream<FollowChainStreamResponse>[]> = new Map()
-
   intervals: NodeJS.Timer[] = []
 
-  constructor(config: SimulatorConfig, logger: Logger) {
-    this.config = config
+  constructor(logger: Logger) {
     this.logger = logger
+    this.logger.withTag('simulator')
   }
 
   /**
@@ -42,10 +28,15 @@ export class Simulator {
 
     this.nodes.set(config.name, node)
 
-    // Void this call to not wait on it (?)
-    void this.setBlockStream(node, await getLatestBlockHash(node))
-
     return node
+  }
+
+  startMiner(node: SimulationNode): boolean {
+    return node.startMiner()
+  }
+
+  stopMiner(node: SimulationNode): boolean {
+    return node.stopMiner()
   }
 
   /**
@@ -60,10 +51,9 @@ export class Simulator {
   }
 
   /**
-   * Add a user simulation to the simulator.
-   * TODO: Need a good way to indicate to user to call this after defining their simulation.
+   * Adds a user simulation to track in the simulator.
    *
-   * @param timer timer to add to the list of timers to clear when the simulator is shut down
+   * @param timer timer to add to the simulator
    */
   addTimer(timer: NodeJS.Timer): void {
     this.intervals.push(timer)
@@ -76,81 +66,7 @@ export class Simulator {
     this.intervals.forEach((interval) => clearInterval(interval))
     this.intervals = []
 
-    // Clear the block streams
-    // TODO(austin): add functionality to stop the block stream
-    this.blockStreams.clear()
-    this.blockStreamConsumers.clear()
-
     // Clear the nodes
     this.nodes.clear()
-  }
-
-  async waitForTransactionConfirmation(
-    count: number,
-    node: SimulationNode,
-    transactionHash: string,
-  ): Promise<FollowChainStreamResponse['block'] | undefined> {
-    const blockStream = this.attachBlockStreamConsumer(node)
-
-    const block = await waitForTransactionConfirmation(count, transactionHash, blockStream)
-
-    this.detachBlockStreamConsumer(node, blockStream)
-
-    return block
-  }
-
-  /**
-   * eee
-   */
-  async setBlockStream(node: SimulationNode, startingBlockHash: string): Promise<void> {
-    const blockStream = node.client
-      .followChainStream({ head: startingBlockHash.toString() })
-      .contentStream()
-
-    this.blockStreams.set(node.config.name, blockStream)
-    this.blockStreamConsumers.set(node.config.name, [])
-
-    for await (const block of blockStream) {
-      console.log(`got block ${block.block.hash} from ${node.config.name}`)
-      let txns = ''
-      block.block.transactions.forEach((txn) => (txns += ' | ' + txn.hash.toLowerCase()))
-      console.log(`with txns${txns}`)
-      const consumers = this.blockStreamConsumers.get(node.config.name)
-      if (!consumers) {
-        continue
-      }
-
-      consumers.forEach((consumer) => consumer.write(block))
-    }
-  }
-
-  attachBlockStreamConsumer(node: SimulationNode): Stream<FollowChainStreamResponse> {
-    const blockStream = this.blockStreams.get(node.config.name)
-
-    if (!blockStream) {
-      throw new Error('Block stream not found')
-    }
-    const stream: Stream<FollowChainStreamResponse> = new Stream()
-
-    const consumers = this.blockStreamConsumers.get(node.config.name)
-    if (!consumers) {
-      throw new Error('Block stream consumers not found during attaching')
-    }
-
-    consumers.push(stream)
-
-    return stream
-  }
-
-  detachBlockStreamConsumer(
-    node: SimulationNode,
-    stream: Stream<FollowChainStreamResponse>,
-  ): void {
-    const consumers = this.blockStreamConsumers.get(node.config.name)
-    if (!consumers) {
-      throw new Error('Block stream consumers not found when detaching')
-    }
-
-    consumers.filter((consumer) => consumer !== stream)
   }
 }

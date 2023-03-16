@@ -48,7 +48,7 @@ export async function getAccountPublicKey(
 }
 
 /**
- * Get the default account on a node.
+ * Gets the default account on the node.
  */
 export async function getDefaultAccount(node: SimulationNode): Promise<string> {
   const resp = await node.client.getDefaultAccount()
