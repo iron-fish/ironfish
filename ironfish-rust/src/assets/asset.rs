@@ -14,7 +14,6 @@ use ironfish_zkp::{
 use jubjub::{ExtendedPoint, SubgroupPoint};
 use std::io;
 
-// TODO: This needs to be thought-through again, will probably change.
 pub const NATIVE_ASSET: AssetIdentifier = [
     215, 200, 103, 6, 245, 129, 122, 167, 24, 205, 28, 250, 208, 50, 51, 188, 214, 74, 119, 137,
     253, 148, 34, 211, 177, 122, 246, 130, 58, 126, 106, 198,
@@ -43,7 +42,7 @@ pub struct Asset {
     /// The random byte used to ensure we get a valid asset identifier
     pub(crate) nonce: u8,
 
-    /// The byte representation of the generator point derived from a blake2s hash of the asset info
+    /// The byte representation of a blake2s hash of the asset info
     pub(crate) id: AssetIdentifier,
 }
 

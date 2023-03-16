@@ -166,7 +166,6 @@ mod test {
     #[test]
     fn test_mint_asset_circuit() {
         // Seed a fixed rng for determinism in the test
-        // TODO: Double check this passes with a proper seeded value
         let mut rng = StdRng::seed_from_u64(0);
 
         let mut cs = TestConstraintSystem::new();
