@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
+import { FollowChainStreamResponse, Stream } from '@ironfish/sdk'
 import { getAccountPublicKey, getDefaultAccount } from './accounts'
 import { SimulationNode } from './simulation-node'
 
@@ -52,4 +53,35 @@ export async function sendTransaction(
   const hash = txn.content.hash
 
   return { amount: spendAmount, hash }
+}
+
+// TODO: how to ensure you don't miss a transaction?
+/**
+ * Waits for a transaction to be confirmed on a node. This is done by streaming
+ * the transactions on incoming blocks and waiting for the transaction to be seen.
+ * If the transaction is never confirmed, this will wait indefinitely.
+ *
+ * @param node The node to wait for the transaction to be confirmed on
+ * @param transactionHash The hash of the transaction to wait for
+ *
+ * @returns the block the transaction was confirmed in, or undefined if the transaction was not confirmed
+ */
+export async function waitForTransactionConfirmation(
+  count: number,
+  transactionHash: string,
+  blockStream: Stream<FollowChainStreamResponse>,
+): Promise<FollowChainStreamResponse['block'] | undefined> {
+  for await (const { block, type } of blockStream) {
+    console.log(`[wait] ${count}: looking for ${transactionHash}`)
+
+    // TODO(austin): why are we getting transactions as upper case from blocks?
+    // other RPC calls return them as lower case elsewhere
+    const hasTransation = block.transactions.find(
+      (t) => t.hash.toLowerCase() === transactionHash,
+    )
+
+    if (type === 'connected' && hasTransation) {
+      return block
+    }
+  }
 }
