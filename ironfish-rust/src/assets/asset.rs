@@ -118,12 +118,12 @@ impl Asset {
         &self.id
     }
 
-    pub fn generator(&self) -> ExtendedPoint {
+    pub fn asset_generator(&self) -> ExtendedPoint {
         asset_generator_from_id(&self.id).unwrap()
     }
 
     pub fn value_commitment_generator(&self) -> SubgroupPoint {
-        self.generator().clear_cofactor()
+        self.asset_generator().clear_cofactor()
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
@@ -168,10 +168,26 @@ mod test {
     use ironfish_zkp::constants::NATIVE_VALUE_COMMITMENT_GENERATOR;
 
     use crate::{
-        assets::asset::asset_generator_from_id, util::str_to_array, PublicAddress, SaplingKey,
+        assets::asset::{asset_generator_from_id, value_commitment_generator_from_id},
+        util::str_to_array,
+        PublicAddress, SaplingKey,
     };
 
     use super::{Asset, NATIVE_ASSET};
+
+    #[test]
+    fn test_asset_new() {
+        let key = SaplingKey::generate_key();
+        let owner = key.public_address();
+        let name = "name";
+        let metadata = "{ 'token_identifier': '0x123' }";
+
+        let asset = Asset::new(owner, name, metadata).expect("can create an asset");
+
+        assert_eq!(asset.owner, owner);
+        assert_eq!(asset.name, str_to_array(name));
+        assert_eq!(asset.metadata, str_to_array(metadata));
+    }
 
     #[test]
     fn test_asset_name_must_be_set() {
@@ -207,29 +223,38 @@ mod test {
         assert_eq!(asset.owner, owner);
         assert_eq!(asset.name, name);
         assert_eq!(asset.metadata, metadata);
+        assert_eq!(asset.nonce, nonce);
     }
 
     #[test]
-    fn test_asset_new() {
-        let key = SaplingKey::generate_key();
-        let owner = key.public_address();
-        let name = "name";
-        let metadata = "{ 'token_identifier': '0x123' }";
+    fn test_asset_new_with_nonce_invalid_nonce() {
+        let nonce = 0;
+        let public_address = [
+            81, 229, 109, 20, 111, 174, 52, 91, 120, 215, 34, 107, 174, 123, 78, 102, 189, 188,
+            226, 7, 173, 7, 76, 135, 130, 203, 71, 131, 62, 219, 240, 68,
+        ];
+        let owner = PublicAddress::new(&public_address).unwrap();
 
-        let asset = Asset::new(owner, name, metadata).expect("can create an asset");
+        let name = str_to_array("name");
+        let metadata = str_to_array("{ 'token_identifier': '0x123' }");
 
-        assert_eq!(asset.owner, owner);
-        assert_eq!(asset.name, str_to_array(name));
-        assert_eq!(asset.metadata, str_to_array(metadata));
+        let asset_res = Asset::new_with_nonce(owner, name, metadata, nonce);
+
+        assert!(asset_res.is_err());
     }
 
     #[test]
     fn test_asset_native_identifier() {
         let asset_generator = asset_generator_from_id(&NATIVE_ASSET)
-            .expect("Native asset id should have a valid generator point");
+            .expect("Native asset id should have a valid asset generator point");
+
+        let value_commitment_generator = value_commitment_generator_from_id(&NATIVE_ASSET)
+            .expect("Native asset id should have a valid value commitment generator point");
+
+        assert_eq!(asset_generator.clear_cofactor(), value_commitment_generator);
 
         assert_eq!(
-            asset_generator.clear_cofactor(),
+            value_commitment_generator,
             NATIVE_VALUE_COMMITMENT_GENERATOR
         );
     }

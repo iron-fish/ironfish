@@ -6,7 +6,6 @@ pub use zcash_primitives::constants::{
     VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR,
 };
 
-// use zcash_primitives::sapling::pedersen_hash;
 pub use zcash_proofs::circuit::sapling::TREE_DEPTH;
 
 /// Length in bytes of the asset identifier

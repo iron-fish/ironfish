@@ -14,7 +14,6 @@ pub struct ValueCommitment {
 }
 
 impl ValueCommitment {
-    // TODO: This should probably change to take in the asset id
     pub fn new(value: u64, asset_generator: jubjub::ExtendedPoint) -> Self {
         Self {
             value,
@@ -24,7 +23,7 @@ impl ValueCommitment {
     }
 
     pub fn commitment(&self) -> jubjub::SubgroupPoint {
-        (CofactorGroup::clear_cofactor(&self.asset_generator) * jubjub::Fr::from(self.value))
+        (self.asset_generator.clear_cofactor() * jubjub::Fr::from(self.value))
             + (VALUE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)
     }
 }

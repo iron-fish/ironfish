@@ -156,13 +156,14 @@ impl Circuit<bls12_381::Scalar> for Output {
             &asset_generator_repr,
         )?;
 
+        // Place the asset generator in the note commitment pre-image
+        note_contents.extend(asset_generator_repr);
+
         // Clear asset generator cofactor
         let asset_generator = asset_generator
             .double(cs.namespace(|| "asset_generator first doubling"))?
             .double(cs.namespace(|| "asset_generator second doubling"))?
             .double(cs.namespace(|| "asset_generator third doubling"))?;
-
-        note_contents.extend(asset_generator_repr);
 
         // Expose the value commitment and place the value
         // in the note.
