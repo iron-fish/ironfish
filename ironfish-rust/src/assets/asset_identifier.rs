@@ -3,10 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use crate::errors::IronfishError;
 use group::cofactor::CofactorGroup;
-use ironfish_zkp::{
-    constants::{ASSET_ID_LENGTH, VALUE_COMMITMENT_VALUE_GENERATOR},
-    util::asset_hash_to_point,
-};
+use ironfish_zkp::{constants::ASSET_ID_LENGTH, util::asset_hash_to_point};
 use jubjub::{ExtendedPoint, SubgroupPoint};
 use std::io;
 
@@ -14,9 +11,6 @@ pub const NATIVE_ASSET: AssetIdentifier = AssetIdentifier([
     215, 200, 103, 6, 245, 129, 122, 167, 24, 205, 28, 250, 208, 50, 51, 188, 214, 74, 119, 137,
     253, 148, 34, 211, 177, 122, 246, 130, 58, 126, 106, 198,
 ]);
-
-// Uses the original value commitment generator as the native asset generator
-pub const NATIVE_ASSET_GENERATOR: SubgroupPoint = VALUE_COMMITMENT_VALUE_GENERATOR;
 
 /// A convenience wrapper around an asset id byte-array, allowing us to push the
 /// error checking of the asset id validity to instantiation
@@ -70,17 +64,21 @@ impl TryFrom<[u8; ASSET_ID_LENGTH]> for AssetIdentifier {
 
 #[cfg(test)]
 mod test {
-    use group::GroupEncoding;
-    use ironfish_zkp::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
+    use group::cofactor::CofactorGroup;
+    use ironfish_zkp::constants::NATIVE_VALUE_COMMITMENT_GENERATOR;
 
-    use crate::assets::{asset::NATIVE_ASSET_GENERATOR, asset_identifier::NATIVE_ASSET};
+    use crate::assets::asset_identifier::NATIVE_ASSET;
 
     #[test]
     fn test_asset_native_identifier() {
-        // Native asset uses the original value commitment generator, no
-        // particular reason other than it is easier to think about this way.
-        // TODO: This is not right anymore, to be fixed soon.
-        assert_eq!(NATIVE_ASSET.0, VALUE_COMMITMENT_VALUE_GENERATOR.to_bytes());
-        assert_eq!(NATIVE_ASSET.0, NATIVE_ASSET_GENERATOR.to_bytes());
+        let asset_generator = NATIVE_ASSET.asset_generator();
+        let value_commitment_generator = NATIVE_ASSET.value_commitment_generator();
+
+        assert_eq!(asset_generator.clear_cofactor(), value_commitment_generator);
+
+        assert_eq!(
+            value_commitment_generator,
+            NATIVE_VALUE_COMMITMENT_GENERATOR
+        );
     }
 }

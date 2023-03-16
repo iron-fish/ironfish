@@ -10,7 +10,7 @@ use value_balances::ValueBalances;
 use crate::{
     assets::{
         asset::Asset,
-        asset_identifier::{AssetIdentifier, NATIVE_ASSET, NATIVE_ASSET_GENERATOR},
+        asset_identifier::{AssetIdentifier, NATIVE_ASSET},
     },
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
@@ -29,7 +29,10 @@ use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
-    constants::{SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR},
+    constants::{
+        NATIVE_VALUE_COMMITMENT_GENERATOR, SPENDING_KEY_GENERATOR,
+        VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+    },
     redjubjub::{self, PrivateKey, PublicKey, Signature},
 };
 
@@ -734,7 +737,7 @@ fn fee_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
         None => return Err(IronfishError::IllegalValue),
     };
 
-    let mut value_balance = NATIVE_ASSET_GENERATOR * jubjub::Fr::from(abs);
+    let mut value_balance = NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(abs);
 
     if is_negative {
         value_balance = -value_balance;
@@ -758,13 +761,12 @@ fn calculate_value_balance(
     let mut value_balance_point = binding_verification_key - fee_point;
 
     for mint in mints {
-        // TODO: These need to change to value generator
-        let mint_generator = mint.asset.asset_generator();
+        let mint_generator = mint.asset.value_commitment_generator();
         value_balance_point += mint_generator * jubjub::Fr::from(mint.value);
     }
 
     for burn in burns {
-        let burn_generator = burn.asset_id.asset_generator();
+        let burn_generator = burn.asset_id.value_commitment_generator();
         value_balance_point -= burn_generator * jubjub::Fr::from(burn.value);
     }
 

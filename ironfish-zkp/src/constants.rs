@@ -35,6 +35,21 @@ pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecke
     ]),
 );
 
+pub const NATIVE_VALUE_COMMITMENT_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(
+    bls12_381::Scalar::from_raw([
+        0x80c7_f5ae_1da3_8af3,
+        0x98ba_f7d9_30ae_9fb4,
+        0x4013_b536_9827_f490,
+        0x6f7d_4197_52cb_de81,
+    ]),
+    bls12_381::Scalar::from_raw([
+        0xf2c7_679e_d68b_3d8e,
+        0x1802_9e88_8161_324d,
+        0xe533_69d9_0048_0967,
+        0x6e93_e7d5_5427_ef9c,
+    ]),
+);
+
 pub mod proof {
     use lazy_static::lazy_static;
     use zcash_proofs::constants::{generate_circuit_generator, FixedGeneratorOwned};

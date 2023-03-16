@@ -4,18 +4,13 @@
 use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array, PublicAddress};
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use ironfish_zkp::{
-    constants::{
-        ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK, VALUE_COMMITMENT_VALUE_GENERATOR,
-    },
+    constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK},
     util::asset_hash_to_point,
 };
 use jubjub::{ExtendedPoint, SubgroupPoint};
 use std::io;
 
 use super::asset_identifier::AssetIdentifier;
-
-// Uses the original value commitment generator as the native asset generator
-pub const NATIVE_ASSET_GENERATOR: SubgroupPoint = VALUE_COMMITMENT_VALUE_GENERATOR;
 
 pub const NAME_LENGTH: usize = 32;
 pub const METADATA_LENGTH: usize = 77;
