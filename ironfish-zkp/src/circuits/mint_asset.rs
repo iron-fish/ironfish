@@ -5,13 +5,13 @@ use bellman::{
 use ff::PrimeField;
 use zcash_primitives::{constants::CRH_IVK_PERSONALIZATION, sapling::ProofGenerationKey};
 use zcash_proofs::{
-    circuit::{ecc, pedersen_hash},
+    circuit::ecc,
     constants::{PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR},
 };
 
 use crate::{
-    circuits::util::asset_info_preimage,
-    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_PERSONALIZATION_PEDERSEN},
+    circuits::util::asset_id_preimage,
+    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_PERSONALIZATION},
 };
 
 pub struct MintAsset {
@@ -21,6 +21,9 @@ pub struct MintAsset {
     /// Identifier field for bridged asset address, or if a native custom asset, random bytes.
     /// Metadata for the asset (ex. chain, network, token identifier)
     pub metadata: [u8; 77],
+
+    /// The random byte used to ensure we get a valid asset identifier
+    pub nonce: u8,
 
     /// Key required to construct proofs for a particular spending key
     pub proof_generation_key: Option<ProofGenerationKey>,
@@ -120,27 +123,25 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         )?;
 
         // Create the Asset Info pre-image
-        let asset_info_preimage = asset_info_preimage(
-            &mut cs.namespace(|| "asset info preimage"),
+        let asset_id_preimage = asset_id_preimage(
+            &mut cs.namespace(|| "asset id preimage"),
             &self.name,
             &self.metadata,
+            &self.nonce,
             &owner_public_address,
         )?;
 
         // Computed identifier bits from the given asset info
-        let asset_info_hashed_point = pedersen_hash::pedersen_hash(
-            cs.namespace(|| "asset info hash"),
-            ASSET_ID_PERSONALIZATION_PEDERSEN,
-            &asset_info_preimage,
+        let asset_id_bits = blake2s::blake2s(
+            cs.namespace(|| "computation of asset id"),
+            &asset_id_preimage,
+            ASSET_ID_PERSONALIZATION,
         )?;
 
-        let asset_info_hashed_bits =
-            asset_info_hashed_point.repr(cs.namespace(|| "asset info hashed bytes"))?;
+        // Ensure the id is 32 bytes
+        assert_eq!(asset_id_bits.len(), 256);
 
-        // Ensure the pre-image of the generator is 32 bytes
-        assert_eq!(asset_info_hashed_bits.len(), 256);
-
-        multipack::pack_into_inputs(cs.namespace(|| "pack asset info"), &asset_info_hashed_bits)?;
+        multipack::pack_into_inputs(cs.namespace(|| "pack asset id"), &asset_id_bits)?;
 
         Ok(())
     }
@@ -156,16 +157,16 @@ mod test {
     use group::{Curve, Group, GroupEncoding};
     use jubjub::ExtendedPoint;
     use rand::{rngs::StdRng, SeedableRng};
-    use zcash_primitives::sapling::{pedersen_hash, ProofGenerationKey};
+    use zcash_primitives::sapling::ProofGenerationKey;
 
-    use crate::constants::{ASSET_ID_PERSONALIZATION_PEDERSEN, PUBLIC_KEY_GENERATOR};
+    use crate::constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, PUBLIC_KEY_GENERATOR};
 
     use super::MintAsset;
 
     #[test]
     fn test_mint_asset_circuit() {
         // Seed a fixed rng for determinism in the test
-        let mut rng = StdRng::seed_from_u64(1);
+        let mut rng = StdRng::seed_from_u64(0);
 
         let mut cs = TestConstraintSystem::new();
 
@@ -178,21 +179,22 @@ mod test {
 
         let name = [1u8; 32];
         let metadata = [2u8; 77];
+        let nonce = 0;
 
-        let mut asset_plaintext: Vec<u8> = vec![];
-        asset_plaintext.extend(public_address.to_bytes());
-        asset_plaintext.extend(name);
-        asset_plaintext.extend(metadata);
+        let asset_id_hash = blake2s_simd::Params::new()
+            .hash_length(ASSET_ID_LENGTH)
+            .personal(ASSET_ID_PERSONALIZATION)
+            .to_state()
+            .update(&public_address.to_bytes())
+            .update(&name)
+            .update(&metadata)
+            .update(std::slice::from_ref(&nonce))
+            .finalize();
 
-        let asset_plaintext_bits = multipack::bytes_to_bits_le(&asset_plaintext);
+        let asset_id = asset_id_hash.as_bytes();
 
-        let asset_info_hashed_point =
-            pedersen_hash::pedersen_hash(ASSET_ID_PERSONALIZATION_PEDERSEN, asset_plaintext_bits);
-
-        let asset_info_hashed_bytes = asset_info_hashed_point.to_bytes();
-
-        let asset_info_hashed_bits = multipack::bytes_to_bits_le(&asset_info_hashed_bytes);
-        let asset_info_hashed_inputs = multipack::compute_multipacking(&asset_info_hashed_bits);
+        let asset_id_bits = multipack::bytes_to_bits_le(asset_id);
+        let asset_id_inputs = multipack::compute_multipacking(&asset_id_bits);
 
         let public_key_randomness = jubjub::Fr::random(&mut rng);
         let randomized_public_key =
@@ -201,14 +203,15 @@ mod test {
         let public_inputs = vec![
             randomized_public_key.get_u(),
             randomized_public_key.get_v(),
-            asset_info_hashed_inputs[0],
-            asset_info_hashed_inputs[1],
+            asset_id_inputs[0],
+            asset_id_inputs[1],
         ];
 
         // Mint proof
         let circuit = MintAsset {
             name,
             metadata,
+            nonce,
             proof_generation_key: Some(proof_generation_key),
             public_key_randomness: Some(public_key_randomness),
         };
@@ -216,7 +219,7 @@ mod test {
 
         assert!(cs.is_satisfied());
         assert!(cs.verify(&public_inputs));
-        assert_eq!(cs.num_constraints(), 29677);
+        assert_eq!(cs.num_constraints(), 90783);
 
         // Test bad inputs
         let bad_asset_info_hashed = [1u8; 32];

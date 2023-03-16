@@ -43,6 +43,7 @@ impl MintBuilder {
         let circuit = MintAsset {
             name: self.asset.name,
             metadata: self.asset.metadata,
+            nonce: self.asset.nonce,
             proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
             public_key_randomness: Some(*public_key_randomness),
         };

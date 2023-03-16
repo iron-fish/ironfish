@@ -80,6 +80,7 @@ fn main() {
             MintAsset {
                 name: [0u8; 32],
                 metadata: [0u8; 77],
+                nonce: 0,
                 proof_generation_key: None,
                 public_key_randomness: None,
             },
