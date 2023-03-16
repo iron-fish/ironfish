@@ -5,7 +5,6 @@ import { Logger } from '../../logger'
 import { IronfishNode } from '../../node'
 import { IDatabase, IDatabaseTransaction } from '../../storage'
 import { createDB } from '../../storage/utils'
-import { Account } from '../../wallet'
 import { Migration } from '../migration'
 import { GetStores } from './027-account-created-at-block/stores'
 
@@ -27,18 +26,26 @@ export class Migration027 extends Migration {
     logger.info(`Migrating account data to store block-based creation time`)
 
     for await (const accountValue of stores.old.accounts.getAllValuesIter(tx)) {
-      const account = new Account({
-        ...accountValue,
-        createdAt: null,
-        walletDb: node.wallet.walletDb,
-      })
+      logger.info(` Migrating account ${accountValue.name}`)
 
-      logger.info(` Migrating account ${account.name}`)
-
-      await stores.new.accounts.put(account.id, account, tx)
+      await stores.new.accounts.put(accountValue.id, { ...accountValue, createdAt: null }, tx)
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  async backward(): Promise<void> {}
+  async backward(
+    node: IronfishNode,
+    db: IDatabase,
+    tx: IDatabaseTransaction | undefined,
+    logger: Logger,
+  ): Promise<void> {
+    const stores = GetStores(db)
+
+    logger.info(`Reverting migration of account data to store block-based creation time`)
+
+    for await (const accountValue of stores.new.accounts.getAllValuesIter(tx)) {
+      logger.info(` Reverting migration for account ${accountValue.name}`)
+
+      await stores.old.accounts.put(accountValue.id, { ...accountValue, createdAt: null }, tx)
+    }
+  }
 }
