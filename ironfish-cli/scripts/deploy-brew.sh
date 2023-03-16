@@ -49,8 +49,8 @@ aws s3 cp $SOURCE_PATH $UPLOAD_URL
 
 echo "Configure R2 S3 client"
 aws configure set region auto
-aws configure set aws_access_key_id R2_ACCESS_KEY_ID
-aws configure set aws_secret_access_key R2_SECRET_ACCESS_KEY
+aws configure set aws_access_key_id "${R2_ACCESS_KEY_ID}"
+aws configure set aws_secret_access_key "${R2_SECRET_ACCESS_KEY}"
 
 echo "Uploading $SOURCE_NAME to R2 $UPLOAD_URL"
 aws s3 cp $SOURCE_PATH $UPLOAD_URL --endpoint-url https://a93bebf26da4c2fe205f71c896afcf89.r2.cloudflarestorage.com
