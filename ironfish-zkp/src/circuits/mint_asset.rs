@@ -11,7 +11,7 @@ use zcash_proofs::{
 
 use crate::{
     circuits::util::asset_info_preimage,
-    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_PERSONALIZATION},
+    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_PERSONALIZATION_PEDERSEN},
 };
 
 pub struct MintAsset {
@@ -130,7 +130,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
         // Computed identifier bits from the given asset info
         let asset_info_hashed_point = pedersen_hash::pedersen_hash(
             cs.namespace(|| "asset info hash"),
-            ASSET_ID_PERSONALIZATION,
+            ASSET_ID_PERSONALIZATION_PEDERSEN,
             &asset_info_preimage,
         )?;
 
@@ -158,7 +158,7 @@ mod test {
     use rand::{rngs::StdRng, SeedableRng};
     use zcash_primitives::sapling::{pedersen_hash, ProofGenerationKey};
 
-    use crate::constants::{ASSET_ID_PERSONALIZATION, PUBLIC_KEY_GENERATOR};
+    use crate::constants::{ASSET_ID_PERSONALIZATION_PEDERSEN, PUBLIC_KEY_GENERATOR};
 
     use super::MintAsset;
 
@@ -187,7 +187,7 @@ mod test {
         let asset_plaintext_bits = multipack::bytes_to_bits_le(&asset_plaintext);
 
         let asset_info_hashed_point =
-            pedersen_hash::pedersen_hash(ASSET_ID_PERSONALIZATION, asset_plaintext_bits);
+            pedersen_hash::pedersen_hash(ASSET_ID_PERSONALIZATION_PEDERSEN, asset_plaintext_bits);
 
         let asset_info_hashed_bytes = asset_info_hashed_point.to_bytes();
 
