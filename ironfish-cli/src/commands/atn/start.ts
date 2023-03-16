@@ -9,7 +9,6 @@ import {
   SimulationNodeConfig,
   Simulator,
 } from '../../automated-test-network'
-import { getLatestBlockHash } from '../../automated-test-network/chain'
 import { IronfishCommand } from '../../command'
 
 /**
@@ -43,9 +42,7 @@ export default class Start extends IronfishCommand {
       const from = nodes[0]
       const to = nodes[2]
 
-      logger.log(`${count} [start]: start send from ${from.config.name} to ${to.config.name}`)
-      // setup
-      const latestBlockHash = await getLatestBlockHash(from)
+      logger.debug(`${count} [start]: start send from ${from.config.name} to ${to.config.name}`)
 
       // const preFromBalance = await getAccountBalance(from, await getDefaultAccount(from))
       // const preToBalance = await getAccountBalance(to, await getDefaultAccount(to))
@@ -60,16 +57,17 @@ export default class Start extends IronfishCommand {
         spendType: 'random',
       })
 
-      logger.log(
+      logger.debug(
         `${count} [sent]: sent ${amount} from ${from.config.name} to ${to.config.name} with hash ${hash}`,
       )
 
-      const block = await simulator.waitForTransactionConfirmed(from, hash, latestBlockHash)
+      // Is there a race condition if the transaction gets confirmed right away?
+      const block = await simulator.waitForTransactionConfirmation(from, hash)
       if (!block) {
         throw new Error('transaction not confirmed')
       }
 
-      logger.log(
+      logger.debug(
         `${count} [confirmed]: transaction confirmed in block ${block.sequence} ${block.hash}`,
       )
 
@@ -118,7 +116,7 @@ export default class Start extends IronfishCommand {
           done++
           logger.log(`txns done: ${done}`)
         })
-    }, 3 * SECOND)
+    }, 1 * SECOND)
 
     simulator.addTimer(interval)
 
@@ -142,7 +140,7 @@ export const nodeConfig: SimulationNodeConfig[] = [
     name: 'node1',
     graffiti: '1',
     port: 7001,
-    data_dir: '~/.ironfish-atf/node1',
+    data_dir: '~/.ironfish-atn/node1',
     netword_id: 2,
     is_miner: true,
     bootstrap_url: "''",
@@ -155,7 +153,7 @@ export const nodeConfig: SimulationNodeConfig[] = [
     name: 'node2',
     graffiti: '2',
     port: 7002,
-    data_dir: '~/.ironfish-atf/node2',
+    data_dir: '~/.ironfish-atn/node2',
     netword_id: 2,
     bootstrap_url: 'localhost:7001',
     tcp_host: 'localhost',
@@ -167,7 +165,7 @@ export const nodeConfig: SimulationNodeConfig[] = [
     name: 'node3',
     graffiti: '3',
     port: 7003,
-    data_dir: '~/.ironfish-atf/node3',
+    data_dir: '~/.ironfish-atn/node3',
     netword_id: 2,
     bootstrap_url: 'localhost:7001',
     tcp_host: 'localhost',
