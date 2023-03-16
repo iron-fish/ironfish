@@ -179,7 +179,7 @@ mod test {
     }
 
     #[test]
-    fn test_asset_new_with_nonce_data() {
+    fn test_asset_new_with_nonce() {
         let public_address = [
             81, 229, 109, 20, 111, 174, 52, 91, 120, 215, 34, 107, 174, 123, 78, 102, 189, 188,
             226, 7, 173, 7, 76, 135, 130, 203, 71, 131, 62, 219, 240, 68,
@@ -196,5 +196,22 @@ mod test {
         assert_eq!(asset.owner, owner);
         assert_eq!(asset.name, name);
         assert_eq!(asset.metadata, metadata);
+    }
+
+    #[test]
+    fn test_asset_new_with_nonce_invalid_nonce() {
+        let nonce = 0;
+        let public_address = [
+            81, 229, 109, 20, 111, 174, 52, 91, 120, 215, 34, 107, 174, 123, 78, 102, 189, 188,
+            226, 7, 173, 7, 76, 135, 130, 203, 71, 131, 62, 219, 240, 68,
+        ];
+        let owner = PublicAddress::new(&public_address).unwrap();
+
+        let name = str_to_array("name");
+        let metadata = str_to_array("{ 'token_identifier': '0x123' }");
+
+        let asset_res = Asset::new_with_nonce(owner, name, metadata, nonce);
+
+        assert!(asset_res.is_err());
     }
 }
