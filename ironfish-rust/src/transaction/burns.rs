@@ -6,7 +6,7 @@ use std::io;
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 
-use crate::{assets::asset::AssetIdentifier, errors::IronfishError};
+use crate::{assets::asset_identifier::AssetIdentifier, errors::IronfishError};
 
 /// Parameters used to build a burn description
 pub struct BurnBuilder {

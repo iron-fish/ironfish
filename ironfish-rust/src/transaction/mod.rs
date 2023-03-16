@@ -8,7 +8,10 @@ use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::{Asset, AssetIdentifier, NATIVE_ASSET, NATIVE_ASSET_GENERATOR},
+    assets::{
+        asset::Asset,
+        asset_identifier::{AssetIdentifier, NATIVE_ASSET, NATIVE_ASSET_GENERATOR},
+    },
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,

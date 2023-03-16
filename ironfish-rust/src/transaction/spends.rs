@@ -374,7 +374,7 @@ fn serialize_signature_fields<W: io::Write>(
 mod test {
 
     use super::{SpendBuilder, SpendDescription};
-    use crate::assets::asset::NATIVE_ASSET;
+    use crate::assets::asset_identifier::NATIVE_ASSET;
     use crate::transaction::utils::verify_spend_proof;
     use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
     use ff::Field;

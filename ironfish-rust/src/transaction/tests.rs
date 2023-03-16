@@ -5,7 +5,7 @@
 #[cfg(test)]
 use super::{ProposedTransaction, Transaction};
 use crate::{
-    assets::asset::{Asset, NATIVE_ASSET},
+    assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,

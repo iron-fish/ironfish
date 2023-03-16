@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    assets::asset::AssetIdentifier, errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE,
+    assets::asset_identifier::AssetIdentifier, errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE,
     util::str_to_array, ViewKey,
 };
 
@@ -360,7 +360,7 @@ impl<'a> Note {
 mod test {
     use super::{Memo, Note};
     use crate::{
-        assets::asset::NATIVE_ASSET,
+        assets::asset_identifier::NATIVE_ASSET,
         keys::{shared_secret, EphemeralKeyPair, SaplingKey},
     };
 

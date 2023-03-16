@@ -4,7 +4,7 @@
 use std::collections::{hash_map, HashMap};
 
 use crate::{
-    assets::asset::{AssetIdentifier, NATIVE_ASSET},
+    assets::asset_identifier::{AssetIdentifier, NATIVE_ASSET},
     errors::IronfishError,
 };
 
@@ -59,7 +59,7 @@ impl ValueBalances {
 #[cfg(test)]
 mod test {
     use crate::{
-        assets::asset::{Asset, NATIVE_ASSET},
+        assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
         SaplingKey,
     };
 

@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ironfish_rust::{
-    assets::asset::{
-        Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, ID_LENGTH, METADATA_LENGTH, NAME_LENGTH,
-        NATIVE_ASSET,
+    assets::{
+        asset::{
+            Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, ID_LENGTH, METADATA_LENGTH, NAME_LENGTH,
+        },
+        asset_identifier::NATIVE_ASSET,
     },
     keys::PUBLIC_ADDRESS_SIZE,
     SaplingKey,

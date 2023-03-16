@@ -277,7 +277,7 @@ fn calculate_key_for_encryption_keys(
 mod test {
     use super::MerkleNote;
     use super::NOTE_ENCRYPTION_MINER_KEYS;
-    use crate::assets::asset::NATIVE_ASSET;
+    use crate::assets::asset_identifier::NATIVE_ASSET;
     use crate::keys::EphemeralKeyPair;
     use crate::{keys::SaplingKey, note::Note};
 
