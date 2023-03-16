@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { ChainInfo } from '@ironfish/sdk'
+import { ChainInfo, Transaction } from '@ironfish/sdk'
 import { SimulationNode } from './simulation-node'
 
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -24,3 +24,11 @@ export async function getLatestBlockHash(node: SimulationNode): Promise<string> 
 
   return currentBlockIdentifier.hash
 }
+
+// export async function getTransaction(
+//   node: SimulationNode,
+//   blockHash: string,
+//   transactionHash: string,
+// ): Promise<Transaction> {
+//   const transaction = await node.client.getTransaction(blockHash, transactionHash)
+// }

@@ -6,6 +6,9 @@ export const SECOND = 1000
 export const IRON = 100000000
 
 export function sleep(ms: number): Promise<void> {
-  // console.log(`sleeping...  ${ms / 1000}s`)
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+export function short(hash: string): string {
+  return hash.slice(0, 16)
 }
