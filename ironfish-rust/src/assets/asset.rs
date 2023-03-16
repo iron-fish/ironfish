@@ -23,7 +23,7 @@ pub const NATIVE_ASSET_GENERATOR: SubgroupPoint = VALUE_COMMITMENT_VALUE_GENERAT
 
 pub const NAME_LENGTH: usize = 32;
 pub const METADATA_LENGTH: usize = 77;
-pub const ASSET_LENGTH: usize = NAME_LENGTH + PUBLIC_ADDRESS_SIZE + METADATA_LENGTH;
+pub const ASSET_LENGTH: usize = NAME_LENGTH + PUBLIC_ADDRESS_SIZE + METADATA_LENGTH + 1;
 pub const ID_LENGTH: usize = ASSET_ID_LENGTH;
 
 /// A convenience wrapper around an asset id byte-array, allowing us to push the

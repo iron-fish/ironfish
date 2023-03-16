@@ -4,7 +4,7 @@
 
 use ironfish_rust::{
     assets::asset::ID_LENGTH as ASSET_ID_LENGTH,
-    note::{AMOUNT_VALUE_SIZE, GENERATOR_SIZE, MEMO_SIZE, SCALAR_SIZE},
+    note::{AMOUNT_VALUE_SIZE, MEMO_SIZE, SCALAR_SIZE},
     ViewKey,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
@@ -26,22 +26,19 @@ pub const RANDOMNESS_LENGTH: u32 = SCALAR_SIZE as u32;
 pub const MEMO_LENGTH: u32 = MEMO_SIZE as u32;
 
 #[napi]
-pub const GENERATOR_LENGTH: u32 = GENERATOR_SIZE as u32;
-
-#[napi]
 pub const AMOUNT_VALUE_LENGTH: u32 = AMOUNT_VALUE_SIZE as u32;
 
 #[napi]
 pub const DECRYPTED_NOTE_LENGTH: u32 = RANDOMNESS_LENGTH
     + MEMO_LENGTH
-    + GENERATOR_LENGTH
+    + ASSET_ID_LENGTH as u32
     + PUBLIC_ADDRESS_LENGTH
     + AMOUNT_VALUE_LENGTH
     + PUBLIC_ADDRESS_LENGTH;
 //  32 randomness
 //+ 32 memo
 //+ 32 public address
-//+ 32 asset generator
+//+ 32 asset id
 //+ 8  value
 //+ 32 sender address
 //= 168 bytes

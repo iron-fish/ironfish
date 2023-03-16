@@ -17,7 +17,7 @@ use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
-    constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
+    constants::{ASSET_ID_LENGTH, NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
     util::commitment_full_point,
     Nullifier,
 };
@@ -25,17 +25,16 @@ use jubjub::SubgroupPoint;
 use rand::thread_rng;
 use std::{fmt, io, io::Read};
 pub const ENCRYPTED_NOTE_SIZE: usize =
-    SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SIZE + GENERATOR_SIZE + PUBLIC_ADDRESS_SIZE;
+    SCALAR_SIZE + MEMO_SIZE + AMOUNT_VALUE_SIZE + ASSET_ID_LENGTH + PUBLIC_ADDRESS_SIZE;
 //   8  value
 // + 32 randomness
-// + 32 asset generator
+// + 32 asset id
 // + 32 memo
 // + 32 sender address
 // = 136
 pub const SCALAR_SIZE: usize = 32;
 pub const MEMO_SIZE: usize = 32;
 pub const AMOUNT_VALUE_SIZE: usize = 8;
-pub const GENERATOR_SIZE: usize = 32;
 
 /// Memo field on a Note. Used to encode transaction IDs or other information
 /// about the transaction.
@@ -262,8 +261,9 @@ impl<'a> Note {
         bytes_to_encrypt[index..(index + MEMO_SIZE)].copy_from_slice(&self.memo.0[..]);
         index += MEMO_SIZE;
 
-        bytes_to_encrypt[index..(index + GENERATOR_SIZE)].copy_from_slice(self.asset_id.as_bytes());
-        index += GENERATOR_SIZE;
+        bytes_to_encrypt[index..(index + ASSET_ID_LENGTH)]
+            .copy_from_slice(self.asset_id.as_bytes());
+        index += ASSET_ID_LENGTH;
 
         bytes_to_encrypt[index..].copy_from_slice(&self.sender.public_address());
 
