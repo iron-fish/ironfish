@@ -42,6 +42,7 @@ router.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
     }
 
     const account = await node.wallet.createAccount(name)
+    void node.wallet.scanTransactions()
 
     let isDefaultAccount = false
     if (!node.wallet.hasDefaultAccount || request.data.default) {
