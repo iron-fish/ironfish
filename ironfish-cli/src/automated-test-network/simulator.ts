@@ -86,12 +86,13 @@ export class Simulator {
   }
 
   async waitForTransactionConfirmation(
+    count: number,
     node: SimulationNode,
     transactionHash: string,
   ): Promise<FollowChainStreamResponse['block'] | undefined> {
     const blockStream = this.attachBlockStreamConsumer(node)
 
-    const block = await waitForTransactionConfirmation(transactionHash, blockStream)
+    const block = await waitForTransactionConfirmation(count, transactionHash, blockStream)
 
     this.detachBlockStreamConsumer(node, blockStream)
 
@@ -110,6 +111,10 @@ export class Simulator {
     this.blockStreamConsumers.set(node.config.name, [])
 
     for await (const block of blockStream) {
+      console.log(`got block ${block.block.hash} from ${node.config.name}`)
+      let txns = ''
+      block.block.transactions.forEach((txn) => (txns += ' | ' + txn.hash.toLowerCase()))
+      console.log(`with txns${txns}`)
       const consumers = this.blockStreamConsumers.get(node.config.name)
       if (!consumers) {
         continue

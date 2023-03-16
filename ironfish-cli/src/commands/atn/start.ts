@@ -42,7 +42,7 @@ export default class Start extends IronfishCommand {
       const from = nodes[0]
       const to = nodes[2]
 
-      logger.debug(`${count} [start]: start send from ${from.config.name} to ${to.config.name}`)
+      logger.log(`${count} [start]: start send from ${from.config.name} to ${to.config.name}`)
 
       // const preFromBalance = await getAccountBalance(from, await getDefaultAccount(from))
       // const preToBalance = await getAccountBalance(to, await getDefaultAccount(to))
@@ -57,18 +57,18 @@ export default class Start extends IronfishCommand {
         spendType: 'random',
       })
 
-      logger.debug(
+      logger.log(
         `${count} [sent]: sent ${amount} from ${from.config.name} to ${to.config.name} with hash ${hash}`,
       )
 
       // Is there a race condition if the transaction gets confirmed right away?
-      const block = await simulator.waitForTransactionConfirmation(from, hash)
+      const block = await simulator.waitForTransactionConfirmation(count, from, hash)
       if (!block) {
         throw new Error('transaction not confirmed')
       }
 
-      logger.debug(
-        `${count} [confirmed]: transaction confirmed in block ${block.sequence} ${block.hash}`,
+      logger.log(
+        `${count} [confirmed]: transaction ${hash} confirmed in block ${block.sequence} ${block.hash}`,
       )
 
       // validation
@@ -110,13 +110,13 @@ export default class Start extends IronfishCommand {
       count++
       void send(count, logger)
         .catch((e) => {
-          logger.log(String(e))
+          logger.log(`[err]: ${String(e)}`)
         })
         .then(() => {
           done++
           logger.log(`txns done: ${done}`)
         })
-    }, 1 * SECOND)
+    }, 3 * SECOND)
 
     simulator.addTimer(interval)
 

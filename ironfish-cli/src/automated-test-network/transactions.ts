@@ -67,13 +67,12 @@ export async function sendTransaction(
  * @returns the block the transaction was confirmed in, or undefined if the transaction was not confirmed
  */
 export async function waitForTransactionConfirmation(
+  count: number,
   transactionHash: string,
   blockStream: Stream<FollowChainStreamResponse>,
 ): Promise<FollowChainStreamResponse['block'] | undefined> {
   for await (const { block, type } of blockStream) {
-    console.log(
-      `[wait]: looking for ${transactionHash}, got block: ${block.hash}, type: ${type}`,
-    )
+    console.log(`[wait] ${count}: looking for ${transactionHash}`)
 
     // TODO(austin): why are we getting transactions as upper case from blocks?
     // other RPC calls return them as lower case elsewhere
