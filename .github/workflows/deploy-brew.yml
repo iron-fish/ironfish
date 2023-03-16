@@ -1,4 +1,4 @@
-.github/workflows/deploy-brew.ymlname: Deploy Brew Tap Release
+name: Deploy Brew Tap Release
 on: workflow_dispatch
 
 jobs:
