@@ -4,13 +4,32 @@
 import { createRootLogger } from '@ironfish/sdk'
 import { stopSimulationNode } from '../../automated-test-network'
 import { IronfishCommand } from '../../command'
-import { nodeConfig } from './start'
 
 export default class Stop extends IronfishCommand {
   static description = 'Stop all nodes in the test network'
 
   async start(): Promise<void> {
-    const nodes = nodeConfig
+    const nodes = [
+      {
+        name: 'node1',
+        tcp_host: 'localhost',
+        tcp_port: 9001,
+        data_dir: '~/.ironfish-atn/node1',
+      },
+      {
+        name: 'node2',
+        tcp_host: 'localhost',
+        tcp_port: 9002,
+        data_dir: '~/.ironfish-atn/node2',
+      },
+      {
+        name: 'node3',
+        tcp_host: 'localhost',
+        tcp_port: 9003,
+        data_dir: '~/.ironfish-atn/node3',
+      },
+    ]
+
     const logger = createRootLogger()
 
     // TODO: abstract this into the orchestrator that owns the nodes
