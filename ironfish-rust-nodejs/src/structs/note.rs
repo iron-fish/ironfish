@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ironfish_rust::{
-    assets::asset::{asset_generator_from_id, ID_LENGTH as ASSET_ID_LENGTH},
+    assets::asset::ID_LENGTH as ASSET_ID_LENGTH,
     note::{AMOUNT_VALUE_SIZE, GENERATOR_SIZE, MEMO_SIZE, SCALAR_SIZE},
     ViewKey,
 };
@@ -70,16 +70,10 @@ impl NativeNote {
         let asset_id_vec = buffer.as_ref();
         let mut asset_id_bytes = [0; ASSET_ID_LENGTH];
         asset_id_bytes.clone_from_slice(&asset_id_vec[0..ASSET_ID_LENGTH]);
-        let asset_generator = asset_generator_from_id(&asset_id_bytes);
+        let asset_id = asset_id_bytes.try_into().map_err(to_napi_err)?;
 
         Ok(NativeNote {
-            note: Note::new(
-                owner_address,
-                value_u64,
-                memo,
-                asset_generator,
-                sender_address,
-            ),
+            note: Note::new(owner_address, value_u64, memo, asset_id, sender_address),
         })
     }
 
@@ -125,7 +119,7 @@ impl NativeNote {
     /// Asset identifier associated with this note
     #[napi]
     pub fn asset_id(&self) -> Buffer {
-        Buffer::from(&self.note.asset_id()[..])
+        Buffer::from(&self.note.asset_id().as_bytes()[..])
     }
 
     /// Sender of the note

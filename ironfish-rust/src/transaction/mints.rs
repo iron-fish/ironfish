@@ -171,7 +171,7 @@ impl MintDescription {
         public_inputs[0] = randomized_public_key_point.get_u();
         public_inputs[1] = randomized_public_key_point.get_v();
 
-        let asset_id_bits = multipack::bytes_to_bits_le(self.asset.id());
+        let asset_id_bits = multipack::bytes_to_bits_le(self.asset.id().as_bytes());
         let asset_id_inputs = multipack::compute_multipacking(&asset_id_bits);
         public_inputs[2] = asset_id_inputs[0];
         public_inputs[3] = asset_id_inputs[1];

@@ -67,12 +67,12 @@ impl NativeAsset {
 
     #[napi]
     pub fn native_id() -> Buffer {
-        Buffer::from(&NATIVE_ASSET[..])
+        Buffer::from(&NATIVE_ASSET.as_bytes()[..])
     }
 
     #[napi]
     pub fn id(&self) -> Buffer {
-        Buffer::from(&self.asset.id()[..])
+        Buffer::from(&self.asset.id().as_bytes()[..])
     }
 
     #[napi]

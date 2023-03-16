@@ -4,7 +4,7 @@
 
 use crate::{
     assets::asset::AssetIdentifier, errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE,
-    serializing::read_point, util::str_to_array, ViewKey,
+    util::str_to_array, ViewKey,
 };
 
 use super::{
@@ -72,8 +72,8 @@ impl fmt::Display for Memo {
 /// to hold those funds.
 #[derive(Debug, Clone)]
 pub struct Note {
-    /// Asset generator the note is associated with
-    pub(crate) asset_generator: jubjub::SubgroupPoint,
+    /// Asset identifier the note is associated with
+    pub(crate) asset_id: AssetIdentifier,
 
     /// A public address for the owner of the note.
     pub(crate) owner: PublicAddress,
@@ -103,14 +103,14 @@ impl<'a> Note {
         owner: PublicAddress,
         value: u64,
         memo: impl Into<Memo>,
-        asset_generator: SubgroupPoint,
+        asset_id: AssetIdentifier,
         sender: PublicAddress,
     ) -> Self {
         let randomness: jubjub::Fr = jubjub::Fr::random(thread_rng());
 
         Self {
             owner,
-            asset_generator,
+            asset_id,
             value,
             randomness,
             memo: memo.into(),
@@ -125,7 +125,7 @@ impl<'a> Note {
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
         let owner = PublicAddress::read(&mut reader)?;
 
-        let asset_generator = read_point(&mut reader)?;
+        let asset_id = AssetIdentifier::read(&mut reader)?;
 
         let value = reader.read_u64::<LittleEndian>()?;
         let randomness: jubjub::Fr = read_scalar(&mut reader)?;
@@ -137,7 +137,7 @@ impl<'a> Note {
 
         Ok(Self {
             owner,
-            asset_generator,
+            asset_id,
             value,
             randomness,
             memo,
@@ -152,7 +152,7 @@ impl<'a> Note {
     /// thread boundaries.
     pub fn write<W: io::Write>(&self, mut writer: &mut W) -> Result<(), IronfishError> {
         self.owner.write(&mut writer)?;
-        writer.write_all(&self.asset_generator.to_bytes())?;
+        self.asset_id.write(&mut writer)?;
         writer.write_u64::<LittleEndian>(self.value)?;
         writer.write_all(&self.randomness.to_bytes())?;
         writer.write_all(&self.memo.0)?;
@@ -175,13 +175,13 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (randomness, asset_generator, value, memo, sender) =
+        let (randomness, asset_id, value, memo, sender) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
         let owner = owner_view_key.public_address();
 
         Ok(Note {
             owner,
-            asset_generator,
+            asset_id,
             value,
             randomness,
             memo,
@@ -203,14 +203,14 @@ impl<'a> Note {
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
     ) -> Result<Self, IronfishError> {
-        let (randomness, asset_generator, value, memo, sender) =
+        let (randomness, asset_id, value, memo, sender) =
             Note::decrypt_note_parts(shared_secret, encrypted_bytes)?;
 
         let owner = PublicAddress { transmission_key };
 
         Ok(Note {
             owner,
-            asset_generator,
+            asset_id,
             value,
             randomness,
             memo,
@@ -230,12 +230,12 @@ impl<'a> Note {
         self.owner
     }
 
-    pub fn asset_generator(&self) -> jubjub::SubgroupPoint {
-        self.asset_generator
+    pub fn asset_generator(&self) -> jubjub::ExtendedPoint {
+        self.asset_id.asset_generator()
     }
 
-    pub fn asset_id(&self) -> AssetIdentifier {
-        self.asset_generator.to_bytes()
+    pub fn asset_id(&self) -> &AssetIdentifier {
+        &self.asset_id
     }
 
     pub fn sender(&self) -> PublicAddress {
@@ -262,8 +262,7 @@ impl<'a> Note {
         bytes_to_encrypt[index..(index + MEMO_SIZE)].copy_from_slice(&self.memo.0[..]);
         index += MEMO_SIZE;
 
-        bytes_to_encrypt[index..(index + GENERATOR_SIZE)]
-            .copy_from_slice(&self.asset_generator.to_bytes());
+        bytes_to_encrypt[index..(index + GENERATOR_SIZE)].copy_from_slice(self.asset_id.as_bytes());
         index += GENERATOR_SIZE;
 
         bytes_to_encrypt[index..].copy_from_slice(&self.sender.public_address());
@@ -274,7 +273,7 @@ impl<'a> Note {
     /// Computes the note commitment, returning the full point.
     fn commitment_full_point(&self) -> jubjub::SubgroupPoint {
         commitment_full_point(
-            self.asset_generator,
+            self.asset_generator(),
             self.value,
             self.owner.transmission_key,
             self.randomness,
@@ -338,7 +337,7 @@ impl<'a> Note {
     fn decrypt_note_parts(
         shared_secret: &[u8; 32],
         encrypted_bytes: &[u8; ENCRYPTED_NOTE_SIZE + aead::MAC_SIZE],
-    ) -> Result<(jubjub::Fr, jubjub::SubgroupPoint, u64, Memo, PublicAddress), IronfishError> {
+    ) -> Result<(jubjub::Fr, AssetIdentifier, u64, Memo, PublicAddress), IronfishError> {
         let plaintext_bytes: [u8; ENCRYPTED_NOTE_SIZE] =
             aead::decrypt(shared_secret, encrypted_bytes)?;
 
@@ -350,16 +349,10 @@ impl<'a> Note {
         let mut memo = Memo::default();
         reader.read_exact(&mut memo.0)?;
 
-        let asset_generator = {
-            let mut bytes = [0; 32];
-            reader.read_exact(&mut bytes)?;
-
-            Option::from(jubjub::SubgroupPoint::from_bytes(&bytes))
-                .ok_or(IronfishError::InvalidData)?
-        };
+        let asset_id = AssetIdentifier::read(&mut reader)?;
 
         let sender = PublicAddress::read(&mut reader)?;
-        Ok((randomness, asset_generator, value, memo, sender))
+        Ok((randomness, asset_id, value, memo, sender))
     }
 }
 
@@ -367,7 +360,7 @@ impl<'a> Note {
 mod test {
     use super::{Memo, Note};
     use crate::{
-        assets::asset::NATIVE_ASSET_GENERATOR,
+        assets::asset::NATIVE_ASSET,
         keys::{shared_secret, EphemeralKeyPair, SaplingKey},
     };
 
@@ -381,7 +374,7 @@ mod test {
             public_address,
             42,
             "serialize me",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             sender_address,
         );
         let mut serialized = Vec::new();
@@ -415,13 +408,7 @@ mod test {
 
         let public_shared_secret =
             shared_secret(dh_secret, &public_address.transmission_key, dh_public);
-        let note = Note::new(
-            public_address,
-            42,
-            "",
-            NATIVE_ASSET_GENERATOR,
-            sender_address,
-        );
+        let note = Note::new(public_address, 42, "", NATIVE_ASSET, sender_address);
         let encryption_result = note.encrypt(&public_shared_secret);
 
         let private_shared_secret = owner_key.incoming_view_key().shared_secret(dh_public);

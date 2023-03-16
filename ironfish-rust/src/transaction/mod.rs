@@ -8,9 +8,7 @@ use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::{
-        asset_generator_from_id, Asset, AssetIdentifier, NATIVE_ASSET, NATIVE_ASSET_GENERATOR,
-    },
+    assets::asset::{Asset, AssetIdentifier, NATIVE_ASSET, NATIVE_ASSET_GENERATOR},
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
     note::Note,
@@ -24,7 +22,7 @@ use blake2b_simd::Params as Blake2b;
 use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
-use jubjub::{ExtendedPoint, SubgroupPoint};
+use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
@@ -136,7 +134,7 @@ impl ProposedTransaction {
         witness: &dyn WitnessTrait,
     ) -> Result<(), IronfishError> {
         self.value_balances
-            .add(&note.asset_id(), note.value().try_into()?)?;
+            .add(note.asset_id(), note.value().try_into()?)?;
 
         self.spends.push(SpendBuilder::new(note, witness));
 
@@ -147,7 +145,7 @@ impl ProposedTransaction {
     /// transaction.
     pub fn add_output(&mut self, note: Note) -> Result<(), IronfishError> {
         self.value_balances
-            .subtract(&note.asset_id(), note.value().try_into()?)?;
+            .subtract(note.asset_id(), note.value().try_into()?)?;
 
         self.outputs.push(OutputBuilder::new(note));
 
@@ -205,7 +203,7 @@ impl ProposedTransaction {
                     change_address,
                     change_amount as u64, // we checked it was positive
                     "",
-                    SubgroupPoint::from_bytes(asset_id).unwrap(),
+                    *asset_id,
                     self.spender_key.public_address(),
                 );
 
@@ -757,12 +755,13 @@ fn calculate_value_balance(
     let mut value_balance_point = binding_verification_key - fee_point;
 
     for mint in mints {
-        let mint_generator = mint.asset.generator();
+        // TODO: These need to change to value generator
+        let mint_generator = mint.asset.asset_generator();
         value_balance_point += mint_generator * jubjub::Fr::from(mint.value);
     }
 
     for burn in burns {
-        let burn_generator = asset_generator_from_id(&burn.asset_id);
+        let burn_generator = burn.asset_id.asset_generator();
         value_balance_point -= burn_generator * jubjub::Fr::from(burn.value);
     }
 

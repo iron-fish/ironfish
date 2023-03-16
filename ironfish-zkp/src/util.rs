@@ -10,7 +10,7 @@ use zcash_primitives::{
 
 /// Computes the note commitment with sender address, returning the full point.
 pub fn commitment_full_point(
-    asset_generator: jubjub::SubgroupPoint,
+    asset_generator: jubjub::ExtendedPoint,
     value: u64,
     pk_d: jubjub::SubgroupPoint,
     rcm: jubjub::Fr,

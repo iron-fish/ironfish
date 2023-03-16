@@ -222,7 +222,8 @@ impl NativeTransaction {
     #[napi]
     pub fn burn(&mut self, asset_id_js_bytes: JsBuffer, value: BigInt) -> Result<()> {
         let asset_id_bytes = asset_id_js_bytes.into_value()?;
-        let asset_id: AssetIdentifier = asset_id_bytes.as_ref().try_into().map_err(to_napi_err)?;
+        let asset_id = AssetIdentifier::new(asset_id_bytes.as_ref().try_into().unwrap())
+            .map_err(to_napi_err)?;
         let value_u64 = value.get_u64().1;
         self.transaction
             .add_burn(asset_id, value_u64)

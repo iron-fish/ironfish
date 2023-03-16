@@ -372,7 +372,7 @@ mod test {
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: jubjub::Fr::random(&mut rng),
-                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR.into(),
             };
 
             let proof_generation_key = ProofGenerationKey {
@@ -547,7 +547,7 @@ mod test {
             let value_commitment = ValueCommitment {
                 value: i,
                 randomness: jubjub::Fr::from(1000 * (i + 1)),
-                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR.into(),
             };
 
             let proof_generation_key = ProofGenerationKey {

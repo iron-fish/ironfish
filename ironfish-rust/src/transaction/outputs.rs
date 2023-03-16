@@ -86,7 +86,7 @@ impl OutputBuilder {
             payment_address: Some(self.note.owner.transmission_key),
             commitment_randomness: Some(self.note.randomness),
             esk: Some(*diffie_hellman_keys.secret()),
-            asset_generator: Some(self.note.asset_generator().into()),
+            asset_generator: Some(self.note.asset_generator()),
             proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
             ar: Some(*public_key_randomness),
         };
@@ -218,9 +218,8 @@ impl OutputDescription {
 mod test {
     use super::{OutputBuilder, OutputDescription};
     use crate::{
-        assets::asset::NATIVE_ASSET_GENERATOR, keys::SaplingKey,
-        merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note,
-        transaction::utils::verify_output_proof,
+        assets::asset::NATIVE_ASSET, keys::SaplingKey, merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
+        note::Note, transaction::utils::verify_output_proof,
     };
     use ff::{Field, PrimeField};
     use group::Curve;
@@ -242,7 +241,7 @@ mod test {
             spender_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
 
@@ -272,7 +271,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
 
@@ -300,7 +299,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
 

@@ -264,7 +264,7 @@ mod test {
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: value_commitment_randomness,
-                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR.into(),
             };
 
             let nsk = jubjub::Fr::random(&mut rng);
