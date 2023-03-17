@@ -6,13 +6,15 @@ use bellman::{
     ConstraintSystem, SynthesisError,
 };
 use ff::PrimeField;
-use zcash_primitives::constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION;
 use zcash_proofs::{
     circuit::ecc::{self, EdwardsPoint},
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
-use crate::{constants::ASSET_ID_LENGTH, primitives::ValueCommitment};
+use crate::{
+    constants::{ASSET_ID_LENGTH, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION},
+    primitives::ValueCommitment,
+};
 
 pub fn asset_id_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
     cs: &mut CS,

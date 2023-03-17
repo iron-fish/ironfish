@@ -199,7 +199,7 @@ mod test {
 
     #[test]
     fn test_asset_new_with_nonce_invalid_nonce() {
-        let nonce = 0;
+        let nonce = 5;
         let public_address = [
             81, 229, 109, 20, 111, 174, 52, 91, 120, 215, 34, 107, 174, 123, 78, 102, 189, 188,
             226, 7, 173, 7, 76, 135, 130, 203, 71, 131, 62, 219, 240, 68,

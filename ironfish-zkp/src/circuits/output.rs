@@ -5,7 +5,7 @@ use bellman::{gadgets::blake2s, Circuit, ConstraintSystem, SynthesisError};
 use group::Curve;
 use jubjub::SubgroupPoint;
 
-use zcash_primitives::{constants::CRH_IVK_PERSONALIZATION, sapling::ProofGenerationKey};
+use zcash_primitives::sapling::ProofGenerationKey;
 use zcash_proofs::{
     circuit::{ecc, pedersen_hash},
     constants::{
@@ -16,7 +16,7 @@ use zcash_proofs::{
 
 use crate::{
     circuits::util::assert_valid_asset_generator,
-    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_LENGTH},
+    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_LENGTH, CRH_IVK_PERSONALIZATION},
     primitives::ValueCommitment,
 };
 
@@ -324,7 +324,7 @@ mod test {
                 assert_eq!(cs.num_constraints(), 54009);
                 assert_eq!(
                     cs.hash(),
-                    "73a0f2943a2944b2a7a4bce45e1e4acf75df8adc8dffe342b691fc0d6632dfc1"
+                    "c34430aa14387607c190af7d3d086c8c8e793e9aef640a34be834efeaff39e01"
                 );
 
                 let commitment = commitment_full_point(

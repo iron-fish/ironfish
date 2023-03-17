@@ -4,9 +4,11 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use ff::PrimeField;
 use group::{cofactor::CofactorGroup, Group, GroupEncoding};
 use zcash_primitives::{
-    constants::{NOTE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION},
+    constants::NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
     sapling::pedersen_hash::{pedersen_hash, Personalization},
 };
+
+use crate::constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION;
 
 /// Computes the note commitment with sender address, returning the full point.
 pub fn commitment_full_point(

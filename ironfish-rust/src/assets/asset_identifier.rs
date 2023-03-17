@@ -8,8 +8,8 @@ use jubjub::{ExtendedPoint, SubgroupPoint};
 use std::io;
 
 pub const NATIVE_ASSET: AssetIdentifier = AssetIdentifier([
-    215, 200, 103, 6, 245, 129, 122, 167, 24, 205, 28, 250, 208, 50, 51, 188, 214, 74, 119, 137,
-    253, 148, 34, 211, 177, 122, 246, 130, 58, 126, 106, 198,
+    81, 243, 58, 47, 20, 249, 39, 53, 229, 98, 220, 101, 138, 86, 57, 39, 157, 220, 163, 213, 7,
+    154, 109, 18, 66, 178, 165, 136, 169, 203, 244, 76,
 ]);
 
 /// A convenience wrapper around an asset id byte-array, allowing us to push the
