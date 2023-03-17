@@ -1,14 +1,18 @@
 use bellman::{
-    gadgets::boolean::{self, AllocatedBit, Boolean},
+    gadgets::{
+        blake2s,
+        boolean::{self, AllocatedBit, Boolean},
+    },
     ConstraintSystem, SynthesisError,
 };
 use ff::PrimeField;
+use zcash_primitives::constants::VALUE_COMMITMENT_GENERATOR_PERSONALIZATION;
 use zcash_proofs::{
     circuit::ecc::{self, EdwardsPoint},
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
-use crate::primitives::ValueCommitment;
+use crate::{constants::ASSET_ID_LENGTH, primitives::ValueCommitment};
 
 pub fn asset_id_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
     cs: &mut CS,
@@ -130,4 +134,39 @@ where
     cv.inputize(cs.namespace(|| "commitment point"))?;
 
     Ok(value_bits)
+}
+
+pub fn assert_valid_asset_generator<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
+    mut cs: CS,
+    asset_id: &[u8; ASSET_ID_LENGTH],
+    asset_generator_repr: &[Boolean],
+) -> Result<(), SynthesisError> {
+    // Compute the generator preimage bits
+    let asset_generator_preimage = slice_into_boolean_vec_le(
+        cs.namespace(|| "booleanize asset id"),
+        Some(asset_id),
+        ASSET_ID_LENGTH as u32,
+    )?;
+
+    // Compute the generator bits
+    let asset_generator_bits = blake2s::blake2s(
+        cs.namespace(|| "computation of asset generator"),
+        &asset_generator_preimage,
+        VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
+    )?;
+
+    assert_eq!(asset_generator_bits.len(), 256);
+    assert_eq!(asset_generator_repr.len(), 256);
+
+    // Compare the generator bits to the computed generator bits, proving that
+    // this is the asset id that derived the generator
+    for i in 0..256 {
+        boolean::Boolean::enforce_equal(
+            cs.namespace(|| format!("asset generator bit {} equality", i)),
+            &asset_generator_bits[i],
+            &asset_generator_repr[i],
+        )?;
+    }
+
+    Ok(())
 }
