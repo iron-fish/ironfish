@@ -46,6 +46,8 @@ import {
   GetPeersResponse,
   GetPublicKeyRequest,
   GetPublicKeyResponse,
+  GetTransactionRequest,
+  GetTransactionResponse,
   GetTransactionStreamRequest,
   GetTransactionStreamResponse,
   GetWorkersStatusRequest,
@@ -524,6 +526,13 @@ export abstract class RpcClient {
   ): RpcResponse<void, GetTransactionStreamResponse> {
     return this.request<void, GetTransactionStreamResponse>(
       `${ApiNamespace.chain}/getTransactionStream`,
+      params,
+    )
+  }
+
+  getTransaction(params: GetTransactionRequest): RpcResponse<void, GetTransactionResponse> {
+    return this.request<void, GetTransactionResponse>(
+      `${ApiNamespace.chain}/getTransaction`,
       params,
     )
   }
