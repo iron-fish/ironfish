@@ -23,6 +23,8 @@ export type GetBlockResponse = {
     previousBlockHash: string
     sequence: number
     timestamp: number
+    noteSize: number
+    noteCommitment: string
     transactions: Array<{
       fee: string
       hash: string
@@ -57,6 +59,8 @@ export const GetBlockResponseSchema: yup.ObjectSchema<GetBlockResponse> = yup
         previousBlockHash: yup.string().defined(),
         sequence: yup.number().defined(),
         timestamp: yup.number().defined(),
+        noteSize: yup.number().defined(),
+        noteCommitment: yup.string().defined(),
         transactions: yup
           .array(
             yup
@@ -124,6 +128,10 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
       throw new ValidationError(error)
     }
 
+    if (header.noteSize === null) {
+      throw new ValidationError('Block header was saved to database without a note size')
+    }
+
     const block = await node.chain.getBlock(header)
     if (!block) {
       throw new ValidationError(`No block with header ${header.hash.toString('hex')}`)
@@ -154,6 +162,8 @@ router.register<typeof GetBlockRequestSchema, GetBlockResponse>(
         previousBlockHash: header.previousBlockHash.toString('hex'),
         sequence: Number(header.sequence),
         timestamp: header.timestamp.valueOf(),
+        noteSize: header.noteSize,
+        noteCommitment: header.noteCommitment.toString('hex'),
         transactions: transactions,
       },
       metadata: {
