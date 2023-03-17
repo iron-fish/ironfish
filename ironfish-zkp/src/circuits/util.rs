@@ -88,8 +88,22 @@ where
         value_commitment.as_ref().map(|c| c.value),
     )?;
 
+    // Clearing the cofactor and assert_nonzero is essentially the same thing as
+    // EdwardsPoint::assert_not_small_order, however, since we need to clear the
+    // cofactor anyway, we will also manually check the nonzero u-value
+
+    // Clear the cofactor
+    let value_commitment_generator = asset_generator
+        .double(cs.namespace(|| "asset_generator first double"))?
+        .double(cs.namespace(|| "asset_generator second double"))?
+        .double(cs.namespace(|| "asset_generator third double"))?;
+
+    value_commitment_generator
+        .get_u()
+        .assert_nonzero(cs.namespace(|| "assert asset_generator not small order"))?;
+
     // Compute the note value in the exponent
-    let value = asset_generator.mul(
+    let value = value_commitment_generator.mul(
         cs.namespace(|| "compute the value in the exponent"),
         &value_bits,
     )?;

@@ -53,7 +53,6 @@ fn main() {
                 ar: None,
                 auth_path: vec![None; TREE_DEPTH],
                 anchor: None,
-                asset_generator: None,
                 sender_address: None,
             },
         );
