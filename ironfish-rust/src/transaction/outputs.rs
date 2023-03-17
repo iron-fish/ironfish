@@ -218,11 +218,8 @@ impl OutputDescription {
 mod test {
     use super::{OutputBuilder, OutputDescription};
     use crate::{
-        assets::asset::{NATIVE_ASSET},
-        keys::SaplingKey,
-        merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
-        note::Note,
-        transaction::utils::verify_output_proof,
+        assets::asset::NATIVE_ASSET, keys::SaplingKey, merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
+        note::Note, transaction::utils::verify_output_proof,
     };
     use ff::{Field, PrimeField};
     use group::Curve;

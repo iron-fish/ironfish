@@ -3,7 +3,7 @@ use ff::PrimeField;
 use jubjub::SubgroupPoint;
 
 use crate::circuits::util::assert_valid_asset_generator;
-use crate::constants::ASSET_ID_LENGTH;
+use crate::constants::{ASSET_ID_LENGTH, CRH_IVK_PERSONALIZATION, PRF_NF_PERSONALIZATION};
 use crate::{constants::proof::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment};
 
 use super::util::expose_value_commitment;
@@ -12,10 +12,7 @@ use bellman::gadgets::boolean;
 use bellman::gadgets::multipack;
 use bellman::gadgets::num;
 use bellman::gadgets::Assignment;
-use zcash_primitives::{
-    constants::CRH_IVK_PERSONALIZATION, constants::PRF_NF_PERSONALIZATION,
-    sapling::ProofGenerationKey,
-};
+use zcash_primitives::sapling::ProofGenerationKey;
 use zcash_proofs::{
     circuit::{
         ecc::{self},

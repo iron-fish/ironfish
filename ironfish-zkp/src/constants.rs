@@ -39,16 +39,16 @@ pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecke
 
 pub const NATIVE_VALUE_COMMITMENT_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(
     bls12_381::Scalar::from_raw([
-        0x80c7_f5ae_1da3_8af3,
-        0x98ba_f7d9_30ae_9fb4,
-        0x4013_b536_9827_f490,
-        0x6f7d_4197_52cb_de81,
+        0x3582_f1c2_0b34_fc85,
+        0x3f9d_e6ad_94cd_eb3f,
+        0xc800_efa9_5d82_d6e8,
+        0x631b_44c1_f4c5_d29d,
     ]),
     bls12_381::Scalar::from_raw([
-        0xf2c7_679e_d68b_3d8e,
-        0x1802_9e88_8161_324d,
-        0xe533_69d9_0048_0967,
-        0x6e93_e7d5_5427_ef9c,
+        0x55ee_686d_f18b_e7cb,
+        0x4b55_93c1_05bb_e917,
+        0x01f7_75c6_a5fc_760c,
+        0x5c2d_a500_2183_cc87,
     ]),
 );
 

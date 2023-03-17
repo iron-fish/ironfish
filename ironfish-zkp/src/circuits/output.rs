@@ -5,7 +5,7 @@ use bellman::{gadgets::blake2s, Circuit, ConstraintSystem, SynthesisError};
 use group::Curve;
 use jubjub::SubgroupPoint;
 
-use zcash_primitives::{constants::CRH_IVK_PERSONALIZATION, sapling::ProofGenerationKey};
+use zcash_primitives::sapling::ProofGenerationKey;
 use zcash_proofs::{
     circuit::{ecc, pedersen_hash},
     constants::{
@@ -16,7 +16,7 @@ use zcash_proofs::{
 
 use crate::{
     circuits::util::assert_valid_asset_generator,
-    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_LENGTH},
+    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_LENGTH, CRH_IVK_PERSONALIZATION},
     primitives::ValueCommitment,
 };
 
