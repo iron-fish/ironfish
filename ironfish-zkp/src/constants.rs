@@ -1,9 +1,8 @@
 use jubjub::SubgroupPoint;
 pub use zcash_primitives::constants::{
-    CRH_IVK_PERSONALIZATION, GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
-    NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR,
-    SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
-    VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR,
+    GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
+    PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+    VALUE_COMMITMENT_VALUE_GENERATOR,
 };
 
 pub use zcash_proofs::circuit::sapling::TREE_DEPTH;
@@ -13,6 +12,15 @@ pub const ASSET_ID_LENGTH: usize = 32;
 
 /// BLAKE2s personalization for deriving asset identifier from asset name
 pub const ASSET_ID_PERSONALIZATION: &[u8; 8] = b"ironf_A_";
+
+/// BLAKE2s personalization for CRH^ivk = BLAKE2s(ak | nk)
+pub const CRH_IVK_PERSONALIZATION: &[u8; 8] = b"ironfivk";
+
+/// BLAKE2s personalization for PRF^nf = BLAKE2s(nk | rho)
+pub const PRF_NF_PERSONALIZATION: &[u8; 8] = b"ironf_nf";
+
+/// BLAKE2s personalization for the value commitment generator for the value
+pub const VALUE_COMMITMENT_GENERATOR_PERSONALIZATION: &[u8; 8] = b"ironf_cv";
 
 pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(
     bls12_381::Scalar::from_raw([
