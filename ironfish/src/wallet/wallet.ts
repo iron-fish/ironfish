@@ -498,6 +498,13 @@ export class Wallet {
           { hash: header.previousBlockHash, sequence: header.sequence - 1 },
           tx,
         )
+
+        if (account.createdAt?.hash.equals(header.hash)) {
+          await account.updateCreatedAt(
+            { hash: header.previousBlockHash, sequence: header.sequence - 1 },
+            tx,
+          )
+        }
       })
     }
   }

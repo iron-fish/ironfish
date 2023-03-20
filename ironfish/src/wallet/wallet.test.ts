@@ -2143,6 +2143,35 @@ describe('Accounts', () => {
         unconfirmed: value,
       })
     })
+
+    it('should update an account createdAt field if that block is disconnected', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      // create an account so that wallet will scan transactions
+      await useAccountFixture(node.wallet, 'accountA')
+
+      const block2 = await useMinerBlockFixture(node.chain, 2)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      const block3 = await useMinerBlockFixture(node.chain, 3)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      // create a second account with createdAt referencing block3
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      expect(accountB.createdAt).not.toBeNull()
+      expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
+      expect(accountB.createdAt?.sequence).toEqual(block3.header.sequence)
+
+      // disconnect block3 so that accountB's createdAt is updated
+      await node.wallet.disconnectBlock(block3.header)
+
+      // accountB.createdAt should now reference block2, the previous block from block3
+      expect(accountB.createdAt?.hash).toEqualHash(block2.header.hash)
+      expect(accountB.createdAt?.sequence).toEqual(block2.header.sequence)
+    })
   })
 
   describe('resetAccount', () => {
