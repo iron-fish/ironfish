@@ -599,7 +599,7 @@ export class Wallet {
 
     if (this.chainProcessor.hash === null) {
       const latestHead = await this.getLatestHead()
-      Assert.isNotNull(latestHead, `scanTransactions: No latest head hash found`)
+      Assert.isNotNull(latestHead, `scanTransactions: No latest head found`)
 
       this.chainProcessor.hash = latestHead.hash
       this.chainProcessor.sequence = latestHead.sequence
