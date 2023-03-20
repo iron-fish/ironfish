@@ -18,7 +18,10 @@ describe('AccountValueEncoding', () => {
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,
       version: 1,
-      createdAt: new Date(2023, 2, 28),
+      createdAt: {
+        hash: Buffer.alloc(32, 0),
+        sequence: 1,
+      },
     }
     const buffer = encoder.serialize(value)
     const deserializedValue = encoder.deserialize(buffer)

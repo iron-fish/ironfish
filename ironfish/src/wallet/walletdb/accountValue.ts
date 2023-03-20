@@ -5,6 +5,7 @@ import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { IDatabaseEncoding } from '../../storage'
 import { ACCOUNT_KEY_LENGTH } from '../account'
+import { HeadValue, NullableHeadValueEncoding } from './headValue'
 
 const KEY_LENGTH = ACCOUNT_KEY_LENGTH
 export const VIEW_KEY_LENGTH = 64
@@ -19,10 +20,12 @@ export interface AccountValue {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  createdAt: Date | null
+  createdAt: HeadValue | null
 }
 
-export type AccountImport = Omit<AccountValue, 'id'>
+export type AccountImport = Omit<AccountValue, 'id' | 'createdAt'> & {
+  createdAt: { hash: string; sequence: number } | null
+}
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
   serialize(value: AccountValue): Buffer {
@@ -41,8 +44,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
+
     if (value.createdAt) {
-      bw.writeU64(value.createdAt.getTime())
+      const encoding = new NullableHeadValueEncoding()
+      bw.writeBytes(encoding.serialize(value.createdAt))
     }
 
     return bw.render()
@@ -61,7 +66,12 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
-    const createdAt = hasCreatedAt ? new Date(reader.readU64()) : null
+
+    let createdAt = null
+    if (hasCreatedAt) {
+      const encoding = new NullableHeadValueEncoding()
+      createdAt = encoding.deserialize(reader.readBytes(encoding.nonNullSize))
+    }
 
     return {
       version,
@@ -90,7 +100,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
     if (value.createdAt) {
-      size += 8
+      const encoding = new NullableHeadValueEncoding()
+      size += encoding.nonNullSize
     }
 
     return size
