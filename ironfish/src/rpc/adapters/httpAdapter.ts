@@ -78,7 +78,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
           const requestId = uuid()
 
           const waitForClose = new Promise<void>((resolve) => {
-            req.on('close', () => {
+            res.on('close', () => {
               this.cleanUpRequest(requestId)
               resolve()
             })
