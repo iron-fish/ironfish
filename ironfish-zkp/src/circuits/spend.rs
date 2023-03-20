@@ -2,6 +2,7 @@ use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use ff::PrimeField;
 use jubjub::SubgroupPoint;
 
+use crate::constants::{CRH_IVK_PERSONALIZATION, PRF_NF_PERSONALIZATION};
 use crate::{constants::proof::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment};
 
 use super::util::expose_value_commitment;
@@ -10,10 +11,7 @@ use bellman::gadgets::boolean;
 use bellman::gadgets::multipack;
 use bellman::gadgets::num;
 use bellman::gadgets::Assignment;
-use zcash_primitives::{
-    constants::CRH_IVK_PERSONALIZATION, constants::PRF_NF_PERSONALIZATION,
-    sapling::ProofGenerationKey,
-};
+use zcash_primitives::sapling::ProofGenerationKey;
 use zcash_proofs::{
     circuit::{ecc, pedersen_hash},
     constants::{
@@ -344,17 +342,14 @@ mod test {
     use ff::{Field, PrimeField, PrimeFieldBits};
     use group::{Curve, Group, GroupEncoding};
     use rand::{rngs::StdRng, RngCore, SeedableRng};
-    use zcash_primitives::{
-        constants::VALUE_COMMITMENT_VALUE_GENERATOR,
-        sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed},
-    };
-    use zcash_primitives::{
-        constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
-        sapling::Nullifier,
-    };
+    use zcash_primitives::sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed};
+    use zcash_primitives::{constants::NULLIFIER_POSITION_GENERATOR, sapling::Nullifier};
 
     use crate::{
-        circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment,
+        circuits::spend::Spend,
+        constants::PUBLIC_KEY_GENERATOR,
+        constants::{PRF_NF_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR},
+        primitives::ValueCommitment,
         util::commitment_full_point,
     };
 
@@ -482,7 +477,7 @@ mod test {
                 assert_eq!(cs.num_constraints(), 98118);
                 assert_eq!(
                     cs.hash(),
-                    "21cab0a7448c5b2997ffe5c6695c5821a963b858230b94bbc419c7c919a1c424"
+                    "3beab29b9ac7e33812cbe357ffc05997c891947395468720485b335050cac706"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
@@ -651,7 +646,7 @@ mod test {
                 assert_eq!(cs.num_constraints(), 98118);
                 assert_eq!(
                     cs.hash(),
-                    "21cab0a7448c5b2997ffe5c6695c5821a963b858230b94bbc419c7c919a1c424"
+                    "3beab29b9ac7e33812cbe357ffc05997c891947395468720485b335050cac706"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);

@@ -3,7 +3,7 @@ use bellman::{
     Circuit,
 };
 use ff::PrimeField;
-use zcash_primitives::{constants::CRH_IVK_PERSONALIZATION, sapling::ProofGenerationKey};
+use zcash_primitives::sapling::ProofGenerationKey;
 use zcash_proofs::{
     circuit::ecc,
     constants::{PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR},
@@ -11,7 +11,7 @@ use zcash_proofs::{
 
 use crate::{
     circuits::util::asset_id_preimage,
-    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_PERSONALIZATION},
+    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_PERSONALIZATION, CRH_IVK_PERSONALIZATION},
 };
 
 pub struct MintAsset {
