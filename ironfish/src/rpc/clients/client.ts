@@ -86,6 +86,7 @@ import {
   FollowChainStreamRequest,
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
+import { GetNoteWitnessRequest, GetNoteWitnessResponse } from '../routes/chain/getNoteWitness'
 import { UnsetConfigRequest, UnsetConfigResponse } from '../routes/config/unsetConfig'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import { GetMempoolTransactionResponse, GetMempoolTransactionsRequest } from '../routes/mempool'
@@ -499,6 +500,15 @@ export abstract class RpcClient {
   ): Promise<RpcResponseEnded<GetDifficultyResponse>> {
     return this.request<GetDifficultyResponse>(
       `${ApiNamespace.chain}/getDifficulty`,
+      params,
+    ).waitForEnd()
+  }
+
+  async getNoteWitness(
+    params: GetNoteWitnessRequest,
+  ): Promise<RpcResponseEnded<GetNoteWitnessResponse>> {
+    return this.request<GetNoteWitnessResponse>(
+      `${ApiNamespace.chain}/getNoteWitness`,
       params,
     ).waitForEnd()
   }
