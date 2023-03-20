@@ -14,9 +14,11 @@ describe('Route wallet/create', () => {
   jest.setTimeout(15000)
   const routeTest = createRouteTest()
 
-  it('should create an account', async () => {
+  beforeEach(() => {
     jest.spyOn(routeTest.node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
+  })
 
+  it('should create an account', async () => {
     await routeTest.node.wallet.createAccount('existingAccount', true)
 
     const name = uuid()
@@ -37,8 +39,6 @@ describe('Route wallet/create', () => {
   })
 
   it('should set the account as default', async () => {
-    jest.spyOn(routeTest.node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
-
     await routeTest.node.wallet.setDefaultAccount(null)
 
     const name = uuid()
@@ -53,8 +53,6 @@ describe('Route wallet/create', () => {
   })
 
   it('should fail if name already exists', async () => {
-    jest.spyOn(routeTest.node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
-
     const name = uuid()
 
     await routeTest.node.wallet.createAccount(name)
