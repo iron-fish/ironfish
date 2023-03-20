@@ -2300,4 +2300,29 @@ describe('Accounts', () => {
       )
     })
   })
+
+  describe('load', () => {
+    it('should set chainProcessor hash and sequence', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
+      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
+
+      node.wallet['unload']()
+
+      expect(node.wallet.chainProcessor.hash).toBeNull()
+      expect(node.wallet.chainProcessor.sequence).toBeNull()
+
+      await node.wallet['load']()
+
+      expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
+      expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
+    })
+  })
 })
