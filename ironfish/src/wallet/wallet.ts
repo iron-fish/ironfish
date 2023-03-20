@@ -1261,6 +1261,14 @@ export class Wallet {
 
     const key = generateKey()
 
+    let createdAt = null
+    if (this.chainProcessor.hash && this.chainProcessor.sequence) {
+      createdAt = {
+        hash: this.chainProcessor.hash,
+        sequence: this.chainProcessor.sequence,
+      }
+    }
+
     const account = new Account({
       version: ACCOUNT_SCHEMA_VERSION,
       id: uuid(),
@@ -1270,7 +1278,7 @@ export class Wallet {
       publicAddress: key.publicAddress,
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,
-      createdAt: new Date(),
+      createdAt,
       walletDb: this.walletDb,
     })
 
@@ -1318,7 +1326,6 @@ export class Wallet {
 
     const account = new Account({
       ...accountValue,
-      createdAt: accountValue.createdAt ? new Date(accountValue.createdAt) : null,
       walletDb: this.walletDb,
     })
 
@@ -1346,6 +1353,7 @@ export class Wallet {
       ...account,
       id: uuid(),
       walletDb: this.walletDb,
+      createdAt: null,
     })
 
     await this.walletDb.db.withTransaction(tx, async (tx) => {
