@@ -5,6 +5,7 @@ import {
   CurrencyUtils,
   DEFAULT_CONFIG_NAME,
   DEFAULT_DATA_DIR,
+  DEFAULT_USE_RPC_HTTP,
   DEFAULT_USE_RPC_IPC,
   DEFAULT_USE_RPC_TCP,
   DEFAULT_USE_RPC_TLS,
@@ -23,6 +24,9 @@ export const RpcUseIpcFlagKey = 'rpc.ipc'
 export const RpcUseTcpFlagKey = 'rpc.tcp'
 export const RpcTcpHostFlagKey = 'rpc.tcp.host'
 export const RpcTcpPortFlagKey = 'rpc.tcp.port'
+export const RpcUseHttpFlagKey = 'rpc.http'
+export const RpcHttpHostFlagKey = 'rpc.http.host'
+export const RpcHttpPortFlagKey = 'rpc.http.port'
 export const RpcTcpTlsFlagKey = 'rpc.tcp.tls'
 export const RpcAuthFlagKey = 'rpc.auth'
 
@@ -78,6 +82,20 @@ export const RpcAuthFlag = Flags.string({
   description: 'The RPC auth token',
 })
 
+export const RpcHttpHostFlag = Flags.string({
+  description: 'The HTTP host to listen for connections on',
+})
+
+export const RpcHttpPortFlag = Flags.integer({
+  description: 'The HTTP port to listen for connections on',
+})
+
+export const RpcUseHttpFlag = Flags.boolean({
+  default: DEFAULT_USE_RPC_HTTP,
+  description: 'Connect to the RPC over HTTP',
+  allowNo: true,
+})
+
 const localFlags: Record<string, CompletableOptionFlag> = {}
 localFlags[VerboseFlagKey] = VerboseFlag as unknown as CompletableOptionFlag
 localFlags[ConfigFlagKey] = ConfigFlag as unknown as CompletableOptionFlag
@@ -97,6 +115,9 @@ remoteFlags[RpcUseTcpFlagKey] = RpcUseTcpFlag as unknown as CompletableOptionFla
 remoteFlags[RpcUseIpcFlagKey] = RpcUseIpcFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpHostFlagKey] = RpcTcpHostFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpPortFlagKey] = RpcTcpPortFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcHttpHostFlagKey] = RpcHttpHostFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcHttpPortFlagKey] = RpcHttpPortFlag as unknown as CompletableOptionFlag
+remoteFlags[RpcUseHttpFlagKey] = RpcUseHttpFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcTcpTlsFlagKey] = RpcTcpTlsFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcAuthFlagKey] = RpcAuthFlag as unknown as CompletableOptionFlag
 

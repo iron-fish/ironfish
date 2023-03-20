@@ -21,7 +21,7 @@ router.register<typeof StopNodeRequestSchema, StopNodeResponse>(
   StopNodeRequestSchema,
   async (request, node): Promise<void> => {
     node.logger.withTag('stopnode').info('Shutting down')
-    await node.shutdown()
     request.end()
+    await node.shutdown()
   },
 )

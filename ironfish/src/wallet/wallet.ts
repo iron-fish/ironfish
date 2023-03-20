@@ -40,6 +40,7 @@ import { validateAccount } from './validator'
 import { AccountValue } from './walletdb/accountValue'
 import { AssetValue } from './walletdb/assetValue'
 import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
+import { HeadValue } from './walletdb/headValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
 
@@ -203,7 +204,11 @@ export class Wallet {
     const meta = await this.walletDb.loadAccountsMeta()
     this.defaultAccount = meta.defaultAccountId
 
-    this.chainProcessor.hash = await this.getLatestHeadHash()
+    const latestHead = await this.getLatestHead()
+    if (latestHead) {
+      this.chainProcessor.hash = latestHead.hash
+      this.chainProcessor.sequence = latestHead.sequence
+    }
   }
 
   private unload(): void {
@@ -211,6 +216,7 @@ export class Wallet {
 
     this.defaultAccount = null
     this.chainProcessor.hash = null
+    this.chainProcessor.sequence = null
   }
 
   async close(): Promise<void> {
@@ -418,7 +424,6 @@ export class Wallet {
           assetBalanceDeltas.update(transactionDeltas)
 
           await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, blockHeader, tx)
-          scan?.signal(blockHeader.sequence)
         }
 
         await account.updateUnconfirmedBalances(
@@ -578,7 +583,7 @@ export class Wallet {
     }
 
     this.logger.info(
-      `Scan starting from earliest found account head hash: ${beginHash.toString('hex')}`,
+      `Scan starting from block ${beginHash.toString('hex')} (${beginHeader.sequence})`,
     )
 
     // Go through every transaction in the chain and add notes that we can decrypt
@@ -589,13 +594,15 @@ export class Wallet {
       false,
     )) {
       await this.connectBlock(blockHeader, scan)
+      scan.signal(blockHeader.sequence)
     }
 
     if (this.chainProcessor.hash === null) {
-      const latestHeadHash = await this.getLatestHeadHash()
-      Assert.isNotNull(latestHeadHash, `scanTransactions: No latest head hash found`)
+      const latestHead = await this.getLatestHead()
+      Assert.isNotNull(latestHead, `scanTransactions: No latest head found`)
 
-      this.chainProcessor.hash = latestHeadHash
+      this.chainProcessor.hash = latestHead.hash
+      this.chainProcessor.sequence = latestHead.sequence
     }
 
     this.logger.info(
@@ -1476,7 +1483,7 @@ export class Wallet {
     return earliestHead ? earliestHead.hash : null
   }
 
-  async getLatestHeadHash(): Promise<Buffer | null> {
+  async getLatestHead(): Promise<HeadValue | null> {
     let latestHead = null
 
     for (const account of this.accounts.values()) {
@@ -1490,6 +1497,12 @@ export class Wallet {
         latestHead = head
       }
     }
+
+    return latestHead
+  }
+
+  async getLatestHeadHash(): Promise<Buffer | null> {
+    const latestHead = await this.getLatestHead()
 
     return latestHead ? latestHead.hash : null
   }

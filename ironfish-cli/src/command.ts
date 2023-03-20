@@ -17,10 +17,14 @@ import {
   ConfigFlagKey,
   DataDirFlagKey,
   RpcAuthFlagKey,
+  RpcHttpHostFlagKey,
+  RpcHttpPortFlagKey,
   RpcTcpHostFlagKey,
   RpcTcpPortFlagKey,
   RpcTcpTlsFlag,
   RpcTcpTlsFlagKey,
+  RpcUseHttpFlag,
+  RpcUseHttpFlagKey,
   RpcUseIpcFlag,
   RpcUseIpcFlagKey,
   RpcUseTcpFlag,
@@ -40,6 +44,9 @@ export type FLAGS =
   | typeof RpcUseTcpFlagKey
   | typeof RpcTcpHostFlagKey
   | typeof RpcTcpPortFlagKey
+  | typeof RpcUseHttpFlagKey
+  | typeof RpcHttpHostFlagKey
+  | typeof RpcHttpPortFlagKey
   | typeof RpcTcpTlsFlagKey
   | typeof VerboseFlagKey
   | typeof RpcAuthFlagKey
@@ -130,6 +137,24 @@ export abstract class IronfishCommand extends Command {
     const rpcTcpPortFlag = getFlag(flags, RpcTcpPortFlagKey)
     if (typeof rpcTcpPortFlag === 'number') {
       configOverrides.rpcTcpPort = rpcTcpPortFlag
+    }
+
+    const rpcConnectHttpFlag = getFlag(flags, RpcUseHttpFlagKey)
+    if (
+      typeof rpcConnectHttpFlag === 'boolean' &&
+      rpcConnectHttpFlag !== RpcUseHttpFlag.default
+    ) {
+      configOverrides.enableRpcHttp = rpcConnectHttpFlag
+    }
+
+    const rpcHttpHostFlag = getFlag(flags, RpcHttpHostFlagKey)
+    if (typeof rpcHttpHostFlag === 'string') {
+      configOverrides.rpcHttpHost = rpcHttpHostFlag
+    }
+
+    const rpcHttpPortFlag = getFlag(flags, RpcHttpPortFlagKey)
+    if (typeof rpcHttpPortFlag === 'number') {
+      configOverrides.rpcHttpPort = rpcHttpPortFlag
     }
 
     const rpcTcpTlsFlag = getFlag(flags, RpcTcpTlsFlagKey)
