@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '@ironfish/sdk'
 import { SimulationNode, SimulationNodeConfig } from './simulation-node'
+import { SIMULATIONS } from './simulations'
+// import { SIMULATIONS } from './simulations'
 import { sleep } from './utils'
 
 export class Simulator {
@@ -11,9 +13,21 @@ export class Simulator {
   nodes: Map<string, SimulationNode> = new Map()
   intervals: NodeJS.Timer[] = []
 
+  simulations: ((logger: Logger) => Promise<void>)[]
+
   constructor(logger: Logger) {
     this.logger = logger
     this.logger.withTag('simulator')
+    this.simulations = SIMULATIONS
+  }
+
+  async run(simulation: number): Promise<void> {
+    if (simulation < 0 || simulation > this.simulations.length) {
+      throw new Error(`Invalid simulation number: ${simulation}`)
+    }
+
+    const fn = this.simulations[simulation - 1]
+    await fn(this.logger)
   }
 
   /**

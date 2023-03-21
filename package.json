@@ -11,7 +11,8 @@
     "config/eslint-config-ironfish",
     "config/eslint-plugin-ironfish",
     "ironfish",
-    "ironfish-rust-nodejs"
+    "ironfish-rust-nodejs",
+    "simulator"
   ],
   "scripts": {
     "build": "lerna run build",

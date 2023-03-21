@@ -5,24 +5,49 @@
 // User: holahula
 // Purpose: Send transactions from one node to another every 3 seconds
 import { Logger, Transaction } from '@ironfish/sdk'
-import { startMiner, startNode } from '../node'
 import { SimulationNodeConfig } from '../simulation-node'
 import { Simulator } from '../simulator'
 import { sendTransaction } from '../transactions'
 import { IRON, SECOND, sleep } from '../utils'
 
+// TODO: make this extend ironfishcomamnd, so it becomes yarn start atn:send or atn:stop
 export const simulation1 = async (logger: Logger): Promise<void> => {
   const simulator = new Simulator(logger)
 
   const nodes = await Promise.all(
     nodeConfig.map((cfg) => {
-      return startNode(simulator, cfg)
+      return simulator.addNode(cfg)
     }),
   )
 
+  // How to listen to logs from a specific node
+  nodes[0].onLog.on((log) => {
+    const tag = 'peermanager'
+    if (log.tag.includes(tag)) {
+      // TODO(austin): clean up the log output to remove the unicode characters
+      logger.withTag(`${nodes[0].config.name}`).warn(`tag found: ${tag}: ${log.args}`)
+    }
+  })
+
+  /**
+   * TODO:
+   * run chaos monkey that randomly stops nodes on intervals
+   * can you detect when a node is killed and see it
+   *
+   * simulation1 can be stability
+   * - do nodes crash over time
+   * - whats the high watermark of the node (memory leak test)
+   *  - peak usage (record memory usage in intervals)
+   * - can also set limit in test, if a node goes over it should print a failure
+   *  - then can investigate to find cause
+   *
+   * print mac spinner while test is running so you know it's alive
+   *
+   * problem with logs is that if there's too many, it's useless
+   */
   logger = logger.withScope('simulation1')
 
-  startMiner(nodes[0])
+  nodes[0].startMiner()
 
   // TODO: hack to wait for nodes finish initializing
   await sleep(5 * SECOND)
@@ -43,6 +68,7 @@ export const simulation1 = async (logger: Logger): Promise<void> => {
     }
 
     const block = await from.waitForTransactionConfirmation(hash)
+
     if (!block) {
       logger.error(`[failed] transaction: ${hash}`)
       return
@@ -57,11 +83,15 @@ export const simulation1 = async (logger: Logger): Promise<void> => {
     started += 1
     const runNumber = started
     logger.log(`[started] #${runNumber}`)
-    void send().then(() => {
-      finished += 1
-      logger.log(`[finished] #${runNumber}`)
-      logger.log(`[count] started ${started}, finished: ${finished}`)
-    })
+    void send()
+      .then(() => {
+        finished += 1
+        logger.log(`[finished] #${runNumber}`)
+        logger.log(`[count] started ${started}, finished: ${finished}`)
+      })
+      .catch((e) => {
+        logger.error(`[error] #${runNumber}: ${String(e)}`)
+      })
   }, 3 * SECOND)
 
   await simulator.waitForShutdown()
@@ -81,7 +111,7 @@ export const nodeConfig: SimulationNodeConfig[] = [
     bootstrap_url: "''",
     tcp_host: 'localhost',
     tcp_port: 9001,
-    // verbose: true,
+    verbose: true,
   },
   {
     name: 'node2',

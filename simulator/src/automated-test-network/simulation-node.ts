@@ -46,8 +46,13 @@ export class SimulationNode {
   minerProcess?: ChildProcessWithoutNullStreams
   minerInitialized = false
 
-  onBlock?: Event<[FollowChainStreamResponse]>
-  onLog?: Event<[GetLogStreamResponse]>
+  // TODO(austin): is this expensive to define here?
+  onBlock: Event<[FollowChainStreamResponse]> = new Event()
+
+  // TODO:
+  // better to attach to stdout, stderr and throw into here instead of log rpc
+  // crashes likely will not be printed to the log rpc
+  onLog: Event<[GetLogStreamResponse]> = new Event()
 
   client: RpcTcpClient
   config: SimulationNodeConfig
@@ -58,6 +63,7 @@ export class SimulationNode {
   logger: Logger
 
   ready = false
+  stopped = false
 
   constructor(config: SimulationNodeConfig, client: RpcTcpClient, logger: Logger) {
     this.config = config
@@ -67,6 +73,8 @@ export class SimulationNode {
     this.logger = logger.withTag(`${config.name}`)
 
     // TODO(austin): this is gross fix this
+    // use config rpc call instead of this
+
     let args =
       'start --name ' +
       this.config.name +
@@ -116,7 +124,7 @@ export class SimulationNode {
 
     node.shutdownPromise = new Promise((resolve) => (node.shutdownResolve = resolve))
 
-    // TODO: race condition, client connect should wait until node process is ready
+    // TODO: race condition, client connect should wait until node process is ready or retry 3 x or something
     await sleep(5000)
 
     const success = await client.tryConnect()
@@ -124,7 +132,17 @@ export class SimulationNode {
       throw new Error(`failed to connect to node ${this.name}`)
     }
 
-    void node.initializeStreams()
+    // TODO(austin): This is potentially a lot of overhead, maybe only create streams if necessary?
+    // can be lazily loaded when user calls a function that needs a stream
+    node.initializeBlockStream(await getLatestBlockHash(node))
+    node.intializeLogStream()
+
+    // log everything!
+    if (config.verbose) {
+      node.onLog.on((log) => {
+        console.log(log)
+      })
+    }
 
     node.ready = true
 
@@ -136,12 +154,8 @@ export class SimulationNode {
    * @param proc Adds a child process to the node and attaches any listeners.
    * @param procName The name of the process, used for logging and accessing the proc.
    */
-  private registerChildProcess(
-    proc: ChildProcessWithoutNullStreams,
-    procName: string,
-    verbose?: boolean,
-  ): void {
-    this.attachListeners(proc, procName, verbose)
+  private registerChildProcess(proc: ChildProcessWithoutNullStreams, procName: string): void {
+    this.attachListeners(proc, procName)
     this.procs.set(procName, proc)
   }
 
@@ -190,11 +204,6 @@ export class SimulationNode {
     return success
   }
 
-  async initializeStreams(): Promise<void> {
-    await this.initializeBlockStream(await getLatestBlockHash(this))
-    await this.intializeLogStream()
-  }
-
   /**
    * Initializes a block stream for a node. Each node should only have 1 block stream
    * because the streams currently cannot be closed.
@@ -202,34 +211,42 @@ export class SimulationNode {
    * To verify a transaction has been mined, you should attach a block stream consumer to the node
    * and wait for the transaction to appear.
    */
-  async initializeBlockStream(startingBlockHash: string): Promise<void> {
-    if (this.onBlock) {
-      return
-    }
+  initializeBlockStream(startingBlockHash: string): void {
+    // if (this.onBlock) {
+    //   return
+    // }
 
-    this.onBlock = new Event()
+    // this.onBlock = new Event()
 
     const blockStream = this.client
       .followChainStream({ head: startingBlockHash.toString() })
       .contentStream()
 
-    for await (const block of blockStream) {
-      this.onBlock.emit(block)
+    const stream = async () => {
+      for await (const block of blockStream) {
+        this.onBlock.emit(block)
+      }
     }
+
+    void stream()
   }
 
-  async intializeLogStream(): Promise<void> {
-    if (this.onLog) {
-      return
-    }
+  intializeLogStream(): void {
+    // if (this.onLog) {
+    //   return
+    // }
 
-    this.onLog = new Event()
+    // this.onLog = new Event()
 
     const logStream = this.client.getLogStream().contentStream()
 
-    for await (const log of logStream) {
-      this.onLog.emit(log)
+    const stream = async () => {
+      for await (const log of logStream) {
+        this.onLog.emit(log)
+      }
     }
+
+    void stream()
   }
 
   async waitForTransactionConfirmation(
@@ -263,7 +280,7 @@ export class SimulationNode {
   private startNodeProcess(args: string): ChildProcessWithoutNullStreams {
     this.logger.log(rootCmd + ' ' + args)
     const nodeProc = spawn(rootCmd, args.split(' '))
-    this.registerChildProcess(nodeProc, 'node', this.config.verbose)
+    this.registerChildProcess(nodeProc, 'node')
 
     return nodeProc
   }
@@ -285,65 +302,17 @@ export class SimulationNode {
    * @param p The process to attach listeners to
    * @param procName The name of the process, used for logging
    */
-  private attachListeners(
-    p: ChildProcessWithoutNullStreams,
-    procName: string,
-    verbose?: boolean,
-  ): void {
-    const filtered = [
-      'Requesting',
-      // 'Successfully mined block',
-      // 'Added block',
-      'Starting sync from',
-      'Found peer',
-      'Finding ancestor',
-      'Hashrate...',
-      'Finished syncing',
-    ]
-
-    const verboseFiltered = [
-      'NewPooledTransactionHashes',
-      'PooledTransactionsResponse',
-      'PooledTransactionsRequest',
-      'NewBlockHashes',
-      'WebSocket unidentified STATE',
-      'NewCompactBlock',
-      'NewTransactions',
-      'Flushed',
-    ]
-
+  private attachListeners(p: ChildProcessWithoutNullStreams, procName: string): void {
     p.stdout.on('data', (data) => {
       const str = (data as Buffer).toString()
 
-      let log = true
-      filtered.forEach((filter) => {
-        if (str.startsWith(filter)) {
-          log = false
-        }
-      })
-
-      if (verbose && log) {
-        verboseFiltered.forEach((filter) => {
-          if (str.includes(filter)) {
-            log = false
-          }
-        })
-      }
-
-      if (log) {
-        this.logger.withTag(`${procName}:stdout`).log(`${str}`)
-      }
+      this.logger.withTag(`${procName}:stdout`).log(`${str}`)
     })
 
     p.stderr.on('data', (data) => {
       const str = (data as Buffer).toString()
 
-      let log = true
-      filtered.forEach((filter) => {
-        if (str.startsWith(filter)) {
-          log = false
-        }
-      })
+      const log = true
 
       if (log) {
         this.logger.withTag(`${procName}:stderr`).log(`${str}`)
@@ -361,6 +330,9 @@ export class SimulationNode {
       })
     })
 
+    // TODO: add an event on exit
+    // looks for the last error type from the logger and emits it
+    // this way tests can look for exit events and potentially act on that
     p.on('exit', (code, signal) => {
       this.logger.log(procName + ' exited', { code, signal: signal?.toString() })
 
@@ -368,6 +340,7 @@ export class SimulationNode {
       if (procName === 'node') {
         if (this.shutdownResolve) {
           this.shutdownResolve()
+          this.stopped = true
         }
         this.cleanup()
       }
