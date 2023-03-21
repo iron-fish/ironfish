@@ -1,8 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Logger } from '@ironfish/sdk'
+import * as SendSimulation from './01-send'
 
-import { getPackageFrom } from '@ironfish/sdk'
-import pkg from '../package.json'
+interface Simulation {
+  run(logger: Logger): Promise<void>
+}
 
-export const IronfishCliPKG = getPackageFrom(pkg)
+export const SIMULATIONS: Simulation[] = [SendSimulation]

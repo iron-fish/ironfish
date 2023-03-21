@@ -31,8 +31,6 @@
     "chai": "4.2.0",
     "cross-env": "7.0.3",
     "eslint-config-ironfish": "*",
-    "jest": "29.3.1",
-    "jest-jasmine2": "29.3.1",
     "oclif": "2.6.0",
     "rimraf": "^3.0.2",
     "tsc-watch": "4.2.9",
@@ -55,23 +53,11 @@
     "oclif:version": "oclif readme && git add README.md"
   },
   "dependencies": {
-    "@ironfish/rust-nodejs": "0.1.29",
-    "@ironfish/sdk": "0.0.49",
+    "@ironfish/sdk": "0.0.50",
     "@oclif/core": "1.23.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",
-    "@types/tar": "6.1.1",
-    "axios": "0.21.4",
-    "bech32": "2.0.0",
-    "blessed": "0.1.81",
-    "blru": "0.1.6",
-    "buffer-map": "0.0.7",
-    "chalk": "4.1.2",
-    "inquirer": "8.2.5",
-    "json-colorizer": "2.2.2",
-    "supports-hyperlinks": "2.2.0",
-    "tar": "6.1.11",
-    "uuid": "8.3.2"
+    "@types/tar": "6.1.1"
   },
   "oclif": {
     "macos": {

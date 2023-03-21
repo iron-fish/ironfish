@@ -44,7 +44,6 @@ export class SimulationNode {
   procs = new Map<string, ChildProcessWithoutNullStreams>()
   nodeProcess: ChildProcessWithoutNullStreams
   minerProcess?: ChildProcessWithoutNullStreams
-  minerInitialized = false
 
   // TODO(austin): is this expensive to define here?
   onBlock: Event<[FollowChainStreamResponse]> = new Event()
@@ -140,7 +139,7 @@ export class SimulationNode {
     // log everything!
     if (config.verbose) {
       node.onLog.on((log) => {
-        console.log(log)
+        globalLogger.log(JSON.stringify(log))
       })
     }
 
@@ -320,13 +319,12 @@ export class SimulationNode {
     })
 
     p.on('error', (error: Error) => {
-      const msg = error.message
-      this.logger.withTag(`${this.config.name}:${procName}:error`).log(`${msg}`)
+      this.logger.withTag(`${this.config.name}:${procName}:error`).log(`${error.message}`)
     })
 
     p.on('close', (code: number | null) => {
       this.logger.withTag(`${this.config.name}:${procName}:close`).log(`child process exited`, {
-        code,
+        ...(code ? { code } : {}),
       })
     })
 
@@ -334,7 +332,10 @@ export class SimulationNode {
     // looks for the last error type from the logger and emits it
     // this way tests can look for exit events and potentially act on that
     p.on('exit', (code, signal) => {
-      this.logger.log(procName + ' exited', { code, signal: signal?.toString() })
+      this.logger.log(procName + ' exited', {
+        ...(code ? { code } : {}),
+        ...(signal ? { signal: signal?.toString() } : {}),
+      })
 
       // TODO: fix, hacky
       if (procName === 'node') {
@@ -346,8 +347,8 @@ export class SimulationNode {
       }
 
       this.logger.log(`${this.config.name}:${procName}:exit`, {
-        code,
-        signal: signal?.toString(),
+        ...(code ? { code } : {}),
+        ...(signal ? { signal: signal?.toString() } : {}),
       })
     })
 

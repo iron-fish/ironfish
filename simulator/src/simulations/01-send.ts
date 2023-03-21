@@ -5,13 +5,12 @@
 // User: holahula
 // Purpose: Send transactions from one node to another every 3 seconds
 import { Logger, Transaction } from '@ironfish/sdk'
-import { SimulationNodeConfig } from '../simulation-node'
-import { Simulator } from '../simulator'
-import { sendTransaction } from '../transactions'
-import { IRON, SECOND, sleep } from '../utils'
+import { SimulationNodeConfig } from '../simulator/simulation-node'
+import { Simulator } from '../simulator/simulator'
+import { sendTransaction } from '../simulator/transactions'
+import { IRON, SECOND, sleep } from '../simulator/utils'
 
-// TODO: make this extend ironfishcomamnd, so it becomes yarn start atn:send or atn:stop
-export const simulation1 = async (logger: Logger): Promise<void> => {
+export async function run(logger: Logger): Promise<void> {
   const simulator = new Simulator(logger)
 
   const nodes = await Promise.all(
@@ -101,7 +100,7 @@ export const simulation1 = async (logger: Logger): Promise<void> => {
   logger.log('nodes stopped, shutting down...')
 }
 
-export const nodeConfig: SimulationNodeConfig[] = [
+const nodeConfig: SimulationNodeConfig[] = [
   {
     name: 'node1',
     graffiti: '1',
