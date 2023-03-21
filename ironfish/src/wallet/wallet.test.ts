@@ -20,7 +20,7 @@ import {
   useTxFixture,
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
-import { TransactionStatus, TransactionType } from '../wallet'
+import { Account, TransactionStatus, TransactionType } from '../wallet'
 import { AssetStatus } from './wallet'
 
 describe('Accounts', () => {
@@ -261,6 +261,26 @@ describe('Accounts', () => {
 
     // nullifier should have been removed from nullifierToNote
     expect(await accountA.getNoteHash(forkSpendNullifier)).toBeUndefined()
+  })
+
+  describe('start', () => {
+    it('should reset account.createdAt if not in chain', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      // set accountA's createdAt block off the chain
+      await accountA.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 10 })
+
+      const resetAccountSpy = jest.spyOn(node.wallet, 'resetAccount')
+      jest.spyOn(node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
+      jest.spyOn(node.wallet, 'eventLoop').mockReturnValue(Promise.resolve())
+
+      await node.wallet.start()
+
+      expect(resetAccountSpy).toHaveBeenCalledTimes(1)
+      expect(resetAccountSpy).toHaveBeenCalledWith(accountA, { resetCreatedAt: true })
+    })
   })
 
   describe('scanTransactions', () => {
@@ -2338,6 +2358,42 @@ describe('Accounts', () => {
       await expect(node.wallet.walletDb.accountIdsToCleanup.has(accountA.id)).resolves.toBe(
         true,
       )
+    })
+
+    it('should optionally set createdAt to null', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      // create account so that wallet will scan transactions
+      await useAccountFixture(node.wallet, 'a')
+
+      const block2 = await useMinerBlockFixture(node.chain, 2)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      // create second account so that createdAt will be non-null
+      let accountB: Account | null = await useAccountFixture(node.wallet, 'b')
+
+      expect(accountB.createdAt?.hash).toEqualHash(block2.header.hash)
+      expect(accountB.createdAt?.sequence).toEqual(block2.header.sequence)
+
+      await node.wallet.resetAccount(accountB, { resetCreatedAt: false })
+
+      // load accountB from wallet again because resetAccount creates a new account instance
+      accountB = node.wallet.getAccountByName(accountB.name)
+      Assert.isNotNull(accountB)
+
+      // createdAt should still refer to block2
+      expect(accountB.createdAt?.hash).toEqualHash(block2.header.hash)
+      expect(accountB.createdAt?.sequence).toEqual(block2.header.sequence)
+
+      // reset createdAt
+      await node.wallet.resetAccount(accountB, { resetCreatedAt: true })
+
+      accountB = node.wallet.getAccountByName(accountB.name)
+      Assert.isNotNull(accountB)
+
+      // createdAt should now be null
+      expect(accountB.createdAt).toBeNull()
     })
   })
 
