@@ -71,6 +71,10 @@ export default class PruneCommand extends IronfishCommand {
       CliUx.ux.action.stop()
     }
 
+    CliUx.ux.action.start(`Cleaning up deleted accounts`)
+    await node.wallet.forceCleanupDeletedAccounts()
+    CliUx.ux.action.stop()
+
     await node.closeDB()
   }
 }
