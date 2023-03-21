@@ -428,6 +428,14 @@ export class Wallet {
         )
 
         await account.updateHead({ hash: blockHeader.hash, sequence: blockHeader.sequence }, tx)
+
+        const accountHasTransaction = assetBalanceDeltas.size > 0
+        if (account.createdAt === null && accountHasTransaction) {
+          await account.updateCreatedAt(
+            { hash: blockHeader.hash, sequence: blockHeader.sequence },
+            tx,
+          )
+        }
       })
     }
   }

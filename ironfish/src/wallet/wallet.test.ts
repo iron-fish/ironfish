@@ -1815,6 +1815,60 @@ describe('Accounts', () => {
 
       await expect(accountAImport.hasTransaction(transaction.hash())).resolves.toBe(true)
     })
+
+    it('should set null account.createdAt for the first on-chain transaction of an account', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      expect(accountA.createdAt).toBeNull()
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      expect(accountA.createdAt?.hash).toEqualHash(block2.header.hash)
+      expect(accountA.createdAt?.sequence).toEqual(block2.header.sequence)
+    })
+
+    it('should not set account.createdAt if the account has no transaction on the block', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+      const accountB = await useAccountFixture(node.wallet, 'accountB')
+
+      expect(accountA.createdAt).toBeNull()
+      expect(accountB.createdAt).toBeNull()
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      expect(accountB.createdAt).toBeNull()
+    })
+
+    it('should not set account.createdAt if it is not null', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+      expect(accountA.createdAt).toBeNull()
+
+      const block2 = await useMinerBlockFixture(node.chain, 2, accountA)
+      await node.chain.addBlock(block2)
+      await node.wallet.updateHead()
+
+      expect(accountA.createdAt?.hash).toEqualHash(block2.header.hash)
+      expect(accountA.createdAt?.sequence).toEqual(block2.header.sequence)
+
+      const block3 = await useMinerBlockFixture(node.chain, 3, accountA)
+      await node.chain.addBlock(block3)
+      await node.wallet.updateHead()
+
+      // see that createdAt is unchanged
+      expect(accountA.createdAt?.hash).toEqualHash(block2.header.hash)
+      expect(accountA.createdAt?.sequence).toEqual(block2.header.sequence)
+    })
   })
 
   describe('getAssetStatus', () => {
