@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createRootLogger } from '@ironfish/sdk'
-import { stopSimulationNode } from '../../automated-test-network'
-import { IronfishCommand } from '../../command'
+import { Command } from '@oclif/core'
+import { stopSimulationNode } from '../simulator'
 
-export default class Stop extends IronfishCommand {
+export default class Stop extends Command {
   static description = 'Stop all nodes in the test network'
 
-  async start(): Promise<void> {
+  async run(): Promise<void> {
     const nodes = [
       {
         name: 'node1',

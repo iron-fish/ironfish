@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '@ironfish/sdk'
 import { SimulationNode, SimulationNodeConfig } from './simulation-node'
+// import { SIMULATIONS } from './simulations'
 import { sleep } from './utils'
 
 export class Simulator {
@@ -29,14 +30,6 @@ export class Simulator {
     this.nodes.set(config.name, node)
 
     return node
-  }
-
-  startMiner(node: SimulationNode): boolean {
-    return node.startMiner()
-  }
-
-  stopMiner(node: SimulationNode): boolean {
-    return node.stopMiner()
   }
 
   /**

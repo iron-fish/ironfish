@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export const SECOND = 1000
+export const MINUTE = SECOND * 60
+
 export const IRON = 100000000
 
 export function sleep(ms: number): Promise<void> {
