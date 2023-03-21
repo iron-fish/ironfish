@@ -110,9 +110,6 @@ export default class Start extends IronfishCommand {
       description:
         'Path to a JSON file containing the network definition of a custom network to connect to',
     }),
-    jsonLogs: Flags.boolean({
-      description: 'Output log lines in json format',
-    }),
   }
 
   node: IronfishNode | null = null
@@ -143,7 +140,6 @@ export default class Start extends IronfishCommand {
       upgrade,
       networkId,
       customNetwork,
-      jsonLogs,
     } = flags
 
     if (bootstrap !== undefined) {
@@ -199,10 +195,6 @@ export default class Start extends IronfishCommand {
     }
     if (customNetwork !== undefined && customNetwork !== this.sdk.config.get('customNetwork')) {
       this.sdk.config.setOverride('customNetwork', customNetwork)
-    }
-
-    if (jsonLogs) {
-      this.sdk.config.setOverride('jsonLogs', true)
     }
 
     if (!this.sdk.internal.get('telemetryNodeId')) {
