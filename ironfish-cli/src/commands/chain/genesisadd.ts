@@ -23,17 +23,17 @@ export default class GenesisAddCommand extends IronfishCommand {
     account: Flags.string({
       char: 'a',
       required: true,
-      description: 'The name of the account to use for keys to assign the genesis block to',
+      description: 'The name of the account to reallocate from',
     }),
     allocations: Flags.string({
       required: true,
       description:
         'A CSV file with the format address,amountInIron,memo containing genesis block allocations',
     }),
-    expectedSupplyInIron: Flags.string({
+    totalAmount: Flags.string({
       char: 'g',
       required: true,
-      description: 'The amount of coins in the genesis block',
+      description: 'The total prior allocation to the given account',
     }),
     dry: Flags.boolean({
       default: false,
@@ -44,7 +44,7 @@ export default class GenesisAddCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(GenesisAddCommand)
 
-    const node = await this.sdk.node({ autoSeed: false })
+    const node = await this.sdk.node()
     await node.openDB()
 
     const account = node.wallet.getAccountByName(flags.account)
@@ -54,7 +54,7 @@ export default class GenesisAddCommand extends IronfishCommand {
       return
     }
 
-    const expectedSupply = CurrencyUtils.decodeIron(flags.expectedSupplyInIron)
+    const totalAmount = CurrencyUtils.decodeIron(flags.totalAmount)
     const csv = await fs.readFile(flags.allocations, 'utf-8')
     const result = parseAllocationsFile(csv)
 
@@ -66,11 +66,11 @@ export default class GenesisAddCommand extends IronfishCommand {
       return prev + cur.amountInOre
     }, 0n)
 
-    if (totalSupply !== expectedSupply) {
+    if (totalSupply !== totalAmount) {
       this.error(
         `Allocations file contains ${CurrencyUtils.encodeIron(
           totalSupply,
-        )} $IRON, but --expectedSupplyInIron expects ${flags.expectedSupplyInIron} $IRON.`,
+        )} $IRON, but --totalAmount expects ${flags.totalAmount} $IRON.`,
       )
     }
 

@@ -42,8 +42,23 @@ export async function addGenesisTransaction(
     let noteIndex = -1
     for (const encryptedNote of transaction.notes) {
       noteIndex += 1
+      // If this account can't decrypt this note, we can't use it
       const decryptedNote = encryptedNote.decryptNoteForOwner(account.incomingViewKey)
       if (decryptedNote == null) {
+        continue
+      }
+
+      // If the nullifier has already been revealed, we can't use it
+      const nullifier = decryptedNote.nullifier(
+        account.viewKey,
+        BigInt(initialNoteIndex + noteIndex),
+      )
+      if (await node.chain.nullifiers.contains(nullifier)) {
+        continue
+      }
+
+      // We want the note with the exact value
+      if (decryptedNote.value() !== allocationSum) {
         continue
       }
 
@@ -88,7 +103,7 @@ export async function addGenesisTransaction(
       BigInt(alloc.amountInOre),
       alloc.memo,
       Asset.nativeId(),
-      account.publicAddress, // TODO: Should this be a dummy address instead?
+      account.publicAddress,
     )
     transaction.output(note)
   }
