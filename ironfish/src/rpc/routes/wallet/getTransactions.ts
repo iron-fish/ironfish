@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
+import { TransactionStatus, TransactionType } from '../../../wallet'
 import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
@@ -19,8 +20,8 @@ export type GetAccountTransactionsRequest = {
 }
 
 export type GetAccountTransactionsResponse = {
-  status: string
-  type: string
+  status: TransactionStatus
+  type: TransactionType
   hash: string
   fee: string
   notesCount: number
@@ -46,8 +47,8 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
 export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTransactionsResponse> =
   yup
     .object({
-      status: yup.string().defined(),
-      type: yup.string().defined(),
+      status: yup.string().oneOf(Object.values(TransactionStatus)).defined(),
+      type: yup.string().oneOf(Object.values(TransactionType)).defined(),
       hash: yup.string().defined(),
       fee: yup.string().defined(),
       notesCount: yup.number().defined(),

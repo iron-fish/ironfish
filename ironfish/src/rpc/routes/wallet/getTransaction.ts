@@ -4,6 +4,7 @@
 import * as yup from 'yup'
 import { Note } from '../../../primitives/note'
 import { CurrencyUtils } from '../../../utils'
+import { TransactionStatus, TransactionType } from '../../../wallet'
 import { ApiNamespace, router } from '../router'
 import {
   getAssetBalanceDeltas,
@@ -22,8 +23,8 @@ export type GetAccountTransactionResponse = {
   account: string
   transaction: {
     hash: string
-    status: string
-    type: string
+    status: TransactionStatus
+    type: TransactionType
     fee: string
     blockHash?: string
     blockSequence?: number
@@ -53,8 +54,8 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
       transaction: yup
         .object({
           hash: yup.string().required(),
-          status: yup.string().defined(),
-          type: yup.string().defined(),
+          status: yup.string().oneOf(Object.values(TransactionStatus)).defined(),
+          type: yup.string().oneOf(Object.values(TransactionType)).defined(),
           fee: yup.string().defined(),
           blockHash: yup.string().optional(),
           blockSequence: yup.number().optional(),
