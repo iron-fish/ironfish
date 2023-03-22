@@ -64,15 +64,12 @@
       "identifier": "network.ironfish.cli"
     },
     "commands": "./build/src/commands",
-    "bin": "ironfish-simulator",
+    "bin": "simulator",
     "plugins": [
       "@oclif/plugin-help",
       "@oclif/plugin-not-found"
     ],
     "topics": {}
-  },
-  "bin": {
-    "ironfish": "./bin/run"
   },
   "bugs": {
     "url": "https://github.com/iron-fish/ironfish/issues"
