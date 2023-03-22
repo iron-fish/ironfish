@@ -193,6 +193,11 @@ export class Account {
         await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
+      // account did not receive or spend
+      if (assetBalanceDeltas.size === 0) {
+        return
+      }
+
       transactionValue = {
         transaction,
         blockHash,
@@ -507,6 +512,11 @@ export class Account {
         await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
+      // account did not receive or spend
+      if (assetBalanceDeltas.size === 0) {
+        return
+      }
+
       const transactionValue = {
         transaction,
         blockHash: null,
@@ -666,16 +676,6 @@ export class Account {
 
   async hasPendingTransaction(hash: Buffer, tx?: IDatabaseTransaction): Promise<boolean> {
     return this.walletDb.hasPendingTransaction(this, hash, tx)
-  }
-
-  async hasSpend(transaction: Transaction, tx?: IDatabaseTransaction): Promise<boolean> {
-    for (const spend of transaction.spends) {
-      if ((await this.getNoteHash(spend.nullifier, tx)) !== undefined) {
-        return true
-      }
-    }
-
-    return false
   }
 
   getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {

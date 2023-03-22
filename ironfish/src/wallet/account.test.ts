@@ -452,6 +452,25 @@ describe('Accounts', () => {
       )
       expect(unspentB).toHaveLength(0)
     })
+
+    it('should only save transactions to accounts involved in the transaction', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const saveSpy = jest.spyOn(accountA['walletDb'], 'saveTransaction')
+
+      await useTxFixture(node.wallet, accountA, accountA)
+
+      // tx added to accountA, but not accountB
+      expect(saveSpy).toHaveBeenCalledTimes(1)
+      expect(saveSpy.mock.lastCall?.[0]).toEqual(accountA)
+    })
   })
 
   describe('connectTransaction', () => {
