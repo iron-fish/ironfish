@@ -14,7 +14,7 @@ export async function run(logger: Logger): Promise<void> {
   const simulator = new Simulator(logger)
 
   const nodes = await Promise.all(
-    nodeConfig.map((cfg) => {
+    nodeConfig.map(async (cfg) => {
       return simulator.addNode(cfg)
     }),
   )
