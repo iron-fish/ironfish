@@ -1323,8 +1323,19 @@ export class Wallet {
 
     validateAccount(accountValue)
 
+    let createdAt = accountValue.createdAt
+    if (createdAt !== null && !(await this.chain.hasBlock(createdAt.hash))) {
+      this.logger.debug(
+        `Account ${accountValue.name} createdAt block ${createdAt.hash.toString('hex')} (${
+          createdAt.sequence
+        }) not found in the chain. Setting createdAt to null.`,
+      )
+      createdAt = null
+    }
+
     const account = new Account({
       ...accountValue,
+      createdAt,
       walletDb: this.walletDb,
     })
 
