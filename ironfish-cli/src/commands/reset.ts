@@ -59,7 +59,7 @@ export default class Reset extends IronfishCommand {
       fsAsync.rm(hostFilePath, { recursive: true, force: true }),
     ])
 
-    this.sdk.internal.set('networkId', this.sdk.config.defaults.networkId)
+    this.sdk.internal.set('networkId', this.sdk.config.get('networkId'))
     this.sdk.internal.set('isFirstRun', true)
     await this.sdk.internal.save()
 
