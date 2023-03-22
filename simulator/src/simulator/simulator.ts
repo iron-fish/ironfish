@@ -32,14 +32,6 @@ export class Simulator {
     return node
   }
 
-  startMiner(node: SimulationNode): boolean {
-    return node.startMiner()
-  }
-
-  stopMiner(node: SimulationNode): boolean {
-    return node.stopMiner()
-  }
-
   /**
    * Wait for all nodes to shutdown.
    *
