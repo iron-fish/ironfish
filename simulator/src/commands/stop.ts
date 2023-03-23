@@ -32,9 +32,7 @@ export default class Stop extends Command {
 
     const logger = createRootLogger()
 
-    // TODO: abstract this into the orchestrator that owns the nodes
-    // external requests should not be able to access the nodes directly
-    // everything should go through the orchestrator
+    // TODO: stop should go through an API call to the simulator
 
     await Promise.all(
       nodes.map(async (node) => {

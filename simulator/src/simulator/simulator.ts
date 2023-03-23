@@ -2,7 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '@ironfish/sdk'
-import { SimulationNode, SimulationNodeConfig } from './simulation-node'
+import {
+  CloseEvent,
+  ErrorEvent,
+  ExitEvent,
+  LogEvent,
+  SimulationNode,
+  SimulationNodeConfig,
+} from './simulation-node'
 // import { SIMULATIONS } from './simulations'
 import { sleep } from './utils'
 
@@ -24,8 +31,16 @@ export class Simulator {
    *
    * @param config config of node to add to the orchestrator
    */
-  async addNode(config: SimulationNodeConfig): Promise<SimulationNode> {
-    const node = await SimulationNode.initialize(config, this.logger)
+  async addNode(
+    config: SimulationNodeConfig,
+    options?: {
+      onLog?: ((l: LogEvent) => void | Promise<void>)[]
+      onClose?: ((c: CloseEvent) => void | Promise<void>)[]
+      onExit?: ((e: ExitEvent) => void | Promise<void>)[]
+      onError?: ((c: ErrorEvent) => void | Promise<void>)[]
+    },
+  ): Promise<SimulationNode> {
+    const node = await SimulationNode.initialize(config, this.logger, options)
 
     this.nodes.set(config.name, node)
 
