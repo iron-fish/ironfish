@@ -4,7 +4,7 @@
 use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array, PublicAddress};
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use ironfish_zkp::{
-    constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION},
+    constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK},
     util::asset_hash_to_point,
 };
 use jubjub::{ExtendedPoint, SubgroupPoint};
@@ -68,6 +68,7 @@ impl Asset {
             .hash_length(ASSET_ID_LENGTH)
             .personal(ASSET_ID_PERSONALIZATION)
             .to_state()
+            .update(GH_FIRST_BLOCK)
             .update(&owner.public_address())
             .update(&name)
             .update(&metadata)
