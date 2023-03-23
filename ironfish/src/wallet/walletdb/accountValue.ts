@@ -88,7 +88,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
   getSize(value: AccountValue): number {
     let size = 0
-    size += 1
+    size += 1 // flags
     size += VERSION_LENGTH
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
