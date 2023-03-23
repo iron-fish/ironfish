@@ -1120,6 +1120,10 @@ export class Account {
     await this.walletDb.setAccount(this, tx)
   }
 
+  shouldScanBlock(blockHeader: BlockHeader): boolean {
+    return this.createdAt === null || this.createdAt.sequence <= blockHeader.sequence
+  }
+
   async getTransactionNotes(
     transaction: Transaction,
   ): Promise<Array<DecryptedNoteValue & { hash: Buffer }>> {

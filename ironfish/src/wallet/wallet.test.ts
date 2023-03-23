@@ -1909,6 +1909,44 @@ describe('Accounts', () => {
       expect(accountA.createdAt?.hash).toEqualHash(block2.header.hash)
       expect(accountA.createdAt?.sequence).toEqual(block2.header.sequence)
     })
+
+    it('should skip decryption for accounts with createdAt later than the block header', async () => {
+      const { node: nodeA } = await nodeTest.createSetup()
+
+      let accountA: Account | null = await useAccountFixture(nodeA.wallet, 'a')
+
+      const block2 = await useMinerBlockFixture(nodeA.chain, 2, undefined)
+      await nodeA.chain.addBlock(block2)
+      await nodeA.wallet.updateHead()
+      const block3 = await useMinerBlockFixture(nodeA.chain, 2, undefined)
+      await nodeA.chain.addBlock(block3)
+      await nodeA.wallet.updateHead()
+
+      // create second account with createdAt at block 3
+      const accountB = await useAccountFixture(nodeA.wallet, 'b')
+
+      expect(accountB.createdAt).not.toBeNull()
+      expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
+      expect(accountB.createdAt?.sequence).toEqual(block3.header.sequence)
+
+      // reset wallet
+      await nodeA.wallet.reset()
+
+      // account instances will have changed after reset, so re-load accountA
+      accountA = nodeA.wallet.getAccountByName('a')
+      Assert.isNotNull(accountA)
+
+      await nodeA.wallet.connectBlock(nodeA.chain.genesis)
+
+      const decryptSpy = jest.spyOn(nodeA.wallet, 'decryptNotes')
+
+      // reconnect block2
+      await nodeA.wallet.connectBlock(block2.header)
+
+      // see that decryption was skipped for accountB
+      expect(decryptSpy).toHaveBeenCalledTimes(1)
+      expect(decryptSpy.mock.lastCall?.[3]).toEqual([accountA])
+    })
   })
 
   describe('getAssetStatus', () => {

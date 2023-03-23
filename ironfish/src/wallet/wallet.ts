@@ -397,41 +397,23 @@ export class Wallet {
     })
 
     for (const account of accounts) {
-      const assetBalanceDeltas = new AssetBalances()
-
       await this.walletDb.db.transaction(async (tx) => {
-        const transactions = await this.chain.getBlockTransactions(blockHeader)
+        let assetBalanceDeltas = new AssetBalances()
 
-        for (const { transaction, initialNoteIndex } of transactions) {
-          if (scan && scan.isAborted) {
-            scan.signalComplete()
-            this.scan = null
-            return
-          }
-
-          const decryptedNotesByAccountId = await this.decryptNotes(
-            transaction,
-            initialNoteIndex,
-            false,
-            [account],
-          )
-
-          const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
-
-          if (decryptedNotes.length === 0 && !(await account.hasSpend(transaction))) {
-            continue
-          }
-
-          const transactionDeltas = await account.connectTransaction(
+        if (account.shouldScanBlock(blockHeader)) {
+          assetBalanceDeltas = await this.connectBlockTransactions(
             blockHeader,
-            transaction,
-            decryptedNotes,
+            account,
+            scan,
             tx,
           )
+        }
 
-          assetBalanceDeltas.update(transactionDeltas)
-
-          await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, blockHeader, tx)
+        if (scan && scan.isAborted) {
+          scan.signalComplete()
+          this.scan = null
+          await tx.abort()
+          return
         }
 
         await account.updateUnconfirmedBalances(
@@ -452,6 +434,48 @@ export class Wallet {
         }
       })
     }
+  }
+
+  private async connectBlockTransactions(
+    blockHeader: BlockHeader,
+    account: Account,
+    scan?: ScanState,
+    tx?: IDatabaseTransaction,
+  ): Promise<AssetBalances> {
+    const assetBalanceDeltas = new AssetBalances()
+    const transactions = await this.chain.getBlockTransactions(blockHeader)
+
+    for (const { transaction, initialNoteIndex } of transactions) {
+      if (scan && scan.isAborted) {
+        return assetBalanceDeltas
+      }
+
+      const decryptedNotesByAccountId = await this.decryptNotes(
+        transaction,
+        initialNoteIndex,
+        false,
+        [account],
+      )
+
+      const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
+
+      if (decryptedNotes.length === 0 && !(await account.hasSpend(transaction))) {
+        continue
+      }
+
+      const transactionDeltas = await account.connectTransaction(
+        blockHeader,
+        transaction,
+        decryptedNotes,
+        tx,
+      )
+
+      assetBalanceDeltas.update(transactionDeltas)
+
+      await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, blockHeader, tx)
+    }
+
+    return assetBalanceDeltas
   }
 
   private async upsertAssetsFromDecryptedNotes(
