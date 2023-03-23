@@ -170,14 +170,6 @@ export class RpcHttpAdapter implements IRpcAdapter {
     const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`)
     const route = url.pathname.substring(1)
 
-    if (request.method !== 'POST') {
-      throw new ResponseError(
-        `Route does not exist, Did you mean to use POST?`,
-        ERROR_CODES.ROUTE_NOT_FOUND,
-        404,
-      )
-    }
-
     // TODO(daniel): clean up reading body code here a bit of possible
     let size = 0
     const data: Buffer[] = []
