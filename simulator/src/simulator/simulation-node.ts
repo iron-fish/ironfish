@@ -1,12 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import {
-  Event,
-  FollowChainStreamResponse,
-  GetLogStreamResponse,
-  RpcTcpClient,
-} from '@ironfish/sdk'
+import { Event, FollowChainStreamResponse, RpcTcpClient } from '@ironfish/sdk'
 import { createRootLogger, Logger } from '@ironfish/sdk'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { getLatestBlockHash } from './chain'
@@ -28,6 +23,38 @@ export type SimulationNodeConfig = {
 
 const globalLogger = createRootLogger()
 
+export type supportedNodeChildProcesses = 'miner' | 'node'
+
+export type LogEvent = {
+  node: string
+  type: 'stdout' | 'stderr'
+  proc: supportedNodeChildProcesses
+  msg: string
+  timestamp: string
+}
+
+export type CloseEvent = {
+  node: string
+  proc: supportedNodeChildProcesses
+  code: number | null
+  timestamp: string
+}
+
+export type ExitEvent = {
+  node: string
+  proc: supportedNodeChildProcesses
+  code: number | null
+  timestamp: string
+  signal: NodeJS.Signals | null
+}
+
+export type ErrorEvent = {
+  node: string
+  proc: supportedNodeChildProcesses
+  error: Error
+  timestamp: string
+}
+
 /**
  * Wrapper around an Ironfish node for use in the simulation network.
  *
@@ -45,13 +72,13 @@ export class SimulationNode {
   nodeProcess: ChildProcessWithoutNullStreams
   minerProcess?: ChildProcessWithoutNullStreams
 
-  // TODO(austin): is this expensive to define here?
+  // TODO(austin): is this expensive to define all these events here?
   onBlock: Event<[FollowChainStreamResponse]> = new Event()
 
-  // TODO:
-  // better to attach to stdout, stderr and throw into here instead of log rpc
-  // crashes likely will not be printed to the log rpc
-  onLog: Event<[GetLogStreamResponse]> = new Event()
+  onLog: Event<[LogEvent]> = new Event()
+  onError: Event<[ErrorEvent]> = new Event()
+  onClose: Event<[CloseEvent]> = new Event()
+  onExit: Event<[ExitEvent]> = new Event()
 
   client: RpcTcpClient
   config: SimulationNodeConfig
@@ -100,7 +127,27 @@ export class SimulationNode {
       args += ' --verbose'
     }
 
+    // TODO: event handlers need to be registered before the processes are started to get all the logs
+    // otherwise you may miss intialization logs
+
+    // need to propagate this to the simulation
+
+    this.onLog.on((log) => {
+      logger.log(JSON.stringify(log))
+    })
+
     this.nodeProcess = this.startNodeProcess(args)
+
+    // TODO(austin): should exit handler go here or in `intialize()`?
+    this.onExit.on((exit) => {
+      if (exit.proc === 'node') {
+        if (this.shutdownResolve) {
+          this.shutdownResolve()
+          this.stopped = true
+        }
+        this.cleanup()
+      }
+    })
 
     this.logger.log(`started node: ${this.config.name}`)
   }
@@ -134,13 +181,12 @@ export class SimulationNode {
     // TODO(austin): This is potentially a lot of overhead, maybe only create streams if necessary?
     // can be lazily loaded when user calls a function that needs a stream
     node.initializeBlockStream(await getLatestBlockHash(node))
-    node.intializeLogStream()
 
     // log everything!
     if (config.verbose) {
-      node.onLog.on((log) => {
-        globalLogger.log(JSON.stringify(log))
-      })
+      // node.onLog.on((log) => {
+      //   globalLogger.log(JSON.stringify(log))
+      // })
     }
 
     node.ready = true
@@ -153,7 +199,10 @@ export class SimulationNode {
    * @param proc Adds a child process to the node and attaches any listeners.
    * @param procName The name of the process, used for logging and accessing the proc.
    */
-  private registerChildProcess(proc: ChildProcessWithoutNullStreams, procName: string): void {
+  private registerChildProcess(
+    proc: ChildProcessWithoutNullStreams,
+    procName: supportedNodeChildProcesses,
+  ): void {
     this.attachListeners(proc, procName)
     this.procs.set(procName, proc)
   }
@@ -211,12 +260,6 @@ export class SimulationNode {
    * and wait for the transaction to appear.
    */
   initializeBlockStream(startingBlockHash: string): void {
-    // if (this.onBlock) {
-    //   return
-    // }
-
-    // this.onBlock = new Event()
-
     const blockStream = this.client
       .followChainStream({ head: startingBlockHash.toString() })
       .contentStream()
@@ -224,24 +267,6 @@ export class SimulationNode {
     const stream = async () => {
       for await (const block of blockStream) {
         this.onBlock.emit(block)
-      }
-    }
-
-    void stream()
-  }
-
-  intializeLogStream(): void {
-    // if (this.onLog) {
-    //   return
-    // }
-
-    // this.onLog = new Event()
-
-    const logStream = this.client.getLogStream().contentStream()
-
-    const stream = async () => {
-      for await (const log of logStream) {
-        this.onLog.emit(log)
       }
     }
 
@@ -295,35 +320,67 @@ export class SimulationNode {
   }
 
   /**
-   * Adds listeners to the input/output streams for a new proc.
-   * Currently this just connects your process to this.logger.log
+   * Adds listeners to the events for a child process.
+   * The events are forwarded to the on<Event> event emitters and can be subscribed to.
    *
    * @param p The process to attach listeners to
    * @param procName The name of the process, used for logging
    */
-  private attachListeners(p: ChildProcessWithoutNullStreams, procName: string): void {
+  private attachListeners(
+    p: ChildProcessWithoutNullStreams,
+    proc: supportedNodeChildProcesses,
+  ): void {
     p.stdout.on('data', (data) => {
       const str = (data as Buffer).toString()
 
-      this.logger.withTag(`${procName}:stdout`).log(`${str}`)
+      this.onLog.emit({
+        node: this.config.name,
+        proc,
+        type: 'stdout',
+        msg: str,
+        timestamp: new Date().toISOString(),
+      })
     })
 
     p.stderr.on('data', (data) => {
       const str = (data as Buffer).toString()
 
-      const log = true
-
-      if (log) {
-        this.logger.withTag(`${procName}:stderr`).log(`${str}`)
-      }
+      this.onLog.emit({
+        node: this.config.name,
+        proc,
+        type: 'stderr',
+        msg: str,
+        timestamp: new Date().toISOString(),
+      })
     })
 
     p.on('error', (error: Error) => {
-      this.logger.withTag(`${this.config.name}:${procName}:error`).log(`${error.message}`)
+      this.onError.emit({
+        node: this.config.name,
+        proc,
+        error,
+        timestamp: new Date().toISOString(),
+      })
+
+      // TODO(austin): this.logger.withTag() is not working here? no tag being printed to console
+      this.logger.log(`[${this.config.name}:${proc}:error]${error.message}`)
     })
 
+    /**
+     * From https://github.com/nodejs/node/blob/8a6b37bc51a353227b6711d3c1df12c2863e3302/doc/api/child_process.md#event-close
+     *
+     * The 'close' event is emitted when the stdio streams of a child process have been closed.
+     * This is distinct from the 'exit' event, since multiple processes might share the same stdio streams.
+     */
     p.on('close', (code: number | null) => {
-      this.logger.withTag(`${this.config.name}:${procName}:close`).log(`child process exited`, {
+      this.onClose.emit({
+        node: this.config.name,
+        proc,
+        code,
+        timestamp: new Date().toISOString(),
+      })
+
+      this.logger.log(`[${this.config.name}:${proc}:close] child process closed`, {
         ...(code ? { code } : {}),
       })
     })
@@ -332,23 +389,17 @@ export class SimulationNode {
     // looks for the last error type from the logger and emits it
     // this way tests can look for exit events and potentially act on that
     p.on('exit', (code, signal) => {
-      this.logger.log(procName + ' exited', {
-        ...(code ? { code } : {}),
-        ...(signal ? { signal: signal?.toString() } : {}),
+      this.onExit.emit({
+        node: this.config.name,
+        proc,
+        code,
+        signal,
+        timestamp: new Date().toISOString(),
       })
 
-      // TODO: fix, hacky
-      if (procName === 'node') {
-        if (this.shutdownResolve) {
-          this.shutdownResolve()
-          this.stopped = true
-        }
-        this.cleanup()
-      }
-
-      this.logger.log(`${this.config.name}:${procName}:exit`, {
-        ...(code ? { code } : {}),
-        ...(signal ? { signal: signal?.toString() } : {}),
+      this.logger.log(`${this.config.name}:${proc}:exit`, {
+        ...(code ? { code } : { code: 'no code' }),
+        ...(signal ? { signal: signal?.toString() } : { signal: 'no signal' }),
       })
     })
 

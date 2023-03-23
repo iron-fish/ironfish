@@ -13,20 +13,13 @@ import { IRON, SECOND, sleep } from '../simulator/utils'
 export async function run(logger: Logger): Promise<void> {
   const simulator = new Simulator(logger)
 
+  // Register event handlers
+
   const nodes = await Promise.all(
     nodeConfig.map(async (cfg) => {
       return simulator.addNode(cfg)
     }),
   )
-
-  // How to listen to logs from a specific node
-  nodes[0].onLog.on((log) => {
-    const tag = 'peermanager'
-    if (log.tag.includes(tag)) {
-      // TODO(austin): clean up the log output to remove the unicode characters
-      logger.withTag(`${nodes[0].config.name}`).warn(`tag found: ${tag}: ${log.args}`)
-    }
-  })
 
   /**
    * TODO:
