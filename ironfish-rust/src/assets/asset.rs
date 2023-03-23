@@ -19,7 +19,7 @@ pub const ID_LENGTH: usize = ASSET_ID_LENGTH;
 
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Asset {
     /// Name of the asset
     pub(crate) name: [u8; NAME_LENGTH],
@@ -57,7 +57,7 @@ impl Asset {
         }
     }
 
-    fn new_with_nonce(
+    pub fn new_with_nonce(
         owner: PublicAddress,
         name: [u8; NAME_LENGTH],
         metadata: [u8; METADATA_LENGTH],

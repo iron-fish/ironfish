@@ -1,5 +1,5 @@
 use bellman::{
-    gadgets::{blake2s, boolean, multipack},
+    gadgets::{blake2s, boolean},
     Circuit,
 };
 use ff::PrimeField;
@@ -9,22 +9,9 @@ use zcash_proofs::{
     constants::{PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR},
 };
 
-use crate::{
-    circuits::util::asset_id_preimage,
-    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_PERSONALIZATION, CRH_IVK_PERSONALIZATION},
-};
+use crate::constants::{proof::PUBLIC_KEY_GENERATOR, CRH_IVK_PERSONALIZATION};
 
 pub struct MintAsset {
-    /// Name of the asset
-    pub name: [u8; 32],
-
-    /// Identifier field for bridged asset address, or if a native custom asset, random bytes.
-    /// Metadata for the asset (ex. chain, network, token identifier)
-    pub metadata: [u8; 77],
-
-    /// The random byte used to ensure we get a valid asset identifier
-    pub nonce: u8,
-
     /// Key required to construct proofs for a particular spending key
     pub proof_generation_key: Option<ProofGenerationKey>,
 
@@ -122,26 +109,7 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
             &ivk,
         )?;
 
-        // Create the Asset Info pre-image
-        let asset_id_preimage = asset_id_preimage(
-            &mut cs.namespace(|| "asset id preimage"),
-            &self.name,
-            &self.metadata,
-            &self.nonce,
-            &owner_public_address,
-        )?;
-
-        // Computed identifier bits from the given asset info
-        let asset_id_bits = blake2s::blake2s(
-            cs.namespace(|| "computation of asset id"),
-            &asset_id_preimage,
-            ASSET_ID_PERSONALIZATION,
-        )?;
-
-        // Ensure the id is 32 bytes
-        assert_eq!(asset_id_bits.len(), 256);
-
-        multipack::pack_into_inputs(cs.namespace(|| "pack asset id"), &asset_id_bits)?;
+        owner_public_address.inputize(cs.namespace(|| "owner public address"))?;
 
         Ok(())
     }
@@ -149,17 +117,14 @@ impl Circuit<bls12_381::Scalar> for MintAsset {
 
 #[cfg(test)]
 mod test {
-    use bellman::{
-        gadgets::{multipack, test::TestConstraintSystem},
-        Circuit,
-    };
+    use bellman::{gadgets::test::TestConstraintSystem, Circuit};
     use ff::Field;
-    use group::{Curve, Group, GroupEncoding};
+    use group::{Curve, Group};
     use jubjub::ExtendedPoint;
     use rand::{rngs::StdRng, SeedableRng};
     use zcash_primitives::sapling::ProofGenerationKey;
 
-    use crate::constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, PUBLIC_KEY_GENERATOR};
+    use crate::constants::PUBLIC_KEY_GENERATOR;
 
     use super::MintAsset;
 
@@ -176,25 +141,7 @@ mod test {
         };
         let incoming_view_key = proof_generation_key.to_viewing_key();
         let public_address = PUBLIC_KEY_GENERATOR * incoming_view_key.ivk().0;
-
-        let name = [1u8; 32];
-        let metadata = [2u8; 77];
-        let nonce = 0;
-
-        let asset_id_hash = blake2s_simd::Params::new()
-            .hash_length(ASSET_ID_LENGTH)
-            .personal(ASSET_ID_PERSONALIZATION)
-            .to_state()
-            .update(&public_address.to_bytes())
-            .update(&name)
-            .update(&metadata)
-            .update(std::slice::from_ref(&nonce))
-            .finalize();
-
-        let asset_id = asset_id_hash.as_bytes();
-
-        let asset_id_bits = multipack::bytes_to_bits_le(asset_id);
-        let asset_id_inputs = multipack::compute_multipacking(&asset_id_bits);
+        let public_address_point = ExtendedPoint::from(public_address).to_affine();
 
         let public_key_randomness = jubjub::Fr::random(&mut rng);
         let randomized_public_key =
@@ -203,15 +150,12 @@ mod test {
         let public_inputs = vec![
             randomized_public_key.get_u(),
             randomized_public_key.get_v(),
-            asset_id_inputs[0],
-            asset_id_inputs[1],
+            public_address_point.get_u(),
+            public_address_point.get_v(),
         ];
 
         // Mint proof
         let circuit = MintAsset {
-            name,
-            metadata,
-            nonce,
             proof_generation_key: Some(proof_generation_key),
             public_key_randomness: Some(public_key_randomness),
         };
@@ -219,19 +163,7 @@ mod test {
 
         assert!(cs.is_satisfied());
         assert!(cs.verify(&public_inputs));
-        assert_eq!(cs.num_constraints(), 90783);
-
-        // Test bad inputs
-        let bad_asset_info_hashed = [1u8; 32];
-        let bad_asset_info_hashed_bits = multipack::bytes_to_bits_le(&bad_asset_info_hashed);
-        let bad_asset_info_hashed_inputs =
-            multipack::compute_multipacking(&bad_asset_info_hashed_bits);
-
-        // Bad asset info hash
-        let mut bad_inputs = public_inputs.clone();
-        bad_inputs[2] = bad_asset_info_hashed_inputs[0];
-
-        assert!(!cs.verify(&bad_inputs));
+        assert_eq!(cs.num_constraints(), 25341);
 
         // Bad randomized public key
         let bad_randomized_public_key_point = ExtendedPoint::random(&mut rng).to_affine();
@@ -239,6 +171,11 @@ mod test {
         bad_inputs[0] = bad_randomized_public_key_point.get_u();
 
         assert!(!cs.verify(&bad_inputs));
+
+        // Bad public address
+        let bad_public_address = ExtendedPoint::random(&mut rng).to_affine();
+        let mut bad_inputs = public_inputs.clone();
+        bad_inputs[2] = bad_public_address.get_u();
 
         // Sanity check
         assert!(cs.verify(&public_inputs));
