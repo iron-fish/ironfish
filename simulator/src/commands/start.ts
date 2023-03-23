@@ -23,7 +23,7 @@ export abstract class Start extends Command {
     const { flags } = await this.parse(Start)
     const logger = createRootLogger()
 
-    const toRun = SIMULATIONS.at(flags.simulation)
+    const toRun = SIMULATIONS.at(flags.simulation - 1)
     if (!toRun) {
       logger.log(`could not find simulation ${flags.simulation}`)
       this.exit()
