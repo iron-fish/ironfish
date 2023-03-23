@@ -28,12 +28,19 @@ export async function run(logger: Logger): Promise<void> {
 
   logger = logger.withScope('simulation2')
   logger.log('lol')
+
+  nodes[0].onLog.on((log) => {
+    logger.log(`${nodes[0].config.name}: ${JSON.stringify(log)}`)
+  })
+
+  nodes[0].startMiner()
+
   await sleep(3000)
 
   // tear down nodes
   setRandomInterval(
     () => {
-      logger.log('stop')
+      logger.log('stop node')
     },
     2 * MINUTE,
     3 * MINUTE,
@@ -42,7 +49,7 @@ export async function run(logger: Logger): Promise<void> {
   // spawn new nodes
   const lol = setRandomInterval(
     () => {
-      logger.log('start')
+      logger.log('start node')
     },
     2 * MINUTE,
     3 * MINUTE,
@@ -52,8 +59,10 @@ export async function run(logger: Logger): Promise<void> {
 
   // status check
   setInterval(() => {
-    logger.log('start')
+    logger.log('status check')
   }, 5 * MINUTE)
+
+  await simulator.waitForShutdown()
 }
 
 const setRandomInterval = (
