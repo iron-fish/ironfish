@@ -23,19 +23,33 @@ export class YupUtils {
   static isUrl = yup.string().url()
 
   static currency = (options?: { min?: bigint }): yup.StringSchema => {
-    return yup.string().test('currency', `Must be encoded currency`, (val) => {
+    let schema = yup.string().test('currency', `Must be encoded currency`, (val) => {
       if (val == null) {
         return true
       }
 
       const [value] = CurrencyUtils.decodeTry(val)
-
-      if (options?.min != null) {
-        return value != null && value >= options.min
-      }
-
       return value != null
     })
+
+    if (options?.min != null) {
+      const min = options?.min
+
+      schema = schema.test(
+        'min',
+        `value must be equal to or greater than ${min.toString()}`,
+        (val) => {
+          if (val == null) {
+            return true
+          }
+
+          const [value] = CurrencyUtils.decodeTry(val)
+          return value != null && value >= min
+        },
+      )
+    }
+
+    return schema
   }
 
   static async tryValidate<S extends YupSchema>(
