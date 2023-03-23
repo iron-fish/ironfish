@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Event, FollowChainStreamResponse, RpcTcpClient } from '@ironfish/sdk'
+import { Event, FollowChainStreamResponse, PromiseUtils, RpcTcpClient } from '@ironfish/sdk'
 import { createRootLogger, Logger } from '@ironfish/sdk'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { getLatestBlockHash } from './chain'
@@ -29,7 +29,7 @@ export type LogEvent = {
   node: string
   type: 'stdout' | 'stderr'
   proc: supportedNodeChildProcesses
-  msg: string
+  message: string
   timestamp: string
 }
 
@@ -83,15 +83,25 @@ export class SimulationNode {
   client: RpcTcpClient
   config: SimulationNodeConfig
 
-  shutdownPromise: Promise<void> | null = null
-  shutdownResolve: (() => void) | null = null
+  shutdownPromise: Promise<void>
+  shutdownResolve: () => void
 
   logger: Logger
 
   ready = false
   stopped = false
 
-  constructor(config: SimulationNodeConfig, client: RpcTcpClient, logger: Logger) {
+  constructor(
+    config: SimulationNodeConfig,
+    client: RpcTcpClient,
+    logger: Logger,
+    options?: {
+      onLog?: ((l: LogEvent) => void | Promise<void>)[]
+      onClose?: ((c: CloseEvent) => void | Promise<void>)[]
+      onExit?: ((e: ExitEvent) => void | Promise<void>)[]
+      onError?: ((e: ErrorEvent) => void | Promise<void>)[]
+    },
+  ) {
     this.config = config
 
     this.client = client
@@ -127,14 +137,21 @@ export class SimulationNode {
       args += ' --verbose'
     }
 
-    // TODO: event handlers need to be registered before the processes are started to get all the logs
-    // otherwise you may miss intialization logs
-
-    // need to propagate this to the simulation
-
-    this.onLog.on((log) => {
-      logger.log(JSON.stringify(log))
-    })
+    // Register user event handlers
+    if (options) {
+      if (options.onLog) {
+        options.onLog.forEach((l) => this.onLog.on(l))
+      }
+      if (options.onClose) {
+        options.onClose.forEach((c) => this.onClose.on(c))
+      }
+      if (options.onExit) {
+        options.onExit.forEach((e) => this.onExit.on(e))
+      }
+      if (options.onError) {
+        options.onError.forEach((e) => this.onError.on(e))
+      }
+    }
 
     this.nodeProcess = this.startNodeProcess(args)
 
@@ -148,6 +165,10 @@ export class SimulationNode {
         this.cleanup()
       }
     })
+
+    const [shutdownPromise, shutdownResolve] = PromiseUtils.split<void>()
+    this.shutdownPromise = shutdownPromise
+    this.shutdownResolve = shutdownResolve
 
     this.logger.log(`started node: ${this.config.name}`)
   }
@@ -163,12 +184,16 @@ export class SimulationNode {
   static async initialize(
     config: SimulationNodeConfig,
     logger: Logger,
+    options?: {
+      onLog?: ((l: LogEvent) => void | Promise<void>)[]
+      onClose?: ((c: CloseEvent) => void | Promise<void>)[]
+      onExit?: ((e: ExitEvent) => void | Promise<void>)[]
+      onError?: ((c: ErrorEvent) => void | Promise<void>)[]
+    },
   ): Promise<SimulationNode> {
     const client = new RpcTcpClient(config.tcp_host, config.tcp_port)
 
-    const node = new SimulationNode(config, client, logger)
-
-    node.shutdownPromise = new Promise((resolve) => (node.shutdownResolve = resolve))
+    const node = new SimulationNode(config, client, logger, options)
 
     // TODO: race condition, client connect should wait until node process is ready or retry 3 x or something
     await sleep(5000)
@@ -181,13 +206,6 @@ export class SimulationNode {
     // TODO(austin): This is potentially a lot of overhead, maybe only create streams if necessary?
     // can be lazily loaded when user calls a function that needs a stream
     node.initializeBlockStream(await getLatestBlockHash(node))
-
-    // log everything!
-    if (config.verbose) {
-      // node.onLog.on((log) => {
-      //   globalLogger.log(JSON.stringify(log))
-      // })
-    }
 
     node.ready = true
 
@@ -284,12 +302,12 @@ export class SimulationNode {
 
         if (resp.type === 'connected' && hasTransation) {
           // TODO: is there a better way to unsubscribe to the event?
-          this.onBlock?.off(checkBlock)
+          this.onBlock.off(checkBlock)
           resolve(resp.block)
         }
       }
 
-      this.onBlock?.on(checkBlock)
+      this.onBlock.on(checkBlock)
     })
   }
 
@@ -331,25 +349,21 @@ export class SimulationNode {
     proc: supportedNodeChildProcesses,
   ): void {
     p.stdout.on('data', (data) => {
-      const str = (data as Buffer).toString()
-
       this.onLog.emit({
         node: this.config.name,
         proc,
         type: 'stdout',
-        msg: str,
+        message: (data as Buffer).toString(),
         timestamp: new Date().toISOString(),
       })
     })
 
     p.stderr.on('data', (data) => {
-      const str = (data as Buffer).toString()
-
       this.onLog.emit({
         node: this.config.name,
         proc,
         type: 'stderr',
-        msg: str,
+        message: (data as Buffer).toString(),
         timestamp: new Date().toISOString(),
       })
     })
@@ -363,7 +377,7 @@ export class SimulationNode {
       })
 
       // TODO(austin): this.logger.withTag() is not working here? no tag being printed to console
-      this.logger.log(`[${this.config.name}:${proc}:error]${error.message}`)
+      this.logger.log(`[${this.config.name}:${proc}:error] ${error.message}`)
     })
 
     /**
@@ -411,6 +425,13 @@ export class SimulationNode {
    */
   private cleanup(): void {
     this.logger.log(`cleaning up ${this.config.name}...`)
+
+    this.onBlock.clear()
+    this.onLog.clear()
+    this.onClose.clear()
+    this.onError.clear()
+    this.onExit.clear()
+
     // TODO: at this point you know the node proc is dead, should we remove from map?
     this.procs.forEach((proc) => {
       // TODO: handle proc.kill?

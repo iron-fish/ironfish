@@ -5,19 +5,42 @@
 // User: holahula
 // Purpose: Send transactions from one node to another every 3 seconds
 import { Logger, Transaction } from '@ironfish/sdk'
-import { SimulationNodeConfig } from '../simulator/simulation-node'
-import { Simulator } from '../simulator/simulator'
-import { sendTransaction } from '../simulator/transactions'
-import { IRON, SECOND, sleep } from '../simulator/utils'
+import {
+  ErrorEvent,
+  ExitEvent,
+  IRON,
+  LogEvent,
+  SECOND,
+  sendTransaction,
+  SimulationNodeConfig,
+  Simulator,
+  sleep,
+} from '../simulator'
 
 export async function run(logger: Logger): Promise<void> {
   const simulator = new Simulator(logger)
 
   // Register event handlers
 
+  const onLog = (event: LogEvent): void => {
+    logger.log(`[${event.node}:${event.proc}:log:${event.type}] ${JSON.stringify(event)}`)
+  }
+
+  const onExit = (event: ExitEvent): void => {
+    logger.log(`[${event.node}:exit] ${JSON.stringify(event)}`)
+  }
+
+  const onError = (event: ErrorEvent): void => {
+    logger.log(`[${event.node}:error] ${JSON.stringify(event)}`)
+  }
+
   const nodes = await Promise.all(
     nodeConfig.map(async (cfg) => {
-      return simulator.addNode(cfg)
+      return simulator.addNode(cfg, {
+        onLog: [onLog],
+        onExit: [onExit],
+        onError: [onError],
+      })
     }),
   )
 
@@ -56,16 +79,16 @@ export async function run(logger: Logger): Promise<void> {
     for (const s of t.spends) {
       const nullifier = s.nullifier.toString('hex')
       nullifiers[nullifier] ? nullifiers[nullifier]++ : (nullifiers[nullifier] = 1)
-      logger.log(`[sent] transaction: ${hash}, nullifier: ${nullifier}`)
+      logger.log(`[sim:sent] transaction: ${hash}, nullifier: ${nullifier}`)
     }
 
     const block = await from.waitForTransactionConfirmation(hash)
 
     if (!block) {
-      logger.error(`[failed] transaction: ${hash}`)
+      logger.error(`[sim:failed] transaction: ${hash}`)
       return
     }
-    logger.log(`[confirmed] transaction: ${hash}, block: ${block.hash}`)
+    logger.log(`[sim:confirmed] transaction: ${hash}, block: ${block.hash}`)
   }
 
   let started = 0
@@ -84,7 +107,7 @@ export async function run(logger: Logger): Promise<void> {
       .catch((e) => {
         logger.error(`[error] #${runNumber}: ${String(e)}`)
       })
-  }, 3 * SECOND)
+  }, 1 * SECOND)
 
   await simulator.waitForShutdown()
 
