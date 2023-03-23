@@ -36,9 +36,16 @@ export class YupUtils {
       const min = options?.min
 
       schema = schema.test(
-        `min`,
+        'min',
         `value must be equal to or greater than ${min.toString()}`,
-        (val) => val == null || CurrencyUtils.decode(val) >= min,
+        (val) => {
+          if (val == null) {
+            return true
+          }
+
+          const [value] = CurrencyUtils.decodeTry(val)
+          return value != null && value >= min
+        },
       )
     }
 

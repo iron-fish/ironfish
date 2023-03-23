@@ -23,7 +23,9 @@ describe('mint', () => {
           name: 'fake-coin',
           value: '100',
         }),
-      ).rejects.toThrow('value must be equal to or greater than 1')
+      ).rejects.toThrow(
+        'Request failed (400) validation: value must be equal to or greater than 1',
+      )
     })
   })
 
@@ -37,7 +39,9 @@ describe('mint', () => {
           name: 'fake-coin',
           value: '-1',
         }),
-      ).rejects.toThrow('value must be equal to or greater than 1')
+      ).rejects.toThrow(
+        'Request failed (400) validation: value must be equal to or greater than 1',
+      )
     })
   })
 
