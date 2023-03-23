@@ -131,6 +131,7 @@ impl SpendBuilder {
             nullifier,
             authorizing_signature: blank_signature,
         };
+        description.partial_verify()?;
 
         verify_spend_proof(
             &description.proof,

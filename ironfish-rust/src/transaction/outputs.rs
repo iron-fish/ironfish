@@ -104,14 +104,15 @@ impl OutputBuilder {
             )
         };
 
-        let output_proof = OutputDescription { proof, merkle_note };
+        let description = OutputDescription { proof, merkle_note };
+        description.partial_verify()?;
 
         verify_output_proof(
-            &output_proof.proof,
-            &output_proof.public_inputs(randomized_public_key),
+            &description.proof,
+            &description.public_inputs(randomized_public_key),
         )?;
 
-        Ok(output_proof)
+        Ok(description)
     }
 }
 
