@@ -30,7 +30,7 @@ export abstract class Start extends Command {
       return
     }
 
-    logger.log('starting simulation')
+    logger.log(`starting simulation ${flags.simulation}}`)
     await toRun.run(logger)
     logger.log('simulation ended')
     this.exit()
