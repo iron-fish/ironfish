@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { FileUtils, Logger, PromiseUtils } from '@ironfish/sdk'
+import { Logger, PromiseUtils } from '@ironfish/sdk'
 import {
   ErrorEvent,
   ExitEvent,
@@ -14,7 +14,7 @@ import {
   sleep,
   stopSimulationNode,
 } from '../simulator'
-import { getNodeStatus } from '../simulator/status'
+import { getNodeMemoryStatus } from '../simulator/status'
 
 /**
  * TODO:
@@ -116,23 +116,9 @@ const memoryLoop = async (
     await sleep(1 * MINUTE)
 
     for (const node of nodeMap.values()) {
-      const { memory } = await getNodeStatus(node)
+      const memory = await getNodeMemoryStatus(node, true)
 
-      const heapMax = FileUtils.formatMemorySize(memory.heapMax)
-      const heapTotal = FileUtils.formatMemorySize(memory.heapTotal)
-      const heapUsed = FileUtils.formatMemorySize(memory.heapUsed)
-      const rss = FileUtils.formatMemorySize(memory.rss)
-      const memFree = FileUtils.formatMemorySize(memory.memFree)
-      const memTotal = FileUtils.formatMemorySize(memory.memTotal)
-
-      logger.log(`[${node.config.nodeName}]`, {
-        heapMax,
-        heapTotal,
-        heapUsed,
-        rss,
-        memFree,
-        memTotal,
-      })
+      logger.log(`[${node.config.nodeName}]`, { memoryStatus: JSON.stringify(memory) })
     }
   }
 }
