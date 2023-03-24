@@ -2,29 +2,42 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { Logger, PromiseUtils } from '@ironfish/sdk'
+import { FileUtils, Logger, PromiseUtils } from '@ironfish/sdk'
 import {
   ErrorEvent,
   ExitEvent,
   LogEvent,
   MINUTE,
-  SECOND,
   SimulationNode,
   SimulationNodeConfig,
   Simulator,
   sleep,
   stopSimulationNode,
 } from '../simulator'
+import { getNodeStatus } from '../simulator/status'
+
+/**
+ * TODO:
+ * run chaos monkey that randomly stops nodes on intervals
+ * can you detect when a node is killed and see it
+ *
+ * simulation1 can be stability
+ * - do nodes crash over time
+ * - whats the high watermark of the node (memory leak test)
+ *  - peak usage (record memory usage in intervals)
+ * - can also set limit in test, if a node goes over it should print a failure
+ *  - then can investigate to find cause
+ *
+ * print mac spinner while test is running so you know it's alive
+ *
+ * problem with logs is that if there's too many, it's useless
+ */
 
 export async function run(logger: Logger): Promise<void> {
   const simulator = new Simulator(logger)
 
   const alive: Set<string> = new Set()
   const dead: Set<string> = new Set()
-
-  const onLog = (event: LogEvent): void => {
-    logger.log(`[${event.node}:${event.proc}:log:${event.type}] ${JSON.stringify(event)}`)
-  }
 
   const onExit = (event: ExitEvent): void => {
     logger.log(`[${event.node}:exit] ${JSON.stringify(event)}`)
@@ -36,16 +49,14 @@ export async function run(logger: Logger): Promise<void> {
 
   const nodeMap: Map<string, SimulationNode> = new Map()
 
-  const nodes = await Promise.all(
+  await Promise.all(
     nodeConfig.slice(0, 3).map(async (cfg) => {
       const node = await simulator.addNode(cfg, {
-        // onLog: [onLog],
         onExit: [onExit],
         onError: [onError],
       })
       alive.add(cfg.nodeName)
       nodeMap.set(cfg.nodeName, node)
-      return node
     }),
   )
 
@@ -58,7 +69,7 @@ export async function run(logger: Logger): Promise<void> {
 
   logger = logger.withScope('simulation2')
 
-  nodes[0].startMiner()
+  nodeMap.get('node0')?.startMiner()
 
   await sleep(3000)
 
@@ -66,46 +77,74 @@ export async function run(logger: Logger): Promise<void> {
     state: true,
   }
 
-  // const simulationStatus = {
-  //   numStarts: 0,
-  //   numStops: 0,
-  //   failedStarts: [
-  //     {
-  //       err: Error,
-  //     },
-  //   ],
-  //   failedStops: [
-  //     {
-  //       err: Error,
-  //     },
-  //   ],
-  // }
+  const simulationStatus: SimulationStatus = {
+    numStarts: 0,
+    numStops: 0,
+    failedStarts: [],
+    failedStops: [],
+  }
 
-  void stopLoop(nodes, nodeMap, alive, dead, logger, loop)
+  void stopLoop(nodeMap, alive, dead, logger, loop, simulationStatus)
 
-  void startLoop(simulator, nodes, nodeMap, alive, dead, logger, loop, {
-    // onLog: [onLog],
+  void startLoop(simulator, nodeMap, alive, dead, logger, loop, simulationStatus, {
     onExit: [onExit],
     onError: [onError],
   })
 
-  // status check
-  // const status = setInterval(() => {
-  //   logger.log('status check')
-  // }, 5 * MINUTE)
+  void memoryLoop(nodeMap, logger, loop)
+
+  setInterval(() => {
+    logger.log('status', { status: JSON.stringify(simulationStatus) })
+  }, 1 * MINUTE)
 
   await simulator.waitForShutdown()
 }
 
-// TODO: race condition between start / stop
+type SimulationStatus = {
+  numStarts: number
+  numStops: number
+  failedStarts: Array<{ err: Error }>
+  failedStops: Array<{ err: Error }>
+}
+
+const memoryLoop = async (
+  nodeMap: Map<string, SimulationNode>,
+  logger: Logger,
+  loop: { state: boolean },
+) => {
+  while (loop.state) {
+    await sleep(1 * MINUTE)
+
+    for (const node of nodeMap.values()) {
+      const { memory } = await getNodeStatus(node)
+
+      const heapMax = FileUtils.formatMemorySize(memory.heapMax)
+      const heapTotal = FileUtils.formatMemorySize(memory.heapTotal)
+      const heapUsed = FileUtils.formatMemorySize(memory.heapUsed)
+      const rss = FileUtils.formatMemorySize(memory.rss)
+      const memFree = FileUtils.formatMemorySize(memory.memFree)
+      const memTotal = FileUtils.formatMemorySize(memory.memTotal)
+
+      logger.log(`[${node.config.nodeName}]`, {
+        heapMax,
+        heapTotal,
+        heapUsed,
+        rss,
+        memFree,
+        memTotal,
+      })
+    }
+  }
+}
+
 const startLoop = async (
   simulator: Simulator,
-  nodes: SimulationNode[],
   nodeMap: Map<string, SimulationNode>,
   alive: Set<string>,
   dead: Set<string>,
   logger: Logger,
   loop: { state: boolean },
+  simulationStatus: SimulationStatus,
   options?: {
     onLog?: ((event: LogEvent) => void)[]
     onExit?: ((event: ExitEvent) => void)[]
@@ -113,7 +152,7 @@ const startLoop = async (
   },
 ) => {
   while (loop.state) {
-    await sleep(Math.floor(Math.random() * 30 * SECOND))
+    await sleep(Math.floor(Math.random() * 1 * MINUTE))
     const n = getRandomItem(dead)
     if (!n) {
       logger.log(`no dead node to spawn: ${Array.from(dead).join(', ')}`)
@@ -132,6 +171,8 @@ const startLoop = async (
     dead.delete(added.config.nodeName)
     nodeMap.set(added.config.nodeName, added)
 
+    simulationStatus.numStarts += 1
+
     logger.log(`node ${added.config.nodeName} started`)
     logger.log(`[start] alive nodes: ${Array.from(alive).join(', ')}`)
   }
@@ -148,15 +189,15 @@ const getRandomItem = (set: Set<string>): string | undefined => {
 
 // TODO: add exit handler exit loop
 const stopLoop = async (
-  nodes: SimulationNode[],
   nodeMap: Map<string, SimulationNode>,
   alive: Set<string>,
   dead: Set<string>,
   logger: Logger,
   loop: { state: boolean },
+  simulationStatus: SimulationStatus,
 ) => {
   while (loop.state) {
-    await sleep(Math.floor(Math.random() * 30 * SECOND))
+    await sleep(Math.floor(Math.random() * 1 * MINUTE))
     if (alive.size === 1) {
       logger.log('cannot kill bootstrap node')
       continue
@@ -178,20 +219,18 @@ const stopLoop = async (
 
     logger.log(`stopping node ${node.config.nodeName}`)
 
+    simulationStatus.numStops += 1
+
     const [stopped, resolve, reject] = PromiseUtils.split<void>()
 
     const exitListener = () => {
       resolve()
     }
 
-    // const onError = (event: ErrorEvent): void => {
-    //   logger.log(`[${event.node}:error] ${JSON.stringify(event)}`)
-    // }
-
     const wait = setTimeout(() => {
       clearTimeout(wait)
       reject('timeout')
-    }, 2 * MINUTE)
+    }, 1 * MINUTE)
 
     node.onExit.on(exitListener)
     const { success, msg } = await stopSimulationNode(node.config)
@@ -207,12 +246,13 @@ const stopLoop = async (
 
         logger.log(`node ${node.config.nodeName} stopped`)
       },
-      () => {
+      (reason) => {
         logger.log(`node ${node.config.nodeName} failed to stop`)
+        simulationStatus.failedStops.push({ err: new Error(reason) })
       },
     )
 
-    // node.onExit.off(exitListener)
+    node.onExit.off(exitListener)
     logger.log(`[stop] alive nodes: ${Array.from(alive).join(', ')}`)
   }
 }
