@@ -11,7 +11,7 @@ import {
 import { createRootLogger, Logger } from '@ironfish/sdk'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { getLatestBlockHash } from './chain'
-import { SECOND, sleep } from './utils'
+import { sleep } from './utils'
 
 export const rootCmd = 'ironfish'
 
@@ -210,11 +210,15 @@ export class SimulationNode {
 
     const node = new SimulationNode(config, client, logger, options)
 
-    // TODO: bad
-    await sleep(5 * SECOND)
+    let connected = false
+    let tries = 0
+    while (!connected && tries < 12) {
+      connected = await client.tryConnect()
+      tries++
+      await sleep(250)
+    }
 
-    const success = await client.tryConnect()
-    if (!success) {
+    if (!connected) {
       throw new Error(`failed to connect to node ${config.nodeName}`)
     }
 
