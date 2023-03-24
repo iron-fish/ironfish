@@ -28,5 +28,5 @@ jobs:
         env:
           REGISTRY_URL: ghcr.io/iron-fish
           PACKAGE_NAME: ironfish
-          GITHUB_REF: ${GITHUB_REF##*/}
+          GITHUB_REF: ${GITHUB_REF_NAME}
           GITHUB_SHA: ${GITHUB_SHA}
