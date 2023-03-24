@@ -14,5 +14,7 @@ fi
 
 
 docker tag ironfish:latest ${REGISTRY_URL}/${PACKAGE_NAME}:latest
+docker tag ironfish:latest ${REGISTRY_URL}/${PACKAGE_NAME}:testnet
 docker push ${REGISTRY_URL}/${PACKAGE_NAME}:latest
+docker push ${REGISTRY_URL}/${PACKAGE_NAME}:testnet
 
