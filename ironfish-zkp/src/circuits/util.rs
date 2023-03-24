@@ -16,35 +16,6 @@ use crate::{
     primitives::ValueCommitment,
 };
 
-pub fn asset_id_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
-    cs: &mut CS,
-    name: &[u8; 32],
-    metadata: &[u8; 77],
-    nonce: &u8,
-    owner_public_key: &EdwardsPoint,
-) -> Result<Vec<boolean::Boolean>, SynthesisError> {
-    let mut combined_preimage = vec![];
-
-    combined_preimage
-        .extend(owner_public_key.repr(cs.namespace(|| "booleanize owner_public_key"))?);
-
-    let name_bits = slice_into_boolean_vec_le(cs.namespace(|| "booleanize name"), Some(name), 32)?;
-    combined_preimage.extend(name_bits);
-
-    let metadata_bits =
-        slice_into_boolean_vec_le(cs.namespace(|| "booleanize metadata"), Some(metadata), 77)?;
-    combined_preimage.extend(metadata_bits);
-
-    let nonce_bits = slice_into_boolean_vec_le(
-        cs.namespace(|| "booleanize nonce"),
-        Some(std::slice::from_ref(nonce)),
-        1,
-    )?;
-    combined_preimage.extend(nonce_bits);
-
-    Ok(combined_preimage)
-}
-
 pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
     mut cs: CS,
     value: Option<&[u8]>,

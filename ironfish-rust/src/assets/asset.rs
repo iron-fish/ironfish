@@ -4,7 +4,7 @@
 use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array, PublicAddress};
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use ironfish_zkp::{
-    constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION},
+    constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK},
     util::asset_hash_to_point,
 };
 use jubjub::{ExtendedPoint, SubgroupPoint};
@@ -19,7 +19,7 @@ pub const ID_LENGTH: usize = ASSET_ID_LENGTH;
 
 /// Describes all the fields necessary for creating and transacting with an
 /// asset on the Iron Fish network
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Asset {
     /// Name of the asset
     pub(crate) name: [u8; NAME_LENGTH],
@@ -57,7 +57,7 @@ impl Asset {
         }
     }
 
-    fn new_with_nonce(
+    pub fn new_with_nonce(
         owner: PublicAddress,
         name: [u8; NAME_LENGTH],
         metadata: [u8; METADATA_LENGTH],
@@ -68,6 +68,7 @@ impl Asset {
             .hash_length(ASSET_ID_LENGTH)
             .personal(ASSET_ID_PERSONALIZATION)
             .to_state()
+            .update(GH_FIRST_BLOCK)
             .update(&owner.public_address())
             .update(&name)
             .update(&metadata)
