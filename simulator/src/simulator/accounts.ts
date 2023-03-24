@@ -8,12 +8,7 @@ import { SimulationNode } from './simulation-node'
 // for getting information about accounts, such as their balance and public key.
 
 /**
- *  Get the balance, of $IRON, of an account on a node.
- *
- * @param node the node to get the balance from
- * @param account the account to get the balance for
- *
- * @returns the balance in $IRON
+ *  Gets the balance, in $IRON, of an account on a node.
  */
 export async function getAccountBalance(
   node: SimulationNode,
@@ -33,6 +28,9 @@ export async function getAccountBalance(
   return parseInt(balance)
 }
 
+/**
+ * Gets the public key of an account on a node.
+ */
 export async function getAccountPublicKey(
   node: SimulationNode,
   account: string,
@@ -48,7 +46,7 @@ export async function getAccountPublicKey(
 }
 
 /**
- * Gets the default account on the node.
+ * Gets the default account on a node.
  */
 export async function getDefaultAccount(node: SimulationNode): Promise<string> {
   const resp = await node.client.getDefaultAccount()

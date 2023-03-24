@@ -7,7 +7,7 @@ import { getAccountPublicKey, getDefaultAccount } from './accounts'
 import { SimulationNode } from './simulation-node'
 
 /**
- * Utility function for sending a transaction from one node to another.
+ * Sends a transaction from one node to another using the sendTransaction RPC call.
  * Currently, it will use the default accounts on each node.
  *
  * Specifying specific accounts will be supported in the future.
