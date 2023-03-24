@@ -44,22 +44,6 @@ export async function run(logger: Logger): Promise<void> {
     }),
   )
 
-  /**
-   * TODO:
-   * run chaos monkey that randomly stops nodes on intervals
-   * can you detect when a node is killed and see it
-   *
-   * simulation1 can be stability
-   * - do nodes crash over time
-   * - whats the high watermark of the node (memory leak test)
-   *  - peak usage (record memory usage in intervals)
-   * - can also set limit in test, if a node goes over it should print a failure
-   *  - then can investigate to find cause
-   *
-   * print mac spinner while test is running so you know it's alive
-   *
-   * problem with logs is that if there's too many, it's useless
-   */
   logger = logger.withScope('simulation1')
 
   nodes[0].startMiner()
