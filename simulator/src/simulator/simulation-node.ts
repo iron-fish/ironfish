@@ -18,6 +18,9 @@ export const rootCmd = 'ironfish'
 export type SimulationNodeConfig = Required<RequiredSimulationNodeConfig> &
   Partial<OptionalSimulationNodeConfig> & { dataDir: string; verbose?: boolean }
 
+/**
+ * These are the options that are required to start a node.
+ */
 type RequiredSimulationNodeConfig = Pick<
   ConfigOptions,
   | 'nodeName'
@@ -34,6 +37,10 @@ type RequiredSimulationNodeConfig = Pick<
   // | 'miningForce'
 >
 
+/**
+ * Optional config values to set on the node`set:config` command on the node.
+ * These are currently not supported.
+ */
 type OptionalSimulationNodeConfig = Omit<ConfigOptions, keyof RequiredSimulationNodeConfig>
 
 const globalLogger = createRootLogger()
@@ -59,8 +66,9 @@ export type ExitEvent = {
   node: string
   proc: supportedNodeChildProcesses
   code: number | null
-  timestamp: string
   signal: NodeJS.Signals | null
+  lastErr: Error | undefined
+  timestamp: string
 }
 
 export type ErrorEvent = {
@@ -80,7 +88,7 @@ export type ErrorEvent = {
  * The node itself can be accessed via another terminal by specifying it's
  * data_dir while it is running.
  *
- * This class should be instantiated with the static `intiailize` method.
+ * This class should be created using the static `intiailize` method.
  */
 export class SimulationNode {
   procs = new Map<string, ChildProcessWithoutNullStreams>()
@@ -88,6 +96,8 @@ export class SimulationNode {
   minerProcess?: ChildProcessWithoutNullStreams
 
   onBlock: Event<[FollowChainStreamResponse]> = new Event()
+
+  lastError: Error | undefined
 
   onLog: Event<[LogEvent]> = new Event()
   onError: Event<[ErrorEvent]> = new Event()
@@ -194,7 +204,8 @@ export class SimulationNode {
    * @param config The config for the node
    * @param logger The logger to use for the node
    * @param options Optional event handlers from the node process
-   * @returns A new SimulationNode
+   *
+   * @returns A new ready SimulationNode
    */
   static async initialize(
     config: SimulationNodeConfig,
@@ -230,8 +241,10 @@ export class SimulationNode {
   }
 
   /**
+   * Attaches listeners to a child process and adds the process to the node's
+   * list of child processes.
    *
-   * @param proc Adds a child process to the node and attaches any listeners.
+   * @param proc The child process to add
    * @param procName The name of the process, used for logging and accessing the proc.
    */
   private registerChildProcess(
@@ -308,6 +321,13 @@ export class SimulationNode {
     void stream()
   }
 
+  /**
+   * Waits for a transaction to be mined and returns the block it was mined in.
+   * TODO: add timeout support (?)
+   *
+   * @param transactionHash The hash of the transaction to wait for
+   * @returns The block the transaction was mined in or undefined if the transaction was not mined
+   */
   async waitForTransactionConfirmation(
     transactionHash: string,
   ): Promise<FollowChainStreamResponse['block'] | undefined> {
@@ -344,10 +364,16 @@ export class SimulationNode {
     return nodeProc
   }
 
+  /**
+   * Utility function to wait for the node to shutdown.
+   */
   async waitForShutdown(): Promise<void> {
     await this.shutdownPromise
   }
 
+  /**
+   * Stops the node process and cleans up any listeners or other child processes.
+   */
   async stop(): Promise<{ success: boolean; msg: string }> {
     this.logger.log(`killing node ${this.config.nodeName}...`)
 
@@ -386,6 +412,8 @@ export class SimulationNode {
     })
 
     p.on('error', (error: Error) => {
+      this.lastError = error
+
       this.onError.emit({
         node: this.config.nodeName,
         proc,
@@ -393,7 +421,6 @@ export class SimulationNode {
         timestamp: new Date().toISOString(),
       })
 
-      // TODO(austin): this.logger.withTag() is not working here? no tag being printed to console
       this.logger.log(`[${this.config.nodeName}:${proc}:error] ${error.message}`)
     })
 
@@ -425,6 +452,7 @@ export class SimulationNode {
         proc,
         code,
         signal,
+        lastErr: this.lastError,
         timestamp: new Date().toISOString(),
       })
 
