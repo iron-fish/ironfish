@@ -1,5 +1,11 @@
 name: Deploy Node Image to AWS
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      tag_latest:
+        description: 'Tag this docker image as lastest. Should only be used for production releases'
+        type: boolean
+        default: false
 
 jobs:
   Deploy:
@@ -30,5 +36,6 @@ jobs:
         env:
           REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
           PACKAGE_NAME: ironfish
-          GITHUB_REF: ${GITHUB_REF_NAME}
+          GITHUB_REF_NAME: ${GITHUB_REF_NAME}
           GITHUB_SHA: ${GITHUB_SHA}
+          TAG_LATEST: ${{ inputs.tag_latest }}

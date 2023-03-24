@@ -1,5 +1,12 @@
 name: Deploy Node Image to Github Beta
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      tag_latest:
+        description: 'Tag this docker image as lastest. Should only be used for production releases'
+        type: boolean
+        default: false
+
 
 permissions:
   contents: read
@@ -28,5 +35,6 @@ jobs:
         env:
           REGISTRY_URL: ghcr.io/iron-fish
           PACKAGE_NAME: ironfish-beta
-          GITHUB_REF: ${GITHUB_REF_NAME}
+          GITHUB_REF_NAME: ${GITHUB_REF_NAME}
           GITHUB_SHA: "$GITHUB_SHA"
+          TAG_LATEST: ${{ inputs.tag_latest }}
