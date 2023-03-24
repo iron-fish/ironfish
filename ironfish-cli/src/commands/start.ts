@@ -12,6 +12,8 @@ import {
   ConfigFlagKey,
   DataDirFlag,
   DataDirFlagKey,
+  JsonLogsFlag,
+  JsonLogsFlagKey,
   RpcHttpHostFlag,
   RpcHttpHostFlagKey,
   RpcHttpPortFlag,
@@ -39,6 +41,7 @@ export default class Start extends IronfishCommand {
 
   static flags = {
     [VerboseFlagKey]: VerboseFlag,
+    [JsonLogsFlagKey]: JsonLogsFlag,
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
     [RpcUseIpcFlagKey]: { ...RpcUseIpcFlag, allowNo: true },

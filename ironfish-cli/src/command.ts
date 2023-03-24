@@ -16,6 +16,8 @@ import { CLIError, ExitError } from '@oclif/core/lib/errors'
 import {
   ConfigFlagKey,
   DataDirFlagKey,
+  JsonLogsFlag,
+  JsonLogsFlagKey,
   RpcAuthFlagKey,
   RpcHttpHostFlagKey,
   RpcHttpPortFlagKey,
@@ -49,6 +51,7 @@ export type FLAGS =
   | typeof RpcHttpPortFlagKey
   | typeof RpcTcpTlsFlagKey
   | typeof VerboseFlagKey
+  | typeof JsonLogsFlagKey
   | typeof RpcAuthFlagKey
 
 export abstract class IronfishCommand extends Command {
@@ -165,6 +168,11 @@ export abstract class IronfishCommand extends Command {
     const verboseFlag = getFlag(flags, VerboseFlagKey)
     if (typeof verboseFlag === 'boolean' && verboseFlag !== VerboseFlag.default) {
       configOverrides.logLevel = '*:verbose'
+    }
+
+    const jsonLogsFlag = getFlag(flags, JsonLogsFlagKey)
+    if (typeof jsonLogsFlag === 'boolean' && jsonLogsFlag !== JsonLogsFlag.default) {
+      configOverrides.jsonLogs = jsonLogsFlag
     }
 
     const rpcAuthFlag = getFlag(flags, RpcAuthFlagKey)

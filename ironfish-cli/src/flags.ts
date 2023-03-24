@@ -17,6 +17,7 @@ import { Flags, Interfaces } from '@oclif/core'
 type CompletableOptionFlag = Interfaces.CompletableOptionFlag<unknown>
 
 export const VerboseFlagKey = 'verbose'
+export const JsonLogsFlagKey = 'jsonLogs'
 export const ConfigFlagKey = 'config'
 export const ColorFlagKey = 'color'
 export const DataDirFlagKey = 'datadir'
@@ -34,6 +35,11 @@ export const VerboseFlag = Flags.boolean({
   char: 'v',
   default: false,
   description: 'Set logging level to verbose',
+})
+
+export const JsonLogsFlag = Flags.boolean({
+  default: false,
+  description: 'Log all lines in JSON format',
 })
 
 export const ColorFlag = Flags.boolean({
@@ -98,6 +104,7 @@ export const RpcUseHttpFlag = Flags.boolean({
 
 const localFlags: Record<string, CompletableOptionFlag> = {}
 localFlags[VerboseFlagKey] = VerboseFlag as unknown as CompletableOptionFlag
+localFlags[JsonLogsFlagKey] = JsonLogsFlag as unknown as CompletableOptionFlag
 localFlags[ConfigFlagKey] = ConfigFlag as unknown as CompletableOptionFlag
 localFlags[DataDirFlagKey] = DataDirFlag as unknown as CompletableOptionFlag
 
@@ -109,6 +116,7 @@ export const LocalFlags = localFlags
 
 const remoteFlags: Record<string, CompletableOptionFlag> = {}
 remoteFlags[VerboseFlagKey] = VerboseFlag as unknown as CompletableOptionFlag
+remoteFlags[JsonLogsFlagKey] = JsonLogsFlag as unknown as CompletableOptionFlag
 remoteFlags[ConfigFlagKey] = ConfigFlag as unknown as CompletableOptionFlag
 remoteFlags[DataDirFlagKey] = DataDirFlag as unknown as CompletableOptionFlag
 remoteFlags[RpcUseTcpFlagKey] = RpcUseTcpFlag as unknown as CompletableOptionFlag
