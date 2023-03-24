@@ -43,10 +43,13 @@ export default class Reset extends IronfishCommand {
       HOST_FILE_NAME,
     )
 
+    const existingId = this.sdk.internal.get('networkId')
+
     let networkIdMessage = ''
-    if (flags.networkId != null) {
-      const existingId = this.sdk.internal.get('networkId')
+    if (flags.networkId != null && flags.networkId !== existingId) {
       networkIdMessage = `\n\nThe network ID will be changed from ${existingId} to the new value of ${flags.networkId}`
+    } else {
+      networkIdMessage = `\n\nThe network ID will stay unchanged as ${existingId}`
     }
 
     const message =
@@ -71,7 +74,7 @@ export default class Reset extends IronfishCommand {
       fsAsync.rm(hostFilePath, { recursive: true, force: true }),
     ])
 
-    if (flags.networkId != null) {
+    if (flags.networkId != null && flags.networkId !== existingId) {
       this.sdk.internal.set('networkId', flags.networkId)
     }
     this.sdk.internal.set('isFirstRun', true)
