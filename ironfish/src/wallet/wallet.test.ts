@@ -1343,28 +1343,6 @@ describe('Accounts', () => {
   })
 
   describe('addPendingTransaction', () => {
-    it('should add transactions to accounts involved in the transaction', async () => {
-      const { node } = await nodeTest.createSetup()
-
-      const accountA = await useAccountFixture(node.wallet, 'a')
-      const accountB = await useAccountFixture(node.wallet, 'b')
-
-      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
-      await expect(node.chain).toAddBlock(blockA1)
-      await node.wallet.updateHead()
-
-      const addSpyA = jest.spyOn(accountA, 'addPendingTransaction')
-      const addSpyB = jest.spyOn(accountB, 'addPendingTransaction')
-
-      await useTxFixture(node.wallet, accountA, accountA)
-
-      // tx added to accountA
-      expect(addSpyA).toHaveBeenCalledTimes(1)
-
-      // tx not added to accountB
-      expect(addSpyB).toHaveBeenCalledTimes(0)
-    })
-
     it('should not decrypt notes for accounts that have already seen the transaction', async () => {
       const { node } = await nodeTest.createSetup()
 
