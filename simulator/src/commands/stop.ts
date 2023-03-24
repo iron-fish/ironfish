@@ -11,22 +11,22 @@ export default class Stop extends Command {
   async run(): Promise<void> {
     const nodes = [
       {
-        name: 'node1',
-        tcp_host: 'localhost',
-        tcp_port: 9001,
-        data_dir: '~/.ironfish-atn/node1',
+        nodeName: 'node1',
+        rpcTcpHost: 'localhost',
+        rpcTcpPort: 9001,
+        dataDir: '~/.ironfish-atn/node1',
       },
       {
-        name: 'node2',
-        tcp_host: 'localhost',
-        tcp_port: 9002,
-        data_dir: '~/.ironfish-atn/node2',
+        nodeName: 'node2',
+        rpcTcpHost: 'localhost',
+        rpcTcpPort: 9002,
+        dataDir: '~/.ironfish-atn/node2',
       },
       {
-        name: 'node3',
-        tcp_host: 'localhost',
-        tcp_port: 9003,
-        data_dir: '~/.ironfish-atn/node3',
+        nodeName: 'node3',
+        rpcTcpHost: 'localhost',
+        rpcTcpPort: 9003,
+        dataDir: '~/.ironfish-atn/node3',
       },
     ]
 
@@ -38,9 +38,9 @@ export default class Stop extends Command {
       nodes.map(async (node) => {
         const { success, msg } = await stopSimulationNode(node)
         if (!success) {
-          logger.error(`couldn't stop node ${node.name}: ${msg}`)
+          logger.error(`couldn't stop node ${node.nodeName}: ${msg}`)
         } else {
-          logger.info(`stopped node ${node.name}!`)
+          logger.info(`stopped node ${node.nodeName}!`)
         }
       }),
     )
