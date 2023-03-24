@@ -36,7 +36,7 @@ export class Account {
   readonly outgoingViewKey: string
   readonly version: number
   publicAddress: string
-  readonly createdAt: HeadValue | null
+  createdAt: HeadValue | null
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
 
@@ -1112,6 +1112,12 @@ export class Account {
 
   async updateHead(head: HeadValue | null, tx?: IDatabaseTransaction): Promise<void> {
     await this.walletDb.saveHead(this, head, tx)
+  }
+
+  async updateCreatedAt(createdAt: HeadValue | null, tx?: IDatabaseTransaction): Promise<void> {
+    this.createdAt = createdAt
+
+    await this.walletDb.setAccount(this, tx)
   }
 
   async getTransactionNotes(
