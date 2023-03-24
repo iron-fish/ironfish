@@ -39,18 +39,18 @@ export async function run(logger: Logger): Promise<void> {
   const nodes = await Promise.all(
     nodeConfig.slice(0, 3).map(async (cfg) => {
       const node = await simulator.addNode(cfg, {
-        onLog: [onLog],
+        // onLog: [onLog],
         onExit: [onExit],
         onError: [onError],
       })
-      alive.add(cfg.name)
-      nodeMap.set(cfg.name, node)
+      alive.add(cfg.nodeName)
+      nodeMap.set(cfg.nodeName, node)
       return node
     }),
   )
 
   nodeConfig.forEach((node) => {
-    const name = node.name
+    const name = node.nodeName
     if (!alive.has(name)) {
       dead.add(name)
     }
@@ -66,33 +66,33 @@ export async function run(logger: Logger): Promise<void> {
     state: true,
   }
 
-  const simulationStatus = {
-    numStarts: 0,
-    numStops: 0,
-    failedStarts: [
-      {
-        err: Error,
-      },
-    ],
-    failedStops: [
-      {
-        err: Error,
-      },
-    ],
-  }
+  // const simulationStatus = {
+  //   numStarts: 0,
+  //   numStops: 0,
+  //   failedStarts: [
+  //     {
+  //       err: Error,
+  //     },
+  //   ],
+  //   failedStops: [
+  //     {
+  //       err: Error,
+  //     },
+  //   ],
+  // }
 
   void stopLoop(nodes, nodeMap, alive, dead, logger, loop)
 
   void startLoop(simulator, nodes, nodeMap, alive, dead, logger, loop, {
-    onLog: [onLog],
+    // onLog: [onLog],
     onExit: [onExit],
     onError: [onError],
   })
 
   // status check
-  const status = setInterval(() => {
-    logger.log('status check')
-  }, 5 * MINUTE)
+  // const status = setInterval(() => {
+  //   logger.log('status check')
+  // }, 5 * MINUTE)
 
   await simulator.waitForShutdown()
 }
@@ -116,23 +116,24 @@ const startLoop = async (
     await sleep(Math.floor(Math.random() * 30 * SECOND))
     const n = getRandomItem(dead)
     if (!n) {
-      logger.log(`no dead node to spawn: ${Array.from(dead).join(', ')}}`)
+      logger.log(`no dead node to spawn: ${Array.from(dead).join(', ')}`)
       continue
     }
 
     logger.log(`starting node ${n}`)
-    const node = nodeConfig.find((cfg) => cfg.name === n)
+    const node = nodeConfig.find((cfg) => cfg.nodeName === n)
     if (!node) {
       logger.log(`couldnt get config for ${n}`)
       continue
     }
 
     const added = await simulator.addNode(node, options)
-    alive.add(added.config.name)
-    dead.delete(added.config.name)
-    nodeMap.set(added.config.name, added)
+    alive.add(added.config.nodeName)
+    dead.delete(added.config.nodeName)
+    nodeMap.set(added.config.nodeName, added)
 
-    logger.log(`node ${added.config.name} started`)
+    logger.log(`node ${added.config.nodeName} started`)
+    logger.log(`[start] alive nodes: ${Array.from(alive).join(', ')}`)
   }
 }
 
@@ -168,20 +169,24 @@ const stopLoop = async (
     }
 
     const node = nodeMap.get(name)
-    if (!node || node.config.bootstrap_url === "''") {
+    if (!node || node.config.bootstrapNodes[0] === "''") {
       logger.log(`alive node not found / cannot be killed ${name}`, {
         alive: Array.from(alive).join(', '),
       })
       continue
     }
 
-    logger.log(`stopping node ${node.config.name}`)
+    logger.log(`stopping node ${node.config.nodeName}`)
 
     const [stopped, resolve, reject] = PromiseUtils.split<void>()
 
     const exitListener = () => {
       resolve()
     }
+
+    // const onError = (event: ErrorEvent): void => {
+    //   logger.log(`[${event.node}:error] ${JSON.stringify(event)}`)
+    // }
 
     const wait = setTimeout(() => {
       clearTimeout(wait)
@@ -196,26 +201,27 @@ const stopLoop = async (
 
     await stopped.then(
       () => {
-        alive.delete(node.config.name)
-        dead.add(node.config.name)
-        nodeMap.delete(node.config.name)
+        alive.delete(node.config.nodeName)
+        dead.add(node.config.nodeName)
+        nodeMap.delete(node.config.nodeName)
 
-        logger.log(`node ${node.config.name} stopped`)
+        logger.log(`node ${node.config.nodeName} stopped`)
       },
       () => {
-        logger.log(`node ${node.config.name} failed to stop`)
+        logger.log(`node ${node.config.nodeName} failed to stop`)
       },
     )
 
-    node.onExit.off(exitListener)
+    // node.onExit.off(exitListener)
+    logger.log(`[stop] alive nodes: ${Array.from(alive).join(', ')}`)
   }
 }
 
-const setRandomInterval = (
+export const setRandomInterval = (
   fn: () => void,
   minDelay: number, // in ms
   maxDelay: number, // in ms
-) => {
+): { clear(): void } => {
   let timeout: NodeJS.Timeout
 
   const runInterval = () => {
@@ -240,54 +246,54 @@ const setRandomInterval = (
 
 const nodeConfig: SimulationNodeConfig[] = [
   {
-    name: 'node1',
-    graffiti: '1',
-    port: 7001,
-    data_dir: '~/.ironfish-atn/node1',
-    netword_id: 2,
-    bootstrap_url: "''",
-    tcp_host: 'localhost',
-    tcp_port: 9001,
+    nodeName: 'node1',
+    blockGraffiti: '1',
+    peerPort: 7001,
+    dataDir: '~/.ironfish-atn/node1',
+    networkId: 2,
+    bootstrapNodes: ["''"],
+    rpcTcpHost: 'localhost',
+    rpcTcpPort: 9001,
     verbose: true,
   },
   {
-    name: 'node2',
-    graffiti: '2',
-    port: 7002,
-    data_dir: '~/.ironfish-atn/node2',
-    netword_id: 2,
-    bootstrap_url: 'localhost:7001',
-    tcp_host: 'localhost',
-    tcp_port: 9002,
+    nodeName: 'node2',
+    blockGraffiti: '2',
+    peerPort: 7002,
+    dataDir: '~/.ironfish-atn/node2',
+    networkId: 2,
+    bootstrapNodes: ['localhost:7001'],
+    rpcTcpHost: 'localhost',
+    rpcTcpPort: 9002,
   },
   {
-    name: 'node3',
-    graffiti: '3',
-    port: 7003,
-    data_dir: '~/.ironfish-atn/node3',
-    netword_id: 2,
-    bootstrap_url: 'localhost:7001',
-    tcp_host: 'localhost',
-    tcp_port: 9003,
+    nodeName: 'node3',
+    blockGraffiti: '3',
+    peerPort: 7003,
+    dataDir: '~/.ironfish-atn/node3',
+    networkId: 2,
+    bootstrapNodes: ['localhost:7001'],
+    rpcTcpHost: 'localhost',
+    rpcTcpPort: 9003,
   },
   {
-    name: 'node4',
-    graffiti: '4',
-    port: 7004,
-    data_dir: '~/.ironfish-atn/node4',
-    netword_id: 2,
-    bootstrap_url: 'localhost:7001',
-    tcp_host: 'localhost',
-    tcp_port: 9004,
+    nodeName: 'node4',
+    blockGraffiti: '4',
+    peerPort: 7004,
+    dataDir: '~/.ironfish-atn/node4',
+    networkId: 2,
+    bootstrapNodes: ['localhost:7001'],
+    rpcTcpHost: 'localhost',
+    rpcTcpPort: 9004,
   },
   {
-    name: 'node5',
-    graffiti: '5',
-    port: 7005,
-    data_dir: '~/.ironfish-atn/node5',
-    netword_id: 2,
-    bootstrap_url: 'localhost:7001',
-    tcp_host: 'localhost',
-    tcp_port: 9005,
+    nodeName: 'node5',
+    blockGraffiti: '5',
+    peerPort: 7005,
+    dataDir: '~/.ironfish-atn/node5',
+    networkId: 2,
+    bootstrapNodes: ['localhost:7001'],
+    rpcTcpHost: 'localhost',
+    rpcTcpPort: 9005,
   },
 ]

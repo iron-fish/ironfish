@@ -1,25 +1,40 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Event, FollowChainStreamResponse, PromiseUtils, RpcTcpClient } from '@ironfish/sdk'
+import {
+  ConfigOptions,
+  Event,
+  FollowChainStreamResponse,
+  PromiseUtils,
+  RpcTcpClient,
+} from '@ironfish/sdk'
 import { createRootLogger, Logger } from '@ironfish/sdk'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { getLatestBlockHash } from './chain'
-import { sleep } from './utils'
+import { SECOND, sleep } from './utils'
 
 export const rootCmd = 'ironfish'
 
-export type SimulationNodeConfig = {
-  name: string
-  graffiti: string
-  port: number
-  verbose?: boolean
-  data_dir: string
-  netword_id: number
-  bootstrap_url: string
-  tcp_host: string
-  tcp_port: number
-}
+export type SimulationNodeConfig = Required<RequiredSimulationNodeConfig> &
+  Partial<OptionalSimulationNodeConfig> & { dataDir: string; verbose?: boolean }
+
+type RequiredSimulationNodeConfig = Pick<
+  ConfigOptions,
+  | 'nodeName'
+  | 'blockGraffiti'
+  | 'peerPort'
+  | 'networkId'
+  | 'rpcTcpHost'
+  | 'rpcTcpPort'
+  | 'bootstrapNodes'
+  // TODO(austin): these have required values, should they be included
+  // | 'enableRpc' // true
+  // | 'enableRpcTcp' // true
+  // | 'enableRpcTls' // false
+  // | 'miningForce'
+>
+
+type OptionalSimulationNodeConfig = Omit<ConfigOptions, keyof RequiredSimulationNodeConfig>
 
 const globalLogger = createRootLogger()
 
@@ -72,7 +87,6 @@ export class SimulationNode {
   nodeProcess: ChildProcessWithoutNullStreams
   minerProcess?: ChildProcessWithoutNullStreams
 
-  // TODO(austin): is this expensive to define all these events here?
   onBlock: Event<[FollowChainStreamResponse]> = new Event()
 
   onLog: Event<[LogEvent]> = new Event()
@@ -106,31 +120,31 @@ export class SimulationNode {
 
     this.client = client
 
-    this.logger = logger.withTag(`${config.name}`)
+    this.logger = logger.withTag(`${config.nodeName}`)
 
     // TODO(austin): this is gross fix this
     // use config rpc call instead of this
 
     let args =
       'start --name ' +
-      this.config.name +
+      this.config.nodeName +
       ' --graffiti ' +
-      this.config.graffiti +
+      this.config.blockGraffiti +
       ' --port ' +
-      this.config.port.toString() +
+      this.config.peerPort.toString() +
       ' --datadir ' +
-      this.config.data_dir +
+      this.config.dataDir +
       ' --networkId ' +
-      this.config.netword_id.toString() +
+      this.config.networkId.toString() +
       ' --bootstrap ' +
-      this.config.bootstrap_url +
+      this.config.bootstrapNodes[0] +
       ' --rpc.tcp' +
       ' --rpc.tcp.host ' +
-      this.config.tcp_host +
+      this.config.rpcTcpHost +
       ' --rpc.tcp.port ' +
-      this.config.tcp_port.toString() +
+      this.config.rpcTcpPort.toString() +
       ' --no-rpc.tcp.tls' +
-      // TODO: this needs to be set otherwise you run into 'not synced' errors
+      // This needs to be set otherwise you run into 'not synced' errors
       ' --forceMining'
 
     if (config.verbose) {
@@ -170,7 +184,7 @@ export class SimulationNode {
     this.shutdownPromise = shutdownPromise
     this.shutdownResolve = shutdownResolve
 
-    this.logger.log(`started node: ${this.config.name}`)
+    this.logger.log(`started node: ${this.config.nodeName}`)
   }
 
   /**
@@ -179,6 +193,7 @@ export class SimulationNode {
    *
    * @param config The config for the node
    * @param logger The logger to use for the node
+   * @param options Optional event handlers from the node process
    * @returns A new SimulationNode
    */
   static async initialize(
@@ -191,20 +206,18 @@ export class SimulationNode {
       onError?: ((c: ErrorEvent) => void | Promise<void>)[]
     },
   ): Promise<SimulationNode> {
-    const client = new RpcTcpClient(config.tcp_host, config.tcp_port)
+    const client = new RpcTcpClient(config.rpcTcpHost, config.rpcTcpPort)
 
     const node = new SimulationNode(config, client, logger, options)
 
-    // TODO: race condition, client connect should wait until node process is ready or retry 3 x or something
-    await sleep(5000)
+    // TODO: bad
+    await sleep(5 * SECOND)
 
     const success = await client.tryConnect()
     if (!success) {
-      throw new Error(`failed to connect to node ${this.name}`)
+      throw new Error(`failed to connect to node ${config.nodeName}`)
     }
 
-    // TODO(austin): This is potentially a lot of overhead, maybe only create streams if necessary?
-    // can be lazily loaded when user calls a function that needs a stream
     node.initializeBlockStream(await getLatestBlockHash(node))
 
     node.ready = true
@@ -234,14 +247,14 @@ export class SimulationNode {
       throw new Error('Miner process already exists')
     }
 
-    this.logger.log(`attaching miner to ${this.config.name}...`)
+    this.logger.log(`attaching miner to ${this.config.nodeName}...`)
 
     this.minerProcess = spawn('ironfish', [
       'miners:start',
       '-t',
       '1',
       '--datadir',
-      this.config.data_dir,
+      this.config.dataDir,
     ])
 
     this.registerChildProcess(this.minerProcess, 'miner')
@@ -260,7 +273,7 @@ export class SimulationNode {
       throw new Error('Miner process not found')
     }
 
-    this.logger.log(`detaching miner from ${this.config.name}...`)
+    this.logger.log(`detaching miner from ${this.config.nodeName}...`)
 
     const success = this.minerProcess.kill()
 
@@ -320,7 +333,7 @@ export class SimulationNode {
    * @returns The node process
    */
   private startNodeProcess(args: string): ChildProcessWithoutNullStreams {
-    this.logger.log(rootCmd + ' ' + args)
+    // this.logger.log(rootCmd + ' ' + args)
     const nodeProc = spawn(rootCmd, args.split(' '))
     this.registerChildProcess(nodeProc, 'node')
 
@@ -332,7 +345,7 @@ export class SimulationNode {
   }
 
   async stop(): Promise<{ success: boolean; msg: string }> {
-    this.logger.log(`killing node ${this.config.name}...`)
+    this.logger.log(`killing node ${this.config.nodeName}...`)
 
     return stopSimulationNode(this.config)
   }
@@ -350,7 +363,7 @@ export class SimulationNode {
   ): void {
     p.stdout.on('data', (data) => {
       this.onLog.emit({
-        node: this.config.name,
+        node: this.config.nodeName,
         proc,
         type: 'stdout',
         message: (data as Buffer).toString(),
@@ -360,7 +373,7 @@ export class SimulationNode {
 
     p.stderr.on('data', (data) => {
       this.onLog.emit({
-        node: this.config.name,
+        node: this.config.nodeName,
         proc,
         type: 'stderr',
         message: (data as Buffer).toString(),
@@ -370,14 +383,14 @@ export class SimulationNode {
 
     p.on('error', (error: Error) => {
       this.onError.emit({
-        node: this.config.name,
+        node: this.config.nodeName,
         proc,
         error,
         timestamp: new Date().toISOString(),
       })
 
       // TODO(austin): this.logger.withTag() is not working here? no tag being printed to console
-      this.logger.log(`[${this.config.name}:${proc}:error] ${error.message}`)
+      this.logger.log(`[${this.config.nodeName}:${proc}:error] ${error.message}`)
     })
 
     /**
@@ -388,13 +401,13 @@ export class SimulationNode {
      */
     p.on('close', (code: number | null) => {
       this.onClose.emit({
-        node: this.config.name,
+        node: this.config.nodeName,
         proc,
         code,
         timestamp: new Date().toISOString(),
       })
 
-      this.logger.log(`[${this.config.name}:${proc}:close] child process closed`, {
+      this.logger.log(`[${this.config.nodeName}:${proc}:close] child process closed`, {
         ...(code ? { code } : {}),
       })
     })
@@ -404,14 +417,14 @@ export class SimulationNode {
     // this way tests can look for exit events and potentially act on that
     p.on('exit', (code, signal) => {
       this.onExit.emit({
-        node: this.config.name,
+        node: this.config.nodeName,
         proc,
         code,
         signal,
         timestamp: new Date().toISOString(),
       })
 
-      this.logger.log(`${this.config.name}:${proc}:exit`, {
+      this.logger.log(`${this.config.nodeName}:${proc}:exit`, {
         ...(code ? { code } : { code: 'no code' }),
         ...(signal ? { signal: signal?.toString() } : { signal: 'no signal' }),
       })
@@ -424,19 +437,20 @@ export class SimulationNode {
    * Kills all child processes and handles any required cleanup
    */
   private cleanup(): void {
-    this.logger.log(`cleaning up ${this.config.name}...`)
-
-    this.onBlock.clear()
-    this.onLog.clear()
-    this.onClose.clear()
-    this.onError.clear()
-    this.onExit.clear()
+    this.logger.log(`cleaning up ${this.config.nodeName}...`)
 
     // TODO: at this point you know the node proc is dead, should we remove from map?
     this.procs.forEach((proc) => {
       // TODO: handle proc.kill?
       const _ = proc.kill()
     })
+
+    // adding onExit here prevents exit handlers from being executed but ideally it should be here
+    // this.onBlock.clear()
+    // this.onLog.clear()
+    // this.onClose.clear()
+    // this.onError.clear()
+    // this.onExit.clear()
   }
 }
 
@@ -447,20 +461,20 @@ export class SimulationNode {
  * running node/miner procs from other cli commands
  */
 export async function stopSimulationNode(node: {
-  name: string
-  data_dir: string
-  tcp_host: string
-  tcp_port: number
+  nodeName: string
+  dataDir: string
+  rpcTcpHost: string
+  rpcTcpPort: number
 }): Promise<{ success: boolean; msg: string }> {
-  const client = new RpcTcpClient(node.tcp_host, node.tcp_port)
+  const client = new RpcTcpClient(node.rpcTcpHost, node.rpcTcpPort)
 
   try {
     const connectSuccess = await client.tryConnect()
     if (!connectSuccess) {
-      throw new Error(`failed to connect to node ${node.name}`)
+      throw new Error(`failed to connect to node ${node.nodeName}`)
     }
   } catch (e) {
-    globalLogger.log(`error creating client to connect to node ${node.name}: ${String(e)}`)
+    globalLogger.log(`error creating client to connect to node ${node.nodeName}: ${String(e)}`)
   }
 
   let success = true

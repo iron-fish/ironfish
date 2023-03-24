@@ -10,7 +10,6 @@ import {
   SimulationNode,
   SimulationNodeConfig,
 } from './simulation-node'
-// import { SIMULATIONS } from './simulations'
 import { sleep } from './utils'
 
 export class Simulator {
@@ -42,7 +41,7 @@ export class Simulator {
   ): Promise<SimulationNode> {
     const node = await SimulationNode.initialize(config, this.logger, options)
 
-    this.nodes.set(config.name, node)
+    this.nodes.set(config.nodeName, node)
 
     return node
   }
@@ -56,15 +55,6 @@ export class Simulator {
     await Promise.all(Array.from(this.nodes.values()).map((node) => node.waitForShutdown()))
 
     return this.cleanup()
-  }
-
-  /**
-   * Adds a user simulation to track in the simulator.
-   *
-   * @param timer timer to add to the simulator
-   */
-  addTimer(timer: NodeJS.Timer): void {
-    this.intervals.push(timer)
   }
 
   private async cleanup(): Promise<void> {
