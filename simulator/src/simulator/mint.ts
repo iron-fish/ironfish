@@ -5,9 +5,9 @@ import { MintAssetRequest, MintAssetResponse } from '@ironfish/sdk'
 import { getDefaultAccount } from './accounts'
 import { SimulationNode } from './simulation-node'
 
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+/**
+ * Calls the mintAsset RPC on a node.
+ */
 export async function mintAsset(
   node: SimulationNode,
   request: MintAssetRequest,
@@ -21,6 +21,9 @@ export async function mintAsset(
   return resp.content
 }
 
+/**
+ * Mints an existing asset using the mintAsset RPC call.
+ */
 export async function mintExistingAsset(
   node: SimulationNode,
   request: {

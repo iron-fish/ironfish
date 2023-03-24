@@ -243,33 +243,6 @@ const stopLoop = async (
   }
 }
 
-export const setRandomInterval = (
-  fn: () => void,
-  minDelay: number, // in ms
-  maxDelay: number, // in ms
-): { clear(): void } => {
-  let timeout: NodeJS.Timeout
-
-  const runInterval = () => {
-    const timeoutFunction = () => {
-      fn()
-      runInterval()
-    }
-
-    const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay
-
-    timeout = setTimeout(timeoutFunction, delay)
-  }
-
-  runInterval()
-
-  return {
-    clear() {
-      clearTimeout(timeout)
-    },
-  }
-}
-
 const nodeConfig: SimulationNodeConfig[] = [
   {
     nodeName: 'node1',
