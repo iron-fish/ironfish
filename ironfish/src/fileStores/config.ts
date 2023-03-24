@@ -381,7 +381,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
-      getFundsApi: 'https://api.ironfish.network/faucet_transactions',
+      getFundsApi: 'https://testnet.api.ironfish.network/faucet_transactions',
       ipcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
       logLevel: '*:info',
       logPeerMessages: false,
