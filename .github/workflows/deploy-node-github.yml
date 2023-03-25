@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_latest:
+        if: ${{ github.ref == 'refs/heads/fix-github-ref-again' }}
         description: 'Tag this docker image as lastest. Should only be used for production releases'
         type: boolean
         default: false
