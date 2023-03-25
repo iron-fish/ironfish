@@ -7,6 +7,7 @@ import { LogLevel } from 'consola'
 import { Assert } from '../assert'
 import { createRootLogger } from '../logger'
 import { createRouteTest } from '../testUtilities/routeTest'
+import { Account } from '../wallet'
 import { MiningPoolShares } from './poolShares'
 
 describe('poolShares', () => {
@@ -270,5 +271,47 @@ describe('poolShares', () => {
     expect(unpaidShares.length).toEqual(2)
 
     jest.useRealTimers()
+  })
+
+  describe('sendTransaction', () => {
+    let defaultAccount: Account | null
+
+    beforeEach(() => {
+      defaultAccount = routeTest.node.wallet.getDefaultAccount()
+    })
+
+    afterEach(async () => {
+      await routeTest.node.wallet.setDefaultAccount(defaultAccount?.name ?? null)
+    })
+
+    it('throws an error if no account exists with accountName', async () => {
+      shares['accountName'] = 'fakeAccount'
+
+      const output = {
+        publicAddress: 'testPublicAddress',
+        amount: '42',
+        memo: 'for testing',
+        assetId: 'testAsset',
+      }
+
+      await expect(shares.sendTransaction([output])).rejects.toThrow(
+        new RegExp('No account with name'),
+      )
+    })
+
+    it('throws an error if node has no default account', async () => {
+      await routeTest.node.wallet.setDefaultAccount(null)
+
+      const output = {
+        publicAddress: 'testPublicAddress',
+        amount: '42',
+        memo: 'for testing',
+        assetId: 'testAsset',
+      }
+
+      await expect(shares.sendTransaction([output])).rejects.toThrow(
+        new RegExp('No account is currently active on the node'),
+      )
+    })
   })
 })
