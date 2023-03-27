@@ -101,6 +101,26 @@ jobs:
           PACKAGE_NAME: ironfish
           TAG: mainnet
 
+      # If we are deploying a new public release to mainnet
+      # also update the docker registry :latest tag for hygiene
+      - name: Deploy Node Image to AWS:latest
+        if: ${{ inputs.aws_tag_mainnet }}
+        run: ./ironfish-cli/scripts/deploy-docker.sh
+        env:
+          REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
+          PACKAGE_NAME: ironfish
+          TAG: latest
+
+      # Used if we are deploying a new version (e.g. v1.1)
+      # This is only executed when deploying a new release to mainnet
+      - name: Deploy Node Image to AWS:{version}
+        if: ${{ inputs.aws_tag_mainnet && github.event.ref_type == 'tag'}}
+        run: ./ironfish-cli/scripts/deploy-docker.sh
+        env:
+          REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
+          PACKAGE_NAME: ironfish
+          TAG: ${GITHUB_REF_NAME}
+
       - name: Deploy Node Image to AWS:testnet
         if: ${{ inputs.aws_tag_testnet }}
         run: ./ironfish-cli/scripts/deploy-docker.sh
