@@ -7,7 +7,6 @@ import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { TransactionStatus, TransactionType } from '../../../wallet'
 import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
-import { ValidationError } from '../../adapters'
 import { RpcRequest } from '../../request'
 import { ApiNamespace, router } from '../router'
 import { getAssetBalanceDeltas, serializeRpcAccountTransaction } from './types'
@@ -41,7 +40,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
     .object({
       account: yup.string().strip(true),
       hash: yup.string().notRequired(),
-      sequence: yup.number().notRequired(),
+      sequence: yup.number().min(GENESIS_BLOCK_SEQUENCE).notRequired(),
       limit: yup.number().notRequired(),
       offset: yup.number().notRequired(),
       confirmations: yup.number().notRequired(),
@@ -103,17 +102,11 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
     let count = 0
     let offset = 0
 
-    if (request.data.sequence !== undefined && request.data.sequence < GENESIS_BLOCK_SEQUENCE) {
-      throw new ValidationError('Sequence must be a positive number')
-    }
+    const transactions = request.data.sequence
+      ? account.getTransactionsBySequence(request.data.sequence)
+      : account.getTransactionsByTime()
 
-    let streamFn = () => account.getTransactionsByTime()
-    if (request.data.sequence) {
-      const sequence = request.data.sequence
-      streamFn = () => account.getTransactionsBySequence(sequence)
-    }
-
-    for await (const transaction of streamFn()) {
+    for await (const transaction of transactions) {
       if (request.closed) {
         break
       }
