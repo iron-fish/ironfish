@@ -82,7 +82,7 @@ jobs:
           TAG: testnet
 
       - name: Deploy Node Image to AWS:mainnet
-        if: ${{ inputs.github_tag_mainnet }}
+        if: ${{ inputs.aws_tag_mainnet }}
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
           REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
@@ -90,7 +90,7 @@ jobs:
           TAG: mainnet
 
       - name: Deploy Node Image to AWS:testnet
-        if: ${{ inputs.github_tag_testnet }}
+        if: ${{ inputs.aws_tag_testnet }}
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
           REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
