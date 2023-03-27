@@ -3,11 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { PUBLIC_ADDRESS_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
-import { IDatabaseEncoding } from '../../storage'
-import { ACCOUNT_KEY_LENGTH } from '../account'
-import { HeadValue, NullableHeadValueEncoding } from './headValue'
+import { IDatabaseEncoding } from '../../../../storage'
 
-const KEY_LENGTH = ACCOUNT_KEY_LENGTH
+const KEY_LENGTH = 32
 export const VIEW_KEY_LENGTH = 64
 const VERSION_LENGTH = 2
 
@@ -20,11 +18,7 @@ export interface AccountValue {
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
-  createdAt: HeadValue | null
-}
-
-export type AccountImport = Omit<AccountValue, 'id' | 'createdAt'> & {
-  createdAt: { hash: string; sequence: number } | null
+  createdAt: Date | null
 }
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
@@ -44,10 +38,8 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
     bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
-
     if (value.createdAt) {
-      const encoding = new NullableHeadValueEncoding()
-      bw.writeBytes(encoding.serialize(value.createdAt))
+      bw.writeU64(value.createdAt.getTime())
     }
 
     return bw.render()
@@ -66,12 +58,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
     const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
-
-    let createdAt = null
-    if (hasCreatedAt) {
-      const encoding = new NullableHeadValueEncoding()
-      createdAt = encoding.deserialize(reader.readBytes(encoding.nonNullSize))
-    }
+    const createdAt = hasCreatedAt ? new Date(reader.readU64()) : null
 
     return {
       version,
@@ -88,7 +75,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
 
   getSize(value: AccountValue): number {
     let size = 0
-    size += 1 // flags
+    size += 1
     size += VERSION_LENGTH
     size += bufio.sizeVarString(value.id, 'utf8')
     size += bufio.sizeVarString(value.name, 'utf8')
@@ -100,8 +87,7 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     size += KEY_LENGTH
     size += PUBLIC_ADDRESS_LENGTH
     if (value.createdAt) {
-      const encoding = new NullableHeadValueEncoding()
-      size += encoding.nonNullSize
+      size += 8
     }
 
     return size
