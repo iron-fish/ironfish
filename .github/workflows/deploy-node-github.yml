@@ -109,10 +109,10 @@ jobs:
           PACKAGE_NAME: ironfish
           TAG: testnet
 
-      - name: Deploy Node Image to AWS:{GITHUB_SHA}
+      - name: Deploy Node Image to AWS:${{ github.sha }}
         if: ${{ inputs.aws_tag_git_sha }}
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
           REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
           PACKAGE_NAME: ironfish
-          TAG: ${GITHUB_SHA}
+          TAG: ${{ github.sha }}
