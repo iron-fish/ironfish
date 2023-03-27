@@ -11,5 +11,40 @@
       "publicAddress": "3aade08766f374726252d244e44836524d4f89b0c46c56dcb5d3da8eedc0ac33",
       "createdAt": "2023-03-12T18:21:15.400Z"
     }
+  ],
+  "addGenesisTransaction Can create a new genesis block with an added transaction": [
+    {
+      "version": 1,
+      "id": "4649f9ad-b454-49d7-946b-fc4b624e2457",
+      "name": "account1",
+      "spendingKey": "d4aada789ad4ee23fd610feef896a14bab2adb27cdfb81ad862a6c5479f6137e",
+      "viewKey": "341e035eb513031b7ee64c16844b163c0079e61f720e02ef50f7761e65866ad17336dc7c7a21cd59092c41a7aeb5a614fcbd9d16d28cf6c56b02daa125cc2336",
+      "incomingViewKey": "fe14049643a4f7a6df042b1d4612b27cdbdc46432d62d12e2c2655fa768a1001",
+      "outgoingViewKey": "35afb0f100570a51ab6f2497a6d3e836d5a570520edb27cd93025ed3b492ce6f",
+      "publicAddress": "6e00ecabbf8f50570b3462822d2f817e8bfe1d681ec5c2706cd39efdb9f3bb87",
+      "createdAt": "2023-03-21T21:39:39.238Z"
+    },
+    {
+      "version": 1,
+      "id": "e55d269f-d79c-49db-84db-d1e5bae5b309",
+      "name": "account2",
+      "spendingKey": "fd210152449db354ed0fbe7ea915041728790185e89a0be2e428d453ac16245f",
+      "viewKey": "dbf261d0b5c1941050911d801ffba3e81877ebcd2d20aafccf2612a681eaa564dbb63e7b7aa552eca5539799811fdbc35e00b0507d34ea196b45ca2b2b1f0e9e",
+      "incomingViewKey": "3d46dbe6482a9e494c6187a7ba41d8b7aaace8e47e77f7c086e16e1f87c8f201",
+      "outgoingViewKey": "6d1423a452ffa1d10c220c92e493d368ac55f8e6317954602b74ea59a7a049d2",
+      "publicAddress": "82af4ab5a7c4889804ee685cc1cb0669e8a08ca480fe338a5f8d5bb26a114c5b",
+      "createdAt": "2023-03-21T21:39:39.239Z"
+    },
+    {
+      "version": 1,
+      "id": "e6669000-72b0-4954-875d-6868375701ed",
+      "name": "account3",
+      "spendingKey": "f2eed26802b20071715b6a2b113c7df2ea2552cf1e45c65cfe7c2375656e397b",
+      "viewKey": "ea00a65b1e2bb1e53a9f92e1d13a264132ef4c791f6b0d42c8778538748b15048a9af9264eabcf4fbb470ce7ad2ac8955aeba1f72131df8058f31c6b4c99679c",
+      "incomingViewKey": "13bb18a8b53d8cfcc1cd69b00afcadc227a00599cd8081f4d8bd32e684e19900",
+      "outgoingViewKey": "b206c06a5b26c3ceae1c2189835c68cb7da06adf177f414a09d28e1b525bb5c8",
+      "publicAddress": "3233dd96ca906d54f76625f215ab43c1202345493dce2d85d48f71a2a2304599",
+      "createdAt": "2023-03-21T21:39:39.239Z"
+    }
   ]
 }
