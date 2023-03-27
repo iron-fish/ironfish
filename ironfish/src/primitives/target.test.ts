@@ -214,4 +214,20 @@ describe('Calculate target', () => {
       expect(newTarget).toEqual(maximallyDifferentTarget)
     }
   })
+
+  describe('fromDifficulty', () => {
+    it('does not divide by zero', () => {
+      expect(() => Target.fromDifficulty(0n)).not.toThrow(RangeError)
+    })
+
+    it('does not return values outside the 256 bit range', () => {
+      expect(Target.fromDifficulty(1n).targetValue).toBeLessThanOrEqual(2n ** 256n - 1n)
+    })
+  })
+
+  describe('toDifficulty', () => {
+    it('does not divide by zero', () => {
+      expect(Target.minTarget().toDifficulty).not.toThrow(RangeError)
+    })
+  })
 })
