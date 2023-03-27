@@ -81,6 +81,18 @@ jobs:
           PACKAGE_NAME: ironfish
           TAG: testnet
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to AWS Registry
+        run: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_REGISTRY_URL
+        env:
+          AWS_REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
+
       - name: Deploy Node Image to AWS:mainnet
         if: ${{ inputs.aws_tag_mainnet }}
         run: ./ironfish-cli/scripts/deploy-docker.sh
