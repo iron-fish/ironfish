@@ -12,18 +12,10 @@ if [ -z "${PACKAGE_NAME-}" ]; then
     exit 1
 fi
 
-if [ -z "${GITHUB_SHA-}" ]; then
-    echo "Set GITHUB_SHA before running deploy-docker.sh"
+if [ -z "${TAG-}" ]; then
+    echo "Set TAG before running deploy-docker.sh"
     exit 1
 fi
 
-if [ -z "${GITHUB_REF-}" ]; then
-    echo "Set GITHUB_REF before running deploy-docker.sh"
-    exit 1
-fi
-
-docker tag ironfish:latest ${REGISTRY_URL}/${PACKAGE_NAME}:latest
-docker tag ironfish:latest ${REGISTRY_URL}/${PACKAGE_NAME}:${GITHUB_REF}
-docker tag ironfish:latest ${REGISTRY_URL}/${PACKAGE_NAME}:${GITHUB_SHA}
-
-docker push --all-tags ${REGISTRY_URL}/${PACKAGE_NAME}
+docker tag ironfish:latest ${REGISTRY_URL}/${PACKAGE_NAME}:${TAG}
+docker push ${REGISTRY_URL}/${PACKAGE_NAME}:${TAG}

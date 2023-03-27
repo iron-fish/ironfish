@@ -1,5 +1,27 @@
 name: Deploy Node Image to Github
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      github_tag_mainnet:
+        description: 'Github:mainnet'
+        type: boolean
+        default: false
+      github_tag_testnet:
+        description: 'Github:testnet'
+        type: boolean
+        default: false
+      aws_tag_mainnet:
+        description: 'AWS:mainnet'
+        type: boolean
+        default: false
+      aws_tag_testnet:
+        description: 'AWS:testnet'
+        type: boolean
+        default: false
+      aws_tag_git_sha:
+        description: 'AWS:{GIT_SHA}'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -23,10 +45,62 @@ jobs:
       - name: Build Node Image
         run: ./ironfish-cli/scripts/build-docker.sh
 
-      - name: Deploy Node Image to Github
+      - name: Deploy Node Image to Github:mainnet
+        if: ${{ inputs.github_tag_mainnet }}
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
           REGISTRY_URL: ghcr.io/iron-fish
           PACKAGE_NAME: ironfish
-          GITHUB_REF: ${GITHUB_REF_NAME}
-          GITHUB_SHA: ${GITHUB_SHA}
+          TAG: mainnet
+
+      # If we are deploying a new public release to mainnet
+      # also update the docker registry :latest tag for hygiene
+      - name: Deploy Node Image to Github:latest
+        if: ${{ inputs.github_tag_mainnet }}
+        run: ./ironfish-cli/scripts/deploy-docker.sh
+        env:
+          REGISTRY_URL: ghcr.io/iron-fish
+          PACKAGE_NAME: ironfish
+          TAG: latest
+
+      # Used if we are deploying a new version (e.g. v1.1)
+      # This is only executed when deploying a new release to mainnet
+      - name: Deploy Node Image to Github:{version}
+        if: ${{ inputs.github_tag_mainnet && GITHUB_REF_TYPE == 'tag'}}
+        run: ./ironfish-cli/scripts/deploy-docker.sh
+        env:
+          REGISTRY_URL: ghcr.io/iron-fish
+          PACKAGE_NAME: ironfish
+          TAG: ${GITHUB_REF_NAME}
+
+      - name: Deploy Node Image to Github:testnet
+        if: ${{ inputs.github_tag_testnet }}
+        run: ./ironfish-cli/scripts/deploy-docker.sh
+        env:
+          REGISTRY_URL: ghcr.io/iron-fish
+          PACKAGE_NAME: ironfish
+          TAG: testnet
+
+      - name: Deploy Node Image to AWS:mainnet
+        if: ${{ inputs.github_tag_mainnet }}
+        run: ./ironfish-cli/scripts/deploy-docker.sh
+        env:
+          REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
+          PACKAGE_NAME: ironfish
+          TAG: mainnet
+
+      - name: Deploy Node Image to AWS:testnet
+        if: ${{ inputs.github_tag_testnet }}
+        run: ./ironfish-cli/scripts/deploy-docker.sh
+        env:
+          REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
+          PACKAGE_NAME: ironfish
+          TAG: testnet
+
+      - name: Deploy Node Image to AWS:{GITHUB_SHA}
+        if: ${{ inputs.aws_tag_git_sha }}
+        run: ./ironfish-cli/scripts/deploy-docker.sh
+        env:
+          REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
+          PACKAGE_NAME: ironfish
+          TAG: ${GITHUB_SHA}
