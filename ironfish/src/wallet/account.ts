@@ -686,6 +686,18 @@ export class Account {
     return this.walletDb.loadTransactionsByTime(this, tx)
   }
 
+  async *getTransactionsBySequence(
+    sequence: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Readonly<TransactionValue>> {
+    for await (const {
+      hash: _hash,
+      ...transaction
+    } of this.walletDb.loadTransactionsInSequenceRange(this, sequence, sequence, tx)) {
+      yield transaction
+    }
+  }
+
   async *getTransactionsOrderedBySequence(
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<Readonly<TransactionValue>> {
