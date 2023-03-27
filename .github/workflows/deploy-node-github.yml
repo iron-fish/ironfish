@@ -42,6 +42,18 @@ jobs:
           GITHUB_USER: ${{ secrets.BREW_GITHUB_USERNAME }}
           GITHUB_TOKEN: ${{ secrets.BREW_GITHUB_TOKEN }}
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to AWS Registry
+        run: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_REGISTRY_URL
+        env:
+          AWS_REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
+
       - name: Build Node Image
         run: ./ironfish-cli/scripts/build-docker.sh
 
@@ -65,7 +77,7 @@ jobs:
 
       # Used if we are deploying a new version (e.g. v1.1)
       # This is only executed when deploying a new release to mainnet
-      - name: Deploy Node Image to Github:{version}
+      - name: Deploy Node Image to Github:${{ github.ref_name }}
         if: ${{ inputs.github_tag_mainnet && github.event.ref_type == 'tag'}}
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
@@ -80,18 +92,6 @@ jobs:
           REGISTRY_URL: ghcr.io/iron-fish
           PACKAGE_NAME: ironfish
           TAG: testnet
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Login to AWS Registry
-        run: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_REGISTRY_URL
-        env:
-          AWS_REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
 
       - name: Deploy Node Image to AWS:mainnet
         if: ${{ inputs.aws_tag_mainnet }}
@@ -113,7 +113,7 @@ jobs:
 
       # Used if we are deploying a new version (e.g. v1.1)
       # This is only executed when deploying a new release to mainnet
-      - name: Deploy Node Image to AWS:{version}
+      - name: Deploy Node Image to AWS:${{ github.ref_name }}
         if: ${{ inputs.aws_tag_mainnet && github.event.ref_type == 'tag'}}
         run: ./ironfish-cli/scripts/deploy-docker.sh
         env:
