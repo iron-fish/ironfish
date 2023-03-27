@@ -59,80 +59,62 @@ jobs:
 
       - name: Deploy Node Image to Github:mainnet
         if: ${{ inputs.github_tag_mainnet }}
-        run: ./ironfish-cli/scripts/deploy-docker.sh
-        env:
-          REGISTRY_URL: ghcr.io/iron-fish
-          PACKAGE_NAME: ironfish
-          TAG: mainnet
+        run: |
+          docker tag ironfish ghcr.io/iron-fish/ironfish:mainnet
+          docker push ghcr.io/iron-fish/ironfish:mainnet
 
       # If we are deploying a new public release to mainnet
       # also update the docker registry :latest tag for hygiene
       - name: Deploy Node Image to Github:latest
         if: ${{ inputs.github_tag_mainnet }}
-        run: ./ironfish-cli/scripts/deploy-docker.sh
-        env:
-          REGISTRY_URL: ghcr.io/iron-fish
-          PACKAGE_NAME: ironfish
-          TAG: latest
+        run: |
+          docker tag ironfish ghcr.io/iron-fish/ironfish:latest
+          docker push ghcr.io/iron-fish/ironfish:latest
 
       # Used if we are deploying a new version (e.g. v1.1)
       # This is only executed when deploying a new release to mainnet
       - name: Deploy Node Image to Github:${{ github.ref_name }}
         if: ${{ inputs.github_tag_mainnet && github.event.ref_type == 'tag'}}
-        run: ./ironfish-cli/scripts/deploy-docker.sh
-        env:
-          REGISTRY_URL: ghcr.io/iron-fish
-          PACKAGE_NAME: ironfish
-          TAG: ${GITHUB_REF_NAME}
+        run: |
+          docker tag ironfish ghcr.io/iron-fish/ironfish:${{ github.ref_name }}
+          docker push ghcr.io/iron-fish/ironfish:${{ github.ref_name }}
 
       - name: Deploy Node Image to Github:testnet
         if: ${{ inputs.github_tag_testnet }}
-        run: ./ironfish-cli/scripts/deploy-docker.sh
-        env:
-          REGISTRY_URL: ghcr.io/iron-fish
-          PACKAGE_NAME: ironfish
-          TAG: testnet
+        run: |
+          docker tag ironfish ghcr.io/iron-fish/ironfish:testnet
+          docker push ghcr.io/iron-fish/ironfish:testnet
 
       - name: Deploy Node Image to AWS:mainnet
         if: ${{ inputs.aws_tag_mainnet }}
-        run: ./ironfish-cli/scripts/deploy-docker.sh
-        env:
-          REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
-          PACKAGE_NAME: ironfish
-          TAG: mainnet
+        run: |
+          docker tag ironfish ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:mainnet
+          docker push ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:mainnet
 
       # If we are deploying a new public release to mainnet
       # also update the docker registry :latest tag for hygiene
       - name: Deploy Node Image to AWS:latest
         if: ${{ inputs.aws_tag_mainnet }}
-        run: ./ironfish-cli/scripts/deploy-docker.sh
-        env:
-          REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
-          PACKAGE_NAME: ironfish
-          TAG: latest
+        run: |
+          docker tag ironfish ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:latest
+          docker push ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:latest
 
       # Used if we are deploying a new version (e.g. v1.1)
       # This is only executed when deploying a new release to mainnet
       - name: Deploy Node Image to AWS:${{ github.ref_name }}
         if: ${{ inputs.aws_tag_mainnet && github.event.ref_type == 'tag'}}
-        run: ./ironfish-cli/scripts/deploy-docker.sh
-        env:
-          REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
-          PACKAGE_NAME: ironfish
-          TAG: ${GITHUB_REF_NAME}
+        run: |
+          docker tag ironfish ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}
+          docker push ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.ref_name }}
 
       - name: Deploy Node Image to AWS:testnet
         if: ${{ inputs.aws_tag_testnet }}
-        run: ./ironfish-cli/scripts/deploy-docker.sh
-        env:
-          REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
-          PACKAGE_NAME: ironfish
-          TAG: testnet
+        run: |
+          docker tag ironfish ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:testnet
+          docker push ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:testnet
 
       - name: Deploy Node Image to AWS:${{ github.sha }}
         if: ${{ inputs.aws_tag_git_sha }}
-        run: ./ironfish-cli/scripts/deploy-docker.sh
-        env:
-          REGISTRY_URL: ${{ secrets.AWS_NODE_REGISTRY_URL }}
-          PACKAGE_NAME: ironfish
-          TAG: ${{ github.sha }}
+        run: |
+          docker tag ironfish ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.sha }}
+          docker push ${{ secrets.AWS_NODE_REGISTRY_URL }}/ironfish:${{ github.sha }}
