@@ -24,6 +24,10 @@ export class TransactionsCommand extends IronfishCommand {
       char: 't',
       description: 'Transaction hash to get details for',
     }),
+    sequence: Flags.integer({
+      char: 's',
+      description: 'Block sequence to get transactions for',
+    }),
     limit: Flags.integer({
       description: 'Number of latest transactions to get details for',
     }),
@@ -52,6 +56,7 @@ export class TransactionsCommand extends IronfishCommand {
     const response = client.getAccountTransactionsStream({
       account,
       hash: flags.hash,
+      sequence: flags.sequence,
       limit: flags.limit,
       offset: flags.offset,
       confirmations: flags.confirmations,
