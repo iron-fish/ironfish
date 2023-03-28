@@ -2,26 +2,37 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  Config,
   ConfigOptions,
   Event,
   FollowChainStreamResponse,
+  NodeFileProvider,
   PromiseUtils,
   RpcTcpClient,
+  YupUtils,
 } from '@ironfish/sdk'
 import { createRootLogger, Logger } from '@ironfish/sdk'
+import chalk from 'chalk'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
+import * as yup from 'yup'
 import { getLatestBlockHash } from './chain'
 import { sleep } from './utils'
 
 export const rootCmd = 'ironfish'
 
-export type SimulationNodeConfig = Required<RequiredSimulationNodeConfig> &
-  Partial<OptionalSimulationNodeConfig> & { dataDir: string; verbose?: boolean }
+/**
+ * SimulationNodeConfig is the configuration for a node in the simulation network.
+ */
+export type SimulationNodeConfig = Required<RequiredUserSimulationNodeConfig> &
+  Partial<OptionalUserSimulationNodeConfig> & {
+    dataDir: string
+    verbose?: boolean
+  }
 
 /**
- * These are the options that are required to start a node.
+ * These options are required from the user to start a node.
  */
-type RequiredSimulationNodeConfig = Pick<
+type RequiredUserSimulationNodeConfig = Pick<
   ConfigOptions,
   | 'nodeName'
   | 'blockGraffiti'
@@ -30,31 +41,88 @@ type RequiredSimulationNodeConfig = Pick<
   | 'rpcTcpHost'
   | 'rpcTcpPort'
   | 'bootstrapNodes'
-  // TODO(austin): these have required values, should they be included
-  // | 'enableRpc' // true
-  // | 'enableRpcTcp' // true
-  // | 'enableRpcTls' // false
-  // | 'miningForce'
 >
 
 /**
- * Optional config values to set on the node`set:config` command on the node.
- * These are currently not supported.
+ * These options are required to start a node, but have set default values that the
+ * user currently cannot change.
+ * */
+type RequiredDefaultSimulationNodeConfig = Pick<
+  ConfigOptions,
+  'enableRpc' | 'enableRpcTcp' | 'enableRpcTls' | 'miningForce'
+>
+
+/**
+ * Optional config values that can be set on the node.
+ * There is no explicit support for these options, and thus might break a simulation node,
+ * but they can be set.
  */
-type OptionalSimulationNodeConfig = Omit<ConfigOptions, keyof RequiredSimulationNodeConfig>
+type OptionalUserSimulationNodeConfig = Omit<
+  ConfigOptions,
+  keyof (RequiredUserSimulationNodeConfig & RequiredDefaultSimulationNodeConfig)
+>
 
 const globalLogger = createRootLogger()
 
-export type supportedNodeChildProcesses = 'miner' | 'node'
+type supportedNodeChildProcesses = 'miner' | 'node'
 
+/**
+ * defaultOnEixt is the default onExit handler for a SimulationNode. It logs the exit event, in red, to the console.
+ * @param logger The logger to use
+ */
+const defaultOnExit =
+  (logger: Logger) =>
+  (event: ExitEvent): void =>
+    logger.log(chalk.red(`[${event.node}:exit]`) + ` ${JSON.stringify(event)}`)
+
+/**
+ *  defaultOnError is the default onError handler for a SimulationNode. It logs the error event, in red, to the console.
+ * @param logger The logger to use
+ */
+const defaultOnError =
+  (logger: Logger) =>
+  (event: ErrorEvent): void =>
+    logger.log(chalk.red(`[${event.node}:error]`) + ` ${JSON.stringify(event)}`)
+
+/**
+ * LogEvent that is emitted to any `onLog` listeners when a child process writes to stdout or stderr.
+ */
 export type LogEvent = {
   node: string
   type: 'stdout' | 'stderr'
   proc: supportedNodeChildProcesses
   message: string
+  jsonMessage?: NodeLogEvent
   timestamp: string
 }
 
+/**
+ * NodeLogEvent is the JSON object that is logged by the Ironfish node.
+ * This is wrapped in a LogEvent when it is emitted to any listeners.
+ */
+type NodeLogEvent = {
+  date: string
+  level: string
+  message: string
+  tag: string
+}
+
+/**
+ * NodeLogEventSchema is the schema for a NodeLogEvent. This is used to validate that the JSON
+ * object that is logged by the Ironfish node is valid.
+ */
+export const NodeLogEventSchema: yup.ObjectSchema<NodeLogEvent> = yup
+  .object({
+    date: yup.string().required(),
+    level: yup.string().required(),
+    message: yup.string().required(),
+    tag: yup.string().required(),
+  })
+  .required()
+
+/**
+ * CloseEvent is emitted to any `onClose` listeners when a child process is closed.
+ */
 export type CloseEvent = {
   node: string
   proc: supportedNodeChildProcesses
@@ -62,6 +130,9 @@ export type CloseEvent = {
   timestamp: string
 }
 
+/**
+ * ExitEvent is emitted to any `onExit` listeners when a child process exits.
+ */
 export type ExitEvent = {
   node: string
   proc: supportedNodeChildProcesses
@@ -71,6 +142,9 @@ export type ExitEvent = {
   timestamp: string
 }
 
+/**
+ * ErrorEvent is emitted to any `onError` listeners when a child process emits an error.
+ */
 export type ErrorEvent = {
   node: string
   proc: supportedNodeChildProcesses
@@ -79,16 +153,16 @@ export type ErrorEvent = {
 }
 
 /**
- * Wrapper around an Ironfish node for use in the simulation network.
+ * SimulationNode is a wrapper around an Ironfish node for use in the simulation network.
  *
- * This class is responsible for starting and stopping the node, and
- * providing a client to interact with the node. If the node is a miner,
- * it will also start and stop the miner.
+ * This class is responsible for the node, the miner, and
+ * providing a client to interact with the node.
  *
  * The node itself can be accessed via another terminal by specifying it's
- * data_dir while it is running.
+ * `data_dir` while it is running.
  *
- * This class should be created using the static `intiailize` method.
+ * This class should be created using the static `intiailize` method and not constructed
+ * using `new SimulationNode()`.
  */
 export class SimulationNode {
   procs = new Map<string, ChildProcessWithoutNullStreams>()
@@ -101,7 +175,6 @@ export class SimulationNode {
 
   onLog: Event<[LogEvent]> = new Event()
   onError: Event<[ErrorEvent]> = new Event()
-  onClose: Event<[CloseEvent]> = new Event()
   onExit: Event<[ExitEvent]> = new Event()
 
   client: RpcTcpClient
@@ -121,53 +194,21 @@ export class SimulationNode {
     logger: Logger,
     options?: {
       onLog?: ((l: LogEvent) => void | Promise<void>)[]
-      onClose?: ((c: CloseEvent) => void | Promise<void>)[]
       onExit?: ((e: ExitEvent) => void | Promise<void>)[]
       onError?: ((e: ErrorEvent) => void | Promise<void>)[]
     },
   ) {
     this.config = config
-
     this.client = client
-
     this.logger = logger.withTag(`${config.nodeName}`)
 
-    // TODO(austin): this is gross fix this
-    // use config rpc call instead of this
+    // Data dir is required here
+    const args = ['start', '--datadir', this.config.dataDir]
 
-    let args =
-      'start --name ' +
-      this.config.nodeName +
-      ' --graffiti ' +
-      this.config.blockGraffiti +
-      ' --port ' +
-      this.config.peerPort.toString() +
-      ' --datadir ' +
-      this.config.dataDir +
-      ' --networkId ' +
-      this.config.networkId.toString() +
-      ' --bootstrap ' +
-      this.config.bootstrapNodes[0] +
-      ' --rpc.tcp' +
-      ' --rpc.tcp.host ' +
-      this.config.rpcTcpHost +
-      ' --rpc.tcp.port ' +
-      this.config.rpcTcpPort.toString() +
-      ' --no-rpc.tcp.tls' +
-      // This needs to be set otherwise you run into 'not synced' errors
-      ' --forceMining'
-
-    if (config.verbose) {
-      args += ' --verbose'
-    }
-
-    // Register user event handlers
+    // Register any user-provided event handlers
     if (options) {
       if (options.onLog) {
-        options.onLog.forEach((l) => this.onLog.on(l))
-      }
-      if (options.onClose) {
-        options.onClose.forEach((c) => this.onClose.on(c))
+        options.onLog.forEach((e) => this.onLog.on(e))
       }
       if (options.onExit) {
         options.onExit.forEach((e) => this.onExit.on(e))
@@ -179,7 +220,7 @@ export class SimulationNode {
 
     this.nodeProcess = this.startNodeProcess(args)
 
-    // TODO(austin): should exit handler go here or in `intialize()`?
+    // TODO(holahula): hack to clean up when the node process exits
     this.onExit.on((exit) => {
       if (exit.proc === 'node') {
         if (this.shutdownResolve) {
@@ -199,25 +240,56 @@ export class SimulationNode {
 
   /**
    * Initializes a new SimulationNode. This should be used instead of the constructor
-   * to ensure that the node is ready to be used.
+   * to ensure that the node is ready to be used. Upon return, the node will be ready
+   * for any client RPC calls.
    *
    * @param config The config for the node
    * @param logger The logger to use for the node
-   * @param options Optional event handlers from the node process
+   * @param options Optional event handlers to handle log, close, and error events from the node / miner processes
    *
-   * @returns A new ready SimulationNode
+   * @returns A new and ready SimulationNode
    */
   static async initialize(
     config: SimulationNodeConfig,
     logger: Logger,
     options?: {
       onLog?: ((l: LogEvent) => void | Promise<void>)[]
-      onClose?: ((c: CloseEvent) => void | Promise<void>)[]
       onExit?: ((e: ExitEvent) => void | Promise<void>)[]
       onError?: ((c: ErrorEvent) => void | Promise<void>)[]
     },
   ): Promise<SimulationNode> {
     const client = new RpcTcpClient(config.rpcTcpHost, config.rpcTcpPort)
+
+    if (options) {
+      options.onExit = options.onExit || [defaultOnExit(logger)]
+      options.onError = options.onError || [defaultOnError(logger)]
+    }
+
+    // Create a starting config in the datadir before starting the node
+    const fileSystem = new NodeFileProvider()
+    await fileSystem.init()
+    const nodeConfig = new Config(fileSystem, config.dataDir)
+    await nodeConfig.load()
+
+    // These config options have default values that must be set
+    nodeConfig.set('jsonLogs', true)
+    nodeConfig.set('enableRpc', true)
+    nodeConfig.set('enableRpcTcp', true)
+    nodeConfig.set('enableRpcTls', false)
+    nodeConfig.set('miningForce', true)
+
+    if (config.verbose) {
+      nodeConfig.set('logLevel', '*:verbose')
+    }
+
+    for (const [key, value] of Object.entries(config)) {
+      if (key === 'dataDir' || key === 'verbose') {
+        continue
+      }
+      nodeConfig.set(key as keyof ConfigOptions, value)
+    }
+
+    await nodeConfig.save()
 
     const node = new SimulationNode(config, client, logger, options)
 
@@ -261,7 +333,7 @@ export class SimulationNode {
    */
   public startMiner(): boolean {
     if (this.minerProcess) {
-      throw new Error('Miner process already exists')
+      return false
     }
 
     this.logger.log(`attaching miner to ${this.config.nodeName}...`)
@@ -302,9 +374,9 @@ export class SimulationNode {
 
   /**
    * Initializes a block stream for a node. Each node should only have 1 block stream
-   * because the streams currently cannot be closed.
+   * because currently the stream RPC  cannot be closed.
    *
-   * To verify a transaction has been mined, you should attach a block stream consumer to the node
+   * To verify a transaction has been mined, you should attach a listener to the `onBlock` event
    * and wait for the transaction to appear.
    */
   initializeBlockStream(startingBlockHash: string): void {
@@ -323,19 +395,29 @@ export class SimulationNode {
 
   /**
    * Waits for a transaction to be mined and returns the block it was mined in.
-   * TODO: add timeout support (?)
+   * If the transaction is not mined before the expiration sequence, it will return undefined.
    *
    * @param transactionHash The hash of the transaction to wait for
    * @returns The block the transaction was mined in or undefined if the transaction was not mined
    */
   async waitForTransactionConfirmation(
     transactionHash: string,
+    expirationSequence?: number,
   ): Promise<FollowChainStreamResponse['block'] | undefined> {
     return new Promise((resolve) => {
       const checkBlock = (resp: FollowChainStreamResponse) => {
         const hasTransation = resp.block.transactions.find(
           (t) => t.hash.toLowerCase() === transactionHash,
         )
+
+        if (
+          resp.type === 'connected' &&
+          expirationSequence &&
+          resp.block.sequence >= expirationSequence
+        ) {
+          this.onBlock.off(checkBlock)
+          resolve(undefined)
+        }
 
         if (resp.type === 'connected' && hasTransation) {
           // TODO: is there a better way to unsubscribe to the event?
@@ -356,9 +438,8 @@ export class SimulationNode {
    *
    * @returns The node process
    */
-  private startNodeProcess(args: string): ChildProcessWithoutNullStreams {
-    // this.logger.log(rootCmd + ' ' + args)
-    const nodeProc = spawn(rootCmd, args.split(' '))
+  private startNodeProcess(args: string[]): ChildProcessWithoutNullStreams {
+    const nodeProc = spawn(rootCmd, args)
     this.registerChildProcess(nodeProc, 'node')
 
     return nodeProc
@@ -392,22 +473,30 @@ export class SimulationNode {
     proc: supportedNodeChildProcesses,
   ): void {
     p.stdout.on('data', (data) => {
-      this.onLog.emit({
-        node: this.config.nodeName,
-        proc,
-        type: 'stdout',
-        message: (data as Buffer).toString(),
-        timestamp: new Date().toISOString(),
+      const message = (data as Buffer).toString()
+      void YupUtils.tryValidate(NodeLogEventSchema, message).then(({ result }) => {
+        this.onLog.emit({
+          node: this.config.nodeName,
+          proc,
+          type: 'stdout',
+          message,
+          timestamp: new Date().toISOString(),
+          ...(result ? { jsonMessage: result } : {}),
+        })
       })
     })
 
     p.stderr.on('data', (data) => {
-      this.onLog.emit({
-        node: this.config.nodeName,
-        proc,
-        type: 'stderr',
-        message: (data as Buffer).toString(),
-        timestamp: new Date().toISOString(),
+      const message = (data as Buffer).toString()
+      void YupUtils.tryValidate(NodeLogEventSchema, message).then(({ result }) => {
+        this.onLog.emit({
+          node: this.config.nodeName,
+          proc,
+          type: 'stderr',
+          message,
+          timestamp: new Date().toISOString(),
+          ...(result ? { jsonMessage: result } : {}),
+        })
       })
     })
 
@@ -420,32 +509,10 @@ export class SimulationNode {
         error,
         timestamp: new Date().toISOString(),
       })
-
-      this.logger.log(`[${this.config.nodeName}:${proc}:error] ${error.message}`)
     })
 
-    /**
-     * From https://github.com/nodejs/node/blob/8a6b37bc51a353227b6711d3c1df12c2863e3302/doc/api/child_process.md#event-close
-     *
-     * The 'close' event is emitted when the stdio streams of a child process have been closed.
-     * This is distinct from the 'exit' event, since multiple processes might share the same stdio streams.
-     */
-    p.on('close', (code: number | null) => {
-      this.onClose.emit({
-        node: this.config.nodeName,
-        proc,
-        code,
-        timestamp: new Date().toISOString(),
-      })
-
-      this.logger.log(`[${this.config.nodeName}:${proc}:close] child process closed`, {
-        ...(code ? { code } : {}),
-      })
-    })
-
-    // TODO: add an event on exit
-    // looks for the last error type from the logger and emits it
-    // this way tests can look for exit events and potentially act on that
+    // The exit event is emitted when the child process ends.
+    // The last error encountered by the process is emitted in the event that this is an unexpected exit.
     p.on('exit', (code, signal) => {
       this.onExit.emit({
         node: this.config.nodeName,
@@ -454,11 +521,6 @@ export class SimulationNode {
         signal,
         lastErr: this.lastError,
         timestamp: new Date().toISOString(),
-      })
-
-      this.logger.log(`${this.config.nodeName}:${proc}:exit`, {
-        ...(code ? { code } : { code: 'no code' }),
-        ...(signal ? { signal: signal?.toString() } : { signal: 'no signal' }),
       })
     })
 
@@ -477,12 +539,13 @@ export class SimulationNode {
       const _ = proc.kill()
     })
 
-    // adding onExit here prevents exit handlers from being executed but ideally it should be here
+    // adding onExit here removes the exit handlers before they're executed on child process exit
+    // but ideally it should be here
+    // this.onExit.clear()
+
     // this.onBlock.clear()
     // this.onLog.clear()
-    // this.onClose.clear()
     // this.onError.clear()
-    // this.onExit.clear()
   }
 }
 
@@ -511,6 +574,7 @@ export async function stopSimulationNode(node: {
 
   let success = true
   let msg = ''
+
   try {
     await client.stopNode()
   } catch (error) {

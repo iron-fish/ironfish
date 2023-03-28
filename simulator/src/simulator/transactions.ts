@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
-import { SendTransactionResponse } from '@ironfish/sdk'
+import { Transaction } from '@ironfish/sdk'
 import { getAccountPublicKey, getDefaultAccount } from './accounts'
 import { SimulationNode } from './simulation-node'
 
@@ -24,7 +24,7 @@ export async function sendTransaction(
     expirationDelta?: number | null
     confirmations?: number | null
   },
-): Promise<SendTransactionResponse> {
+): Promise<{ transaction: Transaction; hash: string }> {
   const fromAccount = await getDefaultAccount(from)
   const toAccount = await getDefaultAccount(to)
 
@@ -47,5 +47,9 @@ export async function sendTransaction(
     ...options,
   })
 
-  return txn.content
+  const transaction = new Transaction(Buffer.from(txn.content.transaction, 'hex'))
+  return {
+    transaction,
+    hash: txn.content.hash,
+  }
 }

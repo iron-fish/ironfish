@@ -6,32 +6,19 @@ import { Logger, PromiseUtils } from '@ironfish/sdk'
 import {
   ErrorEvent,
   ExitEvent,
+  getRandom,
   LogEvent,
   MINUTE,
-  SimulationNode,
   SimulationNodeConfig,
   Simulator,
   sleep,
-  stopSimulationNode,
 } from '../simulator'
-import { getNodeMemoryStatus } from '../simulator/status'
 
-/**
- * TODO:
- * run chaos monkey that randomly stops nodes on intervals
- * can you detect when a node is killed and see it
- *
- * simulation1 can be stability
- * - do nodes crash over time
- * - whats the high watermark of the node (memory leak test)
- *  - peak usage (record memory usage in intervals)
- * - can also set limit in test, if a node goes over it should print a failure
- *  - then can investigate to find cause
- *
- * print mac spinner while test is running so you know it's alive
- *
- * problem with logs is that if there's too many, it's useless
- */
+// Author: holahula
+// Date: 2023-03-28
+// Description:
+// This simulation tests the stability of the network by randomly stopping and starting nodes,
+// trying to see if nodes crash over time. The memory usage of the nodes is also monitored.
 
 export async function run(logger: Logger): Promise<void> {
   const simulator = new Simulator(logger)
@@ -47,19 +34,18 @@ export async function run(logger: Logger): Promise<void> {
     logger.log(`[${event.node}:error] ${JSON.stringify(event)}`)
   }
 
-  const nodeMap: Map<string, SimulationNode> = new Map()
-
+  // Spawn 3 nodes
   await Promise.all(
     nodeConfig.slice(0, 3).map(async (cfg) => {
-      const node = await simulator.addNode(cfg, {
+      await simulator.startNode(cfg, {
         onExit: [onExit],
         onError: [onError],
       })
       alive.add(cfg.nodeName)
-      nodeMap.set(cfg.nodeName, node)
     }),
   )
 
+  // add nodes to the alive / dead sets
   nodeConfig.forEach((node) => {
     const name = node.nodeName
     if (!alive.has(name)) {
@@ -69,7 +55,7 @@ export async function run(logger: Logger): Promise<void> {
 
   logger = logger.withScope('simulation2')
 
-  nodeMap.get('node0')?.startMiner()
+  simulator.nodes.get('node0')?.startMiner()
 
   await sleep(3000)
 
@@ -80,21 +66,21 @@ export async function run(logger: Logger): Promise<void> {
   const simulationStatus: SimulationStatus = {
     numStarts: 0,
     numStops: 0,
-    failedStarts: [],
-    failedStops: [],
+    failedStarts: { count: 0, errs: [] },
+    failedStops: { count: 0, errs: [] },
   }
 
-  void stopLoop(nodeMap, alive, dead, logger, loop, simulationStatus)
+  void stopLoop(simulator, logger, alive, dead, loop, simulationStatus)
 
-  void startLoop(simulator, nodeMap, alive, dead, logger, loop, simulationStatus, {
+  void startLoop(simulator, logger, alive, dead, loop, simulationStatus, {
     onExit: [onExit],
     onError: [onError],
   })
 
-  void memoryLoop(nodeMap, logger, loop)
+  void simulator.startMemoryUsageLoop(1 * MINUTE)
 
   setInterval(() => {
-    logger.log('status', { status: JSON.stringify(simulationStatus) })
+    logger.log('[simulation] sim status', { status: JSON.stringify(simulationStatus) })
   }, 1 * MINUTE)
 
   await simulator.waitForShutdown()
@@ -103,32 +89,16 @@ export async function run(logger: Logger): Promise<void> {
 type SimulationStatus = {
   numStarts: number
   numStops: number
-  failedStarts: Array<{ err: Error }>
-  failedStops: Array<{ err: Error }>
+  failedStarts: { count: number; errs: Array<{ err: Error }> }
+  failedStops: { count: number; errs: Array<{ err: Error }> }
 }
 
-const memoryLoop = async (
-  nodeMap: Map<string, SimulationNode>,
-  logger: Logger,
-  loop: { state: boolean },
-) => {
-  while (loop.state) {
-    await sleep(1 * MINUTE)
-
-    for (const node of nodeMap.values()) {
-      const memory = await getNodeMemoryStatus(node, true)
-
-      logger.log(`[${node.config.nodeName}]`, { memoryStatus: JSON.stringify(memory) })
-    }
-  }
-}
-
+// Loop that continuosly starts nodes
 const startLoop = async (
   simulator: Simulator,
-  nodeMap: Map<string, SimulationNode>,
+  logger: Logger,
   alive: Set<string>,
   dead: Set<string>,
-  logger: Logger,
   loop: { state: boolean },
   simulationStatus: SimulationStatus,
   options?: {
@@ -138,66 +108,72 @@ const startLoop = async (
   },
 ) => {
   while (loop.state) {
-    await sleep(Math.floor(Math.random() * 1 * MINUTE))
-    const n = getRandomItem(dead)
-    if (!n) {
-      logger.log(`no dead node to spawn: ${Array.from(dead).join(', ')}`)
-      continue
+    try {
+      await sleep(Math.floor(Math.random() * 1 * MINUTE))
+      const n = getRandom(dead)
+      if (!n) {
+        logger.log(`[start] no dead node to spawn: ${Array.from(dead).join(', ')}`)
+        continue
+      }
+
+      logger.log(`[start] starting node ${n}`)
+      const node = nodeConfig.find((cfg) => cfg.nodeName === n)
+      if (!node) {
+        logger.log(`[start] couldnt get config for ${n}`)
+        continue
+      }
+
+      const added = await simulator.startNode(node, options)
+      alive.add(added.config.nodeName)
+      dead.delete(added.config.nodeName)
+
+      simulationStatus.numStarts += 1
+
+      logger.log(
+        `[start] node ${added.config.nodeName} started | alive nodes: ${Array.from(alive).join(
+          ', ',
+        )}`,
+      )
+    } catch (e) {
+      logger.log(`[start] error starting node`, { err: String(e) })
+      simulationStatus.failedStarts.count += 1
+      simulationStatus.failedStarts.errs.push({ err: new Error(String(e)) })
     }
-
-    logger.log(`starting node ${n}`)
-    const node = nodeConfig.find((cfg) => cfg.nodeName === n)
-    if (!node) {
-      logger.log(`couldnt get config for ${n}`)
-      continue
-    }
-
-    const added = await simulator.addNode(node, options)
-    alive.add(added.config.nodeName)
-    dead.delete(added.config.nodeName)
-    nodeMap.set(added.config.nodeName, added)
-
-    simulationStatus.numStarts += 1
-
-    logger.log(`node ${added.config.nodeName} started`)
-    logger.log(`[start] alive nodes: ${Array.from(alive).join(', ')}`)
   }
 }
 
-const getRandomItem = (set: Set<string>): string | undefined => {
-  if (set.size === 0) {
-    return undefined
-  }
-  const arr = Array.from(set)
-  const idx = Math.floor(Math.random() * arr.length)
-  return arr[idx]
-}
-
-// TODO: add exit handler exit loop
+// Loop that continuously stops nodes
 const stopLoop = async (
-  nodeMap: Map<string, SimulationNode>,
+  simulator: Simulator,
+  logger: Logger,
   alive: Set<string>,
   dead: Set<string>,
-  logger: Logger,
   loop: { state: boolean },
   simulationStatus: SimulationStatus,
 ) => {
   while (loop.state) {
     await sleep(Math.floor(Math.random() * 1 * MINUTE))
     if (alive.size === 1) {
-      logger.log('cannot kill bootstrap node')
+      logger.log('[stop] only 1 node running, cannot kill bootstrap node')
       continue
     }
 
-    const name = getRandomItem(alive)
+    const name = getRandom(alive)
     if (!name) {
-      logger.log('no alive node to kill', { alive: Array.from(alive).join(', ') })
+      logger.log('[stop] no alive node to kill', { alive: Array.from(alive).join(', ') })
       continue
     }
 
-    const node = nodeMap.get(name)
-    if (!node || node.config.bootstrapNodes[0] === "''") {
-      logger.log(`alive node not found / cannot be killed ${name}`, {
+    const node = simulator.nodes.get(name)
+    if (!node) {
+      logger.log(`[stop] alive node not found ${name}`, {
+        alive: Array.from(alive).join(', '),
+      })
+      continue
+    }
+
+    if (node.config.bootstrapNodes[0] === "''") {
+      logger.log(`[stop] bootstrap node cannot be killed ${name}`, {
         alive: Array.from(alive).join(', '),
       })
       continue
@@ -209,17 +185,18 @@ const stopLoop = async (
 
     const [stopped, resolve, reject] = PromiseUtils.split<void>()
 
+    const wait = setTimeout(() => {
+      clearTimeout(wait)
+      reject('[stop] timeout 1 minute exceeded')
+    }, 1 * MINUTE)
+
     const exitListener = () => {
       resolve()
     }
 
-    const wait = setTimeout(() => {
-      clearTimeout(wait)
-      reject('timeout')
-    }, 1 * MINUTE)
-
     node.onExit.on(exitListener)
-    const { success, msg } = await stopSimulationNode(node.config)
+
+    const { success, msg } = await simulator.stopNode(node.config.nodeName)
     if (!success) {
       logger.log(msg)
     }
@@ -228,18 +205,20 @@ const stopLoop = async (
       () => {
         alive.delete(node.config.nodeName)
         dead.add(node.config.nodeName)
-        nodeMap.delete(node.config.nodeName)
-
-        logger.log(`node ${node.config.nodeName} stopped`)
+        logger.log(
+          `[stop] node ${node.config.nodeName} stopped | alive nodes: ${Array.from(alive).join(
+            ', ',
+          )}`,
+        )
       },
       (reason) => {
-        logger.log(`node ${node.config.nodeName} failed to stop`)
-        simulationStatus.failedStops.push({ err: new Error(reason) })
+        logger.log(`[stop] node ${node.config.nodeName} failed to stop`)
+        simulationStatus.failedStops.errs.push({ err: new Error(reason) })
+        simulationStatus.failedStops.count += 1
       },
     )
 
     node.onExit.off(exitListener)
-    logger.log(`[stop] alive nodes: ${Array.from(alive).join(', ')}`)
   }
 }
 

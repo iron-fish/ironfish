@@ -59,3 +59,26 @@ export function setRandomInterval(
     },
   }
 }
+
+/**
+ * A helper function to get a random element from a set or array.
+ *
+ * @param set The set to get a random element from
+ * @returns A random element from the set if elements exist, otherwise undefined
+ */
+export function getRandom<T>(list: Set<T> | Array<T>): T | undefined {
+  let arr: Array<T> = []
+
+  if (list instanceof Set) {
+    arr = Array.from(list)
+  } else {
+    arr = list
+  }
+
+  if (arr.length === 0) {
+    return undefined
+  }
+
+  const idx = Math.floor(Math.random() * arr.length)
+  return arr[idx]
+}

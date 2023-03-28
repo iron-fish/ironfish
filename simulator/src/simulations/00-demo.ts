@@ -13,7 +13,6 @@
 
 import { Logger } from '@ironfish/sdk'
 import {
-  CloseEvent,
   ErrorEvent,
   ExitEvent,
   IRON,
@@ -38,10 +37,6 @@ export async function run(logger: Logger): Promise<void> {
     logger.log(`[${event.node}:${event.proc}:log:${event.type}] ${JSON.stringify(event)}`)
   }
 
-  const onClose = (event: CloseEvent): void => {
-    logger.log(`[${event.node}:close] ${JSON.stringify(event)}`)
-  }
-
   const onExit = (event: ExitEvent): void => {
     logger.log(`[${event.node}:exit] ${JSON.stringify(event)}`)
   }
@@ -55,11 +50,10 @@ export async function run(logger: Logger): Promise<void> {
   // The handlers must be passed into the addNode function to ensure that no events are missed.
   const nodes = await Promise.all(
     nodeConfig.map(async (cfg) => {
-      return simulator.addNode(cfg, {
+      return simulator.startNode(cfg, {
         onLog: [onLog],
         onExit: [onExit],
         onError: [onError],
-        onClose: [onClose],
       })
     }),
   )
@@ -121,7 +115,7 @@ const nodeConfig: SimulationNodeConfig[] = [
     peerPort: 7001,
     dataDir: '~/.ironfish-atn/node1',
     networkId: 2,
-    bootstrapNodes: ["''"],
+    bootstrapNodes: ["''"], // This is a hack to register the bootstrap node
     rpcTcpHost: 'localhost',
     rpcTcpPort: 9001,
     verbose: true,

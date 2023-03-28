@@ -5,8 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createRootLogger } from '@ironfish/sdk'
-import { Command } from '@oclif/core'
-import { Config } from '@oclif/core'
+import { CliUx, Command, Config } from '@oclif/core'
 import { SIMULATIONS } from '../simulations'
 
 export abstract class Start extends Command {
@@ -43,9 +42,9 @@ export abstract class Start extends Command {
       return
     }
 
-    logger.log(`starting simulation ${simulation}`)
+    CliUx.ux.action.start(`running simulation ${simulation}`)
     await toRun.run(logger)
-    logger.log('simulation ended')
+    CliUx.ux.action.start(`stop simulation ${simulation}`)
     this.exit()
   }
 }

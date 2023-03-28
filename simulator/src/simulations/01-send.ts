@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// User: holahula
+// Author: holahula
 // Purpose: Send transactions from one node to another every 3 seconds
-import { Logger, Transaction } from '@ironfish/sdk'
+import { Logger } from '@ironfish/sdk'
+import chalk from 'chalk'
 import {
-  ErrorEvent,
-  ExitEvent,
   IRON,
-  LogEvent,
   SECOND,
   sendTransaction,
   SimulationNodeConfig,
@@ -20,82 +18,38 @@ import {
 export async function run(logger: Logger): Promise<void> {
   const simulator = new Simulator(logger)
 
-  // Register event handlers
+  const nodes = await Promise.all(nodeConfig.map((cfg) => simulator.startNode(cfg)))
 
-  const onLog = (event: LogEvent): void => {
-    logger.log(`[${event.node}:${event.proc}:log:${event.type}] ${JSON.stringify(event)}`)
-  }
-
-  const onExit = (event: ExitEvent): void => {
-    logger.log(`[${event.node}:exit] ${JSON.stringify(event)}`)
-  }
-
-  const onError = (event: ErrorEvent): void => {
-    logger.log(`[${event.node}:error] ${JSON.stringify(event)}`)
-  }
-
-  const nodes = await Promise.all(
-    nodeConfig.map(async (cfg) => {
-      return simulator.addNode(cfg, {
-        onLog: [onLog],
-        onExit: [onExit],
-        onError: [onError],
-      })
-    }),
-  )
-
-  logger = logger.withScope('simulation1')
-
-  nodes[0].startMiner()
-
-  // TODO: hack to wait for nodes finish initializing
-  await sleep(5 * SECOND)
-
-  logger.log('nodes initialized')
-
-  const nullifiers: { [key: string]: number } = {}
   const from = nodes[0]
-  const to = nodes[0]
+  const to = nodes[1]
 
-  const send = async (): Promise<void> => {
-    const { transaction, hash } = await sendTransaction(from, to, 1 * IRON, 1 * IRON)
-    const t = new Transaction(Buffer.from(transaction, 'hex'))
-    for (const s of t.spends) {
-      const nullifier = s.nullifier.toString('hex')
-      nullifiers[nullifier] ? nullifiers[nullifier]++ : (nullifiers[nullifier] = 1)
-      logger.log(`[sim:sent] transaction: ${hash}, nullifier: ${nullifier}`)
+  from.startMiner()
+
+  while (simulator.nodes) {
+    const sendResult = await sendTransaction(from, to, 1 * IRON, 1 * IRON).catch(
+      () => undefined,
+    )
+
+    if (!sendResult) {
+      continue
     }
 
-    const block = await from.waitForTransactionConfirmation(hash)
+    const { transaction, hash } = sendResult
+    logger.log(chalk.yellow(`[SENT] ${hash}`))
 
-    if (!block) {
-      logger.error(`[sim:failed] transaction: ${hash}`)
-      return
-    }
-    logger.log(`[sim:confirmed] transaction: ${hash}, block: ${block.hash}`)
+    void to.waitForTransactionConfirmation(hash, transaction.expiration()).then((block) => {
+      if (block === undefined) {
+        logger.log(chalk.red(`[FAILED] ${hash}`))
+      } else {
+        logger.log(chalk.green(`[RECEIVED] ${hash} on block ${block?.sequence}`))
+      }
+    })
+
+    await sleep(1 * SECOND)
   }
-
-  let started = 0
-  let finished = 0
-
-  setInterval(() => {
-    started += 1
-    const runNumber = started
-    logger.log(`[started] #${runNumber}`)
-    void send()
-      .then(() => {
-        finished += 1
-        logger.log(`[finished] #${runNumber}`)
-        logger.log(`[count] started ${started}, finished: ${finished}`)
-      })
-      .catch((e) => {
-        logger.error(`[error] #${runNumber}: ${String(e)}`)
-      })
-  }, 1 * SECOND)
-
-  await simulator.waitForShutdown()
 
   // wait for all nodes to be stopped
+  await simulator.waitForShutdown()
 
   logger.log('nodes stopped, shutting down...')
 }
@@ -121,15 +75,5 @@ const nodeConfig: SimulationNodeConfig[] = [
     bootstrapNodes: ['localhost:7001'],
     rpcTcpHost: 'localhost',
     rpcTcpPort: 9002,
-  },
-  {
-    nodeName: 'node3',
-    blockGraffiti: '3',
-    peerPort: 7003,
-    dataDir: '~/.ironfish-atn/node3',
-    networkId: 2,
-    bootstrapNodes: ['localhost:7001'],
-    rpcTcpHost: 'localhost',
-    rpcTcpPort: 9003,
   },
 ]
