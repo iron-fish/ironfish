@@ -61,14 +61,15 @@ const timestamp = <T extends Record<string, unknown>>(options?: {
 
 const asset = <T extends Record<string, unknown>>(options?: {
   extended?: boolean
+  formatted?: boolean
 }): Partial<Record<string, table.Column<T>>> => {
-  if (options?.extended) {
+  if (options?.extended || options?.formatted === false) {
     return {
       assetId: {
         header: 'Asset ID',
         get: (row) => row['assetId'],
         minWidth: MAX_ASSET_NAME_COLUMN_WIDTH,
-        extended: true,
+        extended: options.formatted ?? true,
       },
       assetName: {
         header: 'Asset Name',
@@ -78,7 +79,7 @@ const asset = <T extends Record<string, unknown>>(options?: {
           return truncateCol(assetName, MAX_ASSET_NAME_COLUMN_WIDTH)
         },
         minWidth: MAX_ASSET_NAME_COLUMN_WIDTH,
-        extended: true,
+        extended: options.formatted ?? true,
       },
     }
   } else {

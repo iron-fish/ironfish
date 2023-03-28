@@ -48,6 +48,8 @@ export class TransactionsCommand extends IronfishCommand {
     const { flags, args } = await this.parse(TransactionsCommand)
     const account = args.account as string | undefined
 
+    const formatted = flags.csv !== true && flags.output === undefined
+
     const client = await this.sdk.connectRpc()
     const response = client.getAccountTransactionsStream({
       account,
@@ -57,12 +59,12 @@ export class TransactionsCommand extends IronfishCommand {
       confirmations: flags.confirmations,
     })
 
-    const columns = this.getColumns(flags.extended)
+    const columns = this.getColumns(flags.extended, formatted)
 
     let showHeader = !flags['no-header']
 
     for await (const transaction of response.contentStream()) {
-      const transactionRows = this.getTransactionRows(transaction)
+      const transactionRows = this.getTransactionRows(transaction, formatted)
 
       CliUx.ux.table(transactionRows, columns, {
         printLine: this.log.bind(this),
@@ -76,65 +78,53 @@ export class TransactionsCommand extends IronfishCommand {
 
   getTransactionRows(
     transaction: GetAccountTransactionsResponse,
+    formatted = true,
   ): PartialRecursive<TransactionRow>[] {
     const nativeAssetId = Asset.nativeId().toString('hex')
 
-    const nativeAssetBalanceDelta = transaction.assetBalanceDeltas.find(
-      (d) => d.assetId === nativeAssetId,
+    const assetBalanceDeltas = transaction.assetBalanceDeltas.sort((d) =>
+      d.assetId === nativeAssetId ? -1 : 1,
     )
 
-    let amount = BigInt(nativeAssetBalanceDelta?.delta ?? '0')
-
-    let feePaid = BigInt(transaction.fee)
-
-    if (transaction.type !== TransactionType.SEND) {
-      feePaid = 0n
-    } else {
-      amount += feePaid
-    }
+    const feePaid = transaction.type === TransactionType.SEND ? BigInt(transaction.fee) : 0n
 
     const transactionRows = []
 
-    const assetCount = transaction.assetBalanceDeltas.length
-    const isGroup = assetCount > 1
+    let assetCount = assetBalanceDeltas.length
 
-    // $IRON should appear first if it is the only asset in the transaction or the net amount was non-zero
-    if (!isGroup || amount !== 0n) {
-      transactionRows.push({
-        ...transaction,
-        group: isGroup ? '┏' : '',
-        assetId: nativeAssetId,
-        assetName: Buffer.from('$IRON').toString('hex'),
-        amount,
-        feePaid,
-      })
-    }
+    for (const [index, { assetId, assetName, delta }] of assetBalanceDeltas.entries()) {
+      let amount = BigInt(delta)
 
-    for (const [
-      index,
-      { assetId, assetName, delta },
-    ] of transaction.assetBalanceDeltas.entries()) {
-      // skip the native asset, added above
       if (assetId === Asset.nativeId().toString('hex')) {
-        continue
+        if (transaction.type === TransactionType.SEND) {
+          amount += feePaid
+        }
+
+        // exclude the native asset in formatted output if no amount was sent/received
+        if (formatted && amount === 0n) {
+          assetCount -= 1
+          continue
+        }
       }
 
-      if (transactionRows.length === 0) {
-        // include full transaction details if the native asset had no net change
+      const group = this.getRowGroup(index, assetCount, transactionRows.length)
+
+      // include full transaction details in first row or non-formatted output
+      if (transactionRows.length === 0 || !formatted) {
         transactionRows.push({
           ...transaction,
-          group: assetCount === 2 ? '' : '┏',
+          group,
           assetId,
           assetName,
-          amount: BigInt(delta),
+          amount,
           feePaid,
         })
       } else {
         transactionRows.push({
-          group: index === assetCount - 1 ? '┗' : '┣',
+          group,
           assetId,
           assetName,
-          amount: BigInt(delta),
+          amount,
         })
       }
     }
@@ -142,12 +132,11 @@ export class TransactionsCommand extends IronfishCommand {
     return transactionRows
   }
 
-  getColumns(extended: boolean): CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> {
-    return {
-      group: {
-        header: '',
-        minWidth: 3,
-      },
+  getColumns(
+    extended: boolean,
+    formatted: boolean,
+  ): CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> {
+    const columns: CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> = {
       timestamp: TableCols.timestamp({
         streaming: true,
       }),
@@ -191,7 +180,7 @@ export class TransactionsCommand extends IronfishCommand {
         get: (row) =>
           row.feePaid && row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : '',
       },
-      ...TableCols.asset({ extended }),
+      ...TableCols.asset({ extended, formatted }),
       amount: {
         header: 'Net Amount',
         get: (row) => {
@@ -201,11 +190,37 @@ export class TransactionsCommand extends IronfishCommand {
         minWidth: 16,
       },
     }
+
+    if (formatted) {
+      return {
+        group: {
+          header: '',
+          minWidth: 3,
+        },
+        ...columns,
+      }
+    }
+
+    return columns
+  }
+
+  getRowGroup(index: number, assetCount: number, assetRowCount: number): string {
+    if (assetCount > 1) {
+      if (assetRowCount === 0) {
+        return '┏'
+      } else if (assetRowCount > 0 && index < assetCount - 1) {
+        return '┣'
+      } else if (assetRowCount > 0 && index === assetCount - 1) {
+        return '┗'
+      }
+    }
+
+    return ''
   }
 }
 
 type TransactionRow = {
-  group: string
+  group?: string
   timestamp: number
   status: string
   type: string
