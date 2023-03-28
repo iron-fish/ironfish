@@ -49,13 +49,24 @@ function import_account_interactively() {
 }
 
 function import_account_by_pipe() {
-    IMPORT_OUTPUT=$(ironfish wallet:import < $TEST_FILE)
-    # verify return code of import
-    if [ $? -ne 0 ]; then
+    expect -c "
+        spawn sh -c \"cat $TEST_FILE | ironfish wallet:import\"
+        expect {
+            \"Enter a new account name:\" {
+                send \"$ACCOUNT_NAME\\r\"
+                exp_continue
+            }
+            \"Account $ACCOUNT_NAME imported\" {
+                set output \$expect_out(buffer)
+            }
+            eof
+        }
+    "
+    # verify import success by examining captured output
+    if ! echo "$output" | grep -q "Account $ACCOUNT_NAME imported"; then
         echo "Import failed for $ACCOUNT_NAME"
         exit 1
     fi
-    check_import_success "$IMPORT_OUTPUT" "$ACCOUNT_NAME"
     DELETE_OUTPUT=$(ironfish wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
     if [ $? -ne 0 ]; then
@@ -109,8 +120,8 @@ for VERSION in {65..65}
         echo $TEST_FILE
         FILE_CONTENTS=$(cat $TEST_FILE)
         # import_account_interactively
-        # import_account_by_pipe
-        import_account_by_path
+        import_account_by_pipe
+        # import_account_by_path
         done
     done
 
