@@ -6,6 +6,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { LogLevel } from 'consola'
 import { Assert } from '../assert'
 import { createRootLogger } from '../logger'
+import { useAccountFixture } from '../testUtilities/fixtures/account'
 import { createRouteTest } from '../testUtilities/routeTest'
 import { Account } from '../wallet'
 import { MiningPoolShares } from './poolShares'
@@ -16,6 +17,10 @@ describe('poolShares', () => {
 
   beforeEach(async () => {
     const logger = createRootLogger().withTag('test')
+
+    await useAccountFixture(routeTest.node.wallet, 'default')
+    await routeTest.wallet.setDefaultAccount('default')
+
     logger.level = LogLevel.Silent
     shares = await MiningPoolShares.init({
       rpc: routeTest.client,
@@ -33,6 +38,16 @@ describe('poolShares', () => {
   })
 
   describe('start', () => {
+    let defaultAccount: Account | null
+
+    beforeEach(() => {
+      defaultAccount = routeTest.node.wallet.getDefaultAccount()
+    })
+
+    afterEach(async () => {
+      await routeTest.node.wallet.setDefaultAccount(defaultAccount?.name ?? null)
+    })
+
     it('throws an error if the pool account does not exist', async () => {
       shares['accountName'] = 'accountDoesNotExist'
 
