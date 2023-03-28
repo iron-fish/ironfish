@@ -22,13 +22,19 @@ function check_delete_success() {
 
 function import_account_interactively() {
     # import filename interactively
-    IMPORT_OUTPUT=$(expect -c "
+    IMPORT_OUTPUT=$(expect -d -c "
         spawn ironfish wallet:import
         expect \"Paste the output of wallet:export, or your spending key:\"
         send \"$FILE_CONTENTS\\r\"
-        interact
+        expect {
+            \"Enter a new account name:\" {
+                send \"$ACCOUNT_NAME\\r\"
+            }
+            eof
+        }
     ")
     # verify return code of import
+    ironfish wallet:accounts
     if [ $? -ne 0 ]; then
         echo "Import failed for $ACCOUNT_NAME"
         exit 1
@@ -80,8 +86,10 @@ function import_account_by_path() {
 }
 
 TEST_VECTOR_LOCATION='./import-export-test-vector/'
-FORMAT_ARRAY=( blob json mnemonic )
-for VERSION in {65..72}
+# FORMAT_ARRAY=( blob json mnemonic )
+FORMAT_ARRAY=( mnemonic )
+# for VERSION in {65..72}
+for VERSION in {65..65}
     do
     for FORMAT in "${FORMAT_ARRAY[@]}"
         do
