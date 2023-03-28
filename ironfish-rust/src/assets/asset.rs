@@ -3,10 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use crate::{errors::IronfishError, keys::PUBLIC_ADDRESS_SIZE, util::str_to_array, PublicAddress};
 use byteorder::{ReadBytesExt, WriteBytesExt};
-use ironfish_zkp::{
-    constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK},
-    util::asset_hash_to_point,
-};
+use ironfish_zkp::constants::{ASSET_ID_LENGTH, ASSET_ID_PERSONALIZATION, GH_FIRST_BLOCK};
 use jubjub::{ExtendedPoint, SubgroupPoint};
 use std::io;
 
@@ -74,19 +71,18 @@ impl Asset {
             .update(&metadata)
             .update(std::slice::from_ref(&nonce))
             .finalize();
-        let asset_id = asset_id_hash.as_array();
 
-        if asset_hash_to_point(asset_id).is_some() {
-            Ok(Asset {
-                owner,
-                name,
-                metadata,
-                nonce,
-                id: (*asset_id).try_into()?,
-            })
-        } else {
-            Err(IronfishError::InvalidAssetIdentifier)
-        }
+        // Try creating an asset identifier from this hash
+        let asset_id = AssetIdentifier::new(asset_id_hash.as_array().to_owned())?;
+
+        // If the asset id is valid, this asset is valid
+        Ok(Asset {
+            owner,
+            name,
+            metadata,
+            nonce,
+            id: asset_id,
+        })
     }
 
     pub fn metadata(&self) -> &[u8] {
