@@ -1,0 +1,7 @@
+{
+    "name": "0p1p67_json",
+    "spendingKey": "dd9d17e65eba8786ac80bacb87be9f909392e83f4813d60a625da717ccc76303",
+    "incomingViewKey": "5950bfec24b589020ed81b1f625c074f8b9267498b8e8c0bc7c872ef681f8506",
+    "outgoingViewKey": "2e5a33d542c537e8451cc6c8660d4bbb1f5b6985c90db4e6f8cc3972fd79e8ba",
+    "publicAddress": "62173de9b0ccfa8f076d5dcb958bd5376c96c0384c9f312e145a304ff428fa3a"
+}
