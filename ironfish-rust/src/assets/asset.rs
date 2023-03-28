@@ -13,7 +13,7 @@ use std::io;
 use super::asset_identifier::AssetIdentifier;
 
 pub const NAME_LENGTH: usize = 32;
-pub const METADATA_LENGTH: usize = 77;
+pub const METADATA_LENGTH: usize = 96;
 pub const ASSET_LENGTH: usize = NAME_LENGTH + PUBLIC_ADDRESS_SIZE + METADATA_LENGTH + 1;
 pub const ID_LENGTH: usize = ASSET_ID_LENGTH;
 
@@ -200,7 +200,7 @@ mod test {
 
     #[test]
     fn test_asset_new_with_nonce_invalid_nonce() {
-        let nonce = 5;
+        let nonce = 7;
         let public_address = [
             81, 229, 109, 20, 111, 174, 52, 91, 120, 215, 34, 107, 174, 123, 78, 102, 189, 188,
             226, 7, 173, 7, 76, 135, 130, 203, 71, 131, 62, 219, 240, 68,
