@@ -1,7 +1,7 @@
 {
   "name": "simulator",
   "version": "0.1.72",
-  "description": "CLI for running and interacting with an Iron Fish node",
+  "description": "CLI for running simulations of Ironfish networks",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
@@ -34,6 +34,7 @@
     "oclif": "2.6.0",
     "rimraf": "^3.0.2",
     "tsc-watch": "4.2.9",
+    "typedoc": "0.23.28",
     "typescript": "4.3.4",
     "yarn": "^1.22.10"
   },
@@ -41,23 +42,26 @@
     "build": "tsc -b",
     "lint": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/",
     "lint:fix": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
-    "start:dev": "node start",
-    "start": "yarn build && yarn start:js",
     "start:js": "cross-env OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node --expose-gc --inspect=:0 --inspect-publish-uid=http --enable-source-maps bin/run",
+    "start": "yarn build && yarn start:js start",
+    "stop": "yarn build && yarn start:js stop",
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest --passWithNoTests",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest --passWithNoTests --coverage --coverage-reporters html --testPathIgnorePatterns",
     "test:watch": "tsc -b tsconfig.test.json && jest --watch --coverage false",
     "postpack": "rimraf oclif.manifest.json",
     "clean": "rimraf build",
     "prepack": "rimraf build && yarn build && oclif manifest && oclif readme",
-    "oclif:version": "oclif readme && git add README.md"
+    "oclif:version": "oclif readme && git add README.md",
+    "docs:generate": "typedoc --out docs src",
+    "docs:open": "open docs/index.html"
   },
   "dependencies": {
     "@ironfish/sdk": "0.0.50",
     "@oclif/core": "1.23.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",
-    "@types/tar": "6.1.1"
+    "@types/tar": "6.1.1",
+    "chalk": "^4"
   },
   "oclif": {
     "macos": {

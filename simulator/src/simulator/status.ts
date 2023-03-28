@@ -5,12 +5,24 @@
 import { FileUtils, GetNodeStatusResponse } from '@ironfish/sdk'
 import { SimulationNode } from './simulation-node'
 
+/**
+ * Gets the status of a node via the `getNodeStatus` RPC call
+ * @param node node to get status of
+ * @returns status of node
+ */
 export async function getNodeStatus(node: SimulationNode): Promise<GetNodeStatusResponse> {
   const resp = await node.client.getNodeStatus()
 
   return resp.content
 }
 
+/**
+ * Gets the memory status of a node
+ *
+ * @param node node to get memory status of
+ * @param format whether to format the memory size to a readable string
+ * @returns memory status of node
+ */
 export async function getNodeMemoryStatus(
   node: SimulationNode,
   format = false,
