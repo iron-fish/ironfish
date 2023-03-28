@@ -32,7 +32,7 @@ describe('poolShares', () => {
     await shares.stop()
   })
 
-  describe.only('start', () => {
+  describe('start', () => {
     it('throws an error if the pool account does not exist', async () => {
       shares['accountName'] = 'accountDoesNotExist'
 
@@ -42,7 +42,9 @@ describe('poolShares', () => {
     it('throws an error if the node has no default account', async () => {
       await routeTest.node.wallet.setDefaultAccount(null)
 
-      await expect(shares.start()).rejects.toThrow(new RegExp('no account is active on the node'))
+      await expect(shares.start()).rejects.toThrow(
+        new RegExp('no account is active on the node'),
+      )
     })
 
     it('does not check for the pool account if payouts are disabled', async () => {
