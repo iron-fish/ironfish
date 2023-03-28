@@ -312,7 +312,7 @@ export class MiningPool {
           )}/s`,
         )
         this.webhooks.map((w) =>
-          w.poolSubmittedBlock(hashedHeaderHex, hashRate, this.stratum.clients.size),
+          w.poolSubmittedBlock(hashedHeaderHex, hashRate, this.stratum.subscribed),
         )
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)

@@ -22,7 +22,7 @@ export class MiningPoolShares {
 
   private poolName: string
   private recentShareCutoff: number
-  private accountName: string
+  private accountName: string | undefined
 
   private constructor(options: {
     db: PoolDatabase
@@ -277,8 +277,22 @@ export class MiningPoolShares {
       assetId: string
     }[],
   ): Promise<string> {
+    let account = this.accountName
+
+    if (account === undefined) {
+      const defaultAccount = await this.rpc.getDefaultAccount()
+
+      if (!defaultAccount.content.account) {
+        throw Error(
+          `No account is currently active on the node. Cannot sned a payout transaction.`,
+        )
+      }
+
+      account = defaultAccount.content.account.name
+    }
+
     const transaction = await this.rpc.sendTransaction({
-      account: this.accountName,
+      account,
       outputs,
       fee: outputs.length.toString(),
       expirationDelta: this.config.get('transactionExpirationDelta'),
