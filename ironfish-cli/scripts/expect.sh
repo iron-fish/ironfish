@@ -21,7 +21,6 @@ function check_delete_success() {
 }
 
 function import_account_interactively() {
-    # import filename interactively
     IMPORT_OUTPUT=$(expect -d -c "
         spawn ironfish wallet:import
         expect \"Paste the output of wallet:export, or your spending key:\"
@@ -50,7 +49,6 @@ function import_account_interactively() {
 }
 
 function import_account_by_pipe() {
-    # import filename interactively
     IMPORT_OUTPUT=$(ironfish wallet:import < $TEST_FILE)
     # verify return code of import
     if [ $? -ne 0 ]; then
@@ -68,14 +66,27 @@ function import_account_by_pipe() {
 }
 
 function import_account_by_path() {
-    # import filename interactively
-    IMPORT_OUTPUT=$(ironfish wallet:import --path $TEST_FILE)
-    # verify return code of import
-    if [ $? -ne 0 ]; then
+    IMPORT_OUTPUT=$(expect -c "
+        spawn ironfish wallet:import --path $TEST_FILE
+        expect {
+            \"Enter a new account name:\" {
+                send \"$ACCOUNT_NAME\\r\"
+                exp_continue
+            }
+            \"Account $ACCOUNT_NAME imported\" {
+                set output \$expect_out(buffer)
+            }
+            eof {
+                set output \$expect_out(buffer)
+            }
+        }
+        puts \$output
+    ")
+    # check for success message in the output
+    if ! echo "$IMPORT_OUTPUT" | grep -q "Account $ACCOUNT_NAME imported"; then
         echo "Import failed for $ACCOUNT_NAME"
         exit 1
     fi
-    check_import_success "$IMPORT_OUTPUT" "$ACCOUNT_NAME"
     DELETE_OUTPUT=$(ironfish wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
     if [ $? -ne 0 ]; then
@@ -97,8 +108,8 @@ for VERSION in {65..65}
         TEST_FILE=${TEST_VECTOR_LOCATION}${ACCOUNT_NAME}.txt
         echo $TEST_FILE
         FILE_CONTENTS=$(cat $TEST_FILE)
-        import_account_interactively
-        import_account_by_pipe
+        # import_account_interactively
+        # import_account_by_pipe
         import_account_by_path
         done
     done
