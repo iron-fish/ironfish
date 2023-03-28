@@ -159,13 +159,16 @@ export class MiningPool {
 
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
     this.started = true
-    await this.shares.start()
 
     this.logger.info(`Starting stratum server v${String(this.stratum.version)}`)
     await this.stratum.start()
 
     this.logger.info('Connecting to node...')
     this.rpc.onClose.on(this.onDisconnectRpc)
+
+    await this.startConnectingRpc()
+
+    await this.shares.start()
 
     const statusInterval = this.config.get('poolStatusNotificationInterval')
     if (statusInterval > 0) {
@@ -175,7 +178,6 @@ export class MiningPool {
       )
     }
 
-    await this.startConnectingRpc()
     void this.eventLoop()
   }
 

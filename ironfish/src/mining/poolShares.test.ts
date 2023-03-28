@@ -32,6 +32,30 @@ describe('poolShares', () => {
     await shares.stop()
   })
 
+  describe.only('start', () => {
+    it('throws an error if the pool account does not exist', async () => {
+      shares['accountName'] = 'accountDoesNotExist'
+
+      await expect(shares.start()).rejects.toThrow(new RegExp('account not found'))
+    })
+
+    it('throws an error if the node has no default account', async () => {
+      await routeTest.node.wallet.setDefaultAccount(null)
+
+      await expect(shares.start()).rejects.toThrow(new RegExp('no account is active on the node'))
+    })
+
+    it('does not check for the pool account if payouts are disabled', async () => {
+      shares['enablePayouts'] = false
+
+      const accountExists = jest.spyOn(shares, 'assertAccountExists')
+
+      await shares.start()
+
+      expect(accountExists).not.toHaveBeenCalled()
+    })
+  })
+
   it('shareRate', async () => {
     jest.useFakeTimers({ legacyFakeTimers: false })
 
