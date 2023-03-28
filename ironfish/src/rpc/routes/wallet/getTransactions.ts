@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { TransactionStatus, TransactionType } from '../../../wallet'
 import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
@@ -14,6 +15,7 @@ import { getAccount } from './utils'
 export type GetAccountTransactionsRequest = {
   account?: string
   hash?: string
+  sequence?: number
   limit?: number
   offset?: number
   confirmations?: number
@@ -38,6 +40,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
     .object({
       account: yup.string().strip(true),
       hash: yup.string().notRequired(),
+      sequence: yup.number().min(GENESIS_BLOCK_SEQUENCE).notRequired(),
       limit: yup.number().notRequired(),
       offset: yup.number().notRequired(),
       confirmations: yup.number().notRequired(),
@@ -99,7 +102,11 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
     let count = 0
     let offset = 0
 
-    for await (const transaction of account.getTransactionsByTime()) {
+    const transactions = request.data.sequence
+      ? account.getTransactionsBySequence(request.data.sequence)
+      : account.getTransactionsByTime()
+
+    for await (const transaction of transactions) {
       if (request.closed) {
         break
       }

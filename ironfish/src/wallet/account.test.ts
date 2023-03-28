@@ -2130,4 +2130,50 @@ describe('Accounts', () => {
       expect(accountBTx[1].transaction.hash()).toEqualHash(sortedHashes[1])
     })
   })
+
+  describe('getTransactionsBySequence', () => {
+    it('returns a stream of transactions with a matching block sequence', async () => {
+      const { node } = nodeTest
+      const account = await useAccountFixture(node.wallet)
+
+      const minerBlockA = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        account,
+        node.wallet,
+      )
+      await node.chain.addBlock(minerBlockA)
+      await node.wallet.updateHead()
+
+      const minerBlockB = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        account,
+        node.wallet,
+      )
+      await node.chain.addBlock(minerBlockB)
+      await node.wallet.updateHead()
+
+      const transactionA = await useTxFixture(node.wallet, account, account)
+      const transactionB = await useTxFixture(node.wallet, account, account)
+
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet, [
+        transactionA,
+        transactionB,
+      ])
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      const blockTransactionHashes = block.transactions
+        .map((transaction) => transaction.hash())
+        .sort()
+      const accountTransactions = await AsyncUtils.materialize(
+        account.getTransactionsBySequence(block.header.sequence),
+      )
+      const accountTransactionHashes = accountTransactions
+        .map(({ transaction }) => transaction.hash())
+        .sort()
+      expect(accountTransactionHashes).toEqual(blockTransactionHashes)
+    })
+  })
 })
