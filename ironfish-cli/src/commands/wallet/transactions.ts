@@ -12,7 +12,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { TableCols } from '../../utils/table'
+import { Format, TableCols } from '../../utils/table'
 
 export class TransactionsCommand extends IronfishCommand {
   static description = `Display the account transactions`
@@ -48,7 +48,14 @@ export class TransactionsCommand extends IronfishCommand {
     const { flags, args } = await this.parse(TransactionsCommand)
     const account = args.account as string | undefined
 
-    const formatted = flags.csv !== true && flags.output === undefined
+    const format: Format =
+      flags.csv || flags.output === 'csv'
+        ? Format.csv
+        : flags.output === 'json'
+        ? Format.json
+        : flags.output === 'yaml'
+        ? Format.yaml
+        : Format.cli
 
     const client = await this.sdk.connectRpc()
     const response = client.getAccountTransactionsStream({
@@ -59,12 +66,12 @@ export class TransactionsCommand extends IronfishCommand {
       confirmations: flags.confirmations,
     })
 
-    const columns = this.getColumns(flags.extended, formatted)
+    const columns = this.getColumns(flags.extended, format)
 
     let showHeader = !flags['no-header']
 
     for await (const transaction of response.contentStream()) {
-      const transactionRows = this.getTransactionRows(transaction, formatted)
+      const transactionRows = this.getTransactionRows(transaction, format)
 
       CliUx.ux.table(transactionRows, columns, {
         printLine: this.log.bind(this),
@@ -78,7 +85,7 @@ export class TransactionsCommand extends IronfishCommand {
 
   getTransactionRows(
     transaction: GetAccountTransactionsResponse,
-    formatted: boolean,
+    format: Format,
   ): PartialRecursive<TransactionRow>[] {
     const nativeAssetId = Asset.nativeId().toString('hex')
 
@@ -100,8 +107,8 @@ export class TransactionsCommand extends IronfishCommand {
           amount += feePaid
         }
 
-        // exclude the native asset in formatted output if no amount was sent/received
-        if (formatted && amount === 0n) {
+        // exclude the native asset in cli output if no amount was sent/received
+        if (format === Format.cli && amount === 0n) {
           assetCount -= 1
           continue
         }
@@ -109,8 +116,8 @@ export class TransactionsCommand extends IronfishCommand {
 
       const group = this.getRowGroup(index, assetCount, transactionRows.length)
 
-      // include full transaction details in first row or non-formatted output
-      if (transactionRows.length === 0 || !formatted) {
+      // include full transaction details in first row or non-cli-formatted output
+      if (transactionRows.length === 0 || format !== Format.cli) {
         transactionRows.push({
           ...transaction,
           group,
@@ -134,7 +141,7 @@ export class TransactionsCommand extends IronfishCommand {
 
   getColumns(
     extended: boolean,
-    formatted: boolean,
+    format: Format,
   ): CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> {
     const columns: CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> = {
       timestamp: TableCols.timestamp({
@@ -180,7 +187,7 @@ export class TransactionsCommand extends IronfishCommand {
         get: (row) =>
           row.feePaid && row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : '',
       },
-      ...TableCols.asset({ extended, formatted }),
+      ...TableCols.asset({ extended, format }),
       amount: {
         header: 'Net Amount',
         get: (row) => {
@@ -191,7 +198,7 @@ export class TransactionsCommand extends IronfishCommand {
       },
     }
 
-    if (formatted) {
+    if (format === Format.cli) {
       return {
         group: {
           header: '',
