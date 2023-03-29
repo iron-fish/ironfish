@@ -4,18 +4,26 @@
 import {
   Config,
   ConfigOptions,
+  createRootLogger,
   Event,
   FollowChainStreamResponse,
+  Logger,
   NodeFileProvider,
   PromiseUtils,
   RpcTcpClient,
   YupUtils,
 } from '@ironfish/sdk'
-import { createRootLogger, Logger } from '@ironfish/sdk'
-import chalk from 'chalk'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
-import * as yup from 'yup'
 import { getLatestBlockHash } from './chain'
+import {
+  defaultOnError,
+  defaultOnExit,
+  ErrorEvent,
+  ExitEvent,
+  LogEvent,
+  NodeLogEventSchema,
+  supportedNodeChildProcesses,
+} from './events'
 import { sleep } from './utils'
 
 export const rootCmd = 'ironfish'
@@ -32,7 +40,7 @@ export type SimulationNodeConfig = Required<RequiredUserSimulationNodeConfig> &
 /**
  * These options are required from the user to start a node.
  */
-type RequiredUserSimulationNodeConfig = Pick<
+export type RequiredUserSimulationNodeConfig = Pick<
   ConfigOptions,
   | 'nodeName'
   | 'blockGraffiti'
@@ -47,7 +55,7 @@ type RequiredUserSimulationNodeConfig = Pick<
  * These options are required to start a node, but have set default values that the
  * user currently cannot change.
  * */
-type RequiredDefaultSimulationNodeConfig = Pick<
+export type RequiredDefaultSimulationNodeConfig = Pick<
   ConfigOptions,
   'enableRpc' | 'enableRpcTcp' | 'enableRpcTls' | 'miningForce'
 >
@@ -57,100 +65,12 @@ type RequiredDefaultSimulationNodeConfig = Pick<
  * There is no explicit support for these options, and thus might break a simulation node,
  * but they can be set.
  */
-type OptionalUserSimulationNodeConfig = Omit<
+export type OptionalUserSimulationNodeConfig = Omit<
   ConfigOptions,
   keyof (RequiredUserSimulationNodeConfig & RequiredDefaultSimulationNodeConfig)
 >
 
 const globalLogger = createRootLogger()
-
-type supportedNodeChildProcesses = 'miner' | 'node'
-
-/**
- * defaultOnEixt is the default onExit handler for a SimulationNode. It logs the exit event, in red, to the console.
- * @param logger The logger to use
- */
-const defaultOnExit =
-  (logger: Logger) =>
-  (event: ExitEvent): void =>
-    logger.log(chalk.red(`[${event.node}:exit]`) + ` ${JSON.stringify(event)}`)
-
-/**
- *  defaultOnError is the default onError handler for a SimulationNode. It logs the error event, in red, to the console.
- * @param logger The logger to use
- */
-const defaultOnError =
-  (logger: Logger) =>
-  (event: ErrorEvent): void =>
-    logger.log(chalk.red(`[${event.node}:error]`) + ` ${JSON.stringify(event)}`)
-
-/**
- * LogEvent that is emitted to any `onLog` listeners when a child process writes to stdout or stderr.
- */
-export type LogEvent = {
-  node: string
-  type: 'stdout' | 'stderr'
-  proc: supportedNodeChildProcesses
-  message: string
-  jsonMessage?: NodeLogEvent
-  timestamp: string
-}
-
-/**
- * NodeLogEvent is the JSON object that is logged by the Ironfish node.
- * This is wrapped in a LogEvent when it is emitted to any listeners.
- */
-type NodeLogEvent = {
-  date: string
-  level: string
-  message: string
-  tag: string
-}
-
-/**
- * NodeLogEventSchema is the schema for a NodeLogEvent. This is used to validate that the JSON
- * object that is logged by the Ironfish node is valid.
- */
-export const NodeLogEventSchema: yup.ObjectSchema<NodeLogEvent> = yup
-  .object({
-    date: yup.string().required(),
-    level: yup.string().required(),
-    message: yup.string().required(),
-    tag: yup.string().required(),
-  })
-  .required()
-
-/**
- * CloseEvent is emitted to any `onClose` listeners when a child process is closed.
- */
-export type CloseEvent = {
-  node: string
-  proc: supportedNodeChildProcesses
-  code: number | null
-  timestamp: string
-}
-
-/**
- * ExitEvent is emitted to any `onExit` listeners when a child process exits.
- */
-export type ExitEvent = {
-  node: string
-  proc: supportedNodeChildProcesses
-  code: number | null
-  signal: NodeJS.Signals | null
-  lastErr: Error | undefined
-  timestamp: string
-}
-
-/**
- * ErrorEvent is emitted to any `onError` listeners when a child process emits an error.
- */
-export type ErrorEvent = {
-  node: string
-  proc: supportedNodeChildProcesses
-  error: Error
-  timestamp: string
-}
 
 /**
  * SimulationNode is a wrapper around an Ironfish node for use in the simulation network.
@@ -161,8 +81,7 @@ export type ErrorEvent = {
  * The node itself can be accessed via another terminal by specifying it's
  * `data_dir` while it is running.
  *
- * This class should be created using the static `intiailize` method and not constructed
- * using `new SimulationNode()`.
+ * This class should be constructed using the static `intiailize()` method.
  */
 export class SimulationNode {
   procs = new Map<string, ChildProcessWithoutNullStreams>()
@@ -177,18 +96,27 @@ export class SimulationNode {
   onError: Event<[ErrorEvent]> = new Event()
   onExit: Event<[ExitEvent]> = new Event()
 
+  /** The client used to make RPC calls against the underlying Ironfish node */
   client: RpcTcpClient
   config: SimulationNodeConfig
 
+  /** promise that resolves when the node shuts down */
   shutdownPromise: Promise<void>
+
+  /** call to resolve the shutdown promise */
   shutdownResolve: () => void
 
   logger: Logger
 
+  /** node is ready to be interacted with */
   ready = false
+  /** node was stopped */
   stopped = false
 
-  constructor(
+  /**
+   * Use the `initialize()` method to construct a SimulationNode.
+   */
+  private constructor(
     config: SimulationNodeConfig,
     client: RpcTcpClient,
     logger: Logger,
@@ -243,9 +171,9 @@ export class SimulationNode {
    * to ensure that the node is ready to be used. Upon return, the node will be ready
    * for any client RPC calls.
    *
-   * @param config The config for the node
-   * @param logger The logger to use for the node
-   * @param options Optional event handlers to handle log, close, and error events from the node / miner processes
+   * @param config the config for the node
+   * @param logger the logger to use for the node
+   * @param options event handlers to handle events from child processes. If not provided, default handlers will be used.
    *
    * @returns A new and ready SimulationNode
    */
@@ -283,6 +211,8 @@ export class SimulationNode {
     }
 
     for (const [key, value] of Object.entries(config)) {
+      // TODO(holahula): this is a hack to get around the fact that the config
+      // has `dataDir` / `verbose properties that is not a valid config option
       if (key === 'dataDir' || key === 'verbose') {
         continue
       }
@@ -420,7 +350,7 @@ export class SimulationNode {
         }
 
         if (resp.type === 'connected' && hasTransation) {
-          // TODO: is there a better way to unsubscribe to the event?
+          // TODO: is there a better way to remove the event listener?
           this.onBlock.off(checkBlock)
           resolve(resp.block)
         }
@@ -533,19 +463,22 @@ export class SimulationNode {
   private cleanup(): void {
     this.logger.log(`cleaning up ${this.config.nodeName}...`)
 
-    // TODO: at this point you know the node proc is dead, should we remove from map?
-    this.procs.forEach((proc) => {
-      // TODO: handle proc.kill?
-      const _ = proc.kill()
+    this.procs.forEach((proc, key) => {
+      const success = proc.kill()
+      if (!success) {
+        this.logger.log(`failed to kill proc ${key}`)
+      }
     })
 
-    // adding onExit here removes the exit handlers before they're executed on child process exit
-    // but ideally it should be here
+    this.procs.clear()
+
+    // TODO: adding onExit here removes the exit handlers before they're executed on child process exit
+    // which is breaking, but ideally it should be here
     // this.onExit.clear()
 
-    // this.onBlock.clear()
-    // this.onLog.clear()
-    // this.onError.clear()
+    this.onBlock.clear()
+    this.onLog.clear()
+    this.onError.clear()
   }
 }
 

@@ -21,7 +21,6 @@ import {
   sendTransaction,
   SimulationNodeConfig,
   Simulator,
-  sleep,
 } from '../simulator'
 
 export async function run(logger: Logger): Promise<void> {
@@ -60,10 +59,6 @@ export async function run(logger: Logger): Promise<void> {
 
   // This starts the miner on the first node.
   nodes[0].startMiner()
-
-  // Sleep 5 seconds to wait for the nodes to initialize.
-  // TODO: hack, fix this
-  await sleep(5 * SECOND)
 
   // Start the simulation.
   // You can write anything you want here.

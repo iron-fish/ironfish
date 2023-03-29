@@ -6,6 +6,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createRootLogger } from '@ironfish/sdk'
 import { CliUx, Command, Config } from '@oclif/core'
+import { Flags } from '@oclif/core'
 import { SIMULATIONS } from '../simulations'
 
 export abstract class Start extends Command {
@@ -20,13 +21,26 @@ export abstract class Start extends Command {
     },
   ]
 
+  static flags = {
+    persist: Flags.boolean({
+      char: 'p',
+      required: false,
+      description: 'Persist the data_dir beyond the simulation',
+      default: false,
+    }),
+  }
+
   constructor(argv: string[], config: Config) {
     super(argv, config)
   }
 
   async run(): Promise<void> {
-    const { args } = await this.parse(Start)
+    const { args, flags } = await this.parse(Start)
+
     const simulation = args.simulation as number | null
+
+    const persist = flags.persist
+
     const logger = createRootLogger()
 
     if (simulation === null) {
@@ -43,7 +57,7 @@ export abstract class Start extends Command {
     }
 
     CliUx.ux.action.start(`running simulation ${simulation}`)
-    await toRun.run(logger)
+    await toRun.run(logger, { persist })
     CliUx.ux.action.start(`stop simulation ${simulation}`)
     this.exit()
   }
