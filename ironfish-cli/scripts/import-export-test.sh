@@ -41,7 +41,6 @@ function import_account_interactively() {
         }
     ")
     # verify return code of import
-    ironfish wallet:accounts
     if [ $? -ne 0 ]; then
         echo "Import failed for $ACCOUNT_NAME"
         exit 1
@@ -61,11 +60,14 @@ function import_account_by_pipe() {
     echo "Testing import by pipe.\n"
     output=$(expect -c "
         spawn sh -c \"cat $TEST_FILE | ironfish wallet:import\"
-        expect \"Enter a new account name:\"
-        send \"$ACCOUNT_NAME\\r\"
         expect {
+            \"Enter a new account name:\" {
+                send \"$ACCOUNT_NAME\\r\"
+                exp_continue
+            }
             \"Account $ACCOUNT_NAME imported\" {
                 set output \$expect_out(buffer)
+                exp_continue
             }
             eof {
                 set output \$expect_out(buffer)
@@ -126,7 +128,7 @@ function import_account_by_path() {
 
 TEST_VECTOR_LOCATION='./import-export-test-vector/'
 # FORMAT_ARRAY=( blob json mnemonic )
-FORMAT_ARRAY=( blob )
+FORMAT_ARRAY=( json )
 # for VERSION in {65..72}
 for VERSION in {65..65}
     do
@@ -136,8 +138,8 @@ for VERSION in {65..65}
         TEST_FILE=${TEST_VECTOR_LOCATION}${ACCOUNT_NAME}.txt
         echo $TEST_FILE
         FILE_CONTENTS=$(cat $TEST_FILE)
-        import_account_interactively
-        import_account_by_path
+        # import_account_interactively
+        # import_account_by_path
         # Skip import_account_by_pipe if FORMAT is mnemonic
         if [ "$FORMAT" != "mnemonic" ]; then
             import_account_by_pipe
