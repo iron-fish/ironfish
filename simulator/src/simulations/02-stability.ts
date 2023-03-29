@@ -20,8 +20,8 @@ import {
 // This simulation tests the stability of the network by randomly stopping and starting nodes,
 // trying to see if nodes crash over time. The memory usage of the nodes is also monitored.
 
-export async function run(logger: Logger): Promise<void> {
-  const simulator = new Simulator(logger)
+export async function run(logger: Logger, options?: { persist: boolean }): Promise<void> {
+  const simulator = new Simulator(logger, options)
 
   const alive: Set<string> = new Set()
   const dead: Set<string> = new Set()

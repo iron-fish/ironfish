@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export const SECOND = 1000
-export const MINUTE = SECOND * 60
+export const MILLISECOND = 1
+export const SECOND = 1000 * MILLISECOND
+export const MINUTE = 60 * SECOND
 
-export const IRON = 100000000
+export const ORE = 1
+export const IRON = 100000000 * ORE
 
 /**
  * Sleeps for a given duration.

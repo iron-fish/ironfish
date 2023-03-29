@@ -1,6 +1,6 @@
 {
   "name": "simulator",
-  "version": "0.1.72",
+  "version": "0.1.0",
   "description": "CLI for running simulations of Ironfish networks",
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "main": "build/src/index.js",
@@ -56,7 +56,7 @@
     "docs:open": "open docs/index.html"
   },
   "dependencies": {
-    "@ironfish/sdk": "0.0.50",
+    "@ironfish/sdk": "0.0.51",
     "@oclif/core": "1.23.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",

@@ -15,8 +15,8 @@ import {
   sleep,
 } from '../simulator'
 
-export async function run(logger: Logger): Promise<void> {
-  const simulator = new Simulator(logger)
+export async function run(logger: Logger, options?: { persist: boolean }): Promise<void> {
+  const simulator = new Simulator(logger, options)
 
   const nodes = await Promise.all(nodeConfig.map((cfg) => simulator.startNode(cfg)))
 
