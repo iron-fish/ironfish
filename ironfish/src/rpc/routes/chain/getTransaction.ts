@@ -12,10 +12,14 @@ export type GetTransactionRequest = { blockHash: string; transactionHash: string
 export type GetTransactionResponse = {
   fee: string
   expiration: number
+  index: number
   notesCount: number
   spendsCount: number
   signature: string
-  notesEncrypted: string[]
+  notesEncrypted: {
+    noteIndex: number
+    noteData: string
+  }[]
   mints: {
     assetId: string
     value: string
@@ -36,10 +40,20 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
   .object({
     fee: yup.string().defined(),
     expiration: yup.number().defined(),
+    index: yup.number().defined(),
     notesCount: yup.number().defined(),
     spendsCount: yup.number().defined(),
     signature: yup.string().defined(),
-    notesEncrypted: yup.array(yup.string().defined()).defined(),
+    notesEncrypted: yup
+      .array(
+        yup
+          .object({
+            noteIndex: yup.number().defined(),
+            noteData: yup.string().defined(),
+          })
+          .defined(),
+      )
+      .defined(),
     mints: yup
       .array(
         yup
@@ -72,8 +86,8 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     }
     const hashBuffer = BlockHashSerdeInstance.deserialize(request.data.blockHash)
 
-    const block = await node.chain.getBlock(hashBuffer)
-    if (!block) {
+    const blockHeader = await node.chain.getHeader(hashBuffer)
+    if (!blockHeader) {
       throw new ValidationError(`No block found`)
     }
 
@@ -81,6 +95,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     const rawTransaction: GetTransactionResponse = {
       fee: '0',
       expiration: 0,
+      index: 0,
       notesCount: 0,
       spendsCount: 0,
       signature: '',
@@ -88,20 +103,27 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       mints: [],
       burns: [],
     }
+    const transactions = await node.chain.getBlockTransactions(blockHeader)
 
-    block.transactions.map((transaction) => {
+    transactions.map(({ transaction, initialNoteIndex }) => {
       if (transaction.hash().toString('hex') === request.data.transactionHash) {
         const fee = transaction.fee().toString()
         const expiration = transaction.expiration()
         const signature = transaction.transactionSignature()
         const notesEncrypted = []
 
+        let noteIndex = initialNoteIndex
         for (const note of transaction.notes) {
-          notesEncrypted.push(note.serialize().toString('hex'))
+          notesEncrypted.push({
+            noteIndex: noteIndex,
+            noteData: note.serialize().toString('hex'),
+          })
+          noteIndex++
         }
 
         rawTransaction.fee = fee
         rawTransaction.expiration = expiration
+        rawTransaction.index = initialNoteIndex
         rawTransaction.notesCount = transaction.notes.length
         rawTransaction.spendsCount = transaction.spends.length
         rawTransaction.signature = signature.toString('hex')
