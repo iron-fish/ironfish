@@ -45,7 +45,7 @@ export type GetAccountTransactionsResponse = {
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
   yup
     .object({
-      account: yup.string().strip(true),
+      account: yup.string().trim(),
       hash: yup.string().notRequired(),
       sequence: yup.number().min(GENESIS_BLOCK_SEQUENCE).notRequired(),
       limit: yup.number().notRequired(),

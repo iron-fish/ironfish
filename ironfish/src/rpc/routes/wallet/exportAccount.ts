@@ -24,7 +24,7 @@ export type ExportAccountResponse = {
 
 export const ExportAccountRequestSchema: yup.ObjectSchema<ExportAccountRequest> = yup
   .object({
-    account: yup.string().strip(true),
+    account: yup.string().trim(),
     viewOnly: yup.boolean().optional().default(false),
   })
   .defined()
