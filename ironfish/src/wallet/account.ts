@@ -193,6 +193,11 @@ export class Account {
         await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
+      // account did not receive or spend
+      if (assetBalanceDeltas.size === 0) {
+        return
+      }
+
       transactionValue = {
         transaction,
         blockHash,
@@ -507,6 +512,11 @@ export class Account {
         await this.walletDb.deleteUnspentNoteHash(this, spentNoteHash, spentNote, tx)
       }
 
+      // account did not receive or spend
+      if (assetBalanceDeltas.size === 0) {
+        return
+      }
+
       const transactionValue = {
         transaction,
         blockHash: null,
@@ -668,22 +678,24 @@ export class Account {
     return this.walletDb.hasPendingTransaction(this, hash, tx)
   }
 
-  async hasSpend(transaction: Transaction, tx?: IDatabaseTransaction): Promise<boolean> {
-    for (const spend of transaction.spends) {
-      if ((await this.getNoteHash(spend.nullifier, tx)) !== undefined) {
-        return true
-      }
-    }
-
-    return false
-  }
-
   getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
     return this.walletDb.loadTransactions(this, tx)
   }
 
   getTransactionsByTime(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
     return this.walletDb.loadTransactionsByTime(this, tx)
+  }
+
+  async *getTransactionsBySequence(
+    sequence: number,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Readonly<TransactionValue>> {
+    for await (const {
+      hash: _hash,
+      ...transaction
+    } of this.walletDb.loadTransactionsInSequenceRange(this, sequence, sequence, tx)) {
+      yield transaction
+    }
   }
 
   async *getTransactionsOrderedBySequence(

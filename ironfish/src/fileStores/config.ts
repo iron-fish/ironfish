@@ -148,7 +148,7 @@ export type ConfigOptions = {
   /**
    * The name of the account that the pool will use to payout from.
    */
-  poolAccountName: string
+  poolAccountName?: string
 
   /**
    * Should pool clients be banned for perceived bad behavior
@@ -316,7 +316,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
     minerBatchSize: YupUtils.isPositiveInteger,
     confirmations: YupUtils.isPositiveInteger,
     poolName: yup.string(),
-    poolAccountName: yup.string(),
+    poolAccountName: yup.string().optional(),
     poolBanning: yup.boolean(),
     poolHost: yup.string().trim(),
     poolPort: YupUtils.isPort,
@@ -381,7 +381,7 @@ export class Config extends KeyStore<ConfigOptions> {
       enableSyncing: true,
       enableTelemetry: false,
       enableMetrics: true,
-      getFundsApi: 'https://api.ironfish.network/faucet_transactions',
+      getFundsApi: 'https://testnet.api.ironfish.network/faucet_transactions',
       ipcPath: files.resolve(files.join(dataDir, 'ironfish.ipc')),
       logLevel: '*:info',
       logPeerMessages: false,
@@ -408,7 +408,7 @@ export class Config extends KeyStore<ConfigOptions> {
       blocksPerMessage: 25,
       minerBatchSize: 25000,
       poolName: 'Iron Fish Pool',
-      poolAccountName: 'default',
+      poolAccountName: undefined,
       poolBanning: true,
       poolHost: DEFAULT_POOL_HOST,
       poolPort: DEFAULT_POOL_PORT,

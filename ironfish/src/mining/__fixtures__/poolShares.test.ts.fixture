@@ -1,0 +1,145 @@
+{
+  "poolShares start throws an error if the pool account does not exist": [
+    {
+      "version": 1,
+      "id": "5a1bdef3-2427-4af8-94ba-443749031624",
+      "name": "default",
+      "spendingKey": "531e8b773625fcd70991248249478a2de78686bd396e2895e401ec0135207ae7",
+      "viewKey": "017bcd397bb5ad6db4edb02178cf59395036de0699d954eeaa798fb3d936534e0fb716e51a77faa6371056682d21515571c472e44374d76a4a2bf5020426e864",
+      "incomingViewKey": "88cb1b16fe5378dfe71a3a1a404b3ba9bd088f5630e9f022e71ef116b77b4f02",
+      "outgoingViewKey": "f948035367cf01e31b3e97c27971a0017aad7f37436f5160562d7480f3b80b7d",
+      "publicAddress": "07078da20fabde17a57a6817a05ee831231297e6c921dd9922bb443ebb084c6e",
+      "createdAt": "2023-03-28T18:56:33.898Z"
+    }
+  ],
+  "poolShares start throws an error if the node has no default account": [
+    {
+      "version": 1,
+      "id": "93f21f31-97d7-430a-9ad7-1fc317e2c95f",
+      "name": "default",
+      "spendingKey": "aff4cdeec3453ce802eb9762f81495d0ab9ad60312ba7ecd3eba7d7d38c58bec",
+      "viewKey": "100d2a739a2b3dae04fae8ab5df71f82b03debf7b20cbd84311f8e0fa3e3e18201ff5cd74e7cc7fa396747dc1bc97cc3e520da90a70bf6d814abc0c49d8ba6e0",
+      "incomingViewKey": "36771801fd9013e4ce11a7ead1f2e83e3cc3c08da2ab7bdbcfeec3320689d003",
+      "outgoingViewKey": "e229860319f5819e58b8924d5b1169d05a8f307f15841c3383bdc44952bda3a2",
+      "publicAddress": "6af923f6e13d44a8fae22353e777a810c72658ba1ff3376d82c7efda2e98c284",
+      "createdAt": "2023-03-28T18:56:33.998Z"
+    }
+  ],
+  "poolShares start does not check for the pool account if payouts are disabled": [
+    {
+      "version": 1,
+      "id": "6b5fa229-6982-4f07-a5f9-517c630c2431",
+      "name": "default",
+      "spendingKey": "3fa790052a9ea30b6380eda7a919c67b402640aeb585ae2d336d8efc4a46f97f",
+      "viewKey": "29fac8553d9b6ddf72b599b8c6871cc60b8c83fe060fec86f667b7015a52bfbf553c25116a17e38e740acd750fc52e2d0684bbcfaa9755a780245afba02dc536",
+      "incomingViewKey": "98ae255eb7d2d3c3c09d28a10367266bbf4725a82403346c9c4753c424c33b04",
+      "outgoingViewKey": "e4e4fc1a7332caa8cd7f6445ad9d37baea77febd4e7a80369965f14cae1d77eb",
+      "publicAddress": "5de4ccf2b1e52ab262c94ac632185113c6cf02034bdb74cf67008a2499dd1f6a",
+      "createdAt": "2023-03-28T18:56:34.078Z"
+    }
+  ],
+  "poolShares shareRate": [
+    {
+      "version": 1,
+      "id": "9f47abc6-f258-45b6-bcc3-bc7076678f09",
+      "name": "default",
+      "spendingKey": "bc8e7b69924a69b6042689eb43fe42cf6287c0e596f87f7d784f6357d36183af",
+      "viewKey": "0fc5b1132874aad550309c52d9bee3fea06063e035d1ce1e0d57a87d36a4e2965d12e0ec13ec020d467dfbd13c3e56af2794e279757a8f73549c58f68fa77516",
+      "incomingViewKey": "74988c1e95baba38d11e8480a67f6f19cb2ce48b5d6f66ce8cd0d3bc8028a505",
+      "outgoingViewKey": "99311f7f7fe2be6bd18273b4f5bcadd154186a0fd8fdfb98338376a34cec98ac",
+      "publicAddress": "09a07f0f139ba7cbb86f039b946af8323df15f6fa050a789da256077a66cb65f",
+      "createdAt": "2023-03-28T18:56:34.180Z"
+    }
+  ],
+  "poolShares rolloverPayoutPeriod": [
+    {
+      "version": 1,
+      "id": "572e5be7-0ee4-48e1-982e-99c61698d8de",
+      "name": "default",
+      "spendingKey": "3d24ec97e2031f4aec7919db0cea6969449e8c9f68300a96aad7fee2a2812936",
+      "viewKey": "cc94ab8a41a8bd52cca923597482a393676960a7a953ae67e3e5f66bcf859f39e55fa2e59dfe4c0715914b47c39a16d44a5bed5c818bc70c40f071752a2ca4ad",
+      "incomingViewKey": "e54c03259c8aee414f0d8faf7c8a7e9d37f0283304a46e411b9ca9b03c721606",
+      "outgoingViewKey": "bec7ec205015c107d2b5ac3635b134a970f13ac06a4c2bb59cbcc73199a643ef",
+      "publicAddress": "7ddc397fd073a020c719bf437dbe79979e7b647a664c866adc802868a6941af2",
+      "createdAt": "2023-03-28T18:56:34.275Z"
+    }
+  ],
+  "poolShares blocks": [
+    {
+      "version": 1,
+      "id": "afd3224f-3dc1-44ee-a103-62f01c65eb2b",
+      "name": "default",
+      "spendingKey": "f66ca62ad63ddfbee8412cf0f4402a2a10d3d91be8f7c010c647df54365075d0",
+      "viewKey": "6114342be6dc527548af63e1a4d84581558c3eb3caebff02550795e1e1461817191f8c909d24cdf78235741025bc7f938d7bac28fa8f409db0ccced384fab265",
+      "incomingViewKey": "57f5753ddb12221b035be29ca2d49d4d075df0ec12378a904052567c45ffda03",
+      "outgoingViewKey": "62212d0d55d0670ed529296cb110e432b9a13b29b8704fb1820ab27cd7c3bea7",
+      "publicAddress": "77e4c3c83f945116ea148635d784c8d14d15ee7301f96b8fdf9fed5e56fd7e5e",
+      "createdAt": "2023-03-28T18:56:34.359Z"
+    }
+  ],
+  "poolShares transactions expected flow": [
+    {
+      "version": 1,
+      "id": "6a068041-e48a-47ad-86e6-95f2295e5cfd",
+      "name": "default",
+      "spendingKey": "32c0103a18348fb542899913584ab84a86bc98b1b9d1035ceb55f043aad22b7f",
+      "viewKey": "7eb871f4c0e4a44899aa091380628f3ef45dbb53a3835c0d199d175a93a1ac3246247647cac27508e81d12b3690fe632c031d78a7567966f467470b7090954a2",
+      "incomingViewKey": "40599e3b0557fa85897fd85f5209c251ce8f0b5be4e97900b9521609dfccf506",
+      "outgoingViewKey": "0c5e3032ec4d0cc8c2af88a453bc917cf14f6234af9bea7133335caa7fde80d5",
+      "publicAddress": "c75bd238d5a9af5892a2bdacb745ffb67ed4bbb2d2d6cfc12019b93db55865d8",
+      "createdAt": "2023-03-28T18:56:34.442Z"
+    }
+  ],
+  "poolShares transactions expired transactions should mark shares unpaid": [
+    {
+      "version": 1,
+      "id": "aef2cffb-6358-4629-8f4e-917ce44b09a7",
+      "name": "default",
+      "spendingKey": "a01969d8b4dd2b4c30df8f464d3705293245ad6845ab89a9f2c6846471a6cf37",
+      "viewKey": "33859c56600e8ab286c061a4ec120085aff6007f775a0c374aefeec0fcfe3561af8a75b4415ba72fc2485b6f90f31b2dfb4e3a5a6dfea594246c19ba3e56846e",
+      "incomingViewKey": "7fbaa9930f4b483f820231b85fb85ac15c4b39407873bc2e2c7315db08291d03",
+      "outgoingViewKey": "17af824a371e13303a629434d00d8dc6d5aea5e3a164de58eccbdb84728acd39",
+      "publicAddress": "c10c2205292a593edb44537ffcf9c44cfaf92b059813cf7ed23ae578b1c10a87",
+      "createdAt": "2023-03-28T18:56:34.521Z"
+    }
+  ],
+  "poolShares createNewPayout": [
+    {
+      "version": 1,
+      "id": "d712c3df-0db9-42a8-97f9-2f15a63bac1d",
+      "name": "default",
+      "spendingKey": "d23957848ffb6be3ddf61dec1ef77e4e81bec21d746758684be4e28db1e222de",
+      "viewKey": "2aab3e747787622e0fc1ba0098baa6a2d2b64b69b0dcb735c7ad6943aa404b2dbbf0f389467f59d85213576ffd84e607d84f33abb02afec509ad71894b6f0fcc",
+      "incomingViewKey": "b4a6b99d8bfbb934338213b167d7cc0a7d3dc415b18e49e2276a4efd5966f704",
+      "outgoingViewKey": "e9afa6665bb97ed0776fab1bb4e6416a462b8f0e4901baf5e894e17a982eacb8",
+      "publicAddress": "adb5f969d451c8bc61fbbdf060a9c3811f1e0c6f65d53b01e9380bcb1b9dafbe",
+      "createdAt": "2023-03-28T18:56:34.610Z"
+    }
+  ],
+  "poolShares sendTransaction throws an error if no account exists with accountName": [
+    {
+      "version": 1,
+      "id": "237da764-3517-4918-ad72-1ebd266f1bfc",
+      "name": "default",
+      "spendingKey": "2e9291d86ca8923508d41415550652b6fb465981f92df1de76e944f0a07eb855",
+      "viewKey": "c2a51237d16d9fb227ad71220f9b60c57159de61b586c4f5d2e7a6a73e14fd6bf81566233e7720f7e1dac0827d1544d8872f4e98abc8749e47b9293f398387a9",
+      "incomingViewKey": "93427a5f8fe5a292c2d7aa843927defc7acc17c54ed779019d9d211d4cb30307",
+      "outgoingViewKey": "426ef116bdb3122db8f885c35530ca70cbb30d40ccbc6bdc982c762aef07cce3",
+      "publicAddress": "f6ce419f01fafbc5d0c414585ad60f119f3730bb0003a21620a01fe135ed6c64",
+      "createdAt": "2023-03-28T18:56:34.692Z"
+    }
+  ],
+  "poolShares sendTransaction throws an error if node has no default account": [
+    {
+      "version": 1,
+      "id": "53dc3274-1b49-41f7-b09e-f750a6a43e0f",
+      "name": "default",
+      "spendingKey": "860c781548b3c93cedecab564c421c3e27b1fa3fd493a640ceed68ba4b20c210",
+      "viewKey": "c3ac1585ca579939767db6401bbd08b27632e74f4ad2a38b314db2d226d42dcbbd74bd426cfc08c9c820181d099e47159a257b221abc9bf083bf8a1e21f4bdc8",
+      "incomingViewKey": "00bbe37cf0c662b65da944fadf06c32b009670bd68908d2b0332d7380f1d4202",
+      "outgoingViewKey": "ce406ac2a1cdc9a0227dd31a8ef918440a42c6d07801fc8157c435b737d7bc9b",
+      "publicAddress": "8ffe4bd431a9cf0979016b124f1c78533eb3ace86f874c3bfbfd3868fd95963f",
+      "createdAt": "2023-03-28T18:56:34.799Z"
+    }
+  ]
+}

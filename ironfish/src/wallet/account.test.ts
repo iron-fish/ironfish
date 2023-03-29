@@ -452,6 +452,25 @@ describe('Accounts', () => {
       )
       expect(unspentB).toHaveLength(0)
     })
+
+    it('should only save transactions to accounts involved in the transaction', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      await useAccountFixture(node.wallet, 'b')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      await node.wallet.updateHead()
+
+      const saveSpy = jest.spyOn(accountA['walletDb'], 'saveTransaction')
+
+      await useTxFixture(node.wallet, accountA, accountA)
+
+      // tx added to accountA, but not accountB
+      expect(saveSpy).toHaveBeenCalledTimes(1)
+      expect(saveSpy.mock.lastCall?.[0]).toEqual(accountA)
+    })
   })
 
   describe('connectTransaction', () => {
@@ -2109,6 +2128,52 @@ describe('Accounts', () => {
 
       expect(accountBTx[0].transaction.hash()).toEqualHash(sortedHashes[0])
       expect(accountBTx[1].transaction.hash()).toEqualHash(sortedHashes[1])
+    })
+  })
+
+  describe('getTransactionsBySequence', () => {
+    it('returns a stream of transactions with a matching block sequence', async () => {
+      const { node } = nodeTest
+      const account = await useAccountFixture(node.wallet)
+
+      const minerBlockA = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        account,
+        node.wallet,
+      )
+      await node.chain.addBlock(minerBlockA)
+      await node.wallet.updateHead()
+
+      const minerBlockB = await useMinerBlockFixture(
+        node.chain,
+        undefined,
+        account,
+        node.wallet,
+      )
+      await node.chain.addBlock(minerBlockB)
+      await node.wallet.updateHead()
+
+      const transactionA = await useTxFixture(node.wallet, account, account)
+      const transactionB = await useTxFixture(node.wallet, account, account)
+
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet, [
+        transactionA,
+        transactionB,
+      ])
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      const blockTransactionHashes = block.transactions
+        .map((transaction) => transaction.hash())
+        .sort()
+      const accountTransactions = await AsyncUtils.materialize(
+        account.getTransactionsBySequence(block.header.sequence),
+      )
+      const accountTransactionHashes = accountTransactions
+        .map(({ transaction }) => transaction.hash())
+        .sort()
+      expect(accountTransactionHashes).toEqual(blockTransactionHashes)
     })
   })
 })

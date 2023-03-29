@@ -26,7 +26,9 @@ describe('burnAsset', () => {
           fee: '0',
           value: '100',
         }),
-      ).rejects.toThrow('value must be equal to or greater than 1')
+      ).rejects.toThrow(
+        'Request failed (400) validation: value must be equal to or greater than 1',
+      )
     })
   })
 
@@ -39,7 +41,9 @@ describe('burnAsset', () => {
           fee: '1',
           value: '-1',
         }),
-      ).rejects.toThrow('value must be equal to or greater than 1')
+      ).rejects.toThrow(
+        'Request failed (400) validation: value must be equal to or greater than 1',
+      )
     })
   })
 

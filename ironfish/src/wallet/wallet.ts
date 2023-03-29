@@ -410,10 +410,6 @@ export class Wallet {
 
           const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
 
-          if (decryptedNotes.length === 0 && !(await account.hasSpend(transaction))) {
-            continue
-          }
-
           const transactionDeltas = await account.connectTransaction(
             blockHeader,
             transaction,
@@ -527,10 +523,6 @@ export class Wallet {
 
     for (const account of accounts) {
       const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
-
-      if (decryptedNotes.length === 0 && !(await account.hasSpend(transaction))) {
-        continue
-      }
 
       await account.addPendingTransaction(transaction, decryptedNotes, this.chain.head.sequence)
       await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes)
