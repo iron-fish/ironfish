@@ -131,7 +131,7 @@ TEST_VECTOR_LOCATION='./import-export-test-vector/'
 # FORMAT_ARRAY=( blob json mnemonic )
 FORMAT_ARRAY=( blob json mnemonic)
 # for VERSION in {65..72}
-for VERSION in {65..65}
+for VERSION in {65..66}
     do
     for FORMAT in "${FORMAT_ARRAY[@]}"
         do
