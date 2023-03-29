@@ -96,7 +96,6 @@ export class IronfishSdk {
     if (!fileSystem) {
       if (runtime.type === 'node') {
         fileSystem = new NodeFileProvider()
-        await fileSystem.init()
       } else {
         throw new Error(`No default fileSystem for ${String(runtime)}`)
       }
@@ -135,9 +134,9 @@ export class IronfishSdk {
 
     const logFile = config.get('enableLogFile')
 
-    if (logFile && fileSystem instanceof NodeFileProvider && fileSystem.path) {
-      const path = fileSystem.path.join(config.dataDir, 'ironfish.log')
-      const fileLogger = new FileReporter(fileSystem, path)
+    if (logFile && fileSystem instanceof NodeFileProvider) {
+      const path = fileSystem.join(config.dataDir, 'ironfish.log')
+      const fileLogger = new FileReporter(path)
       logger.addReporter(fileLogger)
     }
 

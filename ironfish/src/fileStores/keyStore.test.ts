@@ -9,7 +9,7 @@ import { KeyStore } from './keyStore'
 describe('KeyStore', () => {
   it('should load file store', async () => {
     const dir = getUniqueTestDataDir()
-    const files = await new NodeFileProvider().init()
+    const files = new NodeFileProvider()
 
     const store = new KeyStore<{ foo: string }>(files, 'store', { foo: 'bar' }, dir)
 
@@ -24,7 +24,7 @@ describe('KeyStore', () => {
 
   it('should validate schema in load', async () => {
     const dir = getUniqueTestDataDir()
-    const files = await new NodeFileProvider().init()
+    const files = new NodeFileProvider()
 
     const schema = yup
       .object({
@@ -42,7 +42,7 @@ describe('KeyStore', () => {
 
   it('should use schema result in load', async () => {
     const dir = getUniqueTestDataDir()
-    const files = await new NodeFileProvider().init()
+    const files = new NodeFileProvider()
 
     const schema = yup
       .object({
@@ -61,9 +61,9 @@ describe('KeyStore', () => {
     expect(store2.get('foo')).toEqual('hello')
   })
 
-  it('should validate schema in set', async () => {
+  it('should validate schema in set', () => {
     const dir = getUniqueTestDataDir()
-    const files = await new NodeFileProvider().init()
+    const files = new NodeFileProvider()
 
     const schema = yup
       .object({
@@ -78,9 +78,9 @@ describe('KeyStore', () => {
     )
   })
 
-  it('should use schema result in set', async () => {
+  it('should use schema result in set', () => {
     const dir = getUniqueTestDataDir()
-    const files = await new NodeFileProvider().init()
+    const files = new NodeFileProvider()
 
     const schema = yup
       .object({
@@ -96,7 +96,7 @@ describe('KeyStore', () => {
 
   it('isSet should return false when default config used', async () => {
     const dir = getUniqueTestDataDir()
-    const files = await new NodeFileProvider().init()
+    const files = new NodeFileProvider()
 
     // Not set
     let store = new KeyStore<{ foo: string }>(files, 'store', { foo: '' }, dir)
@@ -116,7 +116,7 @@ describe('KeyStore', () => {
 
   it('should save when put matches default', async () => {
     const dir = getUniqueTestDataDir()
-    const files = await new NodeFileProvider().init()
+    const files = new NodeFileProvider()
 
     let store = new KeyStore<{ foo: string }>(files, 'store', { foo: 'default' }, dir)
     expect(store.isSet('foo')).toBe(false)

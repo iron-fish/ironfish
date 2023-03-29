@@ -1,27 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import type fs from 'fs'
-import { Assert } from '../assert'
+import fs from 'fs'
+import fsSync from 'fs/promises'
+import os from 'os'
+import path from 'path'
 import { FileSystem } from './fileSystem'
 
 export class NodeFileProvider extends FileSystem {
-  fsSync: typeof import('fs') | null = null
-  fs: typeof import('fs').promises | null = null
-  path: typeof import('path') | null = null
-  os: typeof import('os') | null = null
-
-  async init(): Promise<FileSystem> {
-    this.fsSync = await import('fs')
-    this.path = await import('path')
-    this.os = await import('os')
-    this.fs = this.fsSync.promises
-    return this
-  }
-
   async access(path: fs.PathLike, mode?: number | undefined): Promise<void> {
-    Assert.isNotNull(this.fs, `Must call FileSystem.init()`)
-    await this.fs.access(path, mode)
+    await fsSync.access(path, mode)
   }
 
   async writeFile(
@@ -29,48 +17,39 @@ export class NodeFileProvider extends FileSystem {
     data: string,
     options?: { mode?: fs.Mode; flag?: fs.OpenMode },
   ): Promise<void> {
-    Assert.isNotNull(this.fs, `Must call FileSystem.init()`)
-    await this.fs.writeFile(path, data, options)
+    await fsSync.writeFile(path, data, options)
   }
 
   async readFile(path: string): Promise<string> {
-    Assert.isNotNull(this.fs, `Must call FileSystem.init()`)
-    return await this.fs.readFile(path, { encoding: 'utf8' })
+    return await fsSync.readFile(path, { encoding: 'utf8' })
   }
 
   async mkdir(path: string, options: { recursive?: boolean }): Promise<void> {
-    Assert.isNotNull(this.fs, `Must call FileSystem.init()`)
-    await this.fs.mkdir(path, options)
+    await fsSync.mkdir(path, options)
   }
 
-  resolve(path: string): string {
-    Assert.isNotNull(this.path, `Must call FileSystem.init()`)
-    return this.path.resolve(this.expandTilde(path))
+  resolve(_path: string): string {
+    return path.resolve(this.expandTilde(_path))
   }
 
   join(...paths: string[]): string {
-    Assert.isNotNull(this.path, `Must call FileSystem.init()`)
-    return this.path.join(...paths)
+    return path.join(...paths)
   }
 
-  dirname(path: string): string {
-    Assert.isNotNull(this.path, `Must call FileSystem.init()`)
-    return this.path.dirname(path)
+  dirname(_path: string): string {
+    return path.dirname(_path)
   }
 
-  basename(path: string, ext?: string | undefined): string {
-    Assert.isNotNull(this.path, `Must call FileSystem.init()`)
-    return this.path.basename(path, ext)
+  basename(_path: string, ext?: string | undefined): string {
+    return path.basename(_path, ext)
   }
 
-  extname(path: string): string {
-    Assert.isNotNull(this.path, `Must call FileSystem.init()`)
-    return this.path.extname(path)
+  extname(_path: string): string {
+    return path.extname(_path)
   }
 
-  async exists(path: string): Promise<boolean> {
-    Assert.isNotNull(this.path, `Must call FileSystem.init()`)
-    return await this.access(path)
+  async exists(_path: string): Promise<boolean> {
+    return await this.access(_path)
       .then(() => true)
       .catch(() => false)
   }
@@ -83,23 +62,20 @@ export class NodeFileProvider extends FileSystem {
    * @param filePath The filepath to expand out using unix shortcuts
    */
   private expandTilde(filePath: string): string {
-    Assert.isNotNull(this.os)
-    Assert.isNotNull(this.path)
-
     const CHAR_TILDE = 126
     const CHAR_PLUS = 43
-    const home = this.os.homedir()
+    const home = os.homedir()
 
     if (filePath.charCodeAt(0) === CHAR_TILDE) {
       if (filePath.charCodeAt(1) === CHAR_PLUS) {
-        return this.path.join(process.cwd(), filePath.slice(2))
+        return path.join(process.cwd(), filePath.slice(2))
       }
 
       if (!home) {
         return filePath
       }
 
-      return this.path.join(home, filePath.slice(1))
+      return path.join(home, filePath.slice(1))
     }
 
     return filePath

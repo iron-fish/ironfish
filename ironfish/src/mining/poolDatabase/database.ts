@@ -27,7 +27,6 @@ export class PoolDatabase {
     dbPath?: string
   }): Promise<PoolDatabase> {
     const fs = new NodeFileProvider()
-    await fs.init()
 
     const poolFolder = fs.join(options.config.dataDir, '/pool')
     await fs.mkdir(poolFolder, { recursive: true })

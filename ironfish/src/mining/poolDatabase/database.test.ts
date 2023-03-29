@@ -19,7 +19,6 @@ describe('poolDatabase', () => {
     logger.level = LogLevel.Silent
     const dataDir = getUniqueTestDataDir()
     const fileSystem = new NodeFileProvider()
-    await fileSystem.init()
     // TODO(mat): It would be convenient if we didn't need a filesystem for Config for tests
     const config = new Config(fileSystem, dataDir)
 

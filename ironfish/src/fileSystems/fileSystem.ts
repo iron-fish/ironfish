@@ -4,7 +4,6 @@
 import type fs from 'fs'
 
 export abstract class FileSystem {
-  abstract init(): Promise<FileSystem>
   abstract access(path: fs.PathLike, mode?: number | undefined): Promise<void>
   abstract writeFile(
     path: string,

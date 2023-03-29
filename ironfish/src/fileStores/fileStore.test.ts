@@ -8,7 +8,7 @@ import { FileStore } from './fileStore'
 describe('FileStore', () => {
   it('should load file store', async () => {
     const dir = getUniqueTestDataDir()
-    const files = await new NodeFileProvider().init()
+    const files = new NodeFileProvider()
 
     const store = new FileStore<{ foo: string }>(files, 'test', dir)
     await store.save({ foo: 'hello' })

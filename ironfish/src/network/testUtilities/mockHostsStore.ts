@@ -11,19 +11,6 @@ import { PeerAddress } from '../peers/peerAddress'
  */
 
 class MockFileSystem extends FileSystem {
-  fsSync: typeof import('fs') | null = null
-  fs: typeof import('fs').promises | null = null
-  path: typeof import('path') | null = null
-  os: typeof import('os') | null = null
-
-  async init(): Promise<FileSystem> {
-    this.fsSync = await import('fs')
-    this.path = await import('path')
-    this.os = await import('os')
-    this.fs = this.fsSync.promises
-    return this
-  }
-
   // eslint-disable-next-line @typescript-eslint/require-await
   async access(): Promise<void> {
     throw new Error('File does not exist')

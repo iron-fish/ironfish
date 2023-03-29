@@ -24,7 +24,6 @@ describe('IronfishSdk', () => {
       const dataDir = os.tmpdir()
 
       const fileSystem = new NodeFileProvider()
-      await fileSystem.init()
 
       const sdk = await IronfishSdk.init({
         configName: 'foo.config.json',
@@ -50,7 +49,6 @@ describe('IronfishSdk', () => {
 
     it('should create a node', async () => {
       const fileSystem = new NodeFileProvider()
-      await fileSystem.init()
 
       const sdk = await IronfishSdk.init({
         configName: 'foo.config.json',
@@ -68,7 +66,6 @@ describe('IronfishSdk', () => {
 
     it('should initialize an SDK with the default dataDir if none is passed in', async () => {
       const fileSystem = new NodeFileProvider()
-      await fileSystem.init()
 
       const sdk = await IronfishSdk.init({
         configName: 'foo.config.json',
