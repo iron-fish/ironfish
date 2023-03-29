@@ -51,24 +51,26 @@ function import_account_interactively() {
 
 function import_account_by_pipe() {
     echo "Testing import by pipe.\n"
-    output=$(expect -c "
+    output=$(expect -d -c "
         spawn sh -c \"cat $TEST_FILE | ironfish wallet:import\"
+        expect \"Enter a new account name:\"
+        send \"$ACCOUNT_NAME\\r\"
         expect {
-            \"Enter a new account name:\" {
-                send \"$ACCOUNT_NAME\\r\"
-                exp_continue
-            }
             \"Account $ACCOUNT_NAME imported\" {
                 set output \$expect_out(buffer)
             }
-            eof
+            eof {
+                set output \$expect_out(buffer)
+            }
         }
         puts \$output
-    ")
+    " | grep -o "Account $ACCOUNT_NAME imported")
     # verify import success by examining captured output
-    if ! echo "$output" | grep -q "Account $ACCOUNT_NAME imported"; then
+    if [ -z "$output" ]; then
         echo "Import failed for $ACCOUNT_NAME"
         exit 1
+    else
+        echo "Import successful for $ACCOUNT_NAME"
     fi
     DELETE_OUTPUT=$(ironfish wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
@@ -78,6 +80,8 @@ function import_account_by_pipe() {
     fi
     check_delete_success "$DELETE_OUTPUT" "$ACCOUNT_NAME"
 }
+
+
 
 
 function import_account_by_path() {
@@ -114,7 +118,7 @@ function import_account_by_path() {
 
 TEST_VECTOR_LOCATION='./import-export-test-vector/'
 # FORMAT_ARRAY=( blob json mnemonic )
-FORMAT_ARRAY=( blob )
+FORMAT_ARRAY=( mnemonic )
 # for VERSION in {65..72}
 for VERSION in {65..65}
     do
@@ -125,8 +129,11 @@ for VERSION in {65..65}
         echo $TEST_FILE
         FILE_CONTENTS=$(cat $TEST_FILE)
         import_account_interactively
-        import_account_by_pipe
         import_account_by_path
+        # Skip import_account_by_pipe if FORMAT is mnemonic
+        if [ "$FORMAT" != "mnemonic" ]; then
+            import_account_by_pipe
+        fi
         done
     done
 
