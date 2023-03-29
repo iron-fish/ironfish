@@ -27,8 +27,15 @@ function import_account_interactively() {
         expect \"Paste the output of wallet:export, or your spending key:\"
         send \"$FILE_CONTENTS\\r\"
         expect {
+            \"Paste the output of wallet:export, or your spending key:\" {
+                exp_continue
+            }
             \"Enter a new account name:\" {
                 send \"$ACCOUNT_NAME\\r\"
+                exp_continue
+            }
+            \"Account $ACCOUNT_NAME imported\" {
+                # Success, do nothing
             }
             eof
         }
@@ -49,9 +56,10 @@ function import_account_interactively() {
     check_delete_success "$DELETE_OUTPUT" "$ACCOUNT_NAME"
 }
 
+
 function import_account_by_pipe() {
     echo "Testing import by pipe.\n"
-    output=$(expect -d -c "
+    output=$(expect -c "
         spawn sh -c \"cat $TEST_FILE | ironfish wallet:import\"
         expect \"Enter a new account name:\"
         send \"$ACCOUNT_NAME\\r\"
@@ -118,7 +126,7 @@ function import_account_by_path() {
 
 TEST_VECTOR_LOCATION='./import-export-test-vector/'
 # FORMAT_ARRAY=( blob json mnemonic )
-FORMAT_ARRAY=( mnemonic )
+FORMAT_ARRAY=( blob )
 # for VERSION in {65..72}
 for VERSION in {65..65}
     do
