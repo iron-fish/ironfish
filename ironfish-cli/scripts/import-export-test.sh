@@ -21,12 +21,13 @@ function check_delete_success() {
 }
 
 function import_account_interactively() {
-    echo "Testing interactive import.\n"
+    echo "Testing interactive import."
     IMPORT_OUTPUT=$(expect -c "
         spawn ironfish wallet:import
         expect \"Paste the output of wallet:export, or your spending key:\"
-        send \"$FILE_CONTENTS\\r\"
-        expect {
+        send {${FILE_CONTENTS}}
+        send \"\r\"
+            expect {
             \"Paste the output of wallet:export, or your spending key:\" {
                 exp_continue
             }
@@ -57,7 +58,7 @@ function import_account_interactively() {
 
 
 function import_account_by_pipe() {
-    echo "Testing import by pipe.\n"
+    echo "Testing import by pipe."
     output=$(expect -c "
         spawn sh -c \"cat $TEST_FILE | ironfish wallet:import\"
         expect {
@@ -95,7 +96,7 @@ function import_account_by_pipe() {
 
 
 function import_account_by_path() {
-    echo "Testing import by path.\n"
+    echo "Testing import by path."
     IMPORT_OUTPUT=$(expect -c "
         spawn ironfish wallet:import --path $TEST_FILE
         expect {
@@ -128,7 +129,7 @@ function import_account_by_path() {
 
 TEST_VECTOR_LOCATION='./import-export-test-vector/'
 # FORMAT_ARRAY=( blob json mnemonic )
-FORMAT_ARRAY=( json )
+FORMAT_ARRAY=( blob json mnemonic)
 # for VERSION in {65..72}
 for VERSION in {65..65}
     do
@@ -138,8 +139,8 @@ for VERSION in {65..65}
         TEST_FILE=${TEST_VECTOR_LOCATION}${ACCOUNT_NAME}.txt
         echo $TEST_FILE
         FILE_CONTENTS=$(cat $TEST_FILE)
-        # import_account_interactively
-        # import_account_by_path
+        import_account_interactively
+        import_account_by_path
         # Skip import_account_by_pipe if FORMAT is mnemonic
         if [ "$FORMAT" != "mnemonic" ]; then
             import_account_by_pipe
