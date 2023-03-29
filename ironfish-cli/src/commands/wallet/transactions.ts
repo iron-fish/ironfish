@@ -78,7 +78,7 @@ export class TransactionsCommand extends IronfishCommand {
 
   getTransactionRows(
     transaction: GetAccountTransactionsResponse,
-    formatted = true,
+    formatted: boolean,
   ): PartialRecursive<TransactionRow>[] {
     const nativeAssetId = Asset.nativeId().toString('hex')
 
