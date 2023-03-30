@@ -138,7 +138,6 @@ for VERSION in {65..72}
         do
         ACCOUNT_NAME=0p1p${VERSION}_${FORMAT}
         TEST_FILE=${TEST_VECTOR_LOCATION}${ACCOUNT_NAME}.txt
-        echo $TEST_FILE
         FILE_CONTENTS=$(cat $TEST_FILE)
         import_account_interactively
         import_account_by_path
