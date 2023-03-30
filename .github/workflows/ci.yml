@@ -91,7 +91,7 @@ jobs:
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Install expect
-        run: apt-get update && apt-get install -y expect
+        run: sudo apt-get update && sudo apt-get install -y expect
 
       - name: Run slow tests & coverage
         run: yarn test:slow:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
