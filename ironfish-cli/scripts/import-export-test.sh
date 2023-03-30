@@ -128,9 +128,7 @@ function import_account_by_path() {
 }
 
 TEST_VECTOR_LOCATION='./import-export-test-vector/'
-# FORMAT_ARRAY=( blob json mnemonic )
 FORMAT_ARRAY=( blob json mnemonic)
-# for VERSION in {65..72}
 for VERSION in {65..72}
     do
     for FORMAT in "${FORMAT_ARRAY[@]}"
