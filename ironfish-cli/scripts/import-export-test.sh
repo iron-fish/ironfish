@@ -96,8 +96,10 @@ function import_account_by_pipe() {
 
 function import_account_by_path() {
     echo "Testing import by path."
+    # the cwd is already ironfish-cli, so we actually need to trim an extra "ironfish-cli" from the path
+    ACCOUNT_BY_PATH_TEST_FILE="./"${TEST_FILE:14}
     IMPORT_OUTPUT=$(expect -c "
-        spawn yarn --cwd ./ironfish-cli start wallet:import --path $TEST_FILE
+        spawn yarn --cwd ./ironfish-cli start wallet:import --path $ACCOUNT_BY_PATH_TEST_FILE
         expect {
             \"Enter a new account name:\" {
                 send \"$ACCOUNT_NAME\\r\"
