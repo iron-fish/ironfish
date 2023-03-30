@@ -237,7 +237,7 @@ export class BlockHeader {
    * repeatedly.
    */
   verifyTarget(): boolean {
-    return Target.meets(new Target(this.recomputeHash()).asBigInt(), this.target)
+    return Target.meets(BigIntUtils.fromBytesBE(this.recomputeHash()), this.target)
   }
 
   equals(other: BlockHeader): boolean {
