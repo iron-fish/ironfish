@@ -14,7 +14,6 @@ import {
   YupUtils,
 } from '@ironfish/sdk'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
-import { getLatestBlockHash } from './chain'
 import {
   defaultOnError,
   defaultOnExit,
@@ -24,23 +23,27 @@ import {
   NodeLogEventSchema,
   supportedNodeChildProcesses,
 } from './events'
-import { sleep } from './utils'
+import { sleep } from './misc'
+import { getLatestBlockHash } from './utils/chain'
 
 export const rootCmd = 'ironfish'
 
 /**
  * SimulationNodeConfig is the configuration for a node in the simulation network.
+ * All the `RequiredSimulationNodeConfig` options are required to start a node but defaults will be set
+ * if they are not provided. The rest of the `ConfigOptions` are optional and will be used to override
+ * the defaults.
  */
-export type SimulationNodeConfig = Required<RequiredUserSimulationNodeConfig> &
-  Partial<OptionalUserSimulationNodeConfig> & {
+export type SimulationNodeConfig = Required<RequiredSimulationNodeConfig> &
+  Partial<Omit<ConfigOptions, keyof RequiredSimulationNodeConfig>> & {
     dataDir: string
     verbose?: boolean
   }
 
 /**
- * These options are required from the user to start a node.
+ * These options are required to start a node.
  */
-export type RequiredUserSimulationNodeConfig = Pick<
+export type RequiredSimulationNodeConfig = Pick<
   ConfigOptions,
   | 'nodeName'
   | 'blockGraffiti'
@@ -52,24 +55,8 @@ export type RequiredUserSimulationNodeConfig = Pick<
 >
 
 /**
- * These options are required to start a node, but have set default values that the
- * user currently cannot change.
- * */
-export type RequiredDefaultSimulationNodeConfig = Pick<
-  ConfigOptions,
-  'enableRpc' | 'enableRpcTcp' | 'enableRpcTls' | 'miningForce'
->
-
-/**
- * Optional config values that can be set on the node.
- * There is no explicit support for these options, and thus might break a simulation node,
- * but they can be set.
+ * Global logger for use in the simulator node.
  */
-export type OptionalUserSimulationNodeConfig = Omit<
-  ConfigOptions,
-  keyof (RequiredUserSimulationNodeConfig & RequiredDefaultSimulationNodeConfig)
->
-
 const globalLogger = createRootLogger()
 
 /**
@@ -90,8 +77,15 @@ export class SimulationNode {
 
   onBlock: Event<[FollowChainStreamResponse]> = new Event()
 
+  /**
+   * The last error encountered by the node. This is useful for debugging
+   * when a node crashes or exits unexpectedly.
+   */
   lastError: Error | undefined
 
+  /**
+   * @event Emitted when the node logs a message
+   */
   onLog: Event<[LogEvent]> = new Event()
   onError: Event<[ErrorEvent]> = new Event()
   onExit: Event<[ExitEvent]> = new Event()
@@ -100,17 +94,17 @@ export class SimulationNode {
   client: RpcTcpClient
   config: SimulationNodeConfig
 
-  /** promise that resolves when the node shuts down */
-  shutdownPromise: Promise<void>
+  /** Promise that resolves when the node shuts down */
+  private shutdownPromise: Promise<void>
 
-  /** call to resolve the shutdown promise */
-  shutdownResolve: () => void
+  /** Call to resolve the shutdown promise */
+  private shutdownResolve: () => void
 
   logger: Logger
 
-  /** node is ready to be interacted with */
+  /** If the node is ready to be interacted with */
   ready = false
-  /** node was stopped */
+  /** If the node was stopped */
   stopped = false
 
   /**
@@ -134,16 +128,14 @@ export class SimulationNode {
     const args = ['start', '--datadir', this.config.dataDir]
 
     // Register any user-provided event handlers
-    if (options) {
-      if (options.onLog) {
-        options.onLog.forEach((e) => this.onLog.on(e))
-      }
-      if (options.onExit) {
-        options.onExit.forEach((e) => this.onExit.on(e))
-      }
-      if (options.onError) {
-        options.onError.forEach((e) => this.onError.on(e))
-      }
+    if (options?.onLog) {
+      options.onLog.forEach((e) => this.onLog.on(e))
+    }
+    if (options?.onExit) {
+      options.onExit.forEach((e) => this.onExit.on(e))
+    }
+    if (options?.onError) {
+      options.onError.forEach((e) => this.onError.on(e))
     }
 
     this.nodeProcess = this.startNodeProcess(args)
@@ -177,7 +169,7 @@ export class SimulationNode {
    *
    * @returns A new and ready SimulationNode
    */
-  static async initialize(
+  static async init(
     config: SimulationNodeConfig,
     logger: Logger,
     options?: {
@@ -199,13 +191,6 @@ export class SimulationNode {
     const nodeConfig = new Config(fileSystem, config.dataDir)
     await nodeConfig.load()
 
-    // These config options have default values that must be set
-    nodeConfig.set('jsonLogs', true)
-    nodeConfig.set('enableRpc', true)
-    nodeConfig.set('enableRpcTcp', true)
-    nodeConfig.set('enableRpcTls', false)
-    nodeConfig.set('miningForce', true)
-
     if (config.verbose) {
       nodeConfig.set('logLevel', '*:verbose')
     }
@@ -219,10 +204,19 @@ export class SimulationNode {
       nodeConfig.set(key as keyof ConfigOptions, value)
     }
 
+    // These config options have specific values that must be set
+    // and thus are not configurable
+    nodeConfig.set('jsonLogs', true)
+    nodeConfig.set('enableRpc', true)
+    nodeConfig.set('enableRpcTcp', true)
+    nodeConfig.set('enableRpcTls', false)
+    nodeConfig.set('miningForce', true)
+
     await nodeConfig.save()
 
     const node = new SimulationNode(config, client, logger, options)
 
+    // Contineu to attempt to connect to the node until it is ready
     let connected = false
     let tries = 0
     while (!connected && tries < 12) {
@@ -463,11 +457,9 @@ export class SimulationNode {
   private cleanup(): void {
     this.logger.log(`cleaning up ${this.config.nodeName}...`)
 
-    this.procs.forEach((proc, key) => {
-      const success = proc.kill()
-      if (!success) {
-        this.logger.log(`failed to kill proc ${key}`)
-      }
+    this.procs.forEach((proc) => {
+      // TODO: handle kill response
+      const _ = proc.kill()
     })
 
     this.procs.clear()

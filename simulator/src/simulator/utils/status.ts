@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { FileUtils, GetNodeStatusResponse } from '@ironfish/sdk'
-import { SimulationNode } from './simulation-node'
+import { SimulationNode } from '../simulation-node'
 
 /**
  * Gets the status of a node via the `getNodeStatus` RPC call

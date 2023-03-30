@@ -9,7 +9,6 @@ import {
   getRandom,
   LogEvent,
   MINUTE,
-  SimulationNodeConfig,
   Simulator,
   sleep,
 } from '../simulator'
@@ -24,7 +23,6 @@ export async function run(logger: Logger, options?: { persist: boolean }): Promi
   const simulator = new Simulator(logger, options)
 
   const alive: Set<string> = new Set()
-  const dead: Set<string> = new Set()
 
   const onExit = (event: ExitEvent): void => {
     logger.log(`[${event.node}:exit] ${JSON.stringify(event)}`)
@@ -35,23 +33,13 @@ export async function run(logger: Logger, options?: { persist: boolean }): Promi
   }
 
   // Spawn 3 nodes
-  await Promise.all(
-    nodeConfig.slice(0, 3).map(async (cfg) => {
-      await simulator.startNode(cfg, {
-        onExit: [onExit],
-        onError: [onError],
-      })
-      alive.add(cfg.nodeName)
-    }),
-  )
-
-  // add nodes to the alive / dead sets
-  nodeConfig.forEach((node) => {
-    const name = node.nodeName
-    if (!alive.has(name)) {
-      dead.add(name)
-    }
-  })
+  for (let i = 0; i < 3; i++) {
+    const node = await simulator.startNode({
+      onExit: [onExit],
+      onError: [onError],
+    })
+    alive.add(node.config.nodeName)
+  }
 
   logger = logger.withScope('simulation2')
 
@@ -70,9 +58,9 @@ export async function run(logger: Logger, options?: { persist: boolean }): Promi
     failedStops: { count: 0, errs: [] },
   }
 
-  void stopLoop(simulator, logger, alive, dead, loop, simulationStatus)
+  void stopLoop(simulator, logger, alive, loop, simulationStatus)
 
-  void startLoop(simulator, logger, alive, dead, loop, simulationStatus, {
+  void startLoop(simulator, logger, alive, loop, simulationStatus, {
     onExit: [onExit],
     onError: [onError],
   })
@@ -98,7 +86,6 @@ const startLoop = async (
   simulator: Simulator,
   logger: Logger,
   alive: Set<string>,
-  dead: Set<string>,
   loop: { state: boolean },
   simulationStatus: SimulationStatus,
   options?: {
@@ -110,22 +97,11 @@ const startLoop = async (
   while (loop.state) {
     try {
       await sleep(Math.floor(Math.random() * 1 * MINUTE))
-      const n = getRandom(dead)
-      if (!n) {
-        logger.log(`[start] no dead node to spawn: ${Array.from(dead).join(', ')}`)
-        continue
-      }
 
-      logger.log(`[start] starting node ${n}`)
-      const node = nodeConfig.find((cfg) => cfg.nodeName === n)
-      if (!node) {
-        logger.log(`[start] couldnt get config for ${n}`)
-        continue
-      }
+      const added = await simulator.startNode(options)
+      logger.log(`[start] starting node ${added.config.nodeName}`)
 
-      const added = await simulator.startNode(node, options)
       alive.add(added.config.nodeName)
-      dead.delete(added.config.nodeName)
 
       simulationStatus.numStarts += 1
 
@@ -147,7 +123,6 @@ const stopLoop = async (
   simulator: Simulator,
   logger: Logger,
   alive: Set<string>,
-  dead: Set<string>,
   loop: { state: boolean },
   simulationStatus: SimulationStatus,
 ) => {
@@ -204,7 +179,6 @@ const stopLoop = async (
     await stopped.then(
       () => {
         alive.delete(node.config.nodeName)
-        dead.add(node.config.nodeName)
         logger.log(
           `[stop] node ${node.config.nodeName} stopped | alive nodes: ${Array.from(alive).join(
             ', ',
@@ -221,57 +195,3 @@ const stopLoop = async (
     node.onExit.off(exitListener)
   }
 }
-
-const nodeConfig: SimulationNodeConfig[] = [
-  {
-    nodeName: 'node1',
-    blockGraffiti: '1',
-    peerPort: 7001,
-    dataDir: '~/.ironfish-atn/node1',
-    networkId: 2,
-    bootstrapNodes: ["''"],
-    rpcTcpHost: 'localhost',
-    rpcTcpPort: 9001,
-    verbose: true,
-  },
-  {
-    nodeName: 'node2',
-    blockGraffiti: '2',
-    peerPort: 7002,
-    dataDir: '~/.ironfish-atn/node2',
-    networkId: 2,
-    bootstrapNodes: ['localhost:7001'],
-    rpcTcpHost: 'localhost',
-    rpcTcpPort: 9002,
-  },
-  {
-    nodeName: 'node3',
-    blockGraffiti: '3',
-    peerPort: 7003,
-    dataDir: '~/.ironfish-atn/node3',
-    networkId: 2,
-    bootstrapNodes: ['localhost:7001'],
-    rpcTcpHost: 'localhost',
-    rpcTcpPort: 9003,
-  },
-  {
-    nodeName: 'node4',
-    blockGraffiti: '4',
-    peerPort: 7004,
-    dataDir: '~/.ironfish-atn/node4',
-    networkId: 2,
-    bootstrapNodes: ['localhost:7001'],
-    rpcTcpHost: 'localhost',
-    rpcTcpPort: 9004,
-  },
-  {
-    nodeName: 'node5',
-    blockGraffiti: '5',
-    peerPort: 7005,
-    dataDir: '~/.ironfish-atn/node5',
-    networkId: 2,
-    bootstrapNodes: ['localhost:7001'],
-    rpcTcpHost: 'localhost',
-    rpcTcpPort: 9005,
-  },
-]

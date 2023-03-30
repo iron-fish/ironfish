@@ -5,12 +5,6 @@
 // This file should serve as an example simulation.
 // It is a good idea to copy this file and use it as a template for your own simulations.
 
-/**
- * Author: <who wrote the simulation>
- * Date: <when was the simulation written>
- * Purpose: <what the simulation is testing>
- */
-
 import { Logger } from '@ironfish/sdk'
 import {
   ErrorEvent,
@@ -23,8 +17,15 @@ import {
   Simulator,
 } from '../simulator'
 
+/**
+ * Author: <who wrote the simulation>
+ * Date: <when was the simulation written>
+ * Description: <what the simulation is doing>
+ */
+
 export async function run(logger: Logger): Promise<void> {
-  // Create a new simulation handler. This will handle starting and stopping nodes
+  // Create a new simulation handler.
+  // The simulator handles managing nodes and data dirs.
   const simulator = new Simulator(logger)
 
   // Register event handlers.
@@ -49,7 +50,8 @@ export async function run(logger: Logger): Promise<void> {
   // The handlers must be passed into the addNode function to ensure that no events are missed.
   const nodes = await Promise.all(
     nodeConfig.map(async (cfg) => {
-      return simulator.startNode(cfg, {
+      return simulator.startNode({
+        cfg,
         onLog: [onLog],
         onExit: [onExit],
         onError: [onError],
@@ -58,6 +60,7 @@ export async function run(logger: Logger): Promise<void> {
   )
 
   // This starts the miner on the first node.
+  // The miner can also be stopped via `node[0].stopMiner()`
   nodes[0].startMiner()
 
   // Start the simulation.
@@ -98,7 +101,7 @@ export async function run(logger: Logger): Promise<void> {
       })
   }, 3 * SECOND)
 
-  // Wait for the simulation to finish. This currently will wait for all the nodes to exit.
+  // Call this to keep the simulation running. This currently will wait for all the nodes to exit.
   await simulator.waitForShutdown()
 }
 
