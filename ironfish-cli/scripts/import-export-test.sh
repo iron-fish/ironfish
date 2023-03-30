@@ -23,7 +23,7 @@ function check_delete_success() {
 function import_account_interactively() {
     echo "Testing interactive import."
     IMPORT_OUTPUT=$(expect -c "
-        spawn ironfish wallet:import
+        spawn yarn --cwd ./ironfish-cli start wallet:import
         expect \"Paste the output of wallet:export, or your spending key:\"
         send {${FILE_CONTENTS}}
         send \"\r\"
@@ -47,7 +47,7 @@ function import_account_interactively() {
         exit 1
     fi
     check_import_success "$IMPORT_OUTPUT" "$ACCOUNT_NAME"
-    DELETE_OUTPUT=$(ironfish wallet:delete $ACCOUNT_NAME --wait)
+    DELETE_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
     if [ $? -ne 0 ]; then
         echo "Deletion failed for $ACCOUNT_NAME"
@@ -60,7 +60,7 @@ function import_account_interactively() {
 function import_account_by_pipe() {
     echo "Testing import by pipe."
     IMPORT_OUTPUT=$(expect -c "
-        spawn sh -c \"cat $TEST_FILE | ironfish wallet:import\"
+        spawn sh -c \"cat $TEST_FILE | yarn --cwd ./ironfish-cli start wallet:import\"
         expect {
             \"Enter a new account name:\" {
                 send \"$ACCOUNT_NAME\\r\"
@@ -82,7 +82,7 @@ function import_account_by_pipe() {
         exit 1
     fi
     check_import_success "$IMPORT_OUTPUT" "$ACCOUNT_NAME"
-    DELETE_OUTPUT=$(ironfish wallet:delete $ACCOUNT_NAME --wait)
+    DELETE_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
     if [ $? -ne 0 ]; then
         echo "Deletion failed for $ACCOUNT_NAME"
@@ -97,7 +97,7 @@ function import_account_by_pipe() {
 function import_account_by_path() {
     echo "Testing import by path."
     IMPORT_OUTPUT=$(expect -c "
-        spawn ironfish wallet:import --path $TEST_FILE
+        spawn yarn --cwd ./ironfish-cli start wallet:import --path $TEST_FILE
         expect {
             \"Enter a new account name:\" {
                 send \"$ACCOUNT_NAME\\r\"
@@ -118,7 +118,7 @@ function import_account_by_path() {
         exit 1
     fi
     check_import_success "$IMPORT_OUTPUT" "$ACCOUNT_NAME"
-    DELETE_OUTPUT=$(ironfish wallet:delete $ACCOUNT_NAME --wait)
+    DELETE_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
     if [ $? -ne 0 ]; then
         echo "Deletion failed for $ACCOUNT_NAME"
