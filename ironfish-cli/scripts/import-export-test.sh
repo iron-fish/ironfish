@@ -127,7 +127,8 @@ function import_account_by_path() {
     check_delete_success "$DELETE_OUTPUT" "$ACCOUNT_NAME"
 }
 
-TEST_VECTOR_LOCATION='./import-export-test-vector/'
+#this script is always run from the root of ironfish
+TEST_VECTOR_LOCATION='./ironfish-cli/scripts/import-export-test-vector/'
 FORMAT_ARRAY=( blob json mnemonic)
 for VERSION in {65..72}
     do
