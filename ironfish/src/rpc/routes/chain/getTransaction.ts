@@ -12,7 +12,7 @@ export type GetTransactionRequest = { blockHash: string; transactionHash: string
 export type GetTransactionResponse = {
   fee: string
   expiration: number
-  index: number
+  initialNoteIndex: number
   notesCount: number
   spendsCount: number
   signature: string
@@ -40,7 +40,7 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
   .object({
     fee: yup.string().defined(),
     expiration: yup.number().defined(),
-    index: yup.number().defined(),
+    initialNoteIndex: yup.number().defined(),
     notesCount: yup.number().defined(),
     spendsCount: yup.number().defined(),
     signature: yup.string().defined(),
@@ -95,7 +95,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     const rawTransaction: GetTransactionResponse = {
       fee: '0',
       expiration: 0,
-      index: 0,
+      initialNoteIndex: 0,
       notesCount: 0,
       spendsCount: 0,
       signature: '',
@@ -123,7 +123,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
 
         rawTransaction.fee = fee
         rawTransaction.expiration = expiration
-        rawTransaction.index = initialNoteIndex
+        rawTransaction.initialNoteIndex = initialNoteIndex
         rawTransaction.notesCount = transaction.notes.length
         rawTransaction.spendsCount = transaction.spends.length
         rawTransaction.signature = signature.toString('hex')
