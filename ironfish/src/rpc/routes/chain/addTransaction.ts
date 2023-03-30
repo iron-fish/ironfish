@@ -5,33 +5,31 @@ import * as yup from 'yup'
 import { Transaction } from '../../../primitives'
 import { ApiNamespace, router } from '../router'
 
-export type PostSignedTransactionRequest = {
+export type AddTransactionRequest = {
   transaction: string
 }
 
-export type PostSignedTransactionResponse = {
+export type AddTransactionResponse = {
   success: boolean
   reason?: string
 }
 
-export const PostSignedTransactionRequestSchema: yup.ObjectSchema<PostSignedTransactionRequest> =
-  yup
-    .object({
-      transaction: yup.string().defined(),
-    })
-    .defined()
+export const AddTransactionRequestSchema: yup.ObjectSchema<AddTransactionRequest> = yup
+  .object({
+    transaction: yup.string().defined(),
+  })
+  .defined()
 
-export const PostSignedTransactionResponseSchema: yup.ObjectSchema<PostSignedTransactionResponse> =
-  yup
-    .object({
-      success: yup.boolean().defined(),
-      reason: yup.string().optional(),
-    })
-    .defined()
+export const AddTransactionResponseSchema: yup.ObjectSchema<AddTransactionResponse> = yup
+  .object({
+    success: yup.boolean().defined(),
+    reason: yup.string().optional(),
+  })
+  .defined()
 
-router.register<typeof PostSignedTransactionRequestSchema, PostSignedTransactionResponse>(
-  `${ApiNamespace.chain}/postTransaction`,
-  PostSignedTransactionRequestSchema,
+router.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
+  `${ApiNamespace.chain}/addTransaction`,
+  AddTransactionRequestSchema,
   async (request, node): Promise<void> => {
     const buffer = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(buffer)
