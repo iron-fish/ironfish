@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { MintAssetRequest, MintAssetResponse } from '@ironfish/sdk'
+import { SimulationNode } from '../simulation-node'
 import { getDefaultAccount } from './accounts'
-import { SimulationNode } from './simulation-node'
 
 /**
  * Calls the mintAsset RPC on a node.

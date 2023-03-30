@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
 import { Transaction } from '@ironfish/sdk'
+import { SimulationNode } from '../simulation-node'
 import { getAccountPublicKey, getDefaultAccount } from './accounts'
-import { SimulationNode } from './simulation-node'
 
 /**
  * Sends a transaction from one node to another using the sendTransaction RPC call.

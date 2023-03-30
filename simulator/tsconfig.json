@@ -6,7 +6,5 @@
     "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo"
   },
   "include": ["src", "./package.json"],
-  "references": [
-    { "path": "../ironfish" },
-  ]
+  "references": [{ "path": "../ironfish" }]
 }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import { SimulationNode } from './simulation-node'
+import { SimulationNode } from '../simulation-node'
 
 // This is a utility file for the automated simulation network. It contains functions
 // for getting information about accounts, such as their balance and public key.

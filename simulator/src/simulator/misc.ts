@@ -19,15 +19,6 @@ export function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Shortens a hash to 16 characters.
- * @param hash The hash to shorten
- * @returns The shortened hash
- */
-export function short(hash: string): string {
-  return hash.slice(0, 16)
-}
-
-/**
  * Creates an interval that runs a function at a random interval between `minDelay` and `maxDelay`.
  * @param fn The function to run
  * @param minDelay The minimum delay between function calls

@@ -1,9 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createRootLogger } from '@ironfish/sdk'
 import { CliUx, Command, Config } from '@oclif/core'
 import { Flags } from '@oclif/core'
@@ -15,9 +12,11 @@ export abstract class Start extends Command {
   static args = [
     {
       name: 'simulation',
-      parse: (input: string): Promise<number | null> => Promise.resolve(parseNumber(input)),
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       required: true,
-      description: 'The simulation to run',
+      description: `The name of the simulation to run, one of: ${Object.keys(SIMULATIONS).join(
+        ', ',
+      )}`,
     },
   ]
 
@@ -25,7 +24,7 @@ export abstract class Start extends Command {
     persist: Flags.boolean({
       char: 'p',
       required: false,
-      description: 'Persist the data_dir beyond the simulation',
+      description: 'Whether the data_dir should persist beyond the simulation',
       default: false,
     }),
   }
@@ -37,33 +36,25 @@ export abstract class Start extends Command {
   async run(): Promise<void> {
     const { args, flags } = await this.parse(Start)
 
-    const simulation = args.simulation as number | null
+    const simName = args.simulation as string
+    const simulation = SIMULATIONS[simName]
 
     const persist = flags.persist
 
     const logger = createRootLogger()
 
-    if (simulation === null) {
-      logger.log(`simulation argument is invalid`)
-      this.exit()
+    if (simulation === undefined) {
+      logger.log(`could not find simulation ${simName}`)
+      this.exit(1)
       return
     }
 
-    const toRun = SIMULATIONS.at(simulation - 1)
-    if (!toRun || simulation < 1) {
-      logger.log(`could not find simulation ${simulation}`)
-      this.exit()
-      return
-    }
-
-    CliUx.ux.action.start(`running simulation ${simulation}`)
-    await toRun.run(logger, { persist })
-    CliUx.ux.action.start(`stop simulation ${simulation}`)
+    // TODO: the spinner does not work when trying to pipe logs into a logfile, it will just hang
+    // If you want logs to persist, i.e. via `simulator start 1 2>&1 | tee ~/i/logs/run_1.log` you will
+    // need to remove the spinner
+    CliUx.ux.action.start(`running simulation ${simName}`)
+    await simulation.run(logger, { persist })
+    CliUx.ux.action.start(`stop simulation ${simName}`)
     this.exit()
   }
-}
-
-function parseNumber(input: string): number | null {
-  const parsed = Number(input)
-  return isNaN(parsed) ? null : parsed
 }

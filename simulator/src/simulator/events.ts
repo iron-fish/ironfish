@@ -13,9 +13,15 @@ import * as yup from 'yup'
  */
 export type supportedNodeChildProcesses = 'miner' | 'node'
 
+export const defaultOnLog =
+  (logger: Logger) =>
+  (event: LogEvent): void => {
+    logger.log(`[${event.node}:${event.proc}:log:${event.type}] ${JSON.stringify(event)}`)
+  }
+
 /**
  * defaultOnEixt is the default onExit handler for a SimulationNode. It logs the exit event, in red, to the console.
- * @param logger The logger to use
+ * @param logger The logger used to log the event
  */
 export const defaultOnExit =
   (logger: Logger) =>
@@ -24,7 +30,7 @@ export const defaultOnExit =
 
 /**
  *  defaultOnError is the default onError handler for a SimulationNode. It logs the error event, in red, to the console.
- * @param logger The logger to use
+ * @param logger The logger used to log the event
  */
 export const defaultOnError =
   (logger: Logger) =>
