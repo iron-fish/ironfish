@@ -270,6 +270,27 @@ describe('Accounts', () => {
       const accountA = await useAccountFixture(node.wallet, 'a')
 
       // set accountA's createdAt block off the chain
+      await accountA.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 1 })
+
+      const resetAccountSpy = jest.spyOn(node.wallet, 'resetAccount')
+      jest.spyOn(node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
+      jest.spyOn(node.wallet, 'eventLoop').mockReturnValue(Promise.resolve())
+
+      // set chainProcessor sequence
+      node.wallet.chainProcessor.sequence = 1
+
+      await node.wallet.start()
+
+      expect(resetAccountSpy).toHaveBeenCalledTimes(1)
+      expect(resetAccountSpy).toHaveBeenCalledWith(accountA, { resetCreatedAt: true })
+    })
+
+    it('should not reset account.createdAt if its sequence is ahead of the chainProcessor', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      // set accountA's createdAt block off the chain
       await accountA.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 10 })
 
       const resetAccountSpy = jest.spyOn(node.wallet, 'resetAccount')
@@ -278,8 +299,7 @@ describe('Accounts', () => {
 
       await node.wallet.start()
 
-      expect(resetAccountSpy).toHaveBeenCalledTimes(1)
-      expect(resetAccountSpy).toHaveBeenCalledWith(accountA, { resetCreatedAt: true })
+      expect(resetAccountSpy).toHaveBeenCalledTimes(0)
     })
   })
 

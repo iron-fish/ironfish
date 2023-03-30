@@ -5460,5 +5460,18 @@
         "sequence": 2
       }
     }
+  ],
+  "Accounts start should not reset account.createdAt if its sequence is ahead of the chainProcessor": [
+    {
+      "version": 1,
+      "id": "a5f38e9c-e9bd-4e4d-87b6-eb8219e1df5b",
+      "name": "a",
+      "spendingKey": "9807144ed9ebad0c3d619d329f2632a8e3dde191ef9ae557dd0fe46aa8a5b278",
+      "viewKey": "355282da3c099a1acc99423cdea8104b676b2912384b7fda14f78e032354e3b5451b04a15bf5c53a0d0463f556922e895920009068c363506e403ffa9c6e1b52",
+      "incomingViewKey": "70426159fdbb6681a038e9c2d79c83888574b5959a6fd11181336bb8612d4402",
+      "outgoingViewKey": "ef2c792e64ae52d64171c77c8b1d74c021d8fe8acd5fe8afc30f7316fd87c90b",
+      "publicAddress": "17ee33ff9eb0fde048b77bcff3cf294ee7fb7aaf4f0e8672825e5de43c05973f",
+      "createdAt": null
+    }
   ]
 }

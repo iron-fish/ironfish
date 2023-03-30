@@ -230,7 +230,11 @@ export class Wallet {
     this.isStarted = true
 
     for (const account of this.listAccounts()) {
-      if (account.createdAt === null) {
+      if (account.createdAt === null || this.chainProcessor.sequence === null) {
+        continue
+      }
+
+      if (account.createdAt.sequence > this.chainProcessor.sequence) {
         continue
       }
 
