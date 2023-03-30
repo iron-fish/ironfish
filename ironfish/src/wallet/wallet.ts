@@ -235,6 +235,20 @@ export class Wallet {
     }
     this.isStarted = true
 
+    for (const account of this.listAccounts()) {
+      if (account.createdAt === null || this.chainProcessor.sequence === null) {
+        continue
+      }
+
+      if (account.createdAt.sequence > this.chainProcessor.sequence) {
+        continue
+      }
+
+      if (!(await this.chain.hasBlock(account.createdAt.hash))) {
+        await this.resetAccount(account, { resetCreatedAt: true })
+      }
+    }
+
     if (this.chainProcessor.hash) {
       const hasHeadBlock = await this.chain.hasBlock(this.chainProcessor.hash)
 
@@ -302,7 +316,7 @@ export class Wallet {
 
   private async resetAccounts(tx?: IDatabaseTransaction): Promise<void> {
     for (const account of this.listAccounts()) {
-      await this.resetAccount(account, tx)
+      await this.resetAccount(account, { tx })
     }
   }
 
@@ -1373,15 +1387,21 @@ export class Wallet {
     return this.getAccountByName(name) !== null
   }
 
-  async resetAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+  async resetAccount(
+    account: Account,
+    options?: {
+      resetCreatedAt?: boolean
+      tx?: IDatabaseTransaction
+    },
+  ): Promise<void> {
     const newAccount = new Account({
       ...account,
+      createdAt: options?.resetCreatedAt ? null : account.createdAt,
       id: uuid(),
       walletDb: this.walletDb,
-      createdAt: null,
     })
 
-    await this.walletDb.db.withTransaction(tx, async (tx) => {
+    await this.walletDb.db.withTransaction(options?.tx, async (tx) => {
       await this.walletDb.setAccount(newAccount, tx)
       await newAccount.updateHead(null, tx)
 
