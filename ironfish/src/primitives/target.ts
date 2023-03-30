@@ -152,8 +152,8 @@ export class Target {
    * Return the difficulty representation as a big integer
    */
   toDifficulty(): bigint {
-    if (this.targetValue === 0n) {
-      return 2n ** 256n + 1n
+    if (this.targetValue <= 1n) {
+      return MAX_256_BIT_NUM
     }
     return 2n ** 256n / this.targetValue
   }
