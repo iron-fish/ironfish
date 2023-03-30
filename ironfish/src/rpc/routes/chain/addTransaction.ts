@@ -5,31 +5,33 @@ import * as yup from 'yup'
 import { Transaction } from '../../../primitives'
 import { ApiNamespace, router } from '../router'
 
-export type AddTransactionRequest = {
+export type ChainAddTransactionRequest = {
   transaction: string
 }
 
-export type AddTransactionResponse = {
+export type ChainAddTransactionResponse = {
   success: boolean
   reason?: string
 }
 
-export const AddTransactionRequestSchema: yup.ObjectSchema<AddTransactionRequest> = yup
-  .object({
-    transaction: yup.string().defined(),
-  })
-  .defined()
+export const ChainAddTransactionRequestSchema: yup.ObjectSchema<ChainAddTransactionRequest> =
+  yup
+    .object({
+      transaction: yup.string().defined(),
+    })
+    .defined()
 
-export const AddTransactionResponseSchema: yup.ObjectSchema<AddTransactionResponse> = yup
-  .object({
-    success: yup.boolean().defined(),
-    reason: yup.string().optional(),
-  })
-  .defined()
+export const ChainAddTransactionResponseSchema: yup.ObjectSchema<ChainAddTransactionResponse> =
+  yup
+    .object({
+      success: yup.boolean().defined(),
+      reason: yup.string().optional(),
+    })
+    .defined()
 
-router.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
+router.register<typeof ChainAddTransactionRequestSchema, ChainAddTransactionResponse>(
   `${ApiNamespace.chain}/addTransaction`,
-  AddTransactionRequestSchema,
+  ChainAddTransactionRequestSchema,
   async (request, node): Promise<void> => {
     const buffer = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(buffer)
