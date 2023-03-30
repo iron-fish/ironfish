@@ -397,23 +397,24 @@ export class Wallet {
     })
 
     for (const account of accounts) {
+      const shouldDecrypt = await this.shouldDecryptForAccount(blockHeader, account, scan)
+
+      if (scan && scan.isAborted) {
+        scan.signalComplete()
+        this.scan = null
+        return
+      }
+
       await this.walletDb.db.transaction(async (tx) => {
         let assetBalanceDeltas = new AssetBalances()
 
-        if (account.shouldScanBlock(blockHeader)) {
+        if (shouldDecrypt) {
           assetBalanceDeltas = await this.connectBlockTransactions(
             blockHeader,
             account,
             scan,
             tx,
           )
-        }
-
-        if (scan && scan.isAborted) {
-          scan.signalComplete()
-          this.scan = null
-          await tx.abort()
-          return
         }
 
         await account.updateUnconfirmedBalances(
@@ -434,6 +435,35 @@ export class Wallet {
         }
       })
     }
+  }
+
+  async shouldDecryptForAccount(
+    blockHeader: BlockHeader,
+    account: Account,
+    scan?: ScanState,
+  ): Promise<boolean> {
+    if (account.createdAt === null) {
+      return true
+    }
+
+    if (account.createdAt.sequence < blockHeader.sequence) {
+      return true
+    }
+
+    if (account.createdAt.sequence === blockHeader.sequence) {
+      if (!account.createdAt.hash.equals(blockHeader.hash)) {
+        // account.createdAt is refers to a block that is not on the main chain
+        await this.resetAccount(account, { resetCreatedAt: true })
+        await scan?.abort()
+        void this.scanTransactions()
+
+        return false
+      }
+
+      return true
+    }
+
+    return false
   }
 
   private async connectBlockTransactions(
