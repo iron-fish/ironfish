@@ -33,28 +33,41 @@ export class Simulator {
 
   nodeCount = 0
 
-  constructor(logger: Logger, options?: { persist: boolean }) {
+  constructor(logger: Logger, options?: { persist?: boolean; duration?: number }) {
     this.logger = logger
     this.logger.withTag('simulator')
 
     this.running = true
 
-    if (options?.persist) {
-      this.persistNodeDataDirs = true
+    if (options) {
+      const { persist, duration } = options
+
+      if (persist) {
+        this.persistNodeDataDirs = true
+      }
+
+      if (duration) {
+        this.logger.log(`this simulation will run for ${duration} seconds`)
+        const exitTimeout = setTimeout(() => {
+          this.logger.log(`simulator exiting after ${duration} seconds`)
+          clearTimeout(exitTimeout)
+          this.exit()
+        }, duration * SECOND)
+      }
     }
 
     process
       .on('SIGINT', (event) => {
         this.logger.log(`simulator handled ${event.toString()}`)
-        this.exit()
+        this.exit(1)
       })
       .on('uncaughtException', (err) => {
         this.logger.log(`simulator handled uncaught exception: ${String(err)}`)
-        this.exit()
+        this.exit(1)
       })
       .on('unhandledRejection', (reason, _) => {
         this.logger.log(`simulator handled unhandled rejection: ${String(reason)}`)
-        this.exit()
+        this.exit(1)
       })
   }
 
@@ -127,12 +140,13 @@ export class Simulator {
 
   /**
    * Unexpected process exit handler.
-   * This currently deletes the data dirs of any nodes spawned by the simulator.
+   * This deletes all data directories, kills all nodes, and exits the process.
    */
-  private exit() {
+  private exit(code = 0) {
+    this.nodes.forEach((node) => node.kill())
     this.deleteDataDirs()
     this.logger.log('exiting...')
-    exit(1)
+    exit(code)
   }
 
   /**
@@ -169,7 +183,7 @@ export class Simulator {
    */
   public deleteDataDirs(): void {
     if (!this.persistNodeDataDirs) {
-      this.logger.log('cleaning up node data dirs')
+      this.logger.log('cleaning up data dirs')
       this.dataDirs.forEach((dir) => {
         if (dir[0] === '~') {
           dir = dir.replace('~', process.env.HOME || homedir())

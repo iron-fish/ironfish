@@ -9,7 +9,10 @@ import { IRON, SECOND, sendTransaction, SimulationNode, Simulator, sleep } from 
 // Author: holahula
 // Purpose: Send transactions from one node to another every 3 seconds
 
-export async function run(logger: Logger, options?: { persist: boolean }): Promise<void> {
+export async function run(
+  logger: Logger,
+  options?: { persist?: boolean; duration?: number },
+): Promise<void> {
   const simulator = new Simulator(logger, options)
 
   const nodes = []
