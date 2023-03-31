@@ -13,7 +13,7 @@ fi
 # check if import was successful
 function check_import_success() {
     local account_name=$1
-    ACCOUNTS_OUTPUT=$(yarn --cwd .. start wallet:accounts)
+    ACCOUNTS_OUTPUT=$(../bin/ironfish wallet:accounts)
 
     if echo "$ACCOUNTS_OUTPUT" | grep -q "$account_name"; then
         echo "Import successful for $account_name"
@@ -26,7 +26,7 @@ function check_import_success() {
 # check if deletion was successful
 function check_delete_success() {
     local account_name=$1
-    ACCOUNTS_OUTPUT=$(yarn --cwd .. start wallet:accounts)
+    ACCOUNTS_OUTPUT=$(../bin/ironfish wallet:accounts)
 
     if ! echo "$ACCOUNTS_OUTPUT" | grep -q "$account_name"; then
         echo "Deletion successful for $account_name"
@@ -51,7 +51,7 @@ function import_account_interactively() {
     local file_contents="$2"
     echo "Testing interactive import."
     expect -c "
-        spawn yarn --cwd .. start wallet:import
+        spawn ../bin/ironfish wallet:import
         expect \"Paste the output of wallet:export, or your spending key:\"
         send {${file_contents}}
         send \"\r\"
@@ -71,7 +71,7 @@ function import_account_interactively() {
     "
     check_error "Import failed for $account_name"
     check_import_success "$ACCOUNT_NAME"
-    yarn --cwd .. start wallet:delete $ACCOUNT_NAME --wait
+    ../bin/ironfish wallet:delete $ACCOUNT_NAME --wait
     check_error "Deletion failed for $account_name"
     check_delete_success "$ACCOUNT_NAME"
 }
@@ -82,7 +82,7 @@ function import_account_by_pipe() {
     local account_name="$1"
     local test_file="$2"
     expect -c "
-        spawn sh -c \"cat $test_file | yarn --cwd .. start wallet:import\"
+        spawn sh -c \"cat $test_file | ../bin/ironfish wallet:import\"
         expect {
             \"Enter a new account name:\" {
                 send \"$account_name\\r\"
@@ -100,7 +100,7 @@ function import_account_by_pipe() {
     "
     check_error "Import failed for $account_name"
     check_import_success "$account_name"
-    yarn --cwd .. start wallet:delete $account_name --wait
+    ../bin/ironfish wallet:delete $account_name --wait
     check_error "Deletion failed for $account_name"
     check_delete_success "$account_name"
 }
@@ -111,9 +111,9 @@ function import_account_by_pipe() {
 function import_account_by_path() {
     echo "Testing import by path."
     local account_name="$1"
-    local test_file="./scripts/""$2"
+    local test_file="$2"
     expect -c "
-        spawn yarn --cwd .. start wallet:import --path $test_file
+        spawn ../bin/ironfish wallet:import --path $test_file
         expect {
             \"Enter a new account name:\" {
                 send \"$account_name\\r\"
@@ -130,7 +130,7 @@ function import_account_by_path() {
     "
     check_error "Import failed for $account_name"
     check_import_success "$account_name"
-    yarn --cwd .. start wallet:delete $account_name --wait
+    ../bin/ironfish wallet:delete $account_name --wait
     check_error "Deletion failed for $account_name"
     check_delete_success "$account_name"
 }
