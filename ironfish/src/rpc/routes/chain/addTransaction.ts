@@ -37,23 +37,14 @@ router.register<typeof ChainAddTransactionRequestSchema, ChainAddTransactionResp
     const transaction = new Transaction(buffer)
 
     // Some verification
-    const firstVerify = node.chain.verifier.verifyCreatedTransaction(transaction)
+
+    const firstVerify = await node.chain.verifier.verifyNewTransaction(transaction)
     if (!firstVerify.valid) {
       request.end({ success: false, reason: JSON.stringify(firstVerify.reason) })
     }
 
-    const secondVerify = await node.chain.verifier.verifyTransactionSpends(transaction)
-    if (!secondVerify.valid) {
-      request.end({ success: false, reason: JSON.stringify(secondVerify.reason) })
-    }
-
-    const thirdVerify = await node.chain.verifier.verifyNewTransaction(transaction)
-    if (!thirdVerify.valid) {
-      request.end({ success: false, reason: JSON.stringify(thirdVerify.reason) })
-    }
-
-    const fourthVerify = node.wallet.memPool.acceptTransaction(transaction)
-    if (!fourthVerify) {
+    const secondVerify = node.wallet.memPool.acceptTransaction(transaction)
+    if (!secondVerify) {
       request.end({ success: false, reason: 'Mempool rejected' })
     }
 
