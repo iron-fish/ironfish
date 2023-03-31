@@ -29,8 +29,9 @@
     "test:changed": "lerna run --since origin/master --include-dependents test",
     "test:update": "lerna run test -- -u",
     "test:update:changed": "lerna run --since origin/master --include-dependents test -- -u",
-    "test:slow": "lerna run test:slow && bash ./ironfish-cli/scripts/import-export-test.sh",
-    "test:slow:coverage": "lerna run test:slow --stream -- --collect-coverage --testPathIgnorePatterns && bash ./ironfish-cli/scripts/import-export-test.sh",
+    "test:slow": "lerna run test:slow",
+    "test:slow:coverage": "lerna run test:slow --stream -- --collect-coverage --testPathIgnorePatterns",
+    "test:importexport": "bash ./ironfish-cli/scripts/import-export-test.sh",
     "typecheck": "lerna exec -- tsc --noEmit",
     "typecheck:changed": "lerna exec --since origin/master --include-dependents -- tsc --noEmit",
     "coverage:upload": "lerna exec '\"yarn codecov -t $CODECOV_TOKEN -f ./coverage/clover.xml -F $LERNA_PACKAGE_NAME -p $ROOT_PATH/ --disable=gcov\"'"

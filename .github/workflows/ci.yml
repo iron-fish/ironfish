@@ -90,11 +90,11 @@ jobs:
       - name: Install packages
         run: yarn --non-interactive --frozen-lockfile
 
-      - name: Install expect
-        run: sudo apt-get update && sudo apt-get install -y expect
-
       - name: Run slow tests & coverage
         run: yarn test:slow:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
+
+      - name: Check for account export/import regressions
+        run: sudo apt-get update && sudo apt-get install -y expect && yarn test:importexport
 
       - name: Upload coverage
         if: github.repository == 'iron-fish/ironfish'
