@@ -2,20 +2,26 @@
 
 # check if import was successful
 function check_import_success() {
-    if [[ "$1" == *"Account $2 imported"* ]]; then
-        echo "Import successful for $2"
+    local account_name=$1
+    ACCOUNTS_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:accounts)
+
+    if echo "$ACCOUNTS_OUTPUT" | grep -q "$account_name"; then
+        echo "Import successful for $account_name"
     else
-        echo "Import failed for $2"
+        echo "Import failed for $account_name"
         exit 1
     fi
 }
 
 # check if deletion was successful
 function check_delete_success() {
-    if [[ "$1" == *"Account '$2' successfully deleted."* ]]; then
-        echo "Deletion successful for $2"
+    local account_name=$1
+    ACCOUNTS_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:accounts)
+
+    if ! echo "$ACCOUNTS_OUTPUT" | grep -q "$account_name"; then
+        echo "Deletion successful for $account_name"
     else
-        echo "Deletion failed for $2"
+        echo "Deletion failed for $account_name"
         exit 1
     fi
 }
@@ -46,14 +52,14 @@ function import_account_interactively() {
         echo "Import failed for $ACCOUNT_NAME"
         exit 1
     fi
-    check_import_success "$IMPORT_OUTPUT" "$ACCOUNT_NAME"
+    check_import_success "$ACCOUNT_NAME"
     DELETE_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
     if [ $? -ne 0 ]; then
         echo "Deletion failed for $ACCOUNT_NAME"
         exit 1
     fi
-    check_delete_success "$DELETE_OUTPUT" "$ACCOUNT_NAME"
+    check_delete_success "$ACCOUNT_NAME"
 }
 
 
@@ -81,14 +87,14 @@ function import_account_by_pipe() {
         echo "Import failed for $ACCOUNT_NAME"
         exit 1
     fi
-    check_import_success "$IMPORT_OUTPUT" "$ACCOUNT_NAME"
+    check_import_success "$ACCOUNT_NAME"
     DELETE_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
     if [ $? -ne 0 ]; then
         echo "Deletion failed for $ACCOUNT_NAME"
         exit 1
     fi
-    check_delete_success "$DELETE_OUTPUT" "$ACCOUNT_NAME"
+    check_delete_success "$ACCOUNT_NAME"
 }
 
 
@@ -119,18 +125,18 @@ function import_account_by_path() {
         echo "Import failed for $ACCOUNT_NAME"
         exit 1
     fi
-    check_import_success "$IMPORT_OUTPUT" "$ACCOUNT_NAME"
+    check_import_success "$ACCOUNT_NAME"
     DELETE_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
     if [ $? -ne 0 ]; then
         echo "Deletion failed for $ACCOUNT_NAME"
         exit 1
     fi
-    check_delete_success "$DELETE_OUTPUT" "$ACCOUNT_NAME"
+    check_delete_success "$ACCOUNT_NAME"
 }
 
 #this script is always run from the root of ironfish
-TEST_VECTOR_LOCATION='./ironfish-cli/scripts/import-export-test-vector/'
+TEST_VECTOR_LOCATION='./ironfish-cli/scripts/import-export-test/'
 FORMAT_ARRAY=( blob json mnemonic)
 for VERSION in {65..72}
     do
