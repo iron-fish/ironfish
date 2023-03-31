@@ -136,21 +136,18 @@ function import_account_by_path() {
 }
 
 #this script is always run from the root of ironfish
-TEST_VECTOR_LOCATION='./ironfish-cli/scripts/import-export-test/'
-FORMAT_ARRAY=( blob json mnemonic)
-for VERSION in {65..72}
+TEST_FIXTURE_LOCATION='./ironfish-cli/scripts/import-export-test/'
+for TEST_FILE in "${TEST_FIXTURE_LOCATION}"*.txt
     do
-    for FORMAT in "${FORMAT_ARRAY[@]}"
-        do
-        ACCOUNT_NAME=0p1p${VERSION}_${FORMAT}
-        TEST_FILE=${TEST_VECTOR_LOCATION}${ACCOUNT_NAME}.txt
-        FILE_CONTENTS=$(cat $TEST_FILE)
-        import_account_interactively
-        import_account_by_path
-        # Skip import_account_by_pipe if FORMAT is mnemonic
-        if [ "$FORMAT" != "mnemonic" ]; then
-            import_account_by_pipe
-        fi
-        done
-    done
+    FILENAME=$(basename -- "$TEST_FILE")
+    ACCOUNT_NAME="${FILENAME%.*}"
+    FILE_CONTENTS=$(cat "$TEST_FILE")
+
+    import_account_interactively
+    import_account_by_path
+    # Skip import_account_by_pipe if the filename contains "mnemonic"
+    if [[ "$FILENAME" != *"mnemonic"* ]]; then
+        import_account_by_pipe
+    fi
+done
 
