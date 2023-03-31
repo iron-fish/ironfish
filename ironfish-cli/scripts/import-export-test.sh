@@ -32,6 +32,16 @@ function check_delete_success() {
     fi
 }
 
+function check_error() {
+    local return_code=$?
+    local error_message="$1"
+
+    if [ $return_code -ne 0 ]; then
+        echo "$error_message"
+        exit 1
+    fi
+}
+
 function import_account_interactively() {
     local account_name="$1"
     local file_contents="$2"
@@ -55,18 +65,10 @@ function import_account_interactively() {
             eof
         }
     "
-    # verify return code of import
-    if [ $? -ne 0 ]; then
-        echo "Import failed for $ACCOUNT_NAME"
-        exit 1
-    fi
+    check_error "Import failed for $account_name"
     check_import_success "$ACCOUNT_NAME"
     yarn --cwd .. start wallet:delete $ACCOUNT_NAME --wait
-    # verify return code of delete
-    if [ $? -ne 0 ]; then
-        echo "Deletion failed for $ACCOUNT_NAME"
-        exit 1
-    fi
+    check_error "Deletion failed for $account_name"
     check_delete_success "$ACCOUNT_NAME"
 }
 
@@ -92,18 +94,10 @@ function import_account_by_pipe() {
         }
         puts \$output
     "
-    # verify return code of import
-    if [ $? -ne 0 ]; then
-        echo "Import failed for $account_name"
-        exit 1
-    fi
+    check_error "Import failed for $account_name"
     check_import_success "$account_name"
     yarn --cwd .. start wallet:delete $account_name --wait
-    # verify return code of delete
-    if [ $? -ne 0 ]; then
-        echo "Deletion failed for $account_name"
-        exit 1
-    fi
+    check_error "Deletion failed for $account_name"
     check_delete_success "$account_name"
 }
 
@@ -130,18 +124,10 @@ function import_account_by_path() {
         }
         puts \$output
     "
-    # verify return code of import
-    if [ $? -ne 0 ]; then
-        echo "Import failed for $account_name"
-        exit 1
-    fi
+    check_error "Import failed for $account_name"
     check_import_success "$account_name"
     yarn --cwd .. start wallet:delete $account_name --wait
-    # verify return code of delete
-    if [ $? -ne 0 ]; then
-        echo "Deletion failed for $account_name"
-        exit 1
-    fi
+    check_error "Deletion failed for $account_name"
     check_delete_success "$account_name"
 }
 
