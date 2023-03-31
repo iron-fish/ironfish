@@ -48,9 +48,7 @@ router.register<typeof ChainAddTransactionRequestSchema, ChainAddTransactionResp
       request.end({ success: false, reason: 'Mempool rejected' })
     }
 
-    await node.wallet.addPendingTransaction(transaction)
-    node.wallet.broadcastTransaction(transaction)
-    node.wallet.onTransactionCreated.emit(transaction)
+    node.peerNetwork.broadcastTransaction(transaction)
 
     request.end({ success: true })
   },
