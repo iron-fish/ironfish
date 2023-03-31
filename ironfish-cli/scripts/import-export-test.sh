@@ -114,7 +114,7 @@ function import_account_by_path() {
     echo "Testing import by path."
     local account_name="$1"
     local test_file="./scripts/""$2"
-    expect -d -c "
+    expect -c "
         spawn yarn --cwd .. start wallet:import --path $test_file
         expect {
             \"Enter a new account name:\" {
