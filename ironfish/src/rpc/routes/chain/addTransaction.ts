@@ -43,7 +43,7 @@ router.register<typeof ChainAddTransactionRequestSchema, ChainAddTransactionResp
       request.end({ success: false, reason: JSON.stringify(firstVerify.reason) })
     }
 
-    const secondVerify = node.wallet.memPool.acceptTransaction(transaction)
+    const secondVerify = node.memPool.acceptTransaction(transaction)
     if (!secondVerify) {
       request.end({ success: false, reason: 'Mempool rejected' })
     }
