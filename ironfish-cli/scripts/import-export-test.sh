@@ -33,33 +33,35 @@ function check_delete_success() {
 }
 
 function import_account_interactively() {
+    local account_name="$1"
+    local file_contents="$2"
     echo "Testing interactive import."
-    IMPORT_OUTPUT=$(expect -c "
+    expect -c "
         spawn yarn --cwd .. start wallet:import
         expect \"Paste the output of wallet:export, or your spending key:\"
-        send {${FILE_CONTENTS}}
+        send {${file_contents}}
         send \"\r\"
             expect {
             \"Paste the output of wallet:export, or your spending key:\" {
                 exp_continue
             }
             \"Enter a new account name:\" {
-                send \"$ACCOUNT_NAME\\r\"
+                send \"$account_name\\r\"
                 exp_continue
             }
-            \"Account $ACCOUNT_NAME imported\" {
+            \"Account $account_name imported\" {
                 # Success, do nothing
             }
             eof
         }
-    ")
+    "
     # verify return code of import
     if [ $? -ne 0 ]; then
         echo "Import failed for $ACCOUNT_NAME"
         exit 1
     fi
     check_import_success "$ACCOUNT_NAME"
-    DELETE_OUTPUT=$(yarn --cwd .. start wallet:delete $ACCOUNT_NAME --wait)
+    yarn --cwd .. start wallet:delete $ACCOUNT_NAME --wait
     # verify return code of delete
     if [ $? -ne 0 ]; then
         echo "Deletion failed for $ACCOUNT_NAME"
@@ -71,14 +73,16 @@ function import_account_interactively() {
 
 function import_account_by_pipe() {
     echo "Testing import by pipe."
-    IMPORT_OUTPUT=$(expect -c "
-        spawn sh -c \"cat $TEST_FILE | yarn --cwd .. start wallet:import\"
+    local account_name="$1"
+    local test_file="$2"
+    expect -c "
+        spawn sh -c \"cat $test_file | yarn --cwd .. start wallet:import\"
         expect {
             \"Enter a new account name:\" {
-                send \"$ACCOUNT_NAME\\r\"
+                send \"$account_name\\r\"
                 exp_continue
             }
-            \"Account $ACCOUNT_NAME imported\" {
+            \"Account $account_name imported\" {
                 set output \$expect_out(buffer)
                 exp_continue
             }
@@ -87,20 +91,20 @@ function import_account_by_pipe() {
             }
         }
         puts \$output
-    ")
+    "
     # verify return code of import
     if [ $? -ne 0 ]; then
-        echo "Import failed for $ACCOUNT_NAME"
+        echo "Import failed for $account_name"
         exit 1
     fi
-    check_import_success "$ACCOUNT_NAME"
-    DELETE_OUTPUT=$(yarn --cwd .. start wallet:delete $ACCOUNT_NAME --wait)
+    check_import_success "$account_name"
+    yarn --cwd .. start wallet:delete $account_name --wait
     # verify return code of delete
     if [ $? -ne 0 ]; then
-        echo "Deletion failed for $ACCOUNT_NAME"
+        echo "Deletion failed for $account_name"
         exit 1
     fi
-    check_delete_success "$ACCOUNT_NAME"
+    check_delete_success "$account_name"
 }
 
 
@@ -108,15 +112,16 @@ function import_account_by_pipe() {
 
 function import_account_by_path() {
     echo "Testing import by path."
-    ACCOUNT_BY_PATH_TEST_FILE="./scripts/"${TEST_FILE}
-    IMPORT_OUTPUT=$(expect -d -c "
-        spawn yarn --cwd .. start wallet:import --path $ACCOUNT_BY_PATH_TEST_FILE
+    local account_name="$1"
+    local test_file="./scripts/""$2"
+    expect -d -c "
+        spawn yarn --cwd .. start wallet:import --path $test_file
         expect {
             \"Enter a new account name:\" {
-                send \"$ACCOUNT_NAME\\r\"
+                send \"$account_name\\r\"
                 exp_continue
             }
-            \"Account $ACCOUNT_NAME imported\" {
+            \"Account $account_name imported\" {
                 set output \$expect_out(buffer)
             }
             eof {
@@ -124,23 +129,22 @@ function import_account_by_path() {
             }
         }
         puts \$output
-    ")
+    "
     # verify return code of import
     if [ $? -ne 0 ]; then
-        echo "Import failed for $ACCOUNT_NAME"
+        echo "Import failed for $account_name"
         exit 1
     fi
-    check_import_success "$ACCOUNT_NAME"
-    DELETE_OUTPUT=$(yarn --cwd .. start wallet:delete $ACCOUNT_NAME --wait)
+    check_import_success "$account_name"
+    yarn --cwd .. start wallet:delete $account_name --wait
     # verify return code of delete
     if [ $? -ne 0 ]; then
-        echo "Deletion failed for $ACCOUNT_NAME"
+        echo "Deletion failed for $account_name"
         exit 1
     fi
-    check_delete_success "$ACCOUNT_NAME"
+    check_delete_success "$account_name"
 }
 
-#this script is always run from the root of ironfish
 TEST_FIXTURE_LOCATION='./import-export-test/'
 for TEST_FILE in "${TEST_FIXTURE_LOCATION}"*.txt
     do
@@ -148,11 +152,11 @@ for TEST_FILE in "${TEST_FIXTURE_LOCATION}"*.txt
     ACCOUNT_NAME="${FILENAME%.*}"
     FILE_CONTENTS=$(cat "$TEST_FILE")
 
-    import_account_interactively
-    import_account_by_path
+    import_account_interactively "$ACCOUNT_NAME" "$FILE_CONTENTS"
+    import_account_by_path "$ACCOUNT_NAME" "$TEST_FILE"
     # Skip import_account_by_pipe if the filename contains "mnemonic"
     if [[ "$FILENAME" != *"mnemonic"* ]]; then
-        import_account_by_pipe
+        import_account_by_pipe "$ACCOUNT_NAME" "$TEST_FILE"
     fi
 done
 
