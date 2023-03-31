@@ -1,9 +1,15 @@
 #!/bin/bash
 
+set -e # exit immediately if anything returns with non-zero exit code
+
+# Change working directory to the script's directory
+cd "$(dirname "$0")"
+
+
 # check if import was successful
 function check_import_success() {
     local account_name=$1
-    ACCOUNTS_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:accounts)
+    ACCOUNTS_OUTPUT=$(yarn --cwd .. start wallet:accounts)
 
     if echo "$ACCOUNTS_OUTPUT" | grep -q "$account_name"; then
         echo "Import successful for $account_name"
@@ -16,7 +22,7 @@ function check_import_success() {
 # check if deletion was successful
 function check_delete_success() {
     local account_name=$1
-    ACCOUNTS_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:accounts)
+    ACCOUNTS_OUTPUT=$(yarn --cwd .. start wallet:accounts)
 
     if ! echo "$ACCOUNTS_OUTPUT" | grep -q "$account_name"; then
         echo "Deletion successful for $account_name"
@@ -29,7 +35,7 @@ function check_delete_success() {
 function import_account_interactively() {
     echo "Testing interactive import."
     IMPORT_OUTPUT=$(expect -c "
-        spawn yarn --cwd ./ironfish-cli start wallet:import
+        spawn yarn --cwd .. start wallet:import
         expect \"Paste the output of wallet:export, or your spending key:\"
         send {${FILE_CONTENTS}}
         send \"\r\"
@@ -53,7 +59,7 @@ function import_account_interactively() {
         exit 1
     fi
     check_import_success "$ACCOUNT_NAME"
-    DELETE_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:delete $ACCOUNT_NAME --wait)
+    DELETE_OUTPUT=$(yarn --cwd .. start wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
     if [ $? -ne 0 ]; then
         echo "Deletion failed for $ACCOUNT_NAME"
@@ -66,7 +72,7 @@ function import_account_interactively() {
 function import_account_by_pipe() {
     echo "Testing import by pipe."
     IMPORT_OUTPUT=$(expect -c "
-        spawn sh -c \"cat $TEST_FILE | yarn --cwd ./ironfish-cli start wallet:import\"
+        spawn sh -c \"cat $TEST_FILE | yarn --cwd .. start wallet:import\"
         expect {
             \"Enter a new account name:\" {
                 send \"$ACCOUNT_NAME\\r\"
@@ -88,7 +94,7 @@ function import_account_by_pipe() {
         exit 1
     fi
     check_import_success "$ACCOUNT_NAME"
-    DELETE_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:delete $ACCOUNT_NAME --wait)
+    DELETE_OUTPUT=$(yarn --cwd .. start wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
     if [ $? -ne 0 ]; then
         echo "Deletion failed for $ACCOUNT_NAME"
@@ -102,10 +108,9 @@ function import_account_by_pipe() {
 
 function import_account_by_path() {
     echo "Testing import by path."
-    # the cwd is already ironfish-cli, so we actually need to trim an extra "ironfish-cli" from the path
-    ACCOUNT_BY_PATH_TEST_FILE="./"${TEST_FILE:14}
-    IMPORT_OUTPUT=$(expect -c "
-        spawn yarn --cwd ./ironfish-cli start wallet:import --path $ACCOUNT_BY_PATH_TEST_FILE
+    ACCOUNT_BY_PATH_TEST_FILE="./scripts/"${TEST_FILE}
+    IMPORT_OUTPUT=$(expect -d -c "
+        spawn yarn --cwd .. start wallet:import --path $ACCOUNT_BY_PATH_TEST_FILE
         expect {
             \"Enter a new account name:\" {
                 send \"$ACCOUNT_NAME\\r\"
@@ -126,7 +131,7 @@ function import_account_by_path() {
         exit 1
     fi
     check_import_success "$ACCOUNT_NAME"
-    DELETE_OUTPUT=$(yarn --cwd ./ironfish-cli start wallet:delete $ACCOUNT_NAME --wait)
+    DELETE_OUTPUT=$(yarn --cwd .. start wallet:delete $ACCOUNT_NAME --wait)
     # verify return code of delete
     if [ $? -ne 0 ]; then
         echo "Deletion failed for $ACCOUNT_NAME"
@@ -136,7 +141,7 @@ function import_account_by_path() {
 }
 
 #this script is always run from the root of ironfish
-TEST_FIXTURE_LOCATION='./ironfish-cli/scripts/import-export-test/'
+TEST_FIXTURE_LOCATION='./import-export-test/'
 for TEST_FILE in "${TEST_FIXTURE_LOCATION}"*.txt
     do
     FILENAME=$(basename -- "$TEST_FILE")
