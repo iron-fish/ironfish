@@ -12,7 +12,8 @@ export interface Simulation {
   run(
     logger: Logger,
     options?: {
-      persist: boolean
+      persist?: boolean
+      duration?: number
     },
   ): Promise<void>
 }

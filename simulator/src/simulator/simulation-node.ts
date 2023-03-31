@@ -452,6 +452,13 @@ export class SimulationNode {
   }
 
   /**
+   * Public function to kill a node
+   */
+  kill(): void {
+    this.cleanup()
+  }
+
+  /**
    * Kills all child processes and handles any required cleanup
    */
   private cleanup(): void {

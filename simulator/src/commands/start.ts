@@ -27,6 +27,11 @@ export abstract class Start extends Command {
       description: 'Whether the data_dir should persist beyond the simulation',
       default: false,
     }),
+    duration: Flags.integer({
+      char: 'd',
+      required: false,
+      description: 'How long to run the simulation',
+    }),
   }
 
   constructor(argv: string[], config: Config) {
@@ -39,7 +44,7 @@ export abstract class Start extends Command {
     const simName = args.simulation as string
     const simulation = SIMULATIONS[simName]
 
-    const persist = flags.persist
+    const { persist, duration } = flags
 
     const logger = createRootLogger()
 
@@ -53,7 +58,7 @@ export abstract class Start extends Command {
     // If you want logs to persist, i.e. via `simulator start 1 2>&1 | tee ~/i/logs/run_1.log` you will
     // need to remove the spinner
     CliUx.ux.action.start(`running simulation ${simName}`)
-    await simulation.run(logger, { persist })
+    await simulation.run(logger, { persist, duration })
     CliUx.ux.action.start(`stop simulation ${simName}`)
     this.exit()
   }
