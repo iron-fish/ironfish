@@ -5,6 +5,10 @@ set -e # exit immediately if anything returns with non-zero exit code
 # Change working directory to the script's directory
 cd "$(dirname "$0")"
 
+if ! command -v expect &> /dev/null; then
+    echo "expect is not installed but is required"
+    exit 1
+fi
 
 # check if import was successful
 function check_import_success() {
