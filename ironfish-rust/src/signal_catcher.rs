@@ -9,7 +9,7 @@ extern "C" {
 
 /// # Safety
 /// This is unsafe, it calls libc functions
-#[cfg(all(unix, target_env = "musl"))]
+#[cfg(any(all(unix, target_env = "musl"), target_os = "android"))]
 unsafe fn display_trace() {
     libc::exit(libc::EXIT_FAILURE);
 }
