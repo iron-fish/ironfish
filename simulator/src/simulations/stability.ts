@@ -20,7 +20,7 @@ import {
 // trying to see if nodes crash over time. The memory usage of the nodes is also monitored.
 
 export async function run(logger: Logger, options?: { persist: boolean }): Promise<void> {
-  const simulator = new Simulator(logger, options)
+  const simulator = Simulator.init(logger, options)
 
   const alive: Set<string> = new Set()
 

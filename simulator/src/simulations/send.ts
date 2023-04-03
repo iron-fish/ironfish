@@ -13,7 +13,7 @@ export async function run(
   logger: Logger,
   options?: { persist?: boolean; duration?: number },
 ): Promise<void> {
-  const simulator = new Simulator(logger, options)
+  const simulator = Simulator.init(logger, options)
 
   const nodes = []
   for (let i = 0; i < 2; i++) {
@@ -21,7 +21,7 @@ export async function run(
   }
 
   void sendLoop(simulator, logger, nodes)
-
+  void simulator.startMemoryUsageLoop(10 * SECOND)
   // wait for all nodes to be stopped
   await simulator.waitForShutdown()
 

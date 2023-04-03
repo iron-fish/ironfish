@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ConfigOptions, Logger } from '@ironfish/sdk'
 import { randomUUID } from 'crypto'
+import express, { Router } from 'express'
 import { rmSync } from 'fs'
 import { homedir } from 'os'
 import { exit } from 'process'
@@ -28,16 +29,28 @@ export class Simulator {
 
   basePeerPort = 7000
   baseRpcTcpPort = 9000
+  expressPort = 3000
 
   bootstrapNode: string | undefined = undefined
 
   nodeCount = 0
 
-  constructor(logger: Logger, options?: { persist?: boolean; duration?: number }) {
+  server: express.Express
+
+  static init(logger: Logger, options?: { persist?: boolean; duration?: number }): Simulator {
+    const simulator = new Simulator(logger, options)
+
+    return simulator
+  }
+
+  private constructor(logger: Logger, options?: { persist?: boolean; duration?: number }) {
     this.logger = logger
     this.logger.withTag('simulator')
 
     this.running = true
+
+    this.server = express()
+    this.setupServer()
 
     if (options) {
       const { persist, duration } = options
@@ -233,5 +246,43 @@ export class Simulator {
       verbose: config.verbose || false,
       ...config,
     }
+  }
+
+  setupServer(): void {
+    const routes = Router()
+
+    routes.get('/hello', (req, res) => {
+      res.json({ hello: 'world' })
+    })
+
+    routes.get('/nodes', (req, res) => {
+      const arr: SimulationNodeConfig[] = []
+      this.nodes.forEach((node) => {
+        arr.push(node.config)
+      })
+
+      res.json({ nodes: arr })
+    })
+
+    this.server.use(routes)
+    this.server.use(express.json())
+
+    this.server.listen(this.expressPort, () => {
+      this.logger.log(`simulator server listening on port ${this.expressPort}`)
+    })
+  }
+}
+
+class List<T> {
+  elem: T
+  next: List<T>
+
+  constructor(elems: T[]) {
+    this.elem = elems[0]
+
+    // if (elems.length > 1) {
+    this.next = new List(elems.slice(1))
+
+    return this.next
   }
 }

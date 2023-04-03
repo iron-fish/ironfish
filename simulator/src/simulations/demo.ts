@@ -26,7 +26,7 @@ import {
 export async function run(logger: Logger): Promise<void> {
   // Create a new simulation handler.
   // The simulator handles managing nodes and data dirs.
-  const simulator = new Simulator(logger)
+  const simulator = Simulator.init(logger)
 
   // Register event handlers.
   // These hooks will be called when a node logs, closes, exits, or errors.
