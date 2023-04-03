@@ -420,7 +420,6 @@ export class CeremonyServer {
 
     const metadata = {
       ...(client.name && { contributorName: encodeURIComponent(client.name) }),
-      ...(client.socket.remoteAddress && { remoteAddress: client.socket.remoteAddress }),
     }
 
     await S3Utils.uploadToBucket(
