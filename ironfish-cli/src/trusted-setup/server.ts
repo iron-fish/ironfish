@@ -32,11 +32,14 @@ class CeremonyServerClient {
   socket: net.Socket
   connected: boolean
   logger: Logger
+  readonly messageBuffer: MessageBuffer
+
   private _joined?: {
     name?: string
   }
 
   constructor(options: { socket: net.Socket; id: string; logger: Logger }) {
+    this.messageBuffer = new MessageBuffer('\n')
     this.id = options.id
     this.socket = options.socket
     this.connected = true
@@ -68,10 +71,10 @@ class CeremonyServerClient {
     this.socket.destroy(error)
   }
 }
+
 export class CeremonyServer {
   readonly server: net.Server
   readonly logger: Logger
-  readonly messageBuffer: MessageBuffer
 
   private stopPromise: Promise<void> | null = null
   private stopResolve: (() => void) | null = null
@@ -115,7 +118,6 @@ export class CeremonyServer {
   }) {
     this.logger = options.logger
     this.queue = []
-    this.messageBuffer = new MessageBuffer('\n')
 
     this.host = options.host
     this.port = options.port
@@ -251,9 +253,9 @@ export class CeremonyServer {
   }
 
   private async onData(client: CeremonyServerClient, data: Buffer): Promise<void> {
-    this.messageBuffer.write(data)
+    client.messageBuffer.write(data)
 
-    for (const message of this.messageBuffer.readMessages()) {
+    for (const message of client.messageBuffer.readMessages()) {
       const result = await YupUtils.tryValidate(CeremonyClientMessageSchema, message)
       if (result.error) {
         client.logger.error(`Could not parse client message: ${message}`)
