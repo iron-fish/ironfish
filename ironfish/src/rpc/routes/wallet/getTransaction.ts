@@ -5,12 +5,11 @@ import * as yup from 'yup'
 import { TransactionStatus, TransactionType } from '../../../wallet'
 import { ApiNamespace, router } from '../router'
 import {
-  getAccountDecryptedNotes,
   getAssetBalanceDeltas,
   RpcAccountDecryptedNote,
   serializeRpcAccountTransaction,
 } from './types'
-import { getAccount } from './utils'
+import { getAccount, getAccountDecryptedNotes } from './utils'
 
 export type GetAccountTransactionRequest = {
   hash: string
