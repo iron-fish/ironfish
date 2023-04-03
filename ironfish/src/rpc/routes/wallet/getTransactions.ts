@@ -9,7 +9,12 @@ import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
 import { ApiNamespace, router } from '../router'
-import { getAssetBalanceDeltas, serializeRpcAccountTransaction } from './types'
+import {
+  getAccountDecryptedNotes,
+  getAssetBalanceDeltas,
+  RpcAccountDecryptedNote,
+  serializeRpcAccountTransaction,
+} from './types'
 import { getAccount } from './utils'
 
 export type GetAccountTransactionsRequest = {
@@ -19,6 +24,7 @@ export type GetAccountTransactionsRequest = {
   limit?: number
   offset?: number
   confirmations?: number
+  notes?: boolean
 }
 
 export type GetAccountTransactionsResponse = {
@@ -33,6 +39,7 @@ export type GetAccountTransactionsResponse = {
   expiration: number
   timestamp: number
   assetBalanceDeltas: Array<{ assetId: string; assetName: string; delta: string }>
+  notes?: RpcAccountDecryptedNote[]
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -44,6 +51,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
       limit: yup.number().notRequired(),
       offset: yup.number().notRequired(),
       confirmations: yup.number().notRequired(),
+      boolean: yup.boolean().notRequired(),
     })
     .defined()
 
@@ -71,6 +79,20 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
             .defined(),
         )
         .defined(),
+      notes: yup.array(
+        yup
+          .object({
+            isOwner: yup.boolean().defined(),
+            owner: yup.string().defined(),
+            value: yup.string().defined(),
+            assetId: yup.string().defined(),
+            assetName: yup.string().defined(),
+            sender: yup.string().defined(),
+            memo: yup.string().trim().defined(),
+            spent: yup.boolean(),
+          })
+          .defined(),
+      ),
     })
     .defined()
 
@@ -142,6 +164,11 @@ const streamTransaction = async (
 
   const assetBalanceDeltas = await getAssetBalanceDeltas(node, transaction)
 
+  let notes = undefined
+  if (request.data.notes) {
+    notes = await getAccountDecryptedNotes(node, account, transaction)
+  }
+
   const status = await node.wallet.getTransactionStatus(account, transaction, options)
   const type = await node.wallet.getTransactionType(account, transaction)
 
@@ -150,6 +177,7 @@ const streamTransaction = async (
     assetBalanceDeltas,
     status,
     type,
+    notes,
   }
 
   request.stream(serialized)
