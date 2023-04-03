@@ -21,7 +21,7 @@ import {
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
-import { AssetStatus } from './wallet'
+import { AssetStatus, ScanState } from './wallet'
 
 describe('Accounts', () => {
   const nodeTest = createNodeTest()
@@ -1887,6 +1887,44 @@ describe('Accounts', () => {
       expect(accountA.createdAt?.hash).toEqualHash(block2.header.hash)
       expect(accountA.createdAt?.sequence).toEqual(block2.header.sequence)
     })
+
+    it('should skip decryption for accounts with createdAt later than the block header', async () => {
+      const { node: nodeA } = await nodeTest.createSetup()
+
+      let accountA: Account | null = await useAccountFixture(nodeA.wallet, 'a')
+
+      const block2 = await useMinerBlockFixture(nodeA.chain, 2, undefined)
+      await nodeA.chain.addBlock(block2)
+      await nodeA.wallet.updateHead()
+      const block3 = await useMinerBlockFixture(nodeA.chain, 2, undefined)
+      await nodeA.chain.addBlock(block3)
+      await nodeA.wallet.updateHead()
+
+      // create second account with createdAt at block 3
+      const accountB = await useAccountFixture(nodeA.wallet, 'b')
+
+      expect(accountB.createdAt).not.toBeNull()
+      expect(accountB.createdAt?.hash).toEqualHash(block3.header.hash)
+      expect(accountB.createdAt?.sequence).toEqual(block3.header.sequence)
+
+      // reset wallet
+      await nodeA.wallet.reset()
+
+      // account instances will have changed after reset, so re-load accountA
+      accountA = nodeA.wallet.getAccountByName('a')
+      Assert.isNotNull(accountA)
+
+      await nodeA.wallet.connectBlock(nodeA.chain.genesis)
+
+      const decryptSpy = jest.spyOn(nodeA.wallet, 'decryptNotes')
+
+      // reconnect block2
+      await nodeA.wallet.connectBlock(block2.header)
+
+      // see that decryption was skipped for accountB
+      expect(decryptSpy).toHaveBeenCalledTimes(1)
+      expect(decryptSpy.mock.lastCall?.[3]).toEqual([accountA])
+    })
   })
 
   describe('getAssetStatus', () => {
@@ -2564,6 +2602,100 @@ describe('Accounts', () => {
 
       expect(node.wallet.chainProcessor.hash).toEqualHash(blockA1.header.hash)
       expect(node.wallet.chainProcessor.sequence).toEqual(blockA1.header.sequence)
+    })
+  })
+
+  describe('shouldDecryptForAccount', () => {
+    it('should return true for an account with null createdAt', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet)
+
+      await account.updateCreatedAt(null)
+
+      const block = await useMinerBlockFixture(node.chain, 2)
+
+      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
+        true,
+      )
+    })
+
+    it('should return true for an account with createdAt earlier than the header', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet)
+
+      await account.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 1 })
+
+      const block = await useMinerBlockFixture(node.chain, 2)
+
+      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
+        true,
+      )
+    })
+
+    it('should return false for an account created after the header', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet)
+
+      await account.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 3 })
+
+      const block = await useMinerBlockFixture(node.chain, 2)
+
+      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
+        false,
+      )
+    })
+
+    it('should return true for an account created at the header', async () => {
+      const { node } = nodeTest
+
+      const account = await useAccountFixture(node.wallet)
+
+      const block = await useMinerBlockFixture(node.chain, 2)
+
+      await account.updateCreatedAt(block.header)
+
+      await expect(node.wallet.shouldDecryptForAccount(block.header, account)).resolves.toBe(
+        true,
+      )
+    })
+
+    it('should reset the account and createdAt if the account was created on a different chain', async () => {
+      const { node } = nodeTest
+
+      let account: Account | null = await useAccountFixture(node.wallet)
+
+      // set createdAt at fake block at sequence 2
+      await account.updateCreatedAt({ hash: Buffer.alloc(32), sequence: 2 })
+
+      const resetAccount = jest.spyOn(node.wallet, 'resetAccount')
+
+      const scanTransactions = jest
+        .spyOn(node.wallet, 'scanTransactions')
+        .mockReturnValue(Promise.resolve())
+
+      const scan = new ScanState()
+
+      // mock scan wait to return immediately
+      jest.spyOn(scan, 'wait').mockReturnValue(Promise.resolve())
+
+      const block = await useMinerBlockFixture(node.chain, 2)
+
+      await expect(
+        node.wallet.shouldDecryptForAccount(block.header, account, scan),
+      ).resolves.toBe(false)
+
+      expect(resetAccount).toHaveBeenCalledTimes(1)
+      expect(scanTransactions).toHaveBeenCalledTimes(1)
+      expect(scan.isAborted).toBe(true)
+
+      // load account again because resetAccount creates new Account instance
+      account = node.wallet.getAccountByName(account.name)
+      Assert.isNotNull(account)
+
+      expect(account.createdAt).toBeNull()
     })
   })
 })
