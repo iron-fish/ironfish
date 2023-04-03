@@ -15,6 +15,7 @@ export type RpcAccountTransaction = {
   burnsCount: number
   expiration: number
   timestamp: number
+  submittedSequence: number
 }
 
 export type RcpAccountAssetBalanceDelta = {
@@ -48,6 +49,7 @@ export function serializeRpcAccountTransaction(
     burnsCount: transaction.transaction.burns.length,
     expiration: transaction.transaction.expiration(),
     timestamp: transaction.timestamp.getTime(),
+    submittedSequence: transaction.submittedSequence,
   }
 }
 

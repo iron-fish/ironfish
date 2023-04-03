@@ -187,6 +187,9 @@ export class TransactionsCommand extends IronfishCommand {
       expiration: {
         header: 'Expiration',
       },
+      submittedSequence: {
+        header: 'Submitted Sequence',
+      },
       feePaid: {
         header: 'Fee Paid ($IRON)',
         get: (row) =>
@@ -246,4 +249,5 @@ type TransactionRow = {
   mintsCount: number
   burnsCount: number
   expiration: number
+  submittedSequence: number
 }
