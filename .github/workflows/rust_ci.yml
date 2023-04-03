@@ -83,7 +83,7 @@ jobs:
 
       # Upload code coverage to Codecov
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v2.1.0
+        uses: codecov/codecov-action@v3
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           flags: ironfish-rust
@@ -109,7 +109,7 @@ jobs:
 
       # Upload code coverage to Codecov
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v2.1.0
+        uses: codecov/codecov-action@v3
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           flags: ironfish-zkp
