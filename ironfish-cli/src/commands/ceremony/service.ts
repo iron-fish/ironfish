@@ -26,7 +26,7 @@ export default class CeremonyService extends IronfishCommand {
       char: 'b',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
-      description: 'S3 bucket to download and upload params to',
+      description: 'S3/R2 bucket to download and upload params to',
       default: 'ironfish-contributions',
     }),
     downloadPrefix: Flags.string({
@@ -34,8 +34,7 @@ export default class CeremonyService extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'Prefix for contribution download URLs',
-      // TODO: update this to non-dev endpoint to avoid rate limiting
-      default: 'https://pub-6a239e04e140459087cf392ffc3245b1.r2.dev',
+      default: 'https://contributions.ironfish.network',
     }),
     contributionTimeoutMs: Flags.integer({
       required: false,
@@ -49,7 +48,8 @@ export default class CeremonyService extends IronfishCommand {
     }),
     presignedExpirationSec: Flags.integer({
       required: false,
-      description: 'How many seconds the S3 pre-signed upload URL is valid for a contributor',
+      description:
+        'How many seconds the S3/R2 pre-signed upload URL is valid for a contributor',
       default: PRESIGNED_EXPIRATION_SEC,
     }),
     startDate: Flags.integer({
