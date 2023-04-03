@@ -71,7 +71,7 @@ function import_account_interactively() {
     "
     check_error "Import failed for $account_name"
     check_import_success "$ACCOUNT_NAME"
-    ../bin/ironfish wallet:delete $ACCOUNT_NAME --wait
+    ../bin/ironfish wallet:delete $ACCOUNT_NAME 
     check_error "Deletion failed for $account_name"
     check_delete_success "$ACCOUNT_NAME"
 }
@@ -100,7 +100,7 @@ function import_account_by_pipe() {
     "
     check_error "Import failed for $account_name"
     check_import_success "$account_name"
-    ../bin/ironfish wallet:delete $account_name --wait
+    ../bin/ironfish wallet:delete $account_name
     check_error "Deletion failed for $account_name"
     check_delete_success "$account_name"
 }
@@ -130,7 +130,7 @@ function import_account_by_path() {
     "
     check_error "Import failed for $account_name"
     check_import_success "$account_name"
-    ../bin/ironfish wallet:delete $account_name --wait
+    ../bin/ironfish wallet:delete $account_name
     check_error "Deletion failed for $account_name"
     check_delete_success "$account_name"
 }
