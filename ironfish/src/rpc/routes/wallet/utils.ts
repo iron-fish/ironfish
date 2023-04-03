@@ -2,8 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { IronfishNode } from '../../../node'
+import { Note } from '../../../primitives'
+import { CurrencyUtils } from '../../../utils'
 import { Account } from '../../../wallet'
+import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { ValidationError } from '../../adapters'
+import { RpcAccountDecryptedNote } from './types'
 
 export function getAccount(node: IronfishNode, name?: string): Account {
   if (name) {
