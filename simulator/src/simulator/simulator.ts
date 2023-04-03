@@ -19,18 +19,27 @@ import { getNodeMemoryStatus } from './utils/status'
 export class Simulator {
   logger: Logger
 
+  /** Map of all running nodes from node name to SimulationNode */
   nodes: Map<string, SimulationNode> = new Map()
 
+  /** Whether the simulator is currently running */
   running = false
 
+  /** Whether to persist the data directories of the nodes after simulator shutdown */
   persistNodeDataDirs = false
+
+  /** Set of all data directories of the spawned nodes */
   dataDirs: Set<string> = new Set<string>()
 
   basePeerPort = 7000
   baseRpcTcpPort = 9000
 
+  /** The node that will be used to bootstrap the network.
+   * This is currently the first node started by the Simulator.
+   */
   bootstrapNode: string | undefined = undefined
 
+  /** Number of nodes that have been started */
   nodeCount = 0
 
   constructor(logger: Logger, options?: { persist?: boolean; duration?: number }) {
@@ -140,7 +149,7 @@ export class Simulator {
 
   /**
    * Unexpected process exit handler.
-   * This deletes all data directories, kills all nodes, and exits the process.
+   * This deletes all data directories, kills all nodes, and exits the Simulator process.
    */
   private exit(code = 0) {
     this.nodes.forEach((node) => node.kill())
@@ -197,7 +206,7 @@ export class Simulator {
   /**
    * Fills in any missing config options that are required for the simulation node to start
    *
-   * @param config User provided config
+   * @param config Optional config set by the user
    * @returns Config with required defaults filled in
    */
   fillConfig(

@@ -71,10 +71,19 @@ const globalLogger = createRootLogger()
  * This class should be constructed using the static `intiailize()` method.
  */
 export class SimulationNode {
+  /** Map of child processes to their names */
   procs = new Map<string, ChildProcessWithoutNullStreams>()
+
   nodeProcess: ChildProcessWithoutNullStreams
+
+  /**
+   * Optional miner process if the node is mining
+   */
   minerProcess?: ChildProcessWithoutNullStreams
 
+  /**
+   *  @event Emits when new blocks are added to the chain
+   */
   onBlock: Event<[FollowChainStreamResponse]> = new Event()
 
   /**
@@ -84,14 +93,24 @@ export class SimulationNode {
   lastError: Error | undefined
 
   /**
-   * @event Emitted when the node logs a message
+   * @event Emits when the node logs a message to either stdout or stderr
    */
   onLog: Event<[LogEvent]> = new Event()
+  /**
+   * @event Emits when the node errors
+   */
   onError: Event<[ErrorEvent]> = new Event()
+  /**
+   * @event Emits when the node exits
+   */
   onExit: Event<[ExitEvent]> = new Event()
 
   /** The client used to make RPC calls against the underlying Ironfish node */
   client: RpcTcpClient
+  /**
+   * The config used to start the node. This config is not mandatory for the user to set,
+   * as the simulator will fill in all the required options with defaults.
+   */
   config: SimulationNodeConfig
 
   /** Promise that resolves when the node shuts down */
@@ -104,11 +123,13 @@ export class SimulationNode {
 
   /** If the node is ready to be interacted with */
   ready = false
+
   /** If the node was stopped */
   stopped = false
 
   /**
-   * Use the `initialize()` method to construct a SimulationNode.
+   * The constructor should not be called.
+   * Use the `initialize()` method to create a SimulationNode.
    */
   private constructor(
     config: SimulationNodeConfig,
@@ -124,7 +145,7 @@ export class SimulationNode {
     this.client = client
     this.logger = logger.withTag(`${config.nodeName}`)
 
-    // Data dir is required here
+    // The data dir argument is required so the node starts up in the correct directory
     const args = ['start', '--datadir', this.config.dataDir]
 
     // Register any user-provided event handlers
@@ -165,7 +186,8 @@ export class SimulationNode {
    *
    * @param config the config for the node
    * @param logger the logger to use for the node
-   * @param options event handlers to handle events from child processes. If not provided, default handlers will be used.
+   * @param options event handlers to handle events from child processes.
+   * If not provided, the default handlers that log exits and errors will be used.
    *
    * @returns A new and ready SimulationNode
    */
@@ -191,13 +213,14 @@ export class SimulationNode {
     const nodeConfig = new Config(fileSystem, config.dataDir)
     await nodeConfig.load()
 
+    // TODO: support all the log levels
     if (config.verbose) {
       nodeConfig.set('logLevel', '*:verbose')
     }
 
     for (const [key, value] of Object.entries(config)) {
       // TODO(holahula): this is a hack to get around the fact that the config
-      // has `dataDir` / `verbose properties that is not a valid config option
+      // has `dataDir` / `verbose` properties that are not valid config option
       if (key === 'dataDir' || key === 'verbose') {
         continue
       }
@@ -216,7 +239,7 @@ export class SimulationNode {
 
     const node = new SimulationNode(config, client, logger, options)
 
-    // Contineu to attempt to connect to the node until it is ready
+    // Continue to attempt to connect the client to the node until successful
     let connected = false
     let tries = 0
     while (!connected && tries < 12) {
@@ -254,6 +277,8 @@ export class SimulationNode {
   /**
    *
    * Starts and attaches a miner process to the simulation node
+   *
+   * @returns Whether the miner was successfully started
    */
   public startMiner(): boolean {
     if (this.minerProcess) {
@@ -277,9 +302,9 @@ export class SimulationNode {
 
   /**
    * Stops and detaches the miner process from the node. This can be called at any time during the simulation
-   * if you would like to stop mining.
+   * if you need to stop mining.
    *
-   * @returns Whether the miner was successfully detached
+   * @returns Whether the miner was successfully stopped
    */
   public stopMiner(): boolean {
     if (!this.minerProcess) {
@@ -298,7 +323,8 @@ export class SimulationNode {
 
   /**
    * Initializes a block stream for a node. Each node should only have 1 block stream
-   * because currently the stream RPC  cannot be closed.
+   * because currently the stream RPC  cannot be closed. The `onBlock` event will emit
+   * every time a new block is added to the chain.
    *
    * To verify a transaction has been mined, you should attach a listener to the `onBlock` event
    * and wait for the transaction to appear.
@@ -322,7 +348,7 @@ export class SimulationNode {
    * If the transaction is not mined before the expiration sequence, it will return undefined.
    *
    * @param transactionHash The hash of the transaction to wait for
-   * @returns The block the transaction was mined in or undefined if the transaction was not mined
+   * @returns The block the transaction was mined in, or undefined if the transaction was not mined
    */
   async waitForTransactionConfirmation(
     transactionHash: string,
@@ -371,6 +397,8 @@ export class SimulationNode {
 
   /**
    * Utility function to wait for the node to shutdown.
+   *
+   * @returns A promise that resolves when the node has shutdown
    */
   async waitForShutdown(): Promise<void> {
     await this.shutdownPromise
@@ -378,6 +406,8 @@ export class SimulationNode {
 
   /**
    * Stops the node process and cleans up any listeners or other child processes.
+   *
+   * @returns Whether the node was successfully stopped and the error message if it failed
    */
   async stop(): Promise<{ success: boolean; msg: string }> {
     this.logger.log(`killing node ${this.config.nodeName}...`)
@@ -484,8 +514,9 @@ export class SimulationNode {
 /**
  * Public function to stop a node
  *
- * This is because you cannot access the actual SimulationNode object with the
- * running node/miner procs from other cli commands
+ * TODO: This is because you cannot access the actual SimulationNode object with the
+ * running node/miner procs from other cli commands. After an HTTP server is added to the simulation,
+ * this should be removed and the stop function should be called directly on the SimulationNode object.
  */
 export async function stopSimulationNode(node: {
   nodeName: string

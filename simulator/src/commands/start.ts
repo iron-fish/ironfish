@@ -30,7 +30,7 @@ export abstract class Start extends Command {
     duration: Flags.integer({
       char: 'd',
       required: false,
-      description: 'How long to run the simulation',
+      description: 'Duration the simulation should run for',
     }),
   }
 

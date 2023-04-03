@@ -8,6 +8,10 @@ import { stopSimulationNode } from '../simulator'
 export default class Stop extends Command {
   static description = 'Stop all nodes in the test network'
 
+  // TODO: this command currently stops the nodes via hardcoding the following parameters.
+  // The stop command should go through an API call to the simulator so it can dynamically
+  // stop all running nodes.
+
   async run(): Promise<void> {
     const nodes = [
       {
@@ -31,8 +35,6 @@ export default class Stop extends Command {
     ]
 
     const logger = createRootLogger()
-
-    // TODO: stop should go through an API call to the simulator
 
     await Promise.all(
       nodes.map(async (node) => {

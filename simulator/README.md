@@ -15,3 +15,6 @@ Run a simulation using `cd simulator; yarn start <simulation_name>`
 
 There is currently no clean way to stop a simulation, sending `SIGINT` via `CTRL + C`
 will result in a clean shutdown.
+
+# Documentation
+If desired, documentaiton can be generated via `yarn docs:generate; yarn docs:open`
