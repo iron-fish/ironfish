@@ -93,6 +93,9 @@ jobs:
       - name: Run slow tests & coverage
         run: yarn test:slow:coverage --maxWorkers=2 --workerIdleMemoryLimit=2000MB
 
+      - name: Check for account export/import regressions
+        run: sudo apt-get update && sudo apt-get install -y expect && yarn build && yarn test:importexport
+
       - name: Upload coverage
         if: github.repository == 'iron-fish/ironfish'
         run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} ROOT_PATH=$GITHUB_WORKSPACE/ yarn coverage:upload
