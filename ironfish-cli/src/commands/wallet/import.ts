@@ -134,7 +134,7 @@ export class ImportCommand extends IronfishCommand {
         }
       }
 
-      if (typeof data.createdAt === 'string') {
+      if (data.version === 1) {
         data.createdAt = null
       }
 
@@ -164,7 +164,7 @@ export class ImportCommand extends IronfishCommand {
         }
       }
 
-      if (typeof json.createdAt === 'string') {
+      if (json.version === 1) {
         json.createdAt = null
       }
 
