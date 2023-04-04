@@ -281,14 +281,15 @@ export class CeremonyServer {
           return
         }
 
+        client.join(parsedMessage.name)
+
         if (parsedMessage.token === this.token) {
           this.privateQueue.push(client)
+          client.send(this.getJoinedMessage(this.privateQueue.length))
         } else {
           this.queue.push(client)
+          client.send(this.getJoinedMessage(this.totalQueueLength()))
         }
-
-        client.join(parsedMessage.name)
-        client.send(this.getJoinedMessage(this.totalQueueLength()))
 
         client.logger.info(
           `(Connected) public: ${this.queue.length}, private: ${this.privateQueue.length}`,
