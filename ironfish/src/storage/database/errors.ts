@@ -33,13 +33,16 @@ export class DatabaseVersionError extends DatabaseOpenError {
   readonly version: number
   readonly expected: number
 
-  constructor(version: number, expected: number) {
+  constructor(current: number, version: number) {
     super(
-      `Your database needs to be upgraded (v${version} vs v${expected}).\n` +
-        `Run "ironfish migrations:start" or "ironfish start --upgrade"\n`,
+      current <= version
+        ? `Your database needs to be upgraded (v${current} vs v${version}).\n` +
+            `Run "ironfish migrations:start" or "ironfish start --upgrade"\n`
+        : `Your database is newer than your node.\n` +
+            `Your database is ${version} and your node is ${current}.\n`,
     )
 
-    this.version = version
-    this.expected = expected
+    this.version = current
+    this.expected = version
   }
 }
