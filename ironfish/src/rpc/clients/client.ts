@@ -7,6 +7,8 @@ import {
   ApiNamespace,
   BlockTemplateStreamRequest,
   BlockTemplateStreamResponse,
+  BroadcastTransactionRequest,
+  BroadcastTransactionResponse,
   CreateAccountRequest,
   CreateAccountResponse,
   GetAccountNotesStreamRequest,
@@ -632,5 +634,14 @@ export abstract class RpcClient {
       `${ApiNamespace.chain}/getNetworkInfo`,
       params,
     ).waitForEnd()
+  }
+
+  broadcastTransaction(
+    params?: BroadcastTransactionRequest,
+  ): RpcResponse<void, BroadcastTransactionResponse> {
+    return this.request<void, BroadcastTransactionResponse>(
+      `${ApiNamespace.peer}/broadcastTransaction`,
+      params,
+    )
   }
 }
