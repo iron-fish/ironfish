@@ -13,7 +13,14 @@ import {
   RpcTcpClient,
   YupUtils,
 } from '@ironfish/sdk'
-import { ChildProcessWithoutNullStreams, exec, ExecException, spawn } from 'child_process'
+import {
+  ChildProcess,
+  ChildProcessWithoutNullStreams,
+  exec,
+  ExecException,
+  PromiseWithChild,
+  spawn,
+} from 'child_process'
 import { promisify } from 'util'
 import {
   defaultOnError,
@@ -513,6 +520,7 @@ export class SimulationNode {
 
   /**
    * Executes a cli command command via `child_process.exec()` synchronously and returns the stdout and stderr.
+   * If the command fails, the code can be retrieved via `err.code`, and the error message via `err.message`.
    * If you need the command to be asynchronous, use `executeCliCommandAsync` instead.
    *
    * @param args The ironfish cli arguments to execute
@@ -520,11 +528,22 @@ export class SimulationNode {
    */
   executeCliCommand(
     args: string[],
-    callback?: (err: ExecException | null, stdout: string, stderr: string) => void,
-  ): void {
+    options?: {
+      onError: (err: ExecException | null, stderr: string) => void
+      onLog: (stdout: string) => void
+    },
+  ): ChildProcess {
     args.push('--datadir', this.config.dataDir)
     this.logger.log(`executing cli command: ${rootCmd} ${args.join(' ')}`)
-    exec(rootCmd + ' ' + args.join(' '), callback)
+
+    return exec(rootCmd + ' ' + args.join(' '), (err, stdout, stderr) => {
+      if (err) {
+        options?.onError(err, stderr)
+      }
+      if (stdout) {
+        options?.onLog(stdout)
+      }
+    })
   }
 
   /**
@@ -555,12 +574,7 @@ export class SimulationNode {
 
     this.logger.log(`executing async cli command: ${rootCmd} ${args.join(' ')}`)
 
-    try {
-      return await execWithPromise(rootCmd + ' ' + args.join(' '))
-    } catch (e) {
-      const error = e as ExecException
-      throw error
-    }
+    return execWithPromise(rootCmd + ' ' + args.join(' '))
   }
 }
 
