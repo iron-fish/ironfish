@@ -18,7 +18,6 @@ import {
   ChildProcessWithoutNullStreams,
   exec,
   ExecException,
-  PromiseWithChild,
   spawn,
 } from 'child_process'
 import { promisify } from 'util'
@@ -523,20 +522,25 @@ export class SimulationNode {
    * If the command fails, the code can be retrieved via `err.code`, and the error message via `err.message`.
    * If you need the command to be asynchronous, use `executeCliCommandAsync` instead.
    *
-   * @param args The ironfish cli arguments to execute
-   * @param callback The callback to execute when the command is complete
+   * @param command The ironfish cli command to execute
+   * @param args The arguments to pass to the command
+   * @param options.onError The callback to execute if the command fails
+   * @param options.onLog The callback to execute if the command writes to stdout
+   * @returns The child process
    */
   executeCliCommand(
+    command: string,
     args: string[],
     options?: {
-      onError: (err: ExecException | null, stderr: string) => void
+      onError: (err: ExecException, stderr: string) => void
       onLog: (stdout: string) => void
     },
   ): ChildProcess {
     args.push('--datadir', this.config.dataDir)
-    this.logger.log(`executing cli command: ${rootCmd} ${args.join(' ')}`)
+    const cmdString = rootCmd + ' ' + command + ' ' + args.join(' ')
+    this.logger.log(`executing cli command: ${cmdString}`)
 
-    return exec(rootCmd + ' ' + args.join(' '), (err, stdout, stderr) => {
+    return exec(cmdString, (err, stdout, stderr) => {
       if (err) {
         options?.onError(err, stderr)
       }
@@ -557,24 +561,30 @@ export class SimulationNode {
    *
    * ```ts
    * try {
-   *  const { stdout, stderr } = await node.executeCliCommandAsync(['status'])
+   *  const { stdout, stderr } = await node.executeCliCommandAsync('status', ['--all'])
    * } catch (e) {
    *  const error = e as ExecException
    *  // handle error
    * }
    *```
-   *
-   * @param args The ironfish cli arguments to execute
-   * @returns The stdout and stderr of the command
+   * @param command The ironfish cli command to execute
+   * @param args The arguments for the command
+   * @throws an `ExecException` if the command fails
+   * @returns a promise containing the stdout and stderr output of the command
    */
-  async executeCliCommandAsync(args: string[]): Promise<{ stdout: string; stderr: string }> {
+  async executeCliCommandAsync(
+    command: string,
+    args: string[],
+  ): Promise<{ stdout: string; stderr: string }> {
     const execWithPromise = promisify(exec)
 
     args.push('--datadir', this.config.dataDir)
 
-    this.logger.log(`executing async cli command: ${rootCmd} ${args.join(' ')}`)
+    const cmdString = rootCmd + ' ' + command + ' ' + args.join(' ')
 
-    return execWithPromise(rootCmd + ' ' + args.join(' '))
+    this.logger.log(`executing async cli command: ${cmdString}`)
+
+    return execWithPromise(cmdString)
   }
 }
 
