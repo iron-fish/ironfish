@@ -15,6 +15,7 @@ import { Migration023 } from './023-wallet-optional-spending-key'
 import { Migration024 } from './024-unspent-notes'
 import { Migration025 } from './025-backfill-wallet-nullifier-to-transaction-hash'
 import { Migration026 } from './026-timestamp-to-transactions'
+import { Migration027 } from './027-account-created-at-block'
 
 export const MIGRATIONS = [
   Migration014,
@@ -30,4 +31,5 @@ export const MIGRATIONS = [
   Migration024,
   Migration025,
   Migration026,
+  Migration027,
 ]

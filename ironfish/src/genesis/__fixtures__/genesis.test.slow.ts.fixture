@@ -2,14 +2,14 @@
   "Create genesis block Can generate a valid genesis block": [
     {
       "version": 1,
-      "id": "7ba73bf4-dd6b-4f6c-8303-c861d5d20f8a",
+      "id": "a2847f17-618a-4a7b-b643-5c8871502e37",
       "name": "test",
-      "spendingKey": "ed87c62c3fccd5fdf3e4aaeefd99ed01417b83342c33334018f94939a2ae8178",
-      "viewKey": "a434061d4b533cb3799832d34914e1d18043e97d35b9af829da92dbe4f1a0659a8f18973cbcb1b8c93aefae4ea7c0dbacf9d27648131928ac5a0a3a5ad9e820d",
-      "incomingViewKey": "597153502702e41b11b66587ca14f12ba17eafa69fbe1a718c30c6ef15ef2406",
-      "outgoingViewKey": "c17cc378105b4242bee7c66b01156e8ff12823a198b5819c6572c4098e106935",
-      "publicAddress": "3aade08766f374726252d244e44836524d4f89b0c46c56dcb5d3da8eedc0ac33",
-      "createdAt": "2023-03-12T18:21:15.400Z"
+      "spendingKey": "1bb93b18f0a2f0d03f5bb6e2ac38605e6d02ab83e841e4f531f4f77c2eafd7ca",
+      "viewKey": "2625bf90a4fe1963c75e29a01a087e1e2bec17af4446f50af6534d3c5bb48c2ba1d25c665c00e5a0651ac865dc9632d5894ce4abc0eb760dcb660a9dac17396c",
+      "incomingViewKey": "6e4d7a6eb9d7b66c92a92d098381fc7ecf345bb8b5c744c6418f92f3d97cf205",
+      "outgoingViewKey": "b0acfdde2d47509c1b3c603f3dcd8cfab253a026500bca59edf9e90a78709e77",
+      "publicAddress": "322bf1356f23ea88bd34140441531780070e5d6c0911153ca8aac29786bb052a",
+      "createdAt": null
     }
   ],
   "addGenesisTransaction Can create a new genesis block with an added transaction": [
@@ -22,7 +22,7 @@
       "incomingViewKey": "fe14049643a4f7a6df042b1d4612b27cdbdc46432d62d12e2c2655fa768a1001",
       "outgoingViewKey": "35afb0f100570a51ab6f2497a6d3e836d5a570520edb27cd93025ed3b492ce6f",
       "publicAddress": "6e00ecabbf8f50570b3462822d2f817e8bfe1d681ec5c2706cd39efdb9f3bb87",
-      "createdAt": "2023-03-21T21:39:39.238Z"
+      "createdAt": null
     },
     {
       "version": 1,
@@ -33,7 +33,7 @@
       "incomingViewKey": "3d46dbe6482a9e494c6187a7ba41d8b7aaace8e47e77f7c086e16e1f87c8f201",
       "outgoingViewKey": "6d1423a452ffa1d10c220c92e493d368ac55f8e6317954602b74ea59a7a049d2",
       "publicAddress": "82af4ab5a7c4889804ee685cc1cb0669e8a08ca480fe338a5f8d5bb26a114c5b",
-      "createdAt": "2023-03-21T21:39:39.239Z"
+      "createdAt": null
     },
     {
       "version": 1,
@@ -44,7 +44,7 @@
       "incomingViewKey": "13bb18a8b53d8cfcc1cd69b00afcadc227a00599cd8081f4d8bd32e684e19900",
       "outgoingViewKey": "b206c06a5b26c3ceae1c2189835c68cb7da06adf177f414a09d28e1b525bb5c8",
       "publicAddress": "3233dd96ca906d54f76625f215ab43c1202345493dce2d85d48f71a2a2304599",
-      "createdAt": "2023-03-21T21:39:39.239Z"
+      "createdAt": null
     }
   ]
 }
