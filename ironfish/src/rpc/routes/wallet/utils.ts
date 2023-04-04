@@ -7,7 +7,11 @@ import { CurrencyUtils } from '../../../utils'
 import { Account } from '../../../wallet'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { ValidationError } from '../../adapters'
-import { RpcAccountDecryptedNote } from './types'
+import {
+  RcpAccountAssetBalanceDelta,
+  RpcAccountDecryptedNote,
+  RpcAccountTransaction,
+} from './types'
 
 export function getAccount(node: IronfishNode, name?: string): Account {
   if (name) {
@@ -29,6 +33,44 @@ export function getAccount(node: IronfishNode, name?: string): Account {
   )
 }
 
+export function serializeRpcAccountTransaction(
+  transaction: TransactionValue,
+): RpcAccountTransaction {
+  return {
+    hash: transaction.transaction.hash().toString('hex'),
+    fee: transaction.transaction.fee().toString(),
+    blockHash: transaction.blockHash?.toString('hex'),
+    blockSequence: transaction.sequence ?? undefined,
+    notesCount: transaction.transaction.notes.length,
+    spendsCount: transaction.transaction.spends.length,
+    mintsCount: transaction.transaction.mints.length,
+    burnsCount: transaction.transaction.burns.length,
+    expiration: transaction.transaction.expiration(),
+    timestamp: transaction.timestamp.getTime(),
+  }
+}
+
+export async function getAssetBalanceDeltas(
+  node: IronfishNode,
+  transaction: TransactionValue,
+): Promise<RcpAccountAssetBalanceDelta[]> {
+  const assetBalanceDeltas = new Array<RcpAccountAssetBalanceDelta>()
+
+  for (const [assetId, delta] of transaction.assetBalanceDeltas.entries()) {
+    // TODO: update to use wallet assets store
+    const asset = await node.chain.getAssetById(assetId)
+
+    const assetName = asset?.name.toString('hex') ?? ''
+
+    assetBalanceDeltas.push({
+      assetId: assetId.toString('hex'),
+      assetName,
+      delta: delta.toString(),
+    })
+  }
+
+  return assetBalanceDeltas
+}
 export async function getAccountDecryptedNotes(
   node: IronfishNode,
   account: Account,

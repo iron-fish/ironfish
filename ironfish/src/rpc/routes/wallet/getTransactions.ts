@@ -9,12 +9,13 @@ import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
 import { ApiNamespace, router } from '../router'
+import { RpcAccountDecryptedNote } from './types'
 import {
+  getAccount,
+  getAccountDecryptedNotes,
   getAssetBalanceDeltas,
-  RpcAccountDecryptedNote,
   serializeRpcAccountTransaction,
-} from './types'
-import { getAccount, getAccountDecryptedNotes } from './utils'
+} from './utils'
 
 export type GetAccountTransactionsRequest = {
   account?: string
