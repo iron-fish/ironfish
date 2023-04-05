@@ -637,10 +637,10 @@ export abstract class RpcClient {
   }
 
   broadcastTransaction(
-    params?: BroadcastTransactionRequest,
-  ): RpcResponse<void, BroadcastTransactionResponse> {
-    return this.request<void, BroadcastTransactionResponse>(
-      `${ApiNamespace.peer}/broadcastTransaction`,
+    params: BroadcastTransactionRequest,
+  ): RpcResponse<BroadcastTransactionResponse, void> {
+    return this.request<BroadcastTransactionResponse, void>(
+      `${ApiNamespace.chain}/broadcastTransaction`,
       params,
     )
   }

@@ -29,22 +29,24 @@ export const BroadcastTransactionResponseSchema: yup.ObjectSchema<BroadcastTrans
     .defined()
 
 router.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionResponse>(
-  `${ApiNamespace.wallet}/BroadcastTransaction`,
+  `${ApiNamespace.chain}/broadcastTransaction`,
   BroadcastTransactionRequestSchema,
   (request, node): void => {
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
-
-    // TODO: is verifying the transaction necessary here?
     const verify = node.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`, 400)
     }
 
     node.peerNetwork.broadcastTransaction(transaction)
-
-    request.end({
-      hash: transaction.hash().toString('hex'),
-    })
+    debugger
+    request.end(
+      {
+        hash: transaction.hash().toString('hex'),
+      },
+      200,
+    )
+    return
   },
 )

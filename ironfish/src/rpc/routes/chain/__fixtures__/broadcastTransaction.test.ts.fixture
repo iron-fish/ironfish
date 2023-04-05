@@ -1,0 +1,19 @@
+{
+  "Route chain/broadcastTransaction should broadcast a transaction": [
+    {
+      "version": 1,
+      "id": "fc87bf56-f69f-4c5a-9ba9-cc8786b8c80f",
+      "name": "test",
+      "spendingKey": "27616b2d313a67a92884ebba87d8d7be12df3259712726322ffb1fde58cf2076",
+      "viewKey": "856f2fbade361a274f6e3a79e689b8b18791a11e2ddba27c7b73396395537a28080bc8a25ff9a3a9ceb9c597f6ba6773cda7c5fde7175ca4086d8a4bf55dc871",
+      "incomingViewKey": "0a9ff2c66d5a1c408a10c6059bd5ec59b7a7269e1a1148a014ab7ace12986103",
+      "outgoingViewKey": "6c4c299a8014960177a557245fd92e87efcf109ac05788c8d1ebf32ccdbcfe3f",
+      "publicAddress": "0e9c7b4c6bbf6240658a34f15960ffb0e8e7d8643c81c219c97afa6b50d8278b",
+      "createdAt": null
+    },
+    {
+      "type": "Buffer",
+      "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAArxKGEva5q6RkDSu6BaWRJ4DReIqiA0C8fer2MaRESdi07TdMQN3J2egShdQS5r5L8WDxHGPbfmKdEqWdlOFhfGPXMZet7fiXHNkcozLhE7C3SRIbtY0T6Xqu5+YK+ExlRZlvOIl9Pd51me/6gQogtgEWy+MyyiH+SnpDTCBfVb4Q8/lU+t9XdTQe0yIpAYhm3qR49BVhqROPOIythmha14hK0P91aIzqfGj6TIQ6d46TfHZ4tB0R5ElkMVlAAoMF9OsJWaed6tfWsQqCjlb3gQPsiP9bgwSYqb29u3WamIGtt1iKGD2+7zqNffpjQng+/M16d9Ib7lV+v9pVsl9qMZ6ez0VQUC44/R0ri6oK7IZKJvzjk3QvO5ii9bRsNhtqYk37RyZmCTYRh1CoDIaGM0/c8c4pTTbSCDA7TISVECy/4BAocImO6u2KDelK9ONvNgbDbCoFsIQv40znDqw3VLNoOdJ4s4ubXGGHQnVsSFkx5ypX7a3B/QfZyidesRcenvtyaH3i0Mlt38CeIkTcLIgc+3QO2fozB6rgw2gUhLU1cYvCX/U0al8H8GrVUZD4BQtVvzkVTD7tuqgvjLsS3llUYzBacUX1Ojies4F8tDu5HFcr5ipMqklyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwaH8q3Kv6l3Ci26OtYIUfaCtBMKQqaocUDbotgnIN7cciTVtJa4291ZfzIKgNOAL1A+Ae6tGK5gfnAyNKc85iBQ=="
+    }
+  ]
+}

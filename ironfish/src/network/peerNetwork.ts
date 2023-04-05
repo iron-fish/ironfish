@@ -409,7 +409,6 @@ export class PeerNetwork {
    * and the rest of the peers will receive the transaction hash
    */
   public broadcastTransaction(transaction: Transaction): void {
-    // TODO: is this change from private to public safe?
     const hash = transaction.hash()
 
     const peersToSendToArray = ArrayUtils.shuffle([
