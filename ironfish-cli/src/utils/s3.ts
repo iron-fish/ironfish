@@ -344,8 +344,8 @@ export function getR2S3Client(credentials: {
   })
 }
 
-export async function getR2Credentials(): Promise<R2Secret | undefined> {
-  const client = new SecretsManagerClient({})
+export async function getR2Credentials(region?: string): Promise<R2Secret | undefined> {
+  const client = new SecretsManagerClient({ region })
   const command = new GetSecretValueCommand({ SecretId: R2_SECRET_NAME })
   const response = await client.send(command)
   if (response.SecretString === undefined) {
