@@ -136,6 +136,7 @@ export class ImportCommand extends IronfishCommand {
 
       if (data.version === 1) {
         data.createdAt = null
+        data.version = 2
       }
 
       return data
@@ -166,6 +167,7 @@ export class ImportCommand extends IronfishCommand {
 
       if (json.version === 1) {
         json.createdAt = null
+        json.version = 2
       }
 
       return json
