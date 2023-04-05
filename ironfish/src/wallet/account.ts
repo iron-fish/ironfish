@@ -22,7 +22,7 @@ import { WalletDB } from './walletdb/walletdb'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
-export const ACCOUNT_SCHEMA_VERSION = 1
+export const ACCOUNT_SCHEMA_VERSION = 2
 
 export class Account {
   private readonly walletDb: WalletDB
