@@ -35,7 +35,7 @@ export async function watchTransaction(options: {
 
   const startTime = lastTime
 
-  let prevStatus = last?.content.transaction?.status ?? TransactionStatus.NOT_FOUND
+  let prevStatus = last?.content.transaction?.status ?? 'not found'
   let currentStatus = prevStatus
 
   CliUx.ux.action.start(`Current Status`)
@@ -60,12 +60,9 @@ export async function watchTransaction(options: {
       confirmations: options.confirmations,
     })
 
-    currentStatus = response?.content.transaction?.status ?? TransactionStatus.NOT_FOUND
+    currentStatus = response?.content.transaction?.status ?? 'not found'
 
-    if (
-      prevStatus !== TransactionStatus.NOT_FOUND &&
-      currentStatus === TransactionStatus.NOT_FOUND
-    ) {
+    if (prevStatus !== 'not found' && currentStatus === 'not found') {
       CliUx.ux.action.stop(`Transaction ${options.hash} deleted while watching it.`)
       break
     }

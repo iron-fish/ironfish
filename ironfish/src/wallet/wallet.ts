@@ -54,7 +54,6 @@ export enum AssetStatus {
 }
 
 export enum TransactionStatus {
-  NOT_FOUND = 'not found',
   CONFIRMED = 'confirmed',
   EXPIRED = 'expired',
   PENDING = 'pending',
