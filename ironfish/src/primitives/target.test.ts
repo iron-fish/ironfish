@@ -24,11 +24,6 @@ describe('Target', () => {
     expect(() => new Target(bytes)).toThrow(`Target value exceeds max target`)
   })
 
-  it('throws when constructed with a value greater than the maximum target', () => {
-    const maxTarget = Target.maxTarget().asBigInt()
-    expect(() => new Target(maxTarget + 1n)).toThrow(`Target value exceeds max target`)
-  })
-
   it('has the correct max value', () => {
     // The minimum difficulty is 131072, which means the maximum target is 2**256 / 131072
     const maxTarget = BigInt(2) ** BigInt(256) / BigInt(Target.minDifficulty())

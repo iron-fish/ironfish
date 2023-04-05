@@ -32,7 +32,7 @@ export class Target {
           ? BigIntUtils.fromBytesBE(targetValue)
           : BigInt(targetValue)
 
-      if (candidate > MAX_TARGET) {
+      if (candidate > MAX_256_BIT_NUM) {
         throw new Error('Target value exceeds max target')
       } else {
         this.targetValue = candidate
