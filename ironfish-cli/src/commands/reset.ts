@@ -21,6 +21,11 @@ export default class Reset extends IronfishCommand {
     [VerboseFlagKey]: VerboseFlag,
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
+    networkId: Flags.integer({
+      char: 'i',
+      default: undefined,
+      description: 'Network ID of an official Iron Fish network to connect to',
+    }),
     confirm: Flags.boolean({
       default: false,
       description: 'Confirm without asking',
@@ -38,11 +43,21 @@ export default class Reset extends IronfishCommand {
       HOST_FILE_NAME,
     )
 
+    const existingId = this.sdk.internal.get('networkId')
+
+    let networkIdMessage = ''
+    if (flags.networkId != null && flags.networkId !== existingId) {
+      networkIdMessage = `\n\nThe network ID will be changed from ${existingId} to the new value of ${flags.networkId}`
+    } else {
+      networkIdMessage = `\n\nThe network ID will stay unchanged as ${existingId}`
+    }
+
     const message =
       '\nYou are about to destroy your local copy of the blockchain. The following directories and files will be deleted:\n' +
       `\nBlockchain: ${chainDatabasePath}` +
       `\nHosts: ${hostFilePath}` +
       '\nYour wallet, accounts, and keys will NOT be deleted.' +
+      networkIdMessage +
       `\n\nAre you sure? (Y)es / (N)o`
 
     const confirmed = flags.confirm || (await CliUx.ux.confirm(message))
@@ -59,7 +74,9 @@ export default class Reset extends IronfishCommand {
       fsAsync.rm(hostFilePath, { recursive: true, force: true }),
     ])
 
-    this.sdk.internal.set('networkId', this.sdk.config.defaults.networkId)
+    if (flags.networkId != null && flags.networkId !== existingId) {
+      this.sdk.internal.set('networkId', flags.networkId)
+    }
     this.sdk.internal.set('isFirstRun', true)
     await this.sdk.internal.save()
 

@@ -134,6 +134,10 @@ export class ImportCommand extends IronfishCommand {
         }
       }
 
+      if (typeof data.createdAt === 'string') {
+        data.createdAt = null
+      }
+
       return data
     }
 
@@ -158,6 +162,10 @@ export class ImportCommand extends IronfishCommand {
           ...json,
           ...generateKeyFromPrivateKey(json.spendingKey),
         }
+      }
+
+      if (typeof json.createdAt === 'string') {
+        json.createdAt = null
       }
 
       return json

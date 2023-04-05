@@ -46,6 +46,8 @@ import {
   GetPeersResponse,
   GetPublicKeyRequest,
   GetPublicKeyResponse,
+  GetTransactionRequest,
+  GetTransactionResponse,
   GetTransactionStreamRequest,
   GetTransactionStreamResponse,
   GetWorkersStatusRequest,
@@ -84,6 +86,7 @@ import {
   FollowChainStreamRequest,
   FollowChainStreamResponse,
 } from '../routes/chain/followChain'
+import { GetNoteWitnessRequest, GetNoteWitnessResponse } from '../routes/chain/getNoteWitness'
 import { UnsetConfigRequest, UnsetConfigResponse } from '../routes/config/unsetConfig'
 import { OnGossipRequest, OnGossipResponse } from '../routes/events/onGossip'
 import { GetMempoolTransactionResponse, GetMempoolTransactionsRequest } from '../routes/mempool'
@@ -501,6 +504,15 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
+  async getNoteWitness(
+    params: GetNoteWitnessRequest,
+  ): Promise<RpcResponseEnded<GetNoteWitnessResponse>> {
+    return this.request<GetNoteWitnessResponse>(
+      `${ApiNamespace.chain}/getNoteWitness`,
+      params,
+    ).waitForEnd()
+  }
+
   async getNetworkHashPower(
     params: GetNetworkHashPowerRequest,
   ): Promise<RpcResponseEnded<GetNetworkHashPowerResponse>> {
@@ -524,6 +536,13 @@ export abstract class RpcClient {
   ): RpcResponse<void, GetTransactionStreamResponse> {
     return this.request<void, GetTransactionStreamResponse>(
       `${ApiNamespace.chain}/getTransactionStream`,
+      params,
+    )
+  }
+
+  getTransaction(params: GetTransactionRequest): RpcResponse<void, GetTransactionResponse> {
+    return this.request<void, GetTransactionResponse>(
+      `${ApiNamespace.chain}/getTransaction`,
       params,
     )
   }

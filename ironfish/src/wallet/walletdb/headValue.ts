@@ -10,6 +10,8 @@ export type HeadValue = {
 }
 
 export class NullableHeadValueEncoding implements IDatabaseEncoding<HeadValue | null> {
+  readonly nonNullSize = 32 + 4 // 256-bit block hash + 32-bit integer
+
   serialize(value: HeadValue | null): Buffer {
     const bw = bufio.write(this.getSize(value))
 
@@ -34,10 +36,6 @@ export class NullableHeadValueEncoding implements IDatabaseEncoding<HeadValue | 
   }
 
   getSize(value: HeadValue | null): number {
-    if (!value) {
-      return 0
-    }
-
-    return 32 + 4
+    return value ? this.nonNullSize : 0
   }
 }

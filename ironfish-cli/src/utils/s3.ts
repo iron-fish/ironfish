@@ -11,6 +11,8 @@ import {
   DeleteObjectCommand,
   DeleteObjectCommandOutput,
   GetObjectCommand,
+  HeadObjectCommand,
+  HeadObjectCommandOutput,
   ListObjectsCommand,
   ListObjectsCommandInput,
   PutObjectCommand,
@@ -263,6 +265,16 @@ export function getDownloadUrl(
   return `https://${bucket}.${regionString}.amazonaws.com/${key}`
 }
 
+export async function getObjectMetadata(
+  s3: S3Client,
+  bucket: string,
+  key: string,
+): Promise<HeadObjectCommandOutput> {
+  const command = new HeadObjectCommand({ Bucket: bucket, Key: key })
+  const response = await s3.send(command)
+  return response
+}
+
 export async function getBucketObjects(s3: S3Client, bucket: string): Promise<string[]> {
   let truncated = true
   let commandParams: ListObjectsCommandInput = { Bucket: bucket }
@@ -332,8 +344,8 @@ export function getR2S3Client(credentials: {
   })
 }
 
-export async function getR2Credentials(): Promise<R2Secret | undefined> {
-  const client = new SecretsManagerClient({})
+export async function getR2Credentials(region?: string): Promise<R2Secret | undefined> {
+  const client = new SecretsManagerClient({ region })
   const command = new GetSecretValueCommand({ SecretId: R2_SECRET_NAME })
   const response = await client.send(command)
   if (response.SecretString === undefined) {

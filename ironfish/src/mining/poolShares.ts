@@ -22,7 +22,7 @@ export class MiningPoolShares {
 
   private poolName: string
   private recentShareCutoff: number
-  private accountName: string
+  private accountName: string | undefined
 
   private constructor(options: {
     db: PoolDatabase
@@ -69,6 +69,10 @@ export class MiningPoolShares {
   }
 
   async start(): Promise<void> {
+    if (this.enablePayouts) {
+      await this.assertAccountExists()
+    }
+
     await this.db.start()
   }
 
@@ -277,13 +281,47 @@ export class MiningPoolShares {
       assetId: string
     }[],
   ): Promise<string> {
+    let account = this.accountName
+
+    if (account === undefined) {
+      const defaultAccount = await this.rpc.getDefaultAccount()
+
+      if (!defaultAccount.content.account) {
+        throw Error(
+          `No account is currently active on the node. Cannot send a payout transaction.`,
+        )
+      }
+
+      account = defaultAccount.content.account.name
+    }
+
     const transaction = await this.rpc.sendTransaction({
-      account: this.accountName,
+      account,
       outputs,
       fee: outputs.length.toString(),
       expirationDelta: this.config.get('transactionExpirationDelta'),
     })
 
     return transaction.content.hash
+  }
+
+  async assertAccountExists(): Promise<void> {
+    if (this.accountName) {
+      const response = await this.rpc.getAccounts()
+
+      const accountNames = response.content.accounts
+
+      if (accountNames.find((accountName) => accountName === this.accountName) === undefined) {
+        throw Error(
+          `Cannot send pool payouts from account '${this.accountName}': account not found.`,
+        )
+      }
+    } else {
+      const defaultAccount = await this.rpc.getDefaultAccount()
+
+      if (defaultAccount.content.account === null) {
+        throw Error(`Cannot send pool payouts: no account is active on the node.`)
+      }
+    }
   }
 }

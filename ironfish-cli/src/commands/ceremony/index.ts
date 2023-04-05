@@ -8,9 +8,9 @@ import axios from 'axios'
 import fsAsync from 'fs/promises'
 import path from 'path'
 import { pipeline } from 'stream/promises'
-import { IronfishCommand } from '../command'
-import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../flags'
-import { CeremonyClient } from '../trusted-setup/client'
+import { IronfishCommand } from '../../command'
+import { DataDirFlag, DataDirFlagKey, VerboseFlag, VerboseFlagKey } from '../../flags'
+import { CeremonyClient } from '../../trusted-setup/client'
 
 export default class Ceremony extends IronfishCommand {
   static description = 'Contribute randomness to the Iron Fish trusted setup'

@@ -11,6 +11,7 @@ import { ApiNamespace, Router } from '../routes'
 import { RpcServer } from '../server'
 import { IRpcAdapter } from './adapter'
 import { ERROR_CODES, ResponseError } from './errors'
+import { MESSAGE_DELIMITER } from './socketAdapter'
 
 const MEGABYTES = 1000 * 1000
 const MAX_REQUEST_SIZE = 5 * MEGABYTES
@@ -77,13 +78,16 @@ export class RpcHttpAdapter implements IRpcAdapter {
           const requestId = uuid()
 
           const waitForClose = new Promise<void>((resolve) => {
-            req.on('close', () => {
+            res.on('close', () => {
               this.cleanUpRequest(requestId)
               resolve()
             })
           })
 
           this.requests.set(requestId, { req, waitForClose })
+
+          // All response bodies should be application/json
+          res.setHeader('Content-Type', 'application/json')
 
           void this.handleRequest(req, res, requestId).catch((e) => {
             const error = ErrorUtils.renderError(e)
@@ -166,14 +170,6 @@ export class RpcHttpAdapter implements IRpcAdapter {
     const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`)
     const route = url.pathname.substring(1)
 
-    if (request.method !== 'POST') {
-      throw new ResponseError(
-        `Route does not exist, Did you mean to use POST?`,
-        ERROR_CODES.ROUTE_NOT_FOUND,
-        404,
-      )
-    }
-
     // TODO(daniel): clean up reading body code here a bit of possible
     let size = 0
     const data: Buffer[] = []
@@ -193,21 +189,24 @@ export class RpcHttpAdapter implements IRpcAdapter {
     // so keeping that convention here. Could think of a better way to handle?
     const body = combined.length ? combined.toString('utf8') : undefined
 
+    let chunkStreamed = false
     const rpcRequest = new RpcRequest(
       body === undefined ? undefined : JSON.parse(body),
       route,
       (status: number, data?: unknown) => {
-        response.writeHead(status, {
-          'Content-Type': 'application/json',
-        })
-        response.end(JSON.stringify({ status, data }))
+        response.statusCode = status
+        const delimeter = chunkStreamed ? MESSAGE_DELIMITER : ''
+        response.end(delimeter + JSON.stringify({ status, data }))
         this.cleanUpRequest(requestId)
       },
       (data: unknown) => {
-        // TODO: see if this is correct way to implement HTTP streaming.
-        // do more headers need to be set, etc.??
-        const bufferData = Buffer.from(JSON.stringify(data))
-        response.write(bufferData)
+        // TODO: Most HTTP clients don't parse `Transfer-Encoding: chunked` by chunk
+        // they wait until all chunks have been received and combine them. This will
+        // stream a delimitated list of JSON objects but is still probably not
+        // ideal as a response. We could find some better way to stream
+        const delimeter = chunkStreamed ? MESSAGE_DELIMITER : ''
+        response.write(delimeter + JSON.stringify({ data }))
+        chunkStreamed = true
       },
     )
 

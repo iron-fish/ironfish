@@ -5,7 +5,8 @@
     "config/eslint-plugin-ironfish",
     "ironfish-cli",
     "ironfish",
-    "ironfish-rust-nodejs"
+    "ironfish-rust-nodejs",
+    "simulator"
   ],
   "version": "independent",
   "npmClient": "yarn",

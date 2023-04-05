@@ -159,13 +159,16 @@ export class MiningPool {
 
     this.stopPromise = new Promise((r) => (this.stopResolve = r))
     this.started = true
-    await this.shares.start()
 
     this.logger.info(`Starting stratum server v${String(this.stratum.version)}`)
     await this.stratum.start()
 
     this.logger.info('Connecting to node...')
     this.rpc.onClose.on(this.onDisconnectRpc)
+
+    await this.startConnectingRpc()
+
+    await this.shares.start()
 
     const statusInterval = this.config.get('poolStatusNotificationInterval')
     if (statusInterval > 0) {
@@ -175,7 +178,6 @@ export class MiningPool {
       )
     }
 
-    await this.startConnectingRpc()
     void this.eventLoop()
   }
 
@@ -312,7 +314,7 @@ export class MiningPool {
           )}/s`,
         )
         this.webhooks.map((w) =>
-          w.poolSubmittedBlock(hashedHeaderHex, hashRate, this.stratum.clients.size),
+          w.poolSubmittedBlock(hashedHeaderHex, hashRate, this.stratum.subscribed),
         )
       } else {
         this.logger.info(`Block was rejected: ${result.content.reason}`)

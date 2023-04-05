@@ -41,6 +41,8 @@ describe('Route wallet/addTransaction', () => {
 
     expect(response.status).toBe(200)
     expect(response.content.accounts[0]).toBe(account.name)
+    expect(response.content.accepted).toBe(true)
+    expect(response.content.hash).toBe(transaction.hash().toString('hex'))
     expect(broadcastSpy).toHaveBeenCalled()
   })
 

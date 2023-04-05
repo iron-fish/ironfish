@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Note } from '../../../primitives/note'
-import { CurrencyUtils } from '../../../utils'
+import { TransactionStatus, TransactionType } from '../../../wallet'
 import { ApiNamespace, router } from '../router'
+import { RpcAccountDecryptedNote } from './types'
 import {
+  getAccount,
+  getAccountDecryptedNotes,
   getAssetBalanceDeltas,
-  RpcAccountDecryptedNote,
   serializeRpcAccountTransaction,
-} from './types'
-import { getAccount } from './utils'
+} from './utils'
 
 export type GetAccountTransactionRequest = {
   hash: string
@@ -22,8 +22,8 @@ export type GetAccountTransactionResponse = {
   account: string
   transaction: {
     hash: string
-    status: string
-    type: string
+    status: TransactionStatus
+    type: TransactionType
     fee: string
     blockHash?: string
     blockSequence?: number
@@ -53,8 +53,8 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
       transaction: yup
         .object({
           hash: yup.string().required(),
-          status: yup.string().defined(),
-          type: yup.string().defined(),
+          status: yup.string().oneOf(Object.values(TransactionStatus)).defined(),
+          type: yup.string().oneOf(Object.values(TransactionType)).defined(),
           fee: yup.string().defined(),
           blockHash: yup.string().optional(),
           blockSequence: yup.number().optional(),
@@ -112,39 +112,11 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       })
     }
 
-    const notesByAccount = await node.wallet.decryptNotes(transaction.transaction, null, true, [
-      account,
-    ])
-    const notes = notesByAccount.get(account.id) ?? []
-
-    const serializedNotes: RpcAccountDecryptedNote[] = []
-    for await (const decryptedNote of notes) {
-      const noteHash = decryptedNote.hash
-      const decryptedNoteForOwner = await account.getDecryptedNote(noteHash)
-
-      const isOwner = !!decryptedNoteForOwner
-      const spent = decryptedNoteForOwner ? decryptedNoteForOwner.spent : false
-      const note = decryptedNoteForOwner
-        ? decryptedNoteForOwner.note
-        : new Note(decryptedNote.serializedNote)
-
-      const asset = await node.chain.getAssetById(note.assetId())
-
-      serializedNotes.push({
-        isOwner,
-        owner: note.owner(),
-        memo: note.memo(),
-        value: CurrencyUtils.encode(note.value()),
-        assetId: note.assetId().toString('hex'),
-        assetName: asset?.name.toString('hex') || '',
-        sender: note.sender(),
-        spent: spent,
-      })
-    }
-
     const serializedTransaction = serializeRpcAccountTransaction(transaction)
 
     const assetBalanceDeltas = await getAssetBalanceDeltas(node, transaction)
+
+    const notes = await getAccountDecryptedNotes(node, account, transaction)
 
     const status = await node.wallet.getTransactionStatus(account, transaction, {
       confirmations: request.data.confirmations,
@@ -155,7 +127,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
     const serialized = {
       ...serializedTransaction,
       assetBalanceDeltas,
-      notes: serializedNotes,
+      notes,
       status,
       type,
     }

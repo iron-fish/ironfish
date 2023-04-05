@@ -35,6 +35,7 @@ describe('YupUtils', () => {
     it('currency', () => {
       expect(YupUtils.currency().isValidSync(CurrencyUtils.encode(6n))).toBe(true)
       expect(YupUtils.currency({ min: 0n }).isValidSync(CurrencyUtils.encode(-1n))).toBe(false)
+      expect(YupUtils.currency({ min: 0n }).isValidSync('0.1')).toBe(false)
       expect(YupUtils.currency().isValidSync('hello world')).toBe(false)
       expect(YupUtils.currency().isValidSync(0.00046)).toBe(false)
     })

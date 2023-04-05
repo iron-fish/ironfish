@@ -13,6 +13,11 @@ import { RpcRequestError } from '../../clients/errors'
 describe('Route wallet/create', () => {
   jest.setTimeout(15000)
   const routeTest = createRouteTest()
+
+  beforeEach(() => {
+    jest.spyOn(routeTest.node.wallet, 'scanTransactions').mockReturnValue(Promise.resolve())
+  })
+
   it('should create an account', async () => {
     await routeTest.node.wallet.createAccount('existingAccount', true)
 
@@ -62,5 +67,25 @@ describe('Route wallet/create', () => {
       expect(e.status).toBe(400)
       expect(e.code).toBe(ERROR_CODES.ACCOUNT_EXISTS)
     }
+  })
+
+  it('should start scanning transactions for the new account', async () => {
+    const scanTransactions = jest
+      .spyOn(routeTest.node.wallet, 'scanTransactions')
+      .mockReturnValue(Promise.resolve())
+
+    await routeTest.node.wallet.createAccount('existingAccount', true)
+
+    const name = uuid()
+
+    const response = await routeTest.client.createAccount({ name })
+    expect(response.status).toBe(200)
+    expect(response.content).toMatchObject({
+      name: name,
+      publicAddress: expect.any(String),
+      isDefaultAccount: false,
+    })
+
+    expect(scanTransactions).toHaveBeenCalled()
   })
 })
