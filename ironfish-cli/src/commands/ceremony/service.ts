@@ -73,7 +73,7 @@ export default class CeremonyService extends IronfishCommand {
     const DEFAULT_HOST = '0.0.0.0'
     const DEFAULT_PORT = 9040
 
-    const r2Credentials = await S3Utils.getR2Credentials()
+    const r2Credentials = await S3Utils.getR2Credentials('us-east-1')
 
     if (r2Credentials === undefined) {
       this.logger.log('Failed getting R2 credentials from AWS')
