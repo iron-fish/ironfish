@@ -43,7 +43,9 @@ class CeremonyServerClient {
     this.id = options.id
     this.socket = options.socket
     this.connected = true
-    this.logger = options.logger.withTag(`client:${this.id.slice(0, 4)}..${this.id.slice(-4)}`)
+    this.logger = options.logger
+      .withTag(`client:${this.id.slice(0, 4)}..${this.id.slice(-4)}`)
+      .withTag(`ip: ${this.socket.remoteAddress || 'unknown'}`)
   }
 
   send(message: CeremonyServerMessage): void {
