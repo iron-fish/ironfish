@@ -1,9 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { useMinersTxFixture } from '../../../testUtilities/fixtures'
 import { createRouteTest } from '../../../testUtilities/routeTest'
@@ -16,21 +13,12 @@ describe('Route chain/broadcastTransaction', () => {
 
     const broadcastSpy = jest.spyOn(routeTest.peerNetwork, 'broadcastTransaction')
 
-    const response = routeTest.client.broadcastTransaction({
+    const response = await routeTest.client.broadcastTransaction({
       transaction: transaction.serialize().toString('hex'),
     })
-    console.log(response)
-    debugger
 
-    await expect(
-      routeTest.client.broadcastTransaction({
-        transaction: transaction.serialize().toString('hex'),
-      }),
-    ).resolves.toBeDefined()
     expect(response.status).toBe(200)
-    const hash = response.content?.hash
-    expect(hash).toBeDefined()
-    expect(hash).toEqual(transaction.hash().toString('hex'))
+    expect(response.content?.hash).toEqual(transaction.hash().toString('hex'))
     expect(broadcastSpy).toHaveBeenCalled()
   })
 

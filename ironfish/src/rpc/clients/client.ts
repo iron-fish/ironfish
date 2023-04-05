@@ -636,12 +636,12 @@ export abstract class RpcClient {
     ).waitForEnd()
   }
 
-  broadcastTransaction(
+  async broadcastTransaction(
     params: BroadcastTransactionRequest,
-  ): RpcResponse<BroadcastTransactionResponse, void> {
-    return this.request<BroadcastTransactionResponse, void>(
+  ): Promise<RpcResponse<BroadcastTransactionResponse>> {
+    return this.request<BroadcastTransactionResponse>(
       `${ApiNamespace.chain}/broadcastTransaction`,
       params,
-    )
+    ).waitForEnd()
   }
 }

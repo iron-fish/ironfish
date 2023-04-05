@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 import * as yup from 'yup'
 import { Transaction } from '../../../primitives'
 import { ValidationError } from '../../adapters'
@@ -36,17 +37,13 @@ router.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionRe
     const transaction = new Transaction(data)
     const verify = node.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
-      throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`, 400)
+      throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
     }
 
     node.peerNetwork.broadcastTransaction(transaction)
-    debugger
-    request.end(
-      {
-        hash: transaction.hash().toString('hex'),
-      },
-      200,
-    )
-    return
+
+    request.end({
+      hash: transaction.hash().toString('hex'),
+    })
   },
 )
