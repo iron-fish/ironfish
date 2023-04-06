@@ -66,6 +66,7 @@ import {
   MetaSchema,
   SequenceToHashesSchema,
   SequenceToHashSchema,
+  TransactionHashToBlockHashSchema,
   TransactionsSchema,
 } from './schema'
 
@@ -114,6 +115,8 @@ export class Blockchain {
   hashToNextHash: IDatabaseStore<HashToNextSchema>
   // Asset Identifier -> Asset
   assets: IDatabaseStore<AssetSchema>
+  // TransactionHash -> BlockHash
+  transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
 
   // When ever the blockchain becomes synced
   onSynced = new Event<[]>()
@@ -237,6 +240,12 @@ export class Blockchain {
       name: 'bA',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: new AssetValueEncoding(),
+    })
+
+    this.transactionHashToBlockHash = this.db.addStore({
+      name: 'tb',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: BUFFER_ENCODING,
     })
 
     this.notes = new MerkleTree({
@@ -1257,6 +1266,7 @@ export class Blockchain {
     for (const transaction of block.transactions) {
       await this.saveConnectedMintsToAssetsStore(transaction, tx)
       await this.saveConnectedBurnsToAssetsStore(transaction, tx)
+      await this.transactionHashToBlockHash.put(transaction.hash(), block.header.hash, tx)
     }
 
     const verify = await this.verifier.verifyConnectedBlock(block, tx)
@@ -1279,6 +1289,7 @@ export class Blockchain {
     for (const transaction of block.transactions.slice().reverse()) {
       await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
       await this.deleteDisconnectedMintsFromAssetsStore(transaction, tx)
+      await this.transactionHashToBlockHash.del(transaction.hash(), tx)
     }
 
     await this.hashToNextHash.del(prev.hash, tx)

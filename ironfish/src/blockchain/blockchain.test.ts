@@ -1459,4 +1459,74 @@ describe('Blockchain', () => {
       expect(added.reason).toBe(VerificationResultReason.MINIMUM_FEE_NOT_MET)
     })
   })
+
+  describe('transactionHashToBlockHash', () => {
+    it('should insert records when a block is connected to the main chain', async () => {
+      const { node } = nodeTest
+
+      const block2 = await useMinerBlockFixture(node.chain, 2)
+      await expect(node.chain).toAddBlock(block2)
+
+      for (const transaction of block2.transactions) {
+        const blockHash = await node.chain.transactionHashToBlockHash.get(transaction.hash())
+
+        Assert.isNotUndefined(blockHash)
+
+        expect(blockHash).toEqualHash(block2.header.hash)
+      }
+    })
+
+    it('should remove entries when a block is disconnected from the chain', async () => {
+      const { node } = nodeTest
+
+      const block2 = await useMinerBlockFixture(node.chain, 2)
+      await expect(node.chain).toAddBlock(block2)
+
+      for (const transaction of block2.transactions) {
+        const blockHash = await node.chain.transactionHashToBlockHash.get(transaction.hash())
+
+        Assert.isNotUndefined(blockHash)
+
+        expect(blockHash).toEqualHash(block2.header.hash)
+      }
+
+      await node.chain.db.transaction(async (tx) => {
+        await node.chain.disconnect(block2, tx)
+      })
+
+      for (const transaction of block2.transactions) {
+        const blockHash = await node.chain.transactionHashToBlockHash.get(transaction.hash())
+        expect(blockHash).toBeUndefined()
+      }
+    })
+
+    it('should not overwrite entries when a block is added on a fork', async () => {
+      const { node: nodeA } = nodeTest
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const block2 = await useMinerBlockFixture(nodeA.chain, 2)
+      await expect(nodeA.chain).toAddBlock(block2)
+
+      for (const transaction of block2.transactions) {
+        const blockHash = await nodeA.chain.transactionHashToBlockHash.get(transaction.hash())
+
+        Assert.isNotUndefined(blockHash)
+
+        expect(blockHash).toEqualHash(block2.header.hash)
+      }
+
+      // connect another block to nodeA's chain
+      const block3 = await useMinerBlockFixture(nodeA.chain, 3)
+      await expect(nodeA.chain).toAddBlock(block3)
+
+      // create a fork and add it to nodeA's chain
+      const block2B = await useMinerBlockFixture(nodeB.chain, 2)
+      await expect(nodeA.chain).toAddBlock(block2B)
+
+      for (const transaction of block2B.transactions) {
+        const blockHashA = await nodeA.chain.transactionHashToBlockHash.get(transaction.hash())
+        expect(blockHashA).toBeUndefined()
+      }
+    })
+  })
 })
