@@ -5,6 +5,7 @@ import {
   Config,
   ConfigOptions,
   createRootLogger,
+  DEV_GENESIS_IRONFISH_ACCOUNT,
   Event,
   FollowChainStreamResponse,
   Logger,
@@ -31,9 +32,25 @@ import {
   supportedNodeChildProcesses,
 } from './events'
 import { sleep } from './misc'
-import { getLatestBlockHash } from './utils/chain'
+import { getLatestBlockHash, importAccount } from './utils'
 
 export const rootCmd = 'ironfish'
+
+/**
+ * Additional configuration options for the node. These are not part of the `ConfigOptions` interface
+ */
+export type ExtraSimluationNodeConfig = {
+  /**
+   * The data directory for the node. If not provided, a temporary directory will be created.
+   */
+  dataDir: string
+  verbose?: boolean
+  /**
+   * Whether the genesis account should be added to this node.
+   * An explicit rescan will follow the import so the balance is immediately available.
+   */
+  importGenesisAccount?: boolean
+}
 
 /**
  * SimulationNodeConfig is the configuration for a node in the simulation network.
@@ -42,10 +59,8 @@ export const rootCmd = 'ironfish'
  * the defaults.
  */
 export type SimulationNodeConfig = Required<RequiredSimulationNodeConfig> &
-  Partial<Omit<ConfigOptions, keyof RequiredSimulationNodeConfig>> & {
-    dataDir: string
-    verbose?: boolean
-  }
+  Partial<Omit<ConfigOptions, keyof RequiredSimulationNodeConfig>> &
+  ExtraSimluationNodeConfig
 
 /**
  * These options are required to start a node.
@@ -260,6 +275,10 @@ export class SimulationNode {
     }
 
     node.initializeBlockStream(await getLatestBlockHash(node))
+
+    if (config.importGenesisAccount) {
+      await importAccount(node, DEV_GENESIS_IRONFISH_ACCOUNT, true)
+    }
 
     node.ready = true
 
@@ -556,11 +575,12 @@ export class SimulationNode {
    * should be used if you need to execute a command and wait for it to complete before continuing.
    *
    * If the command fails, the error is thrown. Arguments should be passed in as an array
-   * and will be concatened with spaces when the command is executed. The datadir is
-   * automatically added to based on the node.
+   * and will be concatened with spaces when the command is executed. The datadir of the node is
+   * automatically to the end of the command.
    *
    * ```ts
    * try {
+   *  // executes `ironfish status --all --datadir <datadir>`
    *  const { stdout, stderr } = await node.executeCliCommandAsync('status', ['--all'])
    * } catch (e) {
    *  const error = e as ExecException
@@ -571,6 +591,7 @@ export class SimulationNode {
    * @param args The arguments for the command
    * @throws an `ExecException` if the command fails
    * @returns a promise containing the stdout and stderr output of the command
+   * // TODO: make args optional
    */
   async executeCliCommandAsync(
     command: string,
@@ -591,7 +612,7 @@ export class SimulationNode {
 /**
  * Public function to stop a node
  *
- * TODO: This is because you cannot access the actual SimulationNode object with the
+ * // TODO: This is because you cannot access the actual SimulationNode object with the
  * running node/miner procs from other cli commands. After an HTTP server is added to the simulation,
  * this should be removed and the stop function should be called directly on the SimulationNode object.
  */

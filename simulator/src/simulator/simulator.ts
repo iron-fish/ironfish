@@ -8,7 +8,11 @@ import { homedir } from 'os'
 import { exit } from 'process'
 import { ErrorEvent, ExitEvent, LogEvent } from './events'
 import { SECOND, sleep } from './misc'
-import { SimulationNode, SimulationNodeConfig } from './simulation-node'
+import {
+  ExtraSimluationNodeConfig,
+  SimulationNode,
+  SimulationNodeConfig,
+} from './simulation-node'
 import { getNodeMemoryStatus } from './utils/status'
 
 /**
@@ -210,7 +214,7 @@ export class Simulator {
    * @returns Config with required defaults filled in
    */
   fillConfig(
-    config?: Partial<ConfigOptions> & { dataDir?: string; verbose?: boolean },
+    config?: Partial<ConfigOptions & ExtraSimluationNodeConfig>,
   ): SimulationNodeConfig {
     if (!config) {
       config = {}
@@ -240,6 +244,7 @@ export class Simulator {
       bootstrapNodes: config.bootstrapNodes,
       dataDir: config.dataDir || `~/.ironfish-simulator/${config.nodeName}`,
       verbose: config.verbose || false,
+      importGenesisAccount: config.importGenesisAccount || false,
       ...config,
     }
   }
