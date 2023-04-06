@@ -7,7 +7,12 @@ export function isDefaultNetworkId(networkId: number): boolean {
 }
 
 /**
- * This account (IronfishGenesisAccount) can be imported to access the funds in the genesis block.
+ * The name of the account that contains the funds in the genesis block.
+ */
+export const DEV_GENESIS_IRONFISH_ACCOUNT_NAME = 'IronFishGenesisAccount'
+
+/**
+ * This account (IronFishGenesisAccount) can be imported to access the funds in the genesis block.
  *
  * If the dev genesis block is ever regenerated, this account will need to be updated.
  */
