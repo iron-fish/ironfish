@@ -307,7 +307,13 @@ export class CeremonyServer {
       } else if (parsedMessage.method === 'upload-complete') {
         await this.handleUploadComplete(client).catch((e) => {
           client.logger.error(`Error handling upload-complete: ${ErrorUtils.renderError(e)}`)
-          this.closeClient(client, new Error(`Error verifying contribution`))
+
+          this.closeClient(client)
+
+          if (this.currentContributor?.client == null) {
+            this.currentContributor = null
+            void this.startNextContributor()
+          }
         })
       } else {
         client.logger.error(`Unknown method received: ${message}`)
