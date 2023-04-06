@@ -41,7 +41,7 @@ import {
   SerializedNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
-import { Transaction } from '../primitives/transaction'
+import { Transaction, TransactionHash } from '../primitives/transaction'
 import {
   BUFFER_ENCODING,
   IDatabase,
@@ -1046,6 +1046,14 @@ export class Blockchain {
     tx?: IDatabaseTransaction,
   ): Promise<BlockHash | null> {
     const hash = await this.sequenceToHash.get(sequence, tx)
+    return hash || null
+  }
+
+  async getHashByTransactionHash(
+    transactionHash: TransactionHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHash | null> {
+    const hash = await this.transactionHashToBlockHash.get(transactionHash, tx)
     return hash || null
   }
 
