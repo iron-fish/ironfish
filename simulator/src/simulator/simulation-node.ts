@@ -37,9 +37,35 @@ import { getLatestBlockHash, importAccount } from './utils'
 export const rootCmd = 'ironfish'
 
 /**
+ * SimulationNodeConfig is the configuration for a node in the simulation network.
+ * All the `RequiredSimulationNodeConfig` options are required to start a node but defaults will be set
+ * if they are not provided. The rest of the `ConfigOptions` are optional and will be used to override
+ * the defaults.
+ */
+export type SimulationNodeConfig = RequiredSimulationNodeConfig &
+  OptionalSimluationNodeConfig &
+  Partial<Omit<ConfigOptions, keyof RequiredSimulationNodeConfig>>
+
+/**
+ * These options are required to start a node.
+ */
+export type RequiredSimulationNodeConfig = Required<
+  Pick<
+    ConfigOptions,
+    | 'nodeName'
+    | 'blockGraffiti'
+    | 'peerPort'
+    | 'networkId'
+    | 'rpcTcpHost'
+    | 'rpcTcpPort'
+    | 'bootstrapNodes'
+  >
+>
+
+/**
  * Additional configuration options for the node. These are not part of the `ConfigOptions` interface
  */
-export type ExtraSimluationNodeConfig = {
+export type OptionalSimluationNodeConfig = {
   /**
    * The data directory for the node. If not provided, a temporary directory will be created.
    */
@@ -51,30 +77,6 @@ export type ExtraSimluationNodeConfig = {
    */
   importGenesisAccount?: boolean
 }
-
-/**
- * SimulationNodeConfig is the configuration for a node in the simulation network.
- * All the `RequiredSimulationNodeConfig` options are required to start a node but defaults will be set
- * if they are not provided. The rest of the `ConfigOptions` are optional and will be used to override
- * the defaults.
- */
-export type SimulationNodeConfig = Required<RequiredSimulationNodeConfig> &
-  Partial<Omit<ConfigOptions, keyof RequiredSimulationNodeConfig>> &
-  ExtraSimluationNodeConfig
-
-/**
- * These options are required to start a node.
- */
-export type RequiredSimulationNodeConfig = Pick<
-  ConfigOptions,
-  | 'nodeName'
-  | 'blockGraffiti'
-  | 'peerPort'
-  | 'networkId'
-  | 'rpcTcpHost'
-  | 'rpcTcpPort'
-  | 'bootstrapNodes'
->
 
 /**
  * Global logger for use in the simulator node.
