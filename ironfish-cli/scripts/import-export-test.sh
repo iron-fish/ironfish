@@ -6,6 +6,7 @@ set -e # exit immediately if anything returns with non-zero exit code
 cd "$(dirname "$0")"
 
 DATA_DIR="../testdbs/importexport"
+rm -rf $DATA_DIR
 
 if ! command -v expect &> /dev/null; then
     echo "expect is not installed but is required"
