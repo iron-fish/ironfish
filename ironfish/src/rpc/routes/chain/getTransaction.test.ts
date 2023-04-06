@@ -4,7 +4,6 @@
 import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
-import { ERROR_CODES } from '../../adapters'
 import { RpcRequestError } from '../../clients'
 import { GetTransactionResponse } from './getTransaction'
 
