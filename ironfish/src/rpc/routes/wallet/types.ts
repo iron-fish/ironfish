@@ -13,6 +13,7 @@ export type RpcAccountTransaction = {
   burnsCount: number
   expiration: number
   timestamp: number
+  submittedSequence: number
 }
 
 export type RcpAccountAssetBalanceDelta = {
