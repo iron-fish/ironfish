@@ -16,7 +16,6 @@ export class BroadcastCommand extends IronfishCommand {
     {
       name: 'transaction',
       required: true,
-      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
       description: 'The transaction in hex encoding',
     },
   ]
@@ -28,14 +27,8 @@ export class BroadcastCommand extends IronfishCommand {
     CliUx.ux.action.start(`Broadcasting transaction`)
     const client = await this.sdk.connectRpc()
     const response = await client.broadcastTransaction({ transaction })
-    CliUx.ux.action.stop()
-
-    if (!response.content?.hash) {
-      this.log(`Transaction broadcast failed: ${response.status});
-      }`)
-      return
+    if (response.content) {
+      CliUx.ux.action.stop(`Transaction broadcasted: ${response.content.hash}`)
     }
-
-    this.log(`Transaction broadcasted: ${response.content.hash}`)
   }
 }

@@ -35,6 +35,7 @@ router.register<typeof BroadcastTransactionRequestSchema, BroadcastTransactionRe
   (request, node): void => {
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
+
     const verify = node.chain.verifier.verifyCreatedTransaction(transaction)
     if (!verify.valid) {
       throw new ValidationError(`Invalid transaction, reason: ${String(verify.reason)}`)
