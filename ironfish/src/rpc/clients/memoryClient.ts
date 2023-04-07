@@ -8,14 +8,14 @@ import { ALL_API_NAMESPACES, Router } from '../routes'
 import { RpcClient } from './client'
 
 export class RpcMemoryClient extends RpcClient {
-  node: IronfishNode
+  _node: IronfishNode
   router: Router
 
   constructor(logger: Logger, node: IronfishNode) {
     super(logger)
 
     this.router = node.rpc.getRouter(ALL_API_NAMESPACES)
-    this.node = node
+    this._node = node
   }
 
   request<TEnd = unknown, TStream = unknown>(

@@ -336,7 +336,7 @@ export class SimulationNode {
    * and wait for the transaction to appear.
    */
   initializeBlockStream(startingBlockHash: string): void {
-    const blockStream = this.client
+    const blockStream = this.client.chain
       .followChainStream({ head: startingBlockHash.toString() })
       .contentStream()
 
@@ -616,7 +616,7 @@ export async function stopSimulationNode(node: {
   let msg = ''
 
   try {
-    await client.stopNode()
+    await client.node.stopNode()
   } catch (error) {
     if (error instanceof Error) {
       msg = error.message

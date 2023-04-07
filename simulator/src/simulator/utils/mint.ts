@@ -12,7 +12,7 @@ export async function mintAsset(
   node: SimulationNode,
   request: MintAssetRequest,
 ): Promise<MintAssetResponse> {
-  const resp = await node.client.mintAsset(request)
+  const resp = await node.client.wallet.mintAsset(request)
 
   if (resp.content === undefined) {
     throw new Error(`error minting asset`)

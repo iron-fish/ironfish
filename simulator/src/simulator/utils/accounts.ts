@@ -14,7 +14,7 @@ export async function getAccountBalance(
   node: SimulationNode,
   account: string,
 ): Promise<number> {
-  const resp = await node.client.getAccountBalance({
+  const resp = await node.client.wallet.getAccountBalance({
     account,
     assetId: Asset.nativeId().toString('hex'),
     confirmations: 0,
@@ -35,7 +35,7 @@ export async function getAccountPublicKey(
   node: SimulationNode,
   account: string,
 ): Promise<string> {
-  const resp = await node.client.getAccountPublicKey({ account })
+  const resp = await node.client.wallet.getAccountPublicKey({ account })
 
   const publicKey = resp.content.publicKey
   if (publicKey === undefined) {
@@ -49,7 +49,7 @@ export async function getAccountPublicKey(
  * Gets the default account on a node.
  */
 export async function getDefaultAccount(node: SimulationNode): Promise<string> {
-  const resp = await node.client.getDefaultAccount()
+  const resp = await node.client.wallet.getDefaultAccount()
 
   if (resp.content.account === undefined || resp.content.account?.name === undefined) {
     throw new Error('default account not found')

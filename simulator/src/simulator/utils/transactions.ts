@@ -33,7 +33,7 @@ export async function sendTransaction(
     throw new Error('invalid public key for to account')
   }
 
-  const txn = await from.client.sendTransaction({
+  const txn = await from.client.wallet.sendTransaction({
     account: fromAccount,
     outputs: [
       {

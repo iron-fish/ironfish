@@ -148,9 +148,9 @@ export class MiningSoloMiner {
   }
 
   private async processNewBlocks() {
-    const consensusParameters = (await this.rpc.getConsensusParameters()).content
+    const consensusParameters = (await this.rpc.chain.getConsensusParameters()).content
 
-    for await (const payload of this.rpc.blockTemplateStream().contentStream()) {
+    for await (const payload of this.rpc.miner.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
 
       const currentHeadTarget = new Target(Buffer.from(payload.previousBlockInfo.target, 'hex'))
@@ -221,7 +221,7 @@ export class MiningSoloMiner {
     if (hashedHeader.compare(Buffer.from(blockTemplate.header.target, 'hex')) !== 1) {
       this.logger.debug('Valid block, submitting to node')
 
-      const result = await this.rpc.submitBlock(blockTemplate)
+      const result = await this.rpc.miner.submitBlock(blockTemplate)
 
       if (result.content.added) {
         this.logger.info(

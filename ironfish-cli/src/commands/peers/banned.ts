@@ -27,7 +27,7 @@ export class BannedCommand extends IronfishCommand {
 
     if (!flags.follow) {
       await this.sdk.client.connect()
-      const response = await this.sdk.client.getBannedPeers()
+      const response = await this.sdk.client.peer.getBannedPeers()
       this.log(renderTable(response.content))
       this.exit(0)
     }
@@ -50,7 +50,7 @@ export class BannedCommand extends IronfishCommand {
         continue
       }
 
-      const response = this.sdk.client.getBannedPeersStream()
+      const response = this.sdk.client.peer.getBannedPeersStream()
 
       for await (const value of response.contentStream()) {
         text.clearBaseLine(0)

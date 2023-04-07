@@ -11,7 +11,7 @@ describe('Route chain/estimateFeeRates', () => {
       .spyOn(routeTest.node.memPool.feeEstimator, 'estimateFeeRate')
       .mockReturnValueOnce(7n)
 
-    const response = await routeTest.client.estimateFeeRate({ priority: 'slow' })
+    const response = await routeTest.client.chain.estimateFeeRate({ priority: 'slow' })
     expect(response.content).toMatchObject({ rate: '7' })
     expect(estimateSpy).toHaveBeenCalledWith('slow')
   })
@@ -21,7 +21,7 @@ describe('Route chain/estimateFeeRates', () => {
       .spyOn(routeTest.node.memPool.feeEstimator, 'estimateFeeRate')
       .mockReturnValueOnce(1n)
 
-    await routeTest.client.estimateFeeRate()
+    await routeTest.client.chain.estimateFeeRate()
     expect(estimateSpy).toHaveBeenCalledWith('average')
   })
 })

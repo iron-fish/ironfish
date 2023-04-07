@@ -20,7 +20,7 @@ describe('burnAsset', () => {
   describe('with an invalid fee', () => {
     it('throws a validation error', async () => {
       await expect(
-        routeTest.client.burnAsset({
+        routeTest.client.wallet.burnAsset({
           account: 'account',
           assetId: '{ url: hello }',
           fee: '0',
@@ -35,7 +35,7 @@ describe('burnAsset', () => {
   describe('with an invalid value', () => {
     it('throws a validation error', async () => {
       await expect(
-        routeTest.client.burnAsset({
+        routeTest.client.wallet.burnAsset({
           account: 'account',
           assetId: '{ url: hello }',
           fee: '1',
@@ -69,7 +69,7 @@ describe('burnAsset', () => {
       })
       jest.spyOn(wallet, 'burn').mockResolvedValueOnce(burnTransaction)
 
-      const response = await routeTest.client.burnAsset({
+      const response = await routeTest.client.wallet.burnAsset({
         account: account.name,
         assetId: assetId.toString('hex'),
         fee: '1',

@@ -32,7 +32,10 @@ export class TransactionAddCommand extends IronfishCommand {
 
     CliUx.ux.action.start(`Adding transaction`)
     const client = await this.sdk.connectRpc()
-    const response = await client.addTransaction({ transaction, broadcast: flags.broadcast })
+    const response = await client.wallet.addTransaction({
+      transaction,
+      broadcast: flags.broadcast,
+    })
     CliUx.ux.action.stop()
 
     this.log(`Transaction added for accounts: ${response.content.accounts.join(', ')}`)

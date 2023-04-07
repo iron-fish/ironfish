@@ -64,7 +64,7 @@ export class ImportCommand extends IronfishCommand {
       account.createdAt = null
     }
 
-    const accountsResponse = await client.getAccounts()
+    const accountsResponse = await client.wallet.getAccounts()
     const duplicateAccount = accountsResponse.content.accounts.find(
       (accountName) => accountName === account.name,
     )
@@ -84,7 +84,7 @@ export class ImportCommand extends IronfishCommand {
     }
 
     const rescan = flags.rescan
-    const result = await client.importAccount({ account, rescan })
+    const result = await client.wallet.importAccount({ account, rescan })
 
     const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)

@@ -35,7 +35,7 @@ export class TransactionCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.getAccountTransaction({ account, hash })
+    const response = await client.wallet.getAccountTransaction({ account, hash })
 
     if (!response.content.transaction) {
       this.log(`No transaction found by hash ${hash}`)

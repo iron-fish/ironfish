@@ -44,7 +44,7 @@ describe('wallet/getAssets', () => {
       ],
     })
 
-    const response = routeTest.client.getAssets({ account: account.name })
+    const response = routeTest.client.wallet.getAssets({ account: account.name })
 
     const assets = await AsyncUtils.materialize(response.contentStream())
     expect(assets).toEqual(

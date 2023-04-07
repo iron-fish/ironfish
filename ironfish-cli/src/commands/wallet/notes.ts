@@ -30,7 +30,7 @@ export class NotesCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const response = client.getAccountNotesStream({ account })
+    const response = client.wallet.getAccountNotesStream({ account })
 
     let showHeader = !flags['no-header']
 

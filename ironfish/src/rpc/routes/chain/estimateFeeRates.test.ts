@@ -13,7 +13,7 @@ describe('Route chain/estimateFeeRates', () => {
       fast: 3n,
     })
 
-    const response = await routeTest.client.estimateFeeRates()
+    const response = await routeTest.client.chain.estimateFeeRates()
 
     expect(response.content).toMatchObject({
       slow: '1',

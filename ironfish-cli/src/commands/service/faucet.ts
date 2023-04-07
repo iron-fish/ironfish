@@ -89,7 +89,7 @@ export default class Faucet extends IronfishCommand {
 
     this.log('Fetching faucet account')
 
-    const response = await client.getDefaultAccount()
+    const response = await client.wallet.getDefaultAccount()
     const account = response.content.account?.name
 
     if (!account) {
@@ -112,7 +112,7 @@ export default class Faucet extends IronfishCommand {
     speed: Meter,
     api: WebApi,
   ): Promise<void> {
-    const status = await client.getNodeStatus()
+    const status = await client.node.getStatus()
 
     if (!status.content.blockchain.synced) {
       this.log('Blockchain not synced, waiting 5s')
@@ -147,7 +147,7 @@ export default class Faucet extends IronfishCommand {
       }
     }
 
-    const response = await client.getAccountBalance({ account })
+    const response = await client.wallet.getAccountBalance({ account })
 
     if (BigInt(response.content.available) < BigInt(FAUCET_AMOUNT + FAUCET_FEE)) {
       if (!this.warnedFund) {
@@ -194,7 +194,7 @@ export default class Faucet extends IronfishCommand {
       }
     })
 
-    const tx = await client.sendTransaction({
+    const tx = await client.wallet.sendTransaction({
       account,
       outputs,
       fee: BigInt(faucetTransactions.length * FAUCET_FEE).toString(),

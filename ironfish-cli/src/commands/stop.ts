@@ -22,7 +22,7 @@ export default class StopCommand extends IronfishCommand {
 
     CliUx.ux.action.start('Asking node to shut down...')
 
-    await this.sdk.client.stopNode()
+    await this.sdk.client.node.stopNode()
 
     CliUx.ux.action.stop('done.')
   }

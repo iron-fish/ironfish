@@ -103,7 +103,7 @@ export class Send extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     if (!flags.offline) {
-      const status = await client.getNodeStatus()
+      const status = await client.node.getStatus()
 
       if (!status.content.blockchain.synced) {
         this.error(
@@ -144,7 +144,7 @@ export class Send extends IronfishCommand {
     }
 
     if (!from) {
-      const response = await client.getDefaultAccount()
+      const response = await client.wallet.getDefaultAccount()
 
       if (!response.content.account) {
         this.error(
@@ -196,7 +196,7 @@ export class Send extends IronfishCommand {
         logger: this.logger,
       })
     } else {
-      const response = await client.createTransaction(params)
+      const response = await client.wallet.createTransaction(params)
       const bytes = Buffer.from(response.content.transaction, 'hex')
       raw = RawTransactionSerde.deserialize(bytes)
     }
@@ -214,7 +214,7 @@ export class Send extends IronfishCommand {
 
     CliUx.ux.action.start('Sending the transaction')
 
-    const response = await client.postTransaction({
+    const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
       account: from,
     })

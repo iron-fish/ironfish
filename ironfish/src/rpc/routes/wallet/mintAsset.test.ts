@@ -16,7 +16,7 @@ describe('mint', () => {
   describe('with an invalid fee', () => {
     it('throws a validation error', async () => {
       await expect(
-        routeTest.client.mintAsset({
+        routeTest.client.wallet.mintAsset({
           account: 'account',
           fee: '0',
           metadata: '{ url: hello }',
@@ -32,7 +32,7 @@ describe('mint', () => {
   describe('with an invalid value', () => {
     it('throws a validation error', async () => {
       await expect(
-        routeTest.client.mintAsset({
+        routeTest.client.wallet.mintAsset({
           account: 'account',
           fee: '1',
           metadata: '{ url: hello }',
@@ -74,7 +74,7 @@ describe('mint', () => {
 
       jest.spyOn(wallet, 'mint').mockResolvedValueOnce(mintTransaction)
 
-      const response = await routeTest.client.mintAsset({
+      const response = await routeTest.client.wallet.mintAsset({
         account: account.name,
         fee: '1',
         metadata: asset.metadata().toString('hex'),
