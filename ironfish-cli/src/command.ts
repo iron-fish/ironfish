@@ -85,6 +85,8 @@ export abstract class IronfishCommand extends Command {
         if (error.codeStack) {
           this.sdk.logger.debug(error.codeStack)
         }
+
+        this.exit(1)
       } else if (error instanceof ExitError) {
         throw error
       } else if (error instanceof CLIError) {
