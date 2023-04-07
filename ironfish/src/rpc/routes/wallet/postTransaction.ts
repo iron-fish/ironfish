@@ -13,6 +13,7 @@ export type PostTransactionRequest = {
 }
 
 export type PostTransactionResponse = {
+  hash: string
   transaction: string
 }
 
@@ -26,6 +27,7 @@ export const PostTransactionRequestSchema: yup.ObjectSchema<PostTransactionReque
 
 export const PostTransactionResponseSchema: yup.ObjectSchema<PostTransactionResponse> = yup
   .object({
+    hash: yup.string().defined(),
     transaction: yup.string().defined(),
   })
   .defined()
@@ -46,6 +48,9 @@ router.register<typeof PostTransactionRequestSchema, PostTransactionResponse>(
     })
 
     const serialized = transaction.serialize()
-    request.end({ transaction: serialized.toString('hex') })
+    request.end({
+      hash: transaction.hash().toString('hex'),
+      transaction: serialized.toString('hex'),
+    })
   },
 )
