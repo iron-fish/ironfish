@@ -23,20 +23,14 @@ const MAX_256_BIT_NUM =
 
 export class Target {
   targetValue: bigint
-  constructor(targetValue: bigint | Buffer | string | number | undefined = undefined) {
-    if (targetValue === undefined) {
-      this.targetValue = 0n
-    } else {
-      const candidate =
-        targetValue instanceof Buffer
-          ? BigIntUtils.fromBytesBE(targetValue)
-          : BigInt(targetValue)
+  constructor(targetValue: bigint | Buffer | string | number) {
+    const candidate =
+      targetValue instanceof Buffer ? BigIntUtils.fromBytesBE(targetValue) : BigInt(targetValue)
 
-      if (candidate > MAX_256_BIT_NUM) {
-        throw new Error('Target value exceeds max target')
-      } else {
-        this.targetValue = candidate
-      }
+    if (candidate > MAX_256_BIT_NUM) {
+      throw new Error('Target value exceeds max target')
+    } else {
+      this.targetValue = candidate
     }
   }
 
@@ -142,8 +136,8 @@ export class Target {
    * Converts difficulty to Target
    */
   static fromDifficulty(difficulty: bigint): Target {
-    if (difficulty <= Target.minDifficulty()) {
-      return Target.maxTarget()
+    if (difficulty === 1n) {
+      return new Target(MAX_256_BIT_NUM)
     }
     return new Target((2n ** 256n / difficulty).valueOf())
   }
@@ -152,9 +146,6 @@ export class Target {
    * Return the difficulty representation as a big integer
    */
   toDifficulty(): bigint {
-    if (this.targetValue <= 1n) {
-      return MAX_256_BIT_NUM
-    }
     return 2n ** 256n / this.targetValue
   }
 
