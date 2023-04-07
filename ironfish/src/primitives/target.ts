@@ -142,8 +142,8 @@ export class Target {
    * Converts difficulty to Target
    */
   static fromDifficulty(difficulty: bigint): Target {
-    if (difficulty <= 1n) {
-      return new Target(MAX_256_BIT_NUM)
+    if (difficulty <= Target.minDifficulty()) {
+      return Target.maxTarget()
     }
     return new Target((2n ** 256n / difficulty).valueOf())
   }

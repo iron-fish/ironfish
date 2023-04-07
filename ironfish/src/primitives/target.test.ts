@@ -223,6 +223,10 @@ describe('Calculate target', () => {
     it('does not return values outside the 256 bit range', () => {
       expect(Target.fromDifficulty(1n).targetValue).toBeLessThanOrEqual(2n ** 256n - 1n)
     })
+
+    it('returns the maximum target for difficulty below the minimum', () => {
+      expect(Target.fromDifficulty(Target.minDifficulty() - 1n)).toEqual(Target.maxTarget())
+    })
   })
 
   describe('toDifficulty', () => {
