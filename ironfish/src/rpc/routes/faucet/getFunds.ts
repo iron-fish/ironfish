@@ -15,7 +15,7 @@ export type GetFundsResponse = { id: string }
 export const GetFundsRequestSchema: yup.ObjectSchema<GetFundsRequest> = yup
   .object({
     account: yup.string(),
-    email: yup.string().strip(true),
+    email: yup.string().trim(),
   })
   .defined()
 
