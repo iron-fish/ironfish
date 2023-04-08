@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish_rust::assets::asset::AssetIdentifier;
+use ironfish_rust::keys::SPEND_KEY_SIZE;
 use ironfish_rust::transaction::{
     batch_verify_transactions, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
     TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
@@ -175,8 +176,13 @@ pub struct NativeTransaction {
 #[napi]
 impl NativeTransaction {
     #[napi(constructor)]
-    pub fn new(spender_hex_key: String) -> Result<NativeTransaction> {
-        let spender_key = SaplingKey::from_hex(&spender_hex_key).map_err(to_napi_err)?;
+    pub fn new(spender_hex_key: JsBuffer) -> Result<NativeTransaction> {
+        let spender_buffer = spender_hex_key.into_value()?;
+        let spender_vec = spender_buffer.as_ref();
+        let mut spender_bytes = [0; SPEND_KEY_SIZE];
+        spender_bytes.clone_from_slice(&spender_vec[0..SPEND_KEY_SIZE]);
+
+        let spender_key = SaplingKey::new(spender_bytes).map_err(to_napi_err)?;
         Ok(NativeTransaction {
             transaction: ProposedTransaction::new(spender_key),
         })

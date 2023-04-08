@@ -154,7 +154,9 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
         const burns = new Array<Burn>()
 
         for (const note of tx.notes) {
-          const decryptedNote = note.decryptNoteForOwner(request.data.incomingViewKey)
+          const decryptedNote = note.decryptNoteForOwner(
+            Buffer.from(request.data.incomingViewKey, 'hex'),
+          )
 
           if (decryptedNote) {
             const assetValue = await node.chain.getAssetById(decryptedNote.assetId())

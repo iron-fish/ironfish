@@ -125,7 +125,7 @@ export class WorkerPool {
     await Promise.all(workers.map((w) => w.stop()))
   }
 
-  async createMinersFee(spendKey: string, amount: bigint, memo: string): Promise<Transaction> {
+  async createMinersFee(spendKey: Buffer, amount: bigint, memo: string): Promise<Transaction> {
     const request = new CreateMinersFeeRequest(amount, memo, spendKey)
 
     const response = await this.execute(request).result()
@@ -139,7 +139,7 @@ export class WorkerPool {
 
   async postTransaction(
     transaction: RawTransaction,
-    spendingKey: string,
+    spendingKey: Buffer,
   ): Promise<Transaction> {
     const request = new PostTransactionRequest(transaction, spendingKey)
 

@@ -31,6 +31,11 @@ export class Migration026 extends Migration {
           ...account,
           createdAt: null,
           walletDb: node.wallet.walletDb,
+          spendingKey: account.spendingKey ? Buffer.from(account.spendingKey, 'hex') : null,
+          incomingViewKey: Buffer.from(account.incomingViewKey, 'hex'),
+          outgoingViewKey: Buffer.from(account.outgoingViewKey, 'hex'),
+          publicAddress: Buffer.from(account.publicAddress, 'hex'),
+          viewKey: Buffer.from(account.viewKey, 'hex'),
         }),
       )
     }
@@ -77,6 +82,11 @@ export class Migration026 extends Migration {
           ...account,
           createdAt: null,
           walletDb: node.wallet.walletDb,
+          spendingKey: account.spendingKey ? Buffer.from(account.spendingKey, 'hex') : null,
+          incomingViewKey: Buffer.from(account.incomingViewKey, 'hex'),
+          outgoingViewKey: Buffer.from(account.outgoingViewKey, 'hex'),
+          publicAddress: Buffer.from(account.publicAddress, 'hex'),
+          viewKey: Buffer.from(account.viewKey, 'hex'),
         }),
       )
     }

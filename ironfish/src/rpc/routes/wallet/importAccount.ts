@@ -59,12 +59,18 @@ router.register<typeof ImportAccountRequestSchema, ImportResponse>(
       }
     }
 
-    const accountValue = {
-      id: uuid(),
+    const account = await node.wallet.importAccount({
       ...request.data.account,
+      id: uuid(),
       createdAt,
-    }
-    const account = await node.wallet.importAccount(accountValue)
+      spendingKey: request.data.account.spendingKey
+        ? Buffer.from(request.data.account.spendingKey, 'hex')
+        : null,
+      incomingViewKey: Buffer.from(request.data.account.incomingViewKey, 'hex'),
+      outgoingViewKey: Buffer.from(request.data.account.outgoingViewKey, 'hex'),
+      publicAddress: Buffer.from(request.data.account.publicAddress, 'hex'),
+      viewKey: Buffer.from(request.data.account.viewKey, 'hex'),
+    })
 
     if (request.data.rescan) {
       void node.wallet.scanTransactions()

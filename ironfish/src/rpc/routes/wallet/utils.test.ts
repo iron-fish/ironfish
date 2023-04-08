@@ -9,7 +9,7 @@ describe('Accounts utils', () => {
   describe('getAccount', () => {
     const routeTest = createRouteTest(true)
     const name = 'testAccount'
-    let publicAddress = ''
+    let publicAddress = Buffer.alloc(0)
 
     beforeAll(async () => {
       const account = await routeTest.node.wallet.createAccount(name)

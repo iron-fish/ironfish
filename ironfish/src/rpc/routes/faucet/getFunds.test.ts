@@ -13,7 +13,7 @@ describe('Route faucet.getFunds', () => {
 
   let accountName = 'test' + Math.random().toString()
   const email = 'test@test.com'
-  let publicAddress = ''
+  let publicAddress = Buffer.alloc(0)
 
   beforeEach(async () => {
     accountName = 'test' + Math.random().toString()

@@ -29,7 +29,7 @@ router.register<typeof GetPublicKeyRequestSchema, GetPublicKeyResponse>(
 
     request.end({
       account: account.name,
-      publicKey: account.publicAddress,
+      publicKey: account.publicAddress.toString('hex'),
     })
   },
 )

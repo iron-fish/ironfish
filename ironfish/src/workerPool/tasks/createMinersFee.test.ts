@@ -25,7 +25,7 @@ jest.mock('@ironfish/rust-nodejs', () => {
 
 describe('CreateMinersFeeRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
-    const request = new CreateMinersFeeRequest(BigInt(0), 'memo', 'spendKey')
+    const request = new CreateMinersFeeRequest(BigInt(0), 'memo', Buffer.alloc(1))
     const buffer = request.serialize()
     const deserializedRequest = CreateMinersFeeRequest.deserialize(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)

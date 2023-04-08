@@ -23,7 +23,7 @@ jest.mock('@ironfish/rust-nodejs', () => {
 describe('Route wallet/getPublicKey', () => {
   const routeTest = createRouteTest(true)
   let account = {} as Account
-  let publicAddress = ''
+  let publicAddress = Buffer.alloc(0)
 
   beforeAll(async () => {
     account = await routeTest.node.wallet.createAccount(uuid())

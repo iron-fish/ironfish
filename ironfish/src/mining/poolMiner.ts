@@ -42,7 +42,7 @@ export class MiningPoolMiner {
     this.graffiti = null
     this.name = options.name
     this.publicAddress = options.publicAddress
-    if (!isValidPublicAddress(this.publicAddress)) {
+    if (!isValidPublicAddress(Buffer.from(this.publicAddress, 'hex'))) {
       throw new Error(`Invalid public address: ${this.publicAddress}`)
     }
 

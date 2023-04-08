@@ -11,9 +11,9 @@ import { WorkerTask } from './workerTask'
 
 export class PostTransactionRequest extends WorkerMessage {
   readonly transaction: RawTransaction
-  readonly spendingKey: string
+  readonly spendingKey: Buffer
 
-  constructor(transaction: RawTransaction, spendingKey: string, jobId?: number) {
+  constructor(transaction: RawTransaction, spendingKey: Buffer, jobId?: number) {
     super(WorkerMessageType.PostTransaction, jobId)
     this.transaction = transaction
     this.spendingKey = spendingKey
@@ -21,7 +21,7 @@ export class PostTransactionRequest extends WorkerMessage {
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
-    bw.writeBytes(Buffer.from(this.spendingKey, 'hex'))
+    bw.writeBytes(this.spendingKey)
     bw.writeBytes(RawTransactionSerde.serialize(this.transaction))
 
     return bw.render()
@@ -29,7 +29,7 @@ export class PostTransactionRequest extends WorkerMessage {
 
   static deserialize(jobId: number, buffer: Buffer): PostTransactionRequest {
     const reader = bufio.read(buffer, true)
-    const spendingKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
+    const spendingKey = reader.readBytes(ACCOUNT_KEY_LENGTH)
     const raw = RawTransactionSerde.deserialize(
       reader.readBytes(buffer.length - ACCOUNT_KEY_LENGTH),
     )

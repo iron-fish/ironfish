@@ -62,18 +62,18 @@ export const enum LanguageCode {
   Spanish = 7
 }
 export interface Key {
-  spendingKey: string
-  viewKey: string
-  incomingViewKey: string
-  outgoingViewKey: string
-  publicAddress: string
+  spendingKey: Buffer
+  viewKey: Buffer
+  incomingViewKey: Buffer
+  outgoingViewKey: Buffer
+  publicAddress: Buffer
 }
 export function generateKey(): Key
-export function spendingKeyToWords(privateKey: string, languageCode: LanguageCode): string
+export function spendingKeyToWords(privateKey: Buffer, languageCode: LanguageCode): string
 export function wordsToSpendingKey(words: string, languageCode: LanguageCode): string
-export function generateKeyFromPrivateKey(privateKey: string): Key
+export function generateKeyFromPrivateKey(privateKey: Buffer): Key
 export function initializeSapling(): void
-export function isValidPublicAddress(hexAddress: string): boolean
+export function isValidPublicAddress(address: Buffer): boolean
 export class BoxKeyPair {
   constructor()
   static fromHex(secretHex: string): BoxKeyPair
@@ -88,7 +88,7 @@ export class RollingFilter {
 }
 export type NativeAsset = Asset
 export class Asset {
-  constructor(ownerPrivateKey: string, name: string, metadata: string)
+  constructor(ownerPrivateKey: Buffer, name: string, metadata: string)
   metadata(): Buffer
   name(): Buffer
   owner(): Buffer
@@ -113,13 +113,13 @@ export class NoteEncrypted {
    */
   static combineHash(depth: number, jsLeft: Buffer, jsRight: Buffer): Buffer
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForOwner(incomingHexKey: string): Buffer | null
+  decryptNoteForOwner(incomingHexKey: Buffer): Buffer | null
   /** Returns undefined if the note was unable to be decrypted with the given key. */
-  decryptNoteForSpender(outgoingHexKey: string): Buffer | null
+  decryptNoteForSpender(outgoingHexKey: Buffer): Buffer | null
 }
 export type NativeNote = Note
 export class Note {
-  constructor(owner: string, value: bigint, memo: string, assetId: Buffer, sender: string)
+  constructor(owner: Buffer, value: bigint, memo: string, assetId: Buffer, sender: Buffer)
   static deserialize(jsBytes: Buffer): NativeNote
   serialize(): Buffer
   /**
@@ -139,9 +139,9 @@ export class Note {
   /** Asset identifier associated with this note */
   assetId(): Buffer
   /** Sender of the note */
-  sender(): string
+  sender(): Buffer
   /** Owner of the note */
-  owner(): string
+  owner(): Buffer
   /**
    * Compute the nullifier for this note, given the private key of its owner.
    *
@@ -149,7 +149,7 @@ export class Note {
    * only at the time the note is spent. This key is collected in a massive
    * 'nullifier set', preventing double-spend.
    */
-  nullifier(ownerViewKey: string, position: bigint): Buffer
+  nullifier(ownerViewKey: Buffer, position: bigint): Buffer
 }
 export type NativeTransactionPosted = TransactionPosted
 export class TransactionPosted {
@@ -167,7 +167,7 @@ export class TransactionPosted {
 }
 export type NativeTransaction = Transaction
 export class Transaction {
-  constructor(spenderHexKey: string)
+  constructor(spenderHexKey: Buffer)
   /** Create a proof of a new note owned by the recipient in this transaction. */
   output(note: Note): void
   /** Spend the note owned by spender_hex_key at the given witness location. */

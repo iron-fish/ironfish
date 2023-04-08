@@ -117,7 +117,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
 
       allocations = [
         {
-          publicAddress: account.publicAddress,
+          publicAddress: account.publicAddress.toString('hex'),
           amountInOre: expectedSupply,
           memo: flags.memo,
         },
