@@ -849,6 +849,10 @@ export class Wallet {
       memo: string
       assetId: Buffer
     }[]
+    spends?: {
+      note: Note
+      witness: NoteWitness
+    }[]
     mints?: MintData[]
     burns?: BurnDescription[]
     fee?: bigint
@@ -921,21 +925,25 @@ export class Wallet {
         raw.fee = getFee(options.feeRate, raw.size())
       }
 
-      await this.fund(raw, {
-        fee: raw.fee,
-        account: options.account,
-        confirmations: confirmations,
-      })
-
-      if (options.feeRate) {
-        raw.fee = getFee(options.feeRate, raw.size())
-        raw.spends = []
-
+      if (options.spends) {
+        raw.spends = options.spends
+      } else {
         await this.fund(raw, {
           fee: raw.fee,
           account: options.account,
           confirmations: confirmations,
         })
+
+        if (options.feeRate) {
+          raw.fee = getFee(options.feeRate, raw.size())
+          raw.spends = []
+
+          await this.fund(raw, {
+            fee: raw.fee,
+            account: options.account,
+            confirmations: confirmations,
+          })
+        }
       }
 
       return raw

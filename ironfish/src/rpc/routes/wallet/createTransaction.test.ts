@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
@@ -382,5 +383,72 @@ describe('Route wallet/createTransaction', () => {
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
       }),
     )
+  })
+
+  it('should create a valid transaction with custom spends', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
+    const block2 = await useMinerBlockFixture(
+      routeTest.chain,
+      undefined,
+      sender,
+      routeTest.node.wallet,
+    )
+    await expect(routeTest.node.chain).toAddBlock(block2)
+    await routeTest.node.wallet.updateHead()
+
+    const block3 = await useMinerBlockFixture(
+      routeTest.chain,
+      undefined,
+      sender,
+      routeTest.node.wallet,
+    )
+    await expect(routeTest.node.chain).toAddBlock(block3)
+    await routeTest.node.wallet.updateHead()
+
+    const noteEncrypted = block3.transactions[0].notes[0]
+
+    const noteDecrypted = noteEncrypted.decryptNoteForOwner(sender.incomingViewKey)
+
+    Assert.isNotUndefined(noteDecrypted)
+
+    const note = noteDecrypted.serialize().toString('hex')
+
+    // note is the last in the tree
+    Assert.isNotNull(block3.header.noteSize)
+
+    const index = block3.header.noteSize - 1
+
+    const response = await routeTest.client.createTransaction({
+      account: 'existingAccount',
+      outputs: [
+        {
+          publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+          amount: BigInt(10).toString(),
+          memo: '',
+          assetId: Asset.nativeId().toString('hex'),
+        },
+      ],
+      spends: [
+        {
+          note,
+          index,
+        },
+      ],
+      fee: '1',
+    })
+
+    expect(response.status).toBe(200)
+    expect(response.content.transaction).toBeDefined()
+
+    const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
+    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+    expect(rawTransaction.outputs.length).toBe(1)
+    expect(rawTransaction.expiration).toBeDefined()
+    expect(rawTransaction.burns.length).toBe(0)
+    expect(rawTransaction.mints.length).toBe(0)
+    expect(rawTransaction.spends.length).toBe(1)
+    expect(rawTransaction.fee).toBeGreaterThan(0n)
   })
 })

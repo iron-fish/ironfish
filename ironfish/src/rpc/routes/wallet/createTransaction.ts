@@ -4,6 +4,7 @@
 import { Asset } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
+import { Note } from '../../../primitives'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { CurrencyUtils, YupUtils } from '../../../utils'
 import { Wallet } from '../../../wallet'
@@ -19,6 +20,10 @@ export type CreateTransactionRequest = {
     amount: string
     memo: string
     assetId?: string
+  }[]
+  spends?: {
+    note: string
+    index: number
   }[]
   mints?: {
     assetId?: string
@@ -56,6 +61,14 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
           .defined(),
       )
       .defined(),
+    spends: yup.array(
+      yup
+        .object({
+          note: yup.string().defined(),
+          index: yup.number().defined(),
+        })
+        .defined(),
+    ),
     mints: yup
       .array(
         yup
@@ -114,6 +127,26 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
           amount: CurrencyUtils.decode(output.amount),
           memo: output.memo,
           assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),
+        })
+      }
+    }
+
+    if (request.data.spends) {
+      params.spends = []
+
+      for (const spend of request.data.spends) {
+        const note = new Note(Buffer.from(spend.note, 'hex'))
+        const witness = await node.chain.notes.witness(spend.index)
+
+        if (witness === null) {
+          throw new ValidationError(
+            `Could not create a witness for note with index ${spend.index}`,
+          )
+        }
+
+        params.spends.push({
+          note,
+          witness,
         })
       }
     }
