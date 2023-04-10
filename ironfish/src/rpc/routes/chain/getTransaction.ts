@@ -106,7 +106,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
 
         rawTransaction.fee = fee
         rawTransaction.expiration = expiration
-        rawTransaction.noteSize = initialNoteIndex
+        rawTransaction.noteSize = initialNoteIndex + transaction.notes.length
         rawTransaction.notesCount = transaction.notes.length
         rawTransaction.spendsCount = transaction.spends.length
         rawTransaction.signature = signature.toString('hex')
