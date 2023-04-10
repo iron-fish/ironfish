@@ -7,6 +7,8 @@ import {
   ApiNamespace,
   BlockTemplateStreamRequest,
   BlockTemplateStreamResponse,
+  BroadcastTransactionRequest,
+  BroadcastTransactionResponse,
   CreateAccountRequest,
   CreateAccountResponse,
   GetAccountNotesStreamRequest,
@@ -630,6 +632,15 @@ export abstract class RpcClient {
   ): Promise<RpcResponse<GetNetworkInfoResponse>> {
     return this.request<GetNetworkInfoResponse>(
       `${ApiNamespace.chain}/getNetworkInfo`,
+      params,
+    ).waitForEnd()
+  }
+
+  async broadcastTransaction(
+    params: BroadcastTransactionRequest,
+  ): Promise<RpcResponse<BroadcastTransactionResponse>> {
+    return this.request<BroadcastTransactionResponse>(
+      `${ApiNamespace.chain}/broadcastTransaction`,
       params,
     ).waitForEnd()
   }
