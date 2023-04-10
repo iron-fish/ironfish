@@ -59,17 +59,6 @@ export async function getDefaultAccount(node: SimulationNode): Promise<string> {
 }
 
 /**
- * Sets the default account on a node.
- *
- * @param node The node to set the default account on
- * @param account The account to set as the default account
- * @throws Error if the account does not exist
- */
-export async function setDefaultAccount(node: SimulationNode, account: string): Promise<void> {
-  await node.client.useAccount({ account })
-}
-
-/**
  * Imports an account on a node. This is done via `wallet:import`, so the account must be either the
  * copy-pasted output of `wallet:export` or a raw spending key.
  *
