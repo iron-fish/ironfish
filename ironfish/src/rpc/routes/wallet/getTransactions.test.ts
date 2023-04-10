@@ -23,7 +23,7 @@ describe('Route wallet/getAccountTransactions', () => {
     await expect(node.chain).toAddBlock(block)
     await node.wallet.updateHead()
 
-    const response = routeTest.client.getAccountTransactionsStream({
+    const response = routeTest.client.wallet.getAccountTransactionsStream({
       account: account.name,
       hash: block.transactions[0].hash().toString('hex'),
     })
