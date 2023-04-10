@@ -24,7 +24,7 @@ export async function selectFee(options: {
   confirmations?: number
   logger: Logger
 }): Promise<RawTransaction> {
-  const feeRates = await options.client.estimateFeeRates()
+  const feeRates = await options.client.chain.estimateFeeRates()
 
   const [slow, average, fast] = [
     await getTxWithFee(
@@ -78,7 +78,7 @@ export async function selectFee(options: {
       },
     })
 
-    const custom = await options.client.createTransaction({
+    const custom = await options.client.wallet.createTransaction({
       ...options.transaction,
       fee: CurrencyUtils.encode(fee),
     })
@@ -96,7 +96,7 @@ async function getTxWithFee(
   params: CreateTransactionRequest,
   feeRate: bigint,
 ): Promise<RawTransaction | null> {
-  const promise = client.createTransaction({
+  const promise = client.wallet.createTransaction({
     ...params,
     feeRate: CurrencyUtils.encode(feeRate),
   })

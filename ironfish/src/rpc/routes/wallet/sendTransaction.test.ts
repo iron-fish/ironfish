@@ -49,7 +49,7 @@ describe('Transactions sendTransaction', () => {
 
   it('throws if account does not exist', async () => {
     await expect(
-      routeTest.client.sendTransaction({
+      routeTest.client.wallet.sendTransaction({
         ...TEST_PARAMS,
         account: 'AccountDoesNotExist',
       }),
@@ -59,7 +59,7 @@ describe('Transactions sendTransaction', () => {
   it('throws if not connected to network', async () => {
     routeTest.node.peerNetwork['_isReady'] = false
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
+    await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       'Your node must be connected to the Iron Fish network to send a transaction',
     )
   })
@@ -68,7 +68,7 @@ describe('Transactions sendTransaction', () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = false
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
+    await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       'Your node must be synced with the Iron Fish network to send a transaction. Please try again later',
     )
   })
@@ -77,7 +77,7 @@ describe('Transactions sendTransaction', () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
+    await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
           `Your balance is too low. Add funds to your account first`,
@@ -87,7 +87,7 @@ describe('Transactions sendTransaction', () => {
       }),
     )
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrow(
+    await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
           `Your balance is too low. Add funds to your account first`,
@@ -113,7 +113,7 @@ describe('Transactions sendTransaction', () => {
       sequence: null,
     })
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
+    await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
           `Your balance is too low. Add funds to your account first`,
@@ -134,7 +134,7 @@ describe('Transactions sendTransaction', () => {
       sequence: null,
     })
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrow(
+    await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS_MULTI)).rejects.toThrow(
       expect.objectContaining({
         message: expect.stringContaining(
           `Your balance is too low. Add funds to your account first`,
@@ -165,7 +165,7 @@ describe('Transactions sendTransaction', () => {
       sequence: null,
     })
 
-    await expect(routeTest.client.sendTransaction(TEST_PARAMS)).rejects.toThrow(
+    await expect(routeTest.client.wallet.sendTransaction(TEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
@@ -192,7 +192,7 @@ describe('Transactions sendTransaction', () => {
       sequence: null,
     })
 
-    const result = await routeTest.client.sendTransaction(TEST_PARAMS)
+    const result = await routeTest.client.wallet.sendTransaction(TEST_PARAMS)
     expect(result.content.hash).toEqual(tx.hash().toString('hex'))
   })
 
@@ -215,7 +215,7 @@ describe('Transactions sendTransaction', () => {
       sequence: null,
     })
 
-    const result = await routeTest.client.sendTransaction(TEST_PARAMS_MULTI)
+    const result = await routeTest.client.wallet.sendTransaction(TEST_PARAMS_MULTI)
     expect(result.content.hash).toEqual(tx.hash().toString('hex'))
   })
 
@@ -239,7 +239,7 @@ describe('Transactions sendTransaction', () => {
 
     const sendSpy = jest.spyOn(routeTest.node.wallet, 'send').mockResolvedValue(tx)
 
-    await routeTest.client.sendTransaction(TEST_PARAMS)
+    await routeTest.client.wallet.sendTransaction(TEST_PARAMS)
 
     expect(sendSpy).toHaveBeenCalledWith(
       expect.anything(),
@@ -250,7 +250,7 @@ describe('Transactions sendTransaction', () => {
       undefined,
     )
 
-    await routeTest.client.sendTransaction({
+    await routeTest.client.wallet.sendTransaction({
       ...TEST_PARAMS,
       expiration: 1234,
       expirationDelta: 12345,

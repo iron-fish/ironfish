@@ -24,7 +24,7 @@ export default class Status extends IronfishCommand {
 
     if (!flags.follow) {
       const client = await this.sdk.connectRpc()
-      const response = await client.getWorkersStatus()
+      const response = await client.worker.getWorkersStatus()
       this.log(renderStatus(response.content))
       this.exit(0)
     }
@@ -48,7 +48,7 @@ export default class Status extends IronfishCommand {
         continue
       }
 
-      const response = this.sdk.client.getWorkersStatusStream()
+      const response = this.sdk.client.worker.getWorkersStatusStream()
       for await (const value of response.contentStream()) {
         statusText.setContent(renderStatus(value))
         screen.render()

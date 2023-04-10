@@ -67,7 +67,7 @@ export class PostCommand extends IronfishCommand {
 
     CliUx.ux.action.start(`Posting the transaction`)
 
-    const response = await client.postTransaction({
+    const response = await client.wallet.postTransaction({
       transaction,
       account: flags.account,
       broadcast: flags.broadcast,
@@ -87,7 +87,7 @@ export class PostCommand extends IronfishCommand {
 
   async confirm(client: RpcClient, raw: RawTransaction, account?: string): Promise<boolean> {
     if (!account) {
-      const response = await client.getDefaultAccount()
+      const response = await client.wallet.getDefaultAccount()
 
       if (response.content.account) {
         account = response.content.account.name

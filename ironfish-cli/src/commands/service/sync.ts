@@ -81,7 +81,7 @@ export default class Sync extends IronfishCommand {
       this.log(`Starting from head ${head}`)
     }
 
-    const response = client.followChainStream({
+    const response = client.chain.followChainStream({
       head: head,
     })
 

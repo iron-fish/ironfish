@@ -94,7 +94,7 @@ export class Mint extends IronfishCommand {
     const client = await this.sdk.connectRpc()
 
     if (!flags.offline) {
-      const status = await client.getNodeStatus()
+      const status = await client.node.getStatus()
       if (!status.content.blockchain.synced) {
         this.log(
           `Your node must be synced with the Iron Fish network to send a transaction. Please try again later`,
@@ -105,7 +105,7 @@ export class Mint extends IronfishCommand {
 
     let account = flags.account
     if (!account) {
-      const response = await client.getDefaultAccount()
+      const response = await client.wallet.getDefaultAccount()
 
       if (!response.content.account) {
         this.error(
@@ -198,7 +198,7 @@ export class Mint extends IronfishCommand {
         logger: this.logger,
       })
     } else {
-      const response = await client.createTransaction(params)
+      const response = await client.wallet.createTransaction(params)
       const bytes = Buffer.from(response.content.transaction, 'hex')
       raw = RawTransactionSerde.deserialize(bytes)
     }
@@ -219,7 +219,7 @@ export class Mint extends IronfishCommand {
 
     CliUx.ux.action.start('Sending the transaction')
 
-    const response = await client.postTransaction({
+    const response = await client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(raw).toString('hex'),
       account,
     })

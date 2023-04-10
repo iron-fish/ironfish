@@ -9,7 +9,7 @@ describe('Route config/unsetConfig', () => {
   const routeTest = createRouteTest()
 
   it('should error if the config name does not exist', async () => {
-    await expect(routeTest.client.unsetConfig({ name: 'asdf' })).rejects.toThrow()
+    await expect(routeTest.client.config.unsetConfig({ name: 'asdf' })).rejects.toThrow()
   })
 
   it('handles clear values values', async () => {
@@ -17,7 +17,7 @@ describe('Route config/unsetConfig', () => {
     routeTest.sdk.config.setOverride('blockGraffiti', 'foo')
     expect(routeTest.sdk.config.get('blockGraffiti')).toEqual('foo')
 
-    await routeTest.client.unsetConfig({
+    await routeTest.client.config.unsetConfig({
       name: 'blockGraffiti',
     })
 

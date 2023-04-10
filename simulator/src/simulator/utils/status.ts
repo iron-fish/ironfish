@@ -11,7 +11,7 @@ import { SimulationNode } from '../simulation-node'
  * @returns status of node
  */
 export async function getNodeStatus(node: SimulationNode): Promise<GetNodeStatusResponse> {
-  const resp = await node.client.getNodeStatus()
+  const resp = await node.client.node.getStatus()
 
   return resp.content
 }

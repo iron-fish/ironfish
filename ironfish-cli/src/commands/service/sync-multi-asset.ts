@@ -95,7 +95,7 @@ export default class SyncMultiAsset extends IronfishCommand {
 
     let lastCountedSequence: number
     if (head) {
-      const block = await client.getBlock({ hash: head })
+      const block = await client.chain.getBlock({ hash: head })
       lastCountedSequence = block.content.block.sequence
     } else {
       lastCountedSequence = GENESIS_BLOCK_SEQUENCE
@@ -103,7 +103,7 @@ export default class SyncMultiAsset extends IronfishCommand {
 
     this.log(`Starting from block ${lastCountedSequence}: ${head || 'Genesis Block'}`)
 
-    const response = this.sdk.client.getTransactionStream({
+    const response = this.sdk.client.chain.getTransactionStream({
       incomingViewKey: viewKey,
       head: head,
     })

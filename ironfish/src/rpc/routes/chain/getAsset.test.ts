@@ -15,7 +15,7 @@ describe('Route chain.getAsset', () => {
     const asset = await routeTest.node.chain.getAssetById(Asset.nativeId())
     Assert.isNotNull(asset)
 
-    const response = await routeTest.client.getAsset({
+    const response = await routeTest.client.chain.getAsset({
       id: asset.id.toString('hex'),
     })
 

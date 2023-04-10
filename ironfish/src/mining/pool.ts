@@ -296,7 +296,7 @@ export class MiningPool {
     if (hashedHeader.compare(Buffer.from(blockTemplate.header.target, 'hex')) !== 1) {
       this.logger.debug('Valid block, submitting to node')
 
-      const result = await this.rpc.submitBlock(blockTemplate)
+      const result = await this.rpc.miner.submitBlock(blockTemplate)
 
       if (result.content.added) {
         const hashRate = await this.estimateHashRate()
@@ -369,9 +369,9 @@ export class MiningPool {
   }
 
   private async processNewBlocks() {
-    const consensusParameters = (await this.rpc.getConsensusParameters()).content
+    const consensusParameters = (await this.rpc.chain.getConsensusParameters()).content
 
-    for await (const payload of this.rpc.blockTemplateStream().contentStream()) {
+    for await (const payload of this.rpc.miner.blockTemplateStream().contentStream()) {
       Assert.isNotUndefined(payload.previousBlockInfo)
       this.restartCalculateTargetInterval(
         consensusParameters.targetBlockTimeInSeconds,
@@ -540,7 +540,7 @@ export class MiningPool {
     const unconfirmedBlocks = await this.shares.unconfirmedBlocks()
 
     for (const block of unconfirmedBlocks) {
-      const blockInfoResp = await this.rpc.getBlock({
+      const blockInfoResp = await this.rpc.chain.getBlock({
         hash: block.blockHash,
         confirmations: this.config.get('confirmations'),
       })
@@ -554,7 +554,7 @@ export class MiningPool {
     const unconfirmedTransactions = await this.shares.unconfirmedPayoutTransactions()
 
     for (const transaction of unconfirmedTransactions) {
-      const transactionInfoResp = await this.rpc.getAccountTransaction({
+      const transactionInfoResp = await this.rpc.wallet.getAccountTransaction({
         hash: transaction.transactionHash,
         confirmations: this.config.get('confirmations'),
       })

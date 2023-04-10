@@ -32,7 +32,7 @@ export class FeeCommand extends IronfishCommand {
       await this.explainFeeRates(client)
     }
 
-    const feeRates = await client.estimateFeeRates()
+    const feeRates = await client.chain.estimateFeeRates()
 
     this.log('Fee Rates ($ORE/kB)')
     this.log(`slow:    ${feeRates.content.slow || ''}`)
@@ -41,7 +41,7 @@ export class FeeCommand extends IronfishCommand {
   }
 
   async explainFeeRates(client: RpcClient): Promise<void> {
-    const config = await client.getConfig()
+    const config = await client.config.getConfig()
 
     const slow =
       config.content['feeEstimatorPercentileSlow'] || DEFAULT_FEE_ESTIMATOR_PERCENTILE_SLOW

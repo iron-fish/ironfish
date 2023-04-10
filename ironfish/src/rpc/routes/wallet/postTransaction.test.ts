@@ -20,7 +20,7 @@ describe('Route wallet/postTransaction', () => {
       from: account,
     })
 
-    const response = await routeTest.client.postTransaction({
+    const response = await routeTest.client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
       account: account.name,
       broadcast: false,
@@ -42,7 +42,7 @@ describe('Route wallet/postTransaction', () => {
       from: account,
     })
 
-    const response = await routeTest.client.postTransaction({
+    const response = await routeTest.client.wallet.postTransaction({
       transaction: RawTransactionSerde.serialize(rawTransaction).toString('hex'),
       account: account.name,
     })
@@ -58,7 +58,7 @@ describe('Route wallet/postTransaction', () => {
     const account = await useAccountFixture(routeTest.node.wallet, 'accountB')
 
     await expect(
-      routeTest.client.postTransaction({
+      routeTest.client.wallet.postTransaction({
         transaction: '0xdeadbeef',
         account: account.name,
       }),

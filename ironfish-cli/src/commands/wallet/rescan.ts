@@ -44,7 +44,7 @@ export class RescanCommand extends IronfishCommand {
       stdout: true,
     })
 
-    const response = client.rescanAccountStream({ follow, from })
+    const response = client.wallet.rescanAccountStream({ follow, from })
 
     const speed = new Meter()
 

@@ -28,7 +28,7 @@ export class AddressCommand extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const response = await client.getAccountPublicKey({
+    const response = await client.wallet.getAccountPublicKey({
       account: account,
     })
 

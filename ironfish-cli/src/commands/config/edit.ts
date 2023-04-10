@@ -40,7 +40,7 @@ export class EditCommand extends IronfishCommand {
     }
 
     const client = await this.sdk.connectRpc(!flags.remote)
-    const response = await client.getConfig({ user: true })
+    const response = await client.config.getConfig({ user: true })
     const output = JSON.stringify(response.content, undefined, '   ')
 
     const tmpDir = os.tmpdir()
@@ -57,7 +57,7 @@ export class EditCommand extends IronfishCommand {
     const content = await readFileAsync(filePath, { encoding: 'utf8' })
     const config = JSONUtils.parse<Record<string, unknown>>(content)
 
-    await client.uploadConfig({ config })
+    await client.config.uploadConfig({ config })
     this.log('Uploaded config successfully.')
     this.exit(0)
   }

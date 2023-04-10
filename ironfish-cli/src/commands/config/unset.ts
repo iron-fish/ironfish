@@ -32,7 +32,7 @@ export class UnsetCommand extends IronfishCommand {
     const name = args.name as string
 
     const client = await this.sdk.connectRpc(flags.local)
-    await client.unsetConfig({ name })
+    await client.config.unsetConfig({ name })
 
     this.exit(0)
   }

@@ -27,7 +27,7 @@ export async function watchTransaction(options: {
 
   let lastTime = Date.now()
 
-  let last = await options.client.getAccountTransaction({
+  let last = await options.client.wallet.getAccountTransaction({
     account: options.account,
     hash: options.hash,
     confirmations: options.confirmations,
@@ -54,7 +54,7 @@ export async function watchTransaction(options: {
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    const response = await options.client.getAccountTransaction({
+    const response = await options.client.wallet.getAccountTransaction({
       account: options.account,
       hash: options.hash,
       confirmations: options.confirmations,

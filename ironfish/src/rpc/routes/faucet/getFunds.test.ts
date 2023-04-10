@@ -61,9 +61,9 @@ describe('Route faucet.getFunds', () => {
           },
         }
       })
-      await expect(routeTest.client.getFunds({ account: accountName, email })).rejects.toThrow(
-        RpcRequestError,
-      )
+      await expect(
+        routeTest.client.faucet.getFunds({ account: accountName, email }),
+      ).rejects.toThrow(RpcRequestError)
     })
   })
 
@@ -71,18 +71,18 @@ describe('Route faucet.getFunds', () => {
     it('throws an error', async () => {
       const apiResponse = new Error('API failure') as AxiosError
       axios.post = jest.fn().mockRejectedValueOnce(apiResponse)
-      await expect(routeTest.client.getFunds({ account: accountName, email })).rejects.toThrow(
-        'API failure',
-      )
+      await expect(
+        routeTest.client.faucet.getFunds({ account: accountName, email }),
+      ).rejects.toThrow('API failure')
     })
   })
 
   describe('should fail when non testnet node', () => {
     it('throws an error', async () => {
       routeTest.node.internal.set('networkId', 2)
-      await expect(routeTest.client.getFunds({ account: accountName, email })).rejects.toThrow(
-        'This endpoint is only available for testnet.',
-      )
+      await expect(
+        routeTest.client.faucet.getFunds({ account: accountName, email }),
+      ).rejects.toThrow('This endpoint is only available for testnet.')
     })
   })
 })

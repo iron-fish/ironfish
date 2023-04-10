@@ -23,7 +23,7 @@ export async function selectAsset(
     }
   | undefined
 > {
-  const balancesResponse = await client.getAccountBalances({
+  const balancesResponse = await client.wallet.getAccountBalances({
     account: account,
     confirmations: options.confirmations,
   })
@@ -35,7 +35,7 @@ export async function selectAsset(
   }
 
   if (!options.showNonOwnerAsset) {
-    const accountResponse = await client.getAccountPublicKey({
+    const accountResponse = await client.wallet.getAccountPublicKey({
       account: account,
     })
 
