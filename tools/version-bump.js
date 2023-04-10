@@ -15,6 +15,7 @@ const path = require('path')
 const CLI_PACKAGE = path.join(__dirname, '../ironfish-cli/package.json')
 const NODE_PACKAGE = path.join(__dirname, '../ironfish/package.json')
 const RUST_PACKAGE = path.join(__dirname, '../ironfish-rust-nodejs/package.json')
+const SIMULATOR_PACKAGE = path.join(__dirname, '../simulator/package.json')
 
 const shouldBumpIronfishRust = process.argv.find((a) => a.includes('rust'))
 
@@ -63,17 +64,20 @@ const getDirectories = async source =>
 const bumpNodeAndCliPackage = async (shouldBumpRust) => {
   const nodePackage = await readPackage(NODE_PACKAGE)
   const cliPackage = await readPackage(CLI_PACKAGE)
+  const simulatorPackage = await readPackage(SIMULATOR_PACKAGE)
   
   // Bump node package and packages that depend on it
   const newNodeVersion = bumpPatch(nodePackage.version)
   nodePackage.version = newNodeVersion
   cliPackage.dependencies[nodePackage.name] = newNodeVersion
+  simulatorPackage.dependencies[nodePackage.name] = newNodeVersion
 
   // Bump the CLI
   cliPackage.version = bumpPatch(cliPackage.version)
   
   writePackage(NODE_PACKAGE, nodePackage)
   writePackage(CLI_PACKAGE, cliPackage)
+  writePackage(SIMULATOR_PACKAGE, simulatorPackage)
 }
 
 const bumpRustPackage = async () => {
