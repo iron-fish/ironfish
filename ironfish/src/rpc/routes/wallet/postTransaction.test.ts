@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Transaction } from '../../../primitives'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { useAccountFixture } from '../../../testUtilities'
 import { createRawTransaction } from '../../../testUtilities/helpers/transaction'
@@ -27,8 +28,9 @@ describe('Route wallet/postTransaction', () => {
 
     expect(addSpy).toHaveBeenCalledTimes(0)
     expect(response.status).toBe(200)
-    expect(response.content.hash).toBe(expect.any(String))
     expect(response.content.transaction).toBeDefined()
+    const transaction = new Transaction(Buffer.from(response.content.transaction, 'hex'))
+    expect(response.content.hash).toBe(transaction.hash().toString('hex'))
   })
 
   it('should post a raw transaction', async () => {
@@ -47,8 +49,9 @@ describe('Route wallet/postTransaction', () => {
 
     expect(addSpy).toHaveBeenCalledTimes(1)
     expect(response.status).toBe(200)
-    expect(response.content.hash).toBeDefined()
     expect(response.content.transaction).toBeDefined()
+    const transaction = new Transaction(Buffer.from(response.content.transaction, 'hex'))
+    expect(response.content.hash).toBe(transaction.hash().toString('hex'))
   })
 
   it("should return an error if the transaction won't deserialize", async () => {
