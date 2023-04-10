@@ -21,7 +21,7 @@ export type AddTransactionResponse = {
 export const AddTransactionRequestSchema: yup.ObjectSchema<AddTransactionRequest> = yup
   .object({
     transaction: yup.string().defined(),
-    broadcast: yup.boolean().optional(),
+    broadcast: yup.boolean().optional().default(true),
   })
   .defined()
 
@@ -37,10 +37,6 @@ router.register<typeof AddTransactionRequestSchema, AddTransactionResponse>(
   `${ApiNamespace.wallet}/addTransaction`,
   AddTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    if (request.data.broadcast == null) {
-      request.data.broadcast = true
-    }
-
     const data = Buffer.from(request.data.transaction, 'hex')
     const transaction = new Transaction(data)
 

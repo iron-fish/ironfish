@@ -49,13 +49,13 @@ export type GetAccountTransactionsResponse = {
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
   yup
     .object({
-      account: yup.string().strip(true),
+      account: yup.string().trim(),
       hash: yup.string().notRequired(),
       sequence: yup.number().min(GENESIS_BLOCK_SEQUENCE).notRequired(),
       limit: yup.number().notRequired(),
       offset: yup.number().notRequired(),
       confirmations: yup.number().notRequired(),
-      boolean: yup.boolean().notRequired(),
+      notes: yup.boolean().notRequired(),
     })
     .defined()
 

@@ -10,7 +10,7 @@ export type GetPublicKeyResponse = { account: string; publicKey: string }
 
 export const GetPublicKeyRequestSchema: yup.ObjectSchema<GetPublicKeyRequest> = yup
   .object({
-    account: yup.string().strip(true),
+    account: yup.string().trim(),
   })
   .defined()
 
