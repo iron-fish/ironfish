@@ -23,6 +23,7 @@ export type GetAccountTransactionResponse = {
   transaction: {
     hash: string
     status: TransactionStatus
+    confirmations: number
     type: TransactionType
     fee: string
     blockHash?: string
@@ -32,8 +33,9 @@ export type GetAccountTransactionResponse = {
     mintsCount: number
     burnsCount: number
     timestamp: number
-    notes: RpcAccountDecryptedNote[]
+    submittedSequence: number
     assetBalanceDeltas: Array<{ assetId: string; assetName: string; delta: string }>
+    notes: RpcAccountDecryptedNote[]
   } | null
 }
 
@@ -54,6 +56,7 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
         .object({
           hash: yup.string().required(),
           status: yup.string().oneOf(Object.values(TransactionStatus)).defined(),
+          confirmations: yup.number().defined(),
           type: yup.string().oneOf(Object.values(TransactionType)).defined(),
           fee: yup.string().defined(),
           blockHash: yup.string().optional(),
@@ -63,6 +66,18 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
           mintsCount: yup.number().defined(),
           burnsCount: yup.number().defined(),
           timestamp: yup.number().defined(),
+          submittedSequence: yup.number().defined(),
+          assetBalanceDeltas: yup
+            .array(
+              yup
+                .object({
+                  assetId: yup.string().defined(),
+                  assetName: yup.string().defined(),
+                  delta: yup.string().defined(),
+                })
+                .defined(),
+            )
+            .defined(),
           notes: yup
             .array(
               yup
@@ -75,17 +90,6 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
                   sender: yup.string().defined(),
                   memo: yup.string().trim().defined(),
                   spent: yup.boolean(),
-                })
-                .defined(),
-            )
-            .defined(),
-          assetBalanceDeltas: yup
-            .array(
-              yup
-                .object({
-                  assetId: yup.string().defined(),
-                  assetName: yup.string().defined(),
-                  delta: yup.string().defined(),
                 })
                 .defined(),
             )
@@ -118,8 +122,10 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
 
     const notes = await getAccountDecryptedNotes(node, account, transaction)
 
+    const confirmations = request.data.confirmations ?? node.config.get('confirmations')
+
     const status = await node.wallet.getTransactionStatus(account, transaction, {
-      confirmations: request.data.confirmations,
+      confirmations,
     })
 
     const type = await node.wallet.getTransactionType(account, transaction)
@@ -130,6 +136,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       notes,
       status,
       type,
+      confirmations,
     }
 
     request.end({
