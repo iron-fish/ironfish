@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { BlockHash } from '../primitives/blockheader'
+import { TransactionHash } from '../primitives/transaction'
 import { DatabaseSchema } from '../storage'
 import { AssetValue } from './database/assetValue'
 import { HeaderValue } from './database/headers'
@@ -44,4 +45,9 @@ export interface HashToNextSchema extends DatabaseSchema {
 export interface AssetSchema extends DatabaseSchema {
   key: Buffer
   value: AssetValue
+}
+
+export interface TransactionHashToBlockHashSchema extends DatabaseSchema {
+  key: TransactionHash
+  value: BlockHash
 }
