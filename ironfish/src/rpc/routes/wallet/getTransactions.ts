@@ -51,7 +51,7 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
       limit: yup.number().notRequired(),
       offset: yup.number().notRequired(),
       confirmations: yup.number().notRequired(),
-      boolean: yup.boolean().notRequired(),
+      notes: yup.boolean().notRequired(),
     })
     .defined()
 
