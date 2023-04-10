@@ -27,7 +27,7 @@ describe('Route wallet/postTransaction', () => {
 
     expect(addSpy).toHaveBeenCalledTimes(0)
     expect(response.status).toBe(200)
-    expect(response.content.hash).toBeDefined()
+    expect(response.content.hash).toBe(expect.any(String))
     expect(response.content.transaction).toBeDefined()
   })
 
