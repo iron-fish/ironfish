@@ -1396,7 +1396,12 @@ export class Wallet {
     const accounts = this.listAccounts()
     if (
       accountValue.spendingKey &&
-      accounts.find((a) => accountValue.spendingKey && a.spendingKey && accountValue.spendingKey.equals(a.spendingKey))
+      accounts.find(
+        (a) =>
+          accountValue.spendingKey &&
+          a.spendingKey &&
+          accountValue.spendingKey.equals(a.spendingKey),
+      )
     ) {
       throw new Error(`Account already exists with provided spending key`)
     }
