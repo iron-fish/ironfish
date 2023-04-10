@@ -73,6 +73,6 @@ export async function importAccount(
 ): Promise<void> {
   await node.executeCliCommandAsync('wallet:import', [account])
   if (rescan) {
-    await node.client.rescanAccountStream().waitForEnd()
+    await node.client.wallet.rescanAccountStream().waitForEnd()
   }
 }
