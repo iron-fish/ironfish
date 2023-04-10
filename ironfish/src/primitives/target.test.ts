@@ -9,7 +9,6 @@ const TARGET_BUCKET_TIME_IN_SECONDS = 10
 
 describe('Target', () => {
   it('constructs targets', () => {
-    expect(new Target().asBigInt()).toEqual(BigInt(0))
     expect(new Target(BigInt(9999999999999)).asBigInt()).toEqual(BigInt(9999999999999))
     expect(new Target(Buffer.from([4, 8])).asBigInt()).toEqual(BigInt('1032'))
     expect(new Target(Buffer.from([0, 0, 0, 0, 0, 0, 0, 4, 8])).asBigInt()).toEqual(

@@ -23,20 +23,14 @@ const MAX_256_BIT_NUM =
 
 export class Target {
   targetValue: bigint
-  constructor(targetValue: bigint | Buffer | string | number | undefined = undefined) {
-    if (targetValue === undefined) {
-      this.targetValue = 0n
-    } else {
-      const candidate =
-        targetValue instanceof Buffer
-          ? BigIntUtils.fromBytesBE(targetValue)
-          : BigInt(targetValue)
+  constructor(targetValue: bigint | Buffer | string | number) {
+    const candidate =
+      targetValue instanceof Buffer ? BigIntUtils.fromBytesBE(targetValue) : BigInt(targetValue)
 
-      if (candidate > MAX_256_BIT_NUM) {
-        throw new Error('Target value exceeds max target')
-      } else {
-        this.targetValue = candidate
-      }
+    if (candidate > MAX_256_BIT_NUM) {
+      throw new Error('Target value exceeds max target')
+    } else {
+      this.targetValue = candidate
     }
   }
 
