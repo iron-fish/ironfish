@@ -222,7 +222,7 @@ pub(crate) fn shared_secret(
 
 #[cfg(test)]
 mod test {
-    use crate::{SaplingKey, ViewKey};
+    use crate::{serializing::bytes_to_hex, SaplingKey, ViewKey};
 
     #[test]
     fn test_view_key() {
@@ -230,11 +230,11 @@ mod test {
             "d96dc74bbca05dffb14a5631024588364b0cc9f583b5c11908b6ea98a2b778f7",
         )
         .expect("Key should be generated");
-        let view_key_hex = key.view_key.hex_key();
-        assert_eq!(view_key_hex, "498b5103a72c41237c3f2bca96f20100f5a3a8a17c6b8366a485fd16e8931a5d2ff2eb8f991032c815414ff0ae2d8bc3ea3b56bffc481db3f28e800050244463");
+        let view_key_bytes = key.view_key.to_bytes();
+        assert_eq!(bytes_to_hex(&view_key_bytes), "498b5103a72c41237c3f2bca96f20100f5a3a8a17c6b8366a485fd16e8931a5d2ff2eb8f991032c815414ff0ae2d8bc3ea3b56bffc481db3f28e800050244463");
 
         let recreated_key =
-            ViewKey::from_bytes(view_key_hex.as_bytes()).expect("Key should be created from hex");
+            ViewKey::from_bytes(&view_key_bytes).expect("Key should be created from hex");
         assert_eq!(key.view_key.authorizing_key, recreated_key.authorizing_key);
         assert_eq!(
             key.view_key.nullifier_deriving_key,
