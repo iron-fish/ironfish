@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
+import { Assert } from '../../../assert'
 import {
   useAccountFixture,
   useMinerBlockFixture,
@@ -22,13 +23,10 @@ describe('Route wallet/getAccountTransactions', () => {
     await expect(node.chain).toAddBlock(block)
     await node.wallet.updateHead()
 
-    const response = routeTest.client.request<unknown, GetAccountTransactionsResponse>(
-      'wallet/getAccountTransactions',
-      {
-        account: account.name,
-        hash: block.transactions[0].hash(),
-      },
-    )
+    const response = routeTest.client.wallet.getAccountTransactionsStream({
+      account: account.name,
+      hash: block.transactions[0].hash().toString('hex'),
+    })
 
     const transactions = await AsyncUtils.materialize(response.contentStream())
     expect(transactions).toHaveLength(1)
@@ -115,5 +113,30 @@ describe('Route wallet/getAccountTransactions', () => {
 
     const transactions = await AsyncUtils.materialize(response.contentStream())
     expect(transactions).toHaveLength(2)
+  })
+
+  it('optionally streams transactions with decrypted notes', async () => {
+    const node = routeTest.node
+    const account = await useAccountFixture(node.wallet, 'with-notes')
+
+    const blockA = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+    await expect(node.chain).toAddBlock(blockA)
+    await node.wallet.updateHead()
+
+    const response = routeTest.client.request<unknown, GetAccountTransactionsResponse>(
+      'wallet/getAccountTransactions',
+      {
+        account: account.name,
+        notes: true,
+      },
+    )
+
+    const transactions = await AsyncUtils.materialize(response.contentStream())
+    expect(transactions).toHaveLength(1)
+
+    const responseTransaction = transactions[0]
+    Assert.isNotUndefined(responseTransaction.notes)
+
+    expect(responseTransaction.notes).toHaveLength(1)
   })
 })

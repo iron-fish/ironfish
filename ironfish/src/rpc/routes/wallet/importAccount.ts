@@ -28,7 +28,13 @@ export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> 
         incomingViewKey: yup.string().defined(),
         outgoingViewKey: yup.string().defined(),
         version: yup.number().defined(),
-        createdAt: yup.date().nullable().defined(),
+        createdAt: yup
+          .object({
+            hash: yup.string().defined(),
+            sequence: yup.number().defined(),
+          })
+          .nullable()
+          .defined(),
       })
       .defined(),
   })
@@ -45,9 +51,18 @@ router.register<typeof ImportAccountRequestSchema, ImportResponse>(
   `${ApiNamespace.wallet}/importAccount`,
   ImportAccountRequestSchema,
   async (request, node): Promise<void> => {
+    let createdAt = null
+    if (request.data.account.createdAt) {
+      createdAt = {
+        hash: Buffer.from(request.data.account.createdAt.hash, 'hex'),
+        sequence: request.data.account.createdAt.sequence,
+      }
+    }
+
     const accountValue = {
       id: uuid(),
       ...request.data.account,
+      createdAt,
     }
     const account = await node.wallet.importAccount(accountValue)
 

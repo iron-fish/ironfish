@@ -11,7 +11,7 @@ import { S3Utils } from '../../utils'
 const CONTRIBUTE_TIMEOUT_MS = 5 * 60 * 1000
 const UPLOAD_TIMEOUT_MS = 5 * 60 * 1000
 const PRESIGNED_EXPIRATION_SEC = 5 * 60
-const START_DATE = 1681146000000 // Monday, April 10, 2023 10:00:00 AM GMT-07:00 (Pacific Daylight Time)
+const START_DATE = 1680904800000 // Friday, April 07 2023 15:00:00 GMT-0700 (Pacific Daylight Time)
 
 export default class CeremonyService extends IronfishCommand {
   static hidden = true
@@ -26,7 +26,7 @@ export default class CeremonyService extends IronfishCommand {
       char: 'b',
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
-      description: 'S3 bucket to download and upload params to',
+      description: 'S3/R2 bucket to download and upload params to',
       default: 'ironfish-contributions',
     }),
     downloadPrefix: Flags.string({
@@ -34,8 +34,7 @@ export default class CeremonyService extends IronfishCommand {
       parse: (input: string) => Promise.resolve(input.trim()),
       required: false,
       description: 'Prefix for contribution download URLs',
-      // TODO: update this to non-dev endpoint to avoid rate limiting
-      default: 'https://pub-6a239e04e140459087cf392ffc3245b1.r2.dev',
+      default: 'https://contributions.ironfish.network',
     }),
     contributionTimeoutMs: Flags.integer({
       required: false,
@@ -49,7 +48,8 @@ export default class CeremonyService extends IronfishCommand {
     }),
     presignedExpirationSec: Flags.integer({
       required: false,
-      description: 'How many seconds the S3 pre-signed upload URL is valid for a contributor',
+      description:
+        'How many seconds the S3/R2 pre-signed upload URL is valid for a contributor',
       default: PRESIGNED_EXPIRATION_SEC,
     }),
     startDate: Flags.integer({
@@ -73,7 +73,7 @@ export default class CeremonyService extends IronfishCommand {
     const DEFAULT_HOST = '0.0.0.0'
     const DEFAULT_PORT = 9040
 
-    const r2Credentials = await S3Utils.getR2Credentials()
+    const r2Credentials = await S3Utils.getR2Credentials('us-east-1')
 
     if (r2Credentials === undefined) {
       this.logger.log('Failed getting R2 credentials from AWS')

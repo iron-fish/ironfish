@@ -71,7 +71,7 @@ export class ExportCommand extends IronfishCommand {
     }
 
     const client = await this.sdk.connectRpc(local)
-    const response = await client.exportAccount({ account: account, viewOnly: viewOnly })
+    const response = await client.wallet.exportAccount({ account: account, viewOnly: viewOnly })
     let output
 
     if (flags.mnemonic) {

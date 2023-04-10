@@ -90,10 +90,11 @@ export class Router {
 
     const { handler, schema } = methodRoute
 
-    const { error } = await YupUtils.tryValidate(schema, request.data)
+    const { result, error } = await YupUtils.tryValidate(schema, request.data)
     if (error) {
       throw new ValidationError(error.message, 400)
     }
+    request.data = result
 
     Assert.isNotNull(this.server)
 

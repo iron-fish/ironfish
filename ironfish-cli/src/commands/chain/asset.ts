@@ -27,7 +27,7 @@ export default class Asset extends IronfishCommand {
     const assetId = args.id
 
     const client = await this.sdk.connectRpc()
-    const data = await client.getAsset({ id: assetId })
+    const data = await client.chain.getAsset({ id: assetId })
 
     this.log(`Name: ${BufferUtils.toHuman(Buffer.from(data.content.name, 'hex'))}`)
     this.log(`Metadata: ${BufferUtils.toHuman(Buffer.from(data.content.metadata, 'hex'))}`)

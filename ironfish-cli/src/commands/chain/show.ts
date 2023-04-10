@@ -36,7 +36,7 @@ export default class Show extends IronfishCommand {
     this.log(`Getting the chain blocks...`)
     await this.sdk.client.connect()
 
-    const data = await this.sdk.client.showChain({ start, stop })
+    const data = await this.sdk.client.chain.showChain({ start, stop })
 
     data.content.content.forEach((content) => this.log(content))
   }

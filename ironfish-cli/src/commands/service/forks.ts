@@ -52,8 +52,8 @@ export default class Forks extends IronfishCommand {
 
     await this.sdk.client.connect()
 
-    const targetBlockTimeInSeconds = (await this.sdk.client.getConsensusParameters()).content
-      .targetBlockTimeInSeconds
+    const targetBlockTimeInSeconds = (await this.sdk.client.chain.getConsensusParameters())
+      .content.targetBlockTimeInSeconds
 
     const counter = new GossipForkCounter(targetBlockTimeInSeconds, { delayMs: flags.delay })
     counter.start()
@@ -88,7 +88,7 @@ export default class Forks extends IronfishCommand {
         continue
       }
 
-      const response = this.sdk.client.onGossipStream()
+      const response = this.sdk.client.event.onGossipStream()
 
       for await (const value of response.contentStream()) {
         counter.add(value.blockHeader)

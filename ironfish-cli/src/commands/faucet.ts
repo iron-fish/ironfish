@@ -34,7 +34,7 @@ export class FaucetCommand extends IronfishCommand {
     }
 
     const client = await this.sdk.connectRpc()
-    const networkInfoResponse = await client.getNetworkInfo()
+    const networkInfoResponse = await client.chain.getNetworkInfo()
 
     if (networkInfoResponse.content === null || networkInfoResponse.content.networkId !== 0) {
       // not testnet
@@ -53,7 +53,7 @@ export class FaucetCommand extends IronfishCommand {
     }
 
     // Create an account if one is not set
-    const response = await client.getDefaultAccount()
+    const response = await client.wallet.getDefaultAccount()
     let accountName = response.content.account?.name
 
     if (!accountName) {
@@ -63,7 +63,7 @@ export class FaucetCommand extends IronfishCommand {
           required: false,
         })) || 'default'
 
-      await client.createAccount({ name: accountName, default: true })
+      await client.wallet.createAccount({ name: accountName, default: true })
     }
 
     CliUx.ux.action.start(
@@ -75,7 +75,7 @@ export class FaucetCommand extends IronfishCommand {
     )
 
     try {
-      await client.getFunds({
+      await client.faucet.getFunds({
         account: accountName,
         email,
       })

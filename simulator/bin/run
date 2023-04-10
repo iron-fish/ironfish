@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+
+// the signal handler does not support windows yet
+if (process.platform !== 'win32') {
+  require('@ironfish/rust-nodejs').initSignalHandler()
+}
+
+if (process.platform === 'win32' && process.arch === 'ia32') {
+  console.log(
+    `32-bit installations are not supported. You may have accidentally installed 32-bit Node.js. Please try reinstalling Node.js v18 (64-bit): https://nodejs.org/en/download/`,
+  )
+  process.exit(1)
+}
+
+if (process.versions.node.split('.')[0] !== '18') {
+  console.log(
+    `NodeJS version ${process.versions.node} is not compatible. Must have Node v18 installed: https://nodejs.org/en/download/`,
+  )
+  process.exit(1)
+}
+
+require('@oclif/core')
+  .run()
+  .then(require('@oclif/core/flush'))
+  .catch(require('@oclif/core/handle'))

@@ -15,7 +15,7 @@ describe('Route wallet/addTransaction', () => {
 
     await expect(account.hasTransaction(transaction.hash())).resolves.toBe(false)
 
-    const response = await routeTest.client.addTransaction({
+    const response = await routeTest.client.wallet.addTransaction({
       transaction: transaction.serialize().toString('hex'),
     })
 
@@ -35,18 +35,20 @@ describe('Route wallet/addTransaction', () => {
     const broadcastSpy = jest.spyOn(routeTest.wallet, 'broadcastTransaction')
 
     // Add it again
-    const response = await routeTest.client.addTransaction({
+    const response = await routeTest.client.wallet.addTransaction({
       transaction: transaction.serialize().toString('hex'),
     })
 
     expect(response.status).toBe(200)
     expect(response.content.accounts[0]).toBe(account.name)
+    expect(response.content.accepted).toBe(true)
+    expect(response.content.hash).toBe(transaction.hash().toString('hex'))
     expect(broadcastSpy).toHaveBeenCalled()
   })
 
   it("should return an error if the transaction won't deserialize", async () => {
     await expect(
-      routeTest.client.addTransaction({
+      routeTest.client.wallet.addTransaction({
         transaction: '0xdeadbeef',
       }),
     ).rejects.toThrow('Out of bounds read')

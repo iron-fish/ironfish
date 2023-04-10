@@ -61,14 +61,15 @@ const timestamp = <T extends Record<string, unknown>>(options?: {
 
 const asset = <T extends Record<string, unknown>>(options?: {
   extended?: boolean
+  format?: Format
 }): Partial<Record<string, table.Column<T>>> => {
-  if (options?.extended) {
+  if (options?.extended || options?.format !== Format.cli) {
     return {
       assetId: {
         header: 'Asset ID',
         get: (row) => row['assetId'],
         minWidth: MAX_ASSET_NAME_COLUMN_WIDTH,
-        extended: true,
+        extended: options?.extended ?? false,
       },
       assetName: {
         header: 'Asset Name',
@@ -78,7 +79,7 @@ const asset = <T extends Record<string, unknown>>(options?: {
           return truncateCol(assetName, MAX_ASSET_NAME_COLUMN_WIDTH)
         },
         minWidth: MAX_ASSET_NAME_COLUMN_WIDTH,
-        extended: true,
+        extended: options?.extended ?? false,
       },
     }
   } else {
@@ -121,6 +122,13 @@ function truncateCol(value: string, maxWidth: number | null): string {
   }
 
   return value.slice(0, maxWidth - 1) + '…'
+}
+
+export enum Format {
+  cli = 'cli',
+  csv = 'csv',
+  json = 'json',
+  yaml = 'yaml',
 }
 
 export const TableCols = { timestamp, asset, fixedWidth }

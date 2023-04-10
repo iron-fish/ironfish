@@ -49,7 +49,7 @@ export default class Export extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const stream = client.exportChainStream({
+    const stream = client.chain.exportChainStream({
       start: args.start as number | null,
       stop: args.stop as number | null,
     })

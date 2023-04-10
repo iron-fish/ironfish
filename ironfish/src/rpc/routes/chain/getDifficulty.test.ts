@@ -9,7 +9,7 @@ describe('Route chain/getDifficulty', () => {
   it('get difficulty', async () => {
     expect(routeTest.chain.head.hash.equals(routeTest.chain.genesis.hash)).toBe(true)
 
-    const response = await routeTest.client.getDifficulty()
+    const response = await routeTest.client.chain.getDifficulty()
 
     expect(response.content).toMatchObject({
       difficulty: routeTest.chain.genesis.target.toDifficulty().toString(),
@@ -21,7 +21,7 @@ describe('Route chain/getDifficulty', () => {
   it('get difficulty by sequence', async () => {
     expect(routeTest.chain.head.hash.equals(routeTest.chain.genesis.hash)).toBe(true)
 
-    const response = await routeTest.client.getDifficulty({
+    const response = await routeTest.client.chain.getDifficulty({
       sequence: routeTest.chain.genesis.sequence,
     })
 

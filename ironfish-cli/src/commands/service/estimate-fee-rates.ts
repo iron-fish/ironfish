@@ -60,7 +60,7 @@ export default class EstimateFees extends IronfishCommand {
         continue
       }
 
-      const response = await this.sdk.client.estimateFeeRates()
+      const response = await this.sdk.client.chain.estimateFeeRates()
 
       if (!(response.content.slow && response.content.average && response.content.fast)) {
         this.log('Unexpected response')

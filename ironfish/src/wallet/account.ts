@@ -22,7 +22,7 @@ import { WalletDB } from './walletdb/walletdb'
 
 export const ACCOUNT_KEY_LENGTH = 32
 
-export const ACCOUNT_SCHEMA_VERSION = 1
+export const ACCOUNT_SCHEMA_VERSION = 2
 
 export class Account {
   private readonly walletDb: WalletDB
@@ -36,7 +36,7 @@ export class Account {
   readonly outgoingViewKey: string
   readonly version: number
   publicAddress: string
-  readonly createdAt: Date | null
+  createdAt: HeadValue | null
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
 
@@ -1124,6 +1124,12 @@ export class Account {
 
   async updateHead(head: HeadValue | null, tx?: IDatabaseTransaction): Promise<void> {
     await this.walletDb.saveHead(this, head, tx)
+  }
+
+  async updateCreatedAt(createdAt: HeadValue | null, tx?: IDatabaseTransaction): Promise<void> {
+    this.createdAt = createdAt
+
+    await this.walletDb.setAccount(this, tx)
   }
 
   async getTransactionNotes(

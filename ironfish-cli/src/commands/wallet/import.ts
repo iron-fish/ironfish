@@ -7,6 +7,7 @@ import { AccountImport } from '@ironfish/sdk/src/wallet/walletdb/accountValue'
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
+import { CommandFlags } from '../../types'
 import { LANGUAGE_VALUES } from '../../utils/language'
 
 export class ImportCommand extends IronfishCommand {
@@ -21,7 +22,9 @@ export class ImportCommand extends IronfishCommand {
     }),
     path: Flags.string({
       description: 'the path to the file containing the account to import',
-      flagName: 'path',
+    }),
+    name: Flags.string({
+      description: 'the name to use for the account',
     }),
   }
 
@@ -42,26 +45,26 @@ export class ImportCommand extends IronfishCommand {
 
     let account: AccountImport
     if (blob) {
-      account = await this.stringToAccountImport(blob)
+      account = await this.stringToAccountImport(blob, flags)
     } else if (flags.path) {
-      account = await this.importFile(flags.path)
+      account = await this.importFile(flags.path, flags)
     } else if (process.stdin.isTTY) {
-      account = await this.importTTY()
+      account = await this.importTTY(flags)
     } else if (!process.stdin.isTTY) {
-      account = await this.importPipe()
+      account = await this.importPipe(flags)
     } else {
       CliUx.ux.error(`Invalid import type`)
     }
 
     if (!account.version) {
-      account.version = ACCOUNT_SCHEMA_VERSION as number
+      account.version = ACCOUNT_SCHEMA_VERSION
     }
 
     if (!account.createdAt) {
       account.createdAt = null
     }
 
-    const accountsResponse = await client.getAccounts()
+    const accountsResponse = await client.wallet.getAccounts()
     const duplicateAccount = accountsResponse.content.accounts.find(
       (accountName) => accountName === account.name,
     )
@@ -81,7 +84,7 @@ export class ImportCommand extends IronfishCommand {
     }
 
     const rescan = flags.rescan
-    const result = await client.importAccount({ account, rescan })
+    const result = await client.wallet.importAccount({ account, rescan })
 
     const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)
@@ -121,7 +124,10 @@ export class ImportCommand extends IronfishCommand {
     }
   }
 
-  async stringToAccountImport(data: string): Promise<AccountImport> {
+  async stringToAccountImport(
+    data: string,
+    flags: CommandFlags<typeof ImportCommand>,
+  ): Promise<AccountImport> {
     // bech32 encoded json
     const [decoded, _] = Bech32m.decode(data)
     if (decoded) {
@@ -134,6 +140,15 @@ export class ImportCommand extends IronfishCommand {
         }
       }
 
+      if (data.version === 1) {
+        data.createdAt = null
+        data.version = 2
+      }
+
+      if (flags.name) {
+        data.name = flags.name
+      }
+
       return data
     }
 
@@ -142,9 +157,12 @@ export class ImportCommand extends IronfishCommand {
       ImportCommand.mnemonicWordsToKey(data) || ImportCommand.verifySpendingKey(data)
 
     if (spendingKey) {
-      const name = await CliUx.ux.prompt('Enter a new account name', {
-        required: true,
-      })
+      const name =
+        flags.name ||
+        (await CliUx.ux.prompt('Enter a new account name', {
+          required: true,
+        }))
+
       const key = generateKeyFromPrivateKey(spendingKey)
       return { name, version: ACCOUNT_SCHEMA_VERSION, createdAt: null, ...key }
     }
@@ -160,19 +178,31 @@ export class ImportCommand extends IronfishCommand {
         }
       }
 
+      if (json.version === 1) {
+        json.createdAt = null
+        json.version = 2
+      }
+
+      if (flags.name) {
+        json.name = flags.name
+      }
+
       return json
     } catch (e) {
       CliUx.ux.error(`Import failed for the given input: ${data}`)
     }
   }
 
-  async importFile(path: string): Promise<AccountImport> {
+  async importFile(
+    path: string,
+    flags: CommandFlags<typeof ImportCommand>,
+  ): Promise<AccountImport> {
     const resolved = this.sdk.fileSystem.resolve(path)
     const data = await this.sdk.fileSystem.readFile(resolved)
-    return this.stringToAccountImport(data.trim())
+    return this.stringToAccountImport(data.trim(), flags)
   }
 
-  async importPipe(): Promise<AccountImport> {
+  async importPipe(flags: CommandFlags<typeof ImportCommand>): Promise<AccountImport> {
     let data = ''
 
     const onData = (dataIn: string): void => {
@@ -188,10 +218,10 @@ export class ImportCommand extends IronfishCommand {
 
     process.stdin.off('data', onData)
 
-    return this.stringToAccountImport(data)
+    return this.stringToAccountImport(data, flags)
   }
 
-  async importTTY(): Promise<AccountImport> {
+  async importTTY(flags: CommandFlags<typeof ImportCommand>): Promise<AccountImport> {
     const userInput = await CliUx.ux.prompt(
       'Paste the output of wallet:export, or your spending key',
       {
@@ -199,6 +229,6 @@ export class ImportCommand extends IronfishCommand {
       },
     )
 
-    return await this.stringToAccountImport(userInput)
+    return await this.stringToAccountImport(userInput, flags)
   }
 }

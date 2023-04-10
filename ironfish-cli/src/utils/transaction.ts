@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
-  Assert,
   createRootLogger,
   Logger,
   PromiseUtils,
@@ -28,7 +27,7 @@ export async function watchTransaction(options: {
 
   let lastTime = Date.now()
 
-  let last = await options.client.getAccountTransaction({
+  let last = await options.client.wallet.getAccountTransaction({
     account: options.account,
     hash: options.hash,
     confirmations: options.confirmations,
@@ -36,64 +35,65 @@ export async function watchTransaction(options: {
 
   const startTime = lastTime
 
-  if (last.content.transaction == null) {
-    logger.log(`Tried to watch transaction ${options.hash} but it's missing.`)
+  let prevStatus = last?.content.transaction?.status ?? 'not found'
+  let currentStatus = prevStatus
+
+  CliUx.ux.action.start(`Current Status`)
+
+  // If the transaction is already in the desired state, return
+  if (currentStatus === waitUntil) {
+    logger.log(`Transaction ${options.hash} is ${waitUntil}`)
     return
   }
 
-  if (last.content.transaction.status === waitUntil) {
-    logger.log(
-      `Transaction ${last.content.transaction.hash} is ${last.content.transaction.status}`,
-    )
-    return
-  }
-
-  logger.log(`Watching transaction ${last.content.transaction.hash}`)
+  logger.log(`Watching transaction ${options.hash}`)
 
   CliUx.ux.action.start(`Current Status`)
   const span = TimeUtils.renderSpan(0, { hideMilliseconds: true })
-  CliUx.ux.action.status = `${last.content.transaction.status} ${span}`
+  CliUx.ux.action.status = `${currentStatus} ${span}`
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    Assert.isNotNull(last.content.transaction)
-
-    const response = await options.client.getAccountTransaction({
+    const response = await options.client.wallet.getAccountTransaction({
       account: options.account,
       hash: options.hash,
       confirmations: options.confirmations,
     })
 
-    if (response.content.transaction == null) {
+    currentStatus = response?.content.transaction?.status ?? 'not found'
+
+    if (prevStatus !== 'not found' && currentStatus === 'not found') {
       CliUx.ux.action.stop(`Transaction ${options.hash} deleted while watching it.`)
       break
     }
 
-    if (response.content.transaction.status === last.content.transaction.status) {
+    if (currentStatus === prevStatus) {
       const duration = Date.now() - lastTime
       const span = TimeUtils.renderSpan(duration, { hideMilliseconds: true })
-      CliUx.ux.action.status = `${last.content.transaction.status} ${span}`
+      CliUx.ux.action.status = `${currentStatus} ${span}`
       await PromiseUtils.sleep(pollFrequencyMs)
       continue
     }
 
+    // State has changed
     const now = Date.now()
     const duration = now - lastTime
     lastTime = now
 
     CliUx.ux.action.stop(
-      `${last.content.transaction.status} -> ${
-        response.content.transaction.status
-      }: ${TimeUtils.renderSpan(duration, { hideMilliseconds: true })}`,
+      `${prevStatus} -> ${currentStatus}: ${TimeUtils.renderSpan(duration, {
+        hideMilliseconds: true,
+      })}`,
     )
 
     last = response
+    prevStatus = currentStatus
 
     CliUx.ux.action.start(`Current Status`)
     const span = TimeUtils.renderSpan(0, { hideMilliseconds: true })
-    CliUx.ux.action.status = `${response.content.transaction.status} ${span}`
+    CliUx.ux.action.status = `${currentStatus} ${span}`
 
-    if (response.content.transaction.status === waitUntil) {
+    if (currentStatus === waitUntil) {
       const duration = now - startTime
       const span = TimeUtils.renderSpan(duration, { hideMilliseconds: true })
       CliUx.ux.action.stop(`done after ${span}`)

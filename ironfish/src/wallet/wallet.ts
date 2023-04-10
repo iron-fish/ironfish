@@ -235,6 +235,20 @@ export class Wallet {
     }
     this.isStarted = true
 
+    for (const account of this.listAccounts()) {
+      if (account.createdAt === null || this.chainProcessor.sequence === null) {
+        continue
+      }
+
+      if (account.createdAt.sequence > this.chainProcessor.sequence) {
+        continue
+      }
+
+      if (!(await this.chain.hasBlock(account.createdAt.hash))) {
+        await this.resetAccount(account, { resetCreatedAt: true })
+      }
+    }
+
     if (this.chainProcessor.hash) {
       const hasHeadBlock = await this.chain.hasBlock(this.chainProcessor.hash)
 
@@ -302,7 +316,7 @@ export class Wallet {
 
   private async resetAccounts(tx?: IDatabaseTransaction): Promise<void> {
     for (const account of this.listAccounts()) {
-      await this.resetAccount(account, tx)
+      await this.resetAccount(account, { tx })
     }
   }
 
@@ -389,37 +403,24 @@ export class Wallet {
     })
 
     for (const account of accounts) {
-      const assetBalanceDeltas = new AssetBalances()
+      const shouldDecrypt = await this.shouldDecryptForAccount(blockHeader, account, scan)
+
+      if (scan && scan.isAborted) {
+        scan.signalComplete()
+        this.scan = null
+        return
+      }
 
       await this.walletDb.db.transaction(async (tx) => {
-        const transactions = await this.chain.getBlockTransactions(blockHeader)
+        let assetBalanceDeltas = new AssetBalances()
 
-        for (const { transaction, initialNoteIndex } of transactions) {
-          if (scan && scan.isAborted) {
-            scan.signalComplete()
-            this.scan = null
-            return
-          }
-
-          const decryptedNotesByAccountId = await this.decryptNotes(
-            transaction,
-            initialNoteIndex,
-            false,
-            [account],
-          )
-
-          const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
-
-          const transactionDeltas = await account.connectTransaction(
+        if (shouldDecrypt) {
+          assetBalanceDeltas = await this.connectBlockTransactions(
             blockHeader,
-            transaction,
-            decryptedNotes,
+            account,
+            scan,
             tx,
           )
-
-          assetBalanceDeltas.update(transactionDeltas)
-
-          await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, blockHeader, tx)
         }
 
         await account.updateUnconfirmedBalances(
@@ -430,8 +431,83 @@ export class Wallet {
         )
 
         await account.updateHead({ hash: blockHeader.hash, sequence: blockHeader.sequence }, tx)
+
+        const accountHasTransaction = assetBalanceDeltas.size > 0
+        if (account.createdAt === null && accountHasTransaction) {
+          await account.updateCreatedAt(
+            { hash: blockHeader.hash, sequence: blockHeader.sequence },
+            tx,
+          )
+        }
       })
     }
+  }
+
+  async shouldDecryptForAccount(
+    blockHeader: BlockHeader,
+    account: Account,
+    scan?: ScanState,
+  ): Promise<boolean> {
+    if (account.createdAt === null) {
+      return true
+    }
+
+    if (account.createdAt.sequence < blockHeader.sequence) {
+      return true
+    }
+
+    if (account.createdAt.sequence === blockHeader.sequence) {
+      if (!account.createdAt.hash.equals(blockHeader.hash)) {
+        // account.createdAt is refers to a block that is not on the main chain
+        await this.resetAccount(account, { resetCreatedAt: true })
+        await scan?.abort()
+        void this.scanTransactions()
+
+        return false
+      }
+
+      return true
+    }
+
+    return false
+  }
+
+  private async connectBlockTransactions(
+    blockHeader: BlockHeader,
+    account: Account,
+    scan?: ScanState,
+    tx?: IDatabaseTransaction,
+  ): Promise<AssetBalances> {
+    const assetBalanceDeltas = new AssetBalances()
+    const transactions = await this.chain.getBlockTransactions(blockHeader)
+
+    for (const { transaction, initialNoteIndex } of transactions) {
+      if (scan && scan.isAborted) {
+        return assetBalanceDeltas
+      }
+
+      const decryptedNotesByAccountId = await this.decryptNotes(
+        transaction,
+        initialNoteIndex,
+        false,
+        [account],
+      )
+
+      const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
+
+      const transactionDeltas = await account.connectTransaction(
+        blockHeader,
+        transaction,
+        decryptedNotes,
+        tx,
+      )
+
+      assetBalanceDeltas.update(transactionDeltas)
+
+      await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, blockHeader, tx)
+    }
+
+    return assetBalanceDeltas
   }
 
   private async upsertAssetsFromDecryptedNotes(
@@ -500,6 +576,13 @@ export class Wallet {
           { hash: header.previousBlockHash, sequence: header.sequence - 1 },
           tx,
         )
+
+        if (account.createdAt?.hash.equals(header.hash)) {
+          await account.updateCreatedAt(
+            { hash: header.previousBlockHash, sequence: header.sequence - 1 },
+            tx,
+          )
+        }
       })
     }
   }
@@ -1260,6 +1343,14 @@ export class Wallet {
 
     const key = generateKey()
 
+    let createdAt = null
+    if (this.chainProcessor.hash && this.chainProcessor.sequence) {
+      createdAt = {
+        hash: this.chainProcessor.hash,
+        sequence: this.chainProcessor.sequence,
+      }
+    }
+
     const account = new Account({
       version: ACCOUNT_SCHEMA_VERSION,
       id: uuid(),
@@ -1269,7 +1360,7 @@ export class Wallet {
       publicAddress: key.publicAddress,
       spendingKey: key.spendingKey,
       viewKey: key.viewKey,
-      createdAt: new Date(),
+      createdAt,
       walletDb: this.walletDb,
     })
 
@@ -1315,9 +1406,19 @@ export class Wallet {
 
     validateAccount(accountValue)
 
+    let createdAt = accountValue.createdAt
+    if (createdAt !== null && !(await this.chain.hasBlock(createdAt.hash))) {
+      this.logger.debug(
+        `Account ${accountValue.name} createdAt block ${createdAt.hash.toString('hex')} (${
+          createdAt.sequence
+        }) not found in the chain. Setting createdAt to null.`,
+      )
+      createdAt = null
+    }
+
     const account = new Account({
       ...accountValue,
-      createdAt: accountValue.createdAt ? new Date(accountValue.createdAt) : null,
+      createdAt,
       walletDb: this.walletDb,
     })
 
@@ -1340,14 +1441,21 @@ export class Wallet {
     return this.getAccountByName(name) !== null
   }
 
-  async resetAccount(account: Account, tx?: IDatabaseTransaction): Promise<void> {
+  async resetAccount(
+    account: Account,
+    options?: {
+      resetCreatedAt?: boolean
+      tx?: IDatabaseTransaction
+    },
+  ): Promise<void> {
     const newAccount = new Account({
       ...account,
+      createdAt: options?.resetCreatedAt ? null : account.createdAt,
       id: uuid(),
       walletDb: this.walletDb,
     })
 
-    await this.walletDb.db.withTransaction(tx, async (tx) => {
+    await this.walletDb.db.withTransaction(options?.tx, async (tx) => {
       await this.walletDb.setAccount(newAccount, tx)
       await newAccount.updateHead(null, tx)
 

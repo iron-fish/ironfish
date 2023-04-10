@@ -12,7 +12,7 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
-import { TableCols } from '../../utils/table'
+import { Format, TableCols } from '../../utils/table'
 
 export class TransactionsCommand extends IronfishCommand {
   static description = `Display the account transactions`
@@ -37,6 +37,10 @@ export class TransactionsCommand extends IronfishCommand {
     confirmations: Flags.integer({
       description: 'Number of block confirmations needed to confirm a transaction',
     }),
+    notes: Flags.boolean({
+      default: false,
+      description: 'Include data from transaction output notes',
+    }),
   }
 
   static args = [
@@ -52,22 +56,34 @@ export class TransactionsCommand extends IronfishCommand {
     const { flags, args } = await this.parse(TransactionsCommand)
     const account = args.account as string | undefined
 
+    const format: Format =
+      flags.csv || flags.output === 'csv'
+        ? Format.csv
+        : flags.output === 'json'
+        ? Format.json
+        : flags.output === 'yaml'
+        ? Format.yaml
+        : Format.cli
+
     const client = await this.sdk.connectRpc()
-    const response = client.getAccountTransactionsStream({
+    const response = client.wallet.getAccountTransactionsStream({
       account,
       hash: flags.hash,
       sequence: flags.sequence,
       limit: flags.limit,
       offset: flags.offset,
       confirmations: flags.confirmations,
+      notes: flags.notes,
     })
 
-    const columns = this.getColumns(flags.extended)
+    const columns = this.getColumns(flags.extended, flags.notes, format)
 
     let showHeader = !flags['no-header']
 
     for await (const transaction of response.contentStream()) {
-      const transactionRows = this.getTransactionRows(transaction)
+      const transactionRows = flags.notes
+        ? this.getTransactionRowsByNote(transaction, format)
+        : this.getTransactionRows(transaction, format)
 
       CliUx.ux.table(transactionRows, columns, {
         printLine: this.log.bind(this),
@@ -81,65 +97,53 @@ export class TransactionsCommand extends IronfishCommand {
 
   getTransactionRows(
     transaction: GetAccountTransactionsResponse,
+    format: Format,
   ): PartialRecursive<TransactionRow>[] {
     const nativeAssetId = Asset.nativeId().toString('hex')
 
-    const nativeAssetBalanceDelta = transaction.assetBalanceDeltas.find(
-      (d) => d.assetId === nativeAssetId,
+    const assetBalanceDeltas = transaction.assetBalanceDeltas.sort((d) =>
+      d.assetId === nativeAssetId ? -1 : 1,
     )
 
-    let amount = BigInt(nativeAssetBalanceDelta?.delta ?? '0')
-
-    let feePaid = BigInt(transaction.fee)
-
-    if (transaction.type !== TransactionType.SEND) {
-      feePaid = 0n
-    } else {
-      amount += feePaid
-    }
+    const feePaid = transaction.type === TransactionType.SEND ? BigInt(transaction.fee) : 0n
 
     const transactionRows = []
 
-    const assetCount = transaction.assetBalanceDeltas.length
-    const isGroup = assetCount > 1
+    let assetCount = assetBalanceDeltas.length
 
-    // $IRON should appear first if it is the only asset in the transaction or the net amount was non-zero
-    if (!isGroup || amount !== 0n) {
-      transactionRows.push({
-        ...transaction,
-        group: isGroup ? '┏' : '',
-        assetId: nativeAssetId,
-        assetName: Buffer.from('$IRON').toString('hex'),
-        amount,
-        feePaid,
-      })
-    }
+    for (const [index, { assetId, assetName, delta }] of assetBalanceDeltas.entries()) {
+      let amount = BigInt(delta)
 
-    for (const [
-      index,
-      { assetId, assetName, delta },
-    ] of transaction.assetBalanceDeltas.entries()) {
-      // skip the native asset, added above
       if (assetId === Asset.nativeId().toString('hex')) {
-        continue
+        if (transaction.type === TransactionType.SEND) {
+          amount += feePaid
+        }
+
+        // exclude the native asset in cli output if no amount was sent/received
+        if (format === Format.cli && amount === 0n) {
+          assetCount -= 1
+          continue
+        }
       }
 
-      if (transactionRows.length === 0) {
-        // include full transaction details if the native asset had no net change
+      const group = this.getRowGroup(index, assetCount, transactionRows.length)
+
+      // include full transaction details in first row or non-cli-formatted output
+      if (transactionRows.length === 0 || format !== Format.cli) {
         transactionRows.push({
           ...transaction,
-          group: assetCount === 2 ? '' : '┏',
+          group,
           assetId,
           assetName,
-          amount: BigInt(delta),
+          amount,
           feePaid,
         })
       } else {
         transactionRows.push({
-          group: index === assetCount - 1 ? '┗' : '┣',
+          group,
           assetId,
           assetName,
-          amount: BigInt(delta),
+          amount,
         })
       }
     }
@@ -147,12 +151,63 @@ export class TransactionsCommand extends IronfishCommand {
     return transactionRows
   }
 
-  getColumns(extended: boolean): CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> {
-    return {
-      group: {
-        header: '',
-        minWidth: 3,
-      },
+  getTransactionRowsByNote(
+    transaction: GetAccountTransactionsResponse,
+    format: Format,
+  ): PartialRecursive<TransactionRow>[] {
+    Assert.isNotUndefined(transaction.notes)
+    const transactionRows = []
+
+    const nativeAssetId = Asset.nativeId().toString('hex')
+
+    const notes = transaction.notes.sort((n) => (n.assetId === nativeAssetId ? -1 : 1))
+
+    const noteCount = transaction.notes.length
+
+    const feePaid = transaction.type === TransactionType.SEND ? BigInt(transaction.fee) : 0n
+
+    for (const [index, note] of notes.entries()) {
+      const amount = BigInt(note.value)
+      const assetId = note.assetId
+      const assetName = note.assetName
+      const sender = note.sender
+      const recipient = note.owner
+
+      const group = this.getRowGroup(index, noteCount, transactionRows.length)
+
+      // include full transaction details in first row or non-cli-formatted output
+      if (transactionRows.length === 0 || format !== Format.cli) {
+        transactionRows.push({
+          ...transaction,
+          group,
+          assetId,
+          assetName,
+          amount,
+          feePaid,
+          sender,
+          recipient,
+        })
+      } else {
+        transactionRows.push({
+          group,
+          assetId,
+          assetName,
+          amount,
+          sender,
+          recipient,
+        })
+      }
+    }
+
+    return transactionRows
+  }
+
+  getColumns(
+    extended: boolean,
+    notes: boolean,
+    format: Format,
+  ): CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> {
+    let columns: CliUx.Table.table.Columns<PartialRecursive<TransactionRow>> = {
       timestamp: TableCols.timestamp({
         streaming: true,
       }),
@@ -191,14 +246,17 @@ export class TransactionsCommand extends IronfishCommand {
       expiration: {
         header: 'Expiration',
       },
+      submittedSequence: {
+        header: 'Submitted Sequence',
+      },
       feePaid: {
         header: 'Fee Paid ($IRON)',
         get: (row) =>
           row.feePaid && row.feePaid !== 0n ? CurrencyUtils.renderIron(row.feePaid) : '',
       },
-      ...TableCols.asset({ extended }),
+      ...TableCols.asset({ extended, format }),
       amount: {
-        header: 'Net Amount',
+        header: 'Amount',
         get: (row) => {
           Assert.isNotUndefined(row.amount)
           return CurrencyUtils.renderIron(row.amount)
@@ -206,11 +264,49 @@ export class TransactionsCommand extends IronfishCommand {
         minWidth: 16,
       },
     }
+
+    if (notes) {
+      columns = {
+        ...columns,
+        sender: {
+          header: 'Sender Address',
+        },
+        recipient: {
+          header: 'Recipient Address',
+        },
+      }
+    }
+
+    if (format === Format.cli) {
+      columns = {
+        group: {
+          header: '',
+          minWidth: 3,
+        },
+        ...columns,
+      }
+    }
+
+    return columns
+  }
+
+  getRowGroup(index: number, assetCount: number, assetRowCount: number): string {
+    if (assetCount > 1) {
+      if (assetRowCount === 0) {
+        return '┏'
+      } else if (assetRowCount > 0 && index < assetCount - 1) {
+        return '┣'
+      } else if (assetRowCount > 0 && index === assetCount - 1) {
+        return '┗'
+      }
+    }
+
+    return ''
   }
 }
 
 type TransactionRow = {
-  group: string
+  group?: string
   timestamp: number
   status: string
   type: string
@@ -224,4 +320,7 @@ type TransactionRow = {
   mintsCount: number
   burnsCount: number
   expiration: number
+  submittedSequence: number
+  sender: string
+  recipient: string
 }

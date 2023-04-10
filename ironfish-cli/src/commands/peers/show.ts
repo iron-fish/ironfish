@@ -31,8 +31,8 @@ export class ShowCommand extends IronfishCommand {
 
     await this.sdk.client.connect()
     const [peer, messages] = await Promise.all([
-      this.sdk.client.getPeer({ identity }),
-      this.sdk.client.getPeerMessages({ identity }),
+      this.sdk.client.peer.getPeer({ identity }),
+      this.sdk.client.peer.getPeerMessages({ identity }),
     ])
 
     if (peer.content.peer === null) {

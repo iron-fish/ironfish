@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { NodeUtils, RpcMemoryClient } from '@ironfish/sdk'
+import { Flags } from '@oclif/core'
 import fs from 'fs/promises'
 import repl from 'node:repl'
 import path from 'path'
@@ -22,14 +23,21 @@ export default class Repl extends IronfishCommand {
     [VerboseFlagKey]: VerboseFlag,
     [ConfigFlagKey]: ConfigFlag,
     [DataDirFlagKey]: DataDirFlag,
+    opendb: Flags.boolean({
+      description: 'open the databases',
+      allowNo: true,
+    }),
   }
 
   async start(): Promise<void> {
-    await this.parse(Repl)
+    const { flags } = await this.parse(Repl)
 
     const node = await this.sdk.node()
     const client = new RpcMemoryClient(this.logger, node)
-    await NodeUtils.waitForOpen(node)
+
+    if (flags.opendb) {
+      await NodeUtils.waitForOpen(node)
+    }
 
     this.log('Examples:')
     this.log('  Get the head block hash')

@@ -32,15 +32,20 @@ class CeremonyServerClient {
   socket: net.Socket
   connected: boolean
   logger: Logger
+  readonly messageBuffer: MessageBuffer
+
   private _joined?: {
     name?: string
   }
 
   constructor(options: { socket: net.Socket; id: string; logger: Logger }) {
+    this.messageBuffer = new MessageBuffer('\n')
     this.id = options.id
     this.socket = options.socket
     this.connected = true
-    this.logger = options.logger.withTag(`client:${this.id.slice(0, 4)}..${this.id.slice(-4)}`)
+    this.logger = options.logger
+      .withTag(`client:${this.id.slice(0, 4)}..${this.id.slice(-4)}`)
+      .withTag(`ip:${this.socket.remoteAddress || 'unknown'}`)
   }
 
   send(message: CeremonyServerMessage): void {
@@ -68,10 +73,10 @@ class CeremonyServerClient {
     this.socket.destroy(error)
   }
 }
+
 export class CeremonyServer {
   readonly server: net.Server
   readonly logger: Logger
-  readonly messageBuffer: MessageBuffer
 
   private stopPromise: Promise<void> | null = null
   private stopResolve: (() => void) | null = null
@@ -85,7 +90,8 @@ export class CeremonyServer {
 
   readonly tempDir: string
 
-  private queue: CeremonyServerClient[]
+  private queue: CeremonyServerClient[] = []
+  private privateQueue: CeremonyServerClient[] = []
 
   private currentContributor: CurrentContributor | null = null
 
@@ -114,8 +120,6 @@ export class CeremonyServer {
     enableIPBanning: boolean
   }) {
     this.logger = options.logger
-    this.queue = []
-    this.messageBuffer = new MessageBuffer('\n')
 
     this.host = options.host
     this.port = options.port
@@ -147,6 +151,10 @@ export class CeremonyServer {
     return validParams[validParams.length - 1]
   }
 
+  totalQueueLength(): number {
+    return this.queue.length + this.privateQueue.length
+  }
+
   closeClient(client: CeremonyServerClient, error?: Error, disconnect = false): void {
     if (this.currentContributor?.client?.id === client.id) {
       if (this.currentContributor.state === 'VERIFYING') {
@@ -169,7 +177,7 @@ export class CeremonyServer {
       return
     }
 
-    const nextClient = this.queue.shift()
+    const nextClient = this.privateQueue.shift() || this.queue.shift()
     if (!nextClient) {
       return
     }
@@ -222,38 +230,36 @@ export class CeremonyServer {
 
     socket.on('data', (data: Buffer) => void this.onData(client, data))
     socket.on('close', () => this.onDisconnect(client))
-    socket.on('error', (e) => this.onError(client, e))
+    socket.on('error', (e) => this.onDisconnect(client, e))
 
     const ip = socket.remoteAddress
     if (
       this.enableIPBanning &&
       (ip === undefined ||
         this.queue.find((c) => c.socket.remoteAddress === ip) !== undefined ||
+        this.privateQueue.find((c) => c.socket.remoteAddress === ip) !== undefined ||
         this.currentContributor?.client?.socket.remoteAddress === ip)
     ) {
-      this.closeClient(client, new Error('IP address already used in this service'), true)
+      this.closeClient(client, new Error('IP address already in queue'), true)
       return
     }
   }
 
-  private onDisconnect(client: CeremonyServerClient): void {
-    this.closeClient(client)
-    this.queue = this.queue.filter((c) => client.id !== c.id)
-    client.logger.info(`Disconnected (${this.queue.length} total)`)
-  }
-
-  private onError(client: CeremonyServerClient, e: Error): void {
+  private onDisconnect(client: CeremonyServerClient, e?: Error): void {
     this.closeClient(client, e)
     this.queue = this.queue.filter((c) => client.id !== c.id)
+    this.privateQueue = this.privateQueue.filter((c) => client.id !== c.id)
+
+    e && client.logger.info(`Disconnected with error: ${ErrorUtils.renderError(e)}`)
     client.logger.info(
-      `Disconnected with error '${ErrorUtils.renderError(e)}'. (${this.queue.length} total)`,
+      `(Disconnected) public: ${this.queue.length}, private: ${this.privateQueue.length}`,
     )
   }
 
   private async onData(client: CeremonyServerClient, data: Buffer): Promise<void> {
-    this.messageBuffer.write(data)
+    client.messageBuffer.write(data)
 
-    for (const message of this.messageBuffer.readMessages()) {
+    for (const message of client.messageBuffer.readMessages()) {
       const result = await YupUtils.tryValidate(CeremonyClientMessageSchema, message)
       if (result.error) {
         client.logger.error(`Could not parse client message: ${message}`)
@@ -277,12 +283,19 @@ export class CeremonyServer {
           return
         }
 
-        this.queue.push(client)
-        const estimate = this.queue.length * (this.contributionTimeoutMs + this.uploadTimeoutMs)
         client.join(parsedMessage.name)
-        client.send({ method: 'joined', queueLocation: this.queue.length, estimate })
 
-        client.logger.info(`Connected ${this.queue.length} total`)
+        if (parsedMessage.token === this.token) {
+          this.privateQueue.push(client)
+          client.send(this.getJoinedMessage(this.privateQueue.length))
+        } else {
+          this.queue.push(client)
+          client.send(this.getJoinedMessage(this.totalQueueLength()))
+        }
+
+        client.logger.info(
+          `(Connected) public: ${this.queue.length}, private: ${this.privateQueue.length}`,
+        )
         void this.startNextContributor()
       } else if (parsedMessage.method === 'contribution-complete') {
         await this.handleContributionComplete(client).catch((e) => {
@@ -294,7 +307,13 @@ export class CeremonyServer {
       } else if (parsedMessage.method === 'upload-complete') {
         await this.handleUploadComplete(client).catch((e) => {
           client.logger.error(`Error handling upload-complete: ${ErrorUtils.renderError(e)}`)
-          this.closeClient(client, new Error(`Error verifying contribution`))
+
+          this.closeClient(client)
+
+          if (this.currentContributor?.client == null) {
+            this.currentContributor = null
+            void this.startNextContributor()
+          }
         })
       } else {
         client.logger.error(`Unknown method received: ${message}`)
@@ -338,11 +357,18 @@ export class CeremonyServer {
     }
   }
 
+  private getJoinedMessage(position: number): CeremonyServerMessage {
+    const estimate = position * ((this.contributionTimeoutMs + this.uploadTimeoutMs) / 2)
+    return { method: 'joined', queueLocation: position, estimate }
+  }
+
   private sendUpdatedLocationsToClients() {
+    for (const [i, client] of this.privateQueue.entries()) {
+      client.send(this.getJoinedMessage(i + 1))
+    }
+
     for (const [i, client] of this.queue.entries()) {
-      const queueLocation = i + 1
-      const estimate = queueLocation * (this.uploadTimeoutMs + this.contributionTimeoutMs)
-      client.send({ method: 'joined', queueLocation, estimate })
+      client.send(this.getJoinedMessage(i + 1 + this.privateQueue.length))
     }
   }
 
@@ -403,7 +429,6 @@ export class CeremonyServer {
 
     const metadata = {
       ...(client.name && { contributorName: encodeURIComponent(client.name) }),
-      ...(client.socket.remoteAddress && { remoteAddress: client.socket.remoteAddress }),
     }
 
     await S3Utils.uploadToBucket(
@@ -420,19 +445,10 @@ export class CeremonyServer {
     await fsAsync.rename(newParamsDownloadPath, path.join(this.tempDir, destFile))
     await fsAsync.rm(oldParamsDownloadPath)
 
-    const downloadLink = S3Utils.getDownloadUrl(
-      this.s3Bucket,
-      destFile,
-      {
-        accelerated: true,
-      },
-      { dualStack: true },
-    )
-
     client.send({
       method: 'contribution-verified',
       hash,
-      downloadLink,
+      downloadLink: `${this.downloadPrefix}/${destFile}`,
       contributionNumber: nextParamNumber,
     })
 

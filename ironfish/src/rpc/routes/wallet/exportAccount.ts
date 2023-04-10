@@ -15,12 +15,16 @@ export type ExportAccountResponse = {
     outgoingViewKey: string
     publicAddress: string
     version: number
+    createdAt: {
+      hash: string
+      sequence: number
+    } | null
   }
 }
 
 export const ExportAccountRequestSchema: yup.ObjectSchema<ExportAccountRequest> = yup
   .object({
-    account: yup.string().strip(true),
+    account: yup.string().trim(),
     viewOnly: yup.boolean().optional().default(false),
   })
   .defined()
@@ -36,6 +40,13 @@ export const ExportAccountResponseSchema: yup.ObjectSchema<ExportAccountResponse
         outgoingViewKey: yup.string().defined(),
         publicAddress: yup.string().defined(),
         version: yup.number().defined(),
+        createdAt: yup
+          .object({
+            hash: yup.string().defined(),
+            sequence: yup.number().defined(),
+          })
+          .nullable()
+          .defined(),
       })
       .defined(),
   })
@@ -50,6 +61,14 @@ router.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
     if (request.data.viewOnly) {
       accountInfo.spendingKey = null
     }
-    request.end({ account: accountInfo })
+
+    let createdAt = null
+    if (accountInfo.createdAt) {
+      createdAt = {
+        hash: accountInfo.createdAt.hash.toString('hex'),
+        sequence: accountInfo.createdAt.sequence,
+      }
+    }
+    request.end({ account: { ...accountInfo, createdAt } })
   },
 )
