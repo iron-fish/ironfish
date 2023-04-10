@@ -9,7 +9,7 @@ import { exit } from 'process'
 import { ErrorEvent, ExitEvent, LogEvent } from './events'
 import { SECOND, sleep } from './misc'
 import {
-  OptionalSimluationNodeConfig,
+  OptionalSimulationNodeConfig,
   SimulationNode,
   SimulationNodeConfig,
 } from './simulation-node'
@@ -214,7 +214,7 @@ export class Simulator {
    * @returns Config with required defaults filled in
    */
   fillConfig(
-    config?: Partial<ConfigOptions & OptionalSimluationNodeConfig>,
+    config?: Partial<ConfigOptions & OptionalSimulationNodeConfig>,
   ): SimulationNodeConfig {
     if (!config) {
       config = {}

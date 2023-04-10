@@ -43,7 +43,7 @@ export const rootCmd = 'ironfish'
  * the defaults.
  */
 export type SimulationNodeConfig = RequiredSimulationNodeConfig &
-  OptionalSimluationNodeConfig &
+  OptionalSimulationNodeConfig &
   Partial<Omit<ConfigOptions, keyof RequiredSimulationNodeConfig>>
 
 /**
@@ -65,7 +65,7 @@ export type RequiredSimulationNodeConfig = Required<
 /**
  * Additional configuration options for the node. These are not part of the `ConfigOptions` interface
  */
-export type OptionalSimluationNodeConfig = {
+export type OptionalSimulationNodeConfig = {
   /**
    * The data directory for the node. If not provided, a temporary directory will be created.
    */
