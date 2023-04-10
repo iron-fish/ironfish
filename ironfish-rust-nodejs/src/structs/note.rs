@@ -162,7 +162,7 @@ impl NativeNote {
 
         let owner_buffer = owner_view_key.into_value()?;
         let owner_vec = owner_buffer.as_ref();
-        let view_key = ViewKey::from_bytes(owner_vec.into()).map_err(to_napi_err)?;
+        let view_key = ViewKey::from_bytes(owner_vec).map_err(to_napi_err)?;
 
         let nullifier: &[u8] = &self.note.nullifier(&view_key, position_u64).0;
 

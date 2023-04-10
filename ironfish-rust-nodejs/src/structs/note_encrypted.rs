@@ -111,7 +111,7 @@ impl NativeNoteEncrypted {
         let incoming_key_vec = incoming_key_buffer.as_ref();
 
         let incoming_view_key =
-            IncomingViewKey::from_bytes(incoming_key_vec.into()).map_err(to_napi_err)?;
+            IncomingViewKey::from_bytes(incoming_key_vec).map_err(to_napi_err)?;
 
         Ok(match self.note.decrypt_note_for_owner(&incoming_view_key) {
             Ok(note) => {
@@ -130,7 +130,7 @@ impl NativeNoteEncrypted {
         let outgoing_key_vec = outgoing_key_buffer.as_ref();
 
         let outgoing_view_key =
-            OutgoingViewKey::from_bytes(outgoing_key_vec.into()).map_err(to_napi_err)?;
+            OutgoingViewKey::from_bytes(outgoing_key_vec).map_err(to_napi_err)?;
         Ok(
             match self.note.decrypt_note_for_spender(&outgoing_view_key) {
                 Ok(note) => {
