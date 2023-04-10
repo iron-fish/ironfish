@@ -1049,7 +1049,7 @@ export class Blockchain {
     return hash || null
   }
 
-  async getHashByTransactionHash(
+  async getBlockHashByTransactionHash(
     transactionHash: TransactionHash,
     tx?: IDatabaseTransaction,
   ): Promise<BlockHash | null> {

@@ -73,7 +73,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
 
     const hashBuffer = request.data.blockHash
       ? BlockHashSerdeInstance.deserialize(request.data.blockHash)
-      : await node.chain.getHashByTransactionHash(
+      : await node.chain.getBlockHashByTransactionHash(
           Buffer.from(request.data.transactionHash, 'hex'),
         )
 
