@@ -6,6 +6,18 @@ export function isDefaultNetworkId(networkId: number): boolean {
   return networkId <= 100
 }
 
+/**
+ * The name of the account that contains the funds in the genesis block.
+ */
+export const DEV_GENESIS_IRONFISH_ACCOUNT_NAME = 'IronFishGenesisAccount'
+
+/**
+ * This account (IronFishGenesisAccount) can be imported to access the funds in the genesis block.
+ *
+ * If the dev genesis block is ever regenerated, this account will need to be updated.
+ */
+export const DEV_GENESIS_IRONFISH_ACCOUNT = `ironfishaccount0000010v38vetjwd5k7m3z8gcjcgnwv9kk2g36yfyhymmwge5hx6z8v4hx2umfwdqkxcm0w4h8gg3vyfehqetwv35kue6tv4ujyw3zxqmk2efhxgcrxv3exq6xydnz8q6nydfnvcungve3vvcryvp3xgekvveexdjrywphxgcnzde5x93rsvpcv3jxvvn9xcmrjepevejrqdez9s38v6t9wa9k27fz8g3rvde4xpnrvc3kx4jngc3kvejrxvtrvejn2vmrv4nrwdtyxpsk2cesxpjx2vpsxyervefjxsexxwtxvyukxwp3x5ukxvesxcmxgeryvguxzvpcvscryenyxsmnwvehvvcxxce4xcuxxd35xsuxzwphv4snvdekv93xvdfev5ckvvr9vgurqdn98psngcekv5uk2dpj8psn2c3eygkzy6twvdhk66twvatxjethfdjhjg36yfsn2c3jv93xxwfcv5mxzc3cxcunjd3nxqmrgdeexuckgdpjxsmrqepexc6nxctzx9skxdphvvcrzdtyvc6kgwfhxcurzefexgunjvp5ygkzymm4w3nk76twvatxjethfdjhjg36yfnrwwfn8q6nqwfkxuenyerrvcunvv3jxgmrgdtpxvergvrxxs6xzdtpv33rqdnzxf3rxcf4xvurjdnzv3jrswpcxqmnqc33vsexzdtyygkzyur4vfkxjc6pv3j8yetnwv3r5g3h8q6nwwty8yen2ce5xv6kxe3hv4nrydekx5er2e3kx5unwenrx56xgcnrv5mx2errvgcngepexu6x2ve5vymxzcek8ymkvwp4vcmrwg3vyf3hyetpw3jkgst5ygazyv3sxgej6vpn95cny4p38qarqwf6x5czudpc89dzylg5fr9yc`
+
 const DEV_GENESIS = `{
   "header": {
     "sequence": 1,
