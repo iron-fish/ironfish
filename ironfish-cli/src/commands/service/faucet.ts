@@ -140,7 +140,7 @@ export default class Faucet extends IronfishCommand {
     let faucetTransactions = []
 
     for (const transaction of unprocessedFaucetTransactions) {
-      if (isValidPublicAddress(transaction.public_key)) {
+      if (isValidPublicAddress(Buffer.from(transaction.public_key, 'hex'))) {
         faucetTransactions.push(transaction)
       } else {
         invalidFaucetTransactions.push(transaction)

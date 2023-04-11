@@ -29,7 +29,7 @@ export async function usePostTxFixture(options: {
   expiration?: number
   assetId?: Buffer
   outputs?: {
-    publicAddress: string
+    publicAddress: Buffer
     amount: bigint
     memo: string
     assetId: Buffer

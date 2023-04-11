@@ -79,7 +79,7 @@ router.register<typeof SendTransactionRequestSchema, SendTransactionResponse>(
     }
 
     const outputs = request.data.outputs.map((output) => ({
-      publicAddress: output.publicAddress,
+      publicAddress: Buffer.from(output.publicAddress, 'hex'),
       amount: CurrencyUtils.decode(output.amount),
       memo: output.memo,
       assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),

@@ -30,12 +30,12 @@ export class Account {
   readonly id: string
   readonly displayName: string
   name: string
-  readonly spendingKey: string | null
-  readonly viewKey: string
-  readonly incomingViewKey: string
-  readonly outgoingViewKey: string
+  readonly spendingKey: Buffer | null
+  readonly viewKey: Buffer
+  readonly incomingViewKey: Buffer
+  readonly outgoingViewKey: Buffer
   readonly version: number
-  publicAddress: string
+  publicAddress: Buffer
   createdAt: HeadValue | null
   readonly prefix: Buffer
   readonly prefixRange: DatabaseKeyRange
@@ -282,7 +282,7 @@ export class Account {
   ): Promise<void> {
     for (const { asset, value } of transaction.mints) {
       // Only store the asset for the owner
-      if (asset.owner().toString('hex') !== this.publicAddress) {
+      if (!asset.owner().equals(this.publicAddress)) {
         continue
       }
 
@@ -338,7 +338,7 @@ export class Account {
 
       // Verify the owner matches before processing a burn since an account can
       // burn assets it does not own
-      if (existingAsset.owner.toString('hex') !== this.publicAddress) {
+      if (!existingAsset.owner.equals(this.publicAddress)) {
         continue
       }
 
@@ -378,7 +378,7 @@ export class Account {
 
       // Verify the owner matches before processing a burn since an account can
       // burn assets it does not own
-      if (existingAsset.owner.toString('hex') !== this.publicAddress) {
+      if (!existingAsset.owner.equals(this.publicAddress)) {
         continue
       }
 
@@ -413,7 +413,7 @@ export class Account {
   ): Promise<void> {
     for (const { asset, value } of transaction.mints.slice().reverse()) {
       // Only update the mint for the owner
-      if (asset.owner().toString('hex') !== this.publicAddress) {
+      if (!asset.owner().equals(this.publicAddress)) {
         continue
       }
 
@@ -785,7 +785,7 @@ export class Account {
   ): Promise<void> {
     for (const { asset } of transaction.mints.slice().reverse()) {
       // Only update the mint for the owner
-      if (asset.owner().toString('hex') !== this.publicAddress) {
+      if (!asset.owner().equals(this.publicAddress)) {
         continue
       }
 

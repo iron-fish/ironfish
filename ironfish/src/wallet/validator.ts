@@ -9,7 +9,7 @@ const SPENDING_KEY_LENGTH = 64
 const INCOMING_VIEW_KEY_LENGTH = 64
 const OUTGOING_VIEW_KEY_LENGTH = 64
 
-export function isValidPublicAddress(publicAddress: string): boolean {
+export function isValidPublicAddress(publicAddress: Buffer): boolean {
   return nativeIsValidPublicAddress(publicAddress)
 }
 
@@ -41,27 +41,33 @@ export function validateAccount(toImport: Partial<AccountValue>): void {
   }
 
   if (!isValidPublicAddress(toImport.publicAddress)) {
-    throw new Error(`Provided public address ${toImport.publicAddress} is invalid`)
+    throw new Error(
+      `Provided public address ${toImport.publicAddress.toString('hex')} is invalid`,
+    )
   }
 
   if (!toImport.outgoingViewKey) {
     throw new Error(`Imported account has no outgoing view key`)
   }
 
-  if (!isValidOutgoingViewKey(toImport.outgoingViewKey)) {
-    throw new Error(`Provided outgoing view key ${toImport.outgoingViewKey} is invalid`)
+  if (!isValidOutgoingViewKey(toImport.outgoingViewKey.toString('hex'))) {
+    throw new Error(
+      `Provided outgoing view key ${toImport.outgoingViewKey.toString('hex')} is invalid`,
+    )
   }
 
   if (!toImport.incomingViewKey) {
     throw new Error(`Imported account has no incoming view key`)
   }
 
-  if (!isValidIncomingViewKey(toImport.incomingViewKey)) {
-    throw new Error(`Provided incoming view key ${toImport.incomingViewKey} is invalid`)
+  if (!isValidIncomingViewKey(toImport.incomingViewKey.toString('hex'))) {
+    throw new Error(
+      `Provided incoming view key ${toImport.incomingViewKey.toString('hex')} is invalid`,
+    )
   }
 
-  if (toImport.spendingKey && !isValidSpendingKey(toImport.spendingKey)) {
-    throw new Error(`Provided spending key ${toImport.spendingKey} is invalid`)
+  if (toImport.spendingKey && !isValidSpendingKey(toImport.spendingKey.toString('hex'))) {
+    throw new Error(`Provided spending key ${toImport.spendingKey.toString('hex')} is invalid`)
   }
 }
 

@@ -299,7 +299,7 @@ export default class Start extends IronfishCommand {
       const account = await node.wallet.createAccount(DEFAULT_ACCOUNT_NAME, true)
 
       this.log(`New default account created: ${account.name}`)
-      this.log(`Account's public address: ${account.publicAddress}`)
+      this.log(`Account's public address: ${account.publicAddress.toString('hex')}`)
     } else {
       this.log(`The default account is now: ${DEFAULT_ACCOUNT_NAME}`)
       await node.wallet.setDefaultAccount(DEFAULT_ACCOUNT_NAME)

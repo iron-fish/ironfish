@@ -162,7 +162,7 @@ export class Send extends IronfishCommand {
       })
     }
 
-    if (!isValidPublicAddress(to)) {
+    if (!isValidPublicAddress(Buffer.from(to, 'hex'))) {
       this.log(`A valid public address is required`)
       this.exit(1)
     }

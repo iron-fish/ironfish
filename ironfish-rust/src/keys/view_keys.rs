@@ -13,10 +13,7 @@
 //!
 
 use super::PublicAddress;
-use crate::{
-    errors::IronfishError,
-    serializing::{bytes_to_hex, hex_to_bytes, read_scalar},
-};
+use crate::{errors::IronfishError, serializing::read_scalar};
 use bip39::{Language, Mnemonic};
 use blake2b_simd::Params as Blake2b;
 use group::GroupEncoding;
@@ -42,16 +39,11 @@ impl IncomingViewKey {
     }
 
     /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
-        match hex_to_bytes(value) {
-            Err(_) => Err(IronfishError::InvalidViewingKey),
-            Ok(bytes) => {
-                if bytes.len() != 32 {
-                    Err(IronfishError::InvalidViewingKey)
-                } else {
-                    Self::read(&mut bytes[..].as_ref())
-                }
-            }
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, IronfishError> {
+        if bytes.len() != 32 {
+            Err(IronfishError::InvalidViewingKey)
+        } else {
+            Self::read(&mut bytes[..].as_ref())
         }
     }
 
@@ -68,8 +60,8 @@ impl IncomingViewKey {
     }
 
     /// Viewing key as hexadecimal, for readability.
-    pub fn hex_key(&self) -> String {
-        bytes_to_hex(&self.view_key.to_bytes())
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.view_key.to_bytes()
     }
 
     /// Even more readable
@@ -108,9 +100,8 @@ pub struct ViewKey {
 }
 
 impl ViewKey {
-    /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
-        let bytes = hex_to_bytes(value)?;
+    /// Load a key from a byte array
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, IronfishError> {
         if bytes.len() != 64 {
             return Err(IronfishError::InvalidViewingKey);
         }
@@ -132,11 +123,6 @@ impl ViewKey {
         })
     }
 
-    /// Viewing key as hexadecimal, for readability.
-    pub fn hex_key(&self) -> String {
-        bytes_to_hex(&self.to_bytes())
-    }
-
     pub fn to_bytes(&self) -> [u8; 64] {
         let mut result = [0; 64];
         result[..32].copy_from_slice(&self.authorizing_key.to_bytes());
@@ -154,19 +140,14 @@ pub struct OutgoingViewKey {
 }
 
 impl OutgoingViewKey {
-    /// Load a key from a string of hexadecimal digits
-    pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
-        match hex_to_bytes(value) {
-            Err(_) => Err(IronfishError::InvalidViewingKey),
-            Ok(bytes) => {
-                if bytes.len() != 32 {
-                    Err(IronfishError::InvalidViewingKey)
-                } else {
-                    let mut view_key = [0; 32];
-                    view_key.clone_from_slice(&bytes[0..32]);
-                    Ok(Self { view_key })
-                }
-            }
+    /// Load a key from a byte array
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, IronfishError> {
+        if bytes.len() != 32 {
+            Err(IronfishError::InvalidViewingKey)
+        } else {
+            let mut view_key = [0; 32];
+            view_key.clone_from_slice(&bytes[0..32]);
+            Ok(Self { view_key })
         }
     }
 
@@ -182,9 +163,8 @@ impl OutgoingViewKey {
         Ok(Self { view_key })
     }
 
-    /// Viewing key as hexadecimal, for readability.
-    pub fn hex_key(&self) -> String {
-        bytes_to_hex(&self.view_key)
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.view_key
     }
 
     /// Even more readable
@@ -242,7 +222,7 @@ pub(crate) fn shared_secret(
 
 #[cfg(test)]
 mod test {
-    use crate::{SaplingKey, ViewKey};
+    use crate::{serializing::bytes_to_hex, SaplingKey, ViewKey};
 
     #[test]
     fn test_view_key() {
@@ -250,11 +230,11 @@ mod test {
             "d96dc74bbca05dffb14a5631024588364b0cc9f583b5c11908b6ea98a2b778f7",
         )
         .expect("Key should be generated");
-        let view_key_hex = key.view_key.hex_key();
-        assert_eq!(view_key_hex, "498b5103a72c41237c3f2bca96f20100f5a3a8a17c6b8366a485fd16e8931a5d2ff2eb8f991032c815414ff0ae2d8bc3ea3b56bffc481db3f28e800050244463");
+        let view_key_bytes = key.view_key.to_bytes();
+        assert_eq!(bytes_to_hex(&view_key_bytes), "498b5103a72c41237c3f2bca96f20100f5a3a8a17c6b8366a485fd16e8931a5d2ff2eb8f991032c815414ff0ae2d8bc3ea3b56bffc481db3f28e800050244463");
 
         let recreated_key =
-            ViewKey::from_hex(&view_key_hex).expect("Key should be created from hex");
+            ViewKey::from_bytes(&view_key_bytes).expect("Key should be created from hex");
         assert_eq!(key.view_key.authorizing_key, recreated_key.authorizing_key);
         assert_eq!(
             key.view_key.nullifier_deriving_key,

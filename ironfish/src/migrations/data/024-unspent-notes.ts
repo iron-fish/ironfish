@@ -27,12 +27,17 @@ export class Migration024 extends Migration {
 
     const accounts = []
 
-    for await (const accountValue of stores.old.accounts.getAllValuesIter()) {
+    for await (const account of stores.old.accounts.getAllValuesIter()) {
       accounts.push(
         new Account({
-          ...accountValue,
+          ...account,
           createdAt: null,
           walletDb: node.wallet.walletDb,
+          spendingKey: account.spendingKey ? Buffer.from(account.spendingKey, 'hex') : null,
+          incomingViewKey: Buffer.from(account.incomingViewKey, 'hex'),
+          outgoingViewKey: Buffer.from(account.outgoingViewKey, 'hex'),
+          publicAddress: Buffer.from(account.publicAddress, 'hex'),
+          viewKey: Buffer.from(account.viewKey, 'hex'),
         }),
       )
     }

@@ -70,7 +70,7 @@ export class NoteEncrypted {
     }
   }
 
-  decryptNoteForOwner(ownerHexKey: string): Note | undefined {
+  decryptNoteForOwner(ownerHexKey: Buffer): Note | undefined {
     const note = this.takeReference().decryptNoteForOwner(ownerHexKey)
     this.returnReference()
     if (note) {
@@ -78,7 +78,7 @@ export class NoteEncrypted {
     }
   }
 
-  decryptNoteForSpender(spenderHexKey: string): Note | undefined {
+  decryptNoteForSpender(spenderHexKey: Buffer): Note | undefined {
     const note = this.takeReference().decryptNoteForSpender(spenderHexKey)
     this.returnReference()
     if (note) {

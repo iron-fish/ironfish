@@ -754,7 +754,7 @@ export class Wallet {
   async send(
     account: Account,
     outputs: {
-      publicAddress: string
+      publicAddress: Buffer
       amount: bigint
       memo: string
       assetId: Buffer
@@ -845,7 +845,7 @@ export class Wallet {
   async createTransaction(options: {
     account: Account
     outputs?: {
-      publicAddress: string
+      publicAddress: Buffer
       amount: bigint
       memo: string
       assetId: Buffer
@@ -947,7 +947,7 @@ export class Wallet {
 
   async post(options: {
     transaction: RawTransaction
-    spendingKey?: string
+    spendingKey?: Buffer
     account?: Account
     broadcast?: boolean
   }): Promise<Transaction> {
@@ -1397,11 +1397,16 @@ export class Wallet {
     const accounts = this.listAccounts()
     if (
       accountValue.spendingKey &&
-      accounts.find((a) => accountValue.spendingKey === a.spendingKey)
+      accounts.find(
+        (a) =>
+          accountValue.spendingKey &&
+          a.spendingKey &&
+          accountValue.spendingKey.equals(a.spendingKey),
+      )
     ) {
       throw new Error(`Account already exists with provided spending key`)
     }
-    if (accounts.find((a) => accountValue.viewKey === a.viewKey)) {
+    if (accounts.find((a) => accountValue.viewKey.equals(a.viewKey))) {
       throw new Error(`Account already exists with provided view key(s)`)
     }
 

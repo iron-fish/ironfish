@@ -147,7 +147,7 @@ export async function useBlockWithRawTxFixture(
   pool: WorkerPool,
   sender: Account,
   notesToSpend: NoteEncrypted[],
-  outputs: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[],
+  outputs: { publicAddress: Buffer; amount: bigint; memo: string; assetId: Buffer }[],
   mints: MintData[],
   burns: BurnDescription[],
   sequence: number,

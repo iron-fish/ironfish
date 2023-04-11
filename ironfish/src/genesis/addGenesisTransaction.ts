@@ -94,9 +94,9 @@ export async function addGenesisTransaction(
 
   for (const alloc of allocations) {
     logger.info(
-      `  Generating an output for ${CurrencyUtils.encodeIron(alloc.amountInOre)} coins for ${
-        alloc.publicAddress
-      }...`,
+      `  Generating an output for ${CurrencyUtils.encodeIron(
+        alloc.amountInOre,
+      )} coins for ${alloc.publicAddress.toString('hex')}...`,
     )
     const note = new NativeNote(
       alloc.publicAddress,

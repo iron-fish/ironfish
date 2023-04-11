@@ -13,7 +13,7 @@ describe('Route faucet.getFunds', () => {
 
   let accountName = 'test' + Math.random().toString()
   const email = 'test@test.com'
-  let publicAddress = ''
+  let publicAddress = Buffer.alloc(0)
 
   beforeEach(async () => {
     accountName = 'test' + Math.random().toString()
@@ -42,7 +42,7 @@ describe('Route faucet.getFunds', () => {
         'foo.com',
         {
           email,
-          public_key: publicAddress,
+          public_key: publicAddress.toString('hex'),
         },
         expect.anything(),
       )

@@ -11,9 +11,9 @@ import { WorkerTask } from './workerTask'
 
 export interface DecryptNoteOptions {
   serializedNote: Buffer
-  incomingViewKey: string
-  outgoingViewKey: string
-  viewKey: string
+  incomingViewKey: Buffer
+  outgoingViewKey: Buffer
+  viewKey: Buffer
   currentNoteIndex: number | null
   decryptForSpender: boolean
 }
@@ -45,9 +45,9 @@ export class DecryptNotesRequest extends WorkerMessage {
       bw.writeU8(flags)
 
       bw.writeBytes(payload.serializedNote)
-      bw.writeBytes(Buffer.from(payload.incomingViewKey, 'hex'))
-      bw.writeBytes(Buffer.from(payload.outgoingViewKey, 'hex'))
-      bw.writeBytes(Buffer.from(payload.viewKey, 'hex'))
+      bw.writeBytes(payload.incomingViewKey)
+      bw.writeBytes(payload.outgoingViewKey)
+      bw.writeBytes(payload.viewKey)
 
       if (payload.currentNoteIndex) {
         bw.writeU32(payload.currentNoteIndex)
@@ -67,9 +67,9 @@ export class DecryptNotesRequest extends WorkerMessage {
       const hasCurrentNoteIndex = flags & (1 << 0)
       const decryptForSpender = Boolean(flags & (1 << 1))
       const serializedNote = reader.readBytes(ENCRYPTED_NOTE_LENGTH)
-      const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-      const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH).toString('hex')
-      const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
+      const incomingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH)
+      const outgoingViewKey = reader.readBytes(ACCOUNT_KEY_LENGTH)
+      const viewKey = reader.readBytes(VIEW_KEY_LENGTH)
       const currentNoteIndex = hasCurrentNoteIndex ? reader.readU32() : null
 
       payloads.push({
