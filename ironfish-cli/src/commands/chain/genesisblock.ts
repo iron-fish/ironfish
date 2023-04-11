@@ -117,7 +117,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
 
       allocations = [
         {
-          publicAddress: account.publicAddress.toString('hex'),
+          publicAddress: account.publicAddress,
           amountInOre: expectedSupply,
           memo: flags.memo,
         },
@@ -192,7 +192,7 @@ const getDuplicates = (allocations: readonly GenesisBlockAllocation[]): string[]
 
   for (const alloc of allocations) {
     if (nonDuplicateSet.has(alloc.publicAddress)) {
-      duplicateSet.add(alloc.publicAddress)
+      duplicateSet.add(alloc.publicAddress.toString('hex'))
     } else {
       nonDuplicateSet.add(alloc.publicAddress)
     }
@@ -223,7 +223,7 @@ const parseAllocationsFile = (
     }
 
     // Check address length
-    if (!isValidPublicAddress(address)) {
+    if (!isValidPublicAddress(Buffer.from(address, 'hex'))) {
       return {
         ok: false,
         error: `Line ${lineNum}: (${line}) has an invalid public address.`,
@@ -248,7 +248,7 @@ const parseAllocationsFile = (
     }
 
     allocations.push({
-      publicAddress: address,
+      publicAddress: Buffer.from(address, 'hex'),
       amountInOre: amountInOre,
       memo: memo,
     })

@@ -78,7 +78,7 @@ export class Miner extends IronfishCommand {
         publicAddress = publicKeyResponse.content.publicKey
       }
 
-      if (!isValidPublicAddress(publicAddress)) {
+      if (!isValidPublicAddress(Buffer.from(publicAddress, 'hex'))) {
         this.error(
           `The given public address is not valid, please provide a valid one: ${publicAddress}`,
         )

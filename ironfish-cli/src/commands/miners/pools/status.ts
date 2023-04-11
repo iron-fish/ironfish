@@ -43,7 +43,7 @@ export class PoolStatus extends IronfishCommand {
   async start(): Promise<void> {
     const { flags } = await this.parse(PoolStatus)
 
-    if (flags.address && !isValidPublicAddress(flags.address)) {
+    if (flags.address && !isValidPublicAddress(Buffer.from(flags.address, 'hex'))) {
       this.error('The given public address is not valid, please provide a valid one.')
     }
 
