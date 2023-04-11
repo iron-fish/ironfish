@@ -25,7 +25,7 @@ export default class ShowBlock extends IronfishCommand {
     const search = args.search as string
 
     const client = await this.sdk.connectRpc()
-    const data = await client.getBlock({ search })
+    const data = await client.chain.getBlock({ search })
 
     this.log(JSON.stringify(data.content, undefined, '  '))
   }

@@ -5,6 +5,7 @@ import {
   Config,
   ConfigOptions,
   createRootLogger,
+  DEV_GENESIS_ACCOUNT,
   Event,
   FollowChainStreamResponse,
   Logger,
@@ -31,7 +32,7 @@ import {
   supportedNodeChildProcesses,
 } from './events'
 import { sleep } from './misc'
-import { getLatestBlockHash } from './utils/chain'
+import { getLatestBlockHash, importAccount } from './utils'
 
 export const rootCmd = 'ironfish'
 
@@ -41,25 +42,41 @@ export const rootCmd = 'ironfish'
  * if they are not provided. The rest of the `ConfigOptions` are optional and will be used to override
  * the defaults.
  */
-export type SimulationNodeConfig = Required<RequiredSimulationNodeConfig> &
-  Partial<Omit<ConfigOptions, keyof RequiredSimulationNodeConfig>> & {
-    dataDir: string
-    verbose?: boolean
-  }
+export type SimulationNodeConfig = RequiredSimulationNodeConfig &
+  OptionalSimulationNodeConfig &
+  Partial<Omit<ConfigOptions, keyof RequiredSimulationNodeConfig>>
 
 /**
  * These options are required to start a node.
  */
-export type RequiredSimulationNodeConfig = Pick<
-  ConfigOptions,
-  | 'nodeName'
-  | 'blockGraffiti'
-  | 'peerPort'
-  | 'networkId'
-  | 'rpcTcpHost'
-  | 'rpcTcpPort'
-  | 'bootstrapNodes'
+export type RequiredSimulationNodeConfig = Required<
+  Pick<
+    ConfigOptions,
+    | 'nodeName'
+    | 'blockGraffiti'
+    | 'peerPort'
+    | 'networkId'
+    | 'rpcTcpHost'
+    | 'rpcTcpPort'
+    | 'bootstrapNodes'
+  >
 >
+
+/**
+ * Additional configuration options for the node. These are not part of the `ConfigOptions` interface
+ */
+export type OptionalSimulationNodeConfig = {
+  /**
+   * The data directory for the node. If not provided, a temporary directory will be created.
+   */
+  dataDir: string
+  verbose?: boolean
+  /**
+   * Whether the genesis account should be added to this node.
+   * An explicit rescan will follow the import so the balance is immediately available.
+   */
+  importGenesisAccount?: boolean
+}
 
 /**
  * Global logger for use in the simulator node.
@@ -261,6 +278,10 @@ export class SimulationNode {
 
     node.initializeBlockStream(await getLatestBlockHash(node))
 
+    if (config.importGenesisAccount) {
+      await importAccount(node, JSON.stringify(DEV_GENESIS_ACCOUNT), true)
+    }
+
     node.ready = true
 
     return node
@@ -336,7 +357,7 @@ export class SimulationNode {
    * and wait for the transaction to appear.
    */
   initializeBlockStream(startingBlockHash: string): void {
-    const blockStream = this.client
+    const blockStream = this.client.chain
       .followChainStream({ head: startingBlockHash.toString() })
       .contentStream()
 
@@ -556,11 +577,12 @@ export class SimulationNode {
    * should be used if you need to execute a command and wait for it to complete before continuing.
    *
    * If the command fails, the error is thrown. Arguments should be passed in as an array
-   * and will be concatened with spaces when the command is executed. The datadir is
-   * automatically added to based on the node.
+   * and will be concatened with spaces when the command is executed. The datadir of the node is
+   * automatically to the end of the command.
    *
    * ```ts
    * try {
+   *  // executes `ironfish status --all --datadir <datadir>`
    *  const { stdout, stderr } = await node.executeCliCommandAsync('status', ['--all'])
    * } catch (e) {
    *  const error = e as ExecException
@@ -571,6 +593,7 @@ export class SimulationNode {
    * @param args The arguments for the command
    * @throws an `ExecException` if the command fails
    * @returns a promise containing the stdout and stderr output of the command
+   * // TODO: make args optional
    */
   async executeCliCommandAsync(
     command: string,
@@ -591,7 +614,7 @@ export class SimulationNode {
 /**
  * Public function to stop a node
  *
- * TODO: This is because you cannot access the actual SimulationNode object with the
+ * // TODO: This is because you cannot access the actual SimulationNode object with the
  * running node/miner procs from other cli commands. After an HTTP server is added to the simulation,
  * this should be removed and the stop function should be called directly on the SimulationNode object.
  */
@@ -616,7 +639,7 @@ export async function stopSimulationNode(node: {
   let msg = ''
 
   try {
-    await client.stopNode()
+    await client.node.stopNode()
   } catch (error) {
     if (error instanceof Error) {
       msg = error.message

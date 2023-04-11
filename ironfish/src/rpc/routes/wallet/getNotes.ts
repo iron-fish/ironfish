@@ -21,7 +21,7 @@ export type GetAccountNotesStreamResponse = {
 export const GetAccountNotesStreamRequestSchema: yup.ObjectSchema<GetAccountNotesStreamRequest> =
   yup
     .object({
-      account: yup.string().strip(true),
+      account: yup.string().trim(),
     })
     .defined()
 

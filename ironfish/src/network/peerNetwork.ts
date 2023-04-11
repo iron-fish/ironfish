@@ -408,7 +408,7 @@ export class PeerNetwork {
    * The full transaction will be sent to a subset of sqrt(num_peers)
    * and the rest of the peers will receive the transaction hash
    */
-  private broadcastTransaction(transaction: Transaction): void {
+  public broadcastTransaction(transaction: Transaction): void {
     const hash = transaction.hash()
 
     const peersToSendToArray = ArrayUtils.shuffle([

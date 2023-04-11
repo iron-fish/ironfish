@@ -26,7 +26,7 @@ describe('Route chain/getNetworkHashPower', () => {
       await Promise.all([expect(routeTest.node.chain).toAddBlock(block)])
       await Promise.all([routeTest.node.wallet.updateHead()])
     }
-    const response = await routeTest.client.getNetworkHashPower({})
+    const response = await routeTest.client.chain.getNetworkHashPower({})
     expect(response.content).toEqual(
       expect.objectContaining({
         hashesPerSecond: expect.any(Number),
@@ -51,7 +51,7 @@ describe('Route chain/getNetworkHashPower', () => {
 
     const offset = -3
 
-    const response = await routeTest.client.getNetworkHashPower({
+    const response = await routeTest.client.chain.getNetworkHashPower({
       blocks: 100,
       sequence: offset,
     })
@@ -69,7 +69,7 @@ describe('Route chain/getNetworkHashPower', () => {
 
   it('should fail with a negative [blocks] value', async () => {
     await expect(
-      routeTest.client.getNetworkHashPower({
+      routeTest.client.chain.getNetworkHashPower({
         blocks: -1,
       }),
     ).rejects.toThrow(
@@ -82,7 +82,7 @@ describe('Route chain/getNetworkHashPower', () => {
   })
 
   it('should return 0 network hash power if start block == end block', async () => {
-    const response = await routeTest.client.getNetworkHashPower({
+    const response = await routeTest.client.chain.getNetworkHashPower({
       blocks: 1,
       sequence: 1,
     })

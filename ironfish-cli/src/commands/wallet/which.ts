@@ -29,7 +29,7 @@ export class WhichCommand extends IronfishCommand {
       content: {
         accounts: [accountName],
       },
-    } = await client.getAccounts({ default: true, displayName: flags.displayName })
+    } = await client.wallet.getAccounts({ default: true, displayName: flags.displayName })
 
     if (!accountName) {
       this.log(

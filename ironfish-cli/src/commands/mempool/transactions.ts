@@ -120,7 +120,7 @@ export class TransactionsCommand extends IronfishCommand {
 
     await this.sdk.client.connect()
 
-    const response = this.sdk.client.getMempoolTransactionsStream({
+    const response = this.sdk.client.mempool.getMempoolTransactionsStream({
       limit: flags.queryLimit,
       feeRate,
       fee,

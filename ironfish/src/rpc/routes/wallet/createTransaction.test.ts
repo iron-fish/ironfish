@@ -46,7 +46,7 @@ describe('Route wallet/createTransaction', () => {
   it('throws if not enough funds', async () => {
     await useAccountFixture(routeTest.node.wallet, 'existingAccount')
 
-    await expect(routeTest.client.createTransaction(REQUEST_PARAMS)).rejects.toThrow(
+    await expect(routeTest.client.wallet.createTransaction(REQUEST_PARAMS)).rejects.toThrow(
       expect.objectContaining({
         message: expect.any(String),
         status: 400,
@@ -72,7 +72,7 @@ describe('Route wallet/createTransaction', () => {
 
       await routeTest.node.wallet.updateHead()
     }
-    const response = await routeTest.client.createTransaction(REQUEST_PARAMS)
+    const response = await routeTest.client.wallet.createTransaction(REQUEST_PARAMS)
 
     expect(response.status).toBe(200)
     expect(response.content.transaction).toBeDefined()
@@ -104,7 +104,7 @@ describe('Route wallet/createTransaction', () => {
       await routeTest.node.wallet.updateHead()
     }
 
-    const response = await routeTest.client.createTransaction(
+    const response = await routeTest.client.wallet.createTransaction(
       REQUEST_PARAMS_WITH_MULTIPLE_RECIPIENTS,
     )
 
@@ -138,7 +138,7 @@ describe('Route wallet/createTransaction', () => {
       await routeTest.node.wallet.updateHead()
     }
 
-    const response = await routeTest.client.createTransaction({
+    const response = await routeTest.client.wallet.createTransaction({
       account: 'existingAccount',
       outputs: [
         {
@@ -182,7 +182,7 @@ describe('Route wallet/createTransaction', () => {
       await routeTest.node.wallet.updateHead()
     }
 
-    const response = await routeTest.client.createTransaction({
+    const response = await routeTest.client.wallet.createTransaction({
       account: 'existingAccount',
       outputs: [
         {
@@ -227,7 +227,7 @@ describe('Route wallet/createTransaction', () => {
 
     const asset = new Asset(sender.spendingKey, 'mint-asset', 'metadata')
 
-    const response = await routeTest.client.createTransaction({
+    const response = await routeTest.client.wallet.createTransaction({
       account: 'existingAccount',
       outputs: [
         {
@@ -281,7 +281,7 @@ describe('Route wallet/createTransaction', () => {
     }
 
     await expect(
-      routeTest.client.createTransaction({
+      routeTest.client.wallet.createTransaction({
         account: 'existingAccount',
         outputs: [
           {
@@ -319,7 +319,7 @@ describe('Route wallet/createTransaction', () => {
     }
 
     await expect(
-      routeTest.client.createTransaction({
+      routeTest.client.wallet.createTransaction({
         account: 'existingAccount',
         outputs: [
           {
@@ -355,7 +355,7 @@ describe('Route wallet/createTransaction', () => {
     const asset = new Asset(sender.spendingKey, 'mint-asset', 'metadata')
 
     await expect(
-      routeTest.client.createTransaction({
+      routeTest.client.wallet.createTransaction({
         account: 'existingAccount',
         outputs: [
           {

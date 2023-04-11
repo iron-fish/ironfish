@@ -34,7 +34,7 @@ export default class Power extends IronfishCommand {
 
     const client = await this.sdk.connectRpc()
 
-    const data = await client.getNetworkHashPower({
+    const data = await client.chain.getNetworkHashPower({
       sequence: block,
       blocks: flags.history,
     })

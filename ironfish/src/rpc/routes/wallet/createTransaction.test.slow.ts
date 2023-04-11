@@ -56,7 +56,7 @@ describe('Route wallet/createTransaction', () => {
       await Promise.all([routeTest.node.wallet.updateHead()])
     }
 
-    const response = await routeTest.client.createTransaction({
+    const response = await routeTest.client.wallet.createTransaction({
       account: 'existingAccount',
       outputs: [
         {

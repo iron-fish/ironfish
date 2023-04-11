@@ -267,7 +267,7 @@ export class MiningPoolShares {
   }
 
   async hasAvailableBalance(amount: bigint): Promise<boolean> {
-    const balance = await this.rpc.getAccountBalance({ account: this.accountName })
+    const balance = await this.rpc.wallet.getAccountBalance({ account: this.accountName })
     const availableBalance = BigInt(balance.content.available)
 
     return availableBalance >= amount
@@ -284,7 +284,7 @@ export class MiningPoolShares {
     let account = this.accountName
 
     if (account === undefined) {
-      const defaultAccount = await this.rpc.getDefaultAccount()
+      const defaultAccount = await this.rpc.wallet.getDefaultAccount()
 
       if (!defaultAccount.content.account) {
         throw Error(
@@ -295,7 +295,7 @@ export class MiningPoolShares {
       account = defaultAccount.content.account.name
     }
 
-    const transaction = await this.rpc.sendTransaction({
+    const transaction = await this.rpc.wallet.sendTransaction({
       account,
       outputs,
       fee: outputs.length.toString(),
@@ -307,7 +307,7 @@ export class MiningPoolShares {
 
   async assertAccountExists(): Promise<void> {
     if (this.accountName) {
-      const response = await this.rpc.getAccounts()
+      const response = await this.rpc.wallet.getAccounts()
 
       const accountNames = response.content.accounts
 
@@ -317,7 +317,7 @@ export class MiningPoolShares {
         )
       }
     } else {
-      const defaultAccount = await this.rpc.getDefaultAccount()
+      const defaultAccount = await this.rpc.wallet.getDefaultAccount()
 
       if (defaultAccount.content.account === null) {
         throw Error(`Cannot send pool payouts: no account is active on the node.`)

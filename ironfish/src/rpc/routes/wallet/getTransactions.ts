@@ -28,16 +28,20 @@ export type GetAccountTransactionsRequest = {
 }
 
 export type GetAccountTransactionsResponse = {
+  hash: string
   status: TransactionStatus
   type: TransactionType
-  hash: string
+  confirmations: number
   fee: string
+  blockHash?: string
+  blockSequence?: number
   notesCount: number
   spendsCount: number
   mintsCount: number
   burnsCount: number
   expiration: number
   timestamp: number
+  submittedSequence: number
   assetBalanceDeltas: Array<{ assetId: string; assetName: string; delta: string }>
   notes?: RpcAccountDecryptedNote[]
 }
@@ -45,29 +49,33 @@ export type GetAccountTransactionsResponse = {
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
   yup
     .object({
-      account: yup.string().strip(true),
+      account: yup.string().trim(),
       hash: yup.string().notRequired(),
       sequence: yup.number().min(GENESIS_BLOCK_SEQUENCE).notRequired(),
       limit: yup.number().notRequired(),
       offset: yup.number().notRequired(),
       confirmations: yup.number().notRequired(),
-      boolean: yup.boolean().notRequired(),
+      notes: yup.boolean().notRequired(),
     })
     .defined()
 
 export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTransactionsResponse> =
   yup
     .object({
-      status: yup.string().oneOf(Object.values(TransactionStatus)).defined(),
-      type: yup.string().oneOf(Object.values(TransactionType)).defined(),
       hash: yup.string().defined(),
+      status: yup.string().oneOf(Object.values(TransactionStatus)).defined(),
+      confirmations: yup.number().defined(),
+      type: yup.string().oneOf(Object.values(TransactionType)).defined(),
       fee: yup.string().defined(),
+      blockHash: yup.string().optional(),
+      blockSequence: yup.number().optional(),
       notesCount: yup.number().defined(),
       spendsCount: yup.number().defined(),
       mintsCount: yup.number().defined(),
       burnsCount: yup.number().defined(),
       expiration: yup.number().defined(),
       timestamp: yup.number().defined(),
+      submittedSequence: yup.number().defined(),
       assetBalanceDeltas: yup
         .array(
           yup
@@ -106,7 +114,7 @@ router.register<typeof GetAccountTransactionsRequestSchema, GetAccountTransactio
 
     const options = {
       headSequence,
-      confirmations: request.data.confirmations,
+      confirmations: request.data.confirmations ?? node.config.get('confirmations'),
     }
 
     if (request.data.hash) {
@@ -155,9 +163,9 @@ const streamTransaction = async (
   node: IronfishNode,
   account: Account,
   transaction: TransactionValue,
-  options?: {
-    headSequence?: number | null
-    confirmations?: number
+  options: {
+    headSequence: number | null
+    confirmations: number
   },
 ): Promise<void> => {
   const serializedTransaction = serializeRpcAccountTransaction(transaction)
@@ -176,6 +184,7 @@ const streamTransaction = async (
     ...serializedTransaction,
     assetBalanceDeltas,
     status,
+    confirmations: options.confirmations,
     type,
     notes,
   }

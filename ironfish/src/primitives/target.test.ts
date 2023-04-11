@@ -9,7 +9,6 @@ const TARGET_BUCKET_TIME_IN_SECONDS = 10
 
 describe('Target', () => {
   it('constructs targets', () => {
-    expect(new Target().asBigInt()).toEqual(BigInt(0))
     expect(new Target(BigInt(9999999999999)).asBigInt()).toEqual(BigInt(9999999999999))
     expect(new Target(Buffer.from([4, 8])).asBigInt()).toEqual(BigInt('1032'))
     expect(new Target(Buffer.from([0, 0, 0, 0, 0, 0, 0, 4, 8])).asBigInt()).toEqual(
@@ -213,5 +212,25 @@ describe('Calculate target', () => {
 
       expect(newTarget).toEqual(maximallyDifferentTarget)
     }
+  })
+
+  describe('fromDifficulty', () => {
+    it('does not divide by zero', () => {
+      expect(() => Target.fromDifficulty(0n)).not.toThrow(RangeError)
+    })
+
+    it('does not return values outside the 256 bit range', () => {
+      expect(Target.fromDifficulty(1n).targetValue).toBeLessThanOrEqual(2n ** 256n - 1n)
+    })
+
+    it('returns the maximum target for difficulty below the minimum', () => {
+      expect(Target.fromDifficulty(Target.minDifficulty() - 1n)).toEqual(Target.maxTarget())
+    })
+  })
+
+  describe('toDifficulty', () => {
+    it('does not divide by zero', () => {
+      expect(Target.minTarget().toDifficulty).not.toThrow(RangeError)
+    })
   })
 })

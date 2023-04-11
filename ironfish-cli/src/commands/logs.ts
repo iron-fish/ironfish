@@ -20,7 +20,7 @@ export default class LogsCommand extends IronfishCommand {
 
     await this.sdk.client.connect()
 
-    const response = this.sdk.client.getLogStream()
+    const response = this.sdk.client.node.getLogStream()
 
     for await (const value of response.contentStream()) {
       let parsedArgs

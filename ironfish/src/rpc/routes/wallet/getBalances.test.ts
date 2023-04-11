@@ -15,7 +15,7 @@ describe('getBalances', () => {
   describe('with a missing account', () => {
     it('throws a validation error', async () => {
       await expect(
-        routeTest.client.getAccountBalances({ account: 'fake-account' }),
+        routeTest.client.wallet.getAccountBalances({ account: 'fake-account' }),
       ).rejects.toThrow('No account with name fake-account')
     })
   })
@@ -80,7 +80,7 @@ describe('getBalances', () => {
         }),
       )
 
-      const response = await routeTest.client.getAccountBalances({
+      const response = await routeTest.client.wallet.getAccountBalances({
         account: account.name,
       })
 

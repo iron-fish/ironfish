@@ -38,7 +38,7 @@ describe('Route chain.getTransactionStream', () => {
     const wallet = routeTest.node.wallet
     const account = await useAccountFixture(wallet)
     const asset = new Asset(account.spendingKey, 'customasset', 'metadata')
-    const response = routeTest.client.getTransactionStream({
+    const response = routeTest.client.chain.getTransactionStream({
       incomingViewKey: account.incomingViewKey,
     })
     Assert.isInstanceOf(response, MemoryResponse)

@@ -26,7 +26,7 @@ export class ShowCommand extends IronfishCommand {
     const { flags } = await this.parse(ShowCommand)
 
     const client = await this.sdk.connectRpc(flags.local)
-    const response = await client.getConfig({ user: flags.user })
+    const response = await client.config.getConfig({ user: flags.user })
 
     let output = JSON.stringify(response.content, undefined, '   ')
     if (flags.color) {

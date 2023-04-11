@@ -6,8 +6,11 @@ export function isDefaultNetworkId(networkId: number): boolean {
   return networkId <= 100
 }
 
-// This is the account that contains all the coins for the DEV_GENESIS block. Should be updated
-// whenever DEV_GENESIS is updated.
+/**
+ * This account (IronFishGenesisAccount) can be imported to access the funds in the genesis block.
+ *
+ * If the dev genesis block is ever regenerated, this account will need to be updated.
+ */
 export const DEV_GENESIS_ACCOUNT = {
   version: 2,
   name: 'IronFishGenesisAccount',

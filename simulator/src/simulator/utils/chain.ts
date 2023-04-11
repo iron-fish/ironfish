@@ -8,7 +8,7 @@ import { SimulationNode } from '../simulation-node'
  * Gets the chain info from a node.
  */
 export async function getChainInfo(node: SimulationNode): Promise<ChainInfo> {
-  const resp = await node.client.getChainInfo()
+  const resp = await node.client.chain.getChainInfo()
 
   return resp.content
 }

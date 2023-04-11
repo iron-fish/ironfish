@@ -12,6 +12,7 @@ export type GetTransactionRequest = { transactionHash: string; blockHash?: strin
 export type GetTransactionResponse = {
   fee: string
   expiration: number
+  noteSize: number
   notesCount: number
   spendsCount: number
   signature: string
@@ -36,6 +37,7 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
   .object({
     fee: yup.string().defined(),
     expiration: yup.number().defined(),
+    noteSize: yup.number().defined(),
     notesCount: yup.number().defined(),
     spendsCount: yup.number().defined(),
     signature: yup.string().defined(),
@@ -83,8 +85,8 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       )
     }
 
-    const block = await node.chain.getBlock(hashBuffer)
-    if (!block) {
+    const blockHeader = await node.chain.getHeader(hashBuffer)
+    if (!blockHeader) {
       throw new ValidationError(`No block found`)
     }
 
@@ -92,6 +94,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     const rawTransaction: GetTransactionResponse = {
       fee: '0',
       expiration: 0,
+      noteSize: 0,
       notesCount: 0,
       spendsCount: 0,
       signature: '',
@@ -99,8 +102,9 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       mints: [],
       burns: [],
     }
+    const transactions = await node.chain.getBlockTransactions(blockHeader)
 
-    block.transactions.map((transaction) => {
+    transactions.map(({ transaction, initialNoteIndex }) => {
       if (transaction.hash().toString('hex') === request.data.transactionHash) {
         const fee = transaction.fee().toString()
         const expiration = transaction.expiration()
@@ -113,6 +117,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
 
         rawTransaction.fee = fee
         rawTransaction.expiration = expiration
+        rawTransaction.noteSize = initialNoteIndex + transaction.notes.length
         rawTransaction.notesCount = transaction.notes.length
         rawTransaction.spendsCount = transaction.spends.length
         rawTransaction.signature = signature.toString('hex')

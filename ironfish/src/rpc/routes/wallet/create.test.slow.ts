@@ -23,7 +23,7 @@ describe('Route wallet/create', () => {
 
     const name = uuid()
 
-    const response = await routeTest.client.createAccount({ name })
+    const response = await routeTest.client.wallet.createAccount({ name })
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
       name: name,
@@ -43,7 +43,7 @@ describe('Route wallet/create', () => {
 
     const name = uuid()
 
-    const response = await routeTest.client.createAccount({ name })
+    const response = await routeTest.client.wallet.createAccount({ name })
     expect(response.content).toMatchObject({
       name: name,
       publicAddress: expect.any(String),
@@ -59,7 +59,7 @@ describe('Route wallet/create', () => {
 
     try {
       expect.assertions(2)
-      await routeTest.client.createAccount({ name: name })
+      await routeTest.client.wallet.createAccount({ name: name })
     } catch (e: unknown) {
       if (!(e instanceof RpcRequestError)) {
         throw e
@@ -78,7 +78,7 @@ describe('Route wallet/create', () => {
 
     const name = uuid()
 
-    const response = await routeTest.client.createAccount({ name })
+    const response = await routeTest.client.wallet.createAccount({ name })
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
       name: name,

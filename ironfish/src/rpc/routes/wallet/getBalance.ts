@@ -28,7 +28,7 @@ export type GetBalanceResponse = {
 
 export const GetBalanceRequestSchema: yup.ObjectSchema<GetBalanceRequest> = yup
   .object({
-    account: yup.string().strip(true),
+    account: yup.string().trim(),
     assetId: yup.string().optional(),
     confirmations: yup.number().min(0).optional(),
   })
