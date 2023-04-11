@@ -5,8 +5,8 @@
 use std::cell::RefCell;
 use std::convert::TryInto;
 
-use ironfish_rust::keys::SPEND_KEY_SIZE;
 use ironfish_rust::assets::asset_identifier::AssetIdentifier;
+use ironfish_rust::keys::SPEND_KEY_SIZE;
 use ironfish_rust::transaction::{
     batch_verify_transactions, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
     TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
