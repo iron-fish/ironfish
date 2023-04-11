@@ -24,7 +24,7 @@ export class CreateMinersFeeRequest extends WorkerMessage {
     const bw = bufio.write(this.getSize())
     bw.writeVarBytes(BigIntUtils.toBytesBE(this.amount))
     bw.writeVarString(this.memo, 'utf8')
-    bw.writeVarBytes(this.spendKey)
+    bw.writeBytes(this.spendKey)
     return bw.render()
   }
 
