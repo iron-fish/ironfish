@@ -137,7 +137,7 @@ export default class GenesisBlockCommand extends IronfishCommand {
     const columns: CliUx.Table.table.Columns<GenesisBlockAllocation> = {
       identity: {
         header: 'ADDRESS',
-        get: (row: GenesisBlockAllocation) => row.publicAddress,
+        get: (row: GenesisBlockAllocation) => row.publicAddress.toString('hex'),
       },
       amount: {
         header: 'AMOUNT ($IRON)',
@@ -188,13 +188,13 @@ export default class GenesisBlockCommand extends IronfishCommand {
 
 const getDuplicates = (allocations: readonly GenesisBlockAllocation[]): string[] => {
   const duplicateSet = new Set<string>()
-  const nonDuplicateSet = new Set()
+  const nonDuplicateSet = new Set<string>()
 
   for (const alloc of allocations) {
-    if (nonDuplicateSet.has(alloc.publicAddress)) {
+    if (nonDuplicateSet.has(alloc.publicAddress.toString('hex'))) {
       duplicateSet.add(alloc.publicAddress.toString('hex'))
     } else {
-      nonDuplicateSet.add(alloc.publicAddress)
+      nonDuplicateSet.add(alloc.publicAddress.toString('hex'))
     }
   }
 

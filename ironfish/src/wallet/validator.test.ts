@@ -40,6 +40,11 @@ describe('account-validator tests', () => {
     expect(isValidPublicAddress(Buffer.from(INVALID_PUBLIC_ADDRESS, 'hex'))).toBe(false)
   })
 
+  test('public address with non valid length (too short) should return false', () => {
+    const INVALID_PUBLIC_ADDRESS = 'e877d6903692094b67d889c483d09ad2f8'
+    expect(isValidPublicAddress(Buffer.from(INVALID_PUBLIC_ADDRESS, 'hex'))).toBe(false)
+  })
+
   test('public address that is not a valid public address should return false', () => {
     const INVALID_PUBLIC_ADDRESS =
       'e877d6903692094b67d889c483d09ad2f8438efc8f01c82e1ec3b2ccd1798ceca48216546dbae48c685f50'
