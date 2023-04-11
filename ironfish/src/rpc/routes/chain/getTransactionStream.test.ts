@@ -25,7 +25,7 @@ describe('Route chain.getTransactionStream', () => {
     await expect(
       routeTest.client
         .request('chain/getTransactionStream', {
-          incomingViewKey: account.incomingViewKey,
+          incomingViewKey: account.incomingViewKey.toString('hex'),
           head: hash,
         })
         .waitForEnd(),

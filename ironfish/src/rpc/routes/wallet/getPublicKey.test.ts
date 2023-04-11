@@ -42,7 +42,7 @@ describe('Route wallet/getPublicKey', () => {
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
       account: account.name,
-      publicKey: publicAddress,
+      publicKey: publicAddress.toString('hex'),
     })
   })
 })

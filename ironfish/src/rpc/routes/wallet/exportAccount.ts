@@ -73,11 +73,11 @@ router.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
       account: {
         ...accountInfo,
         createdAt,
-        spendingKey: account.spendingKey ? account.spendingKey.toString('hex') : null,
-        incomingViewKey: account.incomingViewKey.toString('hex'),
-        outgoingViewKey: account.outgoingViewKey.toString('hex'),
-        publicAddress: account.publicAddress.toString('hex'),
-        viewKey: account.viewKey.toString('hex'),
+        spendingKey: accountInfo.spendingKey ? accountInfo.spendingKey.toString('hex') : null,
+        incomingViewKey: accountInfo.incomingViewKey.toString('hex'),
+        outgoingViewKey: accountInfo.outgoingViewKey.toString('hex'),
+        publicAddress: accountInfo.publicAddress.toString('hex'),
+        viewKey: accountInfo.viewKey.toString('hex'),
       },
     })
   },

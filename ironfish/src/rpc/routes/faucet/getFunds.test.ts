@@ -42,7 +42,7 @@ describe('Route faucet.getFunds', () => {
         'foo.com',
         {
           email,
-          public_key: publicAddress,
+          public_key: publicAddress.toString('hex'),
         },
         expect.anything(),
       )
