@@ -1127,6 +1127,7 @@ export class WalletDB {
         id: Asset.nativeId(),
         metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
         name: Buffer.from('$IRON', 'utf8'),
+        nonce: 0,
         owner: Buffer.from('Iron Fish', 'utf8'),
         blockHash: null,
         sequence: null,

@@ -71,6 +71,7 @@ describe('getBalances', () => {
           id: asset.id(),
           metadata: asset.metadata(),
           name: asset.name(),
+          nonce: asset.nonce(),
           owner: asset.owner(),
           createdTransactionHash: Buffer.alloc(32),
           blockHash: Buffer.alloc(32),

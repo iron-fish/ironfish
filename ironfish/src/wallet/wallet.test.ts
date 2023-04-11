@@ -1782,6 +1782,7 @@ describe('Accounts', () => {
         metadata: asset.metadata(),
         name: asset.name(),
         owner: accountA.publicAddress,
+        nonce: asset.nonce(),
         sequence: mintBlock.header.sequence,
         supply: value,
       })
@@ -1792,6 +1793,7 @@ describe('Accounts', () => {
         metadata: asset.metadata(),
         name: asset.name(),
         owner: accountA.publicAddress,
+        nonce: asset.nonce(),
         sequence: block.header.sequence,
         supply: null,
       })

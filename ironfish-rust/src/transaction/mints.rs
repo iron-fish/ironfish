@@ -4,7 +4,7 @@
 
 use std::io;
 
-use bellman::{gadgets::multipack, groth16};
+use bellman::groth16;
 use bls12_381::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::{Curve, GroupEncoding};
@@ -13,6 +13,7 @@ use ironfish_zkp::{
     proofs::MintAsset,
     redjubjub::{self, Signature},
 };
+use jubjub::ExtendedPoint;
 use rand::thread_rng;
 
 use crate::{assets::asset::Asset, errors::IronfishError, sapling_bls12::SAPLING, SaplingKey};
@@ -41,8 +42,6 @@ impl MintBuilder {
         randomized_public_key: &redjubjub::PublicKey,
     ) -> Result<UnsignedMintDescription, IronfishError> {
         let circuit = MintAsset {
-            name: self.asset.name,
-            metadata: self.asset.metadata,
             proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
             public_key_randomness: Some(*public_key_randomness),
         };
@@ -60,6 +59,7 @@ impl MintBuilder {
             value: self.value,
             authorizing_signature: blank_signature,
         };
+        mint_description.partial_verify()?;
 
         verify_mint_proof(
             &mint_description.proof,
@@ -171,12 +171,37 @@ impl MintDescription {
         public_inputs[0] = randomized_public_key_point.get_u();
         public_inputs[1] = randomized_public_key_point.get_v();
 
-        let asset_id_bits = multipack::bytes_to_bits_le(self.asset.id());
-        let asset_id_inputs = multipack::compute_multipacking(&asset_id_bits);
-        public_inputs[2] = asset_id_inputs[0];
-        public_inputs[3] = asset_id_inputs[1];
+        let owner_public_address_point =
+            ExtendedPoint::from(self.asset.owner.transmission_key).to_affine();
+        public_inputs[2] = owner_public_address_point.get_u();
+        public_inputs[3] = owner_public_address_point.get_v();
 
         public_inputs
+    }
+
+    /// A function to encapsulate any verification besides the proof itself.
+    /// This allows us to abstract away the details and make it easier to work
+    /// with. Note that this does not verify the proof, that happens in the
+    /// [`MintBuilder`] build function as the prover, and in
+    /// [`super::batch_verify_transactions`] as the verifier.
+    pub fn partial_verify(&self) -> Result<(), IronfishError> {
+        self.verify_valid_asset()?;
+
+        Ok(())
+    }
+
+    fn verify_valid_asset(&self) -> Result<(), IronfishError> {
+        let asset = Asset::new_with_nonce(
+            self.asset.owner,
+            self.asset.name,
+            self.asset.metadata,
+            self.asset.nonce,
+        )?;
+        if asset.id != self.asset.id {
+            return Err(IronfishError::InvalidAssetIdentifier);
+        }
+
+        Ok(())
     }
 
     /// Write the signature of this proof to the provided writer.
@@ -357,5 +382,36 @@ mod test {
             .write(&mut reserialized_description)
             .expect("should be able to serialize proof again");
         assert_eq!(serialized_description, reserialized_description);
+    }
+
+    #[test]
+    fn test_mint_invalid_id() {
+        let key = SaplingKey::generate_key();
+        let owner = key.public_address();
+        let name = "name";
+        let metadata = "{ 'token_identifier': '0x123' }";
+
+        let asset = Asset::new(owner, name, metadata).unwrap();
+        let fake_asset = Asset::new(owner, name, "").unwrap();
+
+        let value = 5;
+
+        let public_key_randomness = jubjub::Fr::random(thread_rng());
+        let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
+            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+
+        let mint = MintBuilder::new(
+            Asset {
+                id: fake_asset.id,
+                metadata: asset.metadata,
+                name: asset.name,
+                nonce: asset.nonce,
+                owner: asset.owner,
+            },
+            value,
+        );
+
+        let unsigned_mint = mint.build(&key, &public_key_randomness, &randomized_public_key);
+        assert!(unsigned_mint.is_err());
     }
 }

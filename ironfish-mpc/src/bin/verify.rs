@@ -1,6 +1,7 @@
 extern crate pairing;
 
 use blake2::{Blake2b512, Digest};
+use ironfish_zkp::constants::ASSET_ID_LENGTH;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -26,7 +27,6 @@ fn main() {
             ar: None,
             auth_path: vec![None; ironfish_zkp::constants::TREE_DEPTH],
             anchor: None,
-            asset_generator: None,
             sender_address: None,
         })
         .expect("parameters are invalid");
@@ -37,7 +37,7 @@ fn main() {
             payment_address: None,
             commitment_randomness: None,
             esk: None,
-            asset_generator: None,
+            asset_id: [0; ASSET_ID_LENGTH],
             ar: None,
             proof_generation_key: None,
         })
@@ -45,8 +45,6 @@ fn main() {
 
     let sapling_mint_contributions = sapling_mint
         .verify(ironfish_zkp::proofs::MintAsset {
-            name: [0u8; 32],
-            metadata: [0u8; 77],
             proof_generation_key: None,
             public_key_randomness: None,
         })
