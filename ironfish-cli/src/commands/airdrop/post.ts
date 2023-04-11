@@ -1,15 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { PostTransactionResponse, RpcResponseEnded } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import fs from 'fs/promises'
 import { IronfishCommand } from '../../command'
+import { RemoteFlags } from '../../flags'
 
 export default class AirdropPostTransactions extends IronfishCommand {
   static description = `Drop coins to testnet participants`
   static aliases = ['airdrop:post']
   static hidden = true
   static flags = {
+    ...RemoteFlags,
     account: Flags.string({
       required: true,
       description: 'The name of the account used to post the transactions',
@@ -28,19 +31,30 @@ export default class AirdropPostTransactions extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(AirdropPostTransactions)
-    let lineNum = 0
-    const fileContent = await fs.readFile(flags.raw, 'utf-8')
+    const { posted, raw, account } = flags
+    const lineNum = 0
+    const fileContent = await fs.readFile(raw, 'utf-8')
     const lines = fileContent.split(/[\r\n]+/)
     const client = await this.sdk.connectRpc()
-    await fs.rm(flags.output)
-    const fileHandle = await fs.open(flags.posted, 'a')
-    for (const line of lines) {
-      const response = await client.postTransaction({
-        account: flags.account,
-        transaction: line.trim(),
-      })
-      lineNum++
-      this.log(`Posted transaction ${lineNum} of ${lines.length}`)
+
+    await fs.rm(posted)
+
+    const fileHandle = await fs.open(posted, 'a')
+
+    const promises = []
+    for (const [idx, line] of lines.entries()) {
+      this.log('posting', idx + 1)
+      promises.push(
+        client.postTransaction({
+          account: account,
+          transaction: line.trim(),
+        }),
+      )
+    }
+
+    this.log('waiting for all posts...')
+    const responses = await Promise.all(promises)
+    for (const response of responses) {
       await fs.appendFile(fileHandle, response.content.transaction + '\n')
     }
   }
