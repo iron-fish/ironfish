@@ -277,7 +277,7 @@ fn calculate_key_for_encryption_keys(
 mod test {
     use super::MerkleNote;
     use super::NOTE_ENCRYPTION_MINER_KEYS;
-    use crate::assets::asset::NATIVE_ASSET_GENERATOR;
+    use crate::assets::asset_identifier::NATIVE_ASSET;
     use crate::keys::EphemeralKeyPair;
     use crate::{keys::SaplingKey, note::Note};
 
@@ -295,7 +295,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
@@ -321,7 +321,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             sender_key.public_address(),
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
@@ -345,7 +345,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
@@ -378,7 +378,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();
@@ -403,7 +403,7 @@ mod test {
             spender_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
         let diffie_hellman_keys = EphemeralKeyPair::new();

@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ironfish_rust::{
-    assets::asset::{asset_generator_from_id, ID_LENGTH as ASSET_ID_LENGTH},
-    note::{AMOUNT_VALUE_SIZE, GENERATOR_SIZE, MEMO_SIZE, SCALAR_SIZE},
+    assets::asset::ID_LENGTH as ASSET_ID_LENGTH,
+    note::{AMOUNT_VALUE_SIZE, MEMO_SIZE, SCALAR_SIZE},
     ViewKey,
 };
 use napi::{bindgen_prelude::*, JsBuffer};
@@ -26,22 +26,19 @@ pub const RANDOMNESS_LENGTH: u32 = SCALAR_SIZE as u32;
 pub const MEMO_LENGTH: u32 = MEMO_SIZE as u32;
 
 #[napi]
-pub const GENERATOR_LENGTH: u32 = GENERATOR_SIZE as u32;
-
-#[napi]
 pub const AMOUNT_VALUE_LENGTH: u32 = AMOUNT_VALUE_SIZE as u32;
 
 #[napi]
 pub const DECRYPTED_NOTE_LENGTH: u32 = RANDOMNESS_LENGTH
     + MEMO_LENGTH
-    + GENERATOR_LENGTH
+    + ASSET_ID_LENGTH as u32
     + PUBLIC_ADDRESS_LENGTH
     + AMOUNT_VALUE_LENGTH
     + PUBLIC_ADDRESS_LENGTH;
 //  32 randomness
 //+ 32 memo
 //+ 32 public address
-//+ 32 asset generator
+//+ 32 asset id
 //+ 8  value
 //+ 32 sender address
 //= 168 bytes
@@ -70,16 +67,10 @@ impl NativeNote {
         let asset_id_vec = buffer.as_ref();
         let mut asset_id_bytes = [0; ASSET_ID_LENGTH];
         asset_id_bytes.clone_from_slice(&asset_id_vec[0..ASSET_ID_LENGTH]);
-        let asset_generator = asset_generator_from_id(&asset_id_bytes);
+        let asset_id = asset_id_bytes.try_into().map_err(to_napi_err)?;
 
         Ok(NativeNote {
-            note: Note::new(
-                owner_address,
-                value_u64,
-                memo,
-                asset_generator,
-                sender_address,
-            ),
+            note: Note::new(owner_address, value_u64, memo, asset_id, sender_address),
         })
     }
 
@@ -125,7 +116,7 @@ impl NativeNote {
     /// Asset identifier associated with this note
     #[napi]
     pub fn asset_id(&self) -> Buffer {
-        Buffer::from(&self.note.asset_id()[..])
+        Buffer::from(&self.note.asset_id().as_bytes()[..])
     }
 
     /// Sender of the note

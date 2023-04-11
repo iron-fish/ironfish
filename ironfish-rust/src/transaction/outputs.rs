@@ -86,7 +86,7 @@ impl OutputBuilder {
             payment_address: Some(self.note.owner.transmission_key),
             commitment_randomness: Some(self.note.randomness),
             esk: Some(*diffie_hellman_keys.secret()),
-            asset_generator: Some(self.note.asset_generator().into()),
+            asset_id: *self.note.asset_id().as_bytes(),
             proof_generation_key: Some(spender_key.sapling_proof_generation_key()),
             ar: Some(*public_key_randomness),
         };
@@ -104,14 +104,15 @@ impl OutputBuilder {
             )
         };
 
-        let output_proof = OutputDescription { proof, merkle_note };
+        let description = OutputDescription { proof, merkle_note };
+        description.partial_verify()?;
 
         verify_output_proof(
-            &output_proof.proof,
-            &output_proof.public_inputs(randomized_public_key),
+            &description.proof,
+            &description.public_inputs(randomized_public_key),
         )?;
 
-        Ok(output_proof)
+        Ok(description)
     }
 }
 
@@ -218,7 +219,7 @@ impl OutputDescription {
 mod test {
     use super::{OutputBuilder, OutputDescription};
     use crate::{
-        assets::asset::NATIVE_ASSET_GENERATOR, keys::SaplingKey,
+        assets::asset_identifier::NATIVE_ASSET, keys::SaplingKey,
         merkle_note::NOTE_ENCRYPTION_MINER_KEYS, note::Note,
         transaction::utils::verify_output_proof,
     };
@@ -242,7 +243,7 @@ mod test {
             spender_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
 
@@ -272,7 +273,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
 
@@ -300,7 +301,7 @@ mod test {
             receiver_key.public_address(),
             42,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             spender_key.public_address(),
         );
 
