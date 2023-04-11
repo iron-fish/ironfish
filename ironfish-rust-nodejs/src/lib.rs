@@ -180,6 +180,10 @@ impl ThreadPoolHandler {
 pub fn is_valid_public_address(address: JsBuffer) -> Result<bool> {
     let address_buffer = address.into_value()?;
     let address_vec = address_buffer.as_ref();
+    if address_vec.len() != PUBLIC_ADDRESS_SIZE {
+        return Ok(false);
+    }
+
     let mut address_bytes = [0; PUBLIC_ADDRESS_SIZE];
     address_bytes.clone_from_slice(&address_vec[0..PUBLIC_ADDRESS_SIZE]);
 
