@@ -1,40 +1,40 @@
 {
   "Route wallet/postTransaction should post a raw transaction and not broadcast": [
     {
-      "version": 1,
-      "id": "68d3095c-8d1c-4d8f-b8ff-2c28bdd587de",
+      "version": 2,
+      "id": "364adaeb-809d-4f96-9e8b-9467f4dffdb1",
       "name": "accountA",
-      "spendingKey": "c7a6a94f476d6f3505a2de3563e58ac440b06fbd3c87ee355c9069aab8e54038",
-      "viewKey": "352256f4463c40586052db44588affc21fbd2910817a20762604b21a2f088c386e0d0e0e879284545184de78415109a1f422c9af823a7eba27142db0aada2657",
-      "incomingViewKey": "f94b95ca7224ca08a7d72a0812a5b1d9fa4404ba2cb0bfada1d06be5653d8c01",
-      "outgoingViewKey": "df9ba88aab8e6aacaed58056e9665f7e17460bbaad8ef1f463e5241ea0d85e6f",
-      "publicAddress": "12f7261d670b005229c4296340e2b012e029c74cde2205e6093070edb1054108",
+      "spendingKey": "3a5b4b7442a69dd78c59ced961a37b3acdd74486cdce742a3d3e0057efca825f",
+      "viewKey": "c2a9bec5aac5d51d2c5ed1309b9990301d7ccebe6bf3b05db5603b3275a8aa6b92ea4230e580a5e4e9d002b26acdde5e006ea98b1c481e6db088e97625913187",
+      "incomingViewKey": "78e79252c67fff569edb885b1277febc785038706644f6bda5ba17e12e865906",
+      "outgoingViewKey": "a1f1a70ef409039fb1297ffe3ce6c4a4ab20e5e6ae4483d532892249ab683080",
+      "publicAddress": "c00d232d2098c775e024fc037df2a45d34b1ebc79337217126f7e54a3ee28202",
       "createdAt": null
     }
   ],
   "Route wallet/postTransaction should post a raw transaction": [
     {
-      "version": 1,
-      "id": "60849ff0-419a-456c-b190-6ac6849788d0",
+      "version": 2,
+      "id": "a44ceaf5-cdf3-48dc-b106-25eb99a1b94c",
       "name": "existingAccount",
-      "spendingKey": "b19ffa8bfdf8f954c2b9f668ba51a9b5648938962f33493732399a25d9f55069",
-      "viewKey": "83c3d4e0db77bc48dc787e9a9a91ea312776bc8e56557c5ca5190cf89ac10f42d4a61ef3bdee9f11325fe7ca8300a8504bfd03d1dd907e19058bcfec8727bac4",
-      "incomingViewKey": "a243d180cd63f47d2198f821a55f6f0379a22cc3d6946b7c2da28d4043b0a704",
-      "outgoingViewKey": "cfaa61192f42949160724afc52f5d02b7a223b4ebc940e1022ee4a382c0569f5",
-      "publicAddress": "36274486ed311dd5986406aa3f37babca191bd909e8c890275de5d0b204085d4",
+      "spendingKey": "cb6ac2cf0e8539a3d070646be4f58f877ab37a2a5cc4885209b86a441dfc7742",
+      "viewKey": "9435ef1a5a7b575690d939d3530979dcbec7962a8cbf8198219a78b00cf228684e487bedec7a45950f8cddecf6c898d5934e90bba81cbd99c445c2d104cc24a2",
+      "incomingViewKey": "1ba9dffbd7da22c8100ad3d969f8c7e5017a4ce2374f37e8cafaa08bfcdf3f00",
+      "outgoingViewKey": "1355a3b21a1254b07289d76849210338f3ca3074811184cd8a7b64848a48e917",
+      "publicAddress": "8044a3b61ae2b2a1a7e28370d4f19322897a877665d981cec7210a1dc3018b60",
       "createdAt": null
     }
   ],
   "Route wallet/postTransaction should return an error if the transaction won't deserialize": [
     {
-      "version": 1,
-      "id": "fa5535e5-805c-4e7f-aef9-7ad702294616",
+      "version": 2,
+      "id": "c0c82cec-07b5-46e4-9d87-7bcfa83dff46",
       "name": "accountB",
-      "spendingKey": "f0dab06f179af92d3081095869a625e254d109ebf6f257fd3590bb544d4977f6",
-      "viewKey": "ea1bc8926d00f2aa22607aa9a23e97eb2ea7429d742eb262e56723649234c203670fad40d1f828aef7da66c36318684f59342834728b1783cf0de39d5461f64f",
-      "incomingViewKey": "04444821b127b984f383df9091d84d90ad987819b5539048d6165d8160e90106",
-      "outgoingViewKey": "7483f2cf93d70e1c0034eea623c6d50270da5287bca647fe3f2db3c24d83bd73",
-      "publicAddress": "509fee98a5ffe908cc75975019ac7f6221c8f69aa0f2f3725f2311a6c7b94ee6",
+      "spendingKey": "f13219950b35ce5d141322ec0f9eff3119e6f56e38f13490ecac5ff177b8dc0b",
+      "viewKey": "7132403c716f0dfd59a7dd0ae4fdbcff86739c695948f6b9cdc93f0fbbce789b568e4bfff1f906953889bd750da02a108ee5f7256dc3386ab9d68c011580646f",
+      "incomingViewKey": "c4df5b9e53f953adde796bc9d616c88cdbbd6378e360e1a4dce4d0d1b35d3b01",
+      "outgoingViewKey": "6e2ab30998f180612c6c5695530a289643af817da579c9483f70d4f51b0fba11",
+      "publicAddress": "1348cdaef74fb97ece5fa252b9b873efdc6add5b75f194dba1aae7fe627d9d81",
       "createdAt": null
     }
   ]
