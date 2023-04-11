@@ -19,9 +19,9 @@ describe('DecryptNotesRequest', () => {
       [
         {
           serializedNote: Buffer.alloc(ENCRYPTED_NOTE_LENGTH, 1),
-          incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1),
-          outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1),
-          viewKey: Buffer.alloc(VIEW_KEY_LENGTH, 1),
+          incomingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
+          outgoingViewKey: Buffer.alloc(ACCOUNT_KEY_LENGTH, 1).toString('hex'),
+          viewKey: Buffer.alloc(VIEW_KEY_LENGTH, 1).toString('hex'),
           currentNoteIndex: 2,
           decryptForSpender: true,
         },

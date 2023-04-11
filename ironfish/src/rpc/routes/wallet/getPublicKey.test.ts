@@ -23,7 +23,7 @@ jest.mock('@ironfish/rust-nodejs', () => {
 describe('Route wallet/getPublicKey', () => {
   const routeTest = createRouteTest(true)
   let account = {} as Account
-  let publicAddress = Buffer.alloc(0)
+  let publicAddress = ''
 
   beforeAll(async () => {
     account = await routeTest.node.wallet.createAccount(uuid())
@@ -42,7 +42,7 @@ describe('Route wallet/getPublicKey', () => {
     expect(response.status).toBe(200)
     expect(response.content).toMatchObject({
       account: account.name,
-      publicKey: publicAddress.toString('hex'),
+      publicKey: publicAddress,
     })
   })
 })

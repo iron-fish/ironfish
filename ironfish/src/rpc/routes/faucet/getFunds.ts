@@ -46,7 +46,7 @@ router.register<typeof GetFundsRequestSchema, GetFundsResponse>(
     const response = await api
       .getFunds({
         email: request.data.email,
-        public_key: account.publicAddress.toString('hex'),
+        public_key: account.publicAddress,
       })
       .catch((error: AxiosError<{ code: string; message?: string }>) => {
         if (error.response) {

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createNodeTest, useAccountFixture } from '../../testUtilities'
-import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import {
   CreateMinersFeeRequest,
   CreateMinersFeeResponse,
@@ -26,11 +25,7 @@ jest.mock('@ironfish/rust-nodejs', () => {
 
 describe('CreateMinersFeeRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
-    const request = new CreateMinersFeeRequest(
-      BigInt(0),
-      'memo',
-      Buffer.alloc(ACCOUNT_KEY_LENGTH),
-    )
+    const request = new CreateMinersFeeRequest(BigInt(0), 'memo', 'spendKey')
     const buffer = request.serialize()
     const deserializedRequest = CreateMinersFeeRequest.deserialize(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)

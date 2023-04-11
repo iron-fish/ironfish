@@ -93,10 +93,7 @@ export class ExportCommand extends IronfishCommand {
         response.content.account.spendingKey,
         'The account you are trying to export does not have a spending key, therefore a mnemonic cannot be generated for it',
       )
-      output = spendingKeyToWords(
-        Buffer.from(response.content.account.spendingKey, 'hex'),
-        languageCode,
-      )
+      output = spendingKeyToWords(response.content.account.spendingKey, languageCode)
     } else if (flags.json) {
       output = JSON.stringify(response.content.account, undefined, '    ')
 

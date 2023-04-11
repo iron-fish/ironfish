@@ -13,37 +13,37 @@ describe('account-validator tests', () => {
   test('valid public address should return true', () => {
     const VALID_PUBLIC_ADDRESS =
       '8a4685307f159e95418a0dd3d38a3245f488c1baf64bc914f53486efd370c563'
-    expect(isValidPublicAddress(Buffer.from(VALID_PUBLIC_ADDRESS, 'hex'))).toBe(true)
+    expect(isValidPublicAddress(VALID_PUBLIC_ADDRESS)).toBe(true)
   })
 
   test('valid uppercase public address should return true', () => {
     const VALID_PUBLIC_ADDRESS =
       '8A4685307F159E95418A0DD3D38A3245F488C1BAF64BC914F53486EFD370C563'
-    expect(isValidPublicAddress(Buffer.from(VALID_PUBLIC_ADDRESS, 'hex'))).toBe(true)
+    expect(isValidPublicAddress(VALID_PUBLIC_ADDRESS)).toBe(true)
   })
 
   test('public address with non valid character should return false', () => {
     const INVALID_PUBLIC_ADDRESS =
       '#877d6903692094b67d889c483d09ad2f8438efc8f00c82e1ec3b2ccd1798ceca48216546dbae48c685f50'
-    expect(isValidPublicAddress(Buffer.from(INVALID_PUBLIC_ADDRESS, 'hex'))).toBe(false)
+    expect(isValidPublicAddress(INVALID_PUBLIC_ADDRESS)).toBe(false)
   })
 
   test('public address with non valid hex character should return false', () => {
     const INVALID_PUBLIC_ADDRESS =
       'g877d6903692094b67d889c483d09ad2f8438efc8f00c82e1ec3b2ccd1798ceca48216546dbae48c685f50'
-    expect(isValidPublicAddress(Buffer.from(INVALID_PUBLIC_ADDRESS, 'hex'))).toBe(false)
+    expect(isValidPublicAddress(INVALID_PUBLIC_ADDRESS)).toBe(false)
   })
 
   test('public address with non valid length should return false', () => {
     const INVALID_PUBLIC_ADDRESS =
       'e877d6903692094b67d889c483d09ad2f8438efc8f00c82e1ec3b2ccd1798ceca48216546dbae48c685f5'
-    expect(isValidPublicAddress(Buffer.from(INVALID_PUBLIC_ADDRESS, 'hex'))).toBe(false)
+    expect(isValidPublicAddress(INVALID_PUBLIC_ADDRESS)).toBe(false)
   })
 
   test('public address that is not a valid public address should return false', () => {
     const INVALID_PUBLIC_ADDRESS =
       'e877d6903692094b67d889c483d09ad2f8438efc8f01c82e1ec3b2ccd1798ceca48216546dbae48c685f50'
-    expect(isValidPublicAddress(Buffer.from(INVALID_PUBLIC_ADDRESS, 'hex'))).toBe(false)
+    expect(isValidPublicAddress(INVALID_PUBLIC_ADDRESS)).toBe(false)
   })
 
   test('valid spending key should return true', () => {

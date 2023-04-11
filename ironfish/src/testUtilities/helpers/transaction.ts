@@ -33,7 +33,7 @@ export async function createRawTransaction(options: {
   expiration?: number
   assetId?: Buffer
   outputs?: {
-    publicAddress: Buffer
+    publicAddress: string
     amount: bigint
     memo: string
     assetId: Buffer

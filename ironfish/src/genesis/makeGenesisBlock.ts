@@ -17,7 +17,7 @@ import { CurrencyUtils } from '../utils'
 import { GraffitiUtils } from '../utils/graffiti'
 
 export type GenesisBlockAllocation = {
-  publicAddress: Buffer
+  publicAddress: string
   amountInOre: bigint
   memo: string
 }
@@ -130,9 +130,9 @@ export async function makeGenesisBlock(
 
   for (const alloc of info.allocations) {
     logger.info(
-      `  Generating an output for ${CurrencyUtils.encodeIron(
-        alloc.amountInOre,
-      )} coins for ${alloc.publicAddress.toString('hex')}...`,
+      `  Generating an output for ${CurrencyUtils.encodeIron(alloc.amountInOre)} coins for ${
+        alloc.publicAddress
+      }...`,
     )
     const note = new NativeNote(
       alloc.publicAddress,

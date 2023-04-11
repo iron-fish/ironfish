@@ -52,30 +52,19 @@ pub struct NativeNote {
 impl NativeNote {
     #[napi(constructor)]
     pub fn new(
-        owner: JsBuffer,
+        owner: String,
         value: BigInt,
         memo: String,
         asset_id: JsBuffer,
-        sender: JsBuffer,
+        sender: String,
     ) -> Result<Self> {
         let value_u64 = value.get_u64().1;
-
-        let owner_buffer = owner.into_value()?;
-        let owner_vec = owner_buffer.as_ref();
-        let mut owner_bytes = [0; PUBLIC_ADDRESS_SIZE];
-        owner_bytes.clone_from_slice(&owner_vec[0..PUBLIC_ADDRESS_SIZE]);
-
-        let sender_buffer = sender.into_value()?;
-        let sender_vec = sender_buffer.as_ref();
-        let mut sender_bytes = [0; PUBLIC_ADDRESS_SIZE];
-        sender_bytes.clone_from_slice(&sender_vec[0..PUBLIC_ADDRESS_SIZE]);
-
-        let owner_address = ironfish_rust::PublicAddress::new(&owner_bytes).map_err(to_napi_err)?;
+        let owner_address = ironfish_rust::PublicAddress::from_hex(&owner).map_err(to_napi_err)?;
         let sender_address =
-            ironfish_rust::PublicAddress::new(&sender_bytes).map_err(to_napi_err)?;
+            ironfish_rust::PublicAddress::from_hex(&sender).map_err(to_napi_err)?;
 
-        let asset_id_buffer = asset_id.into_value()?;
-        let asset_id_vec = asset_id_buffer.as_ref();
+        let buffer = asset_id.into_value()?;
+        let asset_id_vec = buffer.as_ref();
         let mut asset_id_bytes = [0; ASSET_ID_LENGTH];
         asset_id_bytes.clone_from_slice(&asset_id_vec[0..ASSET_ID_LENGTH]);
         let asset_id = asset_id_bytes.try_into().map_err(to_napi_err)?;
@@ -132,14 +121,14 @@ impl NativeNote {
 
     /// Sender of the note
     #[napi]
-    pub fn sender(&self) -> Buffer {
-        Buffer::from(&self.note.sender().public_address()[..])
+    pub fn sender(&self) -> String {
+        self.note.sender().hex_public_address()
     }
 
     /// Owner of the note
     #[napi]
-    pub fn owner(&self) -> Buffer {
-        Buffer::from(&self.note.owner().public_address()[..])
+    pub fn owner(&self) -> String {
+        self.note.owner().hex_public_address()
     }
 
     /// Compute the nullifier for this note, given the private key of its owner.
@@ -148,12 +137,10 @@ impl NativeNote {
     /// only at the time the note is spent. This key is collected in a massive
     /// 'nullifier set', preventing double-spend.
     #[napi]
-    pub fn nullifier(&self, owner_view_key: JsBuffer, position: BigInt) -> Result<Buffer> {
+    pub fn nullifier(&self, owner_view_key: String, position: BigInt) -> Result<Buffer> {
         let position_u64 = position.get_u64().1;
 
-        let owner_buffer = owner_view_key.into_value()?;
-        let owner_vec = owner_buffer.as_ref();
-        let view_key = ViewKey::from_bytes(owner_vec).map_err(to_napi_err)?;
+        let view_key = ViewKey::from_hex(&owner_view_key).map_err(to_napi_err)?;
 
         let nullifier: &[u8] = &self.note.nullifier(&view_key, position_u64).0;
 

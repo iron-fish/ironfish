@@ -82,7 +82,7 @@ export class Strategy {
   async createMinersFee(
     totalTransactionFees: bigint,
     blockSequence: number,
-    minerSpendKey: Buffer,
+    minerSpendKey: string,
   ): Promise<Transaction> {
     // Create a new note with value equal to the inverse of the sum of the
     // transaction fees and the mining reward

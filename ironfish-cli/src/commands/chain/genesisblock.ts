@@ -192,7 +192,7 @@ const getDuplicates = (allocations: readonly GenesisBlockAllocation[]): string[]
 
   for (const alloc of allocations) {
     if (nonDuplicateSet.has(alloc.publicAddress)) {
-      duplicateSet.add(alloc.publicAddress.toString('hex'))
+      duplicateSet.add(alloc.publicAddress)
     } else {
       nonDuplicateSet.add(alloc.publicAddress)
     }
@@ -223,7 +223,7 @@ const parseAllocationsFile = (
     }
 
     // Check address length
-    if (!isValidPublicAddress(Buffer.from(address, 'hex'))) {
+    if (!isValidPublicAddress(address)) {
       return {
         ok: false,
         error: `Line ${lineNum}: (${line}) has an invalid public address.`,
@@ -248,7 +248,7 @@ const parseAllocationsFile = (
     }
 
     allocations.push({
-      publicAddress: Buffer.from(address, 'hex'),
+      publicAddress: address,
       amountInOre: amountInOre,
       memo: memo,
     })

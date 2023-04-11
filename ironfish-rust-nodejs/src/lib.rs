@@ -5,12 +5,9 @@
 use std::fmt::Display;
 
 use ironfish_rust::keys::Language;
-use ironfish_rust::keys::PUBLIC_ADDRESS_SIZE;
-use ironfish_rust::keys::SPEND_KEY_SIZE;
 use ironfish_rust::PublicAddress;
 use ironfish_rust::SaplingKey;
 use napi::bindgen_prelude::*;
-use napi::JsBuffer;
 use napi_derive::napi;
 
 use ironfish_rust::mining;
@@ -59,11 +56,11 @@ impl From<LanguageCode> for Language {
 
 #[napi(object)]
 pub struct Key {
-    pub spending_key: Buffer,
-    pub view_key: Buffer,
-    pub incoming_view_key: Buffer,
-    pub outgoing_view_key: Buffer,
-    pub public_address: Buffer,
+    pub spending_key: String,
+    pub view_key: String,
+    pub incoming_view_key: String,
+    pub outgoing_view_key: String,
+    pub public_address: String,
 }
 
 #[napi]
@@ -71,47 +68,37 @@ pub fn generate_key() -> Key {
     let sapling_key = SaplingKey::generate_key();
 
     Key {
-        spending_key: Buffer::from(&sapling_key.spending_key()[..]),
-        view_key: Buffer::from(&sapling_key.view_key().to_bytes()[..]),
-        incoming_view_key: Buffer::from(&sapling_key.incoming_view_key().to_bytes()[..]),
-        outgoing_view_key: Buffer::from(&sapling_key.outgoing_view_key().to_bytes()[..]),
-        public_address: Buffer::from(&sapling_key.public_address().public_address()[..]),
+        spending_key: sapling_key.hex_spending_key(),
+        view_key: sapling_key.view_key().hex_key(),
+        incoming_view_key: sapling_key.incoming_view_key().hex_key(),
+        outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
+        public_address: sapling_key.public_address().hex_public_address(),
     }
 }
 
 #[napi]
-pub fn spending_key_to_words(private_key: JsBuffer, language_code: LanguageCode) -> Result<String> {
-    let private_key_buffer = private_key.into_value()?;
-    let private_key_vec = private_key_buffer.as_ref();
-    let mut private_key_bytes = [0; SPEND_KEY_SIZE];
-    private_key_bytes.clone_from_slice(&private_key_vec[0..SPEND_KEY_SIZE]);
-
-    let key = SaplingKey::new(private_key_bytes).map_err(to_napi_err)?;
+pub fn spending_key_to_words(private_key: String, language_code: LanguageCode) -> Result<String> {
+    let key = SaplingKey::from_hex(&private_key).map_err(to_napi_err)?;
     let mnemonic = key.to_words(language_code.into()).map_err(to_napi_err)?;
     Ok(mnemonic.into_phrase())
 }
 
 #[napi]
-pub fn words_to_spending_key(words: String, language_code: LanguageCode) -> Result<Buffer> {
+pub fn words_to_spending_key(words: String, language_code: LanguageCode) -> Result<String> {
     let key = SaplingKey::from_words(words, language_code.into()).map_err(to_napi_err)?;
-    Ok(Buffer::from(&key.spending_key()[..]))
+    Ok(key.hex_spending_key())
 }
 
 #[napi]
-pub fn generate_key_from_private_key(private_key: JsBuffer) -> Result<Key> {
-    let private_key_buffer = private_key.into_value()?;
-    let private_key_vec = private_key_buffer.as_ref();
-    let mut private_key_bytes = [0; SPEND_KEY_SIZE];
-    private_key_bytes.clone_from_slice(&private_key_vec[0..SPEND_KEY_SIZE]);
-
-    let sapling_key = SaplingKey::new(private_key_bytes).map_err(to_napi_err)?;
+pub fn generate_key_from_private_key(private_key: String) -> Result<Key> {
+    let sapling_key = SaplingKey::from_hex(&private_key).map_err(to_napi_err)?;
 
     Ok(Key {
-        spending_key: Buffer::from(&sapling_key.spending_key()[..]),
-        view_key: Buffer::from(&sapling_key.view_key().to_bytes()[..]),
-        incoming_view_key: Buffer::from(&sapling_key.incoming_view_key().to_bytes()[..]),
-        outgoing_view_key: Buffer::from(&sapling_key.outgoing_view_key().to_bytes()[..]),
-        public_address: Buffer::from(&sapling_key.public_address().public_address()[..]),
+        spending_key: sapling_key.hex_spending_key(),
+        view_key: sapling_key.view_key().hex_key(),
+        incoming_view_key: sapling_key.incoming_view_key().hex_key(),
+        outgoing_view_key: sapling_key.outgoing_view_key().hex_key(),
+        public_address: sapling_key.public_address().hex_public_address(),
     })
 }
 
@@ -177,15 +164,6 @@ impl ThreadPoolHandler {
 }
 
 #[napi]
-pub fn is_valid_public_address(address: JsBuffer) -> Result<bool> {
-    let address_buffer = address.into_value()?;
-    let address_vec = address_buffer.as_ref();
-    if address_vec.len() != PUBLIC_ADDRESS_SIZE {
-        return Ok(false);
-    }
-
-    let mut address_bytes = [0; PUBLIC_ADDRESS_SIZE];
-    address_bytes.clone_from_slice(&address_vec[0..PUBLIC_ADDRESS_SIZE]);
-
-    Ok(PublicAddress::new(&address_bytes).is_ok())
+pub fn is_valid_public_address(hex_address: String) -> bool {
+    PublicAddress::from_hex(&hex_address).is_ok()
 }

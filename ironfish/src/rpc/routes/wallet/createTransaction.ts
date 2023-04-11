@@ -110,7 +110,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
 
       for (const output of request.data.outputs) {
         params.outputs.push({
-          publicAddress: Buffer.from(output.publicAddress, 'hex'),
+          publicAddress: output.publicAddress,
           amount: CurrencyUtils.decode(output.amount),
           memo: output.memo,
           assetId: output.assetId ? Buffer.from(output.assetId, 'hex') : Asset.nativeId(),

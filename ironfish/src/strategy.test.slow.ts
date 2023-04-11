@@ -106,7 +106,7 @@ describe('Demonstrate the Sapling API', () => {
     })
 
     it('Has miner owner address as the miner reward sender address', () =>
-      expect(minerNote.sender().toString('hex')).toEqual(minerNote.owner().toString('hex')))
+      expect(minerNote.sender()).toBe(minerNote.owner()))
 
     it('Can verify the miner transaction', () => {
       const serializedTransaction = minerTransaction.serialize()

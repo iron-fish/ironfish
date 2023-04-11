@@ -106,12 +106,9 @@ impl NativeNoteEncrypted {
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
-    pub fn decrypt_note_for_owner(&self, incoming_hex_key: JsBuffer) -> Result<Option<Buffer>> {
-        let incoming_key_buffer = incoming_hex_key.into_value()?;
-        let incoming_key_vec = incoming_key_buffer.as_ref();
-
+    pub fn decrypt_note_for_owner(&self, incoming_hex_key: String) -> Result<Option<Buffer>> {
         let incoming_view_key =
-            IncomingViewKey::from_bytes(incoming_key_vec).map_err(to_napi_err)?;
+            IncomingViewKey::from_hex(&incoming_hex_key).map_err(to_napi_err)?;
 
         Ok(match self.note.decrypt_note_for_owner(&incoming_view_key) {
             Ok(note) => {
@@ -125,12 +122,9 @@ impl NativeNoteEncrypted {
 
     /// Returns undefined if the note was unable to be decrypted with the given key.
     #[napi]
-    pub fn decrypt_note_for_spender(&self, outgoing_hex_key: JsBuffer) -> Result<Option<Buffer>> {
-        let outgoing_key_buffer = outgoing_hex_key.into_value()?;
-        let outgoing_key_vec = outgoing_key_buffer.as_ref();
-
+    pub fn decrypt_note_for_spender(&self, outgoing_hex_key: String) -> Result<Option<Buffer>> {
         let outgoing_view_key =
-            OutgoingViewKey::from_bytes(outgoing_key_vec).map_err(to_napi_err)?;
+            OutgoingViewKey::from_hex(&outgoing_hex_key).map_err(to_napi_err)?;
         Ok(
             match self.note.decrypt_note_for_spender(&outgoing_view_key) {
                 Ok(note) => {

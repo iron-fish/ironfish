@@ -4,16 +4,15 @@
 import { Asset, generateKeyFromPrivateKey, Note, Transaction } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { BigIntUtils } from '../../utils'
-import { ACCOUNT_KEY_LENGTH } from '../../wallet'
 import { WorkerMessage, WorkerMessageType } from './workerMessage'
 import { WorkerTask } from './workerTask'
 
 export class CreateMinersFeeRequest extends WorkerMessage {
   readonly amount: bigint
   readonly memo: string
-  readonly spendKey: Buffer
+  readonly spendKey: string
 
-  constructor(amount: bigint, memo: string, spendKey: Buffer, jobId?: number) {
+  constructor(amount: bigint, memo: string, spendKey: string, jobId?: number) {
     super(WorkerMessageType.CreateMinersFee, jobId)
     this.amount = amount
     this.memo = memo
@@ -24,7 +23,7 @@ export class CreateMinersFeeRequest extends WorkerMessage {
     const bw = bufio.write(this.getSize())
     bw.writeVarBytes(BigIntUtils.toBytesBE(this.amount))
     bw.writeVarString(this.memo, 'utf8')
-    bw.writeBytes(this.spendKey)
+    bw.writeVarString(this.spendKey, 'utf8')
     return bw.render()
   }
 
@@ -32,7 +31,7 @@ export class CreateMinersFeeRequest extends WorkerMessage {
     const reader = bufio.read(buffer, true)
     const amount = BigIntUtils.fromBytesBE(reader.readVarBytes())
     const memo = reader.readVarString('utf8')
-    const spendKey = reader.readBytes(ACCOUNT_KEY_LENGTH)
+    const spendKey = reader.readVarString('utf8')
     return new CreateMinersFeeRequest(amount, memo, spendKey, jobId)
   }
 
@@ -40,7 +39,7 @@ export class CreateMinersFeeRequest extends WorkerMessage {
     return (
       bufio.sizeVarBytes(BigIntUtils.toBytesBE(this.amount)) +
       bufio.sizeVarString(this.memo, 'utf8') +
-      ACCOUNT_KEY_LENGTH
+      bufio.sizeVarString(this.spendKey, 'utf8')
     )
   }
 }

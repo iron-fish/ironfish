@@ -32,8 +32,10 @@ describe('Route wallet/create', () => {
     })
 
     const account = routeTest.node.wallet.getAccountByName(name)
-    expect(response.content.publicAddress).toEqual(account?.publicAddress.toString('hex'))
-    expect(name).toEqual(account?.name)
+    expect(account).toMatchObject({
+      name: name,
+      publicAddress: response.content.publicAddress,
+    })
   })
 
   it('should set the account as default', async () => {

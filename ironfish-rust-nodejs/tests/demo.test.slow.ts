@@ -30,7 +30,7 @@ describe('Demonstrate the Sapling API', () => {
   it('Should be able to convert hex key to words, and reverse', () => {
     const hexKey = 'd56b241ca965b3997485ccf06421740c1d61163922ad1c02ee69fbe09253daf7'
     const hexKeyWords = 'step float already fan forest smile spirit ridge vacant canal fringe blouse stock mention tonight fiber bright blast omit water ankle clarify hint turn'
-    const key = generateKeyFromPrivateKey(Buffer.from(hexKey, 'hex'))
+    const key = generateKeyFromPrivateKey(hexKey)
     const words = spendingKeyToWords(key.spendingKey, LanguageCode.English);
     expect(words).toEqual(hexKeyWords)
 
@@ -40,7 +40,7 @@ describe('Demonstrate the Sapling API', () => {
 
   it('ViewKey concatenated key should be generated from spending key deterministically', () => {
     const hexSpendingKey = 'd96dc74bbca05dffb14a5631024588364b0cc9f583b5c11908b6ea98a2b778f7'
-    const key = generateKeyFromPrivateKey(Buffer.from(hexSpendingKey, 'hex'))
+    const key = generateKeyFromPrivateKey(hexSpendingKey)
     // concatenated bytes of authorizing_key and nullifier_deriving_key
     expect(key.viewKey).toEqual('498b5103a72c41237c3f2bca96f20100f5a3a8a17c6b8366a485fd16e8931a5d2ff2eb8f991032c815414ff0ae2d8bc3ea3b56bffc481db3f28e800050244463')
   })

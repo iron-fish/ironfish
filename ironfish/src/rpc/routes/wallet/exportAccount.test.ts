@@ -22,11 +22,11 @@ describe('Route wallet/exportAccount', () => {
     expect(response.content).toMatchObject({
       account: {
         name: account.name,
-        spendingKey: account.spendingKey?.toString('hex'),
-        viewKey: account.viewKey.toString('hex'),
-        incomingViewKey: account.incomingViewKey.toString('hex'),
-        outgoingViewKey: account.outgoingViewKey.toString('hex'),
-        publicAddress: account.publicAddress.toString('hex'),
+        spendingKey: account.spendingKey,
+        viewKey: account.viewKey,
+        incomingViewKey: account.incomingViewKey,
+        outgoingViewKey: account.outgoingViewKey,
+        publicAddress: account.publicAddress,
         version: account.version,
       },
     })
@@ -46,10 +46,10 @@ describe('Route wallet/exportAccount', () => {
       account: {
         name: account.name,
         spendingKey: null,
-        viewKey: account.viewKey.toString('hex'),
-        incomingViewKey: account.incomingViewKey.toString('hex'),
-        outgoingViewKey: account.outgoingViewKey.toString('hex'),
-        publicAddress: account.publicAddress.toString('hex'),
+        viewKey: account.viewKey,
+        incomingViewKey: account.incomingViewKey,
+        outgoingViewKey: account.outgoingViewKey,
+        publicAddress: account.publicAddress,
         version: account.version,
       },
     })

@@ -23,10 +23,10 @@ export interface AccountValue {
   version: number
   id: string
   name: string
-  spendingKey: Buffer
-  incomingViewKey: Buffer
-  outgoingViewKey: Buffer
-  publicAddress: Buffer
+  spendingKey: string
+  incomingViewKey: string
+  outgoingViewKey: string
+  publicAddress: string
 }
 
 export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
@@ -35,10 +35,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeU16(value.version)
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
-    bw.writeBytes(value.spendingKey)
-    bw.writeBytes(value.incomingViewKey)
-    bw.writeBytes(value.outgoingViewKey)
-    bw.writeBytes(value.publicAddress)
+    bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
+    bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
+    bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
+    bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
 
     return bw.render()
   }
@@ -48,10 +48,10 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const version = reader.readU16()
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
-    const spendingKey = reader.readBytes(KEY_LENGTH)
-    const incomingViewKey = reader.readBytes(KEY_LENGTH)
-    const outgoingViewKey = reader.readBytes(KEY_LENGTH)
-    const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH)
+    const spendingKey = reader.readBytes(KEY_LENGTH).toString('hex')
+    const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
+    const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
+    const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
 
     return {
       version,

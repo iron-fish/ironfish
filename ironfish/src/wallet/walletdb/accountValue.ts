@@ -15,22 +15,15 @@ export interface AccountValue {
   version: number
   id: string
   name: string
-  spendingKey: Buffer | null
-  viewKey: Buffer
-  incomingViewKey: Buffer
-  outgoingViewKey: Buffer
-  publicAddress: Buffer
-  createdAt: HeadValue | null
-}
-
-export type AccountImport = {
-  version: number
-  name: string
   spendingKey: string | null
   viewKey: string
   incomingViewKey: string
   outgoingViewKey: string
   publicAddress: string
+  createdAt: HeadValue | null
+}
+
+export type AccountImport = Omit<AccountValue, 'id' | 'createdAt'> & {
   createdAt: { hash: string; sequence: number } | null
 }
 
@@ -45,12 +38,12 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     bw.writeVarString(value.id, 'utf8')
     bw.writeVarString(value.name, 'utf8')
     if (value.spendingKey) {
-      bw.writeBytes(value.spendingKey)
+      bw.writeBytes(Buffer.from(value.spendingKey, 'hex'))
     }
-    bw.writeBytes(value.viewKey)
-    bw.writeBytes(value.incomingViewKey)
-    bw.writeBytes(value.outgoingViewKey)
-    bw.writeBytes(value.publicAddress)
+    bw.writeBytes(Buffer.from(value.viewKey, 'hex'))
+    bw.writeBytes(Buffer.from(value.incomingViewKey, 'hex'))
+    bw.writeBytes(Buffer.from(value.outgoingViewKey, 'hex'))
+    bw.writeBytes(Buffer.from(value.publicAddress, 'hex'))
 
     if (value.createdAt) {
       const encoding = new NullableHeadValueEncoding()
@@ -68,11 +61,11 @@ export class AccountValueEncoding implements IDatabaseEncoding<AccountValue> {
     const hasCreatedAt = flags & (1 << 1)
     const id = reader.readVarString('utf8')
     const name = reader.readVarString('utf8')
-    const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH) : null
-    const viewKey = reader.readBytes(VIEW_KEY_LENGTH)
-    const incomingViewKey = reader.readBytes(KEY_LENGTH)
-    const outgoingViewKey = reader.readBytes(KEY_LENGTH)
-    const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH)
+    const spendingKey = hasSpendingKey ? reader.readBytes(KEY_LENGTH).toString('hex') : null
+    const viewKey = reader.readBytes(VIEW_KEY_LENGTH).toString('hex')
+    const incomingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
+    const outgoingViewKey = reader.readBytes(KEY_LENGTH).toString('hex')
+    const publicAddress = reader.readBytes(PUBLIC_ADDRESS_LENGTH).toString('hex')
 
     let createdAt = null
     if (hasCreatedAt) {

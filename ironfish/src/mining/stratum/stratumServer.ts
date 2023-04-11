@@ -233,7 +233,7 @@ export class StratumServer {
             return
           }
 
-          if (!isValidPublicAddress(Buffer.from(body.result.publicAddress, 'hex'))) {
+          if (!isValidPublicAddress(body.result.publicAddress)) {
             this.peers.ban(client, {
               message: `Invalid public address: ${body.result.publicAddress}`,
             })
@@ -295,7 +295,7 @@ export class StratumServer {
 
           const publicAddress = body.result?.publicAddress
 
-          if (publicAddress && !isValidPublicAddress(Buffer.from(publicAddress, 'hex'))) {
+          if (publicAddress && !isValidPublicAddress(publicAddress)) {
             this.peers.ban(client, {
               message: `Invalid public address: ${publicAddress}`,
             })

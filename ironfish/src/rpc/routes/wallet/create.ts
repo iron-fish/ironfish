@@ -52,7 +52,7 @@ router.register<typeof CreateAccountRequestSchema, CreateAccountResponse>(
 
     request.end({
       name: account.name,
-      publicAddress: account.publicAddress.toString('hex'),
+      publicAddress: account.publicAddress,
       isDefaultAccount,
     })
   },

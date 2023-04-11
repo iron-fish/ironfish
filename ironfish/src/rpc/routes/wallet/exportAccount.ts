@@ -69,16 +69,6 @@ router.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
         sequence: accountInfo.createdAt.sequence,
       }
     }
-    request.end({
-      account: {
-        ...accountInfo,
-        createdAt,
-        spendingKey: accountInfo.spendingKey ? accountInfo.spendingKey.toString('hex') : null,
-        incomingViewKey: accountInfo.incomingViewKey.toString('hex'),
-        outgoingViewKey: accountInfo.outgoingViewKey.toString('hex'),
-        publicAddress: accountInfo.publicAddress.toString('hex'),
-        viewKey: accountInfo.viewKey.toString('hex'),
-      },
-    })
+    request.end({ account: { ...accountInfo, createdAt } })
   },
 )

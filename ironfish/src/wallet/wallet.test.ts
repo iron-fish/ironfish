@@ -876,10 +876,7 @@ describe('Accounts', () => {
         account: accountA,
         outputs: [
           {
-            publicAddress: Buffer.from(
-              '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
-              'hex',
-            ),
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 10n,
             memo: '',
             assetId: Asset.nativeId(),
@@ -913,10 +910,7 @@ describe('Accounts', () => {
         account: accountA,
         outputs: [
           {
-            publicAddress: Buffer.from(
-              '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
-              'hex',
-            ),
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
             amount: 10n,
             memo: '',
             assetId: Asset.nativeId(),
@@ -1781,8 +1775,8 @@ describe('Accounts', () => {
         id: asset.id(),
         metadata: asset.metadata(),
         name: asset.name(),
-        owner: accountA.publicAddress,
         nonce: asset.nonce(),
+        owner: Buffer.from(accountA.publicAddress, 'hex'),
         sequence: mintBlock.header.sequence,
         supply: value,
       })
@@ -1792,8 +1786,8 @@ describe('Accounts', () => {
         id: asset.id(),
         metadata: asset.metadata(),
         name: asset.name(),
-        owner: accountA.publicAddress,
         nonce: asset.nonce(),
+        owner: Buffer.from(accountA.publicAddress, 'hex'),
         sequence: block.header.sequence,
         supply: null,
       })

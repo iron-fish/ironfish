@@ -67,7 +67,7 @@ export class RawTransaction {
     return size
   }
 
-  post(spendingKey: Buffer): Transaction {
+  post(spendingKey: string): Transaction {
     const builder = new NativeTransaction(spendingKey)
 
     for (const spend of this.spends) {

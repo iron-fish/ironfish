@@ -104,7 +104,7 @@ export class ImportCommand extends IronfishCommand {
     }
     for (const language of LANGUAGE_VALUES) {
       try {
-        spendingKey = wordsToSpendingKey(mnemonic.trim(), language).toString('hex')
+        spendingKey = wordsToSpendingKey(mnemonic.trim(), language)
         return spendingKey
       } catch (e) {
         continue
@@ -118,11 +118,7 @@ export class ImportCommand extends IronfishCommand {
 
   static verifySpendingKey(spendingKey: string): string | null {
     try {
-      return (
-        generateKeyFromPrivateKey(Buffer.from(spendingKey, 'hex'))?.spendingKey.toString(
-          'hex',
-        ) ?? null
-      )
+      return generateKeyFromPrivateKey(spendingKey)?.spendingKey ?? null
     } catch (e) {
       return null
     }
@@ -138,14 +134,9 @@ export class ImportCommand extends IronfishCommand {
       let data = JSONUtils.parse<AccountImport>(decoded)
 
       if (data.spendingKey) {
-        const key = generateKeyFromPrivateKey(Buffer.from(data.spendingKey, 'hex'))
         data = {
           ...data,
-          incomingViewKey: key.incomingViewKey.toString('hex'),
-          outgoingViewKey: key.outgoingViewKey.toString('hex'),
-          viewKey: key.viewKey.toString('hex'),
-          publicAddress: key.publicAddress.toString('hex'),
-          spendingKey: key.spendingKey.toString('hex'),
+          ...generateKeyFromPrivateKey(data.spendingKey),
         }
       }
 
@@ -172,17 +163,8 @@ export class ImportCommand extends IronfishCommand {
           required: true,
         }))
 
-      const key = generateKeyFromPrivateKey(Buffer.from(spendingKey, 'hex'))
-      return {
-        name,
-        version: ACCOUNT_SCHEMA_VERSION,
-        createdAt: null,
-        incomingViewKey: key.incomingViewKey.toString('hex'),
-        outgoingViewKey: key.outgoingViewKey.toString('hex'),
-        viewKey: key.viewKey.toString('hex'),
-        publicAddress: key.publicAddress.toString('hex'),
-        spendingKey: key.spendingKey.toString('hex'),
-      }
+      const key = generateKeyFromPrivateKey(spendingKey)
+      return { name, version: ACCOUNT_SCHEMA_VERSION, createdAt: null, ...key }
     }
 
     // raw json
@@ -190,14 +172,9 @@ export class ImportCommand extends IronfishCommand {
       let json = JSONUtils.parse<AccountImport>(data)
 
       if (json.spendingKey) {
-        const key = generateKeyFromPrivateKey(Buffer.from(json.spendingKey, 'hex'))
         json = {
           ...json,
-          incomingViewKey: key.incomingViewKey.toString('hex'),
-          outgoingViewKey: key.outgoingViewKey.toString('hex'),
-          viewKey: key.viewKey.toString('hex'),
-          publicAddress: key.publicAddress.toString('hex'),
-          spendingKey: key.spendingKey.toString('hex'),
+          ...generateKeyFromPrivateKey(json.spendingKey),
         }
       }
 

@@ -89,7 +89,7 @@ export class Note {
     return this._assetId
   }
 
-  nullifier(ownerViewKey: Buffer, position: bigint): Buffer {
+  nullifier(ownerViewKey: string, position: bigint): Buffer {
     const buf = this.takeReference().nullifier(ownerViewKey, position)
     this.returnReference()
     return buf
