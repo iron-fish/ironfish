@@ -5,6 +5,7 @@
 use std::fmt::Display;
 
 use ironfish_rust::keys::Language;
+use ironfish_rust::keys::PUBLIC_ADDRESS_SIZE;
 use ironfish_rust::keys::SPEND_KEY_SIZE;
 use ironfish_rust::PublicAddress;
 use ironfish_rust::SaplingKey;
@@ -91,9 +92,9 @@ pub fn spending_key_to_words(private_key: JsBuffer, language_code: LanguageCode)
 }
 
 #[napi]
-pub fn words_to_spending_key(words: String, language_code: LanguageCode) -> Result<String> {
+pub fn words_to_spending_key(words: String, language_code: LanguageCode) -> Result<Buffer> {
     let key = SaplingKey::from_words(words, language_code.into()).map_err(to_napi_err)?;
-    Ok(key.hex_spending_key())
+    Ok(Buffer::from(&key.spending_key()[..]))
 }
 
 #[napi]
@@ -179,8 +180,8 @@ impl ThreadPoolHandler {
 pub fn is_valid_public_address(address: JsBuffer) -> Result<bool> {
     let address_buffer = address.into_value()?;
     let address_vec = address_buffer.as_ref();
-    let mut address_bytes = [0; SPEND_KEY_SIZE];
-    address_bytes.clone_from_slice(&address_vec[0..SPEND_KEY_SIZE]);
+    let mut address_bytes = [0; PUBLIC_ADDRESS_SIZE];
+    address_bytes.clone_from_slice(&address_vec[0..PUBLIC_ADDRESS_SIZE]);
 
     Ok(PublicAddress::new(&address_bytes).is_ok())
 }

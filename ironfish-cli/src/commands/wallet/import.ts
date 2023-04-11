@@ -104,7 +104,7 @@ export class ImportCommand extends IronfishCommand {
     }
     for (const language of LANGUAGE_VALUES) {
       try {
-        spendingKey = wordsToSpendingKey(mnemonic.trim(), language)
+        spendingKey = wordsToSpendingKey(mnemonic.trim(), language).toString('hex')
         return spendingKey
       } catch (e) {
         continue

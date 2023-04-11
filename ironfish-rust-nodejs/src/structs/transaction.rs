@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 
 use ironfish_rust::assets::asset_identifier::AssetIdentifier;
-use ironfish_rust::keys::SPEND_KEY_SIZE;
+use ironfish_rust::keys::{PUBLIC_ADDRESS_SIZE, SPEND_KEY_SIZE};
 use ironfish_rust::transaction::{
     batch_verify_transactions, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
     TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
@@ -279,13 +279,20 @@ impl NativeTransaction {
     #[napi]
     pub fn post(
         &mut self,
-        change_goes_to: Option<String>,
+        change_goes_to: Option<JsBuffer>,
         intended_transaction_fee: BigInt,
     ) -> Result<Buffer> {
         let intended_transaction_fee_u64 = intended_transaction_fee.get_u64().1;
 
         let change_key = match change_goes_to {
-            Some(address) => Some(PublicAddress::from_hex(&address).map_err(to_napi_err)?),
+            Some(address) => {
+                let address_buffer = address.into_value()?;
+                let address_vec = address_buffer.as_ref();
+                let mut address_bytes = [0; PUBLIC_ADDRESS_SIZE];
+                address_bytes.clone_from_slice(&address_vec[0..PUBLIC_ADDRESS_SIZE]);
+
+                Some(PublicAddress::new(&address_bytes).map_err(to_napi_err)?)
+            }
             None => None,
         };
 

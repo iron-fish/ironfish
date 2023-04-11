@@ -69,7 +69,7 @@ export interface Key {
 }
 export function generateKey(): Key
 export function spendingKeyToWords(privateKey: Buffer, languageCode: LanguageCode): string
-export function wordsToSpendingKey(words: string, languageCode: LanguageCode): string
+export function wordsToSpendingKey(words: string, languageCode: LanguageCode): Buffer
 export function generateKeyFromPrivateKey(privateKey: Buffer): Key
 export function initializeSapling(): void
 export function isValidPublicAddress(address: Buffer): boolean
@@ -201,7 +201,7 @@ export class Transaction {
    * sum(spends) - sum(outputs) - intended_transaction_fee - change = 0
    * aka: self.value_balance - intended_transaction_fee - change = 0
    */
-  post(changeGoesTo: string | undefined | null, intendedTransactionFee: bigint): Buffer
+  post(changeGoesTo: Buffer | undefined | null, intendedTransactionFee: bigint): Buffer
   setExpiration(sequence: number): void
 }
 export class FoundBlockResult {
