@@ -29,7 +29,7 @@ export async function sendTransaction(
   const toAccount = await getDefaultAccount(to)
 
   const toPublicKey = await getAccountPublicKey(to, toAccount)
-  if (!isValidPublicAddress(toPublicKey)) {
+  if (!isValidPublicAddress(Buffer.from(toPublicKey, 'hex'))) {
     throw new Error('invalid public key for to account')
   }
 
