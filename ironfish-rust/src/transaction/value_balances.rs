@@ -4,7 +4,7 @@
 use std::collections::{hash_map, HashMap};
 
 use crate::{
-    assets::asset::{AssetIdentifier, NATIVE_ASSET},
+    assets::asset_identifier::{AssetIdentifier, NATIVE_ASSET},
     errors::IronfishError,
 };
 
@@ -58,7 +58,10 @@ impl ValueBalances {
 
 #[cfg(test)]
 mod test {
-    use crate::assets::asset::NATIVE_ASSET;
+    use crate::{
+        assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
+        SaplingKey,
+    };
 
     use super::ValueBalances;
 
@@ -86,45 +89,48 @@ mod test {
     fn test_value_balances_multiple_assets() {
         let mut vb = ValueBalances::new();
 
-        let asset_one = [1u8; 32];
-        let asset_two = [2u8; 32];
+        let public_address = SaplingKey::generate_key().public_address();
+        let asset_one = Asset::new(public_address, "asset one", "").unwrap();
+        let asset_two = Asset::new(public_address, "asset two", "").unwrap();
 
         vb.add(&NATIVE_ASSET, 5).unwrap();
         vb.subtract(&NATIVE_ASSET, 3).unwrap();
 
-        vb.add(&asset_one, 6).unwrap();
-        vb.subtract(&asset_one, 2).unwrap();
+        vb.add(asset_one.id(), 6).unwrap();
+        vb.subtract(asset_one.id(), 2).unwrap();
 
-        vb.subtract(&asset_two, 10).unwrap();
+        vb.subtract(asset_two.id(), 10).unwrap();
 
         assert_eq!(*vb.fee(), 2);
-        assert_eq!(*vb.values.get(&asset_one).unwrap(), 4);
-        assert_eq!(*vb.values.get(&asset_two).unwrap(), -10);
+        assert_eq!(*vb.values.get(asset_one.id()).unwrap(), 4);
+        assert_eq!(*vb.values.get(asset_two.id()).unwrap(), -10);
     }
 
     #[test]
     fn test_value_balances_checks_overflows_add() {
         let mut vb = ValueBalances::new();
 
-        let asset = [1u8; 32];
+        let public_address = SaplingKey::generate_key().public_address();
+        let asset = Asset::new(public_address, "assetone", "").unwrap();
 
         // First value add - does not overflow
-        vb.add(&asset, i64::MAX - 1).unwrap();
+        vb.add(asset.id(), i64::MAX - 1).unwrap();
 
         // Second value add - overflows
-        assert!(vb.add(&asset, 100).is_err());
+        assert!(vb.add(asset.id(), 100).is_err());
     }
 
     #[test]
     fn test_value_balances_checks_overflows_sub() {
         let mut vb = ValueBalances::new();
 
-        let asset = [1u8; 32];
+        let public_address = SaplingKey::generate_key().public_address();
+        let asset = Asset::new(public_address, "assetone", "").unwrap();
 
         // First value sub - does not overflow
-        vb.subtract(&asset, i64::MAX - 1).unwrap();
+        vb.subtract(asset.id(), i64::MAX - 1).unwrap();
 
         // Second value sub - overflows
-        assert!(vb.subtract(&asset, 100).is_err());
+        assert!(vb.subtract(asset.id(), 100).is_err());
     }
 }

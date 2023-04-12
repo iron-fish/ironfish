@@ -5,7 +5,7 @@
 use std::cell::RefCell;
 use std::convert::TryInto;
 
-use ironfish_rust::assets::asset::AssetIdentifier;
+use ironfish_rust::assets::asset_identifier::AssetIdentifier;
 use ironfish_rust::transaction::{
     batch_verify_transactions, TRANSACTION_EXPIRATION_SIZE, TRANSACTION_FEE_SIZE,
     TRANSACTION_PUBLIC_KEY_SIZE, TRANSACTION_SIGNATURE_SIZE,
@@ -222,7 +222,8 @@ impl NativeTransaction {
     #[napi]
     pub fn burn(&mut self, asset_id_js_bytes: JsBuffer, value: BigInt) -> Result<()> {
         let asset_id_bytes = asset_id_js_bytes.into_value()?;
-        let asset_id: AssetIdentifier = asset_id_bytes.as_ref().try_into().map_err(to_napi_err)?;
+        let asset_id = AssetIdentifier::new(asset_id_bytes.as_ref().try_into().unwrap())
+            .map_err(to_napi_err)?;
         let value_u64 = value.get_u64().1;
         self.transaction
             .add_burn(asset_id, value_u64)

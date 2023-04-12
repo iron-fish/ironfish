@@ -1,20 +1,23 @@
 use jubjub::SubgroupPoint;
 pub use zcash_primitives::constants::{
-    CRH_IVK_PERSONALIZATION, NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
-    PRF_NF_PERSONALIZATION, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
-    VALUE_COMMITMENT_GENERATOR_PERSONALIZATION, VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
-    VALUE_COMMITMENT_VALUE_GENERATOR,
+    CRH_IVK_PERSONALIZATION, GH_FIRST_BLOCK, NOTE_COMMITMENT_RANDOMNESS_GENERATOR,
+    NULLIFIER_POSITION_GENERATOR, PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
+    VALUE_COMMITMENT_RANDOMNESS_GENERATOR, VALUE_COMMITMENT_VALUE_GENERATOR,
 };
 
-use zcash_primitives::sapling::pedersen_hash;
 pub use zcash_proofs::circuit::sapling::TREE_DEPTH;
 
 /// Length in bytes of the asset identifier
 pub const ASSET_ID_LENGTH: usize = 32;
 
-// Easier to alias this instead of forking pedersen hash just to extend the Personalization enum
-pub const ASSET_ID_PERSONALIZATION: pedersen_hash::Personalization =
-    pedersen_hash::Personalization::MerkleTree(62);
+/// BLAKE2s personalization for deriving asset identifier from asset name
+pub const ASSET_ID_PERSONALIZATION: &[u8; 8] = b"ironf_A_";
+
+/// BLAKE2s personalization for PRF^nf = BLAKE2s(nk | rho)
+pub const PRF_NF_PERSONALIZATION: &[u8; 8] = b"ironf_nf";
+
+/// BLAKE2s personalization for the value commitment generator for the value
+pub const VALUE_COMMITMENT_GENERATOR_PERSONALIZATION: &[u8; 8] = b"ironf_cv";
 
 pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(
     bls12_381::Scalar::from_raw([
@@ -28,6 +31,21 @@ pub const PUBLIC_KEY_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecke
         0xf0b7_03d5_3a3e_dd4e,
         0xca01_f580_9c00_eee2,
         0x6996_932c_ece1_f4bb,
+    ]),
+);
+
+pub const NATIVE_VALUE_COMMITMENT_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(
+    bls12_381::Scalar::from_raw([
+        0x94d2_7f25_df35_ab48,
+        0xd63c_001a_a39a_7991,
+        0x7398_aab3_c907_f5ab,
+        0x6623_5382_bd3b_3741,
+    ]),
+    bls12_381::Scalar::from_raw([
+        0x6f79_906c_2a58_8644,
+        0x48e2_9b1a_efc3_a67c,
+        0x4808_b27f_848e_59b3,
+        0x074c_0767_fd99_d42f,
     ]),
 );
 

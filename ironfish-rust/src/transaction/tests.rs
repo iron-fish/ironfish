@@ -5,7 +5,7 @@
 #[cfg(test)]
 use super::{ProposedTransaction, Transaction};
 use crate::{
-    assets::asset::{Asset, NATIVE_ASSET_GENERATOR},
+    assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
     keys::SaplingKey,
     merkle_note::NOTE_ENCRYPTION_MINER_KEYS,
     note::Note,
@@ -26,14 +26,14 @@ fn test_transaction() {
         spender_key.public_address(),
         42,
         "",
-        NATIVE_ASSET_GENERATOR,
+        NATIVE_ASSET,
         sender_key.public_address(),
     );
     let out_note = Note::new(
         receiver_key.public_address(),
         40,
         "",
-        NATIVE_ASSET_GENERATOR,
+        NATIVE_ASSET,
         spender_key.public_address(),
     );
 
@@ -53,7 +53,7 @@ fn test_transaction() {
         receiver_key.public_address(),
         2,
         "",
-        asset.generator(),
+        *asset.id(),
         spender_key.public_address(),
     );
 
@@ -151,14 +151,14 @@ fn test_transaction_simple() {
         spender_key.public_address(),
         42,
         "",
-        NATIVE_ASSET_GENERATOR,
+        NATIVE_ASSET,
         sender_key.public_address(),
     );
     let out_note = Note::new(
         receiver_key.public_address(),
         40,
         "",
-        NATIVE_ASSET_GENERATOR,
+        NATIVE_ASSET,
         spender_key.public_address(),
     );
     let witness = make_fake_witness(&in_note);
@@ -198,7 +198,7 @@ fn test_miners_fee() {
         receiver_key.public_address(),
         42,
         "",
-        NATIVE_ASSET_GENERATOR,
+        NATIVE_ASSET,
         spender_key.public_address(),
     );
     let mut transaction = ProposedTransaction::new(spender_key);
@@ -231,16 +231,10 @@ fn test_transaction_signature() {
         spender_address,
         42,
         "",
-        NATIVE_ASSET_GENERATOR,
+        NATIVE_ASSET,
         sender_key.public_address(),
     );
-    let out_note = Note::new(
-        receiver_address,
-        41,
-        "",
-        NATIVE_ASSET_GENERATOR,
-        spender_address,
-    );
+    let out_note = Note::new(receiver_address, 41, "", NATIVE_ASSET, spender_address);
     let witness = make_fake_witness(&in_note);
 
     transaction.add_spend(in_note, &witness).unwrap();
@@ -273,7 +267,7 @@ fn test_transaction_created_with_version_1() {
         spender_key.public_address(),
         42,
         "",
-        NATIVE_ASSET_GENERATOR,
+        NATIVE_ASSET,
         sender_key.public_address(),
     );
 
@@ -281,7 +275,7 @@ fn test_transaction_created_with_version_1() {
         receiver_key.public_address(),
         40,
         "",
-        NATIVE_ASSET_GENERATOR,
+        NATIVE_ASSET,
         spender_key.public_address(),
     );
     let witness = make_fake_witness(&in_note);
@@ -313,7 +307,7 @@ fn test_transaction_version_is_checked() {
         spender_key.public_address(),
         42,
         "",
-        NATIVE_ASSET_GENERATOR,
+        NATIVE_ASSET,
         sender_key.public_address(),
     );
 
@@ -321,7 +315,7 @@ fn test_transaction_version_is_checked() {
         receiver_key.public_address(),
         40,
         "",
-        NATIVE_ASSET_GENERATOR,
+        NATIVE_ASSET,
         spender_key.public_address(),
     );
     let witness = make_fake_witness(&in_note);
@@ -353,7 +347,7 @@ fn test_transaction_value_overflows() {
         key.public_address(),
         overflow_value,
         "",
-        NATIVE_ASSET_GENERATOR,
+        NATIVE_ASSET,
         key.public_address(),
     );
     let witness = make_fake_witness(&note);

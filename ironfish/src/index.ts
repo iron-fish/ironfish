@@ -5,10 +5,7 @@ export * from './wallet'
 export * from './assert'
 export * from './blockchain'
 export * from './consensus'
-export {
-  DEV_GENESIS_IRONFISH_ACCOUNT,
-  DEV_GENESIS_IRONFISH_ACCOUNT_NAME,
-} from './defaultNetworkDefinitions'
+export { DEV_GENESIS_ACCOUNT } from './defaultNetworkDefinitions'
 export * from './chainProcessor'
 export * from './event'
 export * from './fileStores'

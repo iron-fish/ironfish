@@ -5,7 +5,7 @@ import {
   Config,
   ConfigOptions,
   createRootLogger,
-  DEV_GENESIS_IRONFISH_ACCOUNT,
+  DEV_GENESIS_ACCOUNT,
   Event,
   FollowChainStreamResponse,
   Logger,
@@ -279,7 +279,7 @@ export class SimulationNode {
     node.initializeBlockStream(await getLatestBlockHash(node))
 
     if (config.importGenesisAccount) {
-      await importAccount(node, DEV_GENESIS_IRONFISH_ACCOUNT, true)
+      await importAccount(node, `'${JSON.stringify(DEV_GENESIS_ACCOUNT)}'`, true)
     }
 
     node.ready = true

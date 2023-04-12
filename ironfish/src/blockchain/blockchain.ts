@@ -41,7 +41,7 @@ import {
   SerializedNoteEncryptedHash,
 } from '../primitives/noteEncrypted'
 import { Target } from '../primitives/target'
-import { Transaction } from '../primitives/transaction'
+import { Transaction, TransactionHash } from '../primitives/transaction'
 import {
   BUFFER_ENCODING,
   IDatabase,
@@ -66,6 +66,7 @@ import {
   MetaSchema,
   SequenceToHashesSchema,
   SequenceToHashSchema,
+  TransactionHashToBlockHashSchema,
   TransactionsSchema,
 } from './schema'
 
@@ -114,6 +115,8 @@ export class Blockchain {
   hashToNextHash: IDatabaseStore<HashToNextSchema>
   // Asset Identifier -> Asset
   assets: IDatabaseStore<AssetSchema>
+  // TransactionHash -> BlockHash
+  transactionHashToBlockHash: IDatabaseStore<TransactionHashToBlockHashSchema>
 
   // When ever the blockchain becomes synced
   onSynced = new Event<[]>()
@@ -237,6 +240,12 @@ export class Blockchain {
       name: 'bA',
       keyEncoding: BUFFER_ENCODING,
       valueEncoding: new AssetValueEncoding(),
+    })
+
+    this.transactionHashToBlockHash = this.db.addStore({
+      name: 'tb',
+      keyEncoding: BUFFER_ENCODING,
+      valueEncoding: BUFFER_ENCODING,
     })
 
     this.notes = new MerkleTree({
@@ -1040,6 +1049,14 @@ export class Blockchain {
     return hash || null
   }
 
+  async getBlockHashByTransactionHash(
+    transactionHash: TransactionHash,
+    tx?: IDatabaseTransaction,
+  ): Promise<BlockHash | null> {
+    const hash = await this.transactionHashToBlockHash.get(transactionHash, tx)
+    return hash || null
+  }
+
   /**
    * Gets the header of the block at the sequence on the head chain
    */
@@ -1257,6 +1274,7 @@ export class Blockchain {
     for (const transaction of block.transactions) {
       await this.saveConnectedMintsToAssetsStore(transaction, tx)
       await this.saveConnectedBurnsToAssetsStore(transaction, tx)
+      await this.transactionHashToBlockHash.put(transaction.hash(), block.header.hash, tx)
     }
 
     const verify = await this.verifier.verifyConnectedBlock(block, tx)
@@ -1279,6 +1297,7 @@ export class Blockchain {
     for (const transaction of block.transactions.slice().reverse()) {
       await this.deleteDisconnectedBurnsFromAssetsStore(transaction, tx)
       await this.deleteDisconnectedMintsFromAssetsStore(transaction, tx)
+      await this.transactionHashToBlockHash.del(transaction.hash(), tx)
     }
 
     await this.hashToNextHash.del(prev.hash, tx)
@@ -1346,6 +1365,7 @@ export class Blockchain {
           id: assetId,
           metadata: asset.metadata(),
           name: asset.name(),
+          nonce: asset.nonce(),
           owner: asset.owner(),
           supply: supply + value,
         },
@@ -1373,6 +1393,7 @@ export class Blockchain {
           id: existingAsset.id,
           metadata: existingAsset.metadata,
           name: existingAsset.name,
+          nonce: existingAsset.nonce,
           owner: existingAsset.owner,
           supply,
         },
@@ -1399,6 +1420,7 @@ export class Blockchain {
           id: existingAsset.id,
           metadata: existingAsset.metadata,
           name: existingAsset.name,
+          nonce: existingAsset.nonce,
           owner: existingAsset.owner,
           supply,
         },
@@ -1435,6 +1457,7 @@ export class Blockchain {
             id: asset.id(),
             metadata: asset.metadata(),
             name: asset.name(),
+            nonce: asset.nonce(),
             owner: asset.owner(),
             supply,
           },
@@ -1468,6 +1491,7 @@ export class Blockchain {
         id: Asset.nativeId(),
         metadata: Buffer.from('Native asset of Iron Fish blockchain', 'utf8'),
         name: Buffer.from('$IRON', 'utf8'),
+        nonce: 0,
         owner: Buffer.from('Iron Fish', 'utf8'),
         supply: 0n,
       }

@@ -104,7 +104,6 @@ impl SpendBuilder {
             commitment_randomness: Some(self.note.randomness),
             anchor: Some(self.root_hash),
             ar: Some(*public_key_randomness),
-            asset_generator: Some(self.note.asset_generator().into()),
             sender_address: Some(self.note.sender.transmission_key),
         };
 
@@ -132,6 +131,7 @@ impl SpendBuilder {
             nullifier,
             authorizing_signature: blank_signature,
         };
+        description.partial_verify()?;
 
         verify_spend_proof(
             &description.proof,
@@ -374,7 +374,7 @@ fn serialize_signature_fields<W: io::Write>(
 mod test {
 
     use super::{SpendBuilder, SpendDescription};
-    use crate::assets::asset::NATIVE_ASSET_GENERATOR;
+    use crate::assets::asset_identifier::NATIVE_ASSET;
     use crate::transaction::utils::verify_spend_proof;
     use crate::{keys::SaplingKey, note::Note, test_util::make_fake_witness};
     use ff::Field;
@@ -396,7 +396,7 @@ mod test {
             public_address,
             note_randomness,
             "",
-            NATIVE_ASSET_GENERATOR,
+            NATIVE_ASSET,
             sender_key.public_address(),
         );
         let witness = make_fake_witness(&note);

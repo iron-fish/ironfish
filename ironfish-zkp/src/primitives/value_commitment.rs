@@ -1,4 +1,5 @@
 use ff::Field;
+use group::cofactor::CofactorGroup;
 use rand::thread_rng;
 
 use crate::constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR;
@@ -9,11 +10,11 @@ use crate::constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR;
 pub struct ValueCommitment {
     pub value: u64,
     pub randomness: jubjub::Fr,
-    pub asset_generator: jubjub::SubgroupPoint,
+    pub asset_generator: jubjub::ExtendedPoint,
 }
 
 impl ValueCommitment {
-    pub fn new(value: u64, asset_generator: jubjub::SubgroupPoint) -> Self {
+    pub fn new(value: u64, asset_generator: jubjub::ExtendedPoint) -> Self {
         Self {
             value,
             randomness: jubjub::Fr::random(thread_rng()),
@@ -22,7 +23,7 @@ impl ValueCommitment {
     }
 
     pub fn commitment(&self) -> jubjub::SubgroupPoint {
-        (self.asset_generator * jubjub::Fr::from(self.value))
+        (self.asset_generator.clear_cofactor() * jubjub::Fr::from(self.value))
             + (VALUE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)
     }
 }
@@ -43,7 +44,7 @@ mod test {
         let value_commitment = ValueCommitment {
             value: 5,
             randomness: jubjub::Fr::random(&mut rng),
-            asset_generator: jubjub::SubgroupPoint::random(&mut rng),
+            asset_generator: jubjub::ExtendedPoint::random(&mut rng),
         };
 
         let commitment = value_commitment.commitment();
@@ -59,7 +60,7 @@ mod test {
 
     #[test]
     fn test_value_commitment_new() {
-        let generator = jubjub::SubgroupPoint::random(thread_rng());
+        let generator = jubjub::ExtendedPoint::random(thread_rng());
         let value = 5;
 
         let value_commitment = ValueCommitment::new(value, generator);
@@ -75,7 +76,7 @@ mod test {
 
         let randomness = jubjub::Fr::random(&mut rng);
 
-        let asset_generator_one = jubjub::SubgroupPoint::random(&mut rng);
+        let asset_generator_one = jubjub::ExtendedPoint::random(&mut rng);
 
         let value_commitment_one = ValueCommitment {
             value: 5,
@@ -85,7 +86,7 @@ mod test {
 
         let commitment_one = value_commitment_one.commitment();
 
-        let asset_generator_two = jubjub::SubgroupPoint::random(&mut rng);
+        let asset_generator_two = jubjub::ExtendedPoint::random(&mut rng);
 
         let value_commitment_two = ValueCommitment {
             value: 5,
@@ -115,7 +116,7 @@ mod test {
 
         let randomness_one = jubjub::Fr::random(&mut rng);
 
-        let asset_generator = jubjub::SubgroupPoint::random(&mut rng);
+        let asset_generator = jubjub::ExtendedPoint::random(&mut rng);
 
         let value_commitment_one = ValueCommitment {
             value: 5,
@@ -153,7 +154,7 @@ mod test {
         let value_one = 5;
 
         let randomness = jubjub::Fr::random(&mut rng);
-        let asset_generator = jubjub::SubgroupPoint::random(&mut rng);
+        let asset_generator = jubjub::ExtendedPoint::random(&mut rng);
 
         let value_commitment_one = ValueCommitment {
             value: value_one,

@@ -5,7 +5,7 @@ use bellman::{gadgets::blake2s, Circuit, ConstraintSystem, SynthesisError};
 use group::Curve;
 use jubjub::SubgroupPoint;
 
-use zcash_primitives::{constants::CRH_IVK_PERSONALIZATION, sapling::ProofGenerationKey};
+use zcash_primitives::sapling::ProofGenerationKey;
 use zcash_proofs::{
     circuit::{ecc, pedersen_hash},
     constants::{
@@ -14,7 +14,11 @@ use zcash_proofs::{
     },
 };
 
-use crate::{constants::proof::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment};
+use crate::{
+    circuits::util::assert_valid_asset_generator,
+    constants::{proof::PUBLIC_KEY_GENERATOR, ASSET_ID_LENGTH, CRH_IVK_PERSONALIZATION},
+    primitives::ValueCommitment,
+};
 
 use super::util::expose_value_commitment;
 use bellman::gadgets::boolean;
@@ -25,8 +29,8 @@ pub struct Output {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
 
-    /// Asset generator derived from the hashed asset info
-    pub asset_generator: Option<jubjub::ExtendedPoint>,
+    /// Asset id that derived the asset generator in the value commitment
+    pub asset_id: [u8; ASSET_ID_LENGTH],
 
     /// The payment address of the recipient
     pub payment_address: Option<SubgroupPoint>,
@@ -136,10 +140,21 @@ impl Circuit<bls12_381::Scalar> for Output {
         // value (big endian)
         let mut note_contents = vec![];
 
-        let asset_generator =
-            ecc::EdwardsPoint::witness(cs.namespace(|| "asset_generator"), self.asset_generator)?;
-        note_contents
-            .extend(asset_generator.repr(cs.namespace(|| "representation of asset_generator"))?);
+        let asset_generator = ecc::EdwardsPoint::witness(
+            cs.namespace(|| "asset_generator"),
+            self.value_commitment.as_ref().map(|vc| vc.asset_generator),
+        )?;
+
+        let asset_generator_repr =
+            asset_generator.repr(cs.namespace(|| "representation of asset_generator"))?;
+
+        assert_valid_asset_generator(
+            cs.namespace(|| "assert asset generator equality"),
+            &self.asset_id,
+            &asset_generator_repr,
+        )?;
+
+        note_contents.extend(asset_generator_repr);
 
         // Expose the value commitment and place the value
         // in the note.
@@ -244,10 +259,10 @@ mod test {
     use ff::Field;
     use group::{Curve, Group};
     use rand::rngs::StdRng;
-    use rand::{RngCore, SeedableRng};
-    use zcash_primitives::constants::VALUE_COMMITMENT_VALUE_GENERATOR;
+    use rand::{Rng, RngCore, SeedableRng};
     use zcash_primitives::sapling::ProofGenerationKey;
 
+    use crate::util::asset_hash_to_point;
     use crate::{
         circuits::output::Output, constants::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment,
         util::commitment_full_point,
@@ -259,12 +274,21 @@ mod test {
         let mut rng = StdRng::seed_from_u64(0);
 
         for _ in 0..5 {
+            let mut asset_id = [0u8; 32];
+            let asset_generator = loop {
+                rng.fill(&mut asset_id[..]);
+
+                if let Some(point) = asset_hash_to_point(&asset_id) {
+                    break point;
+                }
+            };
+
             let value_commitment_randomness = jubjub::Fr::random(&mut rng);
             let note_commitment_randomness = jubjub::Fr::random(&mut rng);
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: value_commitment_randomness,
-                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
+                asset_generator,
             };
 
             let nsk = jubjub::Fr::random(&mut rng);
@@ -289,7 +313,7 @@ mod test {
                     payment_address: Some(payment_address),
                     commitment_randomness: Some(note_commitment_randomness),
                     esk: Some(esk),
-                    asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
+                    asset_id,
                     proof_generation_key: Some(proof_generation_key.clone()),
                     ar: Some(ar),
                 };
@@ -297,10 +321,10 @@ mod test {
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 32475);
+                assert_eq!(cs.num_constraints(), 54009);
                 assert_eq!(
                     cs.hash(),
-                    "4c6343b8dbef01d5a35f20b706c247a61ad36605533192ba4ae70adf2e51aa07"
+                    "c34430aa14387607c190af7d3d086c8c8e793e9aef640a34be834efeaff39e01"
                 );
 
                 let commitment = commitment_full_point(

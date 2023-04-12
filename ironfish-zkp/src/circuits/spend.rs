@@ -2,6 +2,7 @@ use bellman::{Circuit, ConstraintSystem, SynthesisError};
 use ff::PrimeField;
 use jubjub::SubgroupPoint;
 
+use crate::constants::{CRH_IVK_PERSONALIZATION, PRF_NF_PERSONALIZATION};
 use crate::{constants::proof::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment};
 
 use super::util::expose_value_commitment;
@@ -10,15 +11,9 @@ use bellman::gadgets::boolean;
 use bellman::gadgets::multipack;
 use bellman::gadgets::num;
 use bellman::gadgets::Assignment;
-use zcash_primitives::{
-    constants::CRH_IVK_PERSONALIZATION, constants::PRF_NF_PERSONALIZATION,
-    sapling::ProofGenerationKey,
-};
+use zcash_primitives::sapling::ProofGenerationKey;
 use zcash_proofs::{
-    circuit::{
-        ecc::{self},
-        pedersen_hash,
-    },
+    circuit::{ecc, pedersen_hash},
     constants::{
         NOTE_COMMITMENT_RANDOMNESS_GENERATOR, NULLIFIER_POSITION_GENERATOR,
         PROOF_GENERATION_KEY_GENERATOR, SPENDING_KEY_GENERATOR,
@@ -30,9 +25,6 @@ use zcash_proofs::{
 pub struct Spend {
     /// Pedersen commitment to the value being spent
     pub value_commitment: Option<ValueCommitment>,
-
-    /// Asset generator derived from the hashed asset info
-    pub asset_generator: Option<jubjub::ExtendedPoint>,
 
     /// Key required to construct proofs for spending notes
     /// for a particular spending key
@@ -154,8 +146,11 @@ impl Circuit<bls12_381::Scalar> for Spend {
         // asset generator, value (in big endian), followed by pk_d
         let mut note_contents = vec![];
 
-        let asset_generator =
-            ecc::EdwardsPoint::witness(cs.namespace(|| "asset_generator"), self.asset_generator)?;
+        let asset_generator = ecc::EdwardsPoint::witness(
+            cs.namespace(|| "asset_generator"),
+            self.value_commitment.as_ref().map(|vc| vc.asset_generator),
+        )?;
+
         note_contents
             .extend(asset_generator.repr(cs.namespace(|| "representation of asset_generator"))?);
 
@@ -347,17 +342,14 @@ mod test {
     use ff::{Field, PrimeField, PrimeFieldBits};
     use group::{Curve, Group, GroupEncoding};
     use rand::{rngs::StdRng, RngCore, SeedableRng};
-    use zcash_primitives::{
-        constants::VALUE_COMMITMENT_VALUE_GENERATOR,
-        sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed},
-    };
-    use zcash_primitives::{
-        constants::{NULLIFIER_POSITION_GENERATOR, PRF_NF_PERSONALIZATION},
-        sapling::Nullifier,
-    };
+    use zcash_primitives::sapling::{pedersen_hash, Note, ProofGenerationKey, Rseed};
+    use zcash_primitives::{constants::NULLIFIER_POSITION_GENERATOR, sapling::Nullifier};
 
     use crate::{
-        circuits::spend::Spend, constants::PUBLIC_KEY_GENERATOR, primitives::ValueCommitment,
+        circuits::spend::Spend,
+        constants::PUBLIC_KEY_GENERATOR,
+        constants::{PRF_NF_PERSONALIZATION, VALUE_COMMITMENT_VALUE_GENERATOR},
+        primitives::ValueCommitment,
         util::commitment_full_point,
     };
 
@@ -372,7 +364,7 @@ mod test {
             let value_commitment = ValueCommitment {
                 value: rng.next_u64(),
                 randomness: jubjub::Fr::random(&mut rng),
-                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR.into(),
             };
 
             let proof_generation_key = ProofGenerationKey {
@@ -476,17 +468,16 @@ mod test {
                     ar: Some(ar),
                     auth_path: auth_path.clone(),
                     anchor: Some(cur),
-                    asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
                     sender_address: Some(payment_address),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 98102);
+                assert_eq!(cs.num_constraints(), 98118);
                 assert_eq!(
                     cs.hash(),
-                    "dc28ce3c5b045ee6a7cbc69e48ac7fbc33037c669717fcad5fa039197263e920"
+                    "3beab29b9ac7e33812cbe357ffc05997c891947395468720485b335050cac706"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
@@ -519,35 +510,25 @@ mod test {
 
         let expected_commitment_us = vec![
             "43821661663052659750276289184181083197337192946256245809816728673021647664276",
-            "7220807656052227578299730541645543434083158611414003423211850718229633594616",
-            "13239753550660714843257636471668037031928211668773449453628093339627668081697",
-            "10900524635678389360790699587556574797582192824300145558807405770494079767974",
-            "1411013767457690636461779630023011774660680126764323588543800715293173598850",
-            "32334206652383066267661379202183359608706535021387905923603014648832344657662",
-            "20206750741605167608500278423400565295188703622528437817438897624149653579380",
-            "46716485782200334735478719487356079850582051575003452698983255860512578229998",
-            "31221372899739042781372142393132358519434268512685538373976981051223051220367",
-            "18269767207277008186871145355531741929166733260352590789136389380124992250945",
+            "3307162152126086816128645612622677680790809218093944138874328908293932504970",
+            "11069610839860164669107523771435662310747439806735198902948128278779049984187",
+            "41940920445724888473708658693943093655174812428044709757836212456454182108570",
+            "21486204115269202361511785053830008932611482941164104173096094940232117952518",
         ];
 
         let expected_commitment_vs = vec![
             "27630722367128086497290371604583225252915685718989450292520883698391703910",
-            "23310648738313092772044712773481584369462075017189681529702825235349449805260",
-            "25709635353183537915646348052945798827495141780341329896098121888376871589480",
-            "10516315852014492141081718791576479298042117442649432716255936672048164184691",
-            "23970713991179488695004801139667700217127937225554773561645815034212389459772",
-            "3256052161046564597126736968199320852691566092694819239485673781545479548450",
-            "18887250722195819674378865377623103071236046274361890247643850134985809137409",
-            "36501156873031641173054592888886902104303750771545647842488588827138867116570",
-            "21927526310070011864833939629345235038589128172309792087590183778192091594775",
-            "32959334601512756708397683646222389414681003290313255304927423560477040775488",
+            "50661753032157861157033186529508424590095922868336394465083465551064239171765",
+            "42720677731824278375166374390978871535259136440715287500660141460976255671332",
+            "18456118192639989807838718817278641179256698005479865456409562916641766503518",
+            "26516469925064052571100169784408555020094525182981184778759869098319435854053",
         ];
 
         for i in 0..5 {
             let value_commitment = ValueCommitment {
                 value: i,
                 randomness: jubjub::Fr::from(1000 * (i + 1)),
-                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR,
+                asset_generator: VALUE_COMMITMENT_VALUE_GENERATOR.into(),
             };
 
             let proof_generation_key = ProofGenerationKey {
@@ -656,17 +637,16 @@ mod test {
                     ar: Some(ar),
                     auth_path: auth_path.clone(),
                     anchor: Some(cur),
-                    asset_generator: Some(VALUE_COMMITMENT_VALUE_GENERATOR.into()),
                     sender_address: Some(payment_address),
                 };
 
                 instance.synthesize(&mut cs).unwrap();
 
                 assert!(cs.is_satisfied());
-                assert_eq!(cs.num_constraints(), 98102);
+                assert_eq!(cs.num_constraints(), 98118);
                 assert_eq!(
                     cs.hash(),
-                    "dc28ce3c5b045ee6a7cbc69e48ac7fbc33037c669717fcad5fa039197263e920"
+                    "3beab29b9ac7e33812cbe357ffc05997c891947395468720485b335050cac706"
                 );
 
                 assert_eq!(cs.get("randomization of note commitment/u3/num"), cmu);
