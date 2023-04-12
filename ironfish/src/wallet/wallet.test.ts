@@ -968,6 +968,14 @@ describe('Accounts', () => {
       Assert.isNotUndefined(decryptedNote)
 
       expect(decryptedNote.spent).toBeFalsy()
+
+      const unspentNotes = await AsyncUtils.materialize(
+        accountA.getUnspentNotes(Asset.nativeId()),
+      )
+
+      expect(
+        unspentNotes.find((note) => note.note.hash().equals(decryptedNote.note.hash())),
+      ).toBeTruthy()
     })
 
     it('should mark notes as spent if markSpent is true', async () => {
@@ -1010,6 +1018,14 @@ describe('Accounts', () => {
       Assert.isNotUndefined(decryptedNote)
 
       expect(decryptedNote.spent).toBeTruthy()
+
+      const unspentNotes = await AsyncUtils.materialize(
+        accountA.getUnspentNotes(Asset.nativeId()),
+      )
+
+      expect(
+        unspentNotes.find((note) => note.note.hash().equals(decryptedNote.note.hash())),
+      ).toBeFalsy()
     })
   })
 

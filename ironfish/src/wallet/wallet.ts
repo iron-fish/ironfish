@@ -947,6 +947,13 @@ export class Wallet {
 
             Assert.isNotUndefined(decryptedNote)
 
+            await this.walletDb.deleteUnspentNoteHash(
+              options.account,
+              spend.note.hash(),
+              decryptedNote,
+              tx,
+            )
+
             await this.walletDb.saveDecryptedNote(
               options.account,
               spend.note.hash(),
