@@ -109,6 +109,7 @@ describe('Transactions sendTransaction', () => {
       available: BigInt(0),
       unconfirmedCount: 0,
       pendingCount: 0,
+      unspentNotesCount: 0,
       blockHash: null,
       sequence: null,
     })
@@ -130,6 +131,7 @@ describe('Transactions sendTransaction', () => {
       available: BigInt(0),
       unconfirmedCount: 0,
       pendingCount: 0,
+      unspentNotesCount: 1,
       blockHash: null,
       sequence: null,
     })
@@ -161,6 +163,7 @@ describe('Transactions sendTransaction', () => {
       available: BigInt(11),
       unconfirmedCount: 0,
       pendingCount: 0,
+      unspentNotesCount: 1,
       blockHash: null,
       sequence: null,
     })
@@ -188,6 +191,7 @@ describe('Transactions sendTransaction', () => {
       available: BigInt(11),
       unconfirmedCount: 0,
       pendingCount: 0,
+      unspentNotesCount: 1,
       blockHash: null,
       sequence: null,
     })
@@ -211,6 +215,7 @@ describe('Transactions sendTransaction', () => {
       available: BigInt(21),
       unconfirmedCount: 0,
       pendingCount: 0,
+      unspentNotesCount: 1,
       blockHash: null,
       sequence: null,
     })
@@ -233,6 +238,7 @@ describe('Transactions sendTransaction', () => {
       available: BigInt(100000),
       unconfirmedCount: 0,
       pendingCount: 0,
+      unspentNotesCount: 1,
       blockHash: null,
       sequence: null,
     })

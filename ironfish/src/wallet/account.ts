@@ -818,6 +818,7 @@ export class Account {
     pending: bigint
     pendingCount: number
     available: bigint
+    unspentNotesCount: number
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -842,12 +843,8 @@ export class Account {
         count: 0,
       }
 
-      const available = await this.calculateAvailableBalance(
-        head.sequence,
-        assetId,
-        confirmations,
-        tx,
-      )
+      const { balance: available, count: unspentNotesCount } =
+        await this.calculateAvailableBalance(head.sequence, assetId, confirmations, tx)
 
       yield {
         assetId,
@@ -857,6 +854,7 @@ export class Account {
         pending: balance.unconfirmed + pendingDelta,
         pendingCount,
         available,
+        unspentNotesCount,
         blockHash: balance.blockHash,
         sequence: balance.sequence,
       }
@@ -879,6 +877,7 @@ export class Account {
     pending: bigint
     pendingCount: number
     available: bigint
+    unspentNotesCount: number
     blockHash: Buffer | null
     sequence: number | null
   }> {
@@ -891,6 +890,7 @@ export class Account {
         available: 0n,
         unconfirmedCount: 0,
         pendingCount: 0,
+        unspentNotesCount: 0,
         blockHash: null,
         sequence: null,
       }
@@ -911,20 +911,17 @@ export class Account {
       tx,
     )
 
-    const available = await this.calculateAvailableBalance(
-      head.sequence,
-      assetId,
-      confirmations,
-      tx,
-    )
+    const { balance: available, count: unspentNotesCount } =
+      await this.calculateAvailableBalance(head.sequence, assetId, confirmations, tx)
 
     return {
       unconfirmed: balance.unconfirmed,
       unconfirmedCount,
       confirmed: balance.unconfirmed - unconfirmedDelta,
       pending: balance.unconfirmed + pendingDelta,
-      available,
       pendingCount,
+      available,
+      unspentNotesCount,
       blockHash: balance.blockHash,
       sequence: balance.sequence,
     }
@@ -1044,8 +1041,9 @@ export class Account {
     assetId: Buffer,
     confirmations: number,
     tx?: IDatabaseTransaction,
-  ): Promise<bigint> {
-    let available = 0n
+  ): Promise<{ balance: bigint; count: number }> {
+    let balance = 0n
+    let count = 0
 
     const maxConfirmedSequence = Math.max(headSequence - confirmations, GENESIS_BLOCK_SEQUENCE)
 
@@ -1055,10 +1053,11 @@ export class Account {
       maxConfirmedSequence,
       tx,
     )) {
-      available += value
+      balance += value
+      count++
     }
 
-    return available
+    return { balance, count }
   }
 
   async getUnconfirmedBalances(tx?: IDatabaseTransaction): Promise<BufferMap<BalanceValue>> {
