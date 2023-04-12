@@ -7,7 +7,7 @@ import fs from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { parseAllocationsFile } from '../../utils/allocations'
-import { AIRDROP_NOTES_IN_BLOCK, FEE_ORE_PER_AIRDROP } from './constants'
+import { AIRDROP_NOTES_IN_BLOCK, FEE_ORE_PER_AIRDROP } from './airdrop'
 
 export default class AirdropRawTransactions extends IronfishCommand {
   static aliases = ['airdrop:raw']
@@ -45,6 +45,7 @@ export default class AirdropRawTransactions extends IronfishCommand {
 
     await fs.rm(flags.raw)
     const fileHandle = await fs.open(flags.raw, 'a')
+
     for (let i = 0; i < allocations.length; i += AIRDROP_NOTES_IN_BLOCK) {
       const chunk = allocations.slice(i, i + AIRDROP_NOTES_IN_BLOCK)
       const outputs = []
@@ -55,6 +56,11 @@ export default class AirdropRawTransactions extends IronfishCommand {
           )
           continue
         }
+        if (output.amountInOre < 1) {
+          this.warn(`Invalid amount ${output.amountInOre} for user: ${output.memo}, skipping`)
+          continue
+        }
+
         outputs.push({
           publicAddress: output.publicAddress,
           amount: output.amountInOre.toString(),
@@ -62,6 +68,7 @@ export default class AirdropRawTransactions extends IronfishCommand {
         })
       }
 
+      const fee = BigInt(AIRDROP_NOTES_IN_BLOCK) * FEE_ORE_PER_AIRDROP
       const result = await client.wallet.createTransactionAirdrop({
         account,
         outputs,

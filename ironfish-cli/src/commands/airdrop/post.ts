@@ -34,8 +34,7 @@ export default class AirdropPostTransactions extends IronfishCommand {
     const fileContent = await fs.readFile(flags.raw, 'utf-8')
     const lines = fileContent.split(/[\r\n]+/)
     const client = await this.sdk.connectRpc()
-    await fs.rm(flags.output)
-    const fileHandle = await fs.open(flags.posted, 'a')
+    const fileHandle = await fs.open(flags.posted, 'w')
     for (const line of lines) {
       const response = await client.wallet.postTransaction({
         account: flags.account,
