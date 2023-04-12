@@ -43,8 +43,7 @@ export default class AirdropRawTransactions extends IronfishCommand {
     }
     const allocations = result.allocations
 
-    await fs.rm(flags.raw)
-    const fileHandle = await fs.open(flags.raw, 'a')
+    const fileHandle = await fs.open(flags.raw, 'w')
 
     for (let i = 0; i < allocations.length; i += AIRDROP_NOTES_IN_BLOCK) {
       const chunk = allocations.slice(i, i + AIRDROP_NOTES_IN_BLOCK)

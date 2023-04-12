@@ -92,7 +92,7 @@ export class Simulator {
    * @param config config of node to add to the orchestrator
    */
   async startNode(options?: {
-    cfg?: Partial<ConfigOptions> & { dataDir?: string; verbose?: boolean }
+    cfg?: Partial<ConfigOptions & OptionalSimulationNodeConfig>
     onLog?: ((l: LogEvent) => void | Promise<void>)[]
     onExit?: ((e: ExitEvent) => void | Promise<void>)[]
     onError?: ((c: ErrorEvent) => void | Promise<void>)[]
