@@ -279,7 +279,7 @@ export class SimulationNode {
     node.initializeBlockStream(await getLatestBlockHash(node))
 
     if (config.importGenesisAccount) {
-      await importAccount(node, JSON.stringify(DEV_GENESIS_ACCOUNT), true)
+      await importAccount(node, `'${JSON.stringify(DEV_GENESIS_ACCOUNT)}'`, true)
     }
 
     node.ready = true
