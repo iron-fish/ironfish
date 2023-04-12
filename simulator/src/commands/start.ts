@@ -10,8 +10,6 @@ import { Simulator } from '../simulator'
 export abstract class Start extends Command {
   static description = 'Start a simulation'
 
-  static simulator: Simulator
-
   static args = [
     {
       name: 'simulation',
@@ -65,13 +63,13 @@ export abstract class Start extends Command {
     // The simulator is created here because oclif catches errors so we can't throw them
     // and handle `uncaughtException` in the simulator. Having this try-catch block is a workaround
     // to ensure the simulator gracefully exits when an error occurs.
-    Start.simulator = new Simulator(logger, { persist, duration })
+    const simulator = new Simulator(logger, { persist, duration })
 
     try {
-      await simulation.run(Start.simulator, logger)
+      await simulation.run(simulator, logger)
     } catch (e) {
       logger.error(`simulation encountered ${String(e)}, shutting down...`)
-      Start.simulator.exit(1)
+      simulator.exit(1)
     }
 
     CliUx.ux.action.stop(`stop simulation ${simName}`)
