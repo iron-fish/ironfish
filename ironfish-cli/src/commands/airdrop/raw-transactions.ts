@@ -69,7 +69,7 @@ export default class AirdropRawTransactions extends IronfishCommand {
       }
 
       const fee = BigInt(AIRDROP_NOTES_IN_BLOCK) * FEE_ORE_PER_AIRDROP
-      const result = await client.createTransaction({
+      const result = await client.wallet.createTransaction({
         account,
         outputs,
         fee: String(fee),

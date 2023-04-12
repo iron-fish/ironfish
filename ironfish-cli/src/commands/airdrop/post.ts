@@ -45,7 +45,7 @@ export default class AirdropPostTransactions extends IronfishCommand {
     for (const [idx, line] of lines.entries()) {
       this.log('posting', idx + 1)
       promises.push(
-        client.postTransaction({
+        client.wallet.postTransaction({
           account: account,
           transaction: line.trim(),
         }),

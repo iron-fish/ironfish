@@ -31,7 +31,7 @@ export class Airdrop extends IronfishCommand {
     for (const line of lines) {
       lineNum++
       CliUx.ux.action.start(`Adding transaction #${lineNum}`)
-      const response = await client.addTransaction({ transaction: line.trim() })
+      const response = await client.wallet.addTransaction({ transaction: line.trim() })
       CliUx.ux.action.stop()
       if (response.content.accepted) {
         this.logger.info(`Added ${response.content.hash} transaction (#${lineNum})`)

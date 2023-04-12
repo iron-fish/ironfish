@@ -7,20 +7,9 @@
 
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Assert, Logger } from '@ironfish/sdk'
-import { exec } from 'child_process'
 import fs from 'fs/promises'
 import { v4 as uuid } from 'uuid'
-import {
-  ErrorEvent,
-  ExitEvent,
-  IRON,
-  IRON_TO_ORE,
-  LogEvent,
-  SECOND,
-  SimulationNodeConfig,
-  Simulator,
-  sleep,
-} from '../simulator'
+import { ErrorEvent, ExitEvent, LogEvent, SECOND, Simulator, sleep } from '../simulator'
 /**
  * Author: Joe Parks
  * Date: 2023-04-05
@@ -80,16 +69,15 @@ export async function run(
   await spendNode.executeCliCommandAsync('wallet:import', [
     'ironfishaccount0000010v38vetjwd5k7m3z8gcjcgnwv9kk2g36yfyhymmwge5hx6z8v4hx2umfwdqkxcm0w4h8gg3vyfehqetwv35kue6tv4ujyw3zxqmk2efhxgcrxv3exq6xydnz8q6nydfnvcungve3vvcryvp3xgekvveexdjrywphxgcnzde5x93rsvpcv3jxvvn9xcmrjepevejrqdez9s38v6t9wa9k27fz8g3rvde4xpnrvc3kx4jngc3kvejrxvtrvejn2vmrv4nrwdtyxpsk2cesxpjx2vpsxyervefjxsexxwtxvyukxwp3x5ukxvesxcmxgeryvguxzvpcvscryenyxsmnwvehvvcxxce4xcuxxd35xsuxzwphv4snvdekv93xvdfev5ckvvr9vgurqdn98psngcekv5uk2dpj8psn2c3eygkzy6twvdhk66twvatxjethfdjhjg36yfsn2c3jv93xxwfcv5mxzc3cxcunjd3nxqmrgdeexuckgdpjxsmrqepexc6nxctzx9skxdphvvcrzdtyvc6kgwfhxcurzefexgunjvp5ygkzymm4w3nk76twvatxjethfdjhjg36yfnrwwfn8q6nqwfkxuenyerrvcunvv3jxgmrgdtpxvergvrxxs6xzdtpv33rqdnzxf3rxcf4xvurjdnzv3jrswpcxqmnqc33vsexzdtyygkzyur4vfkxjc6pv3j8yetnwv3r5g3h8q6nwwty8yen2ce5xv6kxe3hv4nrydekx5er2e3kx5unwenrx56xgcnrv5mx2errvgcngepexu6x2ve5vymxzcek8ymkvwp4vcmrwg3vyf3hyetpw3jkgst5ygazyv3sxgej6vpn95cny4p38qarqwf6x5czudpc89dzylg5fr9yc',
   ])
-  await spendNode.client.rescanAccountStream().waitForEnd()
-  await spendNode.client.useAccount({ account: 'IronFishGenesisAccount' })
-  const spendAccount = (await spendNode.client.exportAccount({ viewOnly: true })).content
+  await spendNode.client.wallet.rescanAccountStream().waitForEnd()
+  await spendNode.client.wallet.useAccount({ account: 'IronFishGenesisAccount' })
+  const spendAccount = (await spendNode.client.wallet.exportAccount({ viewOnly: true })).content
     .account
   const viewAccount = spendAccount
 
-  await viewNode.client.importAccount({ account: { ...viewAccount, name: viewAccount.name } })
-
-  await viewNode.client.useAccount({ account: viewAccount.name })
-  await viewNode.client.rescanAccountStream().waitForEnd()
+  await viewNode.client.wallet.importAccount({ account: { ...viewAccount, name: 'viewonly' } })
+  await viewNode.client.wallet.useAccount({ account: viewAccount.name })
+  await viewNode.client.wallet.rescanAccountStream().waitForEnd()
 
   // setup test data
   for (const fraction of fractions) {
@@ -106,38 +94,29 @@ export async function run(
   // BEGIN SIMULATION
 
   // Splits initial note into separate notes for airdrops
-  const { stdout, stderr } = await viewNode.executeCliCommandAsync('airdrop:split', [
-    `--account ${spendAccount.name}`,
-    `--allocations ${allocationsPath}`,
-    `--output ${splitTransactionPath}`,
-  ])
-  if (stderr && stderr.length > 0) {
-    logger.error(`airdrop:split (stderr) ${stderr}`)
-  }
-
-  if (stdout && stdout.length > 0) {
-    logger.info(`airdrop:split (stdout): ${stdout}`)
-  }
+  logCliExecution(
+    'airdrop:split',
+    await viewNode.executeCliCommandAsync('airdrop:split', [
+      `--account ${spendAccount.name}`,
+      `--allocations ${allocationsPath}`,
+      `--output ${splitTransactionPath}`,
+    ]),
+    logger,
+  )
 
   // post / add split transaction / wait for add split transaction to chain
-  const splitRawTransaction = await fs.readFile(splitTransactionPath, {
-    encoding: 'utf8',
-    flag: 'a+',
-  })
-  console.log('split transaction created at', splitTransactionPath)
-
-  const splitPostedTransaciton = await spendNode.client.postTransaction({
+  const splitRawTransaction = await fs.readFile(splitTransactionPath, 'utf8')
+  const splitPostedTransaciton = await spendNode.client.wallet.postTransaction({
     transaction: splitRawTransaction,
   })
-  console.log('split transaction posted')
-
-  const splitAddedTransaction = await viewNode.client.addTransaction({
+  const splitAddedTransaction = await viewNode.client.wallet.addTransaction({
     transaction: splitPostedTransaciton.content.transaction,
   })
-  console.log('split transaction added', splitTransactionPath)
-  console.log(splitAddedTransaction.content)
 
-  console.log('sleep for 5s')
+  logger.info(`split transaction added ${splitTransactionPath}`)
+  logger.info(JSON.stringify(splitAddedTransaction.content))
+
+  logger.info('sleep for 5s')
 
   await sleep(5 * SECOND)
   // starting miner on spendnode for now because it actually has the transaction in the mempool
@@ -149,9 +128,10 @@ export async function run(
     await viewNode.executeCliCommandAsync('wallet:transaction:watch', [
       splitAddedTransaction.content.hash,
     ]),
+    logger,
   )
 
-  console.log('txn confirmed')
+  logger.info('txn confirmed')
 
   spendNode.stopMiner()
 
@@ -163,6 +143,7 @@ export async function run(
       `--allocations ${allocationsPath}`,
       `--raw ${rawTransactionsPath}`,
     ]),
+    logger,
   )
 
   // post the raw transactions from the spend node
@@ -173,6 +154,7 @@ export async function run(
       `--raw ${rawTransactionsPath}`,
       `--posted ${postedTransactionsPath}`,
     ]),
+    logger,
   )
 
   // airdrop the coins, this will occur sequentially
@@ -181,6 +163,7 @@ export async function run(
     await viewNode.executeCliCommandAsync('airdrop:airdrop', [
       `--posted ${postedTransactionsPath}`,
     ]),
+    logger,
   )
 
   logCliExecution(
@@ -188,6 +171,7 @@ export async function run(
     await viewNode.executeCliCommandAsync('airdrop:export', [
       `--exported ${exportedAirdropPath}`,
     ]),
+    logger,
   )
 
   // Call this to keep the simulation running. This currently will wait for all the nodes to exit.
@@ -212,13 +196,17 @@ function splitOneIntoNFractions(n: number): number[] {
   return decimals
 }
 
-function logCliExecution(fn: string, output: { stdout: string; stderr: string }): void {
+function logCliExecution(
+  fn: string,
+  output: { stdout: string; stderr: string },
+  logger: Logger,
+): void {
   const { stdout, stderr } = output
   if (stdout && stdout.length > 0) {
-    console.log(`${fn} (stdout) ${stdout}`)
+    logger.log(`${fn} (stdout) ${stdout}`)
   }
 
   if (stderr && stderr.length > 0) {
-    console.log(`${fn} (stderr): ${stderr}`)
+    logger.log(`${fn} (stderr): ${stderr}`)
   }
 }

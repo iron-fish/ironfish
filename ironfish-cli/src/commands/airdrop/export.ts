@@ -27,13 +27,13 @@ export class AirdropExport extends IronfishCommand {
     const account = flags.account
     const client = await this.sdk.connectRpc()
 
-    const response = client.getAccountTransactionsStream({
+    const response = client.wallet.getAccountTransactionsStream({
       account,
     })
     await fs.rm(flags.exported)
     const fileHandle = await fs.open(flags.exported, 'a')
     for await (const transaction of response.contentStream()) {
-      const fullTransaction = await client.getAccountTransaction({
+      const fullTransaction = await client.wallet.getAccountTransaction({
         account,
         hash: transaction.hash,
       })
