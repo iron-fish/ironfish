@@ -927,6 +927,90 @@ describe('Accounts', () => {
       expect(rawTransaction.spends.length).toBe(1)
       expect(rawTransaction.fee).toBeGreaterThan(0n)
     })
+
+    it('should not mark notes as spent if markSpent is false', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+
+      await node.wallet.updateHead()
+
+      const transaction = blockA1.minersFee
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+      Assert.isNotNull(transactionValue.sequence)
+
+      const rawTransaction = await node.wallet.createTransaction({
+        account: accountA,
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: 10n,
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        expiration: 0,
+        feeRate: 1n,
+        markSpent: false,
+      })
+
+      expect(rawTransaction.spends.length).toBe(1)
+
+      const decryptedNote = await accountA.getDecryptedNote(
+        rawTransaction.spends[0].note.hash(),
+      )
+
+      Assert.isNotUndefined(decryptedNote)
+
+      expect(decryptedNote.spent).toBeFalsy()
+    })
+
+    it('should mark notes as spent if markSpent is true', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+
+      await node.wallet.updateHead()
+
+      const transaction = blockA1.minersFee
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+      Assert.isNotUndefined(transactionValue)
+      Assert.isNotNull(transactionValue.sequence)
+
+      const rawTransaction = await node.wallet.createTransaction({
+        account: accountA,
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: 10n,
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        expiration: 0,
+        feeRate: 1n,
+        markSpent: true,
+      })
+
+      expect(rawTransaction.spends.length).toBe(1)
+
+      const decryptedNote = await accountA.getDecryptedNote(
+        rawTransaction.spends[0].note.hash(),
+      )
+
+      Assert.isNotUndefined(decryptedNote)
+
+      expect(decryptedNote.spent).toBeTruthy()
+    })
   })
 
   describe('getTransactionStatus', () => {

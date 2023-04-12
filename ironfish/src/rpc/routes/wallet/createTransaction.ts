@@ -35,6 +35,7 @@ export type CreateTransactionRequest = {
   expiration?: number
   expirationDelta?: number
   confirmations?: number
+  markSpent?: boolean
 }
 
 export type CreateTransactionResponse = {
@@ -56,6 +57,7 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
           .defined(),
       )
       .defined(),
+    notes: yup.array(yup.string().defined()).notRequired(),
     mints: yup
       .array(
         yup
@@ -83,6 +85,7 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
     expiration: yup.number().optional(),
     expirationDelta: yup.number().optional(),
     confirmations: yup.number().optional(),
+    markSpent: yup.boolean().optional(),
   })
   .defined()
 
@@ -103,6 +106,7 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       confirmations: request.data.confirmations,
       expiration: request.data.expiration,
       expirationDelta: request.data.expirationDelta,
+      markSpent: request.data.markSpent,
     }
 
     if (request.data.outputs) {

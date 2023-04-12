@@ -857,6 +857,7 @@ export class Wallet {
     expiration?: number
     expirationDelta?: number
     confirmations?: number
+    markSpent?: boolean
   }): Promise<RawTransaction> {
     const heaviestHead = this.chain.head
     if (heaviestHead === null) {
@@ -936,6 +937,26 @@ export class Wallet {
           fee: raw.fee,
           account: options.account,
           confirmations: confirmations,
+        })
+      }
+
+      if (options.markSpent) {
+        await this.walletDb.db.transaction(async (tx) => {
+          for (const spend of raw.spends) {
+            const decryptedNote = await options.account.getDecryptedNote(spend.note.hash())
+
+            Assert.isNotUndefined(decryptedNote)
+
+            await this.walletDb.saveDecryptedNote(
+              options.account,
+              spend.note.hash(),
+              {
+                ...decryptedNote,
+                spent: true,
+              },
+              tx,
+            )
+          }
         })
       }
 
