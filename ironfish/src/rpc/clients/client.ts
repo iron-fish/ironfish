@@ -339,6 +339,15 @@ export abstract class RpcClient {
         params,
       ).waitForEnd()
     },
+
+    createTransactionAirdrop: (
+      params: CreateTransactionRequest,
+    ): Promise<RpcResponseEnded<CreateTransactionResponse>> => {
+      return this.request<CreateTransactionResponse>(
+        `${ApiNamespace.wallet}/createTransactionAirdrop`,
+        params,
+      ).waitForEnd()
+    },
   }
 
   mempool = {
