@@ -29,6 +29,7 @@ export default class AirdropSplit extends IronfishCommand {
       description: 'A serialized raw transaction for splitting originating note',
     }),
   }
+
   async start(): Promise<void> {
     const { flags } = await this.parse(AirdropSplit)
     const account = flags.account
@@ -40,7 +41,7 @@ export default class AirdropSplit extends IronfishCommand {
       this.error(result.error)
     }
     const client = await this.sdk.connectRpc()
-    const publicKey = (await client.getAccountPublicKey({ account })).content.publicKey
+    const publicKey = (await client.wallet.getAccountPublicKey({ account })).content.publicKey
     const allocations = result.allocations
 
     const outputs = []
@@ -57,7 +58,7 @@ export default class AirdropSplit extends IronfishCommand {
         memo: '',
       })
     }
-    const transaction = await client.createTransaction({
+    const transaction = await client.wallet.createTransaction({
       account,
       outputs,
       // uses dust from flooring airdrop
