@@ -7,7 +7,7 @@ import { CurrencyUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
-export type GetTransactionRequest = { blockHash: string; transactionHash: string }
+export type GetTransactionRequest = { transactionHash: string; blockHash?: string }
 
 export type GetTransactionResponse = {
   fee: string
@@ -28,8 +28,8 @@ export type GetTransactionResponse = {
 }
 export const GetTransactionRequestSchema: yup.ObjectSchema<GetTransactionRequest> = yup
   .object({
-    blockHash: yup.string().defined(),
     transactionHash: yup.string().defined(),
+    blockHash: yup.string(),
   })
   .defined()
 
@@ -69,10 +69,21 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
   `${ApiNamespace.chain}/getTransaction`,
   GetTransactionRequestSchema,
   async (request, node): Promise<void> => {
-    if (!request.data.blockHash || !request.data.transactionHash) {
-      throw new ValidationError(`Missing block hash or transaction hash`)
+    if (!request.data.transactionHash) {
+      throw new ValidationError(`Missing transaction hash`)
     }
-    const hashBuffer = BlockHashSerdeInstance.deserialize(request.data.blockHash)
+
+    const hashBuffer = request.data.blockHash
+      ? BlockHashSerdeInstance.deserialize(request.data.blockHash)
+      : await node.chain.getBlockHashByTransactionHash(
+          Buffer.from(request.data.transactionHash, 'hex'),
+        )
+
+    if (!hashBuffer) {
+      throw new ValidationError(
+        `No block hash found for transaction hash ${request.data.transactionHash}`,
+      )
+    }
 
     const blockHeader = await node.chain.getHeader(hashBuffer)
     if (!blockHeader) {

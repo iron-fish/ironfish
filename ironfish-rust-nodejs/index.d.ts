@@ -36,7 +36,6 @@ export const ENCRYPTED_NOTE_LENGTH: number
 export const PUBLIC_ADDRESS_LENGTH: number
 export const RANDOMNESS_LENGTH: number
 export const MEMO_LENGTH: number
-export const GENERATOR_LENGTH: number
 export const AMOUNT_VALUE_LENGTH: number
 export const DECRYPTED_NOTE_LENGTH: number
 export interface NativeSpendDescription {
@@ -91,6 +90,7 @@ export class Asset {
   constructor(ownerPrivateKey: string, name: string, metadata: string)
   metadata(): Buffer
   name(): Buffer
+  nonce(): number
   owner(): Buffer
   static nativeId(): Buffer
   id(): Buffer

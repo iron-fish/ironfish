@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ironfish_rust::{
-    assets::asset::{
-        Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, ID_LENGTH, METADATA_LENGTH, NAME_LENGTH,
-        NATIVE_ASSET,
+    assets::{
+        asset::{
+            Asset, ASSET_LENGTH as SERIALIZED_ASSET_LENGTH, ID_LENGTH, METADATA_LENGTH, NAME_LENGTH,
+        },
+        asset_identifier::NATIVE_ASSET,
     },
     keys::PUBLIC_ADDRESS_SIZE,
     SaplingKey,
@@ -61,18 +63,23 @@ impl NativeAsset {
     }
 
     #[napi]
+    pub fn nonce(&self) -> u8 {
+        self.asset.nonce()
+    }
+
+    #[napi]
     pub fn owner(&self) -> Buffer {
         Buffer::from(&self.asset.owner()[..])
     }
 
     #[napi]
     pub fn native_id() -> Buffer {
-        Buffer::from(&NATIVE_ASSET[..])
+        Buffer::from(&NATIVE_ASSET.as_bytes()[..])
     }
 
     #[napi]
     pub fn id(&self) -> Buffer {
-        Buffer::from(&self.asset.id()[..])
+        Buffer::from(&self.asset.id().as_bytes()[..])
     }
 
     #[napi]

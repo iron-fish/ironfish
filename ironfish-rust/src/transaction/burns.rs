@@ -5,9 +5,8 @@
 use std::io;
 
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ironfish_zkp::constants::ASSET_ID_LENGTH;
 
-use crate::{assets::asset::AssetIdentifier, errors::IronfishError};
+use crate::{assets::asset_identifier::AssetIdentifier, errors::IronfishError};
 
 /// Parameters used to build a burn description
 pub struct BurnBuilder {
@@ -52,18 +51,14 @@ impl BurnDescription {
         &self,
         mut writer: W,
     ) -> Result<(), IronfishError> {
-        writer.write_all(&self.asset_id)?;
+        self.asset_id.write(&mut writer)?;
         writer.write_u64::<LittleEndian>(self.value)?;
 
         Ok(())
     }
 
     pub fn read<R: io::Read>(mut reader: R) -> Result<Self, IronfishError> {
-        let asset_id = {
-            let mut bytes = [0u8; ASSET_ID_LENGTH];
-            reader.read_exact(&mut bytes)?;
-            bytes
-        };
+        let asset_id = AssetIdentifier::read(&mut reader)?;
         let value = reader.read_u64::<LittleEndian>()?;
 
         Ok(BurnDescription { asset_id, value })

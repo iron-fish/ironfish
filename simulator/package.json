@@ -56,7 +56,7 @@
     "docs:open": "open docs/index.html"
   },
   "dependencies": {
-    "@ironfish/sdk": "0.0.52",
+    "@ironfish/sdk": "0.0.53",
     "@oclif/core": "1.23.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",

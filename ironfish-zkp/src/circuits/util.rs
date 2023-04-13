@@ -1,5 +1,8 @@
 use bellman::{
-    gadgets::boolean::{self, AllocatedBit, Boolean},
+    gadgets::{
+        blake2s,
+        boolean::{self, AllocatedBit, Boolean},
+    },
     ConstraintSystem, SynthesisError,
 };
 use ff::PrimeField;
@@ -8,29 +11,10 @@ use zcash_proofs::{
     constants::VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
 };
 
-use crate::primitives::ValueCommitment;
-
-#[allow(clippy::too_many_arguments)]
-pub fn asset_info_preimage<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
-    cs: &mut CS,
-    name: &[u8; 32],
-    metadata: &[u8; 77],
-    owner_public_key: &EdwardsPoint,
-) -> Result<Vec<boolean::Boolean>, SynthesisError> {
-    let mut combined_preimage = vec![];
-
-    combined_preimage
-        .extend(owner_public_key.repr(cs.namespace(|| "booleanize owner_public_key"))?);
-
-    let name_bits = slice_into_boolean_vec_le(cs.namespace(|| "booleanize name"), Some(name), 32)?;
-    combined_preimage.extend(name_bits);
-
-    let metadata_bits =
-        slice_into_boolean_vec_le(cs.namespace(|| "booleanize metadata"), Some(metadata), 77)?;
-    combined_preimage.extend(metadata_bits);
-
-    Ok(combined_preimage)
-}
+use crate::{
+    constants::{ASSET_ID_LENGTH, VALUE_COMMITMENT_GENERATOR_PERSONALIZATION},
+    primitives::ValueCommitment,
+};
 
 pub fn slice_into_boolean_vec_le<Scalar: PrimeField, CS: ConstraintSystem<Scalar>>(
     mut cs: CS,
@@ -81,8 +65,22 @@ where
         value_commitment.as_ref().map(|c| c.value),
     )?;
 
+    // Clearing the cofactor and assert_nonzero is essentially the same thing as
+    // EdwardsPoint::assert_not_small_order, however, since we need to clear the
+    // cofactor anyway, we will also manually check the nonzero u-value
+
+    // Clear the cofactor
+    let value_commitment_generator = asset_generator
+        .double(cs.namespace(|| "asset_generator first double"))?
+        .double(cs.namespace(|| "asset_generator second double"))?
+        .double(cs.namespace(|| "asset_generator third double"))?;
+
+    value_commitment_generator
+        .get_u()
+        .assert_nonzero(cs.namespace(|| "assert asset_generator not small order"))?;
+
     // Compute the note value in the exponent
-    let value = asset_generator.mul(
+    let value = value_commitment_generator.mul(
         cs.namespace(|| "compute the value in the exponent"),
         &value_bits,
     )?;
@@ -109,4 +107,39 @@ where
     cv.inputize(cs.namespace(|| "commitment point"))?;
 
     Ok(value_bits)
+}
+
+pub fn assert_valid_asset_generator<CS: bellman::ConstraintSystem<bls12_381::Scalar>>(
+    mut cs: CS,
+    asset_id: &[u8; ASSET_ID_LENGTH],
+    asset_generator_repr: &[Boolean],
+) -> Result<(), SynthesisError> {
+    // Compute the generator preimage bits
+    let asset_generator_preimage = slice_into_boolean_vec_le(
+        cs.namespace(|| "booleanize asset id"),
+        Some(asset_id),
+        ASSET_ID_LENGTH as u32,
+    )?;
+
+    // Compute the generator bits
+    let asset_generator_bits = blake2s::blake2s(
+        cs.namespace(|| "computation of asset generator"),
+        &asset_generator_preimage,
+        VALUE_COMMITMENT_GENERATOR_PERSONALIZATION,
+    )?;
+
+    assert_eq!(asset_generator_bits.len(), 256);
+    assert_eq!(asset_generator_repr.len(), 256);
+
+    // Compare the generator bits to the computed generator bits, proving that
+    // this is the asset id that derived the generator
+    for i in 0..256 {
+        boolean::Boolean::enforce_equal(
+            cs.namespace(|| format!("asset generator bit {} equality", i)),
+            &asset_generator_bits[i],
+            &asset_generator_repr[i],
+        )?;
+    }
+
+    Ok(())
 }

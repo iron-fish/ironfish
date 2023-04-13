@@ -17,6 +17,7 @@ export interface AssetValue {
   id: Buffer
   metadata: Buffer
   name: Buffer
+  nonce: number
   owner: Buffer
   // Populated for assets the account owns
   supply: bigint | null
@@ -51,6 +52,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     bw.writeHash(value.id)
     bw.writeBytes(value.metadata)
     bw.writeBytes(value.name)
+    bw.writeU8(value.nonce)
     bw.writeBytes(value.owner)
     return bw.render()
   }
@@ -82,8 +84,19 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     const id = reader.readBytes(ASSET_ID_LENGTH)
     const metadata = reader.readBytes(ASSET_METADATA_LENGTH)
     const name = reader.readBytes(ASSET_NAME_LENGTH)
+    const nonce = reader.readU8()
     const owner = reader.readBytes(ASSET_OWNER_LENGTH)
-    return { blockHash, createdTransactionHash, id, metadata, name, owner, sequence, supply }
+    return {
+      blockHash,
+      createdTransactionHash,
+      id,
+      metadata,
+      name,
+      nonce,
+      owner,
+      sequence,
+      supply,
+    }
   }
 
   getSize(value: AssetValue): number {
@@ -106,6 +119,7 @@ export class AssetValueEncoding implements IDatabaseEncoding<AssetValue> {
     size += ASSET_ID_LENGTH // id
     size += ASSET_METADATA_LENGTH // metadata
     size += ASSET_NAME_LENGTH // name
+    size += 1 // nonce
     size += PUBLIC_ADDRESS_LENGTH // owner
     return size
   }

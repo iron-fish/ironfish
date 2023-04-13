@@ -244,7 +244,7 @@ export class Simulator {
       bootstrapNodes: config.bootstrapNodes,
       dataDir: config.dataDir || `~/.ironfish-simulator/${config.nodeName}`,
       verbose: config.verbose || false,
-      importGenesisAccount: config.importGenesisAccount || false,
+      importGenesisAccount: config.importGenesisAccount || true,
       ...config,
     }
   }

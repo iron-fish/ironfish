@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export const VERSION_PROTOCOL = 21
-export const VERSION_PROTOCOL_MIN = 19
+export const VERSION_PROTOCOL = 22
+export const VERSION_PROTOCOL_MIN = 22
 
 export const MAX_REQUESTED_HEADERS = 1024
 export const MAX_HEADER_LOOKUPS = MAX_REQUESTED_HEADERS * 2

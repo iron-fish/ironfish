@@ -8,8 +8,9 @@ use spends::{SpendBuilder, UnsignedSpendDescription};
 use value_balances::ValueBalances;
 
 use crate::{
-    assets::asset::{
-        asset_generator_from_id, Asset, AssetIdentifier, NATIVE_ASSET, NATIVE_ASSET_GENERATOR,
+    assets::{
+        asset::Asset,
+        asset_identifier::{AssetIdentifier, NATIVE_ASSET},
     },
     errors::IronfishError,
     keys::{PublicAddress, SaplingKey},
@@ -24,11 +25,14 @@ use blake2b_simd::Params as Blake2b;
 use bls12_381::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
-use jubjub::{ExtendedPoint, SubgroupPoint};
+use jubjub::ExtendedPoint;
 use rand::{rngs::OsRng, thread_rng};
 
 use ironfish_zkp::{
-    constants::{SPENDING_KEY_GENERATOR, VALUE_COMMITMENT_RANDOMNESS_GENERATOR},
+    constants::{
+        NATIVE_VALUE_COMMITMENT_GENERATOR, SPENDING_KEY_GENERATOR,
+        VALUE_COMMITMENT_RANDOMNESS_GENERATOR,
+    },
     redjubjub::{self, PrivateKey, PublicKey, Signature},
 };
 
@@ -136,7 +140,7 @@ impl ProposedTransaction {
         witness: &dyn WitnessTrait,
     ) -> Result<(), IronfishError> {
         self.value_balances
-            .add(&note.asset_id(), note.value().try_into()?)?;
+            .add(note.asset_id(), note.value().try_into()?)?;
 
         self.spends.push(SpendBuilder::new(note, witness));
 
@@ -147,7 +151,7 @@ impl ProposedTransaction {
     /// transaction.
     pub fn add_output(&mut self, note: Note) -> Result<(), IronfishError> {
         self.value_balances
-            .subtract(&note.asset_id(), note.value().try_into()?)?;
+            .subtract(note.asset_id(), note.value().try_into()?)?;
 
         self.outputs.push(OutputBuilder::new(note));
 
@@ -205,7 +209,7 @@ impl ProposedTransaction {
                     change_address,
                     change_amount as u64, // we checked it was positive
                     "",
-                    SubgroupPoint::from_bytes(asset_id).unwrap(),
+                    *asset_id,
                     self.spender_key.public_address(),
                 );
 
@@ -733,7 +737,7 @@ fn fee_to_point(value: i64) -> Result<ExtendedPoint, IronfishError> {
         None => return Err(IronfishError::IllegalValue),
     };
 
-    let mut value_balance = NATIVE_ASSET_GENERATOR * jubjub::Fr::from(abs);
+    let mut value_balance = NATIVE_VALUE_COMMITMENT_GENERATOR * jubjub::Fr::from(abs);
 
     if is_negative {
         value_balance = -value_balance;
@@ -757,12 +761,12 @@ fn calculate_value_balance(
     let mut value_balance_point = binding_verification_key - fee_point;
 
     for mint in mints {
-        let mint_generator = mint.asset.generator();
+        let mint_generator = mint.asset.value_commitment_generator();
         value_balance_point += mint_generator * jubjub::Fr::from(mint.value);
     }
 
     for burn in burns {
-        let burn_generator = asset_generator_from_id(&burn.asset_id);
+        let burn_generator = burn.asset_id.value_commitment_generator();
         value_balance_point -= burn_generator * jubjub::Fr::from(burn.value);
     }
 
@@ -813,6 +817,8 @@ pub fn batch_verify_transactions<'a>(
         }
 
         for mint in transaction.mints.iter() {
+            mint.partial_verify()?;
+
             let public_inputs = mint.public_inputs(transaction.randomized_public_key());
             mint_verifier.queue((&mint.proof, &public_inputs[..]));
 
