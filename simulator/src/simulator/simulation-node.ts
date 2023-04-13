@@ -14,13 +14,7 @@ import {
   RpcTcpClient,
   YupUtils,
 } from '@ironfish/sdk'
-import {
-  ChildProcess,
-  ChildProcessWithoutNullStreams,
-  exec,
-  ExecException,
-  spawn,
-} from 'child_process'
+import { ChildProcessWithoutNullStreams, exec, spawn } from 'child_process'
 import { promisify } from 'util'
 import {
   defaultOnError,
@@ -549,25 +543,43 @@ export class SimulationNode {
    * @param options.onLog The callback to execute if the command writes to stdout
    * @returns The child process
    */
-  executeCliCommand(
+  async executeCliCommand(
     command: string,
     args: string[],
     options?: {
-      onError: (err: ExecException, stderr: string) => void
+      onError: (err: Error) => void
       onLog: (stdout: string) => void
     },
-  ): ChildProcess {
+  ): Promise<void> {
     args.push('--datadir', this.config.dataDir)
     const cmdString = rootCmd + ' ' + command + ' ' + args.join(' ')
-    this.logger.log(`executing cli command: ${cmdString}`)
+    this.logger.log(`executing cli command [101]: ${cmdString}`)
 
-    return exec(cmdString, (err, stdout, stderr) => {
-      if (err) {
-        options?.onError(err, stderr)
-      }
-      if (stdout) {
-        options?.onLog(stdout)
-      }
+    return new Promise((resolve, reject) => {
+      const process = spawn(rootCmd, [command, ...args])
+
+      process.stdout.on('data', (data) => {
+        const message = (data as Buffer).toString()
+        options?.onLog(`${command}:stdout: ${message}`)
+      })
+
+      process.stderr.on('data', (data) => {
+        const message = (data as Buffer).toString()
+        options?.onLog(`${command}:stderr: ${message}`)
+      })
+
+      process.on('error', (err) => {
+        options?.onError(err)
+        reject(err)
+      })
+
+      process.on('exit', (code) => {
+        if (code !== 0) {
+          reject(new Error(`Command failed with code ${code || 'unknown'}`))
+        } else {
+          resolve()
+        }
+      })
     })
   }
 

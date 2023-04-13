@@ -30,19 +30,25 @@ export default class AirdropPostTransactions extends IronfishCommand {
 
   async start(): Promise<void> {
     const { flags } = await this.parse(AirdropPostTransactions)
-    let lineNum = 0
     const fileContent = await fs.readFile(flags.raw, 'utf-8')
     const lines = fileContent.split(/[\r\n]+/)
     const client = await this.sdk.connectRpc()
+
     const fileHandle = await fs.open(flags.posted, 'w')
-    for (const line of lines) {
+
+    for (const [idx, line] of lines.entries()) {
+      // Parallelizing posting transactions does not yield performance gains
+      const startTime = Date.now()
+      this.log(`posting ${idx} of ${lines.length} transactions`)
       const response = await client.wallet.postTransaction({
         account: flags.account,
         transaction: line.trim(),
       })
-      lineNum++
-      this.log(`Posted transaction ${lineNum} of ${lines.length}`)
+
       await fs.appendFile(fileHandle, response.content.transaction + '\n')
+      this.log(`took ${(Date.now() - startTime) / 1000} s to post txn #${idx}`)
     }
+
+    await fileHandle.close()
   }
 }
