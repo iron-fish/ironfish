@@ -54,6 +54,7 @@ export async function run(
   // TODO: it looks like the miner node (nodes[0]) never gets broadcasted the transaction from the viewnode
   // is this behaviour deterministic?
   // const minerNode = nodes[0]
+
   // setup accounts for test
   await spendNode.client.wallet.rescanAccountStream().waitForEnd()
   await spendNode.client.wallet.useAccount({ account: 'IronFishGenesisAccount' })
@@ -69,6 +70,7 @@ export async function run(
   await viewNode.client.wallet.rescanAccountStream().waitForEnd()
 
   // setup test data
+  logger.info('[fake_accounts] creating...')
   for (const fraction of fractions) {
     const key = generateKey()
     const fakeGraffiti = uuid().slice(0, 15)
@@ -83,14 +85,20 @@ export async function run(
   // BEGIN SIMULATION
 
   // Splits initial note into separate notes for airdrops
-  logCliExecution(
+  await viewNode.executeCliCommand(
     'airdrop:split',
-    await viewNode.executeCliCommandAsync('airdrop:split', [
-      `--account ${viewAccountName}`,
-      `--allocations ${allocationsPath}`,
-      `--output ${splitTransactionPath}`,
-    ]),
-    logger,
+    [
+      `--account`,
+      `${viewAccountName}`,
+      `--allocations`,
+      `${allocationsPath}`,
+      `--output`,
+      `${splitTransactionPath}`,
+    ],
+    {
+      onLog: (msg) => logger.info(msg),
+      onError: (err: Error) => logger.error(err.message),
+    },
   )
 
   // post / add split transaction / wait for add split transaction to chain
@@ -108,16 +116,18 @@ export async function run(
   logger.info('sleep for 5s')
 
   await sleep(5 * SECOND)
+
   // starting miner on spendnode for now because it actually has the transaction in the mempool
-  // miner node is not getting it!!!
+  // the miner node is not getting it
   spendNode.startMiner()
 
-  logCliExecution(
+  await viewNode.executeCliCommand(
     'wallet:transaction:watch',
-    await viewNode.executeCliCommandAsync('wallet:transaction:watch', [
-      splitAddedTransaction.content.hash,
-    ]),
-    logger,
+    [splitAddedTransaction.content.hash],
+    {
+      onLog: (stdout) => logger.info(stdout),
+      onError: (err: Error) => logger.error(err.message),
+    },
   )
 
   logger.info('txn confirmed')
@@ -125,46 +135,62 @@ export async function run(
   spendNode.stopMiner()
 
   // Take all allocations from API db and create raw bundled transactions (600 notes/tx)
-  logCliExecution(
+  await viewNode.executeCliCommand(
     'airdrop:raw',
-    await viewNode.executeCliCommandAsync('airdrop:raw', [
-      `--account ${viewAccountName}`,
-      `--allocations ${allocationsPath}`,
-      `--raw ${rawTransactionsPath}`,
-    ]),
-    logger,
+    [
+      `--account`,
+      `${viewAccountName}`,
+      `--allocations`,
+      `${allocationsPath}`,
+      `--raw`,
+      `${rawTransactionsPath}`,
+    ],
+    {
+      onLog: (msg) => logger.info(msg),
+      onError: (err: Error) => logger.error(err.message),
+    },
   )
 
   // post the raw transactions from the spend node
-  logCliExecution(
+  // This command takes upwards of 90mins to run
+  await spendNode.executeCliCommand(
     'airdrop:post',
-    await spendNode.executeCliCommandAsync('airdrop:post', [
-      `--account ${spendAccount.name}`,
-      `--raw ${rawTransactionsPath}`,
-      `--posted ${postedTransactionsPath}`,
-    ]),
-    logger,
+    [
+      `--account`,
+      `${spendAccount.name}`,
+      `--raw`,
+      `${rawTransactionsPath}`,
+      `--posted`,
+      `${postedTransactionsPath}`,
+    ],
+    {
+      onLog: (msg) => logger.info(msg),
+      onError: (err: Error) => logger.error(err.message),
+    },
   )
+
   spendNode.startMiner()
 
   // airdrop the coins, this will occur sequentially
-  logCliExecution(
+
+  await viewNode.executeCliCommand(
     'airdrop:airdrop',
-    await viewNode.executeCliCommandAsync('airdrop:airdrop', [
-      `--posted ${postedTransactionsPath}`,
-    ]),
-    logger,
+    [`--posted`, `${postedTransactionsPath}`],
+    {
+      onLog: (msg) => logger.info(msg),
+      onError: (err: Error) => logger.error(err.message),
+    },
   )
 
   spendNode.stopMiner()
 
-  logCliExecution(
+  await viewNode.executeCliCommand(
     'airdrop:export',
-    await viewNode.executeCliCommandAsync('airdrop:export', [
-      `--account ${viewAccountName}`,
-      `--exported ${exportedAirdropPath}`,
-    ]),
-    logger,
+    [`--account ${viewAccountName}`, `--exported ${exportedAirdropPath}`],
+    {
+      onLog: (msg) => logger.info(msg),
+      onError: (err: Error) => logger.error(err.message),
+    },
   )
 
   // Call this to keep the simulation running. This currently will wait for all the nodes to exit.
@@ -187,19 +213,4 @@ function splitOneIntoNFractions(n: number): number[] {
   decimals[n - 1] = 1 - sum
 
   return decimals
-}
-
-function logCliExecution(
-  fn: string,
-  output: { stdout: string; stderr: string },
-  logger: Logger,
-): void {
-  const { stdout, stderr } = output
-  if (stdout && stdout.length > 0) {
-    logger.log(`${fn} (stdout) ${stdout}`)
-  }
-
-  if (stderr && stderr.length > 0) {
-    logger.log(`${fn} (stderr): ${stderr}`)
-  }
 }
