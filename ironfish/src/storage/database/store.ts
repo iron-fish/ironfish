@@ -94,7 +94,11 @@ export interface IDatabaseStore<Schema extends DatabaseSchema> {
    *
    * @returns resolves when all keys have been deleted
    */
-  clear(transaction?: IDatabaseTransaction, keyRange?: DatabaseKeyRange): Promise<void>
+  clear(
+    transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
+  ): Promise<void>
 
   /**
    * Used to get a value from the store at a given key

@@ -192,9 +192,13 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
     return AsyncUtils.materialize(this.getAllKeysIter(transaction, keyRange, iteratorOptions))
   }
 
-  async clear(transaction?: IDatabaseTransaction, keyRange?: DatabaseKeyRange): Promise<void> {
+  async clear(
+    transaction?: IDatabaseTransaction,
+    keyRange?: DatabaseKeyRange,
+    iteratorOptions?: DatabaseIteratorOptions,
+  ): Promise<void> {
     if (transaction) {
-      for await (const key of this.getAllKeysIter(transaction, keyRange)) {
+      for await (const key of this.getAllKeysIter(transaction, keyRange, iteratorOptions)) {
         await this.del(key, transaction)
       }
       return
@@ -206,7 +210,7 @@ export class LevelupStore<Schema extends DatabaseSchema> extends DatabaseStore<S
       keyRange = this.allKeysRange
     }
 
-    await this.db.levelup.clear(keyRange ?? this.allKeysRange)
+    await this.db.levelup.clear({ ...keyRange, ...iteratorOptions })
   }
 
   async put(

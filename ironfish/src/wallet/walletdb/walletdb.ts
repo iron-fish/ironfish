@@ -1074,14 +1074,11 @@ export class WalletDB {
       const range = StorageUtils.getPrefixKeyRange(prefix)
 
       for (const store of stores) {
-        for await (const key of store.getAllKeysIter(undefined, range)) {
-          if (signal?.aborted === true || recordsToCleanup === 0) {
-            return
-          }
-
-          await store.del(key)
-          recordsToCleanup--
+        if (signal?.aborted === true) {
+          return
         }
+
+        await store.clear(undefined, range, { limit: recordsToCleanup })
       }
 
       await this.accountIdsToCleanup.del(accountId)
