@@ -29,6 +29,7 @@ export default class AirdropSplit extends IronfishCommand {
       description: 'A serialized raw transaction for splitting originating note',
     }),
   }
+
   async start(): Promise<void> {
     const { flags } = await this.parse(AirdropSplit)
     const account = flags.account
