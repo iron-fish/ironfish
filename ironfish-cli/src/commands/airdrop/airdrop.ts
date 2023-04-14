@@ -27,11 +27,16 @@ export class Airdrop extends IronfishCommand {
     let lineNum = 0
     const fileContent = await fs.readFile(flags.posted, 'utf-8')
     const lines = fileContent.split(/[\r\n]+/)
+
+    this.logger.log(`Posting ${lines.length} transactions`)
+
     const client = await this.sdk.connectRpc()
     for (const line of lines) {
       lineNum++
       CliUx.ux.action.start(`Adding transaction #${lineNum}`)
       const response = await client.wallet.addTransaction({ transaction: line.trim() })
+      this.logger.log(JSON.stringify(response.content))
+
       CliUx.ux.action.stop()
       if (response.content.accepted) {
         this.logger.info(`Added ${response.content.hash} transaction (#${lineNum})`)

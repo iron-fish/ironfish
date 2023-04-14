@@ -72,8 +72,13 @@ export default class AirdropRawTransactions extends IronfishCommand {
         account,
         outputs,
         fee: String(fee),
+        confirmations: 0,
       })
-      await fs.appendFile(fileHandle, `${result.content.transaction}\n`)
+      await fs.appendFile(fileHandle, `${result.content.transaction}`)
+
+      if (i !== allocations.length - 1) {
+        await fs.appendFile(fileHandle, `\n`)
+      }
     }
     await fileHandle.close()
   }

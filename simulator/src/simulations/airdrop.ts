@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// This file should serve as an example simulation.
-// It is a good idea to copy this file and use it as a template for your own simulations.
-
 import { generateKey } from '@ironfish/rust-nodejs'
 import { Assert, Logger } from '@ironfish/sdk'
 import fs from 'fs/promises'
 import { v4 as uuid } from 'uuid'
 import { SECOND, Simulator, sleep } from '../simulator'
+
 /**
  * Author: Joe Parks
  * Date: 2023-04-05
@@ -28,12 +26,24 @@ export async function run(
   const simulator = new Simulator(logger, options)
 
   const spendNode = await simulator.startNode({
-    cfg: { transactionExpirationDelta: 10000, importGenesisAccount: true },
+    cfg: {
+      transactionExpirationDelta: 10000,
+      importGenesisAccount: true,
+      verbose: true,
+    },
   })
 
+  logger.log(`Spend node: ${spendNode.config.dataDir}`)
+
   const viewNode = await simulator.startNode({
-    cfg: { transactionExpirationDelta: 10000, importGenesisAccount: false },
+    cfg: {
+      transactionExpirationDelta: 10000,
+      importGenesisAccount: false,
+      verbose: true,
+    },
   })
+
+  logger.log(`View node: ${viewNode.config.dataDir}`)
 
   // TODO: if these files don't exist the read on line ~113 fails with ENOENT
   const allocationsPath = '/tmp/allocations.txt'
@@ -43,7 +53,7 @@ export async function run(
   const exportedAirdropPath = '/tmp/exported_airdrop.txt'
   const fakeAccounts = await fs.open(allocationsPath, 'w')
 
-  // TODO: when fractions are generated, the amount in IRON cannot be less than 1, i.e. fraction cannot be less than
+  // TODO: when fractions are generated, the amount in IRON cannot be less than 1, so the fraction cannot be less than
   // 1 / 4200000
   const fractions = splitOneIntoNFractions(20000)
   Assert.isEqual(
@@ -78,6 +88,9 @@ export async function run(
       `${key.publicAddress},${BigInt(Math.floor(42000000 * fraction))},${fakeGraffiti}\n`,
     )
   }
+
+  await fakeAccounts.close()
+
   logger.info(
     `[fake_accounts] created ${fractions.length} fake addresses,iron,graffiti entries at ${allocationsPath}`,
   )
@@ -112,10 +125,6 @@ export async function run(
 
   logger.info(`split transaction added ${splitTransactionPath}`)
   logger.info(JSON.stringify(splitAddedTransaction.content))
-
-  logger.info('sleep for 5s')
-
-  await sleep(5 * SECOND)
 
   // starting miner on spendnode for now because it actually has the transaction in the mempool
   // the miner node is not getting it
@@ -171,8 +180,13 @@ export async function run(
 
   spendNode.startMiner()
 
-  // airdrop the coins, this will occur sequentially
+  // This is necessary for `airdrop:airdrop` to work
+  logger.log(`sleeping for 10s to mine some blocks before airdrop...`)
+  await sleep(10 * SECOND)
 
+  logger.log(`airdropping...`)
+
+  // airdrop the coins, this will occur sequentially
   await viewNode.executeCliCommand(
     'airdrop:airdrop',
     [`--posted`, `${postedTransactionsPath}`],
@@ -184,14 +198,17 @@ export async function run(
 
   spendNode.stopMiner()
 
+  logger.log(`exporting...`)
   await viewNode.executeCliCommand(
     'airdrop:export',
-    [`--account ${viewAccountName}`, `--exported ${exportedAirdropPath}`],
+    [`--account`, `${viewAccountName}`, `--exported`, `${exportedAirdropPath}`],
     {
       onLog: (msg) => logger.info(msg),
       onError: (err: Error) => logger.error(err.message),
     },
   )
+
+  logger.log(`airdrop complete, exported to ${exportedAirdropPath}`)
 
   // Call this to keep the simulation running. This currently will wait for all the nodes to exit.
   await simulator.waitForShutdown()

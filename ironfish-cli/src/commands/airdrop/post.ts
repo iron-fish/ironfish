@@ -36,17 +36,38 @@ export default class AirdropPostTransactions extends IronfishCommand {
 
     const fileHandle = await fs.open(flags.posted, 'w')
 
+    const promises = []
     for (const [idx, line] of lines.entries()) {
-      // Parallelizing posting transactions does not yield performance gains
+      // Parallelizing posting transactions yields minimal (?) performance gains
       const startTime = Date.now()
-      this.log(`posting ${idx} of ${lines.length} transactions`)
-      const response = await client.wallet.postTransaction({
-        account: flags.account,
-        transaction: line.trim(),
-      })
+      this.logger.log(`posting ${idx + 1} of ${lines.length} transactions`)
+      promises.push(
+        client.wallet.postTransaction({
+          account: flags.account,
+          transaction: line.trim(),
+          broadcast: false,
+        }),
+      )
 
-      await fs.appendFile(fileHandle, response.content.transaction + '\n')
-      this.log(`took ${(Date.now() - startTime) / 1000} s to post txn #${idx}`)
+      // Process 6 transactions at a time because the node has 6 worker threads
+      if (promises.length === 6) {
+        for (const [promiseIdx, promise] of promises.entries()) {
+          const response = await promise
+
+          await fs.appendFile(fileHandle, response.content.transaction)
+
+          // Don't add a newline to the last txn
+          if (!(promiseIdx === promises.length - 1 && idx === lines.length - 1)) {
+            await fs.appendFile(fileHandle, `\n`)
+          }
+
+          this.logger.log(
+            `took ${(Date.now() - startTime) / 1000} s to post txn #${idx - (6 - promiseIdx)}`,
+          )
+        }
+        // Clear the array
+        promises.splice(0, promises.length)
+      }
     }
 
     await fileHandle.close()
