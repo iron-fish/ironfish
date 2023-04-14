@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createRootLogger } from '@ironfish/sdk'
 import { CliUx, Command, Config } from '@oclif/core'
 import { Flags } from '@oclif/core'
 import { SIMULATIONS } from '../simulations'
+import { createSimulatorLogger } from '../simulator'
 
 export abstract class Start extends Command {
   static description = 'Start a simulation'
@@ -46,7 +46,7 @@ export abstract class Start extends Command {
 
     const { persist, duration } = flags
 
-    const logger = createRootLogger()
+    const logger = createSimulatorLogger()
 
     if (simulation === undefined) {
       logger.log(`could not find simulation ${simName}`)

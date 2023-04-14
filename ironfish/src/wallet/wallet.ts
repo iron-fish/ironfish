@@ -1062,9 +1062,12 @@ export class Wallet {
     if (!head) {
       return { amount, notes }
     }
+    const unspentNotes = await AsyncUtils.materialize(
+      this.getUnspentNotes(sender, assetId, { confirmations }),
+    )
 
-    for await (const unspentNote of this.getUnspentNotes(sender, assetId, { confirmations })) {
-      if (unspentNote.note.value() <= 0n) {
+    for await (const unspentNote of unspentNotes) {
+      if (unspentNote.note.value() < amountNeeded) {
         continue
       }
 

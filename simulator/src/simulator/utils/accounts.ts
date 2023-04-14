@@ -71,7 +71,7 @@ export async function importAccount(
   account: string,
   rescan?: boolean,
 ): Promise<void> {
-  await node.executeCliCommandAsync('wallet:import', [account])
+  await node.executeCliCommand('wallet:import', [account])
   if (rescan) {
     await node.client.wallet.rescanAccountStream().waitForEnd()
   }
