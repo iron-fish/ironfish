@@ -116,7 +116,7 @@ fn process_commands(
 
                     // Submit amount of work done
                     let work_done = match match_found {
-                        Some(randomness) => randomness - batch_start,
+                        Some(randomness) => randomness - rnd_start,
                         None => batch_size,
                     };
                     hash_rate_channel
