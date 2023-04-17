@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { CurrencyUtils, YupUtils } from '../../../utils'
+import { CurrencyUtils } from '../../../utils'
 import { Wallet } from '../../../wallet'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
