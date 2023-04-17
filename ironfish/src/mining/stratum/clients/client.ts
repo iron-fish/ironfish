@@ -19,6 +19,8 @@ import {
   MiningStatusMessage,
   MiningStatusSchema,
   MiningSubmitMessage,
+  MiningSubmittedMessage,
+  MiningSubmittedSchema,
   MiningSubscribedMessage,
   MiningSubscribedMessageSchema,
   MiningSubscribeMessage,
@@ -48,6 +50,7 @@ export abstract class StratumClient {
 
   readonly onConnected = new Event<[]>()
   readonly onSubscribed = new Event<[MiningSubscribedMessage]>()
+  readonly onSubmitted = new Event<[MiningSubmittedMessage]>()
   readonly onSetTarget = new Event<[MiningSetTargetMessage]>()
   readonly onNotify = new Event<[MiningNotifyMessage]>()
   readonly onWaitForWork = new Event<[MiningWaitForWorkMessage]>()
@@ -126,10 +129,11 @@ export abstract class StratumClient {
     this.logger.info('Subscribing to pool to receive work')
   }
 
-  submit(miningRequestId: number, randomness: string): void {
+  submit(miningRequestId: number, randomness: string, graffiti: string): void {
     this.send('mining.submit', {
       miningRequestId: miningRequestId,
       randomness: randomness,
+      graffiti: graffiti,
     })
   }
 
@@ -154,8 +158,9 @@ export abstract class StratumClient {
       method: method,
       body: body,
     }
-
-    this.writeData(JSON.stringify(message) + '\n')
+    const msg = JSON.stringify(message)
+    this.logger.info('Send: ' + msg)
+    this.writeData(msg + '\n')
   }
 
   protected onConnect(): void {
@@ -199,6 +204,8 @@ export abstract class StratumClient {
 
   protected async onData(data: Buffer): Promise<void> {
     this.messageBuffer.write(data)
+
+    this.logger.info('Recv: ' + data.toString('utf-8'))
 
     for (const message of this.messageBuffer.readMessages()) {
       const payload: unknown = JSON.parse(message)
@@ -250,6 +257,16 @@ export abstract class StratumClient {
             throw new ServerMessageMalformedError(body.error, header.result.method)
           }
           this.onSetTarget.emit(body.result)
+          break
+        }
+
+        case 'mining.submitted': {
+          const body = await YupUtils.tryValidate(MiningSubmittedSchema, header.result.body)
+
+          if (body.error) {
+            throw new ServerMessageMalformedError(body.error, header.result.method)
+          }
+          this.onSubmitted.emit(body.result)
           break
         }
 

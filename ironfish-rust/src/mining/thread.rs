@@ -7,6 +7,8 @@ use std::{
     thread,
 };
 
+use byteorder::{ReadBytesExt, BigEndian};
+
 use super::mine;
 
 #[derive(Debug)]
@@ -94,17 +96,20 @@ fn process_commands(
         match command {
             Command::NewWork(mut header_bytes, target, mining_request_id) => {
                 let mut batch_start = start;
+                let xn = header_bytes.as_slice().read_u64::<BigEndian>().unwrap();
                 loop {
+                    // NOTE: this is slightly broken with incoming xnonce not being taken into account
                     let remaining_search_space = u64::MAX - batch_start;
                     let batch_size = if remaining_search_space > default_batch_size {
                         default_batch_size
                     } else {
                         remaining_search_space
                     };
+                    let rnd_start = batch_start + xn;
                     let match_found = mine::mine_batch(
                         &mut header_bytes,
                         &target,
-                        batch_start,
+                        rnd_start,
                         step_size,
                         batch_size,
                     );
