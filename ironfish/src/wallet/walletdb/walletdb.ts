@@ -1060,13 +1060,17 @@ export class WalletDB {
       key: Readonly<unknown>
       value: unknown
     }>[] = [
-      this.transactions,
+      this.decryptedNotes,
+      this.nullifierToNoteHash,
       this.sequenceToNoteHash,
       this.nonChainNoteHashes,
-      this.nullifierToNoteHash,
+      this.transactions,
+      this.sequenceToTransactionHash,
       this.pendingTransactionHashes,
-      this.decryptedNotes,
       this.timestampToTransactionHash,
+      this.assets,
+      this.nullifierToTransactionHash,
+      this.unspentNoteHashes,
     ]
 
     for (const [accountId] of await this.accountIdsToCleanup.getAll()) {
