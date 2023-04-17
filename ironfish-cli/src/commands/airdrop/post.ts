@@ -50,15 +50,15 @@ export default class AirdropPostTransactions extends IronfishCommand {
       )
 
       // Process 6 transactions at a time because the node has 6 worker threads
-      if (promises.length === 6) {
+      if (promises.length === 6 || idx === lines.length - 1) {
         for (const [promiseIdx, promise] of promises.entries()) {
           const response = await promise
 
-          await fs.appendFile(fileHandle, response.content.transaction)
-
           // Don't add a newline to the last txn
-          if (!(promiseIdx === promises.length - 1 && idx === lines.length - 1)) {
-            await fs.appendFile(fileHandle, `\n`)
+          if (promiseIdx === promises.length - 1 && idx === lines.length - 1) {
+            await fs.appendFile(fileHandle, response.content.transaction)
+          } else {
+            await fs.appendFile(fileHandle, response.content.transaction + `\n`)
           }
 
           this.logger.log(
