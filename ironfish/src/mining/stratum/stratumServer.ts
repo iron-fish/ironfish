@@ -21,6 +21,7 @@ import {
   MiningSetTargetMessage,
   MiningStatusMessage,
   MiningSubmitSchema,
+  MiningSubmittedMessage,
   MiningSubscribedMessage,
   MiningSubscribeSchema,
   StratumMessage,
@@ -241,19 +242,28 @@ export class StratumServer {
           client.publicAddress = body.result.publicAddress
           client.name = body.result.name
           client.subscribed = true
+          client.version = body.result.version
           this.subscribed++
 
           const idHex = client.id.toString(16)
           const graffiti = `${this.pool.name}.${idHex}`
           Assert.isTrue(StringUtils.getByteLength(graffiti) <= GRAFFITI_SIZE)
           client.graffiti = GraffitiUtils.fromString(graffiti)
+          client.xn = ('00000000000000000000' + idHex).substr(-2 * this.config.config.xnSize)
 
           this.logger.info(`Miner ${idHex} connected (${this.subscribed} total)`)
 
-          this.send(client.socket, 'mining.subscribed', {
-            clientId: client.id,
-            graffiti: graffiti,
-          })
+          if (client.version === 1) {
+            this.send(client.socket, 'mining.subscribed', {
+              clientId: client.id,
+              graffiti: graffiti,
+            })
+          } else {
+            this.send(client.socket, 'mining.subscribed', {
+              clientId: client.id,
+              xn: client.xn,
+            })
+          }
 
           this.send(client.socket, 'mining.set_target', this.getSetTargetMessage())
 
@@ -276,8 +286,40 @@ export class StratumServer {
 
           const submittedRequestId = body.result.miningRequestId
           const submittedRandomness = body.result.randomness
+          const submittedGraffiti = body.result.graffiti || ''
 
-          void this.pool.submitWork(client, submittedRequestId, submittedRandomness)
+          if (client.version >= 2) {
+            if (!submittedRandomness.startsWith(client.xn)) {
+              this.send(client.socket, 'mining.submitted', {
+                id: header.result.id,
+                result: false,
+                message: 'invalid leading xnonce in randomness',
+              })
+              return
+            }
+          }
+
+          const res = await this.pool.submitWork(
+            client,
+            submittedRequestId,
+            submittedRandomness,
+            submittedGraffiti,
+          )
+
+          if (client.version >= 2) {
+            if (res && res.length > 0) {
+              this.send(client.socket, 'mining.submitted', {
+                id: header.result.id,
+                result: false,
+                message: res,
+              })
+            } else {
+              this.send(client.socket, 'mining.submitted', {
+                id: header.result.id,
+                result: true,
+              })
+            }
+          }
           break
         }
 
@@ -396,6 +438,7 @@ export class StratumServer {
   send(socket: net.Socket, method: 'mining.disconnect', body: MiningDisconnectMessage): void
   send(socket: net.Socket, method: 'mining.set_target', body: MiningSetTargetMessage): void
   send(socket: net.Socket, method: 'mining.subscribed', body: MiningSubscribedMessage): void
+  send(socket: net.Socket, method: 'mining.submitted', body: MiningSubmittedMessage): void
   send(socket: net.Socket, method: 'mining.wait_for_work'): void
   send(socket: net.Socket, method: 'mining.status', body: MiningStatusMessage): void
   send(socket: net.Socket, method: string, body?: unknown): void {

@@ -24,14 +24,25 @@ export type MiningSubscribeMessage = {
   publicAddress: string
 }
 
+/* v1 sends randomness, v2 sends randomness + graffiti */
 export type MiningSubmitMessage = {
   miningRequestId: number
   randomness: string
+  graffiti?: string
 }
 
+/* v1 sends graffiti, v2 sends xn */
 export type MiningSubscribedMessage = {
   clientId: number
-  graffiti: string
+  xn?: string
+  graffiti?: string
+}
+
+/* only sent in v2 */
+export type MiningSubmittedMessage = {
+  id: number
+  result: boolean
+  message?: string
 }
 
 export type MiningSetTargetMessage = {
@@ -87,13 +98,22 @@ export const MiningDisconnectMessageSchema: yup.ObjectSchema<MiningDisconnectMes
 export const MiningSubscribedMessageSchema: yup.ObjectSchema<MiningSubscribedMessage> = yup
   .object({
     clientId: yup.number().required(),
-    graffiti: yup.string().required(),
+    graffiti: yup.string().optional(),
+    xn: yup.string().optional(),
   })
   .required()
 
 export const MiningSetTargetSchema: yup.ObjectSchema<MiningSetTargetMessage> = yup
   .object({
     target: yup.string().required(),
+  })
+  .required()
+
+export const MiningSubmittedSchema: yup.ObjectSchema<MiningSubmittedMessage> = yup
+  .object({
+    id: yup.number().required(),
+    result: yup.bool().required(),
+    message: yup.string().optional(),
   })
   .required()
 
@@ -120,6 +140,7 @@ export const MiningSubmitSchema: yup.ObjectSchema<MiningSubmitMessage> = yup
   .object({
     miningRequestId: yup.number().required(),
     randomness: yup.string().required(),
+    graffiti: yup.string().optional(),
   })
   .required()
 

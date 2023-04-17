@@ -257,42 +257,53 @@ export class MiningPool {
     client: StratumServerClient,
     miningRequestId: number,
     randomness: string,
-  ): Promise<void> {
+    graffiti: string,
+  ): Promise<string> {
     Assert.isNotNull(client.publicAddress)
     Assert.isNotNull(client.graffiti)
     Assert.isNotNull(this.blockHasher)
 
+    // Best effort handling of v1 vs v2 here, use the graffiti if it was provided, otherwise the default.
+    if (graffiti.length === 0) {
+      // Use default
+      graffiti = client.graffiti.toString('hex')
+    } else if (graffiti.length !== 64) {
+      const l = graffiti.length
+      const msg = `Client ${client.id} work with invalid custom graffiti length: ${l}`
+      this.logger.warn(msg)
+      return msg
+    } else {
+      // TODO verify hex parse?
+    }
+
     if (miningRequestId !== this.nextMiningRequestId - 1) {
-      this.logger.debug(
-        `Client ${client.id} submitted work for stale mining request: ${miningRequestId}`,
-      )
-      return
+      const msg = `Client ${client.id} submitted work for stale mining request: ${miningRequestId}`
+      this.logger.debug(msg)
+      return msg
     }
 
     const originalBlockTemplate = this.miningRequestBlocks.get(miningRequestId)
 
     if (!originalBlockTemplate) {
-      this.logger.warn(
-        `Client ${client.id} work for invalid mining request: ${miningRequestId}`,
-      )
-      return
+      const msg = `Client ${client.id} work for invalid mining request: ${miningRequestId}`
+      this.logger.warn(msg)
+      return msg
     }
 
     const blockTemplate = Object.assign({}, originalBlockTemplate)
     blockTemplate.header = Object.assign({}, originalBlockTemplate.header)
 
-    const isDuplicate = this.isDuplicateSubmission(client.id, randomness)
+    const isDuplicate = this.isDuplicateSubmission(client.id, randomness, graffiti)
 
     if (isDuplicate) {
-      this.logger.warn(
-        `Client ${client.id} submitted a duplicate mining request: ${miningRequestId}, ${randomness}`,
-      )
-      return
+      const msg = `Client ${client.id} submitted a duplicate share: ${miningRequestId}, ${randomness}, ${graffiti}`
+      this.logger.warn(msg)
+      return msg
     }
 
-    this.addWorkSubmission(client.id, randomness)
+    this.addWorkSubmission(client.id, randomness, graffiti)
 
-    blockTemplate.header.graffiti = client.graffiti.toString('hex')
+    blockTemplate.header.graffiti = graffiti
     blockTemplate.header.randomness = randomness
 
     let hashedHeader: Buffer
@@ -300,8 +311,9 @@ export class MiningPool {
       const rawBlock = RawBlockTemplateSerde.deserialize(blockTemplate)
       hashedHeader = this.blockHasher.hashHeader(rawBlock.header)
     } catch (error) {
-      this.stratum.peers.punish(client, `${client.id} sent malformed work.`)
-      return
+      const msg = `${client.id} sent malformed work.`
+      this.stratum.peers.punish(client, msg)
+      return msg
     }
 
     if (hashedHeader.compare(Buffer.from(blockTemplate.header.target, 'hex')) !== 1) {
@@ -333,8 +345,10 @@ export class MiningPool {
     }
 
     if (hashedHeader.compare(this.target) !== 1) {
-      this.logger.debug('Valid pool share submitted')
       await this.shares.submitShare(client.publicAddress)
+      return ''
+    } else {
+      return 'low difficulty'
     }
   }
 
@@ -487,20 +501,26 @@ export class MiningPool {
     }, RECALCULATE_TARGET_TIMEOUT)
   }
 
-  private isDuplicateSubmission(clientId: number, randomness: string): boolean {
+  private isDuplicateSubmission(
+    clientId: number,
+    randomness: string,
+    graffiti: string,
+  ): boolean {
     const submissions = this.recentSubmissions.get(clientId)
     if (submissions == null) {
       return false
     }
-    return submissions.includes(randomness)
+    const k = randomness + '|' + graffiti
+    return submissions.includes(k)
   }
 
-  private addWorkSubmission(clientId: number, randomness: string): void {
+  private addWorkSubmission(clientId: number, randomness: string, graffiti: string): void {
     const submissions = this.recentSubmissions.get(clientId)
+    const k = randomness + '|' + graffiti
     if (submissions == null) {
-      this.recentSubmissions.set(clientId, [randomness])
+      this.recentSubmissions.set(clientId, [k])
     } else {
-      submissions.push(randomness)
+      submissions.push(k)
       this.recentSubmissions.set(clientId, submissions)
     }
   }

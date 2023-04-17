@@ -25,7 +25,8 @@ export class MiningPoolMiner {
   private readonly publicAddress: string
   private readonly name: string | undefined
 
-  graffiti: Buffer | null
+  graffiti: Buffer
+  xnonce: Buffer
   miningRequestId: number
   target: Buffer
   waiting: boolean
@@ -39,7 +40,12 @@ export class MiningPoolMiner {
     name?: string
   }) {
     this.logger = options.logger
-    this.graffiti = null
+    // Set up a random graffiti to use if we don't get one
+    this.graffiti = Buffer.alloc(32)
+    for (let i = 0; i < 32; i++) {
+      this.graffiti[i] = 65 + Math.floor(Math.random() * 26)
+    }
+    this.xnonce = Buffer.alloc(0)
     this.name = options.name
     this.publicAddress = options.publicAddress
     if (!isValidPublicAddress(this.publicAddress)) {
@@ -51,8 +57,25 @@ export class MiningPoolMiner {
 
     this.stratum = options.stratum
     this.stratum.onConnected.on(() => this.stratum.subscribe(this.publicAddress, this.name))
-    this.stratum.onSubscribed.on((m) => this.setGraffiti(GraffitiUtils.fromString(m.graffiti)))
+    this.stratum.onSubscribed.on((m) => {
+      if (m.graffiti) {
+        this.setGraffiti(GraffitiUtils.fromString(m.graffiti))
+      }
+      if (m.xn) {
+        // Always set up length 8, zero-padded
+        const xnbuf = Buffer.alloc(8, 0)
+        xnbuf.write(m.xn, 'hex')
+        this.setXnonce(xnbuf)
+      }
+    })
     this.stratum.onSetTarget.on((m) => this.setTarget(m.target))
+    this.stratum.onSubmitted.on((m) => {
+      if (m.result) {
+        this.logger.info('Share accepted.')
+      } else {
+        this.logger.info('Share rejected (' + (m.message || '?') + ').')
+      }
+    })
     this.stratum.onNotify.on((m) =>
       this.newWork(m.miningRequestId, Buffer.from(m.header, 'hex')),
     )
@@ -107,9 +130,11 @@ export class MiningPoolMiner {
     this.graffiti = graffiti
   }
 
-  newWork(miningRequestId: number, header: Buffer): void {
-    Assert.isNotNull(this.graffiti)
+  setXnonce(xn: Buffer): void {
+    this.xnonce = xn
+  }
 
+  newWork(miningRequestId: number, header: Buffer): void {
     this.logger.debug(
       `new work ${header
         .toString('hex')
@@ -119,6 +144,7 @@ export class MiningPoolMiner {
     )
 
     const headerBytes = Buffer.concat([header])
+    headerBytes.set(this.xnonce, 0)
     headerBytes.set(this.graffiti, MINEABLE_BLOCK_HEADER_GRAFFITI_OFFSET)
 
     this.waiting = false
@@ -137,8 +163,8 @@ export class MiningPoolMiner {
         continue
       }
 
-      if (this.graffiti == null) {
-        this.logger.info('Waiting for graffiti from pool...')
+      if (this.waiting) {
+        this.logger.info('Waiting for work from pool...')
         await PromiseUtils.sleep(500)
         continue
       }
@@ -154,7 +180,7 @@ export class MiningPoolMiner {
           )}/s`,
         )
 
-        this.stratum.submit(miningRequestId, randomness)
+        this.stratum.submit(miningRequestId, randomness, this.graffiti.toString('hex'))
       }
 
       const hashRate = this.threadPool.getHashRateSubmission()

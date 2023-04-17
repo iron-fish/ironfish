@@ -86,6 +86,10 @@ export type ConfigOptions = {
    * Length is truncated to 32 bytes.
    */
   blockGraffiti: string
+  /**
+   * Extranonce size in bytes for v2 protocol.
+   */
+  xnSize: number
   nodeName: string
   /**
    * The number of CPU workers to use for long-running node operations, like creating
@@ -441,6 +445,7 @@ export class Config<
       logPrefix: '',
       miningForce: false,
       blockGraffiti: '',
+      xnSize: 2,
       nodeName: '',
       nodeWorkers: -1,
       nodeWorkersMax: 6,
