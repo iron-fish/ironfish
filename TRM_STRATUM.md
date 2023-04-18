@@ -17,6 +17,14 @@
 - mining.submitted: new message, always sent for each submitted share, matches the proposed extension by bzminer.
 - stratum error: new generic error message in response to a client message. Does not have a method. Matches proposed extension.
 
+## Testing instructions
+- Install rust, yarn, node as specified in README.md.
+- Build repo.
+- Start daemon with "yarn start start" from ironfish-cli/. Wait until synced.
+- Start pool with "yarn start miners:pools:start -v" from ironfish-cli/.
+- Start cpu miner with "yarn start miners:start -v -p 127.0.0.1:9034 -n testminer" from ironfish-cli/.
+- The cpu miner will print all pool traffic for easy inspection of the protocol.
+
 ## Examples session with comments
 
 - Note: all hex strings are treated as byte arrays. Hence, the xn "0005" sent means the first two bytes in the full 180 byte header for this miner will be 0x00 0x05 (or else the share is rejected).
