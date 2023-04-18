@@ -76,6 +76,9 @@ export class MiningPoolMiner {
         this.logger.info('Share rejected (' + (m.message || '?') + ').')
       }
     })
+    this.stratum.onStratumError.on((m) => {
+      this.logger.info('Pool error message: ' + m.error.message)
+    })
     this.stratum.onNotify.on((m) =>
       this.newWork(m.miningRequestId, Buffer.from(m.header, 'hex')),
     )

@@ -28,6 +28,8 @@ import {
   MiningWaitForWorkSchema,
   StratumMessage,
   StratumMessageSchema,
+  StratumMessageWithError,
+  StratumMessageWithErrorSchema,
 } from '../messages'
 import { VERSION_PROTOCOL_STRATUM } from '../version'
 
@@ -55,7 +57,8 @@ export abstract class StratumClient {
   readonly onNotify = new Event<[MiningNotifyMessage]>()
   readonly onWaitForWork = new Event<[MiningWaitForWorkMessage]>()
   readonly onStatus = new Event<[MiningStatusMessage]>()
-
+  readonly onStratumError = new Event<[StratumMessageWithError]>()
+  
   constructor(options: { logger: Logger }) {
     this.logger = options.logger
     this.version = VERSION_PROTOCOL_STRATUM
@@ -123,6 +126,7 @@ export abstract class StratumClient {
     this.send('mining.subscribe', {
       version: this.version,
       name,
+      agent: 'ironfish-miner/v2',
       publicAddress: publicAddress,
     })
 
@@ -213,7 +217,16 @@ export abstract class StratumClient {
       const header = await YupUtils.tryValidate(StratumMessageSchema, payload)
 
       if (header.error) {
-        throw new ServerMessageMalformedError(header.error)
+        // Try the stratum error message instead.
+        const errhdr = await YupUtils.tryValidate(StratumMessageWithErrorSchema, payload)
+        if (errhdr.error) {
+          throw new ServerMessageMalformedError(header.error)
+        }
+        this.logger.debug(
+          `Server sent error ${errhdr.result.error.message} for id ${errhdr.result.error.id}`,
+        )
+        this.onStratumError.emit(errhdr.result)
+        return
       }
 
       this.logger.debug(`Server sent ${header.result.method} message`)
