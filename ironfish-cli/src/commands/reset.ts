@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { HOST_FILE_NAME, IDatabaseStore, IronfishNode } from '@ironfish/sdk'
+import { HOST_FILE_NAME, IronfishNode } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import fsAsync from 'fs/promises'
 import { IronfishCommand } from '../command'
@@ -83,26 +83,9 @@ export default class Reset extends IronfishCommand {
     const node = await this.sdk.node()
     const walletDb = node.wallet.walletDb
 
-    const walletDbStores: IDatabaseStore<{
-      key: Readonly<unknown>
-      value: unknown
-    }>[] = [
-      walletDb.decryptedNotes,
-      walletDb.nullifierToNoteHash,
-      walletDb.sequenceToNoteHash,
-      walletDb.nonChainNoteHashes,
-      walletDb.transactions,
-      walletDb.sequenceToTransactionHash,
-      walletDb.pendingTransactionHashes,
-      walletDb.timestampToTransactionHash,
-      walletDb.assets,
-      walletDb.nullifierToTransactionHash,
-      walletDb.unspentNoteHashes,
-    ]
-
     await walletDb.db.open()
 
-    for (const store of walletDbStores) {
+    for (const store of walletDb.cacheStores) {
       await store.clear()
     }
 
