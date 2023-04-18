@@ -12,6 +12,7 @@ export class StratumServerClient {
   version: number
   publicAddress: string | null = null
   name: string | undefined
+  agent: string | undefined
   remoteAddress: string
   xn: string
   graffiti: Buffer | null = null

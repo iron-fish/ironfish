@@ -9,6 +9,13 @@ export type StratumMessage = {
   body?: unknown
 }
 
+export interface StratumMessageWithError extends Omit<StratumMessage, 'method' | 'body'> {
+  error: {
+    id: number
+    message: string
+  }
+}
+
 export type MiningDisconnectMessage =
   | {
       reason?: string
@@ -22,6 +29,7 @@ export type MiningSubscribeMessage = {
   version: number
   name?: string
   publicAddress: string
+  agent?: string
 }
 
 /* v1 sends randomness, v2 sends randomness + graffiti */
@@ -86,6 +94,18 @@ export const StratumMessageSchema: yup.ObjectSchema<StratumMessage> = yup
   })
   .required()
 
+export const StratumMessageWithErrorSchema: yup.ObjectSchema<StratumMessageWithError> = yup
+  .object({
+    id: yup.number().required(),
+    error: yup
+      .object({
+        id: yup.number().required(),
+        message: yup.string().required(),
+      })
+      .required(),
+  })
+  .required()
+
 export const MiningDisconnectMessageSchema: yup.ObjectSchema<MiningDisconnectMessage> = yup
   .object({
     reason: yup.string().optional(),
@@ -133,6 +153,7 @@ export const MiningSubscribeSchema: yup.ObjectSchema<MiningSubscribeMessage> = y
     version: yup.number().required(),
     name: yup.string().optional(),
     publicAddress: yup.string().required(),
+    agent: yup.string().optional(),
   })
   .required()
 

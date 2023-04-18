@@ -26,6 +26,7 @@ import {
   MiningSubscribeSchema,
   StratumMessage,
   StratumMessageSchema,
+  StratumMessageWithError,
 } from './messages'
 import { StratumPeers } from './stratumPeers'
 import { StratumServerClient } from './stratumServerClient'
@@ -223,8 +224,10 @@ export class StratumServer {
           }
 
           if (body.result.version < this.versionMin) {
+            const msg = `Client version ${body.result.version} does not meet minimum version ${this.versionMin}`
+            this.sendStratumError(client, header.result.id, msg)
             this.peers.ban(client, {
-              message: `Client version ${body.result.version} does not meet minimum version ${this.versionMin}`,
+              message: msg,
               reason: DisconnectReason.BAD_VERSION,
               until: Date.now() + FIVE_MINUTES_MS,
               versionExpected: this.version,
@@ -233,14 +236,17 @@ export class StratumServer {
           }
 
           if (!isValidPublicAddress(body.result.publicAddress)) {
+            const msg = `Invalid public address: ${body.result.publicAddress}`
+            this.sendStratumError(client, header.result.id, msg)
             this.peers.ban(client, {
-              message: `Invalid public address: ${body.result.publicAddress}`,
+              message: msg,
             })
             return
           }
 
           client.publicAddress = body.result.publicAddress
           client.name = body.result.name
+          client.agent = body.result.agent
           client.subscribed = true
           client.version = body.result.version
           this.subscribed++
@@ -451,4 +457,17 @@ export class StratumServer {
     const serialized = JSON.stringify(message) + '\n'
     socket.write(serialized)
   }
+
+  private sendStratumError(client: StratumServerClient, id: number, message: string) {
+    const msg: StratumMessageWithError = {
+      id: this.nextMessageId++,
+      error: {
+        id: id,
+        message: message,
+      },
+    }
+    const serialized = JSON.stringify(msg) + '\n'
+    client.socket.write(serialized)
+  }
+
 }

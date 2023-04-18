@@ -8,20 +8,23 @@
 - Miner should preferably make sure the graffiti bytes are printable chars or zeros.
 - Miner submits both full randomness and graffiti values.
 - Miner always gets submit response messages from the pool.
+- Proposed "extensions" added to the protocol.
 
 ## Message changes:
 - mining.subscribe: client sends "version": 2 to mark the protocol version used.
+- mining.subscribe: "agent" field added.
 - mining.subscribed: pool sends the "xn" field instead of "graffiti". Extranonce size is deduced from the nr bytes sent, value must be zero-padded.
-- mining.submitted: new message always sent for each submitted share, matches the proposed extension by bzminer.
+- mining.submitted: new message, always sent for each submitted share, matches the proposed extension by bzminer.
+- stratum error: new generic error message in response to a client message. Does not have a method. Matches proposed extension.
 
 ## Examples session with comments
 
-- Note: all hex strings are treated as byte arrays, so the xn "0005" sent means the first two bytes in the full 180 byte header for this miner will be 0x00 0x05 (or else the share is rejected).
+- Note: all hex strings are treated as byte arrays. Hence, the xn "0005" sent means the first two bytes in the full 180 byte header for this miner will be 0x00 0x05 (or else the share is rejected).
 
 ### mining.subscribe + response
 Client gets extranonce in the xn field instead of graffiti. Two bytes xnonce used here, 1-5 bytes expected.
 ```
-{"id":1,"method":"mining.subscribe","body":{"version":2,"publicAddress":"3005e5b38199c0549029dc5cc1991cb285f8de34cd4324caf9239d24c7c7af3b"}}
+{"id":1,"method":"mining.subscribe","body":{"version":2,"agent":"teamredminer/0.10.9","publicAddress":"3005e5b38199c0549029dc5cc1991cb285f8de34cd4324caf9239d24c7c7af3b","name":"mytestrig"}}
 {"id":23299,"method":"mining.subscribed","body":{"clientId":5,"xn":"0005"}}
 ```
 
@@ -45,8 +48,14 @@ Share accepted.
 {"id":23302,"method":"mining.submitted","body":{"id":2,"result":true}}
 ```
 
-Share rejected with error message.
+Share rejected with error message in the response. Preferred response style.
 ```
 {"id":63,"method":"mining.submit","body":{"miningRequestId":21745,"randomness":"0006000000000020","graffiti":"4172536c6d5550435964794f384e6b68584d413162745268673943756f4d452e"}}
 {"id":23432,"method":"mining.submitted","body":{"id":63,"result":false,"message":"Client 6 submitted work for stale mining request: 21745"}}
+```
+
+Share rejected with the generic stratum error message. Not recommended, but not considered a violation to conform with earlier extension proposals.
+```
+{"id":63,"method":"mining.submit","body":{"miningRequestId":21745,"randomness":"0006000000000020","graffiti":"4172536c6d5550435964794f384e6b68584d413162745268673943756f4d452e"}}
+{"id":23433,"error":{"id":63,"message":"Duplicate share"}}
 ```
