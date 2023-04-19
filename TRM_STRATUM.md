@@ -1,5 +1,7 @@
 # TRM Ironfish Stratum Changes
 
+Note: the reader is assumed to be familiar with the version 1 ironfish stratum protocol and suggested extensions.
+
 ## Overall description
 - Stratum protocol version bumped to 2.
 - Miner gets extranonce from pool (1-5 bytes) that's applied to the randomness header field.
@@ -34,6 +36,13 @@ Client gets extranonce in the xn field instead of graffiti. Two bytes xnonce use
 ```
 {"id":1,"method":"mining.subscribe","body":{"version":2,"agent":"teamredminer/0.10.9","publicAddress":"3005e5b38199c0549029dc5cc1991cb285f8de34cd4324caf9239d24c7c7af3b","name":"mytestrig"}}
 {"id":23299,"method":"mining.subscribed","body":{"clientId":5,"xn":"0005"}}
+```
+
+### mining.subscribe + error response
+The generic error message can be sent as reply to any client message, referring to its id.
+```
+{"id":1,"method":"mining.subscribe","body":{"version":2,"agent":"teamredminer/0.10.9","publicAddress":"foobar","name":"mytestrig"}}
+{"id":12345,"error":{"id":1,"message":"Invalid public address."}}
 ```
 
 ### mining.set_target
