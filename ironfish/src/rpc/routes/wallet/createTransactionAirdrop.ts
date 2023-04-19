@@ -2,95 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset } from '@ironfish/rust-nodejs'
-import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
-import { CurrencyUtils, YupUtils } from '../../../utils'
+import { CurrencyUtils } from '../../../utils'
 import { Wallet } from '../../../wallet'
 import { NotEnoughFundsError } from '../../../wallet/errors'
 import { ERROR_CODES, ValidationError } from '../../adapters/errors'
 import { ApiNamespace, router } from '../router'
+import { CreateTransactionRequestSchema, CreateTransactionResponse } from './createTransaction'
 import { getAccount } from './utils'
-
-export type CreateTransactionRequest = {
-  account: string
-  outputs: {
-    publicAddress: string
-    amount: string
-    memo: string
-    assetId?: string
-  }[]
-  mints?: {
-    assetId?: string
-    name?: string
-    metadata?: string
-    value: string
-  }[]
-  burns?: {
-    assetId: string
-    value: string
-  }[]
-  fee?: string | null
-  feeRate?: string | null
-  expiration?: number
-  expirationDelta?: number
-  confirmations?: number
-}
-
-export type CreateTransactionResponse = {
-  transaction: string
-}
-
-export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionRequest> = yup
-  .object({
-    account: yup.string().defined(),
-    outputs: yup
-      .array(
-        yup
-          .object({
-            publicAddress: yup.string().defined(),
-            amount: YupUtils.currency({ min: 1n }).defined(),
-            memo: yup.string().defined(),
-            assetId: yup.string().optional(),
-          })
-          .defined(),
-      )
-      .defined(),
-    mints: yup
-      .array(
-        yup
-          .object({
-            assetId: yup.string().optional(),
-            name: yup.string().optional(),
-            metadata: yup.string().optional(),
-            value: YupUtils.currency({ min: 1n }).defined(),
-          })
-          .defined(),
-      )
-      .optional(),
-    burns: yup
-      .array(
-        yup
-          .object({
-            assetId: yup.string().defined(),
-            value: YupUtils.currency({ min: 1n }).defined(),
-          })
-          .defined(),
-      )
-      .optional(),
-    fee: YupUtils.currency({ min: 1n }).nullable().optional(),
-    feeRate: YupUtils.currency({ min: 1n }).nullable().optional(),
-    expiration: yup.number().optional(),
-    expirationDelta: yup.number().optional(),
-    confirmations: yup.number().optional(),
-  })
-  .defined()
-
-export const CreateTransactionResponseSchema: yup.ObjectSchema<CreateTransactionResponse> = yup
-  .object({
-    transaction: yup.string().defined(),
-  })
-  .defined()
 
 router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse>(
   `${ApiNamespace.wallet}/createTransactionAirdrop`,
