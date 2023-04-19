@@ -66,6 +66,7 @@ export default class AirdropRawTransactions extends IronfishCommand {
         account,
         outputs,
         fee: String(BigInt(AIRDROP_NOTES_IN_BLOCK) * FEE_ORE_PER_AIRDROP),
+        expiration: 100000,
       })
       await fs.appendFile(fileHandle, `${result.content.transaction}\n`)
     }
