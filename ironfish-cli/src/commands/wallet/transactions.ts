@@ -120,7 +120,8 @@ export class TransactionsCommand extends IronfishCommand {
         }
 
         // exclude the native asset in cli output if no amount was sent/received
-        if (format === Format.cli && amount === 0n) {
+        // and it was not the only asset exchanged
+        if (format === Format.cli && amount === 0n && assetCount > 1) {
           assetCount -= 1
           continue
         }
