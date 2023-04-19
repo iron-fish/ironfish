@@ -40,6 +40,7 @@ export default class AirdropSplit extends IronfishCommand {
     if (!result.ok) {
       this.error(result.error)
     }
+
     const client = await this.sdk.connectRpc()
     const publicKey = (await client.wallet.getAccountPublicKey({ account })).content.publicKey
     const allocations = result.allocations

@@ -9,6 +9,7 @@ export const parseAllocationsFile = (
 ): { ok: true; allocations: GenesisBlockAllocation[] } | { ok: false; error: string } => {
   const allocations: GenesisBlockAllocation[] = []
 
+  const errors = []
   let lineNum = 0
   for (const line of fileContent.split(/[\r\n]+/)) {
     lineNum++
@@ -19,35 +20,28 @@ export const parseAllocationsFile = (
     const [address, amountInIron, memo, ...rest] = line.split(',').map((v) => v.trim())
 
     if (rest.length > 0) {
-      return {
-        ok: false,
-        error: `Line ${lineNum}: (${line}) contains more than 3 values.`,
-      }
+      errors.push(`Line ${lineNum}: (${line}) contains more than 3 values.`)
+      continue
     }
 
     // Check address length
     if (!isValidPublicAddress(address)) {
-      return {
-        ok: false,
-        error: `Line ${lineNum}: (${line}) has an invalid public address.`,
-      }
+      errors.push(`Line ${lineNum}: (${line}) has an invalid public address.`)
+      continue
     }
 
     // Check amount is positive and decodes as $IRON
     const amountInOre = CurrencyUtils.decodeIron(amountInIron)
     if (amountInOre < 0) {
-      return {
-        ok: false,
-        error: `Line ${lineNum}: (${line}) contains a negative $IRON amount.`,
-      }
+      errors.push(`Line ${lineNum}: (${line}) contains a negative $IRON amount.`)
     }
 
     // Check memo length
     if (Buffer.from(memo).byteLength > MEMO_LENGTH) {
-      return {
-        ok: false,
-        error: `Line ${lineNum}: (${line}) contains a memo with byte length > ${MEMO_LENGTH}.`,
-      }
+      errors.push(
+        `Line ${lineNum}: (${line}) contains a memo with byte length > ${MEMO_LENGTH}.`,
+      )
+      continue
     }
 
     allocations.push({
@@ -55,6 +49,10 @@ export const parseAllocationsFile = (
       amountInOre: amountInOre,
       memo: memo,
     })
+  }
+
+  if (errors.length > 0) {
+    console.log(errors)
   }
 
   return { ok: true, allocations }
