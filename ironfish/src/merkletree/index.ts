@@ -3,5 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 export { MerkleTree, Side as WitnessSide } from './merkletree'
-export { MerkleHasher, ConcatHasher, StructureHasher, RangeHasher } from './hasher'
+export { MerkleHasher, ConcatHasher, StructureHasher, RangeHasher, NoteHasher } from './hasher'
 export { Witness } from './witness'
