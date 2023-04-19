@@ -124,6 +124,11 @@ export class WalletDB {
     value: null
   }>
 
+  cacheStores: IDatabaseStore<{
+    key: Readonly<unknown>
+    value: unknown
+  }>[]
+
   constructor({
     files,
     location,
@@ -268,6 +273,21 @@ export class WalletDB {
       ),
       valueEncoding: NULL_ENCODING,
     })
+
+    // IDatabaseStores that cache and index decrypted chain data
+    this.cacheStores = [
+      this.decryptedNotes,
+      this.nullifierToNoteHash,
+      this.sequenceToNoteHash,
+      this.nonChainNoteHashes,
+      this.transactions,
+      this.sequenceToTransactionHash,
+      this.pendingTransactionHashes,
+      this.timestampToTransactionHash,
+      this.assets,
+      this.nullifierToTransactionHash,
+      this.unspentNoteHashes,
+    ]
   }
 
   async open(): Promise<void> {
@@ -1056,24 +1076,11 @@ export class WalletDB {
   }
 
   async cleanupDeletedAccounts(recordsToCleanup: number, signal?: AbortSignal): Promise<void> {
-    const stores: IDatabaseStore<{
-      key: Readonly<unknown>
-      value: unknown
-    }>[] = [
-      this.transactions,
-      this.sequenceToNoteHash,
-      this.nonChainNoteHashes,
-      this.nullifierToNoteHash,
-      this.pendingTransactionHashes,
-      this.decryptedNotes,
-      this.timestampToTransactionHash,
-    ]
-
     for (const [accountId] of await this.accountIdsToCleanup.getAll()) {
       const prefix = calculateAccountPrefix(accountId)
       const range = StorageUtils.getPrefixKeyRange(prefix)
 
-      for (const store of stores) {
+      for (const store of this.cacheStores) {
         for await (const key of store.getAllKeysIter(undefined, range)) {
           if (signal?.aborted === true || recordsToCleanup === 0) {
             return
