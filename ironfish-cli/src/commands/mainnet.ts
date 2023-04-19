@@ -82,6 +82,16 @@ export default class Mainnet extends IronfishCommand {
     this.sdk.internal.clear('telemetryNodeId')
     await this.sdk.internal.save()
 
+    // Reset walletDb stores containing chain data
+    const node = await this.sdk.node()
+    const walletDb = node.wallet.walletDb
+
+    await walletDb.db.open()
+
+    for (const store of walletDb.cacheStores) {
+      await store.clear()
+    }
+
     CliUx.ux.action.stop('Data migrated successfully.')
   }
 }
