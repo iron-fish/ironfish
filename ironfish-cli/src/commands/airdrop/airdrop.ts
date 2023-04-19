@@ -7,6 +7,9 @@ import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { watchTransaction } from '../../utils/transaction'
 
+export const AIRDROP_NOTES_IN_BLOCK = 600
+export const FEE_ORE_PER_AIRDROP = 10n
+
 export class Airdrop extends IronfishCommand {
   static description = `Drop coins to testnet participants`
   static aliases = ['airdrop:airdrop']
@@ -21,17 +24,29 @@ export class Airdrop extends IronfishCommand {
   }
   async start(): Promise<void> {
     const { flags } = await this.parse(Airdrop)
-    let lineNum = 0
     const fileContent = await fs.readFile(flags.posted, 'utf-8')
     const lines = fileContent.split(/[\r\n]+/)
+
+    this.logger.log(`Posting ${lines.length} transactions`)
+
+    if (lines[lines.length - 1] === '') {
+      this.logger.log(`Removing empty line from end of file`)
+      lines.pop()
+    }
     const client = await this.sdk.connectRpc()
-    for (const line of lines) {
-      lineNum++
-      CliUx.ux.action.start(`Adding transaction #${lineNum}`)
+    for (const [idx, line] of lines.entries()) {
+      if (line === '') {
+        this.logger.log(`skipping empty line #${idx + 1} of ${lines.length} transactions`)
+        continue
+      }
+
+      CliUx.ux.action.start(`Adding transaction #${idx + 1}`)
       const response = await client.wallet.addTransaction({ transaction: line.trim() })
+      this.logger.log(JSON.stringify(response.content))
+
       CliUx.ux.action.stop()
       if (response.content.accepted) {
-        this.logger.info(`Added ${response.content.hash} transaction (#${lineNum})`)
+        this.logger.info(`Added ${response.content.hash} transaction (#${idx + 1})`)
         await watchTransaction({
           client,
           logger: this.logger,
@@ -41,7 +56,9 @@ export class Airdrop extends IronfishCommand {
         })
       } else {
         this.logger.warn(
-          `Skipping ${response.content.hash} transaction (#${lineNum}), transaction was not accepted`,
+          `Skipping ${response.content.hash} transaction (#${
+            idx + 1
+          }), transaction was not accepted`,
         )
       }
     }

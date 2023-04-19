@@ -1105,6 +1105,9 @@ export class Wallet {
       if (notesSpent.has(unspentNote.note.hash())) {
         continue
       }
+      if (unspentNote.note.value() < amountNeeded) {
+        continue
+      }
 
       const witness = await this.getNoteWitness(unspentNote, notesTreeSize)
 

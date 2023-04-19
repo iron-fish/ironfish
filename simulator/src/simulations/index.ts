@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '@ironfish/sdk'
 import { Simulator } from '../simulator'
+import * as airdrop from './airdrop'
 import * as getAccountTransaction from './getAccountTransaction'
 import * as send from './send'
 import * as stability from './stability'
@@ -21,4 +22,5 @@ export const SIMULATIONS: { [name: string]: Simulation | undefined } = {
   send,
   stability,
   getAccountTransaction,
+  // airdrop,
 }

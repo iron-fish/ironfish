@@ -22,6 +22,7 @@ export class AirdropExport extends IronfishCommand {
       description: 'where to output the posted transactions',
     }),
   }
+
   async start(): Promise<void> {
     const { flags } = await this.parse(AirdropExport)
     const account = flags.account

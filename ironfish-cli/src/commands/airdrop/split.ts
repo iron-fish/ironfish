@@ -6,7 +6,7 @@ import fs from 'fs/promises'
 import { IronfishCommand } from '../../command'
 import { LocalFlags } from '../../flags'
 import { parseAllocationsFile } from '../../utils/allocations'
-import { AIRDROP_NOTES_IN_BLOCK, FEE_ORE_PER_AIRDROP } from './constants'
+import { AIRDROP_NOTES_IN_BLOCK, FEE_ORE_PER_AIRDROP } from './airdrop'
 
 export default class AirdropSplit extends IronfishCommand {
   static aliases = ['airdrop:split']
