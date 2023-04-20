@@ -69,6 +69,7 @@ export class ExportCommand extends IronfishCommand {
     const { flags, args } = await this.parse(ExportCommand)
     const { color, local } = flags
     const account = args.account as string
+    const passphrase = args.passphrase as string
     const exportPath = flags.path
     const viewOnly = flags.viewonly
 
@@ -77,7 +78,11 @@ export class ExportCommand extends IronfishCommand {
     }
 
     const client = await this.sdk.connectRpc(local)
-    const response = await client.wallet.exportAccount({ account: account, passphrase: passphrase, viewOnly: viewOnly })
+    const response = await client.wallet.exportAccount({
+      account: account,
+      passphrase: passphrase,
+      viewOnly: viewOnly,
+    })
     let output
 
     if (flags.mnemonic) {
