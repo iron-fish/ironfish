@@ -16,6 +16,12 @@ export class CreateCommand extends IronfishCommand {
       required: false,
       description: 'Name of the account',
     },
+    {
+      name: 'passphrase',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Passphrase for account encryption',
+    },
   ]
 
   static flags = {
@@ -25,17 +31,27 @@ export class CreateCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(CreateCommand)
     let name = args.account as string
+    let passphrase = args.passphrase as string
 
     if (!name) {
       name = await CliUx.ux.prompt('Enter the name of the account', {
         required: true,
       })
     }
+    if (!passphrase) {
+      passphrase = await CliUx.ux.prompt(
+        'Enter the passphrase for encrypting the account, or leave blank to leave the account unencrypted',
+        {
+          required: false,
+          type: 'hide',
+        },
+      )
+    }
 
     const client = await this.sdk.connectRpc()
 
     this.log(`Creating account ${name}`)
-    const result = await client.wallet.createAccount({ name })
+    const result = await client.wallet.createAccount({ name, passphrase })
 
     const { publicAddress, isDefaultAccount } = result.content
 
