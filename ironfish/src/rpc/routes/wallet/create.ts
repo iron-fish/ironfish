@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { ERROR_CODES, ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
-export type CreateAccountRequest = { name: string; default?: boolean }
+export type CreateAccountRequest = { name: string; passphrase?: string; default?: boolean }
 export type CreateAccountResponse = {
   name: string
   publicAddress: string
@@ -15,6 +15,7 @@ export type CreateAccountResponse = {
 export const CreateAccountRequestSchema: yup.ObjectSchema<CreateAccountRequest> = yup
   .object({
     name: yup.string().defined(),
+    passphrase: yup.string().optional(),
     default: yup.boolean().optional(),
   })
   .defined()
