@@ -18,6 +18,7 @@ export type GetNodeStatusResponse = {
     version: string
     git: string
     nodeName: string
+    networkId: number
   }
   cpu: {
     cores: number
@@ -116,6 +117,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
         version: yup.string().defined(),
         git: yup.string().defined(),
         nodeName: yup.string().defined(),
+        networkId: yup.number().defined(),
       })
       .defined(),
     cpu: yup
@@ -289,6 +291,7 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
       version: node.pkg.version,
       git: node.pkg.git,
       nodeName: node.config.get('nodeName'),
+      networkId: node.internal.get('networkId'),
     },
     cpu: {
       cores: node.metrics.cpuCores,

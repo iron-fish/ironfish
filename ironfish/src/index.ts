@@ -5,7 +5,11 @@ export * from './wallet'
 export * from './assert'
 export * from './blockchain'
 export * from './consensus'
-export { DEV_GENESIS_ACCOUNT } from './defaultNetworkDefinitions'
+export {
+  DEV_GENESIS_ACCOUNT,
+  defaultNetworkName,
+  isDefaultNetworkId,
+} from './defaultNetworkDefinitions'
 export * from './chainProcessor'
 export * from './event'
 export * from './fileStores'
