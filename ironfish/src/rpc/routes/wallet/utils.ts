@@ -13,16 +13,16 @@ import {
   RpcAccountTransaction,
 } from './types'
 
-export function getAccount(node: IronfishNode, name?: string): Account {
+export function getAccount(node: IronfishNode, name?: string, passphrase?: string): Account {
   if (name) {
-    const account = node.wallet.getAccountByName(name)
+    const account = node.wallet.getAccountByName(name, passphrase)
     if (account) {
       return account
     }
     throw new ValidationError(`No account with name ${name}`)
   }
 
-  const defaultAccount = node.wallet.getDefaultAccount()
+  const defaultAccount = node.wallet.getDefaultAccount(passphrase?: string)
   if (defaultAccount) {
     return defaultAccount
   }

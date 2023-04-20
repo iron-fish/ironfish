@@ -57,6 +57,12 @@ export class ExportCommand extends IronfishCommand {
       required: false,
       description: 'Name of the account to export',
     },
+    {
+      name: 'passphrase',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Passphrase to unlock the account',
+    },
   ]
 
   async start(): Promise<void> {
@@ -71,7 +77,7 @@ export class ExportCommand extends IronfishCommand {
     }
 
     const client = await this.sdk.connectRpc(local)
-    const response = await client.wallet.exportAccount({ account: account, viewOnly: viewOnly })
+    const response = await client.wallet.exportAccount({ account: account, passphrase: passphrase, viewOnly: viewOnly })
     let output
 
     if (flags.mnemonic) {

@@ -5,7 +5,7 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
-export type ExportAccountRequest = { account?: string; viewOnly?: boolean }
+export type ExportAccountRequest = { account?: string; passphrase?: string; viewOnly?: boolean }
 export type ExportAccountResponse = {
   account: {
     name: string
@@ -25,6 +25,7 @@ export type ExportAccountResponse = {
 export const ExportAccountRequestSchema: yup.ObjectSchema<ExportAccountRequest> = yup
   .object({
     account: yup.string().trim(),
+    passphrase: yup.string().optional(),
     viewOnly: yup.boolean().optional().default(false),
   })
   .defined()
@@ -56,7 +57,7 @@ router.register<typeof ExportAccountRequestSchema, ExportAccountResponse>(
   `${ApiNamespace.wallet}/exportAccount`,
   ExportAccountRequestSchema,
   (request, node): void => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node, request.data.account, request.data.passphrase)
     const { id: _, ...accountInfo } = account.serialize()
     if (request.data.viewOnly) {
       accountInfo.spendingKey = null
