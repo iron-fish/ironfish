@@ -5,12 +5,18 @@ import * as yup from 'yup'
 import { ApiNamespace, router } from '../router'
 import { getAccount } from './utils'
 
-export type RemoveAccountRequest = { account: string; confirm?: boolean; wait?: boolean }
+export type RemoveAccountRequest = {
+  account: string
+  passphrase?: string
+  confirm?: boolean
+  wait?: boolean
+}
 export type RemoveAccountResponse = { needsConfirm?: boolean }
 
 export const RemoveAccountRequestSchema: yup.ObjectSchema<RemoveAccountRequest> = yup
   .object({
     account: yup.string().defined(),
+    passphrase: yup.string().optional(),
     confirm: yup.boolean().optional(),
     wait: yup.boolean().optional(),
   })
@@ -26,7 +32,7 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
   `${ApiNamespace.wallet}/remove`,
   RemoveAccountRequestSchema,
   async (request, node): Promise<void> => {
-    const account = getAccount(node, request.data.account)
+    const account = getAccount(node, request.data.account, request.data.passphrase)
 
     if (!request.data.confirm) {
       const balances = await account.getUnconfirmedBalances()
@@ -38,7 +44,7 @@ router.register<typeof RemoveAccountRequestSchema, RemoveAccountResponse>(
         }
       }
     }
-    await node.wallet.removeAccountByName(account.name)
+    await node.wallet.removeAccountByName(account.name, request.data.passphrase)
     if (request.data.wait) {
       await node.wallet.forceCleanupDeletedAccounts()
     }

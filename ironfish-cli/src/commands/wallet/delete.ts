@@ -16,6 +16,12 @@ export class DeleteCommand extends IronfishCommand {
       required: true,
       description: 'Name of the account',
     },
+    {
+      name: 'passphrase',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Passphrase to unlock the account',
+    },
   ]
 
   static flags = {
@@ -34,11 +40,12 @@ export class DeleteCommand extends IronfishCommand {
     const confirm = flags.confirm
     const wait = flags.wait
     const account = args.account as string
+    const passphrase = args.passphrase as string
 
     const client = await this.sdk.connectRpc()
 
     CliUx.ux.action.start(`Deleting account '${account}'`)
-    const response = await client.wallet.removeAccount({ account, confirm, wait })
+    const response = await client.wallet.removeAccount({ account, passphrase, confirm, wait })
     CliUx.ux.action.stop()
 
     if (response.content.needsConfirm) {
@@ -50,7 +57,7 @@ export class DeleteCommand extends IronfishCommand {
       }
 
       CliUx.ux.action.start(`Deleting account '${account}'`)
-      await client.wallet.removeAccount({ account, confirm: true, wait })
+      await client.wallet.removeAccount({ account, passphrase, confirm: true, wait })
       CliUx.ux.action.stop()
     }
 
