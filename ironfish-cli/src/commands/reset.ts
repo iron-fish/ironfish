@@ -80,6 +80,15 @@ export default class Reset extends IronfishCommand {
     this.sdk.internal.set('isFirstRun', true)
     await this.sdk.internal.save()
 
+    const node = await this.sdk.node()
+    const walletDb = node.wallet.walletDb
+
+    await walletDb.db.open()
+
+    for (const store of walletDb.cacheStores) {
+      await store.clear()
+    }
+
     CliUx.ux.action.stop('Databases deleted successfully')
   }
 }

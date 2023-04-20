@@ -72,9 +72,8 @@ jobs:
           docker push ghcr.io/iron-fish/ironfish:latest
 
       # Used if we are deploying a new version (e.g. v1.1)
-      # This is only executed when deploying a new release to mainnet
       - name: Deploy Node Image to GitHub:${{ github.ref_name }}
-        if: ${{ inputs.github_tag_mainnet && github.event.ref_type == 'tag'}}
+        if: ${{ github.ref_type == 'tag'}}
         run: |
           docker tag ironfish ghcr.io/iron-fish/ironfish:${{ github.ref_name }}
           docker push ghcr.io/iron-fish/ironfish:${{ github.ref_name }}
