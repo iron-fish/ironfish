@@ -8,6 +8,7 @@ import { ApiNamespace, router } from '../router'
 
 export type ImportAccountRequest = {
   account: AccountImport
+  passphrase?: string
   rescan?: boolean
 }
 
@@ -18,6 +19,7 @@ export type ImportResponse = {
 
 export const ImportAccountRequestSchema: yup.ObjectSchema<ImportAccountRequest> = yup
   .object({
+    passphrase: yup.string().optional(),
     rescan: yup.boolean().optional().default(true),
     account: yup
       .object({
@@ -64,7 +66,8 @@ router.register<typeof ImportAccountRequestSchema, ImportResponse>(
       ...request.data.account,
       createdAt,
     }
-    const account = await node.wallet.importAccount(accountValue)
+    // TODO: should passphrase go in the accountValue?
+    const account = await node.wallet.importAccount(accountValue, request.data.passphrase)
 
     if (request.data.rescan) {
       void node.wallet.scanTransactions()

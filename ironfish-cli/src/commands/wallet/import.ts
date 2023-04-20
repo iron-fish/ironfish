@@ -35,11 +35,18 @@ export class ImportCommand extends IronfishCommand {
       required: false,
       description: 'The copy-pasted output of wallet:export; or, a raw spending key',
     },
+    {
+      name: 'passphrase',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'The passphrase to use for encrypting the account',
+    },
   ]
 
   async start(): Promise<void> {
     const { flags, args } = await this.parse(ImportCommand)
     const blob = args.blob as string | undefined
+    const passphrase = args.passphrase as string | undefined
 
     const client = await this.sdk.connectRpc()
 
@@ -64,6 +71,7 @@ export class ImportCommand extends IronfishCommand {
       account.createdAt = null
     }
 
+    // TODO(evan): do we need passphrases to list accounts? where else does getAccounts get used?
     const accountsResponse = await client.wallet.getAccounts()
     const duplicateAccount = accountsResponse.content.accounts.find(
       (accountName) => accountName === account.name,
@@ -84,7 +92,7 @@ export class ImportCommand extends IronfishCommand {
     }
 
     const rescan = flags.rescan
-    const result = await client.wallet.importAccount({ account, rescan })
+    const result = await client.wallet.importAccount({ account, passphrase, rescan })
 
     const { name, isDefaultAccount } = result.content
     this.log(`Account ${name} imported.`)
