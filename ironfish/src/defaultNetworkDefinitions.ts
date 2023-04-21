@@ -6,6 +6,17 @@ export function isDefaultNetworkId(networkId: number): boolean {
   return networkId <= 100
 }
 
+export function defaultNetworkName(networkId: number): string | undefined {
+  switch (networkId) {
+    case 0:
+      return 'Testnet'
+    case 1:
+      return 'Mainnet'
+    case 2:
+      return 'Dev'
+  }
+}
+
 /**
  * This account (IronFishGenesisAccount) can be imported to access the funds in the genesis block.
  *

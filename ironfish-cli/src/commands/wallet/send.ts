@@ -99,6 +99,7 @@ export class Send extends IronfishCommand {
     let assetId = flags.assetId
     let to = flags.to?.trim()
     let from = flags.account?.trim()
+    let memo = flags.memo?.trim()
 
     const client = await this.sdk.connectRpc()
 
@@ -162,6 +163,10 @@ export class Send extends IronfishCommand {
       })
     }
 
+    if (!memo) {
+      memo = await CliUx.ux.prompt('Enter the memo (or leave blank)', { required: false })
+    }
+
     if (!isValidPublicAddress(to)) {
       this.log(`A valid public address is required`)
       this.exit(1)
@@ -178,7 +183,7 @@ export class Send extends IronfishCommand {
         {
           publicAddress: to,
           amount: CurrencyUtils.encode(amount),
-          memo: flags.memo,
+          memo,
           assetId,
         },
       ],
@@ -208,7 +213,7 @@ export class Send extends IronfishCommand {
       this.exit(0)
     }
 
-    if (!flags.confirm && !(await this.confirm(assetId, amount, raw.fee, from, to))) {
+    if (!flags.confirm && !(await this.confirm(assetId, amount, raw.fee, from, to, memo))) {
       this.error('Transaction aborted.')
     }
 
@@ -227,6 +232,7 @@ export class Send extends IronfishCommand {
     this.log(`Sent ${CurrencyUtils.renderIron(amount, true, assetId)} to ${to} from ${from}`)
     this.log(`Hash: ${transaction.hash().toString('hex')}`)
     this.log(`Fee: ${CurrencyUtils.renderIron(transaction.fee(), true)}`)
+    this.log(`Memo: ${memo}`)
     this.log(
       `\nIf the transaction is mined, it will appear here https://explorer.ironfish.network/transaction/${transaction
         .hash()
@@ -251,6 +257,7 @@ export class Send extends IronfishCommand {
     fee: bigint,
     from: string,
     to: string,
+    memo: string,
   ): Promise<boolean> {
     this.log(
       `You are about to send a transaction: ${CurrencyUtils.renderIron(
@@ -260,7 +267,7 @@ export class Send extends IronfishCommand {
       )} plus a transaction fee of ${CurrencyUtils.renderIron(
         fee,
         true,
-      )} to ${to} from the account ${from}`,
+      )} to ${to} from the account "${from}" with the memo "${memo}"`,
     )
 
     return await CliUx.ux.confirm('Do you confirm (Y/N)?')
