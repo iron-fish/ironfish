@@ -14,16 +14,9 @@ import { SECOND, Simulator, sleep } from '../simulator'
  * Description: Tests airdrop described in https://coda.io/d/_dMnayiE39lL/Airdrop_su_t8
  */
 
-export async function run(
-  logger: Logger,
-  options?: {
-    persist?: boolean
-    duration?: number
-  },
-): Promise<void> {
+export async function run(simulator: Simulator, logger: Logger): Promise<void> {
   // Create a new simulation handler.
   // The simulator handles managing nodes and data dirs.
-  const simulator = new Simulator(logger, options)
 
   const spendNode = await simulator.startNode({
     cfg: {

@@ -22,5 +22,5 @@ export const SIMULATIONS: { [name: string]: Simulation | undefined } = {
   send,
   stability,
   getAccountTransaction,
-  // airdrop,
+  airdrop,
 }

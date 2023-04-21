@@ -8,7 +8,7 @@ import { LocalFlags } from '../../flags'
 import { watchTransaction } from '../../utils/transaction'
 
 export const AIRDROP_NOTES_IN_BLOCK = 600
-export const FEE_ORE_PER_AIRDROP = 10n
+export const FEE_ORE_PER_AIRDROP = 1n
 
 export class Airdrop extends IronfishCommand {
   static description = `Drop coins to testnet participants`

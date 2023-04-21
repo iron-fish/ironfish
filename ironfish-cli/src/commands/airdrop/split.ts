@@ -63,7 +63,7 @@ export default class AirdropSplit extends IronfishCommand {
       account,
       outputs,
       // uses dust from flooring airdrop
-      fee: '10',
+      fee: '1',
       expiration: 100000,
     })
     await fs.writeFile(flags.output, transaction.content.transaction)
