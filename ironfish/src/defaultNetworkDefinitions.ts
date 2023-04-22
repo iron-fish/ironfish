@@ -13,7 +13,7 @@ export function defaultNetworkName(networkId: number): string | undefined {
     case 1:
       return 'Mainnet'
     case 2:
-      return 'Dev'
+      return 'Devnet'
   }
 }
 
@@ -34,7 +34,7 @@ export const DEV_GENESIS_ACCOUNT = {
   createdAt: null,
 }
 
-const DEV_GENESIS = `{
+const DEVNET_GENESIS = `{
   "header": {
     "sequence": 1,
     "previousBlockHash": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -184,11 +184,11 @@ export const MAINNET = `
     }
 }`
 
-export const DEV = `
+export const DEVNET = `
 {
     "id": 2,
     "bootstrapNodes": [],
-    "genesis": ${DEV_GENESIS},
+    "genesis": ${DEVNET_GENESIS},
     "consensus": {
         "allowedBlockFutureSeconds": 15,
         "genesisSupplyInIron": 42000000,
