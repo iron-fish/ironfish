@@ -32,7 +32,7 @@ export class Telemetry {
   private readonly metrics: MetricsMonitor | null
   private readonly workerPool: WorkerPool
   private readonly localPeerIdentity: Identity
-  private readonly apiHost: string
+  private readonly apiUrl: string
 
   private started: boolean
   private flushInterval: SetIntervalToken | null
@@ -69,11 +69,11 @@ export class Telemetry {
     this._submitted = 0
     this.started = false
 
-    this.apiHost = this.config.get('telemetryApi')
-    if (!this.apiHost && options.networkId === 0) {
-      this.apiHost = 'https://testnet.api.ironfish.network'
-    } else if (!this.apiHost) {
-      this.apiHost = 'https://api.ironfish.network'
+    this.apiUrl = this.config.get('telemetryApi')
+    if (!this.apiUrl && options.networkId === 0) {
+      this.apiUrl = 'https://testnet.api.ironfish.network'
+    } else if (!this.apiUrl) {
+      this.apiUrl = 'https://api.ironfish.network'
     }
   }
 
@@ -340,7 +340,7 @@ export class Telemetry {
 
     try {
       const graffiti = GraffitiUtils.fromString(this.config.get('blockGraffiti'))
-      await this.workerPool.submitTelemetry(points, graffiti, this.apiHost)
+      await this.workerPool.submitTelemetry(points, graffiti, this.apiUrl)
       this.logger.debug(`Submitted ${points.length} telemetry points`)
       this.retries = 0
       this._submitted += points.length
