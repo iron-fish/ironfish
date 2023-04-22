@@ -113,14 +113,12 @@ export class IronfishNode {
       metrics,
       workerPool,
       localPeerIdentity: privateIdentityToIdentity(identity),
-      defaultTags: [
-        { name: 'version', value: pkg.version },
-        { name: 'networkId', value: networkId.toString() },
-      ],
+      defaultTags: [{ name: 'version', value: pkg.version }],
       defaultFields: [
         { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
         { name: 'session_id', type: 'string', value: uuid() },
       ],
+      networkId,
     })
 
     this.peerNetwork = new PeerNetwork({
