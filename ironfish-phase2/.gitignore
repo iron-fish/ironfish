@@ -1,4 +1,0 @@
-phase1*
-/target/
-**/*.rs.bk
-Cargo.lock
