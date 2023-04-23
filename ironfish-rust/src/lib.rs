@@ -9,7 +9,6 @@ pub mod errors;
 pub mod keys;
 pub mod merkle_note;
 pub mod merkle_note_hash;
-pub mod nacl;
 pub mod note;
 pub mod rolling_filter;
 pub mod sapling_bls12;
