@@ -14,6 +14,7 @@ export type GetAccountNotesStreamResponse = {
   assetName: string
   memo: string
   sender: string
+  noteHash: string
   transactionHash: string
   spent: boolean | undefined
 }
@@ -33,6 +34,7 @@ export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNot
       assetName: yup.string().defined(),
       memo: yup.string().trim().defined(),
       sender: yup.string().defined(),
+      noteHash: yup.string().defined(),
       transactionHash: yup.string().defined(),
       spent: yup.boolean(),
     })
@@ -62,6 +64,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
           value: CurrencyUtils.encode(note.value()),
           assetId: note.assetId().toString('hex'),
           assetName: asset?.name.toString('hex') || '',
+          noteHash: note.hash().toString('hex'),
           memo: note.memo(),
           sender: note.sender(),
           transactionHash: transaction.transaction.hash().toString('hex'),
