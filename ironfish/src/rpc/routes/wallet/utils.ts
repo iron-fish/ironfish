@@ -104,6 +104,7 @@ export async function getAccountDecryptedNotes(
       assetName: asset?.name.toString('hex') || '',
       sender: note.sender(),
       spent: spent,
+      hash: note.hash().toString('hex'),
     })
   }
 

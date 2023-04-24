@@ -98,6 +98,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
             sender: yup.string().defined(),
             memo: yup.string().trim().defined(),
             spent: yup.boolean(),
+            hash: yup.string().defined(),
           })
           .defined(),
       ),

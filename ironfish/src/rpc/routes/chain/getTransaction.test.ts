@@ -20,9 +20,14 @@ describe('Route chain/getTransaction', () => {
     const transaction = block2.transactions[0]
 
     const notesEncrypted: string[] = []
+    const notes: { hash: string; serialized: string }[] = []
 
     for (const note of transaction.notes) {
       notesEncrypted.push(note.serialize().toString('hex'))
+      notes.push({
+        hash: note.hash().toString('hex'),
+        serialized: note.serialize().toString('hex'),
+      })
     }
 
     const response = await routeTest.client
@@ -47,6 +52,7 @@ describe('Route chain/getTransaction', () => {
       spends,
       mints: [],
       burns: [],
+      notes,
     })
   })
 
@@ -59,9 +65,14 @@ describe('Route chain/getTransaction', () => {
     const transaction = block2.transactions[0]
 
     const notesEncrypted: string[] = []
+    const notes: { hash: string; serialized: string }[] = []
 
     for (const note of transaction.notes) {
       notesEncrypted.push(note.serialize().toString('hex'))
+      notes.push({
+        hash: note.hash().toString('hex'),
+        serialized: note.serialize().toString('hex'),
+      })
     }
 
     const response = await routeTest.client
@@ -87,6 +98,7 @@ describe('Route chain/getTransaction', () => {
       spends,
       mints: [],
       burns: [],
+      notes,
     })
   })
 
