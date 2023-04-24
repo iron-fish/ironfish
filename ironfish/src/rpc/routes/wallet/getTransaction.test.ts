@@ -27,7 +27,13 @@ describe('Route wallet/getAccountTransaction', () => {
 
     expect(responseAccount).toMatch(account.name)
 
-    expect(responseTransaction.spends).toHaveLength(1)
-    expect(responseTransaction.notes).toHaveLength(2)
+    expect(responseTransaction.spends).toEqual(
+      transaction.spends.map((spend) => ({
+        nullifier: spend.nullifier.toString('hex'),
+        commitment: spend.commitment.toString('hex'),
+        size: spend.size,
+      })),
+    )
+    expect(responseTransaction.notes).toHaveLength(transaction.notes.length)
   })
 })
