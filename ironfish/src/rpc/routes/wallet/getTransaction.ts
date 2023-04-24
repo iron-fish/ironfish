@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { TransactionStatus, TransactionType } from '../../../wallet'
 import { ApiNamespace, router } from '../router'
-import { RpcAccountDecryptedNote } from './types'
+import { RpcAccountDecryptedNote, RpcSpend } from './types'
 import {
   getAccount,
   getAccountDecryptedNotes,
@@ -36,6 +36,7 @@ export type GetAccountTransactionResponse = {
     submittedSequence: number
     assetBalanceDeltas: Array<{ assetId: string; assetName: string; delta: string }>
     notes: RpcAccountDecryptedNote[]
+    spends: RpcSpend[]
   } | null
 }
 
@@ -94,6 +95,17 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
                 .defined(),
             )
             .defined(),
+          spends: yup
+            .array(
+              yup
+                .object({
+                  nullifier: yup.string().defined(),
+                  commitment: yup.string().defined(),
+                  size: yup.number().defined(),
+                })
+                .defined(),
+            )
+            .defined(),
         })
         .defined(),
     })
@@ -122,6 +134,12 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
 
     const notes = await getAccountDecryptedNotes(node, account, transaction)
 
+    const spends = transaction.transaction.spends.map((spend) => ({
+      nullifier: spend.nullifier.toString('hex'),
+      commitment: spend.commitment.toString('hex'),
+      size: spend.size,
+    }))
+
     const confirmations = request.data.confirmations ?? node.config.get('confirmations')
 
     const status = await node.wallet.getTransactionStatus(account, transaction, {
@@ -134,6 +152,7 @@ router.register<typeof GetAccountTransactionRequestSchema, GetAccountTransaction
       ...serializedTransaction,
       assetBalanceDeltas,
       notes,
+      spends,
       status,
       type,
       confirmations,
