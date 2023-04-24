@@ -31,6 +31,7 @@ export type RpcAccountDecryptedNote = {
   sender: string
   owner: string
   spent: boolean
+  hash: string
 }
 
 export type RpcSpend = {

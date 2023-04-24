@@ -15,6 +15,7 @@ import { ApiNamespace, router } from '../router'
 interface Note {
   assetId: string
   assetName: string
+  hash: string
   value: string
   memo: string
 }
@@ -42,6 +43,7 @@ const NoteSchema = yup
   .shape({
     assetId: yup.string().required(),
     assetName: yup.string().required(),
+    hash: yup.string().required(),
     value: yup.string().required(),
     memo: yup.string().required(),
   })
@@ -163,6 +165,7 @@ router.register<typeof GetTransactionStreamRequestSchema, GetTransactionStreamRe
               memo: decryptedNote.memo(),
               assetId: decryptedNote.assetId().toString('hex'),
               assetName: assetValue?.name.toString('hex') || '',
+              hash: decryptedNote.hash().toString('hex'),
             })
           }
         }
