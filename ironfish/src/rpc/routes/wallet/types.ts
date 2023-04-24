@@ -32,3 +32,9 @@ export type RpcAccountDecryptedNote = {
   owner: string
   spent: boolean
 }
+
+export type RpcSpend = {
+  nullifier: string
+  commitment: string
+  size: number
+}
