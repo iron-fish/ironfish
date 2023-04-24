@@ -6,7 +6,8 @@ import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
-import { RpcSpend } from '../wallet/types'
+import { RpcSendSchema, RpcSpend } from '../wallet/types'
+import { RpcNote, RpcNoteSchema } from './types'
 
 export type GetTransactionRequest = { transactionHash: string; blockHash?: string }
 
@@ -18,10 +19,7 @@ export type GetTransactionResponse = {
   spendsCount: number
   signature: string
   spends: RpcSpend[]
-  notes: {
-    hash: string
-    serialized: string
-  }[]
+  notes: RpcNote[]
   mints: {
     assetId: string
     value: string
@@ -30,9 +28,11 @@ export type GetTransactionResponse = {
     assetId: string
     value: string
   }[]
+  blockHash: string
   // Deprecated: use `notes` instead
   notesEncrypted: string[]
 }
+
 export const GetTransactionRequestSchema: yup.ObjectSchema<GetTransactionRequest> = yup
   .object({
     transactionHash: yup.string().defined(),
@@ -49,27 +49,8 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
     spendsCount: yup.number().defined(),
     signature: yup.string().defined(),
     notesEncrypted: yup.array(yup.string().defined()).defined(),
-    spends: yup
-      .array(
-        yup
-          .object({
-            nullifier: yup.string().defined(),
-            commitment: yup.string().defined(),
-            size: yup.number().defined(),
-          })
-          .defined(),
-      )
-      .defined(),
-    notes: yup
-      .array(
-        yup
-          .object({
-            hash: yup.string().defined(),
-            serialized: yup.string().defined(),
-          })
-          .defined(),
-      )
-      .defined(),
+    spends: yup.array(RpcSendSchema).defined(),
+    notes: yup.array(RpcNoteSchema).defined(),
     mints: yup
       .array(
         yup
@@ -90,6 +71,7 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
           .defined(),
       )
       .defined(),
+    blockHash: yup.string().defined(),
   })
   .defined()
 
@@ -101,80 +83,66 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       throw new ValidationError(`Missing transaction hash`)
     }
 
-    const hashBuffer = request.data.blockHash
-      ? BlockHashSerdeInstance.deserialize(request.data.blockHash)
-      : await node.chain.getBlockHashByTransactionHash(
-          Buffer.from(request.data.transactionHash, 'hex'),
-        )
+    const transactionHashBuffer = Buffer.from(request.data.transactionHash, 'hex')
 
-    if (!hashBuffer) {
+    const blockHashBuffer = request.data.blockHash
+      ? BlockHashSerdeInstance.deserialize(request.data.blockHash)
+      : await node.chain.getBlockHashByTransactionHash(transactionHashBuffer)
+
+    if (!blockHashBuffer) {
       throw new ValidationError(
         `No block hash found for transaction hash ${request.data.transactionHash}`,
       )
     }
 
-    const blockHeader = await node.chain.getHeader(hashBuffer)
+    const blockHeader = await node.chain.getHeader(blockHashBuffer)
     if (!blockHeader) {
-      throw new ValidationError(`No block found`)
+      throw new ValidationError(
+        `No block found for block hash ${blockHashBuffer.toString('hex')}`,
+      )
     }
 
-    // Empty response used for case that transaction not found
-    const rawTransaction: GetTransactionResponse = {
-      fee: '0',
-      expiration: 0,
-      noteSize: 0,
-      notesCount: 0,
-      spendsCount: 0,
-      signature: '',
-      notesEncrypted: [],
-      spends: [],
-      notes: [],
-      mints: [],
-      burns: [],
-    }
     const transactions = await node.chain.getBlockTransactions(blockHeader)
 
-    transactions.map(({ transaction, initialNoteIndex }) => {
-      if (transaction.hash().toString('hex') === request.data.transactionHash) {
-        const fee = transaction.fee().toString()
-        const expiration = transaction.expiration()
-        const signature = transaction.transactionSignature()
-        const notesEncrypted = []
+    const foundTransaction = transactions.find(({ transaction }) =>
+      transaction.hash().equals(transactionHashBuffer),
+    )
 
-        for (const note of transaction.notes) {
-          notesEncrypted.push(note.serialize().toString('hex'))
-        }
+    if (!foundTransaction) {
+      throw new ValidationError(
+        `Transaction not found on block ${blockHashBuffer.toString('hex')}`,
+      )
+    }
 
-        rawTransaction.fee = fee
-        rawTransaction.expiration = expiration
-        rawTransaction.noteSize = initialNoteIndex + transaction.notes.length
-        rawTransaction.notesCount = transaction.notes.length
-        rawTransaction.spendsCount = transaction.spends.length
-        rawTransaction.signature = signature.toString('hex')
-        rawTransaction.notesEncrypted = notesEncrypted
+    const { transaction, initialNoteIndex } = foundTransaction
 
-        rawTransaction.spends = transaction.spends.map((spend) => ({
-          nullifier: spend.nullifier.toString('hex'),
-          commitment: spend.commitment.toString('hex'),
-          size: spend.size,
-        }))
-
-        rawTransaction.notes = transaction.notes.map((note) => ({
-          hash: note.hash().toString('hex'),
-          serialized: note.serialize().toString('hex'),
-        }))
-
-        rawTransaction.mints = transaction.mints.map((mint) => ({
-          assetId: mint.asset.id().toString('hex'),
-          value: CurrencyUtils.encode(mint.value),
-        }))
-
-        rawTransaction.burns = transaction.burns.map((burn) => ({
-          assetId: burn.assetId.toString('hex'),
-          value: CurrencyUtils.encode(burn.value),
-        }))
-      }
-    })
+    const rawTransaction: GetTransactionResponse = {
+      fee: transaction.fee().toString(),
+      expiration: transaction.expiration(),
+      noteSize: initialNoteIndex + transaction.notes.length,
+      notesCount: transaction.notes.length,
+      spendsCount: transaction.spends.length,
+      signature: transaction.transactionSignature().toString('hex'),
+      notesEncrypted: transaction.notes.map((note) => note.serialize().toString('hex')),
+      notes: transaction.notes.map((note) => ({
+        hash: note.hash().toString('hex'),
+        serialized: note.serialize().toString('hex'),
+      })),
+      mints: transaction.mints.map((mint) => ({
+        assetId: mint.asset.id().toString('hex'),
+        value: CurrencyUtils.encode(mint.value),
+      })),
+      burns: transaction.burns.map((burn) => ({
+        assetId: burn.assetId.toString('hex'),
+        value: CurrencyUtils.encode(burn.value),
+      })),
+      spends: transaction.spends.map((spend) => ({
+        nullifier: spend.nullifier.toString('hex'),
+        commitment: spend.commitment.toString('hex'),
+        size: spend.size,
+      })),
+      blockHash: blockHashBuffer.toString('hex'),
+    }
 
     request.end(rawTransaction)
   },
