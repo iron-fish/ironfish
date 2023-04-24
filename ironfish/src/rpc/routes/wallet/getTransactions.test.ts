@@ -116,9 +116,34 @@ describe('Route wallet/getAccountTransactions', () => {
     expect(transactions).toHaveLength(2)
   })
 
-  it('optionally streams transactions with decrypted notes and spends', async () => {
+  it('optionally streams transactions with decrypted notes', async () => {
     const node = routeTest.node
-    const account = await useAccountFixture(node.wallet, 'with-notes-and-spends')
+    const account = await useAccountFixture(node.wallet, 'with-notes')
+
+    const blockA = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+    await expect(node.chain).toAddBlock(blockA)
+    await node.wallet.updateHead()
+
+    const response = routeTest.client.request<unknown, GetAccountTransactionsResponse>(
+      'wallet/getAccountTransactions',
+      {
+        account: account.name,
+        notes: true,
+      },
+    )
+
+    const transactions = await AsyncUtils.materialize(response.contentStream())
+    expect(transactions).toHaveLength(1)
+
+    const responseTransaction = transactions[0]
+    Assert.isNotUndefined(responseTransaction.notes)
+
+    expect(responseTransaction.notes).toHaveLength(1)
+  })
+
+  it('optionally streams transactions with spends', async () => {
+    const node = routeTest.node
+    const account = await useAccountFixture(node.wallet, 'with-spends')
 
     const { transaction } = await useTxSpendsFixture(node, { account })
 
@@ -126,7 +151,6 @@ describe('Route wallet/getAccountTransactions', () => {
       'wallet/getAccountTransactions',
       {
         account: account.name,
-        notes: true,
         spends: true,
       },
     )
@@ -134,32 +158,22 @@ describe('Route wallet/getAccountTransactions', () => {
     const transactions = await AsyncUtils.materialize(response.contentStream())
     expect(transactions).toHaveLength(2)
 
-    const [spendTxn, minerTxn] = transactions
+    const [spendTxn] = transactions
 
-    Assert.isNotUndefined(spendTxn.notes)
     Assert.isNotUndefined(spendTxn.spends)
 
     expect(spendTxn.spends).toHaveLength(transaction.spends.length)
-    expect(spendTxn.spends).toHaveLength(1)
 
-    const txn = transaction.getSpend(0)
+    const expected = transaction.spends.map((txn) => {
+      return {
+        commitment: txn.commitment.toString('hex'),
+        nullifier: txn.nullifier.toString('hex'),
+        size: txn.size,
+      }
+    })
 
-    const expected = {
-      commitment: txn.commitment.toString('hex'),
-      nullifier: txn.nullifier.toString('hex'),
-      size: txn.size,
-    }
-
-    const got = spendTxn.spends[0]
+    const got = spendTxn.spends
 
     expect(got).toEqual(expected)
-
-    expect(spendTxn.notes).toHaveLength(2)
-
-    Assert.isNotUndefined(minerTxn.notes)
-    Assert.isNotUndefined(minerTxn.spends)
-
-    expect(minerTxn.spends).toHaveLength(0)
-    expect(minerTxn.notes).toHaveLength(1)
   })
 })
