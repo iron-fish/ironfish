@@ -128,6 +128,7 @@ export class WebApi {
       graffiti: block.graffiti,
       main: block.main,
       transactions: block.transactions,
+      work: block.work,
     }))
 
     const options = this.options({ 'Content-Type': 'application/json' })
