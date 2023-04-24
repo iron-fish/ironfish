@@ -70,7 +70,7 @@ export class Simulator {
     }
 
     process.on('SIGINT' || 'SIGKILL', (event) => {
-      this.logger.log(`simulator handled signal ${event.toString()}`)
+      this.logger.log(`simulator handled ${event.toString()}`)
       this.exit(1)
     })
   }
@@ -83,7 +83,7 @@ export class Simulator {
    * @param config config of node to add to the orchestrator
    */
   async startNode(options?: {
-    cfg?: Partial<ConfigOptions> & { dataDir?: string; verbose?: boolean }
+    cfg?: Partial<ConfigOptions & OptionalSimulationNodeConfig>
     onLog?: ((l: LogEvent) => void | Promise<void>)[]
     onExit?: ((e: ExitEvent) => void | Promise<void>)[]
     onError?: ((c: ErrorEvent) => void | Promise<void>)[]
