@@ -42,7 +42,7 @@ export type RpcSpend = {
   size: number
 }
 
-export const RpcSendSchema: yup.ObjectSchema<RpcSpend> = yup
+export const RpcSpendSchema: yup.ObjectSchema<RpcSpend> = yup
   .object({
     nullifier: yup.string().defined(),
     commitment: yup.string().defined(),

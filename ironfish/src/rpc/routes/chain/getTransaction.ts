@@ -6,7 +6,7 @@ import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
-import { RpcSendSchema, RpcSpend } from '../wallet/types'
+import { RpcSpend, RpcSpendSchema } from '../wallet/types'
 import { RpcNote, RpcNoteSchema } from './types'
 
 export type GetTransactionRequest = { transactionHash: string; blockHash?: string }
@@ -49,7 +49,7 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
     spendsCount: yup.number().defined(),
     signature: yup.string().defined(),
     notesEncrypted: yup.array(yup.string().defined()).defined(),
-    spends: yup.array(RpcSendSchema).defined(),
+    spends: yup.array(RpcSpendSchema).defined(),
     notes: yup.array(RpcNoteSchema).defined(),
     mints: yup
       .array(
