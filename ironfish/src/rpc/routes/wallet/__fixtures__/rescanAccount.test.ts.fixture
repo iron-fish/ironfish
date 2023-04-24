@@ -1,5 +1,5 @@
 {
-  "wallet/rescanAccount sets account head to one before the request.from sequence": [
+  "Route wallet/rescanAccount sets account head to one before the request.from sequence": [
     {
       "header": {
         "sequence": 2,

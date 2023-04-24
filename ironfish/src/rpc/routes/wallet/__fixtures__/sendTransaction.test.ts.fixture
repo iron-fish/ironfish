@@ -1,5 +1,5 @@
 {
-  "Transactions sendTransaction throws if send throws NotEnoughFundsError": [
+  "Route wallet/sendTransaction throws if send throws NotEnoughFundsError": [
     {
       "version": 2,
       "id": "ad611c3e-cc74-4c55-93de-df5c83383da7",
@@ -12,7 +12,7 @@
       "createdAt": null
     }
   ],
-  "Transactions sendTransaction calls the send method on the node with single recipient": [
+  "Route wallet/sendTransaction calls the send method on the node with single recipient": [
     {
       "version": 2,
       "id": "003caec8-902e-4adf-a8c4-43880defbd76",
@@ -29,7 +29,7 @@
       "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAmIZBz6LvzUJYezVyBaeMUt9jvVBiQZ7naWLj1a5iwKuX1DMZUPJWjycmVAiu/qoVk+ky8Bpu6Q4d0Clam5DmB25/T/b+OU45P/5EOwvtvJyq9emAc+MTxEcMPseTTcKfI8K4ZDSZprvTg6l/bv707855ytm7NUDeAdLXmycsWroK95a+ARD0qkAJnyIaMuc2Yk4onodyesx3XECcEZk4UdUBjJGShkMiQVnCPYfq9Wih9pl8l8uG1mjarAQFBgDZu1z/9Nc1SAkIIguKU/HpO/KytKzfxYNkLNvyrDjO6PrlkCB9QtzjcNKMA8u53Roh7Vxg+b2twvnt4B40LVVfREH7G0w+JA4gnYWrpASC74OnvYpVkUboZCM0fZVgoMVb1dogeFeqoMe5i6TY4ksdSNfMQ+MYVMWKkNJf4Qw12o90mR1WJPI6UR+XsYMd8LoKcoQJC4tn4H/5qaTRUJPWIxta1CQqVBTiCbw1cCQ1ysiNYs08BFel53goe7l4Kiwf3xRSdFcOeR577VKycw+5Nls8rND3blYTpKZMIJrOvgbYpMUHXmMfQ87LW8m1aVUNlP7efnxR6OYAKyJV8K/Xwt+sLF9c+h1s2mWGjvF4mP0SPYj7Ob/n/0lyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwYxnzEuaXpq4ag1tXweWiArbdBXTDiyBUkeL9NxYJBpx386n97w/0tG0qdwJy9/f9aUb4grAvY+KwOCJtVW9+Ag=="
     }
   ],
-  "Transactions sendTransaction calls the send method on the node with multiple recipient": [
+  "Route wallet/sendTransaction calls the send method on the node with multiple recipient": [
     {
       "version": 2,
       "id": "1832b851-71c7-4d32-8690-7a6b227feffa",
@@ -46,7 +46,7 @@
       "data": "base64:AQAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGzKiP////8AAAAAIQUxwVXl4AUZpLx9Vkx2V9TSDhLtU2gcuSF3H/lelFqFakCNpmXOSaL0YDVi8ssZ4khmyGaat2e6wOv/y3lP7f9ddsUpZvJQKaye0nNn/UyY3gLXEODqIcDlpln/ERWRw6vwimT9HmTJTzK0WP+RSnXAhqQU8qOvLUlJY+C1begEA+BesF+Asgm2nuLVxqZ7yOuksi8fQNUoLhxbSgUwez/oUbOKRS122zGnIQNiGEeCIFulSCtc+R+nAOOmHcu7JrgSOdfKJjj2ttWc3x1dD/8V1QhN1ghQrNqKnZZG1Iz12t87f372PIMO8PG0GJ8icZNS+GgoEoGVGbqlDnHEREPQuO9gpbN8xxRh7GAQ27st7kNeMFFASpfI6uiOrL9IM2gwUbdAhcOo+7ljB1hrWyiKHKhbEx4iYRTXbgLMghUX8LlVHggRl0LDzXfONtHk5UrnQdns6o01i4T7JU3g6hFifBDQMUBEjOBJKOE8uX/hjltPM9ZwjQo79WSxr7hbdOmu2I6JDhvHuwLFPdg65vahU2i7wy4phgIACNC+Dgo3DnCyuxnIntLHZm5Z9+qvJS70TN/pErNdW1l3TyuqkOFXA1ERzPM+0J9krDHf+ZOg0aZ4fE8Psklyb24gRmlzaCBub3RlIGVuY3J5cHRpb24gbWluZXIga2V5MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwoo7jnA8LxCYTuQKSvGbE9rkzjDPr9GYMcH/IvL2wxBnc+gD4CwQJa2dbw7HAV7i8tCZcNHPWqcYt+8DVsoSxCw=="
     }
   ],
-  "Transactions sendTransaction lets you configure the expiration and confirmations": [
+  "Route wallet/sendTransaction lets you configure the expiration and confirmations": [
     {
       "version": 2,
       "id": "55323906-3ab3-4a57-bdb4-22790c0a24cd",
