@@ -105,7 +105,7 @@ export class Account {
 
     const maxConfirmedSequence = Math.max(head.sequence - confirmations, GENESIS_BLOCK_SEQUENCE)
 
-    for await (const decryptedNote of this.walletDb.loadUnspentNotes(
+    for await (const decryptedNote of this.walletDb.loadUnspentNotesBySequence(
       this,
       assetId,
       maxConfirmedSequence,

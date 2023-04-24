@@ -605,10 +605,11 @@ export class WalletDB {
     )
   }
 
-  async *loadUnspentNoteHashes(
+  async *loadUnspentNoteHashesBySequence(
     account: Account,
     assetId: Buffer,
     sequence?: number,
+    reverse?: boolean,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<Buffer> {
     const encoding = new PrefixEncoding(
@@ -627,18 +628,26 @@ export class WalletDB {
     for await (const [, [, [, [_, noteHash]]]] of this.unspentNoteHashes.getAllKeysIter(
       tx,
       range,
+      { reverse },
     )) {
       yield noteHash
     }
   }
 
-  async *loadUnspentNotes(
+  async *loadUnspentNotesBySequence(
     account: Account,
     assetId: Buffer,
     sequence?: number,
+    reverse?: boolean,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<DecryptedNoteValue> {
-    for await (const noteHash of this.loadUnspentNoteHashes(account, assetId, sequence, tx)) {
+    for await (const noteHash of this.loadUnspentNoteHashesBySequence(
+      account,
+      assetId,
+      sequence,
+      reverse,
+      tx,
+    )) {
       const decryptedNote = await this.decryptedNotes.get([account.prefix, noteHash], tx)
 
       if (decryptedNote !== undefined) {
@@ -671,6 +680,64 @@ export class WalletDB {
       range,
     )) {
       yield value
+    }
+  }
+
+  async *loadUnspentNoteHashesByValue(
+    account: Account,
+    assetId: Buffer,
+    sequence?: number,
+    reverse?: boolean,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Buffer> {
+    const encoding = new PrefixEncoding(
+      BUFFER_ENCODING,
+      new PrefixEncoding(BUFFER_ENCODING, U32_ENCODING_BE, 32),
+      4,
+    )
+
+    const maxConfirmedSequence = sequence ?? 2 ** 32 - 1
+
+    const range = getPrefixesKeyRange(
+      encoding.serialize([account.prefix, [assetId, 1]]),
+      encoding.serialize([account.prefix, [assetId, maxConfirmedSequence]]),
+    )
+
+    const valueHashPairs: [bigint, Buffer][] = []
+
+    for await (const [, [, [, [value, hash]]]] of this.unspentNoteHashes.getAllKeysIter(
+      tx,
+      range,
+    )) {
+      valueHashPairs.push([value, hash])
+    }
+
+    valueHashPairs.sort((a, b) => (reverse ? Number(b[0] - a[0]) : Number(a[0] - b[0])))
+
+    for (const [, hash] of valueHashPairs) {
+      yield hash
+    }
+  }
+
+  async *loadUnspentNotesByValue(
+    account: Account,
+    assetId: Buffer,
+    sequence?: number,
+    reverse?: boolean,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<DecryptedNoteValue> {
+    for await (const noteHash of this.loadUnspentNoteHashesByValue(
+      account,
+      assetId,
+      sequence,
+      reverse,
+      tx,
+    )) {
+      const decryptedNote = await this.decryptedNotes.get([account.prefix, noteHash], tx)
+
+      if (decryptedNote !== undefined) {
+        yield decryptedNote
+      }
     }
   }
 

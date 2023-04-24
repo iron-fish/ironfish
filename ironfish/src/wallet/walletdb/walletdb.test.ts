@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { createNodeTest, useAccountFixture } from '../../testUtilities'
 import { AsyncUtils } from '../../utils'
 
@@ -175,6 +176,119 @@ describe('WalletDB', () => {
       expect(transactionHashes).toHaveLength(2)
       expect(transactionHashes[0]).toEqualBuffer(Buffer.from('0', 'hex'))
       expect(transactionHashes[1]).toEqualBuffer(Buffer.from('40000', 'hex'))
+    })
+  })
+
+  describe('loadUnspentNoteHashesBySequence', () => {
+    it('loads note hashes in order of sequence', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const walletDb = node.wallet.walletDb
+
+      const account = await useAccountFixture(node.wallet)
+
+      const keys: [Buffer, [Buffer, [number, [bigint, Buffer]]]][] = [
+        [account.prefix, [Asset.nativeId(), [1, [2n, Buffer.alloc(32, 'a')]]]],
+        [account.prefix, [Asset.nativeId(), [2, [0n, Buffer.alloc(32, 'c')]]]],
+        [account.prefix, [Asset.nativeId(), [3, [3n, Buffer.alloc(32, 'd')]]]],
+        [account.prefix, [Asset.nativeId(), [4, [1n, Buffer.alloc(32, 'b')]]]],
+      ]
+
+      for (const key of keys) {
+        await walletDb.unspentNoteHashes.put(key, null)
+      }
+
+      const noteHashes = await AsyncUtils.materialize(
+        walletDb.loadUnspentNoteHashesBySequence(account, Asset.nativeId()),
+      )
+
+      for (const [index, [, [, [, [, hash]]]]] of keys.entries()) {
+        expect(hash).toEqualHash(noteHashes[index])
+      }
+    })
+
+    it('optionally loads note hashes in reverse order of sequence', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const walletDb = node.wallet.walletDb
+
+      const account = await useAccountFixture(node.wallet)
+
+      const keys: [Buffer, [Buffer, [number, [bigint, Buffer]]]][] = [
+        [account.prefix, [Asset.nativeId(), [1, [2n, Buffer.alloc(32, 'a')]]]],
+        [account.prefix, [Asset.nativeId(), [2, [0n, Buffer.alloc(32, 'c')]]]],
+        [account.prefix, [Asset.nativeId(), [3, [3n, Buffer.alloc(32, 'd')]]]],
+        [account.prefix, [Asset.nativeId(), [4, [1n, Buffer.alloc(32, 'b')]]]],
+      ]
+
+      for (const key of keys) {
+        await walletDb.unspentNoteHashes.put(key, null)
+      }
+
+      const noteHashes = await AsyncUtils.materialize(
+        walletDb.loadUnspentNoteHashesBySequence(account, Asset.nativeId(), undefined, true),
+      )
+
+      for (const [index, [, [, [, [, hash]]]]] of keys.reverse().entries()) {
+        expect(hash).toEqualHash(noteHashes[index])
+      }
+    })
+  })
+
+  describe('loadUnspentNoteHashesByValue', () => {
+    it('loads note hashes in order of value', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const walletDb = node.wallet.walletDb
+
+      const account = await useAccountFixture(node.wallet)
+
+      const keys: [Buffer, [Buffer, [number, [bigint, Buffer]]]][] = [
+        [account.prefix, [Asset.nativeId(), [2, [0n, Buffer.alloc(32, 'c')]]]],
+        [account.prefix, [Asset.nativeId(), [4, [1n, Buffer.alloc(32, 'b')]]]],
+        [account.prefix, [Asset.nativeId(), [1, [2n, Buffer.alloc(32, 'a')]]]],
+        [account.prefix, [Asset.nativeId(), [3, [3n, Buffer.alloc(32, 'd')]]]],
+      ]
+
+      for (const key of keys) {
+        await walletDb.unspentNoteHashes.put(key, null)
+      }
+
+      const noteHashes = await AsyncUtils.materialize(
+        walletDb.loadUnspentNoteHashesByValue(account, Asset.nativeId()),
+      )
+
+      for (const [index, [, [, [, [, hash]]]]] of keys.entries()) {
+        expect(hash).toEqualHash(noteHashes[index])
+      }
+    })
+
+    it('optionally loads note hashes in reverse order of value', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const walletDb = node.wallet.walletDb
+
+      const account = await useAccountFixture(node.wallet)
+
+      const keys: [Buffer, [Buffer, [number, [bigint, Buffer]]]][] = [
+        [account.prefix, [Asset.nativeId(), [3, [3n, Buffer.alloc(32, 'd')]]]],
+        [account.prefix, [Asset.nativeId(), [1, [2n, Buffer.alloc(32, 'a')]]]],
+        [account.prefix, [Asset.nativeId(), [4, [1n, Buffer.alloc(32, 'b')]]]],
+        [account.prefix, [Asset.nativeId(), [2, [0n, Buffer.alloc(32, 'c')]]]],
+      ]
+
+      for (const key of keys) {
+        await walletDb.unspentNoteHashes.put(key, null)
+      }
+
+      // Load by reverse value (largest to smallest)
+      const noteHashes = await AsyncUtils.materialize(
+        walletDb.loadUnspentNoteHashesByValue(account, Asset.nativeId(), undefined, true),
+      )
+
+      for (const [index, [, [, [, [, hash]]]]] of keys.entries()) {
+        expect(hash).toEqualHash(noteHashes[index])
+      }
     })
   })
 })

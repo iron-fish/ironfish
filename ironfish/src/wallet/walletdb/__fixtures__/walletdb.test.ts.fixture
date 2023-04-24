@@ -50,5 +50,57 @@
       "publicAddress": "541f9aacd5657acff39eb5a933f77f72651bf5b54af1b5256fe925baf19c7de3",
       "createdAt": null
     }
+  ],
+  "WalletDB loadUnspentNoteHashesBySequence loads note hashes in order of sequence": [
+    {
+      "version": 2,
+      "id": "01b8f0b8-b717-4c37-b756-79f83a0004e4",
+      "name": "test",
+      "spendingKey": "045cd5c8c9fbc2533238b3da97dbb26ee40cf7b7171e1b7acf29ac481ba8a94b",
+      "viewKey": "72e08ec2166a5e97e21b0a05b5f6662b35094207ab4d8de905cae2d968919ee8130ecd77a4f0845422f8d47f9fd63564c604b0eba562940c3ea8a651eb4cdc1e",
+      "incomingViewKey": "4604c8b26c18770568a5b167752948c757317520a304fd2eb9302b0c3b6bda00",
+      "outgoingViewKey": "b7e0a9bdd86c93825d207262bbfd5c92e2b2e99961d7ab5e4a475b6b5537f2ac",
+      "publicAddress": "53217341482d7a0b9d4a4378e80c073622fc9f559bd3286270f9954eed5756bc",
+      "createdAt": null
+    }
+  ],
+  "WalletDB loadUnspentNoteHashesByValue loads note hashes in order of value": [
+    {
+      "version": 2,
+      "id": "51323bde-e5b5-4ae2-99de-5496c5d64970",
+      "name": "test",
+      "spendingKey": "81e521dca3bffabfe39264504d70156430fc8b349b2b8519913ec6e443005fa2",
+      "viewKey": "fbe510829e6871ac4f17c297b01a621987eafa96a5be0e9cb241bd8fc567dd8771ce147b6110d5d0f4c4ac857eed5a4eb3b9c9e91b1acd97d848a7ce0a24ff03",
+      "incomingViewKey": "bb9aa5b23d2131e6098cac7be10deb1e268a3df75aa918e559e65d236447fd07",
+      "outgoingViewKey": "965fa24a774f2a86c347ae433966a744361bef9a87409a104e2c585c51229225",
+      "publicAddress": "1f0b7fc50f6a629dad89f3b5353b30dbf72e50ec2945afd87038cab8c9553f3a",
+      "createdAt": null
+    }
+  ],
+  "WalletDB loadUnspentNoteHashesBySequence optionally loads note hashes in reverse order of sequence": [
+    {
+      "version": 2,
+      "id": "e8d6ea45-7154-40e6-a5d1-4bd3efafa858",
+      "name": "test",
+      "spendingKey": "6e63550295106e9bb4a316adfabe92ed785b7053265810b41dee4a5f8ac00303",
+      "viewKey": "de9d72260f2b6a23eb79818e737f85267e0f41e0689630d6b92a8db3ca977ca356cf2ea1a0b2c63e33dc07c80748f5df68600433e744d5f2644a3628bbce7094",
+      "incomingViewKey": "474e764b5b15310f21e0c723fc128cda29c133be09afebf19164a92d967f3e00",
+      "outgoingViewKey": "abe6e475080098b992989377f6053efb0288a03222b92b2a4ac1da71af92bc6a",
+      "publicAddress": "aeba69f9e9f5a8edba21a46f8cca1add59db6970b9232efd751a6a915003d9b8",
+      "createdAt": null
+    }
+  ],
+  "WalletDB loadUnspentNoteHashesByValue optionally loads note hashes in reverse order of value": [
+    {
+      "version": 2,
+      "id": "6b745f81-35fd-49a2-ad56-cdbb59518dcb",
+      "name": "test",
+      "spendingKey": "1622265aadc5dce41bdb08450e6d95355500f388a738d62c89c3dc63b61cd0dc",
+      "viewKey": "aa05aee50a96d8a7cdf2418b8d4a72bec97a6be4e87bceca724bd98382cca09f7d79213d74c75d4509a4a2e6739beee4982121b9d2866d1fa2358f0be4d5a3cb",
+      "incomingViewKey": "0499c817d388a7b4caee0368650bbd507e2460be3319508555e2d821945cec07",
+      "outgoingViewKey": "39f662759c4470ed6316951e32bf3f08e20e780e82b1ae574b69ff6290008ffa",
+      "publicAddress": "cdfdc8b156fbc5fc8e4cc531ca7542ac77b50b9dacbb46e028822ed426a85ec8",
+      "createdAt": null
+    }
   ]
 }
