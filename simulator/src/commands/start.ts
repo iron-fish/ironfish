@@ -5,6 +5,7 @@ import { createRootLogger } from '@ironfish/sdk'
 import { CliUx, Command, Config } from '@oclif/core'
 import { Flags } from '@oclif/core'
 import { SIMULATIONS } from '../simulations'
+import { Simulator } from '../simulator'
 
 export abstract class Start extends Command {
   static description = 'Start a simulation'
@@ -58,8 +59,20 @@ export abstract class Start extends Command {
     // If you want logs to persist, i.e. via `simulator start 1 2>&1 | tee ~/i/logs/run_1.log` you will
     // need to remove the spinner
     CliUx.ux.action.start(`running simulation ${simName}`)
-    await simulation.run(logger, { persist, duration })
-    CliUx.ux.action.start(`stop simulation ${simName}`)
-    this.exit()
+
+    // The simulator is created here because oclif catches errors so we can't throw them
+    // and handle `uncaughtException` in the simulator. Having this try-catch block is a workaround
+    // to ensure the simulator gracefully exits when an error occurs.
+    const simulator = new Simulator(logger, { persist, duration })
+
+    try {
+      await simulation.run(simulator, logger)
+    } catch (e) {
+      logger.error(`simulation encountered ${String(e)}, shutting down...`)
+      simulator.exit(1)
+    }
+
+    CliUx.ux.action.stop(`stop simulation ${simName}`)
+    this.exit(0)
   }
 }
