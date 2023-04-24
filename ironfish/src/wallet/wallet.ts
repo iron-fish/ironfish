@@ -1009,8 +1009,7 @@ export class Wallet {
       }
     }
 
-    for (const assetId of needed.keys()) {
-      const assetAmountNeeded = needed.get(assetId) ?? 0n
+    for (const [assetId, assetAmountNeeded] of needed.entries()) {
       const assetAmountSpent = spent.get(assetId) ?? 0n
       const assetNotesSpent = notesSpent.get(assetId) ?? new BufferSet()
 
