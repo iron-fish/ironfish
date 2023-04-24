@@ -6,6 +6,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
 import { useAccountFixture, useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
+import { AsyncUtils } from '../../../utils'
 import { ERROR_CODES } from '../../adapters/errors'
 
 const REQUEST_PARAMS = {
@@ -382,5 +383,42 @@ describe('Route wallet/createTransaction', () => {
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
       }),
     )
+  })
+
+  it('should generate a valid transaction by spending the specified notes', async () => {
+    const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
+
+    for (let i = 0; i < 3; ++i) {
+      const block = await useMinerBlockFixture(
+        routeTest.chain,
+        undefined,
+        sender,
+        routeTest.node.wallet,
+      )
+
+      await expect(routeTest.node.chain).toAddBlock(block)
+
+      await routeTest.node.wallet.updateHead()
+    }
+
+    const decryptedNotes = await AsyncUtils.materialize(sender.getNotes())
+    const spendNoteHashes = decryptedNotes.map((note) => note.note.hash().toString('hex'))
+
+    const requestParams = { ...REQUEST_PARAMS, spendNoteHashes }
+
+    const response = await routeTest.client.wallet.createTransaction(requestParams)
+
+    expect(response.status).toBe(200)
+    expect(response.content.transaction).toBeDefined()
+
+    const rawTransactionBytes = Buffer.from(response.content.transaction, 'hex')
+    const rawTransaction = RawTransactionSerde.deserialize(rawTransactionBytes)
+
+    expect(rawTransaction.outputs.length).toBe(1)
+    expect(rawTransaction.expiration).toBeDefined()
+    expect(rawTransaction.burns.length).toBe(0)
+    expect(rawTransaction.mints.length).toBe(0)
+    expect(rawTransaction.spends.length).toBe(3)
+    expect(rawTransaction.fee).toBe(1n)
   })
 })

@@ -844,6 +844,7 @@ export class Wallet {
 
   async createTransaction(options: {
     account: Account
+    spendNoteHashes?: Buffer[]
     outputs?: {
       publicAddress: string
       amount: bigint
@@ -922,16 +923,14 @@ export class Wallet {
         raw.fee = getFee(options.feeRate, raw.size())
       }
 
-      await this.fund(raw, {
-        fee: raw.fee,
-        account: options.account,
-        confirmations: confirmations,
-      })
-
-      if (options.feeRate) {
-        raw.fee = getFee(options.feeRate, raw.size())
-        raw.spends = []
-
+      if (options.spendNoteHashes) {
+        await this.fundFromNoteHashes(raw, {
+          account: options.account,
+          noteHashes: options.spendNoteHashes,
+          fee: options.fee,
+          feeRate: options.feeRate,
+        })
+      } else {
         await this.fund(raw, {
           fee: raw.fee,
           account: options.account,
@@ -1002,14 +1001,59 @@ export class Wallet {
     }
   }
 
-  private buildAmountsNeeded(
+  async fundFromNoteHashes(
     raw: RawTransaction,
     options: {
+      account: Account
+      noteHashes: Buffer[]
+      fee?: bigint
+      feeRate?: bigint
+    },
+  ): Promise<void> {
+    const amountsNeeded = this.buildAmountsNeeded(raw)
+    const amountsSpent = new AssetBalances()
+
+    for (const noteHash of options.noteHashes) {
+      const decryptedNote = await options.account.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(decryptedNote)
+      Assert.isNotNull(decryptedNote.index)
+
+      const witness = await this.chain.notes.witness(decryptedNote.index)
+      Assert.isNotNull(witness)
+
+      raw.spends.push({ note: decryptedNote.note, witness })
+      amountsSpent.increment(decryptedNote.note.assetId(), decryptedNote.note.value())
+    }
+
+    if (options.fee) {
+      raw.fee = options.fee
+    } else if (options.feeRate) {
+      raw.fee = getFee(options.feeRate, raw.size())
+    }
+
+    const nativeAmountNeeded = amountsNeeded.get(Asset.nativeId()) ?? 0n
+    amountsNeeded.set(Asset.nativeId(), nativeAmountNeeded + raw.fee)
+
+    for (const [assetId, amountNeeded] of amountsNeeded.entries()) {
+      const amountSpent = amountsSpent.get(assetId) ?? 0n
+
+      if (amountSpent < amountNeeded) {
+        throw new NotEnoughFundsError(assetId, amountSpent, amountNeeded)
+      }
+    }
+  }
+
+  private buildAmountsNeeded(
+    raw: RawTransaction,
+    options?: {
       fee: bigint
     },
   ): BufferMap<bigint> {
     const amountsNeeded = new BufferMap<bigint>()
-    amountsNeeded.set(Asset.nativeId(), options.fee)
+
+    if (options?.fee) {
+      amountsNeeded.set(Asset.nativeId(), options.fee)
+    }
 
     for (const output of raw.outputs) {
       const currentAmount = amountsNeeded.get(output.note.assetId()) ?? 0n

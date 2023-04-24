@@ -21,6 +21,7 @@ import {
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
+import { NotEnoughFundsError } from './errors'
 import { AssetStatus, ScanState } from './wallet'
 
 describe('Accounts', () => {
@@ -926,6 +927,114 @@ describe('Accounts', () => {
       expect(rawTransaction.mints.length).toBe(0)
       expect(rawTransaction.spends.length).toBe(1)
       expect(rawTransaction.fee).toBeGreaterThan(0n)
+    })
+    it('should create transaction with a list of note hashes to spend', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
+      const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA3)
+
+      await node.wallet.updateHead()
+
+      const spendNoteHashes = [blockA2.minersFee.notes[0].hash()]
+
+      const rawTransaction = await node.wallet.createTransaction({
+        account: accountA,
+        spendNoteHashes: spendNoteHashes,
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: 10n,
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        expiration: 0,
+        fee: 1n,
+      })
+
+      expect(rawTransaction.spends.length).toBe(1)
+
+      const spentNoteHashes = rawTransaction.spends.map((spend) => spend.note.hash())
+      expect(spentNoteHashes).toEqual(spendNoteHashes)
+    })
+
+    it('should create transaction with a list of multiple note hashes to spend', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
+      const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA3)
+
+      await node.wallet.updateHead()
+
+      const spendNoteHashes = [
+        blockA2.minersFee.notes[0].hash(),
+        blockA3.minersFee.notes[0].hash(),
+      ]
+
+      const rawTransaction = await node.wallet.createTransaction({
+        account: accountA,
+        spendNoteHashes: spendNoteHashes,
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: 10n,
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        expiration: 0,
+        fee: 1n,
+      })
+
+      expect(rawTransaction.spends.length).toBe(2)
+
+      const spentNoteHashes = rawTransaction.spends.map((spend) => spend.note.hash())
+      expect(spentNoteHashes).toEqual(spendNoteHashes)
+    })
+
+    it('should throw an error if the note hashes to spend have insufficient funds', async () => {
+      const { node } = nodeTest
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+
+      const blockA1 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA1)
+      const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA2)
+
+      await node.wallet.updateHead()
+
+      const spendNoteHashes = [blockA2.minersFee.notes[0].hash()]
+
+      await expect(
+        node.wallet.createTransaction({
+          account: accountA,
+          spendNoteHashes: spendNoteHashes,
+          outputs: [
+            {
+              publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+              amount: 2000000000n,
+              memo: '',
+              assetId: Asset.nativeId(),
+            },
+          ],
+          expiration: 0,
+          fee: 1n,
+        }),
+      ).rejects.toThrow(NotEnoughFundsError)
     })
   })
 
