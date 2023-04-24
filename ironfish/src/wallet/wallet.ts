@@ -1015,11 +1015,22 @@ export class Wallet {
 
     for (const noteHash of options.noteHashes) {
       const decryptedNote = await options.account.getDecryptedNote(noteHash)
-      Assert.isNotUndefined(decryptedNote)
-      Assert.isNotNull(decryptedNote.index)
+      Assert.isNotUndefined(
+        decryptedNote,
+        `No note found with hash ${noteHash.toString('hex')} for account ${
+          options.account.name
+        }`,
+      )
+      Assert.isNotNull(
+        decryptedNote.index,
+        `Note with hash ${noteHash.toString('hex')} is missing an index and cannot be spent.`,
+      )
 
       const witness = await this.chain.notes.witness(decryptedNote.index)
-      Assert.isNotNull(witness)
+      Assert.isNotNull(
+        witness,
+        `Could not create a witness for note with hash ${noteHash.toString('hex')}`,
+      )
 
       raw.spends.push({ note: decryptedNote.note, witness })
       amountsSpent.increment(decryptedNote.note.assetId(), decryptedNote.note.value())
