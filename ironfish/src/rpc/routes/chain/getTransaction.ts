@@ -158,7 +158,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
           commitment: spend.commitment.toString('hex'),
           size: spend.size,
         }))
-        
+
         rawTransaction.notes = transaction.notes.map((note) => ({
           hash: note.hash().toString('hex'),
           serialized: note.serialize().toString('hex'),
