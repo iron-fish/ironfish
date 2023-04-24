@@ -16,7 +16,10 @@ export type GetTransactionResponse = {
   notesCount: number
   spendsCount: number
   signature: string
-  notesEncrypted: string[]
+  notes: {
+    hash: string
+    serialized: string
+  }[]
   mints: {
     assetId: string
     value: string
@@ -25,6 +28,8 @@ export type GetTransactionResponse = {
     assetId: string
     value: string
   }[]
+  // Deprecated: use `notes` instead
+  notesEncrypted: string[]
 }
 export const GetTransactionRequestSchema: yup.ObjectSchema<GetTransactionRequest> = yup
   .object({
@@ -42,6 +47,16 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
     spendsCount: yup.number().defined(),
     signature: yup.string().defined(),
     notesEncrypted: yup.array(yup.string().defined()).defined(),
+    notes: yup
+      .array(
+        yup
+          .object({
+            hash: yup.string().defined(),
+            serialized: yup.string().defined(),
+          })
+          .defined(),
+      )
+      .defined(),
     mints: yup
       .array(
         yup
@@ -99,6 +114,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       spendsCount: 0,
       signature: '',
       notesEncrypted: [],
+      notes: [],
       mints: [],
       burns: [],
     }
@@ -122,6 +138,11 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
         rawTransaction.spendsCount = transaction.spends.length
         rawTransaction.signature = signature.toString('hex')
         rawTransaction.notesEncrypted = notesEncrypted
+
+        rawTransaction.notes = transaction.notes.map((note) => ({
+          hash: note.hash().toString('hex'),
+          serialized: note.serialize().toString('hex'),
+        }))
 
         rawTransaction.mints = transaction.mints.map((mint) => ({
           assetId: mint.asset.id().toString('hex'),
