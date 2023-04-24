@@ -5,6 +5,7 @@ import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
 import { RpcRequestError } from '../../clients'
+import { RpcSpend } from '../wallet/types'
 import { GetTransactionResponse } from './getTransaction'
 
 describe('Route chain/getTransaction', () => {
@@ -35,6 +36,12 @@ describe('Route chain/getTransaction', () => {
       })
       .waitForEnd()
 
+    const spends: RpcSpend[] = transaction.spends.map((spend) => ({
+      nullifier: spend.nullifier.toString('hex'),
+      commitment: spend.commitment.toString('hex'),
+      size: spend.size,
+    }))
+
     expect(response.content).toMatchObject({
       fee: CurrencyUtils.encode(transaction.fee()),
       expiration: transaction.expiration(),
@@ -42,6 +49,7 @@ describe('Route chain/getTransaction', () => {
       spendsCount: 0,
       signature: transaction.transactionSignature().toString('hex'),
       notesEncrypted,
+      spends,
       mints: [],
       burns: [],
       notes,
@@ -74,6 +82,12 @@ describe('Route chain/getTransaction', () => {
       })
       .waitForEnd()
 
+    const spends: RpcSpend[] = transaction.spends.map((spend) => ({
+      nullifier: spend.nullifier.toString('hex'),
+      commitment: spend.commitment.toString('hex'),
+      size: spend.size,
+    }))
+
     expect(response.content).toMatchObject({
       fee: CurrencyUtils.encode(transaction.fee()),
       expiration: transaction.expiration(),
@@ -81,6 +95,7 @@ describe('Route chain/getTransaction', () => {
       spendsCount: 0,
       signature: transaction.transactionSignature().toString('hex'),
       notesEncrypted,
+      spends,
       mints: [],
       burns: [],
       notes,
