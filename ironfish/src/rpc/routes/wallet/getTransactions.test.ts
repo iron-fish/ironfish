@@ -7,6 +7,7 @@ import {
   useAccountFixture,
   useMinerBlockFixture,
   usePostTxFixture,
+  useTxSpendsFixture,
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { AsyncUtils } from '../../../utils'
@@ -115,28 +116,50 @@ describe('Route wallet/getAccountTransactions', () => {
     expect(transactions).toHaveLength(2)
   })
 
-  it('optionally streams transactions with decrypted notes', async () => {
+  it('optionally streams transactions with decrypted notes and spends', async () => {
     const node = routeTest.node
-    const account = await useAccountFixture(node.wallet, 'with-notes')
+    const account = await useAccountFixture(node.wallet, 'with-notes-and-spends')
 
-    const blockA = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
-    await expect(node.chain).toAddBlock(blockA)
-    await node.wallet.updateHead()
+    const { transaction } = await useTxSpendsFixture(node, { account })
 
     const response = routeTest.client.request<unknown, GetAccountTransactionsResponse>(
       'wallet/getAccountTransactions',
       {
         account: account.name,
         notes: true,
+        spends: true,
       },
     )
 
     const transactions = await AsyncUtils.materialize(response.contentStream())
-    expect(transactions).toHaveLength(1)
+    expect(transactions).toHaveLength(2)
 
-    const responseTransaction = transactions[0]
-    Assert.isNotUndefined(responseTransaction.notes)
+    const [spendTxn, minerTxn] = transactions
 
-    expect(responseTransaction.notes).toHaveLength(1)
+    Assert.isNotUndefined(spendTxn.notes)
+    Assert.isNotUndefined(spendTxn.spends)
+
+    expect(spendTxn.spends).toHaveLength(transaction.spends.length)
+    expect(spendTxn.spends).toHaveLength(1)
+
+    const txn = transaction.getSpend(0)
+
+    const expected = {
+      commitment: txn.commitment.toString('hex'),
+      nullifier: txn.nullifier.toString('hex'),
+      size: txn.size,
+    }
+
+    const got = spendTxn.spends[0]
+
+    expect(got).toEqual(expected)
+
+    expect(spendTxn.notes).toHaveLength(2)
+
+    Assert.isNotUndefined(minerTxn.notes)
+    Assert.isNotUndefined(minerTxn.spends)
+
+    expect(minerTxn.spends).toHaveLength(0)
+    expect(minerTxn.notes).toHaveLength(1)
   })
 })
