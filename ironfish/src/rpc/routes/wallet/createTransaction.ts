@@ -35,7 +35,7 @@ export type CreateTransactionRequest = {
   expiration?: number
   expirationDelta?: number
   confirmations?: number
-  spendNoteHashes?: string[]
+  notes?: string[]
 }
 
 export type CreateTransactionResponse = {
@@ -84,7 +84,7 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
     expiration: yup.number().optional(),
     expirationDelta: yup.number().optional(),
     confirmations: yup.number().optional(),
-    spendNoteHashes: yup.array(yup.string().defined()).optional(),
+    notes: yup.array(yup.string().defined()).optional(),
   })
   .defined()
 
@@ -173,10 +173,10 @@ router.register<typeof CreateTransactionRequestSchema, CreateTransactionResponse
       params.feeRate = node.memPool.feeEstimator.estimateFeeRate('average')
     }
 
-    if (request.data.spendNoteHashes) {
-      params.spendNoteHashes = []
-      for (const noteHash of request.data.spendNoteHashes) {
-        params.spendNoteHashes.push(Buffer.from(noteHash, 'hex'))
+    if (request.data.notes) {
+      params.notes = []
+      for (const noteHash of request.data.notes) {
+        params.notes.push(Buffer.from(noteHash, 'hex'))
       }
     }
 

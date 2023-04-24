@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKey } from '@ironfish/rust-nodejs'
-import { BufferMap } from 'buffer-map'
+import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus'
-import { Note } from '../primitives'
 import {
   createNodeTest,
   useAccountFixture,
-  useBlockFixture,
   useBlockWithTx,
   useBurnBlockFixture,
   useMinerBlockFixture,
@@ -21,7 +19,6 @@ import {
 } from '../testUtilities'
 import { AsyncUtils } from '../utils'
 import { Account, TransactionStatus, TransactionType } from '../wallet'
-import { NotEnoughFundsError } from './errors'
 import { AssetStatus, ScanState } from './wallet'
 
 describe('Accounts', () => {
@@ -928,6 +925,7 @@ describe('Accounts', () => {
       expect(rawTransaction.spends.length).toBe(1)
       expect(rawTransaction.fee).toBeGreaterThan(0n)
     })
+
     it('should create transaction with a list of note hashes to spend', async () => {
       const { node } = nodeTest
 
@@ -942,11 +940,11 @@ describe('Accounts', () => {
 
       await node.wallet.updateHead()
 
-      const spendNoteHashes = [blockA2.minersFee.notes[0].hash()]
+      const notes = [blockA2.minersFee.notes[0].hash()]
 
       const rawTransaction = await node.wallet.createTransaction({
         account: accountA,
-        spendNoteHashes: spendNoteHashes,
+        notes,
         outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
@@ -962,7 +960,7 @@ describe('Accounts', () => {
       expect(rawTransaction.spends.length).toBe(1)
 
       const spentNoteHashes = rawTransaction.spends.map((spend) => spend.note.hash())
-      expect(spentNoteHashes).toEqual(spendNoteHashes)
+      expect(spentNoteHashes).toEqual(notes)
     })
 
     it('should create transaction with a list of multiple note hashes to spend', async () => {
@@ -979,14 +977,11 @@ describe('Accounts', () => {
 
       await node.wallet.updateHead()
 
-      const spendNoteHashes = [
-        blockA2.minersFee.notes[0].hash(),
-        blockA3.minersFee.notes[0].hash(),
-      ]
+      const notes = [blockA2.minersFee.notes[0].hash(), blockA3.minersFee.notes[0].hash()]
 
       const rawTransaction = await node.wallet.createTransaction({
         account: accountA,
-        spendNoteHashes: spendNoteHashes,
+        notes,
         outputs: [
           {
             publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
@@ -1002,10 +997,10 @@ describe('Accounts', () => {
       expect(rawTransaction.spends.length).toBe(2)
 
       const spentNoteHashes = rawTransaction.spends.map((spend) => spend.note.hash())
-      expect(spentNoteHashes).toEqual(spendNoteHashes)
+      expect(spentNoteHashes).toEqual(notes)
     })
 
-    it('should throw an error if the note hashes to spend have insufficient funds', async () => {
+    it('should partially fund a transaction if the note hashes to spend have insufficient funds', async () => {
       const { node } = nodeTest
 
       const accountA = await useAccountFixture(node.wallet, 'a')
@@ -1014,27 +1009,36 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(blockA1)
       const blockA2 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
       await expect(node.chain).toAddBlock(blockA2)
+      const blockA3 = await useMinerBlockFixture(node.chain, undefined, accountA, node.wallet)
+      await expect(node.chain).toAddBlock(blockA3)
 
       await node.wallet.updateHead()
 
-      const spendNoteHashes = [blockA2.minersFee.notes[0].hash()]
+      const notes = [blockA2.minersFee.notes[0].hash()]
 
-      await expect(
-        node.wallet.createTransaction({
-          account: accountA,
-          spendNoteHashes: spendNoteHashes,
-          outputs: [
-            {
-              publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
-              amount: 2000000000n,
-              memo: '',
-              assetId: Asset.nativeId(),
-            },
-          ],
-          expiration: 0,
-          fee: 1n,
-        }),
-      ).rejects.toThrow(NotEnoughFundsError)
+      const rawTransaction = await node.wallet.createTransaction({
+        account: accountA,
+        notes,
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: 2000000000n,
+            memo: '',
+            assetId: Asset.nativeId(),
+          },
+        ],
+        expiration: 0,
+        fee: 1n,
+      })
+
+      expect(rawTransaction.spends.length).toBe(2)
+
+      const spentNoteHashes = new BufferSet()
+      for (const spend of rawTransaction.spends) {
+        spentNoteHashes.add(spend.note.hash())
+      }
+
+      expect(spentNoteHashes.has(notes[0])).toBe(true)
     })
   })
 
@@ -1439,111 +1443,6 @@ describe('Accounts', () => {
         unconfirmedCount: 0,
         confirmed: BigInt(8),
       })
-    })
-  })
-
-  describe('createSpendsForAsset', () => {
-    it('returns spendable notes for a provided asset identifier', async () => {
-      const { node } = await nodeTest.createSetup()
-      const account = await useAccountFixture(node.wallet)
-
-      // Get some coins for transaction fees
-      const blockA = await useMinerBlockFixture(node.chain, 2, account, node.wallet)
-      await expect(node.chain).toAddBlock(blockA)
-      await node.wallet.updateHead()
-
-      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
-      const assetId = asset.id()
-      const mintValue = BigInt(10)
-      const mintData = {
-        name: asset.name().toString('utf8'),
-        metadata: asset.metadata().toString('utf8'),
-        value: mintValue,
-        isNewAsset: true,
-      }
-
-      // Mint some coins
-      const blockB = await useBlockFixture(node.chain, async () => {
-        const raw = await node.wallet.createTransaction({
-          account,
-          mints: [mintData],
-          fee: 0n,
-          expiration: 0,
-        })
-
-        const transaction = await node.wallet.post({
-          transaction: raw,
-          account,
-        })
-
-        return node.chain.newBlock(
-          [transaction],
-          await node.strategy.createMinersFee(transaction.fee(), 3, generateKey().spendingKey),
-        )
-      })
-      await expect(node.chain).toAddBlock(blockB)
-      await node.wallet.updateHead()
-      await expect(node.wallet.getBalance(account, asset.id())).resolves.toMatchObject({
-        confirmed: mintValue,
-      })
-
-      // transaction should have two notes: one in the custom asset and one in IRON
-      expect(blockB.transactions[1].notes.length).toBe(2)
-
-      // find the custom asset note to spend
-      let noteToSpend: Note | null = null
-      for (const outputNote of blockB.transactions[1].notes) {
-        const decryptedNote = outputNote.decryptNoteForOwner(account.incomingViewKey)
-        Assert.isNotUndefined(decryptedNote)
-
-        if (decryptedNote.assetId().equals(assetId)) {
-          noteToSpend = decryptedNote
-          break
-        }
-      }
-      Assert.isNotNull(noteToSpend)
-
-      // Check what notes would be spent
-      const { amount, notes } = await node.wallet.createSpendsForAsset(
-        account,
-        assetId,
-        BigInt(2),
-        0,
-      )
-
-      expect(amount).toEqual(mintValue)
-      expect(notes).toHaveLength(1)
-      expect(notes[0].note).toMatchObject(noteToSpend)
-    })
-
-    it('should return spendable notes dependant on confirmations', async () => {
-      const { node } = await nodeTest.createSetup()
-      const account = await useAccountFixture(node.wallet)
-
-      const mined = await useMinerBlockFixture(node.chain, 2, account)
-      await expect(node.chain).toAddBlock(mined)
-      await node.wallet.updateHead()
-
-      const value = BigInt(10)
-      const assetId = Asset.nativeId()
-
-      const invalidConfirmations = 100
-      const validConfirmations = 0
-
-      const { amount: validAmount, notes: validNotes } = await node.wallet.createSpendsForAsset(
-        account,
-        assetId,
-        value,
-        validConfirmations,
-      )
-      expect(validAmount).toEqual(2000000000n)
-      expect(validNotes).toHaveLength(1)
-
-      // No notes should be returned
-      const { amount: invalidAmount, notes: invalidNotes } =
-        await node.wallet.createSpendsForAsset(account, assetId, value, invalidConfirmations)
-      expect(invalidAmount).toEqual(BigInt(0))
-      expect(invalidNotes).toHaveLength(0)
     })
   })
 

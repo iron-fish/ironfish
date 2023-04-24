@@ -402,9 +402,9 @@ describe('Route wallet/createTransaction', () => {
     }
 
     const decryptedNotes = await AsyncUtils.materialize(sender.getNotes())
-    const spendNoteHashes = decryptedNotes.map((note) => note.note.hash().toString('hex'))
+    const notes = decryptedNotes.map((note) => note.note.hash().toString('hex'))
 
-    const requestParams = { ...REQUEST_PARAMS, spendNoteHashes }
+    const requestParams = { ...REQUEST_PARAMS, notes }
 
     const response = await routeTest.client.wallet.createTransaction(requestParams)
 

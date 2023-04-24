@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Asset, generateKey, Note as NativeNote } from '@ironfish/rust-nodejs'
-import { BufferMap } from 'buffer-map'
+import { BufferMap, BufferSet } from 'buffer-map'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
@@ -13,13 +13,13 @@ import { Config } from '../fileStores'
 import { createRootLogger, Logger } from '../logger'
 import { MemPool } from '../memPool'
 import { getFee } from '../memPool/feeEstimator'
-import { NoteHasher } from '../merkletree/hasher'
-import { NoteWitness, Witness } from '../merkletree/witness'
+import { Witness } from '../merkletree/witness'
 import { Mutex } from '../mutex'
 import { GENESIS_BLOCK_SEQUENCE } from '../primitives'
 import { BlockHeader } from '../primitives/blockheader'
 import { BurnDescription } from '../primitives/burnDescription'
 import { Note } from '../primitives/note'
+import { NoteEncrypted } from '../primitives/noteEncrypted'
 import { MintData, RawTransaction } from '../primitives/rawTransaction'
 import { Transaction } from '../primitives/transaction'
 import { IDatabaseTransaction } from '../storage/database/transaction'
@@ -43,8 +43,6 @@ import { DecryptedNoteValue } from './walletdb/decryptedNoteValue'
 import { HeadValue } from './walletdb/headValue'
 import { TransactionValue } from './walletdb/transactionValue'
 import { WalletDB } from './walletdb/walletdb'
-
-const noteHasher = new NoteHasher()
 
 export enum AssetStatus {
   CONFIRMED = 'confirmed',
@@ -844,7 +842,7 @@ export class Wallet {
 
   async createTransaction(options: {
     account: Account
-    spendNoteHashes?: Buffer[]
+    notes?: Buffer[]
     outputs?: {
       publicAddress: string
       amount: bigint
@@ -923,17 +921,19 @@ export class Wallet {
         raw.fee = getFee(options.feeRate, raw.size())
       }
 
-      if (options.spendNoteHashes) {
-        await this.fundFromNoteHashes(raw, {
-          account: options.account,
-          noteHashes: options.spendNoteHashes,
-          fee: options.fee,
-          feeRate: options.feeRate,
-        })
-      } else {
+      await this.fund(raw, {
+        account: options.account,
+        notes: options.notes,
+        confirmations: confirmations,
+      })
+
+      if (options.feeRate) {
+        raw.fee = getFee(options.feeRate, raw.size())
+        raw.spends = []
+
         await this.fund(raw, {
-          fee: raw.fee,
           account: options.account,
+          notes: options.notes,
           confirmations: confirmations,
         })
       }
@@ -975,96 +975,93 @@ export class Wallet {
   async fund(
     raw: RawTransaction,
     options: {
-      fee: bigint
       account: Account
+      notes?: Buffer[]
       confirmations: number
     },
   ): Promise<void> {
-    const needed = this.buildAmountsNeeded(raw, {
-      fee: options.fee,
-    })
+    const needed = this.buildAmountsNeeded(raw, { fee: raw.fee })
+    const spent = new BufferMap<bigint>()
+    const notesSpent = new BufferMap<BufferSet>()
 
-    const spends = await this.createSpends(options.account, needed, options.confirmations)
+    if (options.notes) {
+      for (const noteHash of options.notes) {
+        const decryptedNote = await options.account.getDecryptedNote(noteHash)
+        Assert.isNotUndefined(
+          decryptedNote,
+          `No note found with hash ${noteHash.toString('hex')} for account ${
+            options.account.name
+          }`,
+        )
 
-    for (const spend of spends) {
-      const witness = new Witness(
-        spend.witness.treeSize(),
-        spend.witness.rootHash,
-        spend.witness.authenticationPath,
-        noteHasher,
-      )
+        const witness = await this.getNoteWitness(decryptedNote)
 
-      raw.spends.push({
-        note: spend.note,
-        witness: witness,
-      })
-    }
-  }
+        const assetId = decryptedNote.note.assetId()
 
-  async fundFromNoteHashes(
-    raw: RawTransaction,
-    options: {
-      account: Account
-      noteHashes: Buffer[]
-      fee?: bigint
-      feeRate?: bigint
-    },
-  ): Promise<void> {
-    const amountsNeeded = this.buildAmountsNeeded(raw)
-    const amountsSpent = new AssetBalances()
+        const assetAmountSpent = spent.get(assetId) ?? 0n
+        spent.set(assetId, assetAmountSpent + decryptedNote.note.value())
 
-    for (const noteHash of options.noteHashes) {
-      const decryptedNote = await options.account.getDecryptedNote(noteHash)
-      Assert.isNotUndefined(
-        decryptedNote,
-        `No note found with hash ${noteHash.toString('hex')} for account ${
-          options.account.name
-        }`,
-      )
-      Assert.isNotNull(
-        decryptedNote.index,
-        `Note with hash ${noteHash.toString('hex')} is missing an index and cannot be spent.`,
-      )
+        const assetNotesSpent = notesSpent.get(assetId) ?? new BufferSet()
+        assetNotesSpent.add(noteHash)
+        notesSpent.set(assetId, assetNotesSpent)
 
-      const witness = await this.chain.notes.witness(decryptedNote.index)
-      Assert.isNotNull(
-        witness,
-        `Could not create a witness for note with hash ${noteHash.toString('hex')}`,
-      )
-
-      raw.spends.push({ note: decryptedNote.note, witness })
-      amountsSpent.increment(decryptedNote.note.assetId(), decryptedNote.note.value())
+        raw.spends.push({ note: decryptedNote.note, witness })
+      }
     }
 
-    if (options.fee) {
-      raw.fee = options.fee
-    } else if (options.feeRate) {
-      raw.fee = getFee(options.feeRate, raw.size())
-    }
+    for (const assetId of needed.keys()) {
+      const assetAmountNeeded = needed.get(assetId) ?? 0n
+      const assetAmountSpent = spent.get(assetId) ?? 0n
+      const assetNotesSpent = notesSpent.get(assetId) ?? new BufferSet()
 
-    const nativeAmountNeeded = amountsNeeded.get(Asset.nativeId()) ?? 0n
-    amountsNeeded.set(Asset.nativeId(), nativeAmountNeeded + raw.fee)
+      if (assetAmountSpent >= assetAmountNeeded) {
+        continue
+      }
 
-    for (const [assetId, amountNeeded] of amountsNeeded.entries()) {
-      const amountSpent = amountsSpent.get(assetId) ?? 0n
+      const amountSpent = await this.addSpendsForAsset(
+        raw,
+        options.account,
+        assetId,
+        assetAmountNeeded,
+        assetAmountSpent,
+        assetNotesSpent,
+        options.confirmations,
+      )
 
-      if (amountSpent < amountNeeded) {
-        throw new NotEnoughFundsError(assetId, amountSpent, amountNeeded)
+      if (amountSpent < assetAmountNeeded) {
+        throw new NotEnoughFundsError(assetId, amountSpent, assetAmountNeeded)
       }
     }
   }
 
+  async getNoteWitness(
+    note: DecryptedNoteValue,
+  ): Promise<Witness<NoteEncrypted, Buffer, Buffer, Buffer>> {
+    Assert.isNotNull(
+      note.index,
+      `Note with hash ${note.note
+        .hash()
+        .toString('hex')} is missing an index and cannot be spent.`,
+    )
+
+    const witness = await this.chain.notes.witness(note.index)
+
+    Assert.isNotNull(
+      witness,
+      `Could not create a witness for note with hash ${note.note.hash().toString('hex')}`,
+    )
+
+    return witness
+  }
+
   private buildAmountsNeeded(
     raw: RawTransaction,
-    options?: {
+    options: {
       fee: bigint
     },
   ): BufferMap<bigint> {
     const amountsNeeded = new BufferMap<bigint>()
-
-    if (options?.fee) {
-      amountsNeeded.set(Asset.nativeId(), options.fee)
-    }
+    amountsNeeded.set(Asset.nativeId(), options.fee)
 
     for (const output of raw.outputs) {
       const currentAmount = amountsNeeded.get(output.note.assetId()) ?? 0n
@@ -1079,125 +1076,34 @@ export class Wallet {
     return amountsNeeded
   }
 
-  private async createSpends(
-    sender: Account,
-    amountsNeeded: BufferMap<bigint>,
-    confirmations: number,
-  ): Promise<Array<{ note: Note; witness: NoteWitness }>> {
-    const notesToSpend: Array<{ note: Note; witness: NoteWitness }> = []
-
-    for (const [assetId, amountNeeded] of amountsNeeded.entries()) {
-      const { amount, notes } = await this.createSpendsForAsset(
-        sender,
-        assetId,
-        amountNeeded,
-        confirmations,
-      )
-
-      if (amount < amountNeeded) {
-        throw new NotEnoughFundsError(assetId, amount, amountNeeded)
-      }
-
-      notesToSpend.push(...notes)
-    }
-
-    return notesToSpend
-  }
-
-  async createSpendsForAsset(
+  async addSpendsForAsset(
+    raw: RawTransaction,
     sender: Account,
     assetId: Buffer,
     amountNeeded: bigint,
+    amountSpent: bigint,
+    notesSpent: BufferSet,
     confirmations: number,
-  ): Promise<{ amount: bigint; notes: Array<{ note: Note; witness: NoteWitness }> }> {
-    let amount = 0n
-    const notes: Array<{ note: Note; witness: NoteWitness }> = []
-
-    const head = await sender.getHead()
-    if (!head) {
-      return { amount, notes }
-    }
-
-    for await (const unspentNote of this.getUnspentNotes(sender, assetId, { confirmations })) {
-      if (unspentNote.note.value() <= 0n) {
+  ): Promise<bigint> {
+    for await (const unspentNote of sender.getUnspentNotes(assetId, {
+      confirmations,
+    })) {
+      if (notesSpent.has(unspentNote.note.hash())) {
         continue
       }
 
-      Assert.isNotNull(unspentNote.index)
-      Assert.isNotNull(unspentNote.nullifier)
-      Assert.isNotNull(unspentNote.sequence)
+      const witness = await this.getNoteWitness(unspentNote)
 
-      if (await this.checkNoteOnChainAndRepair(sender, unspentNote)) {
-        continue
-      }
+      amountSpent += unspentNote.note.value()
 
-      // Try creating a witness from the note
-      const witness = await this.chain.notes.witness(unspentNote.index)
+      raw.spends.push({ note: unspentNote.note, witness })
 
-      if (witness === null) {
-        this.logger.debug(`Could not create a witness for note with index ${unspentNote.index}`)
-        continue
-      }
-
-      this.logger.debug(
-        `Accounts: spending note ${unspentNote.index} ${unspentNote.note
-          .hash()
-          .toString('hex')} ${unspentNote.note.value()}`,
-      )
-
-      // Otherwise, push the note into the list of notes to spend
-      notes.push({ note: unspentNote.note, witness })
-      amount += unspentNote.note.value()
-
-      if (amount >= amountNeeded) {
+      if (amountSpent >= amountNeeded) {
         break
       }
     }
 
-    return { amount, notes }
-  }
-
-  /**
-   * Checks if a note is already on the chain when trying to spend it
-   *
-   * This function should be deleted once the wallet is detached from the chain,
-   * either way. It shouldn't be necessary. It's just a hold over function to
-   * sanity check from wallet 1.0.
-   *
-   * @returns true if the note is on the chain already
-   */
-  private async checkNoteOnChainAndRepair(
-    sender: Account,
-    unspentNote: DecryptedNoteValue,
-  ): Promise<boolean> {
-    if (!unspentNote.nullifier) {
-      return false
-    }
-
-    const spent = await this.chain.nullifiers.contains(unspentNote.nullifier)
-
-    if (!spent) {
-      return false
-    }
-
-    this.logger.debug(
-      `Note was marked unspent, but nullifier found in tree: ${unspentNote.nullifier.toString(
-        'hex',
-      )}`,
-    )
-
-    // Update our map so this doesn't happen again
-    const noteMapValue = await sender.getDecryptedNote(unspentNote.note.hash())
-
-    if (noteMapValue) {
-      this.logger.debug(`Unspent note has index ${String(noteMapValue.index)}`)
-      await this.walletDb.saveDecryptedNote(sender, unspentNote.note.hash(), {
-        ...noteMapValue,
-        spent: true,
-      })
-    }
-
-    return true
+    return amountSpent
   }
 
   broadcastTransaction(transaction: Transaction): void {
