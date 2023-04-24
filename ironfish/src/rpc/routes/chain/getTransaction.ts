@@ -6,6 +6,7 @@ import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
+import { RpcSpend } from '../wallet/types'
 
 export type GetTransactionRequest = { transactionHash: string; blockHash?: string }
 
@@ -17,6 +18,7 @@ export type GetTransactionResponse = {
   spendsCount: number
   signature: string
   notesEncrypted: string[]
+  spends: RpcSpend[]
   mints: {
     assetId: string
     value: string
@@ -42,6 +44,17 @@ export const GetTransactionResponseSchema: yup.ObjectSchema<GetTransactionRespon
     spendsCount: yup.number().defined(),
     signature: yup.string().defined(),
     notesEncrypted: yup.array(yup.string().defined()).defined(),
+    spends: yup
+      .array(
+        yup
+          .object({
+            nullifier: yup.string().defined(),
+            commitment: yup.string().defined(),
+            size: yup.number().defined(),
+          })
+          .defined(),
+      )
+      .defined(),
     mints: yup
       .array(
         yup
@@ -99,6 +112,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       spendsCount: 0,
       signature: '',
       notesEncrypted: [],
+      spends: [],
       mints: [],
       burns: [],
     }
@@ -122,6 +136,12 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
         rawTransaction.spendsCount = transaction.spends.length
         rawTransaction.signature = signature.toString('hex')
         rawTransaction.notesEncrypted = notesEncrypted
+
+        rawTransaction.spends = transaction.spends.map((spend) => ({
+          nullifier: spend.nullifier.toString('hex'),
+          commitment: spend.commitment.toString('hex'),
+          size: spend.size,
+        }))
 
         rawTransaction.mints = transaction.mints.map((mint) => ({
           assetId: mint.asset.id().toString('hex'),
