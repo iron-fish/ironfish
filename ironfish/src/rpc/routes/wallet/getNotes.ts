@@ -17,6 +17,7 @@ export type GetAccountNotesStreamResponse = {
   noteHash: string
   transactionHash: string
   spent: boolean | undefined
+  index: number | null
 }
 
 export const GetAccountNotesStreamRequestSchema: yup.ObjectSchema<GetAccountNotesStreamRequest> =
@@ -37,6 +38,7 @@ export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNot
       noteHash: yup.string().defined(),
       transactionHash: yup.string().defined(),
       spent: yup.boolean(),
+      index: yup.number(),
     })
     .defined()
 
@@ -53,7 +55,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
 
       const notes = await account.getTransactionNotes(transaction.transaction)
 
-      for (const { note, spent } of notes) {
+      for (const { note, spent, index } of notes) {
         if (request.closed) {
           break
         }
@@ -69,6 +71,7 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
           sender: note.sender(),
           transactionHash: transaction.transaction.hash().toString('hex'),
           spent,
+          index,
         })
       }
     }
