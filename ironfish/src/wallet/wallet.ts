@@ -984,29 +984,27 @@ export class Wallet {
     const spent = new BufferMap<bigint>()
     const notesSpent = new BufferMap<BufferSet>()
 
-    if (options.notes) {
-      for (const noteHash of options.notes) {
-        const decryptedNote = await options.account.getDecryptedNote(noteHash)
-        Assert.isNotUndefined(
-          decryptedNote,
-          `No note found with hash ${noteHash.toString('hex')} for account ${
-            options.account.name
-          }`,
-        )
+    for (const noteHash of options.notes ?? []) {
+      const decryptedNote = await options.account.getDecryptedNote(noteHash)
+      Assert.isNotUndefined(
+        decryptedNote,
+        `No note found with hash ${noteHash.toString('hex')} for account ${
+          options.account.name
+        }`,
+      )
 
-        const witness = await this.getNoteWitness(decryptedNote)
+      const witness = await this.getNoteWitness(decryptedNote)
 
-        const assetId = decryptedNote.note.assetId()
+      const assetId = decryptedNote.note.assetId()
 
-        const assetAmountSpent = spent.get(assetId) ?? 0n
-        spent.set(assetId, assetAmountSpent + decryptedNote.note.value())
+      const assetAmountSpent = spent.get(assetId) ?? 0n
+      spent.set(assetId, assetAmountSpent + decryptedNote.note.value())
 
-        const assetNotesSpent = notesSpent.get(assetId) ?? new BufferSet()
-        assetNotesSpent.add(noteHash)
-        notesSpent.set(assetId, assetNotesSpent)
+      const assetNotesSpent = notesSpent.get(assetId) ?? new BufferSet()
+      assetNotesSpent.add(noteHash)
+      notesSpent.set(assetId, assetNotesSpent)
 
-        raw.spends.push({ note: decryptedNote.note, witness })
-      }
+      raw.spends.push({ note: decryptedNote.note, witness })
     }
 
     for (const [assetId, assetAmountNeeded] of needed.entries()) {
