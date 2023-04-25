@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { TransactionStatus, TransactionType } from '../../../wallet'
 import { ApiNamespace, router } from '../router'
-import { RpcAccountDecryptedNote, RpcSpend } from './types'
+import { RpcAccountDecryptedNote, RpcSpend, RpcSpendSchema } from './types'
 import {
   getAccount,
   getAccountDecryptedNotes,
@@ -96,17 +96,7 @@ export const GetAccountTransactionResponseSchema: yup.ObjectSchema<GetAccountTra
                 .defined(),
             )
             .defined(),
-          spends: yup
-            .array(
-              yup
-                .object({
-                  nullifier: yup.string().defined(),
-                  commitment: yup.string().defined(),
-                  size: yup.number().defined(),
-                })
-                .defined(),
-            )
-            .defined(),
+          spends: yup.array(RpcSpendSchema).defined(),
         })
         .defined(),
     })
