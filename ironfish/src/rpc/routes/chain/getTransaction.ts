@@ -29,7 +29,9 @@ export type GetTransactionResponse = {
     value: string
   }[]
   blockHash: string
-  // Deprecated: use `notes` instead
+  /**
+   * @deprecated Please use `notes` instead
+   */
   notesEncrypted: string[]
 }
 
