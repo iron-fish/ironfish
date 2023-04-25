@@ -102,6 +102,28 @@ describe('Route chain/getTransaction', () => {
     })
   })
 
+  it('throws an error if the transaction is not found on the block', async () => {
+    const { chain } = routeTest
+
+    const block2 = await useMinerBlockFixture(chain)
+    await expect(chain).toAddBlock(block2)
+
+    const block3 = await useMinerBlockFixture(chain)
+    await expect(chain).toAddBlock(block3)
+
+    const transaction = block2.transactions[0]
+
+    await expect(
+      async () =>
+        await routeTest.client
+          .request<GetTransactionResponse>('chain/getTransaction', {
+            transactionHash: transaction.hash().toString('hex'),
+            blockHash: block3.header.hash.toString('hex'),
+          })
+          .waitForEnd(),
+    ).rejects.toThrow(RpcRequestError)
+  })
+
   it('throws an error if no transaction hash is provided', async () => {
     await expect(
       async () =>

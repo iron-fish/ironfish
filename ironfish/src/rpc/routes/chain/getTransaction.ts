@@ -4,7 +4,7 @@
 import * as yup from 'yup'
 import { BlockHashSerdeInstance } from '../../../serde'
 import { CurrencyUtils } from '../../../utils'
-import { ValidationError } from '../../adapters'
+import { NotFoundError, ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 import { RpcSpend, RpcSpendSchema } from '../wallet/types'
 import { RpcNote, RpcNoteSchema } from './types'
@@ -90,14 +90,14 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
       : await node.chain.getBlockHashByTransactionHash(transactionHashBuffer)
 
     if (!blockHashBuffer) {
-      throw new ValidationError(
+      throw new NotFoundError(
         `No block hash found for transaction hash ${request.data.transactionHash}`,
       )
     }
 
     const blockHeader = await node.chain.getHeader(blockHashBuffer)
     if (!blockHeader) {
-      throw new ValidationError(
+      throw new NotFoundError(
         `No block found for block hash ${blockHashBuffer.toString('hex')}`,
       )
     }
@@ -109,7 +109,7 @@ router.register<typeof GetTransactionRequestSchema, GetTransactionResponse>(
     )
 
     if (!foundTransaction) {
-      throw new ValidationError(
+      throw new NotFoundError(
         `Transaction not found on block ${blockHashBuffer.toString('hex')}`,
       )
     }
