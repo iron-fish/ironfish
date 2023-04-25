@@ -9,7 +9,7 @@ import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
 import { ApiNamespace, router } from '../router'
-import { RpcAccountDecryptedNote, RpcSpend } from './types'
+import { RpcAccountDecryptedNote, RpcSpend, RpcSpendSchema } from './types'
 import {
   getAccount,
   getAccountDecryptedNotes,
@@ -105,15 +105,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
           })
           .defined(),
       ),
-      spends: yup.array(
-        yup
-          .object({
-            nullifier: yup.string().defined(),
-            commitment: yup.string().defined(),
-            size: yup.number().defined(),
-          })
-          .defined(),
-      ),
+      spends: yup.array(RpcSpendSchema).defined(),
     })
     .defined()
 
