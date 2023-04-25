@@ -14,7 +14,7 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { AsyncUtils } from '../../../utils'
 import { AssetStatus } from '../../../wallet'
 
-describe('wallet/getAssets', () => {
+describe('Route wallet/getAssets', () => {
   const routeTest = createRouteTest()
 
   it('returns a stream of assets the wallet owns', async () => {

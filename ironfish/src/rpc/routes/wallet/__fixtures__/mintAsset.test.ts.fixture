@@ -1,5 +1,5 @@
 {
-  "mint with valid parameters returns the asset identifier and transaction hash": [
+  "Route wallet/mintAsset with valid parameters returns the asset identifier and transaction hash": [
     {
       "version": 2,
       "id": "76143464-09eb-4152-86ae-177602a9128a",

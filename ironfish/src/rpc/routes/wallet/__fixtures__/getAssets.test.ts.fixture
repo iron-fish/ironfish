@@ -1,5 +1,5 @@
 {
-  "wallet/getAssets returns a stream of assets the wallet owns": [
+  "Route wallet/getAssets returns a stream of assets the wallet owns": [
     {
       "version": 2,
       "id": "785cb850-450d-433d-93a6-cbbac3fe21dd",

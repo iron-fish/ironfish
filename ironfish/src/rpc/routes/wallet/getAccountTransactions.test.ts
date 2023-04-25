@@ -11,7 +11,7 @@ import {
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { AsyncUtils } from '../../../utils'
-import { GetAccountTransactionsResponse } from './getTransactions'
+import { GetAccountTransactionsResponse } from './getAccountTransactions'
 
 describe('Route wallet/getAccountTransactions', () => {
   const routeTest = createRouteTest(true)

@@ -6,7 +6,7 @@ import { useAccountFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
 
-describe('mint', () => {
+describe('Route wallet/mintAsset', () => {
   const routeTest = createRouteTest(true)
 
   beforeAll(async () => {

@@ -5,7 +5,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { useAccountFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
-describe('getBalances', () => {
+describe('Route wallet/getBalances', () => {
   const routeTest = createRouteTest(true)
 
   beforeAll(async () => {

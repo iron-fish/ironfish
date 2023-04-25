@@ -40,7 +40,7 @@ const TEST_PARAMS_MULTI = {
   fee: BigInt(1).toString(),
 }
 
-describe('Transactions sendTransaction', () => {
+describe('Route wallet/sendTransaction', () => {
   const routeTest = createRouteTest(true)
 
   beforeAll(async () => {
