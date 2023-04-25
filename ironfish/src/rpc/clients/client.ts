@@ -117,6 +117,10 @@ import {
   UseAccountRequest,
   UseAccountResponse,
 } from '../routes'
+import {
+  IsValidPublicAddressRequest,
+  IsValidPublicAddressResponse,
+} from '../routes/chain/isValidPublicAddress'
 
 export abstract class RpcClient {
   readonly logger: Logger
@@ -639,6 +643,15 @@ export abstract class RpcClient {
     ): Promise<RpcResponse<GetNetworkInfoResponse>> => {
       return this.request<GetNetworkInfoResponse>(
         `${ApiNamespace.chain}/getNetworkInfo`,
+        params,
+      ).waitForEnd()
+    },
+
+    isValidPublicAddress: (
+      params: IsValidPublicAddressRequest,
+    ): Promise<RpcResponse<IsValidPublicAddressResponse>> => {
+      return this.request<IsValidPublicAddressResponse>(
+        `${ApiNamespace.chain}/isValidPublicAddress`,
         params,
       ).waitForEnd()
     },

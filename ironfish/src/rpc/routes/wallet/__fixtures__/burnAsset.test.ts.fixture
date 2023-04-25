@@ -1,5 +1,5 @@
 {
-  "burnAsset with valid parameters returns the asset identifier and transaction hash": [
+  "Route wallet/burnAsset with valid parameters returns the asset identifier and transaction hash": [
     {
       "version": 2,
       "id": "538d4c89-d8f9-45c4-ba7f-d5f9cd1ed23d",

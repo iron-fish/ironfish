@@ -69,19 +69,10 @@ export class Simulator {
       }
     }
 
-    process
-      .on('SIGINT', (event) => {
-        this.logger.log(`simulator handled ${event.toString()}`)
-        this.exit(1)
-      })
-      .on('uncaughtException', (err) => {
-        this.logger.log(`simulator handled uncaught exception: ${String(err)}`)
-        this.exit(1)
-      })
-      .on('unhandledRejection', (reason, _) => {
-        this.logger.log(`simulator handled unhandled rejection: ${String(reason)}`)
-        this.exit(1)
-      })
+    process.on('SIGINT' || 'SIGKILL', (event) => {
+      this.logger.log(`simulator handled signal ${event.toString()}`)
+      this.exit(1)
+    })
   }
 
   /**
@@ -155,7 +146,7 @@ export class Simulator {
    * Unexpected process exit handler.
    * This deletes all data directories, kills all nodes, and exits the Simulator process.
    */
-  private exit(code = 0) {
+  public exit(code = 0): void {
     this.nodes.forEach((node) => node.kill())
     this.deleteDataDirs()
     this.logger.log('exiting...')

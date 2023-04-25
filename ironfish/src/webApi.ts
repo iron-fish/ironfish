@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import axios, { AxiosError, AxiosRequestConfig } from 'axios'
-import { FollowChainStreamResponse } from './rpc/routes/chain/followChain'
+import { FollowChainStreamResponse } from './rpc/routes/chain/followChainStream'
 import { Metric } from './telemetry'
 import { HasOwnProperty, UnwrapPromise } from './utils/types'
 

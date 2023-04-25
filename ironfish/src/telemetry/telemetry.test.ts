@@ -28,6 +28,7 @@ describe('Telemetry', () => {
 
   beforeEach(() => {
     telemetry = new Telemetry({
+      networkId: 2,
       chain: mockChain(),
       workerPool: mockWorkerPool(),
       config: mockConfig({ blockGraffiti: mockGraffiti }),
@@ -55,6 +56,7 @@ describe('Telemetry', () => {
     describe('when disabled', () => {
       it('does nothing', () => {
         const disabledTelemetry = new Telemetry({
+          networkId: 2,
           chain: mockChain(),
           workerPool: mockWorkerPool(),
           config: mockConfig({ blockGraffiti: mockGraffiti }),
@@ -136,6 +138,7 @@ describe('Telemetry', () => {
       expect(submitTelemetry).toHaveBeenCalledWith(
         points.slice(0, telemetry['MAX_POINTS_TO_SUBMIT']),
         GraffitiUtils.fromString(mockGraffiti),
+        'https://api.ironfish.network',
       )
       expect(telemetry['points']).toEqual(points.slice(telemetry['MAX_POINTS_TO_SUBMIT']))
       expect(telemetry['points']).toHaveLength(

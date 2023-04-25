@@ -51,7 +51,7 @@ export class Transaction {
     const _notesLength = reader.readU64() // 8
     const _mintsLength = reader.readU64() // 8
     const _burnsLength = reader.readU64() // 8
-    this._fee = BigInt(reader.readI64()) // 8
+    this._fee = reader.readBigI64() // 8
     this._expiration = reader.readU32() // 4
     // randomized public key of sender
     // to read the value of rpk reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')

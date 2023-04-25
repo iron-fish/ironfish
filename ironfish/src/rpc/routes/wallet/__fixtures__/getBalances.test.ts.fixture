@@ -1,5 +1,5 @@
 {
-  "getBalances with a valid account streams balances for all assets owned by the account": [
+  "Route wallet/getBalances with a valid account streams balances for all assets owned by the account": [
     {
       "version": 2,
       "id": "e9a91252-1821-4d33-a020-74b13571ea92",

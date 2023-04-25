@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import * as yup from 'yup'
+
 export type RpcAccountTransaction = {
   hash: string
   fee: string
@@ -31,4 +33,19 @@ export type RpcAccountDecryptedNote = {
   sender: string
   owner: string
   spent: boolean
+  hash: string
 }
+
+export type RpcSpend = {
+  nullifier: string
+  commitment: string
+  size: number
+}
+
+export const RpcSpendSchema: yup.ObjectSchema<RpcSpend> = yup
+  .object({
+    nullifier: yup.string().defined(),
+    commitment: yup.string().defined(),
+    size: yup.number().defined(),
+  })
+  .defined()

@@ -10,7 +10,7 @@ import {
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
 
-describe('burnAsset', () => {
+describe('Route wallet/burnAsset', () => {
   const routeTest = createRouteTest(true)
 
   beforeAll(async () => {

@@ -7,10 +7,11 @@ import {
   useAccountFixture,
   useMinerBlockFixture,
   usePostTxFixture,
+  useTxSpendsFixture,
 } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { AsyncUtils } from '../../../utils'
-import { GetAccountTransactionsResponse } from './getTransactions'
+import { GetAccountTransactionsResponse } from './getAccountTransactions'
 
 describe('Route wallet/getAccountTransactions', () => {
   const routeTest = createRouteTest(true)
@@ -138,5 +139,41 @@ describe('Route wallet/getAccountTransactions', () => {
     Assert.isNotUndefined(responseTransaction.notes)
 
     expect(responseTransaction.notes).toHaveLength(1)
+  })
+
+  it('optionally streams transactions with spends', async () => {
+    const node = routeTest.node
+    const account = await useAccountFixture(node.wallet, 'with-spends')
+
+    const { transaction } = await useTxSpendsFixture(node, { account })
+
+    const response = routeTest.client.request<unknown, GetAccountTransactionsResponse>(
+      'wallet/getAccountTransactions',
+      {
+        account: account.name,
+        spends: true,
+      },
+    )
+
+    const transactions = await AsyncUtils.materialize(response.contentStream())
+    expect(transactions).toHaveLength(2)
+
+    const [spendTxn] = transactions
+
+    Assert.isNotUndefined(spendTxn.spends)
+
+    expect(spendTxn.spends).toHaveLength(transaction.spends.length)
+
+    const expected = transaction.spends.map((txn) => {
+      return {
+        commitment: txn.commitment.toString('hex'),
+        nullifier: txn.nullifier.toString('hex'),
+        size: txn.size,
+      }
+    })
+
+    const got = spendTxn.spends
+
+    expect(got).toEqual(expected)
   })
 })

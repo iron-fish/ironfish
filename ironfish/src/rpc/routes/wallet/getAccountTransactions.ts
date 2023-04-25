@@ -9,7 +9,7 @@ import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
 import { ApiNamespace, router } from '../router'
-import { RpcAccountDecryptedNote } from './types'
+import { RpcAccountDecryptedNote, RpcSpend, RpcSpendSchema } from './types'
 import {
   getAccount,
   getAccountDecryptedNotes,
@@ -25,6 +25,7 @@ export type GetAccountTransactionsRequest = {
   offset?: number
   confirmations?: number
   notes?: boolean
+  spends?: boolean
 }
 
 export type GetAccountTransactionsResponse = {
@@ -44,6 +45,7 @@ export type GetAccountTransactionsResponse = {
   submittedSequence: number
   assetBalanceDeltas: Array<{ assetId: string; assetName: string; delta: string }>
   notes?: RpcAccountDecryptedNote[]
+  spends?: RpcSpend[]
 }
 
 export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTransactionsRequest> =
@@ -55,7 +57,8 @@ export const GetAccountTransactionsRequestSchema: yup.ObjectSchema<GetAccountTra
       limit: yup.number().notRequired(),
       offset: yup.number().notRequired(),
       confirmations: yup.number().notRequired(),
-      notes: yup.boolean().notRequired(),
+      notes: yup.boolean().notRequired().default(false),
+      spends: yup.boolean().notRequired().default(false),
     })
     .defined()
 
@@ -98,9 +101,11 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
             sender: yup.string().defined(),
             memo: yup.string().trim().defined(),
             spent: yup.boolean(),
+            hash: yup.string().defined(),
           })
           .defined(),
       ),
+      spends: yup.array(RpcSpendSchema).defined(),
     })
     .defined()
 
@@ -177,6 +182,15 @@ const streamTransaction = async (
     notes = await getAccountDecryptedNotes(node, account, transaction)
   }
 
+  let spends = undefined
+  if (request.data.spends) {
+    spends = transaction.transaction.spends.map((spend) => ({
+      nullifier: spend.nullifier.toString('hex'),
+      commitment: spend.commitment.toString('hex'),
+      size: spend.size,
+    }))
+  }
+
   const status = await node.wallet.getTransactionStatus(account, transaction, options)
   const type = await node.wallet.getTransactionType(account, transaction)
 
@@ -187,6 +201,7 @@ const streamTransaction = async (
     confirmations: options.confirmations,
     type,
     notes,
+    spends,
   }
 
   request.stream(serialized)

@@ -12,16 +12,20 @@ import { WorkerTask } from './workerTask'
 export class SubmitTelemetryRequest extends WorkerMessage {
   readonly points: Metric[]
   readonly graffiti: Buffer
+  readonly apiHost: string
 
-  constructor(points: Metric[], graffiti: Buffer, jobId?: number) {
+  constructor(points: Metric[], graffiti: Buffer, apiHost: string, jobId?: number) {
     super(WorkerMessageType.SubmitTelemetry, jobId)
     this.points = points
     this.graffiti = graffiti
+    this.apiHost = apiHost
   }
 
   serialize(): Buffer {
     const bw = bufio.write(this.getSize())
     bw.writeVarBytes(this.graffiti)
+    bw.writeVarString(this.apiHost, 'utf8')
+
     bw.writeU64(this.points.length)
 
     for (const point of this.points) {
@@ -64,6 +68,8 @@ export class SubmitTelemetryRequest extends WorkerMessage {
   static deserialize(jobId: number, buffer: Buffer): SubmitTelemetryRequest {
     const reader = bufio.read(buffer, true)
     const graffiti = reader.readVarBytes()
+    const apiHost = reader.readVarString('utf8')
+
     const pointsLength = reader.readU64()
     const points = []
     for (let i = 0; i < pointsLength; i++) {
@@ -114,11 +120,13 @@ export class SubmitTelemetryRequest extends WorkerMessage {
 
       points.push({ measurement, tags, timestamp, fields })
     }
-    return new SubmitTelemetryRequest(points, graffiti, jobId)
+    return new SubmitTelemetryRequest(points, graffiti, apiHost, jobId)
   }
 
   getSize(): number {
     let size = 8 + bufio.sizeVarBytes(this.graffiti)
+    size += bufio.sizeVarString(this.apiHost, 'utf8')
+
     for (const point of this.points) {
       size += bufio.sizeVarString(point.measurement, 'utf8')
       size += bufio.sizeVarString(point.timestamp.toISOString(), 'utf8')
@@ -186,8 +194,9 @@ export class SubmitTelemetryTask extends WorkerTask {
     jobId,
     points,
     graffiti,
+    apiHost,
   }: SubmitTelemetryRequest): Promise<SubmitTelemetryResponse> {
-    const api = new WebApi()
+    const api = new WebApi({ host: apiHost })
     await api.submitTelemetry({ points, graffiti: BufferUtils.toHuman(graffiti) })
     return new SubmitTelemetryResponse(jobId)
   }

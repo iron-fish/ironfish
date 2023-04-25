@@ -8,7 +8,7 @@
 import { v4 as uuid } from 'uuid'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
-describe('Route wallet/status', () => {
+describe('Route wallet/getAccountsStatus', () => {
   const routeTest = createRouteTest(true)
 
   it('should return account status information', async () => {

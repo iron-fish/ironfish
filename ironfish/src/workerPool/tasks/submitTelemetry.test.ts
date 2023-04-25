@@ -1,9 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import axios from 'axios'
 import { Metric } from '../../telemetry'
 import { BufferUtils, GraffitiUtils } from '../../utils'
-import { WebApi } from '../../webApi'
 import {
   SubmitTelemetryRequest,
   SubmitTelemetryResponse,
@@ -42,7 +42,11 @@ describe('SubmitTelemetryRequest', () => {
       timestamp: new Date(),
     }
 
-    const request = new SubmitTelemetryRequest([mockMetric], GraffitiUtils.fromString(''))
+    const request = new SubmitTelemetryRequest(
+      [mockMetric],
+      GraffitiUtils.fromString(''),
+      'mock.api.endpoint',
+    )
     const buffer = request.serialize()
     const deserializedRequest = SubmitTelemetryRequest.deserialize(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
@@ -61,7 +65,7 @@ describe('SubmitTelemetryTask', () => {
   describe('execute', () => {
     it('submits points to the API', async () => {
       const submitTelemetryPointsToApi = jest
-        .spyOn(WebApi.prototype, 'submitTelemetry')
+        .spyOn(axios, 'post')
         .mockImplementationOnce(jest.fn())
       const mockMetric: Metric = {
         measurement: 'node',
@@ -78,10 +82,13 @@ describe('SubmitTelemetryTask', () => {
       const graffitiBuffer = GraffitiUtils.fromString('testgraffiti')
       const graffiti = BufferUtils.toHuman(graffitiBuffer)
       const task = new SubmitTelemetryTask()
-      const request = new SubmitTelemetryRequest(points, graffitiBuffer)
+      const request = new SubmitTelemetryRequest(points, graffitiBuffer, 'mock.api.endpoint')
 
       await task.execute(request)
-      expect(submitTelemetryPointsToApi).toHaveBeenCalledWith({ points, graffiti })
+      expect(submitTelemetryPointsToApi).toHaveBeenCalledWith('mock.api.endpoint/telemetry', {
+        points,
+        graffiti,
+      })
     })
   })
 })

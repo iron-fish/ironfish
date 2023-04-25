@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { ConsensusParameters } from './consensus'
-import { DEV, isDefaultNetworkId, MAINNET, TESTNET } from './defaultNetworkDefinitions'
+import { DEVNET, isDefaultNetworkId, MAINNET, TESTNET } from './defaultNetworkDefinitions'
 import { Config, InternalStore } from './fileStores'
 import { FileSystem } from './fileSystems'
 import { SerializedBlock } from './primitives/block'
@@ -80,7 +80,7 @@ export async function getNetworkDefinition(
     } else if (networkId === 1) {
       networkDefinitionJSON = MAINNET
     } else if (networkId === 2) {
-      networkDefinitionJSON = DEV
+      networkDefinitionJSON = DEVNET
     } else {
       networkDefinitionJSON = await files.readFile(config.get('networkDefinitionPath'))
     }

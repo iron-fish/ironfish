@@ -78,11 +78,6 @@ describe('IronfishSdk', () => {
       const sdk = await IronfishSdk.init({
         configName: 'foo.config.json',
         fileSystem: fileSystem,
-        configOverrides: {
-          // TODO: It should be possible to test on the default network (mainnet)
-          // once the genesis block has been added.
-          networkId: 2,
-        },
       })
 
       const expectedDir = fileSystem.resolve(DEFAULT_DATA_DIR)
