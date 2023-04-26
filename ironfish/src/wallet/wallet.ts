@@ -337,7 +337,7 @@ export class Wallet {
 
     const batchSize = 20
     for (const account of accountsToCheck) {
-      const decryptedNotes = []
+      const decryptedNotesBatch = []
       let decryptNotesPayloads = []
       let currentNoteIndex = initialNoteIndex
 
@@ -356,18 +356,16 @@ export class Wallet {
         }
 
         if (decryptNotesPayloads.length >= batchSize) {
-          const decryptedNotesBatch = await this.decryptNotesFromTransaction(
-            decryptNotesPayloads,
-          )
-          decryptedNotes.push(...decryptedNotesBatch)
+          decryptedNotesBatch.push(this.decryptNotesFromTransaction(decryptNotesPayloads))
           decryptNotesPayloads = []
         }
       }
 
       if (decryptNotesPayloads.length) {
-        const decryptedNotesBatch = await this.decryptNotesFromTransaction(decryptNotesPayloads)
-        decryptedNotes.push(...decryptedNotesBatch)
+        decryptedNotesBatch.push(this.decryptNotesFromTransaction(decryptNotesPayloads))
       }
+
+      const decryptedNotes = (await Promise.all(decryptedNotesBatch)).flat()
 
       if (decryptedNotes.length) {
         decryptedNotesByAccountId.set(account.id, decryptedNotes)
@@ -404,6 +402,8 @@ export class Wallet {
 
     for (const account of accounts) {
       const shouldDecrypt = await this.shouldDecryptForAccount(blockHeader, account, scan)
+      const assetBalanceDeltas = new AssetBalances()
+      const decryptedNotesByTransaction = new Map<Transaction, DecryptedNote[]>()
 
       if (scan && scan.isAborted) {
         scan.signalComplete()
@@ -411,16 +411,38 @@ export class Wallet {
         return
       }
 
-      await this.walletDb.db.transaction(async (tx) => {
-        let assetBalanceDeltas = new AssetBalances()
+      if (shouldDecrypt) {
+        const transactions = await this.chain.getBlockTransactions(blockHeader)
 
-        if (shouldDecrypt) {
-          assetBalanceDeltas = await this.connectBlockTransactions(
+        await Promise.all(
+          transactions.map(async ({ transaction, initialNoteIndex }) => {
+            const decryptedNotesByAccountId = await this.decryptNotes(
+              transaction,
+              initialNoteIndex,
+              false,
+              [account],
+            )
+
+            decryptedNotesByTransaction.set(
+              transaction,
+              decryptedNotesByAccountId.get(account.id) ?? [],
+            )
+          }),
+        )
+      }
+
+      await this.walletDb.db.transaction(async (tx) => {
+        for (const [transaction, decryptedNotes] of decryptedNotesByTransaction) {
+          const transactionDeltas = await account.connectTransaction(
             blockHeader,
-            account,
-            scan,
+            transaction,
+            decryptedNotes,
             tx,
           )
+
+          assetBalanceDeltas.update(transactionDeltas)
+
+          await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, blockHeader, tx)
         }
 
         await account.updateUnconfirmedBalances(
@@ -470,44 +492,6 @@ export class Wallet {
     }
 
     return false
-  }
-
-  private async connectBlockTransactions(
-    blockHeader: BlockHeader,
-    account: Account,
-    scan?: ScanState,
-    tx?: IDatabaseTransaction,
-  ): Promise<AssetBalances> {
-    const assetBalanceDeltas = new AssetBalances()
-    const transactions = await this.chain.getBlockTransactions(blockHeader)
-
-    for (const { transaction, initialNoteIndex } of transactions) {
-      if (scan && scan.isAborted) {
-        return assetBalanceDeltas
-      }
-
-      const decryptedNotesByAccountId = await this.decryptNotes(
-        transaction,
-        initialNoteIndex,
-        false,
-        [account],
-      )
-
-      const decryptedNotes = decryptedNotesByAccountId.get(account.id) ?? []
-
-      const transactionDeltas = await account.connectTransaction(
-        blockHeader,
-        transaction,
-        decryptedNotes,
-        tx,
-      )
-
-      assetBalanceDeltas.update(transactionDeltas)
-
-      await this.upsertAssetsFromDecryptedNotes(account, decryptedNotes, blockHeader, tx)
-    }
-
-    return assetBalanceDeltas
   }
 
   private async upsertAssetsFromDecryptedNotes(
