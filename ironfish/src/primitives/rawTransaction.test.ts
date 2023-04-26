@@ -84,6 +84,10 @@ describe('RawTransaction', () => {
     const mintedValue = valuesByAsset.get(asset.id())
     Assert.isNotUndefined(mintedValue)
     expect(mintedValue).toEqual(1n)
+
+    // should have same size for posted transaction and estimated size from raw transaction
+    const serializedPost = posted.serialize()
+    expect(raw.postedSize(account.publicAddress)).toEqual(serializedPost.byteLength)
   })
 
   it('should throw an error if the max mint value is exceeded', async () => {
