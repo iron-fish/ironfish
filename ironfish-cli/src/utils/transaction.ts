@@ -38,8 +38,6 @@ export async function watchTransaction(options: {
   let prevStatus = last?.content.transaction?.status ?? 'not found'
   let currentStatus = prevStatus
 
-  CliUx.ux.action.start(`Current Status`)
-
   // If the transaction is already in the desired state, return
   if (currentStatus === waitUntil) {
     logger.log(`Transaction ${options.hash} is ${waitUntil}`)
