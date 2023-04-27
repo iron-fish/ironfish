@@ -10,7 +10,7 @@ export const ORE = 1
 export const IRON = 100000000 * ORE
 
 /** 1 / 100000000 */
-export const IRON_TO_ORE = ORE / IRON
+export const ORE_TO_IRON = ORE / IRON
 
 /**
  * Sleeps for a given duration.
