@@ -33,6 +33,11 @@ export abstract class Start extends Command {
       required: false,
       description: 'Duration the simulation should run for',
     }),
+    verbose: Flags.boolean({
+      char: 'v',
+      required: false,
+      description: 'Log all node event to the console by default',
+    }),
   }
 
   constructor(argv: string[], config: Config) {
@@ -63,7 +68,11 @@ export abstract class Start extends Command {
     // The simulator is created here because oclif catches errors so we can't throw them
     // and handle `uncaughtException` in the simulator. Having this try-catch block is a workaround
     // to ensure the simulator gracefully exits when an error occurs.
-    const simulator = new Simulator(logger, { persist, duration })
+    const simulator = new Simulator(logger, {
+      persist,
+      duration,
+      verboseLogging: flags.verbose,
+    })
 
     try {
       await simulation.run(simulator, logger)
