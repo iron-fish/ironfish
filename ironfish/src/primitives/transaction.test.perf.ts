@@ -18,7 +18,13 @@ type Results = { spends: number; outputs: number; elapsed: number }
 describe('Transaction', () => {
   const nodeTest = createNodeTest()
 
-  const TEST_AMOUNTS = [1, 10, 100]
+  const TEST_AMOUNTS = [
+    { spends: 1, outputs: 1 },
+    { spends: 10, outputs: 1 },
+    { spends: 100, outputs: 1 },
+    { spends: 1, outputs: 10 },
+    { spends: 1, outputs: 100 },
+  ]
 
   it('post', async () => {
     const { wallet } = nodeTest
@@ -26,7 +32,7 @@ describe('Transaction', () => {
     const account = await useAccountFixture(wallet)
 
     // Generate enough notes for the tests
-    for (let i = 0; i < Math.max(...TEST_AMOUNTS); i++) {
+    for (let i = 0; i < Math.max(...TEST_AMOUNTS.map((t) => t.spends)); i++) {
       const block = await useMinerBlockFixture(
         nodeTest.chain,
         undefined,
@@ -37,15 +43,9 @@ describe('Transaction', () => {
       await nodeTest.wallet.updateHead()
     }
 
-    // Spends
-    for (const i of TEST_AMOUNTS) {
-      const results = await runTest(account, i, 1)
-      printResults(results)
-    }
-
-    // Outputs
-    for (const i of TEST_AMOUNTS) {
-      const results = await runTest(account, 1, i)
+    // Run tests
+    for (const { spends, outputs } of TEST_AMOUNTS) {
+      const results = await runTest(account, spends, outputs)
       printResults(results)
     }
   })
@@ -116,9 +116,6 @@ describe('Transaction', () => {
 
 // [TEST RESULTS: Spends: 100, Outputs: 1]
 // Elapsed: 76,534.142 milliseconds
-
-// [TEST RESULTS: Spends: 1, Outputs: 1]
-// Elapsed: 1,108.69 milliseconds
 
 // [TEST RESULTS: Spends: 1, Outputs: 10]
 // Elapsed: 4,251.144 milliseconds
