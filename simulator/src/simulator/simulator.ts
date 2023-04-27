@@ -32,6 +32,9 @@ export class Simulator {
   /** Whether to persist the data directories of the nodes after simulator shutdown */
   persistNodeDataDirs = false
 
+  /** Log all node event to the logger by default */
+  verboseLogging = false
+
   /** Set of all data directories of the spawned nodes */
   dataDirs: Set<string> = new Set<string>()
 
@@ -46,27 +49,26 @@ export class Simulator {
   /** Number of nodes that have been started */
   nodeCount = 0
 
-  constructor(logger: Logger, options?: { persist?: boolean; duration?: number }) {
+  constructor(
+    logger: Logger,
+    options?: { persist?: boolean; duration?: number; verboseLogging?: boolean },
+  ) {
     this.logger = logger
     this.logger.withTag('simulator')
 
     this.running = true
 
-    if (options) {
-      const { persist, duration } = options
+    this.verboseLogging = !!options?.verboseLogging
+    this.persistNodeDataDirs = !!options?.persist
 
-      if (persist) {
-        this.persistNodeDataDirs = true
-      }
-
-      if (duration) {
-        this.logger.log(`this simulation will run for ${duration} seconds`)
-        const exitTimeout = setTimeout(() => {
-          this.logger.log(`simulator exiting after ${duration} seconds`)
-          clearTimeout(exitTimeout)
-          this.exit()
-        }, duration * SECOND)
-      }
+    if (options?.duration !== undefined) {
+      const duration = options.duration
+      this.logger.log(`this simulation will run for ${duration} seconds`)
+      const exitTimeout = setTimeout(() => {
+        this.logger.log(`simulator exiting after ${duration} seconds`)
+        clearTimeout(exitTimeout)
+        this.exit()
+      }, options.duration * SECOND)
     }
 
     process.on('SIGINT' || 'SIGKILL', (event) => {
@@ -89,6 +91,12 @@ export class Simulator {
     onError?: ((c: ErrorEvent) => void | Promise<void>)[]
   }): Promise<SimulationNode> {
     this.nodeCount += 1
+    if (this.verboseLogging) {
+      options = {
+        ...options,
+        onLog: [...(options?.onLog || []), (l) => this.logger.log(l.message)],
+      }
+    }
 
     const nodeConfig = this.fillConfig(options?.cfg ?? {})
 
