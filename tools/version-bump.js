@@ -33,12 +33,12 @@ const bumpVersion = (version) => {
 
 const bumpMajor = (version) => {
   const { major, minor, patch } = parseVersion(version)
-  return `${parseInt(major) + 1}.${minor}.${patch}`
+  return `${parseInt(major) + 1}.0.0`
 }
 
 const bumpDefault = (version) => {
   const { major, minor, patch } = parseVersion(version)
-  return `${major}.${parseInt(minor) + 1}.${patch}`
+  return `${major}.${parseInt(minor) + 1}.0`
 }
 
 const bumpPatch = (version) => {
