@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Logger } from '@ironfish/sdk'
+import { Simulator } from '../simulator'
 import * as send from './send'
 import * as stability from './stability'
 
@@ -9,13 +10,7 @@ import * as stability from './stability'
  * Interface that simulations must implement to be run by the framework.
  */
 export interface Simulation {
-  run(
-    logger: Logger,
-    options?: {
-      persist?: boolean
-      duration?: number
-    },
-  ): Promise<void>
+  run(simulator: Simulator, logger: Logger): Promise<void>
 }
 
 /**

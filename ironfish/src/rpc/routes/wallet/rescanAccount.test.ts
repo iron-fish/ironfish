@@ -11,7 +11,7 @@ import { createRouteTest } from '../../../testUtilities/routeTest'
 import { Account, ScanState } from '../../../wallet'
 import { RescanAccountResponse } from './rescanAccount'
 
-describe('wallet/rescanAccount', () => {
+describe('Route wallet/rescanAccount', () => {
   const routeTest = createRouteTest()
   let account: Account
 

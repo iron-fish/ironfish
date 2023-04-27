@@ -10,6 +10,7 @@ export enum ERROR_CODES {
   VALIDATION = 'validation',
   INSUFFICIENT_BALANCE = 'insufficient-balance',
   UNAUTHENTICATED = 'unauthenticated',
+  NOT_FOUND = 'not-found',
 }
 
 /**
@@ -48,6 +49,15 @@ export class ResponseError extends Error {
  */
 export class ValidationError extends ResponseError {
   constructor(message: string, status = 400, code = ERROR_CODES.VALIDATION) {
+    super(message, code, status)
+  }
+}
+
+/**
+ * A convenience error to throw inside of routes when a resource is not found
+ */
+export class NotFoundError extends ResponseError {
+  constructor(message: string, status = 404, code = ERROR_CODES.NOT_FOUND) {
     super(message, code, status)
   }
 }

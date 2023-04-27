@@ -59,7 +59,7 @@ export class TransactionCommand extends IronfishCommand {
     this.log(`Sender: ${response.content.transaction.notes[0].sender}`)
 
     if (response.content.transaction.notes.length > 0) {
-      this.log(`---Notes---\n`)
+      this.log(`\n---Notes---\n`)
 
       CliUx.ux.table(response.content.transaction.notes, {
         amount: {
@@ -91,8 +91,26 @@ export class TransactionCommand extends IronfishCommand {
       })
     }
 
+    if (response.content.transaction.spendsCount > 0) {
+      this.log(`\n---Spends---\n`)
+      CliUx.ux.table(response.content.transaction.spends, {
+        size: {
+          header: 'Size',
+          get: (spend) => spend.size,
+        },
+        nullifier: {
+          header: 'Nullifier',
+          get: (spend) => spend.nullifier,
+        },
+        commitmment: {
+          header: 'Commitment',
+          get: (spend) => spend.commitment,
+        },
+      })
+    }
+
     if (response.content.transaction.assetBalanceDeltas) {
-      this.log(`---Asset Balance Deltas---\n`)
+      this.log(`\n---Asset Balance Deltas---\n`)
       CliUx.ux.table(response.content.transaction.assetBalanceDeltas, {
         assetId: {
           header: 'Asset ID',

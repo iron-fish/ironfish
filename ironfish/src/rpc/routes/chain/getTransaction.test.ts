@@ -5,6 +5,7 @@ import { useMinerBlockFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 import { CurrencyUtils } from '../../../utils'
 import { RpcRequestError } from '../../clients'
+import { RpcSpend } from '../wallet/types'
 import { GetTransactionResponse } from './getTransaction'
 
 describe('Route chain/getTransaction', () => {
@@ -19,9 +20,14 @@ describe('Route chain/getTransaction', () => {
     const transaction = block2.transactions[0]
 
     const notesEncrypted: string[] = []
+    const notes: { hash: string; serialized: string }[] = []
 
     for (const note of transaction.notes) {
       notesEncrypted.push(note.serialize().toString('hex'))
+      notes.push({
+        hash: note.hash().toString('hex'),
+        serialized: note.serialize().toString('hex'),
+      })
     }
 
     const response = await routeTest.client
@@ -30,6 +36,12 @@ describe('Route chain/getTransaction', () => {
       })
       .waitForEnd()
 
+    const spends: RpcSpend[] = transaction.spends.map((spend) => ({
+      nullifier: spend.nullifier.toString('hex'),
+      commitment: spend.commitment.toString('hex'),
+      size: spend.size,
+    }))
+
     expect(response.content).toMatchObject({
       fee: CurrencyUtils.encode(transaction.fee()),
       expiration: transaction.expiration(),
@@ -37,8 +49,10 @@ describe('Route chain/getTransaction', () => {
       spendsCount: 0,
       signature: transaction.transactionSignature().toString('hex'),
       notesEncrypted,
+      spends,
       mints: [],
       burns: [],
+      notes,
     })
   })
 
@@ -51,9 +65,14 @@ describe('Route chain/getTransaction', () => {
     const transaction = block2.transactions[0]
 
     const notesEncrypted: string[] = []
+    const notes: { hash: string; serialized: string }[] = []
 
     for (const note of transaction.notes) {
       notesEncrypted.push(note.serialize().toString('hex'))
+      notes.push({
+        hash: note.hash().toString('hex'),
+        serialized: note.serialize().toString('hex'),
+      })
     }
 
     const response = await routeTest.client
@@ -63,6 +82,12 @@ describe('Route chain/getTransaction', () => {
       })
       .waitForEnd()
 
+    const spends: RpcSpend[] = transaction.spends.map((spend) => ({
+      nullifier: spend.nullifier.toString('hex'),
+      commitment: spend.commitment.toString('hex'),
+      size: spend.size,
+    }))
+
     expect(response.content).toMatchObject({
       fee: CurrencyUtils.encode(transaction.fee()),
       expiration: transaction.expiration(),
@@ -70,9 +95,33 @@ describe('Route chain/getTransaction', () => {
       spendsCount: 0,
       signature: transaction.transactionSignature().toString('hex'),
       notesEncrypted,
+      spends,
       mints: [],
       burns: [],
+      notes,
     })
+  })
+
+  it('throws an error if the transaction is not found on the block', async () => {
+    const { chain } = routeTest
+
+    const block2 = await useMinerBlockFixture(chain)
+    await expect(chain).toAddBlock(block2)
+
+    const block3 = await useMinerBlockFixture(chain)
+    await expect(chain).toAddBlock(block3)
+
+    const transaction = block2.transactions[0]
+
+    await expect(
+      async () =>
+        await routeTest.client
+          .request<GetTransactionResponse>('chain/getTransaction', {
+            transactionHash: transaction.hash().toString('hex'),
+            blockHash: block3.header.hash.toString('hex'),
+          })
+          .waitForEnd(),
+    ).rejects.toThrow(RpcRequestError)
   })
 
   it('throws an error if no transaction hash is provided', async () => {
