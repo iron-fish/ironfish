@@ -14,7 +14,8 @@ import {
   RpcTcpClient,
   YupUtils,
 } from '@ironfish/sdk'
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
+import { ChildProcessWithoutNullStreams, exec, spawn } from 'child_process'
+import { promisify } from 'util'
 import {
   defaultOnError,
   defaultOnExit,
@@ -554,7 +555,7 @@ export class SimulationNode {
   ): Promise<void> {
     args.push('--datadir', this.config.dataDir)
     const cmdString = rootCmd + ' ' + command + ' ' + args.join(' ')
-    this.logger.log(`executing cli command: ${cmdString}`)
+    this.logger.log(`executing cli command (spawn): ${cmdString}`)
 
     return new Promise((resolve, reject) => {
       const process = spawn(rootCmd, [command, ...args])
@@ -582,6 +583,54 @@ export class SimulationNode {
         }
       })
     })
+  }
+
+  /**
+   * Executes a cli command command via `child_process.exec()` asynchronously and returns the stdout and stderr.
+   * `exec()` differs from `spawn()` as it buffers all of the output and returns it when the command has finished executing.
+   * There is a maximum size for the buffer, so this should only be used for short-lived commands.
+   *
+   * This function should be used over `executeCliCommand()` if you need to pass complex arguments to the command.
+   * This seems to be the case if any quotes / special characters are present in your arguments.
+   * For instance, a stringified JSON object can be passed as an argument to this command.
+   * Importing the genesis account uses this function to pass the genesis account JSON to the command because the
+   * double quotes in the JSON string cannot be interpreted properly using `spawn()`.
+   *
+   * Async behaviour is achieved by wrapping the `child_process.exec()` function in a promise. This function
+   * should be used if you need to execute a command and wait for it to complete before continuing.
+   *
+   * If the command fails, the error is thrown. Arguments should be passed in as an array
+   * and will be concatened with spaces when the command is executed. The datadir of the node is
+   * automatically to the end of the command.
+   *
+   * ```ts
+   * try {
+   *  // executes `ironfish status --all --datadir <datadir>`
+   *  const { stdout, stderr } = await node.executeCliCommandAsync('status', ['--all'])
+   * } catch (e) {
+   *  const error = e as ExecException
+   *  // handle error
+   * }
+   *```
+   * @param command The ironfish cli command to execute
+   * @param args The arguments for the command
+   * @throws an `ExecException` if the command fails
+   * @returns a promise containing the stdout and stderr output of the command
+   * // TODO: make args optional
+   */
+  async executeCliCommandWithExec(
+    command: string,
+    args: string[],
+  ): Promise<{ stdout: string; stderr: string }> {
+    const execWithPromise = promisify(exec)
+
+    args.push('--datadir', this.config.dataDir)
+
+    const cmdString = rootCmd + ' ' + command + ' ' + args.join(' ')
+
+    this.logger.log(`executing cli command (exec): ${cmdString}`)
+
+    return execWithPromise(cmdString)
   }
 }
 
