@@ -37,7 +37,7 @@ describe('Route chain.getTransactionStream', () => {
   it('returns expected mints and burns', async () => {
     const wallet = routeTest.node.wallet
     const account = await useAccountFixture(wallet)
-    const asset = new Asset(account.spendingKey, 'customasset', 'metadata')
+    const asset = new Asset(account.publicAddress, 'customasset', 'metadata')
     const response = routeTest.client.chain.getTransactionStream({
       incomingViewKey: account.incomingViewKey,
     })

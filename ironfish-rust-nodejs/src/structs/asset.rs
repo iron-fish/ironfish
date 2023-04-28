@@ -10,7 +10,7 @@ use ironfish_rust::{
         asset_identifier::NATIVE_ASSET,
     },
     keys::PUBLIC_ADDRESS_SIZE,
-    SaplingKey,
+    PublicAddress,
 };
 use napi::{
     bindgen_prelude::{Buffer, Result},
@@ -43,12 +43,15 @@ pub struct NativeAsset {
 #[napi]
 impl NativeAsset {
     #[napi(constructor)]
-    pub fn new(owner_private_key: String, name: String, metadata: String) -> Result<NativeAsset> {
-        let sapling_key = SaplingKey::from_hex(&owner_private_key).map_err(to_napi_err)?;
-        let owner = sapling_key.public_address();
+    pub fn new(
+        owner_public_address: String,
+        name: String,
+        metadata: String,
+    ) -> Result<NativeAsset> {
+        let public_address = PublicAddress::from_hex(&owner_public_address).map_err(to_napi_err)?;
 
         Ok(NativeAsset {
-            asset: Asset::new(owner, &name, &metadata).map_err(to_napi_err)?,
+            asset: Asset::new(public_address, &name, &metadata).map_err(to_napi_err)?,
         })
     }
 

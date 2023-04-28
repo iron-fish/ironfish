@@ -25,7 +25,7 @@ describe('Route wallet/getBalances', () => {
       const node = routeTest.node
       const wallet = node.wallet
       const account = await useAccountFixture(wallet)
-      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const assetId = asset.id()
 
       const mockBalances = [

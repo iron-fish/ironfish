@@ -924,7 +924,7 @@ describe('Blockchain', () => {
         const { node } = await nodeTest.createSetup()
         const account = await useAccountFixture(node.wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const mintData = {
           name: asset.name().toString('utf8'),
           metadata: asset.metadata().toString('utf8'),
@@ -963,7 +963,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
 
         // Mint so we have an existing asset
         const mintValue = BigInt(10)
@@ -999,7 +999,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
 
         const mintValueA = BigInt(10)
         const blockA = await useMintBlockFixture({
@@ -1041,7 +1041,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const value = BigInt(10)
 
         const block = await useMintBlockFixture({
@@ -1066,7 +1066,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
 
         const mintValueA = BigInt(10)
         const blockA = await useMintBlockFixture({
@@ -1103,7 +1103,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
 
         const mintValue = BigInt(10)
         const blockA = await useMintBlockFixture({
@@ -1135,7 +1135,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const assetId = asset.id()
 
         const mintValue = BigInt(10)
@@ -1171,7 +1171,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const assetId = asset.id()
 
         const mintValue = BigInt(10)
@@ -1209,7 +1209,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const assetId = asset.id()
 
         // 1. Mint 10
@@ -1321,7 +1321,7 @@ describe('Blockchain', () => {
         const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
         const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
 
-        const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
         const mintValue = BigInt(10)
         const assetId = asset.id()
 
@@ -1369,7 +1369,7 @@ describe('Blockchain', () => {
         const { node } = await nodeTest.createSetup()
         const account = await useAccountFixture(node.wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const mintValue = BigInt(10)
         const assetId = asset.id()
 

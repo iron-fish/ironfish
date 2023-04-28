@@ -416,7 +416,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(mined)
       await node.wallet.updateHead()
 
-      const asset = new Asset(account.spendingKey, 'fakeasset', 'metadata')
+      const asset = new Asset(account.publicAddress, 'fakeasset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({
         node,
@@ -1292,7 +1292,7 @@ describe('Accounts', () => {
         await expect(node.chain).toAddBlock(mined)
         await node.wallet.updateHead()
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
 
         const mintValueA = BigInt(2)
         const mintBlockA = await useMintBlockFixture({
@@ -1339,7 +1339,7 @@ describe('Accounts', () => {
         await expect(node.chain).toAddBlock(mined)
         await node.wallet.updateHead()
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const mintValue = BigInt(10)
         const mintData = {
           name: asset.name().toString('utf8'),
@@ -1366,7 +1366,7 @@ describe('Accounts', () => {
         await expect(node.chain).toAddBlock(mined)
         await node.wallet.updateHead()
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const value = BigInt(10)
         const mintBlock = await useMintBlockFixture({
           node,
@@ -1396,7 +1396,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(mined)
       await node.wallet.updateHead()
 
-      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
       await expect(node.chain).toAddBlock(mintBlock)
@@ -1421,7 +1421,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(mined)
       await node.wallet.updateHead()
 
-      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({ node, account, asset, value, sequence: 3 })
       await expect(node.chain).toAddBlock(mintBlock)
@@ -1697,7 +1697,7 @@ describe('Accounts', () => {
         unconfirmed: 2000000000n,
       })
 
-      const asset = new Asset(accountA.spendingKey, 'fakeasset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'fakeasset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({
         node,
@@ -1751,7 +1751,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(minerBlock)
       await node.wallet.updateHead()
 
-      const asset = new Asset(accountA.spendingKey, 'fakeasset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'fakeasset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({
         node,
@@ -1946,7 +1946,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(mined)
       await node.wallet.updateHead()
 
-      const asset = new Asset(account.spendingKey, 'asset', 'metadata')
+      const asset = new Asset(account.publicAddress, 'asset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({
         node,
@@ -2212,7 +2212,7 @@ describe('Accounts', () => {
         unconfirmed: 2000000000n,
       })
 
-      const asset = new Asset(accountA.spendingKey, 'fakeasset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'fakeasset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({
         node,
@@ -2496,7 +2496,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(blockA1)
       await node.wallet.updateHead()
 
-      const asset = new Asset(account.spendingKey, 'fakeasset', 'metadata')
+      const asset = new Asset(account.publicAddress, 'fakeasset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({
         node,
@@ -2530,7 +2530,7 @@ describe('Accounts', () => {
       await expect(node.chain).toAddBlock(blockA1)
       await node.wallet.updateHead()
 
-      const asset = new Asset(account.spendingKey, 'fakeasset', 'metadata')
+      const asset = new Asset(account.publicAddress, 'fakeasset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({
         node,

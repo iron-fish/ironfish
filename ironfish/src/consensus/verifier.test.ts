@@ -74,7 +74,7 @@ describe('Verifier', () => {
 
     it('returns false on transactions containing invalid mints', async () => {
       const account = await useAccountFixture(nodeTest.node.wallet)
-      const asset = new Asset(account.spendingKey, 'testcoin', '')
+      const asset = new Asset(account.publicAddress, 'testcoin', '')
       const mintData = {
         name: asset.name().toString('utf8'),
         metadata: asset.metadata().toString('utf8'),
@@ -289,7 +289,7 @@ describe('Verifier', () => {
 
     it('rejects a block with an invalid mint', async () => {
       const account = await useAccountFixture(nodeTest.node.wallet)
-      const asset = new Asset(account.spendingKey, 'testcoin', '')
+      const asset = new Asset(account.publicAddress, 'testcoin', '')
 
       const block = await useMintBlockFixture({
         node: nodeTest.node,
@@ -310,7 +310,7 @@ describe('Verifier', () => {
 
     it('rejects a block with an invalid burn', async () => {
       const account = await useAccountFixture(nodeTest.node.wallet)
-      const asset = new Asset(account.spendingKey, 'testcoin', '')
+      const asset = new Asset(account.publicAddress, 'testcoin', '')
 
       const blockA = await useMinerBlockFixture(nodeTest.chain, 2, account)
       await expect(nodeTest.node.chain).toAddBlock(blockA)

@@ -258,7 +258,7 @@ describe('Accounts', () => {
         blockHash: null,
         sequence: null,
       }
-      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const mintedAssetBalance = {
         unconfirmed: BigInt(7),
         blockHash: null,
@@ -681,7 +681,7 @@ describe('Accounts', () => {
       await node.chain.addBlock(block2)
       await node.wallet.updateHead()
 
-      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({
         node,
@@ -711,7 +711,7 @@ describe('Accounts', () => {
     it('should overwrite pending asset fields from a connected mint description', async () => {
       const { node } = nodeTest
       const account = await useAccountFixture(node.wallet)
-      const asset = new Asset(account.spendingKey, 'testcoin', 'metadata')
+      const asset = new Asset(account.publicAddress, 'testcoin', 'metadata')
 
       const minerBlock = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
       await node.chain.addBlock(minerBlock)
@@ -776,7 +776,7 @@ describe('Accounts', () => {
       await node.chain.addBlock(block2)
       await node.wallet.updateHead()
 
-      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
       const mintValue = BigInt(10)
       const mintBlock = await useMintBlockFixture({
         node,
@@ -1145,7 +1145,7 @@ describe('Accounts', () => {
       await node.chain.addBlock(block2)
       await node.wallet.updateHead()
 
-      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
       const firstMintValue = BigInt(10)
       const firstMintBlock = await useMintBlockFixture({
         node,
@@ -1231,7 +1231,7 @@ describe('Accounts', () => {
       await node.chain.addBlock(block2)
       await node.wallet.updateHead()
 
-      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
       const mintValue = BigInt(10)
       const mintBlock = await useMintBlockFixture({
         node,
@@ -1433,7 +1433,7 @@ describe('Accounts', () => {
       await node.chain.addBlock(block2)
       await node.wallet.updateHead()
 
-      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
 
       const mintTx = await usePostTxFixture({
         node,
@@ -1566,7 +1566,7 @@ describe('Accounts', () => {
         unconfirmed: 2000000000n,
       })
 
-      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
 
       const block3 = await useMintBlockFixture({
         node,
@@ -1814,7 +1814,7 @@ describe('Accounts', () => {
 
       await useTxFixture(node.wallet, accountA, accountB)
 
-      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
 
       await useMintBlockFixture({
         node,
@@ -1847,7 +1847,7 @@ describe('Accounts', () => {
         unconfirmed: 2000000000n,
       })
 
-      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
 
       const block3 = await useMintBlockFixture({
         node,
@@ -2033,7 +2033,7 @@ describe('Accounts', () => {
       await node.chain.addBlock(block2)
       await node.wallet.updateHead()
 
-      const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
       const value = BigInt(10)
       const mintBlock = await useMintBlockFixture({
         node,

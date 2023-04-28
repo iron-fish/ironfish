@@ -15,7 +15,7 @@ describe('Route wallet/createTransaction', () => {
     routeTest.node.peerNetwork['_isReady'] = true
     routeTest.chain.synced = true
 
-    const asset = new Asset(sender.spendingKey, 'new-asset', 'metadata')
+    const asset = new Asset(sender.publicAddress, 'new-asset', 'metadata')
     const mintData = {
       name: asset.name().toString('utf8'),
       metadata: asset.metadata().toString('utf8'),

@@ -5,6 +5,7 @@
 import {
   AMOUNT_VALUE_LENGTH,
   ASSET_LENGTH,
+  generateKeyFromPrivateKey,
   Transaction as NativeTransaction,
   TRANSACTION_EXPIRATION_LENGTH,
   TRANSACTION_FEE_LENGTH,
@@ -69,7 +70,6 @@ export class RawTransaction {
 
   post(spendingKey: string): Transaction {
     const builder = new NativeTransaction(spendingKey)
-
     for (const spend of this.spends) {
       builder.spend(spend.note.takeReference(), spend.witness)
       spend.note.returnReference()
@@ -88,8 +88,8 @@ export class RawTransaction {
           )} exceededs maximum ${CurrencyUtils.renderIron(MAX_MINT_OR_BURN_VALUE)}. `,
         )
       }
-
-      const asset = new Asset(spendingKey, mint.name, mint.metadata)
+      const key = generateKeyFromPrivateKey(spendingKey)
+      const asset = new Asset(key.publicAddress, mint.name, mint.metadata)
 
       builder.mint(asset, mint.value)
     }
