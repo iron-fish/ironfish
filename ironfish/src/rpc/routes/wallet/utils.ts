@@ -5,6 +5,7 @@ import { IronfishNode } from '../../../node'
 import { Note } from '../../../primitives'
 import { CurrencyUtils } from '../../../utils'
 import { Account } from '../../../wallet'
+import { AssetValue } from '../../../wallet/walletdb/assetValue'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { ValidationError } from '../../adapters'
@@ -140,25 +141,32 @@ export async function getAccountDecryptedNotes(
   const serializedNotes: RpcWalletNote[] = []
 
   for await (const decryptedNote of notes) {
-    const asset = await node.chain.getAssetById(decryptedNote.note.assetId())
-    const note = decryptedNote.note
+    const asset = await account.getAsset(decryptedNote.note.assetId())
 
-    serializedNotes.push({
-      value: CurrencyUtils.encode(note.value()),
-      assetId: note.assetId().toString('hex'),
-      assetName: asset?.name.toString('hex') || '',
-      memo: note.memo(),
-      sender: note.sender(),
-      owner: note.owner(),
-      noteHash: note.hash().toString('hex'),
-      transactionHash: transaction.transaction.hash().toString('hex'),
-      index: decryptedNote.index ?? null,
-      nullifier: decryptedNote.nullifier?.toString('hex') ?? null,
-      spent: decryptedNote.spent,
-      isOwner: note.owner() === account.publicAddress,
-      hash: note.hash().toString('hex'),
-    })
+    serializedNotes.push(serializeRpcWalletNote(decryptedNote, account.publicAddress, asset))
   }
 
   return serializedNotes
+}
+
+export function serializeRpcWalletNote(
+  note: DecryptedNoteValue,
+  publicAddress: string,
+  asset?: AssetValue,
+): RpcWalletNote {
+  return {
+    value: CurrencyUtils.encode(note.note.value()),
+    assetId: note.note.assetId().toString('hex'),
+    assetName: asset?.name.toString('hex') || '',
+    memo: note.note.memo(),
+    owner: note.note.owner(),
+    sender: note.note.sender(),
+    noteHash: note.note.hash().toString('hex'),
+    transactionHash: note.transactionHash.toString('hex'),
+    index: note.index,
+    nullifier: note.nullifier?.toString('hex') ?? null,
+    spent: note.spent,
+    isOwner: note.note.owner() === publicAddress,
+    hash: note.note.hash().toString('hex'),
+  }
 }
