@@ -14,6 +14,7 @@ import {
   BigU64BEEncoding,
   BUFFER_ENCODING,
   BufferEncoding,
+  DatabaseKeyRange,
   IDatabase,
   IDatabaseStore,
   IDatabaseTransaction,
@@ -25,6 +26,7 @@ import {
 } from '../../storage'
 import { getPrefixesKeyRange, StorageUtils } from '../../storage/database/utils'
 import { createDB } from '../../storage/utils'
+import { BufferUtils } from '../../utils'
 import { WorkerPool } from '../../workerPool'
 import { Account, calculateAccountPrefix } from '../account'
 import { AccountValue, AccountValueEncoding } from './accountValue'
@@ -881,12 +883,17 @@ export class WalletDB {
 
   async *loadDecryptedNotes(
     account: Account,
+    range?: DatabaseKeyRange,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
-    for await (const [[_, hash], decryptedNote] of this.decryptedNotes.getAllIter(
-      tx,
-      account.prefixRange,
-    )) {
+    const gte = BufferUtils.maxNullable(account.prefixRange.gte, range?.gte)
+    const lt = BufferUtils.minNullable(account.prefixRange.lt, range?.lt)
+
+    for await (const [key, decryptedNote] of this.decryptedNotes.getAllIter(tx, {
+      gte,
+      lt,
+    })) {
+      const [, hash] = key
       yield {
         ...decryptedNote,
         hash,

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useAccountFixture } from '../../testUtilities'
+import { createNodeTest, useAccountFixture, useMinerBlockFixture } from '../../testUtilities'
 import { AsyncUtils } from '../../utils'
 
 describe('WalletDB', () => {
@@ -175,6 +175,64 @@ describe('WalletDB', () => {
       expect(transactionHashes).toHaveLength(2)
       expect(transactionHashes[0]).toEqualBuffer(Buffer.from('0', 'hex'))
       expect(transactionHashes[1]).toEqualBuffer(Buffer.from('40000', 'hex'))
+    })
+  })
+
+  describe('loadDecryptedNotes', () => {
+    it('loads decrypted notes greater than or equal to a given key', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const account = await useAccountFixture(node.wallet)
+      const noteHashes: Buffer[] = []
+
+      for (let i = 2; i < 6; i++) {
+        const block = await useMinerBlockFixture(node.chain, i, account)
+        await node.chain.addBlock(block)
+        await node.wallet.updateHead()
+
+        noteHashes.push(block.transactions[0].notes[0].hash())
+      }
+
+      noteHashes.sort(Buffer.compare)
+
+      const upperRange = {
+        gte: walletDb.decryptedNotes.keyEncoding.serialize([account.prefix, noteHashes[2]]),
+      }
+
+      const upperRangeNotes = await AsyncUtils.materialize(
+        walletDb.loadDecryptedNotes(account, upperRange),
+      )
+      expect(upperRangeNotes.length).toEqual(2)
+      expect(upperRangeNotes[0].hash).toEqual(noteHashes[2])
+      expect(upperRangeNotes[1].hash).toEqual(noteHashes[3])
+    })
+
+    it('loads decrypted notes less than a given key', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const account = await useAccountFixture(node.wallet)
+      const noteHashes: Buffer[] = []
+
+      for (let i = 2; i < 6; i++) {
+        const block = await useMinerBlockFixture(node.chain, i, account)
+        await node.chain.addBlock(block)
+        await node.wallet.updateHead()
+
+        noteHashes.push(block.transactions[0].notes[0].hash())
+      }
+
+      noteHashes.sort(Buffer.compare)
+
+      const lowerRange = {
+        lt: walletDb.decryptedNotes.keyEncoding.serialize([account.prefix, noteHashes[2]]),
+      }
+
+      const lowerRangeNotes = await AsyncUtils.materialize(
+        walletDb.loadDecryptedNotes(account, lowerRange),
+      )
+      expect(lowerRangeNotes.length).toEqual(2)
+      expect(lowerRangeNotes[0].hash).toEqual(noteHashes[0])
+      expect(lowerRangeNotes[1].hash).toEqual(noteHashes[1])
     })
   })
 })

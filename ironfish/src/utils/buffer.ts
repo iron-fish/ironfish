@@ -29,9 +29,37 @@ function equalsNullable(a: Buffer | null | undefined, b: Buffer | null | undefin
   return a == null || b == null ? a === b : a.equals(b)
 }
 
+function maxNullable(
+  a: Buffer | null | undefined,
+  b: Buffer | null | undefined,
+): Buffer | undefined {
+  if (!a) {
+    return b ? b : undefined
+  } else if (!b) {
+    return a
+  } else {
+    return Buffer.compare(a, b) > 0 ? a : b
+  }
+}
+
+function minNullable(
+  a: Buffer | null | undefined,
+  b: Buffer | null | undefined,
+): Buffer | undefined {
+  if (!a) {
+    return b ? b : undefined
+  } else if (!b) {
+    return a
+  } else {
+    return Buffer.compare(a, b) <= 0 ? a : b
+  }
+}
+
 export const BufferUtils = {
   toHuman,
   equalsNullable,
   incrementLE,
   incrementBE,
+  maxNullable,
+  minNullable,
 }
