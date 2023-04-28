@@ -51,7 +51,7 @@ describe('Route wallet/mintAsset', () => {
       const wallet = node.wallet
       const account = await useAccountFixture(wallet)
 
-      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const mintData = {
         name: asset.name().toString('utf8'),
         metadata: asset.metadata().toString('utf8'),

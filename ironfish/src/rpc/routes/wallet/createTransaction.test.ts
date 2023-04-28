@@ -226,7 +226,7 @@ describe('Route wallet/createTransaction', () => {
       await routeTest.node.wallet.updateHead()
     }
 
-    const asset = new Asset(sender.spendingKey, 'mint-asset', 'metadata')
+    const asset = new Asset(sender.publicAddress, 'mint-asset', 'metadata')
 
     const response = await routeTest.client.wallet.createTransaction({
       account: 'existingAccount',
@@ -266,7 +266,7 @@ describe('Route wallet/createTransaction', () => {
   it('throw error when create transaction to mint unknown asset', async () => {
     const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
 
-    const asset = new Asset(sender.spendingKey, 'unknown-asset', 'metadata')
+    const asset = new Asset(sender.publicAddress, 'unknown-asset', 'metadata')
 
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
@@ -353,7 +353,7 @@ describe('Route wallet/createTransaction', () => {
     await expect(routeTest.node.chain).toAddBlock(block)
     await routeTest.node.wallet.updateHead()
 
-    const asset = new Asset(sender.spendingKey, 'mint-asset', 'metadata')
+    const asset = new Asset(sender.publicAddress, 'mint-asset', 'metadata')
 
     await expect(
       routeTest.client.wallet.createTransaction({

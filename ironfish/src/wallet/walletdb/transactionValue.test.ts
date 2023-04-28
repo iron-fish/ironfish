@@ -115,7 +115,7 @@ describe('TransactionValueEncoding', () => {
       const assetBalanceDeltas = new BufferMap<bigint>()
 
       const accountA = await useAccountFixture(wallet, 'accountA')
-      const testAsset = new Asset(accountA.spendingKey, 'test-asset', 'test-asset-metadata')
+      const testAsset = new Asset(accountA.publicAddress, 'test-asset', 'test-asset-metadata')
 
       assetBalanceDeltas.set(Asset.nativeId(), -transaction.fee())
       assetBalanceDeltas.set(testAsset.id(), 1n)
