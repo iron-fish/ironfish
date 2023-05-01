@@ -235,4 +235,38 @@ describe('WalletDB', () => {
       expect(lowerRangeNotes[1].hash).toEqual(noteHashes[1])
     })
   })
+
+  describe('loadTransactions', () => {
+    it('loads transactions within a given key range', async () => {
+      const node = (await nodeTest.createSetup()).node
+      const walletDb = node.wallet.walletDb
+      const account = await useAccountFixture(node.wallet)
+      const transactionHashes: Buffer[] = []
+
+      for (let i = 2; i < 6; i++) {
+        const block = await useMinerBlockFixture(node.chain, i, account)
+        await node.chain.addBlock(block)
+        await node.wallet.updateHead()
+
+        transactionHashes.push(block.transactions[0].hash())
+      }
+
+      transactionHashes.sort(Buffer.compare)
+
+      const keyRange = {
+        gte: walletDb.transactions.keyEncoding.serialize([
+          account.prefix,
+          transactionHashes[1],
+        ]),
+        lt: walletDb.transactions.keyEncoding.serialize([account.prefix, transactionHashes[3]]),
+      }
+
+      const transactions = await AsyncUtils.materialize(
+        walletDb.loadTransactions(account, keyRange),
+      )
+      expect(transactions.length).toEqual(transactionHashes.length - 2)
+      expect(transactions[0].transaction.hash()).toEqual(transactionHashes[1])
+      expect(transactions[1].transaction.hash()).toEqual(transactionHashes[2])
+    })
+  })
 })

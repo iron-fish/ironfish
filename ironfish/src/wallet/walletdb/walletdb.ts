@@ -466,12 +466,13 @@ export class WalletDB {
 
   async *loadTransactions(
     account: Account,
+    range?: DatabaseKeyRange,
     tx?: IDatabaseTransaction,
   ): AsyncGenerator<TransactionValue> {
-    for await (const transactionValue of this.transactions.getAllValuesIter(
-      tx,
-      account.prefixRange,
-    )) {
+    const gte = BufferUtils.maxNullable(account.prefixRange.gte, range?.gte)
+    const lt = BufferUtils.minNullable(account.prefixRange.lt, range?.lt)
+
+    for await (const transactionValue of this.transactions.getAllValuesIter(tx, { gte, lt })) {
       yield transactionValue
     }
   }

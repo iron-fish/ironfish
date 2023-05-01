@@ -685,8 +685,11 @@ export class Account {
     return this.walletDb.hasPendingTransaction(this, hash, tx)
   }
 
-  getTransactions(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
-    return this.walletDb.loadTransactions(this, tx)
+  getTransactions(
+    range?: DatabaseKeyRange,
+    tx?: IDatabaseTransaction,
+  ): AsyncGenerator<Readonly<TransactionValue>> {
+    return this.walletDb.loadTransactions(this, range, tx)
   }
 
   getTransactionsByTime(tx?: IDatabaseTransaction): AsyncGenerator<Readonly<TransactionValue>> {
