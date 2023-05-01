@@ -28,12 +28,6 @@ pub const ENCRYPTED_NOTE_PLAINTEXT_LENGTH: u32 = ENCRYPTED_NOTE_SIZE as u32 + MA
 #[napi]
 pub const ENCRYPTED_NOTE_LENGTH: u32 =
     NOTE_ENCRYPTION_KEY_LENGTH + ENCRYPTED_NOTE_PLAINTEXT_LENGTH + 96;
-//  32 value commitment
-//+ 32 note commitment
-//+ 32 ephemeral public key
-//+ 120 encrypted note
-//+ 80 note encryption keys
-//= 296 bytes
 
 #[napi(js_name = "NoteEncrypted")]
 pub struct NativeNoteEncrypted {
