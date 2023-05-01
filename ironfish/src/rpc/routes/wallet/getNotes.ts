@@ -25,6 +25,7 @@ export type GetNotesRequest = {
   noteHash?: string
   transactionHash?: string
   index?: number
+  nullifier?: string
   spent?: boolean
 }
 
@@ -49,6 +50,7 @@ export const GetNotesRequestSchema: yup.ObjectSchema<GetNotesRequest> = yup
     noteHash: yup.string(),
     transactionHash: yup.string(),
     index: yup.number(),
+    nullifier: yup.string(),
     spent: yup.boolean(),
 >>>>>>> 05c2079f (adds filtering to wallet/getNotes endpoint)
   })
@@ -114,6 +116,7 @@ function includeNote(note: RpcWalletNote, request: GetNotesRequest): boolean {
     (request.transactionHash === undefined ||
       note.transactionHash === request.transactionHash) &&
     (request.index === undefined || note.index === request.index) &&
+    (request.nullifier === undefined || note.nullifier === request.nullifier) &&
     (request.spent === undefined || note.spent === request.spent)
   )
 }

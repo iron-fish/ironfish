@@ -204,6 +204,24 @@ describe('Route wallet/getNotes', () => {
     }
   })
 
+  it('finds notes by nullifier', async () => {
+    for (const [, note] of accountNotesByHash) {
+      if (!note.nullifier) {
+        continue
+      }
+
+      const response: RpcResponseEnded<GetNotesResponse> =
+        await routeTest.client.wallet.getNotes({
+          account: account.name,
+          nullifier: note.nullifier,
+        })
+
+      expect(response.status).toBe(200)
+      expect(response.content.notes.length).toBe(1)
+      expect(response.content.notes[0]).toEqual(note)
+    }
+  })
+
   it('finds notes by noteHash', async () => {
     for (const [, note] of accountNotesByHash) {
       const response: RpcResponseEnded<GetNotesResponse> =
