@@ -66,17 +66,25 @@ export default class Download extends IronfishCommand {
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
 
+    const networkId = node.internal.get('networkId')
+
+    let manifestUrl = flags.manifestUrl
+    if (networkId === 0) {
+      // testnet
+      manifestUrl = `https://testnet.snapshots.ironfish.network/manifest.json`
+    }
+
     let snapshotPath
 
     if (flags.path) {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
     } else {
-      if (!flags.manifestUrl) {
+      if (!manifestUrl) {
         this.log(`Cannot download snapshot without manifest URL`)
         this.exit(1)
       }
 
-      const manifest = (await axios.get<SnapshotManifest>(flags.manifestUrl)).data
+      const manifest = (await axios.get<SnapshotManifest>(manifestUrl)).data
 
       if (manifest.database_version > VERSION_DATABASE_CHAIN) {
         this.log(
@@ -104,7 +112,7 @@ export default class Download extends IronfishCommand {
 
       if (!snapshotUrl) {
         // Snapshot URL is not absolute so use a relative URL from the manifest
-        const url = new URL(flags.manifestUrl)
+        const url = new URL(manifestUrl)
         const parts = UrlUtils.splitPathName(url.pathname)
         parts.pop()
         parts.push(manifest.file_name)
