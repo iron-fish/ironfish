@@ -22,12 +22,7 @@ import { CurrencyUtils } from '../utils/currency'
 import { AssetBalances } from '../wallet/assetBalances'
 import { BurnDescription } from './burnDescription'
 import { Note } from './note'
-import {
-  NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE,
-  NoteEncrypted,
-  NoteEncryptedHash,
-  SerializedNoteEncryptedHash,
-} from './noteEncrypted'
+import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from './spend'
 import { Transaction } from './transaction'
 
@@ -69,7 +64,7 @@ export class RawTransaction {
     size += TRANSACTION_EXPIRATION_LENGTH // expiration
     size += TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH // public key randomness
     size += this.spends.length * SPEND_SERIALIZED_SIZE_IN_BYTE
-    size += this.outputs.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
+    size += this.outputs.length * (PROOF_LENGTH + NoteEncrypted.size())
     size +=
       this.mints.length *
       (PROOF_LENGTH + ASSET_LENGTH + AMOUNT_VALUE_LENGTH + TRANSACTION_SIGNATURE_LENGTH)
@@ -93,7 +88,7 @@ export class RawTransaction {
     }
     for (const [, value] of assetTotals) {
       if (value !== 0n) {
-        size += NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
+        size += PROOF_LENGTH + NoteEncrypted.size()
       }
     }
     return size

@@ -43,6 +43,17 @@ export class Note {
     this._sender = reader.readBytes(PUBLIC_ADDRESS_LENGTH, true).toString('hex')
   }
 
+  static size(): number {
+    return (
+      PUBLIC_ADDRESS_LENGTH +
+      ASSET_ID_LENGTH +
+      8 +
+      RANDOMNESS_LENGTH +
+      MEMO_LENGTH +
+      PUBLIC_ADDRESS_LENGTH
+    )
+  }
+
   serialize(): Buffer {
     return this.noteSerialized
   }
