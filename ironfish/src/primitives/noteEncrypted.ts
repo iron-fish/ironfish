@@ -3,17 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import {
-  ENCRYPTED_NOTE_LENGTH,
   ENCRYPTED_NOTE_PLAINTEXT_LENGTH,
   NOTE_ENCRYPTION_KEY_LENGTH,
   NoteEncrypted as NativeNoteEncrypted,
-  PROOF_LENGTH,
 } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
 import { Serde } from '../serde'
 import { Note } from './note'
-
-export const NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE = PROOF_LENGTH + ENCRYPTED_NOTE_LENGTH
 
 export type NoteEncryptedHash = Buffer
 export type SerializedNoteEncryptedHash = Buffer
@@ -45,10 +41,14 @@ export class NoteEncrypted {
 
     // note encryption keys
     reader.seek(NOTE_ENCRYPTION_KEY_LENGTH)
-
-    // total serialized size: 192 (proof from transaction)
-    // + 32 + 32 + 32 + 104 + 16 + 64 + 16 = 488 bytes
   }
+
+  static size =
+    32 + // value commitment
+    32 + // note commitment
+    32 + // ephemeral public key
+    ENCRYPTED_NOTE_PLAINTEXT_LENGTH +
+    NOTE_ENCRYPTION_KEY_LENGTH
 
   serialize(): Buffer {
     return this.noteEncryptedSerialized
