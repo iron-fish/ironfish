@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { ASSET_METADATA_LENGTH, ASSET_NAME_LENGTH } from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { CurrencyUtils, YupUtils } from '../../../utils'
@@ -36,8 +37,8 @@ export const MintAssetRequestSchema: yup.ObjectSchema<MintAssetRequest> = yup
     expiration: yup.number().optional(),
     expirationDelta: yup.number().optional(),
     confirmations: yup.number().optional(),
-    metadata: yup.string().optional(),
-    name: yup.string().optional(),
+    metadata: yup.string().optional().max(ASSET_METADATA_LENGTH),
+    name: yup.string().optional().max(ASSET_NAME_LENGTH),
   })
   .defined()
 
