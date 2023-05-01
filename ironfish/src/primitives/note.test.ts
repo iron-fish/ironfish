@@ -29,7 +29,7 @@ describe('Note', () => {
     const decrypted = encrypted.decryptNoteForOwner(account.incomingViewKey)
 
     Assert.isNotUndefined(decrypted)
-    expect(encrypted.serialize().byteLength).toBe(NoteEncrypted.size())
-    expect(decrypted.serialize().byteLength).toBe(Note.size())
+    expect(encrypted.serialize().byteLength).toBe(NoteEncrypted.size)
+    expect(decrypted.serialize().byteLength).toBe(Note.size)
   })
 })
