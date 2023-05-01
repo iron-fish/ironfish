@@ -47,7 +47,7 @@ export class Note {
     return (
       PUBLIC_ADDRESS_LENGTH +
       ASSET_ID_LENGTH +
-      8 +
+      8 + // VALUE
       RANDOMNESS_LENGTH +
       MEMO_LENGTH +
       PUBLIC_ADDRESS_LENGTH
