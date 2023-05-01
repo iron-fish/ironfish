@@ -375,7 +375,7 @@ export class Wallet {
     return decryptedNotesByAccountId
   }
 
-  private async decryptNotesFromTransaction(
+  async decryptNotesFromTransaction(
     decryptNotesPayloads: Array<DecryptNoteOptions>,
   ): Promise<Array<DecryptedNote>> {
     const decryptedNotes = []
