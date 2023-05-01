@@ -44,7 +44,12 @@ export class NoteEncrypted {
   }
 
   static size(): number {
-    return 32 + 32 + 32 + ENCRYPTED_NOTE_PLAINTEXT_LENGTH + NOTE_ENCRYPTION_KEY_LENGTH
+    return
+        32 + // value commitment
+        32 + // note commitment
+        32 + // ephemeral public key
+        ENCRYPTED_NOTE_PLAINTEXT_LENGTH +
+        NOTE_ENCRYPTION_KEY_LENGTH
   }
 
   serialize(): Buffer {
