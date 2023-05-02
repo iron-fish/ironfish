@@ -69,7 +69,7 @@ router.register<typeof MempoolTransactionsRequestSchema, GetMempoolTransactionRe
       const underFeeRate =
         request.data?.feeRate?.min !== undefined &&
         getFeeRate(transaction) < request.data.feeRate.min
-      const overLimit = request.data?.limit !== undefined && request.data?.limit >= streamed
+      const overLimit = request.data?.limit !== undefined && streamed >= request.data.limit
 
       // If there are no more viable transactions to send we can just return early
       // This makes the assumption that memPool.orderedTransactions is ordered by feeRate
