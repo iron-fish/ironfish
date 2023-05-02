@@ -1,20 +1,10 @@
-use std::{env, time::Duration};
-
+use benchmarks::slow_config;
 use criterion::{criterion_group, criterion_main, Criterion};
 use ironfish_rust::{
     assets::{asset::Asset, asset_identifier::NATIVE_ASSET},
     test_util::make_fake_witness,
     Note, ProposedTransaction, SaplingKey,
 };
-
-pub const LONG_BENCH_DURATION: Duration = Duration::from_secs(60);
-pub const LONG_BENCH_SAMPLE_SIZE: usize = 50;
-
-pub fn slow_config() -> Criterion {
-    Criterion::default()
-        .measurement_time(LONG_BENCH_DURATION)
-        .sample_size(LONG_BENCH_SAMPLE_SIZE)
-}
 
 pub fn simple(c: &mut Criterion) {
     let key = SaplingKey::generate_key();

@@ -15,15 +15,6 @@ benchmark = []
 [lib]
 name = "ironfish_rust"
 path = "src/lib.rs"
-bench = false
-
-[[bench]]
-name = "transaction"
-harness = false
-required-features = ["benchmark"]
-
-[dev-dependencies]
-criterion = "0.4"
 
 [dependencies]
 bellman = { version = "0.13.1" }

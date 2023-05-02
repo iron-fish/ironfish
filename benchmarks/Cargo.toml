@@ -1,0 +1,18 @@
+[package]
+name = "benchmarks"
+version = "0.1.0"
+license = "MPL-2.0"
+
+[package.authors]
+workspace = true
+
+[package.edition]
+workspace = true
+
+[[bench]]
+name = "transaction"
+harness = false
+
+[dependencies]
+criterion = "0.4"
+ironfish_rust = { path = "../ironfish-rust", features = ["benchmark"] }

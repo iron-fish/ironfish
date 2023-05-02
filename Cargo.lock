@@ -107,6 +107,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "benchmarks"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "ironfish_rust",
+]
+
+[[package]]
 name = "bip0039"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -857,7 +865,6 @@ dependencies = [
  "bls12_381",
  "byteorder",
  "chacha20poly1305",
- "criterion",
  "crypto_box",
  "ff 0.12.1",
  "group 0.12.1",
