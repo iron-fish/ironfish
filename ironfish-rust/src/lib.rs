@@ -30,8 +30,8 @@ pub use {
     },
 };
 
-#[cfg(test)]
-pub(crate) mod test_util; // I'm not sure if this is the right way to publish the utility library.
+#[cfg(any(test, feature = "benchmark"))]
+pub mod test_util;
 
 // The main entry-point to the sapling API. Construct this with loaded parameters, and then call
 // methods on it to do the actual work.
