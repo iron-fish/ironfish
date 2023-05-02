@@ -68,6 +68,16 @@ export class NotesCommand extends IronfishCommand {
             get: (row) => CurrencyUtils.renderIron(row.value),
             minWidth: 16,
           },
+          nullifier: {
+            header: 'Nullifier',
+            get: (row) => {
+              if (row.nullifier === null) {
+                return '-'
+              } else {
+                return row.nullifier
+              }
+            },
+          },
         },
         { ...flags, 'no-header': !showHeader },
       )
