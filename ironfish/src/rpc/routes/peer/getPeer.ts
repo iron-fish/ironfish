@@ -2,11 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Connection, PeerNetwork } from '../../../network'
+import { PeerNetwork } from '../../../network'
 import { ApiNamespace, router } from '../router'
-import { PeerResponse } from './getPeers'
-
-type ConnectionState = Connection['state']['type'] | ''
+import {
+  ConnectionState,
+  createPeerCandidateResponse,
+  PeerCandidateResponse,
+  PeerResponse,
+  PeerResponseSchema,
+} from './types'
 
 export type GetPeerRequest = {
   identity: string
@@ -26,34 +30,7 @@ export const GetPeerRequestSchema: yup.ObjectSchema<GetPeerRequest> = yup
 
 export const GetPeerResponseSchema: yup.ObjectSchema<GetPeerResponse> = yup
   .object({
-    peer: yup
-      .object({
-        state: yup.string().defined(),
-        address: yup.string().nullable().defined(),
-        port: yup.number().nullable().defined(),
-        identity: yup.string().nullable().defined(),
-        name: yup.string().nullable().defined(),
-        head: yup.string().nullable().defined(),
-        work: yup.string().nullable().defined(),
-        sequence: yup.number().nullable().defined(),
-        version: yup.number().nullable().defined(),
-        agent: yup.string().nullable().defined(),
-        error: yup.string().nullable().defined(),
-        connections: yup.number().defined(),
-        connectionWebSocket: yup.string<ConnectionState>().defined(),
-        connectionWebSocketError: yup.string().defined(),
-        connectionWebRTC: yup.string<ConnectionState>().defined(),
-        connectionWebRTCError: yup.string().defined(),
-        networkId: yup.number().nullable().defined(),
-        genesisBlockHash: yup.string().nullable().defined(),
-        features: yup
-          .object({
-            syncing: yup.boolean().defined(),
-          })
-          .nullable()
-          .defined(),
-      })
-      .defined(),
+    peer: PeerResponseSchema.defined(),
   })
   .defined()
 
@@ -116,6 +93,14 @@ function getPeer(network: PeerNetwork, identity: string): PeerResponse | null {
         connections++
       }
 
+      const alternateIdentity = peer.state.identity || peer.getWebSocketAddress()
+      const peerCandidate = network.peerManager.peerCandidates.get(alternateIdentity)
+
+      let candidate: PeerCandidateResponse | undefined
+      if (peerCandidate) {
+        candidate = createPeerCandidateResponse(peerCandidate)
+      }
+
       return {
         state: peer.state.type,
         address: peer.address,
@@ -136,6 +121,7 @@ function getPeer(network: PeerNetwork, identity: string): PeerResponse | null {
         networkId: peer.networkId,
         genesisBlockHash: peer.genesisBlockHash?.toString('hex') || null,
         features: peer.features,
+        candidate,
       }
     }
   }

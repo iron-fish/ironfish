@@ -2,38 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
-import { Connection, PeerNetwork } from '../../../network'
-import { Features } from '../../../network/peers/peerFeatures'
+import { PeerNetwork } from '../../../network'
 import { ApiNamespace, router } from '../router'
-
-type ConnectionState = Connection['state']['type'] | ''
-
-export type PeerResponse = {
-  state: string
-  identity: string | null
-  version: number | null
-  head: string | null
-  sequence: number | null
-  work: string | null
-  agent: string | null
-  name: string | null
-  address: string | null
-  port: number | null
-  error: string | null
-  connections: number
-  connectionWebSocket: ConnectionState
-  connectionWebSocketError: string
-  connectionWebRTC: ConnectionState
-  connectionWebRTCError: string
-  networkId: number | null
-  genesisBlockHash: string | null
-  features: Features | null
-}
+import {
+  ConnectionState,
+  createPeerCandidateResponse,
+  PeerCandidateResponse,
+  PeerResponse,
+  PeerResponseSchema,
+} from './types'
 
 export type GetPeersRequest =
   | undefined
   | {
       stream?: boolean
+      filter?: {
+        host?: string
+        port?: number
+      }
     }
 
 export type GetPeersResponse = {
@@ -43,44 +29,19 @@ export type GetPeersResponse = {
 export const GetPeersRequestSchema: yup.ObjectSchema<GetPeersRequest> = yup
   .object({
     stream: yup.boolean().optional(),
+    filter: yup
+      .object({
+        host: yup.string().optional(),
+        port: yup.number().optional(),
+      })
+      .optional(),
   })
   .optional()
   .default({})
 
 export const GetPeersResponseSchema: yup.ObjectSchema<GetPeersResponse> = yup
   .object({
-    peers: yup
-      .array(
-        yup
-          .object({
-            state: yup.string().defined(),
-            address: yup.string().nullable().defined(),
-            port: yup.number().nullable().defined(),
-            identity: yup.string().nullable().defined(),
-            name: yup.string().nullable().defined(),
-            head: yup.string().nullable().defined(),
-            work: yup.string().nullable().defined(),
-            sequence: yup.number().nullable().defined(),
-            version: yup.number().nullable().defined(),
-            agent: yup.string().nullable().defined(),
-            error: yup.string().nullable().defined(),
-            connections: yup.number().defined(),
-            connectionWebSocket: yup.string<ConnectionState>().defined(),
-            connectionWebSocketError: yup.string().defined(),
-            connectionWebRTC: yup.string<ConnectionState>().defined(),
-            connectionWebRTCError: yup.string().defined(),
-            networkId: yup.number().nullable().defined(),
-            genesisBlockHash: yup.string().nullable().defined(),
-            features: yup
-              .object({
-                syncing: yup.boolean().defined(),
-              })
-              .nullable()
-              .defined(),
-          })
-          .defined(),
-      )
-      .defined(),
+    peers: yup.array(PeerResponseSchema.defined()).defined(),
   })
   .defined()
 
@@ -95,7 +56,7 @@ router.register<typeof GetPeersRequestSchema, GetPeersResponse>(
       return
     }
 
-    const peers = getPeers(peerNetwork)
+    const peers = getPeers(peerNetwork, request.data?.filter)
 
     if (!request.data?.stream) {
       request.end({ peers })
@@ -105,7 +66,7 @@ router.register<typeof GetPeersRequestSchema, GetPeersResponse>(
     request.stream({ peers })
 
     const interval = setInterval(() => {
-      const peers = getPeers(peerNetwork)
+      const peers = getPeers(peerNetwork, request.data?.filter)
       request.stream({ peers })
     }, 1000)
 
@@ -115,10 +76,23 @@ router.register<typeof GetPeersRequestSchema, GetPeersResponse>(
   },
 )
 
-function getPeers(network: PeerNetwork): PeerResponse[] {
+function getPeers(
+  network: PeerNetwork,
+  filter?: {
+    host?: string
+    port?: number
+  },
+): PeerResponse[] {
   const result: PeerResponse[] = []
 
   for (const peer of network.peerManager.peers) {
+    const matchesHost = !filter?.host || !!peer.address?.includes(filter.host)
+    const matchesPort = !filter?.port || peer.port === filter.port
+
+    if (!matchesHost || !matchesPort) {
+      continue
+    }
+
     let connections = 0
     let connectionWebRTC: ConnectionState = ''
     let connectionWebSocket: ConnectionState = ''
@@ -144,6 +118,14 @@ function getPeers(network: PeerNetwork): PeerResponse[] {
       connections++
     }
 
+    const alternateIdentity = peer.state.identity || peer.getWebSocketAddress()
+    const peerCandidate = network.peerManager.peerCandidates.get(alternateIdentity)
+
+    let candidate: PeerCandidateResponse | undefined
+    if (peerCandidate) {
+      candidate = createPeerCandidateResponse(peerCandidate)
+    }
+
     result.push({
       state: peer.state.type,
       address: peer.address,
@@ -164,6 +146,7 @@ function getPeers(network: PeerNetwork): PeerResponse[] {
       networkId: peer.networkId,
       genesisBlockHash: peer.genesisBlockHash?.toString('hex') || null,
       features: peer.features,
+      candidate,
     })
   }
 

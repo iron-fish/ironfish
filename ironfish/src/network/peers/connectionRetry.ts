@@ -18,41 +18,49 @@ export class ConnectionRetry {
   /**
    * Number of consecutive connection failures.
    */
-  private failedRetries = 0
+  private _failedRetries = 0
 
   /**
    * Timestamp representing the next time to allow a connection to be initiated.
    */
-  private disconnectUntil = 0
+  private _disconnectUntil = 0
 
   /**
    * If true, a failed connection will not cause ConnectionRetry to stop retrying.
    */
-  private shouldNeverExpire = false
+  private _shouldNeverExpire = false
 
   constructor(shouldNeverExpire = false) {
-    this.shouldNeverExpire = shouldNeverExpire
+    this._shouldNeverExpire = shouldNeverExpire
   }
 
   /**
    * Call this if new connection attempts should never be made.
    */
   neverRetryConnecting(): void {
-    this.disconnectUntil = Infinity
+    this._disconnectUntil = Infinity
   }
 
   /**
    * True if new connection attempts will never be made.
    */
   get willNeverRetryConnecting(): boolean {
-    return this.disconnectUntil === Infinity
+    return this._disconnectUntil === Infinity
+  }
+
+  get disconnectUntil(): number {
+    return this._disconnectUntil
+  }
+
+  get failedRetries(): number {
+    return this._failedRetries
   }
 
   /**
    * True if a new connection can be initiated.
    */
   get canConnect(): boolean {
-    return Date.now() > this.disconnectUntil
+    return Date.now() > this._disconnectUntil
   }
 
   /**
@@ -60,8 +68,8 @@ export class ConnectionRetry {
    * If neverRetryConnecting is set, clears it.
    */
   successfulConnection(): void {
-    this.failedRetries = 0
-    this.disconnectUntil = 0
+    this._failedRetries = 0
+    this._disconnectUntil = 0
   }
 
   /**
@@ -71,13 +79,13 @@ export class ConnectionRetry {
   failedConnection(now: number = Date.now()): void {
     let disconnectUntil = Infinity
 
-    if (this.failedRetries < retryIntervals.length) {
-      disconnectUntil = now + retryIntervals[this.failedRetries]
-    } else if (this.shouldNeverExpire) {
+    if (this._failedRetries < retryIntervals.length) {
+      disconnectUntil = now + retryIntervals[this._failedRetries]
+    } else if (this._shouldNeverExpire) {
       disconnectUntil = now + retryIntervals[retryIntervals.length - 1]
     }
 
-    this.disconnectUntil = disconnectUntil
-    this.failedRetries++
+    this._disconnectUntil = disconnectUntil
+    this._failedRetries++
   }
 }

@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { GetPeersResponse, PromiseUtils } from '@ironfish/sdk'
+import { GetPeersResponse, PromiseUtils, TimeUtils } from '@ironfish/sdk'
 import { CliUx, Flags } from '@oclif/core'
 import blessed from 'blessed'
 import { IronfishCommand } from '../../command'
@@ -198,6 +198,28 @@ function renderTable(
       extended: true,
       get: (row: GetPeerResponsePeer) => {
         return row.error || '-'
+      },
+    },
+    socketCooldown: {
+      header: 'SOCKET COOLDOWN',
+      minWidth: 5,
+      extended: true,
+      get: (row: GetPeerResponsePeer) => {
+        const disconnectUntil = row.candidate?.websocketRetry?.disconnectUntil
+        return disconnectUntil && disconnectUntil > Date.now()
+          ? `${TimeUtils.renderSpan(disconnectUntil - Date.now())}`
+          : '-'
+      },
+    },
+    webRTCCooldown: {
+      header: 'RTC COOLDOWN',
+      minWidth: 5,
+      extended: true,
+      get: (row: GetPeerResponsePeer) => {
+        const disconnectUntil = row.candidate?.webRtcRetry?.disconnectUntil
+        return disconnectUntil && disconnectUntil > Date.now()
+          ? `${TimeUtils.renderSpan(disconnectUntil - Date.now())}`
+          : '-'
       },
     },
   }
