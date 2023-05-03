@@ -80,10 +80,6 @@ export class TransactionCommand extends IronfishCommand {
         memo: {
           header: 'Memo',
         },
-        isOwner: {
-          header: 'Owner',
-          get: (note) => (note.isOwner ? `✔` : `x`),
-        },
         owner: {
           header: 'Owner Address',
           get: (note) => note.owner,

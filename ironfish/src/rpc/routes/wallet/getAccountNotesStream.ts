@@ -4,22 +4,12 @@
 import * as yup from 'yup'
 import { CurrencyUtils } from '../../../utils'
 import { ApiNamespace, router } from '../router'
+import { RpcWalletNote, RpcWalletNoteSchema } from './types'
 import { getAccount } from './utils'
 
 export type GetAccountNotesStreamRequest = { account?: string }
 
-export type GetAccountNotesStreamResponse = {
-  value: string
-  assetId: string
-  assetName: string
-  memo: string
-  sender: string
-  noteHash: string
-  transactionHash: string
-  index: number | null
-  spent: boolean | undefined
-  nullifier: string | null
-}
+export type GetAccountNotesStreamResponse = RpcWalletNote
 
 export const GetAccountNotesStreamRequestSchema: yup.ObjectSchema<GetAccountNotesStreamRequest> =
   yup
@@ -29,20 +19,7 @@ export const GetAccountNotesStreamRequestSchema: yup.ObjectSchema<GetAccountNote
     .defined()
 
 export const GetAccountNotesStreamResponseSchema: yup.ObjectSchema<GetAccountNotesStreamResponse> =
-  yup
-    .object({
-      value: yup.string().defined(),
-      assetId: yup.string().defined(),
-      assetName: yup.string().defined(),
-      memo: yup.string().trim().defined(),
-      sender: yup.string().defined(),
-      noteHash: yup.string().defined(),
-      transactionHash: yup.string().defined(),
-      index: yup.number(),
-      spent: yup.boolean(),
-      nullifier: yup.string(),
-    })
-    .defined()
+  RpcWalletNoteSchema
 
 router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStreamResponse>(
   `${ApiNamespace.wallet}/getAccountNotesStream`,
@@ -68,13 +45,16 @@ router.register<typeof GetAccountNotesStreamRequestSchema, GetAccountNotesStream
           value: CurrencyUtils.encode(note.value()),
           assetId: note.assetId().toString('hex'),
           assetName: asset?.name.toString('hex') || '',
-          noteHash: note.hash().toString('hex'),
           memo: note.memo(),
           sender: note.sender(),
+          owner: note.owner(),
+          noteHash: note.hash().toString('hex'),
           transactionHash: transaction.transaction.hash().toString('hex'),
           index,
           spent,
           nullifier: nullifier?.toString('hex') || null,
+          isOwner: true,
+          hash: note.hash().toString('hex'),
         })
       }
     }
