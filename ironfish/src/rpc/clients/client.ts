@@ -4,6 +4,8 @@
 import { Logger } from '../../logger'
 import { RpcResponse, RpcResponseEnded } from '../response'
 import {
+  AddPeerCandidateRequest,
+  AddPeerCandidateResponse,
   AddTransactionRequest,
   AddTransactionResponse,
   ApiNamespace,
@@ -435,6 +437,15 @@ export abstract class RpcClient {
           stream: true,
         },
       )
+    },
+
+    addCandidate: (
+      params: AddPeerCandidateRequest,
+    ): Promise<RpcResponseEnded<AddPeerCandidateResponse>> => {
+      return this.request<AddPeerCandidateResponse>(
+        `${ApiNamespace.peer}/addCandidate`,
+        params,
+      ).waitForEnd()
     },
   }
 

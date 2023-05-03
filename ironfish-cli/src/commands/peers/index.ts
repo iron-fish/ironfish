@@ -49,6 +49,9 @@ export class ListCommand extends IronfishCommand {
       default: false,
       description: 'Display features that the peers have enabled',
     }),
+    host: Flags.string({
+      description: 'Only show peers matching the given host',
+    }),
   }
 
   async start(): Promise<void> {
@@ -206,6 +209,10 @@ function renderTable(
 
   if (!flags.all) {
     peers = peers.filter((p) => p.state === 'CONNECTED')
+  }
+
+  if (flags.host) {
+    peers = peers.filter((p) => p.address?.includes(flags.host || ''))
   }
 
   let result = ''

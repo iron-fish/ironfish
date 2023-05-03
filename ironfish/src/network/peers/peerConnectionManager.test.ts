@@ -153,7 +153,7 @@ describe('maintainOneConnectionPerPeer', () => {
       mockLocalPeer({ identity: webRtcLocalIdentity() }),
       mockHostsStore(),
     )
-    const peer = pm.connectToWebSocketAddress('testuri')
+    const peer = pm.connectToWebSocketAddress('testuri', 9033)
     const identity = webRtcCanInitiateIdentity()
     if (peer.state.type === 'DISCONNECTED') {
       throw new Error('Peer should not be DISCONNECTED')
@@ -202,7 +202,7 @@ describe('maintainOneConnectionPerPeer', () => {
       mockLocalPeer({ identity: webRtcLocalIdentity() }),
       mockHostsStore(),
     )
-    const peer = pm.connectToWebSocketAddress('testuri')
+    const peer = pm.connectToWebSocketAddress('testuri', 9033)
     const identity = webRtcCanInitiateIdentity()
     if (peer.state.type === 'DISCONNECTED') {
       throw new Error('Peer should not be DISCONNECTED')
@@ -253,7 +253,7 @@ describe('attemptToEstablishWebRtcConnectionsToWSPeers', () => {
       mockLocalPeer({ identity: webRtcLocalIdentity() }),
       mockHostsStore(),
     )
-    const peer = pm.connectToWebSocketAddress('testuri')
+    const peer = pm.connectToWebSocketAddress('testuri', 9033)
     const identity = webRtcCanInitiateIdentity()
     if (peer.state.type === 'DISCONNECTED') {
       throw new Error('Peer should not be DISCONNECTED')

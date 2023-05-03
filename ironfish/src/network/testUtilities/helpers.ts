@@ -29,7 +29,7 @@ export function getConnectingPeer(
   let peer: Peer | null = null
 
   if (direction === ConnectionDirection.Outbound) {
-    peer = pm.connectToWebSocketAddress('ws://testuri.com:9033')
+    peer = pm.connectToWebSocketAddress('testuri.com', 9033)
   } else {
     peer = pm.getOrCreatePeer(identity ?? null)
 

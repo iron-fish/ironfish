@@ -157,31 +157,26 @@ export class PeerManager {
    * Connect to a websocket by its uri. Establish a connection and solicit
    * the server's Identity.
    */
-  connectToWebSocketAddress(uri: string, isWhitelisted = false): Peer {
-    const url = parseUrl(uri)
-
-    if (!url.hostname) {
-      throw new Error(`Could not connect to ${uri} because hostname was not parseable`)
-    }
-
+  connectToWebSocketAddress(host: string, port: number, isWhitelisted = false): Peer {
     const peer = this.getOrCreatePeer(null)
-    peer.setWebSocketAddress(url.hostname, url.port)
+    peer.setWebSocketAddress(host, port)
     peer.isWhitelisted = isWhitelisted
 
     this.peerCandidates.addFromPeer(peer)
 
-    this.connectToWebSocket(peer)
+    if (this.canConnectToWebSocket(peer)) {
+      this.connectToWebSocket(peer)
+    }
+
     return peer
   }
 
   /**
-   * Connect to a peer using WebSockets
+   * Connect to a peer using WebSockets. This function forces a connection
+   * and doesn't check `canConnectToWebSocket`. Unless the connection needs to
+   * be forced `canConnectToWebSocket` should probably be called first
    * */
   connectToWebSocket(peer: Peer): boolean {
-    if (!this.canConnectToWebSocket(peer)) {
-      return false
-    }
-
     const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
 
     const candidate = this.peerCandidates.get(alternateIdentity)
