@@ -1,7 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
+import {
+  Asset,
+  ASSET_METADATA_LENGTH,
+  ASSET_NAME_LENGTH,
+  MEMO_LENGTH,
+} from '@ironfish/rust-nodejs'
 import * as yup from 'yup'
 import { Assert } from '../../../assert'
 import { RawTransactionSerde } from '../../../primitives/rawTransaction'
@@ -51,7 +56,7 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
           .object({
             publicAddress: yup.string().defined(),
             amount: YupUtils.currency({ min: 1n }).defined(),
-            memo: yup.string().defined(),
+            memo: yup.string().defined().max(MEMO_LENGTH),
             assetId: yup.string().optional(),
           })
           .defined(),
@@ -62,8 +67,8 @@ export const CreateTransactionRequestSchema: yup.ObjectSchema<CreateTransactionR
         yup
           .object({
             assetId: yup.string().optional(),
-            name: yup.string().optional(),
-            metadata: yup.string().optional(),
+            name: yup.string().optional().max(ASSET_NAME_LENGTH),
+            metadata: yup.string().optional().max(ASSET_METADATA_LENGTH),
             value: YupUtils.currency({ min: 1n }).defined(),
           })
           .defined(),
