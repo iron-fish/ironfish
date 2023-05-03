@@ -9,10 +9,22 @@ workspace = true
 [package.edition]
 workspace = true
 
-[[bench]]
-name = "transaction"
-harness = false
-
 [dependencies]
 criterion = "0.4"
 ironfish_rust = { path = "../ironfish-rust", features = ["benchmark"] }
+
+[[bench]]
+name = "asset"
+harness = false
+
+[[bench]]
+name = "merkle_note"
+harness = false
+
+[[bench]]
+name = "sapling_key"
+harness = false
+
+[[bench]]
+name = "transaction"
+harness = false
