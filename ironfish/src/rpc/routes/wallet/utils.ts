@@ -8,11 +8,7 @@ import { Account } from '../../../wallet'
 import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { ValidationError } from '../../adapters'
-import {
-  RcpAccountAssetBalanceDelta,
-  RpcAccountDecryptedNote,
-  RpcAccountTransaction,
-} from './types'
+import { RcpAccountAssetBalanceDelta, RpcAccountTransaction, RpcWalletNote } from './types'
 
 export function getAccount(node: IronfishNode, name?: string): Account {
   if (name) {
@@ -138,24 +134,28 @@ export async function getAccountDecryptedNotes(
   node: IronfishNode,
   account: Account,
   transaction: TransactionValue,
-): Promise<RpcAccountDecryptedNote[]> {
+): Promise<RpcWalletNote[]> {
   const notes = await getTransactionNotes(node, account, transaction)
 
-  const serializedNotes: RpcAccountDecryptedNote[] = []
+  const serializedNotes: RpcWalletNote[] = []
+
   for await (const decryptedNote of notes) {
-    const isOwner = decryptedNote.note.owner() === account.publicAddress
     const asset = await node.chain.getAssetById(decryptedNote.note.assetId())
     const note = decryptedNote.note
 
     serializedNotes.push({
-      isOwner,
-      owner: note.owner(),
-      memo: note.memo(),
       value: CurrencyUtils.encode(note.value()),
       assetId: note.assetId().toString('hex'),
       assetName: asset?.name.toString('hex') || '',
+      memo: note.memo(),
       sender: note.sender(),
+      owner: note.owner(),
+      noteHash: note.hash().toString('hex'),
+      transactionHash: transaction.transaction.hash().toString('hex'),
+      index: decryptedNote.index ?? null,
+      nullifier: decryptedNote.nullifier?.toString('hex') ?? null,
       spent: decryptedNote.spent,
+      isOwner: note.owner() === account.publicAddress,
       hash: note.hash().toString('hex'),
     })
   }

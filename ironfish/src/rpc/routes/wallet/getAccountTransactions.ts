@@ -9,7 +9,7 @@ import { Account } from '../../../wallet/account'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { RpcRequest } from '../../request'
 import { ApiNamespace, router } from '../router'
-import { RpcAccountDecryptedNote, RpcSpend, RpcSpendSchema } from './types'
+import { RpcSpend, RpcSpendSchema, RpcWalletNote, RpcWalletNoteSchema } from './types'
 import {
   getAccount,
   getAccountDecryptedNotes,
@@ -44,7 +44,7 @@ export type GetAccountTransactionsResponse = {
   timestamp: number
   submittedSequence: number
   assetBalanceDeltas: Array<{ assetId: string; assetName: string; delta: string }>
-  notes?: RpcAccountDecryptedNote[]
+  notes?: RpcWalletNote[]
   spends?: RpcSpend[]
 }
 
@@ -90,21 +90,7 @@ export const GetAccountTransactionsResponseSchema: yup.ObjectSchema<GetAccountTr
             .defined(),
         )
         .defined(),
-      notes: yup.array(
-        yup
-          .object({
-            isOwner: yup.boolean().defined(),
-            owner: yup.string().defined(),
-            value: yup.string().defined(),
-            assetId: yup.string().defined(),
-            assetName: yup.string().defined(),
-            sender: yup.string().defined(),
-            memo: yup.string().trim().defined(),
-            spent: yup.boolean(),
-            hash: yup.string().defined(),
-          })
-          .defined(),
-      ),
+      notes: yup.array(RpcWalletNoteSchema).defined(),
       spends: yup.array(RpcSpendSchema).defined(),
     })
     .defined()
