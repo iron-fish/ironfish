@@ -143,9 +143,6 @@ export async function getAccountDecryptedNotes(
     const asset = await node.chain.getAssetById(decryptedNote.note.assetId())
     const note = decryptedNote.note
 
-    const index = decryptedNote.index ?? null
-    const nullifier = decryptedNote.nullifier
-
     serializedNotes.push({
       value: CurrencyUtils.encode(note.value()),
       assetId: note.assetId().toString('hex'),
@@ -155,8 +152,8 @@ export async function getAccountDecryptedNotes(
       owner: note.owner(),
       noteHash: note.hash().toString('hex'),
       transactionHash: transaction.transaction.hash().toString('hex'),
-      index,
-      nullifier: nullifier?.toString('hex') ?? null,
+      index: decryptedNote.index ?? null,
+      nullifier: decryptedNote.nullifier?.toString('hex') ?? null,
       spent: decryptedNote.spent,
       isOwner: note.owner() === account.publicAddress,
       hash: note.hash().toString('hex'),
