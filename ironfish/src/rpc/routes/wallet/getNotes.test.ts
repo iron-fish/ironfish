@@ -116,7 +116,9 @@ describe('Route wallet/getNotes', () => {
     const minResponse: RpcResponseEnded<GetNotesResponse> =
       await routeTest.client.wallet.getNotes({
         account: account.name,
-        value: { min: minValue },
+        filter: {
+          value: { min: minValue },
+        },
       })
     const { notes: minResponseNotes } = minResponse.content
 
@@ -126,7 +128,9 @@ describe('Route wallet/getNotes', () => {
     const maxResponse: RpcResponseEnded<GetNotesResponse> =
       await routeTest.client.wallet.getNotes({
         account: account.name,
-        value: { max: maxValue },
+        filter: {
+          value: { max: maxValue },
+        },
       })
     const { notes: maxResponseNotes } = maxResponse.content
 
@@ -136,7 +140,9 @@ describe('Route wallet/getNotes', () => {
     const minMaxResponse: RpcResponseEnded<GetNotesResponse> =
       await routeTest.client.wallet.getNotes({
         account: account.name,
-        value: { min: minValue, max: maxValue },
+        filter: {
+          value: { min: minValue, max: maxValue },
+        },
       })
     const { notes: minMaxResponseNotes } = minMaxResponse.content
 
@@ -148,7 +154,9 @@ describe('Route wallet/getNotes', () => {
     const nativeResponse: RpcResponseEnded<GetNotesResponse> =
       await routeTest.client.wallet.getNotes({
         account: account.name,
-        assetId: Asset.nativeId().toString('hex'),
+        filter: {
+          assetId: Asset.nativeId().toString('hex'),
+        },
       })
 
     expect(nativeResponse.status).toBe(200)
@@ -157,7 +165,9 @@ describe('Route wallet/getNotes', () => {
     const response: RpcResponseEnded<GetNotesResponse> = await routeTest.client.wallet.getNotes(
       {
         account: account.name,
-        assetId: 'deadbeef',
+        filter: {
+          assetId: 'deadbeef',
+        },
       },
     )
 
@@ -169,7 +179,9 @@ describe('Route wallet/getNotes', () => {
     const ironResponse: RpcResponseEnded<GetNotesResponse> =
       await routeTest.client.wallet.getNotes({
         account: account.name,
-        assetName: Buffer.from('$IRON', 'utf-8').toString('hex'),
+        filter: {
+          assetName: Buffer.from('$IRON', 'utf-8').toString('hex'),
+        },
       })
 
     expect(ironResponse.status).toBe(200)
@@ -178,7 +190,9 @@ describe('Route wallet/getNotes', () => {
     const response: RpcResponseEnded<GetNotesResponse> = await routeTest.client.wallet.getNotes(
       {
         account: account.name,
-        assetName: 'deadbeef',
+        filter: {
+          assetName: 'deadbeef',
+        },
       },
     )
 
@@ -195,7 +209,9 @@ describe('Route wallet/getNotes', () => {
       const response: RpcResponseEnded<GetNotesResponse> =
         await routeTest.client.wallet.getNotes({
           account: account.name,
-          index: note.index,
+          filter: {
+            index: note.index,
+          },
         })
 
       expect(response.status).toBe(200)
@@ -213,7 +229,9 @@ describe('Route wallet/getNotes', () => {
       const response: RpcResponseEnded<GetNotesResponse> =
         await routeTest.client.wallet.getNotes({
           account: account.name,
-          nullifier: note.nullifier,
+          filter: {
+            nullifier: note.nullifier,
+          },
         })
 
       expect(response.status).toBe(200)
@@ -227,7 +245,9 @@ describe('Route wallet/getNotes', () => {
       const response: RpcResponseEnded<GetNotesResponse> =
         await routeTest.client.wallet.getNotes({
           account: account.name,
-          noteHash: note.noteHash,
+          filter: {
+            noteHash: note.noteHash,
+          },
         })
 
       expect(response.status).toBe(200)
@@ -240,7 +260,9 @@ describe('Route wallet/getNotes', () => {
     const response: RpcResponseEnded<GetNotesResponse> = await routeTest.client.wallet.getNotes(
       {
         account: account.name,
-        transactionHash: transaction.hash().toString('hex'),
+        filter: {
+          transactionHash: transaction.hash().toString('hex'),
+        },
       },
     )
 
@@ -268,10 +290,12 @@ describe('Route wallet/getNotes', () => {
     const response: RpcResponseEnded<GetNotesResponse> = await routeTest.client.wallet.getNotes(
       {
         account: account.name,
-        spent: false,
+        filter: {
+          spent: false,
+        },
       },
     )
-    const { notes: responseNotes, nextPageToken } = response.content
+    const { notes: responseNotes, nextPageCursor } = response.content
 
     expect(response.status).toBe(200)
     expect(responseNotes.length).toBe(filteredNoteHashes.size)
@@ -280,6 +304,6 @@ describe('Route wallet/getNotes', () => {
       expect(note.spent).toBe(false)
     }
 
-    expect(nextPageToken).toBeNull()
+    expect(nextPageCursor).toBeNull()
   })
 })

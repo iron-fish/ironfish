@@ -8,16 +8,13 @@ import { getAccount, serializeRpcWalletNote } from './utils'
 
 const DEFAULT_PAGE_SIZE = 100
 
-export type BigMinMax = {
+type StringMinMax = {
   min?: string
   max?: string
 }
 
-export type GetNotesRequest = {
-  account?: string
-  pageSize?: number
-  pageCursor?: string
-  value?: BigMinMax
+type GetNotesRequestFilter = {
+  value?: StringMinMax
   assetId?: string
   assetName?: string
   memo?: string
@@ -27,6 +24,13 @@ export type GetNotesRequest = {
   index?: number
   nullifier?: string
   spent?: boolean
+}
+
+export type GetNotesRequest = {
+  account?: string
+  pageSize?: number
+  pageCursor?: string
+  filter?: GetNotesRequestFilter
 }
 
 export type GetNotesResponse = {
@@ -39,20 +43,23 @@ export const GetNotesRequestSchema: yup.ObjectSchema<GetNotesRequest> = yup
     account: yup.string().trim(),
     pageSize: yup.number().min(1),
     pageCursor: yup.string(),
-    value: yup.object({
-      min: yup.string(),
-      max: yup.string(),
-    }),
-    assetId: yup.string(),
-    assetName: yup.string(),
-    memo: yup.string(),
-    sender: yup.string(),
-    noteHash: yup.string(),
-    transactionHash: yup.string(),
-    index: yup.number(),
-    nullifier: yup.string(),
-    spent: yup.boolean(),
->>>>>>> 05c2079f (adds filtering to wallet/getNotes endpoint)
+    filter: yup
+      .object({
+        value: yup.object({
+          min: yup.string(),
+          max: yup.string(),
+        }),
+        assetId: yup.string(),
+        assetName: yup.string(),
+        memo: yup.string(),
+        sender: yup.string(),
+        noteHash: yup.string(),
+        transactionHash: yup.string(),
+        index: yup.number(),
+        nullifier: yup.string(),
+        spent: yup.boolean(),
+      })
+      .defined(),
   })
   .defined()
 
@@ -77,16 +84,6 @@ router.register<typeof GetNotesRequestSchema, GetNotesResponse>(
     let nextPageCursor: Buffer | null = null
 
     for await (const decryptedNote of account.getNotes(keyRange)) {
-      const asset = await account.getAsset(decryptedNote.note.assetId())
-
-      const note = serializeRpcWalletNote(decryptedNote, account.publicAddress, asset)
-
-      if (!includeNote(note, request.data)) {
-        continue
-      }
-
-      notes.push(note)
-
       if (notes.length === pageSize) {
         nextPageCursor = node.wallet.walletDb.decryptedNotes.keyEncoding.serialize([
           account.prefix,
@@ -95,6 +92,16 @@ router.register<typeof GetNotesRequestSchema, GetNotesResponse>(
 
         break
       }
+
+      const asset = await account.getAsset(decryptedNote.note.assetId())
+
+      const note = serializeRpcWalletNote(decryptedNote, account.publicAddress, asset)
+
+      if (!includeNote(note, request.data.filter ?? {})) {
+        continue
+      }
+
+      notes.push(note)
     }
 
     request.end({
@@ -104,19 +111,18 @@ router.register<typeof GetNotesRequestSchema, GetNotesResponse>(
   },
 )
 
-function includeNote(note: RpcWalletNote, request: GetNotesRequest): boolean {
+function includeNote(note: RpcWalletNote, filter: GetNotesRequestFilter): boolean {
   return (
-    (request.value?.min === undefined || BigInt(note.value) >= BigInt(request.value.min)) &&
-    (request.value?.max === undefined || BigInt(note.value) <= BigInt(request.value.max)) &&
-    (request.assetId === undefined || note.assetId === request.assetId) &&
-    (request.assetName === undefined || note.assetName === request.assetName) &&
-    (request.memo === undefined || note.memo === request.memo) &&
-    (request.sender === undefined || note.sender === request.sender) &&
-    (request.noteHash === undefined || note.noteHash === request.noteHash) &&
-    (request.transactionHash === undefined ||
-      note.transactionHash === request.transactionHash) &&
-    (request.index === undefined || note.index === request.index) &&
-    (request.nullifier === undefined || note.nullifier === request.nullifier) &&
-    (request.spent === undefined || note.spent === request.spent)
+    (filter.value?.min === undefined || BigInt(note.value) >= BigInt(filter.value.min)) &&
+    (filter.value?.max === undefined || BigInt(note.value) <= BigInt(filter.value.max)) &&
+    (filter.assetId === undefined || note.assetId === filter.assetId) &&
+    (filter.assetName === undefined || note.assetName === filter.assetName) &&
+    (filter.memo === undefined || note.memo === filter.memo) &&
+    (filter.sender === undefined || note.sender === filter.sender) &&
+    (filter.noteHash === undefined || note.noteHash === filter.noteHash) &&
+    (filter.transactionHash === undefined || note.transactionHash === filter.transactionHash) &&
+    (filter.index === undefined || note.index === filter.index) &&
+    (filter.nullifier === undefined || note.nullifier === filter.nullifier) &&
+    (filter.spent === undefined || note.spent === filter.spent)
   )
 }
