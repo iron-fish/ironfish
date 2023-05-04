@@ -257,6 +257,10 @@ export class Verifier {
     return { valid: true }
   }
 
+  static getMaxTransactionBytes(maxBlockSizeBytes: number): number {
+    return maxBlockSizeBytes - getBlockWithMinersFeeSize()
+  }
+
   /**
    * Verify that a transaction created by the account can be accepted into the mempool
    * and rebroadcasted to the network.
@@ -264,7 +268,7 @@ export class Verifier {
   verifyCreatedTransaction(transaction: Transaction): VerificationResult {
     if (
       getTransactionSize(transaction) >
-      this.chain.consensus.parameters.maxBlockSizeBytes - getBlockWithMinersFeeSize()
+      Verifier.getMaxTransactionBytes(this.chain.consensus.parameters.maxBlockSizeBytes)
     ) {
       return { valid: false, reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED }
     }
