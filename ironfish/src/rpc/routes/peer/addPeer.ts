@@ -5,18 +5,18 @@ import * as yup from 'yup'
 import { DEFAULT_WEBSOCKET_PORT } from '../../../fileStores/config'
 import { ApiNamespace, router } from '../router'
 
-export type AddPeerCandidateRequest = {
+export type AddPeerRequest = {
   host: string
   port?: number
   whitelist?: boolean
 }
 
-export type AddPeerCandidateResponse = {
+export type AddPeerResponse = {
   added: boolean
   error?: string
 }
 
-export const AddPeerCandidateRequestSchema: yup.ObjectSchema<AddPeerCandidateRequest> = yup
+export const AddPeerRequestSchema: yup.ObjectSchema<AddPeerRequest> = yup
   .object({
     host: yup.string().defined(),
     port: yup.number().optional(),
@@ -24,16 +24,16 @@ export const AddPeerCandidateRequestSchema: yup.ObjectSchema<AddPeerCandidateReq
   })
   .defined()
 
-export const AddPeerCandidateResponseSchema: yup.ObjectSchema<AddPeerCandidateResponse> = yup
+export const AddPeerResponseSchema: yup.ObjectSchema<AddPeerResponse> = yup
   .object({
     added: yup.boolean().defined(),
     error: yup.string().optional(),
   })
   .defined()
 
-router.register<typeof AddPeerCandidateRequestSchema, AddPeerCandidateResponse>(
-  `${ApiNamespace.peer}/addCandidate`,
-  AddPeerCandidateRequestSchema,
+router.register<typeof AddPeerRequestSchema, AddPeerResponse>(
+  `${ApiNamespace.peer}/addPeer`,
+  AddPeerRequestSchema,
   (request, node): void => {
     const peerManager = node.peerNetwork.peerManager
     const { host, port, whitelist } = request.data

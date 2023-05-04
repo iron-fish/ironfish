@@ -4,8 +4,8 @@
 import { Logger } from '../../logger'
 import { RpcResponse, RpcResponseEnded } from '../response'
 import {
-  AddPeerCandidateRequest,
-  AddPeerCandidateResponse,
+  AddPeerRequest,
+  AddPeerResponse,
   AddTransactionRequest,
   AddTransactionResponse,
   ApiNamespace,
@@ -371,13 +371,8 @@ export abstract class RpcClient {
   }
 
   peer = {
-    addCandidate: (
-      params: AddPeerCandidateRequest,
-    ): Promise<RpcResponseEnded<AddPeerCandidateResponse>> => {
-      return this.request<AddPeerCandidateResponse>(
-        `${ApiNamespace.peer}/addCandidate`,
-        params,
-      ).waitForEnd()
+    addPeer: (params: AddPeerRequest): Promise<RpcResponseEnded<AddPeerResponse>> => {
+      return this.request<AddPeerResponse>(`${ApiNamespace.peer}/addPeer`, params).waitForEnd()
     },
 
     getBannedPeers: (

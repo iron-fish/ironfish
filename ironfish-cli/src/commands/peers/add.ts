@@ -6,7 +6,7 @@ import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
 
 export class AddCommand extends IronfishCommand {
-  static description = `Add a peer to the list of candidates`
+  static description = `Attempt to connect to a peer through websockets`
 
   static args = [
     {
@@ -49,7 +49,7 @@ export class AddCommand extends IronfishCommand {
       whitelist: true,
     }
 
-    const response = await this.sdk.client.peer.addCandidate(request)
+    const response = await this.sdk.client.peer.addPeer(request)
 
     if (response.content.added) {
       this.log(`Successfully added peer ${request.host}:${request.port}`)
