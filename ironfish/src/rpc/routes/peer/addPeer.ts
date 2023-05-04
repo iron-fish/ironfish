@@ -42,6 +42,7 @@ router.register<typeof AddPeerRequestSchema, AddPeerResponse>(
       host,
       port: port || DEFAULT_WEBSOCKET_PORT,
       whitelist: !!whitelist,
+      forceConnect: true,
     })
 
     request.end({ added: peer !== undefined })
