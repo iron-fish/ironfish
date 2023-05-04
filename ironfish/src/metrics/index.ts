@@ -4,3 +4,4 @@
 export * from './meter'
 export * from './metricsMonitor'
 export * from './ewmAverage'
+export * from './gauge'
