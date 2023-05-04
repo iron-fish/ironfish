@@ -28,13 +28,15 @@ export default class Download extends IronfishCommand {
 
   static description = `Download and import a chain snapshot`
 
+  static defaultMainnetManifestUrl = `https://snapshots.ironfish.network/manifest.json`
+  static defaultTestnetManifestUrl = `https://testnet.snapshots.ironfish.network/manifest.json`
+
   static flags = {
     ...LocalFlags,
     manifestUrl: Flags.string({
       char: 'm',
       parse: (input: string) => Promise.resolve(input.trim()),
       description: 'Manifest url to download snapshot from',
-      default: `https://snapshots.ironfish.network/manifest.json`,
     }),
     path: Flags.string({
       char: 'p',
@@ -68,10 +70,16 @@ export default class Download extends IronfishCommand {
 
     const networkId = node.internal.get('networkId')
 
-    let manifestUrl = flags.manifestUrl
-    if (networkId === 0) {
-      // testnet
-      manifestUrl = `https://testnet.snapshots.ironfish.network/manifest.json`
+    let manifestUrl
+    if (flags.manifestUrl) {
+      manifestUrl = flags.manifestUrl
+    } else {
+      if (networkId === 0) {
+        // testnet
+        manifestUrl = Download.defaultTestnetManifestUrl
+      } else {
+        manifestUrl = Download.defaultMainnetManifestUrl
+      }
     }
 
     let snapshotPath
