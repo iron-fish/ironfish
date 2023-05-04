@@ -142,6 +142,7 @@ export class IronfishNode {
       hostsStore: hostsStore,
       logger: logger,
       telemetry: this.telemetry,
+      incomingWebSocketWhitelist: config.getArray('incomingWebSocketWhitelist'),
     })
 
     this.wallet.onTransactionCreated.on((transaction) => {
