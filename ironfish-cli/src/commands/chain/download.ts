@@ -237,9 +237,11 @@ export default class Download extends IronfishCommand {
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
     // chainDatabasePath must be empty before unzipping snapshot
+    // chain DB must be closed before deleting it (fixes an error on Windows)
     CliUx.ux.action.start(
       `Removing existing chain data at ${chainDatabasePath} before importing snapshot`,
     )
+    await node.closeDB()
     await fsAsync.rm(chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
     CliUx.ux.action.stop('done')
 
