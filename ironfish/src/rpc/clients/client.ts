@@ -371,6 +371,15 @@ export abstract class RpcClient {
   }
 
   peer = {
+    addCandidate: (
+      params: AddPeerCandidateRequest,
+    ): Promise<RpcResponseEnded<AddPeerCandidateResponse>> => {
+      return this.request<AddPeerCandidateResponse>(
+        `${ApiNamespace.peer}/addCandidate`,
+        params,
+      ).waitForEnd()
+    },
+
     getBannedPeers: (
       params: GetBannedPeersRequest = undefined,
     ): Promise<RpcResponseEnded<GetBannedPeersResponse>> => {
@@ -437,15 +446,6 @@ export abstract class RpcClient {
           stream: true,
         },
       )
-    },
-
-    addCandidate: (
-      params: AddPeerCandidateRequest,
-    ): Promise<RpcResponseEnded<AddPeerCandidateResponse>> => {
-      return this.request<AddPeerCandidateResponse>(
-        `${ApiNamespace.peer}/addCandidate`,
-        params,
-      ).waitForEnd()
     },
   }
 

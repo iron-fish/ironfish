@@ -10,7 +10,7 @@ export class AddCommand extends IronfishCommand {
 
   static args = [
     {
-      name: 'url',
+      name: 'address',
       parse: (
         input: string,
       ): Promise<{ protocol: string | null; hostname: string | null; port: number | null }> =>
@@ -27,7 +27,7 @@ export class AddCommand extends IronfishCommand {
   async start(): Promise<void> {
     const { args } = await this.parse(AddCommand)
 
-    const url = args.url as {
+    const url = args.address as {
       protocol: string | null
       hostname: string | null
       port: number | null
@@ -43,18 +43,18 @@ export class AddCommand extends IronfishCommand {
       this.error(`Could not parse the given url`)
     }
 
-    const reqeust = {
+    const request = {
       host: url.hostname,
       port: url.port || DEFAULT_WEBSOCKET_PORT,
       whitelist: true,
     }
 
-    const response = await this.sdk.client.peer.addCandidate(reqeust)
+    const response = await this.sdk.client.peer.addCandidate(request)
 
     if (response.content.added) {
-      this.log(`Successfully added peer ${reqeust.host}:${reqeust.port}`)
+      this.log(`Successfully added peer ${request.host}:${request.port}`)
     } else {
-      this.log(`Could not add peer ${reqeust.host}:${reqeust.port}`)
+      this.log(`Could not add peer ${request.host}:${request.port}`)
       this.exit(0)
     }
   }

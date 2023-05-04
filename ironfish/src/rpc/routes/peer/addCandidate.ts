@@ -38,14 +38,12 @@ router.register<typeof AddPeerCandidateRequestSchema, AddPeerCandidateResponse>(
     const peerManager = node.peerNetwork.peerManager
     const { host, port, whitelist } = request.data
 
-    const peer = peerManager.getOrCreatePeer(null)
-    peer.setWebSocketAddress(host, port || DEFAULT_WEBSOCKET_PORT)
-    peer.isWhitelisted = !!whitelist
+    const peer = peerManager.connectToWebSocketAddress({
+      host,
+      port: port || DEFAULT_WEBSOCKET_PORT,
+      whitelist: !!whitelist,
+    })
 
-    peerManager.peerCandidates.addFromPeer(peer)
-
-    const added = peerManager.connectToWebSocket(peer)
-
-    request.end({ added })
+    request.end({ added: peer !== undefined })
   },
 )

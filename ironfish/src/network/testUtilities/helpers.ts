@@ -26,10 +26,13 @@ export function getConnectingPeer(
   direction = ConnectionDirection.Outbound,
   identity?: string | Identity,
 ): { peer: Peer; connection: WebSocketConnection } {
-  let peer: Peer | null = null
+  let peer: Peer | undefined
 
   if (direction === ConnectionDirection.Outbound) {
-    peer = pm.connectToWebSocketAddress('testuri.com', 9033)
+    peer = pm.connectToWebSocketAddress({
+      host: 'testuri',
+      port: 9033,
+    })
   } else {
     peer = pm.getOrCreatePeer(identity ?? null)
 
@@ -41,6 +44,8 @@ export function getConnectingPeer(
 
     peer.setWebSocketConnection(connection)
   }
+
+  Assert.isNotUndefined(peer)
 
   expect(peer.state).toEqual({
     type: 'CONNECTING',

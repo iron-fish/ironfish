@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
-describe('Route peer/addPeerCandidate', () => {
+describe('Route peer/addCandidate', () => {
   const routeTest = createRouteTest()
 
   it('should add a peer with a correct address and port', async () => {
-    const reqeust = { host: 'testhost', port: 9037 }
+    const request = { host: 'testhost', port: 9037 }
 
-    const response = await routeTest.client.request('peer/addCandidate', reqeust).waitForEnd()
+    const response = await routeTest.client.request('peer/addCandidate', request).waitForEnd()
 
     expect(
       routeTest.node.peerNetwork.peerManager.peerCandidates.has('ws://testhost:9037'),
