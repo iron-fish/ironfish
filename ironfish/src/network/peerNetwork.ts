@@ -354,8 +354,12 @@ export class PeerNetwork {
       // If the user has not specified a port, we can guess that
       // it's running on the default ironfish websocket port
       const port = url.port ? url.port : DEFAULT_WEBSOCKET_PORT
-      const address = url.hostname + `:${port}`
-      this.peerManager.connectToWebSocketAddress(address, true)
+
+      this.peerManager.connectToWebSocketAddress({
+        host: url.hostname,
+        port,
+        whitelist: true,
+      })
     }
   }
 

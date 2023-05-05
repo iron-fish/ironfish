@@ -164,7 +164,13 @@ describe('PeerManager', () => {
       const peers = new PeerManager(mockLocalPeer(), mockHostsStore())
 
       const peerIdentity = mockIdentity('peer')
-      const peer = peers.connectToWebSocketAddress('testuri:9033')
+      const peer = peers.connectToWebSocketAddress({
+        host: 'testuri',
+        port: 9033,
+      })
+
+      Assert.isNotUndefined(peer)
+
       expect(peers.peerCandidates.get(peer.getWebSocketAddress())).not.toBeUndefined()
       if (peer.state.type === 'DISCONNECTED') {
         throw new Error('Peer should not be disconnected')
@@ -186,7 +192,12 @@ describe('PeerManager', () => {
       // Create a websocket peer
       const peerIdentity = mockIdentity('peer')
       const connectedPeerIdentity = mockIdentity('connected')
-      const peer = peers.connectToWebSocketAddress('testuri:9033')
+      const peer = peers.connectToWebSocketAddress({
+        host: 'testuri',
+        port: 9033,
+      })
+      Assert.isNotUndefined(peer)
+
       expect(peers.peerCandidates.get(peer.getWebSocketAddress())).not.toBeUndefined()
       peer.close()
 
@@ -302,7 +313,12 @@ describe('PeerManager', () => {
       const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
       expect(pm.peers.length).toBe(0)
 
-      const peer = pm.connectToWebSocketAddress('testUri')
+      const peer = pm.connectToWebSocketAddress({
+        host: 'testuri',
+        port: 9033,
+      })
+
+      Assert.isNotUndefined(peer)
 
       expect(pm.identifiedPeers.size).toBe(0)
       expect(pm.peers.length).toBe(1)
