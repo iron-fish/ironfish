@@ -70,7 +70,7 @@ export default class Download extends IronfishCommand {
 
     const networkId = node.internal.get('networkId')
 
-    let manifestUrl
+    let manifestUrl = ''
     if (flags.manifestUrl) {
       manifestUrl = flags.manifestUrl
     } else {
@@ -81,6 +81,7 @@ export default class Download extends IronfishCommand {
         manifestUrl = Download.defaultMainnetManifestUrl
       } else {
         this.log(`Manifest url for the snapshots are not available for network ID ${networkId}`)
+        this.exit(1)
       }
     }
 
@@ -89,7 +90,7 @@ export default class Download extends IronfishCommand {
     if (flags.path) {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
     } else {
-      if (!manifestUrl) {
+      if (!manifestUrl || manifestUrl === '') {
         this.log(`Cannot download snapshot without manifest URL`)
         this.exit(1)
       }
