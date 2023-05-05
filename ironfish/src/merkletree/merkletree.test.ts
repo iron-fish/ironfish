@@ -7,6 +7,7 @@ import { makeTree } from '../testUtilities/helpers/merkletree'
 import { createTestDB } from '../testUtilities/helpers/storage'
 import { MerkleTree, Side } from './merkletree'
 import { depthAtLeafCount } from './utils'
+import { Witness } from './witness'
 
 describe('Merkle tree', function () {
   it('initializes database', async () => {
@@ -455,15 +456,6 @@ describe('Merkle tree', function () {
   })
 
   it('calculates correct witnesses', async () => {
-    const witnessOrThrowFactory =
-      (witnessTree: MerkleTree<string, string, string, string>) => async (index: number) => {
-        const witness = await witnessTree.witness(index)
-        if (witness === null) {
-          throw new Error(`Witness at ${index} was unexpectedly null`)
-        }
-        return witness
-      }
-
     const tree = await makeTree({ depth: 3 })
     const witnessOrThrow = witnessOrThrowFactory(tree)
 
@@ -620,6 +612,56 @@ describe('Merkle tree', function () {
     ])
   })
 
+  it('calculates correct witnesses at past sizes', async () => {
+    const tree = await makeTree({ depth: 4 })
+    const witnessOrThrow = witnessOrThrowFactory(tree)
+
+    const witnessesByIndexAndSize: Array<Array<Witness<string, string, string, string>>> = []
+
+    const calculateWitnessesAtSize = async (size: number) => {
+      for (let index = 0; index < size; index++) {
+        const witness = await witnessOrThrow(index)
+
+        const pastWitnesses = witnessesByIndexAndSize.at(index) ?? []
+        pastWitnesses.push(witness)
+
+        witnessesByIndexAndSize[index] = pastWitnesses
+      }
+    }
+
+    const checkWitnessesAtPastSizes = async (size: number) => {
+      for (let index = 0; index < size; index++) {
+        for (let pastSize = index; pastSize < size; pastSize++) {
+          const witness = await witnessOrThrow(index, pastSize + 1)
+
+          const pastWitness = witnessesByIndexAndSize[index][pastSize - index]
+
+          const pastAuthPath: [Side, string][] = pastWitness.authenticationPath.map((node) => [
+            node.side,
+            node.hashOfSibling,
+          ])
+
+          expect(witness).toMatchWitness(
+            pastWitness.treeSize(),
+            pastWitness.rootHash,
+            pastAuthPath,
+          )
+        }
+      }
+    }
+
+    const leaves = 'abcdefghijklmnop'
+
+    for (let i = 0; i < leaves.length; i++) {
+      const leaf = leaves[i]
+
+      await tree.add(leaf)
+
+      await calculateWitnessesAtSize(i + 1)
+      await checkWitnessesAtPastSizes(i + 1)
+    }
+  })
+
   it('witness rootHash should equal the tree rootHash', async () => {
     const tree = await makeTree({ depth: 3, leaves: 'abcdefgh' })
 
@@ -656,3 +698,13 @@ describe('Merkle tree', function () {
     expect(depthAtLeafCount(33)).toBe(7)
   })
 })
+
+const witnessOrThrowFactory =
+  (witnessTree: MerkleTree<string, string, string, string>) =>
+  async (index: number, size?: number) => {
+    const witness = await witnessTree.witness(index, size)
+    if (witness === null) {
+      throw new Error(`Witness at ${index} was unexpectedly null`)
+    }
+    return witness
+  }
