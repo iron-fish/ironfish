@@ -126,13 +126,10 @@ async function getRpcStatus(node: IronfishNode): Promise<GetRpcStatusResponse> {
       formatted.writtenBytes = adapter.outboundBytes.value
 
       adapter.requests.forEach((r) => {
-        if (!r.req.url) {
-          return
+        const route = adapter.formatRoute(r.req)
+        if (route) {
+          formatted.pending.push(route)
         }
-        const url = new URL(r.req.url, `http://${r.req.headers.host || 'localhost'}`)
-        const route = url.pathname.substring(1)
-
-        formatted.pending.push(route)
       })
 
       if (adapter.server) {

@@ -178,9 +178,10 @@ export class RpcHttpAdapter implements IRpcAdapter {
       `Call HTTP RPC: ${request.method || 'undefined'} ${request.url || 'undefined'}`,
     )
 
-    // TODO(daniel): better way to parse method from request here
-    const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`)
-    const route = url.pathname.substring(1)
+    const route = this.formatRoute(request)
+    if (route === undefined) {
+      throw new ResponseError('No route found')
+    }
 
     // TODO(daniel): clean up reading body code here a bit of possible
     let size = 0
@@ -243,5 +244,14 @@ export class RpcHttpAdapter implements IRpcAdapter {
     currRequest && this.requests.set(requestId, { ...currRequest, rpcRequest })
 
     await router.route(route, rpcRequest)
+  }
+
+  // TODO(daniel): better way to parse method from request here
+  formatRoute(request: http.IncomingMessage): string | undefined {
+    if (!request.url) {
+      return
+    }
+    const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`)
+    return url.pathname.substring(1)
   }
 }
