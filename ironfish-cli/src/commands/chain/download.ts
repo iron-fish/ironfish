@@ -77,8 +77,10 @@ export default class Download extends IronfishCommand {
       if (networkId === 0) {
         // testnet
         manifestUrl = Download.defaultTestnetManifestUrl
-      } else {
+      } else if (networkId === 1) {
         manifestUrl = Download.defaultMainnetManifestUrl
+      } else {
+        this.log(`Manifest url for the snapshots are not available for network ID ${networkId}`)
       }
     }
 
