@@ -1061,6 +1061,9 @@ describe('Accounts', () => {
       await expect(nodeA.chain).toAddBlock(blockA3)
       await nodeA.wallet.updateHead()
 
+      // set confirmations so that witness will use confirmed tree size at blockA2
+      nodeA.config.set('confirmations', 0)
+
       // create a transaction from accountA to accountB
       const transaction = await useTxFixture(nodeA.wallet, accountA, accountB)
 
@@ -1081,11 +1084,56 @@ describe('Accounts', () => {
       expect(nodeA.chain.head.hash.equals(blockB4.header.hash)).toBe(true)
       await nodeA.wallet.updateHead()
 
-      // spend is now invalid because notes tree has changed since spend creation
       const reorgVerification = await nodeA.chain.verifier.verifyTransactionAdd(transaction)
+      expect(reorgVerification.valid).toBe(true)
+    })
 
-      expect(reorgVerification.valid).toBe(false)
-      expect(reorgVerification.reason).toEqual(VerificationResultReason.INVALID_SPEND)
+    it('should create transactions with spends valid after a longer reorg', async () => {
+      // create two chains to create a fork
+      const { node: nodeA } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(nodeA.wallet, 'a')
+      const accountB = await useAccountFixture(nodeB.wallet, 'b')
+
+      // add blockA2 to both chains so that the notes spent from this block are valid
+      const blockA2 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
+      await expect(nodeA.chain).toAddBlock(blockA2)
+      await expect(nodeB.chain).toAddBlock(blockA2)
+      await nodeA.wallet.updateHead()
+      await nodeB.wallet.updateHead()
+
+      // set confirmations so that witness will use confirmed tree size at blockA2
+      const confirmations = 2
+      nodeA.config.set('confirmations', confirmations)
+
+      // add blockA3 and blockA4 to chain A
+      for (let i = 0; i < confirmations; i++) {
+        const block = await useMinerBlockFixture(nodeA.chain)
+        await expect(nodeA.chain).toAddBlock(block)
+        await nodeA.wallet.updateHead()
+      }
+
+      // create a transaction from accountA to accountB
+      const transaction = await useTxFixture(nodeA.wallet, accountA, accountB)
+
+      const verification = await nodeA.chain.verifier.verifyTransactionAdd(transaction)
+
+      expect(verification.valid).toBe(true)
+
+      // create a fork on chain B and reorg
+      // include transactions so that notes tree size changes by more than 1 per block
+      for (let i = 0; i < confirmations + 1; i++) {
+        const { previous, block } = await useBlockWithTx(nodeB, accountB, accountB)
+        await expect(nodeB.chain).toAddBlock(block)
+        await expect(nodeA.chain).toAddBlock(previous)
+        await expect(nodeA.chain).toAddBlock(block)
+        await nodeB.wallet.updateHead()
+        await nodeA.wallet.updateHead()
+      }
+
+      const reorgVerification = await nodeA.chain.verifier.verifyTransactionAdd(transaction)
+      expect(reorgVerification.valid).toBe(true)
     })
   })
 

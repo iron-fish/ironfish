@@ -599,15 +599,18 @@ export class MerkleTree<
    */
   async witness(
     index: LeafIndex,
+    size?: number,
     tx?: IDatabaseTransaction,
   ): Promise<Witness<E, H, SE, SH> | null> {
     return this.db.withTransaction(tx, async (tx) => {
       const authenticationPath: WitnessNode<H>[] = []
 
-      const leafCount = await this.size(tx)
+      const leafCount = size ? size : await this.size(tx)
       if (leafCount === 0 || index >= leafCount) {
         return null
       }
+
+      const rootDepth = Math.min(depthAtLeafCount(leafCount), this.depth)
 
       const leaf = await this.getLeaf(index, tx)
       let currentHash = leaf.merkleHash
@@ -628,7 +631,7 @@ export class MerkleTree<
         currentHash = this.hasher.combineHash(0, currentHash, currentHash)
       }
 
-      for (let depth = 1; depth < this.depth; depth++) {
+      for (let depth = 1; depth < rootDepth - 1; depth++) {
         const node =
           currentPosition !== undefined ? await this.getNodeOrNull(currentPosition, tx) : null
 
@@ -646,6 +649,11 @@ export class MerkleTree<
           const leftSibling = await this.getNode(node.leftIndex, tx)
           currentPosition = leftSibling.parentIndex
         }
+      }
+
+      for (let depth = rootDepth - 1; depth < this.depth; depth++) {
+        authenticationPath.push({ side: Side.Left, hashOfSibling: currentHash })
+        currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
       }
 
       return new Witness(leafCount, currentHash, authenticationPath, this.hasher)
