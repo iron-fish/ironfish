@@ -1,7 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Asset } from '@ironfish/rust-nodejs'
 import { VerificationResultReason } from '../consensus/verifier'
+import { Block, RawTransaction } from '../primitives'
 import { BlockTemplateSerde } from '../serde/BlockTemplateSerde'
 import {
   createNodeTest,
@@ -9,7 +11,9 @@ import {
   useMinerBlockFixture,
   useTxFixture,
 } from '../testUtilities'
-import { isTransactionMine } from '../testUtilities/helpers/transaction'
+import { createRawTransaction, isTransactionMine } from '../testUtilities/helpers/transaction'
+import { BigIntUtils, CurrencyUtils } from '../utils'
+import { Account } from '../wallet'
 import { MINED_RESULT } from './manager'
 
 describe('Mining manager', () => {
@@ -35,28 +39,59 @@ describe('Mining manager', () => {
     expect(currentBlock).toEqual(block)
     expect(isTransactionMine(newBlock.transactions[0], account)).toBe(true)
   })
+  function createTransaction(
+    account: Account,
+    numSpends: number,
+    numOutputs: number,
+  ): Promise<RawTransaction> {
+    const spendAmount = BigInt(numSpends) * CurrencyUtils.decodeIron(20)
+    const outputAmount = BigIntUtils.divide(spendAmount, BigInt(numOutputs))
 
-  it('adds transactions from the mempool', async () => {
+    const outputs: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[] =
+      []
+    for (let i = 0; i < numOutputs; i++) {
+      outputs.push({
+        publicAddress: account.publicAddress,
+        amount: BigInt(outputAmount),
+        memo: '',
+        assetId: Asset.nativeId(),
+      })
+    }
+
+    return createRawTransaction({
+      wallet: nodeTest.wallet,
+      from: account,
+      amount: spendAmount,
+      outputs,
+    })
+  }
+
+  it.only('adds transactions from the mempool', async () => {
     const { node, chain } = nodeTest
     const { miningManager } = node
 
     const account = await useAccountFixture(nodeTest.node.wallet, 'account')
     await nodeTest.node.wallet.setDefaultAccount(account.name)
-
-    const previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
+    let previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
     await expect(chain).toAddBlock(previous)
+    for (let i = 0; i < 50; i++) {
+      previous = await useMinerBlockFixture(chain, 2, account, node.wallet)
+      await expect(chain).toAddBlock(previous)
+    }
     await node.wallet.updateHead()
 
-    const transaction = await useTxFixture(node.wallet, account, account)
-
-    expect(node.memPool.count()).toBe(0)
-    node.memPool.acceptTransaction(transaction)
-    expect(node.memPool.count()).toBe(1)
+    for (let i = 0; i < 50; i++) {
+      const transaction = await useTxFixture(node.wallet, account, account)
+      node.memPool.acceptTransaction(transaction)
+    }
 
     const spy = jest.spyOn(BlockTemplateSerde, 'serialize')
     spy.mockClear()
 
+    console.time()
+
     await miningManager.createNewBlockTemplate(previous)
+    console.timeEnd()
 
     expect(spy).toHaveBeenCalledTimes(1)
     const [newBlock, currentBlock] = spy.mock.calls[0]

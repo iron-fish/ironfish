@@ -7,7 +7,7 @@ import { Asset } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { useAccountFixture, useMinerBlockFixture } from '../testUtilities/fixtures'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
-import { createNodeTest } from '../testUtilities/nodeTest'
+import { createNodeTest, NodeTest } from '../testUtilities/nodeTest'
 import { BigIntUtils, CurrencyUtils } from '../utils'
 import { BenchUtils } from '../utils/bench'
 import { Account } from '../wallet'
@@ -20,14 +20,19 @@ describe('Transaction', () => {
 
   const TEST_AMOUNTS = [
     { spends: 1, outputs: 1 },
-    { spends: 10, outputs: 1 },
+    { spends: 25, outputs: 1 },
+    { spends: 50, outputs: 1 },
+    { spends: 75, outputs: 1 },
     { spends: 100, outputs: 1 },
-    { spends: 1, outputs: 10 },
+    { spends: 1, outputs: 25 },
+    { spends: 1, outputs: 50 },
+    { spends: 1, outputs: 75 },
     { spends: 1, outputs: 100 },
   ]
 
   it('post', async () => {
     const { wallet } = nodeTest
+    const account2 = await useAccountFixture(nodeTest.node.wallet, 'account')
 
     const account = await useAccountFixture(wallet)
 
@@ -45,7 +50,7 @@ describe('Transaction', () => {
 
     // Run tests
     for (const { spends, outputs } of TEST_AMOUNTS) {
-      const results = await runTest(account, spends, outputs)
+      const results = await runTest(nodeTest, account, spends, outputs)
       printResults(results)
     }
   })
@@ -58,6 +63,7 @@ describe('Transaction', () => {
   }
 
   async function runTest(
+    nodeTest: NodeTest,
     account: Account,
     numSpends: number,
     numOutputs: number,
@@ -66,12 +72,18 @@ describe('Transaction', () => {
 
     Assert.isNotNull(account.spendingKey)
 
-    const start = BenchUtils.start()
     const posted = rawTx.post(account.spendingKey)
-    const elapsed = BenchUtils.end(start)
 
-    expect(posted.spends.length).toEqual(numSpends)
-    expect(posted.notes.length).toEqual(numOutputs)
+    const block = await useMinerBlockFixture(
+      nodeTest.node.chain,
+      2,
+      account,
+      nodeTest.node.wallet,
+    )
+    nodeTest.node.memPool.acceptTransaction(posted)
+    const start = BenchUtils.start()
+    await nodeTest.node.miningManager.createNewBlockTemplate(block)
+    const elapsed = BenchUtils.end(start)
 
     return { spends: numSpends, outputs: numOutputs, elapsed }
   }
@@ -81,8 +93,8 @@ describe('Transaction', () => {
     numSpends: number,
     numOutputs: number,
   ): Promise<RawTransaction> {
-    const spendAmount = BigInt(numSpends) * CurrencyUtils.decodeIron(20)
-    const outputAmount = BigIntUtils.divide(spendAmount, BigInt(numOutputs))
+    const spendAmount = BigInt(numSpends) * CurrencyUtils.decodeIron(1)
+    const outputAmount = Math.floor(BigIntUtils.divide(spendAmount, BigInt(numOutputs)))
 
     const outputs: { publicAddress: string; amount: bigint; memo: string; assetId: Buffer }[] =
       []
@@ -94,6 +106,13 @@ describe('Transaction', () => {
         assetId: Asset.nativeId(),
       })
     }
+    // deal with leftover change
+    outputs.push({
+      publicAddress: account.publicAddress,
+      amount: spendAmount - BigInt(outputAmount) * BigInt(numOutputs),
+      memo: '',
+      assetId: Asset.nativeId(),
+    })
 
     return createRawTransaction({
       wallet: nodeTest.wallet,
