@@ -532,7 +532,7 @@ describe('PeerManager', () => {
       )
     })
 
-    it('canConnectToWebSocket returns false if Peer has disconnectUntil set', () => {
+    it('Does not create a connection if Peer has disconnectUntil set', () => {
       const pm = new PeerManager(mockLocalPeer(), mockHostsStore())
       const { peer } = getConnectedPeer(pm, 'peer')
       peer.close()
@@ -552,8 +552,8 @@ describe('PeerManager', () => {
       Assert.isNotUndefined(candidate)
       candidate.peerRequestedDisconnectUntil = Number.MAX_SAFE_INTEGER
 
-      const canConnect = pm.canConnectToWebSocket(peer)
-      expect(canConnect).toBe(false)
+      pm.connectToWebSocket(peer)
+      expect(peer.state.type).toBe('DISCONNECTED')
     })
 
     it('Sets disconnectUntil to null if current time is after disconnectUntil', () => {
@@ -590,9 +590,13 @@ describe('PeerManager', () => {
       // Mock the logger
       pm['logger'].mockTypes(() => jest.fn())
 
-      const canConnect = pm.canConnectToWebSocket(peer2)
+      const result = pm.connectToWebSocket(peer2)
 
-      expect(canConnect).toBe(false)
+      expect(result).toBe(false)
+      expect(peer2.state).toEqual({
+        type: 'DISCONNECTED',
+        identity: peer2Identity,
+      })
     })
   })
 

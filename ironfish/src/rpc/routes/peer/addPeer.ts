@@ -13,7 +13,6 @@ export type AddPeerRequest = {
 
 export type AddPeerResponse = {
   added: boolean
-  error?: string
 }
 
 export const AddPeerRequestSchema: yup.ObjectSchema<AddPeerRequest> = yup
