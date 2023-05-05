@@ -1061,6 +1061,9 @@ describe('Accounts', () => {
       await expect(nodeA.chain).toAddBlock(blockA3)
       await nodeA.wallet.updateHead()
 
+      // set confirmations so that witness will use confirmed tree size at blockA2
+      nodeA.config.set('confirmations', 1)
+
       // create a transaction from accountA to accountB
       const transaction = await useTxFixture(nodeA.wallet, accountA, accountB)
 
@@ -1081,11 +1084,8 @@ describe('Accounts', () => {
       expect(nodeA.chain.head.hash.equals(blockB4.header.hash)).toBe(true)
       await nodeA.wallet.updateHead()
 
-      // spend is now invalid because notes tree has changed since spend creation
       const reorgVerification = await nodeA.chain.verifier.verifyTransactionAdd(transaction)
-
-      expect(reorgVerification.valid).toBe(false)
-      expect(reorgVerification.reason).toEqual(VerificationResultReason.INVALID_SPEND)
+      expect(reorgVerification.valid).toBe(true)
     })
   })
 
