@@ -266,6 +266,10 @@ export class MemPool {
       return false
     }
 
+    const { valid } = this.chain.verifier.verifyInternalNullifiers(transaction.spends)
+    if (!valid) {
+      return false
+    }
     // Don't allow transactions with duplicate nullifiers
     // TODO(daniel): Don't delete transactions if we aren't going to add the transaction anyway
     for (const spend of transaction.spends) {
