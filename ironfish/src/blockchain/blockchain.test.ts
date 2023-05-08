@@ -800,6 +800,29 @@ describe('Blockchain', () => {
     })
   })
 
+  it('rejects double spend transaction replays', async () => {
+    const { node, chain } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+    const block2 = await useMinerBlockFixture(chain, undefined, accountA)
+    await expect(chain).toAddBlock(block2)
+
+    const asset = new Asset(accountA.publicAddress, 'test asset', '')
+
+    // Create the mint to replay
+    const block3 = await useMintBlockFixture({ node, account: accountA, asset, value: 10n })
+    await expect(chain).toAddBlock(block3)
+
+    const mintTx = block3.transactions[1]
+
+    const block4 = await useMinerBlockFixture(chain, undefined, undefined, undefined, [mintTx])
+    await expect(chain.addBlock(block4)).resolves.toMatchObject({
+      isAdded: false,
+      reason: VerificationResultReason.DOUBLE_SPEND,
+    })
+  })
+
   it('rejects transactions with internal double spends', async () => {
     const { node, chain, wallet } = await nodeTest.createSetup()
 

@@ -236,6 +236,11 @@ export class Verifier {
     }
 
     const reason = await this.chain.db.withTransaction(null, async (tx) => {
+      const { reason } = await this.verifyUnseenTransaction(transaction, tx)
+      if (reason) {
+        return reason
+      }
+
       for (const spend of transaction.spends) {
         // If the spend references a larger tree size, allow it, so it's possible to
         // store transactions made while the node is a few blocks behind
@@ -416,6 +421,13 @@ export class Verifier {
       return result
     }
 
+    for (const transaction of block.transactions) {
+      const result = await this.verifyUnseenTransaction(transaction, tx)
+      if (!result.valid) {
+        return result
+      }
+    }
+
     for (const spend of block.spends()) {
       if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
         return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
@@ -518,6 +530,26 @@ export class Verifier {
     }
 
     return { valid: true }
+  }
+
+  /**
+   * Given a transaction, verify that the hash is not present in the blockchain
+   * already. Most of the time, we can count on spends being present, so regular
+   * double-spend checks are sufficient. However, if the minimum fee is 0,
+   * transactions that do not contain spends could be replayable in some
+   * scenarios.
+   */
+  verifyUnseenTransaction(
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
+    return this.chain.db.withTransaction(tx, async (tx) => {
+      if (await this.chain.transactionHashToBlockHash.has(transaction.hash(), tx)) {
+        return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+      }
+
+      return { valid: true }
+    })
   }
 }
 

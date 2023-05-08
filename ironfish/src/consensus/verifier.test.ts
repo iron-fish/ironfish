@@ -60,6 +60,25 @@ describe('Verifier', () => {
       })
     })
 
+    it('returns false on transaction replays', async () => {
+      const { node, chain } = nodeTest
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const asset = new Asset(account.publicAddress, 'test asset', '')
+
+      // Create the mint to replay
+      const block3 = await useMintBlockFixture({ node, account: account, asset, value: 10n })
+      await expect(chain).toAddBlock(block3)
+
+      const mintTx = block3.transactions[1]
+
+      const result = await chain.verifier.verifyNewTransaction(mintTx)
+
+      expect(result).toEqual({
+        reason: VerificationResultReason.DOUBLE_SPEND,
+        valid: false,
+      })
+    })
+
     it('returns false on transactions larger than max size', async () => {
       const { transaction } = await useTxSpendsFixture(nodeTest.node)
       nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize()
