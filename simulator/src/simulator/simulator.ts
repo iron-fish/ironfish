@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { ConfigOptions, Logger } from '@ironfish/sdk'
 import { randomUUID } from 'crypto'
-import { rmSync } from 'fs'
+import { mkdirSync, rmSync } from 'fs'
 import { homedir } from 'os'
 import { exit } from 'process'
-import { ErrorEvent, ExitEvent, LogEvent } from './events'
+import { ErrorEvent, ExitEvent, LogEvent, logEventToString } from './events'
 import { SECOND, sleep } from './misc'
 import {
   OptionalSimulationNodeConfig,
@@ -14,7 +14,6 @@ import {
   SimulationNodeConfig,
 } from './simulation-node'
 import { getNodeMemoryStatus } from './utils/status'
-
 /**
  * The simulator orchestrates the running simulation.
  * It owns all the nodes and can start and stop them.
@@ -22,6 +21,9 @@ import { getNodeMemoryStatus } from './utils/status'
  */
 export class Simulator {
   logger: Logger
+
+  /** The ID of the simulation */
+  simulationID = randomUUID()
 
   /** Map of all running nodes from node name to SimulationNode */
   nodes: Map<string, SimulationNode> = new Map()
@@ -39,6 +41,7 @@ export class Simulator {
   dataDirs: Set<string> = new Set<string>()
 
   basePeerPort = 7000
+  baseRpcHttpPort = 8000
   baseRpcTcpPort = 9000
 
   /** The node that will be used to bootstrap the network.
@@ -57,7 +60,6 @@ export class Simulator {
     this.logger.withTag('simulator')
 
     this.running = true
-
     this.verboseLogging = !!options?.verboseLogging
     this.persistNodeDataDirs = !!options?.persist
 
@@ -70,6 +72,12 @@ export class Simulator {
         this.exit()
       }, options.duration * SECOND)
     }
+
+    mkdirSync(`${homedir()}/.ironfish-simulator/simulations/${this.simulationID}`, {
+      recursive: true,
+    })
+
+    this.logger.log(`created sim directory at ${this.tmpdir()}`)
 
     process.on('SIGINT' || 'SIGKILL', (event) => {
       this.logger.log(`simulator handled ${event.toString()}`)
@@ -94,8 +102,38 @@ export class Simulator {
     if (this.verboseLogging) {
       options = {
         ...options,
-        onLog: [...(options?.onLog || []), (l) => this.logger.log(l.message)],
+        onLog: [
+          ...(options?.onLog || []),
+          (l) => {
+            const log = logEventToString(l)
+            if (log) {
+              this.logger.log(log)
+            }
+          },
+        ],
       }
+    }
+
+    // Only log tags that the user chooses to log
+    // TODO: this is a bit hacky, if the user creates new log handlers after node creation they won't be filtered
+    if (options?.cfg?.logTags) {
+      const toLog = options?.cfg?.logTags
+      const filteredOnLogs = []
+
+      for (const onLog of options?.onLog || []) {
+        const filtered = (l: LogEvent) => {
+          const tags = l.jsonMessage?.tag.split(':')
+          const includes = tags?.some((t) => toLog.includes(t))
+
+          if (includes) {
+            return onLog(l)
+          }
+        }
+
+        filteredOnLogs.push(filtered)
+      }
+
+      options.onLog = filteredOnLogs
     }
 
     const nodeConfig = this.fillConfig(options?.cfg ?? {})
@@ -240,11 +278,23 @@ export class Simulator {
       networkId: config.networkId || 2,
       rpcTcpHost: config.rpcTcpHost || 'localhost',
       rpcTcpPort: config.rpcTcpPort || this.baseRpcTcpPort + this.nodeCount,
+      rpcHttpHost: config.rpcHttpHost || 'localhost',
+      rpcHttpPort: config.rpcHttpPort || this.baseRpcHttpPort + this.nodeCount,
       bootstrapNodes: config.bootstrapNodes,
       dataDir: config.dataDir || `~/.ironfish-simulator/${config.nodeName}`,
       verbose: config.verbose || false,
       importGenesisAccount: config.importGenesisAccount || true,
       ...config,
     }
+  }
+
+  /**
+   * Returns the path to the temporary directory for this simulation. This path can be used to store
+   * temporary files related to the simulation, including any user or simulation generated files.
+   *
+   * @returns the path to the temporary directory for this simulation
+   */
+  public tmpdir(): string {
+    return `${homedir()}/.ironfish-simulator/simulations/${this.simulationID}`
   }
 }
