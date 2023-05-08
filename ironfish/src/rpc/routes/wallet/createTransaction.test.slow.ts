@@ -23,26 +23,26 @@ describe('Route wallet/createTransaction', () => {
       isNewAsset: true,
     }
 
-    const mintTransaction = await useTxFixture(
-      routeTest.node.wallet,
-      sender,
-      sender,
-      async () => {
-        const raw = await routeTest.node.wallet.createTransaction({
-          account: sender,
-          mints: [mintData],
-          fee: 0n,
-          expiration: 0,
-        })
-
-        return routeTest.node.wallet.post({
-          transaction: raw,
-          account: sender,
-        })
-      },
-    )
-
     for (let i = 0; i < 3; ++i) {
+      const mintTransaction = await useTxFixture(
+        routeTest.node.wallet,
+        sender,
+        sender,
+        async () => {
+          const raw = await routeTest.node.wallet.createTransaction({
+            account: sender,
+            mints: [mintData],
+            fee: 0n,
+            expiration: 0,
+          })
+
+          return routeTest.node.wallet.post({
+            transaction: raw,
+            account: sender,
+          })
+        },
+      )
+
       const block = await useMinerBlockFixture(
         routeTest.chain,
         undefined,
