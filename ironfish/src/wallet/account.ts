@@ -84,8 +84,10 @@ export class Account {
     }
   }
 
-  async *getNotes(): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
-    for await (const decryptedNote of this.walletDb.loadDecryptedNotes(this)) {
+  async *getNotes(
+    keyRange?: DatabaseKeyRange,
+  ): AsyncGenerator<DecryptedNoteValue & { hash: Buffer }> {
+    for await (const decryptedNote of this.walletDb.loadDecryptedNotes(this, keyRange)) {
       yield decryptedNote
     }
   }
