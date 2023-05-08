@@ -642,6 +642,14 @@ impl Transaction {
         &self.outputs
     }
 
+    pub fn mints(&self) -> &Vec<MintDescription> {
+        &self.mints
+    }
+
+    pub fn burns(&self) -> &Vec<BurnDescription> {
+        &self.burns
+    }
+
     /// Get the transaction fee for this transaction. Miners should generally
     /// expect this to be positive (or they would lose money mining it!).
     /// The miners_fee transaction would be a special case.

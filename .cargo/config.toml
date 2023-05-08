@@ -1,3 +1,6 @@
+[alias]
+benchmark = "bench --package benchmarks"
+
 [target.aarch64-unknown-linux-gnu]
 linker = "aarch64-linux-gnu-gcc"
 

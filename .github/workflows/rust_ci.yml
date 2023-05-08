@@ -1,6 +1,7 @@
 on:
   pull_request:
     paths:
+      - "benchmarks/**"
       - "ironfish-mpc/**"
       - "ironfish-phase2/**"
       - "ironfish-rust/**"
@@ -14,6 +15,7 @@ on:
     branches:
       - master
     paths:
+      - "benchmarks/**"
       - "ironfish-mpc/**"
       - "ironfish-phase2/**"
       - "ironfish-rust/**"
@@ -45,7 +47,7 @@ jobs:
 
       - name: Check that cargo lockfile is up to date
         run: |
-          cargo check --locked
+          cargo check --locked --all-targets
 
       # Note: ironfish-zkp is does not need this due to different licensing
       - name: Check for license headers for ironfish-rust

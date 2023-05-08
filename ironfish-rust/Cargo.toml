@@ -9,6 +9,9 @@ workspace = true
 [package.edition]
 workspace = true
 
+[features]
+benchmark = []
+
 [lib]
 name = "ironfish_rust"
 path = "src/lib.rs"
