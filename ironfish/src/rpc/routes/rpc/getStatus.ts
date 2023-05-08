@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
 import { IronfishNode } from '../../../node'
-import { RpcIpcAdapter } from '../../adapters'
+import { PromiseUtils } from '../../../utils'
+import { RpcHttpAdapter, RpcIpcAdapter } from '../../adapters'
 import { RpcSocketAdapter } from '../../adapters/socketAdapter/socketAdapter'
 import { ApiNamespace, router } from '../router'
 
@@ -61,8 +62,8 @@ export const GetRpcStatusResponseSchema: yup.ObjectSchema<GetRpcStatusResponse> 
 router.register<typeof GetRpcStatusRequestSchema, GetRpcStatusResponse>(
   `${ApiNamespace.rpc}/getStatus`,
   GetRpcStatusRequestSchema,
-  (request, node): void => {
-    const jobs = getRpcStatus(node)
+  async (request, node): Promise<void> => {
+    const jobs = await getRpcStatus(node)
 
     if (!request.data?.stream) {
       request.end(jobs)
@@ -71,25 +72,26 @@ router.register<typeof GetRpcStatusRequestSchema, GetRpcStatusResponse>(
 
     request.stream(jobs)
 
-    const interval = setInterval(() => {
-      const jobs = getRpcStatus(node)
+    while (!request.closed) {
+      const jobs = await getRpcStatus(node)
       request.stream(jobs)
-    }, 1000)
-
-    request.onClose.on(() => {
-      clearInterval(interval)
-    })
+      await PromiseUtils.sleep(1000)
+    }
   },
 )
 
-function getRpcStatus(node: IronfishNode): GetRpcStatusResponse {
+async function getRpcStatus(node: IronfishNode): Promise<GetRpcStatusResponse> {
   const result: GetRpcStatusResponse = {
     started: node.rpc.isRunning,
     adapters: [],
   }
 
   for (const adapter of node.rpc.adapters) {
-    if (!(adapter instanceof RpcIpcAdapter) && !(adapter instanceof RpcSocketAdapter)) {
+    if (
+      !(adapter instanceof RpcIpcAdapter) &&
+      !(adapter instanceof RpcSocketAdapter) &&
+      !(adapter instanceof RpcHttpAdapter)
+    ) {
       continue
     }
 
@@ -117,6 +119,34 @@ function getRpcStatus(node: IronfishNode): GetRpcStatusResponse {
       formatted.inbound = Math.max(adapter.inboundTraffic.rate1s, 0)
       formatted.outbound = Math.max(adapter.outboundTraffic.rate1s, 0)
       formatted.clients = adapter.clients.size
+    } else if (adapter instanceof RpcHttpAdapter) {
+      formatted.inbound = Math.max(adapter.inboundTraffic.rate1s, 0)
+      formatted.outbound = Math.max(adapter.outboundTraffic.rate1s, 0)
+      formatted.readBytes = adapter.inboundBytes.value
+      formatted.writtenBytes = adapter.outboundBytes.value
+
+      adapter.requests.forEach((r) => {
+        const route = adapter.formatRoute(r.req)
+        if (route) {
+          formatted.pending.push(route)
+        }
+      })
+
+      if (adapter.server) {
+        const [promise, resolve] = PromiseUtils.split<number>()
+        adapter.server.getConnections((err, count) => {
+          if (err) {
+            resolve(0)
+            return
+          }
+          resolve(count)
+        })
+
+        formatted.clients = await promise
+      }
+
+      // TODO: there is no equivalent of readableLength or writableLength for HTTP.
+      // For now, readableLength and writableLength will be set to 0
     }
 
     result.adapters.push(formatted)
