@@ -19,7 +19,7 @@ import { Metric } from './interfaces/metric'
 import { Tag } from './interfaces/tag'
 
 export class Telemetry {
-  private readonly FLUSH_INTERVAL = 5 * 60 * 1000 // 5 minutes
+  private readonly FLUSH_INTERVAL = 60 * 60 * 1000 // 60 minutes
   private readonly MAX_POINTS_TO_SUBMIT = 1000
   private readonly MAX_RETRIES = 5
   private readonly METRICS_INTERVAL = 5 * 60 * 1000 // 5 minutes
