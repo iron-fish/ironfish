@@ -12,26 +12,26 @@ const DEFAULT_PAGE_SIZE = 100
 export type GetNotesRequest = {
   account?: string
   pageSize?: number
-  pageToken?: string
+  pageCursor?: string
 }
 
 export type GetNotesResponse = {
   notes: Array<RpcWalletNote>
-  nextPageToken: string | null
+  nextPageCursor: string | null
 }
 
 export const GetNotesRequestSchema: yup.ObjectSchema<GetNotesRequest> = yup
   .object({
     account: yup.string().trim(),
     pageSize: yup.number().min(1),
-    pageToken: yup.string(),
+    pageCursor: yup.string(),
   })
   .defined()
 
 export const GetNotesResponseSchema: yup.ObjectSchema<GetNotesResponse> = yup
   .object({
     notes: yup.array(RpcWalletNoteSchema).defined(),
-    nextPageToken: yup.string(),
+    nextPageCursor: yup.string(),
   })
   .defined()
 
@@ -41,32 +41,31 @@ router.register<typeof GetNotesRequestSchema, GetNotesResponse>(
   async (request, node): Promise<void> => {
     const account = getAccount(node, request.data.account)
     const pageSize = request.data.pageSize ?? DEFAULT_PAGE_SIZE
-    const pageToken = request.data.pageToken
+    const pageCursor = request.data.pageCursor
 
-    const keyRange = pageToken ? { gte: Buffer.from(pageToken, 'hex') } : undefined
+    const keyRange = pageCursor ? { gte: Buffer.from(pageCursor, 'hex') } : undefined
 
     const notes = []
-    let nextPageToken: Buffer | null = null
+    let nextPageCursor: Buffer | null = null
 
     for await (const decryptedNote of account.getNotes(keyRange)) {
-      const asset = await account.getAsset(decryptedNote.note.assetId())
-
-      notes.push(serializeRpcWalletNote(decryptedNote, account.publicAddress, asset))
-
       if (notes.length === pageSize) {
-        nextPageToken = node.wallet.walletDb.decryptedNotes.keyEncoding.serialize([
+        nextPageCursor = node.wallet.walletDb.decryptedNotes.keyEncoding.serialize([
           account.prefix,
           decryptedNote.hash,
         ])
-        BufferUtils.incrementBE(nextPageToken)
 
         break
       }
+
+      const asset = await account.getAsset(decryptedNote.note.assetId())
+
+      notes.push(serializeRpcWalletNote(decryptedNote, account.publicAddress, asset))
     }
 
     request.end({
       notes,
-      nextPageToken: nextPageToken ? nextPageToken.toString('hex') : null,
+      nextPageCursor: nextPageCursor ? nextPageCursor.toString('hex') : null,
     })
   },
 )

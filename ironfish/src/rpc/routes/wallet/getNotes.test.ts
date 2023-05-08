@@ -52,7 +52,7 @@ describe('Route wallet/getNotes', () => {
 
     expect(response.status).toBe(200)
 
-    const { notes: responseNotes, nextPageToken } = response.content
+    const { notes: responseNotes, nextPageCursor } = response.content
 
     expect(responseNotes).toHaveLength(accountNotesByHash.size)
     for (const responseNote of responseNotes) {
@@ -63,7 +63,7 @@ describe('Route wallet/getNotes', () => {
       expect(responseNote).toEqual(expectedNote)
     }
 
-    expect(nextPageToken).toBeNull()
+    expect(nextPageCursor).toBeNull()
   })
 
   it('gets notes by account with pagination', async () => {
@@ -71,15 +71,17 @@ describe('Route wallet/getNotes', () => {
 
     const responseNoteHashes = new Set<string>()
 
-    let pageToken: string | undefined = undefined
+    let pageCursor: string | undefined = undefined
+    let nextPageCursor: string | null = null
     for (let i = 0; i < notesCount; i++) {
       const response: RpcResponseEnded<GetNotesResponse> =
         await routeTest.client.wallet.getNotes({
           account: account.name,
           pageSize: 1,
-          pageToken,
+          pageCursor,
         })
-      const { notes: responseNotes, nextPageToken } = response.content
+      const responseNotes = response.content.notes
+      nextPageCursor = response.content.nextPageCursor
 
       expect(response.status).toBe(200)
       expect(responseNotes.length).toBe(1)
@@ -87,11 +89,14 @@ describe('Route wallet/getNotes', () => {
       const expectedNote = accountNotesByHash.get(Buffer.from(responseNotes[0].noteHash, 'hex'))
       expect(responseNotes[0]).toEqual(expectedNote)
 
-      pageToken = nextPageToken ?? undefined
+      pageCursor = nextPageCursor ?? undefined
       responseNoteHashes.add(responseNotes[0].noteHash)
     }
 
     // ensure that all notes were returned with no duplicates
     expect(responseNoteHashes.size).toEqual(accountNotesByHash.size)
+
+    // last nextPageCursor
+    expect(nextPageCursor).toBeNull()
   })
 })
