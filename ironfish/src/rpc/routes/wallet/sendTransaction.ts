@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, MEMO_LENGTH } from '@ironfish/rust-nodejs'
 import { BufferMap } from 'buffer-map'
 import * as yup from 'yup'
 import { CurrencyUtils, YupUtils } from '../../../utils'
@@ -39,7 +39,7 @@ export const SendTransactionRequestSchema: yup.ObjectSchema<SendTransactionReque
           .object({
             publicAddress: yup.string().defined(),
             amount: YupUtils.currency({ min: 0n }).defined(),
-            memo: yup.string().defined(),
+            memo: yup.string().defined().max(MEMO_LENGTH),
             assetId: yup.string().optional(),
           })
           .defined(),

@@ -30,8 +30,11 @@ pub use {
     },
 };
 
-#[cfg(test)]
-pub(crate) mod test_util; // I'm not sure if this is the right way to publish the utility library.
+#[cfg(any(test, feature = "benchmark"))]
+pub mod test_util;
+
+#[cfg(feature = "benchmark")]
+pub use ironfish_zkp::primitives::ValueCommitment;
 
 // The main entry-point to the sapling API. Construct this with loaded parameters, and then call
 // methods on it to do the actual work.
@@ -51,11 +54,9 @@ pub struct Sapling {
 }
 
 impl Sapling {
-    /// Initialize a Sapling instance and prepare for proving. Load the parameters from a config file
+    /// Initialize a Sapling instance and prepare for proving. Load the parameters from files
     /// at a known location (`./sapling_params`, for now).
     pub fn load() -> Self {
-        // TODO: We'll need to build our own parameters using a trusted set up at some point.
-        // These params were borrowed from zcash
         let spend_bytes = include_bytes!("sapling_params/sapling-spend.params");
         let output_bytes = include_bytes!("sapling_params/sapling-output.params");
         let mint_bytes = include_bytes!("sapling_params/sapling-mint.params");

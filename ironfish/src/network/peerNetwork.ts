@@ -102,6 +102,7 @@ export class PeerNetwork {
   private readonly networkId: number
   // optional WebSocket server, started from Node.JS
   private webSocketServer?: WebSocketServer
+  private readonly incomingWebSocketWhitelist: string[]
 
   readonly localPeer: LocalPeer
   readonly peerManager: PeerManager
@@ -169,6 +170,7 @@ export class PeerNetwork {
     node: IronfishNode
     chain: Blockchain
     hostsStore: HostsStore
+    incomingWebSocketWhitelist?: string[]
   }) {
     this.networkId = options.networkId
     this.enableSyncing = options.enableSyncing ?? true
@@ -178,6 +180,7 @@ export class PeerNetwork {
     this.metrics = options.metrics || new MetricsMonitor({ logger: this.logger })
     this.telemetry = options.telemetry
     this.bootstrapNodes = options.bootstrapNodes || []
+    this.incomingWebSocketWhitelist = options.incomingWebSocketWhitelist || []
 
     this.localPeer = new LocalPeer(
       options.identity,
@@ -279,7 +282,21 @@ export class PeerNetwork {
       this.webSocketServer.onConnection((connection, req) => {
         let address: string | null = null
 
-        if (this.peerManager.shouldRejectDisconnectedPeers()) {
+        if (req.headers['X-Forwarded-For'] && req.headers['X-Forwarded-For'][0]) {
+          address = req.headers['X-Forwarded-For'][0]
+        } else if (req.socket.remoteAddress) {
+          address = req.socket.remoteAddress
+        }
+
+        if (address) {
+          // Some times local peers connect on IPV6 incompatible addresses like
+          // '::ffff:127.0.0.1' and we don't support connecting over IPv6 right now
+          address = address.replace('::ffff:', '')
+        }
+
+        const isWhitelisted = address && this.incomingWebSocketWhitelist.includes(address)
+
+        if (this.peerManager.shouldRejectDisconnectedPeers() && !isWhitelisted) {
           this.logger.debug(
             'Disconnecting inbound websocket connection because the node has max peers',
           )
@@ -293,18 +310,6 @@ export class PeerNetwork {
           connection.send(disconnect.serializeWithMetadata())
           connection.close()
           return
-        }
-
-        if (req.headers['X-Forwarded-For'] && req.headers['X-Forwarded-For'][0]) {
-          address = req.headers['X-Forwarded-For'][0]
-        } else if (req.socket.remoteAddress) {
-          address = req.socket.remoteAddress
-        }
-
-        if (address) {
-          // Some times local peers connect on IPV6 incompatible addresses like
-          // '::ffff:127.0.0.1' and we don't support connecting over IPv6 right now
-          address = address.replace('::ffff:', '')
         }
 
         this.peerManager.createPeerFromInboundWebSocketConnection(connection, address)
@@ -349,8 +354,12 @@ export class PeerNetwork {
       // If the user has not specified a port, we can guess that
       // it's running on the default ironfish websocket port
       const port = url.port ? url.port : DEFAULT_WEBSOCKET_PORT
-      const address = url.hostname + `:${port}`
-      this.peerManager.connectToWebSocketAddress(address, true)
+
+      this.peerManager.connectToWebSocketAddress({
+        host: url.hostname,
+        port,
+        whitelist: true,
+      })
     }
   }
 

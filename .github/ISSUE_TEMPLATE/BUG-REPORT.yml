@@ -37,8 +37,3 @@ body:
       label: Relevant log output
       description: Please copy and paste any relevant log output, like the command you entered and the logs leading up to the error. This will be automatically formatted into code, so no need for backticks.
       render: shell
-  - type: input
-    id: graffiti
-    attributes:
-      label: Graffiti
-      description: Please copy and paste your graffiti.

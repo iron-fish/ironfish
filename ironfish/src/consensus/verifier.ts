@@ -214,7 +214,7 @@ export class Verifier {
    * the mempool and rebroadcasted to the network.
    */
   async verifyNewTransaction(transaction: Transaction): Promise<VerificationResult> {
-    let verificationResult = this.chain.verifier.verifyCreatedTransaction(transaction)
+    let verificationResult = this.verifyCreatedTransaction(transaction)
     if (!verificationResult.valid) {
       return verificationResult
     }
@@ -257,6 +257,10 @@ export class Verifier {
     return { valid: true }
   }
 
+  static getMaxTransactionBytes(maxBlockSizeBytes: number): number {
+    return maxBlockSizeBytes - getBlockWithMinersFeeSize()
+  }
+
   /**
    * Verify that a transaction created by the account can be accepted into the mempool
    * and rebroadcasted to the network.
@@ -264,7 +268,7 @@ export class Verifier {
   verifyCreatedTransaction(transaction: Transaction): VerificationResult {
     if (
       getTransactionSize(transaction) >
-      this.chain.consensus.parameters.maxBlockSizeBytes - getBlockWithMinersFeeSize()
+      Verifier.getMaxTransactionBytes(this.chain.consensus.parameters.maxBlockSizeBytes)
     ) {
       return { valid: false, reason: VerificationResultReason.MAX_TRANSACTION_SIZE_EXCEEDED }
     }
@@ -277,6 +281,11 @@ export class Verifier {
         valid: false,
         reason: VerificationResultReason.MINIMUM_FEE_NOT_MET,
       }
+    }
+
+    const nullifierVerify = this.verifyInternalNullifiers(transaction.spends)
+    if (!nullifierVerify.valid) {
+      return nullifierVerify
     }
 
     const mintVerify = this.verifyMints(transaction.mints)
@@ -402,18 +411,15 @@ export class Verifier {
     block: Block,
     tx?: IDatabaseTransaction,
   ): Promise<VerificationResult> {
-    const seen = new BufferSet()
+    const result = this.verifyInternalNullifiers(block.spends())
+    if (!result.valid) {
+      return result
+    }
 
     for (const spend of block.spends()) {
-      if (seen.has(spend.nullifier)) {
-        return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
-      }
-
       if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
         return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
       }
-
-      seen.add(spend.nullifier)
     }
 
     return { valid: true }
@@ -491,6 +497,24 @@ export class Verifier {
       if (burn.assetId.equals(Asset.nativeId())) {
         return { valid: false, reason: VerificationResultReason.NATIVE_BURN }
       }
+    }
+
+    return { valid: true }
+  }
+
+  /**
+   * Given an iterator over some spends, verify that none of the spends reveal
+   * the same nullifier as any other in the group. Should be checked at both the
+   * block and transaction level.
+   */
+  verifyInternalNullifiers(spends: Iterable<Spend>): VerificationResult {
+    const nullifiers = new BufferSet()
+    for (const spend of spends) {
+      if (nullifiers.has(spend.nullifier)) {
+        return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+      }
+
+      nullifiers.add(spend.nullifier)
     }
 
     return { valid: true }

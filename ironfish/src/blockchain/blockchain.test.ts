@@ -788,13 +788,49 @@ describe('Blockchain', () => {
     await node.wallet.updateHead()
     const tx = await useTxFixture(node.wallet, accountA, accountB)
 
-    // Spend the transaaction for the first time
+    // Spend the transaction for the first time
     const block3 = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [tx])
     await expect(node.chain).toAddBlock(block3)
 
     // Spend the transaction a second time
     const block4 = await useMinerBlockFixture(node.chain, undefined, undefined, undefined, [tx])
     await expect(node.chain.addBlock(block4)).resolves.toMatchObject({
+      isAdded: false,
+      reason: VerificationResultReason.DOUBLE_SPEND,
+    })
+  })
+
+  it('rejects transactions with internal double spends', async () => {
+    const { node, chain, wallet } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(wallet, 'accountA')
+    const { block, transaction } = await useBlockWithTx(
+      node,
+      accountA,
+      accountA,
+      true,
+      undefined,
+    )
+    await expect(chain).toAddBlock(block)
+    await node.wallet.updateHead()
+
+    const note = transaction.getNote(1).decryptNoteForOwner(accountA.incomingViewKey)
+    Assert.isNotUndefined(note)
+    const noteHash = note.hash()
+
+    const tx = await useTxFixture(wallet, accountA, accountA, async () => {
+      const raw = await wallet.createTransaction({
+        account: accountA,
+        notes: [noteHash, noteHash],
+        fee: 0n,
+      })
+      return await wallet.workerPool.postTransaction(raw, accountA.spendingKey)
+    })
+
+    const invalidBlock = await useMinerBlockFixture(chain, undefined, undefined, undefined, [
+      tx,
+    ])
+    await expect(chain.addBlock(invalidBlock)).resolves.toMatchObject({
       isAdded: false,
       reason: VerificationResultReason.DOUBLE_SPEND,
     })
@@ -924,7 +960,7 @@ describe('Blockchain', () => {
         const { node } = await nodeTest.createSetup()
         const account = await useAccountFixture(node.wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const mintData = {
           name: asset.name().toString('utf8'),
           metadata: asset.metadata().toString('utf8'),
@@ -963,7 +999,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
 
         // Mint so we have an existing asset
         const mintValue = BigInt(10)
@@ -999,7 +1035,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
 
         const mintValueA = BigInt(10)
         const blockA = await useMintBlockFixture({
@@ -1041,7 +1077,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const value = BigInt(10)
 
         const block = await useMintBlockFixture({
@@ -1066,7 +1102,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
 
         const mintValueA = BigInt(10)
         const blockA = await useMintBlockFixture({
@@ -1103,7 +1139,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
 
         const mintValue = BigInt(10)
         const blockA = await useMintBlockFixture({
@@ -1135,7 +1171,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const assetId = asset.id()
 
         const mintValue = BigInt(10)
@@ -1171,7 +1207,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const assetId = asset.id()
 
         const mintValue = BigInt(10)
@@ -1209,7 +1245,7 @@ describe('Blockchain', () => {
         const wallet = node.wallet
         const account = await useAccountFixture(wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const assetId = asset.id()
 
         // 1. Mint 10
@@ -1321,7 +1357,7 @@ describe('Blockchain', () => {
         const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
         const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
 
-        const asset = new Asset(accountA.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(accountA.publicAddress, 'mint-asset', 'metadata')
         const mintValue = BigInt(10)
         const assetId = asset.id()
 
@@ -1369,7 +1405,7 @@ describe('Blockchain', () => {
         const { node } = await nodeTest.createSetup()
         const account = await useAccountFixture(node.wallet)
 
-        const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+        const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
         const mintValue = BigInt(10)
         const assetId = asset.id()
 
@@ -1443,7 +1479,9 @@ describe('Blockchain', () => {
       })
     })
 
-    it('rejects double spend transactions', async () => {
+    // This is a canary test to ensure we are enforcing a minimum fee to ensure
+    // validity of mints. Can be refactored/removed once IFL-851 is completed.
+    it('rejects 0-fee transactions', async () => {
       const { node, chain } = await nodeTest.createSetup()
 
       const accountA = await useAccountFixture(node.wallet, 'accountA')

@@ -54,6 +54,7 @@ export class WorkerPool {
     [WorkerMessageType.CreateMinersFee, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.DecryptNotes, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.JobAborted, { complete: 0, error: 0, queue: 0, execute: 0 }],
+    [WorkerMessageType.PostTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.Sleep, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.SubmitTelemetry, { complete: 0, error: 0, queue: 0, execute: 0 }],
     [WorkerMessageType.VerifyTransaction, { complete: 0, error: 0, queue: 0, execute: 0 }],

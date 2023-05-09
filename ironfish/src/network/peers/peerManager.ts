@@ -157,28 +157,28 @@ export class PeerManager {
    * Connect to a websocket by its uri. Establish a connection and solicit
    * the server's Identity.
    */
-  connectToWebSocketAddress(uri: string, isWhitelisted = false): Peer {
-    const url = parseUrl(uri)
-
-    if (!url.hostname) {
-      throw new Error(`Could not connect to ${uri} because hostname was not parseable`)
-    }
-
+  connectToWebSocketAddress(options: {
+    host: string
+    port: number
+    whitelist?: boolean
+    forceConnect?: boolean
+  }): Peer | undefined {
     const peer = this.getOrCreatePeer(null)
-    peer.setWebSocketAddress(url.hostname, url.port)
-    peer.isWhitelisted = isWhitelisted
+    peer.setWebSocketAddress(options.host, options.port)
+    peer.isWhitelisted = !!options.whitelist
 
     this.peerCandidates.addFromPeer(peer)
 
-    this.connectToWebSocket(peer)
-    return peer
+    if (this.connectToWebSocket(peer, !!options.forceConnect)) {
+      return peer
+    }
   }
 
   /**
    * Connect to a peer using WebSockets
    * */
-  connectToWebSocket(peer: Peer): boolean {
-    if (!this.canConnectToWebSocket(peer)) {
+  connectToWebSocket(peer: Peer, forceConnect = false): boolean {
+    if (!this.canConnectToWebSocket(peer, forceConnect)) {
       return false
     }
 
@@ -447,10 +447,8 @@ export class PeerManager {
     connection.onStateChanged.on(handler)
   }
 
-  canConnectToWebSocket(peer: Peer, now = Date.now()): boolean {
-    if (this.isBanned(peer)) {
-      return false
-    }
+  canConnectToWebSocket(peer: Peer, forceConnect = false): boolean {
+    const isBanned = this.isBanned(peer)
 
     const alternateIdentity = peer.state.identity ?? peer.getWebSocketAddress()
 
@@ -461,7 +459,7 @@ export class PeerManager {
       this.peerCandidates.get(alternateIdentity)?.peerRequestedDisconnectUntil ?? null
 
     const disconnectOk =
-      peerRequestedDisconnectUntil === null || now >= peerRequestedDisconnectUntil
+      peerRequestedDisconnectUntil === null || Date.now() >= peerRequestedDisconnectUntil
 
     const hasNoConnection =
       peer.state.type === 'DISCONNECTED' || peer.state.connections.webSocket === null
@@ -473,7 +471,12 @@ export class PeerManager {
         ConnectionDirection.Outbound,
       )?.canConnect ?? true
 
+    if (forceConnect) {
+      return disconnectOk && !isBanned
+    }
+
     return (
+      !isBanned &&
       canEstablishNewConnection &&
       disconnectOk &&
       hasNoConnection &&

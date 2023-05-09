@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { Assert } from '../../../assert'
+import { createNodeTest, useAccountFixture, useBlockWithTx } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
-import { getAccount } from './utils'
+import { getAccount, getAccountDecryptedNotes } from './utils'
 
 describe('Accounts utils', () => {
   describe('getAccount', () => {
@@ -41,6 +43,57 @@ describe('Accounts utils', () => {
       const result = getAccount(routeTest.node)
       expect(result.name).toEqual(name)
       expect(result.publicAddress).toEqual(publicAddress)
+    })
+  })
+
+  describe('getAccountDecryptedNotes', () => {
+    const nodeTest = createNodeTest()
+
+    it('returns notes that an account received or sent in a transaction', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const { block, transaction } = await useBlockWithTx(node, accountA, accountB, true)
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+
+      Assert.isNotUndefined(transactionValue)
+
+      // accountA should have both notes since it sent the transaction
+      const accountANotes = await getAccountDecryptedNotes(node, accountA, transactionValue)
+      expect(accountANotes.length).toEqual(2)
+
+      // accountB should only have one note since it received the transaction
+      const accountBNotes = await getAccountDecryptedNotes(node, accountB, transactionValue)
+      expect(accountBNotes.length).toEqual(1)
+    })
+    it('should not decrypt notes that the account did not send and did not receive', async () => {
+      const { node } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(node.wallet, 'a')
+      const accountB = await useAccountFixture(node.wallet, 'b')
+
+      const { block, transaction } = await useBlockWithTx(node, accountA, accountB, true)
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
+
+      const transactionValue = await accountA.getTransaction(transaction.hash())
+
+      Assert.isNotUndefined(transactionValue)
+
+      const decryptSpy = jest.spyOn(node.workerPool, 'decryptNotes')
+
+      // accountB should only have one note since it received the transaction
+      const accountBNotes = await getAccountDecryptedNotes(node, accountB, transactionValue)
+      expect(accountBNotes.length).toEqual(1)
+
+      // accountB did not send the transaction and has already decrypted the
+      // note it owns, so we don't need to decrypt again
+      expect(decryptSpy).not.toHaveBeenCalled()
     })
   })
 })

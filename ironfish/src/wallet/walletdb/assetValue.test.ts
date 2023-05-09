@@ -10,7 +10,7 @@ describe('AssetValueEncoding', () => {
 
   it('serializes the value into a buffer and deserializes to the original value', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
-    const asset = new Asset(account.spendingKey, 'asset', 'metadata')
+    const asset = new Asset(account.publicAddress, 'asset', 'metadata')
     const encoder = new AssetValueEncoding()
 
     const value: AssetValue = {

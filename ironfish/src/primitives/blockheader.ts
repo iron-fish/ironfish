@@ -114,9 +114,8 @@ export class BlockHeader {
   public previousBlockHash: BlockHash
 
   /**
-   * Commitment to the note tree after all new notes from transactions in this
-   * block have been added to it. Stored as the hash and the size of the tree
-   * at the time the hash was calculated.
+   * Commitment (hash) to the note tree after all new notes from transactions in this
+   * block have been added to it.
    */
   public noteCommitment: NoteEncryptedHash
 

@@ -5,6 +5,7 @@ import http from 'http'
 import { v4 as uuid } from 'uuid'
 import { Assert } from '../../assert'
 import { createRootLogger, Logger } from '../../logger'
+import { Gauge, Meter } from '../../metrics'
 import { ErrorUtils } from '../../utils'
 import { RpcRequest } from '../request'
 import { ApiNamespace, Router } from '../routes'
@@ -31,7 +32,7 @@ export class RpcHttpAdapter implements IRpcAdapter {
   readonly port: number
   readonly logger: Logger
   readonly namespaces: ApiNamespace[]
-  private requests: Map<
+  readonly requests: Map<
     string,
     {
       rpcRequest?: RpcRequest
@@ -39,6 +40,12 @@ export class RpcHttpAdapter implements IRpcAdapter {
       waitForClose: Promise<void>
     }
   >
+
+  inboundTraffic = new Meter()
+  outboundTraffic = new Meter()
+
+  inboundBytes = new Gauge()
+  outboundBytes = new Gauge()
 
   constructor(
     host: string,
@@ -63,6 +70,9 @@ export class RpcHttpAdapter implements IRpcAdapter {
     const server = http.createServer()
     this.server = server
 
+    this.inboundTraffic.start()
+    this.outboundTraffic.start()
+
     return new Promise((resolve, reject) => {
       const onError = (err: unknown) => {
         server.off('error', onError)
@@ -76,7 +86,6 @@ export class RpcHttpAdapter implements IRpcAdapter {
 
         server.on('request', (req, res) => {
           const requestId = uuid()
-
           const waitForClose = new Promise<void>((resolve) => {
             res.on('close', () => {
               this.cleanUpRequest(requestId)
@@ -129,6 +138,9 @@ export class RpcHttpAdapter implements IRpcAdapter {
       rpcRequest?.close()
     }
 
+    this.inboundTraffic.stop()
+    this.outboundTraffic.stop()
+
     await new Promise<void>((resolve) => {
       this.server?.close(() => resolve()) || resolve()
     })
@@ -166,9 +178,10 @@ export class RpcHttpAdapter implements IRpcAdapter {
       `Call HTTP RPC: ${request.method || 'undefined'} ${request.url || 'undefined'}`,
     )
 
-    // TODO(daniel): better way to parse method from request here
-    const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`)
-    const route = url.pathname.substring(1)
+    const route = this.formatRoute(request)
+    if (route === undefined) {
+      throw new ResponseError('No route found')
+    }
 
     // TODO(daniel): clean up reading body code here a bit of possible
     let size = 0
@@ -185,6 +198,10 @@ export class RpcHttpAdapter implements IRpcAdapter {
     }
 
     const combined = Buffer.concat(data)
+
+    this.inboundTraffic.add(size)
+    this.inboundBytes.value += size
+
     // TODO(daniel): some routes assume that no data will be passed as undefined
     // so keeping that convention here. Could think of a better way to handle?
     const body = combined.length ? combined.toString('utf8') : undefined
@@ -196,7 +213,14 @@ export class RpcHttpAdapter implements IRpcAdapter {
       (status: number, data?: unknown) => {
         response.statusCode = status
         const delimeter = chunkStreamed ? MESSAGE_DELIMITER : ''
-        response.end(delimeter + JSON.stringify({ status, data }))
+
+        const responseData = JSON.stringify({ status, data })
+        const responseSize = Buffer.byteLength(responseData, 'utf-8')
+        this.outboundTraffic.add(responseSize)
+        this.outboundBytes.value += responseSize
+
+        response.end(delimeter + responseData)
+
         this.cleanUpRequest(requestId)
       },
       (data: unknown) => {
@@ -205,7 +229,13 @@ export class RpcHttpAdapter implements IRpcAdapter {
         // stream a delimitated list of JSON objects but is still probably not
         // ideal as a response. We could find some better way to stream
         const delimeter = chunkStreamed ? MESSAGE_DELIMITER : ''
-        response.write(delimeter + JSON.stringify({ data }))
+
+        const responseData = JSON.stringify({ data })
+        const responseSize = Buffer.byteLength(responseData, 'utf-8')
+        this.outboundTraffic.add(responseSize)
+        this.outboundBytes.value += responseSize
+
+        response.write(delimeter + responseData)
         chunkStreamed = true
       },
     )
@@ -214,5 +244,14 @@ export class RpcHttpAdapter implements IRpcAdapter {
     currRequest && this.requests.set(requestId, { ...currRequest, rpcRequest })
 
     await router.route(route, rpcRequest)
+  }
+
+  // TODO(daniel): better way to parse method from request here
+  formatRoute(request: http.IncomingMessage): string | undefined {
+    if (!request.url) {
+      return
+    }
+    const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`)
+    return url.pathname.substring(1)
   }
 }

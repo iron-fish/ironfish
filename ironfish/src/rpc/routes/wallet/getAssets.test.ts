@@ -24,13 +24,13 @@ describe('Route wallet/getAssets', () => {
     const minerBlock = await useMinerBlockFixture(node.chain, undefined, account)
     await expect(node.chain).toAddBlock(minerBlock)
 
-    const asset = new Asset(account.spendingKey, 'account-asset', 'metadata')
+    const asset = new Asset(account.publicAddress, 'account-asset', 'metadata')
     const value = BigInt(10)
     const mintBlock = await useMintBlockFixture({ node, account, asset, value })
     await expect(node.chain).toAddBlock(mintBlock)
     await node.wallet.updateHead()
 
-    const pendingAsset = new Asset(account.spendingKey, 'pending', 'metadata')
+    const pendingAsset = new Asset(account.publicAddress, 'pending', 'metadata')
     const pendingMint = await usePostTxFixture({
       node,
       wallet: node.wallet,

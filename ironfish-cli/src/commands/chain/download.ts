@@ -28,13 +28,15 @@ export default class Download extends IronfishCommand {
 
   static description = `Download and import a chain snapshot`
 
+  static defaultMainnetManifestUrl = `https://snapshots.ironfish.network/manifest.json`
+  static defaultTestnetManifestUrl = `https://testnet.snapshots.ironfish.network/manifest.json`
+
   static flags = {
     ...LocalFlags,
     manifestUrl: Flags.string({
       char: 'm',
       parse: (input: string) => Promise.resolve(input.trim()),
       description: 'Manifest url to download snapshot from',
-      default: `https://snapshots.ironfish.network/manifest.json`,
     }),
     path: Flags.string({
       char: 'p',
@@ -66,17 +68,34 @@ export default class Download extends IronfishCommand {
     const node = await this.sdk.node()
     await NodeUtils.waitForOpen(node)
 
+    const networkId = node.internal.get('networkId')
+
+    let manifestUrl = ''
+    if (flags.manifestUrl) {
+      manifestUrl = flags.manifestUrl
+    } else {
+      if (networkId === 0) {
+        // testnet
+        manifestUrl = Download.defaultTestnetManifestUrl
+      } else if (networkId === 1) {
+        manifestUrl = Download.defaultMainnetManifestUrl
+      } else {
+        this.log(`Manifest url for the snapshots are not available for network ID ${networkId}`)
+        this.exit(1)
+      }
+    }
+
     let snapshotPath
 
     if (flags.path) {
       snapshotPath = this.sdk.fileSystem.resolve(flags.path)
     } else {
-      if (!flags.manifestUrl) {
+      if (!manifestUrl || manifestUrl === '') {
         this.log(`Cannot download snapshot without manifest URL`)
         this.exit(1)
       }
 
-      const manifest = (await axios.get<SnapshotManifest>(flags.manifestUrl)).data
+      const manifest = (await axios.get<SnapshotManifest>(manifestUrl)).data
 
       if (manifest.database_version > VERSION_DATABASE_CHAIN) {
         this.log(
@@ -104,7 +123,7 @@ export default class Download extends IronfishCommand {
 
       if (!snapshotUrl) {
         // Snapshot URL is not absolute so use a relative URL from the manifest
-        const url = new URL(flags.manifestUrl)
+        const url = new URL(manifestUrl)
         const parts = UrlUtils.splitPathName(url.pathname)
         parts.pop()
         parts.push(manifest.file_name)
@@ -237,9 +256,11 @@ export default class Download extends IronfishCommand {
     const chainDatabasePath = this.sdk.fileSystem.resolve(this.sdk.config.chainDatabasePath)
 
     // chainDatabasePath must be empty before unzipping snapshot
+    // chain DB must be closed before deleting it (fixes an error on Windows)
     CliUx.ux.action.start(
       `Removing existing chain data at ${chainDatabasePath} before importing snapshot`,
     )
+    await node.closeDB()
     await fsAsync.rm(chainDatabasePath, { recursive: true, force: true, maxRetries: 10 })
     CliUx.ux.action.stop('done')
 

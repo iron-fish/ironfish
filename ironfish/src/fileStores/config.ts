@@ -268,6 +268,11 @@ export type ConfigOptions = {
   memPoolRecentlyEvictedCacheSize: number
 
   networkDefinitionPath: string
+
+  /**
+   * Always allow incoming connections from these IPs even if the node is at maxPeers
+   */
+  incomingWebSocketWhitelist: string[]
 }
 
 export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
@@ -343,6 +348,7 @@ export const ConfigOptionsSchema: yup.ObjectSchema<Partial<ConfigOptions>> = yup
       .min(20 * MEGABYTES),
     memPoolRecentlyEvictedCacheSize: yup.number().integer(),
     networkDefinitionPath: yup.string().trim(),
+    incomingWebSocketWhitelist: yup.array(yup.string().trim().defined()),
   })
   .defined()
 
@@ -432,6 +438,7 @@ export class Config extends KeyStore<ConfigOptions> {
       memPoolMaxSizeBytes: 60 * MEGABYTES,
       memPoolRecentlyEvictedCacheSize: 60000,
       networkDefinitionPath: files.resolve(files.join(dataDir, 'network.json')),
+      incomingWebSocketWhitelist: [],
     }
   }
 }

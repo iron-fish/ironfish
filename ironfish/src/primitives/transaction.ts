@@ -59,7 +59,7 @@ export class Transaction {
 
     // spend description
     this.spends = Array.from({ length: _spendsLength }, () => {
-      // proof
+      // proof 192
       reader.seek(PROOF_LENGTH)
       // value commitment
       reader.seek(32)
@@ -68,10 +68,10 @@ export class Transaction {
       const treeSize = reader.readU32() // 4
       const nullifier = reader.readHash() // 32
 
-      // signature
+      // signature 64
       reader.seek(TRANSACTION_SIGNATURE_LENGTH)
 
-      // total serialized size: 192 + 32 + 32 + 32 + 4 + 32 + 64 = 388 bytes
+      // total serialized size: 192 + 32 + 32 + 4 + 32 + 64 = 356 bytes
       return {
         size: treeSize,
         commitment: rootHash,

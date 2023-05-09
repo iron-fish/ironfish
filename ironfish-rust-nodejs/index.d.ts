@@ -87,7 +87,7 @@ export class RollingFilter {
 }
 export type NativeAsset = Asset
 export class Asset {
-  constructor(ownerPrivateKey: string, name: string, metadata: string)
+  constructor(ownerPublicAddress: string, name: string, metadata: string)
   metadata(): Buffer
   name(): Buffer
   nonce(): number

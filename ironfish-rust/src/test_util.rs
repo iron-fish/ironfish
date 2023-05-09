@@ -7,13 +7,13 @@ use super::{
     witness::{Witness, WitnessNode},
     MerkleNoteHash,
 };
+use bls12_381::Scalar;
 use ironfish_zkp::constants::TREE_DEPTH;
 use rand::{thread_rng, Rng};
 
 /// Given a note, construct a Witness with a valid root_hash and authentication
 /// path placing that note at a random location in a Merkle tree.
-#[cfg(test)]
-pub(crate) fn make_fake_witness(note: &Note) -> Witness {
+pub fn make_fake_witness(note: &Note) -> Witness {
     let mut rng = thread_rng();
     let mut buffer = [0u8; 64];
     thread_rng().fill(&mut buffer[..]);
@@ -39,8 +39,6 @@ pub(crate) fn make_fake_witness(note: &Note) -> Witness {
 /// Currently marked for test-only compilation,
 /// but it may be useful to publish
 /// something like this in the future.
-#[cfg(test)]
-use bls12_381::Scalar;
 
 pub(crate) fn auth_path_to_root_hash(
     auth_path: &[WitnessNode<Scalar>],

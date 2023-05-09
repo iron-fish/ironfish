@@ -4,6 +4,8 @@
 import { Logger } from '../../logger'
 import { RpcResponse, RpcResponseEnded } from '../response'
 import {
+  AddPeerRequest,
+  AddPeerResponse,
   AddTransactionRequest,
   AddTransactionResponse,
   ApiNamespace,
@@ -121,6 +123,7 @@ import {
   IsValidPublicAddressRequest,
   IsValidPublicAddressResponse,
 } from '../routes/chain/isValidPublicAddress'
+import { GetNotesRequest, GetNotesResponse } from '../routes/wallet/getNotes'
 
 export abstract class RpcClient {
   readonly logger: Logger
@@ -290,6 +293,13 @@ export abstract class RpcClient {
       )
     },
 
+    getNotes: (params: GetNotesRequest): Promise<RpcResponseEnded<GetNotesResponse>> => {
+      return this.request<GetNotesResponse>(
+        `${ApiNamespace.wallet}/getNotes`,
+        params,
+      ).waitForEnd()
+    },
+
     mintAsset: (params: MintAssetRequest): Promise<RpcResponseEnded<MintAssetResponse>> => {
       return this.request<MintAssetResponse>(
         `${ApiNamespace.wallet}/mintAsset`,
@@ -369,6 +379,10 @@ export abstract class RpcClient {
   }
 
   peer = {
+    addPeer: (params: AddPeerRequest): Promise<RpcResponseEnded<AddPeerResponse>> => {
+      return this.request<AddPeerResponse>(`${ApiNamespace.peer}/addPeer`, params).waitForEnd()
+    },
+
     getBannedPeers: (
       params: GetBannedPeersRequest = undefined,
     ): Promise<RpcResponseEnded<GetBannedPeersResponse>> => {

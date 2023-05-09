@@ -18,9 +18,31 @@ const RUST_PACKAGE = path.join(__dirname, '../ironfish-rust-nodejs/package.json'
 const SIMULATOR_PACKAGE = path.join(__dirname, '../simulator/package.json')
 
 const shouldBumpIronfishRust = process.argv.find((a) => a.includes('rust'))
+const isPatchRelease = process.argv.find((a) => a.includes('patch'))
+const isMajorRelease = process.argv.find((a) => a.includes('major'))
+
+const bumpVersion = (version) => {
+  if (isMajorRelease) {
+    return bumpMajor(version)
+  } else if (isPatchRelease) {
+    return bumpPatch(version)
+  } else {
+    return bumpDefault(version)
+  }
+}
+
+const bumpMajor = (version) => {
+  const { major, minor, patch } = parseVersion(version)
+  return `${parseInt(major) + 1}.0.0`
+}
+
+const bumpDefault = (version) => {
+  const { major, minor, patch } = parseVersion(version)
+  return `${major}.${parseInt(minor) + 1}.0`
+}
 
 const bumpPatch = (version) => {
-  const {major, minor, patch} = parseVersion(version)
+  const { major, minor, patch } = parseVersion(version)
   return `${major}.${minor}.${parseInt(patch) + 1}`
 }
 
@@ -67,13 +89,13 @@ const bumpNodeAndCliPackage = async (shouldBumpRust) => {
   const simulatorPackage = await readPackage(SIMULATOR_PACKAGE)
   
   // Bump node package and packages that depend on it
-  const newNodeVersion = bumpPatch(nodePackage.version)
+  const newNodeVersion = bumpVersion(nodePackage.version)
   nodePackage.version = newNodeVersion
   cliPackage.dependencies[nodePackage.name] = newNodeVersion
   simulatorPackage.dependencies[nodePackage.name] = newNodeVersion
 
   // Bump the CLI
-  cliPackage.version = bumpPatch(cliPackage.version)
+  cliPackage.version = bumpVersion(cliPackage.version)
   
   writePackage(NODE_PACKAGE, nodePackage)
   writePackage(CLI_PACKAGE, cliPackage)
@@ -86,7 +108,7 @@ const bumpRustPackage = async () => {
   for (const dep of deps) {
     const package = path.join(__dirname, '../ironfish-rust-nodejs/npm/', dep, 'package.json')
     const depPackage = await readPackage(package)
-    depPackage.version = bumpPatch(depPackage.version)
+    depPackage.version = bumpVersion(depPackage.version)
     await writePackage(package, depPackage)
   }
   
@@ -94,7 +116,7 @@ const bumpRustPackage = async () => {
   const cliPackage = await readPackage(CLI_PACKAGE)
   const rustPackage = await readPackage(RUST_PACKAGE)
   
-  const newRustVersion = bumpPatch(rustPackage.version)
+  const newRustVersion = bumpVersion(rustPackage.version)
   
   rustPackage.version = newRustVersion
   nodePackage.dependencies[rustPackage.name] = newRustVersion
@@ -111,7 +133,7 @@ const main = async () => {
     await bumpRustPackage()
   }
   
-  await bumpNodeAndCliPackage(shouldBumpIronfishRust)
+  await bumpNodeAndCliPackage()
 }
 
 main().then(() => {

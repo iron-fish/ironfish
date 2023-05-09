@@ -74,6 +74,7 @@ export type GetNodeStatusResponse = {
     isReady: boolean
     inboundTraffic: number
     outboundTraffic: number
+    publicIdentity: string
   }
   telemetry: {
     status: 'started' | 'stopped'
@@ -180,6 +181,7 @@ export const GetStatusResponseSchema: yup.ObjectSchema<GetNodeStatusResponse> = 
         isReady: yup.boolean().defined(),
         inboundTraffic: yup.number().defined(),
         outboundTraffic: yup.number().defined(),
+        publicIdentity: yup.string().defined(),
       })
       .defined(),
     blockSyncer: yup
@@ -276,6 +278,7 @@ function getStatus(node: IronfishNode): GetNodeStatusResponse {
       isReady: node.peerNetwork.isReady,
       inboundTraffic: Math.max(node.metrics.p2p_InboundTraffic.rate1s, 0),
       outboundTraffic: Math.max(node.metrics.p2p_OutboundTraffic.rate1s, 0),
+      publicIdentity: node.peerNetwork.localPeer.publicIdentity,
     },
     blockchain: {
       synced: node.chain.synced,

@@ -19,9 +19,10 @@ The following steps should only be used to install if you are planning on contri
 1. Install [Rust](https://www.rust-lang.org/learn/get-started).
 1. Install [Yarn](https://classic.yarnpkg.com/en/docs/install).
 1. Windows:
+
    1. Install the current version of Python from the [Microsoft Store package](https://www.microsoft.com/en-us/p/python-310/9pjpw5ldxlz5).
    1. Install Visual C++ Build Environment: [Visual Studio Build Tools](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools)
-   (using "Visual C++ build tools" or "Desktop development with C++" workload)
+      (using "Visual C++ build tools" or "Desktop development with C++" workload)
 
    If the above steps didn't work for you, please visit [Microsoft's Node.js Guidelines for Windows](https://github.com/Microsoft/nodejs-guidelines/blob/master/windows-environment.md#compiling-native-addon-modules) for additional tips.
 
@@ -60,10 +61,20 @@ Once your environment is set up - you can run the CLI by following [these direct
    1. Run `yarn test:watch` in ./ironfish or ./ironfish-cli if you want the tests to run on change
    1. Run `yarn test:coverage:html` if you want to export the coverage in an easy-to-use format (open the index.html file in the coverage folder of the project)
 
+## Running Benchmarks and Performance Tests
+
+1. Rust benchmarks:
+   - `cargo benchmark` is a cargo alias, defined in `./.cargo/config.toml`
+   1. `cargo benchmark` to run all benchmark tests
+   1. `cargo benchmark -- simple` to run only benchmarks containing the text 'simple' in the name
+1. Typescript benchmarks:
+   1. `cd ironfish`
+   1. `yarn test:perf`
+
 ## Structure of the repository
 
 - [ironfish](./ironfish/README.md): The library that contains the IronfishSDK and all Ironfish code written in TypeScript.
-- [ironfish-cli](./ironfish-cli/README.md): The main client for Iron Fish as of today. It is a command-line interface built on Node. More details in [our documentation](https://ironfish.network/docs/onboarding/iron-fish-tutorial).
+- [ironfish-cli](./ironfish-cli/README.md): The main client for Iron Fish as of today. It is a command-line interface built on Node. More details in [our documentation](https://ironfish.network/use/get-started/installation).
 - [ironfish-rust](./ironfish-rust/README.md): Core API for interacting with the transactions and chain and using ZKP.
 - [ironfish-rust-nodejs](./ironfish-rust-nodejs/README.md): Wrapper for `ironfish-rust` as a native NodeJS addon.
 

@@ -23,7 +23,7 @@ describe('RawTransaction', () => {
 
   it('should post', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
-    const asset = new Asset(account.spendingKey, 'test', '')
+    const asset = new Asset(account.publicAddress, 'test', '')
 
     const block = await useMinerBlockFixture(
       nodeTest.chain,
@@ -84,11 +84,15 @@ describe('RawTransaction', () => {
     const mintedValue = valuesByAsset.get(asset.id())
     Assert.isNotUndefined(mintedValue)
     expect(mintedValue).toEqual(1n)
+
+    // should have same size for posted transaction and estimated size from raw transaction
+    const serializedPost = posted.serialize()
+    expect(raw.postedSize(account.publicAddress)).toEqual(serializedPost.byteLength)
   })
 
   it('should throw an error if the max mint value is exceeded', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
-    const asset = new Asset(account.spendingKey, 'test', '')
+    const asset = new Asset(account.publicAddress, 'test', '')
     const assetName = asset.name().toString('utf8')
 
     const block = await useMinerBlockFixture(
@@ -125,7 +129,7 @@ describe('RawTransaction', () => {
   it('should throw an error if the max burn value is exceeded', async () => {
     const node = nodeTest.node
     const account = await useAccountFixture(nodeTest.wallet)
-    const asset = new Asset(account.spendingKey, 'test', '')
+    const asset = new Asset(account.publicAddress, 'test', '')
 
     const block = await useMinerBlockFixture(
       nodeTest.chain,
@@ -180,7 +184,7 @@ describe('RawTransactionSerde', () => {
 
   it('serializes and deserializes a block', async () => {
     const account = await useAccountFixture(nodeTest.wallet)
-    const asset = new Asset(account.spendingKey, 'asset', 'metadata')
+    const asset = new Asset(account.publicAddress, 'asset', 'metadata')
     const assetName = 'asset'
     const assetMetadata = 'metadata'
 

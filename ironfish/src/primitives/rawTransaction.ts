@@ -5,9 +5,13 @@
 import {
   AMOUNT_VALUE_LENGTH,
   ASSET_LENGTH,
+  generateKeyFromPrivateKey,
+  PROOF_LENGTH,
   Transaction as NativeTransaction,
   TRANSACTION_EXPIRATION_LENGTH,
   TRANSACTION_FEE_LENGTH,
+  TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH,
+  TRANSACTION_SIGNATURE_LENGTH,
 } from '@ironfish/rust-nodejs'
 import { Asset, ASSET_ID_LENGTH } from '@ironfish/rust-nodejs'
 import bufio from 'bufio'
@@ -15,14 +19,10 @@ import { Witness } from '../merkletree'
 import { NoteHasher } from '../merkletree/hasher'
 import { Side } from '../merkletree/merkletree'
 import { CurrencyUtils } from '../utils/currency'
+import { AssetBalances } from '../wallet/assetBalances'
 import { BurnDescription } from './burnDescription'
 import { Note } from './note'
-import {
-  NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE,
-  NoteEncrypted,
-  NoteEncryptedHash,
-  SerializedNoteEncryptedHash,
-} from './noteEncrypted'
+import { NoteEncrypted, NoteEncryptedHash, SerializedNoteEncryptedHash } from './noteEncrypted'
 import { SPEND_SERIALIZED_SIZE_IN_BYTE } from './spend'
 import { Transaction } from './transaction'
 
@@ -53,23 +53,49 @@ export class RawTransaction {
     >
   }[] = []
 
-  size(): number {
+  postedSize(publicAddress: string): number {
     let size = 0
+    size += 1 // version
     size += 8 // spends length
     size += 8 // notes length
-    size += 8 // fee
-    size += 4 // expiration
-    size += 64 // signature
-    size += this.outputs.length * NOTE_ENCRYPTED_SERIALIZED_SIZE_IN_BYTE
-    size += this.mints.length * (ASSET_LENGTH + 8)
-    size += this.burns.length * (ASSET_ID_LENGTH + 8)
+    size += 8 // mints length
+    size += 8 // burns length
+    size += TRANSACTION_FEE_LENGTH // fee
+    size += TRANSACTION_EXPIRATION_LENGTH // expiration
+    size += TRANSACTION_PUBLIC_KEY_RANDOMNESS_LENGTH // public key randomness
     size += this.spends.length * SPEND_SERIALIZED_SIZE_IN_BYTE
+    size += this.outputs.length * (PROOF_LENGTH + NoteEncrypted.size)
+    size +=
+      this.mints.length *
+      (PROOF_LENGTH + ASSET_LENGTH + AMOUNT_VALUE_LENGTH + TRANSACTION_SIGNATURE_LENGTH)
+    size += this.burns.length * (ASSET_ID_LENGTH + 8)
+    size += TRANSACTION_SIGNATURE_LENGTH // signature
+
+    // Each asset might have a change note, which would need to be accounted for
+    const assetTotals = new AssetBalances()
+    for (const mint of this.mints) {
+      const asset = new Asset(publicAddress, mint.name, mint.metadata)
+      assetTotals.increment(asset.id(), mint.value)
+    }
+    for (const burn of this.burns) {
+      assetTotals.increment(burn.assetId, -burn.value)
+    }
+    for (const spend of this.spends) {
+      assetTotals.increment(spend.note.assetId(), -spend.note.value())
+    }
+    for (const output of this.outputs) {
+      assetTotals.increment(output.note.assetId(), output.note.value())
+    }
+    for (const [, value] of assetTotals) {
+      if (value !== 0n) {
+        size += PROOF_LENGTH + NoteEncrypted.size
+      }
+    }
     return size
   }
 
   post(spendingKey: string): Transaction {
     const builder = new NativeTransaction(spendingKey)
-
     for (const spend of this.spends) {
       builder.spend(spend.note.takeReference(), spend.witness)
       spend.note.returnReference()
@@ -88,8 +114,8 @@ export class RawTransaction {
           )} exceededs maximum ${CurrencyUtils.renderIron(MAX_MINT_OR_BURN_VALUE)}. `,
         )
       }
-
-      const asset = new Asset(spendingKey, mint.name, mint.metadata)
+      const key = generateKeyFromPrivateKey(spendingKey)
+      const asset = new Asset(key.publicAddress, mint.name, mint.metadata)
 
       builder.mint(asset, mint.value)
     }

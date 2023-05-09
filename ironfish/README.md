@@ -47,13 +47,13 @@ This project contains the IronfishSdk, which is just a simple wrapper around the
 // Initialize the SDK
 const sdk = await IronfishSdk.init()
 
-// List all accounts from the SDK
-console.log(await sdk.wallet.listAccounts())
-
 // Get a config option from the SDK
 console.log(await sdk.config.get('blockGraffiti'))
 
 // Start a node from the SDK
 const node = sdk.node()
 node.start()
+
+// List all accounts from the wallet
+console.log(await node.wallet.listAccounts())
 ```

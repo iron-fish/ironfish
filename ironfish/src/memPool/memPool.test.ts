@@ -310,6 +310,44 @@ describe('MemPool', () => {
       })
     })
 
+    describe('with a transaction that internally double spends', () => {
+      const nodeTest = createNodeTest()
+
+      it('returns false', async () => {
+        const { node } = nodeTest
+        const { wallet, memPool } = node
+        const accountA = await useAccountFixture(wallet, 'accountA')
+        const { block, transaction } = await useBlockWithTx(
+          node,
+          accountA,
+          accountA,
+          true,
+          undefined,
+        )
+        await expect(node.chain).toAddBlock(block)
+        await node.wallet.updateHead()
+
+        const note = transaction.getNote(1).decryptNoteForOwner(accountA.incomingViewKey)
+        Assert.isNotUndefined(note)
+        const noteHash = note.hash()
+
+        const tx = await useTxFixture(wallet, accountA, accountA, async () => {
+          const raw = await wallet.createTransaction({
+            account: accountA,
+            notes: [noteHash, noteHash],
+            fee: 0n,
+          })
+          return await wallet.workerPool.postTransaction(raw, accountA.spendingKey)
+        })
+
+        // Verify that this transaction is attempting to double spend
+        expect(tx.spends.length).toEqual(2)
+        expect(tx.spends[0].nullifier).toEqual(tx.spends[1].nullifier)
+
+        expect(memPool.acceptTransaction(tx)).toBe(false)
+      })
+    })
+
     describe('with a new hash', () => {
       const nodeTest = createNodeTest()
 

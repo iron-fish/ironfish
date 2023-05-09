@@ -54,7 +54,7 @@ describe('Route wallet/getAccountTransactions', () => {
     const node = routeTest.node
     const account = await useAccountFixture(node.wallet, 'valid-sequence')
 
-    const asset = new Asset(account.spendingKey, 'asset', 'metadata')
+    const asset = new Asset(account.publicAddress, 'asset', 'metadata')
     const mint = await usePostTxFixture({
       node: node,
       wallet: node.wallet,

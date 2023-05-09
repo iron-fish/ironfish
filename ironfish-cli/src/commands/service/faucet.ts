@@ -32,6 +32,12 @@ export default class Faucet extends IronfishCommand {
       required: false,
       description: 'API host token to authenticate with',
     }),
+    account: Flags.string({
+      char: 'f',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Name of the account to send faucet transactions from',
+    }),
   }
 
   warnedFund = false
@@ -44,7 +50,7 @@ export default class Faucet extends IronfishCommand {
 
     if (!apiHost) {
       this.log(
-        `No api host found to upload blocks to. You must set IRONFISH_API_HOST env variable or pass --api flag.`,
+        `No api host found to read faucet requests from. You must set IRONFISH_API_HOST env variable or pass --api flag.`,
       )
       this.exit(1)
     }
@@ -65,7 +71,7 @@ export default class Faucet extends IronfishCommand {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
-        await this.startSyncing(client, api, speed)
+        await this.startSyncing(client, api, speed, flags.account)
       } catch (e) {
         if (e instanceof RpcConnectionError) {
           this.log('Connection error... retrying in 5 seconds')
@@ -78,7 +84,12 @@ export default class Faucet extends IronfishCommand {
     }
   }
 
-  async startSyncing(client: RpcSocketClient, api: WebApi, speed: Meter): Promise<void> {
+  async startSyncing(
+    client: RpcSocketClient,
+    api: WebApi,
+    speed: Meter,
+    account?: string,
+  ): Promise<void> {
     const connected = await client.tryConnect()
 
     if (!connected) {
@@ -87,13 +98,16 @@ export default class Faucet extends IronfishCommand {
       return
     }
 
-    this.log('Fetching faucet account')
-
-    const response = await client.wallet.getDefaultAccount()
-    const account = response.content.account?.name
-
     if (!account) {
-      this.error('Faucet node has no account to use')
+      this.log('Fetching faucet account')
+
+      const response = await client.wallet.getDefaultAccount()
+
+      if (!response.content.account) {
+        this.error('Faucet node has no account to use')
+      }
+
+      account = response.content.account.name
     }
 
     this.log(`Using account ${account}`)

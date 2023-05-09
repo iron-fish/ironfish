@@ -375,7 +375,7 @@ export class Wallet {
     return decryptedNotesByAccountId
   }
 
-  private async decryptNotesFromTransaction(
+  async decryptNotesFromTransaction(
     decryptNotesPayloads: Array<DecryptNoteOptions>,
   ): Promise<Array<DecryptedNote>> {
     const decryptedNotes = []
@@ -918,7 +918,7 @@ export class Wallet {
       }
 
       if (options.feeRate) {
-        raw.fee = getFee(options.feeRate, raw.size())
+        raw.fee = getFee(options.feeRate, raw.postedSize(options.account.publicAddress))
       }
 
       await this.fund(raw, {
@@ -928,7 +928,7 @@ export class Wallet {
       })
 
       if (options.feeRate) {
-        raw.fee = getFee(options.feeRate, raw.size())
+        raw.fee = getFee(options.feeRate, raw.postedSize(options.account.publicAddress))
         raw.spends = []
 
         await this.fund(raw, {

@@ -316,5 +316,5 @@ describe('addGenesisTransaction', () => {
       block.header.transactionCommitment,
     )
     expect(deserializedBlock.transactions.length).toEqual(block.transactions.length)
-  })
+  }, 600000)
 })

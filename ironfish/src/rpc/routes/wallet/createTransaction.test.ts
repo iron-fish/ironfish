@@ -226,7 +226,7 @@ describe('Route wallet/createTransaction', () => {
       await routeTest.node.wallet.updateHead()
     }
 
-    const asset = new Asset(sender.spendingKey, 'mint-asset', 'metadata')
+    const asset = new Asset(sender.publicAddress, 'mint-asset', 'metadata')
 
     const response = await routeTest.client.wallet.createTransaction({
       account: 'existingAccount',
@@ -240,8 +240,8 @@ describe('Route wallet/createTransaction', () => {
       ],
       mints: [
         {
-          metadata: asset.metadata().toString('hex'),
-          name: asset.name().toString('hex'),
+          metadata: asset.metadata().toString('utf8'),
+          name: asset.name().toString('utf8'),
           value: BigInt(10).toString(),
         },
       ],
@@ -266,7 +266,7 @@ describe('Route wallet/createTransaction', () => {
   it('throw error when create transaction to mint unknown asset', async () => {
     const sender = await useAccountFixture(routeTest.node.wallet, 'existingAccount')
 
-    const asset = new Asset(sender.spendingKey, 'unknown-asset', 'metadata')
+    const asset = new Asset(sender.publicAddress, 'unknown-asset', 'metadata')
 
     for (let i = 0; i < 3; ++i) {
       const block = await useMinerBlockFixture(
@@ -353,7 +353,7 @@ describe('Route wallet/createTransaction', () => {
     await expect(routeTest.node.chain).toAddBlock(block)
     await routeTest.node.wallet.updateHead()
 
-    const asset = new Asset(sender.spendingKey, 'mint-asset', 'metadata')
+    const asset = new Asset(sender.publicAddress, 'mint-asset', 'metadata')
 
     await expect(
       routeTest.client.wallet.createTransaction({
@@ -368,8 +368,8 @@ describe('Route wallet/createTransaction', () => {
         ],
         mints: [
           {
-            metadata: asset.metadata().toString('hex'),
-            name: asset.name().toString('hex'),
+            metadata: asset.metadata().toString('utf8'),
+            name: asset.name().toString('utf8'),
             value: BigInt(10).toString(),
           },
         ],
@@ -381,6 +381,93 @@ describe('Route wallet/createTransaction', () => {
         message: expect.any(String),
         status: 400,
         code: ERROR_CODES.INSUFFICIENT_BALANCE,
+      }),
+    )
+  })
+
+  it('should throw when asset name/metadata/memo is too long', async () => {
+    await expect(
+      routeTest.client.wallet.createTransaction({
+        account: 'existingAccount',
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: BigInt(10).toString(),
+            memo: 'fdasgfhlaghlsakjhgfslkahlksdghlkfajhsdklfjhksldjhfsldakghsklajghkjlfahgkjdsfhkjlgdfhkajhdfgkhadklfdjh',
+            assetId: Asset.nativeId().toString('hex'),
+          },
+        ],
+        mints: [
+          {
+            metadata: 'foo',
+            name: 'bar',
+            value: BigInt(10).toString(),
+          },
+        ],
+        fee: BigInt(1).toString(),
+        confirmations: 1000,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        message: expect.any(String),
+        status: 400,
+      }),
+    )
+
+    await expect(
+      routeTest.client.wallet.createTransaction({
+        account: 'existingAccount',
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: BigInt(10).toString(),
+            memo: 'bar',
+            assetId: Asset.nativeId().toString('hex'),
+          },
+        ],
+        mints: [
+          {
+            metadata: 'foo',
+            name: 'fdasgfhlaghlsakjhgfslkahlksdghlkfajhsdklfjhksldjhfsldakghsklajghkjlfahgkjdsfhkjlgdfhkajhdfgkhadklfdjh',
+            value: BigInt(10).toString(),
+          },
+        ],
+        fee: BigInt(1).toString(),
+        confirmations: 1000,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        message: expect.any(String),
+        status: 400,
+      }),
+    )
+
+    await expect(
+      routeTest.client.wallet.createTransaction({
+        account: 'existingAccount',
+        outputs: [
+          {
+            publicAddress: '0d804ea639b2547d1cd612682bf99f7cad7aad6d59fd5457f61272defcd4bf5b',
+            amount: BigInt(10).toString(),
+            memo: 'foo',
+            assetId: Asset.nativeId().toString('hex'),
+          },
+        ],
+        mints: [
+          {
+            metadata:
+              'fdasgfhlaghlsakjhgfslkahlksdghlkfajhsdklfjhksldjhfsldakghsklajghkjlfahgkjdsfhkjlgdfhkajhdfgkhadklfdjh',
+            name: 'bar',
+            value: BigInt(10).toString(),
+          },
+        ],
+        fee: BigInt(1).toString(),
+        confirmations: 1000,
+      }),
+    ).rejects.toThrow(
+      expect.objectContaining({
+        message: expect.any(String),
+        status: 400,
       }),
     )
   })

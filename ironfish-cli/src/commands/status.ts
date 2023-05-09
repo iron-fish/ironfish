@@ -113,8 +113,6 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
     telemetryStatus += ` - ${content.telemetry.submitted} <- ${content.telemetry.pending} pending`
   }
 
-  const nodeName = `${content.node.nodeName}`
-
   const blockGraffiti = `${content.miningDirector.blockGraffiti}`
 
   const network =
@@ -202,7 +200,8 @@ function renderStatus(content: GetNodeStatusResponse, debugOutput: boolean): str
   return `\
 Version              ${content.node.version} @ ${content.node.git}
 Node                 ${nodeStatus}
-Node Name            ${nodeName}
+Node Name            ${content.node.nodeName}
+Peer ID              ${content.peerNetwork.publicIdentity}
 Block Graffiti       ${blockGraffiti}
 Network              ${network}
 Memory               ${memoryStatus}

@@ -5,13 +5,11 @@ import { IronfishNode } from '../../../node'
 import { Note } from '../../../primitives'
 import { CurrencyUtils } from '../../../utils'
 import { Account } from '../../../wallet'
+import { AssetValue } from '../../../wallet/walletdb/assetValue'
+import { DecryptedNoteValue } from '../../../wallet/walletdb/decryptedNoteValue'
 import { TransactionValue } from '../../../wallet/walletdb/transactionValue'
 import { ValidationError } from '../../adapters'
-import {
-  RcpAccountAssetBalanceDelta,
-  RpcAccountDecryptedNote,
-  RpcAccountTransaction,
-} from './types'
+import { RcpAccountAssetBalanceDelta, RpcAccountTransaction, RpcWalletNote } from './types'
 
 export function getAccount(node: IronfishNode, name?: string): Account {
   if (name) {
@@ -72,41 +70,103 @@ export async function getAssetBalanceDeltas(
 
   return assetBalanceDeltas
 }
+
+export async function getTransactionNotes(
+  node: IronfishNode,
+  account: Account,
+  transaction: TransactionValue,
+): Promise<Array<DecryptedNoteValue>> {
+  const notes = []
+  const decryptNotesPayloads = []
+
+  let accountHasSpend = false
+  for (const spend of transaction.transaction.spends) {
+    const noteHash = await account.getNoteHash(spend.nullifier)
+
+    if (noteHash !== undefined) {
+      accountHasSpend = true
+      break
+    }
+  }
+
+  for (const note of transaction.transaction.notes) {
+    const decryptedNote = await account.getDecryptedNote(note.hash())
+
+    if (decryptedNote) {
+      notes.push(decryptedNote)
+      continue
+    }
+
+    decryptNotesPayloads.push({
+      serializedNote: note.serialize(),
+      incomingViewKey: account.incomingViewKey,
+      outgoingViewKey: account.outgoingViewKey,
+      viewKey: account.viewKey,
+      currentNoteIndex: null,
+      decryptForSpender: true,
+    })
+  }
+
+  if (accountHasSpend && decryptNotesPayloads.length > 0) {
+    const decryptedSends = await node.workerPool.decryptNotes(decryptNotesPayloads)
+
+    for (const note of decryptedSends) {
+      if (note === null) {
+        continue
+      }
+
+      notes.push({
+        accountId: '',
+        note: new Note(note.serializedNote),
+        index: null,
+        nullifier: null,
+        transactionHash: transaction.transaction.hash(),
+        spent: false,
+        blockHash: transaction.blockHash,
+        sequence: transaction.sequence,
+      })
+    }
+  }
+
+  return notes
+}
+
 export async function getAccountDecryptedNotes(
   node: IronfishNode,
   account: Account,
   transaction: TransactionValue,
-): Promise<RpcAccountDecryptedNote[]> {
-  const notesByAccount = await node.wallet.decryptNotes(transaction.transaction, null, true, [
-    account,
-  ])
-  const notes = notesByAccount.get(account.id) ?? []
+): Promise<RpcWalletNote[]> {
+  const notes = await getTransactionNotes(node, account, transaction)
 
-  const serializedNotes: RpcAccountDecryptedNote[] = []
+  const serializedNotes: RpcWalletNote[] = []
+
   for await (const decryptedNote of notes) {
-    const noteHash = decryptedNote.hash
-    const decryptedNoteForOwner = await account.getDecryptedNote(noteHash)
+    const asset = await account.getAsset(decryptedNote.note.assetId())
 
-    const isOwner = !!decryptedNoteForOwner
-    const spent = decryptedNoteForOwner ? decryptedNoteForOwner.spent : false
-    const note = decryptedNoteForOwner
-      ? decryptedNoteForOwner.note
-      : new Note(decryptedNote.serializedNote)
-
-    const asset = await node.chain.getAssetById(note.assetId())
-
-    serializedNotes.push({
-      isOwner,
-      owner: note.owner(),
-      memo: note.memo(),
-      value: CurrencyUtils.encode(note.value()),
-      assetId: note.assetId().toString('hex'),
-      assetName: asset?.name.toString('hex') || '',
-      sender: note.sender(),
-      spent: spent,
-      hash: note.hash().toString('hex'),
-    })
+    serializedNotes.push(serializeRpcWalletNote(decryptedNote, account.publicAddress, asset))
   }
 
   return serializedNotes
+}
+
+export function serializeRpcWalletNote(
+  note: DecryptedNoteValue,
+  publicAddress: string,
+  asset?: AssetValue,
+): RpcWalletNote {
+  return {
+    value: CurrencyUtils.encode(note.note.value()),
+    assetId: note.note.assetId().toString('hex'),
+    assetName: asset?.name.toString('hex') || '',
+    memo: note.note.memo(),
+    owner: note.note.owner(),
+    sender: note.note.sender(),
+    noteHash: note.note.hash().toString('hex'),
+    transactionHash: note.transactionHash.toString('hex'),
+    index: note.index,
+    nullifier: note.nullifier?.toString('hex') ?? null,
+    spent: note.spent,
+    isOwner: note.note.owner() === publicAddress,
+    hash: note.note.hash().toString('hex'),
+  }
 }

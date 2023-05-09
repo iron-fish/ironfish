@@ -51,7 +51,7 @@ describe('Route wallet/mintAsset', () => {
       const wallet = node.wallet
       const account = await useAccountFixture(wallet)
 
-      const asset = new Asset(account.spendingKey, 'mint-asset', 'metadata')
+      const asset = new Asset(account.publicAddress, 'mint-asset', 'metadata')
       const mintData = {
         name: asset.name().toString('utf8'),
         metadata: asset.metadata().toString('utf8'),
@@ -77,8 +77,8 @@ describe('Route wallet/mintAsset', () => {
       const response = await routeTest.client.wallet.mintAsset({
         account: account.name,
         fee: '1',
-        metadata: asset.metadata().toString('hex'),
-        name: asset.name().toString('hex'),
+        metadata: asset.metadata().toString('utf8'),
+        name: asset.name().toString('utf8'),
         value: CurrencyUtils.encode(mintData.value),
       })
 
