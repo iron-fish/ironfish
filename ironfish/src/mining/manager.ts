@@ -19,7 +19,6 @@ import { IronfishNode } from '../node'
 import { Block } from '../primitives/block'
 import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
-import { AsyncUtils } from '../utils/async'
 import { BenchUtils } from '../utils/bench'
 import { GraffitiUtils } from '../utils/graffiti'
 
@@ -86,9 +85,7 @@ export class MiningManager {
         continue
       }
 
-      const isConflicted = await AsyncUtils.find(transaction.spends, (spend) => {
-        return nullifiers.has(spend.nullifier)
-      })
+      const isConflicted = transaction.spends.find((spend) => nullifiers.has(spend.nullifier))
       if (isConflicted) {
         continue
       }
