@@ -4,7 +4,7 @@ on: workflow_dispatch
 jobs:
   Deploy:
     name: Deploy
-    runs-on: macos-10.15
+    runs-on: macos-12
 
     steps:
       - name: Check out Git repository
