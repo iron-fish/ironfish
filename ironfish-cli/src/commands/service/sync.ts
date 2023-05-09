@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { FollowChainStreamResponse, Meter, TimeUtils, WebApi } from '@ironfish/sdk'
+import { FollowChainStreamResponse, Meter, TimeUtils, Transaction, WebApi } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -12,7 +12,7 @@ export default class Sync extends IronfishCommand {
   static hidden = true
 
   static description = `
-    Upload blocks to an HTTP API using IronfishApi
+    Upload blocks and mempool transactions to an HTTP API using IronfishApi
   `
 
   static flags = {
@@ -33,7 +33,7 @@ export default class Sync extends IronfishCommand {
       char: 'm',
       required: false,
       default: isNaN(Number(process.env.MAX_UPLOAD)) ? 20 : Number(process.env.MAX_UPLOAD),
-      description: 'The max number of blocks to sync in once batch',
+      description: 'The max number of blocks or transactions to sync in one batch',
     }),
   }
 
@@ -53,7 +53,7 @@ export default class Sync extends IronfishCommand {
 
     if (!apiHost) {
       this.log(
-        `No api host found to upload blocks to. You must set IRONFISH_API_HOST env variable or pass --endpoint flag.`,
+        `No api host found to upload blocks and transactions to. You must set IRONFISH_API_HOST env variable or pass --endpoint flag.`,
       )
       this.exit(1)
     }
@@ -67,13 +67,19 @@ export default class Sync extends IronfishCommand {
 
     this.log('Connecting to node...')
 
-    const client = await this.sdk.connectRpc()
-
     const api = new WebApi({ host: apiHost, token: apiToken })
 
-    let head = args.head as string | null
+    const head = args.head as string | null
+
+    void this.syncTransactionGossip(api, flags.maxUpload)
+    await this.syncBlocks(api, head, flags.maxUpload)
+  }
+
+  async syncBlocks(api: WebApi, head: string | null, maxUpload: number): Promise<void> {
+    const client = await this.sdk.connectRpc()
+
     if (!head) {
-      this.log(`Fetching head from ${apiHost}`)
+      this.log(`Fetching head from ${api.host}`)
       head = await api.headBlocks()
     }
 
@@ -104,7 +110,7 @@ export default class Sync extends IronfishCommand {
         Math.abs(content.head.sequence - content.block.sequence) < NEAR_SYNC_THRESHOLD
 
       // Should we commit the current batch?
-      const committing = buffer.length === flags.maxUpload || finishing
+      const committing = buffer.length === maxUpload || finishing
 
       this.log(
         `${content.type}: ${content.block.hash} - ${content.block.sequence}${
@@ -120,6 +126,29 @@ export default class Sync extends IronfishCommand {
       )
 
       if (committing) {
+        await commit()
+      }
+    }
+
+    await commit()
+  }
+
+  async syncTransactionGossip(api: WebApi, maxUpload: number): Promise<void> {
+    const client = await this.sdk.connectRpc()
+
+    const response = client.event.onTransactionGossipStream({})
+
+    const buffer = new Array<Transaction>()
+
+    async function commit(): Promise<void> {
+      await api.transactions(buffer)
+      buffer.length = 0
+    }
+
+    for await (const content of response.contentStream()) {
+      buffer.push(new Transaction(Buffer.from(content.serializedTransaction, 'hex')))
+
+      if (buffer.length === maxUpload) {
         await commit()
       }
     }
