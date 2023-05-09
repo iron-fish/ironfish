@@ -97,6 +97,8 @@ import {
   MintAssetResponse,
   OnGossipRequest,
   OnGossipResponse,
+  OnTransactionGossipRequest,
+  OnTransactionGossipResponse,
   PostTransactionRequest,
   PostTransactionResponse,
   RemoveAccountRequest,
@@ -497,6 +499,15 @@ export abstract class RpcClient {
       params: OnGossipRequest = undefined,
     ): RpcResponse<void, OnGossipResponse> => {
       return this.request<void, OnGossipResponse>(`${ApiNamespace.event}/onGossip`, params)
+    },
+
+    onTransactionGossipStream: (
+      params: OnTransactionGossipRequest = undefined,
+    ): RpcResponse<void, OnTransactionGossipResponse> => {
+      return this.request<void, OnTransactionGossipResponse>(
+        `${ApiNamespace.event}/onTransactionGossip`,
+        params,
+      )
     },
   }
 

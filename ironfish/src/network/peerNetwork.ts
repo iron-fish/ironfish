@@ -109,6 +109,7 @@ export class PeerNetwork {
   readonly onIsReadyChanged = new Event<[boolean]>()
   readonly onTransactionAccepted = new Event<[transaction: Transaction, received: Date]>()
   readonly onBlockGossipReceived = new Event<[BlockHeader]>()
+  readonly onTransactionGossipReceived = new Event<[Transaction]>()
 
   private started = false
   private readonly minPeers: number
@@ -1278,6 +1279,8 @@ export class PeerNetwork {
   private async onNewTransaction(peer: Peer, transaction: Transaction): Promise<void> {
     const received = new Date()
     const hash = transaction.hash()
+
+    this.onTransactionGossipReceived.emit(transaction)
 
     // Let the fetcher know that a transaction was received so it no longer queries for it
     this.transactionFetcher.receivedTransaction(hash)
