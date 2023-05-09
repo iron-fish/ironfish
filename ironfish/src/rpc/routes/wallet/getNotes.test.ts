@@ -175,31 +175,6 @@ describe('Route wallet/getNotes', () => {
     expect(response.content.notes).toHaveLength(0)
   })
 
-  it('filters notes by assetName', async () => {
-    const ironResponse: RpcResponseEnded<GetNotesResponse> =
-      await routeTest.client.wallet.getNotes({
-        account: account.name,
-        filter: {
-          assetName: Buffer.from('$IRON', 'utf-8').toString('hex'),
-        },
-      })
-
-    expect(ironResponse.status).toBe(200)
-    expect(ironResponse.content.notes.length).toBe(3)
-
-    const response: RpcResponseEnded<GetNotesResponse> = await routeTest.client.wallet.getNotes(
-      {
-        account: account.name,
-        filter: {
-          assetName: 'deadbeef',
-        },
-      },
-    )
-
-    expect(response.status).toBe(200)
-    expect(response.content.notes).toHaveLength(0)
-  })
-
   it('finds notes by index', async () => {
     for (const [, note] of accountNotesByHash) {
       if (!note.index) {

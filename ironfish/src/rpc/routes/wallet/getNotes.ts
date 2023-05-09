@@ -16,7 +16,6 @@ type StringMinMax = {
 type GetNotesRequestFilter = {
   value?: StringMinMax
   assetId?: string
-  assetName?: string
   memo?: string
   sender?: string
   noteHash?: string
@@ -50,7 +49,6 @@ export const GetNotesRequestSchema: yup.ObjectSchema<GetNotesRequest> = yup
           max: yup.string(),
         }),
         assetId: yup.string(),
-        assetName: yup.string(),
         memo: yup.string(),
         sender: yup.string(),
         noteHash: yup.string(),
@@ -116,7 +114,6 @@ function includeNote(note: RpcWalletNote, filter: GetNotesRequestFilter): boolea
     (filter.value?.min === undefined || BigInt(note.value) >= BigInt(filter.value.min)) &&
     (filter.value?.max === undefined || BigInt(note.value) <= BigInt(filter.value.max)) &&
     (filter.assetId === undefined || note.assetId === filter.assetId) &&
-    (filter.assetName === undefined || note.assetName === filter.assetName) &&
     (filter.memo === undefined || note.memo === filter.memo) &&
     (filter.sender === undefined || note.sender === filter.sender) &&
     (filter.noteHash === undefined || note.noteHash === filter.noteHash) &&
