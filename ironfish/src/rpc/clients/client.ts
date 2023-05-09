@@ -29,6 +29,8 @@ import {
   ExportChainStreamResponse,
   FollowChainStreamRequest,
   FollowChainStreamResponse,
+  FollowMempoolTransactionStreamRequest,
+  FollowMempoolTransactionStreamResponse,
   GetAccountNotesStreamRequest,
   GetAccountNotesStreamResponse,
   GetAccountsRequest,
@@ -361,6 +363,15 @@ export abstract class RpcClient {
     ): RpcResponse<void, GetMempoolTransactionResponse> => {
       return this.request<void, GetMempoolTransactionResponse>(
         `${ApiNamespace.mempool}/getTransactions`,
+        { ...params },
+      )
+    },
+
+    followMempoolTransactionStream: (
+      params: FollowMempoolTransactionStreamRequest,
+    ): RpcResponse<void, FollowMempoolTransactionStreamResponse> => {
+      return this.request<void, FollowMempoolTransactionStreamResponse>(
+        `${ApiNamespace.mempool}/followTransactionStream`,
         { ...params },
       )
     },

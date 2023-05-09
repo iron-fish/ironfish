@@ -4,3 +4,4 @@
 
 export * from './getTransactions'
 export * from './getStatus'
+export * from './followTransactionStream'

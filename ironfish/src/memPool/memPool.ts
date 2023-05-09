@@ -6,6 +6,7 @@ import { BufferMap } from 'buffer-map'
 import { Assert } from '../assert'
 import { Blockchain } from '../blockchain'
 import { Consensus, isExpiredSequence } from '../consensus'
+import { Event } from '../event'
 import { createRootLogger, Logger } from '../logger'
 import { MetricsMonitor } from '../metrics'
 import { getTransactionSize } from '../network/utils/serializers'
@@ -59,6 +60,8 @@ export class MemPool {
   private readonly metrics: MetricsMonitor
 
   readonly feeEstimator: FeeEstimator
+
+  onAdd = new Event<[transaction: Transaction]>()
 
   constructor(options: {
     chain: Blockchain
@@ -307,6 +310,8 @@ export class MemPool {
       const evicted = this.evictTransactions()
       this.metrics.memPoolEvictions.value += evicted.length
     }
+
+    this.onAdd.emit(transaction)
 
     return true
   }
