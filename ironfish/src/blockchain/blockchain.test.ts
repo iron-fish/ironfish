@@ -819,7 +819,7 @@ describe('Blockchain', () => {
     const block4 = await useMinerBlockFixture(chain, undefined, undefined, undefined, [mintTx])
     await expect(chain.addBlock(block4)).resolves.toMatchObject({
       isAdded: false,
-      reason: VerificationResultReason.DOUBLE_SPEND,
+      reason: VerificationResultReason.EXISTING_TRANSACTION,
     })
   })
 

@@ -74,7 +74,7 @@ describe('Verifier', () => {
       const result = await chain.verifier.verifyNewTransaction(mintTx)
 
       expect(result).toEqual({
-        reason: VerificationResultReason.DOUBLE_SPEND,
+        reason: VerificationResultReason.EXISTING_TRANSACTION,
         valid: false,
       })
     })

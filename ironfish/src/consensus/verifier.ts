@@ -236,11 +236,6 @@ export class Verifier {
     }
 
     const reason = await this.chain.db.withTransaction(null, async (tx) => {
-      const { reason } = await this.verifyUnseenTransaction(transaction, tx)
-      if (reason) {
-        return reason
-      }
-
       for (const spend of transaction.spends) {
         // If the spend references a larger tree size, allow it, so it's possible to
         // store transactions made while the node is a few blocks behind
@@ -252,6 +247,11 @@ export class Verifier {
         if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
           return VerificationResultReason.DOUBLE_SPEND
         }
+      }
+
+      const { reason } = await this.verifyUnseenTransaction(transaction, tx)
+      if (reason) {
+        return reason
       }
     })
 
@@ -421,19 +421,18 @@ export class Verifier {
       return result
     }
 
-    for (const transaction of block.transactions) {
-      const result = await this.verifyUnseenTransaction(transaction, tx)
-      if (!result.valid) {
-        return result
-      }
-    }
-
     for (const spend of block.spends()) {
       if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
         return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
       }
     }
 
+    for (const transaction of block.transactions) {
+      const result = await this.verifyUnseenTransaction(transaction, tx)
+      if (!result.valid) {
+        return result
+      }
+    }
     return { valid: true }
   }
 
@@ -545,7 +544,7 @@ export class Verifier {
   ): Promise<VerificationResult> {
     return this.chain.db.withTransaction(tx, async (tx) => {
       if (await this.chain.transactionHashToBlockHash.has(transaction.hash(), tx)) {
-        return { valid: false, reason: VerificationResultReason.DOUBLE_SPEND }
+        return { valid: false, reason: VerificationResultReason.EXISTING_TRANSACTION }
       }
 
       return { valid: true }
@@ -559,6 +558,7 @@ export enum VerificationResultReason {
   DOUBLE_SPEND = 'Double spend',
   DUPLICATE = 'Duplicate',
   ERROR = 'Error',
+  EXISTING_TRANSACTION = 'Transaction exists on chain',
   GOSSIPED_GENESIS_BLOCK = 'Peer gossiped its genesis block',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
   HASH_NOT_MEET_TARGET = 'Hash does not meet target',
