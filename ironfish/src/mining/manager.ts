@@ -134,6 +134,9 @@ export class MiningManager {
     Assert.isNotNull(account.spendingKey, 'Account must have spending key in order to mine')
 
     const newBlockSequence = currentBlock.header.sequence + 1
+    this.node.logger.debug(
+      `[krx] Begin constructing new block template for block sequence ${newBlockSequence}`,
+    )
 
     const currBlockSize = getBlockWithMinersFeeSize()
 
@@ -149,7 +152,7 @@ export class MiningManager {
       account.spendingKey,
     )
     this.node.logger.debug(
-      `Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
+      `[krx] Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
     )
 
     const txSize = getTransactionSize(minersFee)
@@ -172,7 +175,7 @@ export class MiningManager {
     )
 
     this.node.logger.debug(
-      `Current block template ${newBlock.header.sequence}, has ${newBlock.transactions.length} transactions`,
+      `[krx] Current block template ${newBlock.header.sequence}, has ${newBlock.transactions.length} transactions`,
     )
 
     this.metrics.mining_newBlockTemplate.add(BenchUtils.end(startTime))
@@ -184,6 +187,7 @@ export class MiningManager {
     const block = BlockTemplateSerde.deserialize(blockTemplate)
 
     const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
+    this.node.logger.debug(`[krx] Received mined block ${blockDisplay}`)
     if (!block.header.previousBlockHash.equals(this.node.chain.head.hash)) {
       const previous = await this.node.chain.getPrevious(block.header)
 
@@ -199,6 +203,7 @@ export class MiningManager {
       }
     }
 
+    this.node.logger.debug(`[krx] Verifying mined block ${blockDisplay}`)
     const validation = await this.node.chain.verifier.verifyBlock(block)
 
     if (!validation.valid) {
@@ -208,6 +213,7 @@ export class MiningManager {
       return MINED_RESULT.INVALID_BLOCK
     }
 
+    this.node.logger.debug(`[krx] Trying to add mined block to chain ${blockDisplay}`)
     const { isAdded, reason, isFork } = await this.node.chain.addBlock(block)
 
     if (!isAdded) {
@@ -225,7 +231,7 @@ export class MiningManager {
     }
 
     this.node.logger.info(
-      `Successfully mined block ${blockDisplay} with ${block.transactions.length} transactions`,
+      `[krx] Successfully mined block ${blockDisplay} with ${block.transactions.length} transactions`,
     )
 
     this.blocksMined++

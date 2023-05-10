@@ -78,7 +78,9 @@ router.register<typeof BlockTemplateStreamRequestSchema, BlockTemplateStreamResp
         )
         return
       }
-
+      node.logger.debug(
+        `[krx] Sending serialized block for sequence ${block.header.sequence + 1} to stream`,
+      )
       request.stream(serializedBlock)
     }
 

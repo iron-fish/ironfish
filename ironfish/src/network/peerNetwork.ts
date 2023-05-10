@@ -382,6 +382,9 @@ export class PeerNetwork {
    * Send a compact block to a sqrt subset of peers who haven't yet received the block
    */
   private broadcastBlock(block: Block): void {
+    const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
+    this.logger.debug(`[krx] Starting broadcasting compact block ${blockDisplay}`)
+
     const hash = block.header.hash
 
     const peersToSendToArray = ArrayUtils.shuffle([...this.connectedPeersWithoutBlock(hash)])
@@ -392,25 +395,32 @@ export class PeerNetwork {
 
     // Send compact block to random subset of sqrt of peers
     for (const peer of peersToSendToArray.slice(0, sqrtSize)) {
+      this.logger.debug(`[krx] Broadcasting compact block to ${peer.address} ${blockDisplay}`)
       if (peer.send(compactBlockMessage)) {
         peer.knownBlockHashes.set(hash, KnownBlockHashesValue.Sent)
       }
     }
+    this.logger.debug(`[krx] Finished broadcasting compact block ${blockDisplay}`)
   }
 
   /**
    * Send a block hash to all connected peers who haven't yet received the block.
    */
   private broadcastBlockHash(header: BlockHeader): void {
+    const blockDisplay = `${header.hash.toString('hex')} (${header.sequence})`
+    this.logger.debug(`[krx] Starting broadcasting block hash ${blockDisplay}`)
+
     const hashMessage = new NewBlockHashesMessage([
       { hash: header.hash, sequence: header.sequence },
     ])
 
     for (const peer of this.connectedPeersWithoutBlock(header.hash)) {
+      this.logger.debug(`[krx] Broadcasting block hash to ${peer.address} ${blockDisplay}`)
       if (peer.send(hashMessage)) {
         peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Sent)
       }
     }
+    this.logger.debug(`[krx] Finished broadcasting block hash ${blockDisplay}`)
   }
 
   /**
@@ -1199,6 +1209,10 @@ export class PeerNetwork {
     if (!this.shouldProcessNewBlocks()) {
       return
     }
+
+    this.logger.debug(
+      `[krx] New block seen: ${block.header.hash.toString('hex')} (${block.header.sequence})`,
+    )
 
     // Mark that we've assembled a full block in the block fetcher
     this.blockFetcher.receivedFullBlock(block)
