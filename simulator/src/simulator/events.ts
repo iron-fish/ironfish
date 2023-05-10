@@ -57,6 +57,25 @@ export type LogEvent = {
 }
 
 /**
+ * Formats a LogEvent into a pretty string.
+ */
+export function logEventToString(l: LogEvent): string {
+  const msg = {
+    node: l.node,
+    proc: l.proc,
+    type: l.type,
+    message: l.jsonMessage,
+    timestamp: l.timestamp,
+  }
+
+  if (msg.message === undefined) {
+    return ''
+  }
+
+  return JSON.stringify(msg, undefined, 2)
+}
+
+/**
  * NodeLogEvent is the JSON object that is logged by the Ironfish node.
  * This is wrapped in a LogEvent when it is emitted to any listeners.
  */

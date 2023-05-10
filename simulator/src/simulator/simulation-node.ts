@@ -26,7 +26,7 @@ import {
   supportedNodeChildProcesses,
 } from './events'
 import { sleep } from './misc'
-import { getLatestBlockHash, importAccount } from './utils'
+import { importAccount } from './utils'
 
 export const rootCmd = 'ironfish'
 
@@ -52,6 +52,8 @@ export type RequiredSimulationNodeConfig = Required<
     | 'networkId'
     | 'rpcTcpHost'
     | 'rpcTcpPort'
+    | 'rpcHttpHost'
+    | 'rpcHttpPort'
     | 'bootstrapNodes'
   >
 >
@@ -64,7 +66,15 @@ export type OptionalSimulationNodeConfig = {
    * The data directory for the node. If not provided, a temporary directory will be created.
    */
   dataDir: string
+  /**
+   * Display verbose logging from the node.
+   */
   verbose?: boolean
+
+  /**
+   * Tags to include in the node logs. If omitted, all tags will be included.
+   */
+  logTags?: string[]
   /**
    * Whether the genesis account should be added to this node.
    * An explicit rescan will follow the import so the balance is immediately available.
@@ -231,14 +241,14 @@ export class SimulationNode {
     const nodeConfig = new Config(fileSystem, config.dataDir)
     await nodeConfig.load()
 
-    // TODO: support all the log levels
+    // TODO: support all the log levels, not just verbose
     if (config.verbose) {
       nodeConfig.set('logLevel', '*:debug')
     }
 
     for (const [key, value] of Object.entries(config)) {
-      // TODO(holahula): this is a hack to get around the fact that the config
-      // has `dataDir` / `verbose` properties that are not valid config option
+      // This is a hack to get around the fact that the simulation node config
+      // has `dataDir` / `verbose` properties that are not valid ironfish config options
       if (key === 'dataDir' || key === 'verbose') {
         continue
       }
@@ -257,7 +267,7 @@ export class SimulationNode {
 
     const node = new SimulationNode(config, client, logger, options)
 
-    // Continue to attempt to connect the client to the node until successful
+    // Attempt to connect the client to the node until successful
     let connected = false
     let tries = 0
     while (!connected && tries < 12) {
@@ -270,7 +280,9 @@ export class SimulationNode {
       throw new Error(`failed to connect to node ${config.nodeName}`)
     }
 
-    node.initializeBlockStream(await getLatestBlockHash(node))
+    const { content: chainInfo } = await node.client.chain.getChainInfo()
+
+    node.initializeBlockStream(chainInfo.currentBlockIdentifier.hash)
 
     if (config.importGenesisAccount) {
       await importAccount(node, `'${JSON.stringify(DEV_GENESIS_ACCOUNT)}'`, true)
@@ -535,6 +547,8 @@ export class SimulationNode {
   /**
    * Executes a short-lived cli command via `child_process.spawn()`.
    *
+   * If the user does not provide callbacks for errors or logs from the command, they will be printed to the console.
+   *
    * This allows for the logs to be streamed to the console and the command to be executed in a separate process.
    * If the command fails, the promise will reject.
    *
@@ -547,31 +561,38 @@ export class SimulationNode {
    */
   async executeCliCommand(
     command: string,
-    args: string[],
+    commandArgs?: string[],
     options?: {
-      onError: (err: Error) => void
-      onLog: (stdout: string) => void
+      onError?: (err: Error) => void
+      onLog?: (stdout: string) => void
     },
   ): Promise<void> {
+    const args = commandArgs || []
+
     args.push('--datadir', this.config.dataDir)
+
     const cmdString = rootCmd + ' ' + command + ' ' + args.join(' ')
+
     this.logger.log(`executing cli command (spawn): ${cmdString}`)
+
+    const onLog = options?.onLog || ((stdout) => this.logger.log(stdout))
+    const onError = options?.onError || ((err) => this.logger.error(JSON.stringify(err)))
 
     return new Promise((resolve, reject) => {
       const process = spawn(rootCmd, [command, ...args])
 
       process.stdout.on('data', (data) => {
         const message = (data as Buffer).toString()
-        options?.onLog(`${command}:stdout: ${message}`)
+        onLog(`${command}:stdout: ${message}`)
       })
 
       process.stderr.on('data', (data) => {
         const message = (data as Buffer).toString()
-        options?.onLog(`${command}:stderr: ${message}`)
+        onLog(`${command}:stderr: ${message}`)
       })
 
       process.on('error', (err) => {
-        options?.onError(err)
+        onError(err)
         reject(err)
       })
 
@@ -616,13 +637,16 @@ export class SimulationNode {
    * @param args The arguments for the command
    * @throws an `ExecException` if the command fails
    * @returns a promise containing the stdout and stderr output of the command
-   * // TODO: make args optional
    */
   async executeCliCommandWithExec(
     command: string,
-    args: string[],
+    args?: string[],
   ): Promise<{ stdout: string; stderr: string }> {
     const execWithPromise = promisify(exec)
+
+    if (!args) {
+      args = []
+    }
 
     args.push('--datadir', this.config.dataDir)
 
