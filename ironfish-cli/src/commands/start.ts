@@ -31,7 +31,7 @@ import {
   VerboseFlag,
   VerboseFlagKey,
 } from '../flags'
-import { ONE_FISH_IMAGE } from '../images'
+import { KRYPTEX_IMAGE } from '../images'
 
 export const ENABLE_TELEMETRY_CONFIG_KEY = 'enableTelemetry'
 const DEFAULT_ACCOUNT_NAME = 'default'
@@ -211,7 +211,7 @@ export default class Start extends IronfishCommand {
     const peerPort = this.sdk.config.get('peerPort')
     const bootstraps = this.sdk.config.getArray('bootstrapNodes')
 
-    this.log(`\n${ONE_FISH_IMAGE}`)
+    this.log(`\n${KRYPTEX_IMAGE}`)
     this.log(`Version       ${node.pkg.version} @ ${node.pkg.git}`)
     this.log(`Node Name     ${nodeName || 'NONE'}`)
     this.log(`Graffiti      ${blockGraffiti || 'NONE'}`)
