@@ -74,7 +74,7 @@ describe('Verifier', () => {
       const result = await chain.verifier.verifyNewTransaction(mintTx)
 
       expect(result).toEqual({
-        reason: VerificationResultReason.EXISTING_TRANSACTION,
+        reason: VerificationResultReason.DUPLICATE_TRANSACTION,
         valid: false,
       })
     })
@@ -203,8 +203,9 @@ describe('Verifier', () => {
     })
 
     it('rejects a block with miners fee as second transaction', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet, 'accountA')
       const { block } = await useBlockWithTx(nodeTest.node)
-      block.transactions[1] = block.transactions[0]
+      block.transactions[1] = await useMinersTxFixture(nodeTest.wallet, account, undefined, 0)
       block.header.transactionCommitment = transactionCommitment(block.transactions)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
@@ -273,8 +274,14 @@ describe('Verifier', () => {
     })
 
     it('rejects block with incorrect fee sum', async () => {
-      const { block } = await useBlockWithTx(nodeTest.node)
-      block.transactions[2] = block.transactions[1]
+      const account = await useAccountFixture(nodeTest.node.wallet, 'accountA')
+      const { block } = await useBlockWithTx(nodeTest.node, account)
+      block.transactions[2] = await usePostTxFixture({
+        node: nodeTest.node,
+        wallet: nodeTest.wallet,
+        from: account,
+        fee: 1n,
+      })
       block.header.transactionCommitment = transactionCommitment(block.transactions)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
