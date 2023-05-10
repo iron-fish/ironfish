@@ -51,7 +51,7 @@ pub fn commitment_full_point(
     );
 
     // Compute final commitment
-    (NOTE_COMMITMENT_RANDOMNESS_GENERATOR * rcm) + hash_of_contents
+    (*NOTE_COMMITMENT_RANDOMNESS_GENERATOR * rcm) + hash_of_contents
 }
 
 /// This is a lightly modified group_hash function, for use with the asset identifier/generator flow
@@ -60,7 +60,7 @@ pub fn asset_hash_to_point(tag: &[u8]) -> Option<jubjub::ExtendedPoint> {
     assert_eq!(VALUE_COMMITMENT_GENERATOR_PERSONALIZATION.len(), 8);
 
     // Check to see that scalar field is 255 bits
-    assert!(bls12_381::Scalar::NUM_BITS == 255);
+    assert!(blstrs::Scalar::NUM_BITS == 255);
 
     let h = blake2s_simd::Params::new()
         .hash_length(32)

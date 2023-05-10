@@ -12,14 +12,14 @@ workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bellman = { version = "0.13.1" }
+bellperson = { path = "../../bellperson", features = ["groth16", "opencl"] }
 blake2s_simd = "1.0.0"
-bls12_381 = "0.7.0"
+blstrs = { version = "0.6.0", features = ["__private_bench"] }
 byteorder = "1.4.3"
 ff = "0.12.0"
 group = "0.12.0"
-jubjub = "0.9.0"
+jubjub = { path = "../../jubjub" }
 lazy_static = "1.4.0"
 rand = "0.8.5"
-zcash_primitives = "0.7.0"
-zcash_proofs = "0.7.1"
+zcash_primitives = { path = "../../librustzcash/zcash_primitives" }
+zcash_proofs = { path = "../../librustzcash/zcash_proofs" }

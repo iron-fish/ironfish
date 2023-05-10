@@ -24,7 +24,7 @@ impl ValueCommitment {
 
     pub fn commitment(&self) -> jubjub::SubgroupPoint {
         (self.asset_generator.clear_cofactor() * jubjub::Fr::from(self.value))
-            + (VALUE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)
+            + (*VALUE_COMMITMENT_RANDOMNESS_GENERATOR * self.randomness)
     }
 }
 

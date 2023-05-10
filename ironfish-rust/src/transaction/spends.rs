@@ -12,11 +12,11 @@ use crate::{
     witness::WitnessTrait,
 };
 
-use bellman::gadgets::multipack;
-use bellman::groth16;
-use bls12_381::{Bls12, Scalar};
+use bellperson::gadgets::multipack;
+use bellperson::groth16;
+use blstrs::{Bls12, Scalar};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use ff::PrimeField;
+use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
 use ironfish_zkp::{
     constants::SPENDING_KEY_GENERATOR,
@@ -164,11 +164,11 @@ impl UnsignedSpendDescription {
         let randomized_private_key = private_key.randomize(self.public_key_randomness);
 
         let randomized_public_key =
-            redjubjub::PublicKey::from_private(&randomized_private_key, SPENDING_KEY_GENERATOR);
+            redjubjub::PublicKey::from_private(&randomized_private_key, *SPENDING_KEY_GENERATOR);
 
         let transaction_randomized_public_key =
             redjubjub::PublicKey(spender_key.view_key.authorizing_key.into())
-                .randomize(self.public_key_randomness, SPENDING_KEY_GENERATOR);
+                .randomize(self.public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         if randomized_public_key.0 != transaction_randomized_public_key.0 {
             return Err(IronfishError::InvalidSigningKey);
@@ -182,7 +182,7 @@ impl UnsignedSpendDescription {
         self.description.authorizing_signature = randomized_private_key.sign(
             &data_to_be_signed,
             &mut thread_rng(),
-            SPENDING_KEY_GENERATOR,
+            *SPENDING_KEY_GENERATOR,
         );
 
         Ok(self.description)
@@ -284,7 +284,7 @@ impl SpendDescription {
         if !randomized_public_key.verify(
             &data_to_be_signed,
             &self.authorizing_signature,
-            SPENDING_KEY_GENERATOR,
+            *SPENDING_KEY_GENERATOR,
         ) {
             return Err(IronfishError::VerificationFailed);
         }
@@ -311,7 +311,7 @@ impl SpendDescription {
         Ok(())
     }
 
-    /// Converts the values to appropriate inputs for verifying the bellman
+    /// Converts the values to appropriate inputs for verifying the bellperson
     /// proof.  Confirms the randomized_public_key, commitment_value, anchor
     /// (root hash), and nullifier attached to this [`SpendDescription`].
     pub fn public_inputs(&self, randomized_public_key: &redjubjub::PublicKey) -> [Scalar; 7] {
@@ -405,7 +405,7 @@ mod test {
 
         let public_key_randomness = jubjub::Fr::random(thread_rng());
         let randomized_public_key = redjubjub::PublicKey(key.view_key.authorizing_key.into())
-            .randomize(public_key_randomness, SPENDING_KEY_GENERATOR);
+            .randomize(public_key_randomness, *SPENDING_KEY_GENERATOR);
 
         // signature comes from transaction, normally
         let mut sig_hash = [0u8; 32];

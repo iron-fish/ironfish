@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* eslint-disable no-console */
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, verifyTransactions } from '@ironfish/rust-nodejs'
 import { Assert } from '../assert'
 import { useAccountFixture, useMinerBlockFixture } from '../testUtilities/fixtures'
 import { createRawTransaction } from '../testUtilities/helpers/transaction'
@@ -61,10 +61,12 @@ describe('Transaction', () => {
 
     Assert.isNotNull(account.spendingKey)
 
-    const start = BenchUtils.start()
     const posted = rawTx.post(account.spendingKey)
+    const start = BenchUtils.start()
+    const result = verifyTransactions([posted.serialize()])
     const elapsed = BenchUtils.end(start)
 
+    expect(result).toBe(true)
     expect(posted.spends.length).toEqual(numSpends)
     expect(posted.notes.length).toEqual(numOutputs)
 

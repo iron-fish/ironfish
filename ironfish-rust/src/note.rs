@@ -12,7 +12,7 @@ use super::{
     serializing::{aead, read_scalar},
 };
 use blake2s_simd::Params as Blake2sParams;
-use bls12_381::Scalar;
+use blstrs::Scalar;
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use ff::{Field, PrimeField};
 use group::{Curve, GroupEncoding};
@@ -289,7 +289,7 @@ impl<'a> Note {
     pub fn nullifier(&self, view_key: &ViewKey, position: u64) -> Nullifier {
         // Compute rho = cm + position.G
         let rho = self.commitment_full_point()
-            + (NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
+            + (*NULLIFIER_POSITION_GENERATOR * jubjub::Fr::from(position));
 
         // Compute nf = BLAKE2s(nk | rho)
         Nullifier::from_slice(
@@ -309,7 +309,7 @@ impl<'a> Note {
     /// in the note, including the randomness and converts them to a byte
     /// format. This hash is what gets used for the leaf nodes in a Merkle Tree.
     pub fn commitment(&self) -> [u8; 32] {
-        self.commitment_point().to_bytes()
+        self.commitment_point().to_bytes_le()
     }
 
     /// Compute the commitment of this note. This is essentially a hash of all

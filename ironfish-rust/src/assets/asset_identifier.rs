@@ -78,7 +78,7 @@ mod test {
 
         assert_eq!(
             value_commitment_generator,
-            NATIVE_VALUE_COMMITMENT_GENERATOR
+            *NATIVE_VALUE_COMMITMENT_GENERATOR
         );
     }
 }

@@ -15,8 +15,7 @@ use std::string;
 /// be raised on the Javascript side.
 #[derive(Debug)]
 pub enum IronfishError {
-    BellmanSynthesis(bellman::SynthesisError),
-    BellmanVerification(bellman::VerificationError),
+    BellpersonSynthesis(bellperson::SynthesisError),
     CryptoBox(crypto_box::aead::Error),
     IllegalValue,
     InconsistentWitness,
@@ -74,15 +73,9 @@ impl From<string::FromUtf8Error> for IronfishError {
     }
 }
 
-impl From<bellman::VerificationError> for IronfishError {
-    fn from(e: bellman::VerificationError) -> IronfishError {
-        IronfishError::BellmanVerification(e)
-    }
-}
-
-impl From<bellman::SynthesisError> for IronfishError {
-    fn from(e: bellman::SynthesisError) -> IronfishError {
-        IronfishError::BellmanSynthesis(e)
+impl From<bellperson::SynthesisError> for IronfishError {
+    fn from(e: bellperson::SynthesisError) -> IronfishError {
+        IronfishError::BellpersonSynthesis(e)
     }
 }
 
