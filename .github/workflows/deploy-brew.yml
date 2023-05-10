@@ -11,10 +11,15 @@ jobs:
     runs-on: macos-12
 
     steps:
-      - name: Check out Git repository
+      - name: Check out Git repository with ref
         uses: actions/checkout@v3
+        if: ${{ inputs.refToBuild != '' }}
         with:
           ref: ${{ inputs.refToBuild }}
+
+      - name: Check out Git repository without ref
+        if: ${{ inputs.refToBuild == '' }}
+        uses: actions/checkout@v3
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
