@@ -43,15 +43,9 @@ impl IncomingViewKey {
 
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
-        match hex_to_bytes(value) {
+        match hex_to_bytes::<32>(value) {
             Err(_) => Err(IronfishError::InvalidViewingKey),
-            Ok(bytes) => {
-                if bytes.len() != 32 {
-                    Err(IronfishError::InvalidViewingKey)
-                } else {
-                    Self::read(&mut bytes[..].as_ref())
-                }
-            }
+            Ok(bytes) => Self::read(&mut bytes.as_ref()),
         }
     }
 
@@ -110,10 +104,8 @@ pub struct ViewKey {
 impl ViewKey {
     /// Load a key from a string of hexadecimal digits
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
-        let bytes = hex_to_bytes(value)?;
-        if bytes.len() != 64 {
-            return Err(IronfishError::InvalidViewingKey);
-        }
+        let bytes: [u8; 64] = hex_to_bytes(value)?;
+
         let mut authorizing_key_bytes = [0; 32];
         let mut nullifier_deriving_key_bytes = [0; 32];
 
@@ -158,15 +150,7 @@ impl OutgoingViewKey {
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
             Err(_) => Err(IronfishError::InvalidViewingKey),
-            Ok(bytes) => {
-                if bytes.len() != 32 {
-                    Err(IronfishError::InvalidViewingKey)
-                } else {
-                    let mut view_key = [0; 32];
-                    view_key.clone_from_slice(&bytes[0..32]);
-                    Ok(Self { view_key })
-                }
-            }
+            Ok(bytes) => Ok(Self { view_key: bytes }),
         }
     }
 
