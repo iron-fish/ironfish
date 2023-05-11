@@ -118,7 +118,7 @@ export abstract class IronfishCommand extends Command {
     const dataDirFlag = getFlag(flags, DataDirFlagKey)
     const configFlag = getFlag(flags, ConfigFlagKey)
 
-    const configOverrides: Partial<ConfigOptions> = {}
+    const configOverrides: Partial<ConfigOptions> = { runtime: 'CLI' }
     const internalOverrides: Partial<InternalOptions> = {}
 
     const rpcConnectIpcFlag = getFlag(flags, RpcUseIpcFlagKey)

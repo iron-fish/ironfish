@@ -113,7 +113,10 @@ export class IronfishNode {
       metrics,
       workerPool,
       localPeerIdentity: privateIdentityToIdentity(identity),
-      defaultTags: [{ name: 'version', value: pkg.version }],
+      defaultTags: [
+        { name: 'version', value: pkg.version },
+        { name: 'runtime', value: config.get('runtime') },
+      ],
       defaultFields: [
         { name: 'node_id', type: 'string', value: internal.get('telemetryNodeId') },
         { name: 'session_id', type: 'string', value: uuid() },
