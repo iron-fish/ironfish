@@ -27,20 +27,15 @@ describe('Transaction', () => {
   ]
 
   it('post', async () => {
-    const { wallet } = nodeTest
+    const { chain, wallet } = nodeTest
 
     const account = await useAccountFixture(wallet)
 
     // Generate enough notes for the tests
     for (let i = 0; i < Math.max(...TEST_AMOUNTS.map((t) => t.spends)); i++) {
-      const block = await useMinerBlockFixture(
-        nodeTest.chain,
-        undefined,
-        account,
-        nodeTest.wallet,
-      )
-      await expect(nodeTest.chain).toAddBlock(block)
-      await nodeTest.wallet.updateHead()
+      const block = await useMinerBlockFixture(chain, undefined, account, wallet)
+      await expect(chain).toAddBlock(block)
+      await wallet.updateHead()
     }
 
     // Run tests
