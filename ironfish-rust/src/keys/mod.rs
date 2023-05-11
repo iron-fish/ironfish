@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::errors::IronfishError;
+use crate::serializing::{bytes_to_hex, hex_to_bytes, read_scalar};
 
-use super::serializing::{bytes_to_hex, hex_to_bytes, read_scalar};
 pub use bip39::Language;
 use bip39::Mnemonic;
 use blake2b_simd::Params as Blake2b;
@@ -124,15 +124,7 @@ impl SaplingKey {
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
         match hex_to_bytes(value) {
             Err(_) => Err(IronfishError::InvalidPaymentAddress),
-            Ok(bytes) => {
-                if bytes.len() != SPEND_KEY_SIZE {
-                    Err(IronfishError::InvalidPaymentAddress)
-                } else {
-                    let mut byte_arr = [0; SPEND_KEY_SIZE];
-                    byte_arr.clone_from_slice(&bytes[0..SPEND_KEY_SIZE]);
-                    Self::new(byte_arr)
-                }
-            }
+            Ok(bytes) => Self::new(bytes),
         }
     }
 

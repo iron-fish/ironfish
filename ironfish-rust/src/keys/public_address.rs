@@ -57,21 +57,9 @@ impl PublicAddress {
     /// be 64 hexadecimal characters representing the 32 bytes of an address
     /// or it fails.
     pub fn from_hex(value: &str) -> Result<Self, IronfishError> {
-        if value.len() != 2 * PUBLIC_ADDRESS_SIZE {
-            return Err(IronfishError::InvalidPublicAddress);
-        }
-
         match hex_to_bytes(value) {
             Err(_) => Err(IronfishError::InvalidPublicAddress),
-            Ok(bytes) => {
-                if bytes.len() != PUBLIC_ADDRESS_SIZE {
-                    Err(IronfishError::InvalidPublicAddress)
-                } else {
-                    let mut byte_arr = [0; PUBLIC_ADDRESS_SIZE];
-                    byte_arr.clone_from_slice(&bytes[0..PUBLIC_ADDRESS_SIZE]);
-                    Self::new(&byte_arr)
-                }
-            }
+            Ok(bytes) => Self::new(&bytes),
         }
     }
 
