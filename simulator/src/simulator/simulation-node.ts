@@ -261,6 +261,7 @@ export class SimulationNode {
     nodeConfig.set('enableRpc', true)
     nodeConfig.set('enableRpcTcp', true)
     nodeConfig.set('enableRpcTls', false)
+    nodeConfig.set('enableRpcHttp', true)
     nodeConfig.set('miningForce', true)
 
     await nodeConfig.save()
