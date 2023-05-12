@@ -1,7 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useAccountFixture, useMinersTxFixture } from '../../testUtilities'
+import {
+  createNodeTest,
+  serializePayload,
+  useAccountFixture,
+  useMinersTxFixture,
+} from '../../testUtilities'
 import {
   VerifyTransactionRequest,
   VerifyTransactionResponse,
@@ -13,7 +18,7 @@ describe('VerifyTransactionRequest', () => {
     const mockTransactionPosted = Buffer.from('')
     const verifyFees = true
     const request = new VerifyTransactionRequest(mockTransactionPosted, { verifyFees })
-    const buffer = request.serialize()
+    const buffer = serializePayload(request)
     const deserializedRequest = VerifyTransactionRequest.deserialize(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
   })
@@ -22,7 +27,7 @@ describe('VerifyTransactionRequest', () => {
 describe('VerifyTransactionResponse', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const response = new VerifyTransactionResponse(true, 0)
-    const buffer = response.serialize()
+    const buffer = serializePayload(response)
     const deserializedResponse = VerifyTransactionResponse.deserialize(response.jobId, buffer)
     expect(deserializedResponse).toEqual(response)
   })

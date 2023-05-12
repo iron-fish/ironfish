@@ -17,16 +17,13 @@ export class GetBlockTransactionsRequest extends RpcNetworkMessage {
     this.transactionIndexes = transactionIndexes
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeHash(this.blockHash)
 
     bw.writeVarint(this.transactionIndexes.length)
     for (const transactionIndex of this.transactionIndexes) {
       bw.writeVarint(transactionIndex)
     }
-
-    return bw.render()
   }
 
   static deserialize(buffer: Buffer, rpcId: number): GetBlockTransactionsRequest {
@@ -64,16 +61,13 @@ export class GetBlockTransactionsResponse extends RpcNetworkMessage {
     this.transactions = transactions
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeHash(this.blockHash)
 
     bw.writeVarint(this.transactions.length)
     for (const transaction of this.transactions) {
       writeTransaction(bw, transaction)
     }
-
-    return bw.render()
   }
 
   static deserialize(buffer: Buffer, rpcId: number): GetBlockTransactionsResponse {

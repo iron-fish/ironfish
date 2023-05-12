@@ -28,9 +28,7 @@ export class GetBlockHeadersRequest extends RpcNetworkMessage {
     this.reverse = reverse
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
-
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     if (Buffer.isBuffer(this.start)) {
       bw.writeU8(1)
       bw.writeHash(this.start)
@@ -42,7 +40,6 @@ export class GetBlockHeadersRequest extends RpcNetworkMessage {
     bw.writeU16(this.limit)
     bw.writeU16(this.skip)
     bw.writeU8(Number(this.reverse))
-    return bw.render()
   }
 
   static deserialize(buffer: Buffer, rpcId: number): GetBlockHeadersRequest {
@@ -82,16 +79,12 @@ export class GetBlockHeadersResponse extends RpcNetworkMessage {
     this.headers = headers
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
-
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeU16(this.headers.length)
 
     for (const header of this.headers) {
       writeBlockHeader(bw, header)
     }
-
-    return bw.render()
   }
 
   static deserialize(buffer: Buffer, rpcId: number): GetBlockHeadersResponse {

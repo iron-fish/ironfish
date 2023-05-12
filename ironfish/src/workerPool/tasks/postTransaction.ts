@@ -19,12 +19,9 @@ export class PostTransactionRequest extends WorkerMessage {
     this.spendingKey = spendingKey
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeBytes(Buffer.from(this.spendingKey, 'hex'))
     bw.writeBytes(RawTransactionSerde.serialize(this.transaction))
-
-    return bw.render()
   }
 
   static deserialize(jobId: number, buffer: Buffer): PostTransactionRequest {
@@ -49,10 +46,8 @@ export class PostTransactionResponse extends WorkerMessage {
     this.transaction = transaction
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeVarBytes(this.transaction.serialize())
-    return bw.render()
   }
 
   static deserialize(jobId: number, buffer: Buffer): PostTransactionResponse {

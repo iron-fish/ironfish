@@ -16,7 +16,7 @@ export abstract class NetworkMessage implements Serializable {
     this.type = type
   }
 
-  abstract serialize(): Buffer
+  abstract serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void
   abstract getSize(): number
 
   static deserializeType(buffer: Buffer): { type: NetworkMessageType; remaining: Buffer } {
@@ -25,11 +25,11 @@ export abstract class NetworkMessage implements Serializable {
     return { type, remaining: br.readBytes(br.left()) }
   }
 
-  serializeWithMetadata(): Buffer {
+  serialize(): Buffer {
     const headerSize = 1
     const bw = bufio.write(headerSize + this.getSize())
     bw.writeU8(this.type)
-    bw.writeBytes(this.serialize())
+    this.serializePayload(bw)
     return bw.render()
   }
 }

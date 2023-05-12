@@ -18,16 +18,13 @@ export class NewBlockHashesMessage extends NetworkMessage {
     this.blockHashInfos = blockHashInfos
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeU16(this.blockHashInfos.length)
 
     for (const blockhashInfo of this.blockHashInfos) {
       bw.writeBytes(blockhashInfo.hash)
       bw.writeU32(blockhashInfo.sequence)
     }
-
-    return bw.render()
   }
 
   static deserialize(buffer: Buffer): NewBlockHashesMessage {

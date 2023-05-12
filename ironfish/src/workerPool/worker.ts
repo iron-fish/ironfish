@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { initializeSapling } from '@ironfish/rust-nodejs'
-import bufio from 'bufio'
 import path from 'path'
 import { MessagePort, parentPort, Worker as WorkerThread } from 'worker_threads'
 import { Assert } from '../assert'
@@ -67,9 +66,9 @@ export class Worker {
 
   send(message: WorkerMessage): void {
     if (this.thread) {
-      this.thread.postMessage(message.serializeWithMetadata())
+      this.thread.postMessage(message.serialize())
     } else if (this.parent) {
-      this.parent.postMessage(message.serializeWithMetadata())
+      this.parent.postMessage(message.serialize())
     } else {
       throw new Error(`Cannot send message: no thread or worker`)
     }
@@ -126,7 +125,7 @@ export class Worker {
 
     let header: WorkerHeader
     try {
-      header = this.parseHeader(message)
+      header = WorkerMessage.deserializeHeader(message)
     } catch {
       this.logger.error(`Could not parse header from request: '${message.toString('hex')}'`)
       return
@@ -176,7 +175,7 @@ export class Worker {
 
     let header: WorkerHeader
     try {
-      header = this.parseHeader(message)
+      header = WorkerMessage.deserializeHeader(message)
     } catch {
       this.logger.error(`Could not parse header from response: '${message.toString('hex')}'`)
       return
@@ -218,17 +217,6 @@ export class Worker {
 
     job.resolve(result)
     return
-  }
-
-  private parseHeader(data: Buffer): WorkerHeader {
-    const br = bufio.read(data)
-    const jobId = Number(br.readU64())
-    const type = br.readU8()
-    return {
-      jobId,
-      type,
-      body: br.readBytes(br.left()),
-    }
   }
 
   private parseRequest(jobId: number, type: WorkerMessageType, request: Buffer): WorkerMessage {

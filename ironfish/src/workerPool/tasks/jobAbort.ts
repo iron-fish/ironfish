@@ -8,8 +8,8 @@ export class JobAbortedMessage extends WorkerMessage {
     super(WorkerMessageType.JobAborted, jobId)
   }
 
-  serialize(): Buffer {
-    return Buffer.from('')
+  serializePayload(): void {
+    return
   }
 
   static deserialize(): JobAbortedError {

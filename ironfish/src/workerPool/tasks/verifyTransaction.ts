@@ -20,11 +20,9 @@ export class VerifyTransactionRequest extends WorkerMessage {
     this.verifyFees = options?.verifyFees ?? true
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeVarBytes(this.transactionPosted)
     bw.writeU8(Number(this.verifyFees))
-    return bw.render()
   }
 
   static deserialize(jobId: number, buffer: Buffer): VerifyTransactionRequest {
@@ -47,10 +45,8 @@ export class VerifyTransactionResponse extends WorkerMessage {
     this.verified = verified
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeU8(Number(this.verified))
-    return bw.render()
   }
 
   static deserialize(jobId: number, buffer: Buffer): VerifyTransactionResponse {

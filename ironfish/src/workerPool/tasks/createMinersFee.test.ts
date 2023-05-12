@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, useAccountFixture } from '../../testUtilities'
+import { createNodeTest, serializePayload, useAccountFixture } from '../../testUtilities'
 import {
   CreateMinersFeeRequest,
   CreateMinersFeeResponse,
@@ -26,7 +26,7 @@ jest.mock('@ironfish/rust-nodejs', () => {
 describe('CreateMinersFeeRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const request = new CreateMinersFeeRequest(BigInt(0), 'memo', 'spendKey')
-    const buffer = request.serialize()
+    const buffer = serializePayload(request)
     const deserializedRequest = CreateMinersFeeRequest.deserialize(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
   })
@@ -35,7 +35,7 @@ describe('CreateMinersFeeRequest', () => {
 describe('CreateMinersFeeResponse', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const response = new CreateMinersFeeResponse(Uint8Array.from([0, 1, 2]), 0)
-    const buffer = response.serialize()
+    const buffer = serializePayload(response)
     const deserializedResponse = CreateMinersFeeResponse.deserialize(response.jobId, buffer)
     expect(deserializedResponse).toEqual(response)
   })

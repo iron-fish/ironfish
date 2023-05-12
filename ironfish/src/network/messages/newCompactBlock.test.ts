@@ -4,7 +4,12 @@
 import { BlockHeader, Target } from '../../primitives'
 import { CompactBlock } from '../../primitives/block'
 import { transactionCommitment } from '../../primitives/blockheader'
-import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
+import {
+  createNodeTest,
+  serializePayload,
+  useMinersTxFixture,
+  useTxSpendsFixture,
+} from '../../testUtilities'
 import { NewCompactBlockMessage } from './newCompactBlock'
 
 describe('NewCompactBlockMessage', () => {
@@ -58,7 +63,7 @@ describe('NewCompactBlockMessage', () => {
     }
 
     const message = new NewCompactBlockMessage(compactBlock)
-    const buffer = message.serialize()
+    const buffer = serializePayload(message)
     const deserializedMessage = NewCompactBlockMessage.deserialize(buffer)
 
     expectNewCompactBlockMessageToMatch(message, deserializedMessage)

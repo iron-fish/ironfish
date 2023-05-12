@@ -15,16 +15,12 @@ export class PooledTransactionsRequest extends RpcNetworkMessage {
     this.transactionHashes = transactionHashes
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
-
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeVarint(this.transactionHashes.length)
 
     for (const hash of this.transactionHashes) {
       bw.writeHash(hash)
     }
-
-    return bw.render()
   }
 
   static deserialize(buffer: Buffer, rpcId: number): PooledTransactionsRequest {
@@ -59,16 +55,12 @@ export class PooledTransactionsResponse extends RpcNetworkMessage {
     this.transactions = transactions
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
-
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeVarint(this.transactions.length)
 
     for (const transaction of this.transactions) {
       writeTransaction(bw, transaction)
     }
-
-    return bw.render()
   }
 
   static deserialize(buffer: Buffer, rpcId: number): PooledTransactionsResponse {

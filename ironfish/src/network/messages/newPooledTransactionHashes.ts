@@ -14,16 +14,12 @@ export class NewPooledTransactionHashes extends NetworkMessage {
     this.hashes = hashes
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
-
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeVarint(this.hashes.length)
 
     for (const hash of this.hashes) {
       bw.writeHash(hash)
     }
-
-    return bw.render()
   }
 
   static deserialize(buffer: Buffer): NewPooledTransactionHashes {

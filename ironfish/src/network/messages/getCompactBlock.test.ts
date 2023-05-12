@@ -3,7 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BlockHeader, Target } from '../../primitives'
 import { CompactBlock } from '../../primitives/block'
-import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
+import {
+  createNodeTest,
+  serializePayload,
+  useMinersTxFixture,
+  useTxSpendsFixture,
+} from '../../testUtilities'
 import { expectGetCompactBlockResponseToMatch } from '../testUtilities'
 import { GetCompactBlockRequest, GetCompactBlockResponse } from './getCompactBlock'
 
@@ -13,7 +18,7 @@ describe('GetCompactBlockRequest', () => {
     const hash = Buffer.alloc(32, 1)
 
     const message = new GetCompactBlockRequest(hash, rpcId)
-    const buffer = message.serialize()
+    const buffer = serializePayload(message)
     const deserializedMessage = GetCompactBlockRequest.deserialize(buffer, rpcId)
 
     expect(deserializedMessage).toEqual(message)
@@ -52,7 +57,7 @@ describe('GetCompactBlockResponse', () => {
     const rpcId = 432
 
     const message = new GetCompactBlockResponse(compactBlock, rpcId)
-    const buffer = message.serialize()
+    const buffer = serializePayload(message)
     const deserializedMessage = GetCompactBlockResponse.deserialize(buffer, rpcId)
 
     expectGetCompactBlockResponseToMatch(message, deserializedMessage)

@@ -15,12 +15,8 @@ export class GetCompactBlockRequest extends RpcNetworkMessage {
     this.blockHash = blockHash
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
-
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeHash(this.blockHash)
-
-    return bw.render()
   }
 
   static deserialize(buffer: Buffer, rpcId: number): GetCompactBlockRequest {
@@ -44,12 +40,8 @@ export class GetCompactBlockResponse extends RpcNetworkMessage {
     this.compactBlock = compactBlock
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
-
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     writeCompactBlock(bw, this.compactBlock)
-
-    return bw.render()
   }
 
   static deserialize(buffer: Buffer, rpcId: number): GetCompactBlockResponse {

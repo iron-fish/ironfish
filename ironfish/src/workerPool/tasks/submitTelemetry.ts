@@ -21,8 +21,7 @@ export class SubmitTelemetryRequest extends WorkerMessage {
     this.apiHost = apiHost
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeVarBytes(this.graffiti)
     bw.writeVarString(this.apiHost, 'utf8')
 
@@ -62,7 +61,6 @@ export class SubmitTelemetryRequest extends WorkerMessage {
         }
       }
     }
-    return bw.render()
   }
 
   static deserialize(jobId: number, buffer: Buffer): SubmitTelemetryRequest {
@@ -167,8 +165,8 @@ export class SubmitTelemetryResponse extends WorkerMessage {
     super(WorkerMessageType.SubmitTelemetry, jobId)
   }
 
-  serialize(): Buffer {
-    return Buffer.from('')
+  serializePayload(): void {
+    return
   }
 
   static deserialize(jobId: number): SubmitTelemetryResponse {

@@ -34,9 +34,7 @@ export class DecryptNotesRequest extends WorkerMessage {
     this.payloads = payloads
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
-
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeU8(this.payloads.length)
     for (const payload of this.payloads) {
       let flags = 0
@@ -53,8 +51,6 @@ export class DecryptNotesRequest extends WorkerMessage {
         bw.writeU32(payload.currentNoteIndex)
       }
     }
-
-    return bw.render()
   }
 
   static deserialize(jobId: number, buffer: Buffer): DecryptNotesRequest {
@@ -109,9 +105,7 @@ export class DecryptNotesResponse extends WorkerMessage {
     this.notes = notes
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
-
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeU8(this.notes.length)
     for (const note of this.notes) {
       const hasDecryptedNote = Number(!!note)
@@ -135,8 +129,6 @@ export class DecryptNotesResponse extends WorkerMessage {
         }
       }
     }
-
-    return bw.render()
   }
 
   static deserialize(jobId: number, buffer: Buffer): DecryptNotesResponse {

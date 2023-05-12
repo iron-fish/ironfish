@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import './matchers'
 
+export * from './helpers/serializable' // TODO: Are none of these used?
 export * from './fixtures'
 export * from './nodeTest'
 export * from './utils'

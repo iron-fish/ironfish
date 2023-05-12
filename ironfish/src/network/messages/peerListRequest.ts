@@ -9,8 +9,8 @@ export class PeerListRequestMessage extends NetworkMessage {
     super(NetworkMessageType.PeerListRequest)
   }
 
-  serialize(): Buffer {
-    return Buffer.alloc(0)
+  serializePayload(): void {
+    return
   }
 
   static deserialize(): PeerListRequestMessage {
