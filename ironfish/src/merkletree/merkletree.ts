@@ -567,6 +567,78 @@ export class MerkleTree<
   }
 
   /**
+   * Calculate what the hash was at the time the tree contained
+   * `pastSize` elements for each node index on the right side of the tree.
+   */
+  async pastRightSiblingHashes(
+    pastSize: number,
+    tx?: IDatabaseTransaction,
+  ): Promise<Map<number, H>> {
+    return this.db.withTransaction(tx, async (tx) => {
+      const pastHashes: Map<number, H> = new Map<number, H>()
+
+      const leafCount = await this.getCount('Leaves', tx)
+
+      if (leafCount === 0 || pastSize > leafCount || pastSize === 0) {
+        throw new Error(
+          `Unable to get past sibling hashes at size ${pastSize} for tree with ${leafCount} nodes`,
+        )
+      }
+
+      const leafIndex = pastSize - 1
+      const leaf = await this.getLeaf(leafIndex, tx)
+
+      const rootDepth = depthAtLeafCount(pastSize)
+      const minTreeDepth = Math.min(rootDepth, this.depth)
+
+      let currentHash = leaf.merkleHash
+      let currentNodeIndex = leaf.parentIndex
+
+      if (isRight(leafIndex)) {
+        const sibling = await this.getLeaf(leafIndex - 1, tx)
+        const siblingHash = sibling.merkleHash
+        currentHash = this.hasher.combineHash(0, siblingHash, currentHash)
+        pastHashes.set(leafIndex - 1, currentHash)
+      } else {
+        currentHash = this.hasher.combineHash(0, currentHash, currentHash)
+      }
+
+      pastHashes.set(currentNodeIndex, currentHash)
+
+      for (let depth = 1; depth < minTreeDepth; depth++) {
+        const node = await this.getNode(currentNodeIndex, tx)
+
+        switch (node.side) {
+          case Side.Left:
+            Assert.isNotUndefined(node.parentIndex)
+            currentNodeIndex = node.parentIndex
+            currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
+            pastHashes.set(currentNodeIndex, currentHash)
+            break
+
+          case Side.Right: {
+            Assert.isNotUndefined(node.leftIndex)
+            const leftNode = await this.getNode(node.leftIndex, tx)
+            pastHashes.set(node.leftIndex, currentHash)
+
+            Assert.isNotUndefined(leftNode.parentIndex)
+            currentNodeIndex = leftNode.parentIndex
+            currentHash = this.hasher.combineHash(depth, node.hashOfSibling, currentHash)
+            pastHashes.set(leftNode.parentIndex, currentHash)
+
+            break
+          }
+
+          default:
+            Assert.isUnreachable(node.side)
+        }
+      }
+
+      return pastHashes
+    })
+  }
+
+  /**
    * Get the root hash of the tree. Throws an error if the tree is empty.
    */
   async rootHash(tx?: IDatabaseTransaction): Promise<H> {
@@ -599,15 +671,29 @@ export class MerkleTree<
    */
   async witness(
     index: LeafIndex,
+    size?: number,
     tx?: IDatabaseTransaction,
   ): Promise<Witness<E, H, SE, SH> | null> {
     return this.db.withTransaction(tx, async (tx) => {
       const authenticationPath: WitnessNode<H>[] = []
 
-      const leafCount = await this.size(tx)
-      if (leafCount === 0 || index >= leafCount) {
+      const currentLeafCount = await this.size(tx)
+      if (size && size > currentLeafCount) {
+        throw new Error(
+          `Unable to get witness at size ${size} for tree with ${currentLeafCount} nodes`,
+        )
+      }
+
+      const witnessLeafCount = size ? size : currentLeafCount
+
+      if (witnessLeafCount === 0 || index >= witnessLeafCount) {
         return null
       }
+
+      const pastSiblingHashes =
+        witnessLeafCount < currentLeafCount
+          ? await this.pastRightSiblingHashes(witnessLeafCount, tx)
+          : new Map<number, H>()
 
       const leaf = await this.getLeaf(index, tx)
       let currentHash = leaf.merkleHash
@@ -617,7 +703,7 @@ export class MerkleTree<
         const hashOfSibling = (await this.getLeaf(index - 1, tx)).merkleHash
         authenticationPath.push({ side: Side.Right, hashOfSibling })
         currentHash = this.hasher.combineHash(0, hashOfSibling, currentHash)
-      } else if (index < leafCount - 1) {
+      } else if (index < witnessLeafCount - 1) {
         // Left leaf and have a right sibling
         const hashOfSibling = (await this.getLeaf(index + 1, tx)).merkleHash
         authenticationPath.push({ side: Side.Left, hashOfSibling })
@@ -628,7 +714,9 @@ export class MerkleTree<
         currentHash = this.hasher.combineHash(0, currentHash, currentHash)
       }
 
-      for (let depth = 1; depth < this.depth; depth++) {
+      const rootDepth = Math.min(depthAtLeafCount(witnessLeafCount), this.depth)
+
+      for (let depth = 1; depth < rootDepth; depth++) {
         const node =
           currentPosition !== undefined ? await this.getNodeOrNull(currentPosition, tx) : null
 
@@ -636,8 +724,12 @@ export class MerkleTree<
           authenticationPath.push({ side: Side.Left, hashOfSibling: currentHash })
           currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
         } else if (node.side === Side.Left) {
-          authenticationPath.push({ side: Side.Left, hashOfSibling: node.hashOfSibling })
-          currentHash = this.hasher.combineHash(depth, currentHash, node.hashOfSibling)
+          Assert.isNotUndefined(currentPosition)
+          // Use the recomputed hash of the right sibling
+          const hashOfSibling = pastSiblingHashes.get(currentPosition) ?? node.hashOfSibling
+
+          authenticationPath.push({ side: Side.Left, hashOfSibling: hashOfSibling })
+          currentHash = this.hasher.combineHash(depth, currentHash, hashOfSibling)
           currentPosition = node.parentIndex
         } else {
           authenticationPath.push({ side: Side.Right, hashOfSibling: node.hashOfSibling })
@@ -648,7 +740,12 @@ export class MerkleTree<
         }
       }
 
-      return new Witness(leafCount, currentHash, authenticationPath, this.hasher)
+      for (let depth = rootDepth; depth < this.depth; depth++) {
+        authenticationPath.push({ side: Side.Left, hashOfSibling: currentHash })
+        currentHash = this.hasher.combineHash(depth, currentHash, currentHash)
+      }
+
+      return new Witness(witnessLeafCount, currentHash, authenticationPath, this.hasher)
     })
   }
 

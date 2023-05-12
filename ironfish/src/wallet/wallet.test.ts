@@ -1040,6 +1040,53 @@ describe('Accounts', () => {
 
       expect(spentNoteHashes.has(notes[0])).toBe(true)
     })
+
+    it('should create transactions with spends valid after a reorg', async () => {
+      // create two chains to create a fork
+      const { node: nodeA } = await nodeTest.createSetup()
+      const { node: nodeB } = await nodeTest.createSetup()
+
+      const accountA = await useAccountFixture(nodeA.wallet, 'a')
+      const accountB = await useAccountFixture(nodeA.wallet, 'b')
+
+      // add blockA2 to both chains so that the notes spent from this block are valid
+      const blockA2 = await useMinerBlockFixture(nodeA.chain, undefined, accountA, nodeA.wallet)
+      await expect(nodeA.chain).toAddBlock(blockA2)
+      await expect(nodeB.chain).toAddBlock(blockA2)
+      await nodeA.wallet.updateHead()
+      await nodeB.wallet.updateHead()
+
+      // add blockA3 to chain A
+      const blockA3 = await useMinerBlockFixture(nodeA.chain)
+      await expect(nodeA.chain).toAddBlock(blockA3)
+      await nodeA.wallet.updateHead()
+
+      // create a transaction from accountA to accountB
+      const transaction = await useTxFixture(nodeA.wallet, accountA, accountB)
+
+      const verification = await nodeA.chain.verifier.verifyTransactionAdd(transaction)
+
+      expect(verification.valid).toBe(true)
+
+      // create a fork on chain B
+      const blockB3 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+      await expect(nodeB.chain).toAddBlock(blockB3)
+      const blockB4 = await useMinerBlockFixture(nodeB.chain, undefined, accountB)
+      await expect(nodeB.chain).toAddBlock(blockB4)
+      await nodeB.wallet.updateHead()
+
+      // reorg chain A
+      await expect(nodeA.chain).toAddBlock(blockB3)
+      await expect(nodeA.chain).toAddBlock(blockB4)
+      expect(nodeA.chain.head.hash.equals(blockB4.header.hash)).toBe(true)
+      await nodeA.wallet.updateHead()
+
+      // spend is now invalid because notes tree has changed since spend creation
+      const reorgVerification = await nodeA.chain.verifier.verifyTransactionAdd(transaction)
+
+      expect(reorgVerification.valid).toBe(false)
+      expect(reorgVerification.reason).toEqual(VerificationResultReason.INVALID_SPEND)
+    })
   })
 
   describe('getTransactionStatus', () => {
