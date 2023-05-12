@@ -395,7 +395,6 @@ export class PeerNetwork {
 
     // Send compact block to random subset of sqrt of peers
     for (const peer of peersToSendToArray.slice(0, sqrtSize)) {
-      this.logger.debug(`[krx] Broadcasting compact block to ${peer.address} ${blockDisplay}`)
       if (peer.send(compactBlockMessage)) {
         peer.knownBlockHashes.set(hash, KnownBlockHashesValue.Sent)
       }
@@ -415,7 +414,6 @@ export class PeerNetwork {
     ])
 
     for (const peer of this.connectedPeersWithoutBlock(header.hash)) {
-      this.logger.debug(`[krx] Broadcasting block hash to ${peer.address} ${blockDisplay}`)
       if (peer.send(hashMessage)) {
         peer.knownBlockHashes.set(header.hash, KnownBlockHashesValue.Sent)
       }
