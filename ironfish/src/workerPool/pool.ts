@@ -128,8 +128,9 @@ export class WorkerPool {
 
   async createMinersFee(spendKey: string, amount: bigint, memo: string): Promise<Transaction> {
     const request = new CreateMinersFeeRequest(amount, memo, spendKey)
-
+    this.logger.debug(`[krx] Sending CreateMinersFeeRequest`)
     const response = await this.execute(request).result()
+    this.logger.debug(`[krx] Got CreateMinersFeeResponse`)
 
     if (!(response instanceof CreateMinersFeeResponse)) {
       throw new Error('Invalid response')

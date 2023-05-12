@@ -140,12 +140,14 @@ export class MiningManager {
 
     const currBlockSize = getBlockWithMinersFeeSize()
 
+    this.node.logger.debug(`[krx] Getting new block transactions ${newBlockSequence}`)
     const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
       newBlockSequence,
       currBlockSize,
     )
 
     // Calculate the final fee for the miner of this block
+    this.node.logger.debug(`[krx] Creating miners fee ${newBlockSequence}`)
     const minersFee = await this.node.strategy.createMinersFee(
       totalFees,
       newBlockSequence,
@@ -163,6 +165,7 @@ export class MiningManager {
     )
 
     // Create the new block as a template for mining
+    this.node.logger.debug(`[krx] Creating new block ${newBlockSequence}`)
     const newBlock = await this.chain.newBlock(
       blockTransactions,
       minersFee,
@@ -175,7 +178,7 @@ export class MiningManager {
     )
 
     this.node.logger.debug(
-      `[krx] Current block template ${newBlock.header.sequence}, has ${newBlock.transactions.length} transactions`,
+      `[krx] Created block template ${newBlock.header.sequence}, with ${newBlock.transactions.length} transactions`,
     )
 
     this.metrics.mining_newBlockTemplate.add(BenchUtils.end(startTime))
@@ -187,7 +190,7 @@ export class MiningManager {
     const block = BlockTemplateSerde.deserialize(blockTemplate)
 
     const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
-    this.node.logger.debug(`[krx] Received mined block ${blockDisplay}`)
+    this.node.logger.debug(`[krx] Received mined block (New block seen) ${blockDisplay}`)
     if (!block.header.previousBlockHash.equals(this.node.chain.head.hash)) {
       const previous = await this.node.chain.getPrevious(block.header)
 

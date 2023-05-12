@@ -1221,6 +1221,9 @@ export class PeerNetwork {
     this.telemetry.submitNewBlockSeen(block, new Date())
 
     // verify the full block
+    this.logger.debug(
+      `[krx] Verifying ${block.header.hash.toString('hex')} (${block.header.sequence})`,
+    )
     const verified = await this.chain.verifier.verifyBlockAdd(block, prevHeader)
     if (!verified.valid) {
       this.chain.addInvalid(
@@ -1232,6 +1235,9 @@ export class PeerNetwork {
     }
 
     // add the block to the chain
+    this.logger.debug(
+      `[krx] Adding to chain ${block.header.hash.toString('hex')} (${block.header.sequence})`,
+    )
     const result = await this.node.syncer.addBlock(peer, block)
 
     // We should have checked if the block is an orphan or duplicate already, so we
