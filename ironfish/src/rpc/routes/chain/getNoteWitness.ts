@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import * as yup from 'yup'
+import { Assert } from '../../../assert'
+import { GENESIS_BLOCK_SEQUENCE } from '../../../primitives'
 import { ValidationError } from '../../adapters'
 import { ApiNamespace, router } from '../router'
 
 export type GetNoteWitnessRequest = {
   index: number
+  confirmations?: number
 }
 
 export type GetNoteWitnessResponse = {
@@ -21,6 +24,7 @@ export type GetNoteWitnessResponse = {
 export const GetNoteWitnessRequestSchema: yup.ObjectSchema<GetNoteWitnessRequest> = yup
   .object({
     index: yup.number().min(0).defined(),
+    confirmations: yup.number().min(0),
   })
   .defined()
 
@@ -46,10 +50,22 @@ router.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
   GetNoteWitnessRequestSchema,
   async (request, node): Promise<void> => {
     const { chain } = node
-    const witness = await chain.notes.witness(request.data.index)
+
+    const confirmations = request.data.confirmations ?? node.config.get('confirmations')
+
+    const maxConfirmedSequence = Math.max(
+      chain.head.sequence - confirmations,
+      GENESIS_BLOCK_SEQUENCE,
+    )
+    const maxConfirmedHeader = await chain.getHeaderAtSequence(maxConfirmedSequence)
+
+    Assert.isNotNull(maxConfirmedHeader)
+    Assert.isNotNull(maxConfirmedHeader?.noteSize)
+
+    const witness = await chain.notes.witness(request.data.index, maxConfirmedHeader.noteSize)
 
     if (witness === null) {
-      throw new ValidationError(`No notes exist with index ${request.data.index}`)
+      throw new ValidationError(`No confirmed notes exist with index ${request.data.index}`)
     }
 
     const authPath = witness.authenticationPath.map((step) => {
