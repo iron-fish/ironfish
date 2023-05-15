@@ -199,6 +199,7 @@ export class Send extends IronfishCommand {
         client,
         transaction: params,
         account: from,
+        confirmations: flags.confirmations,
         logger: this.logger,
       })
     } else {
