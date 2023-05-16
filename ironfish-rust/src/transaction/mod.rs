@@ -20,9 +20,8 @@ use crate::{
     OutputDescription, SpendDescription,
 };
 
-use bellperson::groth16::{verify_proof, prepare_verifying_key, verify_proofs_batch};
+use bellperson::groth16::{verify_proofs_batch};
 use blake2b_simd::Params as Blake2b;
-use blstrs::Bls12;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
 use jubjub::ExtendedPoint;
@@ -44,7 +43,7 @@ use std::{
 
 use self::{
     burns::{BurnBuilder, BurnDescription},
-    mints::{MintBuilder, MintDescription, UnsignedMintDescription}, utils::verify_spend_proof,
+    mints::{MintBuilder, MintDescription, UnsignedMintDescription},
 };
 
 pub mod burns;

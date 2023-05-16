@@ -115,6 +115,7 @@ dependencies = [
 [[package]]
 name = "bellperson"
 version = "0.24.1"
+source = "git+https://github.com/iron-fish/bellperson.git?branch=blstrs#37b9976bcd96986cbdc71ae09fc455015e3dfac0"
 dependencies = [
  "bincode",
  "blake2s_simd",
@@ -723,6 +724,7 @@ checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
 [[package]]
 name = "equihash"
 version = "0.2.0"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
 dependencies = [
  "blake2b_simd",
  "byteorder",
@@ -768,6 +770,7 @@ checksum = "8ba569491c70ec8471e34aa7e9c0b9e82bb5d2464c0398442d17d3c4af814e5a"
 [[package]]
 name = "f4jumble"
 version = "0.1.0"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
 dependencies = [
  "blake2b_simd",
 ]
@@ -1082,7 +1085,7 @@ dependencies = [
  "ff 0.12.1",
  "group 0.12.1",
  "ironfish_zkp",
- "jubjub 0.9.0",
+ "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
  "lazy_static",
  "libc",
  "rand 0.8.5",
@@ -1100,7 +1103,7 @@ dependencies = [
  "byteorder",
  "ff 0.12.1",
  "group 0.12.1",
- "jubjub 0.9.0",
+ "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
  "lazy_static",
  "rand 0.8.5",
  "zcash_primitives",
@@ -1134,20 +1137,6 @@ dependencies = [
 [[package]]
 name = "jubjub"
 version = "0.9.0"
-dependencies = [
- "bitvec",
- "blst",
- "blstrs",
- "ff 0.12.1",
- "group 0.12.1",
- "lazy_static",
- "rand_core 0.6.4",
- "subtle",
-]
-
-[[package]]
-name = "jubjub"
-version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a575df5f985fe1cd5b2b05664ff6accfc46559032b954529fd225a2168d27b0f"
 dependencies = [
@@ -1155,6 +1144,21 @@ dependencies = [
  "bls12_381",
  "ff 0.12.1",
  "group 0.12.1",
+ "rand_core 0.6.4",
+ "subtle",
+]
+
+[[package]]
+name = "jubjub"
+version = "0.9.0"
+source = "git+https://github.com/iron-fish/jubjub.git?branch=blstrs#a1a0c2ed69eec4d5d5e87842e2a40849f7fa4633"
+dependencies = [
+ "bitvec",
+ "blst",
+ "blstrs",
+ "ff 0.12.1",
+ "group 0.12.1",
+ "lazy_static",
  "rand_core 0.6.4",
  "subtle",
 ]
@@ -2277,6 +2281,7 @@ dependencies = [
 [[package]]
 name = "zcash_address"
 version = "0.1.0"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
 dependencies = [
  "bech32",
  "bs58",
@@ -2287,19 +2292,10 @@ dependencies = [
 [[package]]
 name = "zcash_encoding"
 version = "0.1.0"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
 dependencies = [
  "byteorder",
  "nonempty",
-]
-
-[[package]]
-name = "zcash_note_encryption"
-version = "0.1.0"
-dependencies = [
- "chacha20",
- "chacha20poly1305",
- "rand_core 0.6.4",
- "subtle",
 ]
 
 [[package]]
@@ -2315,8 +2311,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "zcash_note_encryption"
+version = "0.1.0"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
+dependencies = [
+ "chacha20",
+ "chacha20poly1305",
+ "rand_core 0.6.4",
+ "subtle",
+]
+
+[[package]]
 name = "zcash_primitives"
 version = "0.7.0"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
 dependencies = [
  "aes",
  "bip0039",
@@ -2332,7 +2340,7 @@ dependencies = [
  "group 0.12.1",
  "hex",
  "incrementalmerkletree",
- "jubjub 0.9.0",
+ "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
  "lazy_static",
  "memuse",
  "nonempty",
@@ -2343,22 +2351,22 @@ dependencies = [
  "subtle",
  "zcash_address",
  "zcash_encoding",
- "zcash_note_encryption 0.1.0",
+ "zcash_note_encryption 0.1.0 (git+https://github.com/iron-fish/librustzcash.git?branch=blstrs)",
 ]
 
 [[package]]
 name = "zcash_proofs"
 version = "0.7.1"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
 dependencies = [
  "bellperson",
  "blake2b_simd",
- "bls12_381",
  "blstrs",
  "byteorder",
  "directories",
  "ff 0.12.1",
  "group 0.12.1",
- "jubjub 0.9.0",
+ "jubjub 0.9.0 (git+https://github.com/iron-fish/jubjub.git?branch=blstrs)",
  "lazy_static",
  "rand_core 0.6.4",
  "redjubjub",
