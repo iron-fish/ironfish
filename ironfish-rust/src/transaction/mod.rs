@@ -20,7 +20,7 @@ use crate::{
     OutputDescription, SpendDescription,
 };
 
-use bellperson::groth16::{verify_proofs_batch};
+use bellperson::groth16::verify_proofs_batch;
 use blake2b_simd::Params as Blake2b;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use group::GroupEncoding;
@@ -809,7 +809,11 @@ pub fn batch_verify_transactions<'a>(
             spend.partial_verify()?;
 
             spend_proofs.push(&spend.proof);
-            spend_public_inputs.push(spend.public_inputs(transaction.randomized_public_key()).to_vec());
+            spend_public_inputs.push(
+                spend
+                    .public_inputs(transaction.randomized_public_key())
+                    .to_vec(),
+            );
 
             binding_verification_key += spend.value_commitment;
 
@@ -823,7 +827,11 @@ pub fn batch_verify_transactions<'a>(
             output.partial_verify()?;
 
             output_proofs.push(&output.proof);
-            output_public_inputs.push(output.public_inputs(transaction.randomized_public_key()).to_vec());
+            output_public_inputs.push(
+                output
+                    .public_inputs(transaction.randomized_public_key())
+                    .to_vec(),
+            );
 
             binding_verification_key -= output.merkle_note.value_commitment;
         }
@@ -832,7 +840,10 @@ pub fn batch_verify_transactions<'a>(
             mint.partial_verify()?;
 
             mint_proofs.push(&mint.proof);
-            mint_public_inputs.push(mint.public_inputs(transaction.randomized_public_key()).to_vec());
+            mint_public_inputs.push(
+                mint.public_inputs(transaction.randomized_public_key())
+                    .to_vec(),
+            );
 
             mint.verify_signature(
                 &hash_to_verify_signature,
@@ -843,14 +854,29 @@ pub fn batch_verify_transactions<'a>(
         transaction.verify_binding_signature(&binding_verification_key)?;
     }
 
-    if spend_proofs.len() > 0 {
-        verify_proofs_batch(&SAPLING.spend_verifying_key, &mut OsRng, &spend_proofs[..], &spend_public_inputs[..])?;
+    if !spend_proofs.is_empty() {
+        verify_proofs_batch(
+            &SAPLING.spend_verifying_key,
+            &mut OsRng,
+            &spend_proofs[..],
+            &spend_public_inputs[..],
+        )?;
     }
-    if output_proofs.len() > 0 {
-        verify_proofs_batch(&SAPLING.output_verifying_key, &mut OsRng, &output_proofs[..], &output_public_inputs[..])?;
+    if !output_proofs.is_empty() {
+        verify_proofs_batch(
+            &SAPLING.output_verifying_key,
+            &mut OsRng,
+            &output_proofs[..],
+            &output_public_inputs[..],
+        )?;
     }
-    if mint_proofs.len() > 0 {
-        verify_proofs_batch(&SAPLING.mint_verifying_key, &mut OsRng, &mint_proofs[..], &mint_public_inputs[..])?;
+    if !mint_proofs.is_empty() {
+        verify_proofs_batch(
+            &SAPLING.mint_verifying_key,
+            &mut OsRng,
+            &mint_proofs[..],
+            &mint_public_inputs[..],
+        )?;
     }
 
     Ok(())

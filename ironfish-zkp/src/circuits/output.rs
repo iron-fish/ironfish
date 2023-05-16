@@ -255,7 +255,7 @@ impl Circuit<blstrs::Scalar> for Output {
 
 #[cfg(test)]
 mod test {
-    use bellperson::{ConstraintSystem, gadgets::test::*, Circuit};
+    use bellperson::{gadgets::test::*, Circuit, ConstraintSystem};
     use ff::Field;
     use group::{Curve, Group};
     use rand::rngs::StdRng;

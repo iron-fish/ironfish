@@ -117,7 +117,7 @@ impl Circuit<blstrs::Scalar> for MintAsset {
 
 #[cfg(test)]
 mod test {
-    use bellperson::{ConstraintSystem, gadgets::test::TestConstraintSystem, Circuit};
+    use bellperson::{gadgets::test::TestConstraintSystem, Circuit, ConstraintSystem};
     use ff::Field;
     use group::{Curve, Group};
     use jubjub::ExtendedPoint;

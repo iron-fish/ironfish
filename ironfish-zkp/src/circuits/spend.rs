@@ -335,9 +335,8 @@ impl Circuit<blstrs::Scalar> for Spend {
 #[cfg(test)]
 mod test {
     use bellperson::{
-        ConstraintSystem,
         gadgets::{multipack, test::*},
-        Circuit,
+        Circuit, ConstraintSystem,
     };
     use blake2s_simd::Params as Blake2sParams;
     use ff::{Field, PrimeField, PrimeFieldBits};
@@ -379,10 +378,7 @@ mod test {
 
             let commitment_randomness = jubjub::Fr::random(&mut rng);
             let auth_path =
-                vec![
-                    Some((blstrs::Scalar::random(&mut rng), rng.next_u32() % 2 != 0));
-                    tree_depth
-                ];
+                vec![Some((blstrs::Scalar::random(&mut rng), rng.next_u32() % 2 != 0)); tree_depth];
             let ar = jubjub::Fr::random(&mut rng);
 
             {
@@ -426,11 +422,7 @@ mod test {
                         lhs.iter()
                             .by_vals()
                             .take(blstrs::Scalar::NUM_BITS as usize)
-                            .chain(
-                                rhs.iter()
-                                    .by_vals()
-                                    .take(blstrs::Scalar::NUM_BITS as usize),
-                            ),
+                            .chain(rhs.iter().by_vals().take(blstrs::Scalar::NUM_BITS as usize)),
                     ))
                     .to_affine()
                     .get_u();
@@ -543,10 +535,7 @@ mod test {
 
             let commitment_randomness = jubjub::Fr::random(&mut rng);
             let auth_path =
-                vec![
-                    Some((blstrs::Scalar::random(&mut rng), rng.next_u32() % 2 != 0));
-                    tree_depth
-                ];
+                vec![Some((blstrs::Scalar::random(&mut rng), rng.next_u32() % 2 != 0)); tree_depth];
             let ar = jubjub::Fr::random(&mut rng);
 
             {
@@ -555,13 +544,11 @@ mod test {
                     jubjub::ExtendedPoint::from(value_commitment.commitment()).to_affine();
                 assert_eq!(
                     expected_value_commitment.get_u(),
-                    blstrs::Scalar::from_str_vartime(expected_commitment_us[i as usize])
-                        .unwrap()
+                    blstrs::Scalar::from_str_vartime(expected_commitment_us[i as usize]).unwrap()
                 );
                 assert_eq!(
                     expected_value_commitment.get_v(),
-                    blstrs::Scalar::from_str_vartime(expected_commitment_vs[i as usize])
-                        .unwrap()
+                    blstrs::Scalar::from_str_vartime(expected_commitment_vs[i as usize]).unwrap()
                 );
 
                 let mut position = 0u64;
@@ -595,11 +582,7 @@ mod test {
                         lhs.iter()
                             .by_vals()
                             .take(blstrs::Scalar::NUM_BITS as usize)
-                            .chain(
-                                rhs.iter()
-                                    .by_vals()
-                                    .take(blstrs::Scalar::NUM_BITS as usize),
-                            ),
+                            .chain(rhs.iter().by_vals().take(blstrs::Scalar::NUM_BITS as usize)),
                     ))
                     .to_affine()
                     .get_u();

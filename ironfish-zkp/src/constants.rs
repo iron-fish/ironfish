@@ -27,29 +27,33 @@ lazy_static! {
             0x77ff_8c90_a9a0_d8f4,
             0x0daf_03b5_47e2_022b,
             0x6dad_65e6_2328_d37a,
-        ]).unwrap(),
+        ])
+        .unwrap(),
         blstrs::Scalar::from_u64s_le(&[
             0x5095_1f1f_eff0_8278,
             0xf0b7_03d5_3a3e_dd4e,
             0xca01_f580_9c00_eee2,
             0x6996_932c_ece1_f4bb,
-        ]).unwrap(),
+        ])
+        .unwrap(),
     );
-    
-    pub static ref NATIVE_VALUE_COMMITMENT_GENERATOR: SubgroupPoint = SubgroupPoint::from_raw_unchecked(
-        blstrs::Scalar::from_u64s_le(&[
-            0x94d2_7f25_df35_ab48,
-            0xd63c_001a_a39a_7991,
-            0x7398_aab3_c907_f5ab,
-            0x6623_5382_bd3b_3741,
-        ]).unwrap(),
-        blstrs::Scalar::from_u64s_le(&[
-            0x6f79_906c_2a58_8644,
-            0x48e2_9b1a_efc3_a67c,
-            0x4808_b27f_848e_59b3,
-            0x074c_0767_fd99_d42f,
-        ]).unwrap(),
-    );
+    pub static ref NATIVE_VALUE_COMMITMENT_GENERATOR: SubgroupPoint =
+        SubgroupPoint::from_raw_unchecked(
+            blstrs::Scalar::from_u64s_le(&[
+                0x94d2_7f25_df35_ab48,
+                0xd63c_001a_a39a_7991,
+                0x7398_aab3_c907_f5ab,
+                0x6623_5382_bd3b_3741,
+            ])
+            .unwrap(),
+            blstrs::Scalar::from_u64s_le(&[
+                0x6f79_906c_2a58_8644,
+                0x48e2_9b1a_efc3_a67c,
+                0x4808_b27f_848e_59b3,
+                0x074c_0767_fd99_d42f,
+            ])
+            .unwrap(),
+        );
 }
 
 pub mod proof {
