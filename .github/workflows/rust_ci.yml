@@ -42,7 +42,7 @@ jobs:
           shared-key: base
       
       - name: Install deps
-        run: apt install opencl-headers ocl-icd-opencl-dev
+        run: sudo apt-get update && sudo apt-get install opencl-headers ocl-icd-opencl-dev -y
 
       - name: Install Cargo tools
         run: |
@@ -79,7 +79,7 @@ jobs:
           shared-key: base
 
       - name: Install deps
-        run: apt install opencl-headers ocl-icd-opencl-dev  
+        run: sudo apt-get update && sudo apt-get install opencl-headers ocl-icd-opencl-dev -y
 
       # Run tests to collect code coverage
       - name: Run cargo-tarpaulin on ironfish-rust
@@ -108,7 +108,7 @@ jobs:
           shared-key: zkp
 
       - name: Install deps
-        run: apt install opencl-headers ocl-icd-opencl-dev
+        run: sudo apt-get update && sudo apt-get install opencl-headers ocl-icd-opencl-dev -y
 
       # Run tests to collect code coverage
       - name: Run cargo-tarpaulin on ironfish-zkp
