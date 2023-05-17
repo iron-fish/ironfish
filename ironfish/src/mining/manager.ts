@@ -41,6 +41,8 @@ export class MiningManager {
   blocksMined = 0
   minersConnected = 0
 
+  preparedMinersFee: Map<number, Promise<Transaction>> = new Map()
+
   readonly onNewBlock = new Event<[Block]>()
 
   constructor(options: {
@@ -148,10 +150,23 @@ export class MiningManager {
 
     // Calculate the final fee for the miner of this block
     this.node.logger.debug(`[krx] Creating miners fee ${newBlockSequence}`)
-    const minersFee = await this.node.strategy.createMinersFee(
-      totalFees,
-      newBlockSequence,
-      account.spendingKey,
+    let minersFee: Transaction
+    const minersFeePromise = this.preparedMinersFee.get(newBlockSequence)
+    if (minersFeePromise !== undefined) {
+      this.node.logger.debug(`[krx] Found prepared miners fee ${newBlockSequence}`)
+      minersFee = await minersFeePromise
+    } else {
+      this.node.logger.debug(`[krx] Can't find prepared miners fee. Creating. ${newBlockSequence}`)
+      minersFee = await this.node.strategy.createMinersFee(
+        totalFees,
+        newBlockSequence,
+        account.spendingKey,
+      )
+    }
+    this.node.logger.debug(`[krx] Firing background createMinersFee routine for ${newBlockSequence + 1}`)
+    this.preparedMinersFee.set(
+      newBlockSequence + 1,
+      this.node.strategy.createMinersFee(BigInt(0), newBlockSequence + 1, account.spendingKey),
     )
     this.node.logger.debug(
       `[krx] Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
