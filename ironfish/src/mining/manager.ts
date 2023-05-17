@@ -140,14 +140,16 @@ export class MiningManager {
       `[krx] Begin constructing new block template for block sequence ${newBlockSequence}`,
     )
 
-    const currBlockSize = getBlockWithMinersFeeSize()
+    // const currBlockSize = getBlockWithMinersFeeSize()
 
     this.node.logger.debug(`[krx] Getting new block transactions ${newBlockSequence}`)
-    const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
-      newBlockSequence,
-      currBlockSize,
-    )
-
+    // const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
+    //   newBlockSequence,
+    //   currBlockSize,
+    // )
+    const newBlockSize = 846
+    const totalFees = BigInt(0)
+    const blockTransactions: Transaction[] = []
     // Calculate the final fee for the miner of this block
     this.node.logger.debug(`[krx] Creating miners fee ${newBlockSequence}`)
     let minersFee: Transaction
