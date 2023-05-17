@@ -168,6 +168,7 @@ export class MiningManager {
       newBlockSequence + 1,
       this.node.strategy.createMinersFee(BigInt(0), newBlockSequence + 1, account.spendingKey),
     )
+    this.preparedMinersFee.delete(newBlockSequence)
     this.node.logger.debug(
       `[krx] Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
     )
