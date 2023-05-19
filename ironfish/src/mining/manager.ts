@@ -17,6 +17,7 @@ import {
 } from '../network/utils/serializers'
 import { IronfishNode } from '../node'
 import { Block } from '../primitives/block'
+import { isBlockHeavier } from '../primitives/blockheader'
 import { Transaction } from '../primitives/transaction'
 import { BlockTemplateSerde, SerializedBlockTemplate } from '../serde'
 import { BenchUtils } from '../utils/bench'
@@ -184,8 +185,8 @@ export class MiningManager {
 
     const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
     if (
-      !this.node.chain.head ||
-      !block.header.previousBlockHash.equals(this.node.chain.head.hash)
+      !block.header.previousBlockHash.equals(this.node.chain.head.hash) &&
+      !isBlockHeavier(block.header, this.node.chain.head)
     ) {
       this.node.logger.info(
         `Discarding mined block ${blockDisplay} that no longer attaches to heaviest head`,

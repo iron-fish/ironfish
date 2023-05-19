@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { VerificationResultReason } from '../consensus/verifier'
+import { isBlockHeavier } from '../primitives/blockheader'
 import { BlockTemplateSerde } from '../serde/BlockTemplateSerde'
 import {
   createNodeTest,
@@ -219,6 +220,32 @@ describe('Mining manager', () => {
 
       await miningManager.submitBlockTemplate(blockTemplateA1)
       expect(onNewBlockSpy).toHaveBeenCalledWith(validBlock)
+    })
+
+    it('adds block if chain changed but block is heavier', async () => {
+      const { strategy, chain, node } = nodeTest
+      const { miningManager } = node
+      strategy.disableMiningReward()
+
+      await nodeTest.node.wallet.createAccount('account', true)
+
+      // mine two blocks at the same sequence
+      const blockA1 = await useMinerBlockFixture(chain, 2)
+      const blockB1 = await useMinerBlockFixture(chain, 2)
+
+      // add blockA1 to the chain so that blockB1 no longer connects to the head
+      await expect(chain).toAddBlock(blockA1)
+      expect(blockB1.header.previousBlockHash).not.toEqualHash(chain.head.hash)
+
+      // increment work so that blockB1 is heavier
+      blockB1.header.work = blockA1.header.work + 1n
+      expect(isBlockHeavier(blockB1.header, blockA1.header)).toBe(true)
+
+      const blockTemplateB1 = await miningManager.createNewBlockTemplate(blockB1)
+
+      await expect(miningManager.submitBlockTemplate(blockTemplateB1)).resolves.toBe(
+        MINED_RESULT.SUCCESS,
+      )
     })
   })
 })
