@@ -37,7 +37,7 @@ describe('NewTransactionsMessage', () => {
     const message = new NewTransactionsMessage(transactions)
 
     const buffer = serializePayload(message)
-    const deserializedMessage = NewTransactionsMessage.deserialize(buffer)
+    const deserializedMessage = NewTransactionsMessage.deserializePayload(buffer)
 
     expectNewTransactionsMessageToMatch(message, deserializedMessage)
   })

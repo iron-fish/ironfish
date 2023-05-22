@@ -51,7 +51,7 @@ export class PeerListMessage extends NetworkMessage {
     }
   }
 
-  static deserialize(buffer: Buffer): PeerListMessage {
+  static deserializePayload(buffer: Buffer): PeerListMessage {
     const reader = bufio.read(buffer, true)
     const connectedPeersLength = reader.readU16()
     const connectedPeers = []

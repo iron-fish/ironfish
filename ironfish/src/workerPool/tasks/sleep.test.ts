@@ -9,7 +9,7 @@ describe('SleepRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const request = new SleepRequest(1000, '')
     const buffer = serializePayload(request)
-    const deserializedRequest = SleepRequest.deserialize(request.jobId, buffer)
+    const deserializedRequest = SleepRequest.deserializePayload(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
   })
 })
@@ -18,7 +18,7 @@ describe('SleepResponse', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const response = new SleepResponse(true, 1)
     const buffer = serializePayload(response)
-    const deserializedResponse = SleepResponse.deserialize(response.jobId, buffer)
+    const deserializedResponse = SleepResponse.deserializePayload(response.jobId, buffer)
     expect(deserializedResponse).toEqual(response)
   })
 })

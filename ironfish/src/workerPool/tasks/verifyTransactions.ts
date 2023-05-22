@@ -21,7 +21,7 @@ export class VerifyTransactionsRequest extends WorkerMessage {
     }
   }
 
-  static deserialize(jobId: number, buffer: Buffer): VerifyTransactionsRequest {
+  static deserializePayload(jobId: number, buffer: Buffer): VerifyTransactionsRequest {
     const reader = bufio.read(buffer, true)
 
     const txLength = reader.readU64()
@@ -54,7 +54,7 @@ export class VerifyTransactionsResponse extends WorkerMessage {
     bw.writeU8(Number(this.verified))
   }
 
-  static deserialize(jobId: number, buffer: Buffer): VerifyTransactionsResponse {
+  static deserializePayload(jobId: number, buffer: Buffer): VerifyTransactionsResponse {
     const reader = bufio.read(buffer, true)
     const verified = Boolean(reader.readU8())
     return new VerifyTransactionsResponse(verified, jobId)

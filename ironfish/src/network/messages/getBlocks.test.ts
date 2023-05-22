@@ -16,7 +16,7 @@ describe('GetBlocksRequest', () => {
     const rpcId = 0
     const message = new GetBlocksRequest(Buffer.alloc(32), 10, rpcId)
     const buffer = serializePayload(message)
-    const deserializedMessage = GetBlocksRequest.deserialize(buffer, rpcId)
+    const deserializedMessage = GetBlocksRequest.deserializePayload(buffer, rpcId)
     expect(deserializedMessage).toEqual(message)
   })
 })
@@ -73,7 +73,7 @@ describe('GetBlocksResponse', () => {
       rpcId,
     )
     const buffer = serializePayload(message)
-    const deserializedMessage = GetBlocksResponse.deserialize(buffer, rpcId)
+    const deserializedMessage = GetBlocksResponse.deserializePayload(buffer, rpcId)
 
     expectGetBlocksResponseToMatch(message, deserializedMessage)
   })

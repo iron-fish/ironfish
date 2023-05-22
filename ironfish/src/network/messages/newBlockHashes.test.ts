@@ -18,7 +18,7 @@ describe('NewBlockHashesMessage', () => {
     ])
 
     const buffer = serializePayload(message)
-    const deserializedMessage = NewBlockHashesMessage.deserialize(buffer)
+    const deserializedMessage = NewBlockHashesMessage.deserializePayload(buffer)
     expect(deserializedMessage).toEqual(message)
   })
 })

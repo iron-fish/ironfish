@@ -63,7 +63,7 @@ export class SubmitTelemetryRequest extends WorkerMessage {
     }
   }
 
-  static deserialize(jobId: number, buffer: Buffer): SubmitTelemetryRequest {
+  static deserializePayload(jobId: number, buffer: Buffer): SubmitTelemetryRequest {
     const reader = bufio.read(buffer, true)
     const graffiti = reader.readVarBytes()
     const apiHost = reader.readVarString('utf8')
@@ -169,7 +169,7 @@ export class SubmitTelemetryResponse extends WorkerMessage {
     return
   }
 
-  static deserialize(jobId: number): SubmitTelemetryResponse {
+  static deserializePayload(jobId: number): SubmitTelemetryResponse {
     return new SubmitTelemetryResponse(jobId)
   }
 

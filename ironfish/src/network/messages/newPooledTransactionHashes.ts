@@ -22,7 +22,7 @@ export class NewPooledTransactionHashes extends NetworkMessage {
     }
   }
 
-  static deserialize(buffer: Buffer): NewPooledTransactionHashes {
+  static deserializePayload(buffer: Buffer): NewPooledTransactionHashes {
     const reader = bufio.read(buffer, true)
     const length = reader.readVarint()
     const hashes = []

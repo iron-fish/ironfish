@@ -12,7 +12,7 @@ describe('GetBlockHeadersRequest', () => {
       const message = new GetBlockHeadersRequest(1, 10, 0, false, rpcId)
 
       const buffer = serializePayload(message)
-      const deserializedMessage = GetBlockHeadersRequest.deserialize(buffer, rpcId)
+      const deserializedMessage = GetBlockHeadersRequest.deserializePayload(buffer, rpcId)
       expect(deserializedMessage).toEqual(message)
     })
   })
@@ -23,7 +23,7 @@ describe('GetBlockHeadersRequest', () => {
       const message = new GetBlockHeadersRequest(Buffer.alloc(32, 1), 10, 0, false, rpcId)
 
       const buffer = serializePayload(message)
-      const deserializedMessage = GetBlockHeadersRequest.deserialize(buffer, rpcId)
+      const deserializedMessage = GetBlockHeadersRequest.deserializePayload(buffer, rpcId)
       expect(deserializedMessage).toEqual(message)
     })
   })
@@ -40,7 +40,7 @@ describe('GetBlockHeadersResponse', () => {
     const message = new GetBlockHeadersResponse([block1.header, block2.header], rpcId)
 
     const buffer = serializePayload(message)
-    const deserializedMessage = GetBlockHeadersResponse.deserialize(buffer, rpcId)
+    const deserializedMessage = GetBlockHeadersResponse.deserializePayload(buffer, rpcId)
     expectGetBlockHeadersResponseToMatch(deserializedMessage, message)
   })
 
@@ -53,6 +53,6 @@ describe('GetBlockHeadersResponse', () => {
 
     const buffer = serializePayload(message)
     buffer.writeUInt16LE(3, 0)
-    expect(() => GetBlockHeadersResponse.deserialize(buffer, rpcId)).toThrow()
+    expect(() => GetBlockHeadersResponse.deserializePayload(buffer, rpcId)).toThrow()
   })
 })

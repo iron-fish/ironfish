@@ -53,7 +53,7 @@ export class DecryptNotesRequest extends WorkerMessage {
     }
   }
 
-  static deserialize(jobId: number, buffer: Buffer): DecryptNotesRequest {
+  static deserializePayload(jobId: number, buffer: Buffer): DecryptNotesRequest {
     const reader = bufio.read(buffer, true)
     const payloads = []
 
@@ -131,7 +131,7 @@ export class DecryptNotesResponse extends WorkerMessage {
     }
   }
 
-  static deserialize(jobId: number, buffer: Buffer): DecryptNotesResponse {
+  static deserializePayload(jobId: number, buffer: Buffer): DecryptNotesResponse {
     const reader = bufio.read(buffer)
     const notes = []
 

@@ -15,7 +15,7 @@ describe('DisconnectingMessage', () => {
     })
 
     const buffer = serializePayload(message)
-    const deserializedMessage = DisconnectingMessage.deserialize(buffer)
+    const deserializedMessage = DisconnectingMessage.deserializePayload(buffer)
     expect(deserializedMessage).toEqual(message)
   })
 
@@ -28,7 +28,7 @@ describe('DisconnectingMessage', () => {
     })
 
     const buffer = serializePayload(message)
-    const deserializedMessage = DisconnectingMessage.deserialize(buffer)
+    const deserializedMessage = DisconnectingMessage.deserializePayload(buffer)
     expect(deserializedMessage.disconnectUntil).toEqual(1649968933000)
   })
 })

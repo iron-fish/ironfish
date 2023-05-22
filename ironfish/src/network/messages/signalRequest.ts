@@ -32,7 +32,7 @@ export class SignalRequestMessage extends NetworkMessage {
     bw.writeBytes(Buffer.from(this.sourceIdentity, 'base64'))
   }
 
-  static deserialize(buffer: Buffer): SignalRequestMessage {
+  static deserializePayload(buffer: Buffer): SignalRequestMessage {
     const reader = bufio.read(buffer, true)
     const destinationIdentity = reader.readBytes(identityLength).toString('base64')
     const sourceIdentity = reader.readBytes(identityLength).toString('base64')

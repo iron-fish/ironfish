@@ -30,7 +30,7 @@ describe('DecryptNotesRequest', () => {
       0,
     )
     const buffer = serializePayload(request)
-    const deserializedRequest = DecryptNotesRequest.deserialize(request.jobId, buffer)
+    const deserializedRequest = DecryptNotesRequest.deserializePayload(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
   })
 })
@@ -51,7 +51,7 @@ describe('DecryptNotesResponse', () => {
       0,
     )
     const buffer = serializePayload(response)
-    const deserializedResponse = DecryptNotesResponse.deserialize(response.jobId, buffer)
+    const deserializedResponse = DecryptNotesResponse.deserializePayload(response.jobId, buffer)
     expect(deserializedResponse).toEqual(response)
   })
 })

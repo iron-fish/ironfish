@@ -19,7 +19,10 @@ describe('VerifyTransactionRequest', () => {
     const verifyFees = true
     const request = new VerifyTransactionRequest(mockTransactionPosted, { verifyFees })
     const buffer = serializePayload(request)
-    const deserializedRequest = VerifyTransactionRequest.deserialize(request.jobId, buffer)
+    const deserializedRequest = VerifyTransactionRequest.deserializePayload(
+      request.jobId,
+      buffer,
+    )
     expect(deserializedRequest).toEqual(request)
   })
 })
@@ -28,7 +31,10 @@ describe('VerifyTransactionResponse', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const response = new VerifyTransactionResponse(true, 0)
     const buffer = serializePayload(response)
-    const deserializedResponse = VerifyTransactionResponse.deserialize(response.jobId, buffer)
+    const deserializedResponse = VerifyTransactionResponse.deserializePayload(
+      response.jobId,
+      buffer,
+    )
     expect(deserializedResponse).toEqual(response)
   })
 })

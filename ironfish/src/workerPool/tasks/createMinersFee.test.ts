@@ -27,7 +27,7 @@ describe('CreateMinersFeeRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const request = new CreateMinersFeeRequest(BigInt(0), 'memo', 'spendKey')
     const buffer = serializePayload(request)
-    const deserializedRequest = CreateMinersFeeRequest.deserialize(request.jobId, buffer)
+    const deserializedRequest = CreateMinersFeeRequest.deserializePayload(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
   })
 })
@@ -36,7 +36,10 @@ describe('CreateMinersFeeResponse', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const response = new CreateMinersFeeResponse(Uint8Array.from([0, 1, 2]), 0)
     const buffer = serializePayload(response)
-    const deserializedResponse = CreateMinersFeeResponse.deserialize(response.jobId, buffer)
+    const deserializedResponse = CreateMinersFeeResponse.deserializePayload(
+      response.jobId,
+      buffer,
+    )
     expect(deserializedResponse).toEqual(response)
   })
 })

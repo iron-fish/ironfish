@@ -49,7 +49,7 @@ describe('SubmitTelemetryRequest', () => {
       'mock.api.endpoint',
     )
     const buffer = serializePayload(request)
-    const deserializedRequest = SubmitTelemetryRequest.deserialize(request.jobId, buffer)
+    const deserializedRequest = SubmitTelemetryRequest.deserializePayload(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
   })
 })
@@ -57,7 +57,7 @@ describe('SubmitTelemetryRequest', () => {
 describe('SubmitTelemetryResponse', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const response = new SubmitTelemetryResponse(0)
-    const deserializedResponse = SubmitTelemetryResponse.deserialize(response.jobId)
+    const deserializedResponse = SubmitTelemetryResponse.deserializePayload(response.jobId)
     expect(deserializedResponse).toEqual(response)
   })
 })

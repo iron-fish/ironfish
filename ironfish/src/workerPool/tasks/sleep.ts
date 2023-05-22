@@ -23,7 +23,7 @@ export class SleepRequest extends WorkerMessage {
     bw.writeVarString(this.error, 'utf8')
   }
 
-  static deserialize(jobId: number, buffer: Buffer): SleepRequest {
+  static deserializePayload(jobId: number, buffer: Buffer): SleepRequest {
     const reader = bufio.read(buffer, true)
     const sleep = reader.readDouble()
     const error = reader.readVarString('utf8')
@@ -47,7 +47,7 @@ export class SleepResponse extends WorkerMessage {
     bw.writeU8(Number(this.aborted))
   }
 
-  static deserialize(jobId: number, buffer: Buffer): SleepResponse {
+  static deserializePayload(jobId: number, buffer: Buffer): SleepResponse {
     const reader = bufio.read(buffer, true)
     const aborted = Boolean(reader.readU8())
     return new SleepResponse(aborted, jobId)

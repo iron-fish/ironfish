@@ -13,7 +13,7 @@ export class CannotSatisfyRequest extends RpcNetworkMessage {
     return
   }
 
-  static deserialize(rpcId: number): CannotSatisfyRequest {
+  static deserializePayload(rpcId: number): CannotSatisfyRequest {
     return new CannotSatisfyRequest(rpcId)
   }
 

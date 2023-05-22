@@ -45,7 +45,7 @@ export class JobErrorMessage extends WorkerMessage {
   }
 
   // We return JobError so the error can be propagated to a calling Promise's reject method
-  static deserialize(jobId: number, buffer: Buffer): JobError {
+  static deserializePayload(jobId: number, buffer: Buffer): JobError {
     const br = bufio.read(buffer, true)
 
     const errorType = br.readVarString('utf8')

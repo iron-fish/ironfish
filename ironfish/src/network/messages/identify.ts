@@ -79,7 +79,7 @@ export class IdentifyMessage extends NetworkMessage {
     bw.writeU32(flags)
   }
 
-  static deserialize(buffer: Buffer): IdentifyMessage {
+  static deserializePayload(buffer: Buffer): IdentifyMessage {
     const reader = bufio.read(buffer, true)
     const identity = reader.readBytes(identityLength).toString('base64')
     const name = reader.readVarString('utf8')

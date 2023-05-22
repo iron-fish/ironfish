@@ -19,7 +19,7 @@ export class GetCompactBlockRequest extends RpcNetworkMessage {
     bw.writeHash(this.blockHash)
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): GetCompactBlockRequest {
+  static deserializePayload(buffer: Buffer, rpcId: number): GetCompactBlockRequest {
     const reader = bufio.read(buffer, true)
 
     const blockHash = reader.readHash()
@@ -44,7 +44,7 @@ export class GetCompactBlockResponse extends RpcNetworkMessage {
     writeCompactBlock(bw, this.compactBlock)
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): GetCompactBlockResponse {
+  static deserializePayload(buffer: Buffer, rpcId: number): GetCompactBlockResponse {
     const reader = bufio.read(buffer, true)
 
     const compactBlock = readCompactBlock(reader)

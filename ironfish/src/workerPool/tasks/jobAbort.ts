@@ -12,7 +12,7 @@ export class JobAbortedMessage extends WorkerMessage {
     return
   }
 
-  static deserialize(): JobAbortedError {
+  static deserializePayload(): JobAbortedError {
     return new JobAbortedError()
   }
 

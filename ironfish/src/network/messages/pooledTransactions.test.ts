@@ -19,7 +19,7 @@ describe('PooledTransactionsRequest', () => {
     const message = new PooledTransactionsRequest(hashes, rpcId)
 
     const buffer = serializePayload(message)
-    const deserializedMessage = PooledTransactionsRequest.deserialize(buffer, rpcId)
+    const deserializedMessage = PooledTransactionsRequest.deserializePayload(buffer, rpcId)
     expect(deserializedMessage).toEqual(message)
   })
 })
@@ -52,7 +52,7 @@ describe('PooledTransactionsResponse', () => {
     const message = new PooledTransactionsResponse(transactions, rpcId)
 
     const buffer = serializePayload(message)
-    const deserializedMessage = PooledTransactionsResponse.deserialize(buffer, rpcId)
+    const deserializedMessage = PooledTransactionsResponse.deserializePayload(buffer, rpcId)
 
     expectPooledTransactionsResponseToMatch(message, deserializedMessage)
   })

@@ -19,7 +19,7 @@ describe('GetCompactBlockRequest', () => {
 
     const message = new GetCompactBlockRequest(hash, rpcId)
     const buffer = serializePayload(message)
-    const deserializedMessage = GetCompactBlockRequest.deserialize(buffer, rpcId)
+    const deserializedMessage = GetCompactBlockRequest.deserializePayload(buffer, rpcId)
 
     expect(deserializedMessage).toEqual(message)
   })
@@ -58,7 +58,7 @@ describe('GetCompactBlockResponse', () => {
 
     const message = new GetCompactBlockResponse(compactBlock, rpcId)
     const buffer = serializePayload(message)
-    const deserializedMessage = GetCompactBlockResponse.deserialize(buffer, rpcId)
+    const deserializedMessage = GetCompactBlockResponse.deserializePayload(buffer, rpcId)
 
     expectGetCompactBlockResponseToMatch(message, deserializedMessage)
   })

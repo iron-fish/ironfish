@@ -22,7 +22,7 @@ describe('PeerListMessage', () => {
     ])
 
     const buffer = serializePayload(message)
-    const deserializedMessage = PeerListMessage.deserialize(buffer)
+    const deserializedMessage = PeerListMessage.deserializePayload(buffer)
     expect(deserializedMessage).toEqual(message)
   })
 })

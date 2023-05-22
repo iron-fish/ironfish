@@ -19,7 +19,7 @@ export class NewCompactBlockMessage extends NetworkMessage {
     writeCompactBlock(bw, this.compactBlock)
   }
 
-  static deserialize(buffer: Buffer): NewCompactBlockMessage {
+  static deserializePayload(buffer: Buffer): NewCompactBlockMessage {
     const reader = bufio.read(buffer, true)
 
     const compactBlock = readCompactBlock(reader)

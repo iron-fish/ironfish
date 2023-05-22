@@ -50,7 +50,7 @@ export class DisconnectingMessage extends NetworkMessage {
     }
   }
 
-  static deserialize(buffer: Buffer): DisconnectingMessage {
+  static deserializePayload(buffer: Buffer): DisconnectingMessage {
     const reader = bufio.read(buffer, true)
     const disconnectUntil = reader.readU32() * 1000
     const reason = reader.readU8()

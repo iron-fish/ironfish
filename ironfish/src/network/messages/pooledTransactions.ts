@@ -23,7 +23,7 @@ export class PooledTransactionsRequest extends RpcNetworkMessage {
     }
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): PooledTransactionsRequest {
+  static deserializePayload(buffer: Buffer, rpcId: number): PooledTransactionsRequest {
     const reader = bufio.read(buffer, true)
     const transactionHashesLength = reader.readVarint()
     const transactionHashes = []
@@ -63,7 +63,7 @@ export class PooledTransactionsResponse extends RpcNetworkMessage {
     }
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): PooledTransactionsResponse {
+  static deserializePayload(buffer: Buffer, rpcId: number): PooledTransactionsResponse {
     const reader = bufio.read(buffer, true)
     const transactionsLength = reader.readVarint()
     const transactions: Transaction[] = []

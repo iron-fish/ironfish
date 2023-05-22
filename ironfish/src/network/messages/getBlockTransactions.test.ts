@@ -21,7 +21,7 @@ describe('GetBlockTransactionsRequest', () => {
 
     const message = new GetBlockTransactionsRequest(blockHash, transactionIndexes, rpcId)
     const buffer = serializePayload(message)
-    const deserializedMessage = GetBlockTransactionsRequest.deserialize(buffer, rpcId)
+    const deserializedMessage = GetBlockTransactionsRequest.deserializePayload(buffer, rpcId)
 
     expect(deserializedMessage).toEqual(message)
   })
@@ -40,7 +40,7 @@ describe('GetBlockTransactionsResponse', () => {
 
     const message = new GetBlockTransactionsResponse(blockHash, transactions, rpcId)
     const buffer = serializePayload(message)
-    const deserializedMessage = GetBlockTransactionsResponse.deserialize(buffer, rpcId)
+    const deserializedMessage = GetBlockTransactionsResponse.deserializePayload(buffer, rpcId)
 
     expectGetBlockTransactionsResponseToMatch(message, deserializedMessage)
   })

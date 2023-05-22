@@ -13,7 +13,7 @@ describe('PooledTransactionsRequest', () => {
     const message = new NewPooledTransactionHashes(hashes)
 
     const buffer = serializePayload(message)
-    const deserializedMessage = NewPooledTransactionHashes.deserialize(buffer)
+    const deserializedMessage = NewPooledTransactionHashes.deserializePayload(buffer)
     expect(deserializedMessage).toEqual(message)
   })
 })

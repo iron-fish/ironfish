@@ -26,7 +26,7 @@ export class GetBlockTransactionsRequest extends RpcNetworkMessage {
     }
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): GetBlockTransactionsRequest {
+  static deserializePayload(buffer: Buffer, rpcId: number): GetBlockTransactionsRequest {
     const reader = bufio.read(buffer, true)
     const blockHash = reader.readHash()
 
@@ -70,7 +70,7 @@ export class GetBlockTransactionsResponse extends RpcNetworkMessage {
     }
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): GetBlockTransactionsResponse {
+  static deserializePayload(buffer: Buffer, rpcId: number): GetBlockTransactionsResponse {
     const reader = bufio.read(buffer, true)
     const blockHash = reader.readHash()
 

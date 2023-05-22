@@ -22,7 +22,7 @@ export class NewTransactionsMessage extends NetworkMessage {
     }
   }
 
-  static deserialize(buffer: Buffer): NewTransactionsMessage {
+  static deserializePayload(buffer: Buffer): NewTransactionsMessage {
     const reader = bufio.read(buffer, true)
 
     const length = reader.readVarint()

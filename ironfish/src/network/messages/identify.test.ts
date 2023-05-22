@@ -23,7 +23,7 @@ describe('IdentifyMessage', () => {
     })
 
     const buffer = serializePayload(message)
-    const deserializedMessage = IdentifyMessage.deserialize(buffer)
+    const deserializedMessage = IdentifyMessage.deserializePayload(buffer)
     expect(deserializedMessage).toEqual(message)
   })
 })

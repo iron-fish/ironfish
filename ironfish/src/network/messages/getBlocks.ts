@@ -22,7 +22,7 @@ export class GetBlocksRequest extends RpcNetworkMessage {
     bw.writeU16(this.limit)
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): GetBlocksRequest {
+  static deserializePayload(buffer: Buffer, rpcId: number): GetBlocksRequest {
     const reader = bufio.read(buffer, true)
     const start = reader.readHash()
     const limit = reader.readU16()
@@ -53,7 +53,7 @@ export class GetBlocksResponse extends RpcNetworkMessage {
     }
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): GetBlocksResponse {
+  static deserializePayload(buffer: Buffer, rpcId: number): GetBlocksResponse {
     const reader = bufio.read(buffer, true)
     const blocks = []
 

@@ -64,7 +64,7 @@ describe('NewCompactBlockMessage', () => {
 
     const message = new NewCompactBlockMessage(compactBlock)
     const buffer = serializePayload(message)
-    const deserializedMessage = NewCompactBlockMessage.deserialize(buffer)
+    const deserializedMessage = NewCompactBlockMessage.deserializePayload(buffer)
 
     expectNewCompactBlockMessageToMatch(message, deserializedMessage)
   })

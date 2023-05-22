@@ -12,7 +12,7 @@ describe('SignalRequestMessage', () => {
     })
 
     const buffer = serializePayload(message)
-    const deserializedMessage = SignalRequestMessage.deserialize(buffer)
+    const deserializedMessage = SignalRequestMessage.deserializePayload(buffer)
     expect(deserializedMessage).toEqual(message)
   })
 })

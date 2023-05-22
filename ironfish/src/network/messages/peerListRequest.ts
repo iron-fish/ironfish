@@ -13,7 +13,7 @@ export class PeerListRequestMessage extends NetworkMessage {
     return
   }
 
-  static deserialize(): PeerListRequestMessage {
+  static deserializePayload(): PeerListRequestMessage {
     return new PeerListRequestMessage()
   }
 

@@ -42,7 +42,7 @@ export class GetBlockHeadersRequest extends RpcNetworkMessage {
     bw.writeU8(Number(this.reverse))
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): GetBlockHeadersRequest {
+  static deserializePayload(buffer: Buffer, rpcId: number): GetBlockHeadersRequest {
     const reader = bufio.read(buffer, true)
 
     const isBuffer = Boolean(reader.readU8())
@@ -87,7 +87,7 @@ export class GetBlockHeadersResponse extends RpcNetworkMessage {
     }
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): GetBlockHeadersResponse {
+  static deserializePayload(buffer: Buffer, rpcId: number): GetBlockHeadersResponse {
     const reader = bufio.read(buffer, true)
     const headers = []
 

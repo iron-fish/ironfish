@@ -27,7 +27,7 @@ export class NewBlockHashesMessage extends NetworkMessage {
     }
   }
 
-  static deserialize(buffer: Buffer): NewBlockHashesMessage {
+  static deserializePayload(buffer: Buffer): NewBlockHashesMessage {
     const reader = bufio.read(buffer, true)
     const blockHashInfosLength = reader.readU16()
     const blockHashInfos = []
