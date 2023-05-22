@@ -6,6 +6,8 @@ import bufio from 'bufio'
 import { Serializable } from '../../common/serializable'
 import { WorkerHeader } from '../interfaces/workerHeader'
 
+export const WORKER_MESSAGE_HEADER_SIZE = 9
+
 export enum WorkerMessageType {
   CreateMinersFee = 0,
   DecryptNotes = 2,
@@ -45,8 +47,7 @@ export abstract class WorkerMessage implements Serializable {
   }
 
   serialize(): Buffer {
-    const headerSize = 9
-    const bw = bufio.write(headerSize + this.getSize())
+    const bw = bufio.write(WORKER_MESSAGE_HEADER_SIZE + this.getSize())
     bw.writeU64(this.jobId)
     bw.writeU8(this.type)
     this.serializePayload(bw)

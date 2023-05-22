@@ -10,6 +10,7 @@ import { BenchUtils, CurrencyUtils, PromiseUtils, SegmentResults } from '../../u
 import { Account } from '../../wallet'
 import { CreateMinersFeeRequest } from './createMinersFee'
 import { DecryptNoteOptions, DecryptNotesRequest } from './decryptNotes'
+import { WORKER_MESSAGE_HEADER_SIZE } from './workerMessage'
 
 describe('WorkerMessages', () => {
   const nodeTest = createNodeTest(true)
@@ -30,9 +31,7 @@ describe('WorkerMessages', () => {
       account.spendingKey,
     )
 
-    // TODO: This is a hard-coded number pulled from
-    // WorkerMessage.serializeWithMetadata()
-    const expectedLength = message.getSize() + 9
+    const expectedLength = message.getSize() + WORKER_MESSAGE_HEADER_SIZE
 
     const runs: number[] = []
 
@@ -75,9 +74,7 @@ describe('WorkerMessages', () => {
 
     const message = new DecryptNotesRequest(payload)
 
-    // TODO: This is a hard-coded number pulled from
-    // WorkerMessage.serializeWithMetadata()
-    const expectedLength = message.getSize() + 9
+    const expectedLength = message.getSize() + WORKER_MESSAGE_HEADER_SIZE
 
     const runs: number[] = []
 
