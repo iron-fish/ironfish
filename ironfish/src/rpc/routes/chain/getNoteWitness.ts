@@ -65,7 +65,9 @@ router.register<typeof GetNoteWitnessRequestSchema, GetNoteWitnessResponse>(
     const witness = await chain.notes.witness(request.data.index, maxConfirmedHeader.noteSize)
 
     if (witness === null) {
-      throw new ValidationError(`No confirmed notes exist with index ${request.data.index}`)
+      throw new ValidationError(
+        `No confirmed notes exist with index ${request.data.index} in tree of size ${maxConfirmedHeader.noteSize}`,
+      )
     }
 
     const authPath = witness.authenticationPath.map((step) => {
