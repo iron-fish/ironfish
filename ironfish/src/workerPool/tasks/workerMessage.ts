@@ -38,7 +38,7 @@ export abstract class WorkerMessage implements Serializable {
     const br = bufio.read(buffer)
     const jobId = Number(br.readU64())
     const type = br.readU8()
-    // TODO: can we utilize zero copy here?
+    // TODO(mat): can we utilize zero copy here?
     return {
       jobId,
       type,
