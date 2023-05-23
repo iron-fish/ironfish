@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+import { Assert } from '../assert'
 import { VerificationResultReason } from '../consensus/verifier'
-import { isBlockHeavier } from '../primitives/blockheader'
+import { Target } from '../primitives'
 import { BlockTemplateSerde } from '../serde/BlockTemplateSerde'
 import {
   createNodeTest,
@@ -116,16 +117,26 @@ describe('Mining manager', () => {
 
       await nodeTest.node.wallet.createAccount('account', true)
 
-      const blockA1 = await useMinerBlockFixture(chain, 2)
-      const blockA2 = await useMinerBlockFixture(chain, 3)
+      const genesis = await node.chain.getBlock(node.chain.genesis)
+      Assert.isNotNull(genesis)
 
-      const blockTemplateA1 = await miningManager.createNewBlockTemplate(blockA1)
+      // create a block template that connects to the genesis block
+      const blockTemplateA1 = await miningManager.createNewBlockTemplate(genesis)
+
+      // add both A1 and A2 to the chain
+      const blockA1 = await useMinerBlockFixture(chain, 2)
       await expect(chain).toAddBlock(blockA1)
+      const blockA2 = await useMinerBlockFixture(chain, 3)
+      await expect(chain).toAddBlock(blockA2)
+
+      // create a block template that connects to the new chain head, blockA2
       const blockTemplateA2 = await miningManager.createNewBlockTemplate(blockA2)
 
+      // the chain has changed, so a template connecting to genesis should be discarded
       await expect(miningManager.submitBlockTemplate(blockTemplateA1)).resolves.toBe(
         MINED_RESULT.CHAIN_CHANGED,
       )
+      // template for a new block connecting to the head should be connected
       await expect(miningManager.submitBlockTemplate(blockTemplateA2)).resolves.toBe(
         MINED_RESULT.SUCCESS,
       )
@@ -237,9 +248,8 @@ describe('Mining manager', () => {
       await expect(chain).toAddBlock(blockA1)
       expect(blockB1.header.previousBlockHash).not.toEqualHash(chain.head.hash)
 
-      // increment work so that blockB1 is heavier
-      blockB1.header.work = blockA1.header.work + 1n
-      expect(isBlockHeavier(blockB1.header, blockA1.header)).toBe(true)
+      // increase difficulty so that blockB1 is heavier
+      blockB1.header.target = Target.fromDifficulty(blockA1.header.target.toDifficulty() + 1n)
 
       const blockTemplateB1 = await miningManager.createNewBlockTemplate(blockB1)
 

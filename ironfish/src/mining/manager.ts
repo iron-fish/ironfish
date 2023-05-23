@@ -184,15 +184,19 @@ export class MiningManager {
     const block = BlockTemplateSerde.deserialize(blockTemplate)
 
     const blockDisplay = `${block.header.hash.toString('hex')} (${block.header.sequence})`
-    if (
-      !block.header.previousBlockHash.equals(this.node.chain.head.hash) &&
-      !isBlockHeavier(block.header, this.node.chain.head)
-    ) {
-      this.node.logger.info(
-        `Discarding mined block ${blockDisplay} that no longer attaches to heaviest head`,
-      )
+    if (!block.header.previousBlockHash.equals(this.node.chain.head.hash)) {
+      const previous = await this.node.chain.getPrevious(block.header)
 
-      return MINED_RESULT.CHAIN_CHANGED
+      const work = block.header.target.toDifficulty()
+      block.header.work = (previous ? previous.work : BigInt(0)) + work
+
+      if (!isBlockHeavier(block.header, this.node.chain.head)) {
+        this.node.logger.info(
+          `Discarding mined block ${blockDisplay} that no longer attaches to heaviest head`,
+        )
+
+        return MINED_RESULT.CHAIN_CHANGED
+      }
     }
 
     const validation = await this.node.chain.verifier.verifyBlock(block)
