@@ -4,7 +4,7 @@
 import { FileUtils } from './file'
 import { TimeUtils } from './time'
 
-type SegmentResults = {
+export type SegmentResults = {
   time: number
   heap: number
   rss: number

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import axios from 'axios'
 import { Metric } from '../../telemetry'
+import { serializePayloadToBuffer } from '../../testUtilities'
 import { BufferUtils, GraffitiUtils } from '../../utils'
 import {
   SubmitTelemetryRequest,
@@ -47,8 +48,8 @@ describe('SubmitTelemetryRequest', () => {
       GraffitiUtils.fromString(''),
       'mock.api.endpoint',
     )
-    const buffer = request.serialize()
-    const deserializedRequest = SubmitTelemetryRequest.deserialize(request.jobId, buffer)
+    const buffer = serializePayloadToBuffer(request)
+    const deserializedRequest = SubmitTelemetryRequest.deserializePayload(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
   })
 })
@@ -56,7 +57,7 @@ describe('SubmitTelemetryRequest', () => {
 describe('SubmitTelemetryResponse', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const response = new SubmitTelemetryResponse(0)
-    const deserializedResponse = SubmitTelemetryResponse.deserialize(response.jobId)
+    const deserializedResponse = SubmitTelemetryResponse.deserializePayload(response.jobId)
     expect(deserializedResponse).toEqual(response)
   })
 })

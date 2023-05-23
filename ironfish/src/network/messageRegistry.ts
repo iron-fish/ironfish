@@ -62,27 +62,27 @@ const parseRpcNetworkMessage = (
 
   switch (type) {
     case NetworkMessageType.CannotSatisfyRequest:
-      return CannotSatisfyRequest.deserialize(rpcId)
+      return CannotSatisfyRequest.deserializePayload(rpcId)
     case NetworkMessageType.GetBlocksRequest:
-      return GetBlocksRequest.deserialize(body, rpcId)
+      return GetBlocksRequest.deserializePayload(body, rpcId)
     case NetworkMessageType.GetBlocksResponse:
-      return GetBlocksResponse.deserialize(body, rpcId)
+      return GetBlocksResponse.deserializePayload(body, rpcId)
     case NetworkMessageType.PooledTransactionsRequest:
-      return PooledTransactionsRequest.deserialize(body, rpcId)
+      return PooledTransactionsRequest.deserializePayload(body, rpcId)
     case NetworkMessageType.PooledTransactionsResponse:
-      return PooledTransactionsResponse.deserialize(body, rpcId)
+      return PooledTransactionsResponse.deserializePayload(body, rpcId)
     case NetworkMessageType.GetBlockTransactionsRequest:
-      return GetBlockTransactionsRequest.deserialize(body, rpcId)
+      return GetBlockTransactionsRequest.deserializePayload(body, rpcId)
     case NetworkMessageType.GetBlockTransactionsResponse:
-      return GetBlockTransactionsResponse.deserialize(body, rpcId)
+      return GetBlockTransactionsResponse.deserializePayload(body, rpcId)
     case NetworkMessageType.GetCompactBlockRequest:
-      return GetCompactBlockRequest.deserialize(body, rpcId)
+      return GetCompactBlockRequest.deserializePayload(body, rpcId)
     case NetworkMessageType.GetCompactBlockResponse:
-      return GetCompactBlockResponse.deserialize(body, rpcId)
+      return GetCompactBlockResponse.deserializePayload(body, rpcId)
     case NetworkMessageType.GetBlockHeadersRequest:
-      return GetBlockHeadersRequest.deserialize(body, rpcId)
+      return GetBlockHeadersRequest.deserializePayload(body, rpcId)
     case NetworkMessageType.GetBlockHeadersResponse:
-      return GetBlockHeadersResponse.deserialize(body, rpcId)
+      return GetBlockHeadersResponse.deserializePayload(body, rpcId)
     default:
       throw new Error(`Unknown RPC network message type: ${type}`)
   }
@@ -91,25 +91,25 @@ const parseRpcNetworkMessage = (
 const parseGenericNetworkMessage = (type: NetworkMessageType, body: Buffer): NetworkMessage => {
   switch (type) {
     case NetworkMessageType.Disconnecting:
-      return DisconnectingMessage.deserialize(body)
+      return DisconnectingMessage.deserializePayload(body)
     case NetworkMessageType.Identify:
-      return IdentifyMessage.deserialize(body)
+      return IdentifyMessage.deserializePayload(body)
     case NetworkMessageType.PeerList:
-      return PeerListMessage.deserialize(body)
+      return PeerListMessage.deserializePayload(body)
     case NetworkMessageType.PeerListRequest:
-      return PeerListRequestMessage.deserialize()
+      return PeerListRequestMessage.deserializePayload()
     case NetworkMessageType.Signal:
-      return SignalMessage.deserialize(body)
+      return SignalMessage.deserializePayload(body)
     case NetworkMessageType.SignalRequest:
-      return SignalRequestMessage.deserialize(body)
+      return SignalRequestMessage.deserializePayload(body)
     case NetworkMessageType.NewPooledTransactionHashes:
-      return NewPooledTransactionHashes.deserialize(body)
+      return NewPooledTransactionHashes.deserializePayload(body)
     case NetworkMessageType.NewTransactions:
-      return NewTransactionsMessage.deserialize(body)
+      return NewTransactionsMessage.deserializePayload(body)
     case NetworkMessageType.NewBlockHashes:
-      return NewBlockHashesMessage.deserialize(body)
+      return NewBlockHashesMessage.deserializePayload(body)
     case NetworkMessageType.NewCompactBlock:
-      return NewCompactBlockMessage.deserialize(body)
+      return NewCompactBlockMessage.deserializePayload(body)
     default:
       throw new Error(`Unknown network message type: ${type}`)
   }

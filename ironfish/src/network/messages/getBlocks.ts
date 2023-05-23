@@ -17,14 +17,12 @@ export class GetBlocksRequest extends RpcNetworkMessage {
     this.limit = limit
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeHash(this.start)
     bw.writeU16(this.limit)
-    return bw.render()
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): GetBlocksRequest {
+  static deserializePayload(buffer: Buffer, rpcId: number): GetBlocksRequest {
     const reader = bufio.read(buffer, true)
     const start = reader.readHash()
     const limit = reader.readU16()
@@ -47,19 +45,15 @@ export class GetBlocksResponse extends RpcNetworkMessage {
     this.blocks = blocks
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
-
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeU16(this.blocks.length)
 
     for (const block of this.blocks) {
       writeBlock(bw, block)
     }
-
-    return bw.render()
   }
 
-  static deserialize(buffer: Buffer, rpcId: number): GetBlocksResponse {
+  static deserializePayload(buffer: Buffer, rpcId: number): GetBlocksResponse {
     const reader = bufio.read(buffer, true)
     const blocks = []
 

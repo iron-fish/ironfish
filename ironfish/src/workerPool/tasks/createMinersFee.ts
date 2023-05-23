@@ -19,15 +19,13 @@ export class CreateMinersFeeRequest extends WorkerMessage {
     this.spendKey = spendKey
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeVarBytes(BigIntUtils.toBytesBE(this.amount))
     bw.writeVarString(this.memo, 'utf8')
     bw.writeVarString(this.spendKey, 'utf8')
-    return bw.render()
   }
 
-  static deserialize(jobId: number, buffer: Buffer): CreateMinersFeeRequest {
+  static deserializePayload(jobId: number, buffer: Buffer): CreateMinersFeeRequest {
     const reader = bufio.read(buffer, true)
     const amount = BigIntUtils.fromBytesBE(reader.readVarBytes())
     const memo = reader.readVarString('utf8')
@@ -52,11 +50,11 @@ export class CreateMinersFeeResponse extends WorkerMessage {
     this.serializedTransactionPosted = serializedTransactionPosted
   }
 
-  serialize(): Buffer {
-    return Buffer.from(this.serializedTransactionPosted)
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
+    bw.writeBytes(Buffer.from(this.serializedTransactionPosted))
   }
 
-  static deserialize(jobId: number, buffer: Buffer): CreateMinersFeeResponse {
+  static deserializePayload(jobId: number, buffer: Buffer): CreateMinersFeeResponse {
     return new CreateMinersFeeResponse(Uint8Array.from(buffer), jobId)
   }
 

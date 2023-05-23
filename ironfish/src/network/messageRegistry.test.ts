@@ -29,7 +29,7 @@ describe('messageRegistry', () => {
         })
         jest.spyOn(message, 'serialize').mockImplementationOnce(() => Buffer.from('adsf'))
 
-        expect(() => parseNetworkMessage(message.serializeWithMetadata())).toThrow()
+        expect(() => parseNetworkMessage(message.serialize())).toThrow()
       })
     })
 
@@ -48,7 +48,7 @@ describe('messageRegistry', () => {
           features: defaultFeatures(),
         })
 
-        expect(parseNetworkMessage(message.serializeWithMetadata())).toEqual(message)
+        expect(parseNetworkMessage(message.serialize())).toEqual(message)
       })
     })
   })

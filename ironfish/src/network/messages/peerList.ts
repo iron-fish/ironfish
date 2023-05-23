@@ -22,8 +22,7 @@ export class PeerListMessage extends NetworkMessage {
     this.connectedPeers = connectedPeers
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeU16(this.connectedPeers.length)
 
     for (const peer of this.connectedPeers) {
@@ -50,10 +49,9 @@ export class PeerListMessage extends NetworkMessage {
         bw.writeVarString(address, 'utf8')
       }
     }
-    return bw.render()
   }
 
-  static deserialize(buffer: Buffer): PeerListMessage {
+  static deserializePayload(buffer: Buffer): PeerListMessage {
     const reader = bufio.read(buffer, true)
     const connectedPeersLength = reader.readU16()
     const connectedPeers = []

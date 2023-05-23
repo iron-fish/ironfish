@@ -7,7 +7,7 @@ describe('CannotSatisfyRequest', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
     const rpcId = 0
     const message = new CannotSatisfyRequest(rpcId)
-    const deserializedMessage = CannotSatisfyRequest.deserialize(rpcId)
+    const deserializedMessage = CannotSatisfyRequest.deserializePayload(rpcId)
     expect(deserializedMessage).toEqual(message)
   })
 })

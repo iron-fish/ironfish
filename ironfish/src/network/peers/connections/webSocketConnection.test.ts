@@ -39,7 +39,7 @@ describe('WebSocketConnection', () => {
         })
 
         expect(connection.send(message)).toBe(true)
-        expect(send).toHaveBeenCalledWith(message.serializeWithMetadata())
+        expect(send).toHaveBeenCalledWith(message.serialize())
         connection.close()
       })
     })
