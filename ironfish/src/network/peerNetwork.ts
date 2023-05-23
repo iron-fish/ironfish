@@ -1280,8 +1280,6 @@ export class PeerNetwork {
     const received = new Date()
     const hash = transaction.hash()
 
-    this.onTransactionGossipReceived.emit(transaction)
-
     // Let the fetcher know that a transaction was received so it no longer queries for it
     this.transactionFetcher.receivedTransaction(hash)
 
@@ -1307,6 +1305,9 @@ export class PeerNetwork {
       this.transactionFetcher.removeTransaction(hash)
       return
     }
+
+    // Emit event even for invalid transactions
+    this.onTransactionGossipReceived.emit(transaction)
 
     // Check that the transaction is valid
     const { valid, reason } = await this.chain.verifier.verifyNewTransaction(transaction)

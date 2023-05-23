@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Peer } from '../../../network/peers/peer'
-import { useBlockWithTx } from '../../../testUtilities'
+import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
 describe('Route event/onTransactionGossip', () => {
@@ -11,9 +11,15 @@ describe('Route event/onTransactionGossip', () => {
   it('should stream transactions as they are gossiped to the node', async () => {
     const { node } = routeTest
 
-    const response = await routeTest.client.request('event/onTransactionGossip').waitForRoute()
+    const account = await useAccountFixture(node.wallet, 'a')
+    const block2 = await useMinerBlockFixture(node.chain, 2, account)
 
-    const { transaction } = await useBlockWithTx(routeTest.node)
+    await expect(node.chain).toAddBlock(block2)
+    await node.wallet.updateHead()
+
+    const transaction = await useTxFixture(node.wallet, account, account)
+
+    const response = await routeTest.client.request('event/onTransactionGossip').waitForRoute()
 
     const peer = new Peer(null)
 
