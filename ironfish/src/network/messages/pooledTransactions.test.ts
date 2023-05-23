@@ -5,7 +5,7 @@ import { blake3 } from '@napi-rs/blake-hash'
 import { v4 as uuid } from 'uuid'
 import {
   createNodeTest,
-  serializePayload,
+  serializePayloadToBuffer,
   useMinersTxFixture,
   useTxSpendsFixture,
 } from '../../testUtilities'
@@ -18,7 +18,7 @@ describe('PooledTransactionsRequest', () => {
 
     const message = new PooledTransactionsRequest(hashes, rpcId)
 
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = PooledTransactionsRequest.deserializePayload(buffer, rpcId)
     expect(deserializedMessage).toEqual(message)
   })
@@ -51,7 +51,7 @@ describe('PooledTransactionsResponse', () => {
 
     const message = new PooledTransactionsResponse(transactions, rpcId)
 
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = PooledTransactionsResponse.deserializePayload(buffer, rpcId)
 
     expectPooledTransactionsResponseToMatch(message, deserializedMessage)

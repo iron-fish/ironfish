@@ -5,7 +5,7 @@ import { BlockHeader, Target } from '../../primitives'
 import { CompactBlock } from '../../primitives/block'
 import {
   createNodeTest,
-  serializePayload,
+  serializePayloadToBuffer,
   useMinersTxFixture,
   useTxSpendsFixture,
 } from '../../testUtilities'
@@ -18,7 +18,7 @@ describe('GetCompactBlockRequest', () => {
     const hash = Buffer.alloc(32, 1)
 
     const message = new GetCompactBlockRequest(hash, rpcId)
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = GetCompactBlockRequest.deserializePayload(buffer, rpcId)
 
     expect(deserializedMessage).toEqual(message)
@@ -57,7 +57,7 @@ describe('GetCompactBlockResponse', () => {
     const rpcId = 432
 
     const message = new GetCompactBlockResponse(compactBlock, rpcId)
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = GetCompactBlockResponse.deserializePayload(buffer, rpcId)
 
     expectGetCompactBlockResponseToMatch(message, deserializedMessage)

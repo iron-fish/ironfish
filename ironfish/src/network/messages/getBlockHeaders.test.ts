@@ -1,7 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { createNodeTest, serializePayload, useMinerBlockFixture } from '../../testUtilities'
+import {
+  createNodeTest,
+  serializePayloadToBuffer,
+  useMinerBlockFixture,
+} from '../../testUtilities'
 import { expectGetBlockHeadersResponseToMatch } from '../testUtilities'
 import { GetBlockHeadersRequest, GetBlockHeadersResponse } from './getBlockHeaders'
 
@@ -11,7 +15,7 @@ describe('GetBlockHeadersRequest', () => {
       const rpcId = 0
       const message = new GetBlockHeadersRequest(1, 10, 0, false, rpcId)
 
-      const buffer = serializePayload(message)
+      const buffer = serializePayloadToBuffer(message)
       const deserializedMessage = GetBlockHeadersRequest.deserializePayload(buffer, rpcId)
       expect(deserializedMessage).toEqual(message)
     })
@@ -22,7 +26,7 @@ describe('GetBlockHeadersRequest', () => {
       const rpcId = 0
       const message = new GetBlockHeadersRequest(Buffer.alloc(32, 1), 10, 0, false, rpcId)
 
-      const buffer = serializePayload(message)
+      const buffer = serializePayloadToBuffer(message)
       const deserializedMessage = GetBlockHeadersRequest.deserializePayload(buffer, rpcId)
       expect(deserializedMessage).toEqual(message)
     })
@@ -39,7 +43,7 @@ describe('GetBlockHeadersResponse', () => {
     const rpcId = 0
     const message = new GetBlockHeadersResponse([block1.header, block2.header], rpcId)
 
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = GetBlockHeadersResponse.deserializePayload(buffer, rpcId)
     expectGetBlockHeadersResponseToMatch(deserializedMessage, message)
   })
@@ -51,7 +55,7 @@ describe('GetBlockHeadersResponse', () => {
     const rpcId = 0
     const message = new GetBlockHeadersResponse([block1.header, block2.header], rpcId)
 
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     buffer.writeUInt16LE(3, 0)
     expect(() => GetBlockHeadersResponse.deserializePayload(buffer, rpcId)).toThrow()
   })

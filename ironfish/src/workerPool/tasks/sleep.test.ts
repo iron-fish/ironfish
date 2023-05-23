@@ -1,14 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { serializePayload } from '../../testUtilities'
+import { serializePayloadToBuffer } from '../../testUtilities'
 import { Job } from '../job'
 import { SleepRequest, SleepResponse, SleepTask } from './sleep'
 
 describe('SleepRequest', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const request = new SleepRequest(1000, '')
-    const buffer = serializePayload(request)
+    const buffer = serializePayloadToBuffer(request)
     const deserializedRequest = SleepRequest.deserializePayload(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
   })
@@ -17,7 +17,7 @@ describe('SleepRequest', () => {
 describe('SleepResponse', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const response = new SleepResponse(true, 1)
-    const buffer = serializePayload(response)
+    const buffer = serializePayloadToBuffer(response)
     const deserializedResponse = SleepResponse.deserializePayload(response.jobId, buffer)
     expect(deserializedResponse).toEqual(response)
   })

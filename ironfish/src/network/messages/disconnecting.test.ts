@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { serializePayload } from '../../testUtilities'
+import { serializePayloadToBuffer } from '../../testUtilities'
 import { identityLength } from '../identity'
 import { DisconnectingMessage, DisconnectingReason } from './disconnecting'
 
@@ -14,7 +14,7 @@ describe('DisconnectingMessage', () => {
       sourceIdentity: Buffer.alloc(identityLength, 123).toString('base64'),
     })
 
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = DisconnectingMessage.deserializePayload(buffer)
     expect(deserializedMessage).toEqual(message)
   })
@@ -27,7 +27,7 @@ describe('DisconnectingMessage', () => {
       sourceIdentity: Buffer.alloc(identityLength, 123).toString('base64'),
     })
 
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = DisconnectingMessage.deserializePayload(buffer)
     expect(deserializedMessage.disconnectUntil).toEqual(1649968933000)
   })

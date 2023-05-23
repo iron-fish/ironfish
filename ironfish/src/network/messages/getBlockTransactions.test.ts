@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   createNodeTest,
-  serializePayload,
+  serializePayloadToBuffer,
   useMinersTxFixture,
   useTxSpendsFixture,
 } from '../../testUtilities'
@@ -20,7 +20,7 @@ describe('GetBlockTransactionsRequest', () => {
     const transactionIndexes = [1, 60000]
 
     const message = new GetBlockTransactionsRequest(blockHash, transactionIndexes, rpcId)
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = GetBlockTransactionsRequest.deserializePayload(buffer, rpcId)
 
     expect(deserializedMessage).toEqual(message)
@@ -39,7 +39,7 @@ describe('GetBlockTransactionsResponse', () => {
     const transactions = [transactionA, transactionB]
 
     const message = new GetBlockTransactionsResponse(blockHash, transactions, rpcId)
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = GetBlockTransactionsResponse.deserializePayload(buffer, rpcId)
 
     expectGetBlockTransactionsResponseToMatch(message, deserializedMessage)

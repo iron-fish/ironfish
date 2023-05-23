@@ -6,7 +6,7 @@ import { NetworkMessage } from '../../network/messages/networkMessage'
 import { RpcNetworkMessage } from '../../network/messages/rpcNetworkMessage'
 import { WorkerMessage } from '../../workerPool/tasks/workerMessage'
 
-export function serializePayload(
+export function serializePayloadToBuffer(
   message: NetworkMessage | RpcNetworkMessage | WorkerMessage,
 ): Buffer {
   const bw = bufio.write(message.getSize())

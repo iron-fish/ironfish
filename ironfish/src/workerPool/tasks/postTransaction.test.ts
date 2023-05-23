@@ -4,7 +4,7 @@
 
 import {
   createNodeTest,
-  serializePayload,
+  serializePayloadToBuffer,
   useAccountFixture,
   useMinerBlockFixture,
   useMinersTxFixture,
@@ -39,7 +39,7 @@ describe('PostTransactionRequest', () => {
     })
 
     const request = new PostTransactionRequest(raw, account.spendingKey)
-    const buffer = serializePayload(request)
+    const buffer = serializePayloadToBuffer(request)
     const deserialized = PostTransactionRequest.deserializePayload(request.jobId, buffer)
 
     expect(deserialized).toEqual(request)
@@ -53,7 +53,7 @@ describe('PostTransactionResponse', () => {
     const transaction = await useMinersTxFixture(nodeTest.wallet)
 
     const response = new PostTransactionResponse(transaction, 0)
-    const serialized = serializePayload(response)
+    const serialized = serializePayloadToBuffer(response)
 
     const deserialized = PostTransactionResponse.deserializePayload(response.jobId, serialized)
     expect(deserialized.transaction.equals(transaction)).toBe(true)

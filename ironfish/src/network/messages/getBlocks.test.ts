@@ -5,7 +5,7 @@ import { Block, BlockHeader, Target } from '../../primitives'
 import { transactionCommitment } from '../../primitives/blockheader'
 import {
   createNodeTest,
-  serializePayload,
+  serializePayloadToBuffer,
   useMinersTxFixture,
   useTxSpendsFixture,
 } from '../../testUtilities'
@@ -15,7 +15,7 @@ describe('GetBlocksRequest', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
     const rpcId = 0
     const message = new GetBlocksRequest(Buffer.alloc(32), 10, rpcId)
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = GetBlocksRequest.deserializePayload(buffer, rpcId)
     expect(deserializedMessage).toEqual(message)
   })
@@ -72,7 +72,7 @@ describe('GetBlocksResponse', () => {
       ],
       rpcId,
     )
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = GetBlocksResponse.deserializePayload(buffer, rpcId)
 
     expectGetBlocksResponseToMatch(message, deserializedMessage)

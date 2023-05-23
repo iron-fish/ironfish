@@ -4,7 +4,7 @@
 import { DECRYPTED_NOTE_LENGTH, ENCRYPTED_NOTE_LENGTH } from '@ironfish/rust-nodejs'
 import {
   createNodeTest,
-  serializePayload,
+  serializePayloadToBuffer,
   useAccountFixture,
   useMinerBlockFixture,
   useMinersTxFixture,
@@ -29,7 +29,7 @@ describe('DecryptNotesRequest', () => {
       ],
       0,
     )
-    const buffer = serializePayload(request)
+    const buffer = serializePayloadToBuffer(request)
     const deserializedRequest = DecryptNotesRequest.deserializePayload(request.jobId, buffer)
     expect(deserializedRequest).toEqual(request)
   })
@@ -50,7 +50,7 @@ describe('DecryptNotesResponse', () => {
       ],
       0,
     )
-    const buffer = serializePayload(response)
+    const buffer = serializePayloadToBuffer(response)
     const deserializedResponse = DecryptNotesResponse.deserializePayload(response.jobId, buffer)
     expect(deserializedResponse).toEqual(response)
   })

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { NONCE_LENGTH } from '@ironfish/rust-nodejs'
-import { serializePayload } from '../../testUtilities'
+import { serializePayloadToBuffer } from '../../testUtilities'
 import { SignalMessage } from './signal'
 
 describe('SignalMessage', () => {
@@ -14,7 +14,7 @@ describe('SignalMessage', () => {
       signal: Buffer.from('signal', 'utf8').toString('base64'),
     })
 
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = SignalMessage.deserializePayload(buffer)
     expect(deserializedMessage).toEqual(message)
   })

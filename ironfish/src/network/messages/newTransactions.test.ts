@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   createNodeTest,
-  serializePayload,
+  serializePayloadToBuffer,
   useMinersTxFixture,
   useTxSpendsFixture,
 } from '../../testUtilities'
@@ -36,7 +36,7 @@ describe('NewTransactionsMessage', () => {
 
     const message = new NewTransactionsMessage(transactions)
 
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = NewTransactionsMessage.deserializePayload(buffer)
 
     expectNewTransactionsMessageToMatch(message, deserializedMessage)

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
   createNodeTest,
-  serializePayload,
+  serializePayloadToBuffer,
   useAccountFixture,
   useMinersTxFixture,
 } from '../../testUtilities'
@@ -18,7 +18,7 @@ describe('VerifyTransactionRequest', () => {
     const mockTransactionPosted = Buffer.from('')
     const verifyFees = true
     const request = new VerifyTransactionRequest(mockTransactionPosted, { verifyFees })
-    const buffer = serializePayload(request)
+    const buffer = serializePayloadToBuffer(request)
     const deserializedRequest = VerifyTransactionRequest.deserializePayload(
       request.jobId,
       buffer,
@@ -30,7 +30,7 @@ describe('VerifyTransactionRequest', () => {
 describe('VerifyTransactionResponse', () => {
   it('serializes the object to a buffer and deserializes to the original object', () => {
     const response = new VerifyTransactionResponse(true, 0)
-    const buffer = serializePayload(response)
+    const buffer = serializePayloadToBuffer(response)
     const deserializedResponse = VerifyTransactionResponse.deserializePayload(
       response.jobId,
       buffer,

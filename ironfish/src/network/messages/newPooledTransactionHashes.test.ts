@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { blake3 } from '@napi-rs/blake-hash'
 import { v4 as uuid } from 'uuid'
-import { serializePayload } from '../../testUtilities'
+import { serializePayloadToBuffer } from '../../testUtilities'
 import { NewPooledTransactionHashes } from './newPooledTransactionHashes'
 
 describe('PooledTransactionsRequest', () => {
@@ -12,7 +12,7 @@ describe('PooledTransactionsRequest', () => {
 
     const message = new NewPooledTransactionHashes(hashes)
 
-    const buffer = serializePayload(message)
+    const buffer = serializePayloadToBuffer(message)
     const deserializedMessage = NewPooledTransactionHashes.deserializePayload(buffer)
     expect(deserializedMessage).toEqual(message)
   })
