@@ -99,3 +99,37 @@ jobs:
       - name: Upload coverage
         if: github.repository == 'iron-fish/ironfish'
         run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} ROOT_PATH=$GITHUB_WORKSPACE/ yarn coverage:upload
+
+  testperf:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.12.1'
+          cache: 'yarn'
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: nodejs
+
+      - name: Install packages
+        run: yarn --non-interactive --frozen-lockfile
+
+      - name: Run perf tests
+        run: yarn test:perf --maxWorkers=2 --workerIdleMemoryLimit=2000MB
+
+      - name: Test Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: JEST Tests
+          path: "**/test-reports/jest-*.xml"                            
+          reporter: jest-junit # Format of test results
+          fail-on-error: true
