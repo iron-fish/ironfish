@@ -101,7 +101,7 @@ jobs:
         run: CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} ROOT_PATH=$GITHUB_WORKSPACE/ yarn coverage:upload
 
   testperf:
-    name: Performance Tests
+    name: Perf Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -126,10 +126,10 @@ jobs:
         run: yarn test:perf --maxWorkers=2 --workerIdleMemoryLimit=2000MB
 
       - name: Test Report
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v1.6.0
         if: always()
         with:
           name: JEST Tests
-          path: "**/test-reports/jest-*.xml"                            
+          path: "**/perf-test-reports.xml"                            
           reporter: jest-junit # Format of test results
           fail-on-error: true
