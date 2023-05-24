@@ -406,6 +406,8 @@ export class Blockchain {
 
         this.resolveOrphans(block)
 
+        this.metrics.chainDatabaseSize.value = await this.db.size()
+
         return connectResult
       })
     } catch (e) {
