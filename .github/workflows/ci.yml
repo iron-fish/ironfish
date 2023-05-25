@@ -135,6 +135,12 @@ jobs:
         if: always()
         with:
           name: JEST Tests
-          path: '**/test-reports/jest-junit.xml'                          
+          path: 'ironfish/test-reports/jest-junit.xml'                          
           reporter: 'jest-junit' # Format of test results
           fail-on-error: 'true'
+
+      - name: Archive Test Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: upload-test-report
+          path: ironfish/test-reports/jest-junit.xml
