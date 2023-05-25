@@ -354,6 +354,8 @@ export class Blockchain {
     if (this._head) {
       this.updateSynced()
     }
+
+    this.metrics.chain_databaseSize.value = await this.db.size()
   }
 
   async close(): Promise<void> {
@@ -405,6 +407,8 @@ export class Blockchain {
         const connectResult = await this.connect(block, previous, tx)
 
         this.resolveOrphans(block)
+
+        this.metrics.chain_databaseSize.value = await this.db.size()
 
         return connectResult
       })
@@ -1159,6 +1163,8 @@ export class Blockchain {
         this.latest = this.head
         await this.meta.put('latest', this.head.hash, tx)
       }
+
+      this.metrics.chain_databaseSize.value = await this.db.size()
     })
   }
 

@@ -163,6 +163,9 @@ export interface IDatabase {
     range?: DatabaseKeyRange,
     options?: DatabaseIteratorOptions,
   ): AsyncGenerator<[Buffer, Buffer]>
+
+  /* Get the approximate number of bytes of file system space used by the database */
+  size(): Promise<number>
 }
 
 export abstract class Database implements IDatabase {
@@ -226,6 +229,8 @@ export abstract class Database implements IDatabase {
     this.stores.push(store)
     return store
   }
+
+  abstract size(): Promise<number>
 
   /*
   Safety wrapper in case you don't know if you've been given a transaction or not
