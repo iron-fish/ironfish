@@ -406,7 +406,7 @@ export class Blockchain {
 
         this.resolveOrphans(block)
 
-        this.metrics.chainDatabaseSize.value = await this.db.size()
+        this.metrics.chain_databaseSize.value = await this.db.size()
 
         return connectResult
       })
@@ -1161,6 +1161,8 @@ export class Blockchain {
         this.latest = this.head
         await this.meta.put('latest', this.head.hash, tx)
       }
+
+      this.metrics.chain_databaseSize.value = await this.db.size()
     })
   }
 

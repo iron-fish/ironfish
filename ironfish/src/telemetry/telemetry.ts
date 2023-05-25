@@ -237,7 +237,7 @@ export class Telemetry {
       {
         name: 'chain_database_size',
         type: 'integer',
-        value: this.metrics.chainDatabaseSize.value,
+        value: this.metrics.chain_databaseSize.value,
       },
     ]
 
