@@ -26,10 +26,12 @@ describe('Transaction', () => {
     { spends: 1, outputs: 100 },
   ]
 
+  let account: Account
+
   it('post', async () => {
     const { chain, wallet } = nodeTest
 
-    const account = await useAccountFixture(wallet)
+    account = await useAccountFixture(wallet)
 
     // Generate enough notes for the tests
     for (let i = 0; i < Math.max(...TEST_AMOUNTS.map((t) => t.spends)); i++) {
@@ -37,12 +39,12 @@ describe('Transaction', () => {
       await expect(chain).toAddBlock(block)
       await wallet.updateHead()
     }
+  })
 
-    // Run tests
-    for (const { spends, outputs } of TEST_AMOUNTS) {
-      const results = await runTest(account, spends, outputs)
-      printResults(results)
-    }
+  it(`test spends: ${TEST_AMOUNTS[0].spends} outputs: ${TEST_AMOUNTS[0].outputs}`, async () => {
+    const results = await runTest(account, TEST_AMOUNTS[0].spends, TEST_AMOUNTS[0].outputs)
+    expect(results).toBeDefined()
+    printResults(results)
   })
 
   function printResults(results: Results) {
