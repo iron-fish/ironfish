@@ -13,7 +13,6 @@ import {
   LogEvent,
   SECOND,
   sendTransaction,
-  SimulationNodeConfig,
   Simulator,
 } from '../simulator'
 
@@ -23,14 +22,11 @@ import {
  * Description: <what the simulation is doing>
  */
 
-export async function run(logger: Logger): Promise<void> {
-  // Create a new simulation handler.
-  // The simulator handles managing nodes and data dirs.
-  const simulator = new Simulator(logger)
-
+export async function run(simulator: Simulator, logger: Logger): Promise<void> {
   // Register event handlers.
   // These hooks will be called when a node logs, closes, exits, or errors.
   // This is useful when you want to validate certain behaviour, such as a node successfully exiting.
+  // These event handlers are optional, you can also add the default handler by passing the `-v` flag to the simulator.
 
   // These sample handlers just log the event to the console.
   const onLog = (event: LogEvent): void => {
@@ -45,19 +41,20 @@ export async function run(logger: Logger): Promise<void> {
     logger.log(`[${event.node}:error] ${JSON.stringify(event)}`)
   }
 
+  const nodes = []
+
   // Create the nodes in the simulation.
   // This will start the nodes and wait for them to initialize.
   // The handlers must be passed into the addNode function to ensure that no events are missed.
-  const nodes = await Promise.all(
-    nodeConfig.map(async (cfg) => {
-      return simulator.startNode({
-        cfg,
+  for (let i = 0; i < 3; i++) {
+    nodes.push(
+      await simulator.startNode({
         onLog: [onLog],
         onExit: [onExit],
         onError: [onError],
-      })
-    }),
-  )
+      }),
+    )
+  }
 
   // This starts the miner on the first node.
   // The miner can also be stopped via `node[0].stopMiner()`
@@ -104,38 +101,3 @@ export async function run(logger: Logger): Promise<void> {
   // Call this to keep the simulation running. This currently will wait for all the nodes to exit.
   await simulator.waitForShutdown()
 }
-
-// Configuration for the nodes in the simulation
-const nodeConfig: SimulationNodeConfig[] = [
-  {
-    nodeName: 'node1',
-    blockGraffiti: '1',
-    peerPort: 7001,
-    dataDir: '~/.ironfish-atn/node1',
-    networkId: 2,
-    bootstrapNodes: ["''"], // This is a hack to register the bootstrap node
-    rpcTcpHost: 'localhost',
-    rpcTcpPort: 9001,
-    verbose: true,
-  },
-  {
-    nodeName: 'node2',
-    blockGraffiti: '2',
-    peerPort: 7002,
-    dataDir: '~/.ironfish-atn/node2',
-    networkId: 2,
-    bootstrapNodes: ['localhost:7001'],
-    rpcTcpHost: 'localhost',
-    rpcTcpPort: 9002,
-  },
-  {
-    nodeName: 'node3',
-    blockGraffiti: '3',
-    peerPort: 7003,
-    dataDir: '~/.ironfish-atn/node3',
-    networkId: 2,
-    bootstrapNodes: ['localhost:7001'],
-    rpcTcpHost: 'localhost',
-    rpcTcpPort: 9003,
-  },
-]

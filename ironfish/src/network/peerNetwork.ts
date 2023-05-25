@@ -109,6 +109,7 @@ export class PeerNetwork {
   readonly onIsReadyChanged = new Event<[boolean]>()
   readonly onTransactionAccepted = new Event<[transaction: Transaction, received: Date]>()
   readonly onBlockGossipReceived = new Event<[BlockHeader]>()
+  readonly onTransactionGossipReceived = new Event<[Transaction]>()
 
   private started = false
   private readonly minPeers: number
@@ -307,7 +308,7 @@ export class PeerNetwork {
             reason: DisconnectingReason.Congested,
             sourceIdentity: this.localPeer.publicIdentity,
           })
-          connection.send(disconnect.serializeWithMetadata())
+          connection.send(disconnect.serialize())
           connection.close()
           return
         }
@@ -1304,6 +1305,9 @@ export class PeerNetwork {
       this.transactionFetcher.removeTransaction(hash)
       return
     }
+
+    // Emit event even for invalid transactions
+    this.onTransactionGossipReceived.emit(transaction)
 
     // Check that the transaction is valid
     const { valid, reason } = await this.chain.verifier.verifyNewTransaction(transaction)

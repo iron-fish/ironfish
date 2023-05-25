@@ -15,17 +15,14 @@ export class NewTransactionsMessage extends NetworkMessage {
     this.transactions = transactions
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
-
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeVarint(this.transactions.length)
     for (const transaction of this.transactions) {
       writeTransaction(bw, transaction)
     }
-    return bw.render()
   }
 
-  static deserialize(buffer: Buffer): NewTransactionsMessage {
+  static deserializePayload(buffer: Buffer): NewTransactionsMessage {
     const reader = bufio.read(buffer, true)
 
     const length = reader.readVarint()

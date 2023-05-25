@@ -800,6 +800,96 @@ describe('Blockchain', () => {
     })
   })
 
+  it('rejects double spend transaction replays', async () => {
+    const { node, chain } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+    const block2 = await useMinerBlockFixture(chain, undefined, accountA)
+    await expect(chain).toAddBlock(block2)
+
+    const asset = new Asset(accountA.publicAddress, 'test asset', '')
+
+    // Create the mint to replay
+    const block3 = await useMintBlockFixture({ node, account: accountA, asset, value: 10n })
+    await expect(chain).toAddBlock(block3)
+
+    const mintTx = block3.transactions[1]
+
+    const block4 = await useMinerBlockFixture(chain, undefined, undefined, undefined, [mintTx])
+    await expect(chain.addBlock(block4)).resolves.toMatchObject({
+      isAdded: false,
+      reason: VerificationResultReason.DUPLICATE_TRANSACTION,
+    })
+  })
+
+  it('rejects blocks with duplicate transactions when creating block', async () => {
+    const { node, chain, wallet } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+    const block2 = await useMinerBlockFixture(chain, undefined, accountA)
+    await expect(chain).toAddBlock(block2)
+
+    const asset = new Asset(accountA.publicAddress, 'test asset', '')
+
+    const minersFeeTx = await useMinersTxFixture(wallet, accountA, undefined, 1)
+    const tx = await useTxFixture(wallet, accountA, accountA, async () => {
+      return await wallet.mint(accountA, {
+        fee: 0n,
+        metadata: asset.metadata().toString('utf8'),
+        name: asset.name().toString('utf8'),
+        value: 10n,
+        expirationDelta: 10,
+      })
+    })
+
+    await expect(chain.newBlock([tx, tx], minersFeeTx)).rejects.toThrow(
+      VerificationResultReason.DUPLICATE_TRANSACTION,
+    )
+  })
+
+  it('rejects blocks with duplicate transactions when adding block', async () => {
+    const { node, chain, wallet } = await nodeTest.createSetup()
+
+    const accountA = await useAccountFixture(node.wallet, 'accountA')
+
+    const block2 = await useMinerBlockFixture(chain, undefined, accountA)
+    await expect(chain).toAddBlock(block2)
+
+    const asset = new Asset(accountA.publicAddress, 'test asset', '')
+
+    const tx = await useTxFixture(wallet, accountA, accountA, async () => {
+      return await wallet.mint(accountA, {
+        fee: 0n,
+        metadata: asset.metadata().toString('utf8'),
+        name: asset.name().toString('utf8'),
+        value: 10n,
+        expirationDelta: 10,
+      })
+    })
+
+    // Creating this block will trigger the same error, so we mock this value
+    // while creating the block to allow us to test adding the block to the
+    // chain
+    const verifyBlockSpy = jest.spyOn(chain.verifier, 'verifyBlock').mockResolvedValue({
+      valid: true,
+    })
+    const invalidBlock = await useMinerBlockFixture(chain, undefined, undefined, undefined, [
+      tx,
+      tx,
+    ])
+    verifyBlockSpy.mockRestore()
+
+    expect(invalidBlock.transactions.length).toEqual(3)
+    expect(invalidBlock.transactions[1].hash()).toEqual(invalidBlock.transactions[2].hash())
+
+    await expect(chain.addBlock(invalidBlock)).resolves.toMatchObject({
+      isAdded: false,
+      reason: VerificationResultReason.DUPLICATE_TRANSACTION,
+    })
+  })
+
   it('rejects transactions with internal double spends', async () => {
     const { node, chain, wallet } = await nodeTest.createSetup()
 

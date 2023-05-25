@@ -195,6 +195,8 @@ export class Mint extends IronfishCommand {
       raw = await selectFee({
         client,
         transaction: params,
+        account: account,
+        confirmations: flags.confirmations,
         logger: this.logger,
       })
     } else {

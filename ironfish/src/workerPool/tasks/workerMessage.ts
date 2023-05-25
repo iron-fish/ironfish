@@ -4,6 +4,9 @@
 
 import bufio from 'bufio'
 import { Serializable } from '../../common/serializable'
+import { WorkerHeader } from '../interfaces/workerHeader'
+
+export const WORKER_MESSAGE_HEADER_SIZE = 9
 
 export enum WorkerMessageType {
   CreateMinersFee = 0,
@@ -28,15 +31,26 @@ export abstract class WorkerMessage implements Serializable {
     this.type = type
   }
 
-  abstract serialize(): Buffer
+  abstract serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void
   abstract getSize(): number
 
-  serializeWithMetadata(): Buffer {
-    const headerSize = 9
-    const bw = bufio.write(headerSize + this.getSize())
+  static deserializeHeader(buffer: Buffer): WorkerHeader {
+    const br = bufio.read(buffer)
+    const jobId = Number(br.readU64())
+    const type = br.readU8()
+    // TODO(mat): can we utilize zero copy here?
+    return {
+      jobId,
+      type,
+      body: br.readBytes(br.left()),
+    }
+  }
+
+  serialize(): Buffer {
+    const bw = bufio.write(WORKER_MESSAGE_HEADER_SIZE + this.getSize())
     bw.writeU64(this.jobId)
     bw.writeU8(this.type)
-    bw.writeBytes(this.serialize())
+    this.serializePayload(bw)
     return bw.render()
   }
 }

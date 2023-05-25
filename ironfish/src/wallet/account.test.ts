@@ -1825,7 +1825,8 @@ describe('Accounts', () => {
 
       const pendingDeltas = await accountA['getPendingDeltas'](headA?.sequence)
 
-      expect(pendingDeltas.get(Asset.nativeId())).toMatchObject({ delta: -1n, count: 2 })
+      // mint transaction has 0 fee, so no delta for the native asset
+      expect(pendingDeltas.get(Asset.nativeId())).toMatchObject({ delta: -1n, count: 1 })
       expect(pendingDeltas.get(asset.id())).toMatchObject({ delta: 10n, count: 1 })
     })
   })
@@ -1860,7 +1861,7 @@ describe('Accounts', () => {
 
       const unconfirmedDeltas = await accountA['getUnconfirmedDeltas'](3, 1)
 
-      expect(unconfirmedDeltas.get(Asset.nativeId())).toMatchObject({ delta: 0n, count: 1 })
+      // mint transaction has no fee, so no delta for the native asset
       expect(unconfirmedDeltas.get(asset.id())).toMatchObject({ delta: 10n, count: 1 })
     })
   })

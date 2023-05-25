@@ -74,10 +74,14 @@ export abstract class Start extends Command {
       verboseLogging: flags.verbose,
     })
 
+    logger.log(`created simulation ${simulator.simulationID}`)
+
     try {
       await simulation.run(simulator, logger)
     } catch (e) {
-      logger.error(`simulation encountered ${String(e)}, shutting down...`)
+      logger.error(
+        `simulation ${simulator.simulationID} encountered ${String(e)}, shutting down...`,
+      )
       simulator.exit(1)
     }
 

@@ -60,6 +60,25 @@ describe('Verifier', () => {
       })
     })
 
+    it('returns false on transaction replays', async () => {
+      const { node, chain } = nodeTest
+      const account = await useAccountFixture(nodeTest.node.wallet)
+      const asset = new Asset(account.publicAddress, 'test asset', '')
+
+      // Create the mint to replay
+      const block3 = await useMintBlockFixture({ node, account: account, asset, value: 10n })
+      await expect(chain).toAddBlock(block3)
+
+      const mintTx = block3.transactions[1]
+
+      const result = await chain.verifier.verifyNewTransaction(mintTx)
+
+      expect(result).toEqual({
+        reason: VerificationResultReason.DUPLICATE_TRANSACTION,
+        valid: false,
+      })
+    })
+
     it('returns false on transactions larger than max size', async () => {
       const { transaction } = await useTxSpendsFixture(nodeTest.node)
       nodeTest.chain.consensus.parameters.maxBlockSizeBytes = getBlockWithMinersFeeSize()
@@ -184,8 +203,9 @@ describe('Verifier', () => {
     })
 
     it('rejects a block with miners fee as second transaction', async () => {
+      const account = await useAccountFixture(nodeTest.node.wallet, 'accountA')
       const { block } = await useBlockWithTx(nodeTest.node)
-      block.transactions[1] = block.transactions[0]
+      block.transactions[1] = await useMinersTxFixture(nodeTest.wallet, account, undefined, 0)
       block.header.transactionCommitment = transactionCommitment(block.transactions)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({
@@ -254,8 +274,14 @@ describe('Verifier', () => {
     })
 
     it('rejects block with incorrect fee sum', async () => {
-      const { block } = await useBlockWithTx(nodeTest.node)
-      block.transactions[2] = block.transactions[1]
+      const account = await useAccountFixture(nodeTest.node.wallet, 'accountA')
+      const { block } = await useBlockWithTx(nodeTest.node, account)
+      block.transactions[2] = await usePostTxFixture({
+        node: nodeTest.node,
+        wallet: nodeTest.wallet,
+        from: account,
+        fee: 1n,
+      })
       block.header.transactionCommitment = transactionCommitment(block.transactions)
 
       expect(await nodeTest.verifier.verifyBlock(block)).toMatchObject({

@@ -4,7 +4,19 @@
 import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
 import { Transaction } from '@ironfish/sdk'
 import { SimulationNode } from '../simulation-node'
-import { getAccountPublicKey, getDefaultAccount } from './accounts'
+
+/**
+ * Gets the default account on a node.
+ */
+async function getDefaultAccount(node: SimulationNode): Promise<string> {
+  const resp = await node.client.wallet.getDefaultAccount()
+
+  if (resp.content.account === undefined || resp.content.account?.name === undefined) {
+    throw new Error('default account not found')
+  }
+
+  return resp.content.account.name
+}
 
 /**
  * Sends a transaction from one node to another using the sendTransaction RPC call.
@@ -28,7 +40,13 @@ export async function sendTransaction(
   const fromAccount = await getDefaultAccount(from)
   const toAccount = await getDefaultAccount(to)
 
-  const toPublicKey = await getAccountPublicKey(to, toAccount)
+  const resp = await to.client.wallet.getAccountPublicKey({ account: toAccount })
+
+  const toPublicKey = resp.content.publicKey
+  if (toPublicKey === undefined) {
+    throw new Error(`public key for ${toAccount} is undefined`)
+  }
+
   if (!isValidPublicAddress(toPublicKey)) {
     throw new Error('invalid public key for to account')
   }

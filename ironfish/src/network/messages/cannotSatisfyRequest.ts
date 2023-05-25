@@ -9,11 +9,11 @@ export class CannotSatisfyRequest extends RpcNetworkMessage {
     super(NetworkMessageType.CannotSatisfyRequest, Direction.Response, rpcId)
   }
 
-  serialize(): Buffer {
-    return Buffer.alloc(0)
+  serializePayload(): void {
+    return
   }
 
-  static deserialize(rpcId: number): CannotSatisfyRequest {
+  static deserializePayload(rpcId: number): CannotSatisfyRequest {
     return new CannotSatisfyRequest(rpcId)
   }
 

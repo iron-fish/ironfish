@@ -198,6 +198,8 @@ export class Send extends IronfishCommand {
       raw = await selectFee({
         client,
         transaction: params,
+        account: from,
+        confirmations: flags.confirmations,
         logger: this.logger,
       })
     } else {

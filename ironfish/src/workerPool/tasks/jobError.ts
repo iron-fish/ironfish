@@ -33,8 +33,7 @@ export class JobErrorMessage extends WorkerMessage {
     }
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write()
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeVarString(this.errorType, 'utf8')
     bw.writeVarString(this.message, 'utf8')
     if (this.code) {
@@ -43,12 +42,10 @@ export class JobErrorMessage extends WorkerMessage {
     if (this.stack) {
       bw.writeVarString(this.stack, 'utf8')
     }
-
-    return bw.render()
   }
 
   // We return JobError so the error can be propagated to a calling Promise's reject method
-  static deserialize(jobId: number, buffer: Buffer): JobError {
+  static deserializePayload(jobId: number, buffer: Buffer): JobError {
     const br = bufio.read(buffer, true)
 
     const errorType = br.readVarString('utf8')

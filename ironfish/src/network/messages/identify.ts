@@ -62,8 +62,7 @@ export class IdentifyMessage extends NetworkMessage {
     this.features = features
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeBytes(Buffer.from(this.identity, 'base64'))
     bw.writeVarString(this.name, 'utf8')
     bw.writeU16(this.port)
@@ -78,11 +77,9 @@ export class IdentifyMessage extends NetworkMessage {
     let flags = 0
     flags |= Number(this.features.syncing) << 0
     bw.writeU32(flags)
-
-    return bw.render()
   }
 
-  static deserialize(buffer: Buffer): IdentifyMessage {
+  static deserializePayload(buffer: Buffer): IdentifyMessage {
     const reader = bufio.read(buffer, true)
     const identity = reader.readBytes(identityLength).toString('base64')
     const name = reader.readVarString('utf8')

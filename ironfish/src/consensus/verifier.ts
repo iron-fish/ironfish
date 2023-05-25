@@ -64,7 +64,7 @@ export class Verifier {
 
     const [minersFeeTransaction, ...otherTransactions] = block.transactions
 
-    // // Require the miner's fee transaction
+    // Require the miner's fee transaction
     if (!minersFeeTransaction || !minersFeeTransaction.isMinersFee()) {
       return { valid: false, reason: VerificationResultReason.MINERS_FEE_EXPECTED }
     }
@@ -75,6 +75,7 @@ export class Verifier {
 
     let transactionBatch = []
     let runningNotesCount = 0
+    const transactionHashes = new BufferSet()
     for (const [idx, tx] of block.transactions.entries()) {
       if (isExpiredSequence(tx.expiration(), block.header.sequence)) {
         return {
@@ -82,6 +83,15 @@ export class Verifier {
           reason: VerificationResultReason.TRANSACTION_EXPIRED,
         }
       }
+
+      if (transactionHashes.has(tx.hash())) {
+        return {
+          valid: false,
+          reason: VerificationResultReason.DUPLICATE_TRANSACTION,
+        }
+      }
+
+      transactionHashes.add(tx.hash())
 
       const mintVerify = this.verifyMints(tx.mints)
       if (!mintVerify.valid) {
@@ -247,6 +257,11 @@ export class Verifier {
         if (await this.chain.nullifiers.contains(spend.nullifier, tx)) {
           return VerificationResultReason.DOUBLE_SPEND
         }
+      }
+
+      const { reason } = await this.verifyUnseenTransaction(transaction, tx)
+      if (reason) {
+        return reason
       }
     })
 
@@ -422,6 +437,12 @@ export class Verifier {
       }
     }
 
+    for (const transaction of block.transactions) {
+      const result = await this.verifyUnseenTransaction(transaction, tx)
+      if (!result.valid) {
+        return result
+      }
+    }
     return { valid: true }
   }
 
@@ -519,6 +540,26 @@ export class Verifier {
 
     return { valid: true }
   }
+
+  /**
+   * Given a transaction, verify that the hash is not present in the blockchain
+   * already. Most of the time, we can count on spends being present, so regular
+   * double-spend checks are sufficient. However, if the minimum fee is 0,
+   * transactions that do not contain spends could be replayable in some
+   * scenarios.
+   */
+  verifyUnseenTransaction(
+    transaction: Transaction,
+    tx?: IDatabaseTransaction,
+  ): Promise<VerificationResult> {
+    return this.chain.db.withTransaction(tx, async (tx) => {
+      if (await this.chain.transactionHashToBlockHash.has(transaction.hash(), tx)) {
+        return { valid: false, reason: VerificationResultReason.DUPLICATE_TRANSACTION }
+      }
+
+      return { valid: true }
+    })
+  }
 }
 
 export enum VerificationResultReason {
@@ -527,6 +568,7 @@ export enum VerificationResultReason {
   DOUBLE_SPEND = 'Double spend',
   DUPLICATE = 'Duplicate',
   ERROR = 'Error',
+  DUPLICATE_TRANSACTION = 'Transaction is a duplicate',
   GOSSIPED_GENESIS_BLOCK = 'Peer gossiped its genesis block',
   GRAFFITI = 'Graffiti field is not 32 bytes in length',
   HASH_NOT_MEET_TARGET = 'Hash does not meet target',

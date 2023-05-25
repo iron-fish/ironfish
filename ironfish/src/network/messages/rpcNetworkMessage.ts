@@ -32,12 +32,12 @@ export abstract class RpcNetworkMessage extends NetworkMessage {
     return { rpcId, remaining }
   }
 
-  serializeWithMetadata(): Buffer {
+  serialize(): Buffer {
     const headerSize = 3
     const bw = bufio.write(headerSize + this.getSize())
     bw.writeU8(this.type)
     bw.writeU16(this.rpcId)
-    bw.writeBytes(this.serialize())
+    this.serializePayload(bw)
     return bw.render()
   }
 }

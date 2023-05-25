@@ -27,14 +27,12 @@ export class SignalRequestMessage extends NetworkMessage {
     this.sourceIdentity = sourceIdentity
   }
 
-  serialize(): Buffer {
-    const bw = bufio.write(this.getSize())
+  serializePayload(bw: bufio.StaticWriter | bufio.BufferWriter): void {
     bw.writeBytes(Buffer.from(this.destinationIdentity, 'base64'))
     bw.writeBytes(Buffer.from(this.sourceIdentity, 'base64'))
-    return bw.render()
   }
 
-  static deserialize(buffer: Buffer): SignalRequestMessage {
+  static deserializePayload(buffer: Buffer): SignalRequestMessage {
     const reader = bufio.read(buffer, true)
     const destinationIdentity = reader.readBytes(identityLength).toString('base64')
     const sourceIdentity = reader.readBytes(identityLength).toString('base64')

@@ -43,7 +43,7 @@
     "lint": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/",
     "lint:fix": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
     "start:js": "cross-env OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node --expose-gc --inspect=:0 --inspect-publish-uid=http --enable-source-maps bin/run",
-    "start": "yarn build && yarn start:js start",
+    "start": "cd .. && yarn build && cd simulator && yarn start:js start",
     "stop": "yarn build && yarn start:js stop",
     "test": "yarn clean && tsc -b && tsc -b tsconfig.test.json && jest --passWithNoTests",
     "test:coverage:html": "tsc -b tsconfig.test.json && jest --passWithNoTests --coverage --coverage-reporters html --testPathIgnorePatterns",
@@ -56,7 +56,7 @@
     "docs:open": "open docs/index.html"
   },
   "dependencies": {
-    "@ironfish/sdk": "1.2.0",
+    "@ironfish/sdk": "1.3.0",
     "@oclif/core": "1.23.1",
     "@oclif/plugin-help": "5.1.12",
     "@oclif/plugin-not-found": "2.3.1",

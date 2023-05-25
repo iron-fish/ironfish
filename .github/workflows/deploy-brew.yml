@@ -1,26 +1,25 @@
 name: Deploy Brew Tap Release
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      refToBuild:
+        type: string
 
 jobs:
   Deploy:
     name: Deploy
-    runs-on: macos-10.15
+    runs-on: macos-12
 
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.refToBuild }}
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: nodejs
-
-      - name: Cache Ironfish CLI Build
-        id: cache-ironfish-cli-build
-        uses: actions/cache@v3
-        with:
-          path: ironfish-cli/build.cli/ironfish-cli.tar.gz
-          key: ${{ github.sha }}
 
       - name: Use Node.js
         uses: actions/setup-node@v3
@@ -29,7 +28,6 @@ jobs:
           cache: 'yarn'
 
       - name: Build Ironfish CLI
-        if: steps.cache-ironfish-cli-build.outputs.cache-hit != 'true'
         run: ./ironfish-cli/scripts/build.sh
 
       - name: Deploy Ironfish CLI Brew

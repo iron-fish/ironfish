@@ -3,15 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Block, BlockHeader, Target } from '../../primitives'
 import { transactionCommitment } from '../../primitives/blockheader'
-import { createNodeTest, useMinersTxFixture, useTxSpendsFixture } from '../../testUtilities'
+import {
+  createNodeTest,
+  serializePayloadToBuffer,
+  useMinersTxFixture,
+  useTxSpendsFixture,
+} from '../../testUtilities'
 import { GetBlocksRequest, GetBlocksResponse } from './getBlocks'
 
 describe('GetBlocksRequest', () => {
   it('serializes the object into a buffer and deserializes to the original object', () => {
     const rpcId = 0
     const message = new GetBlocksRequest(Buffer.alloc(32), 10, rpcId)
-    const buffer = message.serialize()
-    const deserializedMessage = GetBlocksRequest.deserialize(buffer, rpcId)
+    const buffer = serializePayloadToBuffer(message)
+    const deserializedMessage = GetBlocksRequest.deserializePayload(buffer, rpcId)
     expect(deserializedMessage).toEqual(message)
   })
 })
@@ -67,8 +72,8 @@ describe('GetBlocksResponse', () => {
       ],
       rpcId,
     )
-    const buffer = message.serialize()
-    const deserializedMessage = GetBlocksResponse.deserialize(buffer, rpcId)
+    const buffer = serializePayloadToBuffer(message)
+    const deserializedMessage = GetBlocksResponse.deserializePayload(buffer, rpcId)
 
     expectGetBlocksResponseToMatch(message, deserializedMessage)
   })
