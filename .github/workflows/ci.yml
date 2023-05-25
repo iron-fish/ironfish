@@ -135,6 +135,6 @@ jobs:
         if: always()
         with:
           name: JEST Tests
-          path: "**/test-reports/jest-junit.xml"                            
-          reporter: jest-junit # Format of test results
-          fail-on-error: true
+          path: '**/test-reports/jest-junit.xml'                          
+          reporter: 'jest-junit' # Format of test results
+          fail-on-error: 'true'
