@@ -46,7 +46,6 @@ describe('Blockchain', () => {
 
   it('add blocks with forks', async () => {
     const { chain } = nodeTest
-    const size = await chain.db.size()
     // G -> A1 -> A2
     //         -> B2 -> B3
 
@@ -104,7 +103,7 @@ describe('Blockchain', () => {
     expect((await chain.getHashAtSequence(3))?.equals(headerB2.hash)).toBe(true)
     expect((await chain.getHashAtSequence(4))?.equals(headerB3.hash)).toBe(true)
 
-    expect(await chain.db.size()).toBeGreaterThanOrEqual(size)
+    expect(await chain.db.size()).toBeGreaterThan(0)
   })
 
   it('iterate', async () => {

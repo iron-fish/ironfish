@@ -354,6 +354,8 @@ export class Blockchain {
     if (this._head) {
       this.updateSynced()
     }
+
+    this.metrics.chain_databaseSize.value = await this.db.size()
   }
 
   async close(): Promise<void> {
