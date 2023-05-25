@@ -128,7 +128,7 @@ jobs:
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Run perf tests
-        run: yarn test:perf --ci --reporters=default --reporters=jest-junit
+        run: yarn test:perf:report
 
       - name: Test Report
         uses: dorny/test-reporter@v1.6.0
