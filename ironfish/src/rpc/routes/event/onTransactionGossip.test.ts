@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Peer } from '../../../network/peers/peer'
 import { useAccountFixture, useMinerBlockFixture, useTxFixture } from '../../../testUtilities'
 import { createRouteTest } from '../../../testUtilities/routeTest'
 
@@ -21,9 +20,7 @@ describe('Route event/onTransactionGossip', () => {
 
     const response = await routeTest.client.request('event/onTransactionGossip').waitForRoute()
 
-    const peer = new Peer(null)
-
-    await node.peerNetwork['onNewTransaction'](peer, transaction)
+    node.peerNetwork.onTransactionGossipReceived.emit(transaction)
 
     const { value } = await response.contentStream().next()
 
