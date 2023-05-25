@@ -128,7 +128,7 @@ jobs:
         run: yarn --non-interactive --frozen-lockfile
 
       - name: Run perf tests
-        run: yarn test:perf
+        run: yarn test:perf --ci --reporters=default --reporters=jest-junit
 
       - name: Test Report
         uses: dorny/test-reporter@v1.6.0
@@ -141,6 +141,7 @@ jobs:
 
       - name: Archive Test Report
         uses: actions/upload-artifact@v3
+        if: always()
         with:
           name: upload-test-report
           path: ironfish/test-reports/jest-junit.xml
