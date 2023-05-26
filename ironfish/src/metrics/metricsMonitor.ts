@@ -19,6 +19,7 @@ export class MetricsMonitor {
 
   readonly mining_newBlockTemplate: Meter
   readonly chain_newBlock: Meter
+  readonly chain_databaseSize: Gauge
   readonly mining_newBlockTransactions: Meter
 
   readonly p2p_InboundTraffic: Meter
@@ -66,6 +67,7 @@ export class MetricsMonitor {
 
     this.mining_newBlockTemplate = this.addMeter()
     this.chain_newBlock = this.addMeter()
+    this.chain_databaseSize = new Gauge()
     this.mining_newBlockTransactions = this.addMeter({ maxRollingAverageSamples: 100 })
 
     this.p2p_InboundTraffic = this.addMeter()

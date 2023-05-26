@@ -1300,16 +1300,25 @@ export class Wallet {
       return TransactionType.MINER
     }
 
-    let send = false
-
     for (const spend of transaction.transaction.spends) {
       if ((await account.getNoteHash(spend.nullifier, tx)) !== undefined) {
-        send = true
-        break
+        return TransactionType.SEND
       }
     }
 
-    return send ? TransactionType.SEND : TransactionType.RECEIVE
+    for (const note of transaction.transaction.notes) {
+      const decryptedNote = await account.getDecryptedNote(note.hash(), tx)
+
+      if (!decryptedNote) {
+        continue
+      }
+
+      if (decryptedNote.note.sender() === account.publicAddress) {
+        return TransactionType.SEND
+      }
+    }
+
+    return TransactionType.RECEIVE
   }
 
   async createAccount(name: string, setDefault = false): Promise<Account> {
