@@ -167,6 +167,7 @@ export class WebApi {
           id: burn.assetId.toString('hex'),
           value: burn.value.toString(),
         })),
+        expiration: transaction.expiration(),
       })
     }
 
