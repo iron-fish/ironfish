@@ -126,7 +126,6 @@ dependencies = [
  "ec-gpu",
  "ec-gpu-gen",
  "ff 0.12.1",
- "fs2",
  "group 0.12.1",
  "log",
  "memmap2",
@@ -302,7 +301,6 @@ checksum = "3ecb6f3a9429706971633edf4b84f922aba9d2e3a7d71bfb450337e64ccb7df0"
 dependencies = [
  "blst",
  "byte-slice-cast",
- "ec-gpu",
  "ff 0.12.1",
  "group 0.12.1",
  "pairing 0.22.0",
@@ -415,25 +413,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ee52072ec15386f770805afd189a01c8841be8696bed250fa2f13c4c0d6dfb7"
 dependencies = [
  "generic-array",
-]
-
-[[package]]
-name = "cl-sys"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8573fa3ff8acd6c49e8e113296c54277e82376b96c6ca6307848632cce38e44"
-dependencies = [
- "libc",
-]
-
-[[package]]
-name = "cl3"
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9f2217b5993b54a819ac8e8569cc429702c8975a88d52c73e530f1f813576a3"
-dependencies = [
- "cl-sys",
- "libc",
 ]
 
 [[package]]
@@ -667,15 +646,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dirs"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
-dependencies = [
- "dirs-sys",
-]
-
-[[package]]
 name = "dirs-sys"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -709,7 +679,6 @@ dependencies = [
  "num_cpus",
  "once_cell",
  "rayon",
- "rust-gpu-tools",
  "sha2 0.10.6",
  "thiserror",
  "yastl",
@@ -724,7 +693,7 @@ checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
 [[package]]
 name = "equihash"
 version = "0.2.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
 dependencies = [
  "blake2b_simd",
  "byteorder",
@@ -758,7 +727,7 @@ checksum = "55a9a55d1dab3b07854648d48e366f684aefe2ac78ae28cec3bf65e3cd53d9a3"
 dependencies = [
  "execute-command-tokens",
  "quote",
- "syn 2.0.15",
+ "syn 2.0.18",
 ]
 
 [[package]]
@@ -770,7 +739,7 @@ checksum = "8ba569491c70ec8471e34aa7e9c0b9e82bb5d2464c0398442d17d3c4af814e5a"
 [[package]]
 name = "f4jumble"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
 dependencies = [
  "blake2b_simd",
 ]
@@ -817,16 +786,6 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
-]
-
-[[package]]
-name = "fs2"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213"
-dependencies = [
- "libc",
- "winapi",
 ]
 
 [[package]]
@@ -1363,16 +1322,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
-name = "opencl3"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "931cc2ab3068142384dbdaba142681c11b315cf3b96c7a59e8480d062363387f"
-dependencies = [
- "cl3",
- "libc",
-]
-
-[[package]]
 name = "orchard"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1537,18 +1486,18 @@ checksum = "7be55bf0ae1635f4d7c7ddd6efc05c631e98a82104a73d35550bbc52db960027"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.56"
+version = "1.0.59"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b63bdb0cd06f1f4dedf69b254734f9b45af66e4a031e42a7480257d9898b435"
+checksum = "6aeca18b86b413c660b781aa319e4e2648a3e6f9eadc9b47e9038e6fe9f3451b"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "quote"
-version = "1.0.26"
+version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4424af4bf778aae2051a77b60283332f386554255d722233d09fbfc7e30da2fc"
+checksum = "1b9ab9c7eadfd8df19006f1cf1a4aed13540ed5cbc047010ece5826e10825488"
 dependencies = [
  "proc-macro2",
 ]
@@ -1741,23 +1690,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
-name = "rust-gpu-tools"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b2838e99bd4c9b3e6a963194440c6c5b66721d3f127625d709236ecaa1a730f"
-dependencies = [
- "dirs",
- "hex",
- "lazy_static",
- "log",
- "once_cell",
- "opencl3",
- "sha2 0.10.6",
- "temp-env",
- "thiserror",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1889,9 +1821,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.15"
+version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a34fcf3e8b60f57e6a14301a2e916d323af98b0ea63c599441eec8558660c822"
+checksum = "32d41677bcbe24c20c52e7c70b0d8db04134c5d1066bf98662e2871ad200ea3e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1915,15 +1847,6 @@ name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
-
-[[package]]
-name = "temp-env"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45107136c2ddf8c4b87453c02294fd0adf41751796e81e8ba3f7fd951977ab57"
-dependencies = [
- "once_cell",
-]
 
 [[package]]
 name = "textwrap"
@@ -2281,7 +2204,7 @@ dependencies = [
 [[package]]
 name = "zcash_address"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
 dependencies = [
  "bech32",
  "bs58",
@@ -2292,7 +2215,7 @@ dependencies = [
 [[package]]
 name = "zcash_encoding"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
 dependencies = [
  "byteorder",
  "nonempty",
@@ -2313,7 +2236,7 @@ dependencies = [
 [[package]]
 name = "zcash_note_encryption"
 version = "0.1.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
 dependencies = [
  "chacha20",
  "chacha20poly1305",
@@ -2324,7 +2247,7 @@ dependencies = [
 [[package]]
 name = "zcash_primitives"
 version = "0.7.0"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
 dependencies = [
  "aes",
  "bip0039",
@@ -2357,7 +2280,7 @@ dependencies = [
 [[package]]
 name = "zcash_proofs"
 version = "0.7.1"
-source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d9dc41180a76f09b7b6a0314046b457d13470051"
+source = "git+https://github.com/iron-fish/librustzcash.git?branch=blstrs#d551820030cb596eafe82226667f32b47164f91b"
 dependencies = [
  "bellperson",
  "blake2b_simd",
