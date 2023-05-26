@@ -1,7 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { FollowChainStreamResponse, Meter, TimeUtils, Transaction, WebApi } from '@ironfish/sdk'
+import {
+  FollowChainStreamResponse,
+  Meter,
+  RpcClient,
+  TimeUtils,
+  Transaction,
+  WebApi,
+} from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../../command'
 import { RemoteFlags } from '../../flags'
@@ -67,17 +74,22 @@ export default class Sync extends IronfishCommand {
 
     this.log('Connecting to node...')
 
+    const client = await this.sdk.connectRpc()
+
     const api = new WebApi({ host: apiHost, token: apiToken })
 
     const head = args.head as string | null
 
-    void this.syncTransactionGossip(api, flags.maxUpload)
-    await this.syncBlocks(api, head, flags.maxUpload)
+    void this.syncTransactionGossip(client, api, flags.maxUpload)
+    await this.syncBlocks(client, api, head, flags.maxUpload)
   }
 
-  async syncBlocks(api: WebApi, head: string | null, maxUpload: number): Promise<void> {
-    const client = await this.sdk.connectRpc()
-
+  async syncBlocks(
+    client: RpcClient,
+    api: WebApi,
+    head: string | null,
+    maxUpload: number,
+  ): Promise<void> {
     if (!head) {
       this.log(`Fetching head from ${api.host}`)
       head = await api.headBlocks()
@@ -133,9 +145,11 @@ export default class Sync extends IronfishCommand {
     await commit()
   }
 
-  async syncTransactionGossip(api: WebApi, maxUpload: number): Promise<void> {
-    const client = await this.sdk.connectRpc()
-
+  async syncTransactionGossip(
+    client: RpcClient,
+    api: WebApi,
+    maxUpload: number,
+  ): Promise<void> {
     const response = client.event.onTransactionGossipStream({})
 
     const buffer = new Array<Transaction>()
