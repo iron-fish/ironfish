@@ -17,16 +17,15 @@ import { MathUtils, UnwrapPromise } from '../utils'
 
 describe('Blockchain', () => {
   const nodeTest = createNodeTest()
+  const blocksA = new Array<Block>()
+  const blocksB = new Array<Block>()
 
-  it('Add Block with fork', async () => {
+  beforeAll(async () => {
     const { node: nodeA } = await nodeTest.createSetup()
     const { node: nodeB } = await nodeTest.createSetup()
 
     const accountA = await useAccountFixture(nodeA.wallet, 'accountA')
     const accountB = await useAccountFixture(nodeB.wallet, 'accountB')
-
-    const blocksA = new Array<Block>()
-    const blocksB = new Array<Block>()
 
     // Create 100 blocks each on nodeA and nodeB
     for (let i = 0; i < 100; ++i) {
@@ -46,10 +45,7 @@ describe('Blockchain', () => {
         blockB = bB
       }
 
-      await Promise.all([
-        expect(nodeA.chain).toAddBlock(blockA),
-        expect(nodeB.chain).toAddBlock(blockB),
-      ])
+      await Promise.all([nodeA.chain.addBlock(blockA), nodeB.chain.addBlock(blockB)])
 
       await Promise.all([nodeA.wallet.updateHead(), nodeB.wallet.updateHead()])
 
@@ -61,104 +57,195 @@ describe('Blockchain', () => {
     const balanceB = await nodeB.wallet.getBalance(accountB, Asset.nativeId())
 
     // You'll need to update this if the block reward changes
-    expect(balanceA.confirmed).toEqual(BigInt(1999999901))
-    expect(balanceA.unconfirmed).toEqual(BigInt(1999999901))
-    expect(balanceB.confirmed).toEqual(BigInt(1999999901))
-    expect(balanceB.unconfirmed).toEqual(BigInt(1999999901))
+    Assert.isEqual(balanceA.confirmed, BigInt(1999999901))
+    Assert.isEqual(balanceA.unconfirmed, BigInt(1999999901))
+    Assert.isEqual(balanceB.confirmed, BigInt(1999999901))
+    Assert.isEqual(balanceB.unconfirmed, BigInt(1999999901))
+  })
 
-    async function runTest(
-      testCount: number,
-      forkLength: number,
-    ): Promise<{
-      testCount: number
-      forkLength: number
-      all: number[]
-      add: number[]
-      fork: number[]
-      rewind: number[]
-    }> {
-      forkLength = Math.min(Math.min(forkLength, blocksA.length), blocksB.length)
+  it('Times Ran: 5, Fork Length: 1', async () => {
+    const result = await runTest(5, 1)
+    printResults(result)
 
-      const samplesAll = []
-      const samplesAdd = []
-      const samplesFork = []
-      const samplesRewind = []
+    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
+    expect(totalTestAverageTime).toBeLessThanOrEqual(16.6)
 
-      for (let i = 0; i < testCount; i++) {
-        console.log(`Running Test ${i}`)
+    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
+    expect(addBlockLinearTime).toBeLessThanOrEqual(1)
 
-        const { node } = await nodeTest.createSetup()
+    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
+    expect(addBlockOnForkTime).toBeLessThanOrEqual(1)
 
-        const startAll = Date.now()
+    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
+    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(16.6)
+  })
 
-        // Add 99 blocks from blocksA
-        for (let i = 0; i < forkLength - 1; ++i) {
-          const startAdd = Date.now()
-          await node.chain.addBlock(blocksA[i])
-          const endAdd = Date.now()
-          samplesAdd.push(endAdd - startAdd)
-        }
+  it('Times Ran: 5, Fork Length: 3', async () => {
+    const result = await runTest(5, 3)
+    printResults(result)
 
-        // Add 99 blocks from blocksB
-        for (let i = 0; i < forkLength - 1; ++i) {
-          const startFork = Date.now()
-          await node.chain.addBlock(blocksB[i])
-          const endFork = Date.now()
-          samplesFork.push(endFork - startFork)
-        }
+    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
+    expect(totalTestAverageTime).toBeLessThanOrEqual(274.6)
 
-        // Now add the new heaviest block from blockB which causes
-        // the blocks from blocksB to be removed from the trees
-        const startRewind = Date.now()
-        await node.chain.addBlock(blocksB[forkLength - 1])
-        const endRewind = Date.now()
-        samplesRewind.push(endRewind - startRewind)
+    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
+    expect(addBlockLinearTime).toBeLessThanOrEqual(38.2)
 
-        const endAll = Date.now()
-        samplesAll.push(endAll - startAll)
+    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
+    expect(addBlockOnForkTime).toBeLessThanOrEqual(20.2)
 
-        // Verify the head is the last block in blocksB
-        const actualHead = node.chain.head
-        const expectedHead = blocksB[forkLength - 1]
-        Assert.isNotNull(actualHead, 'Chain has no head')
-        expect(actualHead.hash.toString('hex')).toEqual(
-          expectedHead.header.hash.toString('hex'),
-        )
+    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
+    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(157.8)
+  })
+
+  it('Times Ran: 5, Fork Length: 5', async () => {
+    const result = await runTest(5, 5)
+    printResults(result)
+
+    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
+    expect(totalTestAverageTime).toBeLessThanOrEqual(612.2)
+
+    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
+    expect(addBlockLinearTime).toBeLessThanOrEqual(57.3)
+
+    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
+    expect(addBlockOnForkTime).toBeLessThanOrEqual(75.1)
+
+    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
+    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(82.6)
+  })
+
+  it('Times Ran: 5, Fork Length: 10', async () => {
+    const result = await runTest(5, 10)
+    printResults(result)
+
+    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
+    expect(totalTestAverageTime).toBeLessThanOrEqual(1598.8)
+
+    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
+    expect(addBlockLinearTime).toBeLessThanOrEqual(67.49)
+
+    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
+    expect(addBlockOnForkTime).toBeLessThanOrEqual(99.64)
+
+    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
+    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(94.6)
+  })
+
+  it('Times Ran: 5, Fork Length: 50', async () => {
+    const result = await runTest(5, 50)
+    printResults(result)
+
+    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
+    expect(totalTestAverageTime).toBeLessThanOrEqual(13709.4)
+
+    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
+    expect(addBlockLinearTime).toBeLessThanOrEqual(74.29)
+
+    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
+    expect(addBlockOnForkTime).toBeLessThanOrEqual(201.62)
+
+    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
+    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(189.0)
+  })
+
+  it('Times Ran: 5, Fork Length: 100', async () => {
+    const result = await runTest(5, 100)
+    printResults(result)
+
+    const totalTestAverageTime = MathUtils.arrayAverage(result.all)
+    expect(totalTestAverageTime).toBeLessThanOrEqual(43504.2)
+
+    const addBlockLinearTime = MathUtils.arrayAverage(result.add)
+    expect(addBlockLinearTime).toBeLessThanOrEqual(84.23)
+
+    const addBlockOnForkTime = MathUtils.arrayAverage(result.fork)
+    expect(addBlockOnForkTime).toBeLessThanOrEqual(351.67)
+
+    const addHeadRewindForkBlocksTime = MathUtils.arrayAverage(result.rewind)
+    expect(addHeadRewindForkBlocksTime).toBeLessThanOrEqual(349.2)
+  })
+
+  async function runTest(
+    testCount: number,
+    forkLength: number,
+  ): Promise<{
+    testCount: number
+    forkLength: number
+    all: number[]
+    add: number[]
+    fork: number[]
+    rewind: number[]
+  }> {
+    forkLength = Math.min(Math.min(forkLength, blocksA.length), blocksB.length)
+
+    const samplesAll: number[] = []
+    const samplesAdd: number[] = []
+    const samplesFork: number[] = []
+    const samplesRewind: number[] = []
+
+    for (let i = 0; i < testCount; i++) {
+      console.log(`Running Test ${i}`)
+
+      const { node } = await nodeTest.createSetup()
+
+      const startAll = Date.now()
+
+      // Add 99 blocks from blocksA
+      for (let i = 0; i < forkLength - 1; ++i) {
+        const startAdd = Date.now()
+        await node.chain.addBlock(blocksA[i])
+        const endAdd = Date.now()
+        samplesAdd.push(endAdd - startAdd)
       }
 
-      return {
-        testCount,
-        forkLength,
-        all: samplesAll,
-        add: samplesAdd,
-        rewind: samplesRewind,
-        fork: samplesFork,
+      // Add 99 blocks from blocksB
+      for (let i = 0; i < forkLength - 1; ++i) {
+        const startFork = Date.now()
+        await node.chain.addBlock(blocksB[i])
+        const endFork = Date.now()
+        samplesFork.push(endFork - startFork)
       }
+
+      // Now add the new heaviest block from blockB which causes
+      // the blocks from blocksB to be removed from the trees
+      const startRewind = Date.now()
+      await node.chain.addBlock(blocksB[forkLength - 1])
+      const endRewind = Date.now()
+      samplesRewind.push(endRewind - startRewind)
+
+      const endAll = Date.now()
+      samplesAll.push(endAll - startAll)
+
+      // Verify the head is the last block in blocksB
+      const actualHead = node.chain.head
+      const expectedHead = blocksB[forkLength - 1]
+      Assert.isNotNull(actualHead, 'Chain has no head')
+      expect(actualHead.hash.toString('hex')).toEqual(expectedHead.header.hash.toString('hex'))
     }
 
-    function printResults(result: UnwrapPromise<ReturnType<typeof runTest>>): void {
-      console.log(
-        `[TEST RESULTS: Times Ran: ${result.testCount}, Fork Length: ${result.forkLength}]` +
-          `\nTotal Test Average: ${MathUtils.arrayAverage(result.all).toFixed(2)}ms` +
-          `\nInsert ${result.forkLength - 1} blocks linear: ${MathUtils.arrayAverage(
-            result.add,
-          ).toFixed(2)}ms` +
-          `\nInsert ${result.forkLength - 1} blocks on fork: ${MathUtils.arrayAverage(
-            result.fork,
-          ).toFixed(2)}ms` +
-          `\nAdd head rewind fork blocks: ${MathUtils.arrayAverage(result.rewind).toFixed(
-            2,
-          )}ms`,
-      )
+    return {
+      testCount,
+      forkLength,
+      all: samplesAll,
+      add: samplesAdd,
+      rewind: samplesRewind,
+      fork: samplesFork,
     }
+  }
 
-    printResults(await runTest(5, 1))
-    printResults(await runTest(5, 3))
-    printResults(await runTest(5, 5))
-    printResults(await runTest(5, 10))
-    printResults(await runTest(5, 50))
-    printResults(await runTest(5, 100))
-  }, 600000)
+  function printResults(result: UnwrapPromise<ReturnType<typeof runTest>>): void {
+    console.log(
+      `[TEST RESULTS: Times Ran: ${result.testCount}, Fork Length: ${result.forkLength}]` +
+        `\nTotal Test Average: ${MathUtils.arrayAverage(result.all).toFixed(2)}ms` +
+        `\nInsert ${result.forkLength - 1} blocks linear: ${MathUtils.arrayAverage(
+          result.add,
+        ).toFixed(2)}ms` +
+        `\nInsert ${result.forkLength - 1} blocks on fork: ${MathUtils.arrayAverage(
+          result.fork,
+        ).toFixed(2)}ms` +
+        `\nAdd head rewind fork blocks: ${MathUtils.arrayAverage(result.rewind).toFixed(2)}ms`,
+    )
+  }
 })
 
 // Last results on Jason Spafford's Machine

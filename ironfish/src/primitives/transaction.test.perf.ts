@@ -10,7 +10,7 @@ import { createRawTransaction } from '../testUtilities/helpers/transaction'
 import { createNodeTest } from '../testUtilities/nodeTest'
 import { BigIntUtils, CurrencyUtils } from '../utils'
 import { BenchUtils } from '../utils/bench'
-import { Account } from '../wallet'
+import { Account, Wallet } from '../wallet'
 import { RawTransaction } from './rawTransaction'
 
 type Results = { spends: number; outputs: number; elapsed: number }
@@ -27,25 +27,28 @@ describe('Transaction', () => {
   ]
 
   let account: Account
+  let wallet: Wallet
 
-  it('post', async () => {
-    const { chain, wallet } = nodeTest
+  beforeAll(async () => {
+    const { node } = await nodeTest.createSetup()
 
-    account = await useAccountFixture(wallet)
-
+    account = await useAccountFixture(node.wallet, 'test')
+    wallet = node.wallet
     // Generate enough notes for the tests
     for (let i = 0; i < Math.max(...TEST_AMOUNTS.map((t) => t.spends)); i++) {
-      const block = await useMinerBlockFixture(chain, undefined, account, wallet)
-      await expect(chain).toAddBlock(block)
-      await wallet.updateHead()
+      const block = await useMinerBlockFixture(node.chain, undefined, account, node.wallet)
+      await node.chain.addBlock(block)
+      await node.wallet.updateHead()
     }
   })
 
-  it(`test spends: ${TEST_AMOUNTS[0].spends} outputs: ${TEST_AMOUNTS[0].outputs}`, async () => {
-    const results = await runTest(account, TEST_AMOUNTS[0].spends, TEST_AMOUNTS[0].outputs)
-    expect(results).toBeDefined()
-    printResults(results)
-  })
+  for (const input of TEST_AMOUNTS) {
+    it(`test spends: ${input.spends} outputs: ${input.outputs}`, async () => {
+      const results = await runTest(account, input.spends, input.outputs)
+      expect(results).toBeDefined()
+      printResults(results)
+    })
+  }
 
   function printResults(results: Results) {
     console.log(
@@ -93,7 +96,7 @@ describe('Transaction', () => {
     }
 
     return createRawTransaction({
-      wallet: nodeTest.wallet,
+      wallet: wallet,
       from: account,
       amount: spendAmount,
       outputs,
