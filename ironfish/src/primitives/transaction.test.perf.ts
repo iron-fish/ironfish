@@ -16,8 +16,7 @@ import { RawTransaction } from './rawTransaction'
 type Results = { spends: number; outputs: number; elapsed: number }
 
 describe('Transaction', () => {
-  const nodeTest = createNodeTest()
-
+  const nodeTest = createNodeTest(true)
   const TEST_AMOUNTS = [
     { spends: 1, outputs: 1 },
     { spends: 10, outputs: 1 },

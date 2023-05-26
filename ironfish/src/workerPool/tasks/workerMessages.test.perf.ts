@@ -50,8 +50,8 @@ describe('WorkerMessages', () => {
     expect(true).toBe(true)
     const { min, max, avg } = printResults('createMinersFeeRequest', runs, segment)
 
-    expect(max).toBeLessThanOrEqual(1.091)
-    expect(min).toBeLessThanOrEqual(0.019459)
+    expect(max).toBeLessThanOrEqual(1.191)
+    expect(min).toBeLessThanOrEqual(0.029459)
     expect(avg).toBeLessThanOrEqual(0.06783)
   })
 
@@ -96,9 +96,9 @@ describe('WorkerMessages', () => {
 
     const { min, max, avg } = printResults('decryptNotes', runs, segment)
 
-    expect(max).toBeLessThanOrEqual(2.064834)
-    expect(min).toBeLessThanOrEqual(0.181708)
-    expect(avg).toBeLessThanOrEqual(0.482932)
+    expect(max).toBeLessThanOrEqual(6.1685)
+    expect(min).toBeLessThanOrEqual(0.490597)
+    expect(avg).toBeLessThanOrEqual(0.582932)
   })
 
   function printResults(

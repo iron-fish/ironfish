@@ -155,7 +155,6 @@ export function createNodeTest(preserveState = false, options: NodeTestOptions =
 
   if (preserveState) {
     beforeAll(() => nodeTest.setup(), 10000)
-    afterEach(() => nodeTest.teardownEach())
     afterAll(() => nodeTest.teardownAll())
   } else {
     beforeEach(() => nodeTest.setup(), 10000)
