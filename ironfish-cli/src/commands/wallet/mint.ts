@@ -36,7 +36,7 @@ export class Mint extends IronfishCommand {
     fee: IronFlag({
       char: 'o',
       description: 'The fee amount in IRON',
-      largerThan: 0n,
+      minimum: 1n,
       flagName: 'fee',
     }),
     amount: IronFlag({
