@@ -41,7 +41,7 @@ export class MiningManager {
   blocksMined = 0
   minersConnected = 0
 
-  preparedMinersFee: Map<number, Promise<Transaction>> = new Map()
+  emptyMinersFeeCache: Map<number, Promise<Transaction>> = new Map()
 
   readonly onNewBlock = new Event<[Block]>()
 
@@ -122,6 +122,40 @@ export class MiningManager {
     }
   }
 
+  async getEmptyMinersFee(sequence: number, spendingKey: string): Promise<Transaction> {
+    this.node.logger.debug(`[krx] Starting getEmptyMinersFee ${sequence}`)
+    let minersFee: Transaction
+    const minersFeePromise = this.emptyMinersFeeCache.get(sequence)
+    if (minersFeePromise != undefined) {
+      this.node.logger.debug(`[krx] Found prepared miners fee ${sequence}`)
+      minersFee = await minersFeePromise
+    } else {
+      this.node.logger.debug(`[krx] Can't find prepared miners fee. Creating. ${sequence}`)
+      minersFee = await this.node.strategy.createMinersFee(
+        BigInt(0),
+        sequence,
+        spendingKey
+      )
+    }
+
+    const nextSequence = sequence + 1
+    this.node.logger.debug(`[krx] Firing background empty miners fee routine for ${nextSequence}`)
+    this.emptyMinersFeeCache.set(
+      nextSequence,
+      this.node.strategy.createMinersFee(
+        BigInt(0),
+        nextSequence,
+        spendingKey
+      )
+    )
+
+    const prevSequence = sequence - 1
+    this.emptyMinersFeeCache.delete(prevSequence)
+
+    return minersFee
+  }
+
+
   /**
    * Construct the new block template which is everything a miner needs to begin mining.
    *
@@ -140,37 +174,11 @@ export class MiningManager {
       `[krx] Begin constructing new block template for block sequence ${newBlockSequence}`,
     )
 
-    // const currBlockSize = getBlockWithMinersFeeSize()
-
     this.node.logger.debug(`[krx] Getting new block transactions ${newBlockSequence}`)
-    // const { totalFees, blockTransactions, newBlockSize } = await this.getNewBlockTransactions(
-    //   newBlockSequence,
-    //   currBlockSize,
-    // )
-    const newBlockSize = 846
-    const totalFees = BigInt(0)
-    const blockTransactions: Transaction[] = []
+
+
     // Calculate the final fee for the miner of this block
-    this.node.logger.debug(`[krx] Creating miners fee ${newBlockSequence}`)
-    let minersFee: Transaction
-    const minersFeePromise = this.preparedMinersFee.get(newBlockSequence)
-    if (minersFeePromise !== undefined) {
-      this.node.logger.debug(`[krx] Found prepared miners fee ${newBlockSequence}`)
-      minersFee = await minersFeePromise
-    } else {
-      this.node.logger.debug(`[krx] Can't find prepared miners fee. Creating. ${newBlockSequence}`)
-      minersFee = await this.node.strategy.createMinersFee(
-        totalFees,
-        newBlockSequence,
-        account.spendingKey,
-      )
-    }
-    this.node.logger.debug(`[krx] Firing background createMinersFee routine for ${newBlockSequence + 1}`)
-    this.preparedMinersFee.set(
-      newBlockSequence + 1,
-      this.node.strategy.createMinersFee(BigInt(0), newBlockSequence + 1, account.spendingKey),
-    )
-    this.preparedMinersFee.delete(newBlockSequence)
+    const minersFee = await this.getEmptyMinersFee(newBlockSequence, account.spendingKey)
     this.node.logger.debug(
       `[krx] Constructed miner's reward transaction for account ${account.displayName}, block sequence ${newBlockSequence}`,
     )
@@ -184,6 +192,8 @@ export class MiningManager {
 
     // Create the new block as a template for mining
     this.node.logger.debug(`[krx] Creating new block ${newBlockSequence}`)
+    const newBlockSize = getBlockWithMinersFeeSize()
+    const blockTransactions: Transaction[] = []
     const newBlock = await this.chain.newBlock(
       blockTransactions,
       minersFee,
