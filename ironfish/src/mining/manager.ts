@@ -126,7 +126,7 @@ export class MiningManager {
     this.node.logger.debug(`[krx] Starting getEmptyMinersFee ${sequence}`)
     let minersFee: Transaction
     const minersFeePromise = this.emptyMinersFeeCache.get(sequence)
-    if (minersFeePromise != undefined) {
+    if (minersFeePromise !== undefined) {
       this.node.logger.debug(`[krx] Found prepared miners fee ${sequence}`)
       minersFee = await minersFeePromise
     } else {
@@ -139,15 +139,17 @@ export class MiningManager {
     }
 
     const nextSequence = sequence + 1
-    this.node.logger.debug(`[krx] Firing background empty miners fee routine for ${nextSequence}`)
-    this.emptyMinersFeeCache.set(
-      nextSequence,
-      this.node.strategy.createMinersFee(
-        BigInt(0),
+    if (this.emptyMinersFeeCache.get(nextSequence) === undefined) {
+      this.node.logger.debug(`[krx] Firing background empty miners fee routine for ${nextSequence}`)
+      this.emptyMinersFeeCache.set(
         nextSequence,
-        spendingKey
+        this.node.strategy.createMinersFee(
+          BigInt(0),
+          nextSequence,
+          spendingKey
+        )
       )
-    )
+    }
 
     const prevSequence = sequence - 1
     this.emptyMinersFeeCache.delete(prevSequence)
