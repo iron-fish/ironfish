@@ -42,6 +42,8 @@ export class MiningManager {
   minersConnected = 0
 
   emptyMinersFeeCache: Map<number, Promise<Transaction>> = new Map()
+  emptyBlockCache: Map<number, Block> = new Map()
+  normalBlockCache: Map<number, Block> = new Map()
 
   readonly onNewBlock = new Event<[Block]>()
 
@@ -158,11 +160,18 @@ export class MiningManager {
   }
 
   async createEmptyBlockTemplate(currentBlock: Block): Promise<SerializedBlockTemplate> {
+    const newBlockSequence = currentBlock.header.sequence + 1
+    const cachedBlock = this.emptyBlockCache.get(newBlockSequence)
+    if (cachedBlock !== undefined) {
+      this.node.logger.debug(`Hit empty block cache! ${newBlockSequence}`)
+      return BlockTemplateSerde.serialize(cachedBlock, currentBlock)
+    }
+
     const account = this.node.wallet.getDefaultAccount()
     Assert.isNotNull(account, 'Cannot mine without an account')
     Assert.isNotNull(account.spendingKey, 'Account must have spending key in order to mine')
 
-    const newBlockSequence = currentBlock.header.sequence + 1
+
     this.node.logger.debug(
       `[krx] Begin constructing new EMPTY block template for block sequence ${newBlockSequence}`,
     )
@@ -177,6 +186,8 @@ export class MiningManager {
     this.node.logger.debug(
       `[krx] Created EMPTY block template ${newBlock.header.sequence}, with ${newBlock.transactions.length} transactions`,
     )
+
+    this.emptyBlockCache.set(newBlockSequence, newBlock)
     return BlockTemplateSerde.serialize(newBlock, currentBlock)
   }
 
@@ -187,13 +198,19 @@ export class MiningManager {
    * @returns
    */
   async createNewBlockTemplate(currentBlock: Block): Promise<SerializedBlockTemplate> {
+    const newBlockSequence = currentBlock.header.sequence + 1
+    const cachedBlock = this.normalBlockCache.get(newBlockSequence)
+    if (cachedBlock !== undefined) {
+      this.node.logger.debug(`Hit normal block cache! ${newBlockSequence}`)
+      return BlockTemplateSerde.serialize(cachedBlock, currentBlock)
+    }
+
     const startTime = BenchUtils.start()
 
     const account = this.node.wallet.getDefaultAccount()
     Assert.isNotNull(account, 'Cannot mine without an account')
     Assert.isNotNull(account.spendingKey, 'Account must have spending key in order to mine')
 
-    const newBlockSequence = currentBlock.header.sequence + 1
     this.node.logger.debug(
       `[krx] Begin constructing new block template for block sequence ${newBlockSequence}`,
     )
@@ -240,6 +257,7 @@ export class MiningManager {
 
     this.metrics.mining_newBlockTemplate.add(BenchUtils.end(startTime))
 
+    this.normalBlockCache.set(newBlockSequence, newBlock)
     return BlockTemplateSerde.serialize(newBlock, currentBlock)
   }
 
